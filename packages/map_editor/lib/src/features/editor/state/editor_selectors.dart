@@ -3,7 +3,6 @@ import 'dart:ui' show Offset;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
-import '../../../application/models/terrain_selection_mode.dart';
 import '../tools/editor_tool.dart';
 import 'editor_notifier.dart';
 import 'editor_state.dart';
@@ -34,8 +33,6 @@ typedef EditorToolbarSnapshot = ({
   ProjectTilesetEntry? selectedTilesetEntry,
   MapLayer? activeLayer,
   EditorToolType activeTool,
-  TerrainSelectionMode terrainSelectionMode,
-  TerrainType selectedTerrainType,
   MapEntityKind selectedEntityKind,
   EditorEraserFootprint eraserFootprint,
   CollisionBrushSizeMode collisionBrushSizeMode,
@@ -54,7 +51,6 @@ typedef EditorWorldMapToolbarSnapshot = ({
   MapData? activeMap,
   MapLayer? activeLayer,
   EditorToolType activeTool,
-  TerrainSelectionMode terrainSelectionMode,
   bool isSaving,
   bool canSaveMap,
   bool canUndoMap,
@@ -103,13 +99,7 @@ typedef EditorMapInteractionSnapshot = ({
   EditorToolType activeTool,
   String? activeLayerId,
   EditorBrush activeBrush,
-  TerrainSelectionMode terrainSelectionMode,
-  TerrainType selectedTerrainType,
   MapEntityKind selectedEntityKind,
-  String? selectedTerrainPresetId,
-  String? selectedPathPresetId,
-  String? selectedSurfacePresetId,
-  Map<TerrainType, String> selectedTerrainPresetByType,
   EditorEraserFootprint eraserFootprint,
   CollisionBrushSizeMode collisionBrushSizeMode,
   String? selectedEntityId,
@@ -140,17 +130,6 @@ typedef EditorProjectExplorerSnapshot = ({
   PokemonCatalogSection pokemonCatalogSection,
   ProjectTilesetEntry? selectedTilesetEntry,
   String? activeMapId,
-});
-
-/// Snapshot léger pour les racines des panneaux terrain/path.
-typedef EditorTerrainLibrarySnapshot = ({
-  ProjectManifest? project,
-  ProjectSettings settings,
-  List<ProjectTilesetEntry> tilesets,
-  TerrainType selectedTerrainType,
-  Map<TerrainType, String> selectedTerrainPresetByType,
-  String? selectedTerrainPresetId,
-  String? selectedPathPresetId,
 });
 
 /// Snapshot léger pour la racine du panneau palette tileset.
@@ -270,13 +249,7 @@ final editorMapInteractionSnapshotProvider =
         activeTool: state.activeTool,
         activeLayerId: state.activeLayerId,
         activeBrush: state.activeBrush,
-        terrainSelectionMode: state.terrainSelectionMode,
-        selectedTerrainType: state.selectedTerrainType,
         selectedEntityKind: state.selectedEntityKind,
-        selectedTerrainPresetId: state.selectedTerrainPresetId,
-        selectedPathPresetId: state.selectedPathPresetId,
-        selectedSurfacePresetId: state.selectedSurfacePresetId,
-        selectedTerrainPresetByType: state.selectedTerrainPresetByType,
         eraserFootprint: state.eraserFootprint,
         collisionBrushSizeMode: state.collisionBrushSizeMode,
         selectedEntityId: state.selectedEntityId,
@@ -331,7 +304,6 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.worldRules => 'World Rules Manager',
     EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
     EditorWorkspaceMode.smartTilesStudio => 'Smart Tiles Studio',
-    EditorWorkspaceMode.pathStudio => 'Path Studio',
     EditorWorkspaceMode.environmentStudio => 'Environment Studio',
     EditorWorkspaceMode.personalizationStudio => 'Personalization Studio',
     EditorWorkspaceMode.borderStudio => 'Border Studio',
@@ -372,8 +344,6 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Verdict de jouabilité, solvabilité et raccordements Event par map.',
     EditorWorkspaceMode.smartTilesStudio =>
       'Terrains, chemins et surfaces forestières dans un studio natif commun.',
-    EditorWorkspaceMode.pathStudio =>
-      'Créer des motifs de chemin à partir des presets PathPattern du projet.',
     EditorWorkspaceMode.environmentStudio =>
       'Presets d’environnements réutilisables',
     EditorWorkspaceMode.personalizationStudio =>
@@ -413,8 +383,6 @@ final editorToolbarSnapshotProvider = Provider<EditorToolbarSnapshot>((ref) {
         selectedTilesetEntry: _resolveSelectedTilesetEntryFromState(state),
         activeLayer: _resolveActiveLayerFromState(state),
         activeTool: state.activeTool,
-        terrainSelectionMode: state.terrainSelectionMode,
-        selectedTerrainType: state.selectedTerrainType,
         selectedEntityKind: state.selectedEntityKind,
         eraserFootprint: state.eraserFootprint,
         collisionBrushSizeMode: state.collisionBrushSizeMode,
@@ -446,7 +414,6 @@ final editorWorldMapToolbarSnapshotProvider =
         activeMap: state.activeMap,
         activeLayer: _resolveActiveLayerFromState(state),
         activeTool: state.activeTool,
-        terrainSelectionMode: state.terrainSelectionMode,
         isSaving: state.isSaving,
         canSaveMap: exposesMapActions &&
             state.activeMap != null &&
@@ -513,24 +480,6 @@ final editorProjectExplorerSnapshotProvider =
         pokemonCatalogSection: state.pokemonCatalogSection,
         selectedTilesetEntry: _resolveSelectedTilesetEntryFromState(state),
         activeMapId: state.activeMap?.id,
-      );
-    }),
-  );
-});
-
-final editorTerrainLibrarySnapshotProvider =
-    Provider<EditorTerrainLibrarySnapshot>((ref) {
-  return ref.watch(
-    editorNotifierProvider.select((state) {
-      final project = state.project;
-      return (
-        project: project,
-        settings: project?.settings ?? const ProjectSettings(),
-        tilesets: project?.tilesets ?? const <ProjectTilesetEntry>[],
-        selectedTerrainType: state.selectedTerrainType,
-        selectedTerrainPresetByType: state.selectedTerrainPresetByType,
-        selectedTerrainPresetId: state.selectedTerrainPresetId,
-        selectedPathPresetId: state.selectedPathPresetId,
       );
     }),
   );

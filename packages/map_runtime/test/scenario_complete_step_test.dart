@@ -57,10 +57,8 @@ void main() {
           ),
         ],
         edges: const <ScenarioEdge>[
-          ScenarioEdge(
-              id: 'e1', fromNodeId: 'source', toNodeId: 'complete'),
-          ScenarioEdge(
-              id: 'e2', fromNodeId: 'complete', toNodeId: 'end'),
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'complete'),
+          ScenarioEdge(id: 'e2', fromNodeId: 'complete', toNodeId: 'end'),
         ],
       );
     }

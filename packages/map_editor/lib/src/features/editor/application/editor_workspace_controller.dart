@@ -109,10 +109,6 @@ class EditorWorkspaceController {
     );
   }
 
-  EditorState selectPathStudioWorkspace(EditorState current) {
-    return _openWorkspace(current, EditorWorkspaceMode.pathStudio);
-  }
-
   EditorState selectEnvironmentStudioWorkspace(EditorState current) {
     return _openWorkspace(current, EditorWorkspaceMode.environmentStudio);
   }

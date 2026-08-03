@@ -25,8 +25,7 @@ class DeleteDialogueLibraryFolderUseCase {
     if (!exists) {
       throw EditorNotFoundException('Dialogue folder not found: $id');
     }
-    final hasChild =
-        project.dialogueFolders.any((f) => f.parentFolderId == id);
+    final hasChild = project.dialogueFolders.any((f) => f.parentFolderId == id);
     if (hasChild) {
       throw const EditorConflictException(
         'Cannot delete folder: it still contains subfolders. Remove or move them first.',
@@ -76,8 +75,7 @@ class CreateDialogueLibraryFolderUseCase {
     }
 
     final id = generateUniqueDialogueFolderId(project, trimmed);
-    final sortOrder =
-        nextDialogueLibraryFolderSortOrder(project, parent);
+    final sortOrder = nextDialogueLibraryFolderSortOrder(project, parent);
     final folder = ProjectDialogueFolder(
       id: id,
       name: trimmed,
@@ -197,8 +195,7 @@ class MoveDialogueLibraryFolderUseCase {
     final oldDirRel =
         dialogueFolderDirectoryRelativePath(project, segmentsBefore, id);
 
-    final others =
-        project.dialogueFolders.where((x) => x.id != id).toList();
+    final others = project.dialogueFolders.where((x) => x.id != id).toList();
     final sortOrder = nextDialogueLibraryFolderSortOrder(
       project.copyWith(dialogueFolders: others),
       newParent == null || newParent.isEmpty ? null : newParent,

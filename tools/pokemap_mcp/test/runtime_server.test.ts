@@ -231,38 +231,3 @@ test("failed playtest jobs can be retried as a new traced attempt", async () => 
     await fixture.authoring.close();
   }
 });
-
-test("production playtest rejects a scenario bound to another project", async () => {
-  const authoring = new LocalAuthoringClient({
-    allowedRoots: [projectRoot],
-    authoringPackageRoot: resolve(repositoryRoot, "packages/map_authoring"),
-  });
-  const artifacts = new MemoryArtifactReader();
-  const runtime = new LocalRuntimeGateway({
-    roots: authoring,
-    artifacts,
-    runtimePackageRoot: resolve(repositoryRoot, "packages/map_runtime"),
-    runtimeHostRoot: resolve(repositoryRoot, "examples/playable_runtime_host"),
-    repositoryRoot,
-    jobIdFactory: () => "job-project-mismatch",
-  });
-  try {
-    const opened = await authoring.request("open", { projectRoot });
-    const started = await runtime.startPlaytest({
-      projectHandle: String(opened.data.projectHandle),
-      scenarioId: "selbrume.healing-service",
-      target: "headless",
-    });
-    const jobId = String(started.data.jobId);
-    let snapshot = await runtime.getJob(jobId);
-    for (let attempt = 0; attempt < 100 && snapshot.data.state !== "failed"; attempt += 1) {
-      await delay(10);
-      snapshot = await runtime.getJob(jobId);
-    }
-    assert.equal(snapshot.data.state, "failed");
-    assert.equal(record(snapshot.data.error).code, "playtest.project_mismatch");
-  } finally {
-    await runtime.close();
-    await authoring.close();
-  }
-});

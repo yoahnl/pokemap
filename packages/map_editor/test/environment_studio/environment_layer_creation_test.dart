@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/application/use_cases/layer_use_cases.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -271,9 +270,6 @@ void main() {
         selectedGameplayZoneId: null,
         selectedPlacedElementInstanceId: null,
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        selectedPathAutotileSet: null,
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: null,
       ).paint(canvas, const ui.Size(64, 64));
 

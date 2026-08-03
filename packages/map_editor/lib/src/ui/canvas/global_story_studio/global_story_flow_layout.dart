@@ -126,7 +126,8 @@ List<GlobalStoryFlowBlock> buildGlobalStoryFlowBlocks({
     if (linearBuffer.isEmpty) {
       return;
     }
-    blocks.add(GlobalStoryFlowLinearBlock(steps: List<GlobalStoryFlowStepRef>.from(linearBuffer)));
+    blocks.add(GlobalStoryFlowLinearBlock(
+        steps: List<GlobalStoryFlowStepRef>.from(linearBuffer)));
     linearBuffer.clear();
   }
 
@@ -135,7 +136,8 @@ List<GlobalStoryFlowBlock> buildGlobalStoryFlowBlocks({
     if (node != null) {
       for (final link in node.links) {
         final targetName = _stepDisplayName(link.toStepId, orderedSteps);
-        if (link.conditionLabel != null && link.conditionLabel!.trim().isNotEmpty) {
+        if (link.conditionLabel != null &&
+            link.conditionLabel!.trim().isNotEmpty) {
           labels.add(link.conditionLabel!.trim());
         } else if (targetName.isNotEmpty) {
           labels.add('Mène à · $targetName');
@@ -224,7 +226,8 @@ List<GlobalStoryFlowBlock> buildGlobalStoryFlowBlocks({
 
       final arms = <GlobalStoryFlowBranchArm>[];
       for (final link in node.links) {
-        final label = (link.conditionLabel != null && link.conditionLabel!.trim().isNotEmpty)
+        final label = (link.conditionLabel != null &&
+                link.conditionLabel!.trim().isNotEmpty)
             ? link.conditionLabel!.trim()
             : _stepDisplayName(link.toStepId, orderedSteps);
         final path = _collectSingleLinkPath(
@@ -263,7 +266,8 @@ List<GlobalStoryFlowBlock> buildGlobalStoryFlowBlocks({
 
   if (blocks.isEmpty) {
     return const <GlobalStoryFlowBlock>[
-      GlobalStoryFlowNoticeBlock(message: 'Aucun fil narratif à afficher pour ce scénario.'),
+      GlobalStoryFlowNoticeBlock(
+          message: 'Aucun fil narratif à afficher pour ce scénario.'),
     ];
   }
   return blocks;

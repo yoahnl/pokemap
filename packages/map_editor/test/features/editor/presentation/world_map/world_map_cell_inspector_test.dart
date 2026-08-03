@@ -31,22 +31,10 @@ void main() {
         value: 'Bloquée',
       ),
       (
-        layerId: 'terrain',
-        layerLabel: 'Terrain (terrain)',
-        typeLabel: 'Terrain',
+        layerId: 'smart',
+        layerLabel: 'Terrain intelligent (smart)',
+        typeLabel: 'Smart Tile',
         value: 'grass',
-      ),
-      (
-        layerId: 'path',
-        layerLabel: 'Chemin (path)',
-        typeLabel: 'Path',
-        value: 'Présent · Preset road',
-      ),
-      (
-        layerId: 'surface',
-        layerLabel: 'Surface (surface)',
-        typeLabel: 'Surface',
-        value: 'water',
       ),
     ];
 
@@ -191,12 +179,12 @@ const _project = ProjectManifest(
       relativePath: 'tilesets/world.png',
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 const _map = MapData(
   id: 'map',
   name: 'Map',
+  version: ProjectVersion.v6,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     TileLayer(
@@ -210,28 +198,13 @@ const _map = MapData(
       name: 'Collision',
       collisions: <bool>[false, true, false, false],
     ),
-    TerrainLayer(
-      id: 'terrain',
-      name: 'Terrain',
-      terrains: <TerrainType>[
-        TerrainType.none,
-        TerrainType.grass,
-        TerrainType.none,
-        TerrainType.none,
-      ],
-    ),
-    PathLayer(
-      id: 'path',
-      name: 'Chemin',
-      presetId: 'road',
-      cells: <bool>[false, true, false, false],
-    ),
-    SurfaceLayer(
-      id: 'surface',
-      name: 'Surface',
-      placements: <SurfaceCellPlacement>[
-        SurfaceCellPlacement(x: 1, y: 0, surfacePresetId: 'water'),
-      ],
+    SmartTileLayer(
+      id: 'smart',
+      name: 'Terrain intelligent',
+      presetId: 'grass',
+      usage: SmartTileUsage.terrain,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(semanticCells: <int>[0, 1, 0, 0]),
     ),
   ],
 );

@@ -3,7 +3,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../application/models/map_history_snapshot.dart';
-import '../../../application/models/terrain_selection_mode.dart';
 import '../../smart_tiles_studio/application/smart_tile_studio_launch_context.dart';
 import 'models/editor_ui_modes.dart';
 import 'models/editor_palette_session.dart';
@@ -83,14 +82,7 @@ class EditorState with _$EditorState {
     String? activeLayerId,
     GridPos? hoveredTile,
     @Default(EditorBrush.none()) EditorBrush activeBrush,
-    @Default(TerrainSelectionMode.terrain)
-    TerrainSelectionMode terrainSelectionMode,
-    @Default(TerrainType.grass) TerrainType selectedTerrainType,
     @Default(MapEntityKind.npc) MapEntityKind selectedEntityKind,
-    String? selectedTerrainPresetId,
-    String? selectedPathPresetId,
-    String? selectedSurfacePresetId,
-    @Default({}) Map<TerrainType, String> selectedTerrainPresetByType,
     @Default(EditorEraserFootprint.singleTile())
     EditorEraserFootprint eraserFootprint,
     @Default(CollisionBrushSizeMode.brushFootprint)

@@ -202,6 +202,7 @@ Map<String, Object?> _manifestJson({
 }) {
   return <String, Object?>{
     'name': 'Project',
+    'version': 'v6',
     'maps': <Object?>[],
     'tilesets': <Object?>[],
     if (!identical(shadowCatalog, _shadowCatalogAbsent))
@@ -266,7 +267,6 @@ ProjectManifest _manifest({
     maps: const [],
     tilesets: const [],
     elements: elements,
-    surfaceCatalog: ProjectSurfaceCatalog(),
     shadowCatalog: shadowCatalog ?? ProjectShadowCatalog(),
   );
 }

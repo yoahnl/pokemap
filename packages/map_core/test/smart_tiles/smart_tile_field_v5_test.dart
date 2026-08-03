@@ -2,7 +2,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('SmartTileField v5 persistence', () {
+  group('SmartTileField v6 persistence', () {
     const cases = <SmartTileField>[
       SmartTileField.cell(semanticCells: <int>[1, 2]),
       SmartTileField.corner(
@@ -30,7 +30,7 @@ void main() {
         final decoded = MapData.fromJson(json);
 
         expect(decoded, map);
-        expect(json['version'], 'v5');
+        expect(json['version'], 'v6');
         final layerJson =
             (json['layers'] as List<Object?>).single as Map<String, dynamic>;
         final fieldJson = layerJson['field'] as Map<String, dynamic>;
@@ -187,7 +187,7 @@ void main() {
   group('Smart Tile persisted identifier validation', () {
     final manifest = ProjectManifest(
       name: 'Project',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(
@@ -258,7 +258,7 @@ void main() {
 MapData _mapV5({required SmartTileField field}) => MapData(
       id: 'field-map',
       name: 'Field map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 2, height: 1),
       layers: <MapLayer>[
         MapLayer.smartTile(
@@ -279,7 +279,7 @@ MapData _canonicalIdentifierMap({
     MapData(
       id: 'canonical-id-map',
       name: 'Canonical id map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 1, height: 1),
       layers: <MapLayer>[
         MapLayer.smartTile(

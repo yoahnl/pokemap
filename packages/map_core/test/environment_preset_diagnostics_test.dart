@@ -9,7 +9,6 @@ ProjectManifest _manifest({
     name: 'diag_test',
     maps: const [],
     tilesets: const [],
-    surfaceCatalog: ProjectSurfaceCatalog(),
     environmentPresets: environmentPresets,
     elements: elements,
   );

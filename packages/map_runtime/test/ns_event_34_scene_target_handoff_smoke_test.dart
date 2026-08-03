@@ -218,7 +218,6 @@ _RuntimeHandoffFixture _editorAuthoredFixture() {
     scenes: <SceneAsset>[
       _handoffScene(),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 
   return _RuntimeHandoffFixture(

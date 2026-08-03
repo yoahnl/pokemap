@@ -5,73 +5,31 @@ import 'package:test/test.dart';
 
 void main() {
   group('ProjectManifest Smart Tile catalog', () {
-    for (final version in <String>['v1', 'v2', 'v3']) {
-      test('missing catalog defaults to empty without $version JSON churn', () {
-        final manifest = ProjectManifest.fromJson(
-          _minimalManifestJson(version: version),
-        );
+    test('missing catalog defaults to empty without v6 JSON churn', () {
+      final manifest = ProjectManifest.fromJson(_minimalManifestJson());
 
-        expect(
-            manifest.smartTileCatalog, const ProjectSmartTileCatalog.empty());
-        expect(manifest.toJson(), isNot(contains('smartTileCatalog')));
-      });
-    }
+      expect(manifest.smartTileCatalog, const ProjectSmartTileCatalog.empty());
+      expect(manifest.toJson(), isNot(contains('smartTileCatalog')));
+    });
 
-    test('empty catalog round-trips in v4', () {
-      final decoded = ProjectManifest.fromJson(
-        _minimalManifestJson(version: 'v4'),
-      );
+    test('empty catalog round-trips in v6', () {
+      final decoded = ProjectManifest.fromJson(_minimalManifestJson());
       final roundTripped = ProjectManifest.fromJson(
         jsonDecode(jsonEncode(decoded.toJson())) as Map<String, dynamic>,
       );
 
-      expect(roundTripped.version, ProjectVersion.v4);
+      expect(roundTripped.version, ProjectVersion.v6);
       expect(roundTripped.smartTileCatalog.isEmpty, isTrue);
     });
 
-    test('non-empty catalog requires v5', () {
-      for (final version in <String>['v1', 'v2', 'v3', 'v4']) {
-        final json = _minimalManifestJson(version: version)
-          ..['smartTileCatalog'] = _nonEmptyCatalog.toJson();
-
-        expect(
-          () => ProjectManifest.fromJson(json),
-          throwsA(
-            isA<FormatException>().having(
-              (error) => error.message,
-              'message',
-              contains(r'$.smartTileCatalog'),
-            ),
-          ),
-          reason: version,
-        );
-      }
-    });
-
-    test('v5 persists a native catalog beside empty legacy fields', () {
-      final json = _minimalManifestJson(version: 'v5')
-        ..addAll(<String, Object?>{
-          'terrainCategories': <Object?>[],
-          'pathCategories': <Object?>[],
-          'terrainPresets': <Object?>[],
-          'pathPresets': <Object?>[],
-          'pathPatternPresets': <Object?>[],
-          'surfaceCatalog': <String, Object?>{
-            'atlases': <Object?>[],
-            'animations': <Object?>[],
-            'presets': <Object?>[],
-          },
-          'smartTileCatalog': _nonEmptyCatalog.toJson(),
-        });
+    test('v6 persists a native catalog', () {
+      final json = _minimalManifestJson()
+        ..['smartTileCatalog'] = _nonEmptyCatalog.toJson();
 
       final manifest = ProjectManifest.fromJson(json);
       final encoded = manifest.toJson();
 
       expect(manifest.smartTileCatalog, _nonEmptyCatalog);
-      expect(encoded['terrainPresets'], isEmpty);
-      expect(encoded['pathPresets'], isEmpty);
-      expect(encoded['pathPatternPresets'], isEmpty);
-      expect(encoded['surfaceCatalog'], isA<Map<String, Object?>>());
       expect(encoded['smartTileCatalog'], _nonEmptyCatalog.toJson());
     });
 
@@ -108,10 +66,10 @@ final ProjectSmartTileCatalog _nonEmptyCatalog = ProjectSmartTileCatalog(
   ],
 );
 
-Map<String, dynamic> _minimalManifestJson({required String version}) {
+Map<String, dynamic> _minimalManifestJson() {
   return <String, dynamic>{
     'name': 'Smart Tiles test project',
-    'version': version,
+    'version': 'v6',
     'maps': <Object?>[],
     'tilesets': <Object?>[],
   };

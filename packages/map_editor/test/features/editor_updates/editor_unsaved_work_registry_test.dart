@@ -7,8 +7,8 @@ void main() {
     test('rejects duplicate participant identifiers', () {
       final registry = EditorUnsavedWorkRegistry();
       final participant = _FakeParticipant(
-        id: 'path-studio',
-        kind: EditorExitBlockerKind.pathStudio,
+        id: 'dialogue-studio',
+        kind: EditorExitBlockerKind.dialogueStudio,
       );
 
       registry.register(participant);
@@ -22,32 +22,32 @@ void main() {
     test('keeps a dirty participant registered outside widget lifetime', () {
       final registry = EditorUnsavedWorkRegistry();
       final participant = _FakeParticipant(
-        id: 'path-studio',
-        kind: EditorExitBlockerKind.pathStudio,
+        id: 'dialogue-studio',
+        kind: EditorExitBlockerKind.dialogueStudio,
         isDirty: true,
       );
       registry.register(participant);
 
       expect(
-        () => registry.unregister('path-studio'),
+        () => registry.unregister('dialogue-studio'),
         throwsA(isA<StateError>()),
       );
       expect(registry.readiness.canExit, isFalse);
-      expect(registry.readiness.blockers.single.id, 'path-studio');
+      expect(registry.readiness.blockers.single.id, 'dialogue-studio');
     });
 
     test('removes a participant after its draft is resolved', () {
       final registry = EditorUnsavedWorkRegistry();
       final participant = _FakeParticipant(
-        id: 'path-studio',
-        kind: EditorExitBlockerKind.pathStudio,
+        id: 'dialogue-studio',
+        kind: EditorExitBlockerKind.dialogueStudio,
         isDirty: true,
       );
       registry.register(participant);
 
       participant.isDirty = false;
       registry.notifyChanged();
-      registry.unregister('path-studio');
+      registry.unregister('dialogue-studio');
 
       expect(registry.readiness.canExit, isTrue);
       expect(registry.participants, isEmpty);

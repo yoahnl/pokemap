@@ -55,13 +55,12 @@ void main() {
         asset: script,
       );
 
-      final manifest = ProjectManifest(
+      const manifest = ProjectManifest(
         name: 'Test Project',
         maps: [],
         tilesets: [],
         scripts: [scriptEntry],
         dialogues: [],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       var gameState = const GameState(saveId: 'test-save');
@@ -291,13 +290,12 @@ void main() {
     });
 
     test('Script throws StateError for missing script', () {
-      final manifest = ProjectManifest(
+      const manifest = ProjectManifest(
         name: 'Test Project',
         maps: [],
         tilesets: [],
         scripts: [],
         dialogues: [],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       expect(
@@ -317,11 +315,10 @@ void main() {
         relativePath: 'dialogues/test.yarn',
       );
 
-      final manifest = ProjectManifest(
+      const manifest = ProjectManifest(
         name: 'Test Project',
         maps: [],
         tilesets: [],
-        surfaceCatalog: ProjectSurfaceCatalog(),
         scripts: [],
         dialogues: [dialogueEntry],
       );
@@ -357,13 +354,12 @@ void main() {
         relativePath: 'dialogues/test.yarn',
       );
 
-      final manifest = ProjectManifest(
+      const manifest = ProjectManifest(
         name: 'Test Project',
         maps: [],
         tilesets: [],
         scripts: [],
         dialogues: [dialogueEntry],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       final resolved = resolveDialogue(
@@ -387,10 +383,9 @@ void main() {
       // Note: This test only verifies path construction, not file existence.
       // loadDialogueContent() will fail later if the file doesn't exist.
 
-      final manifest = ProjectManifest(
+      const manifest = ProjectManifest(
         name: 'Test Project',
         maps: [],
-        surfaceCatalog: ProjectSurfaceCatalog(),
         tilesets: [],
         scripts: [],
         dialogues: [],

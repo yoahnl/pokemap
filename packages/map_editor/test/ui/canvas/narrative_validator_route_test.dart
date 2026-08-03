@@ -24,7 +24,6 @@ void main() {
         name: 'Validator route project',
         maps: const [],
         tilesets: const [],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         facts: [
           NarrativeFactDefinition(
             id: 'fact_other',
@@ -208,7 +207,6 @@ void main() {
         name: 'World Rule route project',
         maps: const [],
         tilesets: const [],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         facts: [
           NarrativeFactDefinition(id: 'fact_gate', label: 'Portail ouvert'),
         ],
@@ -259,7 +257,6 @@ void main() {
         name: 'Storyline route project',
         maps: const [],
         tilesets: const [],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         storylines: [
           StorylineAsset(
             id: 'story_other',
@@ -361,7 +358,6 @@ void main() {
           ),
         ],
         tilesets: [],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
       );
       const diagnostic = NarrativeProjectDiagnostic(
         code: 'mapUnavailable',
@@ -403,7 +399,6 @@ void main() {
         name: 'Stale Dialogue route project',
         maps: [],
         tilesets: [],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
       );
       const diagnostic = NarrativeProjectDiagnostic(
         code: 'dialogueMissing',
@@ -448,7 +443,6 @@ void main() {
         name: 'Stale Event route project',
         maps: [],
         tilesets: [],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
       );
       const diagnostic = NarrativeProjectDiagnostic(
         code: 'eventMissing',
@@ -491,7 +485,6 @@ void main() {
       name: 'First',
       maps: [],
       tilesets: [],
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
     );
     final second = first.copyWith(name: 'Second');
 

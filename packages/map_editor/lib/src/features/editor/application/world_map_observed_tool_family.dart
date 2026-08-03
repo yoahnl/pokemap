@@ -31,7 +31,6 @@ WorldMapToolFamily resolveWorldMapObservedToolFamily({
     EditorToolType.tilePaint =>
       tilePaintIsPlace ? WorldMapToolFamily.place : WorldMapToolFamily.paint,
     EditorToolType.terrainPaint ||
-    EditorToolType.surfacePaint ||
     EditorToolType.collisionPaint ||
     EditorToolType.borderPaint =>
       WorldMapToolFamily.paint,

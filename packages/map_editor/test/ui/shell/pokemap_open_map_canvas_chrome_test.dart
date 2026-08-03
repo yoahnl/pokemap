@@ -9,7 +9,8 @@ import '../../shell_chrome_test_harness.dart';
 
 void main() {
   group('PokeMap Open Map Canvas Chrome Tests', () {
-    testWidgets('Renders map header details, favorite star, options pulldown and light chips',
+    testWidgets(
+        'Renders map header details, favorite star, options pulldown and light chips',
         (tester) async {
       final map = buildShellChromeMap(
         id: 'starter_town',
@@ -77,7 +78,8 @@ void main() {
       expect(find.text('Nuit douce'), findsOneWidget);
 
       // Tap on 'Soir' preset button to verify active state switching
-      final soirButton = find.byKey(const ValueKey('shadow-light-preview-evening-button'));
+      final soirButton =
+          find.byKey(const ValueKey('shadow-light-preview-evening-button'));
       expect(soirButton, findsOneWidget);
       await tester.tap(soirButton);
       await tester.pumpAndSettle();

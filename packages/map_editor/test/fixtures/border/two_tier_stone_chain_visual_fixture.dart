@@ -364,7 +364,7 @@ final class TwoTierStoneChainVisualFixture {
     return MapData(
       id: 'two-tier-stone-chain-visual-${resolution.visualCase.id}',
       name: resolution.visualCase.id,
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: twoTierStoneChainVisualMapSize,
       properties: const <String, dynamic>{
         'tileLayerOrder': 'bottom_to_top',

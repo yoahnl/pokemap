@@ -10,7 +10,6 @@ const int surfaceTestTileSize = 32;
 
 RuntimeMapBundle surfaceTestBundle({
   required MapData map,
-  ProjectSurfaceCatalog? surfaceCatalog,
   List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[
     ProjectTilesetEntry(
       id: 'surface-water',
@@ -28,8 +27,6 @@ RuntimeMapBundle surfaceTestBundle({
       relativePath: 'tilesets/entity.png',
     ),
   ],
-  List<ProjectTerrainPreset> terrainPresets = const <ProjectTerrainPreset>[],
-  List<ProjectPathPreset> pathPresets = const <ProjectPathPreset>[],
   List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
 }) {
   return RuntimeMapBundle(
@@ -42,10 +39,8 @@ RuntimeMapBundle surfaceTestBundle({
         tileHeight: surfaceTestTileSize,
         displayScale: 1,
       ),
-      terrainPresets: terrainPresets,
-      pathPresets: pathPresets,
+      smartTileCatalog: runtimeTestSmartTileCatalog,
       elements: elements,
-      surfaceCatalog: surfaceCatalog ?? surfaceTestCatalog(),
     ),
     map: map,
     projectRootDirectory: '/tmp/surface-runtime-test',
@@ -60,93 +55,86 @@ MapData surfaceTestMap({
   return MapData(
     id: 'surface-test',
     name: 'Surface Test',
+    version: ProjectVersion.v6,
     size: const GridSize(width: 1, height: 1),
     layers: layers,
     entities: entities,
   );
 }
 
-SurfaceLayer surfaceTestLayer({
+SmartTileLayer runtimeTestBaseLayer({
   bool isVisible = true,
   double opacity = 1,
-  String surfacePresetId = 'water',
 }) {
-  return SurfaceLayer(
-    id: 'surfaces',
-    name: 'Surfaces',
+  return SmartTileLayer(
+    id: 'base-layer',
+    name: 'Base',
     isVisible: isVisible,
     opacity: opacity,
-    placements: [
-      SurfaceCellPlacement(
-        x: 0,
-        y: 0,
-        surfacePresetId: surfacePresetId,
-      ),
-    ],
+    presetId: 'runtime-base',
+    usage: SmartTileUsage.terrain,
+    materialPalette: const <String>['', 'runtime-base-material'],
+    field: const SmartTileField.cell(semanticCells: <int>[1]),
   );
 }
 
-ProjectSurfaceCatalog surfaceTestCatalog({
-  bool includeAtlas = true,
-  bool includeAnimation = true,
-  bool includePreset = true,
-  int atlasColumns = 1,
-  int sourceColumn = 0,
-  String atlasTilesetId = 'surface-water',
-  String animationId = 'water-loop',
-}) {
-  return ProjectSurfaceCatalog(
-    atlases: [
-      if (includeAtlas)
-        ProjectSurfaceAtlas(
-          id: 'water-atlas',
-          name: 'Water Atlas',
-          tilesetId: atlasTilesetId,
-          geometry: SurfaceAtlasGeometry(
-            tileSize: SurfaceAtlasTileSize(
-              width: surfaceTestTileSize,
-              height: surfaceTestTileSize,
-            ),
-            gridSize: SurfaceAtlasGridSize(columns: atlasColumns, rows: 1),
-          ),
-        ),
-    ],
-    animations: [
-      if (includeAnimation)
-        ProjectSurfaceAnimation(
-          id: animationId,
-          name: 'Water Loop',
-          timeline: SurfaceAnimationTimeline(
-            frames: [
-              SurfaceAnimationFrame(
-                tileRef: SurfaceAtlasTileRef(
-                  atlasId: 'water-atlas',
-                  column: sourceColumn,
-                  row: 0,
+final ProjectSmartTileCatalog runtimeTestSmartTileCatalog =
+    ProjectSmartTileCatalog(
+  atlases: const <ProjectSmartTileAtlas>[
+    ProjectSmartTileAtlas(
+      id: 'runtime-base-atlas',
+      name: 'Base atlas',
+      tilesetId: 'surface-water',
+      columns: 1,
+      rows: 1,
+    ),
+  ],
+  materials: const <ProjectSmartTileMaterial>[
+    ProjectSmartTileMaterial(
+      id: 'runtime-base-material',
+      name: 'Base material',
+      connectionGroupId: 'runtime-base-material',
+    ),
+  ],
+  presets: const <ProjectSmartTilePreset>[
+    ProjectSmartTilePreset(
+      id: 'runtime-base',
+      name: 'Base',
+      usage: SmartTileUsage.terrain,
+      topology: SmartTileTopology.cardinal4,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
+      defaultMaterialId: 'runtime-base-material',
+      allowedMaterialIds: <String>['runtime-base-material'],
+      rules: <SmartTileRule>[
+        SmartTileRule(
+          id: 'any',
+          centerMatch: SmartTileSlotMatch.any(),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(
+              id: 'base',
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: 'runtime-base-atlas',
+                      column: 0,
+                      row: 0,
+                    ),
+                  ),
+                  channel: SmartTileRenderChannel.ground,
                 ),
-                durationMs: 100,
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
-    ],
-    presets: [
-      if (includePreset)
-        ProjectSurfacePreset(
-          id: 'water',
-          name: 'Water',
-          variantAnimations: SurfaceVariantAnimationRefSet(
-            refs: [
-              SurfaceVariantAnimationRef(
-                role: SurfaceVariantRole.isolated,
-                animationId: animationId,
-              ),
-            ],
-          ),
-        ),
-    ],
-  );
-}
+      ],
+    ),
+  ],
+);
 
 ProjectElementEntry surfaceTestElement({
   String id = 'entity-prop',

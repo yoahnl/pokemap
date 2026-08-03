@@ -240,7 +240,6 @@ ProjectManifest _auditProject() {
   );
 
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'Audit Project',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

@@ -367,7 +367,6 @@ RuntimeMapBundle _bundle({
           frameHeight: 2,
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
       shadowCatalog: shadowCatalog ?? _shadowCatalog(),
     ),
     map: MapData(

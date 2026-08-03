@@ -1,7 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart' show immutable;
 import 'package:map_core/map_core.dart';
 
-import '../../../application/models/terrain_selection_mode.dart';
 import '../../../application/services/narrative_event_legacy_authoring_guard.dart';
 import '../../border_map_editing/application/border_tool_availability.dart';
 import '../state/editor_state.dart';
@@ -55,12 +54,10 @@ typedef WorldMapToolActivationSource = ({
   MapData? activeMap,
   String? activeLayerId,
   EditorBrush activeBrush,
-  String? selectedSurfacePresetId,
 });
 
 typedef WorldMapToolActivationAssessment = ({
   EditorToolType? resultingTool,
-  TerrainSelectionMode? terrainSelectionMode,
   EditorBrush? resultingBrush,
   TilesElementsPanelMode? tilesElementsPanelMode,
   String? rejectionReason,
@@ -185,8 +182,7 @@ bool isWorldMapPaintLayerCompatible(
     WorldMapPaintSubtool.path =>
       layer is SmartTileLayer && layer.usage == SmartTileUsage.path,
     WorldMapPaintSubtool.surface =>
-      layer is SmartTileLayer && layer.usage == SmartTileUsage.forestSurface ||
-          layer is SurfaceLayer,
+      layer is SmartTileLayer && layer.usage == SmartTileUsage.forestSurface,
     WorldMapPaintSubtool.border => layer is BorderLayer,
     WorldMapPaintSubtool.collision => layer is CollisionLayer,
   };
@@ -200,7 +196,6 @@ WorldMapToolActivationSource worldMapToolActivationSourceFromState(
     activeMap: state.activeMap,
     activeLayerId: state.activeLayerId,
     activeBrush: state.activeBrush,
-    selectedSurfacePresetId: state.selectedSurfacePresetId,
   );
 }
 
@@ -212,7 +207,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
   if (request is ActivateWorldMapSelection) {
     return (
       resultingTool: EditorToolType.selection,
-      terrainSelectionMode: null,
       resultingBrush: null,
       tilesElementsPanelMode: null,
       rejectionReason: null,
@@ -249,7 +243,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
             EditorToolType.gameplayZonePlacement,
           WorldMapPlacementSubtool.object => throw StateError('unreachable'),
         },
-        terrainSelectionMode: null,
         resultingBrush: const EditorBrush.none(),
         tilesElementsPanelMode: null,
         rejectionReason: null,
@@ -258,7 +251,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
     if (layer is! TileLayer) {
       return (
         resultingTool: null,
-        terrainSelectionMode: null,
         resultingBrush: null,
         tilesElementsPanelMode: null,
         rejectionReason: 'Place/object requires an active editable tile layer.',
@@ -266,7 +258,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
     }
     return (
       resultingTool: EditorToolType.tilePaint,
-      terrainSelectionMode: null,
       resultingBrush: _compatibleProjectElementBrushForLayer(
         source,
         map,
@@ -288,7 +279,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
       return (
         resultingTool:
             availability.isEnabled ? EditorToolType.borderErase : null,
-        terrainSelectionMode: null,
         resultingBrush:
             availability.isEnabled ? const EditorBrush.none() : null,
         tilesElementsPanelMode: null,
@@ -298,11 +288,9 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
     }
     final canErase = layer is TileLayer ||
         layer is CollisionLayer ||
-        layer is SmartTileLayer ||
-        layer is SurfaceLayer;
+        layer is SmartTileLayer;
     return (
       resultingTool: canErase ? EditorToolType.eraser : null,
-      terrainSelectionMode: null,
       resultingBrush: canErase ? const EditorBrush.none() : null,
       tilesElementsPanelMode: null,
       rejectionReason: canErase ? null : 'The active layer cannot be erased.',
@@ -325,7 +313,7 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
       WorldMapPaintSubtool.path =>
         'Paint/path requires an active Smart Tile path layer.',
       WorldMapPaintSubtool.surface =>
-        'Paint/surface requires an active surface layer.',
+        'Paint/surface requires an active Smart Tile forest surface layer.',
       WorldMapPaintSubtool.border => assessBorderToolAvailability(
             manifest: source.project,
             map: map,
@@ -342,7 +330,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
     case WorldMapPaintSubtool.tile:
       return (
         resultingTool: EditorToolType.tilePaint,
-        terrainSelectionMode: null,
         resultingBrush: _compatibleTilePaintBrushForLayer(
           source,
           map,
@@ -354,7 +341,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
     case WorldMapPaintSubtool.terrain:
       return (
         resultingTool: EditorToolType.terrainPaint,
-        terrainSelectionMode: TerrainSelectionMode.terrain,
         resultingBrush: const EditorBrush.none(),
         tilesElementsPanelMode: null,
         rejectionReason: null,
@@ -362,32 +348,13 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
     case WorldMapPaintSubtool.path:
       return (
         resultingTool: EditorToolType.terrainPaint,
-        terrainSelectionMode: TerrainSelectionMode.path,
         resultingBrush: const EditorBrush.none(),
         tilesElementsPanelMode: null,
         rejectionReason: null,
       );
     case WorldMapPaintSubtool.surface:
-      if (layer is SmartTileLayer) {
-        return (
-          resultingTool: EditorToolType.terrainPaint,
-          terrainSelectionMode: null,
-          resultingBrush: const EditorBrush.none(),
-          tilesElementsPanelMode: null,
-          rejectionReason: null,
-        );
-      }
-      if (!_surfacePresetExists(
-        source.project,
-        source.selectedSurfacePresetId,
-      )) {
-        return _rejectedWorldMapActivation(
-          'Select an available surface before painting.',
-        );
-      }
       return (
-        resultingTool: EditorToolType.surfacePaint,
-        terrainSelectionMode: null,
+        resultingTool: EditorToolType.terrainPaint,
         resultingBrush: const EditorBrush.none(),
         tilesElementsPanelMode: null,
         rejectionReason: null,
@@ -402,7 +369,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
       return (
         resultingTool:
             availability.isEnabled ? EditorToolType.borderPaint : null,
-        terrainSelectionMode: null,
         resultingBrush:
             availability.isEnabled ? const EditorBrush.none() : null,
         tilesElementsPanelMode: null,
@@ -412,7 +378,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
     case WorldMapPaintSubtool.collision:
       return (
         resultingTool: EditorToolType.collisionPaint,
-        terrainSelectionMode: null,
         resultingBrush: const EditorBrush.none(),
         tilesElementsPanelMode: null,
         rejectionReason: null,
@@ -423,7 +388,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
 WorldMapToolActivationAssessment _rejectedWorldMapActivation(String reason) {
   return (
     resultingTool: null,
-    terrainSelectionMode: null,
     resultingBrush: null,
     tilesElementsPanelMode: null,
     rejectionReason: reason,
@@ -437,16 +401,6 @@ MapLayer? _findLayerById(MapData map, String layerId) {
     }
   }
   return null;
-}
-
-bool _surfacePresetExists(ProjectManifest? project, String? presetId) {
-  final normalizedPresetId = presetId?.trim();
-  if (project == null ||
-      normalizedPresetId == null ||
-      normalizedPresetId.isEmpty) {
-    return false;
-  }
-  return project.surfaceCatalog.presetById(normalizedPresetId) != null;
 }
 
 EditorBrush _compatibleTilePaintBrushForLayer(

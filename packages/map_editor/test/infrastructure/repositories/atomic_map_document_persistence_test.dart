@@ -716,6 +716,7 @@ final class _Fixture {
 MapData _map({required String name}) => MapData(
       id: 'alpha',
       name: name,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 1, height: 1),
       layers: const <MapLayer>[
         TileLayer(
@@ -723,10 +724,12 @@ MapData _map({required String name}) => MapData(
           name: 'Base',
           tiles: <int>[0],
         ),
-        TerrainLayer(
+        SmartTileLayer(
           id: 'terrain',
           name: 'Terrain',
-          terrains: <TerrainType>[TerrainType.none],
+          presetId: 'terrain',
+          usage: SmartTileUsage.terrain,
+          field: SmartTileField.cell(semanticCells: <int>[0]),
         ),
         CollisionLayer(
           id: 'collision',
@@ -741,6 +744,6 @@ MapData _visualStackMap({
   required MapVisualStackConfig visualStack,
 }) =>
     _map(name: name).copyWith(
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       visualStack: visualStack,
     );

@@ -1,18 +1,10 @@
 import 'package:map_core/map_core.dart';
 
-enum SmartTileLibraryOrigin {
-  native,
-  legacyTerrain,
-  legacyPath,
-  legacySurface,
-}
-
 final class SmartTileLibraryItem {
   const SmartTileLibraryItem({
     required this.key,
     required this.id,
     required this.name,
-    required this.origin,
     required this.statusLabel,
     required this.sortOrder,
     this.usage,
@@ -23,14 +15,11 @@ final class SmartTileLibraryItem {
   final String key;
   final String id;
   final String name;
-  final SmartTileLibraryOrigin origin;
   final SmartTileUsage? usage;
   final String? categoryId;
   final String statusLabel;
   final int sortOrder;
   final ProjectSmartTilePreset? nativePreset;
-
-  bool get isLegacy => origin != SmartTileLibraryOrigin.native;
 
   String get usageLabel => switch (usage) {
         SmartTileUsage.terrain => 'Terrain',
@@ -49,7 +38,6 @@ List<SmartTileLibraryItem> buildSmartTileStudioLibrary(
         key: 'native:${preset.id}',
         id: preset.id,
         name: preset.name,
-        origin: SmartTileLibraryOrigin.native,
         usage: preset.usage,
         categoryId: preset.categoryId.isEmpty ? null : preset.categoryId,
         statusLabel: switch (preset.status) {
@@ -58,49 +46,6 @@ List<SmartTileLibraryItem> buildSmartTileStudioLibrary(
         },
         sortOrder: preset.sortOrder,
         nativePreset: preset,
-      ),
-    for (final preset in manifest.terrainPresets)
-      SmartTileLibraryItem(
-        key: 'legacy-terrain:${preset.id}',
-        id: preset.id,
-        name: preset.name,
-        origin: SmartTileLibraryOrigin.legacyTerrain,
-        usage: SmartTileUsage.terrain,
-        categoryId: preset.categoryId,
-        statusLabel: 'Historique',
-        sortOrder: preset.sortOrder,
-      ),
-    for (final preset in manifest.pathPresets)
-      SmartTileLibraryItem(
-        key: 'legacy-path:${preset.id}',
-        id: preset.id,
-        name: preset.name,
-        origin: SmartTileLibraryOrigin.legacyPath,
-        usage: SmartTileUsage.path,
-        categoryId: preset.categoryId,
-        statusLabel: 'Historique',
-        sortOrder: preset.sortOrder,
-      ),
-    for (final preset in manifest.pathPatternPresets)
-      SmartTileLibraryItem(
-        key: 'legacy-path-pattern:${preset.id}',
-        id: preset.id,
-        name: preset.name,
-        origin: SmartTileLibraryOrigin.legacyPath,
-        usage: SmartTileUsage.path,
-        categoryId: preset.categoryId,
-        statusLabel: 'Historique — PathPattern',
-        sortOrder: preset.sortOrder,
-      ),
-    for (final preset in manifest.surfaceCatalog.presets)
-      SmartTileLibraryItem(
-        key: 'legacy-surface:${preset.id}',
-        id: preset.id,
-        name: preset.name,
-        origin: SmartTileLibraryOrigin.legacySurface,
-        categoryId: preset.categoryId,
-        statusLabel: 'Historique — usage non classé',
-        sortOrder: preset.sortOrder,
       ),
   ];
   items.sort((left, right) {

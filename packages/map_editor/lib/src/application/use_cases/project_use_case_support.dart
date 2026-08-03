@@ -59,8 +59,7 @@ String generateUniqueTilesetFolderId(ProjectManifest project, String seed) {
 
   var candidate = base;
   var suffix = 1;
-  final existingIds =
-      project.tilesetFolders.map((folder) => folder.id).toSet();
+  final existingIds = project.tilesetFolders.map((folder) => folder.id).toSet();
   while (existingIds.contains(candidate)) {
     candidate = '${base}_$suffix';
     suffix++;
@@ -90,50 +89,6 @@ int compareTilesets(ProjectTilesetEntry a, ProjectTilesetEntry b) {
   final sortOrderCompare = a.sortOrder.compareTo(b.sortOrder);
   if (sortOrderCompare != 0) return sortOrderCompare;
   return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-}
-
-String? pickDefaultTilesetId(ProjectManifest project, String? groupId) {
-  if (project.tilesets.isEmpty) return null;
-
-  if (groupId != null) {
-    final ancestors = <String>{};
-    String? cursor = groupId;
-    final visited = <String>{};
-    while (cursor != null && visited.add(cursor)) {
-      ancestors.add(cursor);
-      ProjectMapGroup? group;
-      for (final candidate in project.groups) {
-        if (candidate.id == cursor) {
-          group = candidate;
-          break;
-        }
-      }
-      cursor = group?.parentGroupId;
-    }
-
-    final grouped = project.tilesets
-        .where((tileset) =>
-            tileset.scope == TilesetScope.group &&
-            tileset.groupId != null &&
-            ancestors.contains(tileset.groupId))
-        .toList()
-      ..sort(compareTilesets);
-    if (grouped.isNotEmpty) return grouped.first.id;
-  }
-
-  final world = project.tilesets
-      .where((tileset) => tileset.isWorldTileset)
-      .toList()
-    ..sort(compareTilesets);
-  if (world.isNotEmpty) return world.first.id;
-
-  final global = project.tilesets
-      .where((tileset) => tileset.scope == TilesetScope.global)
-      .toList()
-    ..sort(compareTilesets);
-  if (global.isNotEmpty) return global.first.id;
-
-  return project.tilesets.first.id;
 }
 
 String generateUniquePaletteEntryId(Set<String> existingIds, String seed) {
@@ -213,60 +168,6 @@ String generateUniqueProjectElementId(ProjectManifest project, String seed) {
     suffix++;
   }
   return candidate;
-}
-
-String generateUniqueTerrainPresetId(ProjectManifest project, String seed) {
-  final normalized = seed
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
-      .replaceAll(RegExp(r'_+'), '_')
-      .replaceAll(RegExp(r'^_|_$'), '');
-  final base = normalized.isEmpty ? 'terrain_preset' : normalized;
-
-  var candidate = base;
-  var suffix = 1;
-  final existing = project.terrainPresets.map((preset) => preset.id).toSet();
-  while (existing.contains(candidate)) {
-    candidate = '${base}_$suffix';
-    suffix++;
-  }
-  return candidate;
-}
-
-String generateUniquePathPresetId(ProjectManifest project, String seed) {
-  final normalized = seed
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9_]+'), '_')
-      .replaceAll(RegExp(r'_+'), '_')
-      .replaceAll(RegExp(r'^_|_$'), '');
-  final base = normalized.isEmpty ? 'path_preset' : normalized;
-
-  var candidate = base;
-  var suffix = 1;
-  final existing = project.pathPresets.map((preset) => preset.id).toSet();
-  while (existing.contains(candidate)) {
-    candidate = '${base}_$suffix';
-    suffix++;
-  }
-  return candidate;
-}
-
-int nextTerrainPresetSortOrder(ProjectManifest project) {
-  if (project.terrainPresets.isEmpty) return 0;
-  return project.terrainPresets
-          .map((preset) => preset.sortOrder)
-          .reduce((a, b) => a > b ? a : b) +
-      1;
-}
-
-int nextPathPresetSortOrder(ProjectManifest project) {
-  if (project.pathPresets.isEmpty) return 0;
-  return project.pathPresets
-          .map((preset) => preset.sortOrder)
-          .reduce((a, b) => a > b ? a : b) +
-      1;
 }
 
 int compareProjectElements(ProjectElementEntry a, ProjectElementEntry b) {

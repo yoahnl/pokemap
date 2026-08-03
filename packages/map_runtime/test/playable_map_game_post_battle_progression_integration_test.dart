@@ -715,7 +715,6 @@ RuntimeMapBundle _bundle() {
           trainerClass: 'Rivale',
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
     ),
     map: const MapData(
       id: 'route',

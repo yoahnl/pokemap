@@ -246,7 +246,7 @@ final class _RecordingResizeMapUseCase extends ResizeMapUseCase {
 ProjectManifest _project({int tileWidth = 16, int tileHeight = 16}) =>
     ProjectManifest(
       name: 'Resize project',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       settings: ProjectSettings(
@@ -262,7 +262,7 @@ MapData _borderMap({
     MapData(
       id: 'map',
       name: 'Border resize map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 3, height: 1),
       layers: <MapLayer>[
         MapLayer.collision(

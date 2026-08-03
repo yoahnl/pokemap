@@ -33,7 +33,7 @@ void main() {
           fixture.maps.revisionedSaves.single.path, '/project/maps/alpha.json');
       expect(
         fixture.maps.revisionedSaves.single.map.version,
-        ProjectVersion.v4,
+        ProjectVersion.v6,
         reason: 'new maps are ready for native Smart Tile layers',
       );
       expect(

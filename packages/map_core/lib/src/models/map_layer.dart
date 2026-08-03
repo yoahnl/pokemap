@@ -3,9 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import '../operations/border_layer_content_json_codec.dart';
 import '../operations/environment_layer_content_json_codec.dart';
 import 'border_layer.dart';
-import 'enums.dart';
 import 'environment.dart';
-import 'project_manifest.dart';
 import 'smart_tile.dart';
 import 'smart_tile_field.dart';
 
@@ -32,18 +30,6 @@ Map<String, Object?> _borderLayerContentToJson(BorderLayerContent content) =>
     encodeBorderLayerContentJson(content, path: r'$.content');
 
 @freezed
-class SurfaceCellPlacement with _$SurfaceCellPlacement {
-  const factory SurfaceCellPlacement({
-    required int x,
-    required int y,
-    required String surfacePresetId,
-  }) = _SurfaceCellPlacement;
-
-  factory SurfaceCellPlacement.fromJson(Map<String, dynamic> json) =>
-      _$SurfaceCellPlacementFromJson(json);
-}
-
-@freezed
 sealed class MapLayer with _$MapLayer {
   const MapLayer._();
 
@@ -65,40 +51,6 @@ sealed class MapLayer with _$MapLayer {
     @Default(1.0) double opacity,
     @Default([]) List<bool> collisions,
   }) = CollisionLayer;
-
-  @FreezedUnionValue('terrain')
-  const factory MapLayer.terrain({
-    required String id,
-    required String name,
-    @Default(true) bool isVisible,
-    @Default(1.0) double opacity,
-    @Default([]) List<TerrainType> terrains,
-  }) = TerrainLayer;
-
-  @FreezedUnionValue('path')
-  @JsonSerializable(explicitToJson: true)
-  const factory MapLayer.path({
-    required String id,
-    required String name,
-    @Default(true) bool isVisible,
-    @Default(1.0) double opacity,
-    @Default('') String presetId,
-    @Default([]) List<bool> cells,
-    @Default(<String, String>{}) Map<String, String> properties,
-    @Default(PathAnimationMode.triggered) PathAnimationMode animationMode,
-    @Default([]) List<PathAnimationTriggerRule> animationTriggers,
-  }) = PathLayer;
-
-  @FreezedUnionValue('surface')
-  @JsonSerializable(explicitToJson: true)
-  const factory MapLayer.surface({
-    required String id,
-    required String name,
-    @Default(true) bool isVisible,
-    @Default(1.0) double opacity,
-    @Default([]) List<SurfaceCellPlacement> placements,
-    @Default(<String, String>{}) Map<String, String> properties,
-  }) = SurfaceLayer;
 
   @FreezedUnionValue('smart_tile')
   @JsonSerializable(explicitToJson: true)

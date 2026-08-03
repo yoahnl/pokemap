@@ -68,9 +68,22 @@ BattleSession _session() {
         maxHp: 23,
         currentHp: 19,
         moves: <BattleMoveData>[
-          _move(id: 'tail_whip', name: 'Tail Whip', power: 0, category: BattleMoveCategory.status),
-          _move(id: 'water_gun', name: 'Water Gun', type: 'water', category: BattleMoveCategory.special),
-          _move(id: 'withdraw', name: 'Withdraw', type: 'water', category: BattleMoveCategory.status, power: 0),
+          _move(
+              id: 'tail_whip',
+              name: 'Tail Whip',
+              power: 0,
+              category: BattleMoveCategory.status),
+          _move(
+              id: 'water_gun',
+              name: 'Water Gun',
+              type: 'water',
+              category: BattleMoveCategory.special),
+          _move(
+              id: 'withdraw',
+              name: 'Withdraw',
+              type: 'water',
+              category: BattleMoveCategory.status,
+              power: 0),
         ],
       ),
       enemyPokemon: _combatant(

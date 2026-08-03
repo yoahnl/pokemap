@@ -18,11 +18,11 @@ void main() {
     properties: <String, String>{'biome': 'hanazuki'},
   );
 
-  test('SmartTileLayer round-trips only as a v5 map layer', () {
+  test('SmartTileLayer round-trips as a v6 map layer', () {
     const map = MapData(
       id: 'hanazuki',
       name: 'Hanazuki',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 2, height: 1),
       layers: <MapLayer>[layer],
     );
@@ -33,49 +33,7 @@ void main() {
     expect(decoded.layers.single, isA<SmartTileLayer>());
   });
 
-  test('MapData.fromJson rejects SmartTileLayer in a v4 map', () {
-    final json = <String, dynamic>{
-      'id': 'hanazuki',
-      'name': 'Hanazuki',
-      'version': 'v4',
-      'size': const GridSize(width: 2, height: 1).toJson(),
-      'layers': <Map<String, dynamic>>[layer.toJson()],
-    };
-
-    expect(
-      () => MapData.fromJson(json),
-      throwsA(
-        isA<FormatException>().having(
-          (error) => error.message,
-          'message',
-          contains('Smart Tile layers require ProjectVersion.v5'),
-        ),
-      ),
-    );
-  });
-
-  test('MapValidator rejects SmartTileLayer in a pre-v5 map', () {
-    const map = MapData(
-      id: 'hanazuki',
-      name: 'Hanazuki',
-      version: ProjectVersion.v4,
-      size: GridSize(width: 2, height: 1),
-      layers: <MapLayer>[layer],
-    );
-
-    expect(
-      () => MapValidator.validate(map),
-      throwsA(
-        isA<ValidationException>().having(
-          (error) => error.message,
-          'message',
-          contains('Smart Tile layers require ProjectVersion.v5'),
-        ),
-      ),
-    );
-  });
-
-  test('v5 round-trip preserves an unassigned complete terrain draft', () {
+  test('v6 round-trip preserves an unassigned complete terrain draft', () {
     const terrain = SmartTileLayer(
       id: 'terrain',
       name: 'Terrain',
@@ -87,7 +45,7 @@ void main() {
     const map = MapData(
       id: 'draft',
       name: 'Draft',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
       layers: <MapLayer>[terrain],
     );

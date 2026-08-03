@@ -222,7 +222,6 @@ ProjectManifest _manifest() {
         ],
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     environmentPresets: [
       EnvironmentPreset(
         id: 'forest',

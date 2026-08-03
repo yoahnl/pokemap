@@ -682,7 +682,7 @@ String _snapshotId(String digit) => 'border-snapshot-sha256:${digit * 64}';
   return (
     manifest: ProjectManifest(
       name: 'Retention project',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[
         for (final map in maps)
           ProjectMapEntry(
@@ -758,7 +758,7 @@ MapData _mapWithSnapshotReferences({
   return MapData(
     id: id,
     name: id,
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     size: const GridSize(width: 1, height: 1),
     layers: <MapLayer>[
       MapLayer.border(

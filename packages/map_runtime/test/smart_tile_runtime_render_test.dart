@@ -116,7 +116,7 @@ Future<RuntimeTilesetImage> _asymmetricRuntimeImage() async {
 const _map = MapData(
   id: 'smart-map',
   name: 'Smart Map',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 1, height: 1),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -132,7 +132,7 @@ const _map = MapData(
 
 final _manifest = ProjectManifest(
   name: 'Smart Runtime',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(

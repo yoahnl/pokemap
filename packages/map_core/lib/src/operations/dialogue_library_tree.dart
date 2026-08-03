@@ -66,7 +66,8 @@ DialogueLibraryBranch _buildDialogueBranch({
 
 /// Arbre des scripts projet (dossiers + entrées sans dossier).
 DialogueLibraryTreeSnapshot buildDialogueLibraryTree(ProjectManifest manifest) {
-  final folders = manifest.dialogueFolders.toList()..sort(_compareDialogueFolders);
+  final folders = manifest.dialogueFolders.toList()
+    ..sort(_compareDialogueFolders);
   final roots = folders.where((f) => f.parentFolderId == null).toList();
   final rootBranches = roots
       .map(
@@ -78,12 +79,10 @@ DialogueLibraryTreeSnapshot buildDialogueLibraryTree(ProjectManifest manifest) {
       )
       .toList(growable: false);
 
-  final rootDialogues = manifest.dialogues
-      .where((d) {
-        final fid = d.folderId?.trim() ?? '';
-        return fid.isEmpty;
-      })
-      .toList()
+  final rootDialogues = manifest.dialogues.where((d) {
+    final fid = d.folderId?.trim() ?? '';
+    return fid.isEmpty;
+  }).toList()
     ..sort(_compareDialoguesInLibrary);
 
   return DialogueLibraryTreeSnapshot(
@@ -105,7 +104,8 @@ class DialogueLibraryFolderPickerRow {
 List<DialogueLibraryFolderPickerRow> flattenDialogueFoldersForPicker(
   ProjectManifest manifest,
 ) {
-  final folders = manifest.dialogueFolders.toList()..sort(_compareDialogueFolders);
+  final folders = manifest.dialogueFolders.toList()
+    ..sort(_compareDialogueFolders);
   final out = <DialogueLibraryFolderPickerRow>[];
 
   void walk(String? parentId, String prefix) {

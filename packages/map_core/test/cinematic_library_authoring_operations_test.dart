@@ -44,7 +44,6 @@ void main() {
 }
 
 ProjectManifest _project() => ProjectManifest(
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
       name: 'library',
       maps: const [],
       tilesets: const [],

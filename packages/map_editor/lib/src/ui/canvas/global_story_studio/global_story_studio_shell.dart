@@ -114,12 +114,10 @@ class _GlobalStoryStudioShellState extends State<GlobalStoryStudioShell> {
 
     final stepById = {for (final s in widget.orderedSteps) s.id: s};
     final nodeById = {for (final n in widget.globalDocument.nodes) n.stepId: n};
-    final selectedStep = widget.selectedStepId != null
-        ? stepById[widget.selectedStepId!]
-        : null;
-    final selectedNode = widget.selectedStepId != null
-        ? nodeById[widget.selectedStepId!]
-        : null;
+    final selectedStep =
+        widget.selectedStepId != null ? stepById[widget.selectedStepId!] : null;
+    final selectedNode =
+        widget.selectedStepId != null ? nodeById[widget.selectedStepId!] : null;
 
     NarrativeStepSummary? projectionForSelected;
     if (widget.selectedStepId != null) {

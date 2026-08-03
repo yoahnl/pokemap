@@ -1071,12 +1071,6 @@ abstract class AppLocalizations {
   /// **'Border Studio'**
   String get editorUpdateBlockerBorderStudio;
 
-  /// No description provided for @editorUpdateBlockerPathStudio.
-  ///
-  /// In fr, this message translates to:
-  /// **'Path Studio'**
-  String get editorUpdateBlockerPathStudio;
-
   /// No description provided for @editorUpdateBlockerStepStudio.
   ///
   /// In fr, this message translates to:

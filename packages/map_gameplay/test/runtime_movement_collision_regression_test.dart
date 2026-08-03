@@ -84,7 +84,6 @@ void main() {
           elementCategories: <ProjectElementCategory>[
             ProjectElementCategory(id: 'obstacles', name: 'Obstacles'),
           ],
-          surfaceCatalog: ProjectSurfaceCatalog(),
           elements: <ProjectElementEntry>[
             ProjectElementEntry(
               id: 'rock',
@@ -148,7 +147,6 @@ void main() {
           elementCategories: <ProjectElementCategory>[
             ProjectElementCategory(id: 'obstacles', name: 'Obstacles'),
           ],
-          surfaceCatalog: ProjectSurfaceCatalog(),
           elements: <ProjectElementEntry>[
             ProjectElementEntry(
               id: 'rock',

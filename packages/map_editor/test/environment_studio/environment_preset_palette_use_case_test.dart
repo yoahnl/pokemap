@@ -198,10 +198,16 @@ void main() {
 }
 
 void _expectOriginalProjectUnchanged(ProjectManifest project) {
-  expect(findProjectEnvironmentPresetById(project, 'forest')!.palette
-      .map((item) => item.elementId), ['grass_a']);
-  expect(findProjectEnvironmentPresetById(project, 'props')!.palette
-      .map((item) => item.elementId), ['rock_a']);
+  expect(
+      findProjectEnvironmentPresetById(project, 'forest')!
+          .palette
+          .map((item) => item.elementId),
+      ['grass_a']);
+  expect(
+      findProjectEnvironmentPresetById(project, 'props')!
+          .palette
+          .map((item) => item.elementId),
+      ['rock_a']);
 }
 
 final _forestParams = EnvironmentGenerationParams(
@@ -248,7 +254,6 @@ ProjectManifest _project({
         sortOrder: 9,
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

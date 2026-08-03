@@ -30,7 +30,7 @@ void main() {
       final map = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: const GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           MapLayer.border(
@@ -93,7 +93,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 1, height: 1),
       layers: <MapLayer>[
         MapLayer.border(

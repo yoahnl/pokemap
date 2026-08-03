@@ -192,7 +192,6 @@ ProjectManifest _projectWithScenes(List<SceneAsset> scenes) {
     maps: const [],
     tilesets: const [],
     scenes: scenes,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

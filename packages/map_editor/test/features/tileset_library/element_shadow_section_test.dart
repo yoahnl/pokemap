@@ -892,7 +892,6 @@ ProjectManifest _project(ProjectShadowCatalog catalog) {
     tilesets: const <ProjectTilesetEntry>[],
     elementCategories: const <ProjectElementCategory>[],
     elements: const <ProjectElementEntry>[],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     shadowCatalog: catalog,
   );
 }

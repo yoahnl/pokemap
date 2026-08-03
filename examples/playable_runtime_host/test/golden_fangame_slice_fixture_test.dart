@@ -19,7 +19,7 @@ void main() {
     final project = ProjectManifest.fromJson(projectJson);
     ProjectValidator.validate(project);
 
-    expect(project.version, ProjectVersion.v1);
+    expect(project.version, ProjectVersion.v6);
     expect(project.maps, hasLength(3));
     expect(project.tilesets, isEmpty);
     expect(project.newGame.enabled, isTrue);

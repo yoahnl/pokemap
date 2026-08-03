@@ -1309,7 +1309,6 @@ const _project = ProjectManifest(
   name: 'pointer_navigation_project',
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 const _activeMap = MapData(

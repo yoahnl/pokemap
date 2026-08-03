@@ -107,7 +107,7 @@ void main() {
       const map = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[layer],
       );
@@ -177,7 +177,7 @@ void main() {
       const map = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[layer],
       );
@@ -221,7 +221,7 @@ void main() {
       const map = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[layer],
       );
@@ -263,7 +263,7 @@ void main() {
       const map = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[layer],
       );

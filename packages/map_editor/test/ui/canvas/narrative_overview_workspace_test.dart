@@ -2078,7 +2078,6 @@ ProjectManifest _minimalProject(
   List<SceneAsset> scenes = const <SceneAsset>[],
 }) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: name,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(

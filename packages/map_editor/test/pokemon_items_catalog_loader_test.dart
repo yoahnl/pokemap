@@ -15,7 +15,8 @@ void main() {
   late LoadPokemonItemsCatalogUseCase loadUseCase;
 
   setUp(() async {
-    tempProjectRoot = await Directory.systemTemp.createTemp('items_catalog_8d_');
+    tempProjectRoot =
+        await Directory.systemTemp.createTemp('items_catalog_8d_');
     workspace = ProjectFileSystem(tempProjectRoot.path);
     loadUseCase = const LoadPokemonItemsCatalogUseCase(
       readRepository: FilePokemonReadRepository(),
@@ -382,7 +383,8 @@ void main() {
     final result = await loadUseCase.execute(workspace);
 
     expect(result.loadState, PokemonItemsCatalogLoadState.ready);
-    expect(result.catalogRelativePath, 'custom/pokemon/catalogs/project-items.json');
+    expect(result.catalogRelativePath,
+        'custom/pokemon/catalogs/project-items.json');
     expect(result.entries.map((entry) => entry.id), <String>['potion']);
   });
 }

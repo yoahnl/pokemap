@@ -21,8 +21,6 @@ enum CinematicMapBackdropPreviewStatus {
 
 enum CinematicMapBackdropLayerKind {
   tile,
-  terrain,
-  path,
   smartTile,
   object,
   environment,
@@ -30,8 +28,6 @@ enum CinematicMapBackdropLayerKind {
 
 enum CinematicMapBackdropVisualPrimitiveKind {
   tileCell,
-  terrainCell,
-  pathCell,
   smartTilePart,
   objectAnchor,
   environmentAnchor,
@@ -444,61 +440,6 @@ List<CinematicMapBackdropVisualPrimitive> _projectVisualPrimitives(
       if (localOrder == 0) {
         primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
       }
-    } else if (layer is TerrainLayer) {
-      var localOrder = 0;
-      for (var index = 0; index < layer.terrains.length; index++) {
-        final terrain = layer.terrains[index];
-        final x = index % mapData.size.width;
-        final y = index ~/ mapData.size.width;
-        if (!_isInsideMap(mapData, x, y)) {
-          continue;
-        }
-        primitives.add(
-          _primitive(
-            layer: layer,
-            layerIndex: layerIndex,
-            localOrder: localOrder++,
-            kind: CinematicMapBackdropVisualPrimitiveKind.terrainCell,
-            x: x,
-            y: y,
-            label: terrain.name,
-            summary: 'Terrain ${terrain.name} depuis MapData.',
-            source: 'terrain:${terrain.name}',
-          ),
-        );
-      }
-      if (localOrder == 0) {
-        primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
-      }
-    } else if (layer is PathLayer) {
-      var localOrder = 0;
-      final presetId = layer.presetId.trim();
-      for (var index = 0; index < layer.cells.length; index++) {
-        if (!layer.cells[index]) {
-          continue;
-        }
-        final x = index % mapData.size.width;
-        final y = index ~/ mapData.size.width;
-        if (!_isInsideMap(mapData, x, y)) {
-          continue;
-        }
-        primitives.add(
-          _primitive(
-            layer: layer,
-            layerIndex: layerIndex,
-            localOrder: localOrder++,
-            kind: CinematicMapBackdropVisualPrimitiveKind.pathCell,
-            x: x,
-            y: y,
-            label: presetId.isEmpty ? 'Chemin' : presetId,
-            summary: 'Cellule de chemin depuis MapData.',
-            source: presetId.isEmpty ? 'pathCell' : 'pathPreset:$presetId',
-          ),
-        );
-      }
-      if (localOrder == 0) {
-        primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
-      }
     } else if (layer is SmartTileLayer) {
       var localOrder = 0;
       final visuals = <SmartTileLayerVisual>[
@@ -681,12 +622,6 @@ CinematicMapBackdropLayerKind _layerKindFor(MapLayer layer) {
   if (layer is TileLayer) {
     return CinematicMapBackdropLayerKind.tile;
   }
-  if (layer is TerrainLayer) {
-    return CinematicMapBackdropLayerKind.terrain;
-  }
-  if (layer is PathLayer) {
-    return CinematicMapBackdropLayerKind.path;
-  }
   if (layer is SmartTileLayer) {
     return CinematicMapBackdropLayerKind.smartTile;
   }
@@ -717,34 +652,6 @@ List<CinematicMapBackdropLayerPreview> _projectVisualLayers(
           renderRefs: [
             'tileCells:${layer.tiles.length}',
             if (tilesetId != null) 'tileset:$tilesetId',
-          ],
-        ),
-      );
-    } else if (layer is TerrainLayer) {
-      layers.add(
-        CinematicMapBackdropLayerPreview(
-          id: layer.id,
-          label: _labelOrId(layer.name, layer.id),
-          kind: CinematicMapBackdropLayerKind.terrain,
-          visible: layer.isVisible,
-          opacity: layer.opacity,
-          summary: '${layer.terrains.length} terrain(s)',
-          renderRefs: ['terrainCells:${layer.terrains.length}'],
-        ),
-      );
-    } else if (layer is PathLayer) {
-      layers.add(
-        CinematicMapBackdropLayerPreview(
-          id: layer.id,
-          label: _labelOrId(layer.name, layer.id),
-          kind: CinematicMapBackdropLayerKind.path,
-          visible: layer.isVisible,
-          opacity: layer.opacity,
-          summary: '${layer.cells.length} cellule(s) de chemin',
-          renderRefs: [
-            'pathCells:${layer.cells.length}',
-            if (layer.presetId.trim().isNotEmpty)
-              'pathPreset:${layer.presetId.trim()}',
           ],
         ),
       );

@@ -149,12 +149,12 @@ void main() {
       expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
     });
 
-    test('opens the large Selbrume workspace inside the regression budget',
+    test('opens a second canonical v6 workspace inside the read budget',
         () async {
       final stopwatch = Stopwatch()..start();
       final reader = _CountingReader(const EditorProjectFileReader());
       final session = await AuthoringQueryAdapter(fileReader: reader)
-          .open(_selbrume().path);
+          .open(_goldenBattleFixture().path);
       stopwatch.stop();
       addTearDown(session.close);
       final readsAfterOpen = reader.readCount;
@@ -181,15 +181,12 @@ void main() {
         ),
       );
 
-      expect(session.maps, hasLength(10));
-      expect(page['totalAvailable'], 10);
-      expect(dialogues['totalAvailable'], 24);
-      expect(scenes['totalAvailable'], 35);
+      expect(session.maps, hasLength(1));
+      expect(page['totalAvailable'], 1);
+      expect(dialogues['totalAvailable'], 0);
+      expect(scenes['totalAvailable'], 0);
       expect(reader.readCount, readsAfterOpen);
-      // Selbrume contains thousands of project files and large media assets.
-      // Authoring reads only declared structured resources; this generous
-      // ceiling guards an accidental workspace crawl without being a benchmark.
-      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 10)));
+      expect(stopwatch.elapsed, lessThan(const Duration(seconds: 5)));
     });
 
     test('retainOnly and closeProject retire real read sessions', () async {
@@ -197,13 +194,14 @@ void main() {
       final adapter = AuthoringQueryAdapter(fileReader: reader);
       addTearDown(adapter.closeAll);
       final first = await adapter.open(_goldenFangameFixture().path);
-      final second = await adapter.open(_selbrume().path);
-      final secondRoot = await reader.canonicalizeDirectory(_selbrume().path);
+      final second = await adapter.open(_goldenBattleFixture().path);
+      final secondRoot =
+          await reader.canonicalizeDirectory(_goldenBattleFixture().path);
 
       await adapter.retainOnly(secondRoot);
 
       expect(() => first.maps, throwsStateError);
-      expect(second.maps, hasLength(10));
+      expect(second.maps, hasLength(1));
       expect(adapter.diagnostics.retainedRoot, secondRoot);
       expect(adapter.diagnostics.liveSessions, 1);
       expect(adapter.diagnostics.openingSessions, 0);
@@ -232,7 +230,7 @@ void main() {
       final validation = session.validateFresh();
       await reader.entered.future;
       final retainedRoot = await reader.canonicalizeDirectory(
-        _selbrume().path,
+        _goldenBattleFixture().path,
       );
       var retired = false;
       final retiring = adapter.retainOnly(retainedRoot).whenComplete(() {
@@ -262,8 +260,9 @@ Directory _goldenFangameFixture() => Directory(
       'playable_runtime_host/golden_fangame_slice',
     );
 
-Directory _selbrume() => Directory(
-      '${Directory.current.parent.parent.path}/selbrume',
+Directory _goldenBattleFixture() => Directory(
+      '${Directory.current.parent.parent.path}/examples/'
+      'playable_runtime_host/golden_battle_slice',
     );
 
 List<String> _ids(Map<String, Object?> page) => [

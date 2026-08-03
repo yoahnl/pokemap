@@ -1640,19 +1640,18 @@ RuntimeMapBundle _buildBundle(
 }
 
 Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
-  final manifest = ProjectManifest(
+  const manifest = ProjectManifest(
     name: 'Wild Battle Flow Test',
     maps: <ProjectMapEntry>[
-      const ProjectMapEntry(
+      ProjectMapEntry(
         id: 'field_map',
         name: 'Field Map',
         relativePath: 'maps/field_map.json',
       ),
     ],
     tilesets: <ProjectTilesetEntry>[],
-    surfaceCatalog: ProjectSurfaceCatalog(),
     encounterTables: <ProjectEncounterTable>[
-      const ProjectEncounterTable(
+      ProjectEncounterTable(
         id: 'field_grass',
         name: 'Field Grass',
         encounterKind: EncounterKind.walk,
@@ -1666,7 +1665,7 @@ Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
         ],
       ),
     ],
-    pokemon: const ProjectPokemonConfig(
+    pokemon: ProjectPokemonConfig(
       dataRoot: 'data/pokemon',
       speciesDir: 'data/pokemon/species',
       learnsetsDir: 'data/pokemon/learnsets',

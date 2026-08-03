@@ -280,8 +280,6 @@ final class MapGridCullingDebugSnapshot {
     required this.totalMapCellCount,
     required this.tileCellVisits,
     required this.collisionCellVisits,
-    required this.terrainCellVisits,
-    required this.pathCellVisits,
     required this.smartTileVisualVisits,
     required this.staticShadowInstructionVisits,
     required this.projectedBuildingShadowInstructionVisits,
@@ -293,8 +291,6 @@ final class MapGridCullingDebugSnapshot {
   final int totalMapCellCount;
   final int tileCellVisits;
   final int collisionCellVisits;
-  final int terrainCellVisits;
-  final int pathCellVisits;
   final int smartTileVisualVisits;
   final int staticShadowInstructionVisits;
   final int projectedBuildingShadowInstructionVisits;
@@ -309,8 +305,6 @@ typedef MapGridCullingDebugObserver = void Function(
 final class _MapGridCullingDebugCounter {
   int tileCellVisits = 0;
   int collisionCellVisits = 0;
-  int terrainCellVisits = 0;
-  int pathCellVisits = 0;
   int smartTileVisualVisits = 0;
   int staticShadowInstructionVisits = 0;
   int projectedBuildingShadowInstructionVisits = 0;
@@ -353,9 +347,6 @@ class MapGridPainter extends CustomPainter {
   final Color? rotationPreviewAcceptedColor;
   final Color? rotationPreviewRejectedColor;
   final Map<MapConnectionDirection, String> connectionLabelsByDirection;
-  final PathAutotileSet? selectedPathAutotileSet;
-  final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
-  final Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType;
   final ProjectManifest? project;
   final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final EditorCanvasRepaintClock? _animationClock;
@@ -365,7 +356,6 @@ class MapGridPainter extends CustomPainter {
   final bool showGrid;
   final bool showEntityEditorChrome;
   final bool showEditorOverlays;
-  final Map<SurfaceLayer, SurfacePreviewLayerIndex> _surfaceIndexByLayer;
   final EditorShadowPreviewProjectionOwner _shadowProjectionOwner;
 
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
@@ -378,7 +368,6 @@ class MapGridPainter extends CustomPainter {
 
   MapGridPainter({
     required this.map,
-    SurfacePreviewLayerIndexOwner? surfaceIndexOwner,
     EditorShadowPreviewProjectionOwner? shadowProjectionOwner,
     required this.zoom,
     required this.offset,
@@ -407,9 +396,6 @@ class MapGridPainter extends CustomPainter {
     this.rotationPreviewAcceptedColor,
     this.rotationPreviewRejectedColor,
     required this.connectionLabelsByDirection,
-    this.selectedPathAutotileSet,
-    required this.pathAutotileSetsByPresetId,
-    required this.terrainPresetsByType,
     this.project,
     this.shadowLightPreviewPreset,
     EditorCanvasRepaintClock? animationClock,
@@ -425,10 +411,7 @@ class MapGridPainter extends CustomPainter {
     this.environmentGeneratedDeletePreviewId,
     this.borderPreview,
     this.borderDiagnosticOverlayPalette,
-  })  : _surfaceIndexByLayer =
-            (surfaceIndexOwner ?? SurfacePreviewLayerIndexOwner())
-                .indexesFor(map.layers),
-        _shadowProjectionOwner =
+  })  : _shadowProjectionOwner =
             shadowProjectionOwner ?? EditorShadowPreviewProjectionOwner(),
         _animationClock = animationClock,
         _staticAnimationMs = editorEntityAnimationMs,
@@ -521,40 +504,6 @@ class MapGridPainter extends CustomPainter {
     final borderCatalog = project?.borderCatalog;
     for (final step in compositionPlan.steps) {
       switch (step.kind) {
-        case MapVisualCompositionStepKind.terrainLayer:
-          _paintTerrainLayer(
-            canvas,
-            step.layer! as TerrainLayer,
-            visibleBounds: visibleBounds,
-            cullingCounter: cullingCounter,
-          );
-        case MapVisualCompositionStepKind.pathLayer:
-          _paintPathLayer(
-            canvas,
-            step.layer! as PathLayer,
-            visibleBounds: visibleBounds,
-            cullingCounter: cullingCounter,
-          );
-        case MapVisualCompositionStepKind.surfaceLayer:
-          final layer = step.layer! as SurfaceLayer;
-          paintSurfaceLayerAtlasTilePreview(
-            canvas: canvas,
-            layer: layer,
-            mapSize: map.size,
-            project: project,
-            tilesetImagesById: tilesetImagesById,
-            tileWidth: tileWidth,
-            tileHeight: tileHeight,
-            zoom: zoom,
-            elapsedMs: effectiveAnimationMs,
-            layerIndex: _surfaceIndexByLayer[layer],
-            viewport: SurfacePreviewCellViewport(
-              left: visibleBounds.left,
-              top: visibleBounds.top,
-              right: visibleBounds.right,
-              bottom: visibleBounds.bottom,
-            ),
-          );
         case MapVisualCompositionStepKind.smartTileLayer:
           _paintSmartTileLayer(
             canvas,
@@ -749,8 +698,6 @@ class MapGridPainter extends CustomPainter {
           totalMapCellCount: map.size.width * map.size.height,
           tileCellVisits: cullingCounter.tileCellVisits,
           collisionCellVisits: cullingCounter.collisionCellVisits,
-          terrainCellVisits: cullingCounter.terrainCellVisits,
-          pathCellVisits: cullingCounter.pathCellVisits,
           smartTileVisualVisits: cullingCounter.smartTileVisualVisits,
           staticShadowInstructionVisits:
               cullingCounter.staticShadowInstructionVisits,
@@ -1787,11 +1734,6 @@ class MapGridPainter extends CustomPainter {
   }
 
   void _paintTerrainPaintPreview(Canvas canvas, MapToolPreview preview) {
-    final terrainPresetPreviewPainted =
-        _paintTerrainPresetPreview(canvas, preview);
-    if (terrainPresetPreviewPainted) {
-      return;
-    }
     final previewRect = _computePreviewRect(preview.origin, preview.size);
     if (previewRect == null) return;
     final terrainColor = _terrainColor(preview.terrain ?? TerrainType.grass);
@@ -1811,10 +1753,6 @@ class MapGridPainter extends CustomPainter {
   }
 
   void _paintPathPaintPreview(Canvas canvas, MapToolPreview preview) {
-    final pathPreviewPainted = _paintPathLayerPreview(canvas, preview);
-    if (pathPreviewPainted) {
-      return;
-    }
     final previewRect = _computePreviewRect(preview.origin, preview.size);
     if (previewRect == null) return;
     canvas.drawRect(
@@ -1830,166 +1768,6 @@ class MapGridPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.0 / zoom,
     );
-  }
-
-  bool _paintPathLayerPreview(Canvas canvas, MapToolPreview preview) {
-    if (preview.size.width != 1 || preview.size.height != 1) {
-      return false;
-    }
-    final origin = preview.origin;
-    if (origin.x < 0 ||
-        origin.y < 0 ||
-        origin.x >= map.size.width ||
-        origin.y >= map.size.height) {
-      return false;
-    }
-    final activePathLayer = _resolveActivePathLayer();
-    if (activePathLayer == null) {
-      return false;
-    }
-    final autotileSet = _resolvePreviewPathAutotileSet(activePathLayer);
-    if (autotileSet == null) {
-      return false;
-    }
-    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
-      return false;
-    }
-
-    final expectedLength = map.size.width * map.size.height;
-    final simulatedCells = List<bool>.filled(
-      expectedLength,
-      false,
-      growable: false,
-    );
-    final sourceCells = activePathLayer.cells;
-    final copyLength = sourceCells.length < expectedLength
-        ? sourceCells.length
-        : expectedLength;
-    for (var index = 0; index < copyLength; index++) {
-      simulatedCells[index] = sourceCells[index];
-    }
-    final previewIndex = origin.y * map.size.width + origin.x;
-    if (previewIndex < 0 || previewIndex >= simulatedCells.length) {
-      return false;
-    }
-    simulatedCells[previewIndex] = true;
-
-    final variant = resolvePathVariantAt(
-      cells: simulatedCells,
-      mapSize: map.size,
-      pos: origin,
-    );
-    final dstRect = Rect.fromLTWH(
-      origin.x * tileWidth,
-      origin.y * tileHeight,
-      tileWidth,
-      tileHeight,
-    );
-
-    final elapsedMs = effectiveAnimationMs.toDouble();
-
-    final painted = _paintResolvedPathVariantCell(
-      canvas,
-      basePathPresetId: activePathLayer.presetId,
-      legacyAutotileSet: autotileSet,
-      playbackMode: _pathPatternPlaybackModeForLayer(activePathLayer),
-      variant: variant,
-      mapX: origin.x,
-      mapY: origin.y,
-      dstRect: dstRect,
-      alpha: 0.66,
-      elapsedMs: elapsedMs,
-    );
-    if (!painted) {
-      return false;
-    }
-    canvas.drawRect(
-      dstRect,
-      Paint()
-        ..color = PokeMapLegacyColors.tealAccent
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0 / zoom,
-    );
-    return true;
-  }
-
-  bool _paintTerrainPresetPreview(Canvas canvas, MapToolPreview preview) {
-    final terrain = preview.terrain;
-    if (terrain == null || terrain == TerrainType.none) {
-      return false;
-    }
-    final preset = terrainPresetsByType[terrain];
-    if (preset == null || preset.variants.isEmpty) {
-      return false;
-    }
-    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
-      return false;
-    }
-    var rendered = false;
-    for (var y = 0; y < preview.size.height; y++) {
-      for (var x = 0; x < preview.size.width; x++) {
-        final mapX = preview.origin.x + x;
-        final mapY = preview.origin.y + y;
-        if (mapX < 0 ||
-            mapY < 0 ||
-            mapX >= map.size.width ||
-            mapY >= map.size.height) {
-          continue;
-        }
-        final resolved = _resolveTerrainPresetFrame(
-          preset: preset,
-          x: mapX,
-          y: mapY,
-          elapsedMs: effectiveAnimationMs.toDouble(),
-        );
-        if (resolved == null) continue;
-        final tilesetId = resolved.tilesetId.trim();
-        if (tilesetId.isEmpty) {
-          continue;
-        }
-        final tilesetImage = tilesetImagesById[tilesetId];
-        if (tilesetImage == null) {
-          continue;
-        }
-        final sourceX = resolved.source.x * sourceTileWidth;
-        final sourceY = resolved.source.y * sourceTileHeight;
-        if (sourceX < 0 ||
-            sourceY < 0 ||
-            sourceX + sourceTileWidth > tilesetImage.width ||
-            sourceY + sourceTileHeight > tilesetImage.height) {
-          continue;
-        }
-        canvas.drawImageRect(
-          tilesetImage,
-          Rect.fromLTWH(
-            sourceX.toDouble(),
-            sourceY.toDouble(),
-            sourceTileWidth.toDouble(),
-            sourceTileHeight.toDouble(),
-          ),
-          Rect.fromLTWH(
-            mapX * tileWidth,
-            mapY * tileHeight,
-            tileWidth,
-            tileHeight,
-          ),
-          Paint()..color = PokeMapLegacyColors.white.withValues(alpha: 0.62),
-        );
-        rendered = true;
-      }
-    }
-    if (!rendered) return false;
-    final previewRect = _computePreviewRect(preview.origin, preview.size);
-    if (previewRect != null) {
-      canvas.drawRect(
-        previewRect,
-        Paint()
-          ..color = PokeMapLegacyColors.white.withValues(alpha: 0.4)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.6 / zoom,
-      );
-    }
-    return true;
   }
 
   void _paintTerrainErasePreview(Canvas canvas, MapToolPreview preview) {
@@ -2623,108 +2401,6 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
-  void _paintTerrainLayer(
-    Canvas canvas,
-    TerrainLayer layer, {
-    required EditorMapVisibleCellBounds visibleBounds,
-    required _MapGridCullingDebugCounter? cullingCounter,
-  }) {
-    if (layer.terrains.isEmpty) return;
-    cullingCounter?.terrainCellVisits += visibleBounds.cellCount;
-    for (var y = visibleBounds.top; y < visibleBounds.bottom; y++) {
-      final rowStart = y * map.size.width;
-      for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
-        final index = rowStart + x;
-        if (index < 0 || index >= layer.terrains.length) continue;
-        final terrain = layer.terrains[index];
-        if (terrain == TerrainType.none) {
-          continue;
-        }
-        final terrainPresetDrawn = _paintTerrainPresetCell(
-          canvas,
-          terrain,
-          x: x,
-          y: y,
-          alpha: layer.opacity,
-        );
-        if (terrainPresetDrawn) {
-          continue;
-        }
-        final fillColor = _terrainColor(terrain);
-        final borderColor = _terrainBorderColor(terrain);
-        final cell = Rect.fromLTWH(
-          x * tileWidth,
-          y * tileHeight,
-          tileWidth,
-          tileHeight,
-        );
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = fillColor
-            ..style = PaintingStyle.fill,
-        );
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = borderColor
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.0 / zoom,
-        );
-      }
-    }
-  }
-
-  void _paintPathLayer(
-    Canvas canvas,
-    PathLayer layer, {
-    required EditorMapVisibleCellBounds visibleBounds,
-    required _MapGridCullingDebugCounter? cullingCounter,
-  }) {
-    if (layer.cells.isEmpty) return;
-    final pathCellAlpha = layer.opacity;
-    final autotileSet = _resolvePathAutotileSetForLayer(layer);
-    cullingCounter?.pathCellVisits += visibleBounds.cellCount;
-    for (var y = visibleBounds.top; y < visibleBounds.bottom; y++) {
-      final rowStart = y * map.size.width;
-      for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
-        final index = rowStart + x;
-        if (index < 0 || index >= layer.cells.length) continue;
-        if (!layer.cells[index]) continue;
-        final cell = Rect.fromLTWH(
-          x * tileWidth,
-          y * tileHeight,
-          tileWidth,
-          tileHeight,
-        );
-        final pathDrawn = _paintPathLayerCell(
-          canvas,
-          layer,
-          autotileSet: autotileSet,
-          x: x,
-          y: y,
-          alpha: pathCellAlpha,
-        );
-        if (pathDrawn) {
-          continue;
-        }
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = PokeMapLegacyColors.teal
-            ..style = PaintingStyle.fill,
-        );
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = PokeMapLegacyColors.tealAccent
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1.0 / zoom,
-        );
-      }
-    }
-  }
-
   void _paintSmartTileLayer(
     Canvas canvas,
     SmartTileLayer layer, {
@@ -2824,264 +2500,6 @@ class MapGridPainter extends CustomPainter {
     }
   }
 
-  bool _paintPathLayerCell(
-    Canvas canvas,
-    PathLayer layer, {
-    required PathAutotileSet? autotileSet,
-    required int x,
-    required int y,
-    required double alpha,
-  }) {
-    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
-      return false;
-    }
-
-    final variant = resolvePathVariantAt(
-      cells: layer.cells,
-      mapSize: map.size,
-      pos: GridPos(x: x, y: y),
-    );
-    final dstRect = Rect.fromLTWH(
-      x * tileWidth,
-      y * tileHeight,
-      tileWidth,
-      tileHeight,
-    );
-
-    final elapsedMs = effectiveAnimationMs.toDouble();
-
-    return _paintResolvedPathVariantCell(
-      canvas,
-      basePathPresetId: layer.presetId,
-      legacyAutotileSet: autotileSet,
-      playbackMode: _pathPatternPlaybackModeForLayer(layer),
-      variant: variant,
-      mapX: x,
-      mapY: y,
-      dstRect: dstRect,
-      alpha: alpha,
-      elapsedMs: elapsedMs,
-    );
-  }
-
-  bool _paintResolvedPathVariantCell(
-    Canvas canvas, {
-    required String basePathPresetId,
-    required PathAutotileSet? legacyAutotileSet,
-    required PathPatternEditorPlaybackMode playbackMode,
-    required TerrainPathVariant variant,
-    required int mapX,
-    required int mapY,
-    required Rect dstRect,
-    required double alpha,
-    required double elapsedMs,
-  }) {
-    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
-      return false;
-    }
-    final resolved = resolvePathPatternEditorRenderResolution(
-      project: project,
-      basePathPresetId: basePathPresetId,
-      variant: variant,
-      mapX: mapX,
-      mapY: mapY,
-      elapsedMs: elapsedMs,
-      legacyAutotileSet: legacyAutotileSet,
-      playbackMode: playbackMode,
-    );
-    if (resolved == null) {
-      return false;
-    }
-    final source = resolved.sourceRect;
-    final tilesetId = resolved.tilesetId.trim();
-    if (tilesetId.isEmpty) {
-      return false;
-    }
-    final tilesetImage = tilesetImagesById[tilesetId];
-    if (tilesetImage == null) {
-      return false;
-    }
-
-    final sourceX = source.x * sourceTileWidth;
-    final sourceY = source.y * sourceTileHeight;
-    if (sourceX < 0 ||
-        sourceY < 0 ||
-        sourceX + sourceTileWidth > tilesetImage.width ||
-        sourceY + sourceTileHeight > tilesetImage.height) {
-      return false;
-    }
-
-    final srcRect = Rect.fromLTWH(
-      sourceX.toDouble(),
-      sourceY.toDouble(),
-      sourceTileWidth.toDouble(),
-      sourceTileHeight.toDouble(),
-    );
-    canvas.drawImageRect(
-      tilesetImage,
-      srcRect,
-      dstRect,
-      Paint()
-        ..color =
-            PokeMapLegacyColors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
-    );
-    return true;
-  }
-
-  PathPatternEditorPlaybackMode _pathPatternPlaybackModeForLayer(
-    PathLayer layer,
-  ) {
-    return layer.animationMode == PathAnimationMode.alwaysActive
-        ? PathPatternEditorPlaybackMode.loop
-        : PathPatternEditorPlaybackMode.staticFrame;
-  }
-
-  bool _paintTerrainPresetCell(
-    Canvas canvas,
-    TerrainType terrain, {
-    required int x,
-    required int y,
-    required double alpha,
-  }) {
-    final preset = terrainPresetsByType[terrain];
-    if (preset == null || preset.variants.isEmpty) {
-      return false;
-    }
-    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
-      return false;
-    }
-    final resolved = _resolveTerrainPresetFrame(
-      preset: preset,
-      x: x,
-      y: y,
-      elapsedMs: effectiveAnimationMs.toDouble(),
-    );
-    if (resolved == null) return false;
-    final tilesetId = resolved.tilesetId.trim();
-    if (tilesetId.isEmpty) {
-      return false;
-    }
-    final tilesetImage = tilesetImagesById[tilesetId];
-    if (tilesetImage == null) {
-      return false;
-    }
-    final sourceX = resolved.source.x * sourceTileWidth;
-    final sourceY = resolved.source.y * sourceTileHeight;
-    if (sourceX < 0 ||
-        sourceY < 0 ||
-        sourceX + sourceTileWidth > tilesetImage.width ||
-        sourceY + sourceTileHeight > tilesetImage.height) {
-      return false;
-    }
-
-    final srcRect = Rect.fromLTWH(
-      sourceX.toDouble(),
-      sourceY.toDouble(),
-      sourceTileWidth.toDouble(),
-      sourceTileHeight.toDouble(),
-    );
-    final dstRect = Rect.fromLTWH(
-      x * tileWidth,
-      y * tileHeight,
-      tileWidth,
-      tileHeight,
-    );
-    canvas.drawImageRect(
-      tilesetImage,
-      srcRect,
-      dstRect,
-      Paint()
-        ..color =
-            PokeMapLegacyColors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
-    );
-    return true;
-  }
-
-  _ResolvedTerrainFrame? _resolveTerrainPresetFrame({
-    required ProjectTerrainPreset preset,
-    required int x,
-    required int y,
-    required double elapsedMs,
-  }) {
-    final variants = preset.variants;
-    if (variants.isEmpty) return null;
-    final chosen = pickTerrainPresetVariantForMapCell(
-      variants: variants,
-      mapX: x,
-      mapY: y,
-      phase: preset.id.hashCode,
-    );
-
-    if (chosen.frames.isEmpty) {
-      return null;
-    }
-    final frameIndex = resolvePlacedElementAnimationFrameIndex(
-      frameDurationsMs: normalizeElementFrameDurationsMs(
-        chosen.frames.map((frame) => frame.durationMs).toList(growable: false),
-      ),
-      elapsedMs: elapsedMs,
-      animation: const MapPlacedElementAnimation(
-        enabled: true,
-        mode: MapPlacedElementAnimationMode.loop,
-      ),
-    );
-    final resolvedFrame =
-        chosen.frames[frameIndex.clamp(0, chosen.frames.length - 1)];
-    final frameSource = resolvedFrame.source;
-    final width = frameSource.width <= 0 ? 1 : frameSource.width;
-    final height = frameSource.height <= 0 ? 1 : frameSource.height;
-    final (offsetX, offsetY) = terrainPresetSubtileOffsetsForMapCell(
-      x,
-      y,
-      frameWidthTiles: width,
-      frameHeightTiles: height,
-      layout: chosen.multiTileLayout,
-      subtileSalt: frameSource.x * 73856093 + frameSource.y * 19349663,
-    );
-    final frameTilesetId = resolvedFrame.tilesetId.trim();
-    final resolvedTilesetId =
-        frameTilesetId.isNotEmpty ? frameTilesetId : preset.tilesetId.trim();
-    if (resolvedTilesetId.isEmpty) {
-      return null;
-    }
-    return _ResolvedTerrainFrame(
-      tilesetId: resolvedTilesetId,
-      source: TilesetSourceRect(
-        x: frameSource.x + offsetX,
-        y: frameSource.y + offsetY,
-      ),
-    );
-  }
-
-  PathLayer? _resolveActivePathLayer() {
-    final id = activeLayerId;
-    if (id == null) {
-      return null;
-    }
-    for (final layer in map.layers) {
-      if (layer.id == id && layer is PathLayer) {
-        return layer;
-      }
-    }
-    return null;
-  }
-
-  PathAutotileSet? _resolvePathAutotileSetForLayer(PathLayer layer) {
-    final presetId = layer.presetId.trim();
-    if (presetId.isEmpty) {
-      return null;
-    }
-    return pathAutotileSetsByPresetId[presetId];
-  }
-
-  PathAutotileSet? _resolvePreviewPathAutotileSet(PathLayer layer) {
-    final assigned = _resolvePathAutotileSetForLayer(layer);
-    if (assigned != null) {
-      return assigned;
-    }
-    return selectedPathAutotileSet;
-  }
-
   Color _terrainColor(TerrainType terrain) {
     return switch (terrain) {
       TerrainType.none => PokeMapLegacyColors.transparent,
@@ -3092,25 +2510,6 @@ class MapGridPainter extends CustomPainter {
       TerrainType.stone => PokeMapLegacyColors.grey,
       TerrainType.indoor => PokeMapLegacyColors.terrainIndoor,
     };
-  }
-
-  Color _terrainBorderColor(TerrainType terrain) {
-    switch (terrain) {
-      case TerrainType.grass:
-        return PokeMapLegacyColors.greenShade900;
-      case TerrainType.dirt:
-        return PokeMapLegacyColors.terrainDirtDark;
-      case TerrainType.sand:
-        return PokeMapLegacyColors.orangeShade900;
-      case TerrainType.rock:
-        return PokeMapLegacyColors.blueGreyShade900;
-      case TerrainType.stone:
-        return PokeMapLegacyColors.greyShade800;
-      case TerrainType.indoor:
-        return PokeMapLegacyColors.terrainIndoorDark;
-      case TerrainType.none:
-        return PokeMapLegacyColors.transparent;
-    }
   }
 
   void _paintGameplayZones(Canvas canvas) {
@@ -3274,19 +2673,10 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.gameplayZoneDraftArea != gameplayZoneDraftArea ||
         !listEquals(oldDelegate.warps, warps) ||
         !listEquals(oldDelegate.gameplayZones, gameplayZones) ||
-        !_samePathAutotileSet(
-          oldDelegate.selectedPathAutotileSet,
-          selectedPathAutotileSet,
-        ) ||
         !mapEquals(
           oldDelegate.connectionLabelsByDirection,
           connectionLabelsByDirection,
         ) ||
-        !_samePathAutotileSetsByPresetId(
-          oldDelegate.pathAutotileSetsByPresetId,
-          pathAutotileSetsByPresetId,
-        ) ||
-        !mapEquals(oldDelegate.terrainPresetsByType, terrainPresetsByType) ||
         oldDelegate.project != project ||
         oldDelegate.shadowLightPreviewPreset != shadowLightPreviewPreset ||
         !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
@@ -3338,34 +2728,5 @@ class MapGridPainter extends CustomPainter {
         previous.validity == next.validity &&
         previous.reason == next.reason &&
         listEquals(previous.tiles, next.tiles);
-  }
-
-  bool _samePathAutotileSet(PathAutotileSet? previous, PathAutotileSet? next) {
-    if (identical(previous, next)) return true;
-    if (previous == null || next == null) return previous == next;
-    if (previous.id != next.id) return false;
-    if (previous.tilesetId != next.tilesetId) return false;
-    if (previous.variants.length != next.variants.length) return false;
-    for (final entry in previous.variants.entries) {
-      final other = next.variants[entry.key];
-      if (other == null) return false;
-      if (!listEquals(other, entry.value)) return false;
-    }
-    return true;
-  }
-
-  bool _samePathAutotileSetsByPresetId(
-    Map<String, PathAutotileSet> previous,
-    Map<String, PathAutotileSet> next,
-  ) {
-    if (previous.length != next.length) {
-      return false;
-    }
-    for (final entry in previous.entries) {
-      if (!_samePathAutotileSet(entry.value, next[entry.key])) {
-        return false;
-      }
-    }
-    return true;
   }
 }

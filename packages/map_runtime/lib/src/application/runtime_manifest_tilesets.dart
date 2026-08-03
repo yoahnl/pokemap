@@ -2,24 +2,6 @@ import 'package:map_core/map_core.dart';
 
 import 'runtime_character_refs.dart';
 
-Map<TerrainType, ProjectTerrainPreset> runtimeTerrainPresetsByType(
-  ProjectManifest manifest,
-) {
-  final sorted = List<ProjectTerrainPreset>.from(manifest.terrainPresets)
-    ..sort((a, b) {
-      final c = a.sortOrder.compareTo(b.sortOrder);
-      if (c != 0) {
-        return c;
-      }
-      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
-    });
-  final out = <TerrainType, ProjectTerrainPreset>{};
-  for (final p in sorted) {
-    out.putIfAbsent(p.terrainType, () => p);
-  }
-  return out;
-}
-
 Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
   final ids = <String>{};
   void add(String? raw) {
@@ -34,76 +16,6 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
     add(layer.tilesetId);
   }
   return ids;
-}
-
-void addTerrainAndPathPresetTilesetIds(
-  Set<String> ids,
-  MapData map,
-  ProjectManifest manifest,
-) {
-  final terrainByType = runtimeTerrainPresetsByType(manifest);
-  for (final layer in map.layers) {
-    if (layer is TerrainLayer) {
-      for (final terrain in layer.terrains) {
-        if (terrain == TerrainType.none) {
-          continue;
-        }
-        final preset = terrainByType[terrain];
-        if (preset == null) {
-          continue;
-        }
-        final presetTilesetId = preset.tilesetId.trim();
-        if (presetTilesetId.isNotEmpty) {
-          ids.add(presetTilesetId);
-        }
-        for (final variant in preset.variants) {
-          for (final frame in variant.frames) {
-            final overrideTilesetId = frame.tilesetId.trim();
-            if (overrideTilesetId.isNotEmpty) {
-              ids.add(overrideTilesetId);
-            }
-          }
-        }
-      }
-      continue;
-    }
-    if (layer is PathLayer) {
-      final presetId = layer.presetId.trim();
-      if (presetId.isEmpty) {
-        continue;
-      }
-      for (final preset in manifest.pathPresets) {
-        if (preset.id == presetId) {
-          final presetTilesetId = preset.tilesetId.trim();
-          if (presetTilesetId.isNotEmpty) {
-            ids.add(presetTilesetId);
-          }
-          for (final mapping in preset.variants) {
-            for (final frame in mapping.frames) {
-              final overrideTilesetId = frame.tilesetId.trim();
-              if (overrideTilesetId.isNotEmpty) {
-                ids.add(overrideTilesetId);
-              }
-            }
-          }
-          for (final pattern in manifest.pathPatternPresets) {
-            if (pattern.basePathPresetId != presetId) {
-              continue;
-            }
-            for (final cell in pattern.centerPattern.cells) {
-              for (final frame in cell.frames) {
-                final overrideTilesetId = frame.tilesetId.trim();
-                if (overrideTilesetId.isNotEmpty) {
-                  ids.add(overrideTilesetId);
-                }
-              }
-            }
-          }
-          break;
-        }
-      }
-    }
-  }
 }
 
 void addSmartTileTilesetIds(
@@ -218,7 +130,6 @@ void addCharacterTilesetIds(
 
 Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
   final ids = collectTilesetIdsReferencedOnMap(map);
-  addTerrainAndPathPresetTilesetIds(ids, map, manifest);
   addSmartTileTilesetIds(ids, map, manifest);
   addEntityVisualTilesetIds(ids, map, manifest);
   addCharacterTilesetIds(ids, map, manifest);

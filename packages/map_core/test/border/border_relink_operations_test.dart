@@ -408,7 +408,7 @@ MapData _mapWith(
       id: 'relink-map',
       name: 'Relink map',
       size: const GridSize(width: 8, height: 8),
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       layers: <MapLayer>[
         MapLayer.border(
           id: 'border',

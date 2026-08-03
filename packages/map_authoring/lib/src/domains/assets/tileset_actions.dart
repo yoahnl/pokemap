@@ -565,28 +565,6 @@ void validateManifestFrames(
       );
     }
   }
-  for (final preset in manifest.terrainPresets) {
-    for (final variant in preset.variants) {
-      for (final frame in variant.frames) {
-        actions.validateFrame(
-          frame,
-          owningTilesetId: preset.tilesetId,
-          atlases: atlases,
-        );
-      }
-    }
-  }
-  for (final preset in manifest.pathPresets) {
-    for (final variant in preset.variants) {
-      for (final frame in variant.frames) {
-        actions.validateFrame(
-          frame,
-          owningTilesetId: preset.tilesetId,
-          atlases: atlases,
-        );
-      }
-    }
-  }
 }
 
 void _validateManifestFramesForTileset(
@@ -620,32 +598,6 @@ void _validateManifestFramesForTileset(
       }
     }
   }
-  for (final preset in manifest.terrainPresets) {
-    for (final variant in preset.variants) {
-      for (final frame in variant.frames) {
-        if (_frameTargets(frame, preset.tilesetId, tilesetId)) {
-          actions.validateFrame(
-            frame,
-            owningTilesetId: preset.tilesetId,
-            atlases: atlases,
-          );
-        }
-      }
-    }
-  }
-  for (final preset in manifest.pathPresets) {
-    for (final variant in preset.variants) {
-      for (final frame in variant.frames) {
-        if (_frameTargets(frame, preset.tilesetId, tilesetId)) {
-          actions.validateFrame(
-            frame,
-            owningTilesetId: preset.tilesetId,
-            atlases: atlases,
-          );
-        }
-      }
-    }
-  }
 }
 
 List<String> visualReferencesForTileset(
@@ -667,16 +619,6 @@ List<String> visualReferencesForTileset(
     if (element.tilesetId == tilesetId ||
         element.frames.any((frame) => frame.tilesetId == tilesetId)) {
       references.add('element:${element.id}');
-    }
-  }
-  for (final preset in manifest.terrainPresets) {
-    if (preset.tilesetId == tilesetId) {
-      references.add('terrainPreset:${preset.id}');
-    }
-  }
-  for (final preset in manifest.pathPresets) {
-    if (preset.tilesetId == tilesetId) {
-      references.add('pathPreset:${preset.id}');
     }
   }
   for (final tileset in manifest.tilesets) {
@@ -712,40 +654,6 @@ List<_OwnedVisualFrame> _visualFramesForTileset(
       if (_frameTargets(frame, element.tilesetId, tilesetId)) {
         frames.add(
             _OwnedVisualFrame('element', element.id, 'frames/$index', frame));
-      }
-    }
-  }
-  for (final preset in manifest.terrainPresets) {
-    for (var variant = 0; variant < preset.variants.length; variant++) {
-      for (var index = 0;
-          index < preset.variants[variant].frames.length;
-          index++) {
-        final frame = preset.variants[variant].frames[index];
-        if (_frameTargets(frame, preset.tilesetId, tilesetId)) {
-          frames.add(_OwnedVisualFrame(
-            'terrainPreset',
-            preset.id,
-            'variants/$variant/frames/$index',
-            frame,
-          ));
-        }
-      }
-    }
-  }
-  for (final preset in manifest.pathPresets) {
-    for (var variant = 0; variant < preset.variants.length; variant++) {
-      for (var index = 0;
-          index < preset.variants[variant].frames.length;
-          index++) {
-        final frame = preset.variants[variant].frames[index];
-        if (_frameTargets(frame, preset.tilesetId, tilesetId)) {
-          frames.add(_OwnedVisualFrame(
-            'pathPreset',
-            preset.id,
-            'variants/$variant/frames/$index',
-            frame,
-          ));
-        }
       }
     }
   }

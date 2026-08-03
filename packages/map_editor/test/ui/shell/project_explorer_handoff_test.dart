@@ -163,7 +163,6 @@ Future<void> _loadShellScreenshotFonts() async {
 
 ProjectManifest _project() {
   return const ProjectManifest(
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'test_project',
     maps: <ProjectMapEntry>[
       ProjectMapEntry(

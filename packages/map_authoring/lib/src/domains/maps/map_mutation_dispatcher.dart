@@ -5,7 +5,6 @@ import '../../domains/assets/asset_actions.dart';
 import '../../domains/assets/element_actions.dart';
 import '../../domains/assets/palette_actions.dart';
 import '../../domains/assets/presentation_actions.dart';
-import '../../domains/assets/preset_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
 import '../../domains/assets/visual_organization_actions.dart';
 import '../../domains/gameplay/pokemon_catalog_actions.dart';
@@ -21,7 +20,6 @@ import '../../domains/narrative/storyline_actions.dart';
 import '../../ports/artifact_store.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
-import 'autotile_actions.dart';
 import 'border_actions.dart';
 import 'collision_actions.dart';
 import 'entity_actions.dart';
@@ -29,13 +27,10 @@ import 'environment_actions.dart';
 import 'map_lifecycle_actions.dart';
 import 'map_lifecycle_adapter.dart';
 import 'map_operations_batch.dart';
-import 'path_actions.dart';
 import 'placed_element_actions.dart';
-import 'surface_actions.dart';
 import 'smart_tile_catalog_actions.dart';
 import 'smart_tile_cell_actions.dart';
 import 'smart_tile_layer_actions.dart';
-import 'terrain_actions.dart';
 import 'trigger_zone_actions.dart';
 import 'warp_connection_actions.dart';
 
@@ -61,13 +56,9 @@ final class MapMutationDispatcher {
   factory MapMutationDispatcher.canonical({ArtifactStore? artifactStore}) {
     const lifecycle = MapLifecycleActions();
     const operations = MapOperationsActions();
-    const terrain = TerrainActions();
-    const path = PathActions();
-    const surface = SurfaceActions();
     const smartTileCatalog = SmartTileCatalogActions();
     const smartTileCells = SmartTileCellActions();
     const smartTileLayers = SmartTileLayerActions();
-    const autotile = AutotileActions();
     const border = BorderActions();
     const collision = CollisionActions();
     const entity = EntityActions();
@@ -83,7 +74,6 @@ final class MapMutationDispatcher {
     const visualOrganization = VisualOrganizationActions();
     const palettes = PaletteActions();
     const elements = ElementActions();
-    const presets = PresetActions();
     const presentation = PresentationActions();
     const pokemonCatalogs = PokemonCatalogActions();
     const campaignContent = CampaignContentActions();
@@ -106,21 +96,6 @@ final class MapMutationDispatcher {
           descriptor: descriptor,
           build: operations.build,
         ),
-      for (final descriptor in TerrainActions.descriptors)
-        MapMutationActionRegistration(
-          descriptor: descriptor,
-          build: terrain.build,
-        ),
-      for (final descriptor in PathActions.descriptors)
-        MapMutationActionRegistration(
-          descriptor: descriptor,
-          build: path.build,
-        ),
-      for (final descriptor in SurfaceActions.descriptors)
-        MapMutationActionRegistration(
-          descriptor: descriptor,
-          build: surface.build,
-        ),
       for (final descriptor in SmartTileCatalogActions.descriptors)
         MapMutationActionRegistration(
           descriptor: descriptor,
@@ -135,11 +110,6 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: smartTileCells.build,
-        ),
-      for (final descriptor in AutotileActions.descriptors)
-        MapMutationActionRegistration(
-          descriptor: descriptor,
-          build: autotile.build,
         ),
       for (final descriptor in BorderActions.descriptors)
         MapMutationActionRegistration(
@@ -200,11 +170,6 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: elements.build,
-        ),
-      for (final descriptor in PresetActions.descriptors)
-        MapMutationActionRegistration(
-          descriptor: descriptor,
-          build: presets.build,
         ),
       for (final descriptor in PresentationActions.descriptors)
         MapMutationActionRegistration(

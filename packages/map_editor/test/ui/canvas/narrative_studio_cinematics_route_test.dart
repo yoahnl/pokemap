@@ -710,7 +710,6 @@ final class _FailingManifestGateway
 
 ProjectManifest _cinematicsProject() {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'Cinématiques route fixture',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

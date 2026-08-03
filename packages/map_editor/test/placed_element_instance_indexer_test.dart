@@ -349,7 +349,6 @@ ProjectManifest _manifest() {
         relativePath: 'tilesets/nature.png',
       ),
     ],
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     elements: [
       ProjectElementEntry(
         id: 'tree',

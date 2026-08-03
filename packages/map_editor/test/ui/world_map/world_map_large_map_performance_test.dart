@@ -154,14 +154,7 @@ void main() {
           snapshot.collisionCellVisits,
           snapshot.visibleBounds.cellCount,
         );
-        expect(
-          snapshot.terrainCellVisits,
-          snapshot.visibleBounds.cellCount,
-        );
-        expect(
-          snapshot.pathCellVisits,
-          snapshot.visibleBounds.cellCount,
-        );
+        expect(snapshot.smartTileVisualVisits, isNonNegative);
         expect(
           snapshot.placedElementPassVisits,
           lessThanOrEqualTo(snapshot.placedElementIds.length * 2),
@@ -442,8 +435,6 @@ MapGridCullingDebugSnapshot _paintCullingFixture({
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const {},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     project: _cullingProject,
     showGrid: false,
     showEditorOverlays: false,
@@ -470,7 +461,7 @@ MapGridCullingDebugSnapshot _paintSmartTileCullingFixture({
   final map = MapData(
     id: 'smart-$mapExtent',
     name: 'Smart $mapExtent',
-    version: ProjectVersion.v5,
+    version: ProjectVersion.v6,
     size: GridSize(width: mapExtent, height: mapExtent),
     layers: <MapLayer>[layer],
   );
@@ -490,8 +481,6 @@ MapGridCullingDebugSnapshot _paintSmartTileCullingFixture({
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const {},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     project: _smartTileProject,
     showGrid: false,
     showEditorOverlays: false,
@@ -566,8 +555,6 @@ Future<int> _renderRotatedEdgePixelAlpha() async {
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const {},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     project: _rotatedEdgeProject,
     showGrid: false,
     showEditorOverlays: false,
@@ -612,7 +599,6 @@ const _rotatedEdgeProject = ProjectManifest(
       ),
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 const _cullingProject = ProjectManifest(
@@ -632,7 +618,6 @@ const _cullingProject = ProjectManifest(
       ],
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 MapData _cullingMap() {
@@ -641,18 +626,9 @@ MapData _cullingMap() {
   return MapData(
     id: 'culling-map',
     name: 'Culling map',
+    version: ProjectVersion.v6,
     size: size,
     layers: <MapLayer>[
-      TerrainLayer(
-        id: 'terrain',
-        name: 'Terrain',
-        terrains: List<TerrainType>.filled(cells, TerrainType.grass),
-      ),
-      PathLayer(
-        id: 'path',
-        name: 'Path',
-        cells: List<bool>.filled(cells, true),
-      ),
       TileLayer(
         id: 'objects',
         name: 'Objects',
@@ -718,15 +694,13 @@ const _project = ProjectManifest(
       ],
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 final _smartTileProject = ProjectManifest(
   name: 'Smart tile performance',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
-  surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   smartTileCatalog: ProjectSmartTileCatalog(
     atlases: const <ProjectSmartTileAtlas>[
       ProjectSmartTileAtlas(

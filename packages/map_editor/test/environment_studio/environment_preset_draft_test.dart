@@ -740,7 +740,6 @@ ProjectManifest _manifest({
       ),
     ],
     elements: elements ?? [_element(id: 'oak')],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

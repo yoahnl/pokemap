@@ -137,7 +137,6 @@ void main() {
             ),
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
       final world = GameplayWorldState.initial(
         map: _baseMap(
@@ -209,7 +208,6 @@ void main() {
             ).copyWith(collisionMask: mask),
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
       final world = GameplayWorldState.initial(
         map: _baseMap(
@@ -287,7 +285,6 @@ void main() {
               ),
             ),
           ],
-          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
       );
 
@@ -320,9 +317,7 @@ void main() {
     });
 
     test('currently over-blocks unnormalized legacy full cells', () {
-      final manifest = ProjectManifest.fromJson(
-        migrateProjectManifestJson(_legacyBrokenProjectJson()),
-      );
+      final manifest = ProjectManifest.fromJson(_legacyBrokenProjectJson());
       final world = GameplayWorldState.initial(
         map: MapData(
           id: 'map',
@@ -360,9 +355,7 @@ void main() {
         'normalized legacy manual profile keeps roof area passable in gameplay',
         () {
       final manifest = _normalizeCollisionProfiles(
-        ProjectManifest.fromJson(
-          migrateProjectManifestJson(_legacyBrokenProjectJson()),
-        ),
+        ProjectManifest.fromJson(_legacyBrokenProjectJson()),
       );
       final world = GameplayWorldState.initial(
         map: MapData(
@@ -401,9 +394,8 @@ void main() {
 
     test('normalized placed element collision uses the placed element id only',
         () {
-      final legacyProject = ProjectManifest.fromJson(
-        migrateProjectManifestJson(_legacyBrokenProjectJson()),
-      );
+      final legacyProject =
+          ProjectManifest.fromJson(_legacyBrokenProjectJson());
       final project = _normalizeCollisionProfiles(legacyProject.copyWith(
         elements: [
           ...legacyProject.elements,
@@ -519,7 +511,6 @@ void main() {
               collisionProfile: ElementCollisionProfile(cells: roofCells),
             ),
           ],
-          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
       );
 
@@ -539,6 +530,7 @@ void main() {
 
 Map<String, dynamic> _legacyBrokenProjectJson() {
   return <String, dynamic>{
+    'version': 'v6',
     'name': 'Legacy',
     'maps': <dynamic>[],
     'tilesets': <dynamic>[
@@ -687,6 +679,5 @@ ProjectManifest _project({
             ),
           ]
         : const [],
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }

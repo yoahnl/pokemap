@@ -407,19 +407,17 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           ] else if (selectedItem != null) ...[
             PokeMapBadge(
               label: selectedItem.statusLabel,
-              variant: selectedItem.isLegacy
-                  ? PokeMapBadgeVariant.neutral
-                  : selectedItem.statusLabel == 'Publié'
-                      ? PokeMapBadgeVariant.success
-                      : PokeMapBadgeVariant.warning,
+              variant: selectedItem.statusLabel == 'Publié'
+                  ? PokeMapBadgeVariant.success
+                  : PokeMapBadgeVariant.warning,
             ),
             const SizedBox(height: 12),
             _InspectorValue(label: 'Nom', value: selectedItem.name),
             _InspectorValue(label: 'Identifiant', value: selectedItem.id),
             _InspectorValue(label: 'Usage', value: selectedItem.usageLabel),
-            _InspectorValue(
+            const _InspectorValue(
               label: 'Origine',
-              value: selectedItem.isLegacy ? 'Historique' : 'Natif v5',
+              value: 'Natif v6',
             ),
             if (selectedItem.nativePreset != null) ...[
               const SizedBox(height: 12),
@@ -1232,14 +1230,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   }
 
   Widget _buildAtlasTab(SmartTileLibraryItem selectedItem) {
-    if (selectedItem.isLegacy) {
-      return const PokeMapEmptyState(
-        title: 'Source historique',
-        description:
-            'Le preset reste sur son résolveur historique jusqu’à une conversion explicite.',
-        icon: Icon(CupertinoIcons.photo),
-      );
-    }
     final atlases = widget.manifest.smartTileCatalog.atlases;
     if (atlases.isEmpty) {
       return const PokeMapEmptyState(
@@ -1376,14 +1366,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   }
 
   Widget _buildValidationTab(SmartTileLibraryItem selectedItem) {
-    if (selectedItem.isLegacy) {
-      return const PokeMapEmptyState(
-        title: 'Validation historique',
-        description:
-            'La compatibilité est contrôlée sans publier automatiquement un preset natif.',
-        icon: Icon(CupertinoIcons.check_mark_circled),
-      );
-    }
     final diagnostics = validateProjectSmartTileCatalog(
       catalog: widget.manifest.smartTileCatalog,
       projectTilesetIds: widget.manifest.tilesets.map((tileset) => tileset.id),
@@ -1492,7 +1474,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
 
   Widget _buildAnimationsTab(SmartTileLibraryItem selectedItem) {
     final animations = widget.manifest.smartTileCatalog.animations;
-    if (selectedItem.isLegacy || animations.isEmpty) {
+    if (animations.isEmpty) {
       return const PokeMapEmptyState(
         title: 'Aucune animation native',
         description:

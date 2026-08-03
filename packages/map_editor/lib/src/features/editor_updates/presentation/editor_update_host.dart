@@ -278,7 +278,6 @@ String _blockerLabel(BuildContext context, EditorExitBlockerKind kind) {
     EditorExitBlockerKind.borderPreview =>
       l10n.editorUpdateBlockerBorderPreview,
     EditorExitBlockerKind.borderStudio => l10n.editorUpdateBlockerBorderStudio,
-    EditorExitBlockerKind.pathStudio => l10n.editorUpdateBlockerPathStudio,
     EditorExitBlockerKind.stepStudio => l10n.editorUpdateBlockerStepStudio,
     EditorExitBlockerKind.environmentStudio =>
       l10n.editorUpdateBlockerEnvironmentStudio,

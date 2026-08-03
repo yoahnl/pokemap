@@ -207,7 +207,6 @@ RuntimeMapBundle _bundle(String mapId) {
           relativePath: 'maps/$mapId.json',
         ),
       ],
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     ),
     map: MapData(
       id: mapId,

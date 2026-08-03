@@ -117,7 +117,6 @@ const _manifest = ProjectManifest(
       relativePath: 'tilesets/nature.png',
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
   elements: [
     ProjectElementEntry(
       id: 'tree',

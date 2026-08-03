@@ -3,10 +3,10 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_studio_library.dart';
 
 void main() {
-  test('lists native v5 records without requiring legacy project data', () {
+  test('lists native v6 records without any legacy project data', () {
     final manifest = ProjectManifest(
       name: 'native library',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(
@@ -39,79 +39,21 @@ void main() {
     final items = buildSmartTileStudioLibrary(manifest);
 
     expect(items, hasLength(1));
-    expect(items.single.origin, SmartTileLibraryOrigin.native);
+    expect(items.single.id, 'native-path');
+    expect(items.single.usage, SmartTileUsage.path);
     expect(items.single.statusLabel, 'Publié');
   });
 
-  test('lists pre-v5 legacy Terrain, Path, and Surface records separately', () {
-    final manifest = ProjectManifest(
-      name: 'legacy library',
-      version: ProjectVersion.v4,
-      maps: const <ProjectMapEntry>[],
-      tilesets: const <ProjectTilesetEntry>[],
-      terrainPresets: <ProjectTerrainPreset>[
-        _terrainPreset(),
-      ],
-      pathPresets: <ProjectPathPreset>[
-        _pathPreset(),
-      ],
-      surfaceCatalog: ProjectSurfaceCatalog(
-        presets: <ProjectSurfacePreset>[
-          _surfacePreset(),
-        ],
-      ),
+  test('an empty v6 catalog exposes no synthetic legacy entries', () {
+    const manifest = ProjectManifest(
+      name: 'empty library',
+      version: ProjectVersion.v6,
+      maps: <ProjectMapEntry>[],
+      tilesets: <ProjectTilesetEntry>[],
     );
 
     final items = buildSmartTileStudioLibrary(manifest);
 
-    expect(items, hasLength(3));
-    expect(
-      items.map((item) => item.origin),
-      containsAll(<SmartTileLibraryOrigin>[
-        SmartTileLibraryOrigin.legacyTerrain,
-        SmartTileLibraryOrigin.legacyPath,
-        SmartTileLibraryOrigin.legacySurface,
-      ]),
-    );
-    expect(
-      items
-          .singleWhere(
-            (item) => item.origin == SmartTileLibraryOrigin.legacySurface,
-          )
-          .usage,
-      isNull,
-    );
+    expect(items, isEmpty);
   });
-}
-
-ProjectTerrainPreset _terrainPreset() {
-  return const ProjectTerrainPreset(
-    id: 'legacy-terrain',
-    name: 'Legacy terrain',
-    terrainType: TerrainType.grass,
-    tilesetId: 'tileset',
-  );
-}
-
-ProjectPathPreset _pathPreset() {
-  return const ProjectPathPreset(
-    id: 'legacy-path',
-    name: 'Legacy path',
-    tilesetId: 'tileset',
-  );
-}
-
-ProjectSurfacePreset _surfacePreset() {
-  return ProjectSurfacePreset(
-    id: 'legacy-surface',
-    name: 'Legacy surface',
-    variantAnimations: SurfaceVariantAnimationRefSet(
-      refs: <SurfaceVariantAnimationRef>[
-        SurfaceVariantAnimationRef(
-          role: SurfaceVariantRole.isolated,
-          animationId: 'animation',
-        ),
-      ],
-    ),
-  );
 }

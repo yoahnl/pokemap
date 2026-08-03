@@ -20,7 +20,6 @@ ProjectManifest _minimalManifest() {
     name: 'Env5',
     maps: const [],
     tilesets: const [],
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 
@@ -29,13 +28,9 @@ void main() {
     test('fromJson sans environmentPresets => []', () {
       final m = ProjectManifest.fromJson(<String, dynamic>{
         'name': 'x',
+        'version': 'v6',
         'maps': <dynamic>[],
         'tilesets': <dynamic>[],
-        'surfaceCatalog': <String, dynamic>{
-          'atlases': <dynamic>[],
-          'animations': <dynamic>[],
-          'presets': <dynamic>[],
-        },
       });
       expect(m.environmentPresets, isEmpty);
     });
@@ -43,14 +38,10 @@ void main() {
     test('fromJson avec environmentPresets null => []', () {
       final m = ProjectManifest.fromJson(<String, dynamic>{
         'name': 'x',
+        'version': 'v6',
         'maps': <dynamic>[],
         'tilesets': <dynamic>[],
         'environmentPresets': null,
-        'surfaceCatalog': <String, dynamic>{
-          'atlases': <dynamic>[],
-          'animations': <dynamic>[],
-          'presets': <dynamic>[],
-        },
       });
       expect(m.environmentPresets, isEmpty);
     });
@@ -105,14 +96,10 @@ void main() {
       expect(
         () => ProjectManifest.fromJson(<String, dynamic>{
           'name': 'x',
+          'version': 'v6',
           'maps': <dynamic>[],
           'tilesets': <dynamic>[],
           'environmentPresets': 'bad',
-          'surfaceCatalog': <String, dynamic>{
-            'atlases': <dynamic>[],
-            'animations': <dynamic>[],
-            'presets': <dynamic>[],
-          },
         }),
         throwsFormatException,
       );
@@ -122,16 +109,12 @@ void main() {
       expect(
         () => ProjectManifest.fromJson(<String, dynamic>{
           'name': 'x',
+          'version': 'v6',
           'maps': <dynamic>[],
           'tilesets': <dynamic>[],
           'environmentPresets': <dynamic>[
             <String, dynamic>{'oops': true},
           ],
-          'surfaceCatalog': <String, dynamic>{
-            'atlases': <dynamic>[],
-            'animations': <dynamic>[],
-            'presets': <dynamic>[],
-          },
         }),
         throwsFormatException,
       );
@@ -210,7 +193,6 @@ void main() {
         name: 'bad',
         maps: const [],
         tilesets: const [],
-        surfaceCatalog: ProjectSurfaceCatalog(),
         environmentPresets: [_ep('dup'), _ep('dup')],
       );
       expect(

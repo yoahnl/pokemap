@@ -462,7 +462,6 @@ RuntimeMapBundle _runtimeBundle({
         startSpawnId: 'spawn_start',
         initialParty: const [pokemon],
       ),
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'hydration_map',

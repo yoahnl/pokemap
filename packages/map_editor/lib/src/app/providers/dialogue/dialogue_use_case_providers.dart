@@ -12,26 +12,22 @@ part 'dialogue_use_case_providers.g.dart';
 /// Ils restent isolés du reste de l'édition map pour que la composition root
 /// rende les dépendances "contenu narratif" immédiatement visibles.
 @riverpod
-CreateProjectDialogueUseCase createProjectDialogueUseCase(
-    Ref ref) {
+CreateProjectDialogueUseCase createProjectDialogueUseCase(Ref ref) {
   return CreateProjectDialogueUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-ImportProjectDialogueUseCase importProjectDialogueUseCase(
-    Ref ref) {
+ImportProjectDialogueUseCase importProjectDialogueUseCase(Ref ref) {
   return ImportProjectDialogueUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-UpdateProjectDialogueUseCase updateProjectDialogueUseCase(
-    Ref ref) {
+UpdateProjectDialogueUseCase updateProjectDialogueUseCase(Ref ref) {
   return UpdateProjectDialogueUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-DeleteProjectDialogueUseCase deleteProjectDialogueUseCase(
-    Ref ref) {
+DeleteProjectDialogueUseCase deleteProjectDialogueUseCase(Ref ref) {
   return DeleteProjectDialogueUseCase(
     ref.watch(projectRepositoryProvider),
     ref.watch(mapRepositoryProvider),
@@ -39,32 +35,28 @@ DeleteProjectDialogueUseCase deleteProjectDialogueUseCase(
 }
 
 @riverpod
-CreateDialogueLibraryFolderUseCase createDialogueLibraryFolderUseCase(
-    Ref ref) {
+CreateDialogueLibraryFolderUseCase createDialogueLibraryFolderUseCase(Ref ref) {
   return CreateDialogueLibraryFolderUseCase(
     ref.watch(projectRepositoryProvider),
   );
 }
 
 @riverpod
-RenameDialogueLibraryFolderUseCase renameDialogueLibraryFolderUseCase(
-    Ref ref) {
+RenameDialogueLibraryFolderUseCase renameDialogueLibraryFolderUseCase(Ref ref) {
   return RenameDialogueLibraryFolderUseCase(
     ref.watch(projectRepositoryProvider),
   );
 }
 
 @riverpod
-MoveDialogueLibraryFolderUseCase moveDialogueLibraryFolderUseCase(
-    Ref ref) {
+MoveDialogueLibraryFolderUseCase moveDialogueLibraryFolderUseCase(Ref ref) {
   return MoveDialogueLibraryFolderUseCase(
     ref.watch(projectRepositoryProvider),
   );
 }
 
 @riverpod
-DeleteDialogueLibraryFolderUseCase deleteDialogueLibraryFolderUseCase(
-    Ref ref) {
+DeleteDialogueLibraryFolderUseCase deleteDialogueLibraryFolderUseCase(Ref ref) {
   return DeleteDialogueLibraryFolderUseCase(
     ref.watch(projectRepositoryProvider),
   );
@@ -79,15 +71,13 @@ AssignDialogueToLibraryFolderUseCase assignDialogueToLibraryFolderUseCase(
 }
 
 @riverpod
-MoveDialogueToLibraryRootUseCase moveDialogueToLibraryRootUseCase(
-    Ref ref) {
+MoveDialogueToLibraryRootUseCase moveDialogueToLibraryRootUseCase(Ref ref) {
   return MoveDialogueToLibraryRootUseCase(
     ref.watch(projectRepositoryProvider),
   );
 }
 
 @riverpod
-SaveDialogueYarnBodyUseCase saveDialogueYarnBodyUseCase(
-    Ref ref) {
+SaveDialogueYarnBodyUseCase saveDialogueYarnBodyUseCase(Ref ref) {
   return SaveDialogueYarnBodyUseCase();
 }

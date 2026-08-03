@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -37,9 +36,27 @@ void main() {
       final map = buildShellChromeMap(
         layers: const <MapLayer>[
           MapLayer.tile(id: 'tile-layer', name: 'Tile layer'),
-          MapLayer.terrain(id: 'terrain-layer', name: 'Terrain layer'),
-          MapLayer.path(id: 'path-layer', name: 'Path layer'),
-          MapLayer.surface(id: 'surface-layer', name: 'Surface layer'),
+          MapLayer.smartTile(
+            id: 'terrain-layer',
+            name: 'Terrain layer',
+            presetId: 'terrain',
+            usage: SmartTileUsage.terrain,
+            field: SmartTileField.cell(),
+          ),
+          MapLayer.smartTile(
+            id: 'path-layer',
+            name: 'Path layer',
+            presetId: 'path',
+            usage: SmartTileUsage.path,
+            field: SmartTileField.cell(),
+          ),
+          MapLayer.smartTile(
+            id: 'surface-layer',
+            name: 'Surface layer',
+            presetId: 'surface',
+            usage: SmartTileUsage.forestSurface,
+            field: SmartTileField.cell(),
+          ),
           MapLayer.border(id: 'border-layer', name: 'Border layer'),
           MapLayer.collision(id: 'collision-layer', name: 'Collision layer'),
         ],
@@ -105,13 +122,12 @@ void main() {
         baseState.copyWith(
           activeLayerId: 'path-layer',
           activeTool: EditorToolType.terrainPaint,
-          terrainSelectionMode: TerrainSelectionMode.path,
         ),
       );
       await renderAndCapture(
         baseState.copyWith(
           activeLayerId: 'surface-layer',
-          activeTool: EditorToolType.surfacePaint,
+          activeTool: EditorToolType.terrainPaint,
         ),
       );
       await renderAndCapture(
@@ -127,7 +143,6 @@ void main() {
         baseState.copyWith(
           activeLayerId: 'terrain-layer',
           activeTool: EditorToolType.terrainPaint,
-          terrainSelectionMode: TerrainSelectionMode.terrain,
         ),
       );
       await renderAndCapture(
@@ -340,7 +355,6 @@ const _worldMapCommandInventory =
   },
   _WorldMapActionDestination.adaptiveInspector:
       <String, _WorldMapControlSignature>{
-    'tool.terrainType': _WorldMapControlSignature.pulldownLabel('Grass Base'),
     'tool.entityKind': _WorldMapControlSignature.pulldownLabel('NPC'),
     'tool.collisionBrushSize': _WorldMapControlSignature.capsuleTooltip(
       'Collision Brush Size: Brush Footprint',
@@ -354,12 +368,15 @@ const _worldMapCommandInventory =
         _WorldMapControlSignature.capsuleTooltip('Selection Tool'),
     'tool.tilePaint':
         _WorldMapControlSignature.capsuleTooltip('Tile Paint Tool'),
-    'tool.terrainPaint':
-        _WorldMapControlSignature.capsuleTooltip('Terrain Paint Tool'),
-    'tool.pathPaint':
-        _WorldMapControlSignature.capsuleTooltip('Path Paint Tool'),
-    'tool.surfacePaint':
-        _WorldMapControlSignature.capsuleTooltip('Surface Paint Tool'),
+    'tool.smartTile.terrain': _WorldMapControlSignature.capsuleTooltip(
+      'Terrain Smart Tile Paint Tool',
+    ),
+    'tool.smartTile.path': _WorldMapControlSignature.capsuleTooltip(
+      'Path Smart Tile Paint Tool',
+    ),
+    'tool.smartTile.forestSurface': _WorldMapControlSignature.capsuleTooltip(
+      'Forest Surface Smart Tile Paint Tool',
+    ),
     'tool.borderPaint':
         _WorldMapControlSignature.capsuleTooltipPrefix('Border Paint Tool'),
     'tool.borderErase':
@@ -412,8 +429,6 @@ const _worldExplorerWorkspaceNavigationInventory =
   'workspace.smartTiles': _WorldMapControlSignature.capsuleTooltip(
     'Switch to Smart Tiles Studio',
   ),
-  'workspace.path':
-      _WorldMapControlSignature.capsuleTooltip('Switch to Path Studio'),
   'workspace.environment': _WorldMapControlSignature.capsuleTooltip(
     'Switch to Environment Studio',
   ),

@@ -651,7 +651,8 @@ CinematicActorPreviewPosition _positionFromStagePoint({
         code: CinematicActorDisplayPreviewDiagnosticCode
             .actorDisplayMissingInitialPlacement,
         severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
-        message: 'Le placement initial de l’acteur n’a pas de Stage Point valide.',
+        message:
+            'Le placement initial de l’acteur n’a pas de Stage Point valide.',
         actorId: actorId,
       ),
     );
@@ -675,7 +676,8 @@ CinematicActorPreviewPosition _positionFromStagePoint({
         code: CinematicActorDisplayPreviewDiagnosticCode
             .actorDisplayMissingStagePoint,
         severity: CinematicActorDisplayPreviewDiagnosticSeverity.error,
-        message: 'Le Stage Point de placement initial "$normalizedPointId" est introuvable.',
+        message:
+            'Le Stage Point de placement initial "$normalizedPointId" est introuvable.',
         actorId: actorId,
         sourceId: normalizedPointId,
       ),
@@ -689,9 +691,10 @@ CinematicActorPreviewPosition _positionFromStagePoint({
 
   final x = point.x.round();
   final y = point.y.round();
-  final status = (mapData == null || _pointInBounds(x: x, y: y, mapData: mapData))
-      ? CinematicActorPreviewPositionStatus.resolved
-      : CinematicActorPreviewPositionStatus.outOfMapBounds;
+  final status =
+      (mapData == null || _pointInBounds(x: x, y: y, mapData: mapData))
+          ? CinematicActorPreviewPositionStatus.resolved
+          : CinematicActorPreviewPositionStatus.outOfMapBounds;
 
   if (status == CinematicActorPreviewPositionStatus.outOfMapBounds) {
     diagnostics.add(
@@ -699,7 +702,8 @@ CinematicActorPreviewPosition _positionFromStagePoint({
         code: CinematicActorDisplayPreviewDiagnosticCode
             .actorDisplayOutOfMapBounds,
         severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
-        message: 'Position du Stage Point "$normalizedPointId" hors limites de map.',
+        message:
+            'Position du Stage Point "$normalizedPointId" hors limites de map.',
         actorId: actorId,
         sourceId: normalizedPointId,
       ),

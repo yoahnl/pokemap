@@ -5,7 +5,7 @@
     "width": 8,
     "height": 8
   },
-  "version": "v1",
+  "version": "v6",
   "entities": [
     {
       "id": "p3_fact_world_rule_spawn",

@@ -101,7 +101,6 @@ ProjectManifest _project(ProjectElementEntry element) {
       ProjectElementCategory(id: 'decor', name: 'Decor'),
     ],
     elements: <ProjectElementEntry>[element],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

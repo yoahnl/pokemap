@@ -451,7 +451,7 @@ MapCanvasObjectTarget _target(MapCanvasObjectKind kind) {
 
 const _project = ProjectManifest(
   name: 'Context projector',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   maps: <ProjectMapEntry>[
     ProjectMapEntry(
       id: 'map',
@@ -484,7 +484,7 @@ const _project = ProjectManifest(
 final _objectMap = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   visualStack: MapVisualStackConfig.canonicalV1,
   size: const GridSize(width: 8, height: 8),
   layers: <MapLayer>[

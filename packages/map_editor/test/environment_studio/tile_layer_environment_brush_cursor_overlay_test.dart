@@ -111,8 +111,6 @@ MapGridPainter _painter(EnvironmentMaskBrushCursorOverlay? overlay) {
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const {},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     environmentBrushCursorOverlay: overlay,
   );
 }

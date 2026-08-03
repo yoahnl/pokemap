@@ -311,24 +311,6 @@ AuthoringActionDescriptor semanticActionDescriptor(
     );
 
 Map<String, Object?> semanticLayerSummary(MapLayer layer) => switch (layer) {
-      TerrainLayer value => {
-          'kind': 'terrain',
-          'id': value.id,
-          'authoredCellCount':
-              value.terrains.where((cell) => cell != TerrainType.none).length,
-        },
-      PathLayer value => {
-          'kind': 'path',
-          'id': value.id,
-          'presetId': value.presetId,
-          'authoredCellCount': value.cells.where((cell) => cell).length,
-          'propertyCount': value.properties.length,
-        },
-      SurfaceLayer value => {
-          'kind': 'surface',
-          'id': value.id,
-          'authoredCellCount': value.placements.length,
-        },
       SmartTileLayer value => {
           'kind': 'smart_tile',
           'id': value.id,

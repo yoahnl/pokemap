@@ -455,8 +455,8 @@ void main() {
         ),
       );
 
-      expect(victoryResult.status,
-          ScenarioRuntimeExecutionStatus.executedEffect);
+      expect(
+          victoryResult.status, ScenarioRuntimeExecutionStatus.executedEffect);
       expect(openedDialogues, <String>['lysa_victory_speech']);
 
       // Cas défaite.
@@ -723,8 +723,8 @@ void main() {
       );
 
       // Le flag ne doit pas être posé : le graphe s'arrête au battle node.
-      expect(state.storyFlags.activeFlags,
-          isNot(contains('should_not_be_set')));
+      expect(
+          state.storyFlags.activeFlags, isNot(contains('should_not_be_set')));
     });
   });
 }

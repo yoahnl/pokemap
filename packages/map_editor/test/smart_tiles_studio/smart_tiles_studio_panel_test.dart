@@ -67,7 +67,7 @@ void main() {
       }
       expect(find.text('Chemin Hanazuki'), findsWidgets);
       expect(find.text('Publié'), findsWidgets);
-      expect(find.text('Natif v5'), findsOneWidget);
+      expect(find.text('Natif v6'), findsOneWidget);
     });
 
     testWidgets('adapts the studio shell without overflowing when narrow', (
@@ -1231,7 +1231,7 @@ ProjectManifest _completeManifest() {
   );
   return ProjectManifest(
     name: 'Complete Smart Tiles test',
-    version: ProjectVersion.v5,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(
@@ -1240,7 +1240,6 @@ ProjectManifest _completeManifest() {
         relativePath: 'assets/tileset.png',
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     smartTileCatalog: ProjectSmartTileCatalog(
       atlases: const <ProjectSmartTileAtlas>[
         ProjectSmartTileAtlas(
@@ -1284,10 +1283,9 @@ ProjectManifest _manifest({
 }) {
   return ProjectManifest(
     name: 'Smart Tiles test',
-    version: ProjectVersion.v5,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: tilesets,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     smartTileCatalog: ProjectSmartTileCatalog(
       materials: const <ProjectSmartTileMaterial>[
         ProjectSmartTileMaterial(

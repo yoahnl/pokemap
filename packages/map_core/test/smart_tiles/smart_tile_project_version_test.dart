@@ -2,81 +2,72 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Smart Tiles project format v5', () {
-    test('decodes v5 manifests and maps', () {
+  group('Smart Tiles-only project format v6', () {
+    test('new in-memory manifests and maps default to v6', () {
       expect(
-        ProjectManifest.fromJson(_minimalManifestJson(version: 'v5')).version,
-        ProjectVersion.v5,
+        ProjectManifest(
+          name: 'New project',
+          maps: const <ProjectMapEntry>[],
+          tilesets: const <ProjectTilesetEntry>[],
+        ).version,
+        ProjectVersion.v6,
       );
       expect(
-        MapData.fromJson(_minimalMapJson(version: 'v5')).version,
-        ProjectVersion.v5,
-      );
-    });
-
-    test('v5 preserves the canonical visual stack contract', () {
-      final json = _minimalMapJson(version: 'v5')
-        ..['visualStack'] = MapVisualStackConfig.canonicalV1.toJson();
-
-      expect(MapData.fromJson(json).visualStack, isNotNull);
-    });
-
-    test('v2 still rejects visualStack', () {
-      final json = _minimalMapJson(version: 'v2')
-        ..['visualStack'] = MapVisualStackConfig.canonicalV1.toJson();
-
-      expect(() => MapData.fromJson(json), throwsFormatException);
-    });
-
-    test('migration guards accept v5 and reject unknown future versions', () {
-      final manifest = _minimalManifestJson(version: 'v5');
-      expect(
-        identical(migrateProjectManifestJson(manifest), manifest),
-        isTrue,
-      );
-      expect(
-        () => migrateProjectManifestJson(
-          _minimalManifestJson(version: 'v6'),
-        ),
-        throwsFormatException,
+        const MapData(
+          id: 'new-map',
+          name: 'New map',
+          size: GridSize(width: 1, height: 1),
+        ).version,
+        ProjectVersion.v6,
       );
     });
 
-    test('non-empty native catalog requires v5 but canonical empty v2 does not',
-        () {
-      final emptyV4 = _minimalManifestJson(version: 'v4')
-        ..['smartTileCatalog'] = <String, Object?>{
-          'formatVersion': 2,
-          'categories': <Object?>[],
-          'atlases': <Object?>[],
-          'materials': <Object?>[],
-          'animations': <Object?>[],
-          'presets': <Object?>[],
-        };
-      expect(ProjectManifest.fromJson(emptyV4).version, ProjectVersion.v4);
-
-      final nonEmptyV4 = _minimalManifestJson(version: 'v4')
-        ..['smartTileCatalog'] = <String, Object?>{
-          'formatVersion': 2,
-          'materials': <Object?>[
-            <String, Object?>{
-              'id': 'grass',
-              'name': 'Grass',
-              'connectionGroupId': 'ground',
-            },
-          ],
-        };
+    test('decodes canonical v6 manifests and maps', () {
       expect(
-        () => ProjectManifest.fromJson(nonEmptyV4),
-        throwsA(
-          isA<FormatException>().having(
-            (error) => error.message,
-            'message',
-            contains('ProjectVersion.v5'),
+        ProjectManifest.fromJson(_minimalManifestJson(version: 'v6')).version,
+        ProjectVersion.v6,
+      );
+      expect(
+        MapData.fromJson(_minimalMapJson(version: 'v6')).version,
+        ProjectVersion.v6,
+      );
+    });
+
+    for (final version in <String>['v1', 'v2', 'v3', 'v4', 'v5']) {
+      test('rejects legacy project format $version explicitly', () {
+        expect(
+          () => ProjectManifest.fromJson(
+            _minimalManifestJson(version: version),
           ),
-        ),
-      );
-    });
+          throwsA(
+            isA<FormatException>().having(
+              (error) => error.message,
+              'message',
+              allOf(
+                contains('smart_tile_v6_project_required'),
+                contains(version),
+              ),
+            ),
+          ),
+        );
+      });
+
+      test('rejects legacy map format $version explicitly', () {
+        expect(
+          () => MapData.fromJson(_minimalMapJson(version: version)),
+          throwsA(
+            isA<FormatException>().having(
+              (error) => error.message,
+              'message',
+              allOf(
+                contains('smart_tile_v6_map_required'),
+                contains(version),
+              ),
+            ),
+          ),
+        );
+      });
+    }
 
     for (final legacyKey in <String>[
       'terrainCategories',
@@ -84,10 +75,12 @@ void main() {
       'terrainPresets',
       'pathPresets',
       'pathPatternPresets',
+      'surfaceCatalog',
     ]) {
-      test('v5 rejects non-empty legacy manifest field $legacyKey', () {
-        final raw = _minimalManifestJson(version: 'v5')
-          ..[legacyKey] = <Object?>[<String, Object?>{}];
+      test('v6 rejects the legacy manifest key $legacyKey even when empty', () {
+        final raw = _minimalManifestJson(version: 'v6')
+          ..[legacyKey] =
+              legacyKey == 'surfaceCatalog' ? <String, Object?>{} : <Object?>[];
 
         expect(
           () => ProjectManifest.fromJson(raw),
@@ -96,7 +89,7 @@ void main() {
               (error) => error.message,
               'message',
               allOf(
-                contains('smart_tile_v5_legacy_manifest_unsupported'),
+                contains('smart_tile_v6_legacy_manifest_field_unsupported'),
                 contains(legacyKey),
               ),
             ),
@@ -105,9 +98,9 @@ void main() {
       });
     }
 
-    for (final runtimeType in <String>['terrain', 'path']) {
-      test('v5 rejects legacy $runtimeType layers before decoding', () {
-        final raw = _minimalMapJson(version: 'v5')
+    for (final runtimeType in <String>['terrain', 'path', 'surface']) {
+      test('v6 rejects the legacy $runtimeType layer before decoding', () {
+        final raw = _minimalMapJson(version: 'v6')
           ..['layers'] = <Object?>[
             <String, Object?>{
               'runtimeType': runtimeType,
@@ -123,7 +116,7 @@ void main() {
               (error) => error.message,
               'message',
               allOf(
-                contains('smart_tile_v5_legacy_layer_unsupported'),
+                contains('smart_tile_v6_legacy_layer_unsupported'),
                 contains(runtimeType),
               ),
             ),
@@ -132,8 +125,8 @@ void main() {
       });
     }
 
-    test('v5 rejects legacy Smart Tile lists beside a native field', () {
-      final raw = _minimalMapJson(version: 'v5')
+    test('v6 rejects legacy Smart Tile lists beside a native field', () {
+      final raw = _minimalMapJson(version: 'v6')
         ..['layers'] = <Object?>[
           <String, Object?>{
             'runtimeType': 'smart_tile',
@@ -156,9 +149,41 @@ void main() {
           isA<FormatException>().having(
             (error) => error.message,
             'message',
-            contains('smart_tile_v5_legacy_payload_unsupported'),
+            contains('smart_tile_v6_legacy_payload_unsupported'),
           ),
         ),
+      );
+    });
+
+    test('v6 requires the native Smart Tile field payload', () {
+      final raw = _minimalMapJson(version: 'v6')
+        ..['layers'] = <Object?>[
+          <String, Object?>{
+            'runtimeType': 'smart_tile',
+            'id': 'native',
+            'name': 'Native',
+            'presetId': 'preset',
+            'usage': 'terrain',
+            'materialPalette': <String>['', 'grass'],
+          },
+        ];
+
+      expect(
+        () => MapData.fromJson(raw),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            contains('smart_tile_v6_field_required'),
+          ),
+        ),
+      );
+    });
+
+    test('the public layer kind no longer exposes legacy visual families', () {
+      expect(
+        MapLayerKind.values.map((kind) => kind.name),
+        isNot(containsAll(<String>['terrain', 'path', 'surface'])),
       );
     });
   });

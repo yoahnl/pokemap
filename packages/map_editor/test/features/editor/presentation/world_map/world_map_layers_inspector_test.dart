@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/editor/application/map_layer_deletion_impact.dart';
 import 'package:map_editor/src/features/editor/application/map_context_target.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
@@ -100,7 +99,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             TileLayer(id: 'tiles', name: 'Tuiles', tiles: <int>[0]),
@@ -134,31 +133,26 @@ void main() {
         String layerId,
         EditorToolType tool,
         WorldMapPaintSubtool subtool,
-        TerrainSelectionMode? terrainMode,
       })>[
         (
           layerId: 'tiles',
           tool: EditorToolType.tilePaint,
           subtool: WorldMapPaintSubtool.tile,
-          terrainMode: null,
         ),
         (
           layerId: 'terrain',
           tool: EditorToolType.terrainPaint,
           subtool: WorldMapPaintSubtool.terrain,
-          terrainMode: TerrainSelectionMode.terrain,
         ),
         (
           layerId: 'path',
           tool: EditorToolType.terrainPaint,
           subtool: WorldMapPaintSubtool.path,
-          terrainMode: TerrainSelectionMode.path,
         ),
         (
           layerId: 'collision',
           tool: EditorToolType.collisionPaint,
           subtool: WorldMapPaintSubtool.collision,
-          terrainMode: null,
         ),
       ]) {
         expect(
@@ -185,13 +179,6 @@ void main() {
           testCase.tool,
           reason: testCase.layerId,
         );
-        if (testCase.terrainMode case final terrainMode?) {
-          expect(
-            harness.notifier.state.terrainSelectionMode,
-            terrainMode,
-            reason: testCase.layerId,
-          );
-        }
         expect(
           harness.sessionState.activeFamily,
           WorldMapToolFamily.paint,
@@ -213,16 +200,22 @@ void main() {
   );
 
   testWidgets(
-    'surface and border rows open their Paint setup instead of trapping the user in Layers',
+    'Smart Tile surface activates directly while an empty border opens setup',
     (tester) async {
       final harness = _Harness(
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v4,
+          version: ProjectVersion.v6,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
-            SurfaceLayer(id: 'surface', name: 'Surface'),
+            SmartTileLayer(
+              id: 'surface',
+              name: 'Surface',
+              presetId: 'forest',
+              usage: SmartTileUsage.forestSurface,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
+            ),
             BorderLayer(id: 'border', name: 'Bordures'),
           ],
         ),
@@ -234,9 +227,18 @@ void main() {
       for (final testCase in <({
         String layerId,
         WorldMapPaintSubtool subtool,
+        bool opensSetup,
       })>[
-        (layerId: 'surface', subtool: WorldMapPaintSubtool.surface),
-        (layerId: 'border', subtool: WorldMapPaintSubtool.border),
+        (
+          layerId: 'surface',
+          subtool: WorldMapPaintSubtool.surface,
+          opensSetup: false,
+        ),
+        (
+          layerId: 'border',
+          subtool: WorldMapPaintSubtool.border,
+          opensSetup: true,
+        ),
       ]) {
         expect(
             harness.session.activateLayers(harness.notifier).accepted, isTrue);
@@ -259,9 +261,18 @@ void main() {
           worldMapPaintInspectionIntentProvider,
         );
         expect(harness.notifier.state.activeLayerId, testCase.layerId);
-        expect(intent?.kind, WorldMapPaintInspectionIntentKind.setup);
-        expect(intent?.layerId, testCase.layerId);
-        expect(intent?.subtool, testCase.subtool);
+        if (testCase.opensSetup) {
+          expect(intent?.kind, WorldMapPaintInspectionIntentKind.setup);
+          expect(intent?.layerId, testCase.layerId);
+          expect(intent?.subtool, testCase.subtool);
+        } else {
+          expect(intent, isNull);
+          expect(
+            harness.notifier.state.activeTool,
+            EditorToolType.terrainPaint,
+          );
+          expect(harness.sessionState.lastPaintSubtool, testCase.subtool);
+        }
         expect(harness.sessionState.pinnedInspectorKind, isNull);
         expect(harness.sessionState.inspectorVisible, isTrue);
       }
@@ -318,7 +329,7 @@ void main() {
       const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           TileLayer(id: 'tiles', name: 'Sol', tiles: <int>[0]),
@@ -405,7 +416,7 @@ void main() {
       const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           TileLayer(id: 'tiles', name: 'Sol principal', tiles: <int>[0]),
@@ -515,7 +526,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             SmartTileLayer(
@@ -577,7 +588,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             TileLayer(
@@ -658,7 +669,7 @@ void main() {
         const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             SmartTileLayer(
@@ -700,10 +711,6 @@ void main() {
 
       expect(harness.notifier.state.activeLayerId, 'terrain');
       expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
-      expect(
-        harness.notifier.state.terrainSelectionMode,
-        TerrainSelectionMode.terrain,
-      );
       expect(
         harness.sessionState.activeFamily,
         WorldMapToolFamily.paint,
@@ -989,12 +996,10 @@ void main() {
     final created = harness.notifier.state.activeMap!.layers;
     expect(created.whereType<TileLayer>(), isNotEmpty);
     expect(created.whereType<CollisionLayer>(), hasLength(1));
-    expect(created.whereType<TerrainLayer>(), isEmpty);
-    expect(created.whereType<PathLayer>(), isEmpty);
+    expect(created.whereType<SmartTileLayer>(), isEmpty);
     expect(created.whereType<ObjectLayer>(), hasLength(1));
     expect(created.whereType<EnvironmentLayer>(), hasLength(1));
     expect(created.whereType<BorderLayer>(), hasLength(1));
-    expect(created.whereType<SurfaceLayer>(), hasLength(1));
     final layerScroll = tester.state<ScrollableState>(
       find
           .descendant(
@@ -1679,7 +1684,7 @@ TileLayer _tile(String id, String name) {
 
 final _smartTileProject = ProjectManifest(
   name: 'Smart project',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   smartTileCatalog: ProjectSmartTileCatalog(

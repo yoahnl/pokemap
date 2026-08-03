@@ -4,6 +4,7 @@
     {
       "id": "c1_map_a",
       "name": "Legacy corpus map A",
+      "version": "v6",
       "size": {"width": 8, "height": 8},
       "layers": [
         {
@@ -205,6 +206,7 @@
     {
       "id": "c1_map_b",
       "name": "Legacy corpus map B",
+      "version": "v6",
       "size": {"width": 4, "height": 4},
       "layers": [
         {

@@ -287,9 +287,8 @@ class _MapPropertiesPanelState extends ConsumerState<MapPropertiesPanel> {
       weather: _weather,
       isIndoor: _isIndoor,
       allowEscapeRope: _allowEscapeRope,
-      defaultSpawnId: _defaultSpawnMenuValue == _kSpawnNone
-          ? null
-          : _defaultSpawnMenuValue,
+      defaultSpawnId:
+          _defaultSpawnMenuValue == _kSpawnNone ? null : _defaultSpawnMenuValue,
       tags: tags,
     );
     notifier.updateMapMetadata(metadata);

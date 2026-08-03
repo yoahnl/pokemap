@@ -284,7 +284,6 @@ RuntimeMapBundle _bundle({
           frameHeight: 2,
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: MapData(
       id: 'shadow-actor-test',

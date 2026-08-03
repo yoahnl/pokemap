@@ -3,7 +3,8 @@ import 'package:test/test.dart';
 
 void main() {
   group('Règles runtime PNJ (JSON)', () {
-    test('roundtrip visibilité + variantes dialogue + completedCutsceneIds', () {
+    test('roundtrip visibilité + variantes dialogue + completedCutsceneIds',
+        () {
       final npc = MapEntityNpcData(
         dialogue: const DialogueRef(dialogueId: 'intro'),
         visibilityRule: const MapEntityNpcVisibilityRule(
@@ -46,7 +47,8 @@ void main() {
         n.conditionalDialogues.single.when.kind,
         MapEntityRuntimePredicateKind.stepCompleted,
       );
-      expect(n.conditionalDialogues.single.dialogue.dialogueId, 'after_starter');
+      expect(
+          n.conditionalDialogues.single.dialogue.dialogueId, 'after_starter');
       expect(n.dialogue?.dialogueId, 'intro');
     });
 

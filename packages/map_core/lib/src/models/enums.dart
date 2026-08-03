@@ -2,7 +2,7 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-enum ProjectVersion { v1, v2, v3, v4, v5 }
+enum ProjectVersion { v1, v2, v3, v4, v5, v6 }
 
 enum MapGroupType {
   @JsonValue('city')
@@ -148,12 +148,6 @@ enum MapLayerKind {
   tile,
   @JsonValue('collision')
   collision,
-  @JsonValue('terrain')
-  terrain,
-  @JsonValue('path')
-  path,
-  @JsonValue('surface')
-  surface,
   @JsonValue('smart_tile')
   smartTile,
   @JsonValue('object')

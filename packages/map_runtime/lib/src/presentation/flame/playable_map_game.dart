@@ -4266,7 +4266,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final result = stepGameplayWorld(_world, intent);
     _world = result.world;
     _syncGameStateFromWorld();
-    _consumePathAnimationSignals(result.pathAnimationSignals);
 
     if (result is Blocked) {
       if (result.reason == GameplayMovementBlockReason.waterRequiresSurf) {
@@ -6574,7 +6573,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _world = _world.withPlayer(result.world.player);
     _syncGameStateFromWorld();
-    _consumePathAnimationSignals(result.pathAnimationSignals);
     _player.startStep(
       _world.player,
       durationSeconds: PlayerComponent.kDefaultStepSeconds,
@@ -8625,7 +8623,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _handleInteract() {
     final result = stepGameplayWorld(_world, const InteractIntent());
     _world = result.world;
-    _consumePathAnimationSignals(result.pathAnimationSignals);
 
     final entity = switch (result) {
       NpcInteracted(:final entity) => entity,
@@ -8668,10 +8665,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     switch (result) {
       case NothingToInteract():
-        if (result.pathAnimationSignals.isNotEmpty) {
-          debugPrint('[interact] Path animation trigger');
-          return;
-        }
         debugPrint('[interact] Nothing to interact with');
         _showNotification('...');
       case NpcInteracted(:final entity):
@@ -9866,77 +9859,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         fallbackLabel: 'Dialogue introuvable',
       );
     });
-  }
-
-  void _consumePathAnimationSignals(List<PathAnimationSignal> signals) {
-    if (signals.isEmpty) {
-      return;
-    }
-    final active = _loadedMapsById[_activeMapId];
-    if (active == null) {
-      return;
-    }
-    for (final signal in signals) {
-      switch (signal.kind) {
-        case PathAnimationSignalKind.trigger:
-          final backgroundApplied =
-              active.backgroundLayers.triggerPathAnimationRule(
-            layerId: signal.layerId,
-            ruleId: signal.ruleId,
-            mode: signal.mode,
-            scope: signal.scope,
-            cellX: signal.sourcePos.x,
-            cellY: signal.sourcePos.y,
-          );
-          final foregroundApplied =
-              active.foregroundLayers.triggerPathAnimationRule(
-            layerId: signal.layerId,
-            ruleId: signal.ruleId,
-            mode: signal.mode,
-            scope: signal.scope,
-            cellX: signal.sourcePos.x,
-            cellY: signal.sourcePos.y,
-          );
-          if (!backgroundApplied && !foregroundApplied) {
-            debugPrint(
-              '[path_anim] trigger ignored layer=${signal.layerId} preset=${signal.presetId} rule=${signal.ruleId} trigger=${signal.trigger.name} mode=${signal.mode.name} source=(${signal.sourcePos.x}, ${signal.sourcePos.y})',
-            );
-            continue;
-          }
-          debugPrint(
-            '[path_anim] trigger layer=${signal.layerId} preset=${signal.presetId} rule=${signal.ruleId} trigger=${signal.trigger.name} mode=${signal.mode.name} source=(${signal.sourcePos.x}, ${signal.sourcePos.y})',
-          );
-        case PathAnimationSignalKind.setActive:
-          final activeValue = signal.active ?? false;
-          final backgroundApplied =
-              active.backgroundLayers.setPathAnimationRuleActive(
-            layerId: signal.layerId,
-            ruleId: signal.ruleId,
-            active: activeValue,
-            scope: signal.scope,
-            cellX: signal.sourcePos.x,
-            cellY: signal.sourcePos.y,
-          );
-          final foregroundApplied =
-              active.foregroundLayers.setPathAnimationRuleActive(
-            layerId: signal.layerId,
-            ruleId: signal.ruleId,
-            active: activeValue,
-            scope: signal.scope,
-            cellX: signal.sourcePos.x,
-            cellY: signal.sourcePos.y,
-          );
-          if (!backgroundApplied && !foregroundApplied) {
-            debugPrint(
-              '[path_anim] active ignored layer=${signal.layerId} preset=${signal.presetId} rule=${signal.ruleId} trigger=${signal.trigger.name} active=$activeValue source=(${signal.sourcePos.x}, ${signal.sourcePos.y})',
-            );
-            continue;
-          }
-          debugPrint(
-            '[path_anim] active layer=${signal.layerId} preset=${signal.presetId} rule=${signal.ruleId} trigger=${signal.trigger.name} active=$activeValue source=(${signal.sourcePos.x}, ${signal.sourcePos.y})',
-          );
-      }
-    }
   }
 
   void _executePlacedElementBehavior({

@@ -170,52 +170,5 @@ void main() {
       expect(result.passable, isFalse);
       expect(result.reason, contains('out of bounds'));
     });
-
-    test('walk movement blocks water surface cells for scripted NPC', () {
-      final waterCells = List<bool>.filled(10 * 10, false);
-      waterCells[1 * 10 + 2] = true;
-      final world = _worldWithEntities(
-        <MapEntity>[
-          _npc(id: 'npc_1', pos: const GridPos(x: 1, y: 1)),
-        ],
-        extraLayers: <MapLayer>[
-          MapLayer.path(
-            id: 'water_path_layer',
-            name: 'Water Path',
-            presetId: 'water_path',
-            cells: waterCells,
-          ),
-        ],
-        project: ProjectManifest(
-          name: 'project',
-          maps: <ProjectMapEntry>[],
-          tilesets: <ProjectTilesetEntry>[
-            const ProjectTilesetEntry(
-              id: 'ts',
-              name: 'Tileset',
-              relativePath: 'tileset.png',
-            ),
-          ],
-          surfaceCatalog: ProjectSurfaceCatalog(),
-          pathPresets: <ProjectPathPreset>[
-            const ProjectPathPreset(
-              id: 'water_path',
-              name: 'Water',
-              surfaceKind: PathSurfaceKind.water,
-              tilesetId: 'ts',
-            ),
-          ],
-        ),
-      );
-
-      final result = evaluateScriptedNpcAnchorPassability(
-        world: world,
-        entityId: 'npc_1',
-        anchorPos: const GridPos(x: 2, y: 1),
-        movementMode: MovementMode.walk,
-      );
-      expect(result.passable, isFalse);
-      expect(result.reason, contains('waterRequiresSurf'));
-    });
   });
 }

@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
@@ -26,8 +25,6 @@ void main() {
       warps: const <MapWarp>[],
       gameplayZones: const <MapGameplayZone>[],
       connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-      pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-      terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
       project: _manifest,
       showGrid: false,
       showEntityEditorChrome: false,
@@ -79,7 +76,7 @@ Future<List<int>> _pixelAt(ui.Image image, int x, int y) async {
 const _map = MapData(
   id: 'smart-transform-preview',
   name: 'Smart transform preview',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 1, height: 1),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -95,7 +92,7 @@ const _map = MapData(
 
 final _manifest = ProjectManifest(
   name: 'Smart transform preview',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(

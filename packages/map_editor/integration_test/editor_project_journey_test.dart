@@ -237,7 +237,7 @@ final class _EditorPerformanceFixture {
     final mapPath = p.join(root.path, 'maps', 'performance.json');
     const manifest = ProjectManifest(
       name: 'RM-00 editor profile',
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'performance',

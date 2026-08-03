@@ -232,7 +232,8 @@ class _WorkspaceQuickActions extends StatelessWidget {
                 child: PokeMapButton(
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
-                  isSelected: editor.workspaceMode == EditorWorkspaceMode.narrativeOverview,
+                  isSelected: editor.workspaceMode ==
+                      EditorWorkspaceMode.narrativeOverview,
                   onPressed: onOverview,
                   child: const Text('Aperçu'),
                 ),
@@ -245,7 +246,8 @@ class _WorkspaceQuickActions extends StatelessWidget {
                 child: PokeMapButton(
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
-                  isSelected: editor.workspaceMode == EditorWorkspaceMode.globalStory,
+                  isSelected:
+                      editor.workspaceMode == EditorWorkspaceMode.globalStory,
                   onPressed: onGlobal,
                   child: const Text('Histoire globale'),
                 ),
@@ -262,7 +264,8 @@ class _WorkspaceQuickActions extends StatelessWidget {
                 child: PokeMapButton(
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
-                  isSelected: editor.workspaceMode == EditorWorkspaceMode.scenes,
+                  isSelected:
+                      editor.workspaceMode == EditorWorkspaceMode.scenes,
                   onPressed: onScenes,
                   child: const Text('Scènes'),
                 ),
@@ -292,7 +295,8 @@ class _WorkspaceQuickActions extends StatelessWidget {
                 child: PokeMapButton(
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
-                  isSelected: editor.workspaceMode == EditorWorkspaceMode.cutscene,
+                  isSelected:
+                      editor.workspaceMode == EditorWorkspaceMode.cutscene,
                   onPressed: onCutscene,
                   child: const Text('Cinématique'),
                 ),
@@ -305,7 +309,8 @@ class _WorkspaceQuickActions extends StatelessWidget {
                 child: PokeMapButton(
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
-                  isSelected: editor.workspaceMode == EditorWorkspaceMode.dialogue,
+                  isSelected:
+                      editor.workspaceMode == EditorWorkspaceMode.dialogue,
                   onPressed: onDialogue,
                   child: const Text('Dialogue'),
                 ),

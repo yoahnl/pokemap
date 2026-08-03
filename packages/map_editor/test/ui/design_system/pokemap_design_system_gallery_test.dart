@@ -43,7 +43,8 @@ void main() {
       expect(find.text('Status Badges (PokeMapBadge)'), findsWidgets);
     });
 
-    testWidgets('Gallery displays all main component category sections', (tester) async {
+    testWidgets('Gallery displays all main component category sections',
+        (tester) async {
       await tester.pumpWidget(
         buildTestWidget(
           theme: PokeMapTheme.light(),
@@ -55,13 +56,17 @@ void main() {
       expect(find.text('Buttons (PokeMapButton)'), findsWidgets);
       expect(find.text('Icon Buttons (PokeMapIconButton)'), findsWidgets);
       expect(find.text('Status Badges (PokeMapBadge)'), findsWidgets);
-      expect(find.text('Cards & Panels (PokeMapCard / PokeMapPanel)'), findsWidgets);
-      expect(find.text('Toolbar Surfaces (PokeMapToolbarSurface)'), findsWidgets);
+      expect(find.text('Cards & Panels (PokeMapCard / PokeMapPanel)'),
+          findsWidgets);
+      expect(
+          find.text('Toolbar Surfaces (PokeMapToolbarSurface)'), findsWidgets);
       expect(find.text('Empty States (PokeMapEmptyState)'), findsWidgets);
       expect(find.text('Sidebar Items (PokeMapSidebarItem)'), findsWidgets);
     });
 
-    testWidgets('Gallery renders widget variants and states correctly without layout exceptions', (tester) async {
+    testWidgets(
+        'Gallery renders widget variants and states correctly without layout exceptions',
+        (tester) async {
       await tester.pumpWidget(
         buildTestWidget(
           theme: PokeMapTheme.light(),

@@ -93,7 +93,7 @@ Future<void> main(List<String> arguments) async {
 ProjectManifest _fixture(int targetBytes) {
   ProjectManifest build(String payload) => ProjectManifest(
         name: 'JSON round-trip benchmark',
-        version: ProjectVersion.v3,
+        version: ProjectVersion.v6,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         globalProperties: <String, dynamic>{'payload': payload},

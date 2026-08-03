@@ -58,7 +58,6 @@ void main() {
     test('blocks a Scene port orphaned by a dialogue outcome removal', () {
       final project = ProjectManifest(
         name: 'Outcome diagnostic',
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         maps: const [],
         tilesets: const [],
         dialogues: const [

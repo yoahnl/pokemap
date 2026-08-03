@@ -221,8 +221,8 @@ void main() {
     await controller.synchronizeRestartReadiness(
       EditorExitReadiness.fromBlockers([
         const EditorExitBlocker(
-          id: 'path-studio',
-          kind: EditorExitBlockerKind.pathStudio,
+          id: 'dialogue-studio',
+          kind: EditorExitBlockerKind.dialogueStudio,
         ),
       ]),
     );

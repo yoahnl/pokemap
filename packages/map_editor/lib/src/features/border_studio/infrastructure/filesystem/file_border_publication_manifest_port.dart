@@ -147,9 +147,7 @@ Future<void> _validateCurrentManifest(
     if (decodedJson is! Map<String, dynamic>) {
       throw const FormatException('current project manifest must be an object');
     }
-    final current = ProjectManifest.fromJson(
-      migrateProjectManifestJson(decodedJson),
-    );
+    final current = ProjectManifest.fromJson(decodedJson);
     ProjectValidator.validate(current);
     if (current != expected) {
       throw const FormatException(
@@ -175,9 +173,7 @@ Future<void> _validateStagedManifest(
     if (decodedJson is! Map<String, dynamic>) {
       throw const FormatException('project manifest must be an object');
     }
-    final decoded = ProjectManifest.fromJson(
-      migrateProjectManifestJson(decodedJson),
-    );
+    final decoded = ProjectManifest.fromJson(decodedJson);
     ProjectValidator.validate(decoded);
     if (decoded != expected) {
       throw const FormatException(

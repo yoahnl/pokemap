@@ -312,7 +312,6 @@ RuntimeMapBundle _dialogueBundle() {
     ],
     eventRegistry: registry,
     scenes: <SceneAsset>[_dialogueScene()],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   return RuntimeMapBundle(
     manifest: project,
@@ -569,7 +568,6 @@ RuntimeMapBundle _bundleForRegistry(
     scenarios: const <ScenarioAsset>[_legacyMapEnterScenario],
     eventRegistry: registry,
     scenes: <SceneAsset>[scene],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   return RuntimeMapBundle(
     manifest: project,

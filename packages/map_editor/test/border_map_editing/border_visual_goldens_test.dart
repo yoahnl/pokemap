@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_transaction.dart';
 import 'package:map_editor/src/features/border_map_editing/presentation/border_diagnostic_presentation.dart';
 import 'package:map_editor/src/features/border_map_editing/presentation/border_preview_painter.dart';
@@ -260,7 +259,7 @@ final class _CanonicalCoastFixture {
   MapData mapWithFeature(BorderFeature feature) => MapData(
         id: 'canonical-organic-coast',
         name: 'Canonical organic coast',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: const GridSize(width: _mapWidth, height: _mapHeight),
         properties: const <String, dynamic>{
           'tileLayerOrder': 'bottom_to_top',
@@ -291,7 +290,7 @@ final class _CanonicalCoastFixture {
 
   ProjectManifest get project => ProjectManifest(
         name: 'Canonical coast golden',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         borderCatalog: ProjectBorderCatalog(visualSnapshots: snapshots),
@@ -382,8 +381,6 @@ final class _CanonicalCoastFixture {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: project,
         borderPreview: preview,
         borderDiagnosticOverlayPalette: diagnosticPalette,

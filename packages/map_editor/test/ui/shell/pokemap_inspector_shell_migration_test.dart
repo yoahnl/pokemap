@@ -85,8 +85,14 @@ void main() {
         layers: const [
           TileLayer(
               id: 'layer_tiles_1', name: 'Sol principal', isVisible: true),
-          TerrainLayer(
-              id: 'layer_terrain_1', name: 'Herbe base', isVisible: true),
+          SmartTileLayer(
+            id: 'layer_terrain_1',
+            name: 'Herbe base',
+            isVisible: true,
+            presetId: 'grass',
+            usage: SmartTileUsage.terrain,
+            field: SmartTileField.cell(),
+          ),
         ],
       );
 
@@ -130,8 +136,14 @@ void main() {
         layers: const [
           TileLayer(
               id: 'layer_tiles_1', name: 'Sol principal', isVisible: true),
-          TerrainLayer(
-              id: 'layer_terrain_1', name: 'Herbe base', isVisible: false),
+          SmartTileLayer(
+            id: 'layer_terrain_1',
+            name: 'Herbe base',
+            isVisible: false,
+            presetId: 'grass',
+            usage: SmartTileUsage.terrain,
+            field: SmartTileField.cell(),
+          ),
         ],
       );
 

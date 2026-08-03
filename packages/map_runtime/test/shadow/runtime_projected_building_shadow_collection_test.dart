@@ -348,7 +348,6 @@ ProjectManifest _manifest({
       tileHeight: 16,
       displayScale: 2,
     ),
-    surfaceCatalog: ProjectSurfaceCatalog(),
     projectedBuildingShadowCatalog:
         catalog ?? const ProjectBuildingShadowPresetCatalog.empty(),
   );

@@ -60,23 +60,23 @@ void main() {
 
 RuntimeMapBundle _bundle() {
   return RuntimeMapBundle(
-    manifest: ProjectManifest(
+    manifest: const ProjectManifest(
       name: 'Tileset lifecycle test',
-      maps: const <ProjectMapEntry>[],
-      tilesets: const <ProjectTilesetEntry>[
+      maps: <ProjectMapEntry>[],
+      tilesets: <ProjectTilesetEntry>[
         ProjectTilesetEntry(
           id: 'player',
           name: 'Player',
           relativePath: 'tilesets/player.png',
         ),
       ],
-      settings: const ProjectSettings(
+      settings: ProjectSettings(
         tileWidth: 16,
         tileHeight: 16,
         displayScale: 2,
         defaultPlayerCharacterId: 'player',
       ),
-      characters: const <ProjectCharacterEntry>[
+      characters: <ProjectCharacterEntry>[
         ProjectCharacterEntry(
           id: 'player',
           name: 'Player',
@@ -85,7 +85,6 @@ RuntimeMapBundle _bundle() {
           frameHeight: 2,
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'tileset-lifecycle-map',

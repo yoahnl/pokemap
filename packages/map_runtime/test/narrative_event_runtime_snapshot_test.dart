@@ -26,7 +26,6 @@ void main() {
         records: const [],
         legacyClaims: const [],
       ),
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     );
 
     final snapshot = await NarrativeEventRuntimeSnapshot.build(

@@ -38,4 +38,3 @@ export 'pokemap_text_field.dart';
 export 'pokemap_tone.dart';
 export 'pokemap_toggle_tile.dart';
 export 'pokemap_toolbar_surface.dart';
-export 'pokemap_visual_stack_migration_dialog.dart';

@@ -451,6 +451,7 @@ ProjectManifest _project({required bool projectWithMap}) => ProjectManifest(
 MapData _map({required String name}) => MapData(
       id: 'alpha',
       name: name,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 2, height: 2),
       tilesetId: 'base_tiles',
       layers: const <MapLayer>[
@@ -459,16 +460,6 @@ MapData _map({required String name}) => MapData(
           name: 'Base',
           tilesetId: 'base_tiles',
           tiles: <int>[0, 0, 0, 0],
-        ),
-        TerrainLayer(
-          id: 'terrain',
-          name: 'Terrain',
-          terrains: <TerrainType>[
-            TerrainType.none,
-            TerrainType.none,
-            TerrainType.none,
-            TerrainType.none,
-          ],
         ),
         CollisionLayer(
           id: 'collision',

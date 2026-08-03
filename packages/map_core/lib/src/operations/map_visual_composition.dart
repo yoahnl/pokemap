@@ -19,9 +19,6 @@ enum MapVisualCompositionStrategy {
 }
 
 enum MapVisualCompositionStepKind {
-  terrainLayer,
-  pathLayer,
-  surfaceLayer,
   smartTileLayer,
   tileBackgroundLayer,
   borderLayer,
@@ -90,9 +87,6 @@ final class MapVisualCompositionPlan {
 
   Iterable<MapVisualCompositionStep> get authoredLayerSteps => steps.where(
         (step) => switch (step.kind) {
-          MapVisualCompositionStepKind.terrainLayer ||
-          MapVisualCompositionStepKind.pathLayer ||
-          MapVisualCompositionStepKind.surfaceLayer ||
           MapVisualCompositionStepKind.smartTileLayer ||
           MapVisualCompositionStepKind.tileBackgroundLayer ||
           MapVisualCompositionStepKind.borderLayer ||
@@ -188,9 +182,6 @@ MapVisualCompositionPlan _buildAuthoredPlan(
       : map.properties['tileLayerOrder'] == _bottomToTopLayerOrder
           ? visible.toList(growable: true)
           : visible.reversed.toList(growable: true);
-  if (!canonical) {
-    _deferOptedInPathsAfterGround(ordered, mapLayers: map.layers);
-  }
   final tileLayers = ordered.whereType<TileLayer>().toList(growable: false);
   final steps = <MapVisualCompositionStep>[
     for (final layer in ordered)
@@ -229,64 +220,24 @@ MapVisualCompositionPlan _buildLegacyPhasedPlan(
   required List<CollisionLayer> collisionLayers,
 }) {
   final tileLayers = _legacyVisibleTileLayersInPaintOrder(map, visible);
-  final deferredPaths = _legacyDeferredPaths(
-    map,
-    visible: visible,
-    tileLayers: tileLayers,
-  );
-  final deferredIds = deferredPaths.map((layer) => layer.id).toSet();
   final steps = <MapVisualCompositionStep>[
-    for (final layer in visible.reversed.whereType<TerrainLayer>())
-      _authoredLayerStep(layer),
-    for (final layer in visible.reversed.whereType<PathLayer>())
-      if (!deferredIds.contains(layer.id)) _authoredLayerStep(layer),
-    for (final layer in visible.reversed.whereType<SurfaceLayer>())
-      _authoredLayerStep(layer),
     for (final layer in visible.reversed)
       if (layer is ObjectLayer || layer is EnvironmentLayer)
         _authoredLayerStep(layer),
   ];
 
-  if (deferredPaths.isNotEmpty) {
-    final ground = tileLayers.first;
+  steps.add(
+    const MapVisualCompositionStep(MapVisualCompositionStepKind.shadows),
+  );
+  for (final layer in tileLayers) {
     steps
-      ..add(_authoredLayerStep(ground))
-      ..addAll(deferredPaths.map(_authoredLayerStep))
-      ..add(
-        const MapVisualCompositionStep(
-          MapVisualCompositionStepKind.shadows,
-        ),
-      )
+      ..add(_authoredLayerStep(layer))
       ..add(
         MapVisualCompositionStep(
           MapVisualCompositionStepKind.placedElements,
-          layer: ground,
+          layer: layer,
         ),
       );
-    for (final layer in tileLayers.skip(1)) {
-      steps
-        ..add(_authoredLayerStep(layer))
-        ..add(
-          MapVisualCompositionStep(
-            MapVisualCompositionStepKind.placedElements,
-            layer: layer,
-          ),
-        );
-    }
-  } else {
-    steps.add(
-      const MapVisualCompositionStep(MapVisualCompositionStepKind.shadows),
-    );
-    for (final layer in tileLayers) {
-      steps
-        ..add(_authoredLayerStep(layer))
-        ..add(
-          MapVisualCompositionStep(
-            MapVisualCompositionStepKind.placedElements,
-            layer: layer,
-          ),
-        );
-    }
   }
 
   steps.addAll(
@@ -324,28 +275,8 @@ List<TileLayer> _legacyVisibleTileLayersInPaintOrder(
       : layers.reversed.toList(growable: false);
 }
 
-List<PathLayer> _legacyDeferredPaths(
-  MapData map, {
-  required List<MapLayer> visible,
-  required List<TileLayer> tileLayers,
-}) {
-  if (tileLayers.isEmpty || _isExplicitForegroundTileLayer(tileLayers.first)) {
-    return const <PathLayer>[];
-  }
-  final groundId = tileLayers.first.id;
-  return <PathLayer>[
-    for (final layer in visible.reversed)
-      if (layer is PathLayer &&
-          (layer.properties['paintAfterTileLayerId']?.trim() ?? '') == groundId)
-        layer,
-  ];
-}
-
 MapVisualCompositionStep _authoredLayerStep(MapLayer layer) {
   final kind = switch (layer) {
-    TerrainLayer() => MapVisualCompositionStepKind.terrainLayer,
-    PathLayer() => MapVisualCompositionStepKind.pathLayer,
-    SurfaceLayer() => MapVisualCompositionStepKind.surfaceLayer,
     SmartTileLayer() => MapVisualCompositionStepKind.smartTileLayer,
     TileLayer() => MapVisualCompositionStepKind.tileBackgroundLayer,
     BorderLayer() => MapVisualCompositionStepKind.borderLayer,
@@ -358,56 +289,4 @@ MapVisualCompositionStep _authoredLayerStep(MapLayer layer) {
       ),
   };
   return MapVisualCompositionStep(kind, layer: layer);
-}
-
-void _deferOptedInPathsAfterGround(
-  List<MapLayer> ordered, {
-  required List<MapLayer> mapLayers,
-}) {
-  final firstTileIndex = ordered.indexWhere((layer) => layer is TileLayer);
-  if (firstTileIndex < 0) return;
-  final ground = ordered[firstTileIndex] as TileLayer;
-  if (_isExplicitForegroundTileLayer(ground)) return;
-  final deferredIds = <String>[
-    for (final layer in mapLayers.reversed)
-      if (layer is PathLayer &&
-          layer.isVisible &&
-          (layer.properties['paintAfterTileLayerId']?.trim() ?? '') ==
-              ground.id)
-        layer.id,
-  ];
-  if (deferredIds.isEmpty) return;
-  final deferred = <MapLayer>[];
-  for (final id in deferredIds) {
-    final index = ordered.indexWhere(
-      (layer) => layer is PathLayer && layer.id == id,
-    );
-    if (index >= 0) deferred.add(ordered.removeAt(index));
-  }
-  final groundIndex = ordered.indexWhere((layer) => layer.id == ground.id);
-  ordered.insertAll(groundIndex + 1, deferred);
-}
-
-bool _isExplicitForegroundTileLayer(TileLayer layer) {
-  final id = layer.id.trim().toLowerCase();
-  final name = layer.name.trim().toLowerCase();
-  const markers = <String>{
-    'foreground',
-    'fg',
-    'above',
-    'overlay',
-    'front',
-    'roof',
-    'toit',
-    'overhead',
-    'occlusion',
-  };
-  bool containsMarker(String value) => markers.any(
-        (marker) =>
-            value == marker ||
-            value.startsWith('${marker}_') ||
-            value.endsWith('_$marker') ||
-            value.contains('_${marker}_'),
-      );
-  return containsMarker(id) || containsMarker(name);
 }

@@ -477,7 +477,6 @@ Future<String> _writeRuntimeProject(
         .toList(growable: false),
     tilesets: const [],
     scenarios: scenarios,
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
   final mapsDir = Directory(p.join(root.path, 'maps'));
   await mapsDir.create(recursive: true);

@@ -6,11 +6,11 @@ import '../../../application/errors/application_errors.dart';
 import '../../../application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import '../../../application/use_cases/sync_pokemon_items_catalog_use_case.dart';
 
-typedef PokemonItemsCatalogWorkspaceLoader =
-    Future<PokemonItemsCatalogView> Function(String? projectRootPath);
+typedef PokemonItemsCatalogWorkspaceLoader = Future<PokemonItemsCatalogView>
+    Function(String? projectRootPath);
 
-typedef PokemonItemsCatalogWorkspaceSyncer =
-    Future<PokemonItemsCatalogSyncResult> Function(
+typedef PokemonItemsCatalogWorkspaceSyncer
+    = Future<PokemonItemsCatalogSyncResult> Function(
   String? projectRootPath, {
   bool dryRun,
   bool downloadSprites,

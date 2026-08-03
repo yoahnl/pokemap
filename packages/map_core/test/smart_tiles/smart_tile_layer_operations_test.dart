@@ -9,7 +9,7 @@ void main() {
       id: 'map',
       name: 'Map',
       size: mapSize,
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v6,
     );
 
     expect(
@@ -36,66 +36,12 @@ void main() {
       const SmartTileField.cell(semanticCells: <int>[0, 0, 0, 0]),
     );
 
-    test('does not upgrade a pre-v5 map without its manifest', () {
+    test('preserves v6 while replacing an existing native layer', () {
       final map = MapData(
         id: 'map',
         name: 'Map',
         size: mapSize,
-        version: ProjectVersion.v4,
-        layers: <MapLayer>[source],
-      );
-
-      expect(
-        () => replaceSmartTileLayer(map, layer: source),
-        throwsA(
-          isA<ValidationException>().having(
-            (error) => error.code,
-            'code',
-            'smart_tile_native_project_version_required',
-          ),
-        ),
-      );
-    });
-
-    test('rejects a v5 map that still contains a legacy provider', () {
-      final map = MapData(
-        id: 'map',
-        name: 'Map',
-        size: mapSize,
-        version: ProjectVersion.v5,
-        layers: <MapLayer>[
-          const MapLayer.terrain(
-            id: 'legacy',
-            name: 'Legacy terrain',
-            terrains: <TerrainType>[
-              TerrainType.none,
-              TerrainType.none,
-              TerrainType.none,
-              TerrainType.none,
-            ],
-          ),
-          source,
-        ],
-      );
-
-      expect(
-        () => replaceSmartTileLayer(map, layer: source),
-        throwsA(
-          isA<ValidationException>().having(
-            (error) => error.code,
-            'code',
-            'smart_tile_v5_legacy_layer_unsupported',
-          ),
-        ),
-      );
-    });
-
-    test('preserves v5 while replacing an existing native layer', () {
-      final map = MapData(
-        id: 'map',
-        name: 'Map',
-        size: mapSize,
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         layers: <MapLayer>[source],
       );
 
@@ -104,7 +50,7 @@ void main() {
         layer: source.copyWith(name: 'Normalized'),
       );
 
-      expect(result.version, ProjectVersion.v5);
+      expect(result.version, ProjectVersion.v6);
       expect((result.layers.single as SmartTileLayer).name, 'Normalized');
     });
   });
@@ -339,7 +285,7 @@ void main() {
         final source = MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           size: mapSize,
           layers: <MapLayer>[_layer(field)],
         );

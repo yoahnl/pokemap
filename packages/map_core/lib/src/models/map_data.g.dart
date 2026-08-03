@@ -12,7 +12,7 @@ _$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       size: GridSize.fromJson(json['size'] as Map<String, dynamic>),
       version: $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
-          ProjectVersion.v1,
+          ProjectVersion.v6,
       visualStack: json['visualStack'] == null
           ? null
           : MapVisualStackConfig.fromJson(
@@ -84,6 +84,7 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v3: 'v3',
   ProjectVersion.v4: 'v4',
   ProjectVersion.v5: 'v5',
+  ProjectVersion.v6: 'v6',
 };
 
 _$MapGameplayZoneImpl _$$MapGameplayZoneImplFromJson(

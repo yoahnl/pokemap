@@ -5,11 +5,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart';
+import 'package:map_editor/src/app/providers/editor/map_use_case_providers.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/application/models/narrative_event_spatial_source_creation_models.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_session_lifecycle.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/services/map_dependency_preflight_service.dart';
+import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
+import 'package:map_editor/src/domain/models/map_document_persistence.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_controller.dart';
 import 'package:map_editor/src/features/border_map_editing/application/pending_border_save_guard.dart';
@@ -231,7 +234,19 @@ void main() {
 
     test('save persists the source before loading the target', () async {
       final fixture = _ActivationFixture();
-      final notifier = fixture.notifier..state = _dirtySourceState();
+      final notifier = fixture.notifier
+        ..state = const EditorState(
+          projectRootPath: '/project',
+          project: _project,
+        );
+      expect(
+        await notifier.activateMap('maps/alpha.json'),
+        MapActivationOutcome.activated,
+      );
+      fixture.repository
+        ..loadedPaths.clear()
+        ..callOrder.clear();
+      notifier.state = _dirtySourceState();
 
       expect(
         await notifier.activateMap('maps/beta.json'),
@@ -982,7 +997,6 @@ const _gamma = MapData(
 
 const _project = ProjectManifest(
   name: 'Demo',
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
   tilesets: <ProjectTilesetEntry>[],
   maps: <ProjectMapEntry>[
     ProjectMapEntry(
@@ -1123,6 +1137,9 @@ final class _ActivationFixture {
     container = ProviderContainer(
       overrides: <Override>[
         mapRepositoryProvider.overrideWith((ref) => repository),
+        saveMapUseCaseProvider.overrideWith(
+          (ref) => SaveMapUseCase(repository),
+        ),
         projectRepositoryProvider.overrideWith((ref) => projectRepository),
         projectWorkspaceFactoryProvider.overrideWith(
           (ref) => const _ActivationWorkspaceFactory(),
@@ -1241,7 +1258,7 @@ final class _ActivationWorkspace implements ProjectWorkspace {
   Future<void> writeTextFile(String path, String contents) async {}
 }
 
-final class _ActivationMapRepository implements MapRepository {
+final class _ActivationMapRepository implements RevisionedMapRepository {
   _ActivationMapRepository({
     this.saveError,
     this.loadHandler,
@@ -1274,6 +1291,51 @@ final class _ActivationMapRepository implements MapRepository {
     final map = mapsByPath[path];
     if (map == null) throw StateError('Missing map: $path');
     return map;
+  }
+
+  @override
+  Future<RevisionedMapDocument> loadMapDocument(String path) async {
+    final map = await loadMap(path);
+    return RevisionedMapDocument(
+      map: map,
+      revision: mapDocumentRevisionFor(map),
+    );
+  }
+
+  @override
+  Future<RevisionedMapDocument> saveMapDocument(
+    MapData map,
+    String path, {
+    required MapDocumentWritePrecondition precondition,
+    ProjectManifest? projectDialogueContext,
+  }) async {
+    await saveMap(
+      map,
+      path,
+      projectDialogueContext: projectDialogueContext,
+    );
+    mapsByPath[path] = map;
+    return RevisionedMapDocument(
+      map: map,
+      revision: mapDocumentRevisionFor(map),
+    );
+  }
+
+  @override
+  Future<void> deleteMapDocument(
+    String path, {
+    required String expectedRevision,
+  }) =>
+      deleteMap(path);
+
+  @override
+  Future<MapDocumentRecoveryResult> recoverMapDocument(String path) async {
+    final map = mapsByPath[path];
+    return MapDocumentRecoveryResult(
+      status: MapDocumentRecoveryStatus.clear,
+      targetPath: path,
+      revision: map == null ? null : mapDocumentRevisionFor(map),
+    );
   }
 
   @override

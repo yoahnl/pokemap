@@ -1959,6 +1959,7 @@ MapData _stageMapData() {
   return const MapData(
     id: 'map_lab',
     name: 'Lab map',
+    version: ProjectVersion.v6,
     size: GridSize(width: 12, height: 10),
     layers: [
       MapLayer.tile(
@@ -1967,11 +1968,13 @@ MapData _stageMapData() {
         tilesetId: 'lab_tiles',
         tiles: [1, 0, 2],
       ),
-      MapLayer.path(
+      MapLayer.smartTile(
         id: 'library_path',
         name: 'Library path',
         presetId: 'library_path_preset',
-        cells: [false, true, false],
+        usage: SmartTileUsage.path,
+        materialPalette: <String>['', 'path'],
+        field: SmartTileField.cell(semanticCells: <int>[0, 1, 0]),
       ),
     ],
     entities: [
@@ -2002,7 +2005,6 @@ ProjectManifest _project({
   bool includeBridge = true,
 }) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'cinematic_project',
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(id: 'map_lab', name: 'Lab map', relativePath: 'lab.json'),

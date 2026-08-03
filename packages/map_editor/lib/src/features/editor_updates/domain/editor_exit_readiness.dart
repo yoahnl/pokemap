@@ -5,7 +5,6 @@ enum EditorExitBlockerKind {
   personalization,
   borderPreview,
   borderStudio,
-  pathStudio,
   stepStudio,
   environmentStudio,
   dialogueStudio,

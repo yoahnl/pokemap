@@ -4,7 +4,6 @@ import 'package:test/test.dart';
 void main() {
   test('characterizes search sort and grouping for 1000 cinematics', () {
     final project = ProjectManifest(
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
       name: 'cinematics_scale_fixture',
       maps: const [
         ProjectMapEntry(

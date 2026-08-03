@@ -149,7 +149,8 @@ Guide: Merci.
       expect(emitted, contains('<<unknown data>>'));
     });
 
-    test('manifest entry title selects entry without reordering Yarn nodes', () {
+    test('manifest entry title selects entry without reordering Yarn nodes',
+        () {
       const yarn = 'title: First\n---\n===\n'
           'title: Second\n---\n===\n';
 

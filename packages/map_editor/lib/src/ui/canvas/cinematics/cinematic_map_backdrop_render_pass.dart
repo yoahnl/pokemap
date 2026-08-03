@@ -1,6 +1,4 @@
 enum CinematicMapBackdropRenderPass {
-  terrain,
-  path,
   tileBackground,
   smartTileBackground,
   placedBackground,
@@ -10,13 +8,11 @@ enum CinematicMapBackdropRenderPass {
 
 extension CinematicMapBackdropRenderPassX on CinematicMapBackdropRenderPass {
   int get order => switch (this) {
-        CinematicMapBackdropRenderPass.terrain => 0,
-        CinematicMapBackdropRenderPass.path => 1,
-        CinematicMapBackdropRenderPass.tileBackground => 2,
-        CinematicMapBackdropRenderPass.smartTileBackground => 3,
-        CinematicMapBackdropRenderPass.placedBackground => 4,
-        CinematicMapBackdropRenderPass.tileForeground => 5,
-        CinematicMapBackdropRenderPass.placedForeground => 6,
+        CinematicMapBackdropRenderPass.tileBackground => 0,
+        CinematicMapBackdropRenderPass.smartTileBackground => 1,
+        CinematicMapBackdropRenderPass.placedBackground => 2,
+        CinematicMapBackdropRenderPass.tileForeground => 3,
+        CinematicMapBackdropRenderPass.placedForeground => 4,
       };
 
   bool get paintsBeforeActorOverlay =>

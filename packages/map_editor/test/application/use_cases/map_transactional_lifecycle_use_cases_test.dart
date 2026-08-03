@@ -343,7 +343,7 @@ MapData _map(String id) => MapData(
     );
 
 MapData _futureVisualStackMap(String id) => _map(id).copyWith(
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       visualStack: MapVisualStackConfig(semanticsVersion: 99),
     );
 

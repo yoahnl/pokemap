@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/features/editor/application/map_layer_grouping.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
@@ -138,7 +137,7 @@ void main() {
         id: 'reorder_paint',
         name: 'Reorder paint',
         size: GridSize(width: 1, height: 1),
-        version: ProjectVersion.v3,
+        version: ProjectVersion.v6,
         visualStack: MapVisualStackConfig.canonicalV1,
         layers: <MapLayer>[
           TileLayer(
@@ -239,8 +238,6 @@ Future<ui.Color> _paintMap(MapData map) async {
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     project: const ProjectManifest(
       name: 'Layer order test',
       maps: <ProjectMapEntry>[],
@@ -361,8 +358,6 @@ Future<ui.Color> _paintLayerAgainstEntity(
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     project: const ProjectManifest(
       name: 'Foreground marker test',
       maps: <ProjectMapEntry>[],

@@ -91,8 +91,7 @@ void main() {
       );
     });
 
-    test(
-        'entityInteract triggers multi-action scene: setFlag + completeStep',
+    test('entityInteract triggers multi-action scene: setFlag + completeStep',
         () {
       // A scenario that sets a flag AND completes a step from one interaction.
       final scenario = ScenarioAsset(
@@ -135,12 +134,10 @@ void main() {
           ),
         ],
         edges: const <ScenarioEdge>[
-          ScenarioEdge(
-              id: 'e1', fromNodeId: 'source', toNodeId: 'set_flag'),
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'set_flag'),
           ScenarioEdge(
               id: 'e2', fromNodeId: 'set_flag', toNodeId: 'complete_step'),
-          ScenarioEdge(
-              id: 'e3', fromNodeId: 'complete_step', toNodeId: 'end'),
+          ScenarioEdge(id: 'e3', fromNodeId: 'complete_step', toNodeId: 'end'),
         ],
       );
 
@@ -277,12 +274,10 @@ void main() {
           ),
         ],
         edges: const <ScenarioEdge>[
-          ScenarioEdge(
-              id: 'e1', fromNodeId: 'source', toNodeId: 'set_flag'),
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'set_flag'),
           ScenarioEdge(
               id: 'e2', fromNodeId: 'set_flag', toNodeId: 'complete_step'),
-          ScenarioEdge(
-              id: 'e3', fromNodeId: 'complete_step', toNodeId: 'end'),
+          ScenarioEdge(id: 'e3', fromNodeId: 'complete_step', toNodeId: 'end'),
         ],
       );
 
@@ -356,12 +351,10 @@ void main() {
           ),
         ],
         edges: const <ScenarioEdge>[
-          ScenarioEdge(
-              id: 'e1', fromNodeId: 'source', toNodeId: 'set_flag'),
+          ScenarioEdge(id: 'e1', fromNodeId: 'source', toNodeId: 'set_flag'),
           ScenarioEdge(
               id: 'e2', fromNodeId: 'set_flag', toNodeId: 'complete_step'),
-          ScenarioEdge(
-              id: 'e3', fromNodeId: 'complete_step', toNodeId: 'end'),
+          ScenarioEdge(id: 'e3', fromNodeId: 'complete_step', toNodeId: 'end'),
         ],
       );
 

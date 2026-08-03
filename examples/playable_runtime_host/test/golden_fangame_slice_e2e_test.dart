@@ -239,7 +239,6 @@ void main() {
           .map((step) => step['id'] as String)
           .toList(growable: false);
       expect(completed, expectedSteps);
-
     },
     timeout: const Timeout(Duration(minutes: 1)),
   );

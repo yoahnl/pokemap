@@ -84,11 +84,8 @@ void main() {
         ],
         edges: const <ScenarioEdge>[
           ScenarioEdge(
-              id: 'e1',
-              fromNodeId: 'source_entity',
-              toNodeId: 'battle_node'),
-          ScenarioEdge(
-              id: 'e2', fromNodeId: 'battle_node', toNodeId: 'end'),
+              id: 'e1', fromNodeId: 'source_entity', toNodeId: 'battle_node'),
+          ScenarioEdge(id: 'e2', fromNodeId: 'battle_node', toNodeId: 'end'),
         ],
       );
 
@@ -140,8 +137,7 @@ void main() {
           ScenarioNode(
             id: 'leak_flag',
             type: ScenarioNodeType.action,
-            payload:
-                ScenarioNodePayload(actionKind: kScenarioActionSetFlag),
+            payload: ScenarioNodePayload(actionKind: kScenarioActionSetFlag),
             binding:
                 ScenarioNodeBinding(flagName: 'test_flag_should_not_be_set'),
           ),
@@ -149,15 +145,10 @@ void main() {
         ],
         edges: const <ScenarioEdge>[
           ScenarioEdge(
-              id: 'e1',
-              fromNodeId: 'source_entity',
-              toNodeId: 'battle_node'),
+              id: 'e1', fromNodeId: 'source_entity', toNodeId: 'battle_node'),
           ScenarioEdge(
-              id: 'e2',
-              fromNodeId: 'battle_node',
-              toNodeId: 'leak_flag'),
-          ScenarioEdge(
-              id: 'e3', fromNodeId: 'leak_flag', toNodeId: 'end'),
+              id: 'e2', fromNodeId: 'battle_node', toNodeId: 'leak_flag'),
+          ScenarioEdge(id: 'e3', fromNodeId: 'leak_flag', toNodeId: 'end'),
         ],
       );
 
@@ -208,9 +199,7 @@ void main() {
         ],
         edges: const <ScenarioEdge>[
           ScenarioEdge(
-              id: 'e1',
-              fromNodeId: 'source_entity',
-              toNodeId: 'battle_node'),
+              id: 'e1', fromNodeId: 'source_entity', toNodeId: 'battle_node'),
         ],
       );
 
@@ -236,14 +225,16 @@ void main() {
   group('Battle outcome flags', () {
     test('victory flag format: battle:<battleId>:victory', () {
       expect(
-        scenarioBattleOutcomeFlagName('test_battle', kBattleOutcomeSuffixVictory),
+        scenarioBattleOutcomeFlagName(
+            'test_battle', kBattleOutcomeSuffixVictory),
         'battle:test_battle:victory',
       );
     });
 
     test('defeat flag format: battle:<battleId>:defeat', () {
       expect(
-        scenarioBattleOutcomeFlagName('test_battle', kBattleOutcomeSuffixDefeat),
+        scenarioBattleOutcomeFlagName(
+            'test_battle', kBattleOutcomeSuffixDefeat),
         'battle:test_battle:defeat',
       );
     });
@@ -308,8 +299,7 @@ void main() {
               condition: ScriptCondition(
                 type: ScriptConditionType.flagIsSet,
                 params: <String, String>{
-                  ScriptConditionParams.flagName:
-                      'battle:test_battle:victory',
+                  ScriptConditionParams.flagName: 'battle:test_battle:victory',
                 },
               ),
             ),
@@ -349,9 +339,7 @@ void main() {
         ],
         edges: const <ScenarioEdge>[
           ScenarioEdge(
-              id: 'e1',
-              fromNodeId: 'source_entity',
-              toNodeId: 'battle_node'),
+              id: 'e1', fromNodeId: 'source_entity', toNodeId: 'battle_node'),
           ScenarioEdge(
               id: 'e2',
               fromNodeId: 'battle_node',
@@ -491,8 +479,7 @@ void main() {
               condition: ScriptCondition(
                 type: ScriptConditionType.flagIsSet,
                 params: <String, String>{
-                  ScriptConditionParams.flagName:
-                      'battle:test_battle:victory',
+                  ScriptConditionParams.flagName: 'battle:test_battle:victory',
                 },
               ),
             ),
@@ -500,21 +487,19 @@ void main() {
           ScenarioNode(
             id: 'dialogue_victory',
             type: ScenarioNodeType.dialogue,
-            binding: ScenarioNodeBinding(
-                dialogueId: 'test_dialogue_after_victory'),
+            binding:
+                ScenarioNodeBinding(dialogueId: 'test_dialogue_after_victory'),
           ),
           ScenarioNode(
             id: 'dialogue_defeat',
             type: ScenarioNodeType.dialogue,
-            binding: ScenarioNodeBinding(
-                dialogueId: 'test_dialogue_after_defeat'),
+            binding:
+                ScenarioNodeBinding(dialogueId: 'test_dialogue_after_defeat'),
           ),
         ],
         edges: const <ScenarioEdge>[
           ScenarioEdge(
-              id: 'e1',
-              fromNodeId: 'source_entity',
-              toNodeId: 'battle_node'),
+              id: 'e1', fromNodeId: 'source_entity', toNodeId: 'battle_node'),
           ScenarioEdge(
               id: 'e2',
               fromNodeId: 'battle_node',
@@ -581,14 +566,15 @@ void main() {
       );
 
       final saveData = saveDataFromGameState(state);
-      final reloaded = normalizeLoadedGameState(gameStateFromSaveData(saveData));
+      final reloaded =
+          normalizeLoadedGameState(gameStateFromSaveData(saveData));
 
       expect(reloaded.storyFlags.activeFlags,
           contains('battle:test_battle:victory'));
-      expect(reloaded.storyFlags.activeFlags,
-          contains('test_flag_victory_path'));
-      expect(reloaded.progression.completedStepIds,
-          contains('test_step_victory'));
+      expect(
+          reloaded.storyFlags.activeFlags, contains('test_flag_victory_path'));
+      expect(
+          reloaded.progression.completedStepIds, contains('test_step_victory'));
     });
 
     test('defeat flags also survive save/load', () {
@@ -604,14 +590,15 @@ void main() {
       );
 
       final saveData = saveDataFromGameState(state);
-      final reloaded = normalizeLoadedGameState(gameStateFromSaveData(saveData));
+      final reloaded =
+          normalizeLoadedGameState(gameStateFromSaveData(saveData));
 
       expect(reloaded.storyFlags.activeFlags,
           contains('battle:test_battle:defeat'));
-      expect(reloaded.storyFlags.activeFlags,
-          contains('test_flag_defeat_path'));
-      expect(reloaded.progression.completedStepIds,
-          contains('test_step_defeat'));
+      expect(
+          reloaded.storyFlags.activeFlags, contains('test_flag_defeat_path'));
+      expect(
+          reloaded.progression.completedStepIds, contains('test_step_defeat'));
     });
   });
 

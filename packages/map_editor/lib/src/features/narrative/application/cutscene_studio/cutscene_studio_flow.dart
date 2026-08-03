@@ -66,17 +66,21 @@ CutsceneStudioMapContextResolution? _walkFlowSegmentForPredecessors(
     switch (entry) {
       case CutsceneFlowBlockEntry(:final block):
         if (block.id == targetId) {
-          return CutsceneStudioMapContextLinear(List<CutsceneStudioBlock>.from(prefix));
+          return CutsceneStudioMapContextLinear(
+              List<CutsceneStudioBlock>.from(prefix));
         }
         prefix = <CutsceneStudioBlock>[...prefix, block];
       case CutsceneFlowChoiceEntry(:final question, :final onYes, :final onNo):
         if (question.id == targetId) {
-          return CutsceneStudioMapContextLinear(List<CutsceneStudioBlock>.from(prefix));
+          return CutsceneStudioMapContextLinear(
+              List<CutsceneStudioBlock>.from(prefix));
         }
         final afterQuestion = <CutsceneStudioBlock>[...prefix, question];
-        final inYes = _walkFlowSegmentForPredecessors(onYes, targetId, afterQuestion);
+        final inYes =
+            _walkFlowSegmentForPredecessors(onYes, targetId, afterQuestion);
         if (inYes != null) return inYes;
-        final inNo = _walkFlowSegmentForPredecessors(onNo, targetId, afterQuestion);
+        final inNo =
+            _walkFlowSegmentForPredecessors(onNo, targetId, afterQuestion);
         if (inNo != null) return inNo;
         final hasBranchBodies = onYes.isNotEmpty || onNo.isNotEmpty;
         if (hasBranchBodies) {

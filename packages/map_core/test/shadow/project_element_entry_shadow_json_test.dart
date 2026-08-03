@@ -88,6 +88,7 @@ void main() {
     test('legacy ProjectManifest JSON decodes element shadow as null', () {
       final manifest = ProjectManifest.fromJson(<String, Object?>{
         'name': 'Project',
+        'version': 'v6',
         'maps': <Object?>[],
         'tilesets': <Object?>[],
         'elements': <Object?>[_elementJson()],
@@ -109,7 +110,6 @@ void main() {
             ),
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       final json = manifest.toJson();

@@ -5,11 +5,11 @@ import '../core/repository_providers.dart';
 import '../pokedex/pokedex_providers.dart';
 import '../../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 
-typedef PokemonMovesCatalogWorkspaceLoader =
-    Future<PokemonMovesCatalogView> Function(String? projectRootPath);
+typedef PokemonMovesCatalogWorkspaceLoader = Future<PokemonMovesCatalogView>
+    Function(String? projectRootPath);
 
-typedef PokemonMovesCatalogWorkspaceSyncer =
-    Future<PokemonMovesCatalogSyncResult> Function(
+typedef PokemonMovesCatalogWorkspaceSyncer
+    = Future<PokemonMovesCatalogSyncResult> Function(
   String? projectRootPath, {
   bool dryRun,
 });

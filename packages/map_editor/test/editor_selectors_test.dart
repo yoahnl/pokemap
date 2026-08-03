@@ -58,7 +58,6 @@ void main() {
               relativePath: 'tilesets/world.json',
             ),
           ],
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
         activeMap: MapData(
           id: 'town',
@@ -232,12 +231,12 @@ void main() {
       expect(snapshot.favoriteTilesetIds, <String>['details']);
     });
 
-    test('Path Studio snapshots hide map save and history actions', () {
+    test('Smart Tiles Studio snapshots hide map save and history actions', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
       container.read(editorNotifierProvider.notifier).state = const EditorState(
-        workspaceMode: EditorWorkspaceMode.pathStudio,
+        workspaceMode: EditorWorkspaceMode.smartTilesStudio,
         activeMap: MapData(
           id: 'town',
           name: 'Starter Town',
@@ -303,7 +302,6 @@ void main() {
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
         activeMap: MapData(
           id: 'town',
@@ -330,7 +328,6 @@ void main() {
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
       );
 
@@ -352,7 +349,6 @@ void main() {
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
       );
 
@@ -372,7 +368,6 @@ void main() {
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
       );
 
@@ -383,36 +378,6 @@ void main() {
         'Presets d’environnements réutilisables',
       );
       expect(shell.workspaceSubtitle, isNot(contains('shell read-only')));
-    });
-
-    test('editorTerrainLibrarySnapshotProvider exposes preset selection inputs',
-        () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      container.read(editorNotifierProvider.notifier).state = const EditorState(
-        project: ProjectManifest(
-          name: 'demo',
-          maps: <ProjectMapEntry>[],
-          tilesets: <ProjectTilesetEntry>[
-            ProjectTilesetEntry(
-              id: 'world',
-              name: 'World',
-              relativePath: 'tilesets/world.json',
-            ),
-          ],
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
-        ),
-        selectedTerrainType: TerrainType.grass,
-        selectedTerrainPresetId: 'terrain.grass',
-        selectedPathPresetId: 'path.route',
-      );
-
-      final snapshot = container.read(editorTerrainLibrarySnapshotProvider);
-      expect(snapshot.project?.name, 'demo');
-      expect(snapshot.tilesets.map((entry) => entry.id), ['world']);
-      expect(snapshot.selectedTerrainPresetId, 'terrain.grass');
-      expect(snapshot.selectedPathPresetId, 'path.route');
     });
 
     test('editorTilesetPaletteSnapshotProvider exposes palette panel state',
@@ -432,7 +397,6 @@ void main() {
               relativePath: 'tilesets/world.json',
             ),
           ],
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
         activeMap: MapData(
           id: 'town',
@@ -491,7 +455,6 @@ void main() {
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
         activeMap: map,
         activeLayerId: 'ground',

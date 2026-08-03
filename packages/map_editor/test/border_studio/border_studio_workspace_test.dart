@@ -657,12 +657,11 @@ ProjectManifest _manifest({
 }) {
   return ProjectManifest(
     name: 'Border Studio UI',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: tilesets,
     elements: elements,
     borderCatalog: ProjectBorderCatalog(records: records),
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

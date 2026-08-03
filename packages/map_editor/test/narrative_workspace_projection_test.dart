@@ -8,7 +8,6 @@ void main() {
   group('buildNarrativeWorkspaceProjection', () {
     test('splits global story and local flows, and projects steps', () {
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -122,7 +121,6 @@ void main() {
       );
 
       final project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'test',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -219,7 +217,6 @@ void main() {
         ],
       );
       final project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'test',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],

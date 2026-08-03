@@ -122,7 +122,6 @@ RuntimeMapBundle _bundle() => RuntimeMapBundle(
         shops: <ShopDefinition>[
           ShopDefinition(id: 'shop.port', label: 'Boutique du port'),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
       ),
       map: const MapData(
         id: 'map.port',

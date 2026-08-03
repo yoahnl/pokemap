@@ -237,7 +237,7 @@ void main() {
       );
       expect(
         rowsById,
-        contains('editor.use_case.PaintTerrainOnMapUseCase'),
+        isNot(contains('editor.use_case.PaintTerrainOnMapUseCase')),
       );
       expect(
         rowsById,

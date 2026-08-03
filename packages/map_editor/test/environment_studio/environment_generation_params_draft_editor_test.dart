@@ -9,7 +9,8 @@ void main() {
     testWidgets('affichage initial : titres et valeurs standard',
         (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-edit-as-draft')));
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-as-draft')));
       await tester.pumpAndSettle();
 
       expect(
@@ -53,7 +54,8 @@ void main() {
 
     testWidgets('densité 0.75 OK puis 1.5 → Densité invalide', (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-edit-as-draft')));
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-as-draft')));
       await tester.pumpAndSettle();
 
       final d =
@@ -77,7 +79,8 @@ void main() {
       tester,
     ) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-edit-as-draft')));
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-as-draft')));
       await tester.pumpAndSettle();
 
       final f =
@@ -100,7 +103,8 @@ void main() {
     testWidgets('densité des bords 0.6 OK puis 2 → Densité des bords invalide',
         (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-edit-as-draft')));
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-as-draft')));
       await tester.pumpAndSettle();
 
       final f =
@@ -123,7 +127,8 @@ void main() {
     testWidgets('espacement 3 OK puis -1 → Espacement invalide',
         (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-edit-as-draft')));
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-as-draft')));
       await tester.pumpAndSettle();
 
       final f =
@@ -147,7 +152,8 @@ void main() {
       tester,
     ) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-edit-as-draft')));
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-as-draft')));
       await tester.pumpAndSettle();
 
       final d =
@@ -175,7 +181,8 @@ void main() {
       tester,
     ) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-edit-as-draft')));
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-as-draft')));
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -224,7 +231,8 @@ void main() {
           manifest.environmentPresets.map((p) => p.id).toList(growable: false);
 
       await _pump(tester, manifest);
-      await tester.tap(find.byKey(const Key('environment-studio-edit-as-draft')));
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-as-draft')));
       await tester.pumpAndSettle();
 
       await tester.enterText(
@@ -290,7 +298,6 @@ ProjectManifest _manifest({
     tilesets: const [],
     environmentPresets: environmentPresets ?? [_preset(id: 'keep')],
     elements: elements,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

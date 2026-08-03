@@ -23,7 +23,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Border Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: GridSize(width: 4, height: 3),
       layers: <MapLayer>[
         MapLayer.border(id: 'border', name: 'Côte'),
@@ -73,7 +73,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Border Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 4, height: 3),
       layers: <MapLayer>[
         MapLayer.border(
@@ -354,7 +354,7 @@ void main() {
     final map = MapData(
       id: 'stone-map',
       name: 'Falaise',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 8, height: 4),
       layers: <MapLayer>[
         MapLayer.border(
@@ -448,7 +448,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Border Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 4, height: 3),
       layers: <MapLayer>[
         MapLayer.border(
@@ -593,7 +593,7 @@ void main() {
       final map = MapData(
         id: 'map',
         name: 'Connected line map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: const GridSize(width: 4, height: 3),
         layers: <MapLayer>[
           MapLayer.border(
@@ -1020,7 +1020,7 @@ BorderDiagnostic _previewDiagnostic(String code) => BorderDiagnostic(
   final map = MapData(
     id: 'map',
     name: 'Border preview map',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     size: const GridSize(width: 4, height: 3),
     layers: <MapLayer>[
       MapLayer.border(
@@ -1104,7 +1104,7 @@ BorderResolutionResult _successfulPreview(BorderResolutionRequest _) =>
 ProjectManifest _project(List<BorderBlueprintRecord> records) =>
     ProjectManifest(
       name: 'Border Inspector',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       borderCatalog: ProjectBorderCatalog(

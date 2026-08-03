@@ -5,16 +5,16 @@ import 'package:test/test.dart';
 
 void main() {
   group('ProjectManifest Border catalog integration', () {
-    test('legacy manifest defaults to empty V1 without injecting JSON', () {
-      final legacyJson = _minimalManifestJson();
+    test('v6 manifest defaults to an empty catalog without JSON churn', () {
+      final projectJson = _minimalManifestJson();
 
-      final manifest = ProjectManifest.fromJson(legacyJson);
+      final manifest = ProjectManifest.fromJson(projectJson);
       final encoded = manifest.toJson();
 
-      expect(manifest.version, ProjectVersion.v1);
+      expect(manifest.version, ProjectVersion.v6);
       expect(manifest.borderCatalog, const ProjectBorderCatalog.empty());
       expect(encoded.containsKey('borderCatalog'), isFalse);
-      expect(legacyJson.containsKey('borderCatalog'), isFalse);
+      expect(projectJson.containsKey('borderCatalog'), isFalse);
     });
 
     test('explicit empty catalog decodes but is canonically omitted', () {
@@ -31,9 +31,8 @@ void main() {
       expect(manifest.toJson().containsKey('borderCatalog'), isFalse);
     });
 
-    test('explicit empty V2 catalog preserves its independent subformat', () {
+    test('explicit empty V2 border catalog preserves its subformat', () {
       final json = _minimalManifestJson()
-        ..['version'] = 'v2'
         ..['borderCatalog'] = <String, Object?>{
           'formatVersion': ProjectBorderCatalog.formatVersionV2,
           'records': <Object?>[],
@@ -77,39 +76,13 @@ void main() {
       }
     });
 
-    test('V1 JSON rejects records or snapshots with absent/null/V1 version',
-        () {
-      for (final catalog in <ProjectBorderCatalog>[
-        ProjectBorderCatalog(
-          records: <BorderBlueprintRecord>[_record('coast')],
-        ),
-        ProjectBorderCatalog(
-          visualSnapshots: <BorderVisualSnapshot>[_snapshot('a')],
-        ),
-      ]) {
-        for (final version in <Object?>[_absentVersion, null, 'v1']) {
-          final json = _minimalManifestJson()
-            ..['borderCatalog'] = encodeProjectBorderCatalogJson(catalog);
-          if (!identical(version, _absentVersion)) {
-            json['version'] = version;
-          }
-
-          expect(
-            () => ProjectManifest.fromJson(json),
-            _formatAt(r'$.borderCatalog'),
-            reason: '$version / ${catalog.records.length} records',
-          );
-        }
-      }
-    });
-
-    test('V2 manifest round-trips one strict nonempty catalog', () {
+    test('v6 manifest round-trips one strict nonempty catalog', () {
       final catalog = ProjectBorderCatalog(
         records: <BorderBlueprintRecord>[_record('coast')],
       );
       final manifest = ProjectManifest(
         name: 'Border V2',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         borderCatalog: catalog,
@@ -119,7 +92,7 @@ void main() {
       final wire = jsonDecode(jsonEncode(encoded)) as Map<String, dynamic>;
       final decoded = ProjectManifest.fromJson(wire);
 
-      expect(encoded['version'], 'v2');
+      expect(encoded['version'], 'v6');
       expect(encoded['borderCatalog'], encodeProjectBorderCatalogJson(catalog));
       expect(decoded, manifest);
       expect(decoded.borderCatalog.records.single.id, 'coast');
@@ -145,7 +118,8 @@ void main() {
 }
 
 Map<String, dynamic> _minimalManifestJson() => <String, dynamic>{
-      'name': 'Legacy',
+      'name': 'Project',
+      'version': 'v6',
       'maps': <Object?>[],
       'tilesets': <Object?>[],
     };
@@ -180,20 +154,3 @@ BorderBlueprintRecord _record(String id) => BorderBlueprintRecord(
         ),
       ),
     );
-
-const Object _absentVersion = Object();
-
-BorderVisualSnapshot _snapshot(String digit) {
-  final fingerprint = digit * 64;
-  return BorderVisualSnapshot(
-    id: 'border-snapshot-sha256:$fingerprint',
-    contentFingerprint: fingerprint,
-    frames: <BorderVisualFrameSnapshot>[
-      BorderVisualFrameSnapshot(
-        relativeAssetPath: 'assets/borders/snapshots/$digit.png',
-        sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 8, height: 8),
-        durationMs: 100,
-      ),
-    ],
-  );
-}

@@ -415,7 +415,6 @@ RuntimeMapBundle _bundle({
       ],
       tilesets: const <ProjectTilesetEntry>[],
       trainers: trainers,
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'route',

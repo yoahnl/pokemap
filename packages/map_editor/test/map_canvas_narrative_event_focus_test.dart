@@ -504,8 +504,6 @@ MapGridPainter _painter({required NarrativeEditorFocusTarget focus}) {
     warps: const [],
     gameplayZones: const [],
     connectionLabelsByDirection: const {},
-    pathAutotileSetsByPresetId: const {},
-    terrainPresetsByType: const {},
     narrativeEventFocusTarget: focus,
     narrativeEventHighlightColor: const Color(0xFF815BFF),
   );

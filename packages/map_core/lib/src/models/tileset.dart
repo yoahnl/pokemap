@@ -15,7 +15,8 @@ class TilesetConfig with _$TilesetConfig {
     @Default({}) Map<String, dynamic> customProperties,
   }) = _TilesetConfig;
 
-  factory TilesetConfig.fromJson(Map<String, dynamic> json) => _$TilesetConfigFromJson(json);
+  factory TilesetConfig.fromJson(Map<String, dynamic> json) =>
+      _$TilesetConfigFromJson(json);
 }
 
 @freezed
@@ -26,5 +27,6 @@ class TileProperties with _$TileProperties {
     @Default({}) Map<String, dynamic> properties,
   }) = _TileProperties;
 
-  factory TileProperties.fromJson(Map<String, dynamic> json) => _$TilePropertiesFromJson(json);
+  factory TileProperties.fromJson(Map<String, dynamic> json) =>
+      _$TilePropertiesFromJson(json);
 }

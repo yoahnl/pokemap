@@ -17,7 +17,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 2, height: 1),
       layers: <MapLayer>[
         MapLayer.smartTile(
@@ -81,7 +81,7 @@ void main() {
 
 ProjectManifest _manifest() => ProjectManifest(
       name: 'Cinematic Smart Tile',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
       tilesets: const <ProjectTilesetEntry>[

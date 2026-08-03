@@ -181,7 +181,6 @@ ProjectManifest _project() {
       _factScene(id: _outcomeTwoConsumerSceneId, factId: _factB),
       _factScene(id: _mapEnterConsumerSceneId, factId: _factC),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

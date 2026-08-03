@@ -905,7 +905,6 @@ RuntimeMapBundle _bundle({
           legacyClaims: const <LegacySourceClaim>[],
         ),
     scenes: scenes,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   return RuntimeMapBundle(
     manifest: manifest,

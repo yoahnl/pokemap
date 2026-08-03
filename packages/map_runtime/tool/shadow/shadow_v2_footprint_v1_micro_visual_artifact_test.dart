@@ -106,7 +106,8 @@ void main() {
       expect(
         visibleShadowPixel,
         isNot(backgroundPixel),
-        reason: '${candidate.label} shadow should remain visible below building',
+        reason:
+            '${candidate.label} shadow should remain visible below building',
       );
     }
 

@@ -8,7 +8,6 @@ import '../../../application/use_cases/project_group_use_cases.dart';
 import '../../../application/use_cases/project_management_use_cases.dart';
 import '../../../application/use_cases/project_tileset_library_use_cases.dart';
 import '../../../application/use_cases/project_tileset_use_cases.dart';
-import '../../../application/use_cases/terrain_preset_use_cases.dart';
 import '../../../application/use_cases/trainer_use_cases.dart';
 import '../core/repository_providers.dart';
 
@@ -32,20 +31,17 @@ LoadProjectUseCase loadProjectUseCase(Ref ref) {
 }
 
 @riverpod
-UpdateProjectSettingsUseCase updateProjectSettingsUseCase(
-    Ref ref) {
+UpdateProjectSettingsUseCase updateProjectSettingsUseCase(Ref ref) {
   return UpdateProjectSettingsUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-ImportProjectTilesetUseCase importProjectTilesetUseCase(
-    Ref ref) {
+ImportProjectTilesetUseCase importProjectTilesetUseCase(Ref ref) {
   return ImportProjectTilesetUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-UpdateProjectTilesetUseCase updateProjectTilesetUseCase(
-    Ref ref) {
+UpdateProjectTilesetUseCase updateProjectTilesetUseCase(Ref ref) {
   return UpdateProjectTilesetUseCase(ref.watch(projectRepositoryProvider));
 }
 
@@ -56,8 +52,7 @@ ResolveAssignableTilesetsForMapUseCase resolveAssignableTilesetsForMapUseCase(
 }
 
 @riverpod
-DeleteProjectTilesetUseCase deleteProjectTilesetUseCase(
-    Ref ref) {
+DeleteProjectTilesetUseCase deleteProjectTilesetUseCase(Ref ref) {
   return DeleteProjectTilesetUseCase(
     ref.watch(projectRepositoryProvider),
     ref.watch(mapRepositoryProvider),
@@ -65,34 +60,29 @@ DeleteProjectTilesetUseCase deleteProjectTilesetUseCase(
 }
 
 @riverpod
-ReorderProjectTilesetUseCase reorderProjectTilesetUseCase(
-    Ref ref) {
+ReorderProjectTilesetUseCase reorderProjectTilesetUseCase(Ref ref) {
   return ReorderProjectTilesetUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-CreateTilesetLibraryFolderUseCase createTilesetLibraryFolderUseCase(
-    Ref ref) {
+CreateTilesetLibraryFolderUseCase createTilesetLibraryFolderUseCase(Ref ref) {
   return CreateTilesetLibraryFolderUseCase(
       ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-RenameTilesetLibraryFolderUseCase renameTilesetLibraryFolderUseCase(
-    Ref ref) {
+RenameTilesetLibraryFolderUseCase renameTilesetLibraryFolderUseCase(Ref ref) {
   return RenameTilesetLibraryFolderUseCase(
       ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-MoveTilesetLibraryFolderUseCase moveTilesetLibraryFolderUseCase(
-    Ref ref) {
+MoveTilesetLibraryFolderUseCase moveTilesetLibraryFolderUseCase(Ref ref) {
   return MoveTilesetLibraryFolderUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-DeleteTilesetLibraryFolderUseCase deleteTilesetLibraryFolderUseCase(
-    Ref ref) {
+DeleteTilesetLibraryFolderUseCase deleteTilesetLibraryFolderUseCase(Ref ref) {
   return DeleteTilesetLibraryFolderUseCase(
       ref.watch(projectRepositoryProvider));
 }
@@ -105,34 +95,29 @@ AssignTilesetToLibraryFolderUseCase assignTilesetToLibraryFolderUseCase(
 }
 
 @riverpod
-MoveTilesetToLibraryRootUseCase moveTilesetToLibraryRootUseCase(
-    Ref ref) {
+MoveTilesetToLibraryRootUseCase moveTilesetToLibraryRootUseCase(Ref ref) {
   return MoveTilesetToLibraryRootUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-CreateElementCategoryUseCase createElementCategoryUseCase(
-    Ref ref) {
+CreateElementCategoryUseCase createElementCategoryUseCase(Ref ref) {
   return CreateElementCategoryUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-CreateElementSubcategoryUseCase createElementSubcategoryUseCase(
-    Ref ref) {
+CreateElementSubcategoryUseCase createElementSubcategoryUseCase(Ref ref) {
   return CreateElementSubcategoryUseCase(
     ref.watch(createElementCategoryUseCaseProvider),
   );
 }
 
 @riverpod
-RenameElementCategoryUseCase renameElementCategoryUseCase(
-    Ref ref) {
+RenameElementCategoryUseCase renameElementCategoryUseCase(Ref ref) {
   return RenameElementCategoryUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-CreateTilesetElementGroupUseCase createTilesetElementGroupUseCase(
-    Ref ref) {
+CreateTilesetElementGroupUseCase createTilesetElementGroupUseCase(Ref ref) {
   return CreateTilesetElementGroupUseCase(ref.watch(projectRepositoryProvider));
 }
 
@@ -145,87 +130,23 @@ CreateTilesetElementSubgroupUseCase createTilesetElementSubgroupUseCase(
 }
 
 @riverpod
-RenameTilesetElementGroupUseCase renameTilesetElementGroupUseCase(
-    Ref ref) {
+RenameTilesetElementGroupUseCase renameTilesetElementGroupUseCase(Ref ref) {
   return RenameTilesetElementGroupUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-CreateProjectElementUseCase createProjectElementUseCase(
-    Ref ref) {
+CreateProjectElementUseCase createProjectElementUseCase(Ref ref) {
   return CreateProjectElementUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-UpdateProjectElementUseCase updateProjectElementUseCase(
-    Ref ref) {
+UpdateProjectElementUseCase updateProjectElementUseCase(Ref ref) {
   return UpdateProjectElementUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-DeleteProjectElementUseCase deleteProjectElementUseCase(
-    Ref ref) {
+DeleteProjectElementUseCase deleteProjectElementUseCase(Ref ref) {
   return DeleteProjectElementUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-CreateTerrainPresetUseCase createTerrainPresetUseCase(
-    Ref ref) {
-  return CreateTerrainPresetUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-UpdateTerrainPresetUseCase updateTerrainPresetUseCase(
-    Ref ref) {
-  return UpdateTerrainPresetUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-DeleteTerrainPresetUseCase deleteTerrainPresetUseCase(
-    Ref ref) {
-  return DeleteTerrainPresetUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-CreatePathPresetUseCase createPathPresetUseCase(
-    Ref ref) {
-  return CreatePathPresetUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-UpdatePathPresetUseCase updatePathPresetUseCase(
-    Ref ref) {
-  return UpdatePathPresetUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-DeletePathPresetUseCase deletePathPresetUseCase(
-    Ref ref) {
-  return DeletePathPresetUseCase(ref.watch(projectRepositoryProvider));
-}
-
-@riverpod
-CreatePresetCategoryUseCase createPresetCategoryUseCase(
-    Ref ref) {
-  return CreatePresetCategoryUseCase(
-    ref.watch(projectRepositoryProvider),
-  );
-}
-
-@riverpod
-RenamePresetCategoryUseCase renamePresetCategoryUseCase(
-    Ref ref) {
-  return RenamePresetCategoryUseCase(
-    ref.watch(projectRepositoryProvider),
-  );
-}
-
-@riverpod
-DeletePresetCategoryUseCase deletePresetCategoryUseCase(
-    Ref ref) {
-  return DeletePresetCategoryUseCase(
-    ref.watch(projectRepositoryProvider),
-  );
 }
 
 @riverpod
@@ -235,20 +156,17 @@ ResolveVisibleProjectElementsUseCase resolveVisibleProjectElementsUseCase(
 }
 
 @riverpod
-ResolveTilesetElementsUseCase resolveTilesetElementsUseCase(
-    Ref ref) {
+ResolveTilesetElementsUseCase resolveTilesetElementsUseCase(Ref ref) {
   return ResolveTilesetElementsUseCase();
 }
 
 @riverpod
-UpsertTilesetPaletteEntryUseCase upsertTilesetPaletteEntryUseCase(
-    Ref ref) {
+UpsertTilesetPaletteEntryUseCase upsertTilesetPaletteEntryUseCase(Ref ref) {
   return UpsertTilesetPaletteEntryUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-CreateTilesetPaletteEntryUseCase createTilesetPaletteEntryUseCase(
-    Ref ref) {
+CreateTilesetPaletteEntryUseCase createTilesetPaletteEntryUseCase(Ref ref) {
   return CreateTilesetPaletteEntryUseCase(ref.watch(projectRepositoryProvider));
 }
 
@@ -273,38 +191,32 @@ RenameGroupUseCase renameGroupUseCase(Ref ref) {
 }
 
 @riverpod
-CreateEncounterTableUseCase createEncounterTableUseCase(
-    Ref ref) {
+CreateEncounterTableUseCase createEncounterTableUseCase(Ref ref) {
   return CreateEncounterTableUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-UpdateEncounterTableUseCase updateEncounterTableUseCase(
-    Ref ref) {
+UpdateEncounterTableUseCase updateEncounterTableUseCase(Ref ref) {
   return UpdateEncounterTableUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-DeleteEncounterTableUseCase deleteEncounterTableUseCase(
-    Ref ref) {
+DeleteEncounterTableUseCase deleteEncounterTableUseCase(Ref ref) {
   return DeleteEncounterTableUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-AddEncounterEntryUseCase addEncounterEntryUseCase(
-    Ref ref) {
+AddEncounterEntryUseCase addEncounterEntryUseCase(Ref ref) {
   return AddEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-UpdateEncounterEntryUseCase updateEncounterEntryUseCase(
-    Ref ref) {
+UpdateEncounterEntryUseCase updateEncounterEntryUseCase(Ref ref) {
   return UpdateEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-DeleteEncounterEntryUseCase deleteEncounterEntryUseCase(
-    Ref ref) {
+DeleteEncounterEntryUseCase deleteEncounterEntryUseCase(Ref ref) {
   return DeleteEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
 }
 
@@ -324,20 +236,17 @@ DeleteTrainerUseCase deleteTrainerUseCase(Ref ref) {
 }
 
 @riverpod
-AddTrainerPokemonUseCase addTrainerPokemonUseCase(
-    Ref ref) {
+AddTrainerPokemonUseCase addTrainerPokemonUseCase(Ref ref) {
   return AddTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-UpdateTrainerPokemonUseCase updateTrainerPokemonUseCase(
-    Ref ref) {
+UpdateTrainerPokemonUseCase updateTrainerPokemonUseCase(Ref ref) {
   return UpdateTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-DeleteTrainerPokemonUseCase deleteTrainerPokemonUseCase(
-    Ref ref) {
+DeleteTrainerPokemonUseCase deleteTrainerPokemonUseCase(Ref ref) {
   return DeleteTrainerPokemonUseCase(ref.watch(projectRepositoryProvider));
 }
 
@@ -357,13 +266,11 @@ DeleteCharacterUseCase deleteCharacterUseCase(Ref ref) {
 }
 
 @riverpod
-UpsertCharacterAnimationUseCase upsertCharacterAnimationUseCase(
-    Ref ref) {
+UpsertCharacterAnimationUseCase upsertCharacterAnimationUseCase(Ref ref) {
   return UpsertCharacterAnimationUseCase(ref.watch(projectRepositoryProvider));
 }
 
 @riverpod
-SetPlayerCharacterUseCase setPlayerCharacterUseCase(
-    Ref ref) {
+SetPlayerCharacterUseCase setPlayerCharacterUseCase(Ref ref) {
   return SetPlayerCharacterUseCase(ref.watch(projectRepositoryProvider));
 }

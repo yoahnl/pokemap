@@ -1362,7 +1362,6 @@ void main() {
         (tester) async {
       final base = _legacyAndLocalEventProject();
       final project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'Legacy With Main',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -1424,7 +1423,6 @@ void main() {
     testWidgets('Structure authoring does not import legacy or localEventFlow',
         (tester) async {
       final project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'Legacy With Authoring',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -1807,7 +1805,6 @@ Future<_StorylinesHarness> _pumpStorylinesShell(
 
 ProjectManifest _emptyStorylinesProject() {
   return const ProjectManifest(
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'Audit Project',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
@@ -1816,7 +1813,6 @@ ProjectManifest _emptyStorylinesProject() {
 
 ProjectManifest _legacyOnlyProject() {
   return const ProjectManifest(
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'Legacy Project',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
@@ -1834,7 +1830,6 @@ ProjectManifest _legacyOnlyProject() {
 
 ProjectManifest _legacyAndLocalEventProject() {
   return const ProjectManifest(
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'Legacy Project',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
@@ -1859,7 +1854,6 @@ ProjectManifest _legacyAndLocalEventProject() {
 
 ProjectManifest _projectWithStorylines(List<StorylineAsset> storylines) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'Storylines Project',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

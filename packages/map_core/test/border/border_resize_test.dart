@@ -993,7 +993,7 @@ void main() {
       final source = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: const GridSize(width: 3, height: 3),
         layers: <MapLayer>[
           MapLayer.border(
@@ -1065,7 +1065,7 @@ void main() {
         final source = _mapWithCollisionLayersAndBorder();
         final sourceBytes = jsonEncode(source);
         final withoutBorder = source.copyWith(
-          version: ProjectVersion.v1,
+          version: ProjectVersion.v6,
           layers: source.layers
               .where((layer) => layer is! BorderLayer)
               .toList(growable: false),
@@ -1203,7 +1203,7 @@ BorderMaterialization _materialization({
 MapData _mapWithBorder({required BorderFeature feature}) => MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 3, height: 3),
       layers: <MapLayer>[
         MapLayer.border(
@@ -1251,7 +1251,7 @@ MapData _legacyMap() => MapData(
 MapData _mapWithCollisionLayersAndBorder() => MapData(
       id: 'mixed',
       name: 'Mixed',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 3, height: 3),
       layers: <MapLayer>[
         MapLayer.tile(

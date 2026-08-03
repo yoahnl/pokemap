@@ -76,7 +76,6 @@ void main() {
 ProjectManifest _project() {
   return ProjectManifest(
     name: 'Dependency guard',
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     maps: const [],
     tilesets: const [],
     dialogues: const [

@@ -45,9 +45,8 @@ Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
     final text = await file.readAsString();
     _runtimeLoaderLog('project manifest read ok bytes=${text.length}');
     final raw = jsonDecode(text) as Map<String, dynamic>;
-    final migrated = migrateProjectManifestJson(raw);
     final manifest = _normalizeProjectElementCollisionProfiles(
-      ProjectManifest.fromJson(migrated),
+      ProjectManifest.fromJson(raw),
     );
     ProjectValidator.validate(manifest);
     _runtimeLoaderLog(
@@ -94,8 +93,7 @@ Future<MapData> loadMapDataFromFile(
     final text = await file.readAsString();
     _runtimeLoaderLog('map file read ok bytes=${text.length}');
     final raw = jsonDecode(text) as Map<String, dynamic>;
-    final migrated = migrateMapDataJson(raw);
-    final map = MapData.fromJson(migrated);
+    final map = MapData.fromJson(raw);
     MapValidator.validate(
       map,
       projectDialogueContext: projectDialogueContext,

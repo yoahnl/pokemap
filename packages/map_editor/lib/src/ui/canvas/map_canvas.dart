@@ -27,7 +27,6 @@ import 'package:path/path.dart' as p;
 
 import '../../app/providers/editor/editor_asset_cache_providers.dart';
 import '../../application/models/map_tool_preview.dart';
-import '../../application/models/path_autotile_set.dart';
 import '../../application/models/narrative_event_map_bridge_models.dart';
 import '../../application/models/narrative_event_spatial_source_creation_models.dart';
 import '../../application/shadow/editor_shadow_light_preview.dart';
@@ -63,9 +62,6 @@ import '../../features/border_map_editing/presentation/editor_map_layer_paint_or
 import '../../features/border_map_editing/presentation/border_preview_painter.dart';
 import '../../features/border_map_editing/state/border_map_editing_providers.dart';
 import '../../features/border_map_editing/state/border_preview_providers.dart';
-import '../../features/path_pattern/path_pattern_editor_render_resolution.dart';
-import '../../features/surface_painter/surface_layer_static_preview.dart';
-import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
 import '../assets/editor_image_cache.dart';
 import 'map_canvas/map_canvas_navigation_controls.dart';
@@ -83,7 +79,6 @@ import '../../theme/theme.dart';
 // Le shell du canvas garde uniquement le widget, l'interaction et la
 // synchronisation des ressources. Le painter et le cache d'images vivent dans
 // des part files dédiés pour rendre cette surface re-reviewable.
-part 'map_canvas/map_canvas_assets.dart';
 part 'map_canvas/map_grid_painter.dart';
 part 'map_canvas/tile_layer_hover_highlight_painter.dart';
 
@@ -469,8 +464,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   );
   final MapCanvasInteractionController _interactionController =
       MapCanvasInteractionController();
-  final SurfacePreviewLayerIndexOwner _surfacePreviewLayerIndexOwner =
-      SurfacePreviewLayerIndexOwner();
   final EditorShadowPreviewProjectionOwner _shadowPreviewProjectionOwner =
       EditorShadowPreviewProjectionOwner();
   final Set<int> _pressedMapPointers = <int>{};
@@ -743,13 +736,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       activeTool: interaction.activeTool,
       activeLayerId: interaction.activeLayerId,
       activeBrush: interaction.activeBrush,
-      terrainSelectionMode: interaction.terrainSelectionMode,
-      selectedTerrainType: interaction.selectedTerrainType,
       selectedEntityKind: interaction.selectedEntityKind,
-      selectedTerrainPresetId: interaction.selectedTerrainPresetId,
-      selectedPathPresetId: interaction.selectedPathPresetId,
-      selectedSurfacePresetId: interaction.selectedSurfacePresetId,
-      selectedTerrainPresetByType: interaction.selectedTerrainPresetByType,
       eraserFootprint: interaction.eraserFootprint,
       collisionBrushSizeMode: interaction.collisionBrushSizeMode,
       selectedEntityId: interaction.selectedEntityId,
@@ -789,16 +776,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     final settings = state.project?.settings ?? const ProjectSettings();
     final connectionLabelsByDirection =
         _resolveConnectionLabels(activeMap, state.project);
-    final selectedPathAutotileSet = notifier.getSelectedPathAutotileSet();
-    final pathAutotileSetsByPresetId = notifier.getPathAutotileSetsByPresetId();
-    final terrainPresetsByType = notifier.getTerrainPresetByType();
     final tilesetPathsById = _collectLayerTilesetPaths(
       activeMap,
       notifier,
       project: state.project,
-      selectedPathAutotileSet: selectedPathAutotileSet,
-      pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
-      terrainPresetsByType: terrainPresetsByType,
       projectRootPath: state.projectRootPath,
       borderPreview: borderPreviewState.transaction,
     );
@@ -875,8 +856,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         final needsAnimation = _hasAnimatedCanvasContent(
           map: activeMap,
           project: state.project,
-          pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
-          terrainPresetsByType: terrainPresetsByType,
           borderPreview: borderPreviewState.transaction,
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -987,16 +966,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
 
         final isInertTilePaint = state.activeTool == EditorToolType.tilePaint &&
             state.activeBrush is NoEditorBrush;
-        final isLegacyStrokeEditingTool =
+        final isDirectStrokeEditingTool =
             (state.activeTool == EditorToolType.tilePaint &&
                     !isInertTilePaint) ||
                 state.activeTool == EditorToolType.terrainPaint ||
-                state.activeTool == EditorToolType.surfacePaint ||
                 state.activeTool == EditorToolType.collisionPaint ||
                 state.activeTool == EditorToolType.eraser ||
                 isEnvironmentMaskEditing;
         final isStrokeEditingTool =
-            isLegacyStrokeEditingTool || isBorderEditing;
+            isDirectStrokeEditingTool || isBorderEditing;
         final isNpcWaypointPlacementActive =
             (state.npcWaypointPlacementEntityId?.trim().isNotEmpty ?? false);
         final isTapEditingTool = isStrokeEditingTool ||
@@ -1134,11 +1112,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             return;
           }
           if (state.activeTool == EditorToolType.terrainPaint) {
-            notifier.paintTerrainAt(gridPos);
-            return;
-          }
-          if (state.activeTool == EditorToolType.surfacePaint) {
-            notifier.paintSurfaceAt(gridPos);
+            notifier.paintActiveSmartTileAt(gridPos);
             return;
           }
           if (state.activeTool == EditorToolType.collisionPaint) {
@@ -1208,11 +1182,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             return;
           }
           if (!isTapEditingTool) return;
-          if (isLegacyStrokeEditingTool) notifier.beginMapStroke();
+          if (isDirectStrokeEditingTool) notifier.beginMapStroke();
           applyToolAt(gridPos, partOfStroke: isStrokeEditingTool);
           if (isBorderEditing) {
             finishBorderPreview();
-          } else if (isLegacyStrokeEditingTool) {
+          } else if (isDirectStrokeEditingTool) {
             notifier.endMapStroke();
           }
         };
@@ -1367,7 +1341,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                 }
 
                 if (!isTapEditingTool) return;
-                if (isLegacyStrokeEditingTool) {
+                if (isDirectStrokeEditingTool) {
                   final promoted = _interactionController.promotePending(
                     pointerId: interactionPointerId,
                     kind: MapCanvasInteractionKind.paintingStroke,
@@ -1384,7 +1358,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                 applyToolAt(gridPos, partOfStroke: isStrokeEditingTool);
                 if (isBorderEditing) {
                   finishBorderPreview();
-                } else if (isLegacyStrokeEditingTool) {
+                } else if (isDirectStrokeEditingTool) {
                   notifier.endMapStroke();
                 }
               } finally {
@@ -1679,7 +1653,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                             size: Size.infinite,
                             painter: MapGridPainter(
                               map: activeMap,
-                              surfaceIndexOwner: _surfacePreviewLayerIndexOwner,
                               shadowProjectionOwner:
                                   _shadowPreviewProjectionOwner,
                               zoom: state.zoom,
@@ -1723,10 +1696,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                               rotationPreviewRejectedColor: colors.error,
                               connectionLabelsByDirection:
                                   connectionLabelsByDirection,
-                              selectedPathAutotileSet: selectedPathAutotileSet,
-                              pathAutotileSetsByPresetId:
-                                  pathAutotileSetsByPresetId,
-                              terrainPresetsByType: terrainPresetsByType,
                               project: state.project,
                               shadowLightPreviewPreset:
                                   shadowLightPreviewPreset,
@@ -2268,11 +2237,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             bridge.navigationMode == NarrativeEventMapNavigationMode.choose);
     final targetKey = <Object?>[
       state.activeBrush,
-      state.selectedTerrainType,
-      state.selectedTerrainPresetId,
-      state.selectedTerrainPresetByType[state.selectedTerrainType],
-      state.selectedPathPresetId,
-      state.selectedSurfacePresetId,
       state.collisionBrushSizeMode,
       state.eraserFootprint,
       state.selectedEnvironmentAreaId,
@@ -2583,9 +2547,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       } else if (ref.read(editorNotifierProvider).mapStrokeStart != null) {
         ref.read(editorNotifierProvider.notifier).cancelMapStroke();
       }
-      ref
-          .read(editorNotifierProvider.notifier)
-          .cancelProjectElementPlacement();
+      ref.read(editorNotifierProvider.notifier).cancelProjectElementPlacement();
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
@@ -3141,9 +3103,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     MapData? map,
     EditorNotifier notifier, {
     ProjectManifest? project,
-    PathAutotileSet? selectedPathAutotileSet,
-    required Map<String, PathAutotileSet> pathAutotileSetsByPresetId,
-    required Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType,
     required String? projectRootPath,
     required BorderPreviewTransaction? borderPreview,
   }) {
@@ -3170,20 +3129,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         if (path == null || path.isEmpty) continue;
         result[tilesetId] = path;
       }
-      final surfaceCatalog = project?.surfaceCatalog;
-      if (surfaceCatalog != null) {
-        for (final tilesetId in collectSurfaceTilePreviewTilesetIds(
-          map: map,
-          catalog: surfaceCatalog,
-        )) {
-          if (result.containsKey(tilesetId)) {
-            continue;
-          }
-          final path = notifier.getTilesetAbsolutePathById(tilesetId);
-          if (path != null && path.isNotEmpty) {
-            result[tilesetId] = path;
-          }
-        }
+      for (final atlas in project?.smartTileCatalog.atlases ??
+          const <ProjectSmartTileAtlas>[]) {
+        final tilesetId = atlas.tilesetId.trim();
+        if (tilesetId.isEmpty || result.containsKey(tilesetId)) continue;
+        final path = notifier.getTilesetAbsolutePathById(tilesetId);
+        if (path != null && path.isNotEmpty) result[tilesetId] = path;
       }
     }
     final brushTilesetId = notifier.getActiveBrushTilesetId();
@@ -3191,94 +3142,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       final brushPath = notifier.getTilesetAbsolutePathById(brushTilesetId);
       if (brushPath != null && brushPath.isNotEmpty) {
         result[brushTilesetId] = brushPath;
-      }
-    }
-    final pathTilesetId = selectedPathAutotileSet?.tilesetId.trim();
-    if (pathTilesetId != null &&
-        pathTilesetId.isNotEmpty &&
-        !result.containsKey(pathTilesetId)) {
-      final pathTilesetPath =
-          notifier.getTilesetAbsolutePathById(pathTilesetId);
-      if (pathTilesetPath != null && pathTilesetPath.isNotEmpty) {
-        result[pathTilesetId] = pathTilesetPath;
-      }
-    }
-    if (selectedPathAutotileSet != null) {
-      for (final frames in selectedPathAutotileSet.variants.values) {
-        for (final frame in frames) {
-          final frameTilesetId = frame.tilesetId.trim();
-          if (frameTilesetId.isEmpty || result.containsKey(frameTilesetId)) {
-            continue;
-          }
-          final frameTilesetPath =
-              notifier.getTilesetAbsolutePathById(frameTilesetId);
-          if (frameTilesetPath != null && frameTilesetPath.isNotEmpty) {
-            result[frameTilesetId] = frameTilesetPath;
-          }
-        }
-      }
-    }
-    for (final preset in terrainPresetsByType.values) {
-      final terrainTilesetId = preset.tilesetId.trim();
-      if (terrainTilesetId.isNotEmpty &&
-          !result.containsKey(terrainTilesetId)) {
-        final terrainTilesetPath =
-            notifier.getTilesetAbsolutePathById(terrainTilesetId);
-        if (terrainTilesetPath != null && terrainTilesetPath.isNotEmpty) {
-          result[terrainTilesetId] = terrainTilesetPath;
-        }
-      }
-      for (final variant in preset.variants) {
-        for (final frame in variant.frames) {
-          final frameTilesetId = frame.tilesetId.trim();
-          if (frameTilesetId.isEmpty || result.containsKey(frameTilesetId)) {
-            continue;
-          }
-          final frameTilesetPath =
-              notifier.getTilesetAbsolutePathById(frameTilesetId);
-          if (frameTilesetPath != null && frameTilesetPath.isNotEmpty) {
-            result[frameTilesetId] = frameTilesetPath;
-          }
-        }
-      }
-    }
-    for (final autotileSet in pathAutotileSetsByPresetId.values) {
-      final tilesetId = autotileSet.tilesetId.trim();
-      if (tilesetId.isNotEmpty && !result.containsKey(tilesetId)) {
-        final pathTilesetPath = notifier.getTilesetAbsolutePathById(tilesetId);
-        if (pathTilesetPath != null && pathTilesetPath.isNotEmpty) {
-          result[tilesetId] = pathTilesetPath;
-        }
-      }
-      for (final frames in autotileSet.variants.values) {
-        for (final frame in frames) {
-          final frameTilesetId = frame.tilesetId.trim();
-          if (frameTilesetId.isEmpty || result.containsKey(frameTilesetId)) {
-            continue;
-          }
-          final frameTilesetPath =
-              notifier.getTilesetAbsolutePathById(frameTilesetId);
-          if (frameTilesetPath != null && frameTilesetPath.isNotEmpty) {
-            result[frameTilesetId] = frameTilesetPath;
-          }
-        }
-      }
-    }
-    if (project != null) {
-      for (final preset in project.pathPatternPresets) {
-        for (final cell in preset.centerPattern.cells) {
-          for (final frame in cell.frames) {
-            final frameTilesetId = frame.tilesetId.trim();
-            if (frameTilesetId.isEmpty || result.containsKey(frameTilesetId)) {
-              continue;
-            }
-            final frameTilesetPath =
-                notifier.getTilesetAbsolutePathById(frameTilesetId);
-            if (frameTilesetPath != null && frameTilesetPath.isNotEmpty) {
-              result[frameTilesetId] = frameTilesetPath;
-            }
-          }
-        }
       }
     }
     final borderSnapshotIds = <String>{};
@@ -3359,15 +3222,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   bool _hasAnimatedCanvasContent({
     required MapData map,
     required ProjectManifest? project,
-    required Map<String, PathAutotileSet> pathAutotileSetsByPresetId,
-    required Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType,
     required BorderPreviewTransaction? borderPreview,
   }) =>
       editorCanvasNeedsAnimation(
         map: map,
         project: project,
-        pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
-        terrainPresetsByType: terrainPresetsByType,
         borderPreview: borderPreview,
       );
 

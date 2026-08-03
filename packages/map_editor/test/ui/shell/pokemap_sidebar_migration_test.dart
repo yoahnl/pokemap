@@ -56,11 +56,12 @@ void main() {
       );
 
       expect(find.text('Route 101'), findsOneWidget);
-      
+
       // The left selection indicator should have 0.0 opacity when unselected
       final animatedOpacityFinder = find.byType(AnimatedOpacity);
       expect(animatedOpacityFinder, findsOneWidget);
-      final AnimatedOpacity animatedOpacity = tester.widget(animatedOpacityFinder);
+      final AnimatedOpacity animatedOpacity =
+          tester.widget(animatedOpacityFinder);
       expect(animatedOpacity.opacity, 0.0);
     });
 
@@ -77,11 +78,12 @@ void main() {
       );
 
       expect(find.text('Route 101'), findsOneWidget);
-      
+
       // The left selection indicator should have 1.0 opacity when selected
       final animatedOpacityFinder = find.byType(AnimatedOpacity);
       expect(animatedOpacityFinder, findsOneWidget);
-      final AnimatedOpacity animatedOpacity = tester.widget(animatedOpacityFinder);
+      final AnimatedOpacity animatedOpacity =
+          tester.widget(animatedOpacityFinder);
       expect(animatedOpacity.opacity, 1.0);
     });
 
@@ -207,7 +209,8 @@ void main() {
       expect(find.text('Child Item 2'), findsOneWidget);
     });
 
-    testWidgets('renders in editor sidebar mode with custom styling', (tester) async {
+    testWidgets('renders in editor sidebar mode with custom styling',
+        (tester) async {
       await _pumpInBridge(
         tester,
         const CupertinoDisclosureTile(
@@ -227,7 +230,8 @@ void main() {
   });
 
   group('PokeMap Sidebar Migration — color tokens resolve', () {
-    testWidgets('PokeMapColorTokens are available in Light Theme', (tester) async {
+    testWidgets('PokeMapColorTokens are available in Light Theme',
+        (tester) async {
       PokeMapColorTokens? resolvedColors;
       await _pumpInBridge(
         tester,
@@ -246,7 +250,8 @@ void main() {
       expect(resolvedColors!.textPrimary, isNotNull);
     });
 
-    testWidgets('PokeMapColorTokens are available in Dark Theme', (tester) async {
+    testWidgets('PokeMapColorTokens are available in Dark Theme',
+        (tester) async {
       PokeMapColorTokens? resolvedColors;
       await _pumpInBridge(
         tester,
@@ -300,7 +305,9 @@ void main() {
       expect(find.text('World Maps'), findsOneWidget);
     });
 
-    testWidgets('EditorSidebarListRow hides text when constraints are very narrow (collapsed)', (tester) async {
+    testWidgets(
+        'EditorSidebarListRow hides text when constraints are very narrow (collapsed)',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           theme: PokeMapTheme.dark(),

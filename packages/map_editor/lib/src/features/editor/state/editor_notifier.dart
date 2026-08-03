@@ -30,7 +30,6 @@ import '../../../application/use_cases/environment_generator_use_cases.dart';
 import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
 import '../../../application/use_cases/map_use_cases.dart';
-import '../../../application/use_cases/map_visual_stack_migration_use_case.dart';
 import '../../../application/use_cases/tile_layer_environment_area_management_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_area_settings_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
@@ -43,7 +42,6 @@ import '../../../application/models/map_tool_preview.dart';
 import '../../../application/models/narrative_event_spatial_link_journal_models.dart';
 import '../../../application/models/narrative_event_spatial_source_creation_models.dart';
 import '../../../application/models/narrative_authoring_transaction.dart';
-import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
@@ -56,14 +54,9 @@ import '../../../application/services/map_connection_editing_service.dart';
 import '../../../application/services/narrative_event_legacy_authoring_guard.dart';
 import '../../../application/services/narrative_event_source_dependency_guard.dart';
 import '../../../application/services/narrative_document_session.dart';
-import '../../../application/services/path_autotile_resolver.dart';
-import '../../../application/services/path_layer_editing_coordinator.dart';
 import '../../../application/services/placed_element_instance_indexer.dart';
 import '../../../application/services/project_map_id_policy.dart';
 import '../../../application/services/project_map_manifest_integrity_policy.dart';
-import '../../../application/services/terrain_painting_coordinator.dart';
-import '../../../application/services/terrain_preset_resolver.dart';
-import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
 import '../../personalization/application/personalization_studio_session_controller.dart';
@@ -89,7 +82,6 @@ import '../../border_map_editing/application/border_preview_transaction.dart';
 import '../../border_map_editing/application/pending_border_save_guard.dart';
 import '../../border_map_editing/state/border_map_editing_providers.dart';
 import '../../border_map_editing/state/border_preview_providers.dart';
-import '../../surface_painter/surface_painting_controller.dart';
 
 part 'editor_notifier.g.dart';
 
@@ -301,19 +293,12 @@ class EditorNotifier extends _$EditorNotifier
   MapEditingController get _mapEditingController => MapEditingController(
         mutationCoordinator: _editorMapMutationCoordinator,
       );
-  MapSelectionController get _mapSelectionController => MapSelectionController(
-        terrainPresetSelectionCoordinator: _terrainPresetSelectionCoordinator,
-      );
+  MapSelectionController get _mapSelectionController =>
+      const MapSelectionController();
   ProjectContentController get _projectContentController =>
       ref.read(projectContentControllerProvider);
   ProjectSessionController get _projectSessionController =>
       const ProjectSessionController();
-  TerrainPresetResolver get _terrainPresetResolver =>
-      ref.read(terrainPresetResolverProvider);
-  TerrainPresetSelectionCoordinator get _terrainPresetSelectionCoordinator =>
-      ref.read(terrainPresetSelectionCoordinatorProvider);
-  PathAutotileResolver get _pathAutotileResolver =>
-      ref.read(pathAutotileResolverProvider);
   EditorMapSessionCoordinator get _editorMapSessionCoordinator =>
       ref.read(editorMapSessionCoordinatorProvider);
   EditorMapMutationCoordinator get _editorMapMutationCoordinator =>
@@ -338,12 +323,6 @@ class EditorNotifier extends _$EditorNotifier
       ref.read(gameplayZoneEditingServiceProvider);
   MapConnectionEditingService get _mapConnectionEditingService =>
       ref.read(mapConnectionEditingServiceProvider);
-  TerrainPaintingCoordinator get _terrainPaintingCoordinator =>
-      ref.read(terrainPaintingCoordinatorProvider);
-  PathLayerEditingCoordinator get _pathLayerEditingCoordinator =>
-      ref.read(pathLayerEditingCoordinatorProvider);
-  SurfacePaintingController get _surfacePaintingController =>
-      const SurfacePaintingController();
   ElementCollisionProfileGenerator get _elementCollisionProfileGenerator =>
       ref.read(elementCollisionProfileGeneratorProvider);
   PlacedElementInstanceIndexer get _placedElementInstanceIndexer =>
@@ -353,36 +332,6 @@ class EditorNotifier extends _$EditorNotifier
           const NarrativeEventSourceDependencyGuard();
   BorderFeatureAuthoringController get _borderFeatureAuthoringController =>
       const BorderFeatureAuthoringController();
-
-  TerrainPresetSelection _currentTerrainPresetSelection() {
-    final selection = state.selection;
-    return TerrainPresetSelection(
-      selectionMode: selection.terrainSelectionMode,
-      selectedTerrainType: selection.selectedTerrainType,
-      selectedTerrainPresetId: selection.selectedTerrainPresetId,
-      selectedPathPresetId: selection.selectedPathPresetId,
-      selectedTerrainPresetByType: selection.selectedTerrainPresetByType,
-    );
-  }
-
-  EditorState _copyStateWithTerrainPresetSelection(
-    EditorState source,
-    TerrainPresetSelection selection, {
-    String? statusMessage,
-    String? errorMessage,
-    EditorToolType? activeTool,
-  }) {
-    return source.copyWith(
-      terrainSelectionMode: selection.selectionMode,
-      selectedTerrainType: selection.selectedTerrainType,
-      selectedTerrainPresetId: selection.selectedTerrainPresetId,
-      selectedPathPresetId: selection.selectedPathPresetId,
-      selectedTerrainPresetByType: selection.selectedTerrainPresetByType,
-      activeTool: activeTool ?? source.activeTool,
-      statusMessage: statusMessage,
-      errorMessage: errorMessage,
-    );
-  }
 
   @override
   EditorState build() {
@@ -553,7 +502,6 @@ class EditorNotifier extends _$EditorNotifier
         session: ProjectSessionLoadResult(
           projectRootPath: directory,
           project: manifest,
-          presetSelection: _terrainPresetSelectionCoordinator.initial(manifest),
         ),
         statusMessage: 'Projet "$name" créé avec succès',
       );
@@ -678,7 +626,6 @@ class EditorNotifier extends _$EditorNotifier
         session: ProjectSessionLoadResult(
           projectRootPath: projectDir,
           project: manifest,
-          presetSelection: _terrainPresetSelectionCoordinator.initial(manifest),
         ),
         statusMessage: projectStatusMessage,
       );
@@ -950,12 +897,7 @@ class EditorNotifier extends _$EditorNotifier
     }
     final activeTool = state.activeTool;
     final activeBrush = state.activeBrush;
-    final terrainSelectionMode = state.terrainSelectionMode;
     final eraserFootprint = state.eraserFootprint;
-    final presetSelection = _terrainPresetSelectionCoordinator.normalize(
-      project: manifest,
-      current: _currentTerrainPresetSelection(),
-    );
     state = _projectSessionController.openMapDocument(
       current: state.copyWith(
         project: manifest,
@@ -964,7 +906,6 @@ class EditorNotifier extends _$EditorNotifier
       document: MapDocumentLoadResult(
         map: map,
         activeMapPath: activeMapPath,
-        presetSelection: presetSelection,
         selectedTilesetEditorId:
             _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
       ),
@@ -975,8 +916,6 @@ class EditorNotifier extends _$EditorNotifier
       activeLayerId: layerId,
       activeTool: preservePaintTool ? activeTool : state.activeTool,
       activeBrush: preservePaintTool ? activeBrush : state.activeBrush,
-      terrainSelectionMode:
-          preservePaintTool ? terrainSelectionMode : state.terrainSelectionMode,
       eraserFootprint:
           preservePaintTool ? eraserFootprint : state.eraserFootprint,
       isDirty: false,
@@ -2192,10 +2131,6 @@ class EditorNotifier extends _$EditorNotifier
       if (!_canAdoptMapDiskMutation(lease)) return;
       final map = persistedDocument.map;
       final mapPath = fs.resolveMapPath(relativePath);
-      final presetSelection = _terrainPresetSelectionCoordinator.normalize(
-        project: project,
-        current: _currentTerrainPresetSelection(),
-      );
       final updatedProject = project.copyWith(maps: [
         ...project.maps,
         ProjectMapEntry(
@@ -2216,7 +2151,6 @@ class EditorNotifier extends _$EditorNotifier
         document: MapDocumentLoadResult(
           map: map,
           activeMapPath: mapPath,
-          presetSelection: presetSelection,
           selectedTilesetEditorId: preservedSelectedTilesetEditorId != null &&
                   updatedProject.tilesets.any(
                     (tileset) => tileset.id == preservedSelectedTilesetEditorId,
@@ -2438,12 +2372,6 @@ class EditorNotifier extends _$EditorNotifier
       // explicit authoring mutations; persisted authored placements must never
       // disappear merely because their TileLayer contains zeroes.
       final map = loadedMap;
-      final presetSelection = project == null
-          ? _currentTerrainPresetSelection()
-          : _terrainPresetSelectionCoordinator.normalize(
-              project: project,
-              current: _currentTerrainPresetSelection(),
-            );
       final preservedPaletteSession = _rememberActivePaletteContext(state);
       final preservedSelectedTilesetEditorId = state.selectedTilesetEditorId;
       final nextSelectedTilesetEditorId =
@@ -2462,7 +2390,6 @@ class EditorNotifier extends _$EditorNotifier
         document: MapDocumentLoadResult(
           map: map,
           activeMapPath: targetPath,
-          presetSelection: presetSelection,
           selectedTilesetEditorId: nextSelectedTilesetEditorId,
         ),
         statusMessage: 'Carte « ${map.id} » chargée',
@@ -2598,16 +2525,11 @@ class EditorNotifier extends _$EditorNotifier
         null) {
       _forgetMapDocumentRevision(mapPath);
     }
-    final presetSelection = _terrainPresetSelectionCoordinator.normalize(
-      project: project,
-      current: _currentTerrainPresetSelection(),
-    );
     state = _projectSessionController.openMapDocument(
       current: state,
       document: MapDocumentLoadResult(
         map: map,
         activeMapPath: mapPath,
-        presetSelection: presetSelection,
         selectedTilesetEditorId:
             _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
       ),
@@ -3418,86 +3340,6 @@ class EditorNotifier extends _$EditorNotifier
         );
   }
 
-  /// Captures the exact project render inputs used by the active map canvas.
-  ///
-  /// Paths are resolved while this notifier still owns the project workspace;
-  /// loading and decoding remain asynchronous in the UI renderer.
-  MapVisualStackMigrationRenderInputs?
-      activeMapVisualStackMigrationRenderInputs() {
-    final map = state.activeMap;
-    if (map == null) return null;
-    final project = state.project;
-    final assetPathsById = <String, String>{};
-    if (project != null) {
-      for (final tileset in project.tilesets) {
-        final path = getTilesetAbsolutePathById(tileset.id);
-        if (path != null && path.trim().isNotEmpty) {
-          assetPathsById[tileset.id] = path;
-        }
-      }
-    }
-    return MapVisualStackMigrationRenderInputs(
-      project: project,
-      projectRootPath: state.projectRootPath,
-      assetPathsById: assetPathsById,
-      pathAutotileSetsByPresetId: getPathAutotileSetsByPresetId(),
-      terrainPresetsByType: getTerrainPresetByType(),
-    );
-  }
-
-  /// Builds the full before/after Gate 1 preview without mutating editor state.
-  Future<EditorMapVisualStackMigrationPreview?>
-      previewActiveMapVisualStackMigration({
-    required MapVisualStackRenderedPixelComparator compareRenderedPixels,
-  }) async {
-    final map = state.activeMap;
-    if (map == null) return null;
-    return const MapVisualStackMigrationUseCase().preview(
-      map,
-      compareRenderedPixels: compareRenderedPixels,
-    );
-  }
-
-  /// Accepts one exact reviewed preview as a normal undoable map mutation.
-  ///
-  /// Persistence stays in the existing revisioned save lifecycle, so accepting
-  /// a visual migration never performs a hidden write or saves unrelated
-  /// authoring changes.
-  void migrateActiveMapVisualStack(
-    EditorMapVisualStackMigrationPreview preview,
-  ) {
-    final map = state.activeMap;
-    if (map == null || _rejectPendingBorderPreviewDirectMapWrite()) return;
-    try {
-      final migrated = const MapVisualStackMigrationUseCase().apply(
-        map: map,
-        preview: preview,
-      );
-      if (identical(migrated, map)) {
-        state = state.copyWith(
-          statusMessage: 'La pile visuelle de cette carte est déjà en v1.',
-          errorMessage: null,
-        );
-        return;
-      }
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: migrated,
-        preferredActiveLayerId: state.activeLayerId,
-        preferredSelectedEntityId: state.selectedEntityId,
-        preferredSelectedWarpId: state.selectedWarpId,
-        preferredSelectedTriggerId: state.selectedTriggerId,
-        statusMessage: 'Pile visuelle v1 adoptée — sauvegardez la carte pour '
-            'persister cette migration.',
-      );
-    } on Object catch (error) {
-      state = state.copyWith(
-        statusMessage: null,
-        errorMessage: 'La migration de pile visuelle a été refusée : $error',
-      );
-    }
-  }
-
   Future<void> resizeActiveMap(int width, int height) async {
     final map = state.activeMap;
     if (map == null) return;
@@ -4144,10 +3986,6 @@ class EditorNotifier extends _$EditorNotifier
     try {
       final useCase = ref.read(deleteProjectTilesetUseCaseProvider);
       final updated = await useCase.execute(fs, project, tilesetId);
-      final presetSelection = _terrainPresetSelectionCoordinator.normalize(
-        project: updated,
-        current: _currentTerrainPresetSelection(),
-      );
       String? selectedTilesetEditorId = state.selectedTilesetEditorId;
       var workspaceMode = state.workspaceMode;
       var activeBrush =
@@ -4173,12 +4011,6 @@ class EditorNotifier extends _$EditorNotifier
         activeBrush: activeBrush,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: null,
-        terrainSelectionMode: presetSelection.selectionMode,
-        selectedTerrainType: presetSelection.selectedTerrainType,
-        selectedTerrainPresetId: presetSelection.selectedTerrainPresetId,
-        selectedPathPresetId: presetSelection.selectedPathPresetId,
-        selectedTerrainPresetByType:
-            presetSelection.selectedTerrainPresetByType,
         statusMessage: 'Tileset deleted',
         errorMessage: null,
       );
@@ -4275,148 +4107,6 @@ class EditorNotifier extends _$EditorNotifier
     final tileset = getActiveTilesetEntry();
     if (fs == null || tileset == null) return null;
     return fs.resolveTilesetPath(tileset.relativePath);
-  }
-
-  PathAutotileSet? getSelectedPathAutotileSet() {
-    return _pathAutotileResolver.resolve(
-      selectedPreset: getSelectedPathPreset(),
-      hasTileset: (tilesetId) => getTilesetById(tilesetId) != null,
-    );
-  }
-
-  PathAutotileSet? getPathAutotileSetForPresetId(String? presetId) {
-    return _pathAutotileResolver.resolve(
-      selectedPreset: getPathPresetById(presetId),
-      hasTileset: (tilesetId) => getTilesetById(tilesetId) != null,
-    );
-  }
-
-  Map<String, PathAutotileSet> getPathAutotileSetsByPresetId() {
-    final result = <String, PathAutotileSet>{};
-    for (final preset in getPathPresets()) {
-      final resolved = getPathAutotileSetForPresetId(preset.id);
-      if (resolved != null) {
-        result[preset.id] = resolved;
-      }
-    }
-    return result;
-  }
-
-  List<ProjectTerrainPreset> getTerrainPresets({TerrainType? terrainType}) {
-    final project = state.project;
-    if (project == null) return const [];
-    return _terrainPresetResolver.listTerrainPresets(
-      project,
-      terrainType: terrainType,
-    );
-  }
-
-  List<ProjectPathPreset> getPathPresets() {
-    final project = state.project;
-    if (project == null) return const [];
-    return _terrainPresetResolver.listPathPresets(project);
-  }
-
-  List<ProjectSurfacePreset> getSurfacePresets() {
-    return state.project?.surfaceCatalog.presets ?? const [];
-  }
-
-  List<ProjectPresetCategory> getPresetCategories({
-    required PresetLibraryKind kind,
-    String? parentCategoryId,
-  }) {
-    final project = state.project;
-    if (project == null) return const [];
-    return _terrainPresetResolver.listPresetCategories(
-      project,
-      kind: kind,
-      parentCategoryId: parentCategoryId,
-    );
-  }
-
-  ProjectPresetCategory? getPresetCategoryById({
-    required PresetLibraryKind kind,
-    required String? categoryId,
-  }) {
-    final project = state.project;
-    if (project == null) return null;
-    return _terrainPresetResolver.findPresetCategoryById(
-      project,
-      kind: kind,
-      categoryId: categoryId,
-    );
-  }
-
-  String? resolvePresetCategoryPath({
-    required PresetLibraryKind kind,
-    required String? categoryId,
-  }) {
-    final project = state.project;
-    if (project == null) return null;
-    return _terrainPresetResolver.resolvePresetCategoryPath(
-      project,
-      kind: kind,
-      categoryId: categoryId,
-    );
-  }
-
-  ProjectTerrainPreset? getTerrainPresetById(String? presetId) {
-    final project = state.project;
-    if (project == null) return null;
-    return _terrainPresetResolver.findTerrainPresetById(project, presetId);
-  }
-
-  ProjectPathPreset? getPathPresetById(String? presetId) {
-    final project = state.project;
-    if (project == null) return null;
-    return _terrainPresetResolver.findPathPresetById(project, presetId);
-  }
-
-  ProjectSurfacePreset? getSurfacePresetById(String? presetId) {
-    final normalizedPresetId = presetId?.trim();
-    if (normalizedPresetId == null || normalizedPresetId.isEmpty) {
-      return null;
-    }
-    final project = state.project;
-    if (project == null) return null;
-    return project.surfaceCatalog.presetById(normalizedPresetId);
-  }
-
-  ProjectTerrainPreset? getSelectedTerrainPreset({TerrainType? terrainType}) {
-    final project = state.project;
-    if (project == null) return null;
-    final type = terrainType ?? state.selectedTerrainType;
-    return _terrainPresetResolver.resolveSelectedTerrainPreset(
-      project,
-      terrainType: type,
-      selectedTerrainPresetId: state.selectedTerrainPresetId,
-      selectedTerrainPresetByType: state.selectedTerrainPresetByType,
-    );
-  }
-
-  ProjectPathPreset? getSelectedPathPreset() {
-    final project = state.project;
-    if (project == null) return null;
-    return _terrainPresetResolver.resolveSelectedPathPreset(
-      project,
-      selectedPathPresetId: state.selectedPathPresetId,
-    );
-  }
-
-  ProjectSurfacePreset? getSelectedSurfacePreset() {
-    return getSurfacePresetById(state.selectedSurfacePresetId);
-  }
-
-  Map<TerrainType, ProjectTerrainPreset> getTerrainPresetByType() {
-    final result = <TerrainType, ProjectTerrainPreset>{};
-    for (final type in TerrainType.values) {
-      if (!type.isBackgroundPaintable) continue;
-      final preset = getSelectedTerrainPreset(terrainType: type);
-      if (preset != null) {
-        result[type] = preset;
-      }
-    }
-    return result;
   }
 
   void selectMapWorkspace() {
@@ -4540,14 +4230,6 @@ class EditorNotifier extends _$EditorNotifier
   void selectSmartTilesStudioLibraryWorkspace() {
     state = _editorWorkspaceController
         .selectSmartTilesStudioLibraryWorkspace(state);
-  }
-
-  /// Bascule vers Path Studio.
-  ///
-  /// Navigation pure de shell : aucune mutation de manifest, aucune génération
-  /// de preview et aucun save flow ne sont déclenchés par ce point d'entrée.
-  void selectPathStudioWorkspace() {
-    state = _editorWorkspaceController.selectPathStudioWorkspace(state);
   }
 
   /// Bascule vers Environment Studio.
@@ -5750,121 +5432,31 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  void paintTerrainAt(GridPos pos) {
+  void paintActiveSmartTileAt(GridPos pos) {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
-    if (map == null || layerId == null) {
-      _setPaintError('No active editable layer selected');
+    final project = state.project;
+    if (map == null || layerId == null || project == null) {
+      _setPaintError('No active Smart Tile layer selected');
       return;
     }
-    final activeLayer = _findLayerById(map, layerId);
-    if (activeLayer == null) {
-      _setPaintError('Active layer not found: $layerId');
+    final layer = _findLayerById(map, layerId);
+    if (layer is! SmartTileLayer) {
+      _setPaintError('Active layer is not a Smart Tile layer');
       return;
     }
-    if (activeLayer is TerrainLayer) {
-      final footprint = _resolveTerrainFootprint(emitErrors: true);
-      if (footprint == null) return;
-      _paintTerrainPattern(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        terrain: state.selectedTerrainType,
-        patternSize: footprint.size,
-        failureLabel: footprint.failureLabel,
-      );
-      return;
-    }
-    if (activeLayer is PathLayer) {
-      final footprint = _resolvePathFootprint();
-      final selectedPathPreset = getSelectedPathPreset();
-      if (activeLayer.presetId.trim().isEmpty && selectedPathPreset != null) {
-        try {
-          final presetAssigned = _pathLayerEditingCoordinator.assignPreset(
-            map: map,
-            layerId: layerId,
-            presetId: selectedPathPreset.id,
-          );
-          _paintPathPattern(
-            map: presetAssigned,
-            previousMap: map,
-            layerId: layerId,
-            pos: pos,
-            patternSize: footprint.size,
-            failureLabel: footprint.failureLabel,
-          );
-        } catch (e) {
-          _setPaintError('Failed to assign path preset: $e');
-        }
-        return;
+    ProjectSmartTilePreset? preset;
+    for (final candidate in project.smartTileCatalog.presets) {
+      if (candidate.id == layer.presetId) {
+        preset = candidate;
+        break;
       }
-      _paintPathPattern(
-        map: map,
-        previousMap: map,
-        layerId: layerId,
-        pos: pos,
-        patternSize: footprint.size,
-        failureLabel: footprint.failureLabel,
-      );
+    }
+    if (preset == null) {
+      _setPaintError('Smart Tile preset not found: ${layer.presetId}');
       return;
     }
-    if (activeLayer is SmartTileLayer) {
-      ProjectSmartTilePreset? preset;
-      for (final candidate in state.project?.smartTileCatalog.presets ??
-          const <ProjectSmartTilePreset>[]) {
-        if (candidate.id == activeLayer.presetId) {
-          preset = candidate;
-          break;
-        }
-      }
-      if (preset == null) {
-        _setPaintError(
-          'Smart Tile preset not found: ${activeLayer.presetId}',
-        );
-        return;
-      }
-      paintSmartTileMaterialAt(
-        pos,
-        materialId: preset.defaultMaterialId,
-      );
-      return;
-    }
-    _setPaintError('Active layer "${activeLayer.name}" is not editable');
-  }
-
-  void paintSurfaceAt(GridPos pos) {
-    final map = state.activeMap;
-    if (map == null) {
-      _setPaintError('No active map selected');
-      return;
-    }
-    final selectedPreset = getSelectedSurfacePreset();
-    if (selectedPreset == null) {
-      _setPaintError('Select a surface before painting');
-      return;
-    }
-
-    try {
-      final result = _surfacePaintingController.paint(
-        map: map,
-        targetLayerId: state.activeLayerId,
-        surfacePresetId: selectedPreset.id,
-        pos: pos,
-      );
-      if (!result.changed) {
-        state = state.copyWith(errorMessage: null);
-        return;
-      }
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: result.map,
-        preferredActiveLayerId: result.layerId,
-        statusMessage: 'Surface painted: ${selectedPreset.name}',
-        partOfStroke: true,
-      );
-    } catch (e) {
-      _setPaintError('Failed to paint surface: $e');
-    }
+    paintSmartTileMaterialAt(pos, materialId: preset.defaultMaterialId);
   }
 
   void paintSmartTileMaterialAt(
@@ -5934,62 +5526,6 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  void fillActiveTerrainLayer(TerrainType terrain) {
-    final layerContext = _resolveActiveTerrainLayerContext(emitErrors: true);
-    if (layerContext == null) return;
-    final map = layerContext.map;
-    final layerId = layerContext.layerId;
-    try {
-      final committed = _terrainPaintingCoordinator.fill(
-        map: map,
-        layerId: layerId,
-        terrain: terrain,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: committed,
-        preferredActiveLayerId: layerId,
-        statusMessage: 'Terrain layer filled with ${terrain.name}',
-      );
-    } catch (e) {
-      _setPaintError('Failed to fill terrain layer: $e');
-    }
-  }
-
-  void assignPathPresetToActivePathLayer(String presetId) {
-    final layerContext = _resolveActivePathLayerContext(emitErrors: true);
-    if (layerContext == null) return;
-    final normalizedPresetId = presetId.trim();
-    if (layerContext.layer.presetId.trim() == normalizedPresetId) {
-      final preset = getPathPresetById(normalizedPresetId);
-      state = state.copyWith(
-        statusMessage: preset == null
-            ? 'Path layer preset unchanged'
-            : 'Path layer preset: ${preset.name}',
-        errorMessage: null,
-      );
-      return;
-    }
-    try {
-      final updated = _pathLayerEditingCoordinator.assignPreset(
-        map: layerContext.map,
-        layerId: layerContext.layerId,
-        presetId: normalizedPresetId,
-      );
-      final preset = getPathPresetById(normalizedPresetId);
-      _applyMapMutation(
-        previousMap: layerContext.map,
-        updatedMap: updated,
-        preferredActiveLayerId: layerContext.layerId,
-        statusMessage: preset == null
-            ? 'Path layer preset assigned'
-            : 'Path layer preset: ${preset.name}',
-      );
-    } catch (e) {
-      _setPaintError('Failed to assign path preset: $e');
-    }
-  }
-
   void eraseAt(GridPos pos) {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
@@ -6034,9 +5570,6 @@ class EditorNotifier extends _$EditorNotifier
     if (layer == null ||
         layer is! TileLayer &&
             layer is! CollisionLayer &&
-            layer is! TerrainLayer &&
-            layer is! PathLayer &&
-            layer is! SurfaceLayer &&
             layer is! SmartTileLayer) {
       return false;
     }
@@ -6070,24 +5603,6 @@ class EditorNotifier extends _$EditorNotifier
       );
     } else if (layer is CollisionLayer) {
       _eraseCollisionPattern(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        patternSize: patternSize,
-        failureLabel: failureLabel,
-        partOfStroke: partOfStroke,
-      );
-    } else if (layer is TerrainLayer) {
-      _eraseTerrainPattern(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        patternSize: patternSize,
-        failureLabel: failureLabel,
-        partOfStroke: partOfStroke,
-      );
-    } else if (layer is PathLayer) {
-      _erasePathPattern(
         map: map,
         layerId: layerId,
         pos: pos,
@@ -6165,28 +5680,6 @@ class EditorNotifier extends _$EditorNotifier
         );
       } catch (e) {
         _setPaintError('Failed to erase Smart Tile material: $e');
-      }
-    } else if (layer is SurfaceLayer) {
-      try {
-        final erased = _surfacePaintingController.eraseArea(
-          map: map,
-          targetLayerId: layerId,
-          pos: pos,
-          size: patternSize,
-        );
-        if (!erased.changed) {
-          state = state.copyWith(errorMessage: null);
-          return false;
-        }
-        _applyMapMutation(
-          previousMap: map,
-          updatedMap: erased.map,
-          preferredActiveLayerId: erased.layerId,
-          statusMessage: 'Surface placement erased',
-          partOfStroke: partOfStroke,
-        );
-      } catch (e) {
-        _setPaintError('Failed to erase surface: $e');
       }
     } else {
       _setPaintError('Active layer "${layer.name}" is not editable');
@@ -8441,24 +7934,6 @@ class EditorNotifier extends _$EditorNotifier
     }
 
     if (tool == EditorToolType.terrainPaint) {
-      if (activeLayer is TerrainLayer) {
-        final terrainFootprint = _resolveTerrainFootprint(emitErrors: false);
-        if (terrainFootprint == null) return null;
-        return MapToolPreview.terrainPaint(
-          origin: hoveredTile,
-          size: terrainFootprint.size,
-          terrain: state.selectedTerrainType,
-          validity: MapToolPreviewValidity.valid,
-        );
-      }
-      if (activeLayer is PathLayer) {
-        final pathFootprint = _resolvePathFootprint();
-        return MapToolPreview.pathPaint(
-          origin: hoveredTile,
-          size: pathFootprint.size,
-          validity: MapToolPreviewValidity.valid,
-        );
-      }
       if (activeLayer is SmartTileLayer) {
         final editable = activeLayer.field is SmartTileCellField;
         return MapToolPreview.pathPaint(
@@ -8495,27 +7970,6 @@ class EditorNotifier extends _$EditorNotifier
     }
     if (activeLayer is CollisionLayer) {
       return MapToolPreview.collisionErase(
-        origin: hoveredTile,
-        size: eraserFootprint.size,
-        validity: MapToolPreviewValidity.valid,
-      );
-    }
-    if (activeLayer is TerrainLayer) {
-      return MapToolPreview.terrainErase(
-        origin: hoveredTile,
-        size: eraserFootprint.size,
-        validity: MapToolPreviewValidity.valid,
-      );
-    }
-    if (activeLayer is PathLayer) {
-      return MapToolPreview.pathErase(
-        origin: hoveredTile,
-        size: eraserFootprint.size,
-        validity: MapToolPreviewValidity.valid,
-      );
-    }
-    if (activeLayer is SurfaceLayer) {
-      return MapToolPreview.erase(
         origin: hoveredTile,
         size: eraserFootprint.size,
         validity: MapToolPreviewValidity.valid,
@@ -8954,22 +8408,6 @@ class EditorNotifier extends _$EditorNotifier
     if (activeLayer is CollisionLayer) {
       return _resolveCollisionFootprint(emitErrors: emitErrors);
     }
-    if (activeLayer is TerrainLayer) {
-      return _resolveTerrainFootprint(emitErrors: emitErrors);
-    }
-    if (activeLayer is PathLayer) {
-      final footprint = _resolvePathFootprint();
-      return _ResolvedBrushFootprint(
-        size: footprint.size,
-        failureLabel: footprint.failureLabel,
-      );
-    }
-    if (activeLayer is SurfaceLayer) {
-      return const _ResolvedBrushFootprint(
-        size: GridSize(width: 1, height: 1),
-        failureLabel: 'surface placement',
-      );
-    }
     if (activeLayer is SmartTileLayer) {
       if (activeLayer.field is! SmartTileCellField) {
         if (emitErrors) {
@@ -8998,18 +8436,6 @@ class EditorNotifier extends _$EditorNotifier
       );
     }
     return _resolveBrushFootprint(emitErrors: emitErrors);
-  }
-
-  _ResolvedBrushFootprint? _resolveTerrainFootprint({
-    required bool emitErrors,
-  }) {
-    final footprint = _terrainPaintingCoordinator.resolveFootprint(
-      terrain: state.selectedTerrainType,
-    );
-    return _ResolvedBrushFootprint(
-      size: footprint.size,
-      failureLabel: footprint.failureLabel,
-    );
   }
 
   _ResolvedBrushFootprint? _resolveBrushFootprint({
@@ -9260,111 +8686,6 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  void _paintTerrainPattern({
-    required MapData map,
-    required String layerId,
-    required GridPos pos,
-    required TerrainType terrain,
-    required GridSize patternSize,
-    required String failureLabel,
-  }) {
-    try {
-      final committed = _terrainPaintingCoordinator.paint(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        terrain: terrain,
-        patternSize: patternSize,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: committed,
-        preferredActiveLayerId: layerId,
-        partOfStroke: true,
-      );
-    } catch (e) {
-      _setPaintError('Failed to paint terrain $failureLabel: $e');
-    }
-  }
-
-  void _paintPathPattern({
-    required MapData map,
-    required MapData previousMap,
-    required String layerId,
-    required GridPos pos,
-    required GridSize patternSize,
-    required String failureLabel,
-  }) {
-    try {
-      final committed = _pathLayerEditingCoordinator.paint(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        patternSize: patternSize,
-      );
-      _applyMapMutation(
-        previousMap: previousMap,
-        updatedMap: committed,
-        preferredActiveLayerId: layerId,
-        partOfStroke: true,
-      );
-    } catch (e) {
-      _setPaintError('Failed to paint path $failureLabel: $e');
-    }
-  }
-
-  void _eraseTerrainPattern({
-    required MapData map,
-    required String layerId,
-    required GridPos pos,
-    required GridSize patternSize,
-    required String failureLabel,
-    required bool partOfStroke,
-  }) {
-    try {
-      final erased = _terrainPaintingCoordinator.erase(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        patternSize: patternSize,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: erased,
-        preferredActiveLayerId: layerId,
-        partOfStroke: partOfStroke,
-      );
-    } catch (e) {
-      _setPaintError('Failed to erase terrain $failureLabel: $e');
-    }
-  }
-
-  void _erasePathPattern({
-    required MapData map,
-    required String layerId,
-    required GridPos pos,
-    required GridSize patternSize,
-    required String failureLabel,
-    required bool partOfStroke,
-  }) {
-    try {
-      final erased = _pathLayerEditingCoordinator.erase(
-        map: map,
-        layerId: layerId,
-        pos: pos,
-        patternSize: patternSize,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: erased,
-        preferredActiveLayerId: layerId,
-        partOfStroke: partOfStroke,
-      );
-    } catch (e) {
-      _setPaintError('Failed to erase path $failureLabel: $e');
-    }
-  }
-
   void _setPaintError(String message) {
     state = state.copyWith(errorMessage: message);
   }
@@ -9433,74 +8754,6 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  _ActiveTerrainLayerContext? _resolveActiveTerrainLayerContext({
-    required bool emitErrors,
-  }) {
-    final map = state.activeMap;
-    final layerId = state.activeLayerId;
-    if (map == null || layerId == null) {
-      if (emitErrors) {
-        _setPaintError('No active terrain layer selected');
-      }
-      return null;
-    }
-    final activeLayer = _findLayerById(map, layerId);
-    if (activeLayer == null) {
-      if (emitErrors) {
-        _setPaintError('Active layer not found: $layerId');
-      }
-      return null;
-    }
-    if (activeLayer is! TerrainLayer) {
-      if (emitErrors) {
-        _setPaintError(
-            'Active layer "${activeLayer.name}" is not a terrain layer');
-      }
-      return null;
-    }
-    return _ActiveTerrainLayerContext(
-      map: map,
-      layerId: layerId,
-      layer: activeLayer,
-    );
-  }
-
-  PathLayerBrushFootprint _resolvePathFootprint() {
-    return _pathLayerEditingCoordinator.resolveFootprint();
-  }
-
-  _ActivePathLayerContext? _resolveActivePathLayerContext({
-    required bool emitErrors,
-  }) {
-    final map = state.activeMap;
-    final layerId = state.activeLayerId;
-    if (map == null || layerId == null) {
-      if (emitErrors) {
-        _setPaintError('No active path layer selected');
-      }
-      return null;
-    }
-    final activeLayer = _findLayerById(map, layerId);
-    if (activeLayer == null) {
-      if (emitErrors) {
-        _setPaintError('Active layer not found: $layerId');
-      }
-      return null;
-    }
-    if (activeLayer is! PathLayer) {
-      if (emitErrors) {
-        _setPaintError(
-            'Active layer "${activeLayer.name}" is not a path layer');
-      }
-      return null;
-    }
-    return _ActivePathLayerContext(
-      map: map,
-      layerId: layerId,
-      layer: activeLayer,
-    );
-  }
-
   MapData? _prepareMapForBrushTileset({
     required MapData map,
     required TileLayer activeLayer,
@@ -9563,37 +8816,6 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to add layer: $e');
-    }
-  }
-
-  void addSurfaceLayer({
-    String name = 'Surfaces',
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    try {
-      final useCase = ref.read(addMapLayerUseCaseProvider);
-      int? insertIndex;
-      final activeId = state.activeLayerId;
-      if (activeId != null) {
-        final idx = map.layers.indexWhere((layer) => layer.id == activeId);
-        if (idx >= 0) {
-          insertIndex = idx;
-        }
-      }
-      final result = useCase.executeSurface(
-        map,
-        name: name,
-        insertIndex: insertIndex,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: result.map,
-        preferredActiveLayerId: result.layer.id,
-        statusMessage: 'Surface layer "${result.layer.name}" added',
-      );
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to add surface layer: $e');
     }
   }
 
@@ -12139,8 +11361,6 @@ class EditorNotifier extends _$EditorNotifier
   }) {
     var candidate = source.copyWith(
       activeTool: preflight.resultingTool!,
-      terrainSelectionMode:
-          preflight.terrainSelectionMode ?? source.terrainSelectionMode,
       activeBrush: preflight.resultingBrush ?? source.activeBrush,
       tilesElementsPanelMode:
           preflight.tilesElementsPanelMode ?? source.tilesElementsPanelMode,
@@ -12483,482 +11703,6 @@ class EditorNotifier extends _$EditorNotifier
       statusMessage: 'Bordure appliquée',
     );
     return true;
-  }
-
-  void selectTerrainType(TerrainType terrain) {
-    state = _mapSelectionController.selectTerrainType(
-      current: state,
-      terrain: terrain,
-    );
-  }
-
-  void selectTerrainPreset(String? presetId) {
-    state = _mapSelectionController.selectTerrainPreset(
-      current: state,
-      preset: getTerrainPresetById(presetId),
-    );
-  }
-
-  void selectPathPreset(String? presetId) {
-    state = _mapSelectionController.selectPathPreset(
-      current: state,
-      preset: getPathPresetById(presetId),
-    );
-  }
-
-  void selectSurfacePreset(String? presetId) {
-    final preset = getSurfacePresetById(presetId);
-    if (preset == null) {
-      state = state.copyWith(errorMessage: 'Surface introuvable');
-      return;
-    }
-    state = state.copyWith(
-      selectedSurfacePresetId: preset.id,
-      activeTool: EditorToolType.surfacePaint,
-      statusMessage: 'Surface sélectionnée : ${preset.name}',
-      errorMessage: null,
-    );
-  }
-
-  void selectSurfacePresetForSetup(String? presetId) {
-    final preset = getSurfacePresetById(presetId);
-    if (preset == null) {
-      state = state.copyWith(errorMessage: 'Surface introuvable');
-      return;
-    }
-    state = state.copyWith(
-      selectedSurfacePresetId: preset.id,
-      statusMessage: 'Surface configurée : ${preset.name}',
-      errorMessage: null,
-    );
-  }
-
-  void selectPathPresetForActivePathLayer(String? presetId) {
-    final preset = getPathPresetById(presetId);
-    if (preset == null) {
-      state = state.copyWith(errorMessage: 'Preset de path introuvable');
-      return;
-    }
-    selectPathPreset(presetId);
-    final map = state.activeMap;
-    final layerId = state.activeLayerId;
-    if (map == null || layerId == null) {
-      return;
-    }
-    final activeLayer = _findLayerById(map, layerId);
-    if (activeLayer is! PathLayer) {
-      return;
-    }
-    assignPathPresetToActivePathLayer(preset.id);
-  }
-
-  void selectTerrainPaintMode({
-    TerrainType? terrainType,
-  }) {
-    state = _mapSelectionController.selectTerrainPaintMode(
-      current: state,
-      terrainType: terrainType,
-    );
-  }
-
-  void selectPathPaintMode() {
-    state = _mapSelectionController.selectPathPaintMode(
-      current: state,
-      selectedPathPreset: getSelectedPathPreset(),
-    );
-  }
-
-  void selectSurfacePaintMode() {
-    if (getSelectedSurfacePreset() == null) {
-      state = state.copyWith(
-          errorMessage: 'Sélectionnez une surface avant de peindre');
-      return;
-    }
-    state = state.copyWith(
-      activeTool: EditorToolType.surfacePaint,
-      statusMessage: 'Mode peinture de surface',
-      errorMessage: null,
-    );
-  }
-
-  Future<void> createTerrainPreset({
-    required String name,
-    required TerrainType terrainType,
-    String? categoryId,
-    String tilesetId = '',
-    List<TerrainPresetVariant> variants = const [],
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(createTerrainPresetUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        name: name,
-        terrainType: terrainType,
-        categoryId: categoryId,
-        tilesetId: tilesetId,
-        variants: variants,
-      );
-      final selection =
-          _terrainPresetSelectionCoordinator.afterTerrainPresetCreated(
-        previous: project,
-        updated: updated,
-        current: _currentTerrainPresetSelection(),
-      );
-      state = _copyStateWithTerrainPresetSelection(
-        state.copyWith(project: updated),
-        selection,
-        statusMessage: 'Preset de terrain créé',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Impossible de créer le preset de terrain : $e',
-      );
-    }
-  }
-
-  Future<void> updateTerrainPreset({
-    required String presetId,
-    String? name,
-    TerrainType? terrainType,
-    String? categoryId,
-    bool clearCategoryId = false,
-    String? tilesetId,
-    bool clearTilesetId = false,
-    List<TerrainPresetVariant>? variants,
-    bool clearVariants = false,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(updateTerrainPresetUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        presetId: presetId,
-        name: name,
-        terrainType: terrainType,
-        categoryId: categoryId,
-        clearCategoryId: clearCategoryId,
-        tilesetId: tilesetId,
-        clearTilesetId: clearTilesetId,
-        variants: variants,
-        clearVariants: clearVariants,
-      );
-      final selectedPreset =
-          _terrainPresetResolver.findTerrainPresetById(updated, presetId) ??
-              (throw EditorNotFoundException(
-                'Preset de terrain introuvable : $presetId',
-              ));
-      final selection =
-          _terrainPresetSelectionCoordinator.afterTerrainPresetUpdated(
-        updated: updated,
-        current: _currentTerrainPresetSelection(),
-        selectedPreset: selectedPreset,
-      );
-      state = _copyStateWithTerrainPresetSelection(
-        state.copyWith(project: updated),
-        selection,
-        statusMessage: 'Preset de terrain mis à jour',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Impossible de mettre à jour le preset de terrain : $e',
-      );
-    }
-  }
-
-  Future<void> deleteTerrainPreset(String presetId) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(deleteTerrainPresetUseCaseProvider);
-      final updated = await useCase.execute(fs, project, presetId: presetId);
-      final selection =
-          _terrainPresetSelectionCoordinator.afterTerrainPresetDeleted(
-        updated: updated,
-        current: _currentTerrainPresetSelection(),
-        deletedPresetId: presetId,
-      );
-      state = _copyStateWithTerrainPresetSelection(
-        state.copyWith(project: updated),
-        selection,
-        statusMessage: 'Preset de terrain supprimé',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Impossible de supprimer le preset de terrain : $e',
-      );
-    }
-  }
-
-  Future<void> createPathPreset({
-    required String name,
-    PathSurfaceKind surfaceKind = PathSurfaceKind.path,
-    String? categoryId,
-    String tilesetId = '',
-    List<PathPresetVariantMapping> variants = const [],
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(createPathPresetUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        name: name,
-        surfaceKind: surfaceKind,
-        categoryId: categoryId,
-        tilesetId: tilesetId,
-        variants: variants,
-      );
-      final selection =
-          _terrainPresetSelectionCoordinator.afterPathPresetCreated(
-        previous: project,
-        updated: updated,
-        current: _currentTerrainPresetSelection(),
-      );
-      state = _copyStateWithTerrainPresetSelection(
-        state.copyWith(project: updated),
-        selection,
-        activeTool: EditorToolType.terrainPaint,
-        statusMessage: 'Preset de path créé',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-          errorMessage: 'Impossible de créer le preset de path : $e');
-    }
-  }
-
-  Future<void> updatePathPreset({
-    required String presetId,
-    String? name,
-    PathSurfaceKind? surfaceKind,
-    String? categoryId,
-    bool clearCategoryId = false,
-    String? tilesetId,
-    bool clearTilesetId = false,
-    List<PathPresetVariantMapping>? variants,
-    bool clearVariants = false,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(updatePathPresetUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        presetId: presetId,
-        name: name,
-        surfaceKind: surfaceKind,
-        categoryId: categoryId,
-        clearCategoryId: clearCategoryId,
-        tilesetId: tilesetId,
-        clearTilesetId: clearTilesetId,
-        variants: variants,
-        clearVariants: clearVariants,
-      );
-      final selected = updated.pathPresets.firstWhere(
-        (preset) => preset.id == presetId,
-        orElse: () => throw EditorNotFoundException(
-          'Preset de path introuvable : $presetId',
-        ),
-      );
-      final selection =
-          _terrainPresetSelectionCoordinator.afterPathPresetUpdated(
-        updated: updated,
-        current: _currentTerrainPresetSelection(),
-        selectedPreset: selected,
-      );
-      state = _copyStateWithTerrainPresetSelection(
-        state.copyWith(project: updated),
-        selection,
-        statusMessage: 'Preset de path mis à jour',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-          errorMessage: 'Impossible de mettre à jour le preset de path : $e');
-    }
-  }
-
-  List<PathLayer> getPathLayersForPreset(String presetId) {
-    final map = state.activeMap;
-    if (map == null) return const [];
-    return map.layers
-        .whereType<PathLayer>()
-        .where((l) => l.presetId.trim() == presetId.trim())
-        .toList(growable: false);
-  }
-
-  void applyPathLayerAnimationTriggers({
-    required String layerId,
-    required List<PathAnimationTriggerRule> triggers,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    try {
-      final updatedMap = setPathLayerAnimationTriggers(
-        map,
-        layerId: layerId,
-        triggers: triggers,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: updatedMap,
-        preferredActiveLayerId: state.activeLayerId,
-        statusMessage: 'Déclencheurs d\'animation mis à jour',
-      );
-    } catch (e) {
-      state = state.copyWith(
-          errorMessage:
-              'Impossible de mettre à jour les déclencheurs d\'animation : $e');
-    }
-  }
-
-  void setPathLayerAnimationMode({
-    required String layerId,
-    required PathAnimationMode mode,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    try {
-      final updatedMap = setPathLayerAnimationModeInMap(
-        map,
-        layerId: layerId,
-        mode: mode,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: updatedMap,
-        preferredActiveLayerId: state.activeLayerId,
-        statusMessage: 'Mode d\'animation mis à jour',
-      );
-    } catch (e) {
-      state = state.copyWith(
-          errorMessage:
-              'Impossible de mettre à jour le mode d\'animation : $e');
-    }
-  }
-
-  Future<void> deletePathPreset(String presetId) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(deletePathPresetUseCaseProvider);
-      final updated = await useCase.execute(fs, project, presetId: presetId);
-      final selection =
-          _terrainPresetSelectionCoordinator.afterPathPresetDeleted(
-        updated: updated,
-        current: _currentTerrainPresetSelection(),
-        deletedPresetId: presetId,
-      );
-      state = _copyStateWithTerrainPresetSelection(
-        state.copyWith(project: updated),
-        selection,
-        statusMessage: 'Preset de path supprimé',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-          errorMessage: 'Impossible de supprimer le preset de path : $e');
-    }
-  }
-
-  Future<void> createPresetCategory({
-    required String name,
-    required PresetLibraryKind kind,
-    String? parentCategoryId,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(createPresetCategoryUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        name: name,
-        kind: kind,
-        parentCategoryId: parentCategoryId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Category created',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to create category: $e');
-    }
-  }
-
-  Future<void> renamePresetCategory({
-    required String categoryId,
-    required PresetLibraryKind kind,
-    required String name,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(renamePresetCategoryUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        categoryId: categoryId,
-        kind: kind,
-        name: name,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Category renamed',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to rename category: $e');
-    }
-  }
-
-  Future<void> deletePresetCategory({
-    required String categoryId,
-    required PresetLibraryKind kind,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(deletePresetCategoryUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        categoryId: categoryId,
-        kind: kind,
-      );
-      final selection = _terrainPresetSelectionCoordinator.normalize(
-        project: updated,
-        current: _currentTerrainPresetSelection(),
-      );
-      state = _copyStateWithTerrainPresetSelection(
-        state.copyWith(project: updated),
-        selection,
-        statusMessage: 'Category deleted',
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(errorMessage: 'Failed to delete category: $e');
-    }
   }
 
   // ---------------------------------------------------------------------------
@@ -13354,106 +12098,6 @@ class EditorNotifier extends _$EditorNotifier
     } catch (e) {
       state =
           state.copyWith(errorMessage: 'Failed to delete encounter entry: $e');
-    }
-  }
-
-  void activateFirstTerrainLayer({
-    bool createIfMissing = false,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    for (final layer in map.layers) {
-      if (layer is TerrainLayer) {
-        state = state.copyWith(
-          activeLayerId: layer.id,
-          statusMessage: 'Layer "${layer.name}" selected',
-          errorMessage: null,
-        );
-        _coerceActiveToolIfIncompatibleWithLayer();
-        return;
-      }
-    }
-    if (createIfMissing) {
-      addMapLayer(
-        kind: MapLayerKind.terrain,
-        name: 'Terrain',
-      );
-      return;
-    }
-    state = state.copyWith(
-      errorMessage: 'No terrain layer found in this map',
-    );
-  }
-
-  void activateFirstPathLayer({
-    bool createIfMissing = false,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    for (final layer in map.layers) {
-      if (layer is PathLayer) {
-        state = state.copyWith(
-          activeLayerId: layer.id,
-          statusMessage: 'Layer "${layer.name}" selected',
-          errorMessage: null,
-        );
-        _coerceActiveToolIfIncompatibleWithLayer();
-        return;
-      }
-    }
-    if (createIfMissing) {
-      addMapLayer(
-        kind: MapLayerKind.path,
-        name: 'Path',
-      );
-      return;
-    }
-    state = state.copyWith(
-      errorMessage: 'No path layer found in this map',
-    );
-  }
-
-  void activateFirstSurfaceLayer({
-    bool createIfMissing = false,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    for (final layer in map.layers) {
-      if (layer is SurfaceLayer) {
-        state = state.copyWith(
-          activeLayerId: layer.id,
-          statusMessage: 'Layer "${layer.name}" selected',
-          errorMessage: null,
-        );
-        _coerceActiveToolIfIncompatibleWithLayer();
-        return;
-      }
-    }
-    if (!createIfMissing) {
-      state = state.copyWith(
-        errorMessage: 'No surface layer found in this map',
-      );
-      return;
-    }
-
-    try {
-      final result = _surfacePaintingController.ensureSurfaceLayer(
-        map: map,
-        preferredLayerId: state.activeLayerId,
-      );
-      if (!result.changed) {
-        state = state.copyWith(activeLayerId: result.layerId);
-        return;
-      }
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: result.map,
-        preferredActiveLayerId: result.layerId,
-        statusMessage: 'Surface layer created',
-      );
-    } catch (e) {
-      state =
-          state.copyWith(errorMessage: 'Failed to create surface layer: $e');
     }
   }
 
@@ -15364,30 +14008,6 @@ class _ActiveCollisionLayerContext {
   final MapData map;
   final String layerId;
   final CollisionLayer layer;
-}
-
-class _ActiveTerrainLayerContext {
-  const _ActiveTerrainLayerContext({
-    required this.map,
-    required this.layerId,
-    required this.layer,
-  });
-
-  final MapData map;
-  final String layerId;
-  final TerrainLayer layer;
-}
-
-class _ActivePathLayerContext {
-  const _ActivePathLayerContext({
-    required this.map,
-    required this.layerId,
-    required this.layer,
-  });
-
-  final MapData map;
-  final String layerId;
-  final PathLayer layer;
 }
 
 class _TileLayerGeneratedPlacementAddSelection {

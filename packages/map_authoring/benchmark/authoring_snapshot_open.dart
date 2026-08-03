@@ -284,7 +284,7 @@ Future<Directory> _syntheticFixture() async {
   final project = File('${directory.path}/project.json');
   const targetBytes = 10 * 1024 * 1024;
   if (!await project.exists() || await project.length() < targetBytes) {
-    const prefix = '{"name":"Synthetic 10 MiB","version":"v3","maps":[],'
+    const prefix = '{"name":"Synthetic 10 MiB","version":"v6","maps":[],'
         '"tilesets":[],"globalProperties":{"payload":"';
     const suffix = '"}}';
     final payloadLength = targetBytes - utf8.encode(prefix + suffix).length;

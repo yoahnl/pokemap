@@ -242,7 +242,6 @@ ProjectManifest _manifest({
         ],
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     environmentPresets: presets ?? [_preset(id: 'forest', name: 'Forêt')],
   );
 }

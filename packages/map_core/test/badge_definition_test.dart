@@ -31,6 +31,7 @@ void main() {
     test('legacy manifest defaults badges to empty', () {
       final manifest = ProjectManifest.fromJson(<String, dynamic>{
         'name': 'Legacy',
+        'version': 'v6',
         'maps': <Object?>[],
         'tilesets': <Object?>[],
       });

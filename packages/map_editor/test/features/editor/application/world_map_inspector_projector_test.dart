@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
-import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/editor/application/map_canvas_object_hit_test.dart';
 import 'package:map_editor/src/features/editor/application/world_map_inspector_projector.dart';
 import 'package:map_editor/src/features/editor/application/world_map_observed_tool_family.dart';
@@ -280,10 +279,6 @@ void main() {
       expect(emissions, hasLength(1));
       expect(editor.state.activeTool, EditorToolType.terrainPaint);
       expect(
-        editor.state.terrainSelectionMode,
-        TerrainSelectionMode.terrain,
-      );
-      expect(
         container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
         WorldMapPaintSubtool.terrain,
       );
@@ -297,7 +292,6 @@ void main() {
       subscription.close();
       expect(emissions, hasLength(1));
       expect(editor.state.activeTool, EditorToolType.terrainPaint);
-      expect(editor.state.terrainSelectionMode, TerrainSelectionMode.path);
       expect(
         container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
         WorldMapPaintSubtool.path,
@@ -312,10 +306,6 @@ void main() {
       subscription.close();
       expect(emissions, hasLength(1));
       expect(editor.state.activeTool, EditorToolType.terrainPaint);
-      expect(
-        editor.state.terrainSelectionMode,
-        TerrainSelectionMode.terrain,
-      );
       expect(
         container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
         WorldMapPaintSubtool.terrain,
@@ -1030,7 +1020,13 @@ void main() {
       final setupMap = _mapA.copyWith(
         layers: <MapLayer>[
           ..._mapA.layers,
-          const SurfaceLayer(id: 'surface', name: 'Surface'),
+          const SmartTileLayer(
+            id: 'surface',
+            name: 'Surface',
+            presetId: 'forest',
+            usage: SmartTileUsage.forestSurface,
+            field: SmartTileField.cell(semanticCells: <int>[]),
+          ),
         ],
       );
       container.read(editorNotifierProvider.notifier).state = EditorState(
@@ -1061,7 +1057,13 @@ void main() {
       final setupMap = _mapA.copyWith(
         layers: <MapLayer>[
           ..._mapA.layers,
-          const SurfaceLayer(id: 'surface', name: 'Surface'),
+          const SmartTileLayer(
+            id: 'surface',
+            name: 'Surface',
+            presetId: 'forest',
+            usage: SmartTileUsage.forestSurface,
+            field: SmartTileField.cell(semanticCells: <int>[]),
+          ),
         ],
       );
       container.read(editorNotifierProvider.notifier).state = EditorState(
@@ -1163,6 +1165,7 @@ const _project = ProjectManifest(
 const _mapA = MapData(
   id: 'map-a',
   name: 'Map A',
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -1177,8 +1180,20 @@ const _mapA = MapData(
       tilesetId: 'details',
       tiles: <int>[],
     ),
-    TerrainLayer(id: 'terrain-a', name: 'Terrain A'),
-    PathLayer(id: 'path-b', name: 'Path B'),
+    SmartTileLayer(
+      id: 'terrain-a',
+      name: 'Terrain A',
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+      field: SmartTileField.cell(semanticCells: <int>[]),
+    ),
+    SmartTileLayer(
+      id: 'path-b',
+      name: 'Path B',
+      presetId: 'path',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(semanticCells: <int>[]),
+    ),
   ],
 );
 
@@ -1195,6 +1210,7 @@ final _mapWithObject = _mapA.copyWith(
 const _mapB = MapData(
   id: 'map-b',
   name: 'Map B',
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(

@@ -115,7 +115,6 @@ RuntimeMapBundle _bundle() {
       tilesets: const <ProjectTilesetEntry>[],
       cinematics: <CinematicAsset>[_cinematic()],
       scenes: <SceneAsset>[_scene()],
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     ),
     map: const MapData(
       id: 'map_port',

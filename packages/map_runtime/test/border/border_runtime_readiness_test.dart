@@ -604,7 +604,7 @@ final class _Fixture {
     return RuntimeMapBundle(
       manifest: ProjectManifest(
         name: 'Border runtime readiness',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
@@ -621,7 +621,7 @@ final class _Fixture {
       map: MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: const GridSize(width: 2, height: 1),
         layers: <MapLayer>[
           BorderLayer(

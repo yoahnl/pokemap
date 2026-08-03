@@ -149,19 +149,16 @@ const _map = MapData(
   id: 'alpha',
   name: 'Alpha',
   size: GridSize(width: 2, height: 2),
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   visualStack: MapVisualStackConfig.canonicalV1,
   layers: [
     MapLayer.tile(id: 'l_base', name: 'Base', tiles: [0, 0, 0, 0]),
-    MapLayer.terrain(
+    MapLayer.smartTile(
       id: 'l_terrain',
       name: 'Terrain',
-      terrains: [
-        TerrainType.none,
-        TerrainType.none,
-        TerrainType.none,
-        TerrainType.none,
-      ],
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+      field: SmartTileField.cell(semanticCells: <int>[0, 0, 0, 0]),
     ),
     MapLayer.collision(
       id: 'l_collisions',

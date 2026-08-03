@@ -965,7 +965,7 @@ void main() {
       id: 'map',
       name: 'Map',
       size: const GridSize(width: 3, height: 2),
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       layers: <MapLayer>[
         MapLayer.border(
           id: 'border',

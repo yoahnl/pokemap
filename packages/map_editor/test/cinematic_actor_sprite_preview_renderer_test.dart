@@ -1377,7 +1377,7 @@ void main() {
       expect(timiImage, isNotNull);
     });
 
-    testWidgets('keeps Path Studio water visible with real sprite actor',
+    testWidgets('keeps Smart Tiles Studio water visible with real sprite actor',
         (tester) async {
       // Verified by ensuring path base presets and path patterns render without exceptions
       ui.Image? timiImage;

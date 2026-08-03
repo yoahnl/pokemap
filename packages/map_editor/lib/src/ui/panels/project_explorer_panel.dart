@@ -15,7 +15,6 @@ import 'project_explorer/widgets/tree/tileset_tree_nodes.dart';
 import 'project_explorer/widgets/tree/world_tree_nodes.dart';
 import 'character_library_panel.dart';
 import 'narrative_library_panel.dart';
-import 'terrain_editor_panel.dart';
 import 'trainer_library_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
@@ -39,8 +38,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandPokedex = false;
   bool _expandNarrative = false;
   bool _expandWorld = false;
-  bool _expandTerrains = false;
-  bool _expandPaths = false;
   bool _expandEnvironment = false;
   bool _expandTrainers = false;
   bool _expandCharacters = false;
@@ -320,8 +317,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hPokedex = (screenH * 0.22).clamp(180.0, 260.0);
     final hNarrative = (screenH * 0.34).clamp(260.0, 460.0);
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
-    final hTerrains = (screenH * 0.36).clamp(280.0, 500.0);
-    final hPaths = (screenH * 0.36).clamp(280.0, 500.0);
     final hEnvironment = (screenH * 0.22).clamp(180.0, 280.0);
     final hTrainers = (screenH * 0.18).clamp(180.0, 240.0);
     final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
@@ -418,47 +413,14 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ProjectExplorerModuleCard(
           key: const ValueKey<String>('smart-tiles-studio-module-card'),
           title: 'Smart Tiles Studio',
-          description: 'Terrains, chemins et forêts — natif et historique',
+          description: 'Terrains, chemins et forêts — format natif v6',
           icon: CupertinoIcons.square_grid_3x2,
           accentColor: colors.mapAccent,
-          count: project.smartTileCatalog.presets.length +
-              project.terrainPresets.length +
-              project.pathPresets.length +
-              project.pathPatternPresets.length +
-              project.surfaceCatalog.presets.length,
+          count: project.smartTileCatalog.presets.length,
           selected:
               snapshot.workspaceMode == EditorWorkspaceMode.smartTilesStudio,
           onTap: notifier.selectSmartTilesStudioLibraryWorkspace,
         ),
-        if (project.terrainPresets.isNotEmpty)
-          ProjectExplorerModuleCard(
-            title: 'Terrain Library',
-            description: 'Compatibilité des anciens presets de terrain',
-            icon: CupertinoIcons.map,
-            accentColor: colors.success,
-            count: project.terrainPresets.length,
-            selected: false,
-            expanded: _expandTerrains,
-            onExpandToggle: () =>
-                setState(() => _expandTerrains = !_expandTerrains),
-            expandedHeight: hTerrains,
-            child: const TerrainLibraryPanel(embedded: true),
-          ),
-        if (project.pathPresets.isNotEmpty ||
-            project.pathPatternPresets.isNotEmpty)
-          ProjectExplorerModuleCard(
-            title: 'Path Library',
-            description: 'Compatibilité des chemins et recettes historiques',
-            icon: CupertinoIcons.arrow_branch,
-            accentColor: colors.warning,
-            countLabel:
-                '${project.pathPresets.length}/${project.pathPatternPresets.length}',
-            selected: snapshot.workspaceMode == EditorWorkspaceMode.pathStudio,
-            expanded: _expandPaths,
-            onExpandToggle: () => setState(() => _expandPaths = !_expandPaths),
-            expandedHeight: hPaths,
-            child: _buildPathLibraryCard(context, project, snapshot, notifier),
-          ),
         ProjectExplorerModuleCard(
           title: 'Environment Studio',
           description: 'Presets d’environnements réutilisables',
@@ -634,38 +596,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPathLibraryCard(
-    BuildContext context,
-    ProjectManifest project,
-    EditorProjectExplorerSnapshot snapshot,
-    EditorNotifier notifier,
-  ) {
-    final isPathStudio =
-        snapshot.workspaceMode == EditorWorkspaceMode.pathStudio;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        EditorSidebarListRow(
-          key: const Key('project-explorer-path-studio-entry'),
-          selected: isPathStudio,
-          onTap: notifier.selectPathStudioWorkspace,
-          leading: const MacosIcon(CupertinoIcons.arrow_branch),
-          title: const Text('Path Studio'),
-          subtitle: Text(
-            '${project.pathPatternPresets.length} motifs PathPattern',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Expanded(
-          child: PathLibraryPanel(embedded: true),
         ),
       ],
     );

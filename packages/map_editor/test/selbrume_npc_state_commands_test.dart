@@ -23,8 +23,7 @@ void main() {
       ),
     );
     final payloads = <String, SceneNodePayload>{
-      NarrativeCommandIds.setNpcPresence:
-          buildScenePayloadForNarrativeCommand(
+      NarrativeCommandIds.setNpcPresence: buildScenePayloadForNarrativeCommand(
         commandId: NarrativeCommandIds.setNpcPresence,
         parameters: const {
           'npcRef': 'map_bourg_selbrume::npc_mael',

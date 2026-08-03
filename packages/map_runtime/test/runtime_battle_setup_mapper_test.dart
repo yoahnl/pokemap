@@ -1874,7 +1874,6 @@ Future<ProjectManifest> _writeAndLoadProjectManifest(
         'moves': 'custom/pokemon/catalogs/moves.json',
       },
     ),
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 
   await _writeProjectJson(projectRoot, manifest.toJson());

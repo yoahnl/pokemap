@@ -17,7 +17,6 @@ void main() {
             battleDifficulty: 11,
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       expect(
@@ -45,7 +44,6 @@ void main() {
             battleBackgroundRelativePath: '../outside.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       expect(
@@ -118,7 +116,6 @@ void main() {
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
           trainers: <ProjectTrainerEntry>[invalidReward.value],
-          surfaceCatalog: ProjectSurfaceCatalog(),
         );
 
         expect(
@@ -141,7 +138,6 @@ void main() {
             rewardBadgeId: 'tide_badge',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       expect(

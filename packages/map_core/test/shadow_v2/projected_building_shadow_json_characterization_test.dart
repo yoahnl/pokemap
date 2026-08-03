@@ -112,40 +112,6 @@ void main() {
     );
 
     test(
-      'migrateProjectManifestJson currently preserves V2-like unknown keys by '
-      'identity',
-      () {
-        final raw = _manifestJson(
-          elements: <Object?>[
-            _elementJson(
-              extra: <String, Object?>{
-                'projectedBuildingShadow': <String, Object?>{
-                  'enabled': true,
-                  'presetId': 'short-west-building-shadow',
-                },
-              },
-            ),
-          ],
-          extraRoot: <String, Object?>{
-            'buildingShadowPresets': <Object?>[],
-            'projectedBuildingShadowCatalog': <String, Object?>{
-              'presets': <Object?>[],
-            },
-          },
-        );
-
-        final migrated = migrateProjectManifestJson(raw);
-        final elements = migrated['elements'] as List<Object?>;
-        final element = elements.single! as Map<String, Object?>;
-
-        expect(identical(migrated, raw), isTrue);
-        expect(migrated, contains('buildingShadowPresets'));
-        expect(migrated, contains('projectedBuildingShadowCatalog'));
-        expect(element, contains('projectedBuildingShadow'));
-      },
-    );
-
-    test(
       'Selbrume-like synthetic V1 shadow sample round-trips without V2 keys',
       () {
         final manifest = ProjectManifest.fromJson(
@@ -183,6 +149,7 @@ Map<String, Object?> _manifestJson({
 }) {
   return <String, Object?>{
     'name': 'Project',
+    'version': 'v6',
     'maps': <Object?>[],
     'tilesets': <Object?>[],
     if (!identical(shadowCatalog, _absent)) 'shadowCatalog': shadowCatalog,

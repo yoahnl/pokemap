@@ -7,19 +7,13 @@ ProjectBorderCatalog borderCatalogForProject(ProjectManifest manifest) {
   return manifest.borderCatalog;
 }
 
-/// Replaces only the Border catalog and promotes the manifest when needed.
-///
-/// Persisting any non-empty Border catalog is a V2 feature. Newer manifest
-/// versions keep their version: adding Border data must never downgrade a
-/// Smart Tile project.
+/// Replaces only the Border catalog on the canonical project version.
 ProjectManifest replaceProjectBorderCatalog(
   ProjectManifest manifest,
   ProjectBorderCatalog borderCatalog,
 ) {
   return manifest.copyWith(
-    version: borderCatalog.isNotEmpty && manifest.version == ProjectVersion.v1
-        ? ProjectVersion.v2
-        : manifest.version,
+    version: ProjectVersion.v6,
     borderCatalog: borderCatalog,
   );
 }

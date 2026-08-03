@@ -148,8 +148,6 @@ void main() {
       expect(preview.impacts.map((impact) => impact.ownerKind), [
         'element',
         'paletteEntry',
-        'pathPreset',
-        'terrainPreset',
       ]);
       expect(preview.before.tileWidth, 16);
       expect(preview.after.tileWidth, 8);
@@ -192,24 +190,6 @@ void main() {
       );
     });
 
-    test('preset gate stays compatible with semantic map actions', () {
-      final gate = const PresetActions().validate(
-        _manifest(),
-        atlases: const {'world': atlas},
-      );
-
-      expect(gate.diagnostics, isEmpty);
-      expect(
-        gate.semanticActionIds,
-        containsAll([
-          'terrain.paint',
-          'path.paint',
-          'surface.paint',
-          'environment.generate_apply',
-        ]),
-      );
-    });
-
     test('dispatcher exposes canonical visual library mutations', () {
       final ids = MapMutationDispatcher.canonical()
           .descriptors
@@ -229,10 +209,9 @@ void main() {
           'element.delete',
           'element_category.upsert',
           'element_category.delete',
-          'preset.terrain_upsert',
-          'preset.path_upsert',
         }),
       );
+      expect(ids.where((id) => id.startsWith('preset.')), isEmpty);
     });
 
     test('visual organization upserts and protects referenced containers', () {
@@ -316,40 +295,6 @@ ProjectManifest _manifest() => ProjectManifest(
           frames: [
             TilesetVisualFrame(
               source: TilesetSourceRect(x: 1, y: 0),
-            ),
-          ],
-        ),
-      ],
-      terrainPresets: const [
-        ProjectTerrainPreset(
-          id: 'grass',
-          name: 'Grass',
-          terrainType: TerrainType.grass,
-          tilesetId: 'world',
-          variants: [
-            TerrainPresetVariant(
-              frames: [
-                TilesetVisualFrame(
-                  source: TilesetSourceRect(x: 2, y: 0),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ],
-      pathPresets: const [
-        ProjectPathPreset(
-          id: 'road',
-          name: 'Road',
-          tilesetId: 'world',
-          variants: [
-            PathPresetVariantMapping(
-              variant: TerrainPathVariant.isolated,
-              frames: [
-                TilesetVisualFrame(
-                  source: TilesetSourceRect(x: 3, y: 0),
-                ),
-              ],
             ),
           ],
         ),

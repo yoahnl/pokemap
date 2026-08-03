@@ -119,8 +119,6 @@ bool _isSetupCapablePaintRequest({
     }
   }
   return switch (request) {
-    ActivateWorldMapPaint(subtool: WorldMapPaintSubtool.surface) =>
-      activeLayer is SurfaceLayer,
     ActivateWorldMapPaint(subtool: WorldMapPaintSubtool.border) =>
       activeLayer is BorderLayer,
     ActivateWorldMapPaint() || ActivateWorldMapPlacement() => false,

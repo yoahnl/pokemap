@@ -864,15 +864,14 @@ Future<ProviderContainer> _pumpWorkspace(
 
 ProjectManifest _emptyManifest() => const ProjectManifest(
       name: 'Border Studio UI',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
     );
 
 ProjectManifest _manifestWithAsset() => const ProjectManifest(
       name: 'Border Studio UI',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[
         ProjectTilesetEntry(
@@ -895,15 +894,13 @@ ProjectManifest _manifestWithAsset() => const ProjectManifest(
         ),
       ],
       settings: ProjectSettings(tileWidth: 2, tileHeight: 1),
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
     );
 
 ProjectManifest _manifestWithDraft() => ProjectManifest(
       name: 'Border Studio UI',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
       borderCatalog: ProjectBorderCatalog(
         records: <BorderBlueprintRecord>[
           BorderBlueprintRecord(
@@ -933,7 +930,7 @@ ProjectManifest _manifestWithDraft() => ProjectManifest(
 
 ProjectManifest _manifestWithSharedPrimitiveIds() => ProjectManifest(
       name: 'Border Studio guarded assets',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[
         ProjectTilesetEntry(
@@ -956,7 +953,6 @@ ProjectManifest _manifestWithSharedPrimitiveIds() => ProjectManifest(
         ),
       ],
       settings: const ProjectSettings(tileWidth: 2, tileHeight: 1),
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
       borderCatalog: ProjectBorderCatalog(
         records: <BorderBlueprintRecord>[
           _recordWithSharedPrimitive(

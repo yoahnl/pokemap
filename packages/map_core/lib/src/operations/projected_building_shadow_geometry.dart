@@ -85,7 +85,8 @@ ProjectedBuildingShadowGeometry? resolveProjectedBuildingShadowGeometry({
   };
 }
 
-ProjectedBuildingShadowGeometry _resolveDirectionalProjectedBuildingShadowGeometry({
+ProjectedBuildingShadowGeometry
+    _resolveDirectionalProjectedBuildingShadowGeometry({
   required ProjectElementProjectedBuildingShadowConfig config,
   required ProjectBuildingShadowPreset preset,
   required StaticShadowVisualMetrics metrics,
@@ -137,7 +138,8 @@ ProjectedBuildingShadowGeometry _resolveDirectionalProjectedBuildingShadowGeomet
   );
 }
 
-ProjectedBuildingShadowGeometry _resolveFootprintProjectedBuildingShadowGeometry({
+ProjectedBuildingShadowGeometry
+    _resolveFootprintProjectedBuildingShadowGeometry({
   required ProjectElementProjectedBuildingShadowConfig config,
   required ProjectBuildingShadowPreset preset,
   required StaticShadowVisualMetrics metrics,

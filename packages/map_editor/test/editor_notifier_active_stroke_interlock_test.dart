@@ -132,7 +132,6 @@ const _project = ProjectManifest(
     ),
   ],
   tilesets: <ProjectTilesetEntry>[],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 const _cleanMap = MapData(

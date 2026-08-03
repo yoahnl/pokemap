@@ -99,7 +99,6 @@ void main() {
       ),
     ],
     settings: const ProjectSettings(tileWidth: _tile, tileHeight: _tile),
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     elements: <ProjectElementEntry>[
       ProjectElementEntry(
         id: 'asymmetric-awning',

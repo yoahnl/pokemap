@@ -24,9 +24,9 @@ void main() {
 
       // This is the BORD-01 migration boundary: neither V1 source owns Border
       // data before the single coordinated preparation action.
-      expect(sourceManifest.version, ProjectVersion.v1);
+      expect(sourceManifest.version, ProjectVersion.v6);
       expect(sourceManifest.borderCatalog.isEmpty, isTrue);
-      expect(sourceMap.version, ProjectVersion.v1);
+      expect(sourceMap.version, ProjectVersion.v6);
       expect(sourceMap.layers.whereType<BorderLayer>(), isEmpty);
 
       final prepared = prepareFirstBorderDraftAndLayer(
@@ -37,7 +37,7 @@ void main() {
         layerName: 'Bordures',
       );
 
-      expect(prepared.manifest.version, ProjectVersion.v2);
+      expect(prepared.manifest.version, ProjectVersion.v6);
       expect(prepared.manifest.borderCatalog.records, <BorderBlueprintRecord>[
         firstDraft,
       ]);
@@ -46,7 +46,7 @@ void main() {
         isNull,
       );
       expect(prepared.manifest.borderCatalog.visualSnapshots, isEmpty);
-      expect(prepared.map.version, ProjectVersion.v2);
+      expect(prepared.map.version, ProjectVersion.v6);
       expect(prepared.map.layers, hasLength(1));
       final preparedLayer = prepared.map.layers.whereType<BorderLayer>().single;
       expect(preparedLayer.content, BorderLayerContent.emptyContent);
@@ -75,14 +75,14 @@ void main() {
       expect(reloadedMap, prepared.map);
       expect(reloadedMap.toJson(), prepared.map.toJson());
 
-      expect(reloadedManifest.version, ProjectVersion.v2);
+      expect(reloadedManifest.version, ProjectVersion.v6);
       expect(reloadedManifest.borderCatalog.records.single, firstDraft);
       expect(
         reloadedManifest.borderCatalog.records.single.latestPublished,
         isNull,
       );
       expect(reloadedManifest.borderCatalog.visualSnapshots, isEmpty);
-      expect(reloadedMap.version, ProjectVersion.v2);
+      expect(reloadedMap.version, ProjectVersion.v6);
       expect(reloadedMap.layers, hasLength(1));
       final reloadedLayer = reloadedMap.layers.whereType<BorderLayer>().single;
       expect(reloadedLayer.content, BorderLayerContent.emptyContent);
@@ -90,9 +90,9 @@ void main() {
 
       // Preparation and persistence must not back-write either immutable V1
       // source while producing the two independent V2 documents.
-      expect(sourceManifest.version, ProjectVersion.v1);
+      expect(sourceManifest.version, ProjectVersion.v6);
       expect(sourceManifest.borderCatalog.isEmpty, isTrue);
-      expect(sourceMap.version, ProjectVersion.v1);
+      expect(sourceMap.version, ProjectVersion.v6);
       expect(sourceMap.layers.whereType<BorderLayer>(), isEmpty);
     },
   );

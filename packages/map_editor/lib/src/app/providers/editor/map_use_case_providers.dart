@@ -9,9 +9,7 @@ import '../../../application/use_cases/layer_use_cases.dart';
 import '../../../application/use_cases/map_connection_use_cases.dart';
 import '../../../application/use_cases/map_use_cases.dart';
 import '../../../application/use_cases/paint_use_cases.dart';
-import '../../../application/use_cases/path_layer_use_cases.dart';
 import '../../../application/use_cases/project_tileset_use_cases.dart';
-import '../../../application/use_cases/terrain_use_cases.dart';
 import '../../../application/use_cases/trigger_use_cases.dart';
 import '../../../application/use_cases/warp_use_cases.dart';
 import '../core/repository_providers.dart';
@@ -84,56 +82,6 @@ EraseCollisionOnMapUseCase eraseCollisionOnMapUseCase(Ref ref) {
 @riverpod
 EraseCollisionPatternOnMapUseCase eraseCollisionPatternOnMapUseCase(Ref ref) {
   return EraseCollisionPatternOnMapUseCase();
-}
-
-@riverpod
-PaintTerrainOnMapUseCase paintTerrainOnMapUseCase(Ref ref) {
-  return PaintTerrainOnMapUseCase();
-}
-
-@riverpod
-PaintPathOnMapUseCase paintPathOnMapUseCase(Ref ref) {
-  return PaintPathOnMapUseCase();
-}
-
-@riverpod
-PaintPathPatternOnMapUseCase paintPathPatternOnMapUseCase(Ref ref) {
-  return PaintPathPatternOnMapUseCase();
-}
-
-@riverpod
-ErasePathOnMapUseCase erasePathOnMapUseCase(Ref ref) {
-  return ErasePathOnMapUseCase();
-}
-
-@riverpod
-ErasePathPatternOnMapUseCase erasePathPatternOnMapUseCase(Ref ref) {
-  return ErasePathPatternOnMapUseCase();
-}
-
-@riverpod
-AssignPathPresetToLayerUseCase assignPathPresetToLayerUseCase(Ref ref) {
-  return AssignPathPresetToLayerUseCase();
-}
-
-@riverpod
-SetPathLayerPropertiesUseCase setPathLayerPropertiesUseCase(Ref ref) {
-  return SetPathLayerPropertiesUseCase();
-}
-
-@riverpod
-PaintTerrainPatternOnMapUseCase paintTerrainPatternOnMapUseCase(Ref ref) {
-  return PaintTerrainPatternOnMapUseCase();
-}
-
-@riverpod
-EraseTerrainOnMapUseCase eraseTerrainOnMapUseCase(Ref ref) {
-  return EraseTerrainOnMapUseCase();
-}
-
-@riverpod
-EraseTerrainPatternOnMapUseCase eraseTerrainPatternOnMapUseCase(Ref ref) {
-  return EraseTerrainPatternOnMapUseCase();
 }
 
 @riverpod

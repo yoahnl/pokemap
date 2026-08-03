@@ -48,9 +48,7 @@ void main() {
         containsAll(<MapResizeImpactKind>{
           MapResizeImpactKind.tileLayer,
           MapResizeImpactKind.collisionLayer,
-          MapResizeImpactKind.terrainLayer,
-          MapResizeImpactKind.pathLayer,
-          MapResizeImpactKind.surfaceLayer,
+          MapResizeImpactKind.smartTileLayer,
           MapResizeImpactKind.environmentArea,
           MapResizeImpactKind.placedElement,
           MapResizeImpactKind.generatedPlacementReference,
@@ -104,7 +102,7 @@ void main() {
       final map = MapData(
         id: 'border-map',
         name: 'Border map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: const GridSize(width: 3, height: 2),
         layers: <MapLayer>[
           MapLayer.border(
@@ -185,7 +183,7 @@ void main() {
       const map = MapData(
         id: 'wang-map',
         name: 'Wang map',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           MapLayer.smartTile(
@@ -218,7 +216,7 @@ void main() {
       final map = MapData(
         id: 'border-map',
         name: 'Border map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: const GridSize(width: 2, height: 2),
         layers: const <MapLayer>[
           MapLayer.border(id: 'border', name: 'Border'),
@@ -289,7 +287,7 @@ MapData _emptyMap() => const MapData(
 MapData _compositeMap() => MapData(
       id: 'composite',
       name: 'Composite',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 4, height: 4),
       layers: <MapLayer>[
         MapLayer.tile(
@@ -303,31 +301,41 @@ MapData _compositeMap() => MapData(
           collisions:
               _cells<bool>(false, const <GridPos>[GridPos(x: 2, y: 0)], true),
         ),
-        MapLayer.terrain(
+        MapLayer.smartTile(
           id: 'terrain',
           name: 'Terrain',
-          terrains: _cells<TerrainType>(
-            TerrainType.none,
-            const <GridPos>[GridPos(x: 0, y: 3)],
-            TerrainType.grass,
+          presetId: 'terrain',
+          usage: SmartTileUsage.terrain,
+          materialPalette: const <String>['', 'grass'],
+          field: SmartTileField.cell(
+            semanticCells: _cells<int>(
+              0,
+              const <GridPos>[GridPos(x: 0, y: 3)],
+              1,
+            ),
           ),
         ),
-        MapLayer.path(
+        MapLayer.smartTile(
           id: 'path',
           name: 'Path',
-          cells:
-              _cells<bool>(false, const <GridPos>[GridPos(x: 3, y: 2)], true),
+          presetId: 'path',
+          usage: SmartTileUsage.path,
+          materialPalette: const <String>['', 'dirt'],
+          field: SmartTileField.cell(
+            semanticCells:
+                _cells<int>(0, const <GridPos>[GridPos(x: 3, y: 2)], 1),
+          ),
         ),
-        const MapLayer.surface(
+        MapLayer.smartTile(
           id: 'surface',
           name: 'Surface',
-          placements: <SurfaceCellPlacement>[
-            SurfaceCellPlacement(
-              x: 3,
-              y: 0,
-              surfacePresetId: 'grass',
-            ),
-          ],
+          presetId: 'surface',
+          usage: SmartTileUsage.forestSurface,
+          materialPalette: const <String>['', 'forest'],
+          field: SmartTileField.cell(
+            semanticCells:
+                _cells<int>(0, const <GridPos>[GridPos(x: 3, y: 0)], 1),
+          ),
         ),
         MapLayer.environment(
           id: 'environment',
@@ -439,7 +447,7 @@ MapData _compositeMap() => MapData(
 
 ProjectManifest _project() => const ProjectManifest(
       name: 'Resize project',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
       elements: <ProjectElementEntry>[

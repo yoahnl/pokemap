@@ -22,9 +22,9 @@ void main() {
         name: 'Bordures',
       );
 
-      expect(source.version, ProjectVersion.v1);
+      expect(source.version, ProjectVersion.v6);
       expect(source.layers, hasLength(1));
-      expect(updated.version, ProjectVersion.v2);
+      expect(updated.version, ProjectVersion.v6);
       expect(updated.layers.map((layer) => layer.id), <String>[
         'ground',
         'borders',
@@ -91,8 +91,8 @@ void main() {
         content: content,
       );
 
-      expect(source.version, ProjectVersion.v1);
-      expect(updated.version, ProjectVersion.v2);
+      expect(source.version, ProjectVersion.v6);
+      expect(updated.version, ProjectVersion.v6);
       expect(identical(updated.layers.first, ground), isTrue);
       expect((updated.layers.last as BorderLayer).content, content);
       expect((source.layers.last as BorderLayer).content.isEmpty, isTrue);
@@ -260,7 +260,7 @@ void main() {
             .map((feature) => feature.id),
         <String>['first', 'third'],
       );
-      expect(updated.version, ProjectVersion.v2);
+      expect(updated.version, ProjectVersion.v6);
       expect(
         () => removeBorderFeature(
           source,
@@ -366,7 +366,7 @@ MapData _mapWithBorder(List<BorderFeature> features) => _map(
           content: BorderLayerContent(features: features),
         ),
       ],
-    ).copyWith(version: ProjectVersion.v2);
+    ).copyWith(version: ProjectVersion.v6);
 
 MapLayer _tileLayer() => const MapLayer.tile(
       id: 'ground',

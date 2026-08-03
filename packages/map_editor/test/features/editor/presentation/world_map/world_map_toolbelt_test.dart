@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
@@ -407,10 +406,6 @@ void main() {
         WorldMapPaintSubtool.path,
       );
       expect(
-        container.read(editorNotifierProvider).terrainSelectionMode,
-        TerrainSelectionMode.path,
-      );
-      expect(
         find.byWidgetPredicate(
           (widget) =>
               widget is Semantics &&
@@ -469,49 +464,42 @@ void main() {
       String label,
       String layerId,
       EditorToolType? expectedTool,
-      TerrainSelectionMode? expectedTerrainMode,
     })>[
       (
         subtool: WorldMapPaintSubtool.tile,
         label: 'Éléments',
         layerId: 'tile',
         expectedTool: EditorToolType.tilePaint,
-        expectedTerrainMode: null,
       ),
       (
         subtool: WorldMapPaintSubtool.terrain,
         label: 'Terrain',
         layerId: 'terrain',
         expectedTool: EditorToolType.terrainPaint,
-        expectedTerrainMode: TerrainSelectionMode.terrain,
       ),
       (
         subtool: WorldMapPaintSubtool.path,
         label: 'Chemins',
         layerId: 'path',
         expectedTool: EditorToolType.terrainPaint,
-        expectedTerrainMode: TerrainSelectionMode.path,
       ),
       (
         subtool: WorldMapPaintSubtool.surface,
         label: 'Surfaces',
         layerId: 'surface',
-        expectedTool: EditorToolType.surfacePaint,
-        expectedTerrainMode: null,
+        expectedTool: EditorToolType.terrainPaint,
       ),
       (
         subtool: WorldMapPaintSubtool.border,
         label: 'Bordures',
         layerId: 'terrain',
         expectedTool: null,
-        expectedTerrainMode: null,
       ),
       (
         subtool: WorldMapPaintSubtool.collision,
         label: 'Collision',
         layerId: 'collision',
         expectedTool: EditorToolType.collisionPaint,
-        expectedTerrainMode: null,
       ),
     ]) {
       testWidgets('Paint menu maps ${testCase.subtool.name} canonically',
@@ -541,12 +529,6 @@ void main() {
             container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
             testCase.subtool,
           );
-          if (testCase.expectedTerrainMode case final expectedTerrainMode?) {
-            expect(
-              container.read(editorNotifierProvider).terrainSelectionMode,
-              expectedTerrainMode,
-            );
-          }
         } else {
           expect(rejectionReason, isNull);
           expect(
@@ -720,15 +702,9 @@ void main() {
     });
 
     testWidgets(
-      'Surface setup opens UI intent without technical rejection',
+      'Surface Smart Tile activates without legacy setup',
       (tester) async {
-        final container = _containerWith(
-          _paintState('surface').copyWith(
-            selectedSurfacePresetId: 'stale-surface',
-          ),
-        );
-        final beforeEditor = container.read(editorNotifierProvider);
-        final beforeSession = container.read(worldMapWorkspaceSessionProvider);
+        final container = _containerWith(_paintState('surface'));
         String? rejectionReason;
         await _pumpToolbelt(
           tester,
@@ -744,25 +720,17 @@ void main() {
         await tester.pump();
 
         expect(rejectionReason, isNull);
-        expect(container.read(editorNotifierProvider), same(beforeEditor));
         expect(
-          container.read(worldMapWorkspaceSessionProvider),
-          same(beforeSession),
+          container.read(editorNotifierProvider).activeTool,
+          EditorToolType.terrainPaint,
         );
+        expect(container.read(editorNotifierProvider).activeLayerId, 'surface');
         expect(
           container.read(worldMapPaintInspectionIntentProvider),
-          const WorldMapPaintInspectionIntent(
-            scope: (
-              projectRootPath: null,
-              activeMapPath: null,
-              activeMapId: 'map-a',
-            ),
-            layerId: 'surface',
-            subtool: WorldMapPaintSubtool.surface,
-          ),
+          isNull,
         );
-        expect(beforeEditor.mapUndoStack, isEmpty);
-        expect(beforeEditor.mapRedoStack, isEmpty);
+        expect(container.read(editorNotifierProvider).mapUndoStack, isEmpty);
+        expect(container.read(editorNotifierProvider).mapRedoStack, isEmpty);
       },
     );
 
@@ -808,7 +776,7 @@ void main() {
     );
 
     testWidgets(
-      'wrong-layer Surface choice routes to the sole SurfaceLayer',
+      'wrong-layer Surface choice routes to the sole compatible layer',
       (tester) async {
         final container = _containerWith(_paintState('terrain'));
         await _pumpToolbelt(tester, container);
@@ -823,7 +791,7 @@ void main() {
         expect(container.read(editorNotifierProvider).activeLayerId, 'surface');
         expect(
           container.read(editorNotifierProvider).activeTool,
-          EditorToolType.surfacePaint,
+          EditorToolType.terrainPaint,
         );
         expect(
           container.read(worldMapWorkspaceSessionProvider).activeFamily,
@@ -855,7 +823,7 @@ void main() {
 
       expect(
         container.read(editorNotifierProvider).activeTool,
-        EditorToolType.surfacePaint,
+        EditorToolType.terrainPaint,
       );
       expect(
         container.read(worldMapWorkspaceSessionProvider).activeFamily,
@@ -1053,13 +1021,17 @@ void main() {
     testWidgets(
         'Paint main reconciles a rejected stale replay with its resolved subtool',
         (tester) async {
-      final project = _validBorderProject.copyWith(
-        surfaceCatalog: _paintProject.surfaceCatalog,
-      );
+      final project = _validBorderProject.copyWith();
       final map = _validBorderMap.copyWith(
         id: 'map-a',
         layers: <MapLayer>[
-          const SurfaceLayer(id: 'surface', name: 'Surface'),
+          const SmartTileLayer(
+            id: 'surface',
+            name: 'Surface',
+            presetId: 'forest',
+            usage: SmartTileUsage.forestSurface,
+            field: SmartTileField.cell(semanticCells: <int>[]),
+          ),
           ..._validBorderMap.layers,
         ],
       );
@@ -1069,7 +1041,6 @@ void main() {
           workspaceMode: EditorWorkspaceMode.map,
           activeMap: map,
           activeLayerId: 'border',
-          selectedSurfacePresetId: 'water',
         ),
       );
       final editor = container.read(editorNotifierProvider.notifier);
@@ -1106,7 +1077,13 @@ void main() {
       editor.state = editor.state.copyWith(
         activeMap: map.copyWith(
           layers: const <MapLayer>[
-            SurfaceLayer(id: 'surface', name: 'Surface'),
+            SmartTileLayer(
+              id: 'surface',
+              name: 'Surface',
+              presetId: 'forest',
+              usage: SmartTileUsage.forestSurface,
+              field: SmartTileField.cell(semanticCells: <int>[]),
+            ),
             BorderLayer(id: 'border', name: 'Border'),
           ],
         ),
@@ -1141,8 +1118,7 @@ void main() {
       );
     });
 
-    testWidgets(
-        'legacy editor tool mutations update visible family and subtool',
+    testWidgets('canonical session mutations update visible family and subtool',
         (tester) async {
       final container = _containerWith(_paintState('path'));
       String? rejectionReason;
@@ -1169,9 +1145,15 @@ void main() {
         isTrue,
       );
 
-      editor.state = editor.state.copyWith(
-        activeTool: EditorToolType.terrainPaint,
-        terrainSelectionMode: TerrainSelectionMode.path,
+      final session = container.read(worldMapWorkspaceSessionProvider.notifier);
+      expect(
+        session
+            .activateTool(
+              editor,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.path),
+            )
+            .accepted,
+        isTrue,
       );
       await tester.pump();
 
@@ -1192,10 +1174,6 @@ void main() {
 
       expect(rejectionReason, isNull);
       expect(editor.state.activeTool, EditorToolType.terrainPaint);
-      expect(
-        editor.state.terrainSelectionMode,
-        TerrainSelectionMode.path,
-      );
       expect(
         container.read(worldMapWorkspaceSessionProvider).lastPaintSubtool,
         WorldMapPaintSubtool.path,
@@ -1506,7 +1484,6 @@ EditorState _tileState() {
       name: 'World map toolbelt',
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
     ),
     workspaceMode: EditorWorkspaceMode.map,
     activeMap: MapData(
@@ -1532,36 +1509,19 @@ EditorState _paintState(String activeLayerId) {
     workspaceMode: EditorWorkspaceMode.map,
     activeMap: _paintMap,
     activeLayerId: activeLayerId,
-    selectedSurfacePresetId: 'water',
   );
 }
 
-final _paintProject = ProjectManifest(
+const _paintProject = ProjectManifest(
   name: 'World map paint tools',
-  maps: const <ProjectMapEntry>[],
-  tilesets: const <ProjectTilesetEntry>[],
-  surfaceCatalog: ProjectSurfaceCatalog(
-    presets: <ProjectSurfacePreset>[
-      ProjectSurfacePreset(
-        id: 'water',
-        name: 'Water',
-        variantAnimations: SurfaceVariantAnimationRefSet(
-          refs: <SurfaceVariantAnimationRef>[
-            SurfaceVariantAnimationRef(
-              role: SurfaceVariantRole.isolated,
-              animationId: 'water-isolated',
-            ),
-          ],
-        ),
-      ),
-    ],
-  ),
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[],
 );
 
 const _paintMap = MapData(
   id: 'map-a',
   name: 'Map A',
-  version: ProjectVersion.v2,
+  version: ProjectVersion.v6,
   size: GridSize(width: 8, height: 8),
   layers: <MapLayer>[
     TileLayer(
@@ -1584,7 +1544,13 @@ const _paintMap = MapData(
       usage: SmartTileUsage.path,
       field: SmartTileField.cell(),
     ),
-    SurfaceLayer(id: 'surface', name: 'Surface'),
+    SmartTileLayer(
+      id: 'surface',
+      name: 'Surface',
+      presetId: 'surface-preset',
+      usage: SmartTileUsage.forestSurface,
+      field: SmartTileField.cell(),
+    ),
     CollisionLayer(id: 'collision', name: 'Collision'),
   ],
 );
@@ -1656,7 +1622,6 @@ final _validBorderProject = ProjectManifest(
   name: 'Valid border tool',
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
-  surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   borderCatalog: ProjectBorderCatalog(
     records: <BorderBlueprintRecord>[
       BorderBlueprintRecord(
@@ -1700,7 +1665,7 @@ final _validBorderParams = BorderGenerationParams(
 final _validBorderMap = MapData(
   id: 'border-map',
   name: 'Border Map',
-  version: ProjectVersion.v2,
+  version: ProjectVersion.v6,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     MapLayer.border(

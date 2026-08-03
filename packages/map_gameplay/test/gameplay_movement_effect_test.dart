@@ -170,34 +170,6 @@ void main() {
       expect(moved.movementEffect, movement);
     });
 
-    test('keeps path animation signals intact', () {
-      const signal = PathAnimationSignal(
-        kind: PathAnimationSignalKind.trigger,
-        layerId: 'path-layer',
-        presetId: 'ice',
-        ruleId: 'step-rule',
-        trigger: PathAnimationTriggerType.onStep,
-        mode: PathAnimationPlaybackMode.restartOnTrigger,
-        sourcePos: GridPos(x: 1, y: 0),
-      );
-      final movement = GameplayMovementEffect.slide(
-        zoneId: 'ice-zone',
-        zoneName: 'Ice Zone',
-        position: const GridPos(x: 1, y: 0),
-        priority: 2,
-        direction: Direction.east,
-      );
-
-      final moved = Moved(
-        _world(),
-        movementEffect: movement,
-        pathAnimationSignals: const [signal],
-      );
-
-      expect(moved.movementEffect, movement);
-      expect(moved.pathAnimationSignals, const [signal]);
-    });
-
     test('stepGameplayWorld does not produce a movementEffect yet', () {
       final result = stepGameplayWorld(
         _world(),

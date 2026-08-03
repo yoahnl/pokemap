@@ -301,7 +301,6 @@ ProjectManifest _project() => ProjectManifest(
         ),
       ],
       scenes: <SceneAsset>[_scene()],
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     );
 
 ProjectManifest _eventProject() => _project().copyWith(

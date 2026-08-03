@@ -558,9 +558,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get editorUpdateBlockerBorderStudio => 'Border Studio';
 
   @override
-  String get editorUpdateBlockerPathStudio => 'Path Studio';
-
-  @override
   String get editorUpdateBlockerStepStudio => 'Step Studio';
 
   @override

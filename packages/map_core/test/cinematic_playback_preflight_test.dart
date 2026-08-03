@@ -58,13 +58,11 @@ void main() {
 
     final unavailableMapIssue = unavailable.issues.singleWhere(
       (issue) =>
-          issue.kind ==
-          CinematicPlaybackPreflightIssueKind.invalidMapReference,
+          issue.kind == CinematicPlaybackPreflightIssueKind.invalidMapReference,
     );
     final inactiveMapIssue = inactive.issues.singleWhere(
       (issue) =>
-          issue.kind ==
-          CinematicPlaybackPreflightIssueKind.invalidMapReference,
+          issue.kind == CinematicPlaybackPreflightIssueKind.invalidMapReference,
     );
 
     expect(

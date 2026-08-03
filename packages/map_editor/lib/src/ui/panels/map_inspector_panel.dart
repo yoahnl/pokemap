@@ -5,14 +5,12 @@ import 'package:map_core/map_core.dart';
 import '../../theme/theme.dart';
 
 import '../../application/models/tile_layer_environment_attachment_read_model.dart';
-import '../../application/models/terrain_selection_mode.dart';
 import '../../application/services/tile_layer_environment_attachment_read_model_builder.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/environment_generated_placement_add_element_provider.dart';
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/border_map_editing/presentation/border_layer_inspector_panel.dart';
-import '../../features/surface_painter/surface_palette_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_section_card.dart';
 import 'encounter_tables_panel.dart';
@@ -23,7 +21,6 @@ import 'environment_layer_inspector_panel.dart';
 import 'layers_panel.dart';
 import 'map_connections_panel.dart';
 import 'map_properties_panel.dart';
-import 'terrain_map_panel.dart';
 import 'tile_layer_environment_inspector_section.dart';
 import 'tileset_palette_panel.dart';
 import 'trigger_properties_panel.dart';
@@ -38,9 +35,6 @@ enum _InspectorSectionId {
   tileLayerEnvironment,
   environmentLayer,
   tiles,
-  ground,
-  surfacePlacements,
-  surfaces,
   entities,
   events,
   connections,
@@ -78,14 +72,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
     }
 
     final hasTileLayers = activeMap.layers.any((layer) => layer is TileLayer);
-    final hasTerrainLayers =
-        activeMap.layers.any((layer) => layer is TerrainLayer);
-    final hasPathLayers = activeMap.layers.any((layer) => layer is PathLayer);
-    final hasSurfaceLayers =
-        activeMap.layers.any((layer) => layer is SurfaceLayer);
     final borderLayerCount = activeMap.layers.whereType<BorderLayer>().length;
-    final hasSurfacePresets =
-        state.project?.surfaceCatalog.presets.isNotEmpty ?? false;
     final showTileLayerEnvironmentSection =
         activeLayer is TileLayer || activeLayer is EnvironmentLayer;
     final tileLayerEnvironmentReadModel = showTileLayerEnvironmentSection
@@ -186,16 +173,6 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
     final showTilesSection = activeLayer is TileLayer ||
         state.activeTool == EditorToolType.tilePaint ||
         (state.activeLayerId == null && hasTileLayers);
-    final showGroundSection = hasTerrainLayers &&
-        (activeLayer is TerrainLayer ||
-            (activeLayer is! PathLayer &&
-                state.activeTool == EditorToolType.terrainPaint &&
-                state.terrainSelectionMode == TerrainSelectionMode.terrain));
-    final showSurfaceSection = hasPathLayers && activeLayer is PathLayer;
-    final showSurfacePlacementSection = hasSurfaceLayers ||
-        hasSurfacePresets ||
-        activeLayer is SurfaceLayer ||
-        state.activeTool == EditorToolType.surfacePaint;
     const showConnectionsSection = true;
     final showEntitySection =
         state.activeTool == EditorToolType.entityPlacement ||
@@ -470,68 +447,6 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                   expandedHeight: paletteHeight,
                   child: const TilesetPalettePanel(embedded: true),
                 ),
-              if (showGroundSection)
-                InspectorSectionCard(
-                  title: 'Terrain de base',
-                  subtitle:
-                      'Modification du terrain uniquement pour le fond de la carte.',
-                  icon: CupertinoIcons.tree,
-                  accentColor: EditorChrome.inspectorJoyMint,
-                  expanded: _isExpanded(
-                    _InspectorSectionId.ground,
-                    true,
-                  ),
-                  onToggle: () => _toggleSection(
-                    _InspectorSectionId.ground,
-                    defaultExpanded: true,
-                  ),
-                  expandedHeight: 300,
-                  child: const TerrainMapPanel(
-                    embedded: true,
-                    mode: TerrainMapPanelMode.groundOnly,
-                  ),
-                ),
-              if (showSurfacePlacementSection)
-                InspectorSectionCard(
-                  title: 'Surfaces',
-                  subtitle:
-                      'Choisir une surface et poser des placements dans la map.',
-                  icon: CupertinoIcons.drop,
-                  accentColor: EditorChrome.inspectorJoyCyan,
-                  expanded: _isExpanded(
-                    _InspectorSectionId.surfacePlacements,
-                    activeLayer is SurfaceLayer ||
-                        state.activeTool == EditorToolType.surfacePaint,
-                  ),
-                  onToggle: () => _toggleSection(
-                    _InspectorSectionId.surfacePlacements,
-                    defaultExpanded: activeLayer is SurfaceLayer ||
-                        state.activeTool == EditorToolType.surfacePaint,
-                  ),
-                  expandedHeight: 380,
-                  child: const SurfacePainterPanel(embedded: true),
-                ),
-              if (showSurfaceSection)
-                InspectorSectionCard(
-                  title: 'Chemins',
-                  subtitle:
-                      'Modifier le calque de chemin actif pour les routes et surfaces spécialisées.',
-                  icon: CupertinoIcons.map,
-                  accentColor: EditorChrome.inspectorJoyAmber,
-                  expanded: _isExpanded(
-                    _InspectorSectionId.surfaces,
-                    true,
-                  ),
-                  onToggle: () => _toggleSection(
-                    _InspectorSectionId.surfaces,
-                    defaultExpanded: true,
-                  ),
-                  expandedHeight: 340,
-                  child: const TerrainMapPanel(
-                    embedded: true,
-                    mode: TerrainMapPanelMode.surfaceOnly,
-                  ),
-                ),
               if (showEntitySection)
                 InspectorSectionCard(
                   title: 'Entités de carte',
@@ -719,9 +634,6 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
     return switch (layer) {
       TileLayer _ => 'Calque de tuiles',
       CollisionLayer _ => 'Calque de collision',
-      TerrainLayer _ => 'Calque de terrain',
-      PathLayer _ => 'Calque de chemin',
-      SurfaceLayer _ => 'Calque de surface',
       SmartTileLayer _ => 'Calque Smart Tile',
       ObjectLayer _ => 'Calque d\'objets',
       EnvironmentLayer _ => 'Calque d\'environnement',
@@ -783,9 +695,6 @@ class _InspectorOverviewCard extends StatelessWidget {
         ? 'Aucun calque actif'
         : switch (activeLayer!) {
             TileLayer _ => 'Calque de tuiles actif',
-            TerrainLayer _ => 'Calque de terrain actif',
-            PathLayer _ => 'Calque de chemin actif',
-            SurfaceLayer _ => 'Calque de placement de surface actif',
             SmartTileLayer _ => 'Calque Smart Tile actif',
             CollisionLayer _ => 'Calque de collision actif',
             ObjectLayer _ => 'Calque d\'objets actif',

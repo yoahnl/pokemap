@@ -379,7 +379,6 @@ RuntimeMapBundle _bundle({
   return RuntimeMapBundle(
     manifest: ProjectManifest(
       name: 'Occlusion Patch Test Project',
-      surfaceCatalog: ProjectSurfaceCatalog(),
       maps: const [],
       tilesets: const [
         ProjectTilesetEntry(

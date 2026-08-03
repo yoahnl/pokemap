@@ -41,7 +41,8 @@ class CreateCharacterUseCase {
     }
     final trimmedTilesetId = tilesetId.trim();
     if (trimmedTilesetId.isEmpty) {
-      throw const EditorValidationException('Character tilesetId cannot be empty');
+      throw const EditorValidationException(
+          'Character tilesetId cannot be empty');
     }
     final character = ProjectCharacterEntry(
       id: _generateCharacterId(project, trimmedName),
@@ -85,7 +86,8 @@ class UpdateCharacterUseCase {
     }
     final trimmedTileset = tilesetId?.trim() ?? current.tilesetId;
     if (trimmedTileset.isEmpty) {
-      throw const EditorValidationException('Character tilesetId cannot be empty');
+      throw const EditorValidationException(
+          'Character tilesetId cannot be empty');
     }
     final updatedChar = current.copyWith(
       name: trimmedName,

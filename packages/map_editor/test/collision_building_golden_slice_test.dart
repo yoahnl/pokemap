@@ -130,6 +130,7 @@ void main() {
 Map<String, dynamic> _legacyBuildingProjectJson() {
   return <String, dynamic>{
     'name': 'Building Golden Slice',
+    'version': 'v6',
     'maps': <dynamic>[],
     'tilesets': <dynamic>[
       <String, dynamic>{

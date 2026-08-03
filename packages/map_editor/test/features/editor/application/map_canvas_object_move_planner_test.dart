@@ -116,7 +116,7 @@ void main() {
         () {
       const animatedProject = ProjectManifest(
         name: 'Animated move footprint',
-        version: ProjectVersion.v3,
+        version: ProjectVersion.v6,
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[
           ProjectTilesetEntry(
@@ -815,7 +815,7 @@ MapCanvasObjectTarget _target(
 
 const _project = ProjectManifest(
   name: 'Move planner',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -841,7 +841,7 @@ const _project = ProjectManifest(
 
 const _nonSquareProject = ProjectManifest(
   name: 'Non-square move planner',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -868,7 +868,7 @@ const _nonSquareProject = ProjectManifest(
 const _emptyMap = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   size: GridSize(width: 8, height: 8),
   layers: <MapLayer>[
     TileLayer(
@@ -909,7 +909,7 @@ MapData _tileIndexedMap({
   return MapData(
     id: 'tile-index-map',
     name: 'Tile index map',
-    version: ProjectVersion.v3,
+    version: ProjectVersion.v6,
     size: size,
     layers: <MapLayer>[
       TileLayer(

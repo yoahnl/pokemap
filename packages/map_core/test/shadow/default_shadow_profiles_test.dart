@@ -184,7 +184,6 @@ void main() {
         tilesets: const [],
         elements: [element],
         settings: const ProjectSettings(tileWidth: 24, tileHeight: 24),
-        surfaceCatalog: ProjectSurfaceCatalog(),
         shadowCatalog: const ProjectShadowCatalog.empty(),
       );
 
@@ -199,7 +198,6 @@ void main() {
       expect(updated.elements, manifest.elements);
       expect(updated.elements.single.shadow, same(element.shadow));
       expect(updated.settings, manifest.settings);
-      expect(updated.surfaceCatalog, manifest.surfaceCatalog);
     });
   });
 }

@@ -30,19 +30,6 @@ mixin _$ProjectManifest {
   List<ProjectElementCategory> get elementCategories =>
       throw _privateConstructorUsedError;
   List<ProjectElementEntry> get elements => throw _privateConstructorUsedError;
-  List<ProjectPresetCategory> get terrainCategories =>
-      throw _privateConstructorUsedError;
-  List<ProjectPresetCategory> get pathCategories =>
-      throw _privateConstructorUsedError;
-  List<ProjectTerrainPreset> get terrainPresets =>
-      throw _privateConstructorUsedError;
-  List<ProjectPathPreset> get pathPresets => throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'pathPatternPresets',
-      fromJson: decodeProjectPathPatternPresets,
-      toJson: encodeProjectPathPatternPresets)
-  List<ProjectPathPatternPreset> get pathPatternPresets =>
-      throw _privateConstructorUsedError;
   @JsonKey(
       name: 'environmentPresets',
       fromJson: decodeEnvironmentPresets,
@@ -102,12 +89,6 @@ mixin _$ProjectManifest {
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
   @JsonKey(
-      name: 'surfaceCatalog',
-      fromJson: _projectSurfaceCatalogFromJson,
-      toJson: _projectSurfaceCatalogToJson)
-  ProjectSurfaceCatalog get surfaceCatalog =>
-      throw _privateConstructorUsedError;
-  @JsonKey(
       name: 'smartTileCatalog',
       fromJson: _projectSmartTileCatalogFromJson,
       toJson: _projectSmartTileCatalogToJson,
@@ -156,23 +137,20 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectTilesetEntry> tilesets,
       List<ProjectElementCategory> elementCategories,
       List<ProjectElementEntry> elements,
-      List<ProjectPresetCategory> terrainCategories,
-      List<ProjectPresetCategory> pathCategories,
-      List<ProjectTerrainPreset> terrainPresets,
-      List<ProjectPathPreset> pathPresets,
       @JsonKey(
-          name: 'pathPatternPresets',
-          fromJson: decodeProjectPathPatternPresets,
-          toJson: encodeProjectPathPatternPresets)
-      List<ProjectPathPatternPreset> pathPatternPresets,
-      @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)
+          name: 'environmentPresets',
+          fromJson: decodeEnvironmentPresets,
+          toJson: encodeEnvironmentPresets)
       List<EnvironmentPreset> environmentPresets,
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
       List<ScenarioAsset> scenarios,
-      @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)
+      @JsonKey(
+          name: 'cinematics',
+          fromJson: _cinematicsFromJson,
+          toJson: _cinematicsToJson)
       List<CinematicAsset> cinematics,
       @JsonKey(
           name: 'cinematicMediaAssets',
@@ -181,13 +159,19 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<CinematicMediaAsset> cinematicMediaAssets,
       @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
       List<NarrativeFactDefinition> facts,
-      @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
+      @JsonKey(
+          name: 'worldRules',
+          fromJson: _worldRulesFromJson,
+          toJson: _worldRulesToJson)
       List<WorldRuleDefinition> worldRules,
       List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
       @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       List<SceneAsset> scenes,
-      @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
+      @JsonKey(
+          name: 'storylines',
+          fromJson: _storylinesFromJson,
+          toJson: _storylinesToJson)
       List<StorylineAsset> storylines,
       List<ShopDefinition> shops,
       List<BadgeDefinition> badges,
@@ -198,8 +182,6 @@ abstract class $ProjectManifestCopyWith<$Res> {
       ProjectNewGameConfig newGame,
       @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
       Map<String, dynamic> globalProperties,
-      @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
-      ProjectSurfaceCatalog surfaceCatalog,
       @JsonKey(
           name: 'smartTileCatalog',
           fromJson: _projectSmartTileCatalogFromJson,
@@ -249,11 +231,6 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? tilesets = null,
     Object? elementCategories = null,
     Object? elements = null,
-    Object? terrainCategories = null,
-    Object? pathCategories = null,
-    Object? terrainPresets = null,
-    Object? pathPresets = null,
-    Object? pathPatternPresets = null,
     Object? environmentPresets = null,
     Object? encounterTables = null,
     Object? dialogueFolders = null,
@@ -277,7 +254,6 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? newGame = null,
     Object? presentation = freezed,
     Object? globalProperties = null,
-    Object? surfaceCatalog = null,
     Object? smartTileCatalog = null,
     Object? borderCatalog = null,
     Object? shadowCatalog = null,
@@ -316,26 +292,6 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.elements
           : elements // ignore: cast_nullable_to_non_nullable
               as List<ProjectElementEntry>,
-      terrainCategories: null == terrainCategories
-          ? _value.terrainCategories
-          : terrainCategories // ignore: cast_nullable_to_non_nullable
-              as List<ProjectPresetCategory>,
-      pathCategories: null == pathCategories
-          ? _value.pathCategories
-          : pathCategories // ignore: cast_nullable_to_non_nullable
-              as List<ProjectPresetCategory>,
-      terrainPresets: null == terrainPresets
-          ? _value.terrainPresets
-          : terrainPresets // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTerrainPreset>,
-      pathPresets: null == pathPresets
-          ? _value.pathPresets
-          : pathPresets // ignore: cast_nullable_to_non_nullable
-              as List<ProjectPathPreset>,
-      pathPatternPresets: null == pathPatternPresets
-          ? _value.pathPatternPresets
-          : pathPatternPresets // ignore: cast_nullable_to_non_nullable
-              as List<ProjectPathPatternPreset>,
       environmentPresets: null == environmentPresets
           ? _value.environmentPresets
           : environmentPresets // ignore: cast_nullable_to_non_nullable
@@ -428,10 +384,6 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
-      surfaceCatalog: null == surfaceCatalog
-          ? _value.surfaceCatalog
-          : surfaceCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectSurfaceCatalog,
       smartTileCatalog: null == smartTileCatalog
           ? _value.smartTileCatalog
           : smartTileCatalog // ignore: cast_nullable_to_non_nullable
@@ -504,23 +456,20 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectTilesetEntry> tilesets,
       List<ProjectElementCategory> elementCategories,
       List<ProjectElementEntry> elements,
-      List<ProjectPresetCategory> terrainCategories,
-      List<ProjectPresetCategory> pathCategories,
-      List<ProjectTerrainPreset> terrainPresets,
-      List<ProjectPathPreset> pathPresets,
       @JsonKey(
-          name: 'pathPatternPresets',
-          fromJson: decodeProjectPathPatternPresets,
-          toJson: encodeProjectPathPatternPresets)
-      List<ProjectPathPatternPreset> pathPatternPresets,
-      @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)
+          name: 'environmentPresets',
+          fromJson: decodeEnvironmentPresets,
+          toJson: encodeEnvironmentPresets)
       List<EnvironmentPreset> environmentPresets,
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
       List<ProjectScriptEntry> scripts,
       List<ScenarioAsset> scenarios,
-      @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)
+      @JsonKey(
+          name: 'cinematics',
+          fromJson: _cinematicsFromJson,
+          toJson: _cinematicsToJson)
       List<CinematicAsset> cinematics,
       @JsonKey(
           name: 'cinematicMediaAssets',
@@ -529,13 +478,19 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<CinematicMediaAsset> cinematicMediaAssets,
       @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
       List<NarrativeFactDefinition> facts,
-      @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
+      @JsonKey(
+          name: 'worldRules',
+          fromJson: _worldRulesFromJson,
+          toJson: _worldRulesToJson)
       List<WorldRuleDefinition> worldRules,
       List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
       @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       List<SceneAsset> scenes,
-      @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
+      @JsonKey(
+          name: 'storylines',
+          fromJson: _storylinesFromJson,
+          toJson: _storylinesToJson)
       List<StorylineAsset> storylines,
       List<ShopDefinition> shops,
       List<BadgeDefinition> badges,
@@ -546,8 +501,6 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       ProjectNewGameConfig newGame,
       @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
       Map<String, dynamic> globalProperties,
-      @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
-      ProjectSurfaceCatalog surfaceCatalog,
       @JsonKey(
           name: 'smartTileCatalog',
           fromJson: _projectSmartTileCatalogFromJson,
@@ -598,11 +551,6 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? tilesets = null,
     Object? elementCategories = null,
     Object? elements = null,
-    Object? terrainCategories = null,
-    Object? pathCategories = null,
-    Object? terrainPresets = null,
-    Object? pathPresets = null,
-    Object? pathPatternPresets = null,
     Object? environmentPresets = null,
     Object? encounterTables = null,
     Object? dialogueFolders = null,
@@ -626,7 +574,6 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? newGame = null,
     Object? presentation = freezed,
     Object? globalProperties = null,
-    Object? surfaceCatalog = null,
     Object? smartTileCatalog = null,
     Object? borderCatalog = null,
     Object? shadowCatalog = null,
@@ -665,26 +612,6 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._elements
           : elements // ignore: cast_nullable_to_non_nullable
               as List<ProjectElementEntry>,
-      terrainCategories: null == terrainCategories
-          ? _value._terrainCategories
-          : terrainCategories // ignore: cast_nullable_to_non_nullable
-              as List<ProjectPresetCategory>,
-      pathCategories: null == pathCategories
-          ? _value._pathCategories
-          : pathCategories // ignore: cast_nullable_to_non_nullable
-              as List<ProjectPresetCategory>,
-      terrainPresets: null == terrainPresets
-          ? _value._terrainPresets
-          : terrainPresets // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTerrainPreset>,
-      pathPresets: null == pathPresets
-          ? _value._pathPresets
-          : pathPresets // ignore: cast_nullable_to_non_nullable
-              as List<ProjectPathPreset>,
-      pathPatternPresets: null == pathPatternPresets
-          ? _value._pathPatternPresets
-          : pathPatternPresets // ignore: cast_nullable_to_non_nullable
-              as List<ProjectPathPatternPreset>,
       environmentPresets: null == environmentPresets
           ? _value._environmentPresets
           : environmentPresets // ignore: cast_nullable_to_non_nullable
@@ -777,10 +704,6 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
-      surfaceCatalog: null == surfaceCatalog
-          ? _value.surfaceCatalog
-          : surfaceCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectSurfaceCatalog,
       smartTileCatalog: null == smartTileCatalog
           ? _value.smartTileCatalog
           : smartTileCatalog // ignore: cast_nullable_to_non_nullable
@@ -807,19 +730,13 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
 class _$ProjectManifestImpl implements _ProjectManifest {
   const _$ProjectManifestImpl(
       {required this.name,
-      this.version = ProjectVersion.v1,
+      this.version = ProjectVersion.v6,
       required final List<ProjectMapEntry> maps,
       final List<ProjectMapGroup> groups = const [],
       final List<ProjectTilesetFolder> tilesetFolders = const [],
       required final List<ProjectTilesetEntry> tilesets,
       final List<ProjectElementCategory> elementCategories = const [],
       final List<ProjectElementEntry> elements = const [],
-      final List<ProjectPresetCategory> terrainCategories = const [],
-      final List<ProjectPresetCategory> pathCategories = const [],
-      final List<ProjectTerrainPreset> terrainPresets = const [],
-      final List<ProjectPathPreset> pathPresets = const [],
-      @JsonKey(name: 'pathPatternPresets', fromJson: decodeProjectPathPatternPresets, toJson: encodeProjectPathPatternPresets)
-      final List<ProjectPathPatternPreset> pathPatternPresets = const [],
       @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)
       final List<EnvironmentPreset> environmentPresets = const [],
       final List<ProjectEncounterTable> encounterTables = const [],
@@ -835,8 +752,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<NarrativeFactDefinition> facts = const [],
       @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
       final List<WorldRuleDefinition> worldRules = const [],
-      final List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions =
-          const [],
+      final List<NarrativeDiagnosticSuppression>
+          narrativeDiagnosticSuppressions = const [],
       @JsonKey(includeIfNull: false) this.eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       final List<SceneAsset> scenes = const [],
@@ -851,8 +768,6 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       this.newGame = const ProjectNewGameConfig(),
       @JsonKey(includeIfNull: false) this.presentation,
       final Map<String, dynamic> globalProperties = const {},
-      @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
-      this.surfaceCatalog = const ProjectSurfaceCatalog.empty(),
       @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)
       this.smartTileCatalog = const ProjectSmartTileCatalog.empty(),
       @JsonKey(
@@ -864,7 +779,11 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       this.borderCatalog = const ProjectBorderCatalog.empty(),
       @ProjectShadowCatalogJsonConverter()
       this.shadowCatalog = const ProjectShadowCatalog.empty(),
-      @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)
+      @JsonKey(
+          name: 'projectedBuildingShadowCatalog',
+          fromJson: _projectedBuildingShadowCatalogFromJson,
+          toJson: _projectedBuildingShadowCatalogToJson,
+          includeIfNull: false)
       this.projectedBuildingShadowCatalog = const ProjectBuildingShadowPresetCatalog.empty()})
       : _maps = maps,
         _groups = groups,
@@ -872,11 +791,6 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _tilesets = tilesets,
         _elementCategories = elementCategories,
         _elements = elements,
-        _terrainCategories = terrainCategories,
-        _pathCategories = pathCategories,
-        _terrainPresets = terrainPresets,
-        _pathPresets = pathPresets,
-        _pathPatternPresets = pathPatternPresets,
         _environmentPresets = environmentPresets,
         _encounterTables = encounterTables,
         _dialogueFolders = dialogueFolders,
@@ -955,56 +869,6 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     if (_elements is EqualUnmodifiableListView) return _elements;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_elements);
-  }
-
-  final List<ProjectPresetCategory> _terrainCategories;
-  @override
-  @JsonKey()
-  List<ProjectPresetCategory> get terrainCategories {
-    if (_terrainCategories is EqualUnmodifiableListView)
-      return _terrainCategories;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_terrainCategories);
-  }
-
-  final List<ProjectPresetCategory> _pathCategories;
-  @override
-  @JsonKey()
-  List<ProjectPresetCategory> get pathCategories {
-    if (_pathCategories is EqualUnmodifiableListView) return _pathCategories;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_pathCategories);
-  }
-
-  final List<ProjectTerrainPreset> _terrainPresets;
-  @override
-  @JsonKey()
-  List<ProjectTerrainPreset> get terrainPresets {
-    if (_terrainPresets is EqualUnmodifiableListView) return _terrainPresets;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_terrainPresets);
-  }
-
-  final List<ProjectPathPreset> _pathPresets;
-  @override
-  @JsonKey()
-  List<ProjectPathPreset> get pathPresets {
-    if (_pathPresets is EqualUnmodifiableListView) return _pathPresets;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_pathPresets);
-  }
-
-  final List<ProjectPathPatternPreset> _pathPatternPresets;
-  @override
-  @JsonKey(
-      name: 'pathPatternPresets',
-      fromJson: decodeProjectPathPatternPresets,
-      toJson: encodeProjectPathPatternPresets)
-  List<ProjectPathPatternPreset> get pathPatternPresets {
-    if (_pathPatternPresets is EqualUnmodifiableListView)
-      return _pathPatternPresets;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_pathPatternPresets);
   }
 
   final List<EnvironmentPreset> _environmentPresets;
@@ -1204,12 +1068,6 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   @JsonKey(
-      name: 'surfaceCatalog',
-      fromJson: _projectSurfaceCatalogFromJson,
-      toJson: _projectSurfaceCatalogToJson)
-  final ProjectSurfaceCatalog surfaceCatalog;
-  @override
-  @JsonKey(
       name: 'smartTileCatalog',
       fromJson: _projectSmartTileCatalogFromJson,
       toJson: _projectSmartTileCatalogToJson,
@@ -1237,7 +1095,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, globalProperties: $globalProperties, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
   }
 
   @override
@@ -1255,16 +1113,6 @@ class _$ProjectManifestImpl implements _ProjectManifest {
             const DeepCollectionEquality()
                 .equals(other._elementCategories, _elementCategories) &&
             const DeepCollectionEquality().equals(other._elements, _elements) &&
-            const DeepCollectionEquality()
-                .equals(other._terrainCategories, _terrainCategories) &&
-            const DeepCollectionEquality()
-                .equals(other._pathCategories, _pathCategories) &&
-            const DeepCollectionEquality()
-                .equals(other._terrainPresets, _terrainPresets) &&
-            const DeepCollectionEquality()
-                .equals(other._pathPresets, _pathPresets) &&
-            const DeepCollectionEquality()
-                .equals(other._pathPatternPresets, _pathPatternPresets) &&
             const DeepCollectionEquality()
                 .equals(other._environmentPresets, _environmentPresets) &&
             const DeepCollectionEquality()
@@ -1304,8 +1152,6 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 other.presentation == presentation) &&
             const DeepCollectionEquality()
                 .equals(other._globalProperties, _globalProperties) &&
-            (identical(other.surfaceCatalog, surfaceCatalog) ||
-                other.surfaceCatalog == surfaceCatalog) &&
             (identical(other.smartTileCatalog, smartTileCatalog) ||
                 other.smartTileCatalog == smartTileCatalog) &&
             (identical(other.borderCatalog, borderCatalog) ||
@@ -1330,11 +1176,6 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_tilesets),
         const DeepCollectionEquality().hash(_elementCategories),
         const DeepCollectionEquality().hash(_elements),
-        const DeepCollectionEquality().hash(_terrainCategories),
-        const DeepCollectionEquality().hash(_pathCategories),
-        const DeepCollectionEquality().hash(_terrainPresets),
-        const DeepCollectionEquality().hash(_pathPresets),
-        const DeepCollectionEquality().hash(_pathPatternPresets),
         const DeepCollectionEquality().hash(_environmentPresets),
         const DeepCollectionEquality().hash(_encounterTables),
         const DeepCollectionEquality().hash(_dialogueFolders),
@@ -1358,7 +1199,6 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         newGame,
         presentation,
         const DeepCollectionEquality().hash(_globalProperties),
-        surfaceCatalog,
         smartTileCatalog,
         borderCatalog,
         shadowCatalog,
@@ -1392,16 +1232,10 @@ abstract class _ProjectManifest implements ProjectManifest {
       required final List<ProjectTilesetEntry> tilesets,
       final List<ProjectElementCategory> elementCategories,
       final List<ProjectElementEntry> elements,
-      final List<ProjectPresetCategory> terrainCategories,
-      final List<ProjectPresetCategory> pathCategories,
-      final List<ProjectTerrainPreset> terrainPresets,
-      final List<ProjectPathPreset> pathPresets,
       @JsonKey(
-          name: 'pathPatternPresets',
-          fromJson: decodeProjectPathPatternPresets,
-          toJson: encodeProjectPathPatternPresets)
-      final List<ProjectPathPatternPreset> pathPatternPresets,
-      @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)
+          name: 'environmentPresets',
+          fromJson: decodeEnvironmentPresets,
+          toJson: encodeEnvironmentPresets)
       final List<EnvironmentPreset> environmentPresets,
       final List<ProjectEncounterTable> encounterTables,
       final List<ProjectDialogueFolder> dialogueFolders,
@@ -1425,7 +1259,10 @@ abstract class _ProjectManifest implements ProjectManifest {
       final NarrativeEventRegistry? eventRegistry,
       @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
       final List<SceneAsset> scenes,
-      @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
+      @JsonKey(
+          name: 'storylines',
+          fromJson: _storylinesFromJson,
+          toJson: _storylinesToJson)
       final List<StorylineAsset> storylines,
       final List<ShopDefinition> shops,
       final List<BadgeDefinition> badges,
@@ -1437,8 +1274,6 @@ abstract class _ProjectManifest implements ProjectManifest {
       @JsonKey(includeIfNull: false)
       final ProjectPresentationProfile? presentation,
       final Map<String, dynamic> globalProperties,
-      @JsonKey(name: 'surfaceCatalog', fromJson: _projectSurfaceCatalogFromJson, toJson: _projectSurfaceCatalogToJson)
-      final ProjectSurfaceCatalog surfaceCatalog,
       @JsonKey(
           name: 'smartTileCatalog',
           fromJson: _projectSmartTileCatalogFromJson,
@@ -1459,7 +1294,8 @@ abstract class _ProjectManifest implements ProjectManifest {
           fromJson: _projectedBuildingShadowCatalogFromJson,
           toJson: _projectedBuildingShadowCatalogToJson,
           includeIfNull: false)
-      final ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog}) = _$ProjectManifestImpl;
+      final ProjectBuildingShadowPresetCatalog
+          projectedBuildingShadowCatalog}) = _$ProjectManifestImpl;
 
   factory _ProjectManifest.fromJson(Map<String, dynamic> json) =
       _$ProjectManifestImpl.fromJson;
@@ -1480,20 +1316,6 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectElementCategory> get elementCategories;
   @override
   List<ProjectElementEntry> get elements;
-  @override
-  List<ProjectPresetCategory> get terrainCategories;
-  @override
-  List<ProjectPresetCategory> get pathCategories;
-  @override
-  List<ProjectTerrainPreset> get terrainPresets;
-  @override
-  List<ProjectPathPreset> get pathPresets;
-  @override
-  @JsonKey(
-      name: 'pathPatternPresets',
-      fromJson: decodeProjectPathPatternPresets,
-      toJson: encodeProjectPathPatternPresets)
-  List<ProjectPathPatternPreset> get pathPatternPresets;
   @override
   @JsonKey(
       name: 'environmentPresets',
@@ -1564,12 +1386,6 @@ abstract class _ProjectManifest implements ProjectManifest {
   ProjectPresentationProfile? get presentation;
   @override
   Map<String, dynamic> get globalProperties;
-  @override
-  @JsonKey(
-      name: 'surfaceCatalog',
-      fromJson: _projectSurfaceCatalogFromJson,
-      toJson: _projectSurfaceCatalogToJson)
-  ProjectSurfaceCatalog get surfaceCatalog;
   @override
   @JsonKey(
       name: 'smartTileCatalog',
@@ -5827,1480 +5643,6 @@ abstract class _ProjectElementEntry implements ProjectElementEntry {
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ProjectElementEntryImplCopyWith<_$ProjectElementEntryImpl> get copyWith =>
       throw _privateConstructorUsedError;
-}
-
-ProjectTerrainPreset _$ProjectTerrainPresetFromJson(Map<String, dynamic> json) {
-  return _ProjectTerrainPreset.fromJson(json);
-}
-
-/// @nodoc
-mixin _$ProjectTerrainPreset {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  TerrainType get terrainType => throw _privateConstructorUsedError;
-  String? get categoryId => throw _privateConstructorUsedError;
-  String get tilesetId => throw _privateConstructorUsedError;
-  List<TerrainPresetVariant> get variants => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
-
-  /// Serializes this ProjectTerrainPreset to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of ProjectTerrainPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectTerrainPresetCopyWith<ProjectTerrainPreset> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $ProjectTerrainPresetCopyWith<$Res> {
-  factory $ProjectTerrainPresetCopyWith(ProjectTerrainPreset value,
-          $Res Function(ProjectTerrainPreset) then) =
-      _$ProjectTerrainPresetCopyWithImpl<$Res, ProjectTerrainPreset>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      TerrainType terrainType,
-      String? categoryId,
-      String tilesetId,
-      List<TerrainPresetVariant> variants,
-      int sortOrder});
-}
-
-/// @nodoc
-class _$ProjectTerrainPresetCopyWithImpl<$Res,
-        $Val extends ProjectTerrainPreset>
-    implements $ProjectTerrainPresetCopyWith<$Res> {
-  _$ProjectTerrainPresetCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of ProjectTerrainPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? terrainType = null,
-    Object? categoryId = freezed,
-    Object? tilesetId = null,
-    Object? variants = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      terrainType: null == terrainType
-          ? _value.terrainType
-          : terrainType // ignore: cast_nullable_to_non_nullable
-              as TerrainType,
-      categoryId: freezed == categoryId
-          ? _value.categoryId
-          : categoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      variants: null == variants
-          ? _value.variants
-          : variants // ignore: cast_nullable_to_non_nullable
-              as List<TerrainPresetVariant>,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$ProjectTerrainPresetImplCopyWith<$Res>
-    implements $ProjectTerrainPresetCopyWith<$Res> {
-  factory _$$ProjectTerrainPresetImplCopyWith(_$ProjectTerrainPresetImpl value,
-          $Res Function(_$ProjectTerrainPresetImpl) then) =
-      __$$ProjectTerrainPresetImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      TerrainType terrainType,
-      String? categoryId,
-      String tilesetId,
-      List<TerrainPresetVariant> variants,
-      int sortOrder});
-}
-
-/// @nodoc
-class __$$ProjectTerrainPresetImplCopyWithImpl<$Res>
-    extends _$ProjectTerrainPresetCopyWithImpl<$Res, _$ProjectTerrainPresetImpl>
-    implements _$$ProjectTerrainPresetImplCopyWith<$Res> {
-  __$$ProjectTerrainPresetImplCopyWithImpl(_$ProjectTerrainPresetImpl _value,
-      $Res Function(_$ProjectTerrainPresetImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of ProjectTerrainPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? terrainType = null,
-    Object? categoryId = freezed,
-    Object? tilesetId = null,
-    Object? variants = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectTerrainPresetImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      terrainType: null == terrainType
-          ? _value.terrainType
-          : terrainType // ignore: cast_nullable_to_non_nullable
-              as TerrainType,
-      categoryId: freezed == categoryId
-          ? _value.categoryId
-          : categoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      variants: null == variants
-          ? _value._variants
-          : variants // ignore: cast_nullable_to_non_nullable
-              as List<TerrainPresetVariant>,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
-}
-
-/// @nodoc
-
-@JsonSerializable(explicitToJson: true)
-class _$ProjectTerrainPresetImpl implements _ProjectTerrainPreset {
-  const _$ProjectTerrainPresetImpl(
-      {required this.id,
-      required this.name,
-      required this.terrainType,
-      this.categoryId,
-      this.tilesetId = '',
-      final List<TerrainPresetVariant> variants = const [],
-      this.sortOrder = 0})
-      : _variants = variants;
-
-  factory _$ProjectTerrainPresetImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectTerrainPresetImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final TerrainType terrainType;
-  @override
-  final String? categoryId;
-  @override
-  @JsonKey()
-  final String tilesetId;
-  final List<TerrainPresetVariant> _variants;
-  @override
-  @JsonKey()
-  List<TerrainPresetVariant> get variants {
-    if (_variants is EqualUnmodifiableListView) return _variants;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_variants);
-  }
-
-  @override
-  @JsonKey()
-  final int sortOrder;
-
-  @override
-  String toString() {
-    return 'ProjectTerrainPreset(id: $id, name: $name, terrainType: $terrainType, categoryId: $categoryId, tilesetId: $tilesetId, variants: $variants, sortOrder: $sortOrder)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectTerrainPresetImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.terrainType, terrainType) ||
-                other.terrainType == terrainType) &&
-            (identical(other.categoryId, categoryId) ||
-                other.categoryId == categoryId) &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId) &&
-            const DeepCollectionEquality().equals(other._variants, _variants) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      terrainType,
-      categoryId,
-      tilesetId,
-      const DeepCollectionEquality().hash(_variants),
-      sortOrder);
-
-  /// Create a copy of ProjectTerrainPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectTerrainPresetImplCopyWith<_$ProjectTerrainPresetImpl>
-      get copyWith =>
-          __$$ProjectTerrainPresetImplCopyWithImpl<_$ProjectTerrainPresetImpl>(
-              this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectTerrainPresetImplToJson(
-      this,
-    );
-  }
-}
-
-abstract class _ProjectTerrainPreset implements ProjectTerrainPreset {
-  const factory _ProjectTerrainPreset(
-      {required final String id,
-      required final String name,
-      required final TerrainType terrainType,
-      final String? categoryId,
-      final String tilesetId,
-      final List<TerrainPresetVariant> variants,
-      final int sortOrder}) = _$ProjectTerrainPresetImpl;
-
-  factory _ProjectTerrainPreset.fromJson(Map<String, dynamic> json) =
-      _$ProjectTerrainPresetImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  TerrainType get terrainType;
-  @override
-  String? get categoryId;
-  @override
-  String get tilesetId;
-  @override
-  List<TerrainPresetVariant> get variants;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectTerrainPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectTerrainPresetImplCopyWith<_$ProjectTerrainPresetImpl>
-      get copyWith => throw _privateConstructorUsedError;
-}
-
-TerrainPresetVariant _$TerrainPresetVariantFromJson(Map<String, dynamic> json) {
-  return _TerrainPresetVariant.fromJson(json);
-}
-
-/// @nodoc
-mixin _$TerrainPresetVariant {
-  /// Au moins une frame ; rendu éditeur = première frame.
-  List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
-  int get weight => throw _privateConstructorUsedError;
-
-  /// When [frames] primary source spans W×H tiles (>1), controls sub-tile
-  /// choice per map cell (see [terrainPresetSubtileOffsetsForMapCell]).
-  TerrainVariantMultiTileLayout get multiTileLayout =>
-      throw _privateConstructorUsedError;
-
-  /// Serializes this TerrainPresetVariant to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of TerrainPresetVariant
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $TerrainPresetVariantCopyWith<TerrainPresetVariant> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $TerrainPresetVariantCopyWith<$Res> {
-  factory $TerrainPresetVariantCopyWith(TerrainPresetVariant value,
-          $Res Function(TerrainPresetVariant) then) =
-      _$TerrainPresetVariantCopyWithImpl<$Res, TerrainPresetVariant>;
-  @useResult
-  $Res call(
-      {List<TilesetVisualFrame> frames,
-      int weight,
-      TerrainVariantMultiTileLayout multiTileLayout});
-}
-
-/// @nodoc
-class _$TerrainPresetVariantCopyWithImpl<$Res,
-        $Val extends TerrainPresetVariant>
-    implements $TerrainPresetVariantCopyWith<$Res> {
-  _$TerrainPresetVariantCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of TerrainPresetVariant
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? frames = null,
-    Object? weight = null,
-    Object? multiTileLayout = null,
-  }) {
-    return _then(_value.copyWith(
-      frames: null == frames
-          ? _value.frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<TilesetVisualFrame>,
-      weight: null == weight
-          ? _value.weight
-          : weight // ignore: cast_nullable_to_non_nullable
-              as int,
-      multiTileLayout: null == multiTileLayout
-          ? _value.multiTileLayout
-          : multiTileLayout // ignore: cast_nullable_to_non_nullable
-              as TerrainVariantMultiTileLayout,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$TerrainPresetVariantImplCopyWith<$Res>
-    implements $TerrainPresetVariantCopyWith<$Res> {
-  factory _$$TerrainPresetVariantImplCopyWith(_$TerrainPresetVariantImpl value,
-          $Res Function(_$TerrainPresetVariantImpl) then) =
-      __$$TerrainPresetVariantImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {List<TilesetVisualFrame> frames,
-      int weight,
-      TerrainVariantMultiTileLayout multiTileLayout});
-}
-
-/// @nodoc
-class __$$TerrainPresetVariantImplCopyWithImpl<$Res>
-    extends _$TerrainPresetVariantCopyWithImpl<$Res, _$TerrainPresetVariantImpl>
-    implements _$$TerrainPresetVariantImplCopyWith<$Res> {
-  __$$TerrainPresetVariantImplCopyWithImpl(_$TerrainPresetVariantImpl _value,
-      $Res Function(_$TerrainPresetVariantImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of TerrainPresetVariant
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? frames = null,
-    Object? weight = null,
-    Object? multiTileLayout = null,
-  }) {
-    return _then(_$TerrainPresetVariantImpl(
-      frames: null == frames
-          ? _value._frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<TilesetVisualFrame>,
-      weight: null == weight
-          ? _value.weight
-          : weight // ignore: cast_nullable_to_non_nullable
-              as int,
-      multiTileLayout: null == multiTileLayout
-          ? _value.multiTileLayout
-          : multiTileLayout // ignore: cast_nullable_to_non_nullable
-              as TerrainVariantMultiTileLayout,
-    ));
-  }
-}
-
-/// @nodoc
-
-@JsonSerializable(explicitToJson: true)
-class _$TerrainPresetVariantImpl implements _TerrainPresetVariant {
-  const _$TerrainPresetVariantImpl(
-      {required final List<TilesetVisualFrame> frames,
-      this.weight = 1,
-      this.multiTileLayout = TerrainVariantMultiTileLayout.tessellated})
-      : _frames = frames;
-
-  factory _$TerrainPresetVariantImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TerrainPresetVariantImplFromJson(json);
-
-  /// Au moins une frame ; rendu éditeur = première frame.
-  final List<TilesetVisualFrame> _frames;
-
-  /// Au moins une frame ; rendu éditeur = première frame.
-  @override
-  List<TilesetVisualFrame> get frames {
-    if (_frames is EqualUnmodifiableListView) return _frames;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_frames);
-  }
-
-  @override
-  @JsonKey()
-  final int weight;
-
-  /// When [frames] primary source spans W×H tiles (>1), controls sub-tile
-  /// choice per map cell (see [terrainPresetSubtileOffsetsForMapCell]).
-  @override
-  @JsonKey()
-  final TerrainVariantMultiTileLayout multiTileLayout;
-
-  @override
-  String toString() {
-    return 'TerrainPresetVariant(frames: $frames, weight: $weight, multiTileLayout: $multiTileLayout)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TerrainPresetVariantImpl &&
-            const DeepCollectionEquality().equals(other._frames, _frames) &&
-            (identical(other.weight, weight) || other.weight == weight) &&
-            (identical(other.multiTileLayout, multiTileLayout) ||
-                other.multiTileLayout == multiTileLayout));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType,
-      const DeepCollectionEquality().hash(_frames), weight, multiTileLayout);
-
-  /// Create a copy of TerrainPresetVariant
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TerrainPresetVariantImplCopyWith<_$TerrainPresetVariantImpl>
-      get copyWith =>
-          __$$TerrainPresetVariantImplCopyWithImpl<_$TerrainPresetVariantImpl>(
-              this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TerrainPresetVariantImplToJson(
-      this,
-    );
-  }
-}
-
-abstract class _TerrainPresetVariant implements TerrainPresetVariant {
-  const factory _TerrainPresetVariant(
-          {required final List<TilesetVisualFrame> frames,
-          final int weight,
-          final TerrainVariantMultiTileLayout multiTileLayout}) =
-      _$TerrainPresetVariantImpl;
-
-  factory _TerrainPresetVariant.fromJson(Map<String, dynamic> json) =
-      _$TerrainPresetVariantImpl.fromJson;
-
-  /// Au moins une frame ; rendu éditeur = première frame.
-  @override
-  List<TilesetVisualFrame> get frames;
-  @override
-  int get weight;
-
-  /// When [frames] primary source spans W×H tiles (>1), controls sub-tile
-  /// choice per map cell (see [terrainPresetSubtileOffsetsForMapCell]).
-  @override
-  TerrainVariantMultiTileLayout get multiTileLayout;
-
-  /// Create a copy of TerrainPresetVariant
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TerrainPresetVariantImplCopyWith<_$TerrainPresetVariantImpl>
-      get copyWith => throw _privateConstructorUsedError;
-}
-
-ProjectPathPreset _$ProjectPathPresetFromJson(Map<String, dynamic> json) {
-  return _ProjectPathPreset.fromJson(json);
-}
-
-/// @nodoc
-mixin _$ProjectPathPreset {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  PathSurfaceKind get surfaceKind => throw _privateConstructorUsedError;
-  String? get categoryId => throw _privateConstructorUsedError;
-  String get tilesetId => throw _privateConstructorUsedError;
-  List<PathPresetVariantMapping> get variants =>
-      throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
-
-  /// Serializes this ProjectPathPreset to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of ProjectPathPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectPathPresetCopyWith<ProjectPathPreset> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $ProjectPathPresetCopyWith<$Res> {
-  factory $ProjectPathPresetCopyWith(
-          ProjectPathPreset value, $Res Function(ProjectPathPreset) then) =
-      _$ProjectPathPresetCopyWithImpl<$Res, ProjectPathPreset>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      PathSurfaceKind surfaceKind,
-      String? categoryId,
-      String tilesetId,
-      List<PathPresetVariantMapping> variants,
-      int sortOrder});
-}
-
-/// @nodoc
-class _$ProjectPathPresetCopyWithImpl<$Res, $Val extends ProjectPathPreset>
-    implements $ProjectPathPresetCopyWith<$Res> {
-  _$ProjectPathPresetCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of ProjectPathPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? surfaceKind = null,
-    Object? categoryId = freezed,
-    Object? tilesetId = null,
-    Object? variants = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      surfaceKind: null == surfaceKind
-          ? _value.surfaceKind
-          : surfaceKind // ignore: cast_nullable_to_non_nullable
-              as PathSurfaceKind,
-      categoryId: freezed == categoryId
-          ? _value.categoryId
-          : categoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      variants: null == variants
-          ? _value.variants
-          : variants // ignore: cast_nullable_to_non_nullable
-              as List<PathPresetVariantMapping>,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$ProjectPathPresetImplCopyWith<$Res>
-    implements $ProjectPathPresetCopyWith<$Res> {
-  factory _$$ProjectPathPresetImplCopyWith(_$ProjectPathPresetImpl value,
-          $Res Function(_$ProjectPathPresetImpl) then) =
-      __$$ProjectPathPresetImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      PathSurfaceKind surfaceKind,
-      String? categoryId,
-      String tilesetId,
-      List<PathPresetVariantMapping> variants,
-      int sortOrder});
-}
-
-/// @nodoc
-class __$$ProjectPathPresetImplCopyWithImpl<$Res>
-    extends _$ProjectPathPresetCopyWithImpl<$Res, _$ProjectPathPresetImpl>
-    implements _$$ProjectPathPresetImplCopyWith<$Res> {
-  __$$ProjectPathPresetImplCopyWithImpl(_$ProjectPathPresetImpl _value,
-      $Res Function(_$ProjectPathPresetImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of ProjectPathPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? surfaceKind = null,
-    Object? categoryId = freezed,
-    Object? tilesetId = null,
-    Object? variants = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectPathPresetImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      surfaceKind: null == surfaceKind
-          ? _value.surfaceKind
-          : surfaceKind // ignore: cast_nullable_to_non_nullable
-              as PathSurfaceKind,
-      categoryId: freezed == categoryId
-          ? _value.categoryId
-          : categoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      variants: null == variants
-          ? _value._variants
-          : variants // ignore: cast_nullable_to_non_nullable
-              as List<PathPresetVariantMapping>,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
-}
-
-/// @nodoc
-
-@JsonSerializable(explicitToJson: true)
-class _$ProjectPathPresetImpl implements _ProjectPathPreset {
-  const _$ProjectPathPresetImpl(
-      {required this.id,
-      required this.name,
-      this.surfaceKind = PathSurfaceKind.path,
-      this.categoryId,
-      this.tilesetId = '',
-      final List<PathPresetVariantMapping> variants = const [],
-      this.sortOrder = 0})
-      : _variants = variants;
-
-  factory _$ProjectPathPresetImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectPathPresetImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  @JsonKey()
-  final PathSurfaceKind surfaceKind;
-  @override
-  final String? categoryId;
-  @override
-  @JsonKey()
-  final String tilesetId;
-  final List<PathPresetVariantMapping> _variants;
-  @override
-  @JsonKey()
-  List<PathPresetVariantMapping> get variants {
-    if (_variants is EqualUnmodifiableListView) return _variants;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_variants);
-  }
-
-  @override
-  @JsonKey()
-  final int sortOrder;
-
-  @override
-  String toString() {
-    return 'ProjectPathPreset(id: $id, name: $name, surfaceKind: $surfaceKind, categoryId: $categoryId, tilesetId: $tilesetId, variants: $variants, sortOrder: $sortOrder)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectPathPresetImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.surfaceKind, surfaceKind) ||
-                other.surfaceKind == surfaceKind) &&
-            (identical(other.categoryId, categoryId) ||
-                other.categoryId == categoryId) &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId) &&
-            const DeepCollectionEquality().equals(other._variants, _variants) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      surfaceKind,
-      categoryId,
-      tilesetId,
-      const DeepCollectionEquality().hash(_variants),
-      sortOrder);
-
-  /// Create a copy of ProjectPathPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectPathPresetImplCopyWith<_$ProjectPathPresetImpl> get copyWith =>
-      __$$ProjectPathPresetImplCopyWithImpl<_$ProjectPathPresetImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectPathPresetImplToJson(
-      this,
-    );
-  }
-}
-
-abstract class _ProjectPathPreset implements ProjectPathPreset {
-  const factory _ProjectPathPreset(
-      {required final String id,
-      required final String name,
-      final PathSurfaceKind surfaceKind,
-      final String? categoryId,
-      final String tilesetId,
-      final List<PathPresetVariantMapping> variants,
-      final int sortOrder}) = _$ProjectPathPresetImpl;
-
-  factory _ProjectPathPreset.fromJson(Map<String, dynamic> json) =
-      _$ProjectPathPresetImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  PathSurfaceKind get surfaceKind;
-  @override
-  String? get categoryId;
-  @override
-  String get tilesetId;
-  @override
-  List<PathPresetVariantMapping> get variants;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectPathPreset
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectPathPresetImplCopyWith<_$ProjectPathPresetImpl> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-PathPresetVariantMapping _$PathPresetVariantMappingFromJson(
-    Map<String, dynamic> json) {
-  return _PathPresetVariantMapping.fromJson(json);
-}
-
-/// @nodoc
-mixin _$PathPresetVariantMapping {
-  TerrainPathVariant get variant => throw _privateConstructorUsedError;
-
-  /// Au moins une frame ; rendu éditeur / autotile = première frame.
-  List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
-
-  /// Serializes this PathPresetVariantMapping to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of PathPresetVariantMapping
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $PathPresetVariantMappingCopyWith<PathPresetVariantMapping> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $PathPresetVariantMappingCopyWith<$Res> {
-  factory $PathPresetVariantMappingCopyWith(PathPresetVariantMapping value,
-          $Res Function(PathPresetVariantMapping) then) =
-      _$PathPresetVariantMappingCopyWithImpl<$Res, PathPresetVariantMapping>;
-  @useResult
-  $Res call({TerrainPathVariant variant, List<TilesetVisualFrame> frames});
-}
-
-/// @nodoc
-class _$PathPresetVariantMappingCopyWithImpl<$Res,
-        $Val extends PathPresetVariantMapping>
-    implements $PathPresetVariantMappingCopyWith<$Res> {
-  _$PathPresetVariantMappingCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of PathPresetVariantMapping
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? variant = null,
-    Object? frames = null,
-  }) {
-    return _then(_value.copyWith(
-      variant: null == variant
-          ? _value.variant
-          : variant // ignore: cast_nullable_to_non_nullable
-              as TerrainPathVariant,
-      frames: null == frames
-          ? _value.frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<TilesetVisualFrame>,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$PathPresetVariantMappingImplCopyWith<$Res>
-    implements $PathPresetVariantMappingCopyWith<$Res> {
-  factory _$$PathPresetVariantMappingImplCopyWith(
-          _$PathPresetVariantMappingImpl value,
-          $Res Function(_$PathPresetVariantMappingImpl) then) =
-      __$$PathPresetVariantMappingImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({TerrainPathVariant variant, List<TilesetVisualFrame> frames});
-}
-
-/// @nodoc
-class __$$PathPresetVariantMappingImplCopyWithImpl<$Res>
-    extends _$PathPresetVariantMappingCopyWithImpl<$Res,
-        _$PathPresetVariantMappingImpl>
-    implements _$$PathPresetVariantMappingImplCopyWith<$Res> {
-  __$$PathPresetVariantMappingImplCopyWithImpl(
-      _$PathPresetVariantMappingImpl _value,
-      $Res Function(_$PathPresetVariantMappingImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of PathPresetVariantMapping
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? variant = null,
-    Object? frames = null,
-  }) {
-    return _then(_$PathPresetVariantMappingImpl(
-      variant: null == variant
-          ? _value.variant
-          : variant // ignore: cast_nullable_to_non_nullable
-              as TerrainPathVariant,
-      frames: null == frames
-          ? _value._frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<TilesetVisualFrame>,
-    ));
-  }
-}
-
-/// @nodoc
-
-@JsonSerializable(explicitToJson: true)
-class _$PathPresetVariantMappingImpl implements _PathPresetVariantMapping {
-  const _$PathPresetVariantMappingImpl(
-      {required this.variant, required final List<TilesetVisualFrame> frames})
-      : _frames = frames;
-
-  factory _$PathPresetVariantMappingImpl.fromJson(Map<String, dynamic> json) =>
-      _$$PathPresetVariantMappingImplFromJson(json);
-
-  @override
-  final TerrainPathVariant variant;
-
-  /// Au moins une frame ; rendu éditeur / autotile = première frame.
-  final List<TilesetVisualFrame> _frames;
-
-  /// Au moins une frame ; rendu éditeur / autotile = première frame.
-  @override
-  List<TilesetVisualFrame> get frames {
-    if (_frames is EqualUnmodifiableListView) return _frames;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_frames);
-  }
-
-  @override
-  String toString() {
-    return 'PathPresetVariantMapping(variant: $variant, frames: $frames)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$PathPresetVariantMappingImpl &&
-            (identical(other.variant, variant) || other.variant == variant) &&
-            const DeepCollectionEquality().equals(other._frames, _frames));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType, variant, const DeepCollectionEquality().hash(_frames));
-
-  /// Create a copy of PathPresetVariantMapping
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$PathPresetVariantMappingImplCopyWith<_$PathPresetVariantMappingImpl>
-      get copyWith => __$$PathPresetVariantMappingImplCopyWithImpl<
-          _$PathPresetVariantMappingImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$PathPresetVariantMappingImplToJson(
-      this,
-    );
-  }
-}
-
-abstract class _PathPresetVariantMapping implements PathPresetVariantMapping {
-  const factory _PathPresetVariantMapping(
-          {required final TerrainPathVariant variant,
-          required final List<TilesetVisualFrame> frames}) =
-      _$PathPresetVariantMappingImpl;
-
-  factory _PathPresetVariantMapping.fromJson(Map<String, dynamic> json) =
-      _$PathPresetVariantMappingImpl.fromJson;
-
-  @override
-  TerrainPathVariant get variant;
-
-  /// Au moins une frame ; rendu éditeur / autotile = première frame.
-  @override
-  List<TilesetVisualFrame> get frames;
-
-  /// Create a copy of PathPresetVariantMapping
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$PathPresetVariantMappingImplCopyWith<_$PathPresetVariantMappingImpl>
-      get copyWith => throw _privateConstructorUsedError;
-}
-
-PathAnimationTriggerRule _$PathAnimationTriggerRuleFromJson(
-    Map<String, dynamic> json) {
-  return _PathAnimationTriggerRule.fromJson(json);
-}
-
-/// @nodoc
-mixin _$PathAnimationTriggerRule {
-  String get id => throw _privateConstructorUsedError;
-  bool get enabled => throw _privateConstructorUsedError;
-  PathAnimationTriggerType get trigger => throw _privateConstructorUsedError;
-  PathAnimationPlaybackMode get mode => throw _privateConstructorUsedError;
-  PathAnimationActivationScope get scope => throw _privateConstructorUsedError;
-
-  /// Serializes this PathAnimationTriggerRule to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of PathAnimationTriggerRule
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $PathAnimationTriggerRuleCopyWith<PathAnimationTriggerRule> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $PathAnimationTriggerRuleCopyWith<$Res> {
-  factory $PathAnimationTriggerRuleCopyWith(PathAnimationTriggerRule value,
-          $Res Function(PathAnimationTriggerRule) then) =
-      _$PathAnimationTriggerRuleCopyWithImpl<$Res, PathAnimationTriggerRule>;
-  @useResult
-  $Res call(
-      {String id,
-      bool enabled,
-      PathAnimationTriggerType trigger,
-      PathAnimationPlaybackMode mode,
-      PathAnimationActivationScope scope});
-}
-
-/// @nodoc
-class _$PathAnimationTriggerRuleCopyWithImpl<$Res,
-        $Val extends PathAnimationTriggerRule>
-    implements $PathAnimationTriggerRuleCopyWith<$Res> {
-  _$PathAnimationTriggerRuleCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of PathAnimationTriggerRule
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? enabled = null,
-    Object? trigger = null,
-    Object? mode = null,
-    Object? scope = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      enabled: null == enabled
-          ? _value.enabled
-          : enabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      trigger: null == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as PathAnimationTriggerType,
-      mode: null == mode
-          ? _value.mode
-          : mode // ignore: cast_nullable_to_non_nullable
-              as PathAnimationPlaybackMode,
-      scope: null == scope
-          ? _value.scope
-          : scope // ignore: cast_nullable_to_non_nullable
-              as PathAnimationActivationScope,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$PathAnimationTriggerRuleImplCopyWith<$Res>
-    implements $PathAnimationTriggerRuleCopyWith<$Res> {
-  factory _$$PathAnimationTriggerRuleImplCopyWith(
-          _$PathAnimationTriggerRuleImpl value,
-          $Res Function(_$PathAnimationTriggerRuleImpl) then) =
-      __$$PathAnimationTriggerRuleImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      bool enabled,
-      PathAnimationTriggerType trigger,
-      PathAnimationPlaybackMode mode,
-      PathAnimationActivationScope scope});
-}
-
-/// @nodoc
-class __$$PathAnimationTriggerRuleImplCopyWithImpl<$Res>
-    extends _$PathAnimationTriggerRuleCopyWithImpl<$Res,
-        _$PathAnimationTriggerRuleImpl>
-    implements _$$PathAnimationTriggerRuleImplCopyWith<$Res> {
-  __$$PathAnimationTriggerRuleImplCopyWithImpl(
-      _$PathAnimationTriggerRuleImpl _value,
-      $Res Function(_$PathAnimationTriggerRuleImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of PathAnimationTriggerRule
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? enabled = null,
-    Object? trigger = null,
-    Object? mode = null,
-    Object? scope = null,
-  }) {
-    return _then(_$PathAnimationTriggerRuleImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      enabled: null == enabled
-          ? _value.enabled
-          : enabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      trigger: null == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as PathAnimationTriggerType,
-      mode: null == mode
-          ? _value.mode
-          : mode // ignore: cast_nullable_to_non_nullable
-              as PathAnimationPlaybackMode,
-      scope: null == scope
-          ? _value.scope
-          : scope // ignore: cast_nullable_to_non_nullable
-              as PathAnimationActivationScope,
-    ));
-  }
-}
-
-/// @nodoc
-
-@JsonSerializable(explicitToJson: true)
-class _$PathAnimationTriggerRuleImpl implements _PathAnimationTriggerRule {
-  const _$PathAnimationTriggerRuleImpl(
-      {this.id = '',
-      this.enabled = true,
-      this.trigger = PathAnimationTriggerType.onStep,
-      this.mode = PathAnimationPlaybackMode.restartOnTrigger,
-      this.scope = PathAnimationActivationScope.wholeLayer});
-
-  factory _$PathAnimationTriggerRuleImpl.fromJson(Map<String, dynamic> json) =>
-      _$$PathAnimationTriggerRuleImplFromJson(json);
-
-  @override
-  @JsonKey()
-  final String id;
-  @override
-  @JsonKey()
-  final bool enabled;
-  @override
-  @JsonKey()
-  final PathAnimationTriggerType trigger;
-  @override
-  @JsonKey()
-  final PathAnimationPlaybackMode mode;
-  @override
-  @JsonKey()
-  final PathAnimationActivationScope scope;
-
-  @override
-  String toString() {
-    return 'PathAnimationTriggerRule(id: $id, enabled: $enabled, trigger: $trigger, mode: $mode, scope: $scope)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$PathAnimationTriggerRuleImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.enabled, enabled) || other.enabled == enabled) &&
-            (identical(other.trigger, trigger) || other.trigger == trigger) &&
-            (identical(other.mode, mode) || other.mode == mode) &&
-            (identical(other.scope, scope) || other.scope == scope));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, enabled, trigger, mode, scope);
-
-  /// Create a copy of PathAnimationTriggerRule
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$PathAnimationTriggerRuleImplCopyWith<_$PathAnimationTriggerRuleImpl>
-      get copyWith => __$$PathAnimationTriggerRuleImplCopyWithImpl<
-          _$PathAnimationTriggerRuleImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$PathAnimationTriggerRuleImplToJson(
-      this,
-    );
-  }
-}
-
-abstract class _PathAnimationTriggerRule implements PathAnimationTriggerRule {
-  const factory _PathAnimationTriggerRule(
-          {final String id,
-          final bool enabled,
-          final PathAnimationTriggerType trigger,
-          final PathAnimationPlaybackMode mode,
-          final PathAnimationActivationScope scope}) =
-      _$PathAnimationTriggerRuleImpl;
-
-  factory _PathAnimationTriggerRule.fromJson(Map<String, dynamic> json) =
-      _$PathAnimationTriggerRuleImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  bool get enabled;
-  @override
-  PathAnimationTriggerType get trigger;
-  @override
-  PathAnimationPlaybackMode get mode;
-  @override
-  PathAnimationActivationScope get scope;
-
-  /// Create a copy of PathAnimationTriggerRule
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$PathAnimationTriggerRuleImplCopyWith<_$PathAnimationTriggerRuleImpl>
-      get copyWith => throw _privateConstructorUsedError;
-}
-
-ProjectPresetCategory _$ProjectPresetCategoryFromJson(
-    Map<String, dynamic> json) {
-  return _ProjectPresetCategory.fromJson(json);
-}
-
-/// @nodoc
-mixin _$ProjectPresetCategory {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String? get parentCategoryId => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
-
-  /// Serializes this ProjectPresetCategory to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of ProjectPresetCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectPresetCategoryCopyWith<ProjectPresetCategory> get copyWith =>
-      throw _privateConstructorUsedError;
-}
-
-/// @nodoc
-abstract class $ProjectPresetCategoryCopyWith<$Res> {
-  factory $ProjectPresetCategoryCopyWith(ProjectPresetCategory value,
-          $Res Function(ProjectPresetCategory) then) =
-      _$ProjectPresetCategoryCopyWithImpl<$Res, ProjectPresetCategory>;
-  @useResult
-  $Res call({String id, String name, String? parentCategoryId, int sortOrder});
-}
-
-/// @nodoc
-class _$ProjectPresetCategoryCopyWithImpl<$Res,
-        $Val extends ProjectPresetCategory>
-    implements $ProjectPresetCategoryCopyWith<$Res> {
-  _$ProjectPresetCategoryCopyWithImpl(this._value, this._then);
-
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
-
-  /// Create a copy of ProjectPresetCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentCategoryId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentCategoryId: freezed == parentCategoryId
-          ? _value.parentCategoryId
-          : parentCategoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
-}
-
-/// @nodoc
-abstract class _$$ProjectPresetCategoryImplCopyWith<$Res>
-    implements $ProjectPresetCategoryCopyWith<$Res> {
-  factory _$$ProjectPresetCategoryImplCopyWith(
-          _$ProjectPresetCategoryImpl value,
-          $Res Function(_$ProjectPresetCategoryImpl) then) =
-      __$$ProjectPresetCategoryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({String id, String name, String? parentCategoryId, int sortOrder});
-}
-
-/// @nodoc
-class __$$ProjectPresetCategoryImplCopyWithImpl<$Res>
-    extends _$ProjectPresetCategoryCopyWithImpl<$Res,
-        _$ProjectPresetCategoryImpl>
-    implements _$$ProjectPresetCategoryImplCopyWith<$Res> {
-  __$$ProjectPresetCategoryImplCopyWithImpl(_$ProjectPresetCategoryImpl _value,
-      $Res Function(_$ProjectPresetCategoryImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of ProjectPresetCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentCategoryId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectPresetCategoryImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentCategoryId: freezed == parentCategoryId
-          ? _value.parentCategoryId
-          : parentCategoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
-}
-
-/// @nodoc
-@JsonSerializable()
-class _$ProjectPresetCategoryImpl implements _ProjectPresetCategory {
-  const _$ProjectPresetCategoryImpl(
-      {required this.id,
-      required this.name,
-      this.parentCategoryId,
-      this.sortOrder = 0});
-
-  factory _$ProjectPresetCategoryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectPresetCategoryImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String? parentCategoryId;
-  @override
-  @JsonKey()
-  final int sortOrder;
-
-  @override
-  String toString() {
-    return 'ProjectPresetCategory(id: $id, name: $name, parentCategoryId: $parentCategoryId, sortOrder: $sortOrder)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectPresetCategoryImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.parentCategoryId, parentCategoryId) ||
-                other.parentCategoryId == parentCategoryId) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, parentCategoryId, sortOrder);
-
-  /// Create a copy of ProjectPresetCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectPresetCategoryImplCopyWith<_$ProjectPresetCategoryImpl>
-      get copyWith => __$$ProjectPresetCategoryImplCopyWithImpl<
-          _$ProjectPresetCategoryImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectPresetCategoryImplToJson(
-      this,
-    );
-  }
-}
-
-abstract class _ProjectPresetCategory implements ProjectPresetCategory {
-  const factory _ProjectPresetCategory(
-      {required final String id,
-      required final String name,
-      final String? parentCategoryId,
-      final int sortOrder}) = _$ProjectPresetCategoryImpl;
-
-  factory _ProjectPresetCategory.fromJson(Map<String, dynamic> json) =
-      _$ProjectPresetCategoryImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String? get parentCategoryId;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectPresetCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectPresetCategoryImplCopyWith<_$ProjectPresetCategoryImpl>
-      get copyWith => throw _privateConstructorUsedError;
 }
 
 ProjectEncounterEntry _$ProjectEncounterEntryFromJson(

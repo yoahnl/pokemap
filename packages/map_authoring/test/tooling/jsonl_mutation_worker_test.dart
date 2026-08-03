@@ -14,7 +14,7 @@ void main() {
     });
     final manifest = ProjectManifest(
       name: 'JSONL Mutation Fixture',
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       maps: const [],
       tilesets: const [],
     );
@@ -154,7 +154,7 @@ void main() {
     await Directory('${root.path}/maps').create();
     final manifest = ProjectManifest(
       name: 'JSONL Smart Tile guard fixture',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       maps: const [
         ProjectMapEntry(
           id: 'fixture',
@@ -191,7 +191,7 @@ void main() {
     const map = MapData(
       id: 'fixture',
       name: 'Fixture',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 2, height: 2),
       layers: [
         MapLayer.tile(id: 'base', name: 'Base', tiles: [0, 0, 0, 0]),
@@ -278,7 +278,7 @@ void main() {
     expect(rejected.data, isEmpty);
     expect(
       rejected.error?.details['domainCode'],
-      smartTileCanonicalLayerActionRequiredCode,
+      'map.operation_invalid',
     );
     final after = await snapshots.load(ProjectHandle(projectHandle));
     expect(after.revision, before.revision);

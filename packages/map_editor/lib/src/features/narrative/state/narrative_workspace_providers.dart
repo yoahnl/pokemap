@@ -23,8 +23,8 @@ final narrativeWorkspaceProjectionProvider =
 final selectedGlobalStorySummaryProvider =
     Provider<NarrativeScenarioSummary?>((ref) {
   final projection = ref.watch(narrativeWorkspaceProjectionProvider);
-  final narrative =
-      ref.watch(narrativeWorkspaceControllerProvider.select((s) => s.selectedGlobalStoryId));
+  final narrative = ref.watch(narrativeWorkspaceControllerProvider
+      .select((s) => s.selectedGlobalStoryId));
   if (projection == null || narrative == null) {
     return null;
   }
@@ -35,8 +35,8 @@ final selectedGlobalStorySummaryProvider =
 final selectedCutsceneSummaryProvider =
     Provider<NarrativeScenarioSummary?>((ref) {
   final projection = ref.watch(narrativeWorkspaceProjectionProvider);
-  final narrative =
-      ref.watch(narrativeWorkspaceControllerProvider.select((s) => s.selectedCutsceneId));
+  final narrative = ref.watch(
+      narrativeWorkspaceControllerProvider.select((s) => s.selectedCutsceneId));
   if (projection == null || narrative == null) {
     return null;
   }
@@ -48,8 +48,8 @@ final selectedCutsceneSummaryProvider =
 final selectedNarrativeStepSummaryProvider =
     Provider<NarrativeStepSummary?>((ref) {
   final projection = ref.watch(narrativeWorkspaceProjectionProvider);
-  final selectedStepId =
-      ref.watch(narrativeWorkspaceControllerProvider.select((s) => s.selectedStepId));
+  final selectedStepId = ref.watch(
+      narrativeWorkspaceControllerProvider.select((s) => s.selectedStepId));
   if (projection == null || selectedStepId == null) {
     return null;
   }
@@ -66,8 +66,8 @@ final selectedNarrativeStepSummaryProvider =
 final selectedNarrativeOutcomeSummaryProvider =
     Provider<NarrativeOutcomeSummary?>((ref) {
   final projection = ref.watch(narrativeWorkspaceProjectionProvider);
-  final selectedOutcomeId =
-      ref.watch(narrativeWorkspaceControllerProvider.select((s) => s.selectedOutcomeId));
+  final selectedOutcomeId = ref.watch(
+      narrativeWorkspaceControllerProvider.select((s) => s.selectedOutcomeId));
   if (projection == null || selectedOutcomeId == null) {
     return null;
   }

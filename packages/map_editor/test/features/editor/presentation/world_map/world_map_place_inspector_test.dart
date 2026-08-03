@@ -678,7 +678,6 @@ const _project = ProjectManifest(
       ],
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 final _v2OnlyProject = ProjectManifest(
@@ -687,7 +686,6 @@ final _v2OnlyProject = ProjectManifest(
     ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
   ],
   tilesets: const <ProjectTilesetEntry>[],
-  surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   eventRegistry: NarrativeEventRegistry(
     schemaVersion: 1,
     mode: EventSystemMode.v2Only,
@@ -699,6 +697,7 @@ final _v2OnlyProject = ProjectManifest(
 const _map = MapData(
   id: 'map',
   name: 'Map',
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -707,7 +706,13 @@ const _map = MapData(
       tilesetId: 'world',
       tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ),
-    TerrainLayer(id: 'terrain', name: 'Terrain'),
+    SmartTileLayer(
+      id: 'terrain',
+      name: 'Terrain',
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+      field: SmartTileField.cell(),
+    ),
   ],
   entities: <MapEntity>[
     MapEntity(

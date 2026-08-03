@@ -175,7 +175,7 @@ ProjectManifest _project() => const ProjectManifest(
 MapData _map() => MapData(
       id: 'map',
       name: 'Base map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 4, height: 4),
       layers: <MapLayer>[
         MapLayer.border(

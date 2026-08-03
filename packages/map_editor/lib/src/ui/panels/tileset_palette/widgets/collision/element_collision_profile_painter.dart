@@ -270,4 +270,3 @@ Rect _fitCollisionPreviewRect({
   final left = (size.width - width) / 2;
   return Rect.fromLTWH(left, 0, width, size.height);
 }
-

@@ -39,8 +39,9 @@ class StepFlowCanvas extends StatelessWidget {
   final ValueChanged<StepFlowFocus> onSelect;
   final CutsceneNameResolver resolveCutsceneName;
 
-  List<StepStudioOutcomeDefinition> _locals() =>
-      step.outcomes.where((o) => o.scope == StepStudioOutcomeScope.local).toList();
+  List<StepStudioOutcomeDefinition> _locals() => step.outcomes
+      .where((o) => o.scope == StepStudioOutcomeScope.local)
+      .toList();
 
   List<StepStudioOutcomeDefinition> _progressions() => step.outcomes
       .where((o) => o.scope == StepStudioOutcomeScope.progression)

@@ -1,8 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
-import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
-import 'package:map_editor/src/application/services/terrain_preset_selection_coordinator.dart';
 import 'package:map_editor/src/features/editor/application/project_session_controller.dart';
 import 'package:map_editor/src/features/editor/application/project_session_models.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -38,7 +36,6 @@ void main() {
       );
 
       const updated = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'Demo',
         maps: [],
         tilesets: [],
@@ -49,13 +46,6 @@ void main() {
         session: const ProjectSessionLoadResult(
           projectRootPath: '/tmp/new',
           project: updated,
-          presetSelection: TerrainPresetSelection(
-            selectionMode: TerrainSelectionMode.terrain,
-            selectedTerrainType: TerrainType.grass,
-            selectedTerrainPresetId: 'grass-a',
-            selectedPathPresetId: 'path-a',
-            selectedTerrainPresetByType: {},
-          ),
         ),
         statusMessage: 'Loaded',
       );
@@ -69,8 +59,6 @@ void main() {
       expect(next.selectedEntityId, isNull);
       expect(next.selectedMapEventId, isNull);
       expect(next.selectedProjectDialogueId, isNull);
-      expect(next.selectedTerrainPresetId, 'grass-a');
-      expect(next.selectedPathPresetId, 'path-a');
       expect(next.isDirty, isFalse);
       expect(next.isProjectDirty, isFalse);
       expect(next.errorMessage, isNull);
@@ -108,13 +96,6 @@ void main() {
         document: const MapDocumentLoadResult(
           map: map,
           activeMapPath: '/tmp/demo/maps/town.json',
-          presetSelection: TerrainPresetSelection(
-            selectionMode: TerrainSelectionMode.path,
-            selectedTerrainType: TerrainType.rock,
-            selectedTerrainPresetId: 'rock-a',
-            selectedPathPresetId: 'path-road',
-            selectedTerrainPresetByType: {},
-          ),
           selectedTilesetEditorId: 'tileset_world',
         ),
         statusMessage: 'Map loaded',
@@ -127,7 +108,6 @@ void main() {
       expect(next.selectedEntityId, isNull);
       expect(next.selectedMapEventId, isNull);
       expect(next.selectedTilesetEditorId, 'tileset_world');
-      expect(next.selectedPathPresetId, 'path-road');
       expect(next.savedMapSnapshot, map);
       expect(next.isDirty, isFalse);
       expect(next.isProjectDirty, isTrue);
@@ -144,7 +124,6 @@ void main() {
       );
       const state = EditorState(
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -162,7 +141,6 @@ void main() {
       final next = controller.afterMapRenamed(
         current: state,
         updatedProject: const ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -190,7 +168,6 @@ void main() {
       );
       const state = EditorState(
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -212,7 +189,6 @@ void main() {
       final next = controller.afterMapDeleted(
         current: state,
         updatedProject: const ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'Demo',
           maps: [],
           tilesets: [],

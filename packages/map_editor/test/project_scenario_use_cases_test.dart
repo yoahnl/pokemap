@@ -33,7 +33,6 @@ void main() {
         ],
       );
       final project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'demo',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -77,7 +76,6 @@ void main() {
       final useCase = CreateProjectScenarioUseCase(repo);
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'demo',
         maps: <ProjectMapEntry>[
           ProjectMapEntry(
@@ -136,7 +134,6 @@ void main() {
         ],
       );
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'demo',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -181,7 +178,6 @@ void main() {
         ],
       );
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'demo',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

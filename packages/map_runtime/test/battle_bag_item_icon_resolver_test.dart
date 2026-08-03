@@ -62,11 +62,10 @@ void main() {
       );
 
       final resolver = BattleBagItemIconResolver(
-        manifest: ProjectManifest(
+        manifest: const ProjectManifest(
           name: 'Icon Resolver Test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
         projectRootDirectory: projectRoot.path,
       );
@@ -99,11 +98,10 @@ void main() {
       );
 
       final resolver = BattleBagItemIconResolver(
-        manifest: ProjectManifest(
+        manifest: const ProjectManifest(
           name: 'Icon Resolver Test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
         projectRootDirectory: projectRoot.path,
       );

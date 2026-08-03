@@ -108,7 +108,8 @@ final class SurfaceAtlasTileSize {
       throw const ValidationException('SurfaceAtlasTileSize.width must be > 0');
     }
     if (height <= 0) {
-      throw const ValidationException('SurfaceAtlasTileSize.height must be > 0');
+      throw const ValidationException(
+          'SurfaceAtlasTileSize.height must be > 0');
     }
   }
 
@@ -139,7 +140,8 @@ final class SurfaceAtlasGridSize {
     required this.rows,
   }) {
     if (columns <= 0) {
-      throw const ValidationException('SurfaceAtlasGridSize.columns must be > 0');
+      throw const ValidationException(
+          'SurfaceAtlasGridSize.columns must be > 0');
     }
     if (rows <= 0) {
       throw const ValidationException('SurfaceAtlasGridSize.rows must be > 0');
@@ -215,7 +217,7 @@ final class SurfaceAtlasGeometry {
 ///   `surfaceAtlases` dans ce lot) : modèle de domaine seul, sans persistance
 ///   JSON.
 /// * Ne fait **pas** de [toJson] / [fromJson] ; ne crée **pas** de preset
-///   runtime ni d’[SurfaceLayer].
+///   runtime ni d’un ancien calque de surface.
 /// * Ne valide **pas** l’existence d’un enregistrement de tileset dans le
 ///   manifeste, ni la taille d’un fichier image — seulement la cohérence
 ///   minimale des champs texte requis.
@@ -230,13 +232,16 @@ final class ProjectSurfaceAtlas {
     this.sortOrder = 0,
   }) {
     if (id.trim().isEmpty) {
-      throw const ValidationException('ProjectSurfaceAtlas.id must be non-empty');
+      throw const ValidationException(
+          'ProjectSurfaceAtlas.id must be non-empty');
     }
     if (name.trim().isEmpty) {
-      throw const ValidationException('ProjectSurfaceAtlas.name must be non-empty');
+      throw const ValidationException(
+          'ProjectSurfaceAtlas.name must be non-empty');
     }
     if (tilesetId.trim().isEmpty) {
-      throw const ValidationException('ProjectSurfaceAtlas.tilesetId must be non-empty');
+      throw const ValidationException(
+          'ProjectSurfaceAtlas.tilesetId must be non-empty');
     }
   }
 
@@ -305,10 +310,12 @@ final class SurfaceAtlasTileRef {
     required this.row,
   }) {
     if (atlasId.trim().isEmpty) {
-      throw const ValidationException('SurfaceAtlasTileRef.atlasId must be non-empty');
+      throw const ValidationException(
+          'SurfaceAtlasTileRef.atlasId must be non-empty');
     }
     if (column < 0) {
-      throw const ValidationException('SurfaceAtlasTileRef.column must be >= 0');
+      throw const ValidationException(
+          'SurfaceAtlasTileRef.column must be >= 0');
     }
     if (row < 0) {
       throw const ValidationException('SurfaceAtlasTileRef.row must be >= 0');
@@ -495,10 +502,12 @@ final class ProjectSurfaceAnimation {
     this.sortOrder = 0,
   }) {
     if (id.trim().isEmpty) {
-      throw const ValidationException('ProjectSurfaceAnimation.id must be non-empty');
+      throw const ValidationException(
+          'ProjectSurfaceAnimation.id must be non-empty');
     }
     if (name.trim().isEmpty) {
-      throw const ValidationException('ProjectSurfaceAnimation.name must be non-empty');
+      throw const ValidationException(
+          'ProjectSurfaceAnimation.name must be non-empty');
     }
     // Promotion sur champ public : copie locale (cf. règles d’analyse Dart).
     final sync = syncGroupId;
@@ -737,10 +746,12 @@ final class ProjectSurfacePreset {
     this.sortOrder = 0,
   }) {
     if (id.trim().isEmpty) {
-      throw const ValidationException('ProjectSurfacePreset.id must be non-empty');
+      throw const ValidationException(
+          'ProjectSurfacePreset.id must be non-empty');
     }
     if (name.trim().isEmpty) {
-      throw const ValidationException('ProjectSurfacePreset.name must be non-empty');
+      throw const ValidationException(
+          'ProjectSurfacePreset.name must be non-empty');
     }
   }
 

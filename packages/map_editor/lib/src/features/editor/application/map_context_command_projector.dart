@@ -440,9 +440,7 @@ MapLayer? _findLayer(MapData map, String? id) {
 bool _isCellPaintLayer(MapLayer layer) {
   return layer is TileLayer ||
       layer is CollisionLayer ||
-      layer is TerrainLayer ||
-      layer is PathLayer ||
-      layer is SurfaceLayer;
+      layer is SmartTileLayer;
 }
 
 bool _containsId<T>(

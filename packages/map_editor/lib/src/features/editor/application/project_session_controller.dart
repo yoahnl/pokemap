@@ -31,14 +31,7 @@ class ProjectSessionController {
           current.selection.copyWith(
             activeLayerId: null,
             activeBrush: const EditorBrush.none(),
-            terrainSelectionMode: session.presetSelection.selectionMode,
-            selectedTerrainType: session.presetSelection.selectedTerrainType,
             selectedEntityKind: MapEntityKind.npc,
-            selectedTerrainPresetId:
-                session.presetSelection.selectedTerrainPresetId,
-            selectedPathPresetId: session.presetSelection.selectedPathPresetId,
-            selectedTerrainPresetByType:
-                session.presetSelection.selectedTerrainPresetByType,
             selectedEntityId: null,
             npcWaypointPlacementEntityId: null,
             selectedMapEventId: null,
@@ -90,13 +83,6 @@ class ProjectSessionController {
           current.selection.copyWith(
             activeLayerId: _resolveActiveLayerId(document.map),
             activeBrush: const EditorBrush.none(),
-            terrainSelectionMode: document.presetSelection.selectionMode,
-            selectedTerrainType: document.presetSelection.selectedTerrainType,
-            selectedTerrainPresetId:
-                document.presetSelection.selectedTerrainPresetId,
-            selectedPathPresetId: document.presetSelection.selectedPathPresetId,
-            selectedTerrainPresetByType:
-                document.presetSelection.selectedTerrainPresetByType,
             selectedEntityId: null,
             npcWaypointPlacementEntityId: null,
             selectedMapEventId: null,

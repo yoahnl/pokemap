@@ -547,7 +547,7 @@ void main() {
 
 const _project = ProjectManifest(
   name: 'Hit test',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -604,7 +604,7 @@ const _project = ProjectManifest(
 const _baseMap = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   visualStack: MapVisualStackConfig.canonicalV1,
   size: GridSize(width: 8, height: 8),
   layers: <MapLayer>[

@@ -37,21 +37,16 @@ ProjectManifest buildShellChromeProject({
   String name = 'Demo Project',
   List<ProjectMapEntry> maps = const <ProjectMapEntry>[],
   List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[],
-  List<ProjectPathPreset> pathPresets = const <ProjectPathPreset>[],
-  List<ProjectPathPatternPreset> pathPatternPresets =
-      const <ProjectPathPatternPreset>[],
   List<EnvironmentPreset> environmentPresets = const <EnvironmentPreset>[],
   List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
 }) {
   return ProjectManifest(
     name: name,
+    version: ProjectVersion.v6,
     maps: maps,
     tilesets: tilesets,
-    pathPresets: pathPresets,
-    pathPatternPresets: pathPatternPresets,
     environmentPresets: environmentPresets,
     elements: elements,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 
@@ -65,6 +60,7 @@ MapData buildShellChromeMap({
   return MapData(
     id: id,
     name: name,
+    version: ProjectVersion.v6,
     size: GridSize(width: width, height: height),
     layers: layers,
   );

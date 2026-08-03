@@ -36,7 +36,6 @@ import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
 
 void main() {
   const sampleProject = ProjectManifest(
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'pokedex_ui_test',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

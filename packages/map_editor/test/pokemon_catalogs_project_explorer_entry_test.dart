@@ -19,7 +19,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/pokemon_catalogs_project_explorer',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'catalogs_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -86,7 +85,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/pokemon_catalogs_project_explorer_taps',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'catalogs_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

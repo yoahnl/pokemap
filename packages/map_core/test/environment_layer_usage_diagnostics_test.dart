@@ -17,7 +17,6 @@ ProjectManifest _manifest({List<EnvironmentPreset> presets = const []}) {
     name: 'test',
     maps: const [],
     tilesets: const [],
-    surfaceCatalog: ProjectSurfaceCatalog(),
     environmentPresets: presets,
   );
 }

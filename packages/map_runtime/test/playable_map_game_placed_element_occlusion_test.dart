@@ -238,7 +238,6 @@ RuntimeMapBundle _bundle({
                 ),
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: MapData(
       id: 'occlusion-map',

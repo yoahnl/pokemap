@@ -100,14 +100,6 @@ int _layerCellValue(MapData map, MapLayer layer, int x, int y) {
   return switch (layer) {
     TileLayer value => _intCell(value.tiles, index),
     CollisionLayer value => _boolCell(value.collisions, index) ? 1 : 0,
-    TerrainLayer value =>
-      index < value.terrains.length ? value.terrains[index].index : 0,
-    PathLayer value => _boolCell(value.cells, index) ? 1 : 0,
-    SurfaceLayer value => value.placements.any(
-        (placement) => placement.x == x && placement.y == y,
-      )
-          ? 1
-          : 0,
     SmartTileLayer value => _intCell(smartTileSemanticCells(value), index),
     ObjectLayer _ => 0,
     EnvironmentLayer _ => 0,
@@ -122,9 +114,6 @@ int _layerCellValue(MapData map, MapLayer layer, int x, int y) {
   return switch (layer) {
     TileLayer _ => (58 + variation, 100 + variation ~/ 2, 72, 230),
     CollisionLayer _ => (180, 52, 64, 120),
-    TerrainLayer _ => (58, 118 + variation, 74, 170),
-    PathLayer _ => (148 + variation, 112, 72, 190),
-    SurfaceLayer _ => (48, 108 + variation, 154, 190),
     SmartTileLayer _ => (72, 138 + variation, 118, 200),
     ObjectLayer _ => (116, 116, 136, 160),
     EnvironmentLayer _ => (68, 136, 100, 140),

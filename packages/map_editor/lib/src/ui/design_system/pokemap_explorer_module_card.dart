@@ -46,7 +46,8 @@ class ProjectExplorerModuleCard extends StatefulWidget {
   final double borderRadius;
 
   @override
-  State<ProjectExplorerModuleCard> createState() => _ProjectExplorerModuleCardState();
+  State<ProjectExplorerModuleCard> createState() =>
+      _ProjectExplorerModuleCardState();
 }
 
 class _ProjectExplorerModuleCardState extends State<ProjectExplorerModuleCard> {
@@ -78,7 +79,8 @@ class _ProjectExplorerModuleCardState extends State<ProjectExplorerModuleCard> {
             ? widget.accentColor.withValues(alpha: 0.50)
             : widget.accentColor.withValues(alpha: 0.22));
 
-    final bool hasExpandToggle = widget.onExpandToggle != null && (widget.child != null || widget.children.isNotEmpty);
+    final bool hasExpandToggle = widget.onExpandToggle != null &&
+        (widget.child != null || widget.children.isNotEmpty);
 
     return AnimatedSize(
       duration: const Duration(milliseconds: 180),
@@ -110,7 +112,8 @@ class _ProjectExplorerModuleCardState extends State<ProjectExplorerModuleCard> {
                   onEnter: (_) => setState(() => _hovered = true),
                   onExit: (_) => setState(() => _hovered = false),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 10),
                     child: Row(
                       children: [
                         // Colored Prefix Icon Box
@@ -173,7 +176,8 @@ class _ProjectExplorerModuleCardState extends State<ProjectExplorerModuleCard> {
                         ],
 
                         // Count Badge
-                        if (widget.countLabel != null || widget.count != null) ...[
+                        if (widget.countLabel != null ||
+                            widget.count != null) ...[
                           PokeMapBadge(
                             label: widget.countLabel ?? '${widget.count}',
                             variant: PokeMapBadgeVariant.neutral,
@@ -211,12 +215,14 @@ class _ProjectExplorerModuleCardState extends State<ProjectExplorerModuleCard> {
                 child: widget.expandedHeight != null
                     ? SizedBox(
                         height: widget.expandedHeight,
-                        child: widget.child ?? Column(children: widget.children),
+                        child:
+                            widget.child ?? Column(children: widget.children),
                       )
-                    : (widget.child ?? Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: widget.children,
-                      )),
+                    : (widget.child ??
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: widget.children,
+                        )),
               ),
           ],
         ),

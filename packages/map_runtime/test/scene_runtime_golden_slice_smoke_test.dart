@@ -329,7 +329,6 @@ _GoldenSmokeFixture _fixture({required SceneAsset scene}) {
       ),
     ],
     scenes: [scene],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   return _GoldenSmokeFixture(project: project, map: map, event: event);
 }

@@ -302,12 +302,12 @@ void main() {
   const map = MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v4,
+    version: ProjectVersion.v6,
     size: GridSize(width: 1, height: 1),
   );
   final manifest = ProjectManifest(
     name: 'Smart Tile drafts',
-    version: ProjectVersion.v5,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',

@@ -1089,7 +1089,6 @@ Future<String> _writeProject(Directory root) async {
       legacyClaims: const <LegacySourceClaim>[],
     ),
     scenes: <SceneAsset>[_scene()],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   final mapsDirectory = Directory(p.join(root.path, 'maps'));
   await mapsDirectory.create(recursive: true);
@@ -1141,7 +1140,6 @@ Future<String> _writePhysicalWarpRetryProject(Directory root) async {
       legacyClaims: const <LegacySourceClaim>[],
     ),
     scenes: <SceneAsset>[_physicalWarpRetryScene()],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   final mapsDirectory = Directory(p.join(root.path, 'maps'));
   await mapsDirectory.create(recursive: true);
@@ -1234,7 +1232,6 @@ Future<String> _writeLegacyOutcomeTransitionProject(
           relativePath: 'dialogues/legacy_restored_outcome_dialogue.yarn',
         ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   final mapsDirectory = Directory(p.join(root.path, 'maps'));
   await mapsDirectory.create(recursive: true);

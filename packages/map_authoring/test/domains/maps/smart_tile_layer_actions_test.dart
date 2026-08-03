@@ -30,100 +30,6 @@ void main() {
       }
     });
 
-    test('rejects pre-v5 normalize and merge without a partial transition', () {
-      final fixture = _m01Fixture(version: ProjectVersion.v4);
-      final beforeMap = fixture.map.toJson();
-      final beforeManifest = fixture.manifest.toJson();
-      final beforeBytes = fixture.snapshot.resourceBytes(
-        'map:map_hanazuki_village',
-      );
-      final beforeRevision = fixture.snapshot.revision;
-      final cases = <({String actionId, Map<String, Object?> parameters})>[
-        (
-          actionId: 'smart_tile.layer.normalize',
-          parameters: const {
-            'mapId': 'map_hanazuki_village',
-            'layerId': 'l_qc02_terrain',
-          },
-        ),
-        (
-          actionId: 'smart_tile.layer.merge',
-          parameters: _mergeParameters,
-        ),
-      ];
-
-      for (final testCase in cases) {
-        expect(
-          () => const SmartTileLayerActions().build(
-            _context(
-              fixture.snapshot,
-              actionId: testCase.actionId,
-              parameters: testCase.parameters,
-            ),
-          ),
-          throwsA(
-            isA<MapAuthoringException>()
-                .having(
-                  (error) => error.code,
-                  'code',
-                  'smart_tile_native_project_version_required',
-                )
-                .having(
-                  (error) => error.details['operation'],
-                  'operation',
-                  testCase.actionId,
-                ),
-          ),
-        );
-        expect(fixture.map.toJson(), beforeMap);
-        expect(fixture.manifest.toJson(), beforeManifest);
-        expect(
-          fixture.snapshot.resourceBytes('map:map_hanazuki_village'),
-          beforeBytes,
-        );
-        expect(fixture.snapshot.revision, beforeRevision);
-      }
-    });
-
-    test('JSONL rejects pre-v5 maintenance without revision or file changes',
-        () async {
-      for (final testCase in <({
-        String slug,
-        String actionId,
-        Map<String, Object?> parameters,
-      })>[
-        (
-          slug: 'normalize',
-          actionId: 'smart_tile.layer.normalize',
-          parameters: const {
-            'mapId': 'map_hanazuki_village',
-            'layerId': 'l_qc02_terrain',
-          },
-        ),
-        (
-          slug: 'merge',
-          actionId: 'smart_tile.layer.merge',
-          parameters: _mergeParameters,
-        ),
-      ]) {
-        final harness = await _M01TransportHarness.create(
-          'pre_v5_${testCase.slug}',
-          version: ProjectVersion.v4,
-        );
-        addTearDown(harness.dispose);
-
-        final result = await harness.rejectJsonl(
-          actionId: testCase.actionId,
-          parameters: testCase.parameters,
-          sequence: 'reject_${testCase.slug}',
-        );
-
-        expect(result.code, 'smart_tile_native_project_version_required');
-        expect(result.afterRevision, result.beforeRevision);
-        expect(result.afterMapBytes, result.beforeMapBytes);
-      }
-    });
-
     test('normalizes the M01 terrain without losing metadata or layer order',
         () {
       final fixture = _m01Fixture();
@@ -501,8 +407,8 @@ void main() {
       final jsonlResult = await jsonl.applyJsonl();
 
       expect(jsonlResult.map.toJson(), directResult.map.toJson());
-      expect(directResult.map.version, ProjectVersion.v5);
-      expect(jsonlResult.map.version, ProjectVersion.v5);
+      expect(directResult.map.version, ProjectVersion.v6);
+      expect(jsonlResult.map.version, ProjectVersion.v6);
       expect(directResult.actionIds, [
         'smart_tile.layer.normalize',
         'smart_tile.layer.merge',
@@ -552,16 +458,16 @@ final class _M01TransportHarness {
 
   static Future<_M01TransportHarness> create(
     String label, {
-    ProjectVersion version = ProjectVersion.v5,
+    ProjectVersion version = ProjectVersion.v6,
   }) async {
     final root = await Directory.systemTemp.createTemp('m01_$label');
     final fixture = _m01Fixture(version: version);
-    final persistedManifest = version == ProjectVersion.v5
+    final persistedManifest = version == ProjectVersion.v6
         ? fixture.manifest
         : fixture.manifest.copyWith(
             smartTileCatalog: ProjectSmartTileCatalog(),
           );
-    final persistedMap = version == ProjectVersion.v5
+    final persistedMap = version == ProjectVersion.v6
         ? fixture.map
         : fixture.map.copyWith(
             layers: [fixture.map.layers.first, fixture.map.layers.last],
@@ -872,7 +778,7 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
   MapData map,
   ProjectSnapshot snapshot,
 }) _m01Fixture({
-  ProjectVersion version = ProjectVersion.v5,
+  ProjectVersion version = ProjectVersion.v6,
   String sourceMaterialId = 'dirt',
   String sourcePresetId = 'path',
   SmartTileUsage sourceUsage = SmartTileUsage.path,

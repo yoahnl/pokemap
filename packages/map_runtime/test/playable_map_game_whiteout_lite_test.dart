@@ -142,7 +142,6 @@ RuntimeMapBundle _bundle() {
         ),
       ],
       tilesets: <ProjectTilesetEntry>[],
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
     ),
     map: const MapData(
       id: 'test_field',

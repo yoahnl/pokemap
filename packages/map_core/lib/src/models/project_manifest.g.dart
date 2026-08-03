@@ -11,7 +11,7 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
     _$ProjectManifestImpl(
       name: json['name'] as String,
       version: $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
-          ProjectVersion.v1,
+          ProjectVersion.v6,
       maps: (json['maps'] as List<dynamic>)
           .map((e) => ProjectMapEntry.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -37,29 +37,6 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
                   ProjectElementEntry.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
-      terrainCategories: (json['terrainCategories'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectPresetCategory.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      pathCategories: (json['pathCategories'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectPresetCategory.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      terrainPresets: (json['terrainPresets'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectTerrainPreset.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      pathPresets: (json['pathPresets'] as List<dynamic>?)
-              ?.map(
-                  (e) => ProjectPathPreset.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      pathPatternPresets: json['pathPatternPresets'] == null
-          ? const []
-          : decodeProjectPathPatternPresets(json['pathPatternPresets']),
       environmentPresets: json['environmentPresets'] == null
           ? const []
           : decodeEnvironmentPresets(json['environmentPresets']),
@@ -146,9 +123,6 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
               json['presentation'] as Map<String, dynamic>),
       globalProperties:
           json['globalProperties'] as Map<String, dynamic>? ?? const {},
-      surfaceCatalog: json['surfaceCatalog'] == null
-          ? const ProjectSurfaceCatalog.empty()
-          : _projectSurfaceCatalogFromJson(json['surfaceCatalog']),
       smartTileCatalog: json['smartTileCatalog'] == null
           ? const ProjectSmartTileCatalog.empty()
           : _projectSmartTileCatalogFromJson(json['smartTileCatalog']),
@@ -179,13 +153,6 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'elementCategories':
           instance.elementCategories.map((e) => e.toJson()).toList(),
       'elements': instance.elements.map((e) => e.toJson()).toList(),
-      'terrainCategories':
-          instance.terrainCategories.map((e) => e.toJson()).toList(),
-      'pathCategories': instance.pathCategories.map((e) => e.toJson()).toList(),
-      'terrainPresets': instance.terrainPresets.map((e) => e.toJson()).toList(),
-      'pathPresets': instance.pathPresets.map((e) => e.toJson()).toList(),
-      'pathPatternPresets':
-          encodeProjectPathPatternPresets(instance.pathPatternPresets),
       'environmentPresets':
           encodeEnvironmentPresets(instance.environmentPresets),
       'encounterTables':
@@ -218,7 +185,6 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       if (instance.presentation?.toJson() case final value?)
         'presentation': value,
       'globalProperties': instance.globalProperties,
-      'surfaceCatalog': _projectSurfaceCatalogToJson(instance.surfaceCatalog),
       if (_projectSmartTileCatalogToJson(instance.smartTileCatalog)
           case final value?)
         'smartTileCatalog': value,
@@ -238,6 +204,7 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v3: 'v3',
   ProjectVersion.v4: 'v4',
   ProjectVersion.v5: 'v5',
+  ProjectVersion.v6: 'v6',
 };
 
 _$ProjectPokemonConfigImpl _$$ProjectPokemonConfigImplFromJson(
@@ -671,218 +638,6 @@ const _$ElementPresetKindEnumMap = {
   ElementPresetKind.cliff: 'cliff',
   ElementPresetKind.tallDecoration: 'tall_decoration',
 };
-
-_$ProjectTerrainPresetImpl _$$ProjectTerrainPresetImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectTerrainPresetImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      terrainType: $enumDecode(_$TerrainTypeEnumMap, json['terrainType']),
-      categoryId: json['categoryId'] as String?,
-      tilesetId: json['tilesetId'] as String? ?? '',
-      variants: (json['variants'] as List<dynamic>?)
-              ?.map((e) =>
-                  TerrainPresetVariant.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
-
-Map<String, dynamic> _$$ProjectTerrainPresetImplToJson(
-        _$ProjectTerrainPresetImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'terrainType': _$TerrainTypeEnumMap[instance.terrainType]!,
-      'categoryId': instance.categoryId,
-      'tilesetId': instance.tilesetId,
-      'variants': instance.variants.map((e) => e.toJson()).toList(),
-      'sortOrder': instance.sortOrder,
-    };
-
-const _$TerrainTypeEnumMap = {
-  TerrainType.none: 'none',
-  TerrainType.grass: 'grass',
-  TerrainType.dirt: 'dirt',
-  TerrainType.sand: 'sand',
-  TerrainType.rock: 'rock',
-  TerrainType.stone: 'stone',
-  TerrainType.indoor: 'indoor',
-};
-
-_$TerrainPresetVariantImpl _$$TerrainPresetVariantImplFromJson(
-        Map<String, dynamic> json) =>
-    _$TerrainPresetVariantImpl(
-      frames: (json['frames'] as List<dynamic>)
-          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      weight: (json['weight'] as num?)?.toInt() ?? 1,
-      multiTileLayout: $enumDecodeNullable(
-              _$TerrainVariantMultiTileLayoutEnumMap,
-              json['multiTileLayout']) ??
-          TerrainVariantMultiTileLayout.tessellated,
-    );
-
-Map<String, dynamic> _$$TerrainPresetVariantImplToJson(
-        _$TerrainPresetVariantImpl instance) =>
-    <String, dynamic>{
-      'frames': instance.frames.map((e) => e.toJson()).toList(),
-      'weight': instance.weight,
-      'multiTileLayout':
-          _$TerrainVariantMultiTileLayoutEnumMap[instance.multiTileLayout]!,
-    };
-
-const _$TerrainVariantMultiTileLayoutEnumMap = {
-  TerrainVariantMultiTileLayout.tessellated: 'tessellated',
-  TerrainVariantMultiTileLayout.stableRandom: 'stable_random',
-};
-
-_$ProjectPathPresetImpl _$$ProjectPathPresetImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectPathPresetImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      surfaceKind:
-          $enumDecodeNullable(_$PathSurfaceKindEnumMap, json['surfaceKind']) ??
-              PathSurfaceKind.path,
-      categoryId: json['categoryId'] as String?,
-      tilesetId: json['tilesetId'] as String? ?? '',
-      variants: (json['variants'] as List<dynamic>?)
-              ?.map((e) =>
-                  PathPresetVariantMapping.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
-
-Map<String, dynamic> _$$ProjectPathPresetImplToJson(
-        _$ProjectPathPresetImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'surfaceKind': _$PathSurfaceKindEnumMap[instance.surfaceKind]!,
-      'categoryId': instance.categoryId,
-      'tilesetId': instance.tilesetId,
-      'variants': instance.variants.map((e) => e.toJson()).toList(),
-      'sortOrder': instance.sortOrder,
-    };
-
-const _$PathSurfaceKindEnumMap = {
-  PathSurfaceKind.path: 'path',
-  PathSurfaceKind.road: 'road',
-  PathSurfaceKind.water: 'water',
-  PathSurfaceKind.tallGrass: 'tall_grass',
-  PathSurfaceKind.ice: 'ice',
-  PathSurfaceKind.lava: 'lava',
-  PathSurfaceKind.swamp: 'swamp',
-  PathSurfaceKind.rails: 'rails',
-  PathSurfaceKind.bridge: 'bridge',
-  PathSurfaceKind.special: 'special',
-  PathSurfaceKind.custom: 'custom',
-};
-
-_$PathPresetVariantMappingImpl _$$PathPresetVariantMappingImplFromJson(
-        Map<String, dynamic> json) =>
-    _$PathPresetVariantMappingImpl(
-      variant: $enumDecode(_$TerrainPathVariantEnumMap, json['variant']),
-      frames: (json['frames'] as List<dynamic>)
-          .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    );
-
-Map<String, dynamic> _$$PathPresetVariantMappingImplToJson(
-        _$PathPresetVariantMappingImpl instance) =>
-    <String, dynamic>{
-      'variant': _$TerrainPathVariantEnumMap[instance.variant]!,
-      'frames': instance.frames.map((e) => e.toJson()).toList(),
-    };
-
-const _$TerrainPathVariantEnumMap = {
-  TerrainPathVariant.isolated: 'isolated',
-  TerrainPathVariant.endNorth: 'endNorth',
-  TerrainPathVariant.endEast: 'endEast',
-  TerrainPathVariant.endSouth: 'endSouth',
-  TerrainPathVariant.endWest: 'endWest',
-  TerrainPathVariant.horizontal: 'horizontal',
-  TerrainPathVariant.vertical: 'vertical',
-  TerrainPathVariant.cornerNE: 'cornerNE',
-  TerrainPathVariant.cornerSE: 'cornerSE',
-  TerrainPathVariant.cornerSW: 'cornerSW',
-  TerrainPathVariant.cornerNW: 'cornerNW',
-  TerrainPathVariant.innerCornerNE: 'innerCornerNE',
-  TerrainPathVariant.innerCornerSE: 'innerCornerSE',
-  TerrainPathVariant.innerCornerSW: 'innerCornerSW',
-  TerrainPathVariant.innerCornerNW: 'innerCornerNW',
-  TerrainPathVariant.teeNorth: 'teeNorth',
-  TerrainPathVariant.teeEast: 'teeEast',
-  TerrainPathVariant.teeSouth: 'teeSouth',
-  TerrainPathVariant.teeWest: 'teeWest',
-  TerrainPathVariant.cross: 'cross',
-};
-
-_$PathAnimationTriggerRuleImpl _$$PathAnimationTriggerRuleImplFromJson(
-        Map<String, dynamic> json) =>
-    _$PathAnimationTriggerRuleImpl(
-      id: json['id'] as String? ?? '',
-      enabled: json['enabled'] as bool? ?? true,
-      trigger: $enumDecodeNullable(
-              _$PathAnimationTriggerTypeEnumMap, json['trigger']) ??
-          PathAnimationTriggerType.onStep,
-      mode: $enumDecodeNullable(
-              _$PathAnimationPlaybackModeEnumMap, json['mode']) ??
-          PathAnimationPlaybackMode.restartOnTrigger,
-      scope: $enumDecodeNullable(
-              _$PathAnimationActivationScopeEnumMap, json['scope']) ??
-          PathAnimationActivationScope.wholeLayer,
-    );
-
-Map<String, dynamic> _$$PathAnimationTriggerRuleImplToJson(
-        _$PathAnimationTriggerRuleImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'enabled': instance.enabled,
-      'trigger': _$PathAnimationTriggerTypeEnumMap[instance.trigger]!,
-      'mode': _$PathAnimationPlaybackModeEnumMap[instance.mode]!,
-      'scope': _$PathAnimationActivationScopeEnumMap[instance.scope]!,
-    };
-
-const _$PathAnimationTriggerTypeEnumMap = {
-  PathAnimationTriggerType.onEnter: 'on_enter',
-  PathAnimationTriggerType.onStep: 'on_step',
-  PathAnimationTriggerType.onNear: 'on_near',
-  PathAnimationTriggerType.onAction: 'on_action',
-  PathAnimationTriggerType.whileInside: 'while_inside',
-  PathAnimationTriggerType.onBump: 'on_bump',
-};
-
-const _$PathAnimationPlaybackModeEnumMap = {
-  PathAnimationPlaybackMode.playOnce: 'play_once',
-  PathAnimationPlaybackMode.loopWhileActive: 'loop_while_active',
-  PathAnimationPlaybackMode.restartOnTrigger: 'restart_on_trigger',
-};
-
-const _$PathAnimationActivationScopeEnumMap = {
-  PathAnimationActivationScope.wholeLayer: 'whole_layer',
-  PathAnimationActivationScope.cellOnly: 'cell_only',
-};
-
-_$ProjectPresetCategoryImpl _$$ProjectPresetCategoryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectPresetCategoryImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      parentCategoryId: json['parentCategoryId'] as String?,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
-
-Map<String, dynamic> _$$ProjectPresetCategoryImplToJson(
-        _$ProjectPresetCategoryImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'parentCategoryId': instance.parentCategoryId,
-      'sortOrder': instance.sortOrder,
-    };
 
 _$ProjectEncounterEntryImpl _$$ProjectEncounterEntryImplFromJson(
         Map<String, dynamic> json) =>

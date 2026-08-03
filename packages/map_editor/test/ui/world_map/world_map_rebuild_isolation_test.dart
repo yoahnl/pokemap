@@ -115,7 +115,7 @@ void main() {
       (tester) async {
     final container = _container();
     final notifier = container.read(editorNotifierProvider.notifier)
-      ..state = const EditorState(
+      ..state = EditorState(
         project: _projectWithAnimatedPath,
         activeMap: _staticPathMap,
         activeLayerId: 'ground',
@@ -205,7 +205,7 @@ void main() {
 
     final hiddenPathMap = _animatedPathMap.copyWith(
       layers: <MapLayer>[
-        (_animatedPathMap.layers.single as PathLayer).copyWith(
+        (_animatedPathMap.layers.single as SmartTileLayer).copyWith(
           isVisible: false,
         ),
       ],
@@ -573,7 +573,6 @@ const _animatedProject = ProjectManifest(
       ],
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 const _animatedMap = MapData(
@@ -672,44 +671,91 @@ const _animatedMap = MapData(
   ],
 );
 
-const _projectWithAnimatedPath = ProjectManifest(
+final _projectWithAnimatedPath = ProjectManifest(
   name: 'Referenced animation isolation',
-  maps: <ProjectMapEntry>[],
-  tilesets: <ProjectTilesetEntry>[
+  version: ProjectVersion.v6,
+  maps: const <ProjectMapEntry>[],
+  tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(
       id: 'missing',
       name: 'Missing test tileset',
       relativePath: 'missing.png',
     ),
   ],
-  pathPresets: <ProjectPathPreset>[
-    ProjectPathPreset(
-      id: 'animated-path',
-      name: 'Animated path',
-      tilesetId: 'missing',
-      variants: <PathPresetVariantMapping>[
-        PathPresetVariantMapping(
-          variant: TerrainPathVariant.isolated,
-          frames: <TilesetVisualFrame>[
-            TilesetVisualFrame(
-              source: TilesetSourceRect(x: 0, y: 0),
-              durationMs: 110,
+  smartTileCatalog: ProjectSmartTileCatalog(
+    atlases: const <ProjectSmartTileAtlas>[
+      ProjectSmartTileAtlas(
+        id: 'animated-atlas',
+        name: 'Animated atlas',
+        tilesetId: 'missing',
+        columns: 1,
+        rows: 1,
+      ),
+    ],
+    materials: const <ProjectSmartTileMaterial>[
+      ProjectSmartTileMaterial(
+        id: 'water',
+        name: 'Water',
+        connectionGroupId: 'water',
+      ),
+    ],
+    animations: const <ProjectSmartTileAnimation>[
+      ProjectSmartTileAnimation(
+        id: 'water-loop',
+        name: 'Water loop',
+        frames: <ProjectSmartTileAnimationFrame>[
+          ProjectSmartTileAnimationFrame(
+            frame: SmartTileFrameRef(
+              atlasId: 'animated-atlas',
+              column: 0,
+              row: 0,
             ),
-            TilesetVisualFrame(
-              source: TilesetSourceRect(x: 1, y: 0),
-              durationMs: 110,
-            ),
-          ],
+            durationMs: 110,
+          ),
+        ],
+      ),
+    ],
+    presets: const <ProjectSmartTilePreset>[
+      ProjectSmartTilePreset(
+        id: 'animated-path',
+        name: 'Animated path',
+        usage: SmartTileUsage.path,
+        topology: SmartTileTopology.uniform,
+        status: SmartTilePresetStatus.published,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
         ),
-      ],
-    ),
-  ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
+        transformPolicy: SmartTileTransformPolicy(),
+        defaultMaterialId: 'water',
+        allowedMaterialIds: <String>['water'],
+        rules: <SmartTileRule>[
+          SmartTileRule(
+            id: 'uniform-water',
+            centerMatch: SmartTileSlotMatch.material('water'),
+            candidates: <SmartTileCandidate>[
+              SmartTileCandidate(
+                id: 'water-animation',
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.animation(
+                      animationId: 'water-loop',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  ),
 );
 
 const _staticPathMap = MapData(
   id: 'static-path-map',
   name: 'Static path map',
+  version: ProjectVersion.v6,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     TileLayer(
@@ -723,14 +769,16 @@ const _staticPathMap = MapData(
 const _animatedPathMap = MapData(
   id: 'animated-path-map',
   name: 'Animated path map',
+  version: ProjectVersion.v6,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
-    PathLayer(
+    SmartTileLayer(
       id: 'path',
       name: 'Path',
       presetId: 'animated-path',
-      cells: <bool>[true, false, false, false],
-      animationMode: PathAnimationMode.alwaysActive,
+      usage: SmartTileUsage.path,
+      materialPalette: <String>['', 'water'],
+      field: SmartTileField.cell(semanticCells: <int>[1, 0, 0, 0]),
     ),
   ],
 );

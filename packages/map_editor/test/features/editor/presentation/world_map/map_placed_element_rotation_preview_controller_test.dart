@@ -183,7 +183,7 @@ void main() {
 const _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   size: GridSize(width: 5, height: 5),
   layers: <MapLayer>[
     TileLayer(
@@ -231,7 +231,7 @@ const _map = MapData(
 
 const _project = ProjectManifest(
   name: 'Rotation preview',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(

@@ -159,7 +159,6 @@ void main() {
       addTearDown(container.dispose);
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [
           ProjectMapEntry(
@@ -175,8 +174,6 @@ void main() {
             relativePath: 'tilesets/1.png',
           ),
         ],
-        terrainPresets: [],
-        pathPresets: [],
         dialogueFolders: [],
         dialogues: [],
         scenarios: [],

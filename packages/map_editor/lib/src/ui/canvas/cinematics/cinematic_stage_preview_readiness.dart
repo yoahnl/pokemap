@@ -380,7 +380,7 @@ CinematicStagePreviewReadinessItem _initialPlacementsItem(
     }
     if (placement.kind ==
             CinematicActorInitialPlacementKind.fromMovementTarget &&
-         !_hasMovementTarget(asset, placement.targetId)) {
+        !_hasMovementTarget(asset, placement.targetId)) {
       return _item(
         'Départs de scène',
         CinematicStagePreviewReadinessItemKind.blocking,
@@ -469,8 +469,7 @@ CinematicStagePreviewReadinessItem _movementTargetsItem(
       CinematicMovementTargetBindingKind.mapEvent =>
         _hasMapEventSource(stageMapSourceCatalog, binding.sourceId),
       CinematicMovementTargetBindingKind.stagePoint =>
-        context.stagePoints
-                .any((p) => p.id == binding.sourceId),
+        context.stagePoints.any((p) => p.id == binding.sourceId),
     };
     if (!hasSource) {
       return _item(
@@ -746,7 +745,8 @@ List<CinematicsLibraryDiagnosticView> _stageDiagnostics(
   );
 
   final assetDiagnostics = report.diagnostics
-      .where((diagnostic) => _stageDiagnosticCodes.contains(diagnostic.code.name))
+      .where(
+          (diagnostic) => _stageDiagnosticCodes.contains(diagnostic.code.name))
       .map((diagnostic) => CinematicsLibraryDiagnosticView(
             code: diagnostic.code.name,
             severity: switch (diagnostic.severity) {
@@ -780,12 +780,17 @@ String _humanStageDiagnosticMessage(
   final actorLabel = _actorLabelFor(asset, diagnostic.sourceId);
   final targetLabel = _targetLabelFor(asset, diagnostic.sourceId);
   return switch (diagnostic.code) {
-    'stagePointDuplicateId' => 'Un repère de scène possède un identifiant en doublon.',
+    'stagePointDuplicateId' =>
+      'Un repère de scène possède un identifiant en doublon.',
     'stagePointEmptyId' => 'Un repère de scène possède un identifiant vide.',
-    'stagePointEmptyLabel' => 'Le nom du repère de scène ne doit pas être vide.',
-    'stagePointInvalidCoordinate' => 'Les coordonnées du repère de scène doivent être des nombres valides.',
-    'stagePointOutOfMap' => 'Le repère de scène est en dehors des limites de la carte.',
-    'stagePointWithoutStageMap' => 'Des repères de scène sont placés mais aucune map n’est sélectionnée.',
+    'stagePointEmptyLabel' =>
+      'Le nom du repère de scène ne doit pas être vide.',
+    'stagePointInvalidCoordinate' =>
+      'Les coordonnées du repère de scène doivent être des nombres valides.',
+    'stagePointOutOfMap' =>
+      'Le repère de scène est en dehors des limites de la carte.',
+    'stagePointWithoutStageMap' =>
+      'Des repères de scène sont placés mais aucune map n’est sélectionnée.',
     'stageMapUnknown' => 'La map de scène n’existe plus dans le projet.',
     'stageBackdropRequiresMap' =>
       'Choisissez une map avant d’utiliser un décor de map.',
@@ -827,8 +832,7 @@ String _humanStageDiagnosticMessage(
       'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un repère de scène alors qu’aucune map stage n’est définie.',
     'actorInitialPlacementStagePointOutOfMap' =>
       'Le placement initial de l’acteur "${actorLabel ?? diagnostic.sourceId}" référence un repère de scène en dehors des limites de la map.',
-    'movementTargetBindingUnknownTarget' =>
-      'Cette destination n’existe plus.',
+    'movementTargetBindingUnknownTarget' => 'Cette destination n’existe plus.',
     'movementTargetBindingRequiresStageMap' =>
       'Choisissez une map avant de lier une destination à un personnage, objet ou déclencheur.',
     'movementTargetBindingMissingSource' => targetLabel == null

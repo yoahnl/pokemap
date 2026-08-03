@@ -17,7 +17,9 @@ void main() {
       );
     }
 
-    testWidgets('PokeMapBadge pumps correctly under light & dark theme for all variants', (tester) async {
+    testWidgets(
+        'PokeMapBadge pumps correctly under light & dark theme for all variants',
+        (tester) async {
       for (final variant in PokeMapBadgeVariant.values) {
         // Light Mode
         await tester.pumpWidget(
@@ -47,9 +49,10 @@ void main() {
       }
     });
 
-    testWidgets('PokeMapBadge.mapAccent uses colors.mapAccent correctly', (tester) async {
+    testWidgets('PokeMapBadge.mapAccent uses colors.mapAccent correctly',
+        (tester) async {
       late BuildContext capturedContext;
-      
+
       await tester.pumpWidget(
         MaterialApp(
           theme: PokeMapTheme.light(),
@@ -71,7 +74,7 @@ void main() {
       expect(badgeContainerFinder, findsOneWidget);
 
       final expectedMapColor = capturedContext.pokeMapColors.mapAccent;
-      
+
       // The text inside should have the mapAccent color
       final textFinder = find.text('Map Item');
       expect(textFinder, findsOneWidget);

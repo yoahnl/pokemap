@@ -55,7 +55,7 @@ void main() {
 
 ProjectManifest _manifest() => const ProjectManifest(
       name: 'BORD-02 draft roundtrip',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[
         ProjectTilesetEntry(

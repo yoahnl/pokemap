@@ -195,7 +195,6 @@ const _project = ProjectManifest(
       ],
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 const _map = MapData(

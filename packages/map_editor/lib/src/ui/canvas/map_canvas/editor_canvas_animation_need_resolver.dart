@@ -1,16 +1,12 @@
 import 'package:map_core/map_core.dart';
 
-import '../../../application/models/path_autotile_set.dart';
 import '../../../features/border_map_editing/application/border_preview_transaction.dart';
 import '../../../features/border_map_editing/presentation/border_preview_painter.dart';
-import '../../../features/surface_painter/surface_tile_preview_resolver.dart';
 import '../entity_editor_element_visual.dart';
 
 bool editorCanvasNeedsAnimation({
   required MapData map,
   required ProjectManifest? project,
-  required Map<String, PathAutotileSet> pathAutotileSetsByPresetId,
-  required Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType,
   required BorderPreviewTransaction? borderPreview,
 }) {
   if (mapEntitiesNeedEditorFrameAnimation(map, project)) {
@@ -20,50 +16,12 @@ bool editorCanvasNeedsAnimation({
     return true;
   }
 
-  final surfaceCatalog = project?.surfaceCatalog;
-  if (surfaceCatalog != null &&
-      surfaceTilePreviewNeedsAnimation(map: map, catalog: surfaceCatalog)) {
+  if (project != null &&
+      project.smartTileCatalog.animations.isNotEmpty &&
+      map.layers.whereType<SmartTileLayer>().any(
+            (layer) => layer.isVisible && layer.opacity > 0,
+          )) {
     return true;
-  }
-
-  final visibleTerrainTypes = <TerrainType>{
-    for (final layer in map.layers.whereType<TerrainLayer>())
-      if (layer.isVisible && layer.opacity > 0)
-        for (final terrain in layer.terrains)
-          if (terrain != TerrainType.none) terrain,
-  };
-  for (final terrain in visibleTerrainTypes) {
-    final preset = terrainPresetsByType[terrain];
-    if (preset != null &&
-        preset.variants.any((variant) => variant.frames.length > 1)) {
-      return true;
-    }
-  }
-
-  final visibleAnimatedPathPresetIds = <String>{
-    for (final layer in map.layers.whereType<PathLayer>())
-      if (layer.isVisible &&
-          layer.opacity > 0 &&
-          layer.animationMode == PathAnimationMode.alwaysActive &&
-          layer.cells.contains(true) &&
-          layer.presetId.trim().isNotEmpty)
-        layer.presetId.trim(),
-  };
-  for (final presetId in visibleAnimatedPathPresetIds) {
-    final autotileSet = pathAutotileSetsByPresetId[presetId];
-    if (autotileSet != null &&
-        autotileSet.variants.values.any((frames) => frames.length > 1)) {
-      return true;
-    }
-    if (project != null &&
-        project.pathPatternPresets
-            .where((preset) => preset.basePathPresetId == presetId)
-            .any(
-              (preset) => preset.centerPattern.cells
-                  .any((cell) => cell.frames.length > 1),
-            )) {
-      return true;
-    }
   }
 
   if (project != null) {

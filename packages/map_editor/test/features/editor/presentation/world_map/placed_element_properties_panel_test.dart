@@ -415,7 +415,6 @@ const _project = ProjectManifest(
     ),
   ],
   settings: ProjectSettings(tileWidth: 16, tileHeight: 16),
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 const _map = MapData(

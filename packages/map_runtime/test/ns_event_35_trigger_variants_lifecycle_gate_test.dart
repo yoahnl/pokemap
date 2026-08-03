@@ -295,7 +295,6 @@ _RuntimeFixture _runtimeFixture({
         includeMarkEventConsumed: includeMarkEventConsumed,
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 
   return _RuntimeFixture(project: project, map: map);

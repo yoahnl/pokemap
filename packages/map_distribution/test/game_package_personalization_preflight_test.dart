@@ -182,35 +182,35 @@ GamePackageInspectionResult _validInspection() {
 }
 
 Map<String, List<int>> _validPayload() => <String, List<int>>{
-    'project/project.json': utf8.encode(
-      jsonEncode(<String, Object?>{
-        'name': 'Personalization Golden',
-        'version': 'v2',
-        'maps': <Object?>[],
-        'tilesets': <Object?>[],
-      }),
-    ),
-    'presentation/icon.png': _onePixelPngHeader(),
-    'project/assets/title.ogg': ascii.encode('OggS golden-title'),
-    'presentation/intro/video.mp4': <int>[
-      0,
-      0,
-      0,
-      24,
-      ...ascii.encode('ftypisom'),
-      0,
-      0,
-      0,
-      0,
-      ...ascii.encode('isomavc1mp4a'),
-    ],
-    'presentation/intro/poster.png': _onePixelPngHeader(),
-    'presentation/intro/captions.vtt':
-        utf8.encode('WEBVTT\n\n00:00.000 --> 00:01.000\nAube\n'),
-    'presentation/fonts/display.ttf': <int>[0, 1, 0, 0, 0, 0, 0, 0],
-    'presentation/fonts/display-license.txt':
-        utf8.encode('Redistribution permitted.'),
-  };
+      'project/project.json': utf8.encode(
+        jsonEncode(<String, Object?>{
+          'name': 'Personalization Golden',
+          'version': 'v6',
+          'maps': <Object?>[],
+          'tilesets': <Object?>[],
+        }),
+      ),
+      'presentation/icon.png': _onePixelPngHeader(),
+      'project/assets/title.ogg': ascii.encode('OggS golden-title'),
+      'presentation/intro/video.mp4': <int>[
+        0,
+        0,
+        0,
+        24,
+        ...ascii.encode('ftypisom'),
+        0,
+        0,
+        0,
+        0,
+        ...ascii.encode('isomavc1mp4a'),
+      ],
+      'presentation/intro/poster.png': _onePixelPngHeader(),
+      'presentation/intro/captions.vtt':
+          utf8.encode('WEBVTT\n\n00:00.000 --> 00:01.000\nAube\n'),
+      'presentation/fonts/display.ttf': <int>[0, 1, 0, 0, 0, 0, 0, 0],
+      'presentation/fonts/display-license.txt':
+          utf8.encode('Redistribution permitted.'),
+    };
 
 GamePackageInspectionResult _withManifest(
   GamePackageInspectionResult inspection,
@@ -243,7 +243,7 @@ GamePackageManifest _manifest({
       compatibility: GamePackageCompatibility(
         minHubVersion: Version(1, 0, 0),
         runtimeApiExpression: '>=1.0.0 <2.0.0',
-        projectFormat: 'v2',
+        projectFormat: 'v6',
         saveFormat: 1,
         compatibilityId: 'main',
         requiredCapabilities: const <String>[],

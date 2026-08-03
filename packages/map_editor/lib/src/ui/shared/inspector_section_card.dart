@@ -16,8 +16,10 @@ class InspectorSectionCard extends StatelessWidget {
     this.subtitle,
     this.badgeText,
     this.accentColor = EditorChrome.accentPrimary,
+
     /// Boutons ou actions entre le titre et le badge (n’ouvrent pas / ne ferment pas la section).
     this.headerTrailing,
+
     /// Rayon des coins ; défaut 12 (inspecteur).
     this.borderRadius = 12,
   });
@@ -76,10 +78,12 @@ class InspectorSectionCard extends StatelessWidget {
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: Color.lerp(colors.surfaceSubtle, accentColor, 0.12)!,
+                            color: Color.lerp(
+                                colors.surfaceSubtle, accentColor, 0.12)!,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: Color.lerp(colors.borderSubtle, accentColor, 0.25)!,
+                              color: Color.lerp(
+                                  colors.borderSubtle, accentColor, 0.25)!,
                               width: 1,
                             ),
                           ),
@@ -87,7 +91,8 @@ class InspectorSectionCard extends StatelessWidget {
                           child: Icon(
                             icon,
                             size: 16,
-                            color: Color.lerp(colors.textSecondary, accentColor, 0.6)!,
+                            color: Color.lerp(
+                                colors.textSecondary, accentColor, 0.6)!,
                           ),
                         ),
                         const SizedBox(width: 12),

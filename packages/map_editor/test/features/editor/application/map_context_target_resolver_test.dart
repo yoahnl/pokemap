@@ -186,7 +186,7 @@ void main() {
         final map = MapData(
           id: 'wang',
           name: 'Wang',
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           visualStack: MapVisualStackConfig.canonicalV1,
           size: const GridSize(width: 1, height: 1),
           layers: <MapLayer>[
@@ -275,7 +275,7 @@ void main() {
 
 const _project = ProjectManifest(
   name: 'Context target resolver',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -302,7 +302,7 @@ const _project = ProjectManifest(
 const _baseMap = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   visualStack: MapVisualStackConfig.canonicalV1,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
@@ -368,7 +368,7 @@ final _mapWithEveryFamily = _baseMap.copyWith(
 const _paintedLayersMap = MapData(
   id: 'painted',
   name: 'Painted',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   visualStack: MapVisualStackConfig.canonicalV1,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[

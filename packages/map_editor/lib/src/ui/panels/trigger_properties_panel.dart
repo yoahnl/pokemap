@@ -84,7 +84,8 @@ class _TriggerPropertiesPanelState
                         ? 'Aucun trigger sur cette carte.\nChoisissez l’outil Trigger et cliquez sur la carte pour en ajouter.'
                         : 'No triggers on this map.\nSelect the Trigger tool and click on the map to add one.',
                     style: TextStyle(
-                      color: CupertinoColors.placeholderText.resolveFrom(context),
+                      color:
+                          CupertinoColors.placeholderText.resolveFrom(context),
                       fontSize: 12,
                     ),
                   ),
@@ -138,10 +139,10 @@ class _TriggerPropertiesPanelState
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: labelColor,
-                                      fontWeight: trigger.id ==
-                                              state.selectedTriggerId
-                                          ? FontWeight.w600
-                                          : FontWeight.w500,
+                                      fontWeight:
+                                          trigger.id == state.selectedTriggerId
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -205,7 +206,8 @@ class _TriggerPropertiesPanelState
                       fontSize: 11,
                       letterSpacing: 1.0,
                       fontWeight: FontWeight.bold,
-                      color: CupertinoColors.secondaryLabel.resolveFrom(context),
+                      color:
+                          CupertinoColors.secondaryLabel.resolveFrom(context),
                     ),
                   ),
                 ),
@@ -230,8 +232,7 @@ class _TriggerPropertiesPanelState
     TextInputType? keyboardType,
     List<TextInputFormatter>? inputFormatters,
   }) {
-    final secondary =
-        CupertinoColors.secondaryLabel.resolveFrom(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -342,7 +343,8 @@ class _TriggerPropertiesPanelState
                 context,
                 label: 'X',
                 controller: _xController,
-                keyboardType: const TextInputType.numberWithOptions(signed: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(signed: true),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
                 ],
@@ -354,7 +356,8 @@ class _TriggerPropertiesPanelState
                 context,
                 label: 'Y',
                 controller: _yController,
-                keyboardType: const TextInputType.numberWithOptions(signed: true),
+                keyboardType:
+                    const TextInputType.numberWithOptions(signed: true),
                 inputFormatters: [
                   FilteringTextInputFormatter.allow(RegExp(r'^-?\d*')),
                 ],
@@ -418,7 +421,9 @@ class _TriggerPropertiesPanelState
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              embedded ? 'Aucune propriété pour l’instant.' : 'No properties yet.',
+              embedded
+                  ? 'Aucune propriété pour l’instant.'
+                  : 'No properties yet.',
               style: TextStyle(
                 fontSize: 11,
                 color: CupertinoColors.placeholderText.resolveFrom(context),
@@ -456,7 +461,8 @@ class _TriggerPropertiesPanelState
                       });
                     },
                     icon: CupertinoIcons.trash,
-                    tooltip: embedded ? 'Retirer la propriété' : 'Remove Property',
+                    tooltip:
+                        embedded ? 'Retirer la propriété' : 'Remove Property',
                   ),
                 ],
               ),

@@ -9,8 +9,6 @@ class CinematicMapBackdropPrimitivePalette {
     required this.border,
     required this.grid,
     required this.tile,
-    required this.terrain,
-    required this.path,
     required this.smartTile,
     required this.object,
     required this.environment,
@@ -21,8 +19,6 @@ class CinematicMapBackdropPrimitivePalette {
   final Color border;
   final Color grid;
   final Color tile;
-  final Color terrain;
-  final Color path;
   final Color smartTile;
   final Color object;
   final Color environment;
@@ -157,7 +153,6 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 1;
         canvas.drawRect(rect.deflate(1), outlinePaint);
-      case CinematicMapBackdropVisualPrimitiveKind.terrainCell:
       case CinematicMapBackdropVisualPrimitiveKind.smartTilePart:
         final inset = _cellInset(rect);
         final cellRect = rect.deflate(inset);
@@ -166,15 +161,6 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
           ..drawRect(cellRect, strokePaint);
       case CinematicMapBackdropVisualPrimitiveKind.tileCell:
         canvas.drawRect(rect.deflate(_cellInset(rect)), fillPaint);
-      case CinematicMapBackdropVisualPrimitiveKind.pathCell:
-        final inset = _cellInset(rect);
-        final ribbonRect =
-            rect.deflate(inset).deflate(rect.shortestSide * 0.14);
-        final radius =
-            Radius.circular(math.max(1, ribbonRect.shortestSide * 0.2));
-        canvas
-          ..drawRRect(RRect.fromRectAndRadius(ribbonRect, radius), fillPaint)
-          ..drawRRect(RRect.fromRectAndRadius(ribbonRect, radius), strokePaint);
     }
   }
 
@@ -195,8 +181,6 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
   Color _colorFor(CinematicMapBackdropVisualPrimitiveKind kind) {
     return switch (kind) {
       CinematicMapBackdropVisualPrimitiveKind.tileCell => palette.tile,
-      CinematicMapBackdropVisualPrimitiveKind.terrainCell => palette.terrain,
-      CinematicMapBackdropVisualPrimitiveKind.pathCell => palette.path,
       CinematicMapBackdropVisualPrimitiveKind.smartTilePart =>
         palette.smartTile,
       CinematicMapBackdropVisualPrimitiveKind.objectAnchor => palette.object,
@@ -222,8 +206,6 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
   double _fillAlpha(CinematicMapBackdropVisualPrimitiveKind kind) {
     return switch (kind) {
       CinematicMapBackdropVisualPrimitiveKind.tileCell => 0.48,
-      CinematicMapBackdropVisualPrimitiveKind.terrainCell => 0.58,
-      CinematicMapBackdropVisualPrimitiveKind.pathCell => 0.78,
       CinematicMapBackdropVisualPrimitiveKind.smartTilePart => 0.7,
       CinematicMapBackdropVisualPrimitiveKind.objectAnchor ||
       CinematicMapBackdropVisualPrimitiveKind.environmentAnchor =>
@@ -237,8 +219,6 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
   double _strokeAlpha(CinematicMapBackdropVisualPrimitiveKind kind) {
     return switch (kind) {
       CinematicMapBackdropVisualPrimitiveKind.tileCell => 0.0,
-      CinematicMapBackdropVisualPrimitiveKind.terrainCell => 0.54,
-      CinematicMapBackdropVisualPrimitiveKind.pathCell => 0.9,
       CinematicMapBackdropVisualPrimitiveKind.smartTilePart => 0.78,
       CinematicMapBackdropVisualPrimitiveKind.objectAnchor ||
       CinematicMapBackdropVisualPrimitiveKind.environmentAnchor =>

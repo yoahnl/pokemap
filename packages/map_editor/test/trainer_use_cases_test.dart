@@ -435,7 +435,6 @@ ProjectManifest _project({
   ],
 }) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'trainer_use_case_test',
     maps: const <ProjectMapEntry>[],
     tilesets: tilesets,

@@ -27,7 +27,7 @@ void main() {
       activeMap: const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: GridSize(width: 4, height: 3),
         layers: <MapLayer>[
           collision,
@@ -143,7 +143,7 @@ void main() {
       activeMap: const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           MapLayer.border(id: 'borders', name: 'Bordures'),
@@ -184,7 +184,7 @@ void main() {
       activeMap: const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: GridSize(width: 3, height: 3),
         layers: <MapLayer>[
           MapLayer.border(id: 'borders', name: 'Bordures'),
@@ -262,7 +262,7 @@ void main() {
       activeMap: const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: GridSize(width: 3, height: 3),
         layers: <MapLayer>[
           MapLayer.border(id: 'borders', name: 'Bordures'),
@@ -328,7 +328,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 3, height: 3),
       layers: <MapLayer>[
         MapLayer.border(
@@ -403,7 +403,7 @@ void main() {
       activeMap: const MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: GridSize(width: 4, height: 3),
         layers: <MapLayer>[
           MapLayer.border(id: 'borders', name: 'Bordures'),
@@ -514,7 +514,7 @@ void main() {
       activeMap: MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: const GridSize(width: 4, height: 3),
         layers: <MapLayer>[
           MapLayer.border(
@@ -656,7 +656,7 @@ void main() {
       activeMap: MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: const GridSize(width: 4, height: 3),
         layers: <MapLayer>[
           MapLayer.border(
@@ -850,7 +850,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 4, height: 3),
       layers: <MapLayer>[
         MapLayer.border(
@@ -956,7 +956,7 @@ void main() {
 ProjectManifest _project(List<BorderBlueprintRecord> records) =>
     ProjectManifest(
       name: 'Project',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       borderCatalog: ProjectBorderCatalog(

@@ -172,7 +172,6 @@ const _shellKeys = <String>{
   'editorUpdateBlockerPersonalization',
   'editorUpdateBlockerBorderPreview',
   'editorUpdateBlockerBorderStudio',
-  'editorUpdateBlockerPathStudio',
   'editorUpdateBlockerStepStudio',
   'editorUpdateBlockerEnvironmentStudio',
   'editorUpdateBlockerDialogueStudio',

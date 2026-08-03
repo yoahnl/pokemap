@@ -284,8 +284,10 @@ class _ActorDisplayMarker extends StatelessWidget {
                   painter: CinematicActorSpritePainter(
                     image: tilesets![spriteActor!.spriteRef!.tilesetId]!.image!,
                     spriteRef: spriteActor!.spriteRef!,
-                    tileWidth: tilesets![spriteActor!.spriteRef!.tilesetId]!.tileWidth,
-                    tileHeight: tilesets![spriteActor!.spriteRef!.tilesetId]!.tileHeight,
+                    tileWidth:
+                        tilesets![spriteActor!.spriteRef!.tilesetId]!.tileWidth,
+                    tileHeight: tilesets![spriteActor!.spriteRef!.tilesetId]!
+                        .tileHeight,
                     outOfBoundsColor: colors.error,
                   ),
                 ),

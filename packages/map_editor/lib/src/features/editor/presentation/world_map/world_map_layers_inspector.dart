@@ -26,7 +26,6 @@ enum WorldMapLayerCreationKind {
   object,
   environment,
   border,
-  surface,
 }
 
 @immutable
@@ -412,7 +411,6 @@ WorldMapPaintSubtool? _paintSubtoolForLayer(MapLayer layer) {
         SmartTileUsage.path => WorldMapPaintSubtool.path,
         SmartTileUsage.forestSurface => WorldMapPaintSubtool.surface,
       },
-    SurfaceLayer() => WorldMapPaintSubtool.surface,
     BorderLayer() => WorldMapPaintSubtool.border,
     CollisionLayer() => WorldMapPaintSubtool.collision,
     _ => null,
@@ -812,8 +810,6 @@ void _addLayer(
   WorldMapLayerCreationKind kind,
 ) {
   switch (kind) {
-    case WorldMapLayerCreationKind.surface:
-      notifier.addSurfaceLayer(name: _creationKindDefaultName(kind));
     case WorldMapLayerCreationKind.tile:
     case WorldMapLayerCreationKind.collision:
     case WorldMapLayerCreationKind.object:
@@ -967,9 +963,6 @@ MapLayerKind _mapLayerKind(WorldMapLayerCreationKind kind) {
     WorldMapLayerCreationKind.object => MapLayerKind.object,
     WorldMapLayerCreationKind.environment => MapLayerKind.environment,
     WorldMapLayerCreationKind.border => MapLayerKind.border,
-    WorldMapLayerCreationKind.surface => throw StateError(
-        'Surface layers must use addSurfaceLayer.',
-      ),
   };
 }
 
@@ -983,7 +976,6 @@ String _creationKindLabel(WorldMapLayerCreationKind kind) {
     WorldMapLayerCreationKind.object => 'Couche d’objets',
     WorldMapLayerCreationKind.environment => 'Couche d’environnement',
     WorldMapLayerCreationKind.border => 'Couche de bordures',
-    WorldMapLayerCreationKind.surface => 'Couche de surface',
   };
 }
 
@@ -997,7 +989,6 @@ String _creationKindDefaultName(WorldMapLayerCreationKind kind) {
     WorldMapLayerCreationKind.object => 'Objets',
     WorldMapLayerCreationKind.environment => 'Environnement',
     WorldMapLayerCreationKind.border => 'Bordures',
-    WorldMapLayerCreationKind.surface => 'Surfaces',
   };
 }
 
@@ -1005,12 +996,9 @@ String _layerTypeLabel(MapLayer layer) {
   return switch (layer) {
     TileLayer() => 'Tuiles',
     CollisionLayer() => 'Collision',
-    TerrainLayer() => 'Terrain ancien',
-    PathLayer() => 'Chemin ancien',
     ObjectLayer() => 'Objets',
     EnvironmentLayer() => 'Environnement',
     BorderLayer() => 'Bordures',
-    SurfaceLayer() => 'Surface',
     SmartTileLayer(usage: SmartTileUsage.terrain) => 'Terrain',
     SmartTileLayer(usage: SmartTileUsage.path) => 'Chemin',
     SmartTileLayer(usage: SmartTileUsage.forestSurface) => 'Forêt',
@@ -1021,16 +1009,12 @@ PokeMapTone _layerTone(MapLayer layer) {
   return switch (layer) {
     TileLayer() => PokeMapTone.brand,
     CollisionLayer() => PokeMapTone.danger,
-    TerrainLayer() ||
     EnvironmentLayer() ||
     SmartTileLayer(usage: SmartTileUsage.terrain) =>
       PokeMapTone.success,
-    PathLayer() ||
-    SmartTileLayer(usage: SmartTileUsage.path) =>
-      PokeMapTone.warning,
+    SmartTileLayer(usage: SmartTileUsage.path) => PokeMapTone.warning,
     ObjectLayer() => PokeMapTone.narrative,
     BorderLayer() => PokeMapTone.info,
-    SurfaceLayer() => PokeMapTone.cinematic,
     SmartTileLayer(usage: SmartTileUsage.forestSurface) => PokeMapTone.map,
   };
 }
@@ -1039,12 +1023,9 @@ IconData _layerIcon(MapLayer layer) {
   return switch (layer) {
     TileLayer() => Icons.grid_view_rounded,
     CollisionLayer() => Icons.block_outlined,
-    TerrainLayer() => Icons.landscape_outlined,
-    PathLayer() => Icons.route_outlined,
     ObjectLayer() => Icons.category_outlined,
     EnvironmentLayer() => Icons.park_outlined,
     BorderLayer() => Icons.border_outer_rounded,
-    SurfaceLayer() => Icons.layers_outlined,
     SmartTileLayer(usage: SmartTileUsage.terrain) => Icons.landscape_outlined,
     SmartTileLayer(usage: SmartTileUsage.path) => Icons.route_outlined,
     SmartTileLayer(usage: SmartTileUsage.forestSurface) => Icons.park_outlined,

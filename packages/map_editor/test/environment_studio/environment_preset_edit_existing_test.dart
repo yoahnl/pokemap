@@ -488,7 +488,6 @@ ProjectManifest _manifest({
     tilesets: const [],
     environmentPresets: environmentPresets,
     elements: elements,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

@@ -208,7 +208,6 @@ void main() {
         ],
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     environmentPresets: [
       EnvironmentPreset(
         id: 'forest',

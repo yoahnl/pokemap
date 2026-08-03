@@ -39,7 +39,7 @@ void main() {
 const _map = MapData(
   id: 'overhang-map',
   name: 'Overhang map',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 8, height: 1),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -57,7 +57,7 @@ const _map = MapData(
 
 final _manifest = ProjectManifest(
   name: 'Smart runtime culling',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[
     ProjectTilesetEntry(

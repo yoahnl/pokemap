@@ -361,7 +361,7 @@ final class _CanonicalSnapshotFixture {
     final manifestBytes = utf8.encode(
       jsonEncode({
         'name': 'Snapshot Concurrency Characterization',
-        'version': 'v1',
+        'version': 'v6',
         'maps': [
           _mapEntry('zeta', 'maps/zeta.json'),
           _mapEntry('alpha', 'maps/alpha.json'),
@@ -417,7 +417,7 @@ final class _CanonicalSnapshotFixture {
     final manifestBytes = utf8.encode(
       jsonEncode({
         'name': 'Bounded Snapshot Concurrency',
-        'version': 'v1',
+        'version': 'v6',
         'maps': mapEntries,
         'tilesets': <Object?>[],
       }),
@@ -466,7 +466,7 @@ List<int> _mapBytes(String id, {String? name}) => utf8.encode(
         'id': id,
         'name': name ?? id,
         'size': {'width': 2, 'height': 2},
-        'version': 'v1',
+        'version': 'v6',
         'layers': <Object?>[],
       }),
     );

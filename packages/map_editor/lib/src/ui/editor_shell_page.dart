@@ -560,7 +560,6 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       _ when isNarrativeWorkspace => false,
       EditorWorkspaceMode.pokedex => false,
       EditorWorkspaceMode.smartTilesStudio => false,
-      EditorWorkspaceMode.pathStudio => false,
       EditorWorkspaceMode.environmentStudio => false,
       EditorWorkspaceMode.personalizationStudio => false,
       EditorWorkspaceMode.borderStudio => false,
@@ -1447,10 +1446,6 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .pathStudio =>
-                                                              EditorChrome
-                                                                  .islandCoolTint,
-                                                            EditorWorkspaceMode
                                                                   .environmentStudio =>
                                                               EditorChrome
                                                                   .islandWarmTint,
@@ -1501,9 +1496,6 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .smartTilesStudio =>
-                                                              const _EmptyWorkspaceInspector(),
-                                                            EditorWorkspaceMode
-                                                                  .pathStudio =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                   .environmentStudio =>
@@ -1889,7 +1881,6 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.narrativeValidator =>
         colors.narrative,
       EditorWorkspaceMode.smartTilesStudio => colors.mapAccent,
-      EditorWorkspaceMode.pathStudio => colors.brandPrimary,
       EditorWorkspaceMode.environmentStudio => colors.mapAccent,
       EditorWorkspaceMode.personalizationStudio => colors.reward,
       EditorWorkspaceMode.borderStudio => colors.brandCyan,
@@ -1932,7 +1923,6 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.worldRules => 'Règles',
       EditorWorkspaceMode.narrativeValidator => 'Validateur',
       EditorWorkspaceMode.smartTilesStudio => 'Smart Tiles',
-      EditorWorkspaceMode.pathStudio => 'Chemins',
       EditorWorkspaceMode.environmentStudio => 'Envs',
       EditorWorkspaceMode.personalizationStudio => 'Style',
       EditorWorkspaceMode.borderStudio => 'Bordures',
@@ -2038,17 +2028,6 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                     );
                   },
                 ),
-                if (activeMap.visualStack != MapVisualStackConfig.canonicalV1)
-                  MacosPulldownMenuItem(
-                    label: 'Migrer la pile visuelle',
-                    title: const Text('Migrer la pile visuelle'),
-                    onTap: () {
-                      showTopToolbarVisualStackMigrationDialog(
-                        context,
-                        notifier,
-                      );
-                    },
-                  ),
                 MacosPulldownMenuItem(
                   label: 'Sauvegarder la carte',
                   title: const Text('Sauvegarder la carte'),
@@ -2099,7 +2078,6 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                 CupertinoIcons.checkmark_shield,
               EditorWorkspaceMode.smartTilesStudio =>
                 CupertinoIcons.square_grid_3x2,
-              EditorWorkspaceMode.pathStudio => CupertinoIcons.arrow_branch,
               EditorWorkspaceMode.environmentStudio => CupertinoIcons.tree,
               EditorWorkspaceMode.personalizationStudio =>
                 CupertinoIcons.paintbrush,

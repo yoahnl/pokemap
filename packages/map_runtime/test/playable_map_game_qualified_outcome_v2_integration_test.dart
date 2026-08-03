@@ -3931,7 +3931,6 @@ ProjectManifest _project({
         ],
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

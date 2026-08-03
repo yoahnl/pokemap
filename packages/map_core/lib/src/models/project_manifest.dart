@@ -15,7 +15,6 @@ import 'cinematic_media_asset.dart';
 import 'narrative_event_registry.dart';
 import 'narrative_diagnostic_suppression.dart';
 import 'narrative_fact.dart';
-import 'project_path_pattern_preset.dart';
 import 'projected_building_shadow.dart';
 import 'scenario_asset.dart';
 import 'scene_asset.dart';
@@ -25,7 +24,6 @@ import 'shadow.dart';
 import 'shadow_catalog.dart';
 import 'smart_tile.dart';
 import 'storyline_asset.dart';
-import 'surface_catalog.dart';
 import 'tileset_transparent_color.dart';
 import 'visual_frame_json.dart';
 import 'world_rule.dart';
@@ -36,9 +34,7 @@ import '../operations/project_border_catalog_json_codec.dart';
 import '../operations/project_element_shadow_config_json_codec.dart';
 import '../operations/project_building_shadow_preset_catalog_json_codec.dart';
 import '../operations/project_element_projected_building_shadow_config_json_codec.dart';
-import '../operations/project_path_pattern_preset_json_codec.dart';
 import '../operations/project_shadow_catalog_json_codec.dart';
-import '../operations/project_surface_catalog_json_codec.dart';
 
 part 'project_manifest.freezed.dart';
 part 'project_manifest.g.dart';
@@ -67,26 +63,6 @@ Map<String, Object?>? _projectBorderCatalogToJson(
     return null;
   }
   return encodeProjectBorderCatalogJson(catalog, path: r'$.borderCatalog');
-}
-
-/// JSON → [ProjectSurfaceCatalog] pour [ProjectManifest.surfaceCatalog] (Lot 49).
-/// Clé absente ou `null` : catalogue vide. Non-map : [ValidationException].
-ProjectSurfaceCatalog _projectSurfaceCatalogFromJson(Object? json) {
-  if (json == null) {
-    return ProjectSurfaceCatalog();
-  }
-  if (json is! Map) {
-    throw const ValidationException('surfaceCatalog must be a JSON object');
-  }
-  return decodeProjectSurfaceCatalog(
-    Map<String, Object?>.from(json),
-  );
-}
-
-Map<String, Object?> _projectSurfaceCatalogToJson(
-  ProjectSurfaceCatalog catalog,
-) {
-  return encodeProjectSurfaceCatalog(catalog);
 }
 
 ProjectSmartTileCatalog _projectSmartTileCatalogFromJson(Object? json) {
@@ -385,24 +361,13 @@ class ProjectManifest with _$ProjectManifest {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectManifest({
     required String name,
-    @Default(ProjectVersion.v1) ProjectVersion version,
+    @Default(ProjectVersion.v6) ProjectVersion version,
     required List<ProjectMapEntry> maps,
     @Default([]) List<ProjectMapGroup> groups,
     @Default([]) List<ProjectTilesetFolder> tilesetFolders,
     required List<ProjectTilesetEntry> tilesets,
     @Default([]) List<ProjectElementCategory> elementCategories,
     @Default([]) List<ProjectElementEntry> elements,
-    @Default([]) List<ProjectPresetCategory> terrainCategories,
-    @Default([]) List<ProjectPresetCategory> pathCategories,
-    @Default([]) List<ProjectTerrainPreset> terrainPresets,
-    @Default([]) List<ProjectPathPreset> pathPresets,
-    @Default([])
-    @JsonKey(
-      name: 'pathPatternPresets',
-      fromJson: decodeProjectPathPatternPresets,
-      toJson: encodeProjectPathPatternPresets,
-    )
-    List<ProjectPathPatternPreset> pathPatternPresets,
     @Default([])
     @JsonKey(
       name: 'environmentPresets',
@@ -469,13 +434,6 @@ class ProjectManifest with _$ProjectManifest {
     @Default(ProjectNewGameConfig()) ProjectNewGameConfig newGame,
     @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
     @Default({}) Map<String, dynamic> globalProperties,
-    @Default(ProjectSurfaceCatalog.empty())
-    @JsonKey(
-      name: 'surfaceCatalog',
-      fromJson: _projectSurfaceCatalogFromJson,
-      toJson: _projectSurfaceCatalogToJson,
-    )
-    ProjectSurfaceCatalog surfaceCatalog,
     @Default(ProjectSmartTileCatalog.empty())
     @JsonKey(
       name: 'smartTileCatalog',
@@ -523,27 +481,17 @@ class ProjectManifest with _$ProjectManifest {
       ids: badges.map((badge) => badge.id),
     );
     final manifest = decoded.copyWith(shops: shops, badges: badges);
-    if (manifest.version == ProjectVersion.v1 &&
-        manifest.borderCatalog.isNotEmpty) {
-      throw const FormatException(
-        r'$.borderCatalog: non-empty Border catalog requires '
-        'ProjectVersion.v2',
-      );
-    }
-    if (manifest.version != ProjectVersion.v5 &&
-        manifest.smartTileCatalog.isNotEmpty) {
-      throw const FormatException(
-        r'$.smartTileCatalog: a non-empty Smart Tile catalog requires '
-        'ProjectVersion.v5',
-      );
-    }
     return manifest;
   }
 }
 
 void _preflightSmartTileManifestJson(Map<String, dynamic> json) {
-  if (json['version'] != 'v5') {
-    return;
+  final version = json['version'] ?? 'v1';
+  if (version != 'v6') {
+    throw FormatException(
+      r'$.version: smart_tile_v6_project_required '
+      '(expected=v6, actual=$version)',
+    );
   }
   for (final key in const <String>[
     'terrainCategories',
@@ -551,12 +499,12 @@ void _preflightSmartTileManifestJson(Map<String, dynamic> json) {
     'terrainPresets',
     'pathPresets',
     'pathPatternPresets',
+    'surfaceCatalog',
   ]) {
-    final value = json[key];
-    if (value is List && value.isNotEmpty) {
+    if (json.containsKey(key)) {
       throw FormatException(
-        '\$.$key: smart_tile_v5_legacy_manifest_unsupported '
-        '(version=v5, field=$key)',
+        '\$.$key: smart_tile_v6_legacy_manifest_field_unsupported '
+        '(version=v6, field=$key)',
       );
     }
   }
@@ -848,102 +796,6 @@ class ProjectElementEntry with _$ProjectElementEntry {
 
   factory ProjectElementEntry.fromJson(Map<String, dynamic> json) =>
       _$ProjectElementEntryFromJson(jsonCoerceLegacySourceToFrames(json));
-}
-
-@freezed
-class ProjectTerrainPreset with _$ProjectTerrainPreset {
-  @JsonSerializable(explicitToJson: true)
-  const factory ProjectTerrainPreset({
-    required String id,
-    required String name,
-    required TerrainType terrainType,
-    String? categoryId,
-    @Default('') String tilesetId,
-    @Default([]) List<TerrainPresetVariant> variants,
-    @Default(0) int sortOrder,
-  }) = _ProjectTerrainPreset;
-
-  factory ProjectTerrainPreset.fromJson(Map<String, dynamic> json) =>
-      _$ProjectTerrainPresetFromJson(json);
-}
-
-@freezed
-class TerrainPresetVariant with _$TerrainPresetVariant {
-  @JsonSerializable(explicitToJson: true)
-  const factory TerrainPresetVariant({
-    /// Au moins une frame ; rendu éditeur = première frame.
-    required List<TilesetVisualFrame> frames,
-    @Default(1) int weight,
-
-    /// When [frames] primary source spans W×H tiles (>1), controls sub-tile
-    /// choice per map cell (see [terrainPresetSubtileOffsetsForMapCell]).
-    @Default(TerrainVariantMultiTileLayout.tessellated)
-    TerrainVariantMultiTileLayout multiTileLayout,
-  }) = _TerrainPresetVariant;
-
-  factory TerrainPresetVariant.fromJson(Map<String, dynamic> json) =>
-      _$TerrainPresetVariantFromJson(jsonCoerceLegacySourceToFrames(json));
-}
-
-@freezed
-class ProjectPathPreset with _$ProjectPathPreset {
-  @JsonSerializable(explicitToJson: true)
-  const factory ProjectPathPreset({
-    required String id,
-    required String name,
-    @Default(PathSurfaceKind.path) PathSurfaceKind surfaceKind,
-    String? categoryId,
-    @Default('') String tilesetId,
-    @Default([]) List<PathPresetVariantMapping> variants,
-    @Default(0) int sortOrder,
-  }) = _ProjectPathPreset;
-
-  factory ProjectPathPreset.fromJson(Map<String, dynamic> json) =>
-      _$ProjectPathPresetFromJson(json);
-}
-
-@freezed
-class PathPresetVariantMapping with _$PathPresetVariantMapping {
-  @JsonSerializable(explicitToJson: true)
-  const factory PathPresetVariantMapping({
-    required TerrainPathVariant variant,
-
-    /// Au moins une frame ; rendu éditeur / autotile = première frame.
-    required List<TilesetVisualFrame> frames,
-  }) = _PathPresetVariantMapping;
-
-  factory PathPresetVariantMapping.fromJson(Map<String, dynamic> json) =>
-      _$PathPresetVariantMappingFromJson(jsonCoerceLegacySourceToFrames(json));
-}
-
-@freezed
-class PathAnimationTriggerRule with _$PathAnimationTriggerRule {
-  @JsonSerializable(explicitToJson: true)
-  const factory PathAnimationTriggerRule({
-    @Default('') String id,
-    @Default(true) bool enabled,
-    @Default(PathAnimationTriggerType.onStep) PathAnimationTriggerType trigger,
-    @Default(PathAnimationPlaybackMode.restartOnTrigger)
-    PathAnimationPlaybackMode mode,
-    @Default(PathAnimationActivationScope.wholeLayer)
-    PathAnimationActivationScope scope,
-  }) = _PathAnimationTriggerRule;
-
-  factory PathAnimationTriggerRule.fromJson(Map<String, dynamic> json) =>
-      _$PathAnimationTriggerRuleFromJson(json);
-}
-
-@freezed
-class ProjectPresetCategory with _$ProjectPresetCategory {
-  const factory ProjectPresetCategory({
-    required String id,
-    required String name,
-    String? parentCategoryId,
-    @Default(0) int sortOrder,
-  }) = _ProjectPresetCategory;
-
-  factory ProjectPresetCategory.fromJson(Map<String, dynamic> json) =>
-      _$ProjectPresetCategoryFromJson(json);
 }
 
 // ---------------------------------------------------------------------------

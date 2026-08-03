@@ -214,18 +214,19 @@ void main() {
       );
     });
 
-    testWidgets('enables project save and disables map history in Path Studio',
+    testWidgets(
+        'enables project save and disables map history in Smart Tiles Studio',
         (tester) async {
-      final projectDir = Directory('/tmp/top_toolbar_path_studio');
+      final projectDir = Directory('/tmp/top_toolbar_smart_tiles_studio');
       if (!projectDir.existsSync()) {
         projectDir.createSync(recursive: true);
       }
       await pumpTopToolbarHarness(
         tester,
         initialState: EditorState(
-          projectRootPath: '/tmp/top_toolbar_path_studio',
+          projectRootPath: '/tmp/top_toolbar_smart_tiles_studio',
           project: buildShellChromeProject(name: 'Pokemon Map'),
-          workspaceMode: EditorWorkspaceMode.pathStudio,
+          workspaceMode: EditorWorkspaceMode.smartTilesStudio,
           activeMap: buildShellChromeMap(),
           isProjectDirty: true,
           canUndoMap: true,
@@ -259,14 +260,14 @@ void main() {
     });
 
     testWidgets(
-        'shows neutral Save Project when project is clean in Path Studio',
+        'shows neutral Save Project when project is clean in Smart Tiles Studio',
         (tester) async {
       await pumpTopToolbarHarness(
         tester,
         initialState: EditorState(
-          projectRootPath: '/tmp/top_toolbar_path_studio_clean',
+          projectRootPath: '/tmp/top_toolbar_smart_tiles_studio_clean',
           project: buildShellChromeProject(name: 'Pokemon Map'),
-          workspaceMode: EditorWorkspaceMode.pathStudio,
+          workspaceMode: EditorWorkspaceMode.smartTilesStudio,
           activeMap: buildShellChromeMap(),
           isProjectDirty: false,
         ),
@@ -665,7 +666,7 @@ ProjectManifest _borderProject({
   );
   return ProjectManifest(
     name: 'Project',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     borderCatalog: ProjectBorderCatalog(
@@ -693,7 +694,7 @@ ProjectManifest _borderProject({
 MapData _borderMap({bool withFeature = true}) => MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 3, height: 3),
       layers: <MapLayer>[
         MapLayer.border(

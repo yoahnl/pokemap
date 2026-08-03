@@ -20,7 +20,6 @@ import 'package:map_editor/src/ui/canvas/pokedex_workspace.dart';
 
 void main() {
   const sampleProject = ProjectManifest(
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'pokedex_ui_test',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

@@ -44,7 +44,8 @@ class MapInspectorEmptyState extends StatelessWidget {
 
           // Main Dashed Box Container
           CustomPaint(
-            painter: DashedBorderPainter(color: colors.borderSubtle, radius: 12),
+            painter:
+                DashedBorderPainter(color: colors.borderSubtle, radius: 12),
             child: Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(

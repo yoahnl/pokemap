@@ -2,9 +2,6 @@ import 'package:flutter/foundation.dart' show immutable;
 import 'package:map_core/map_core.dart';
 
 enum EditorMapAuthoredLayerPaintKind {
-  terrain,
-  path,
-  surface,
   smartTile,
   tileBackground,
   border,
@@ -74,12 +71,6 @@ EditorMapLayerPaintOrderBuildResult buildEditorMapLayerPaintOrderResult(
         for (final step in plan.authoredLayerSteps)
           EditorMapAuthoredLayerPaintEntry(
             kind: switch (step.kind) {
-              MapVisualCompositionStepKind.terrainLayer =>
-                EditorMapAuthoredLayerPaintKind.terrain,
-              MapVisualCompositionStepKind.pathLayer =>
-                EditorMapAuthoredLayerPaintKind.path,
-              MapVisualCompositionStepKind.surfaceLayer =>
-                EditorMapAuthoredLayerPaintKind.surface,
               MapVisualCompositionStepKind.smartTileLayer =>
                 EditorMapAuthoredLayerPaintKind.smartTile,
               MapVisualCompositionStepKind.tileBackgroundLayer =>

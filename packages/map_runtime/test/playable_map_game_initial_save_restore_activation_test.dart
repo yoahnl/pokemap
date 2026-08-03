@@ -83,7 +83,6 @@ ProjectManifest _project() {
     ],
     tilesets: <ProjectTilesetEntry>[],
     scenarios: <ScenarioAsset>[_restoredMapEnterScenario],
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
   );
 }
 

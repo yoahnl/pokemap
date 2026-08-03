@@ -125,34 +125,6 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
       continue;
     }
     switch (layer) {
-      case TerrainLayer():
-        zOrder = _appendTerrainInstructions(
-          mapData: mapData,
-          manifest: manifest,
-          layer: layer,
-          tileWidth: tileWidth,
-          tileHeight: tileHeight,
-          manifestTilesetIds: manifestTilesetIds,
-          tilesets: tilesets,
-          diagnostics: diagnostics,
-          instructions: instructions,
-          zOrder: zOrder,
-          layerIndex: i,
-        );
-      case PathLayer():
-        zOrder = _appendPathInstructions(
-          mapData: mapData,
-          manifest: manifest,
-          layer: layer,
-          tileWidth: tileWidth,
-          tileHeight: tileHeight,
-          manifestTilesetIds: manifestTilesetIds,
-          tilesets: tilesets,
-          diagnostics: diagnostics,
-          instructions: instructions,
-          zOrder: zOrder,
-          layerIndex: i,
-        );
       case TileLayer():
         zOrder = _appendTileInstructions(
           mapData: mapData,
@@ -190,10 +162,6 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
         // explicit prevents a Border layer from falling through another
         // layer family's renderer. The empty-plan diagnostic remains valid.
         break;
-      case _:
-        // Legacy layer families are deliberately ignored by the cinematic
-        // renderer. Smart Tile is the only authored surface source.
-        break;
     }
   }
 
@@ -213,19 +181,15 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
   instructions.sort((a, b) {
     int getGroup(CinematicMapBackdropRenderPass pass) {
       switch (pass) {
-        case CinematicMapBackdropRenderPass.terrain:
-          return 0;
-        case CinematicMapBackdropRenderPass.path:
-          return 1;
         case CinematicMapBackdropRenderPass.tileBackground:
-          return 2;
+          return 0;
         case CinematicMapBackdropRenderPass.smartTileBackground:
-          return 3;
+          return 1;
         case CinematicMapBackdropRenderPass.placedBackground:
-          return 4;
+          return 2;
         case CinematicMapBackdropRenderPass.tileForeground:
         case CinematicMapBackdropRenderPass.placedForeground:
-          return 5;
+          return 3;
       }
     }
 
@@ -241,7 +205,7 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
       return layerCompare;
     }
 
-    if (groupA == 5) {
+    if (groupA == 3) {
       final subPassA =
           a.renderPass == CinematicMapBackdropRenderPass.tileForeground ? 0 : 1;
       final subPassB =
@@ -295,52 +259,6 @@ Set<String> collectCinematicMapBackdropLayerTilesetIds({
   ids.addAll(collectCinematicMapBackdropTileLayerTilesetIds(mapData));
   for (final layer in mapData.layers) {
     if (!layer.isVisible || layer.opacity <= 0) {
-      continue;
-    }
-    if (layer is TerrainLayer) {
-      for (final terrain in layer.terrains.toSet()) {
-        if (!terrain.isBackgroundPaintable) {
-          continue;
-        }
-        final preset = _terrainPresetForType(manifest, terrain);
-        final variant =
-            preset?.variants.isEmpty ?? true ? null : preset!.variants.first;
-        final frame = variant?.frames.isEmpty ?? true
-            ? null
-            : variant!.frames.primaryFrame;
-        final tilesetId = _frameTilesetId(frame, preset?.tilesetId ?? '');
-        if (tilesetId.isNotEmpty) {
-          ids.add(tilesetId);
-        }
-      }
-      continue;
-    }
-    if (layer is PathLayer) {
-      final pathResolver = _resolvePathPreset(manifest, layer.presetId);
-      if (pathResolver == null) {
-        continue;
-      }
-      for (var index = 0; index < layer.cells.length; index += 1) {
-        if (!layer.cells[index]) {
-          continue;
-        }
-        final x = index % mapData.size.width;
-        final y = index ~/ mapData.size.width;
-        final frame = _pathFrameForCell(
-          mapData: mapData,
-          layer: layer,
-          resolver: pathResolver,
-          x: x,
-          y: y,
-        );
-        final tilesetId = _frameTilesetId(
-          frame,
-          pathResolver.basePreset.tilesetId,
-        );
-        if (tilesetId.isNotEmpty) {
-          ids.add(tilesetId);
-        }
-      }
       continue;
     }
     if (layer is SmartTileLayer) {
@@ -434,223 +352,6 @@ Set<String> collectCinematicBackdropGeneratedPlacementIds(MapData mapData) {
     generatedIds.addAll(layer.content.generatedPlacementIds);
   }
   return Set<String>.unmodifiable(generatedIds);
-}
-
-int _appendTerrainInstructions({
-  required MapData mapData,
-  required ProjectManifest manifest,
-  required TerrainLayer layer,
-  required int tileWidth,
-  required int tileHeight,
-  required Set<String> manifestTilesetIds,
-  required Map<String, CinematicResolvedTilesetAsset> tilesets,
-  required List<CinematicMapBackdropTileDiagnostic> diagnostics,
-  required List<CinematicMapBackdropLayerBitmapInstruction> instructions,
-  required int zOrder,
-  required int layerIndex,
-}) {
-  var nextZ = zOrder;
-  for (var index = 0; index < layer.terrains.length; index += 1) {
-    final terrain = layer.terrains[index];
-    if (!terrain.isBackgroundPaintable) {
-      continue;
-    }
-    final x = index % mapData.size.width;
-    final y = index ~/ mapData.size.width;
-    if (!_containsCell(mapData, x, y)) {
-      continue;
-    }
-    final preset = _terrainPresetForType(manifest, terrain);
-    if (preset == null || preset.variants.isEmpty) {
-      _addDiagnostic(
-        diagnostics,
-        code: 'missingTerrainPreset',
-        message: 'Preset terrain indisponible pour ${terrain.name}.',
-        layerId: layer.id,
-      );
-      continue;
-    }
-    final variant = preset.variants.first;
-    if (variant.frames.isEmpty) {
-      _addDiagnostic(
-        diagnostics,
-        code: 'missingTerrainFrame',
-        message: 'Frame terrain indisponible pour ${preset.id}.',
-        layerId: layer.id,
-      );
-      continue;
-    }
-    final frame = variant.frames.primaryFrame;
-    final tilesetId = _frameTilesetId(frame, preset.tilesetId);
-    final asset = _availableTilesetAsset(
-      tilesetId: tilesetId,
-      layer: layer,
-      manifestTilesetIds: manifestTilesetIds,
-      tilesets: tilesets,
-      diagnostics: diagnostics,
-    );
-    if (asset == null) {
-      continue;
-    }
-    final source = frame.source;
-    final subtile = terrainPresetSubtileOffsetsForMapCell(
-      x,
-      y,
-      frameWidthTiles: source.width,
-      frameHeightTiles: source.height,
-      layout: variant.multiTileLayout,
-      subtileSalt: Object.hash(source.x, source.y),
-    );
-    final sourceRect = _tileSourceRect(
-      tileWidth: tileWidth,
-      tileHeight: tileHeight,
-      x: source.x + subtile.$1,
-      y: source.y + subtile.$2,
-      width: 1,
-      height: 1,
-    );
-    if (!_sourceRectFits(asset, sourceRect)) {
-      _addDiagnostic(
-        diagnostics,
-        code: 'terrainSourceRectOutOfBounds',
-        message: 'Terrain ${preset.id} hors atlas pour $tilesetId.',
-        layerId: layer.id,
-        tilesetId: tilesetId,
-      );
-      continue;
-    }
-    instructions.add(
-      CinematicMapBackdropLayerBitmapInstruction(
-        id: '${layer.id}:terrain:$index',
-        layerId: layer.id,
-        layerLabel: layer.name,
-        layerKind: CinematicMapBackdropLayerKind.terrain,
-        renderPass: CinematicMapBackdropRenderPass.terrain,
-        zOrder: nextZ,
-        tilesetId: tilesetId,
-        sourceRect: sourceRect,
-        destinationRect: _cellDestinationRect(x, y, tileWidth, tileHeight),
-        opacity: _opacity(layer.opacity),
-        sourceFamily: 'terrain',
-        sourceId: preset.id,
-        elementBottomY: y + 1.0,
-        elementX: x.toDouble(),
-        layerIndex: layerIndex,
-        quarterTurns: 0,
-        destinationWidthPx: tileWidth,
-        destinationHeightPx: tileHeight,
-      ),
-    );
-    nextZ += 1;
-  }
-  return nextZ;
-}
-
-int _appendPathInstructions({
-  required MapData mapData,
-  required ProjectManifest manifest,
-  required PathLayer layer,
-  required int tileWidth,
-  required int tileHeight,
-  required Set<String> manifestTilesetIds,
-  required Map<String, CinematicResolvedTilesetAsset> tilesets,
-  required List<CinematicMapBackdropTileDiagnostic> diagnostics,
-  required List<CinematicMapBackdropLayerBitmapInstruction> instructions,
-  required int zOrder,
-  required int layerIndex,
-}) {
-  var nextZ = zOrder;
-  final resolver = _resolvePathPreset(manifest, layer.presetId);
-  if (resolver == null) {
-    if (layer.cells.any((cell) => cell)) {
-      _addDiagnostic(
-        diagnostics,
-        code: 'missingPathPreset',
-        message: 'Preset chemin ${layer.presetId} indisponible.',
-        layerId: layer.id,
-      );
-    }
-    return nextZ;
-  }
-  for (var index = 0; index < layer.cells.length; index += 1) {
-    if (!layer.cells[index]) {
-      continue;
-    }
-    final x = index % mapData.size.width;
-    final y = index ~/ mapData.size.width;
-    if (!_containsCell(mapData, x, y)) {
-      continue;
-    }
-    final frame = _pathFrameForCell(
-      mapData: mapData,
-      layer: layer,
-      resolver: resolver,
-      x: x,
-      y: y,
-    );
-    if (frame == null) {
-      _addDiagnostic(
-        diagnostics,
-        code: 'missingPathFrame',
-        message: 'Frame chemin indisponible pour ${layer.presetId}.',
-        layerId: layer.id,
-      );
-      continue;
-    }
-    final tilesetId = _frameTilesetId(frame, resolver.basePreset.tilesetId);
-    final asset = _availableTilesetAsset(
-      tilesetId: tilesetId,
-      layer: layer,
-      manifestTilesetIds: manifestTilesetIds,
-      tilesets: tilesets,
-      diagnostics: diagnostics,
-    );
-    if (asset == null) {
-      continue;
-    }
-    final sourceRect = _tileSourceRect(
-      tileWidth: tileWidth,
-      tileHeight: tileHeight,
-      x: frame.source.x,
-      y: frame.source.y,
-      width: 1,
-      height: 1,
-    );
-    if (!_sourceRectFits(asset, sourceRect)) {
-      _addDiagnostic(
-        diagnostics,
-        code: 'pathSourceRectOutOfBounds',
-        message: 'Chemin ${layer.presetId} hors atlas pour $tilesetId.',
-        layerId: layer.id,
-        tilesetId: tilesetId,
-      );
-      continue;
-    }
-    instructions.add(
-      CinematicMapBackdropLayerBitmapInstruction(
-        id: '${layer.id}:path:$index',
-        layerId: layer.id,
-        layerLabel: layer.name,
-        layerKind: CinematicMapBackdropLayerKind.path,
-        renderPass: CinematicMapBackdropRenderPass.path,
-        zOrder: nextZ,
-        tilesetId: tilesetId,
-        sourceRect: sourceRect,
-        destinationRect: _cellDestinationRect(x, y, tileWidth, tileHeight),
-        opacity: _opacity(layer.opacity),
-        sourceFamily: 'path',
-        sourceId: resolver.sourceId,
-        elementBottomY: y + 1.0,
-        elementX: x.toDouble(),
-        layerIndex: layerIndex,
-        quarterTurns: 0,
-        destinationWidthPx: tileWidth,
-        destinationHeightPx: tileHeight,
-      ),
-    );
-    nextZ += 1;
-  }
-  return nextZ;
 }
 
 int _appendTileInstructions({
@@ -993,100 +694,6 @@ int _appendPlacedElementInstructions({
   return nextZ;
 }
 
-_ResolvedPathPreset? _resolvePathPreset(
-  ProjectManifest manifest,
-  String presetId,
-) {
-  final trimmed = presetId.trim();
-  if (trimmed.isEmpty) {
-    return null;
-  }
-  for (final pattern in manifest.pathPatternPresets) {
-    if (pattern.id == trimmed) {
-      final base = _pathPresetById(manifest, pattern.basePathPresetId);
-      return base == null
-          ? null
-          : _ResolvedPathPreset(
-              sourceId: pattern.id,
-              basePreset: base,
-              patternPreset: pattern,
-            );
-    }
-  }
-  final base = _pathPresetById(manifest, trimmed);
-  if (base == null) {
-    return null;
-  }
-  ProjectPathPatternPreset? linkedPattern;
-  var hasAmbiguousPattern = false;
-  for (final pattern in manifest.pathPatternPresets) {
-    if (pattern.basePathPresetId.trim() != trimmed) {
-      continue;
-    }
-    if (linkedPattern != null) {
-      hasAmbiguousPattern = true;
-      break;
-    }
-    linkedPattern = pattern;
-  }
-  if (!hasAmbiguousPattern && linkedPattern != null) {
-    return _ResolvedPathPreset(
-      sourceId: linkedPattern.id,
-      basePreset: base,
-      patternPreset: linkedPattern,
-    );
-  }
-  return _ResolvedPathPreset(sourceId: base.id, basePreset: base);
-}
-
-TilesetVisualFrame? _pathFrameForCell({
-  required MapData mapData,
-  required PathLayer layer,
-  required _ResolvedPathPreset resolver,
-  required int x,
-  required int y,
-}) {
-  final variant = layer.cells.length == mapData.size.width * mapData.size.height
-      ? resolvePathVariantAt(
-          cells: layer.cells,
-          mapSize: mapData.size,
-          pos: GridPos(x: x, y: y),
-        )
-      : TerrainPathVariant.isolated;
-  final pattern = resolver.patternPreset;
-  if (pattern != null) {
-    final resolution = resolvePathPatternVisual(
-      pathPatternPreset: pattern,
-      basePathPreset: resolver.basePreset,
-      resolvedVariant: variant,
-      mapX: x,
-      mapY: y,
-    );
-    return resolution.frames.isEmpty ? null : resolution.frames.primaryFrame;
-  }
-  for (final mapping in resolver.basePreset.variants) {
-    if (mapping.variant == variant && mapping.frames.isNotEmpty) {
-      return mapping.frames.primaryFrame;
-    }
-  }
-  return resolver.basePreset.variants.isEmpty ||
-          resolver.basePreset.variants.first.frames.isEmpty
-      ? null
-      : resolver.basePreset.variants.first.frames.primaryFrame;
-}
-
-final class _ResolvedPathPreset {
-  const _ResolvedPathPreset({
-    required this.sourceId,
-    required this.basePreset,
-    this.patternPreset,
-  });
-
-  final String sourceId;
-  final ProjectPathPreset basePreset;
-  final ProjectPathPatternPreset? patternPreset;
-}
-
 CinematicResolvedTilesetAsset? _availableTilesetAsset({
   required String tilesetId,
   required MapLayer layer,
@@ -1146,27 +753,6 @@ void _addDiagnostic(
       tilesetId: tilesetId,
     ),
   );
-}
-
-ProjectTerrainPreset? _terrainPresetForType(
-  ProjectManifest manifest,
-  TerrainType terrain,
-) {
-  for (final preset in manifest.terrainPresets) {
-    if (preset.terrainType == terrain) {
-      return preset;
-    }
-  }
-  return null;
-}
-
-ProjectPathPreset? _pathPresetById(ProjectManifest manifest, String id) {
-  for (final preset in manifest.pathPresets) {
-    if (preset.id == id) {
-      return preset;
-    }
-  }
-  return null;
 }
 
 ProjectElementEntry? _elementById(ProjectManifest manifest, String id) {

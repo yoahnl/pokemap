@@ -15,7 +15,8 @@ class ListPokedexEntriesUseCase {
   final PokemonReadRepository repository;
 
   Future<List<PokedexListEntry>> execute(ProjectWorkspace workspace) async {
-    final speciesIndexEntries = await repository.listSpeciesIndexEntries(workspace);
+    final speciesIndexEntries =
+        await repository.listSpeciesIndexEntries(workspace);
     final pokedexEntries = <PokedexListEntry>[];
 
     for (final speciesIndexEntry in speciesIndexEntries) {

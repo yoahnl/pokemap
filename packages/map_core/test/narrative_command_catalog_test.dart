@@ -169,7 +169,6 @@ void main() {
   test('interactive diagnostics block an unknown destination map', () {
     const project = ProjectManifest(
       name: 'Commands',
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
       maps: [],
       tilesets: [],
     );

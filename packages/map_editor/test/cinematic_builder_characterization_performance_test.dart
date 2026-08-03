@@ -88,7 +88,6 @@ ProjectManifest _characterizationProject() {
     name: 'Cinematic characterization',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     cinematics: <CinematicAsset>[
       CinematicAsset(
         id: 'cinematic_baseline',

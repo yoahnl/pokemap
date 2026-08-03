@@ -363,7 +363,6 @@ ProjectManifest _projectWithScene() {
       ),
     ],
     scenes: [_validScene('scene_intro')],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 
@@ -372,7 +371,6 @@ ProjectManifest _projectWithoutScenes() {
     name: 'Project',
     maps: [],
     tilesets: [],
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
   );
 }
 
@@ -392,7 +390,6 @@ ProjectManifest _projectWithWorldRules({
           ),
         ],
     worldRules: worldRules,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

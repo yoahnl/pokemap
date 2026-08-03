@@ -232,7 +232,7 @@ Map<String, Object?> _projectJson({
 }) {
   return {
     'name': 'Dialogue outcomes test',
-    'version': 'v1',
+    'version': 'v6',
     'maps': <Object?>[],
     'tilesets': <Object?>[],
     'dialogues': [

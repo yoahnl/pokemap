@@ -149,8 +149,7 @@ void main() {
         size: const Size(1280, 800),
         state: _state.copyWith(
           activeTool: EditorToolType.tilePaint,
-          activeBrush:
-              const EditorBrush.projectElement(elementId: 'fridge'),
+          activeBrush: const EditorBrush.projectElement(elementId: 'fridge'),
         ),
       );
       addTearDown(() => harness.dispose(tester));

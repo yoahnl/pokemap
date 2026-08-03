@@ -177,8 +177,7 @@ void main() {
     expect(await projectFile.readAsString(), beforeProjectJson);
   });
 
-  test(
-      'sync honors a custom pokemon data root for the moves catalog path',
+  test('sync honors a custom pokemon data root for the moves catalog path',
       () async {
     await _configureCustomPokemonDataRoot(
       projectRoot: tempProjectRoot,
@@ -412,8 +411,7 @@ void main() {
     expect(loadedView.entries.single.shortDesc, 'A true legacy move entry.');
   });
 
-  test('load use case accepts a minimal local move entry shape',
-      () async {
+  test('load use case accepts a minimal local move entry shape', () async {
     final loadedView = await loadViewFromCatalog(
       _catalogWithEntries(
         const <Map<String, dynamic>>[

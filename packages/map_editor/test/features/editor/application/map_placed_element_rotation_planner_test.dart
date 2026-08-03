@@ -390,7 +390,7 @@ ProjectManifest _project({
 }) {
   return ProjectManifest(
     name: 'Rotation planner',
-    version: ProjectVersion.v3,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(
@@ -432,7 +432,7 @@ MapData _map({
   return MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v3,
+    version: ProjectVersion.v6,
     size: size,
     layers: layers ??
         <MapLayer>[

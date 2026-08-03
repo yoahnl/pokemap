@@ -60,7 +60,7 @@ void main() {
           id: 'future-map',
           name: 'Future map',
           size: const GridSize(width: 1, height: 1),
-          version: ProjectVersion.v3,
+          version: ProjectVersion.v6,
           visualStack: MapVisualStackConfig(semanticsVersion: 99),
         ).toJson(),
       ),
@@ -91,6 +91,7 @@ void main() {
 
 Map<String, dynamic> _legacyBuildingProjectJson() {
   return <String, dynamic>{
+    'version': 'v6',
     'name': 'Runtime Collision Normalization',
     'maps': <dynamic>[],
     'tilesets': <dynamic>[

@@ -12,9 +12,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../../features/editor/presentation/map_activation_guard.dart';
 import '../../../../features/editor/state/editor_notifier.dart';
-import '../../../canvas/map_visual_stack_migration_renderer.dart';
 import '../../../design_system/pokemap_resize_impact_dialog.dart';
-import '../../../design_system/pokemap_visual_stack_migration_dialog.dart';
 import '../../cupertino_editor_widgets.dart';
 
 /// Regroupe les dialogs de toolbar pour garder `top_toolbar.dart` focalisé sur
@@ -397,34 +395,6 @@ Future<void> showTopToolbarResizeMapDialog(
   );
   if (!context.mounted || target == null) return;
   await notifier.resizeActiveMap(target.width, target.height);
-}
-
-Future<void> showTopToolbarVisualStackMigrationDialog(
-  BuildContext context,
-  EditorNotifier notifier,
-) async {
-  final renderInputs = notifier.activeMapVisualStackMigrationRenderInputs();
-  if (renderInputs == null) return;
-  final comparator = MapGridPainterVisualStackMigrationComparator(
-    inputs: renderInputs,
-  );
-  final preview = notifier
-      .previewActiveMapVisualStackMigration(
-        compareRenderedPixels: comparator.compare,
-      )
-      .then(
-        (value) =>
-            value ??
-            (throw StateError(
-              'No active map is available for visual-stack migration.',
-            )),
-      );
-  final acceptedPreview = await showPokeMapVisualStackMigrationDialog(
-    context,
-    preview: preview,
-  );
-  if (!context.mounted || acceptedPreview == null) return;
-  notifier.migrateActiveMapVisualStack(acceptedPreview);
 }
 
 Widget topToolbarSettingsLabeledField(

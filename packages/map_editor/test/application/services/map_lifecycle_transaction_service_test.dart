@@ -190,7 +190,7 @@ void main() {
           'a journal', () async {
         final fixture = _Fixture();
         final futureSource = fixture.source.copyWith(
-          version: ProjectVersion.v3,
+          version: ProjectVersion.v6,
           visualStack: MapVisualStackConfig(semanticsVersion: 99),
         );
         fixture.gateway.seedMap(_Fixture.sourcePath, futureSource);
@@ -227,7 +227,7 @@ void main() {
         () async {
       final fixture = _Fixture();
       final futureSource = fixture.source.copyWith(
-        version: ProjectVersion.v3,
+        version: ProjectVersion.v6,
         visualStack: MapVisualStackConfig(semanticsVersion: 99),
       );
       fixture.gateway.seedMap(_Fixture.sourcePath, futureSource);

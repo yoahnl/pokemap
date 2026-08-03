@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
-import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_tool_availability.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
@@ -35,43 +34,36 @@ void main() {
         String layerId,
         WorldMapPaintSubtool subtool,
         EditorToolType tool,
-        TerrainSelectionMode? terrainMode,
       })>[
         (
           layerId: 'tile',
           subtool: WorldMapPaintSubtool.tile,
           tool: EditorToolType.tilePaint,
-          terrainMode: null,
         ),
         (
           layerId: 'smart-terrain',
           subtool: WorldMapPaintSubtool.terrain,
           tool: EditorToolType.terrainPaint,
-          terrainMode: TerrainSelectionMode.terrain,
         ),
         (
           layerId: 'smart-path',
           subtool: WorldMapPaintSubtool.path,
           tool: EditorToolType.terrainPaint,
-          terrainMode: TerrainSelectionMode.path,
         ),
         (
           layerId: 'surface',
           subtool: WorldMapPaintSubtool.surface,
-          tool: EditorToolType.surfacePaint,
-          terrainMode: null,
+          tool: EditorToolType.terrainPaint,
         ),
         (
           layerId: 'border',
           subtool: WorldMapPaintSubtool.border,
           tool: EditorToolType.borderPaint,
-          terrainMode: null,
         ),
         (
           layerId: 'collision',
           subtool: WorldMapPaintSubtool.collision,
           tool: EditorToolType.collisionPaint,
-          terrainMode: null,
         ),
       ];
 
@@ -105,13 +97,6 @@ void main() {
           testCase.tool,
           reason: testCase.subtool.name,
         );
-        if (testCase.terrainMode != null) {
-          expect(
-            notifier.state.terrainSelectionMode,
-            testCase.terrainMode,
-            reason: testCase.subtool.name,
-          );
-        }
         expect(
           notifier.state.activeBrush,
           testCase.subtool == WorldMapPaintSubtool.tile
@@ -128,10 +113,6 @@ void main() {
       );
       expect(result.accepted, isTrue);
       expect(result.resultingTool, EditorToolType.terrainPaint);
-      expect(
-        notifier.state.terrainSelectionMode,
-        TerrainSelectionMode.terrain,
-      );
 
       notifier.state = _stateForLayer('smart-path');
       result = notifier.activateWorldMapTool(
@@ -139,10 +120,6 @@ void main() {
       );
       expect(result.accepted, isTrue);
       expect(result.resultingTool, EditorToolType.terrainPaint);
-      expect(
-        notifier.state.terrainSelectionMode,
-        TerrainSelectionMode.path,
-      );
     });
 
     test(
@@ -629,7 +606,7 @@ void main() {
     });
 
     test(
-      'surface preflight rejects wrong layer and stale preset with full preservation',
+      'surface preflight rejects a non-Smart-Tile layer with full preservation',
       () {
         final container = _createContainer();
         final notifier = container.read(editorNotifierProvider.notifier);
@@ -642,12 +619,7 @@ void main() {
           activeLayerId: 'redo-layer',
         );
 
-        for (final initial in <EditorState>[
-          _stateForLayer('tile').copyWith(selectedSurfacePresetId: 'water'),
-          _stateForLayer('surface').copyWith(
-            selectedSurfacePresetId: 'stale-surface',
-          ),
-        ]) {
+        for (final initial in <EditorState>[_stateForLayer('tile')]) {
           notifier.state = initial.copyWith(
             activeTool: EditorToolType.eventPlacement,
             activeBrush: const EditorBrush.tile(
@@ -798,14 +770,13 @@ EditorState _stateForLayer(String layerId) {
     project: _project,
     activeMap: _map,
     activeLayerId: layerId,
-    selectedSurfacePresetId: 'water',
     savedMapSnapshot: _map,
   );
 }
 
 final _project = ProjectManifest(
   name: 'World map tools',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   maps: const <ProjectMapEntry>[
     ProjectMapEntry(
       id: 'map-a',
@@ -845,22 +816,6 @@ final _project = ProjectManifest(
       ],
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog(
-    presets: <ProjectSurfacePreset>[
-      ProjectSurfacePreset(
-        id: 'water',
-        name: 'Water',
-        variantAnimations: SurfaceVariantAnimationRefSet(
-          refs: <SurfaceVariantAnimationRef>[
-            SurfaceVariantAnimationRef(
-              role: SurfaceVariantRole.isolated,
-              animationId: 'water-isolated',
-            ),
-          ],
-        ),
-      ),
-    ],
-  ),
   borderCatalog: ProjectBorderCatalog(
     records: <BorderBlueprintRecord>[
       BorderBlueprintRecord(
@@ -948,7 +903,7 @@ final _borderParams = BorderGenerationParams(
 final _map = MapData(
   id: 'map-a',
   name: 'Map A',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     const TileLayer(
@@ -1012,7 +967,13 @@ final _map = MapData(
         ],
       ),
     ),
-    const SurfaceLayer(id: 'surface', name: 'Surface'),
+    const SmartTileLayer(
+      id: 'surface',
+      name: 'Surface',
+      presetId: 'surface',
+      usage: SmartTileUsage.forestSurface,
+      field: SmartTileField.cell(),
+    ),
     const CollisionLayer(
       id: 'collision',
       name: 'Collision',

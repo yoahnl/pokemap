@@ -103,7 +103,6 @@ ProjectManifest _project(SceneAsset scene) {
       ),
     ],
     scenes: [scene],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

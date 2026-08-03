@@ -448,7 +448,6 @@ ProjectManifest _project({
   List<StorylineAsset> storylines = const <StorylineAsset>[],
 }) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: name,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

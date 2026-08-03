@@ -165,8 +165,8 @@ void main() {
 
   group('Cutscenes', () {
     test('cutsceneCompleted true when cutscene completed', () {
-      final ev = evaluator(
-          makeState(completedCutscenes: ['test_cutscene_done']));
+      final ev =
+          evaluator(makeState(completedCutscenes: ['test_cutscene_done']));
       expect(
         ev.evaluatePredicate(MapEntityRuntimePredicate(
           kind: MapEntityRuntimePredicateKind.cutsceneCompleted,
@@ -199,8 +199,8 @@ void main() {
     });
 
     test('cutsceneNotCompleted false when completed', () {
-      final ev = evaluator(
-          makeState(completedCutscenes: ['test_cutscene_done']));
+      final ev =
+          evaluator(makeState(completedCutscenes: ['test_cutscene_done']));
       expect(
         ev.evaluatePredicate(MapEntityRuntimePredicate(
           kind: MapEntityRuntimePredicateKind.cutsceneNotCompleted,
@@ -515,11 +515,9 @@ void main() {
         ],
       );
 
-      expect(
-          evOriginal.resolveNpcDialogue(npc)?.dialogueId,
+      expect(evOriginal.resolveNpcDialogue(npc)?.dialogueId,
           'test_dialogue_step_done');
-      expect(
-          evReloaded.resolveNpcDialogue(npc)?.dialogueId,
+      expect(evReloaded.resolveNpcDialogue(npc)?.dialogueId,
           'test_dialogue_step_done');
     });
   });
@@ -572,8 +570,7 @@ void main() {
       // Before mutation.
       final stateBefore = makeState();
       final evBefore = evaluator(stateBefore);
-      expect(
-          evBefore.resolveNpcDialogue(npc)?.dialogueId,
+      expect(evBefore.resolveNpcDialogue(npc)?.dialogueId,
           'test_dialogue_default');
 
       // Mutation: complete the step.
@@ -583,8 +580,7 @@ void main() {
         'test_step_progress',
       );
       final evAfter = evaluator(stateAfter);
-      expect(
-          evAfter.resolveNpcDialogue(npc)?.dialogueId,
+      expect(evAfter.resolveNpcDialogue(npc)?.dialogueId,
           'test_dialogue_post_step');
     });
 

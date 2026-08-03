@@ -118,7 +118,6 @@ RuntimeMapBundle _bundle() {
           ),
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'runtime-occlusion-visual-smoke-map',

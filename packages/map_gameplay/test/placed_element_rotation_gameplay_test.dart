@@ -661,7 +661,6 @@ ProjectManifest _project({
       ProjectElementCategory(id: 'objects', name: 'Objects'),
     ],
     elements: elements,
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 

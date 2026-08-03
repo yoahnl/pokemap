@@ -111,9 +111,7 @@ void main() {
         ScenarioEdge(
             id: 'e1', fromNodeId: 'source_mentor', toNodeId: 'give_pokemon'),
         ScenarioEdge(
-            id: 'e2',
-            fromNodeId: 'give_pokemon',
-            toNodeId: 'set_starter_fact'),
+            id: 'e2', fromNodeId: 'give_pokemon', toNodeId: 'set_starter_fact'),
         ScenarioEdge(
             id: 'e3',
             fromNodeId: 'set_starter_fact',
@@ -127,9 +125,7 @@ void main() {
             fromNodeId: 'set_mission_fact',
             toNodeId: 'complete_mission_step'),
         ScenarioEdge(
-            id: 'e6',
-            fromNodeId: 'complete_mission_step',
-            toNodeId: 'end'),
+            id: 'e6', fromNodeId: 'complete_mission_step', toNodeId: 'end'),
       ],
     );
   }
@@ -181,17 +177,11 @@ void main() {
       ],
       edges: const <ScenarioEdge>[
         ScenarioEdge(
-            id: 'e1',
-            fromNodeId: 'source_rival',
-            toNodeId: 'open_dialogue'),
+            id: 'e1', fromNodeId: 'source_rival', toNodeId: 'open_dialogue'),
         ScenarioEdge(
-            id: 'e2',
-            fromNodeId: 'open_dialogue',
-            toNodeId: 'emit_outcome'),
+            id: 'e2', fromNodeId: 'open_dialogue', toNodeId: 'emit_outcome'),
         ScenarioEdge(
-            id: 'e3',
-            fromNodeId: 'emit_outcome',
-            toNodeId: 'end_dialogue'),
+            id: 'e3', fromNodeId: 'emit_outcome', toNodeId: 'end_dialogue'),
       ],
     );
   }
@@ -213,8 +203,7 @@ void main() {
         ScenarioNode(
           id: 'source_outcome',
           type: ScenarioNodeType.reference,
-          payload:
-              ScenarioNodePayload(actionKind: kScenarioSourceOutcome),
+          payload: ScenarioNodePayload(actionKind: kScenarioSourceOutcome),
           binding: ScenarioNodeBinding(
             outcomeId: 'test_dialogue_outcome_confident',
           ),
@@ -254,8 +243,7 @@ void main() {
             condition: ScriptCondition(
               type: ScriptConditionType.flagIsSet,
               params: <String, String>{
-                ScriptConditionParams.flagName:
-                    'battle:test_battle:victory',
+                ScriptConditionParams.flagName: 'battle:test_battle:victory',
               },
             ),
           ),
@@ -265,8 +253,7 @@ void main() {
           id: 'set_victory_fact',
           type: ScenarioNodeType.action,
           payload: ScenarioNodePayload(actionKind: kScenarioActionSetFlag),
-          binding:
-              ScenarioNodeBinding(flagName: 'test_battle_victory_fact'),
+          binding: ScenarioNodeBinding(flagName: 'test_battle_victory_fact'),
         ),
         ScenarioNode(
           id: 'complete_battle_step_victory',
@@ -284,8 +271,7 @@ void main() {
           id: 'set_defeat_fact',
           type: ScenarioNodeType.action,
           payload: ScenarioNodePayload(actionKind: kScenarioActionSetFlag),
-          binding:
-              ScenarioNodeBinding(flagName: 'test_battle_defeat_fact'),
+          binding: ScenarioNodeBinding(flagName: 'test_battle_defeat_fact'),
         ),
         ScenarioNode(
           id: 'complete_battle_step_defeat',
@@ -319,9 +305,7 @@ void main() {
           kind: ScenarioEdgeKind.falseBranch,
         ),
         ScenarioEdge(
-            id: 'e4',
-            fromNodeId: 'battle_node',
-            toNodeId: 'condition_victory'),
+            id: 'e4', fromNodeId: 'battle_node', toNodeId: 'condition_victory'),
         // Victory
         ScenarioEdge(
           id: 'e5',
@@ -371,8 +355,7 @@ void main() {
       pos: const GridPos(x: 10, y: 10),
       npc: MapEntityNpcData(
         displayName: 'Test Rival',
-        dialogue:
-            const DialogueRef(dialogueId: 'test_rival_default_dialogue'),
+        dialogue: const DialogueRef(dialogueId: 'test_rival_default_dialogue'),
         visibilityRule: MapEntityNpcVisibilityRule(
           mode: MapEntityNpcVisibilityMode.visibleWhen,
           predicate: MapEntityRuntimePredicate(
@@ -478,8 +461,7 @@ void main() {
       expect(state.party.members.first.level, 5);
 
       // Facts set.
-      expect(
-          state.storyFlags.activeFlags, contains('test_given_starter_fact'));
+      expect(state.storyFlags.activeFlags, contains('test_given_starter_fact'));
       expect(
           state.storyFlags.activeFlags, contains('test_mission_started_fact'));
 
@@ -525,8 +507,8 @@ void main() {
       expect(reloaded.party.members.first.level, 5);
 
       // Facts preserved.
-      expect(reloaded.storyFlags.activeFlags,
-          contains('test_given_starter_fact'));
+      expect(
+          reloaded.storyFlags.activeFlags, contains('test_given_starter_fact'));
       expect(reloaded.storyFlags.activeFlags,
           contains('test_mission_started_fact'));
 
@@ -639,8 +621,8 @@ void main() {
       );
 
       // Dialogue was opened.
-      expect(dialogueResult.status,
-          ScenarioRuntimeExecutionStatus.executedEffect);
+      expect(
+          dialogueResult.status, ScenarioRuntimeExecutionStatus.executedEffect);
       expect(openedDialogues, contains('test_scene_rival_dialogue'));
 
       // After dialogue closes, continuation runs emitOutcome.
@@ -815,8 +797,7 @@ void main() {
       );
 
       expect(result.status, ScenarioRuntimeExecutionStatus.reachedEnd);
-      expect(
-          state.storyFlags.activeFlags, contains('test_battle_defeat_fact'));
+      expect(state.storyFlags.activeFlags, contains('test_battle_defeat_fact'));
       expect(state.storyFlags.activeFlags,
           isNot(contains('test_battle_victory_fact')));
       expect(state.progression.completedStepIds,
@@ -878,8 +859,8 @@ void main() {
       expect(reloaded.party.members.first.speciesId, 'test_starter_species');
 
       // All facts preserved.
-      expect(reloaded.storyFlags.activeFlags,
-          contains('test_given_starter_fact'));
+      expect(
+          reloaded.storyFlags.activeFlags, contains('test_given_starter_fact'));
       expect(reloaded.storyFlags.activeFlags,
           contains('test_mission_started_fact'));
       expect(reloaded.storyFlags.activeFlags,
@@ -946,8 +927,7 @@ void main() {
       // Rival dialogue resolves to post-battle (step completed survives).
       final resolvedDialogue =
           evaluator(reloaded).resolveNpcDialogue(rivalEntity().npc!);
-      expect(resolvedDialogue?.dialogueId,
-          'test_rival_post_battle_dialogue');
+      expect(resolvedDialogue?.dialogueId, 'test_rival_post_battle_dialogue');
     });
   });
 
@@ -968,13 +948,26 @@ void main() {
 
       // No forbidden Selbrume ids.
       const forbiddenIds = [
-        'mael', 'Maël', 'lysa', 'Lysa', 'soline', 'Soline',
-        'selbrume', 'Selbrume', 'Bourg de Selbrume',
-        'map_bourg_selbrume', 'map_port_brisants',
-        'npc_mael', 'npc_lysa', 'npc_soline',
-        'trainer_lysa_port', 'battle_rival_port',
-        'scene_mael_intro', 'scene_rival_meet',
-        'Sproutle', 'Sparkitten',
+        'mael',
+        'Maël',
+        'lysa',
+        'Lysa',
+        'soline',
+        'Soline',
+        'selbrume',
+        'Selbrume',
+        'Bourg de Selbrume',
+        'map_bourg_selbrume',
+        'map_port_brisants',
+        'npc_mael',
+        'npc_lysa',
+        'npc_soline',
+        'trainer_lysa_port',
+        'battle_rival_port',
+        'scene_mael_intro',
+        'scene_rival_meet',
+        'Sproutle',
+        'Sparkitten',
       ];
       final allIds = <String>[
         scene.id,

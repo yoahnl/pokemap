@@ -49,10 +49,12 @@ void main() {
     ]) {
       final navigationItem = find.byKey(key);
       final node = tester.getSemantics(
-        find.descendant(
-          of: navigationItem,
-          matching: find.byType(Semantics),
-        ).first,
+        find
+            .descendant(
+              of: navigationItem,
+              matching: find.byType(Semantics),
+            )
+            .first,
       );
       expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue,
           reason: '$key');
@@ -147,7 +149,6 @@ NarrativeSceneSummary _sceneSummary() {
     ),
   );
   final project = ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'semantics',
     maps: const [],
     tilesets: const [],

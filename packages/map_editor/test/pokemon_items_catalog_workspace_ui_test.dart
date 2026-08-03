@@ -16,7 +16,6 @@ import 'package:path/path.dart' as p;
 
 void main() {
   const project = ProjectManifest(
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'Items Catalog UI Project',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

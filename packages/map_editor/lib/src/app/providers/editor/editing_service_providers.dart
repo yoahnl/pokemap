@@ -10,12 +10,7 @@ import '../../../application/services/gameplay_zone_editing_coordinator.dart';
 import '../../../application/services/gameplay_zone_editing_service.dart';
 import '../../../application/services/map_connection_editing_service.dart';
 import '../../../application/services/map_history_coordinator.dart';
-import '../../../application/services/path_autotile_resolver.dart';
-import '../../../application/services/path_layer_editing_coordinator.dart';
 import '../../../application/services/placed_element_instance_indexer.dart';
-import '../../../application/services/terrain_painting_coordinator.dart';
-import '../../../application/services/terrain_preset_resolver.dart';
-import '../../../application/services/terrain_preset_selection_coordinator.dart';
 import '../../../application/services/trigger_editing_coordinator.dart';
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_coordinator.dart';
@@ -30,26 +25,7 @@ part 'editing_service_providers.g.dart';
 /// déjà existants. Le but est de rendre la composition root lisible par thème,
 /// pas d'ajouter une nouvelle couche abstraite.
 @riverpod
-TerrainPresetResolver terrainPresetResolver(Ref ref) {
-  return const TerrainPresetResolver();
-}
-
-@riverpod
-TerrainPresetSelectionCoordinator terrainPresetSelectionCoordinator(
-    Ref ref) {
-  return TerrainPresetSelectionCoordinator(
-    resolver: ref.watch(terrainPresetResolverProvider),
-  );
-}
-
-@riverpod
-PathAutotileResolver pathAutotileResolver(Ref ref) {
-  return const PathAutotileResolver();
-}
-
-@riverpod
-EditorMapSessionCoordinator editorMapSessionCoordinator(
-    Ref ref) {
+EditorMapSessionCoordinator editorMapSessionCoordinator(Ref ref) {
   return const EditorMapSessionCoordinator();
 }
 
@@ -59,20 +35,17 @@ MapHistoryCoordinator mapHistoryCoordinator(Ref ref) {
 }
 
 @riverpod
-ElementCollisionProfileGenerator elementCollisionProfileGenerator(
-    Ref ref) {
+ElementCollisionProfileGenerator elementCollisionProfileGenerator(Ref ref) {
   return const ElementCollisionProfileGenerator();
 }
 
 @riverpod
-PlacedElementInstanceIndexer placedElementInstanceIndexer(
-    Ref ref) {
+PlacedElementInstanceIndexer placedElementInstanceIndexer(Ref ref) {
   return const PlacedElementInstanceIndexer();
 }
 
 @riverpod
-EditorMapMutationCoordinator editorMapMutationCoordinator(
-    Ref ref) {
+EditorMapMutationCoordinator editorMapMutationCoordinator(Ref ref) {
   return EditorMapMutationCoordinator(
     historyCoordinator: ref.watch(mapHistoryCoordinatorProvider),
     sessionCoordinator: ref.watch(editorMapSessionCoordinatorProvider),
@@ -85,14 +58,12 @@ WarpEditingCoordinator warpEditingCoordinator(Ref ref) {
 }
 
 @riverpod
-EntityEditingCoordinator entityEditingCoordinator(
-    Ref ref) {
+EntityEditingCoordinator entityEditingCoordinator(Ref ref) {
   return const EntityEditingCoordinator();
 }
 
 @riverpod
-TriggerEditingCoordinator triggerEditingCoordinator(
-    Ref ref) {
+TriggerEditingCoordinator triggerEditingCoordinator(Ref ref) {
   return const TriggerEditingCoordinator();
 }
 
@@ -130,8 +101,7 @@ EntityEditingService entityEditingService(Ref ref) {
 }
 
 @riverpod
-MapConnectionEditingService mapConnectionEditingService(
-    Ref ref) {
+MapConnectionEditingService mapConnectionEditingService(Ref ref) {
   return MapConnectionEditingService(
     upsertMapConnectionUseCase: ref.watch(upsertMapConnectionUseCaseProvider),
     deleteMapConnectionUseCase: ref.watch(deleteMapConnectionUseCaseProvider),
@@ -141,42 +111,12 @@ MapConnectionEditingService mapConnectionEditingService(
 }
 
 @riverpod
-TerrainPaintingCoordinator terrainPaintingCoordinator(
-    Ref ref) {
-  return TerrainPaintingCoordinator(
-    paintTerrainOnMapUseCase: ref.watch(paintTerrainOnMapUseCaseProvider),
-    paintTerrainPatternOnMapUseCase:
-        ref.watch(paintTerrainPatternOnMapUseCaseProvider),
-    eraseTerrainOnMapUseCase: ref.watch(eraseTerrainOnMapUseCaseProvider),
-    eraseTerrainPatternOnMapUseCase:
-        ref.watch(eraseTerrainPatternOnMapUseCaseProvider),
-  );
-}
-
-@riverpod
-PathLayerEditingCoordinator pathLayerEditingCoordinator(
-    Ref ref) {
-  return PathLayerEditingCoordinator(
-    paintPathOnMapUseCase: ref.watch(paintPathOnMapUseCaseProvider),
-    paintPathPatternOnMapUseCase:
-        ref.watch(paintPathPatternOnMapUseCaseProvider),
-    erasePathOnMapUseCase: ref.watch(erasePathOnMapUseCaseProvider),
-    erasePathPatternOnMapUseCase:
-        ref.watch(erasePathPatternOnMapUseCaseProvider),
-    assignPathPresetToLayerUseCase:
-        ref.watch(assignPathPresetToLayerUseCaseProvider),
-  );
-}
-
-@riverpod
-GameplayZoneEditingCoordinator gameplayZoneEditingCoordinator(
-    Ref ref) {
+GameplayZoneEditingCoordinator gameplayZoneEditingCoordinator(Ref ref) {
   return const GameplayZoneEditingCoordinator();
 }
 
 @riverpod
-GameplayZoneEditingService gameplayZoneEditingService(
-    Ref ref) {
+GameplayZoneEditingService gameplayZoneEditingService(Ref ref) {
   return GameplayZoneEditingService(
     addGameplayZoneToMapUseCase: ref.watch(addGameplayZoneToMapUseCaseProvider),
     updateGameplayZoneOnMapUseCase:

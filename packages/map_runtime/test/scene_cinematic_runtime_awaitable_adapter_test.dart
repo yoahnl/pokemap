@@ -251,7 +251,6 @@ ProjectManifest _project({
     tilesets: const [],
     cinematics: cinematics,
     scenarios: scenarios,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

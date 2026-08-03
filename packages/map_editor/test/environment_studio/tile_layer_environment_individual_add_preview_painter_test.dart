@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/application/services/environment_generated_placement_hover_resolver.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
@@ -72,8 +71,6 @@ MapGridPainter _painter(
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     project: _manifest(),
     environmentGeneratedAddPreview: preview,
   );
@@ -142,7 +139,6 @@ ProjectManifest _manifest() {
         ],
       ),
     ],
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
   );
 }
 

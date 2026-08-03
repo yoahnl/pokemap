@@ -65,8 +65,7 @@ class _NpcConditionalDialogueRowDraft {
       refMenuId: when.refId.trim().isEmpty
           ? kNpcRuntimeRefNoneMenuId
           : when.refId.trim(),
-      dialogueMenuId:
-          dialogueId.isEmpty ? _kDialogueNoneMenuId : dialogueId,
+      dialogueMenuId: dialogueId.isEmpty ? _kDialogueNoneMenuId : dialogueId,
       startNode: TextEditingController(text: dialogue.startNode ?? ''),
     );
   }

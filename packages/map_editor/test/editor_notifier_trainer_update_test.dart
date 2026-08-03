@@ -32,7 +32,6 @@ void main() {
       notifier.state = const EditorState(
         projectRootPath: '/tmp/project',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'trainer_partial_update_test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
@@ -109,7 +108,6 @@ void main() {
       notifier.state = const EditorState(
         projectRootPath: '/tmp/project',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'trainer_pokemon_partial_update_test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],

@@ -101,7 +101,6 @@ void main() {
       return EditorState(
         projectRootPath: tempProjectRoot.path,
         project: ProjectManifest(
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'smoke_project',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],

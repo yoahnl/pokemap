@@ -54,17 +54,16 @@ void main() {
     final speciesDirectory = Directory('${root.path}/data/pokemon/species');
     await speciesDirectory.create(recursive: true);
 
-    final manifest = ProjectManifest(
+    const manifest = ProjectManifest(
       name: 'Runtime Test',
       maps: [
-        const ProjectMapEntry(
+        ProjectMapEntry(
           id: 'lab',
           name: 'Lab',
           relativePath: 'maps/lab.json',
         ),
       ],
       tilesets: [],
-      surfaceCatalog: ProjectSurfaceCatalog(),
     );
     await projectFile.writeAsString(jsonEncode(manifest.toJson()));
 

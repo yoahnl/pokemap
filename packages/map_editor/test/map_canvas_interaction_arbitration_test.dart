@@ -361,7 +361,8 @@ void main() {
       expect(cancelled.isDirty, isFalse);
     });
 
-    testWidgets('Escape exits project-element placement without editing the map',
+    testWidgets(
+        'Escape exits project-element placement without editing the map',
         (tester) async {
       const map = MapData(
         id: 'element-placement-map',
@@ -886,7 +887,6 @@ const _project = ProjectManifest(
   name: 'interaction_arbitration_project',
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 const _activeMap = MapData(

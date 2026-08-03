@@ -110,8 +110,7 @@ CutsceneStudioParseResult parseScenarioToCutsceneStudioDocument(
       }
       // Fusions de branches : purement structurelles, absentes du modèle linéaire.
       if (cursor.type == ScenarioNodeType.action &&
-          cursor.payload.actionKind?.trim() ==
-              kCutsceneStudioActionFlowMerge) {
+          cursor.payload.actionKind?.trim() == kCutsceneStudioActionFlowMerge) {
         cursor = _resolveSingleNextNode(
           fromNode: cursor,
           nodesById: nodesById,
@@ -272,8 +271,10 @@ CutsceneStudioBlock? _parseBlockNode(
         id: node.id,
         kind: CutsceneStudioBlockKind.moveCharacter,
         actorId: cutsceneStudioTrimOrNull(node.binding.entityId),
-        destinationTargetKind: cutsceneStudioTrimOrNull(node.payload.params['targetKind']),
-        destinationTargetId: cutsceneStudioTrimOrNull(node.payload.params['targetId']),
+        destinationTargetKind:
+            cutsceneStudioTrimOrNull(node.payload.params['targetKind']),
+        destinationTargetId:
+            cutsceneStudioTrimOrNull(node.payload.params['targetId']),
         waitForCompletion:
             (node.payload.params['waitForCompletion'] ?? 'true') == 'true',
       );
@@ -288,7 +289,8 @@ CutsceneStudioBlock? _parseBlockNode(
         id: node.id,
         kind: CutsceneStudioBlockKind.faceCharacter,
         actorId: cutsceneStudioTrimOrNull(node.binding.entityId),
-        facingDirection: cutsceneStudioTrimOrNull(node.payload.params['direction']),
+        facingDirection:
+            cutsceneStudioTrimOrNull(node.payload.params['direction']),
       );
     case kCutsceneStudioActionTransitionMap:
       return CutsceneStudioBlock(

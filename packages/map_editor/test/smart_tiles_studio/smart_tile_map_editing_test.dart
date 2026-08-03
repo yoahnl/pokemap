@@ -15,7 +15,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
     );
     notifier.state = EditorState(
@@ -57,7 +57,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
       layers: [layer],
     );
@@ -138,7 +138,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
       layers: [layer],
     );
@@ -189,7 +189,7 @@ void main() {
 
 final _project = ProjectManifest(
   name: 'Project',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
   smartTileCatalog: ProjectSmartTileCatalog(

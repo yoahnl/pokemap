@@ -123,7 +123,8 @@ String expectedDialogueFileRelativePath(
 }
 
 /// Remplace le préfixe POSIX [oldPrefix] par [newPrefix] pour les chemins sous ce préfixe.
-String? rewritePathPrefix(String relativePath, String oldPrefix, String newPrefix) {
+String? rewritePathPrefix(
+    String relativePath, String oldPrefix, String newPrefix) {
   final norm = relativePath.replaceAll(r'\', '/');
   final op = oldPrefix.replaceAll(r'\', '/');
   final np = newPrefix.replaceAll(r'\', '/');

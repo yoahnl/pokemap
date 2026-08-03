@@ -409,9 +409,6 @@ void _addRequiredPaintLayer(
   WorldMapPaintSubtool subtool,
 ) {
   switch (subtool) {
-    case WorldMapPaintSubtool.surface:
-      notifier.addSurfaceLayer(name: _requiredLayerDefaultName(subtool));
-      return;
     case WorldMapPaintSubtool.tile:
     case WorldMapPaintSubtool.border:
     case WorldMapPaintSubtool.collision:
@@ -420,7 +417,7 @@ void _addRequiredPaintLayer(
           WorldMapPaintSubtool.tile => MapLayerKind.tile,
           WorldMapPaintSubtool.border => MapLayerKind.border,
           WorldMapPaintSubtool.collision => MapLayerKind.collision,
-          WorldMapPaintSubtool.surface => throw StateError('unreachable'),
+          WorldMapPaintSubtool.surface ||
           WorldMapPaintSubtool.terrain ||
           WorldMapPaintSubtool.path =>
             throw StateError('Smart Tile presets are selected in Paint.'),
@@ -430,6 +427,7 @@ void _addRequiredPaintLayer(
       return;
     case WorldMapPaintSubtool.terrain:
     case WorldMapPaintSubtool.path:
+    case WorldMapPaintSubtool.surface:
       throw StateError('Smart Tile presets are selected in Paint.');
   }
 }

@@ -522,7 +522,6 @@ _PersistenceFixture _fixture() {
         ),
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   return _PersistenceFixture(
     project: project,

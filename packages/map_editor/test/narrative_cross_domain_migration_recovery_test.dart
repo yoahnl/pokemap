@@ -5,7 +5,6 @@ void main() {
   test('cross-domain checkpoint resumes without replay and rolls back exactly',
       () {
     const before = ProjectManifest(
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
       name: 'before',
       maps: [],
       tilesets: [],

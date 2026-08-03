@@ -231,7 +231,6 @@ ProjectManifest _project({
   NarrativeEventRegistry? eventRegistry,
 }) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'Phase C3',
     maps: const [
       ProjectMapEntry(

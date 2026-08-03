@@ -73,12 +73,12 @@ void main() {
       }
     });
 
-    test('MapData V2 preserves a border layer and its runtime type', () {
+    test('MapData v6 preserves a border layer and its runtime type', () {
       final map = MapData(
         id: 'port',
         name: 'Port',
         size: const GridSize(width: 2, height: 2),
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         layers: const <MapLayer>[
           MapLayer.border(id: 'border', name: 'Bordures'),
         ],
@@ -89,7 +89,7 @@ void main() {
         jsonDecode(jsonEncode(encoded)) as Map<String, dynamic>,
       );
 
-      expect(encoded['version'], 'v2');
+      expect(encoded['version'], 'v6');
       expect(
         (encoded['layers']! as List<Map<String, dynamic>>)
             .single['runtimeType'],
@@ -97,37 +97,6 @@ void main() {
       );
       expect(decoded, map);
       expect(decoded.layers.single, isA<BorderLayer>());
-    });
-
-    test('V1 JSON and MapValidator reject a Border layer', () {
-      final invalid = _map(
-        layers: const <MapLayer>[
-          MapLayer.border(id: 'border', name: 'Bordures'),
-        ],
-      );
-      final wire =
-          jsonDecode(jsonEncode(invalid.toJson())) as Map<String, dynamic>;
-
-      expect(
-        () => MapData.fromJson(wire),
-        _formatAt(r'$.layers[0].runtimeType'),
-      );
-      expect(
-        () => MapValidator.validate(invalid),
-        throwsA(
-          isA<ValidationException>().having(
-            (error) => error.message,
-            'message',
-            contains('ProjectVersion.v2'),
-          ),
-        ),
-      );
-      expect(
-        () => MapValidator.validate(
-          invalid.copyWith(version: ProjectVersion.v2),
-        ),
-        returnsNormally,
-      );
     });
 
     test('generic add creates Border last and promotes only it to V2', () {
@@ -147,11 +116,11 @@ void main() {
       );
 
       expect(source.layers, isEmpty);
-      expect(source.version, ProjectVersion.v1);
+      expect(source.version, ProjectVersion.v6);
       expect(withBorder.layers.single, isA<BorderLayer>());
       expect(withBorder.layers.single.id, 'border');
-      expect(withBorder.version, ProjectVersion.v2);
-      expect(withObject.version, ProjectVersion.v1);
+      expect(withBorder.version, ProjectVersion.v6);
+      expect(withObject.version, ProjectVersion.v6);
     });
 
     test('generic metadata edits preserve Border content and properties', () {
@@ -159,7 +128,7 @@ void main() {
         features: <BorderFeature>[_feature('north')],
       );
       final source = _map(
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         layers: <MapLayer>[
           MapLayer.border(
             id: 'border',
@@ -195,7 +164,7 @@ void main() {
         features: <BorderFeature>[_feature('north')],
       );
       final source = _map(
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         layers: <MapLayer>[
           MapLayer.border(
             id: 'border',
@@ -213,7 +182,7 @@ void main() {
       expect(
         () => MapValidator.validate(
           _map(
-            version: ProjectVersion.v2,
+            version: ProjectVersion.v6,
             layers: const <MapLayer>[
               MapLayer.border(
                 id: 'border',
@@ -230,7 +199,7 @@ void main() {
 }
 
 MapData _map({
-  ProjectVersion version = ProjectVersion.v1,
+  ProjectVersion version = ProjectVersion.v6,
   List<MapLayer> layers = const <MapLayer>[],
 }) =>
     MapData(

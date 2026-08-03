@@ -89,19 +89,17 @@ void main() {
 
 RuntimeMapBundle _bundle() {
   return RuntimeMapBundle(
-    manifest: ProjectManifest(
+    manifest: const ProjectManifest(
       name: 'Player Component Test Project',
       maps: <ProjectMapEntry>[
-        const ProjectMapEntry(
+        ProjectMapEntry(
           id: 'test_map',
           name: 'Test Map',
           relativePath: 'maps/test_map.json',
         ),
       ],
       tilesets: <ProjectTilesetEntry>[],
-      settings:
-          const ProjectSettings(tileWidth: 16, tileHeight: 16, displayScale: 2),
-      surfaceCatalog: ProjectSurfaceCatalog(),
+      settings: ProjectSettings(tileWidth: 16, tileHeight: 16, displayScale: 2),
     ),
     map: const MapData(
       id: 'test_map',

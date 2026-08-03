@@ -53,8 +53,7 @@ class ToolbarCapsuleGroup extends StatelessWidget {
           children: [
             for (var index = 0; index < visibleChildren.length; index++) ...[
               visibleChildren[index],
-              if (index < visibleChildren.length - 1)
-                const SizedBox(width: 4),
+              if (index < visibleChildren.length - 1) const SizedBox(width: 4),
             ],
           ],
         ),

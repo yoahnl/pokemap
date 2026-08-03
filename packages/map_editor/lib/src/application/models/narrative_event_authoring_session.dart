@@ -222,7 +222,7 @@ ValidatedNarrativeEventAuthoringProject
     json[entry.key as String] = entry.value;
   }
   final manifest = normalizeLoadedProjectManifest(
-    ProjectManifest.fromJson(migrateProjectManifestJson(json)),
+    ProjectManifest.fromJson(json),
   );
   ProjectValidator.validate(manifest);
   return ValidatedNarrativeEventAuthoringProject(
@@ -250,7 +250,7 @@ MapData decodeValidatedNarrativeEventAuthoringMap(
     }
     json[entry.key as String] = entry.value;
   }
-  final map = MapData.fromJson(migrateMapDataJson(json));
+  final map = MapData.fromJson(json);
   MapValidator.validate(map);
   return map;
 }

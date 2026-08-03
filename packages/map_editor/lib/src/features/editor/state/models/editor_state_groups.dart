@@ -3,7 +3,6 @@ import 'dart:ui' show Offset;
 import 'package:map_core/map_core.dart';
 
 import '../../../../application/models/map_history_snapshot.dart';
-import '../../../../application/models/terrain_selection_mode.dart';
 import '../../tools/editor_tool.dart';
 import '../editor_state.dart';
 
@@ -59,13 +58,7 @@ class EditorSelectionState {
     required this.activeLayerId,
     required this.hoveredTile,
     required this.activeBrush,
-    required this.terrainSelectionMode,
-    required this.selectedTerrainType,
     required this.selectedEntityKind,
-    required this.selectedTerrainPresetId,
-    required this.selectedPathPresetId,
-    required this.selectedSurfacePresetId,
-    required this.selectedTerrainPresetByType,
     required this.eraserFootprint,
     required this.collisionBrushSizeMode,
     required this.selectedEntityId,
@@ -91,13 +84,7 @@ class EditorSelectionState {
   final String? activeLayerId;
   final GridPos? hoveredTile;
   final EditorBrush activeBrush;
-  final TerrainSelectionMode terrainSelectionMode;
-  final TerrainType selectedTerrainType;
   final MapEntityKind selectedEntityKind;
-  final String? selectedTerrainPresetId;
-  final String? selectedPathPresetId;
-  final String? selectedSurfacePresetId;
-  final Map<TerrainType, String> selectedTerrainPresetByType;
   final EditorEraserFootprint eraserFootprint;
   final CollisionBrushSizeMode collisionBrushSizeMode;
   final String? selectedEntityId;
@@ -123,13 +110,7 @@ class EditorSelectionState {
     Object? activeLayerId = _editorStateGroupsUnset,
     Object? hoveredTile = _editorStateGroupsUnset,
     EditorBrush? activeBrush,
-    TerrainSelectionMode? terrainSelectionMode,
-    TerrainType? selectedTerrainType,
     MapEntityKind? selectedEntityKind,
-    Object? selectedTerrainPresetId = _editorStateGroupsUnset,
-    Object? selectedPathPresetId = _editorStateGroupsUnset,
-    Object? selectedSurfacePresetId = _editorStateGroupsUnset,
-    Map<TerrainType, String>? selectedTerrainPresetByType,
     EditorEraserFootprint? eraserFootprint,
     CollisionBrushSizeMode? collisionBrushSizeMode,
     Object? selectedEntityId = _editorStateGroupsUnset,
@@ -159,23 +140,7 @@ class EditorSelectionState {
           ? this.hoveredTile
           : hoveredTile as GridPos?,
       activeBrush: activeBrush ?? this.activeBrush,
-      terrainSelectionMode: terrainSelectionMode ?? this.terrainSelectionMode,
-      selectedTerrainType: selectedTerrainType ?? this.selectedTerrainType,
       selectedEntityKind: selectedEntityKind ?? this.selectedEntityKind,
-      selectedTerrainPresetId:
-          identical(selectedTerrainPresetId, _editorStateGroupsUnset)
-              ? this.selectedTerrainPresetId
-              : selectedTerrainPresetId as String?,
-      selectedPathPresetId:
-          identical(selectedPathPresetId, _editorStateGroupsUnset)
-              ? this.selectedPathPresetId
-              : selectedPathPresetId as String?,
-      selectedSurfacePresetId:
-          identical(selectedSurfacePresetId, _editorStateGroupsUnset)
-              ? this.selectedSurfacePresetId
-              : selectedSurfacePresetId as String?,
-      selectedTerrainPresetByType:
-          selectedTerrainPresetByType ?? this.selectedTerrainPresetByType,
       eraserFootprint: eraserFootprint ?? this.eraserFootprint,
       collisionBrushSizeMode:
           collisionBrushSizeMode ?? this.collisionBrushSizeMode,
@@ -348,13 +313,7 @@ extension EditorStateGroups on EditorState {
         activeLayerId: activeLayerId,
         hoveredTile: hoveredTile,
         activeBrush: activeBrush,
-        terrainSelectionMode: terrainSelectionMode,
-        selectedTerrainType: selectedTerrainType,
         selectedEntityKind: selectedEntityKind,
-        selectedTerrainPresetId: selectedTerrainPresetId,
-        selectedPathPresetId: selectedPathPresetId,
-        selectedSurfacePresetId: selectedSurfacePresetId,
-        selectedTerrainPresetByType: selectedTerrainPresetByType,
         eraserFootprint: eraserFootprint,
         collisionBrushSizeMode: collisionBrushSizeMode,
         selectedEntityId: selectedEntityId,
@@ -411,13 +370,7 @@ extension EditorStateGroups on EditorState {
       activeLayerId: next.activeLayerId,
       hoveredTile: next.hoveredTile,
       activeBrush: next.activeBrush,
-      terrainSelectionMode: next.terrainSelectionMode,
-      selectedTerrainType: next.selectedTerrainType,
       selectedEntityKind: next.selectedEntityKind,
-      selectedTerrainPresetId: next.selectedTerrainPresetId,
-      selectedPathPresetId: next.selectedPathPresetId,
-      selectedSurfacePresetId: next.selectedSurfacePresetId,
-      selectedTerrainPresetByType: next.selectedTerrainPresetByType,
       eraserFootprint: next.eraserFootprint,
       collisionBrushSizeMode: next.collisionBrushSizeMode,
       selectedEntityId: next.selectedEntityId,

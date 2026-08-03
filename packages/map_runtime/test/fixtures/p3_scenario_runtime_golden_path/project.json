@@ -1,6 +1,6 @@
 {
   "name": "P3 Scenario Runtime Golden Path",
-  "version": "v1",
+  "version": "v6",
   "maps": [
     {
       "id": "p3_test_map",

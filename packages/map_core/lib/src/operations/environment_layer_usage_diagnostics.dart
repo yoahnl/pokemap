@@ -177,19 +177,7 @@ bool _listEqualsUsage(
   return true;
 }
 
-String _mapLayerId(MapLayer layer) {
-  return switch (layer) {
-    TileLayer(:final id) => id,
-    CollisionLayer(:final id) => id,
-    TerrainLayer(:final id) => id,
-    PathLayer(:final id) => id,
-    SurfaceLayer(:final id) => id,
-    SmartTileLayer(:final id) => id,
-    ObjectLayer(:final id) => id,
-    EnvironmentLayer(:final id) => id,
-    BorderLayer(:final id) => id,
-  };
-}
+String _mapLayerId(MapLayer layer) => layer.id;
 
 /// Diagnostique les layers Environment d’une [MapData] (lecture seule, pas d’exception).
 ///

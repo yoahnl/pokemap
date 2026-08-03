@@ -17,7 +17,7 @@ void main() {
         'pokemap_border_manifest_',
       );
       manifestFile = File(p.join(projectRoot.path, 'project.json'));
-      previous = _manifest('Previous', ProjectVersion.v1);
+      previous = _manifest('Previous', ProjectVersion.v6);
       await manifestFile.writeAsString(
         const JsonEncoder.withIndent('  ').convert(previous.toJson()),
         flush: true,
@@ -38,7 +38,7 @@ void main() {
         applyInMemoryManifest: (manifest) => applied = manifest,
         stageIdFactory: () => 'publish_success',
       );
-      final next = _manifest('Published', ProjectVersion.v2);
+      final next = _manifest('Published', ProjectVersion.v6);
 
       await port.atomicallyReplace(
         previousManifest: previous,
@@ -46,9 +46,7 @@ void main() {
       );
 
       final decoded = ProjectManifest.fromJson(
-        migrateProjectManifestJson(
-          jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>,
-        ),
+        jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>,
       );
       expect(decoded, next);
       expect(applied, isNull);
@@ -80,7 +78,7 @@ void main() {
       await expectLater(
         port.atomicallyReplace(
           previousManifest: previous,
-          nextManifest: _manifest('Next', ProjectVersion.v2),
+          nextManifest: _manifest('Next', ProjectVersion.v6),
         ),
         throwsA(
           isA<BorderPublicationManifestException>().having(
@@ -119,7 +117,7 @@ void main() {
       await expectLater(
         port.atomicallyReplace(
           previousManifest: previous,
-          nextManifest: _manifest('Next', ProjectVersion.v2),
+          nextManifest: _manifest('Next', ProjectVersion.v6),
         ),
         throwsA(
           isA<BorderPublicationManifestException>().having(
@@ -152,7 +150,7 @@ void main() {
       await expectLater(
         port.atomicallyReplace(
           previousManifest: previous,
-          nextManifest: _manifest('Next', ProjectVersion.v2),
+          nextManifest: _manifest('Next', ProjectVersion.v6),
         ),
         throwsA(
           isA<BorderPublicationManifestException>().having(
@@ -167,7 +165,7 @@ void main() {
 
     test('rejects a manifest changed after the publication candidate was built',
         () async {
-      final external = _manifest('External update', ProjectVersion.v2);
+      final external = _manifest('External update', ProjectVersion.v6);
       final port = FileBorderPublicationManifestPort(
         manifestPath: manifestFile.path,
         applyInMemoryManifest: (_) {},
@@ -185,7 +183,7 @@ void main() {
       await expectLater(
         port.atomicallyReplace(
           previousManifest: previous,
-          nextManifest: _manifest('Candidate', ProjectVersion.v2),
+          nextManifest: _manifest('Candidate', ProjectVersion.v6),
         ),
         throwsA(
           isA<BorderPublicationManifestException>().having(
@@ -210,7 +208,7 @@ void main() {
 
 Future<ProjectManifest> _readManifest(File file) async {
   final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-  return ProjectManifest.fromJson(migrateProjectManifestJson(json));
+  return ProjectManifest.fromJson(json);
 }
 
 ProjectManifest _manifest(String name, ProjectVersion version) {

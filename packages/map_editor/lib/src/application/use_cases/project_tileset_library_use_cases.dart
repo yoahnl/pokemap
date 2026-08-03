@@ -62,16 +62,14 @@ class CreateTilesetLibraryFolderUseCase {
     }
     final parent = parentFolderId?.trim();
     if (parent != null && parent.isNotEmpty) {
-      final parentOk =
-          project.tilesetFolders.any((f) => f.id == parent);
+      final parentOk = project.tilesetFolders.any((f) => f.id == parent);
       if (!parentOk) {
         throw EditorNotFoundException('Parent folder not found: $parent');
       }
     }
 
     final id = generateUniqueTilesetFolderId(project, trimmed);
-    final sortOrder =
-        nextTilesetLibraryFolderSortOrder(project, parent);
+    final sortOrder = nextTilesetLibraryFolderSortOrder(project, parent);
     final folder = ProjectTilesetFolder(
       id: id,
       name: trimmed,
@@ -144,8 +142,7 @@ class MoveTilesetLibraryFolderUseCase {
           'A folder cannot be moved into itself',
         );
       }
-      final parentExists =
-          project.tilesetFolders.any((f) => f.id == newParent);
+      final parentExists = project.tilesetFolders.any((f) => f.id == newParent);
       if (!parentExists) {
         throw EditorNotFoundException('Parent folder not found: $newParent');
       }
@@ -157,8 +154,7 @@ class MoveTilesetLibraryFolderUseCase {
       }
     }
 
-    final others =
-        project.tilesetFolders.where((x) => x.id != id).toList();
+    final others = project.tilesetFolders.where((x) => x.id != id).toList();
     final sortOrder = nextTilesetLibraryFolderSortOrder(
       project.copyWith(tilesetFolders: others),
       newParent == null || newParent.isEmpty ? null : newParent,
@@ -207,8 +203,7 @@ class AssignTilesetToLibraryFolderUseCase {
 
     final current = project.tilesets.firstWhere(
       (t) => t.id == tid,
-      orElse: () =>
-          throw EditorNotFoundException('Tileset not found: $tid'),
+      orElse: () => throw EditorNotFoundException('Tileset not found: $tid'),
     );
 
     final sortOrder = nextTilesetSortOrder(
@@ -246,8 +241,7 @@ class MoveTilesetToLibraryRootUseCase {
     }
     final current = project.tilesets.firstWhere(
       (t) => t.id == tid,
-      orElse: () =>
-          throw EditorNotFoundException('Tileset not found: $tid'),
+      orElse: () => throw EditorNotFoundException('Tileset not found: $tid'),
     );
 
     final sortOrder = nextTilesetSortOrder(

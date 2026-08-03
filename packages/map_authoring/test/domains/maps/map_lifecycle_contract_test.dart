@@ -64,16 +64,7 @@ void main() {
       expect(created.id, 'route_01');
       expect(created.name, 'Route 01');
       expect(created.size, const GridSize(width: 4, height: 3));
-      expect(
-        created.layers.map((layer) => layer.id),
-        ['l_base', 'l_terrain', 'l_collisions'],
-      );
-      expect((created.layers[0] as TileLayer).tiles, hasLength(12));
-      expect((created.layers[1] as TerrainLayer).terrains, hasLength(12));
-      expect(
-        (created.layers[2] as CollisionLayer).collisions,
-        hasLength(12),
-      );
+      expect(created.layers, isEmpty);
       expect(
         utf8.decode(mapChange.afterBytes!),
         const JsonEncoder.withIndent('  ').convert(created.toJson()),
@@ -191,11 +182,6 @@ void main() {
             name: 'Base',
             tiles: const [0, 0, 7, 0, 0, 0],
           ),
-          MapLayer.terrain(
-            id: 'l_terrain',
-            name: 'Terrain',
-            terrains: List<TerrainType>.filled(6, TerrainType.none),
-          ),
           MapLayer.collision(
             id: 'l_collisions',
             name: 'Collisions',
@@ -305,7 +291,7 @@ ProjectSnapshot _snapshot({List<MapData> maps = const []}) {
   ];
   final manifest = ProjectManifest(
     name: 'Lifecycle Fixture',
-    version: ProjectVersion.v3,
+    version: ProjectVersion.v6,
     maps: entries,
     tilesets: const [],
   );
@@ -354,18 +340,13 @@ MapData _map(String id, {int width = 2, int height = 2}) {
     id: id,
     name: id,
     size: GridSize(width: width, height: height),
-    version: ProjectVersion.v3,
+    version: ProjectVersion.v6,
     visualStack: MapVisualStackConfig.canonicalV1,
     layers: [
       MapLayer.tile(
         id: 'l_base',
         name: 'Base',
         tiles: List<int>.filled(count, 0),
-      ),
-      MapLayer.terrain(
-        id: 'l_terrain',
-        name: 'Terrain',
-        terrains: List<TerrainType>.filled(count, TerrainType.none),
       ),
       MapLayer.collision(
         id: 'l_collisions',

@@ -115,9 +115,7 @@ MapData _buildingMap() {
 }
 
 ProjectManifest _legacyBuildingProject() {
-  return ProjectManifest.fromJson(
-    migrateProjectManifestJson(_legacyBuildingProjectJson()),
-  );
+  return ProjectManifest.fromJson(_legacyBuildingProjectJson());
 }
 
 ProjectManifest _normalizedBuildingProject() {
@@ -203,6 +201,7 @@ ElementCollisionPixelMask _maskFromCells({
 
 Map<String, dynamic> _legacyBuildingProjectJson() {
   return <String, dynamic>{
+    'version': 'v6',
     'name': 'Building Golden Slice',
     'maps': <dynamic>[],
     'tilesets': <dynamic>[

@@ -4,7 +4,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/features/editor/application/map_placed_element_rotation_planner.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.dart';
@@ -15,7 +14,7 @@ void main() {
       const map = MapData(
         id: 'smart-tile-map',
         name: 'Smart Tile map',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           SmartTileLayer(
@@ -44,8 +43,6 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
       );
 
       expect(
@@ -78,8 +75,6 @@ void main() {
           warps: const <MapWarp>[],
           gameplayZones: const <MapGameplayZone>[],
           connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-          pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-          terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
           showGrid: showGrid,
         ).paint(canvas, const ui.Size(64, 64));
         final picture = recorder.endRecording();
@@ -132,7 +127,6 @@ void main() {
         name: 'editor',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'table',
@@ -189,7 +183,6 @@ void main() {
         name: 'editor',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'table-3x2',
@@ -306,105 +299,6 @@ void main() {
       );
     });
 
-    test('paints SurfaceLayer static preview without atlas tile images', () {
-      const map = MapData(
-        id: 'pond',
-        name: 'Pond',
-        size: GridSize(width: 3, height: 3),
-        layers: <MapLayer>[
-          SurfaceLayer(
-            id: 'surface-main',
-            name: 'Surfaces',
-            placements: <SurfaceCellPlacement>[
-              SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
-            ],
-          ),
-        ],
-      );
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 32,
-        tileHeight: 32,
-        tilesetImagesById: const <String, ui.Image?>{},
-        sourceTileWidth: 32,
-        sourceTileHeight: 32,
-        tilesPerRowById: const <String, int>{},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
-      ).paint(canvas, const ui.Size(96, 96));
-
-      final picture = recorder.endRecording();
-      picture.dispose();
-    });
-
-    test('paints SurfaceLayer with resolved atlas tile image when available',
-        () async {
-      const map = MapData(
-        id: 'pond',
-        name: 'Pond',
-        size: GridSize(width: 3, height: 3),
-        layers: <MapLayer>[
-          SurfaceLayer(
-            id: 'surface-main',
-            name: 'Surfaces',
-            placements: <SurfaceCellPlacement>[
-              SurfaceCellPlacement(
-                x: 1,
-                y: 1,
-                surfacePresetId: 'water-surface',
-              ),
-            ],
-          ),
-        ],
-      );
-      final project = ProjectManifest(
-        name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[],
-        surfaceCatalog: _surfaceCatalog(),
-      );
-      final tilesetImage = await _testTilesetImage();
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 32,
-        tileHeight: 32,
-        tilesetImagesById: {'water-tileset': tilesetImage},
-        sourceTileWidth: 32,
-        sourceTileHeight: 32,
-        tilesPerRowById: const <String, int>{},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
-        project: project,
-      ).paint(canvas, const ui.Size(96, 96));
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(96, 96);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      final offset = ((48 * image.width) + 48) * 4;
-      expect(pixels!.getUint8(offset), greaterThan(220));
-      expect(pixels.getUint8(offset + 1), lessThan(40));
-      expect(pixels.getUint8(offset + 2), lessThan(40));
-      picture.dispose();
-      image.dispose();
-      tilesetImage.dispose();
-    });
-
     test('paints placed elements even when their TileLayer has no tiles',
         () async {
       const map = MapData(
@@ -438,7 +332,6 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree',
@@ -470,8 +363,6 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: project,
       ).paint(canvas, const ui.Size(96, 96));
 
@@ -573,8 +464,6 @@ void main() {
           warps: const <MapWarp>[],
           gameplayZones: const <MapGameplayZone>[],
           connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-          pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-          terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
           project: project,
           editorEntityAnimationMs: animationMs,
           showGrid: false,
@@ -689,8 +578,6 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: project,
         selectedPlacedElementInstanceId: 'selected',
         placedElementRotationPreview: preview,
@@ -768,7 +655,6 @@ void main() {
         name: 'editor',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         shadowCatalog: ProjectShadowCatalog(
           profiles: [
             ProjectShadowProfile(
@@ -816,8 +702,6 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: project,
       ).paint(canvas, const ui.Size(80, 80));
 
@@ -901,7 +785,6 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         projectedBuildingShadowCatalog: ProjectBuildingShadowPresetCatalog(
           presets: [_projectedBuildingShadowPreset()],
         ),
@@ -941,8 +824,6 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: project,
       ).paint(canvas, const ui.Size(160, 224));
 
@@ -1024,7 +905,6 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree',
@@ -1056,8 +936,6 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: project,
       ).paint(canvas, const ui.Size(32, 32));
 
@@ -1108,7 +986,6 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree',
@@ -1140,8 +1017,6 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: project,
       ).paint(canvas, const ui.Size(32, 32));
 
@@ -1191,7 +1066,6 @@ void main() {
             relativePath: 'tilesets/elements.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         elements: <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'tree_large',
@@ -1223,8 +1097,6 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: project,
         environmentGeneratedDeletePreviewId: 'generated_tree_1',
       ).paint(canvas, const ui.Size(96, 96));
@@ -1239,401 +1111,6 @@ void main() {
       expect(pixels.getUint8(spriteOffset + 3), greaterThan(240));
       final transparentFootprintOffset = ((80 * image.width) + 48) * 4;
       expect(pixels.getUint8(transparentFootprintOffset + 3), lessThan(5));
-      picture.dispose();
-      image.dispose();
-      tilesetImage.dispose();
-    });
-
-    test('paints SurfaceLayer atlas tile from current editor elapsed time',
-        () async {
-      const map = MapData(
-        id: 'pond',
-        name: 'Pond',
-        size: GridSize(width: 3, height: 3),
-        layers: <MapLayer>[
-          SurfaceLayer(
-            id: 'surface-main',
-            name: 'Surfaces',
-            placements: <SurfaceCellPlacement>[
-              SurfaceCellPlacement(
-                x: 1,
-                y: 1,
-                surfacePresetId: 'water-surface',
-              ),
-            ],
-          ),
-        ],
-      );
-      final project = ProjectManifest(
-        name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[],
-        surfaceCatalog: _surfaceCatalog(),
-      );
-      final tilesetImage = await _testTilesetImage();
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 32,
-        tileHeight: 32,
-        tilesetImagesById: {'water-tileset': tilesetImage},
-        sourceTileWidth: 32,
-        sourceTileHeight: 32,
-        tilesPerRowById: const <String, int>{},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
-        project: project,
-        editorEntityAnimationMs: 120,
-      ).paint(canvas, const ui.Size(96, 96));
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(96, 96);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      final offset = ((48 * image.width) + 48) * 4;
-      expect(pixels!.getUint8(offset), lessThan(40));
-      expect(pixels.getUint8(offset + 1), lessThan(40));
-      expect(pixels.getUint8(offset + 2), greaterThan(220));
-      picture.dispose();
-      image.dispose();
-      tilesetImage.dispose();
-    });
-
-    test(
-        'map with Border paints an editable path above its opted-in ground layer',
-        () async {
-      const map = MapData(
-        id: 'path_over_ground',
-        name: 'Path over ground',
-        size: GridSize(width: 3, height: 1),
-        properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
-        layers: <MapLayer>[
-          PathLayer(
-            id: 'pavement',
-            name: 'Pavement',
-            presetId: 'pavement',
-            cells: <bool>[true, true, true],
-            properties: <String, String>{
-              'paintAfterTileLayerId': 'ground',
-            },
-          ),
-          TileLayer(
-            id: 'ground',
-            name: 'Ground',
-            tilesetId: 'ground',
-            tiles: <int>[1, 1, 1],
-          ),
-          TileLayer(
-            id: 'structures',
-            name: 'Structures',
-            tilesetId: 'structures',
-            tiles: <int>[0, 0, 1],
-          ),
-          BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
-        ],
-        placedElements: <MapPlacedElement>[
-          MapPlacedElement(
-            id: 'ground_prop',
-            layerId: 'ground',
-            elementId: 'ground_prop',
-            pos: GridPos(x: 1, y: 0),
-          ),
-        ],
-      );
-      const project = ProjectManifest(
-        name: 'editor',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[
-          ProjectTilesetEntry(
-            id: 'ground',
-            name: 'Ground',
-            relativePath: 'ground.png',
-          ),
-          ProjectTilesetEntry(
-            id: 'pavement',
-            name: 'Pavement',
-            relativePath: 'pavement.png',
-          ),
-          ProjectTilesetEntry(
-            id: 'entity',
-            name: 'Entity',
-            relativePath: 'entity.png',
-          ),
-          ProjectTilesetEntry(
-            id: 'structures',
-            name: 'Structures',
-            relativePath: 'structures.png',
-          ),
-        ],
-        elements: <ProjectElementEntry>[
-          ProjectElementEntry(
-            id: 'ground_prop',
-            name: 'Ground prop',
-            tilesetId: 'entity',
-            categoryId: 'decor',
-            frames: <TilesetVisualFrame>[
-              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-            ],
-          ),
-        ],
-        pathPresets: <ProjectPathPreset>[
-          ProjectPathPreset(
-            id: 'pavement',
-            name: 'Pavement',
-            tilesetId: 'pavement',
-          ),
-        ],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
-      );
-      final ground = await _solidColorImage(
-        width: 32,
-        height: 32,
-        color: const ui.Color(0xFF3C8C50),
-      );
-      final pavement = await _solidColorImage(
-        width: 160,
-        height: 96,
-        color: const ui.Color(0xFFE6C778),
-      );
-      final entity = await _solidColorImage(
-        width: 32,
-        height: 32,
-        color: const ui.Color(0xFFC83CB4),
-      );
-      final structures = await _solidColorImage(
-        width: 32,
-        height: 32,
-        color: const ui.Color(0xFF285AB4),
-      );
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 32,
-        tileHeight: 32,
-        tilesetImagesById: <String, ui.Image>{
-          'ground': ground,
-          'pavement': pavement,
-          'entity': entity,
-          'structures': structures,
-        },
-        sourceTileWidth: 32,
-        sourceTileHeight: 32,
-        tilesPerRowById: const <String, int>{
-          'ground': 1,
-          'pavement': 5,
-          'entity': 1,
-          'structures': 1,
-        },
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: <String, PathAutotileSet>{
-          'pavement': PathAutotileSet.defaultForTileset('pavement'),
-        },
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
-        project: project,
-      ).paint(canvas, const ui.Size(96, 32));
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(96, 32);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-
-      void expectRgba(int x, List<int> expected) {
-        final offset = ((16 * image.width) + x) * 4;
-        expect(
-          <int>[
-            pixels!.getUint8(offset),
-            pixels.getUint8(offset + 1),
-            pixels.getUint8(offset + 2),
-            pixels.getUint8(offset + 3),
-          ],
-          expected,
-        );
-      }
-
-      expectRgba(16, const <int>[230, 199, 120, 255]);
-      expectRgba(48, const <int>[200, 60, 180, 255]);
-      expectRgba(80, const <int>[40, 90, 180, 255]);
-
-      picture.dispose();
-      image.dispose();
-      ground.dispose();
-      pavement.dispose();
-      entity.dispose();
-      structures.dispose();
-    });
-
-    test('paints path layer with center-only 2x2 PathPattern in canvas',
-        () async {
-      const map = MapData(
-        id: 'water_map',
-        name: 'Water Map',
-        size: GridSize(width: 4, height: 2),
-        layers: <MapLayer>[
-          PathLayer(
-            id: 'path_main',
-            name: 'Path',
-            presetId: 'water-base',
-            cells: <bool>[
-              true,
-              true,
-              true,
-              true,
-              true,
-              true,
-              true,
-              true,
-            ],
-          ),
-        ],
-      );
-      final project = ProjectManifest(
-        name: 'editor',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[
-          ProjectTilesetEntry(
-            id: 'water-tileset',
-            name: 'Water',
-            relativePath: 'tilesets/water.png',
-          ),
-        ],
-        pathPresets: const <ProjectPathPreset>[
-          ProjectPathPreset(
-            id: 'water-base',
-            name: 'Water Base',
-            tilesetId: 'water-tileset',
-            variants: <PathPresetVariantMapping>[],
-          ),
-        ],
-        pathPatternPresets: [
-          ProjectPathPatternPreset(
-            id: 'water-pattern',
-            name: 'Water Pattern',
-            basePathPresetId: 'water-base',
-            centerPattern: PathCenterPattern(
-              size: PathCenterPatternSize(width: 2, height: 2),
-              cells: [
-                PathCenterPatternCell(
-                  localX: 0,
-                  localY: 0,
-                  frames: const [
-                    TilesetVisualFrame(source: TilesetSourceRect(x: 5, y: 0)),
-                  ],
-                ),
-                PathCenterPatternCell(
-                  localX: 1,
-                  localY: 0,
-                  frames: const [
-                    TilesetVisualFrame(source: TilesetSourceRect(x: 6, y: 0)),
-                  ],
-                ),
-                PathCenterPatternCell(
-                  localX: 0,
-                  localY: 1,
-                  frames: const [
-                    TilesetVisualFrame(source: TilesetSourceRect(x: 5, y: 1)),
-                  ],
-                ),
-                PathCenterPatternCell(
-                  localX: 1,
-                  localY: 1,
-                  frames: const [
-                    TilesetVisualFrame(source: TilesetSourceRect(x: 6, y: 1)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
-      );
-      final tilesetImage = await _testPathPatternTilesetImage();
-      final recorder = ui.PictureRecorder();
-      final canvas = ui.Canvas(recorder);
-
-      MapGridPainter(
-        map: map,
-        zoom: 1,
-        offset: ui.Offset.zero,
-        tileWidth: 16,
-        tileHeight: 16,
-        tilesetImagesById: {'water-tileset': tilesetImage},
-        sourceTileWidth: 16,
-        sourceTileHeight: 16,
-        tilesPerRowById: const <String, int>{'water-tileset': 12},
-        warps: const <MapWarp>[],
-        gameplayZones: const <MapGameplayZone>[],
-        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: {
-          'water-base': PathAutotileSet.defaultForTileset('water-tileset'),
-        },
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
-        project: project,
-      ).paint(canvas, const ui.Size(64, 32));
-
-      final picture = recorder.endRecording();
-      final image = await picture.toImage(64, 32);
-      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-
-      void expectPixelColor(
-        int x,
-        int y, {
-        required bool Function(int value) red,
-        required bool Function(int value) green,
-        required bool Function(int value) blue,
-      }) {
-        final offset = ((y * image.width) + x) * 4;
-        expect(red(pixels!.getUint8(offset)), isTrue);
-        expect(green(pixels.getUint8(offset + 1)), isTrue);
-        expect(blue(pixels.getUint8(offset + 2)), isTrue);
-      }
-
-      expectPixelColor(
-        8,
-        8,
-        red: (value) => value > 220,
-        green: (value) => value < 20,
-        blue: (value) => value < 20,
-      );
-      expectPixelColor(
-        24,
-        8,
-        red: (value) => value < 20,
-        green: (value) => value > 220,
-        blue: (value) => value < 20,
-      );
-      expectPixelColor(
-        8,
-        24,
-        red: (value) => value < 20,
-        green: (value) => value < 20,
-        blue: (value) => value > 220,
-      );
-      expectPixelColor(
-        24,
-        24,
-        red: (value) => value > 220,
-        green: (value) => value > 220,
-        blue: (value) => value < 20,
-      );
-      expectPixelColor(
-        40,
-        8,
-        red: (value) => value > 220,
-        green: (value) => value < 20,
-        blue: (value) => value < 20,
-      );
-
       picture.dispose();
       image.dispose();
       tilesetImage.dispose();
@@ -1699,8 +1176,6 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         animationClock: clock,
         editorEntityAnimationMs: 110,
         debugOnPaint: () => paints += 1,
@@ -1716,11 +1191,11 @@ void main() {
       clock.dispose();
     });
 
-    test('legacy painter keeps its static animation value', () {
+    test('painter without a clock keeps its static animation value', () {
       final painter = MapGridPainter(
         map: const MapData(
-          id: 'legacy-clock',
-          name: 'Legacy clock',
+          id: 'static-clock',
+          name: 'Static clock',
           size: GridSize(width: 1, height: 1),
         ),
         zoom: 1,
@@ -1734,71 +1209,12 @@ void main() {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         editorEntityAnimationMs: 220,
       );
 
       expect(painter.effectiveAnimationMs, 220);
     });
   });
-}
-
-ProjectSurfaceCatalog _surfaceCatalog() {
-  return ProjectSurfaceCatalog(
-    atlases: [
-      ProjectSurfaceAtlas(
-        id: 'water-atlas',
-        name: 'Water Atlas',
-        tilesetId: 'water-tileset',
-        geometry: SurfaceAtlasGeometry(
-          tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
-          gridSize: SurfaceAtlasGridSize(columns: 4, rows: 4),
-          layout: SurfaceAtlasLayout.columnsAreVariantsRowsAreFrames,
-        ),
-      ),
-    ],
-    animations: [
-      ProjectSurfaceAnimation(
-        id: 'water-isolated-loop',
-        name: 'Water Isolated',
-        timeline: SurfaceAnimationTimeline(
-          frames: [
-            SurfaceAnimationFrame(
-              tileRef: SurfaceAtlasTileRef(
-                atlasId: 'water-atlas',
-                column: 2,
-                row: 0,
-              ),
-              durationMs: 120,
-            ),
-            SurfaceAnimationFrame(
-              tileRef: SurfaceAtlasTileRef(
-                atlasId: 'water-atlas',
-                column: 3,
-                row: 0,
-              ),
-              durationMs: 120,
-            ),
-          ],
-        ),
-      ),
-    ],
-    presets: [
-      ProjectSurfacePreset(
-        id: 'water-surface',
-        name: 'Water',
-        variantAnimations: SurfaceVariantAnimationRefSet(
-          refs: [
-            SurfaceVariantAnimationRef(
-              role: SurfaceVariantRole.isolated,
-              animationId: 'water-isolated-loop',
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
 }
 
 Future<ui.Image> _testTilesetImage() async {
@@ -1876,35 +1292,6 @@ Future<ui.Image> _rectangularAsymmetricTilesetImage() async {
   );
   final picture = recorder.endRecording();
   final image = await picture.toImage(16, 8);
-  picture.dispose();
-  return image;
-}
-
-Future<ui.Image> _testPathPatternTilesetImage() async {
-  final recorder = ui.PictureRecorder();
-  final canvas = ui.Canvas(recorder);
-  canvas.drawRect(
-    const ui.Rect.fromLTWH(0, 0, 192, 32),
-    ui.Paint()..color = const ui.Color(0xFF000000),
-  );
-  canvas.drawRect(
-    const ui.Rect.fromLTWH(80, 0, 16, 16),
-    ui.Paint()..color = const ui.Color(0xFFFF0000),
-  );
-  canvas.drawRect(
-    const ui.Rect.fromLTWH(96, 0, 16, 16),
-    ui.Paint()..color = const ui.Color(0xFF00FF00),
-  );
-  canvas.drawRect(
-    const ui.Rect.fromLTWH(80, 16, 16, 16),
-    ui.Paint()..color = const ui.Color(0xFF0000FF),
-  );
-  canvas.drawRect(
-    const ui.Rect.fromLTWH(96, 16, 16, 16),
-    ui.Paint()..color = const ui.Color(0xFFFFFF00),
-  );
-  final picture = recorder.endRecording();
-  final image = await picture.toImage(192, 32);
   picture.dispose();
   return image;
 }

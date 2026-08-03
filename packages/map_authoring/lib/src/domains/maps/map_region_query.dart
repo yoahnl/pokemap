@@ -170,35 +170,6 @@ Map<String, Object?> _sliceLayer(
           encode: (value) => value,
         ),
       },
-    TerrainLayer() => {
-        ...base,
-        'type': 'terrain',
-        'encoding': 'grid_rows',
-        'rows': _sliceFlat(
-          layer.terrains,
-          mapWidth: mapWidth,
-          query: query,
-          encode: (value) => value.name,
-        ),
-      },
-    PathLayer() => {
-        ...base,
-        'type': 'path',
-        'encoding': 'grid_rows',
-        'presetId': layer.presetId,
-        'rows': _sliceFlat(
-          layer.cells,
-          mapWidth: mapWidth,
-          query: query,
-          encode: (value) => value,
-        ),
-      },
-    SurfaceLayer() => {
-        ...base,
-        'type': 'surface',
-        'encoding': 'placements',
-        'placements': _surfacePlacements(layer, query),
-      },
     SmartTileLayer() => {
         ...base,
         'type': 'smart_tile',
@@ -227,27 +198,6 @@ Map<String, Object?> _sliceLayer(
         'encoding': 'metadata_only',
       },
   };
-}
-
-List<Map<String, Object?>> _surfacePlacements(
-  SurfaceLayer layer,
-  MapRegionQuery query,
-) {
-  final placements = layer.placements
-      .where(
-        (placement) => _containsPoint(query, placement.x, placement.y),
-      )
-      .toList()
-    ..sort((left, right) {
-      final yOrder = left.y.compareTo(right.y);
-      if (yOrder != 0) return yOrder;
-      final xOrder = left.x.compareTo(right.x);
-      if (xOrder != 0) return xOrder;
-      return left.surfacePresetId.compareTo(right.surfacePresetId);
-    });
-  return [
-    for (final placement in placements) _jsonObject(placement.toJson()),
-  ];
 }
 
 List<List<Object?>> _sliceFlat<T>(

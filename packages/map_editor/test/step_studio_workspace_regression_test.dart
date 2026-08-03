@@ -90,7 +90,6 @@ void main() {
       'defers initial step selection callback after frame (provider-safe)',
       (tester) async {
         const project = ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -267,7 +266,6 @@ void main() {
         );
 
         final project = ProjectManifest(
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'test',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
@@ -381,7 +379,6 @@ void main() {
         );
 
         final project = ProjectManifest(
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
           name: 'test',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
@@ -441,7 +438,6 @@ void main() {
 void _noop() {}
 
 const _stepProjectWithoutGlobalStory = ProjectManifest(
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
   name: 'Step empty state',
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
@@ -478,7 +474,6 @@ ProjectManifest _stepProjectWithDraft() {
     ],
   );
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'Step convergence',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

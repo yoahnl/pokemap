@@ -127,7 +127,8 @@ void main() {
       expect(find.text('Great-grandchild'), findsNothing);
     });
 
-    testWidgets('TilesetLibraryRootDropStrip renders French drag-and-drop texts & warning accent color',
+    testWidgets(
+        'TilesetLibraryRootDropStrip renders French drag-and-drop texts & warning accent color',
         (tester) async {
       final project = buildShellChromeProject(name: 'Test Project');
       final container = ProviderContainer();
@@ -141,7 +142,7 @@ void main() {
         await tester.pump();
         container.dispose();
       });
-      
+
       await _pumpInBridge(
         tester,
         TilesetLibraryRootDropStrip(
@@ -159,7 +160,8 @@ void main() {
       expect(find.byType(TilesetLibraryRootDropStrip), findsOneWidget);
     });
 
-    testWidgets('ProjectExplorerPanel renders localized headers and sub-entries in French',
+    testWidgets(
+        'ProjectExplorerPanel renders localized headers and sub-entries in French',
         (tester) async {
       final project = buildShellChromeProject(
         name: 'French Explorer Project',
@@ -214,14 +216,18 @@ void main() {
       // Verify that French section headers and labels are rendered
       expect(find.text('CARTES NON GROUPÉES'), findsOneWidget);
       expect(find.text('UNGROUPED MAPS'), findsNothing);
-      expect(find.text('Grottes de Kanto'), findsOneWidget); // match exact group name case in the tree
+      expect(find.text('Grottes de Kanto'),
+          findsOneWidget); // match exact group name case in the tree
       expect(find.text('GROTTE'), findsOneWidget); // Translated group type
 
       // Verify sub-entries of Catalogs are present in French
       expect(find.text('Pokédex'), findsOneWidget);
-      expect(find.text('Recherche, import, détail et édition locale des espèces'), findsOneWidget);
+      expect(
+          find.text('Recherche, import, détail et édition locale des espèces'),
+          findsOneWidget);
       expect(find.text('Moves'), findsOneWidget);
-      expect(find.text('Catalogue local des capacités du projet'), findsOneWidget);
+      expect(
+          find.text('Catalogue local des capacités du projet'), findsOneWidget);
       expect(find.text('Items'), findsOneWidget);
       expect(find.text('Catalogue local des objets du projet'), findsOneWidget);
     });

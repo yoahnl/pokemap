@@ -660,7 +660,6 @@ void main() {
         project: _projectManifest(),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'tall_grass',
         savedMapSnapshot: initialMap,
       );
       final preview = buildTallGrassEncounterSmartTileGameplayZonePreview(
@@ -710,7 +709,6 @@ void main() {
         project: _projectManifest(),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'tall_grass',
         savedMapSnapshot: initialMap,
       );
 
@@ -741,7 +739,6 @@ void main() {
         project: _projectManifest(),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'tall_grass',
         savedMapSnapshot: initialMap,
       );
 
@@ -781,7 +778,6 @@ void main() {
         ),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'water',
         savedMapSnapshot: initialMap,
       );
       final preview = buildSurfableWaterSmartTileGameplayZonePreview(
@@ -832,7 +828,6 @@ void main() {
         ),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'water',
         savedMapSnapshot: initialMap,
       );
 
@@ -869,7 +864,6 @@ void main() {
         ),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'water',
         savedMapSnapshot: initialMap,
       );
 
@@ -906,7 +900,6 @@ void main() {
         ),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'lava',
         savedMapSnapshot: initialMap,
       );
       final preview = buildLavaHazardSmartTileGameplayZonePreview(
@@ -958,7 +951,6 @@ void main() {
         ),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'lava',
         savedMapSnapshot: initialMap,
       );
 
@@ -991,7 +983,6 @@ void main() {
         ),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'lava',
         savedMapSnapshot: initialMap,
       );
 
@@ -1027,7 +1018,6 @@ void main() {
         ),
         activeMap: initialMap,
         activeLayerId: 'smart-tile-main',
-        selectedSurfacePresetId: 'lava',
         savedMapSnapshot: initialMap,
       );
 

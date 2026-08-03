@@ -752,7 +752,6 @@ class _PaintHarness {
     String activeLayerId, {
     WorldMapWorkspaceSession initialSession = const WorldMapWorkspaceSession(),
     MapData? map,
-    String? selectedSurfacePresetId = 'water',
     String projectRootPath = '/virtual/project',
     String? activeMapPath,
   })  : map = map ?? _map,
@@ -773,9 +772,6 @@ class _PaintHarness {
       activeMapPath: activeMapPath,
       activeLayerId: activeLayerId,
       activeBrush: const EditorBrush.tile(tileId: 1, tilesetId: 'world'),
-      selectedTerrainType: TerrainType.grass,
-      selectedTerrainPresetId: 'grass',
-      selectedSurfacePresetId: selectedSurfacePresetId,
       savedMapSnapshot: this.map,
     );
   }
@@ -903,13 +899,6 @@ final _project = ProjectManifest(
       relativePath: 'tilesets/world.png',
     ),
   ],
-  terrainPresets: const <ProjectTerrainPreset>[
-    ProjectTerrainPreset(
-      id: 'grass',
-      name: 'Grass',
-      terrainType: TerrainType.grass,
-    ),
-  ],
   smartTileCatalog: ProjectSmartTileCatalog(
     materials: const <ProjectSmartTileMaterial>[
       ProjectSmartTileMaterial(
@@ -976,22 +965,6 @@ final _project = ProjectManifest(
       ),
     ],
   ),
-  surfaceCatalog: ProjectSurfaceCatalog(
-    presets: <ProjectSurfacePreset>[
-      ProjectSurfacePreset(
-        id: 'water',
-        name: 'Water',
-        variantAnimations: SurfaceVariantAnimationRefSet(
-          refs: <SurfaceVariantAnimationRef>[
-            SurfaceVariantAnimationRef(
-              role: SurfaceVariantRole.isolated,
-              animationId: 'water-idle',
-            ),
-          ],
-        ),
-      ),
-    ],
-  ),
   borderCatalog: ProjectBorderCatalog(
     records: <BorderBlueprintRecord>[
       BorderBlueprintRecord(
@@ -1035,7 +1008,7 @@ final _borderParams = BorderGenerationParams(
 final _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     const TileLayer(

@@ -418,11 +418,9 @@ class SyncExternalPokemonMovesCatalogUseCase {
   }
 
   Future<PokemonCatalogFile?> _readLocalCatalogIfAvailable(
-    ProjectWorkspace workspace,
-    {
+    ProjectWorkspace workspace, {
     required String catalogRelativePath,
-  }
-  ) async {
+  }) async {
     try {
       return await readRepository.readCatalogByKey(workspace, 'moves');
     } on EditorNotFoundException {
@@ -891,7 +889,8 @@ String? _generationIdFromNumber(int? generation) {
   };
 }
 
-Future<String> _resolveMovesCatalogRelativePath(ProjectWorkspace workspace) async {
+Future<String> _resolveMovesCatalogRelativePath(
+    ProjectWorkspace workspace) async {
   final pokemonConfig = await _readProjectPokemonConfig(workspace);
   final dataRoot = _normalizeConfiguredRelativePath(
     pokemonConfig.dataRoot,

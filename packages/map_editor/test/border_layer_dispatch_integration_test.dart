@@ -28,12 +28,12 @@ void main() {
         name: 'Coast',
       );
 
-      expect(result.map.version, ProjectVersion.v2);
+      expect(result.map.version, ProjectVersion.v6);
       expect(result.layer, isA<BorderLayer>());
       expect(result.layer.id, 'l_border_coast_1');
       expect((result.layer as BorderLayer).content, BorderLayerContent());
       expect(result.map.layers.first, same(source.layers.first));
-      expect(source.version, ProjectVersion.v1);
+      expect(source.version, ProjectVersion.v6);
       expect(source.toJson(), before);
     });
 
@@ -86,7 +86,7 @@ void main() {
       const source = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           MapLayer.tile(
@@ -191,7 +191,7 @@ void main() {
       const map = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
           MapLayer.border(id: 'border', name: 'Côte'),

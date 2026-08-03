@@ -1505,11 +1505,10 @@ void main() {
       );
 
       final iconResolver = BattleBagItemIconResolver(
-        manifest: ProjectManifest(
+        manifest: const ProjectManifest(
           name: 'Bag Icon Test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
         projectRootDirectory: projectRoot.path,
       );

@@ -37,7 +37,6 @@ void main() {
   });
 
   const sampleProject = ProjectManifest(
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'widget_test_proj',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

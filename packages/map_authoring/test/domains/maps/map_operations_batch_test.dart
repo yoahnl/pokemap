@@ -28,24 +28,6 @@ void main() {
         },
         {
           'kind': 'layer.add',
-          'layerKind': 'terrain',
-          'layerId': 'terrain',
-          'name': 'Terrain',
-        },
-        {
-          'kind': 'layer.add',
-          'layerKind': 'path',
-          'layerId': 'path',
-          'name': 'Path',
-        },
-        {
-          'kind': 'layer.add',
-          'layerKind': 'surface',
-          'layerId': 'surface',
-          'name': 'Surface',
-        },
-        {
-          'kind': 'layer.add',
           'layerKind': 'object',
           'layerId': 'objects',
           'name': 'Objects',
@@ -92,10 +74,10 @@ void main() {
       final updated = MapData.fromJson(
         jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>,
       );
-      expect(updated.layers, hasLength(8));
-      expect(updated.version, ProjectVersion.v3);
+      expect(updated.layers, hasLength(5));
+      expect(updated.version, ProjectVersion.v6);
       expect((updated.layers.first as TileLayer).tiles, everyElement(11));
-      expect(draft.preview['operationCount'], 9);
+      expect(draft.preview['operationCount'], 6);
       expect(draft.preview['changedCellCount'], lessThanOrEqualTo(24));
       expect(
         jsonEncode(draft.preview).length,
@@ -177,66 +159,6 @@ void main() {
         snapshot.resourceBytes('map:fixture'),
         _encode(map.toJson()),
       );
-    });
-
-    test('routes native v5 Smart Tile creation to its canonical action', () {
-      final map = _map().copyWith(version: ProjectVersion.v5);
-      final snapshot = _snapshot(map);
-      final beforeBytes = snapshot.resourceBytes('map:fixture');
-      final request = _request(snapshot, const [
-        {
-          'kind': 'layer.add',
-          'layerKind': 'smart_tile',
-          'layerId': 'smart_path',
-          'name': 'Smart Path',
-          'presetId': 'smart_path',
-          'usage': 'path',
-          'defaultMaterialId': 'road',
-        },
-      ]);
-
-      expect(
-        () => const MapOperationsActions().build(_context(snapshot, request)),
-        throwsA(
-          isA<MapAuthoringException>().having(
-            (error) => error.code,
-            'code',
-            'smart_tile_canonical_layer_action_required',
-          ),
-        ),
-      );
-      expect(snapshot.resourceBytes('map:fixture'), beforeBytes);
-      expect(map.layers.whereType<SmartTileLayer>(), isEmpty);
-    });
-
-    test('keeps the canonical action boundary on a pre-v5 map', () {
-      final map = _map().copyWith(version: ProjectVersion.v4);
-      final snapshot = _snapshot(map);
-      final beforeBytes = snapshot.resourceBytes('map:fixture');
-      final request = _request(snapshot, const [
-        {
-          'kind': 'layer.add',
-          'layerKind': 'smart_tile',
-          'layerId': 'smart_path',
-          'name': 'Smart Path',
-          'presetId': 'smart_path',
-          'usage': 'path',
-          'defaultMaterialId': 'road',
-        },
-      ]);
-
-      expect(
-        () => const MapOperationsActions().build(_context(snapshot, request)),
-        throwsA(
-          isA<MapAuthoringException>().having(
-            (error) => error.code,
-            'code',
-            'smart_tile_canonical_layer_action_required',
-          ),
-        ),
-      );
-      expect(snapshot.resourceBytes('map:fixture'), beforeBytes);
-      expect(map.layers.whereType<SmartTileLayer>(), isEmpty);
     });
 
     test('clears every active Smart Tile field lattice exhaustively', () {
@@ -386,7 +308,7 @@ void main() {
       );
     });
 
-    test('layer lifecycle supports all layer kinds and metadata changes', () {
+    test('layer lifecycle supports canonical non-Smart-Tile kinds', () {
       var map = _map();
       const operations = MapLayerOperations();
       for (final operation in const [
@@ -395,24 +317,6 @@ void main() {
           'layerKind': 'collision',
           'layerId': 'collision',
           'name': 'Collision',
-        },
-        {
-          'kind': 'layer.add',
-          'layerKind': 'terrain',
-          'layerId': 'terrain',
-          'name': 'Terrain',
-        },
-        {
-          'kind': 'layer.add',
-          'layerKind': 'path',
-          'layerId': 'path',
-          'name': 'Path',
-        },
-        {
-          'kind': 'layer.add',
-          'layerKind': 'surface',
-          'layerId': 'surface',
-          'name': 'Surface',
         },
         {
           'kind': 'layer.add',
@@ -452,17 +356,17 @@ void main() {
       }).map;
       map = operations.apply(map, const {
         'kind': 'layer.reorder',
-        'oldIndex': 7,
+        'oldIndex': 4,
         'newIndex': 1,
       }).map;
 
       expect(
-          map.layers.map((layer) => layer.runtimeType).toSet(), hasLength(8));
+          map.layers.map((layer) => layer.runtimeType).toSet(), hasLength(5));
       final collision = map.layers.whereType<CollisionLayer>().single;
       expect(collision.name, 'Walls');
       expect(collision.isVisible, isFalse);
       expect(collision.opacity, 0.5);
-      expect(map.version, ProjectVersion.v3);
+      expect(map.version, ProjectVersion.v6);
     });
 
     test('applies one transaction receipt and undoes the complete batch',
@@ -593,7 +497,7 @@ final class _TransactionSetup {
     final map = _map();
     final manifest = ProjectManifest(
       name: 'Map Batch Transaction Fixture',
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       maps: const [
         ProjectMapEntry(
           id: 'fixture',
@@ -691,10 +595,10 @@ ProjectSnapshot _snapshot(MapData map) {
     SmartTileMixedField() => SmartTileTopology.wang8,
     SmartTileCellField() || null => SmartTileTopology.cardinal4,
   };
-  final isNativeSmartTileProject = map.version == ProjectVersion.v5;
+  final isNativeSmartTileProject = map.version == ProjectVersion.v6;
   final manifest = ProjectManifest(
     name: 'Batch Fixture',
-    version: isNativeSmartTileProject ? ProjectVersion.v5 : ProjectVersion.v4,
+    version: isNativeSmartTileProject ? ProjectVersion.v6 : ProjectVersion.v6,
     maps: const [
       ProjectMapEntry(
         id: 'fixture',
@@ -794,7 +698,7 @@ MapData _map() => MapData(
       id: 'fixture',
       name: 'Fixture',
       size: const GridSize(width: 4, height: 3),
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(
@@ -809,7 +713,7 @@ MapData _nativeSmartTileV5Map(SmartTileField field) => MapData(
       id: 'fixture',
       name: 'Fixture',
       size: const GridSize(width: 2, height: 2),
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         const MapLayer.tile(
@@ -832,7 +736,7 @@ MapData _legacyPaletteMap() => MapData(
       id: 'fixture',
       name: 'Fixture',
       size: const GridSize(width: 4, height: 3),
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(

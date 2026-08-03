@@ -11,18 +11,14 @@ class CreateProjectUseCase {
 
   Future<ProjectManifest> execute(String name, String directory) async {
     final manifest = ProjectManifest(
+      version: ProjectVersion.v6,
       name: name,
       maps: [],
       tilesets: [],
       groups: [],
       elementCategories: const [],
       elements: const [],
-      terrainCategories: const [],
-      pathCategories: const [],
-      terrainPresets: const [],
-      pathPresets: const [],
       settings: const ProjectSettings(),
-      surfaceCatalog: ProjectSurfaceCatalog(),
     );
     final workspace = _workspaceFactory.create(directory);
     final projectFile = workspace.projectManifestPath;

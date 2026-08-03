@@ -946,7 +946,6 @@ NarrativeEventProjectCatalog _catalog(
     tilesets: const [],
     eventRegistry: registry,
     scenes: [for (final sceneId in sceneIds) _scene(sceneId)],
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
   return buildNarrativeEventProjectCatalog(
     project: project,

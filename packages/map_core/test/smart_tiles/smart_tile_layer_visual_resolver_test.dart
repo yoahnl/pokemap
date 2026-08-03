@@ -96,7 +96,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
       layers: <MapLayer>[layer],
     );
@@ -180,7 +180,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
       layers: <MapLayer>[layer],
     );
@@ -274,7 +274,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
       layers: <MapLayer>[layer],
     );
@@ -341,7 +341,7 @@ void main() {
     const map = MapData(
       id: 'animated-map',
       name: 'Animated map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
       layers: <MapLayer>[layer],
     );
@@ -448,7 +448,7 @@ void main() {
     final map = MapData(
       id: 'large-map',
       name: 'Large map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: const GridSize(width: width, height: height),
       layers: <MapLayer>[layer],
     );
@@ -526,7 +526,7 @@ void main() {
     const map = MapData(
       id: 'overhang-map',
       name: 'Overhang map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 10, height: 1),
       layers: <MapLayer>[layer],
     );

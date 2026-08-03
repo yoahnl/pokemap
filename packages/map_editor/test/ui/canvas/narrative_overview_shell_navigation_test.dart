@@ -1134,7 +1134,6 @@ Future<void> _loadShellScreenshotFonts() async {
 
 ProjectManifest _minimalProject(String name) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: name,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

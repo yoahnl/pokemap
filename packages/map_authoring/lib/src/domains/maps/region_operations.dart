@@ -104,7 +104,7 @@ final class MapRegionOperations {
     Map<String, Object?> operation,
     String kind,
   ) {
-    if (kind == 'region.copy' || map.version != ProjectVersion.v5) return;
+    if (kind == 'region.copy' || map.version != ProjectVersion.v6) return;
     final layerId = operation['layerId'];
     if (layerId is! String || layerId.trim() != layerId || layerId.isEmpty) {
       return;
@@ -664,32 +664,6 @@ final class _DenseLayerGrid {
         kind = 'collision';
         empty = false;
         values = List<Object?>.from(value.collisions);
-      case TerrainLayer value:
-        kind = 'terrain';
-        empty = TerrainType.none;
-        values = List<Object?>.from(value.terrains);
-      case PathLayer value:
-        kind = 'path';
-        empty = false;
-        values = List<Object?>.from(value.cells);
-      case SurfaceLayer value:
-        kind = 'surface';
-        empty = null;
-        values = List<Object?>.filled(cellCount, null);
-        for (final placement in value.placements) {
-          if (placement.x < 0 ||
-              placement.y < 0 ||
-              placement.x >= map.size.width ||
-              placement.y >= map.size.height) {
-            throw _failure(
-              'map.layer_dimensions_invalid',
-              'A surface placement is outside map bounds.',
-              details: {'layerId': layer.id},
-            );
-          }
-          values[placement.y * map.size.width + placement.x] =
-              placement.surfacePresetId;
-        }
       case SmartTileLayer value:
         kind = 'smart_tile';
         empty = null;
@@ -814,17 +788,8 @@ final class _DenseLayerGrid {
         if (value is int && value >= 0) return value;
         throw _invalid(field, 'a non-negative tile integer');
       case 'collision':
-      case 'path':
         if (value is bool) return value;
         throw _invalid(field, 'a boolean');
-      case 'terrain':
-        if (value is String) {
-          for (final terrain in TerrainType.values) {
-            if (terrain.name == value) return terrain;
-          }
-        }
-        throw _invalid(field, 'a supported terrain name');
-      case 'surface':
       case 'smart_tile':
         if (value == null) return null;
         if (value is String && value.trim() == value && value.isNotEmpty) {
@@ -843,20 +808,6 @@ final class _DenseLayerGrid {
         updated = value.copyWith(tiles: values.cast<int>());
       case CollisionLayer value:
         updated = value.copyWith(collisions: values.cast<bool>());
-      case TerrainLayer value:
-        updated = value.copyWith(terrains: values.cast<TerrainType>());
-      case PathLayer value:
-        updated = value.copyWith(cells: values.cast<bool>());
-      case SurfaceLayer value:
-        updated = value.copyWith(placements: [
-          for (var index = 0; index < values.length; index++)
-            if (values[index] case final String presetId)
-              SurfaceCellPlacement(
-                x: index % width,
-                y: index ~/ width,
-                surfacePresetId: presetId,
-              ),
-        ]);
       case SmartTileLayer value:
         final palette = List<String>.of(value.materialPalette);
         if (palette.isEmpty || palette.first != '') {

@@ -359,7 +359,6 @@ ProjectManifest _project() {
       ),
     ],
     scenes: <SceneAsset>[_battleThenFactScene()],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

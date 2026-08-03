@@ -468,7 +468,6 @@ void main() {
         name: 'Canonical Storyline route',
         maps: const [],
         tilesets: const [],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         storylines: [
           StorylineAsset(
             id: 'story_target',

@@ -596,7 +596,6 @@ RuntimeMapBundle _bundle({
     scenes: scenes,
     scenarios: scenarios,
     eventRegistry: eventRegistry,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   return RuntimeMapBundle(
     manifest: project,

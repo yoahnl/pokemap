@@ -6,71 +6,6 @@ part of 'editing_service_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$terrainPresetResolverHash() =>
-    r'437567fe4351d72e0106a30fe34990396fb831e1';
-
-/// Providers orientés orchestration d'édition.
-///
-/// On regroupe ici les services/coordinators qui composent plusieurs use cases
-/// déjà existants. Le but est de rendre la composition root lisible par thème,
-/// pas d'ajouter une nouvelle couche abstraite.
-///
-/// Copied from [terrainPresetResolver].
-@ProviderFor(terrainPresetResolver)
-final terrainPresetResolverProvider =
-    AutoDisposeProvider<TerrainPresetResolver>.internal(
-  terrainPresetResolver,
-  name: r'terrainPresetResolverProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$terrainPresetResolverHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef TerrainPresetResolverRef
-    = AutoDisposeProviderRef<TerrainPresetResolver>;
-String _$terrainPresetSelectionCoordinatorHash() =>
-    r'fa4d553251b8a3f13f598c6e63b36e5fd6fb2c3a';
-
-/// See also [terrainPresetSelectionCoordinator].
-@ProviderFor(terrainPresetSelectionCoordinator)
-final terrainPresetSelectionCoordinatorProvider =
-    AutoDisposeProvider<TerrainPresetSelectionCoordinator>.internal(
-  terrainPresetSelectionCoordinator,
-  name: r'terrainPresetSelectionCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$terrainPresetSelectionCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef TerrainPresetSelectionCoordinatorRef
-    = AutoDisposeProviderRef<TerrainPresetSelectionCoordinator>;
-String _$pathAutotileResolverHash() =>
-    r'7f995f9c107bdd31725b2c0b82c0fa0aa3a55f35';
-
-/// See also [pathAutotileResolver].
-@ProviderFor(pathAutotileResolver)
-final pathAutotileResolverProvider =
-    AutoDisposeProvider<PathAutotileResolver>.internal(
-  pathAutotileResolver,
-  name: r'pathAutotileResolverProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$pathAutotileResolverHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef PathAutotileResolverRef = AutoDisposeProviderRef<PathAutotileResolver>;
 String _$editorMapSessionCoordinatorHash() =>
     r'36758252f8c1d423908ec39a0e70e5f0f3edc388';
 
@@ -309,46 +244,6 @@ final mapConnectionEditingServiceProvider =
 // ignore: unused_element
 typedef MapConnectionEditingServiceRef
     = AutoDisposeProviderRef<MapConnectionEditingService>;
-String _$terrainPaintingCoordinatorHash() =>
-    r'569c00f44af275ce8e2c2c88e45ef58f93957f74';
-
-/// See also [terrainPaintingCoordinator].
-@ProviderFor(terrainPaintingCoordinator)
-final terrainPaintingCoordinatorProvider =
-    AutoDisposeProvider<TerrainPaintingCoordinator>.internal(
-  terrainPaintingCoordinator,
-  name: r'terrainPaintingCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$terrainPaintingCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef TerrainPaintingCoordinatorRef
-    = AutoDisposeProviderRef<TerrainPaintingCoordinator>;
-String _$pathLayerEditingCoordinatorHash() =>
-    r'6c32ca06411d1bb52e95b2b1ead226e3283594c8';
-
-/// See also [pathLayerEditingCoordinator].
-@ProviderFor(pathLayerEditingCoordinator)
-final pathLayerEditingCoordinatorProvider =
-    AutoDisposeProvider<PathLayerEditingCoordinator>.internal(
-  pathLayerEditingCoordinator,
-  name: r'pathLayerEditingCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$pathLayerEditingCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef PathLayerEditingCoordinatorRef
-    = AutoDisposeProviderRef<PathLayerEditingCoordinator>;
 String _$gameplayZoneEditingCoordinatorHash() =>
     r'de7c7f3e76b629890609ce92731dd58b2783abb4';
 

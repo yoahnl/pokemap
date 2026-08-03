@@ -161,7 +161,6 @@ void main() {
 
 ProjectManifest _projectManifest() {
   return const ProjectManifest(
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
     name: 'Test',
     maps: [],
     tilesets: [

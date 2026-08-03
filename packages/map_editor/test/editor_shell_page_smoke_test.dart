@@ -542,72 +542,6 @@ void main() {
       );
     });
 
-    testWidgets('opens Path Studio from the project explorer', (tester) async {
-      final container = await pumpEditorShellPage(
-        tester,
-        initialState: EditorState(
-          projectRootPath: '/tmp/editor_shell_path_studio',
-          project: buildShellChromeProject(
-            pathPresets: const <ProjectPathPreset>[
-              ProjectPathPreset(
-                id: 'legacy-water',
-                name: 'Legacy Water',
-                surfaceKind: PathSurfaceKind.water,
-              ),
-            ],
-            pathPatternPresets: [
-              ProjectPathPatternPreset(
-                id: 'water-1x1',
-                name: 'Water 1x1',
-                basePathPresetId: 'legacy-water',
-                centerPattern: PathCenterPattern(
-                  size: PathCenterPatternSize(width: 1, height: 1),
-                  cells: [
-                    PathCenterPatternCell(
-                      localX: 0,
-                      localY: 0,
-                      frames: [
-                        const TilesetVisualFrame(
-                          source: TilesetSourceRect(x: 0, y: 0),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-
-      // Les modules de l'explorateur sont repliés par défaut : l'auteur
-      // ouvre d'abord Path Library avant de choisir Path Studio.
-      await tester.tap(find.text('Path Library'));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const Key('project-explorer-path-studio-entry')),
-        findsOneWidget,
-      );
-
-      await tester.ensureVisible(
-        find.byKey(const Key('project-explorer-path-studio-entry')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('project-explorer-path-studio-entry')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        container.read(editorNotifierProvider).workspaceMode,
-        EditorWorkspaceMode.pathStudio,
-      );
-      expect(find.text('Path Studio'), findsWidgets);
-      expect(find.text('Créer des motifs de chemin'), findsWidgets);
-      expect(find.text('Water 1x1'), findsWidgets);
-    });
-
     testWidgets('renders shell chrome with an error state already present',
         (tester) async {
       await pumpEditorShellPage(
@@ -651,7 +585,7 @@ void main() {
         initialState: EditorState(
           projectRootPath: '/tmp/editor_shell_shortcut_path_studio',
           project: buildShellChromeProject(),
-          workspaceMode: EditorWorkspaceMode.pathStudio,
+          workspaceMode: EditorWorkspaceMode.smartTilesStudio,
         ),
         overrides: [
           projectRepositoryProvider.overrideWithValue(projectRepository),
@@ -674,7 +608,7 @@ void main() {
       final container = await pumpEditorShellPage(
         tester,
         initialState: const EditorState(
-          workspaceMode: EditorWorkspaceMode.pathStudio,
+          workspaceMode: EditorWorkspaceMode.smartTilesStudio,
         ),
       );
 
@@ -695,7 +629,7 @@ void main() {
         initialState: EditorState(
           projectRootPath: '/tmp/editor_shell_project_dirty',
           project: buildShellChromeProject(),
-          workspaceMode: EditorWorkspaceMode.pathStudio,
+          workspaceMode: EditorWorkspaceMode.smartTilesStudio,
           isProjectDirty: true,
         ),
       );

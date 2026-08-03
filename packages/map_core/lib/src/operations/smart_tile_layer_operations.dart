@@ -237,20 +237,12 @@ MapData replaceSmartTileLayer(
   required SmartTileLayer layer,
 }) {
   // Replacement is deliberately map-only: it may maintain an already-native
-  // v5 layer, but it must never manufacture the project-wide v5 transition
+  // v6 layer, but it must never manufacture the project-wide v6 transition
   // owned by the canonical authoring action together with the manifest.
-  if (map.version != ProjectVersion.v5) {
+  if (map.version != ProjectVersion.v6) {
     throw const ValidationException(
-      'Native Smart Tile replacement requires a ProjectVersion.v5 map',
+      'Native Smart Tile replacement requires a ProjectVersion.v6 map',
       code: 'smart_tile_native_project_version_required',
-    );
-  }
-  if (map.layers.any(
-    (candidate) => candidate is TerrainLayer || candidate is PathLayer,
-  )) {
-    throw const ValidationException(
-      'ProjectVersion.v5 rejects legacy TerrainLayer/PathLayer',
-      code: 'smart_tile_v5_legacy_layer_unsupported',
     );
   }
   final index = map.layers.indexWhere((candidate) => candidate.id == layer.id);

@@ -735,7 +735,6 @@ _ProjectionFixture _fixture({
     storylines: storylines,
     worldRules: worldRules,
     eventRegistry: eventRegistry,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   return _ProjectionFixture(
     project: project,

@@ -266,7 +266,6 @@ RuntimeMapBundle _bundle({
           frameHeight: 2,
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
       shadowCatalog: withV1Shadow || includeLegacyOnlyElement
           ? _legacyShadowCatalog()
           : const ProjectShadowCatalog.empty(),

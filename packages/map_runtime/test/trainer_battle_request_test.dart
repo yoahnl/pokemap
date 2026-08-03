@@ -42,20 +42,19 @@ void main() {
       ),
     );
 
-    final testManifest = ProjectManifest(
+    const testManifest = ProjectManifest(
       name: 'Test',
       maps: [],
       tilesets: [],
       elements: [],
       trainers: [
-        const ProjectTrainerEntry(
+        ProjectTrainerEntry(
           id: 'trainer_001',
           name: 'Dresseur 1',
           trainerClass: 'Dresseur',
           team: [],
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
     );
 
     final testWorld = GameplayWorldState.initial(

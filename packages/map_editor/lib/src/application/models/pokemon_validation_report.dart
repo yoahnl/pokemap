@@ -27,8 +27,8 @@ class PokemonValidationReport {
   bool get isValid =>
       !issues.any((issue) => issue.severity == PokemonValidationSeverity.error);
 
-  bool get hasWarnings =>
-      issues.any((issue) => issue.severity == PokemonValidationSeverity.warning);
+  bool get hasWarnings => issues
+      .any((issue) => issue.severity == PokemonValidationSeverity.warning);
 
   int get errorCount => issues
       .where((issue) => issue.severity == PokemonValidationSeverity.error)

@@ -1026,7 +1026,6 @@ _RuntimeSceneFixture _fixture({
     facts: facts,
     cinematics: cinematics,
     scenes: [resolvedScene],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   final event = MapEventDefinition(
     id: 'event_test_scene',

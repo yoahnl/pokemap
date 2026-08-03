@@ -305,7 +305,7 @@ ProjectManifest _previousManifest(
   );
   return ProjectManifest(
     name: 'Before publication',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(
@@ -354,7 +354,7 @@ Future<void> _writeManifest(File file, ProjectManifest manifest) async {
 
 Future<ProjectManifest> _readManifest(File file) async {
   final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-  return ProjectManifest.fromJson(migrateProjectManifestJson(json));
+  return ProjectManifest.fromJson(json);
 }
 
 Uint8List _png(int red, int green, int blue) {

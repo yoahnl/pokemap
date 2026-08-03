@@ -33,42 +33,9 @@ class TriggeredConnection {
   final GridPos sourcePos;
 }
 
-enum PathAnimationSignalKind {
-  trigger,
-  setActive,
-}
-
-class PathAnimationSignal {
-  const PathAnimationSignal({
-    required this.kind,
-    required this.layerId,
-    required this.presetId,
-    required this.ruleId,
-    required this.trigger,
-    required this.mode,
-    required this.sourcePos,
-    this.scope = PathAnimationActivationScope.wholeLayer,
-    this.active,
-  });
-
-  final PathAnimationSignalKind kind;
-  final String layerId;
-  final String presetId;
-  final String ruleId;
-  final PathAnimationTriggerType trigger;
-  final PathAnimationPlaybackMode mode;
-  final GridPos sourcePos;
-  final PathAnimationActivationScope scope;
-  final bool? active;
-}
-
 sealed class GameplayStepResult {
-  const GameplayStepResult(
-    this.world, {
-    this.pathAnimationSignals = const <PathAnimationSignal>[],
-  });
+  const GameplayStepResult(this.world);
   final GameplayWorldState world;
-  final List<PathAnimationSignal> pathAnimationSignals;
 }
 
 final class Moved extends GameplayStepResult {
@@ -76,7 +43,6 @@ final class Moved extends GameplayStepResult {
     super.world, {
     this.hazardEffect,
     this.movementEffect,
-    super.pathAnimationSignals,
   });
 
   final GameplayHazardEffect? hazardEffect;
@@ -87,7 +53,6 @@ final class Blocked extends GameplayStepResult {
   const Blocked(
     super.world, {
     this.reason = GameplayMovementBlockReason.solid,
-    super.pathAnimationSignals,
   });
 
   final GameplayMovementBlockReason reason;
@@ -96,61 +61,52 @@ final class Blocked extends GameplayStepResult {
 final class WarpTriggered extends GameplayStepResult {
   const WarpTriggered(
     super.world,
-    this.warp, {
-    super.pathAnimationSignals,
-  });
+    this.warp,
+  );
   final TriggeredWarp warp;
 }
 
 final class ConnectionTriggered extends GameplayStepResult {
   const ConnectionTriggered(
     super.world,
-    this.connection, {
-    super.pathAnimationSignals,
-  });
+    this.connection,
+  );
   final TriggeredConnection connection;
 }
 
 final class NothingToInteract extends GameplayStepResult {
-  const NothingToInteract(
-    super.world, {
-    super.pathAnimationSignals,
-  });
+  const NothingToInteract(super.world);
 }
 
 final class NpcInteracted extends GameplayStepResult {
   const NpcInteracted(
     super.world,
-    this.entity, {
-    super.pathAnimationSignals,
-  });
+    this.entity,
+  );
   final MapEntity entity;
 }
 
 final class SignInteracted extends GameplayStepResult {
   const SignInteracted(
     super.world,
-    this.entity, {
-    super.pathAnimationSignals,
-  });
+    this.entity,
+  );
   final MapEntity entity;
 }
 
 final class ItemInteracted extends GameplayStepResult {
   const ItemInteracted(
     super.world,
-    this.entity, {
-    super.pathAnimationSignals,
-  });
+    this.entity,
+  );
   final MapEntity entity;
 }
 
 final class EntityInteracted extends GameplayStepResult {
   const EntityInteracted(
     super.world,
-    this.entity, {
-    super.pathAnimationSignals,
-  });
+    this.entity,
+  );
   final MapEntity entity;
 }
 
@@ -159,9 +115,8 @@ final class PlacedElementInteracted extends GameplayStepResult {
     super.world,
     this.element,
     this.behavior,
-    this.trigger, {
-    super.pathAnimationSignals,
-  });
+    this.trigger,
+  );
   final MapPlacedElement element;
   final MapPlacedElementBehavior behavior;
   final MapPlacedElementTriggerType trigger;
@@ -171,9 +126,8 @@ final class MapEventInteracted extends GameplayStepResult {
   const MapEventInteracted(
     super.world,
     this.event,
-    this.page, {
-    super.pathAnimationSignals,
-  });
+    this.page,
+  );
   final MapEventDefinition event;
   final ActiveEventPage page;
 }

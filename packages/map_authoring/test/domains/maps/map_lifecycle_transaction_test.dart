@@ -270,7 +270,7 @@ final class _Setup {
     final root = await Directory.systemTemp.createTemp('map-lifecycle-');
     final manifest = ProjectManifest(
       name: 'Lifecycle Transaction Fixture',
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       maps: [
         for (final map in maps)
           ProjectMapEntry(
@@ -362,18 +362,13 @@ MapData _map(String id) => MapData(
       id: id,
       name: id,
       size: const GridSize(width: 2, height: 2),
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(
           id: 'l_base',
           name: 'Base',
           tiles: List<int>.filled(4, 0),
-        ),
-        MapLayer.terrain(
-          id: 'l_terrain',
-          name: 'Terrain',
-          terrains: List<TerrainType>.filled(4, TerrainType.none),
         ),
         MapLayer.collision(
           id: 'l_collisions',

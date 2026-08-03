@@ -191,7 +191,6 @@ ProjectManifest _project({
   List<SceneAsset> scenes = const [],
 }) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'legacy_project',
     maps: const [],
     tilesets: const [],

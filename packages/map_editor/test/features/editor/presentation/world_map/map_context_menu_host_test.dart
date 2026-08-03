@@ -424,7 +424,7 @@ Future<_Harness> _pumpHarness(
 final _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(

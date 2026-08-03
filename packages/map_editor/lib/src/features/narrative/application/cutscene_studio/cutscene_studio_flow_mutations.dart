@@ -33,7 +33,11 @@ List<CutsceneFlowEntry> replaceCutsceneBlockByIdInFlow(
         case CutsceneFlowBlockEntry(:final block):
           if (block.id == id) return CutsceneFlowBlockEntry(next);
           return entry;
-        case CutsceneFlowChoiceEntry(:final question, :final onYes, :final onNo):
+        case CutsceneFlowChoiceEntry(
+            :final question,
+            :final onYes,
+            :final onNo
+          ):
           if (question.id == id) {
             return CutsceneFlowChoiceEntry(
               question: next,
@@ -69,7 +73,11 @@ List<CutsceneFlowEntry> removeCutsceneFlowBlockEntryWithId(
           if (block.id != blockId) {
             out.add(entry);
           }
-        case CutsceneFlowChoiceEntry(:final question, :final onYes, :final onNo):
+        case CutsceneFlowChoiceEntry(
+            :final question,
+            :final onYes,
+            :final onNo
+          ):
           if (question.id == blockId) {
             continue;
           }

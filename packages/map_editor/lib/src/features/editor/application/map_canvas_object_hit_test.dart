@@ -180,9 +180,6 @@ final class MapCanvasObjectHitTest {
             position: position,
             foregroundPass: true,
           );
-        case MapVisualCompositionStepKind.terrainLayer:
-        case MapVisualCompositionStepKind.pathLayer:
-        case MapVisualCompositionStepKind.surfaceLayer:
         case MapVisualCompositionStepKind.smartTileLayer:
         case MapVisualCompositionStepKind.tileBackgroundLayer:
         case MapVisualCompositionStepKind.borderLayer:

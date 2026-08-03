@@ -87,9 +87,6 @@ Iterable<MapLayer> _paintableLayersTopFirst(MapData map) sync* {
 bool _isCellPaintLayer(MapLayer layer) {
   return layer is TileLayer ||
       layer is CollisionLayer ||
-      layer is TerrainLayer ||
-      layer is PathLayer ||
-      layer is SurfaceLayer ||
       layer is SmartTileLayer;
 }
 
@@ -105,12 +102,6 @@ bool _isPaintedAt(MapLayer layer, GridSize mapSize, GridPos position) {
     TileLayer(:final tiles) => index < tiles.length && tiles[index] != 0,
     CollisionLayer(:final collisions) =>
       index < collisions.length && collisions[index],
-    TerrainLayer(:final terrains) =>
-      index < terrains.length && terrains[index] != TerrainType.none,
-    PathLayer(:final cells) => index < cells.length && cells[index],
-    SurfaceLayer(:final placements) => placements.any(
-        (placement) => placement.x == position.x && placement.y == position.y,
-      ),
     SmartTileLayer smartTileLayer => smartTileCellHasAuthoredValue(
         smartTileLayer,
         mapSize: mapSize,

@@ -792,15 +792,19 @@ void main() {
       );
 
       final actor = model.actorById('actor_professor')!;
-      expect(actor.position.status, CinematicActorPreviewPositionStatus.resolved);
+      expect(
+          actor.position.status, CinematicActorPreviewPositionStatus.resolved);
       expect(actor.position.x, 4); // 4.2 rounded
       expect(actor.position.y, 7); // 6.8 rounded
       expect(actor.position.sourceId, 'point_a');
       expect(actor.position.sourceLabel, 'Point A');
-      expect(actor.position.sourceKind, CinematicActorPreviewPositionSourceKind.stagePoint);
+      expect(actor.position.sourceKind,
+          CinematicActorPreviewPositionSourceKind.stagePoint);
     });
 
-    test('actor display reports missing stage point and does not invent coordinates', () {
+    test(
+        'actor display reports missing stage point and does not invent coordinates',
+        () {
       final model = buildCinematicActorDisplayPreviewModel(
         cinematic: _cinematic(
           requiredActors: [_actor('actor_professor')],
@@ -827,12 +831,14 @@ void main() {
       );
 
       final actor = model.actorById('actor_professor')!;
-      expect(actor.position.status, CinematicActorPreviewPositionStatus.missingSource);
+      expect(actor.position.status,
+          CinematicActorPreviewPositionStatus.missingSource);
       expect(actor.position.x, isNull);
       expect(actor.position.y, isNull);
       expect(
         actor.diagnostics.map((d) => d.code),
-        contains(CinematicActorDisplayPreviewDiagnosticCode.actorDisplayMissingStagePoint),
+        contains(CinematicActorDisplayPreviewDiagnosticCode
+            .actorDisplayMissingStagePoint),
       );
     });
   });

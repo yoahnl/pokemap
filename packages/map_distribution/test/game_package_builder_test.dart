@@ -32,11 +32,11 @@ void main() {
       expect(first.packageBytes, second.packageBytes);
       expect(
         sha256.convert(first.packageBytes).toString(),
-        '17e0cedce4c4f15bd135d55c19dd05035a6c668b5c9db313d68de845c54c9b35',
+        'b27e896f2fad2537ae421e4c7656f1ceb4719797d5ae19606365ca8bd0b6867d',
       );
       expect(
         first.packageSha256,
-        '17e0cedce4c4f15bd135d55c19dd05035a6c668b5c9db313d68de845c54c9b35',
+        'b27e896f2fad2537ae421e4c7656f1ceb4719797d5ae19606365ca8bd0b6867d',
       );
       expect(first.archiveBytes, first.packageBytes.length);
       expect(first.manifest.content.fileCount, 2);
@@ -218,7 +218,7 @@ void main() {
       final projectWithMissingMap = utf8.encode(
         jsonEncode(<String, Object?>{
           'name': 'Missing Map',
-          'version': 'v2',
+          'version': 'v6',
           'maps': <Object?>[
             <String, Object?>{
               'id': 'map.start',
@@ -244,9 +244,9 @@ void main() {
 
       expect(
         () => builder.build(
-          manifest: _draftManifest(),
+          manifest: _draftManifest(projectFormat: 'v5'),
           payloadFiles: <String, List<int>>{
-            'project/project.json': _validProjectBytes(version: 'v1'),
+            'project/project.json': _validProjectBytes(),
           },
         ),
         throwsA(
@@ -273,7 +273,7 @@ List<int> _onePixelPngHeader() {
 
 List<int> _validProjectBytes({
   String name = 'Builder Test',
-  String version = 'v2',
+  String version = 'v6',
 }) =>
     utf8.encode(
       jsonEncode(<String, Object?>{
@@ -284,7 +284,7 @@ List<int> _validProjectBytes({
       }),
     );
 
-GamePackageManifest _draftManifest() {
+GamePackageManifest _draftManifest({String projectFormat = 'v6'}) {
   final valid = const GamePackageManifestCodec().decodeJson(
     <String, Object?>{
       'packageFormat': 1,
@@ -295,7 +295,7 @@ GamePackageManifest _draftManifest() {
       'compatibility': <String, Object?>{
         'minHubVersion': '1.0.0',
         'runtimeApi': '>=1.0.0 <2.0.0',
-        'projectFormat': 'v2',
+        'projectFormat': projectFormat,
         'saveFormat': 1,
         'compatibilityId': 'main',
         'requiredCapabilities': <String>[],

@@ -554,10 +554,9 @@ const _projectWithLargeBrush = ProjectManifest(
       ],
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
-enum _LayerKind { tile, collision, terrain, path, surface }
+enum _LayerKind { tile, collision, smartTerrain, smartPath, smartSurface }
 
 MapData _mapFor(_LayerKind kind) {
   const filledTiles = <int>[
@@ -596,24 +595,6 @@ MapData _mapFor(_LayerKind kind) {
     true,
     true,
   ];
-  const filledTerrain = <TerrainType>[
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-    TerrainType.rock,
-  ];
   final layer = switch (kind) {
     _LayerKind.tile => const MapLayer.tile(
         id: 'layer',
@@ -626,29 +607,35 @@ MapData _mapFor(_LayerKind kind) {
         name: 'Collision',
         collisions: filledFlags,
       ),
-    _LayerKind.terrain => const MapLayer.terrain(
+    _LayerKind.smartTerrain => const MapLayer.smartTile(
         id: 'layer',
         name: 'Terrain',
-        terrains: filledTerrain,
+        presetId: 'terrain',
+        usage: SmartTileUsage.terrain,
+        materialPalette: <String>['', 'ground'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ),
       ),
-    _LayerKind.path => const MapLayer.path(
+    _LayerKind.smartPath => const MapLayer.smartTile(
         id: 'layer',
         name: 'Path',
         presetId: 'road',
-        cells: filledFlags,
+        usage: SmartTileUsage.path,
+        materialPalette: <String>['', 'road'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ),
       ),
-    _LayerKind.surface => MapLayer.surface(
+    _LayerKind.smartSurface => const MapLayer.smartTile(
         id: 'layer',
         name: 'Surface',
-        placements: <SurfaceCellPlacement>[
-          for (var y = 0; y < 4; y++)
-            for (var x = 0; x < 4; x++)
-              SurfaceCellPlacement(
-                x: x,
-                y: y,
-                surfacePresetId: 'water',
-              ),
-        ],
+        presetId: 'water',
+        usage: SmartTileUsage.forestSurface,
+        materialPalette: <String>['', 'water'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ),
       ),
   };
   return _mapWithLayers(<MapLayer>[layer]);
@@ -671,6 +658,7 @@ MapData _mapWithLayers(List<MapLayer> layers) {
   return MapData(
     id: 'map',
     name: 'Map',
+    version: ProjectVersion.v6,
     size: const GridSize(width: 4, height: 4),
     layers: layers,
   );
@@ -681,10 +669,7 @@ bool _isFilled(MapLayer layer, {required int x, required int y}) {
   return switch (layer) {
     TileLayer(:final tiles) => tiles[index] != 0,
     CollisionLayer(:final collisions) => collisions[index],
-    TerrainLayer(:final terrains) => terrains[index] != TerrainType.none,
-    PathLayer(:final cells) => cells[index],
-    SurfaceLayer(:final placements) =>
-      placements.any((placement) => placement.x == x && placement.y == y),
+    final SmartTileLayer smart => smartTileSemanticCells(smart)[index] != 0,
     _ => throw StateError('Unsupported layer: ${layer.runtimeType}'),
   };
 }

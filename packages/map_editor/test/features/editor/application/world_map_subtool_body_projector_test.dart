@@ -57,18 +57,17 @@ void main() {
         brush: noBrush,
       ),
       (
-        label: 'paint surface without a selected preset',
+        label: 'paint Smart Tile surface',
         request: const ActivateWorldMapPaint(WorldMapPaintSubtool.surface),
         source: _source(
           activeLayerId: 'surface',
-          selectedSurfacePresetId: null,
         ),
         body: WorldMapSubtoolBodyKind.surfacePainter,
-        access: WorldMapSubtoolBodyAccess.setup,
-        available: false,
-        reason: 'Sélectionnez une surface disponible avant de peindre.',
-        tool: null,
-        brush: null,
+        access: WorldMapSubtoolBodyAccess.ready,
+        available: true,
+        reason: null,
+        tool: EditorToolType.terrainPaint,
+        brush: noBrush,
       ),
       (
         label: 'paint border without a selected feature',
@@ -284,7 +283,6 @@ void main() {
           activeMap: null,
           activeLayerId: null,
           activeBrush: const EditorBrush.none(),
-          selectedSurfacePresetId: null,
         ),
         request: request,
       );
@@ -300,7 +298,6 @@ void main() {
 WorldMapToolActivationSource _source({
   required String activeLayerId,
   EditorBrush brush = const EditorBrush.none(),
-  String? selectedSurfacePresetId = 'water',
   ProjectManifest? project,
 }) {
   return (
@@ -308,7 +305,6 @@ WorldMapToolActivationSource _source({
     activeMap: _map,
     activeLayerId: activeLayerId,
     activeBrush: brush,
-    selectedSurfacePresetId: selectedSurfacePresetId,
   );
 }
 
@@ -344,22 +340,6 @@ final _project = ProjectManifest(
       ],
     ),
   ],
-  surfaceCatalog: ProjectSurfaceCatalog(
-    presets: <ProjectSurfacePreset>[
-      ProjectSurfacePreset(
-        id: 'water',
-        name: 'Water',
-        variantAnimations: SurfaceVariantAnimationRefSet(
-          refs: <SurfaceVariantAnimationRef>[
-            SurfaceVariantAnimationRef(
-              role: SurfaceVariantRole.isolated,
-              animationId: 'water-idle',
-            ),
-          ],
-        ),
-      ),
-    ],
-  ),
   borderCatalog: ProjectBorderCatalog(
     records: <BorderBlueprintRecord>[
       BorderBlueprintRecord(
@@ -403,6 +383,7 @@ final _borderParams = BorderGenerationParams(
 final _map = MapData(
   id: 'map',
   name: 'Map',
+  version: ProjectVersion.v6,
   size: const GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     const TileLayer(
@@ -411,9 +392,27 @@ final _map = MapData(
       tilesetId: 'world',
       tiles: <int>[],
     ),
-    const TerrainLayer(id: 'terrain', name: 'Terrain'),
-    const PathLayer(id: 'path', name: 'Path'),
-    const SurfaceLayer(id: 'surface', name: 'Surface'),
+    const SmartTileLayer(
+      id: 'terrain',
+      name: 'Terrain',
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+      field: SmartTileField.cell(),
+    ),
+    const SmartTileLayer(
+      id: 'path',
+      name: 'Path',
+      presetId: 'path',
+      usage: SmartTileUsage.path,
+      field: SmartTileField.cell(),
+    ),
+    const SmartTileLayer(
+      id: 'surface',
+      name: 'Surface',
+      presetId: 'surface',
+      usage: SmartTileUsage.forestSurface,
+      field: SmartTileField.cell(),
+    ),
     const CollisionLayer(id: 'collision', name: 'Collision'),
     MapLayer.border(
       id: 'border',

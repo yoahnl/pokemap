@@ -571,7 +571,8 @@ void main() {
     testWidgets('EnvironmentLayerInspectorPanel seul : pas de crash', (
       tester,
     ) async {
-      final envLayer = MapLayer.environment(id: 'e', name: 'E') as EnvironmentLayer;
+      final envLayer =
+          MapLayer.environment(id: 'e', name: 'E') as EnvironmentLayer;
       final map = MapData(
         id: 'm',
         name: 'M',

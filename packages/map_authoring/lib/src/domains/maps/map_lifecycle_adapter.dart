@@ -75,35 +75,10 @@ final class MapLifecycleAdapter {
       id: mapId,
       name: name,
       size: GridSize(width: width, height: height),
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       visualStack: MapVisualStackConfig.canonicalV1,
       tilesetId: tilesetId ?? '',
-      layers: [
-        MapLayer.tile(
-          id: 'l_base',
-          name: 'Base',
-          tilesetId: tilesetId,
-          tiles: List<int>.filled(width * height, 0, growable: false),
-        ),
-        MapLayer.terrain(
-          id: 'l_terrain',
-          name: 'Terrain',
-          terrains: List<TerrainType>.filled(
-            width * height,
-            TerrainType.none,
-            growable: false,
-          ),
-        ),
-        MapLayer.collision(
-          id: 'l_collisions',
-          name: 'Collisions',
-          collisions: List<bool>.filled(
-            width * height,
-            false,
-            growable: false,
-          ),
-        ),
-      ],
+      layers: const [],
     );
     final path = _canonicalMapPath(mapId);
     _requireAvailablePath(snapshot.manifest, path);

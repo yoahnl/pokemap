@@ -5,22 +5,34 @@ import 'package:map_editor/src/features/border_map_editing/presentation/editor_m
 void main() {
   group('buildEditorMapLayerPaintOrder', () {
     test(
-        'canonical v1 paints the authored top-first stack bottom-to-top '
+        'canonical v6 paints the authored top-first stack bottom-to-top '
         'without Border selecting semantics', () {
       final withoutBorder = buildEditorMapLayerPaintOrder(
         const MapData(
           id: 'canonical',
           name: 'Canonical',
           size: GridSize(width: 1, height: 1),
-          version: ProjectVersion.v3,
+          version: ProjectVersion.v6,
           visualStack: MapVisualStackConfig.canonicalV1,
           properties: <String, dynamic>{
             'tileLayerOrder': 'bottom_to_top',
           },
           layers: <MapLayer>[
-            SurfaceLayer(id: 'top-surface', name: 'Top surface'),
+            SmartTileLayer(
+              id: 'top-surface',
+              name: 'Top surface',
+              presetId: 'forest',
+              usage: SmartTileUsage.forestSurface,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
+            ),
             TileLayer(id: 'middle-tiles', name: 'Middle tiles'),
-            TerrainLayer(id: 'bottom-terrain', name: 'Bottom terrain'),
+            SmartTileLayer(
+              id: 'bottom-terrain',
+              name: 'Bottom terrain',
+              presetId: 'grass',
+              usage: SmartTileUsage.terrain,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
+            ),
           ],
         ),
       );
@@ -29,17 +41,29 @@ void main() {
           id: 'canonical-border',
           name: 'Canonical with hidden Border',
           size: GridSize(width: 1, height: 1),
-          version: ProjectVersion.v3,
+          version: ProjectVersion.v6,
           visualStack: MapVisualStackConfig.canonicalV1,
           layers: <MapLayer>[
-            SurfaceLayer(id: 'top-surface', name: 'Top surface'),
+            SmartTileLayer(
+              id: 'top-surface',
+              name: 'Top surface',
+              presetId: 'forest',
+              usage: SmartTileUsage.forestSurface,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
+            ),
             BorderLayer(
               id: 'hidden-border',
               name: 'Hidden Border',
               isVisible: false,
             ),
             TileLayer(id: 'middle-tiles', name: 'Middle tiles'),
-            TerrainLayer(id: 'bottom-terrain', name: 'Bottom terrain'),
+            SmartTileLayer(
+              id: 'bottom-terrain',
+              name: 'Bottom terrain',
+              presetId: 'grass',
+              usage: SmartTileUsage.terrain,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
+            ),
           ],
         ),
       );
@@ -61,7 +85,7 @@ void main() {
           id: 'future',
           name: 'Future',
           size: const GridSize(width: 1, height: 1),
-          version: ProjectVersion.v3,
+          version: ProjectVersion.v6,
           visualStack: MapVisualStackConfig(semanticsVersion: 99),
           layers: const <MapLayer>[
             TileLayer(id: 'tiles', name: 'Tiles'),
@@ -84,11 +108,29 @@ void main() {
             'tileLayerOrder': 'bottom_to_top',
           },
           layers: <MapLayer>[
-            TerrainLayer(id: 'terrain', name: 'Terrain'),
+            SmartTileLayer(
+              id: 'terrain',
+              name: 'Terrain',
+              presetId: 'grass',
+              usage: SmartTileUsage.terrain,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
+            ),
             CollisionLayer(id: 'collision-low', name: 'Collision low'),
-            PathLayer(id: 'path', name: 'Path'),
+            SmartTileLayer(
+              id: 'path',
+              name: 'Path',
+              presetId: 'path',
+              usage: SmartTileUsage.path,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
+            ),
             BorderLayer(id: 'coast-low', name: 'Coast low'),
-            SurfaceLayer(id: 'surface', name: 'Surface'),
+            SmartTileLayer(
+              id: 'surface',
+              name: 'Surface',
+              presetId: 'forest',
+              usage: SmartTileUsage.forestSurface,
+              field: SmartTileField.cell(semanticCells: <int>[0]),
+            ),
             TileLayer(id: 'tiles', name: 'Tiles'),
             ObjectLayer(id: 'objects', name: 'Objects'),
             EnvironmentLayer(id: 'environment', name: 'Environment'),
@@ -102,10 +144,10 @@ void main() {
         plan.authoredLayers
             .map((entry) => '${entry.kind.name}:${entry.layer.id}'),
         const <String>[
-          'terrain:terrain',
-          'path:path',
+          'smartTile:terrain',
+          'smartTile:path',
           'border:coast-low',
-          'surface:surface',
+          'smartTile:surface',
           'tileBackground:tiles',
           'objectNoop:objects',
           'environmentNoop:environment',
@@ -124,7 +166,7 @@ void main() {
         const MapData(
           id: 'smart-tiles',
           name: 'Smart Tiles',
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           visualStack: MapVisualStackConfig.canonicalV1,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
@@ -156,33 +198,13 @@ void main() {
       );
     });
 
-    test('preserves reverse visual order for legacy maps and skips hidden', () {
-      final plan = buildEditorMapLayerPaintOrder(
-        const MapData(
-          id: 'legacy',
-          name: 'Legacy',
-          size: GridSize(width: 1, height: 1),
-          layers: <MapLayer>[
-            TerrainLayer(id: 'terrain', name: 'Terrain'),
-            BorderLayer(id: 'hidden', name: 'Hidden', isVisible: false),
-            TileLayer(id: 'tiles', name: 'Tiles'),
-            BorderLayer(id: 'border', name: 'Border'),
-          ],
-        ),
-      );
-
-      expect(
-        plan.authoredLayers.map((entry) => entry.layer.id),
-        const <String>['border', 'tiles', 'terrain'],
-      );
-    });
-
     test('uses shared core steps for deferred passes and collision read-only',
         () {
       final plan = buildEditorMapLayerPaintOrder(
         const MapData(
           id: 'sentinels',
           name: 'Sentinels',
+          version: ProjectVersion.v6,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             CollisionLayer(id: 'collision', name: 'Collision'),

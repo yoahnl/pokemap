@@ -124,7 +124,7 @@ async function mutationFixture(
 function nativeSmartTileV5Project(mixed = false): JsonRecord {
   return {
     name: "Native Smart Tile v5 MCP fixture",
-    version: "v5",
+    version: "v6",
     maps: [
       {
         id: "native_v5",
@@ -211,7 +211,7 @@ function nativeSmartTileV5Map(mixed = false): JsonRecord {
     id: "native_v5",
     name: "Native v5",
     size: { width: 2, height: 2 },
-    version: "v5",
+    version: "v6",
     layers: [
       {
         id: "base",
@@ -258,7 +258,7 @@ function nativeSmartTileV5Map(mixed = false): JsonRecord {
 function smartTileM01Project(): JsonRecord {
   return {
     name: "M01 Smart Tile MCP fixture",
-    version: "v5",
+    version: "v6",
     maps: [
       {
         id: "map_hanazuki_village",
@@ -351,7 +351,7 @@ function smartTileM01Map(): JsonRecord {
     id: "map_hanazuki_village",
     name: "Hanazuki Village",
     size: { width: 3, height: 3 },
-    version: "v5",
+    version: "v6",
     layers: [
       {
         id: "base",
@@ -588,7 +588,7 @@ test("MCP preserves CLI plan/apply parity for one complete map batch", async () 
   }
 });
 
-test("MCP routes Smart Tile layer creation to its canonical action", async () => {
+test("MCP rejects generic operations for Smart Tile layer creation", async () => {
   const fixture = await mutationFixture({ withNativeSmartTileV5: true });
   try {
     const opened = await toolData(fixture.client, "pokemap_workspace", {
@@ -633,7 +633,7 @@ test("MCP routes Smart Tile layer creation to its canonical action", async () =>
 
     assert.equal(rejected.isError, true);
     const error = record(record(rejected.structuredContent).error);
-    assert.equal(error.domainCode, "smart_tile_canonical_layer_action_required");
+    assert.equal(error.domainCode, "map.operation_invalid");
     const after = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
@@ -1066,7 +1066,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
         "utf8",
       ),
     ) as JsonRecord;
-    assert.equal(map.version, "v5");
+    assert.equal(map.version, "v6");
     const layers = map.layers as JsonRecord[];
     assert.deepEqual(
       layers.map((layer) => layer.id),
@@ -1170,10 +1170,16 @@ test("MCP completes a cold-start 34-element visual import", async () => {
         .includes("elementCategory"),
     );
     const actionIds = (described.mutationActions as JsonRecord[]).map(
-      (action) => action.id,
+      (action) => String(action.id),
     );
     assert.ok(actionIds.includes("tileset_folder.upsert"));
     assert.ok(actionIds.includes("element_category.upsert"));
+    assert.equal(
+      actionIds.some((id) =>
+        ["terrain.", "path.", "surface."].some((prefix) => id.startsWith(prefix)),
+      ),
+      false,
+    );
     assert.ok(
       (described.commands as JsonRecord[])
         .map((command) => command.id)

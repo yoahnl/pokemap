@@ -111,7 +111,6 @@ ProjectManifest _manifest({
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     trainers: trainers,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

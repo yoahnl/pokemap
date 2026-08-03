@@ -21,7 +21,6 @@ import 'surface/surface_runtime_test_support.dart' show runtimeTilesetImage;
 const _sourceMapId = 'checkpoint_source';
 const _restoredMapId = 'checkpoint_restored';
 const _legacyBlockedFlag = 'legacy.must_not_run_during_checkpoint';
-const _staleScriptFlag = 'script.must_not_resume_after_load';
 const _staleCutsceneFlag = 'cutscene.must_not_resume_after_checkpoint';
 const _followScenarioId = 'legacy_follow_before_load';
 const _trainerId = 'checkpoint_trainer';
@@ -408,102 +407,6 @@ void main() {
     );
 
     test(
-      'transient reset prevents a pre-load script dialogue continuation from '
-      'resuming through a later Surf rejection',
-      () async {
-        final gate = NarrativeRuntimeActivityGate();
-        final repository = _GateMemoryRepository(gate)
-          ..storedState = _surfState(
-            facing: EntityFacing.east,
-            mapId: _sourceMapId,
-          );
-        final game = _game(
-          bundle: _scriptAndWaterBundle(),
-          initialState: _surfState(
-            facing: EntityFacing.south,
-            mapId: _sourceMapId,
-          ),
-          narrativeRuntimeActivityGate: gate,
-          saveRepository: repository,
-          dialogueSessionLoader: (_) async => _singleLineDialogue(),
-        );
-        await _load(game);
-        game.debugSetPlayerStateForTest(
-          position: const GridPos(x: 0, y: 0),
-          facing: Direction.south,
-        );
-
-        expect(_press(game, RuntimeInputControl.primary), isTrue);
-        await _waitUntil(game, () => game.debugFlowPhaseName == 'dialogue');
-
-        expect(await game.loadGame(), isTrue);
-        expect(game.debugFlowPhaseName, 'overworld');
-        game.debugSetPlayerStateForTest(
-          position: const GridPos(x: 0, y: 0),
-          facing: Direction.east,
-        );
-
-        await _attemptStep(game, RuntimeInputControl.right);
-        expect(game.debugFlowPhaseName, 'dialogue');
-        expect(_press(game, RuntimeInputControl.primary), isTrue);
-        expect(_press(game, RuntimeInputControl.down), isTrue);
-        expect(_press(game, RuntimeInputControl.primary), isTrue);
-        await Future<void>.delayed(Duration.zero);
-
-        expect(game.playerMovementMode, MovementMode.walk);
-        expect(
-          game.gameStateSnapshot.storyFlags.activeFlags,
-          isNot(contains(_staleScriptFlag)),
-        );
-      },
-    );
-
-    test(
-      'transient reset prevents a pre-load Surf confirmation from leaking '
-      'into an unrelated later choice',
-      () async {
-        final gate = NarrativeRuntimeActivityGate();
-        final repository = _GateMemoryRepository(gate)
-          ..storedState = _surfState(
-            facing: EntityFacing.south,
-            mapId: _sourceMapId,
-          );
-        final game = _game(
-          bundle: _choiceNpcAndWaterBundle(),
-          initialState: _surfState(
-            facing: EntityFacing.east,
-            mapId: _sourceMapId,
-          ),
-          narrativeRuntimeActivityGate: gate,
-          saveRepository: repository,
-          dialogueSessionLoader: (_) async => _choiceDialogue(),
-        );
-        await _load(game);
-        game.debugSetPlayerStateForTest(
-          position: const GridPos(x: 0, y: 0),
-          facing: Direction.east,
-        );
-
-        await _attemptStep(game, RuntimeInputControl.right);
-        expect(game.debugFlowPhaseName, 'dialogue');
-
-        expect(await game.loadGame(), isTrue);
-        expect(game.playerMovementMode, MovementMode.walk);
-        game.debugSetPlayerStateForTest(
-          position: const GridPos(x: 0, y: 0),
-          facing: Direction.south,
-        );
-
-        expect(_press(game, RuntimeInputControl.primary), isTrue);
-        await _waitUntil(game, () => game.debugFlowPhaseName == 'dialogue');
-        expect(_press(game, RuntimeInputControl.primary), isTrue);
-
-        expect(game.debugFlowPhaseName, 'overworld');
-        expect(game.playerMovementMode, MovementMode.walk);
-      },
-    );
-
-    test(
       'direct MapEvent Scene holds sceneActive through dialogue and hosted '
       'Battle then releases it terminally',
       () async {
@@ -627,19 +530,6 @@ bool _press(PlayableMapGame game, RuntimeInputControl control) {
   return game.handleRuntimeInputEvent(RuntimeInputEvent.press(control));
 }
 
-Future<void> _attemptStep(
-  PlayableMapGame game,
-  RuntimeInputControl control,
-) async {
-  expect(_press(game, control), isTrue);
-  game.update(0.016);
-  await Future<void>.delayed(Duration.zero);
-  expect(
-    game.handleRuntimeInputEvent(RuntimeInputEvent.release(control)),
-    isTrue,
-  );
-}
-
 Future<void> _waitUntil(
   PlayableMapGame game,
   bool Function() done, {
@@ -674,7 +564,6 @@ RuntimeMapBundle _bundle({
   List<ProjectScriptEntry> scripts = const <ProjectScriptEntry>[],
   List<ProjectTrainerEntry> trainers = const <ProjectTrainerEntry>[],
   List<SceneAsset> scenes = const <SceneAsset>[],
-  List<ProjectPathPreset> pathPresets = const <ProjectPathPreset>[],
 }) {
   return RuntimeMapBundle(
     manifest: ProjectManifest(
@@ -686,22 +575,12 @@ RuntimeMapBundle _bundle({
           relativePath: 'maps/${map.id}.json',
         ),
       ],
-      tilesets: pathPresets.isEmpty
-          ? const <ProjectTilesetEntry>[]
-          : const <ProjectTilesetEntry>[
-              ProjectTilesetEntry(
-                id: 'water_tiles',
-                name: 'Water',
-                relativePath: 'tilesets/water.png',
-              ),
-            ],
-      pathPresets: pathPresets,
+      tilesets: const <ProjectTilesetEntry>[],
       dialogues: dialogues,
       scripts: scripts,
       trainers: trainers,
       scenarios: scenarios,
       scenes: scenes,
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     ),
     map: map,
     projectRootDirectory: '/tmp/checkpoint_load_safety',
@@ -837,7 +716,6 @@ RuntimeMapBundle _leaderWarpBundle() {
           frameHeight: 8,
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
     ),
     map: map,
     projectRootDirectory: '/tmp/checkpoint_load_safety',
@@ -931,123 +809,6 @@ ScenarioAsset _mapEnterFollowScenario() {
         toNodeId: 'end',
       ),
     ],
-  );
-}
-
-RuntimeMapBundle _scriptAndWaterBundle() {
-  return _bundle(
-    map: _interactionWaterMap(includeScriptEvent: true),
-    pathPresets: const <ProjectPathPreset>[_waterPreset],
-    scripts: const <ProjectScriptEntry>[
-      ProjectScriptEntry(
-        id: 'stale_script',
-        name: 'Stale script',
-        asset: ScriptAsset(
-          id: 'stale_script',
-          defaultStartNode: 'start',
-          nodes: <ScriptNode>[
-            ScriptNode(
-              id: 'start',
-              commands: <ScriptCommand>[
-                ScriptCommand(
-                  type: ScriptCommandType.openDialogue,
-                  params: <String, String>{
-                    'filePath': 'dialogues/script.yarn',
-                    'startNode': 'Start',
-                  },
-                ),
-                ScriptCommand(
-                  type: ScriptCommandType.setFlag,
-                  params: <String, String>{'flagName': _staleScriptFlag},
-                ),
-                ScriptCommand(type: ScriptCommandType.end),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
-}
-
-RuntimeMapBundle _choiceNpcAndWaterBundle() {
-  return _bundle(
-    map: _interactionWaterMap(includeChoiceNpc: true),
-    pathPresets: const <ProjectPathPreset>[_waterPreset],
-    dialogues: const <ProjectDialogueEntry>[
-      ProjectDialogueEntry(
-        id: 'unrelated_choice',
-        name: 'Unrelated choice',
-        relativePath: 'dialogues/unrelated_choice.yarn',
-      ),
-    ],
-  );
-}
-
-const _waterPreset = ProjectPathPreset(
-  id: 'water_path',
-  name: 'Water',
-  surfaceKind: PathSurfaceKind.water,
-  tilesetId: 'water_tiles',
-);
-
-MapData _interactionWaterMap({
-  bool includeScriptEvent = false,
-  bool includeChoiceNpc = false,
-}) {
-  final waterCells = List<bool>.filled(9, false)..[1] = true;
-  return MapData(
-    id: _sourceMapId,
-    name: 'Interaction water map',
-    size: const GridSize(width: 3, height: 3),
-    layers: <MapLayer>[
-      const MapLayer.object(id: 'objects', name: 'Objects'),
-      MapLayer.path(
-        id: 'water',
-        name: 'Water',
-        presetId: 'water_path',
-        cells: waterCells,
-      ),
-    ],
-    entities: <MapEntity>[
-      const MapEntity(
-        id: 'spawn_interaction',
-        name: 'Spawn',
-        kind: MapEntityKind.spawn,
-        pos: GridPos(x: 0, y: 0),
-        blocksMovement: false,
-        spawn: MapEntitySpawnData(
-          role: EntitySpawnRole.playerStart,
-          facing: EntityFacing.east,
-        ),
-      ),
-      if (includeChoiceNpc)
-        const MapEntity(
-          id: 'choice_npc',
-          name: 'Choice NPC',
-          kind: MapEntityKind.npc,
-          pos: GridPos(x: 0, y: 1),
-          npc: MapEntityNpcData(
-            displayName: 'Choice NPC',
-            dialogue: DialogueRef(dialogueId: 'unrelated_choice'),
-          ),
-        ),
-    ],
-    events: <MapEventDefinition>[
-      if (includeScriptEvent)
-        const MapEventDefinition(
-          id: 'script_event',
-          title: 'Script event',
-          position: EventPosition(layerId: 'objects', x: 0, y: 1),
-          pages: <MapEventPage>[
-            MapEventPage(
-              pageNumber: 0,
-              script: ScriptRef(scriptId: 'stale_script', startNode: 'start'),
-            ),
-          ],
-        ),
-    ],
-    mapMetadata: const MapMetadata(defaultSpawnId: 'spawn_interaction'),
   );
 }
 
@@ -1195,33 +956,6 @@ GameState _state({
   );
 }
 
-GameState _surfState({
-  required EntityFacing facing,
-  required String mapId,
-}) {
-  return GameState(
-    saveId: 'checkpoint-surf',
-    currentMapId: mapId,
-    playerPosition: const GridPos(x: 0, y: 0),
-    playerFacing: facing,
-    party: const PlayerParty(
-      members: <PlayerPokemon>[
-        PlayerPokemon(
-          speciesId: 'aquafi',
-          natureId: 'calm',
-          abilityId: 'torrent',
-          level: 10,
-          knownMoveIds: <String>['surf'],
-          currentHp: 25,
-        ),
-      ],
-    ),
-    progression: const PlayerProgression(
-      unlockedFieldAbilities: <FieldAbility>[FieldAbility.surf],
-    ),
-  );
-}
-
 GameState _battleReadyState() {
   return const GameState(
     saveId: 'checkpoint-scene',
@@ -1264,23 +998,6 @@ RuntimeCutsceneAsset _waitThenFlagCutscene(String id) {
       CutsceneSetFlagStep(flagName: _staleCutsceneFlag),
     ],
   );
-}
-
-DialogueSession _choiceDialogue() {
-  return DialogueSession.start(
-    <YarnNode>[
-      YarnNode(
-        title: 'Start',
-        steps: <YarnStep>[
-          YarnStepChoiceBlock(<YarnChoice>[
-            YarnChoice(text: 'Unrelated yes', steps: <YarnStep>[]),
-            YarnChoice(text: 'Unrelated no', steps: <YarnStep>[]),
-          ]),
-        ],
-      ),
-    ],
-    'Start',
-  )!;
 }
 
 RuntimeActiveBattleContext _trainerContext() {

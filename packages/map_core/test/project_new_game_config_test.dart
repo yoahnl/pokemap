@@ -6,6 +6,7 @@ void main() {
     test('legacy manifests default to a disabled config', () {
       final manifest = ProjectManifest.fromJson({
         'name': 'legacy',
+        'version': 'v6',
         'maps': <Object?>[],
         'tilesets': <Object?>[],
       });

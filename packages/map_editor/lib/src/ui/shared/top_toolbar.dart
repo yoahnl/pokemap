@@ -4,7 +4,6 @@ import 'pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../l10n/l10n.dart';
-import '../../application/models/terrain_selection_mode.dart';
 import '../../features/border_map_editing/application/border_tool_availability.dart';
 import '../../features/border_map_editing/presentation/pending_border_save_dialog.dart';
 import '../../features/border_map_editing/state/border_map_editing_providers.dart';
@@ -45,21 +44,6 @@ class TopToolbar extends ConsumerWidget {
         onCheckForUpdates: onCheckForUpdates,
         isUpdateCheckActive: isUpdateCheckActive,
       );
-
-  static List<MacosPulldownMenuEntry> _terrainPulldownItems(
-    EditorNotifier notifier,
-  ) {
-    return TerrainType.values
-        .where((t) => t.isBackgroundPaintable)
-        .map(
-          (terrain) => MacosPulldownMenuItem(
-            label: _terrainTypeLabel(terrain),
-            title: Text(_terrainTypeLabel(terrain)),
-            onTap: () => notifier.selectTerrainType(terrain),
-          ),
-        )
-        .toList();
-  }
 
   static List<MacosPulldownMenuEntry> _entityKindPulldownItems(
     EditorNotifier notifier,
@@ -173,13 +157,7 @@ class TopToolbar extends ConsumerWidget {
 
     final canEraseOnActiveLayer = activeLayer is TileLayer ||
         activeLayer is CollisionLayer ||
-        activeLayer is TerrainLayer ||
-        activeLayer is PathLayer ||
-        activeLayer is SurfaceLayer;
-
-    final showTerrainTypePulldown = activeLayer is TerrainLayer &&
-        toolbar.activeTool == EditorToolType.terrainPaint &&
-        toolbar.terrainSelectionMode == TerrainSelectionMode.terrain;
+        activeLayer is SmartTileLayer;
     final showEntityKindPulldown =
         toolbar.activeTool == EditorToolType.entityPlacement;
 
@@ -334,7 +312,6 @@ class TopToolbar extends ConsumerWidget {
                 EditorToolType.selection,
                 EditorToolType.tilePaint,
                 EditorToolType.terrainPaint,
-                EditorToolType.surfacePaint,
                 EditorToolType.collisionPaint,
                 EditorToolType.borderPaint,
                 EditorToolType.borderErase,
@@ -362,30 +339,22 @@ class TopToolbar extends ConsumerWidget {
                   onPressed: () =>
                       notifier.selectTool(EditorToolType.tilePaint),
                 ),
-              if (activeLayer is TerrainLayer)
+              if (activeLayer is SmartTileLayer)
                 ToolbarCapsuleButton(
-                  icon: CupertinoIcons.tree,
-                  tooltip: 'Terrain Paint Tool',
-                  selected: toolbar.activeTool == EditorToolType.terrainPaint &&
-                      toolbar.terrainSelectionMode ==
-                          TerrainSelectionMode.terrain,
+                  icon: switch (activeLayer.usage) {
+                    SmartTileUsage.terrain => CupertinoIcons.tree,
+                    SmartTileUsage.path => CupertinoIcons.map,
+                    SmartTileUsage.forestSurface => CupertinoIcons.drop,
+                  },
+                  tooltip: switch (activeLayer.usage) {
+                    SmartTileUsage.terrain => 'Terrain Smart Tile Paint Tool',
+                    SmartTileUsage.path => 'Path Smart Tile Paint Tool',
+                    SmartTileUsage.forestSurface =>
+                      'Forest Surface Smart Tile Paint Tool',
+                  },
+                  selected: toolbar.activeTool == EditorToolType.terrainPaint,
                   onPressed: () =>
                       notifier.selectTool(EditorToolType.terrainPaint),
-                ),
-              if (activeLayer is PathLayer)
-                ToolbarCapsuleButton(
-                  icon: CupertinoIcons.map,
-                  tooltip: 'Path Paint Tool',
-                  selected: toolbar.activeTool == EditorToolType.terrainPaint &&
-                      toolbar.terrainSelectionMode == TerrainSelectionMode.path,
-                  onPressed: notifier.selectPathPaintMode,
-                ),
-              if (activeLayer is SurfaceLayer)
-                ToolbarCapsuleButton(
-                  icon: CupertinoIcons.drop,
-                  tooltip: 'Surface Paint Tool',
-                  selected: toolbar.activeTool == EditorToolType.surfacePaint,
-                  onPressed: notifier.selectSurfacePaintMode,
                 ),
               if (showBorderTools) ...[
                 ToolbarCapsuleButton(
@@ -500,11 +469,6 @@ class TopToolbar extends ConsumerWidget {
                   EditorToolType.gameplayZonePlacement,
                 ),
               ),
-              if (showTerrainTypePulldown)
-                ToolbarCapsulePulldown(
-                  label: _terrainTypeLabel(toolbar.selectedTerrainType),
-                  items: _terrainPulldownItems(notifier),
-                ),
               if (showEntityKindPulldown)
                 ToolbarCapsulePulldown(
                   label: _entityKindLabel(toolbar.selectedEntityKind),
@@ -685,14 +649,6 @@ class TopToolbar extends ConsumerWidget {
                   : null,
             ),
             ToolbarCapsuleButton(
-              icon: CupertinoIcons.arrow_branch,
-              tooltip: 'Switch to Path Studio',
-              selected: toolbar.workspaceMode == EditorWorkspaceMode.pathStudio,
-              onPressed: toolbar.project != null
-                  ? notifier.selectPathStudioWorkspace
-                  : null,
-            ),
-            ToolbarCapsuleButton(
               icon: CupertinoIcons.tree,
               tooltip: 'Switch to Environment Studio',
               selected: toolbar.workspaceMode ==
@@ -741,7 +697,6 @@ class TopToolbar extends ConsumerWidget {
                 EditorWorkspaceMode.worldRules => 'World Rules Manager',
                 EditorWorkspaceMode.narrativeValidator => 'Narrative Validator',
                 EditorWorkspaceMode.smartTilesStudio => 'Smart Tiles Studio',
-                EditorWorkspaceMode.pathStudio => 'Path Studio',
                 EditorWorkspaceMode.environmentStudio => 'Environment Studio',
                 EditorWorkspaceMode.personalizationStudio =>
                   'Personalization Studio',
@@ -800,18 +755,6 @@ class TopToolbar extends ConsumerWidget {
       selected: selected,
       children: children,
     );
-  }
-
-  static String _terrainTypeLabel(TerrainType type) {
-    return switch (type) {
-      TerrainType.none => 'None',
-      TerrainType.grass => 'Grass Base',
-      TerrainType.dirt => 'Dirt Base',
-      TerrainType.sand => 'Sand Base',
-      TerrainType.rock => 'Rock Base',
-      TerrainType.stone => 'Stone Base',
-      TerrainType.indoor => 'Indoor Base',
-    };
   }
 
   static String _entityKindLabel(MapEntityKind kind) {

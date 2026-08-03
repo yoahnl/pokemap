@@ -12,9 +12,7 @@ import 'package:map_editor/src/features/narrative/application/cutscene_studio_au
 import 'package:map_editor/src/features/narrative/application/narrative_workspace_projection.dart';
 import 'package:map_editor/src/ui/canvas/cutscene_studio_workspace.dart';
 import 'package:map_editor/src/ui/canvas/dialogue_studio_workspace.dart';
-import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/panels/project_explorer_panel.dart';
-import 'package:map_editor/src/ui/panels/terrain_editor_panel.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette_panel.dart';
 
 void main() {
@@ -74,7 +72,6 @@ void main() {
 
     ProjectManifest buildSampleProject() {
       return const ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'ui_smoke_project',
         maps: <ProjectMapEntry>[
           ProjectMapEntry(
@@ -89,20 +86,6 @@ void main() {
             name: 'World Tileset',
             relativePath: 'tilesets/world.png',
             isWorldTileset: true,
-          ),
-        ],
-        terrainPresets: <ProjectTerrainPreset>[
-          ProjectTerrainPreset(
-            id: 'terrain_grass',
-            name: 'Grass Terrain',
-            terrainType: TerrainType.grass,
-          ),
-        ],
-        pathPresets: <ProjectPathPreset>[
-          ProjectPathPreset(
-            id: 'path_main',
-            name: 'Main Path',
-            surfaceKind: PathSurfaceKind.path,
           ),
         ],
         dialogueFolders: <ProjectDialogueFolder>[
@@ -200,200 +183,12 @@ void main() {
       expect(find.text('World Explorer'), findsOneWidget);
 
       await tester.tap(find.text('World Maps'));
-      await tester.tap(find.text('Terrain Library'));
-      await tester.tap(find.text('Path Library'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
       expect(find.text('Route 1'), findsOneWidget);
       expect(find.text('Tileset Library'), findsOneWidget);
-      // On verrouille explicitement la branche non vide qui cassait en runtime
-      // dans l'explorer projet : les bibliothèques terrain/path sont bien
-      // rendues avec de vrais presets, sans erreur de layout.
-      expect(find.text('Grass Terrain'), findsOneWidget);
-      expect(find.text('Main Path'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('TerrainEditorPanel renders the two preset libraries',
-        (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final project = buildSampleProject();
-      container.read(editorNotifierProvider.notifier).state = EditorState(
-        projectRootPath: tempProjectRoot.path,
-        project: project,
-      );
-
-      await pumpEditorSurface(
-        tester,
-        container,
-        child: const SizedBox(
-          width: 520,
-          height: 980,
-          child: TerrainEditorPanel(),
-        ),
-        surfaceSize: const Size(900, 1200),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
-
-      expect(find.text('Surface Library'), findsOneWidget);
-      expect(find.text('Terrains'), findsOneWidget);
-      expect(find.text('Paths'), findsOneWidget);
-      expect(find.text('Grass Terrain'), findsOneWidget);
-      expect(find.text('Main Path'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('terrain preset selectors open anchored dropdown menus',
-        (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final project = buildSampleProject();
-      container.read(editorNotifierProvider.notifier).state = EditorState(
-        projectRootPath: tempProjectRoot.path,
-        project: project,
-      );
-
-      await pumpEditorSurface(
-        tester,
-        container,
-        child: const SizedBox(
-          width: 520,
-          height: 980,
-          child: TerrainEditorPanel(),
-        ),
-        surfaceSize: const Size(900, 1200),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.bySemanticsLabel('New preset').first);
-      await tester.pumpAndSettle();
-
-      const baseTypeKey = ValueKey<String>(
-        'terrain-preset-base-type-dropdown',
-      );
-      const folderKey = ValueKey<String>('terrain-preset-folder-dropdown');
-      const tilesetKey = ValueKey<String>('terrain-preset-tileset-dropdown');
-
-      expect(find.text('New Terrain Preset'), findsOneWidget);
-      expect(find.byKey(baseTypeKey), findsOneWidget);
-      expect(find.byKey(folderKey), findsOneWidget);
-      expect(find.byKey(tilesetKey), findsOneWidget);
-
-      final baseTypeDropdown = find.descendant(
-        of: find.byKey(baseTypeKey),
-        matching: find.byType(DropdownButton<TerrainType>),
-      );
-      await tester.tap(baseTypeDropdown);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CupertinoActionSheet), findsNothing);
-      expect(find.text('Dirt Base'), findsOneWidget);
-
-      await tester.tap(find.text('Dirt Base'));
-      await tester.pumpAndSettle();
-
-      final field = tester.widget<PokeMapDropdownField<TerrainType>>(
-        find.byKey(baseTypeKey),
-      );
-      expect(field.value, TerrainType.dirt);
-
-      final folderDropdown = find.descendant(
-        of: find.byKey(folderKey),
-        matching: find.byType(DropdownButton<String>),
-      );
-      await tester.tap(folderDropdown);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CupertinoActionSheet), findsNothing);
-      expect(find.text('Root'), findsNWidgets(2));
-      await tester.tap(find.text('Root').last);
-      await tester.pumpAndSettle();
-
-      final tilesetDropdown = find.descendant(
-        of: find.byKey(tilesetKey),
-        matching: find.byType(DropdownButton<String>),
-      );
-      await tester.tap(tilesetDropdown);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CupertinoActionSheet), findsNothing);
-      expect(find.text('World Tileset'), findsOneWidget);
-      await tester.tap(find.text('World Tileset'));
-      await tester.pumpAndSettle();
-
-      final tilesetField = tester.widget<PokeMapDropdownField<String>>(
-        find.byKey(tilesetKey),
-      );
-      expect(tilesetField.value, 'tileset_world');
-      expect(tester.takeException(), isNull);
-    });
-
-    testWidgets('path preset selectors open anchored dropdown menus',
-        (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      final project = buildSampleProject();
-      container.read(editorNotifierProvider.notifier).state = EditorState(
-        projectRootPath: tempProjectRoot.path,
-        project: project,
-      );
-
-      await pumpEditorSurface(
-        tester,
-        container,
-        child: const SizedBox(
-          width: 520,
-          height: 980,
-          child: TerrainEditorPanel(),
-        ),
-        surfaceSize: const Size(900, 1200),
-      );
-      await tester.pumpAndSettle();
-
-      await tester.tap(find.bySemanticsLabel('New preset').last);
-      await tester.pumpAndSettle();
-
-      const folderKey = ValueKey<String>('path-preset-folder-dropdown');
-      const tilesetKey = ValueKey<String>('path-preset-tileset-dropdown');
-
-      expect(find.text('New Path Preset'), findsOneWidget);
-      expect(find.byKey(folderKey), findsOneWidget);
-      expect(find.byKey(tilesetKey), findsOneWidget);
-
-      final folderDropdown = find.descendant(
-        of: find.byKey(folderKey),
-        matching: find.byType(DropdownButton<String>),
-      );
-      await tester.tap(folderDropdown);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CupertinoActionSheet), findsNothing);
-      expect(find.text('Root'), findsNWidgets(2));
-      await tester.tap(find.text('Root').last);
-      await tester.pumpAndSettle();
-
-      final tilesetDropdown = find.descendant(
-        of: find.byKey(tilesetKey),
-        matching: find.byType(DropdownButton<String>),
-      );
-      await tester.tap(tilesetDropdown);
-      await tester.pumpAndSettle();
-
-      expect(find.byType(CupertinoActionSheet), findsNothing);
-      expect(find.text('World Tileset'), findsOneWidget);
-      await tester.tap(find.text('World Tileset'));
-      await tester.pumpAndSettle();
-
-      final tilesetField = tester.widget<PokeMapDropdownField<String>>(
-        find.byKey(tilesetKey),
-      );
-      expect(tilesetField.value, 'tileset_world');
+      expect(find.text('Smart Tiles Studio'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

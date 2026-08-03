@@ -23,7 +23,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 3, height: 3),
       layers: <MapLayer>[
         MapLayer.border(
@@ -43,7 +43,7 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = EditorState(
       project: const ProjectManifest(
         name: 'Border selection',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
       ),
@@ -130,7 +130,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 5, height: 5),
       layers: <MapLayer>[
         MapLayer.border(
@@ -226,7 +226,7 @@ void main() {
     final map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 5, height: 5),
       layers: <MapLayer>[
         MapLayer.border(
@@ -1024,7 +1024,7 @@ Future<
   final map = MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     size: const GridSize(width: 5, height: 5),
     layers: <MapLayer>[
       MapLayer.border(
@@ -1146,7 +1146,7 @@ ProjectManifest _publishedManifest() {
   );
   return ProjectManifest(
     name: 'Border drag',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     borderCatalog: ProjectBorderCatalog(
@@ -1194,7 +1194,7 @@ ProjectManifest _publishedLineManifest({
   );
   return ProjectManifest(
     name: 'Border line drag',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     borderCatalog: ProjectBorderCatalog(

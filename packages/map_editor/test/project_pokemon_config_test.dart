@@ -59,10 +59,12 @@ void main() {
       );
 
       expect(manifest.pokemon, const ProjectPokemonConfig());
+      expect(manifest.version, ProjectVersion.v6);
 
       final projectFile = File(p.join(tempProjectRoot.path, 'project.json'));
       final json =
           jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+      expect(json['version'], 'v6');
       final pokemon = json['pokemon'] as Map<String, dynamic>;
 
       expect(

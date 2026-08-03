@@ -261,7 +261,6 @@ _GoldenSliceFixture _controlledFixture() {
       ),
     ],
     scenes: [scene],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   final map = MapData(
     id: 'map_test',

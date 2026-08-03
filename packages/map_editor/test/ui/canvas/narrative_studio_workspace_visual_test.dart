@@ -602,7 +602,6 @@ ProjectManifest _projectWithStorylinesAndStep() {
     name: 'Selbrume Narrative',
     maps: const [],
     tilesets: const [],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     storylines: [
       StorylineAsset(
         id: 'storyline_main',

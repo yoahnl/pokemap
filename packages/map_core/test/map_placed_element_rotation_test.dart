@@ -796,5 +796,4 @@ ProjectManifest _project() => ProjectManifest(
         ProjectElementCategory(id: 'props', name: 'Props'),
       ],
       elements: <ProjectElementEntry>[_element()],
-      surfaceCatalog: ProjectSurfaceCatalog(),
     );

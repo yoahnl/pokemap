@@ -34,7 +34,6 @@ ProjectManifest buildNarrativeStudioVisualProject({
       ),
     ],
     tilesets: const <ProjectTilesetEntry>[],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     eventRegistry: NarrativeEventRegistry(
       schemaVersion: 1,
       mode: eventSystemMode,

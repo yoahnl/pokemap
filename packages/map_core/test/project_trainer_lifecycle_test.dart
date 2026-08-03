@@ -125,6 +125,5 @@ ProjectManifest _project({
         relativePath: 'dialogues/lysa_defeat.yarn',
       ),
     ],
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }

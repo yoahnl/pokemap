@@ -53,17 +53,7 @@ enum EditorWorkspaceMode {
   narrativeValidator,
 
   /// Studio natif unifié pour terrains, chemins et surfaces forestières.
-  ///
-  /// Ce mode est ajouté parallèlement au Path Studio historique tant que la
-  /// parité de lecture, d'édition et de conversion n'est pas démontrée.
   smartTilesStudio,
-
-  /// Shell Path Studio V0.
-  ///
-  /// Ce mode expose une surface read-only pour les `ProjectPathPatternPreset` :
-  /// liste, recherche, sélection, diagnostics et inspecteur. Il ne branche ni
-  /// painter, ni save flow, ni éditeur réel du motif.
-  pathStudio,
 
   /// Shell Environment Studio V0 (Lot Environment-9).
   ///

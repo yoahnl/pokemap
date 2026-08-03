@@ -2,7 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart';
+import 'package:map_editor/src/app/providers/editor/map_use_case_providers.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
+import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -58,7 +60,6 @@ void main() {
       notifier.state = const EditorState(
         projectRootPath: '/project',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[
             ProjectMapEntry(
@@ -105,7 +106,12 @@ void main() {
     test('blocks a loss above 25 percent until explicitly confirmed', () async {
       final repo = _FakeMapRepository();
       final container = ProviderContainer(
-        overrides: [mapRepositoryProvider.overrideWith((ref) => repo)],
+        overrides: [
+          mapRepositoryProvider.overrideWith((ref) => repo),
+          saveMapUseCaseProvider.overrideWith(
+            (ref) => SaveMapUseCase(repo),
+          ),
+        ],
       );
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
@@ -140,7 +146,12 @@ void main() {
         () async {
       final repo = _FakeMapRepository();
       final container = ProviderContainer(
-        overrides: [mapRepositoryProvider.overrideWith((ref) => repo)],
+        overrides: [
+          mapRepositoryProvider.overrideWith((ref) => repo),
+          saveMapUseCaseProvider.overrideWith(
+            (ref) => SaveMapUseCase(repo),
+          ),
+        ],
       );
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
@@ -168,7 +179,12 @@ void main() {
     test('allows a loss of exactly 25 percent without confirmation', () async {
       final repo = _FakeMapRepository();
       final container = ProviderContainer(
-        overrides: [mapRepositoryProvider.overrideWith((ref) => repo)],
+        overrides: [
+          mapRepositoryProvider.overrideWith((ref) => repo),
+          saveMapUseCaseProvider.overrideWith(
+            (ref) => SaveMapUseCase(repo),
+          ),
+        ],
       );
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
@@ -215,7 +231,6 @@ void main() {
       notifier.state = const EditorState(
         projectRootPath: '/project',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[
             ProjectMapEntry(
@@ -261,7 +276,6 @@ void main() {
       notifier.state = const EditorState(
         projectRootPath: '/project',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[
             ProjectMapEntry(
@@ -429,7 +443,6 @@ ProjectManifest _bulkGuardManifest() => const ProjectManifest(
           relativePath: 'tilesets/nature.png',
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
       elements: [
         ProjectElementEntry(
           id: 'tree',

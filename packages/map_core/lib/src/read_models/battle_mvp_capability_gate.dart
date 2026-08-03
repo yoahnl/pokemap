@@ -520,7 +520,7 @@ const _canonicalBattleMvpCapabilities = <BattleMvpCapabilityDefinition>[
       playerSurface:
           'packages/map_player_ui/lib/src/player/player_dialogue_overlay.dart#PlayerDialogueOverlay',
       positiveTest:
-          'packages/map_runtime/test/selbrume_event_v2_three_source_integration_test.dart#canonical-lysa-one-shot-stays-consumed-after-a-save-reload',
+          'packages/map_runtime/test/file_game_save_repository_test.dart#save-load-storyFlags-contains-trainer_defeated-id',
       negativeTest:
           'packages/map_runtime/test/runtime_trainer_lifecycle_policy_test.dart#one-shot-defeated-trainer-only-shows-victory-dialogue',
     ),

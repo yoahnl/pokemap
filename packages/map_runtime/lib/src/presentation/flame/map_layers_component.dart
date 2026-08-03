@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
 import '../../application/runtime_character_refs.dart';
-import '../../application/runtime_manifest_tilesets.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../border/border_runtime_asset_cache.dart';
 import '../../border/border_runtime_draw_instruction.dart';
@@ -13,23 +12,10 @@ import '../../border/border_runtime_renderer.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_renderer.dart';
-import '../../surface/surface_runtime_resolver.dart';
-import 'path_pattern_runtime_render_resolution.dart';
 import 'quarter_turn_pixel_renderer.dart';
 import 'runtime_map_layer_paint_order.dart';
-import 'runtime_path_autotile.dart';
 
 const int _kEntityFrameDurationFallbackMs = 200;
-
-Map<SurfaceLayer, SurfaceRuntimeLayerIndex> _buildSurfaceLayerIndices(
-  Iterable<MapLayer> layers,
-) {
-  final result = Map<SurfaceLayer, SurfaceRuntimeLayerIndex>.identity();
-  for (final layer in layers.whereType<SurfaceLayer>()) {
-    result[layer] = SurfaceRuntimeLayerIndex.fromLayer(layer);
-  }
-  return result;
-}
 
 enum MapLayerRenderPass {
   background,
@@ -61,12 +47,6 @@ class MapLayersComponent extends PositionComponent {
     this.borderAssets,
     this.borderRenderer = const BorderRuntimeRenderer(),
   })  : _runtimeLayerPaintOrder = buildRuntimeMapLayerPaintOrder(bundle.map),
-        _terrainPresetsByType = runtimeTerrainPresetsByType(bundle.manifest),
-        _pathAutotileByPresetId = {
-          for (final p in bundle.manifest.pathPresets)
-            p.id: RuntimePathAutotileSet.fromPreset(p),
-        },
-        _pathRulesByLayerId = _buildPathRulesByLayerId(bundle),
         _foregroundTileCellIndicesByLayerId =
             _buildForegroundTileCellIndicesByLayerId(bundle),
         _animatedPlacedCellsByLayerId =
@@ -100,28 +80,14 @@ class MapLayersComponent extends PositionComponent {
   final ShadowRuntimeRenderer shadowRenderer;
   final BorderRuntimeAssetBundle? borderAssets;
   final BorderRuntimeRenderer borderRenderer;
-  final Map<TerrainType, ProjectTerrainPreset> _terrainPresetsByType;
-  final Map<String, RuntimePathAutotileSet> _pathAutotileByPresetId;
-  final Map<String, List<_PathRuleSpec>> _pathRulesByLayerId;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
   final Map<String, Map<int, _AnimatedPlacedCell>>
       _animatedPlacedCellsByLayerId;
-  late final Map<SurfaceLayer, SurfaceRuntimeLayerIndex>
-      _surfaceLayerIndexByLayer = _buildSurfaceLayerIndices(bundle.map.layers);
   late final Map<String, _AnimatedPlacedInstanceSpec> _animatedInstanceById;
   final Map<String, bool> _animationEnabledOverrideByInstanceId =
       <String, bool>{};
   final Map<String, _ActiveOneShotAnimation> _activeOneShotByInstanceId =
       <String, _ActiveOneShotAnimation>{};
-  final Map<_PathRuleKey, _ActivePathRuleOneShot> _activePathRuleOneShotByKey =
-      <_PathRuleKey, _ActivePathRuleOneShot>{};
-  final Map<_PathRuleKey, double> _activePathRuleLoopStartedAtMsByKey =
-      <_PathRuleKey, double>{};
-  final Map<_PathRuleCellKey, _ActivePathRuleOneShot>
-      _activePathRuleCellOneShotByKey =
-      <_PathRuleCellKey, _ActivePathRuleOneShot>{};
-  final Map<_PathRuleCellKey, double> _activePathRuleCellLoopStartedAtMsByKey =
-      <_PathRuleCellKey, double>{};
 
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
@@ -177,7 +143,6 @@ class MapLayersComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     _animElapsed += dt;
-    _pruneCompletedPathRuleOneShots();
   }
 
   void setPlacedElementAnimationEnabledOverride({
@@ -210,115 +175,6 @@ class MapLayersComponent extends PositionComponent {
     return true;
   }
 
-  bool triggerPathAnimationRule({
-    required String layerId,
-    required String ruleId,
-    required PathAnimationPlaybackMode mode,
-    PathAnimationActivationScope scope =
-        PathAnimationActivationScope.wholeLayer,
-    int cellX = 0,
-    int cellY = 0,
-  }) {
-    final trimmedLayerId = layerId.trim();
-    final trimmedRuleId = ruleId.trim();
-    if (trimmedLayerId.isEmpty || trimmedRuleId.isEmpty) {
-      return false;
-    }
-    final key = _PathRuleKey(layerId: trimmedLayerId, ruleId: trimmedRuleId);
-    final spec = _resolvePathRuleSpec(key);
-    if (spec == null || !spec.hasAnimatedFrames) {
-      return false;
-    }
-    if (scope == PathAnimationActivationScope.cellOnly) {
-      final cellKey = _PathRuleCellKey(
-          layerId: trimmedLayerId, ruleId: trimmedRuleId, x: cellX, y: cellY);
-      switch (mode) {
-        case PathAnimationPlaybackMode.playOnce:
-          final existing = _activePathRuleCellOneShotByKey[cellKey];
-          if (existing != null && !_isPathRuleOneShotCompleted(existing)) {
-            return false;
-          }
-          _activePathRuleCellOneShotByKey[cellKey] = _ActivePathRuleOneShot(
-            startedAtMs: _animElapsed * 1000,
-            durationMs: spec.oneShotDurationMs,
-          );
-          return true;
-        case PathAnimationPlaybackMode.restartOnTrigger:
-          _activePathRuleCellOneShotByKey[cellKey] = _ActivePathRuleOneShot(
-            startedAtMs: _animElapsed * 1000,
-            durationMs: spec.oneShotDurationMs,
-          );
-          return true;
-        case PathAnimationPlaybackMode.loopWhileActive:
-          return false;
-      }
-    }
-    switch (mode) {
-      case PathAnimationPlaybackMode.playOnce:
-        final existing = _activePathRuleOneShotByKey[key];
-        if (existing != null && !_isPathRuleOneShotCompleted(existing)) {
-          return false;
-        }
-        _activePathRuleOneShotByKey[key] = _ActivePathRuleOneShot(
-          startedAtMs: _animElapsed * 1000,
-          durationMs: spec.oneShotDurationMs,
-        );
-        return true;
-      case PathAnimationPlaybackMode.restartOnTrigger:
-        _activePathRuleOneShotByKey[key] = _ActivePathRuleOneShot(
-          startedAtMs: _animElapsed * 1000,
-          durationMs: spec.oneShotDurationMs,
-        );
-        return true;
-      case PathAnimationPlaybackMode.loopWhileActive:
-        return false;
-    }
-  }
-
-  bool setPathAnimationRuleActive({
-    required String layerId,
-    required String ruleId,
-    required bool active,
-    PathAnimationActivationScope scope =
-        PathAnimationActivationScope.wholeLayer,
-    int cellX = 0,
-    int cellY = 0,
-  }) {
-    final trimmedLayerId = layerId.trim();
-    final trimmedRuleId = ruleId.trim();
-    if (trimmedLayerId.isEmpty || trimmedRuleId.isEmpty) {
-      return false;
-    }
-    final key = _PathRuleKey(layerId: trimmedLayerId, ruleId: trimmedRuleId);
-    final spec = _resolvePathRuleSpec(key);
-    if (spec == null || !spec.hasAnimatedFrames) {
-      return false;
-    }
-    if (spec.rule.mode != PathAnimationPlaybackMode.loopWhileActive) {
-      return false;
-    }
-    if (scope == PathAnimationActivationScope.cellOnly) {
-      final cellKey = _PathRuleCellKey(
-          layerId: trimmedLayerId, ruleId: trimmedRuleId, x: cellX, y: cellY);
-      if (active) {
-        _activePathRuleCellLoopStartedAtMsByKey.putIfAbsent(
-            cellKey, () => _animElapsed * 1000);
-      } else {
-        _activePathRuleCellLoopStartedAtMsByKey.remove(cellKey);
-      }
-      return true;
-    }
-    if (active) {
-      _activePathRuleLoopStartedAtMsByKey.putIfAbsent(
-        key,
-        () => _animElapsed * 1000,
-      );
-    } else {
-      _activePathRuleLoopStartedAtMsByKey.remove(key);
-    }
-    return true;
-  }
-
   @override
   void render(Canvas canvas) {
     super.render(canvas);
@@ -332,26 +188,6 @@ class MapLayersComponent extends PositionComponent {
     MapVisualCompositionStep step,
   ) {
     switch (step.kind) {
-      case MapVisualCompositionStepKind.terrainLayer:
-        if (renderPass == MapLayerRenderPass.background) {
-          final layer = step.layer! as TerrainLayer;
-          _paintTerrainLayer(canvas, layer.terrains, layer.opacity);
-        }
-      case MapVisualCompositionStepKind.pathLayer:
-        if (renderPass == MapLayerRenderPass.background) {
-          final layer = step.layer! as PathLayer;
-          _paintPathLayer(
-            canvas,
-            layer.id,
-            layer.presetId,
-            layer.cells,
-            layer.opacity,
-          );
-        }
-      case MapVisualCompositionStepKind.surfaceLayer:
-        if (renderPass == MapLayerRenderPass.background) {
-          _paintSurfaceLayer(canvas, step.layer! as SurfaceLayer);
-        }
       case MapVisualCompositionStepKind.smartTileLayer:
         _paintSmartTileLayer(canvas, step.layer! as SmartTileLayer);
       case MapVisualCompositionStepKind.tileBackgroundLayer:
@@ -481,71 +317,6 @@ class MapLayersComponent extends PositionComponent {
       collection,
       ShadowRenderPass.actorContact,
     );
-  }
-
-  void _paintSurfaceLayer(Canvas canvas, SurfaceLayer layer) {
-    final visibleCells = _visibleCellRange();
-    final instructions = resolveSurfaceRuntimeRenderInstructions(
-      layer: layer,
-      catalog: bundle.manifest.surfaceCatalog,
-      elapsedMs: (_animElapsed * 1000).toInt(),
-      layerIndex: _surfaceLayerIndexByLayer[layer],
-      viewport: SurfaceRuntimeCellViewport(
-        left: visibleCells.startX,
-        top: visibleCells.startY,
-        right: visibleCells.endX,
-        bottom: visibleCells.endY,
-      ),
-    );
-    if (instructions.isEmpty) {
-      return;
-    }
-
-    final alpha = layer.opacity.clamp(0.0, 1.0);
-    if (alpha <= 0) {
-      return;
-    }
-
-    final paint = Paint()
-      ..isAntiAlias = false
-      ..filterQuality = FilterQuality.none
-      ..color = Colors.white.withValues(alpha: alpha);
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
-    final visibleRect = _visibleLocalRect;
-    for (final instruction in instructions) {
-      // Viewport culling pour les instructions surface.
-      if (visibleRect != null) {
-        final dstLeft = instruction.x * cw;
-        final dstTop = instruction.y * ch;
-        if (dstLeft + cw < visibleRect.left ||
-            dstLeft > visibleRect.right ||
-            dstTop + ch < visibleRect.top ||
-            dstTop > visibleRect.bottom) {
-          continue;
-        }
-      }
-      final image = tileImagesByTilesetId[instruction.tilesetId];
-      if (image == null) {
-        continue;
-      }
-      final src = Rect.fromLTWH(
-        instruction.sourceX.toDouble(),
-        instruction.sourceY.toDouble(),
-        instruction.sourceTileWidth.toDouble(),
-        instruction.sourceTileHeight.toDouble(),
-      );
-      if (!image.containsSourceRect(src)) {
-        continue;
-      }
-      final dst = Rect.fromLTWH(
-        instruction.x * cw,
-        instruction.y * ch,
-        cw,
-        ch,
-      );
-      image.drawImageRect(canvas, src, dst, paint);
-    }
   }
 
   void _paintSmartTileLayer(Canvas canvas, SmartTileLayer layer) {
@@ -1237,82 +1008,6 @@ class MapLayersComponent extends PositionComponent {
     return out;
   }
 
-  static Map<String, List<_PathRuleSpec>> _buildPathRulesByLayerId(
-    RuntimeMapBundle bundle,
-  ) {
-    final pathPresetById = {
-      for (final preset in bundle.manifest.pathPresets) preset.id: preset,
-    };
-    final out = <String, List<_PathRuleSpec>>{};
-    for (final layer in bundle.map.layers.whereType<PathLayer>()) {
-      if (layer.animationTriggers.isEmpty) {
-        continue;
-      }
-      final preset = pathPresetById[layer.presetId.trim()];
-      final hasAnimatedFrames =
-          preset != null && _pathPresetHasAnimatedFrames(preset);
-      final oneShotDurationMs =
-          preset != null ? _pathPresetMaxOneShotDurationMs(preset) : 0;
-      final specs = <_PathRuleSpec>[];
-      for (var index = 0; index < layer.animationTriggers.length; index++) {
-        final rule = layer.animationTriggers[index];
-        if (!rule.enabled) {
-          continue;
-        }
-        final ruleId = resolvePathAnimationTriggerRuleId(
-          rule,
-          index: index,
-        );
-        specs.add(
-          _PathRuleSpec(
-            ruleId: ruleId,
-            rule: rule,
-            scope: rule.scope,
-            hasAnimatedFrames: hasAnimatedFrames,
-            oneShotDurationMs: oneShotDurationMs,
-          ),
-        );
-      }
-      if (specs.isEmpty) {
-        continue;
-      }
-      out[layer.id] = specs;
-    }
-    return out;
-  }
-
-  static bool _pathPresetHasAnimatedFrames(ProjectPathPreset preset) {
-    for (final mapping in preset.variants) {
-      if (mapping.frames.length >= 2) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  static int _pathPresetMaxOneShotDurationMs(ProjectPathPreset preset) {
-    var maxDurationMs = 0;
-    for (final mapping in preset.variants) {
-      if (mapping.frames.length < 2) {
-        continue;
-      }
-      final durations = normalizeElementFrameDurationsMs(
-        mapping.frames.map((frame) => frame.durationMs).toList(growable: false),
-      );
-      var total = 0;
-      for (final duration in durations) {
-        total += duration;
-      }
-      if (total > maxDurationMs) {
-        maxDurationMs = total;
-      }
-    }
-    if (maxDurationMs <= 0) {
-      return defaultPlacedElementAnimationFrameDurationMs;
-    }
-    return maxDurationMs;
-  }
-
   bool _paintAnimatedPlacedCell(
     Canvas canvas, {
     required _AnimatedPlacedCell animatedCell,
@@ -1514,459 +1209,6 @@ class MapLayersComponent extends PositionComponent {
     }
   }
 
-  void _paintTerrainLayer(
-    Canvas canvas,
-    List<TerrainType> terrains,
-    double opacity,
-  ) {
-    final map = bundle.map;
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
-    final tw = bundle.manifest.settings.tileWidth;
-    final th = bundle.manifest.settings.tileHeight;
-    final w = map.size.width;
-    final (:startX, :startY, :endX, :endY) = _visibleCellRange();
-    for (var y = startY; y < endY; y++) {
-      for (var x = startX; x < endX; x++) {
-        final idx = y * w + x;
-        if (idx >= terrains.length) {
-          continue;
-        }
-        final terrain = terrains[idx];
-        if (terrain == TerrainType.none) {
-          continue;
-        }
-        final cell = Rect.fromLTWH(x * cw, y * ch, cw, ch);
-        final drawn = _paintTerrainPresetCell(
-          canvas,
-          terrain,
-          x: x,
-          y: y,
-          tw: tw,
-          th: th,
-          cell: cell,
-          alpha: opacity,
-        );
-        if (drawn) {
-          continue;
-        }
-        final fillColor = _terrainFillColor(terrain);
-        final borderColor = _terrainBorderColor(terrain);
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = fillColor
-            ..style = PaintingStyle.fill,
-        );
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = borderColor
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1,
-        );
-      }
-    }
-  }
-
-  bool _paintTerrainPresetCell(
-    Canvas canvas,
-    TerrainType terrain, {
-    required int x,
-    required int y,
-    required int tw,
-    required int th,
-    required Rect cell,
-    required double alpha,
-  }) {
-    final preset = _terrainPresetsByType[terrain];
-    if (preset == null || preset.variants.isEmpty) {
-      return false;
-    }
-    final resolved = _resolveTerrainPresetFrame(
-      preset: preset,
-      x: x,
-      y: y,
-      elapsedMs: _animElapsed * 1000,
-    );
-    if (resolved == null) {
-      return false;
-    }
-    final tilesetId = resolved.tilesetId.trim();
-    if (tilesetId.isEmpty) {
-      return false;
-    }
-    final tilesetImage = tileImagesByTilesetId[tilesetId];
-    if (tilesetImage == null || tw <= 0 || th <= 0) {
-      return false;
-    }
-    final sourceRect = resolved.source;
-    final sourceX = sourceRect.x * tw;
-    final sourceY = sourceRect.y * th;
-    final srcRect = Rect.fromLTWH(
-      sourceX.toDouble(),
-      sourceY.toDouble(),
-      tw.toDouble(),
-      th.toDouble(),
-    );
-    if (!tilesetImage.containsSourceRect(srcRect)) {
-      return false;
-    }
-    tilesetImage.drawImageRect(
-      canvas,
-      srcRect,
-      cell,
-      Paint()
-        ..isAntiAlias = false
-        ..filterQuality = FilterQuality.none
-        ..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
-    );
-    return true;
-  }
-
-  _ResolvedTerrainFrame? _resolveTerrainPresetFrame({
-    required ProjectTerrainPreset preset,
-    required int x,
-    required int y,
-    required double elapsedMs,
-  }) {
-    final variants = preset.variants;
-    if (variants.isEmpty) {
-      return null;
-    }
-    final chosen = pickTerrainPresetVariantForMapCell(
-      variants: variants,
-      mapX: x,
-      mapY: y,
-      phase: preset.id.hashCode,
-    );
-    if (chosen.frames.isEmpty) {
-      return null;
-    }
-    final frameIndex = resolvePlacedElementAnimationFrameIndex(
-      frameDurationsMs: normalizeElementFrameDurationsMs(
-        chosen.frames.map((frame) => frame.durationMs).toList(growable: false),
-      ),
-      elapsedMs: elapsedMs,
-      animation: const MapPlacedElementAnimation(
-        enabled: true,
-        mode: MapPlacedElementAnimationMode.loop,
-      ),
-    );
-    final resolvedFrame =
-        chosen.frames[frameIndex.clamp(0, chosen.frames.length - 1)];
-    final frameSource = resolvedFrame.source;
-    final width = frameSource.width <= 0 ? 1 : frameSource.width;
-    final height = frameSource.height <= 0 ? 1 : frameSource.height;
-    final (offsetX, offsetY) = terrainPresetSubtileOffsetsForMapCell(
-      x,
-      y,
-      frameWidthTiles: width,
-      frameHeightTiles: height,
-      layout: chosen.multiTileLayout,
-      subtileSalt: frameSource.x * 73856093 + frameSource.y * 19349663,
-    );
-    final frameTilesetId = resolvedFrame.tilesetId.trim();
-    final resolvedTilesetId =
-        frameTilesetId.isNotEmpty ? frameTilesetId : preset.tilesetId.trim();
-    if (resolvedTilesetId.isEmpty) {
-      return null;
-    }
-    return _ResolvedTerrainFrame(
-      tilesetId: resolvedTilesetId,
-      source: TilesetSourceRect(
-        x: frameSource.x + offsetX,
-        y: frameSource.y + offsetY,
-      ),
-    );
-  }
-
-  _PathLayerPlayback _resolvePathLayerPlayback({
-    required String layerId,
-    required String presetId,
-  }) {
-    // Check if the layer has alwaysActive mode
-    final layer = bundle.map.layers.firstWhere(
-      (l) => l.id == layerId,
-      orElse: () => throw StateError('Layer not found: $layerId'),
-    );
-
-    if (layer is PathLayer &&
-        layer.animationMode == PathAnimationMode.alwaysActive) {
-      // Always active mode: loop animation continuously
-      return const _PathLayerPlayback.alwaysLoop();
-    }
-
-    final allRules = _pathRulesByLayerId[layerId];
-    if (allRules == null || allRules.isEmpty) {
-      return const _PathLayerPlayback.staticFrame();
-    }
-    final wholeLayerRules = allRules
-        .where((r) => r.scope == PathAnimationActivationScope.wholeLayer)
-        .toList(growable: false);
-    if (wholeLayerRules.isEmpty) {
-      // Only cellOnly rules → layer stays static, cells animate individually.
-      return const _PathLayerPlayback.staticFrame();
-    }
-    var hasActiveLoop = false;
-    double? activeLoopStartedAtMs;
-    for (final rule in wholeLayerRules) {
-      final key = _PathRuleKey(layerId: layerId, ruleId: rule.ruleId);
-      final oneShot = _activePathRuleOneShotByKey[key];
-      if (oneShot != null) {
-        if (_isPathRuleOneShotCompleted(oneShot)) {
-          _activePathRuleOneShotByKey.remove(key);
-        } else {
-          return _PathLayerPlayback.oneShot(startedAtMs: oneShot.startedAtMs);
-        }
-      }
-      final loopStartedAtMs = _activePathRuleLoopStartedAtMsByKey[key];
-      if (loopStartedAtMs != null && !hasActiveLoop) {
-        hasActiveLoop = true;
-        activeLoopStartedAtMs = loopStartedAtMs;
-      }
-    }
-    if (hasActiveLoop && activeLoopStartedAtMs != null) {
-      return _PathLayerPlayback.loopFrom(startedAtMs: activeLoopStartedAtMs);
-    }
-    return const _PathLayerPlayback.staticFrame();
-  }
-
-  _PathLayerPlayback _resolvePathCellPlayback({
-    required String layerId,
-    required int x,
-    required int y,
-  }) {
-    final rules = _pathRulesByLayerId[layerId];
-    if (rules == null) return const _PathLayerPlayback.staticFrame();
-    for (final rule in rules) {
-      if (rule.scope != PathAnimationActivationScope.cellOnly) continue;
-      final cellKey =
-          _PathRuleCellKey(layerId: layerId, ruleId: rule.ruleId, x: x, y: y);
-      final oneShot = _activePathRuleCellOneShotByKey[cellKey];
-      if (oneShot != null) {
-        if (_isPathRuleOneShotCompleted(oneShot)) {
-          _activePathRuleCellOneShotByKey.remove(cellKey);
-        } else {
-          return _PathLayerPlayback.oneShot(startedAtMs: oneShot.startedAtMs);
-        }
-      }
-      final loopStartedAtMs = _activePathRuleCellLoopStartedAtMsByKey[cellKey];
-      if (loopStartedAtMs != null) {
-        return _PathLayerPlayback.loopFrom(startedAtMs: loopStartedAtMs);
-      }
-    }
-    return const _PathLayerPlayback.staticFrame();
-  }
-
-  bool _isPathRuleOneShotCompleted(_ActivePathRuleOneShot state) {
-    final elapsed = (_animElapsed * 1000) - state.startedAtMs;
-    return elapsed >= state.durationMs;
-  }
-
-  _PathRuleSpec? _resolvePathRuleSpec(_PathRuleKey key) {
-    final rules = _pathRulesByLayerId[key.layerId];
-    if (rules == null || rules.isEmpty) {
-      return null;
-    }
-    for (final spec in rules) {
-      if (spec.ruleId == key.ruleId) {
-        return spec;
-      }
-    }
-    return null;
-  }
-
-  void _pruneCompletedPathRuleOneShots() {
-    if (_activePathRuleOneShotByKey.isEmpty) {
-      return;
-    }
-    final completedKeys = <_PathRuleKey>[];
-    for (final entry in _activePathRuleOneShotByKey.entries) {
-      if (_isPathRuleOneShotCompleted(entry.value)) {
-        completedKeys.add(entry.key);
-      }
-    }
-    for (final key in completedKeys) {
-      _activePathRuleOneShotByKey.remove(key);
-    }
-  }
-
-  void _paintPathLayer(
-    Canvas canvas,
-    String layerId,
-    String presetId,
-    List<bool> cells,
-    double opacity,
-  ) {
-    final map = bundle.map;
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
-    final tw = bundle.manifest.settings.tileWidth;
-    final th = bundle.manifest.settings.tileHeight;
-    final w = map.size.width;
-    final pid = presetId.trim();
-    final autotileSet = pid.isEmpty ? null : _pathAutotileByPresetId[pid];
-    final (:startX, :startY, :endX, :endY) = _visibleCellRange();
-    for (var y = startY; y < endY; y++) {
-      for (var x = startX; x < endX; x++) {
-        final idx = y * w + x;
-        if (idx >= cells.length || !cells[idx]) {
-          continue;
-        }
-        final cell = Rect.fromLTWH(x * cw, y * ch, cw, ch);
-        final drawn = autotileSet != null &&
-            _paintPathLayerCell(
-              canvas,
-              layerId: layerId,
-              presetId: pid,
-              autotileSet: autotileSet,
-              cells: cells,
-              x: x,
-              y: y,
-              tw: tw,
-              th: th,
-              cell: cell,
-              alpha: opacity,
-            );
-        if (drawn) {
-          continue;
-        }
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = Colors.teal
-            ..style = PaintingStyle.fill,
-        );
-        canvas.drawRect(
-          cell,
-          Paint()
-            ..color = Colors.tealAccent
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 1,
-        );
-      }
-    }
-  }
-
-  bool _paintPathLayerCell(
-    Canvas canvas, {
-    required String layerId,
-    required String presetId,
-    required RuntimePathAutotileSet autotileSet,
-    required List<bool> cells,
-    required int x,
-    required int y,
-    required int tw,
-    required int th,
-    required Rect cell,
-    required double alpha,
-  }) {
-    if (tw <= 0 || th <= 0) {
-      return false;
-    }
-    final variant = resolvePathVariantAt(
-      cells: cells,
-      mapSize: bundle.map.size,
-      pos: GridPos(x: x, y: y),
-    );
-    final cellPlayback = _resolvePathCellPlayback(layerId: layerId, x: x, y: y);
-    final playback = cellPlayback.kind != _PathLayerPlaybackKind.staticFrame
-        ? cellPlayback
-        : _resolvePathLayerPlayback(layerId: layerId, presetId: presetId);
-    return _paintAutotileVariantCell(
-      canvas,
-      presetId: presetId,
-      autotileSet: autotileSet,
-      playback: playback,
-      variant: variant,
-      mapX: x,
-      mapY: y,
-      tw: tw,
-      th: th,
-      dstRect: cell,
-      alpha: alpha,
-      elapsedMs: _animElapsed * 1000,
-    );
-  }
-
-  bool _paintAutotileVariantCell(
-    Canvas canvas, {
-    required String presetId,
-    required RuntimePathAutotileSet autotileSet,
-    required _PathLayerPlayback playback,
-    required TerrainPathVariant variant,
-    required int mapX,
-    required int mapY,
-    required int tw,
-    required int th,
-    required Rect dstRect,
-    required double alpha,
-    required double elapsedMs,
-  }) {
-    final resolved = resolvePathPatternRuntimeRenderResolution(
-      manifest: bundle.manifest,
-      basePathPresetId: presetId,
-      variant: variant,
-      mapX: mapX,
-      mapY: mapY,
-      elapsedMs: elapsedMs,
-      playback: _toRuntimePathPatternPlayback(playback),
-      legacyAutotileSet: autotileSet,
-    );
-    if (resolved == null) {
-      return false;
-    }
-    final source = resolved.sourceRect;
-    final tilesetId = resolved.tilesetId.trim();
-    if (tilesetId.isEmpty) {
-      return false;
-    }
-    final tilesetImage = tileImagesByTilesetId[tilesetId];
-    if (tilesetImage == null) {
-      return false;
-    }
-    final sourceX = source.x * tw;
-    final sourceY = source.y * th;
-    final srcRect = Rect.fromLTWH(
-      sourceX.toDouble(),
-      sourceY.toDouble(),
-      tw.toDouble(),
-      th.toDouble(),
-    );
-    if (!tilesetImage.containsSourceRect(srcRect)) {
-      return false;
-    }
-    tilesetImage.drawImageRect(
-      canvas,
-      srcRect,
-      dstRect,
-      Paint()
-        ..isAntiAlias = false
-        ..filterQuality = FilterQuality.none
-        ..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
-    );
-    return true;
-  }
-
-  PathPatternRuntimePlayback _toRuntimePathPatternPlayback(
-    _PathLayerPlayback playback,
-  ) {
-    switch (playback.kind) {
-      case _PathLayerPlaybackKind.alwaysLoop:
-        return const PathPatternRuntimePlayback.alwaysLoop();
-      case _PathLayerPlaybackKind.staticFrame:
-        return const PathPatternRuntimePlayback.staticFrame();
-      case _PathLayerPlaybackKind.loopFrom:
-        return PathPatternRuntimePlayback.loopFrom(
-          startedAtMs: playback.startedAtMs,
-        );
-      case _PathLayerPlaybackKind.oneShot:
-        return PathPatternRuntimePlayback.oneShot(
-          startedAtMs: playback.startedAtMs,
-        );
-    }
-  }
 }
 
 class _RuntimeAnimationFrame {
@@ -1979,16 +1221,6 @@ class _RuntimeAnimationFrame {
   final String tilesetId;
   final TilesetSourceRect source;
   final int? durationMs;
-}
-
-class _ResolvedTerrainFrame {
-  const _ResolvedTerrainFrame({
-    required this.tilesetId,
-    required this.source,
-  });
-
-  final String tilesetId;
-  final TilesetSourceRect source;
 }
 
 class _AnimatedPlacedCell {
@@ -2035,120 +1267,6 @@ class _ActiveOneShotAnimation {
   final double speed;
 }
 
-class _PathRuleKey {
-  const _PathRuleKey({
-    required this.layerId,
-    required this.ruleId,
-  });
-
-  final String layerId;
-  final String ruleId;
-
-  @override
-  bool operator ==(Object other) {
-    return other is _PathRuleKey &&
-        other.layerId == layerId &&
-        other.ruleId == ruleId;
-  }
-
-  @override
-  int get hashCode => Object.hash(layerId, ruleId);
-}
-
-class _ActivePathRuleOneShot {
-  const _ActivePathRuleOneShot({
-    required this.startedAtMs,
-    required this.durationMs,
-  });
-
-  final double startedAtMs;
-  final int durationMs;
-}
-
-class _PathRuleSpec {
-  const _PathRuleSpec({
-    required this.ruleId,
-    required this.rule,
-    required this.scope,
-    required this.hasAnimatedFrames,
-    required this.oneShotDurationMs,
-  });
-
-  final String ruleId;
-  final PathAnimationTriggerRule rule;
-  final PathAnimationActivationScope scope;
-  final bool hasAnimatedFrames;
-  final int oneShotDurationMs;
-}
-
-class _PathRuleCellKey {
-  const _PathRuleCellKey({
-    required this.layerId,
-    required this.ruleId,
-    required this.x,
-    required this.y,
-  });
-
-  final String layerId;
-  final String ruleId;
-  final int x;
-  final int y;
-
-  @override
-  bool operator ==(Object other) =>
-      other is _PathRuleCellKey &&
-      other.layerId == layerId &&
-      other.ruleId == ruleId &&
-      other.x == x &&
-      other.y == y;
-
-  @override
-  int get hashCode => Object.hash(layerId, ruleId, x, y);
-}
-
-enum _PathLayerPlaybackKind {
-  alwaysLoop,
-  staticFrame,
-  loopFrom,
-  oneShot,
-}
-
-class _PathLayerPlayback {
-  const _PathLayerPlayback._({
-    required this.kind,
-    required this.startedAtMs,
-  });
-
-  const _PathLayerPlayback.alwaysLoop()
-      : this._(
-          kind: _PathLayerPlaybackKind.alwaysLoop,
-          startedAtMs: 0,
-        );
-
-  const _PathLayerPlayback.staticFrame()
-      : this._(
-          kind: _PathLayerPlaybackKind.staticFrame,
-          startedAtMs: 0,
-        );
-
-  const _PathLayerPlayback.loopFrom({
-    required double startedAtMs,
-  }) : this._(
-          kind: _PathLayerPlaybackKind.loopFrom,
-          startedAtMs: startedAtMs,
-        );
-
-  const _PathLayerPlayback.oneShot({
-    required double startedAtMs,
-  }) : this._(
-          kind: _PathLayerPlaybackKind.oneShot,
-          startedAtMs: startedAtMs,
-        );
-
-  final _PathLayerPlaybackKind kind;
-  final double startedAtMs;
-}
-
 String? _resolveTilesetId(MapData map, String? layerTilesetId) {
   final fromLayer = layerTilesetId?.trim() ?? '';
   if (fromLayer.isNotEmpty) {
@@ -2156,28 +1274,4 @@ String? _resolveTilesetId(MapData map, String? layerTilesetId) {
   }
   final fallback = map.tilesetId.trim();
   return fallback.isNotEmpty ? fallback : null;
-}
-
-Color _terrainFillColor(TerrainType terrain) {
-  return switch (terrain) {
-    TerrainType.none => Colors.transparent,
-    TerrainType.grass => Colors.lightGreenAccent,
-    TerrainType.dirt => const Color(0xFFA46E3D),
-    TerrainType.sand => Colors.amberAccent,
-    TerrainType.rock => Colors.blueGrey,
-    TerrainType.stone => Colors.grey,
-    TerrainType.indoor => const Color(0xFFD8C3A5),
-  };
-}
-
-Color _terrainBorderColor(TerrainType terrain) {
-  return switch (terrain) {
-    TerrainType.grass => Colors.green.shade900,
-    TerrainType.dirt => const Color(0xFF6D4524),
-    TerrainType.sand => Colors.orange.shade900,
-    TerrainType.rock => Colors.blueGrey.shade900,
-    TerrainType.stone => Colors.grey.shade800,
-    TerrainType.indoor => const Color(0xFF8D6E63),
-    TerrainType.none => Colors.transparent,
-  };
 }

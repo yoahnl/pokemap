@@ -260,20 +260,8 @@ class DeleteProjectTilesetUseCase {
 
     final remainingTilesets =
         project.tilesets.where((tileset) => tileset.id != tilesetId).toList();
-    final updatedTerrainPresets = project.terrainPresets
-        .map((preset) => preset.tilesetId == tilesetId
-            ? preset.copyWith(tilesetId: '', variants: const [])
-            : preset)
-        .toList(growable: false);
-    final updatedPathPresets = project.pathPresets
-        .map((preset) => preset.tilesetId == tilesetId
-            ? preset.copyWith(tilesetId: '', variants: const [])
-            : preset)
-        .toList(growable: false);
     final updatedProject = project.copyWith(
       tilesets: remainingTilesets,
-      terrainPresets: updatedTerrainPresets,
-      pathPresets: updatedPathPresets,
     );
     await _projectRepo.saveProject(
         updatedProject, workspace.projectManifestPath);

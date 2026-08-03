@@ -294,7 +294,6 @@ RuntimeMapBundle _buildingBundle() {
           ),
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'building-runtime-map',

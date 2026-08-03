@@ -429,7 +429,7 @@ Future<Directory> _writeProject(
       await Directory(_join(project.path, 'maps')).create(recursive: true);
   final manifest = {
     'name': 'Snapshot Test',
-    'version': 'v1',
+    'version': 'v6',
     'maps': mapEntries,
     'tilesets': <Object?>[],
     'dialogues': dialogueEntries,
@@ -462,7 +462,7 @@ Map<String, Object?> _mapJson(String id) => {
       'id': id,
       'name': id,
       'size': {'width': 2, 'height': 2},
-      'version': 'v1',
+      'version': 'v6',
       'layers': <Object?>[],
     };
 

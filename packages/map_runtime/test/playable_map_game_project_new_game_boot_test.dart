@@ -131,7 +131,6 @@ RuntimeMapBundle _bundle() {
         ],
         existingPartyFactId: 'fact_existing_party',
       ),
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'new_game_map',

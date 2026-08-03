@@ -104,7 +104,6 @@ void main() {
       );
 
       final project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'test',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -243,7 +242,6 @@ void main() {
       (tester) async {
         // Project with NO Global Story.
         const project = ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],

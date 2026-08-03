@@ -99,6 +99,7 @@ void main() {
     test('manifest preserves shops and defaults legacy projects to empty', () {
       final manifest = ProjectManifest.fromJson(<String, dynamic>{
         'name': 'Selbrume',
+        'version': 'v6',
         'maps': <Object?>[],
         'tilesets': <Object?>[],
         'shops': <Object?>[
@@ -107,6 +108,7 @@ void main() {
       });
       final legacy = ProjectManifest.fromJson(<String, dynamic>{
         'name': 'Legacy',
+        'version': 'v6',
         'maps': <Object?>[],
         'tilesets': <Object?>[],
       });
@@ -130,6 +132,7 @@ void main() {
         expect(
           () => ProjectManifest.fromJson(<String, dynamic>{
             'name': 'Selbrume',
+            'version': 'v6',
             'maps': <Object?>[],
             'tilesets': <Object?>[],
             entry.key: entry.value,

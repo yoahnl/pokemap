@@ -7,15 +7,14 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
       );
       const omittedLegacy = MapData(
         id: 'legacy',
         name: 'Legacy',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
-        layers: <MapLayer>[MapLayer.path(id: 'path', name: 'Path')],
       );
       final manifest = _manifestWithMaterials(
         maps: const <ProjectMapEntry>[
@@ -47,7 +46,7 @@ void main() {
         failure.message,
         r'projectMaps: missing manifest map ids [legacy].',
       );
-      expect(omittedLegacy.layers.single, isA<PathLayer>());
+      expect(omittedLegacy.layers, isEmpty);
       expect(target.layers, isEmpty);
     });
 
@@ -55,13 +54,13 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
       );
       const extra = MapData(
         id: 'extra',
         name: 'Extra',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
       );
       final manifest = _manifestWithMaterials(
@@ -95,7 +94,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
       );
       final manifest = _manifestWithMaterials(
@@ -126,7 +125,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
       );
       final manifest = _manifestWithMaterials(
@@ -162,7 +161,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 0, height: 1),
       );
       final manifest = _manifestWithMaterials(
@@ -196,7 +195,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 2147483648, height: 2147483648),
       );
       final manifest = _manifestWithMaterials(
@@ -232,7 +231,7 @@ void main() {
       const target = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 2, height: 3),
       );
       final manifest = _manifestWithMaterials(
@@ -270,12 +269,11 @@ void main() {
       expect(smartTileCorners(layer), isEmpty);
     });
 
-    test('projects the target map and manifest to v5 without mutating inputs',
-        () {
+    test('projects the target map and manifest without mutating inputs', () {
       const sourceMap = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 2, height: 2),
       );
       final manifest = _manifestWithMaterials(
@@ -299,10 +297,10 @@ void main() {
       final success = result as SmartTileLayerCreationSuccess;
       final layer = success.map.layers.single as SmartTileLayer;
       expect(sourceMap.layers, isEmpty);
-      expect(sourceMap.version, ProjectVersion.v4);
-      expect(manifest.version, ProjectVersion.v5);
-      expect(success.map.version, ProjectVersion.v5);
-      expect(success.manifest.version, ProjectVersion.v5);
+      expect(sourceMap.version, ProjectVersion.v6);
+      expect(manifest.version, ProjectVersion.v6);
+      expect(success.map.version, ProjectVersion.v6);
+      expect(success.manifest.version, ProjectVersion.v6);
       expect(success.manifest.smartTileCatalog.presets, contains(preset));
       expect(
         success.manifest.smartTileCatalog.drafts,
@@ -320,12 +318,12 @@ void main() {
       const sourceMap = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
       );
       const manifest = ProjectManifest(
         name: 'Project',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         maps: <ProjectMapEntry>[
           ProjectMapEntry(
             id: 'target',
@@ -358,7 +356,7 @@ void main() {
       const sourceMap = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v4,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
       );
       final manifest = _manifestWithMaterials();
@@ -392,64 +390,11 @@ void main() {
       expect(manifest.smartTileCatalog.presets, isEmpty);
     });
 
-    test('refuses legacy in any map and leaves the snapshot untouched', () {
-      const target = MapData(
-        id: 'target',
-        name: 'Target',
-        version: ProjectVersion.v4,
-        size: GridSize(width: 1, height: 1),
-      );
-      const legacy = MapData(
-        id: 'legacy',
-        name: 'Legacy',
-        version: ProjectVersion.v4,
-        size: GridSize(width: 1, height: 1),
-        layers: <MapLayer>[
-          MapLayer.path(id: 'path', name: 'Path'),
-        ],
-      );
-      const manifest = ProjectManifest(
-        name: 'Project',
-        version: ProjectVersion.v4,
-        maps: <ProjectMapEntry>[
-          ProjectMapEntry(
-            id: 'target',
-            name: 'Target',
-            relativePath: 'maps/target.json',
-          ),
-          ProjectMapEntry(
-            id: 'legacy',
-            name: 'Legacy',
-            relativePath: 'maps/legacy.json',
-          ),
-        ],
-        tilesets: <ProjectTilesetEntry>[],
-      );
-
-      final result = planNativeSmartTileLayerCreation(
-        projectMaps: const <MapData>[target, legacy],
-        targetMapId: target.id,
-        manifest: manifest,
-        preset: _preset(topology: SmartTileTopology.cardinal4),
-        layerId: 'terrain',
-        layerName: 'Terrain',
-      );
-
-      expect(result, isA<SmartTileLayerCreationFailure>());
-      expect(
-        (result as SmartTileLayerCreationFailure).code,
-        'smart_tile_legacy_project_unsupported',
-      );
-      expect(target.layers, isEmpty);
-      expect(legacy.layers.single, isA<PathLayer>());
-      expect(manifest.version, ProjectVersion.v4);
-    });
-
     test('refuses a second terrain provider', () {
       final existing = MapData(
         id: 'target',
         name: 'Target',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: const GridSize(width: 1, height: 1),
         layers: const <MapLayer>[
           MapLayer.smartTile(
@@ -495,7 +440,7 @@ void main() {
           const map = MapData(
             id: 'target',
             name: 'Target',
-            version: ProjectVersion.v4,
+            version: ProjectVersion.v6,
             size: GridSize(width: 2, height: 2),
           );
           final manifest = _manifestWithMaterials();
@@ -580,7 +525,7 @@ ProjectManifest _manifestWithMaterials({
 }) =>
     ProjectManifest(
       name: 'Project',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       maps: maps,
       tilesets: const <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(

@@ -49,22 +49,6 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreation({
   if (mapCoverageFailure != null) {
     return mapCoverageFailure;
   }
-  if (_manifestHasLegacyTerrainOrPath(manifest)) {
-    return const SmartTileLayerCreationFailure(
-      code: 'smart_tile_legacy_project_unsupported',
-      message: 'The manifest still contains legacy terrain or path data.',
-    );
-  }
-  for (final map in maps) {
-    if (map.layers
-        .any((layer) => layer is TerrainLayer || layer is PathLayer)) {
-      return SmartTileLayerCreationFailure(
-        code: 'smart_tile_legacy_project_unsupported',
-        message:
-            'Map "${map.id}" still contains a legacy terrain or path layer.',
-      );
-    }
-  }
   try {
     ProjectValidator.validate(manifest);
   } on ValidationException catch (error) {
@@ -194,7 +178,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreation({
     layerSeed: preset.seedSalt,
   );
   final projectedMap = target.copyWith(
-    version: ProjectVersion.v5,
+    version: ProjectVersion.v6,
     layers: List<MapLayer>.unmodifiable(<MapLayer>[...target.layers, layer]),
   );
 
@@ -220,7 +204,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreation({
     ],
   );
   final projectedManifest = manifest.copyWith(
-    version: ProjectVersion.v5,
+    version: ProjectVersion.v6,
     smartTileCatalog: projectedCatalog,
   );
 
@@ -250,13 +234,6 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreation({
     layerId: normalizedLayerId,
   );
 }
-
-bool _manifestHasLegacyTerrainOrPath(ProjectManifest manifest) =>
-    manifest.terrainCategories.isNotEmpty ||
-    manifest.pathCategories.isNotEmpty ||
-    manifest.terrainPresets.isNotEmpty ||
-    manifest.pathPresets.isNotEmpty ||
-    manifest.pathPatternPresets.isNotEmpty;
 
 SmartTileLayerCreationFailure? _validateProjectMapCoverage({
   required ProjectManifest manifest,

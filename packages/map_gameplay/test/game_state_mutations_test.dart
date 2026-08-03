@@ -70,10 +70,12 @@ void main() {
       final newState = mutations.giveItem(initialState, 'potion', 1);
 
       expect(newState.bag.entries.length, equals(2));
-      
+
       // Entries are normalized and sorted by category then itemId
-      final pokeBallEntry = newState.bag.entries.firstWhere((e) => e.itemId == 'poke-ball');
-      final potionEntry = newState.bag.entries.firstWhere((e) => e.itemId == 'potion');
+      final pokeBallEntry =
+          newState.bag.entries.firstWhere((e) => e.itemId == 'poke-ball');
+      final potionEntry =
+          newState.bag.entries.firstWhere((e) => e.itemId == 'potion');
 
       expect(pokeBallEntry.quantity, equals(5));
       expect(potionEntry.quantity, equals(3));
@@ -99,7 +101,9 @@ void main() {
       expect(newState2, same(initialState));
     });
 
-    test('giveItem does nothing (no-op) when itemId is empty or whitespace-only', () {
+    test(
+        'giveItem does nothing (no-op) when itemId is empty or whitespace-only',
+        () {
       final initialState = GameState(
         saveId: 'test-save',
         bag: const Bag(

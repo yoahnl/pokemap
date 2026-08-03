@@ -35,7 +35,8 @@ void main() {
       );
     });
 
-    test('reflects the real BE8, BE9, H1, and H2 support that now exists locally',
+    test(
+        'reflects the real BE8, BE9, H1, and H2 support that now exists locally',
         () {
       expect(
         movesById['solar_beam']!.engineSupportLevel,

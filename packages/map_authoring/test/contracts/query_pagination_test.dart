@@ -13,7 +13,7 @@ void main() {
         view: AuthoringQueryView.detail,
         searchTerm: ' field ',
         fieldMask: const ['size.width', 'name', 'name'],
-        filters: const {'version': 'v1'},
+        filters: const {'version': 'v6'},
         sort: const [
           AuthoringQuerySort(field: 'name', descending: true),
         ],
@@ -397,7 +397,7 @@ ProjectSnapshot _snapshot({
   ];
   final manifest = ProjectManifest(
     name: 'Query Project',
-    version: ProjectVersion.v1,
+    version: ProjectVersion.v6,
     maps: [
       for (final map in maps)
         ProjectMapEntry(
@@ -441,7 +441,7 @@ MapData _map({
     id: id,
     name: name,
     size: GridSize(width: width, height: 2),
-    version: ProjectVersion.v1,
+    version: ProjectVersion.v6,
     layers: [
       MapLayer.tile(
         id: '$id-ground',

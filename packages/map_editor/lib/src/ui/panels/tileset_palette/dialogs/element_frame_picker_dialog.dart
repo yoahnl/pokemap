@@ -423,4 +423,3 @@ class _CompactStepperRow extends StatelessWidget {
 }
 
 enum _ElementCollisionPaintMode { preview, add, remove }
-

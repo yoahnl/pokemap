@@ -1152,7 +1152,7 @@ BorderPreviewContext _contextFor(MapData map) => BorderPreviewContext(
 
 ProjectManifest _project() => const ProjectManifest(
       name: 'Preview project',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );
@@ -1184,7 +1184,7 @@ MapData _map() {
   return MapData(
     id: 'map',
     name: 'Map riche',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     size: const GridSize(width: 4, height: 3),
     layers: <MapLayer>[
       const MapLayer.tile(
@@ -1214,12 +1214,15 @@ MapData _map() {
           ],
         ),
       ),
-      const MapLayer.surface(
+      const MapLayer.smartTile(
         id: 'surface',
         name: 'Surface décorative',
-        placements: <SurfaceCellPlacement>[
-          SurfaceCellPlacement(x: 2, y: 1, surfacePresetId: 'sand'),
-        ],
+        presetId: 'sand',
+        usage: SmartTileUsage.forestSurface,
+        materialPalette: <String>['', 'sand'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+        ),
         properties: <String, String>{'source': 'manual'},
       ),
       const MapLayer.collision(

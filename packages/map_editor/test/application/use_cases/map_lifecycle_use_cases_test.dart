@@ -171,12 +171,8 @@ void main() {
 
       expect(created.id, 'harbor');
       expect(created.size, const GridSize(width: 6, height: 5));
-      expect(created.layers.map((layer) => layer.id), <String>[
-        'l_base',
-        'l_collisions',
-      ]);
-      expect(created.version, ProjectVersion.v4);
-      expect(created.layers.whereType<TerrainLayer>(), isEmpty);
+      expect(created.layers, isEmpty);
+      expect(created.version, ProjectVersion.v6);
       expect(
           fixture.mapRepository.saved.single.path, '/project/maps/harbor.json');
       final savedProject = fixture.projectRepository.savedProjects.single;
@@ -1039,7 +1035,6 @@ final class _LifecycleFixture {
   ProjectManifest project({List<ProjectMapEntry> entries = const []}) {
     return ProjectManifest(
       name: 'Demo',
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
       maps: entries,
       groups: const <ProjectMapGroup>[
         ProjectMapGroup(

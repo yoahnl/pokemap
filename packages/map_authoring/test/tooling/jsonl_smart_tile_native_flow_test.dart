@@ -75,7 +75,7 @@ void main() {
         jsonDecode(utf8.decode(await direct.mapBytes()))
             as Map<String, dynamic>,
       );
-      expect(map.version, ProjectVersion.v5);
+      expect(map.version, ProjectVersion.v6);
       expect(map.layers.single, isA<SmartTileLayer>());
       final layer = map.layers.single as SmartTileLayer;
       expect(layer.presetId, 'grass');
@@ -247,7 +247,7 @@ final class _Harness {
     );
     final manifest = ProjectManifest(
       name: 'STN-03 transport fixture',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'map',
@@ -276,7 +276,7 @@ final class _Harness {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
     );
     await File('${root.path}/project.json').writeAsBytes(

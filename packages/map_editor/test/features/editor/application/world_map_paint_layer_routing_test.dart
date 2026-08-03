@@ -540,7 +540,7 @@ ProviderContainer _createContainer(EditorState initial) {
 const _allLayerKindsMap = MapData(
   id: 'all-layer-kinds',
   name: 'Tous les calques',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -563,7 +563,13 @@ const _allLayerKindsMap = MapData(
       usage: SmartTileUsage.path,
       field: SmartTileField.cell(semanticCells: _sixteenCells),
     ),
-    SurfaceLayer(id: 'surface', name: 'Surface'),
+    SmartTileLayer(
+      id: 'surface',
+      name: 'Surface',
+      presetId: 'surface',
+      usage: SmartTileUsage.forestSurface,
+      field: SmartTileField.cell(semanticCells: _sixteenCells),
+    ),
     BorderLayer(id: 'border', name: 'Bordures'),
     CollisionLayer(
       id: 'collision',
@@ -576,7 +582,7 @@ const _allLayerKindsMap = MapData(
 const _multiplePathMap = MapData(
   id: 'multiple-path',
   name: 'Plusieurs chemins',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -619,7 +625,7 @@ const _tileOnlyMap = MapData(
 const _smartTileTerrainMap = MapData(
   id: 'smart-tile-terrain',
   name: 'Terrain intelligent',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -635,7 +641,7 @@ const _smartTileTerrainMap = MapData(
 const _smartTilePathMap = MapData(
   id: 'smart-tile-path',
   name: 'Chemin intelligent',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     SmartTileLayer(
@@ -651,7 +657,7 @@ const _smartTilePathMap = MapData(
 const _routingMapA = MapData(
   id: 'map-a',
   name: 'Map A',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -680,7 +686,7 @@ const _routingMapA = MapData(
 const _routingMapB = MapData(
   id: 'map-b',
   name: 'Map B',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -709,7 +715,7 @@ const _routingMapB = MapData(
 const _sharedProjectMap = MapData(
   id: 'shared-map',
   name: 'Carte partagée',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(
@@ -738,7 +744,7 @@ const _sharedProjectMap = MapData(
 const _uniquePathRoutingMap = MapData(
   id: 'unique-path',
   name: 'Chemin unique',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     TileLayer(

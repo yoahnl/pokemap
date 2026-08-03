@@ -1,7 +1,6 @@
 import 'dart:ui' as ui;
 
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_transaction.dart';
 import 'package:map_editor/src/features/border_map_editing/presentation/border_diagnostic_presentation.dart';
 import 'package:map_editor/src/features/border_map_editing/presentation/border_preview_painter.dart';
@@ -440,8 +439,6 @@ final class LinearBorderVisualRenderer {
         warps: const <MapWarp>[],
         gameplayZones: const <MapGameplayZone>[],
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: project,
         borderPreview: preview,
         borderDiagnosticOverlayPalette: diagnosticPalette,
@@ -485,7 +482,7 @@ MapData _mapWithFeature({
     MapData(
       id: mapId,
       name: mapName,
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: linearGoldenMapSize,
       properties: const <String, dynamic>{
         'tileLayerOrder': 'bottom_to_top',
@@ -514,7 +511,7 @@ ProjectManifest _project({
 }) =>
     ProjectManifest(
       name: name,
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       borderCatalog: ProjectBorderCatalog(visualSnapshots: snapshots),

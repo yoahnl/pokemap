@@ -205,15 +205,21 @@ const _project = ProjectManifest(
   name: 'Paint inspection intent',
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],
-  surfaceCatalog: ProjectSurfaceCatalog.empty(),
 );
 
 const _mapA = MapData(
   id: 'map-a',
   name: 'Map A',
+  version: ProjectVersion.v6,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
-    SurfaceLayer(id: 'surface', name: 'Surface'),
+    SmartTileLayer(
+      id: 'surface',
+      name: 'Surface',
+      presetId: 'surface',
+      usage: SmartTileUsage.forestSurface,
+      field: SmartTileField.cell(),
+    ),
     BorderLayer(id: 'border', name: 'Border'),
   ],
 );
@@ -221,6 +227,7 @@ const _mapA = MapData(
 const _mapB = MapData(
   id: 'map-b',
   name: 'Map B',
+  version: ProjectVersion.v6,
   size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     BorderLayer(id: 'border', name: 'Border'),

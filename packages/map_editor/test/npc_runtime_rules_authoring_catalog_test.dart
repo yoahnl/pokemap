@@ -7,7 +7,6 @@ void main() {
   test('knownStoryFlagIds dans globalProperties enrichit le catalogue flags',
       () {
     const project = ProjectManifest(
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
       name: 'p',
       maps: [],
       tilesets: [],

@@ -25,7 +25,7 @@ class MapData with _$MapData {
     required String id,
     required String name,
     required GridSize size,
-    @Default(ProjectVersion.v1) ProjectVersion version,
+    @Default(ProjectVersion.v6) ProjectVersion version,
     @JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack,
     @Default('') String tilesetId,
     @Default([]) List<MapLayer> layers,
@@ -54,34 +54,19 @@ class MapData with _$MapData {
       }
     }
     final map = _$MapDataFromJson(json);
-    if (map.visualStack != null &&
-        map.version != ProjectVersion.v3 &&
-        map.version != ProjectVersion.v4 &&
-        map.version != ProjectVersion.v5) {
+    if (map.visualStack != null && map.version != ProjectVersion.v6) {
       throw const FormatException(
-        r'$.version: visualStack requires ProjectVersion.v3 or '
-        'ProjectVersion.v4 or ProjectVersion.v5',
+        r'$.version: visualStack requires ProjectVersion.v6',
       );
     }
-    if (map.version == ProjectVersion.v1) {
-      final borderIndex =
-          map.layers.indexWhere((layer) => layer is BorderLayer);
-      if (borderIndex >= 0) {
-        throw FormatException(
-          r'$.layers['
-          '$borderIndex].runtimeType: Border layers require '
-          'ProjectVersion.v2',
-        );
-      }
-    }
-    if (map.version != ProjectVersion.v5) {
+    if (map.version != ProjectVersion.v6) {
       final smartTileIndex =
           map.layers.indexWhere((layer) => layer is SmartTileLayer);
       if (smartTileIndex >= 0) {
         throw FormatException(
           r'$.layers['
           '$smartTileIndex].runtimeType: Smart Tile layers require '
-          'ProjectVersion.v5',
+          'ProjectVersion.v6',
         );
       }
     }
@@ -91,6 +76,12 @@ class MapData with _$MapData {
 
 void _preflightSmartTileMapJson(Map<String, dynamic> json) {
   final version = json['version'] ?? 'v1';
+  if (version != 'v6') {
+    throw FormatException(
+      r'$.version: smart_tile_v6_map_required '
+      '(expected=v6, actual=$version)',
+    );
+  }
   final layers = json['layers'];
   if (layers is! List) {
     return;
@@ -101,8 +92,7 @@ void _preflightSmartTileMapJson(Map<String, dynamic> json) {
       continue;
     }
     final runtimeType = rawLayer['runtimeType'];
-    if (version == 'v4' &&
-        runtimeType == 'smart_tile' &&
+    if (runtimeType == 'smart_tile' &&
         const <String>{
           'materialCells',
           'horizontalEdges',
@@ -111,39 +101,24 @@ void _preflightSmartTileMapJson(Map<String, dynamic> json) {
         }.any(rawLayer.containsKey)) {
       throw FormatException(
         r'$.layers['
-        '$index]: smart_tile_v4_unsupported '
-        '(version=v4, variant=smart_tile)',
+        '$index]: smart_tile_v6_legacy_payload_unsupported '
+        '(version=v6, variant=smart_tile)',
       );
     }
-    if (version == 'v5' &&
-        runtimeType == 'smart_tile' &&
-        const <String>{
-          'materialCells',
-          'horizontalEdges',
-          'verticalEdges',
-          'corners',
-        }.any(rawLayer.containsKey)) {
+    if (runtimeType == 'terrain' ||
+        runtimeType == 'path' ||
+        runtimeType == 'surface') {
       throw FormatException(
         r'$.layers['
-        '$index]: smart_tile_v5_legacy_payload_unsupported '
-        '(version=v5, variant=smart_tile)',
+        '$index].runtimeType: smart_tile_v6_legacy_layer_unsupported '
+        '(version=v6, variant=$runtimeType)',
       );
     }
-    if (version == 'v5' &&
-        (runtimeType == 'terrain' || runtimeType == 'path')) {
+    if (runtimeType == 'smart_tile' && rawLayer['field'] is! Map) {
       throw FormatException(
         r'$.layers['
-        '$index].runtimeType: smart_tile_v5_legacy_layer_unsupported '
-        '(version=v5, variant=$runtimeType)',
-      );
-    }
-    if (version == 'v5' &&
-        runtimeType == 'smart_tile' &&
-        rawLayer['field'] is! Map) {
-      throw FormatException(
-        r'$.layers['
-        '$index].field: smart_tile_v5_field_required '
-        '(version=v5, variant=smart_tile)',
+        '$index].field: smart_tile_v6_field_required '
+        '(version=v6, variant=smart_tile)',
       );
     }
   }

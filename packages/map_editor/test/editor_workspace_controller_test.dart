@@ -66,7 +66,7 @@ void main() {
         () {
       const current = EditorState(
         projectRootPath: '/tmp/smart-tiles-project',
-        workspaceMode: EditorWorkspaceMode.pathStudio,
+        workspaceMode: EditorWorkspaceMode.smartTilesStudio,
         errorMessage: 'Old failure',
       );
 

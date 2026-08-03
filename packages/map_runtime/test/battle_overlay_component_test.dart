@@ -224,17 +224,16 @@ RuntimeMapBundle _runtimeBundle({
   MapRole mapRole = MapRole.exterior,
 }) {
   return RuntimeMapBundle(
-    manifest: ProjectManifest(
+    manifest: const ProjectManifest(
       name: 'Lot 2 Battle Background Tests',
       maps: <ProjectMapEntry>[
-        const ProjectMapEntry(
+        ProjectMapEntry(
           id: 'field_map',
           name: 'Field Map',
           relativePath: 'maps/field_map.json',
         ),
       ],
-      tilesets: const <ProjectTilesetEntry>[],
-      surfaceCatalog: ProjectSurfaceCatalog(),
+      tilesets: <ProjectTilesetEntry>[],
     ),
     map: MapData(
       id: 'field_map',

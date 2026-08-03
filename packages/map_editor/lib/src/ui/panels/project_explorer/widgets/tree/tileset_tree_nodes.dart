@@ -63,9 +63,7 @@ class TilesetLibraryRootDropStrip extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: hovering
-                          ? colors.textPrimary
-                          : subtle,
+                      color: hovering ? colors.textPrimary : subtle,
                     ),
                   ),
                 ),
@@ -254,8 +252,10 @@ class TilesetNode extends StatelessWidget {
       globalPosition: anchorGlobal,
       actions: [
         const MacosEditorSheetAction(label: 'Renommer', value: 'rename'),
-        const MacosEditorSheetAction(label: 'Déplacer vers le haut', value: 'move_up'),
-        const MacosEditorSheetAction(label: 'Déplacer vers le bas', value: 'move_down'),
+        const MacosEditorSheetAction(
+            label: 'Déplacer vers le haut', value: 'move_up'),
+        const MacosEditorSheetAction(
+            label: 'Déplacer vers le bas', value: 'move_down'),
         const MacosEditorSheetAction(
           label: 'Définir comme global',
           value: 'make_global',
@@ -455,10 +455,12 @@ class _TilesetFolderHeaderDnD extends StatelessWidget {
                 ? BoxDecoration(
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                      color: context.pokeMapColors.brandPrimaryBorder.withValues(alpha: 0.85),
+                      color: context.pokeMapColors.brandPrimaryBorder
+                          .withValues(alpha: 0.85),
                       width: 1.5,
                     ),
-                    color: context.pokeMapColors.brandPrimarySoft.withValues(alpha: 0.08),
+                    color: context.pokeMapColors.brandPrimarySoft
+                        .withValues(alpha: 0.08),
                   )
                 : null,
             child: header,

@@ -752,7 +752,6 @@ RuntimeMapBundle _bundle({
           frameHeight: 2,
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
       shadowCatalog: _catalog(),
       projectedBuildingShadowCatalog: includeProjectedPreset
           ? ProjectBuildingShadowPresetCatalog(

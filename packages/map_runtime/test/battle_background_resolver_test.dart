@@ -24,7 +24,6 @@ RuntimeMapBundle _runtimeBundle({
       ],
       tilesets: const <ProjectTilesetEntry>[],
       trainers: trainers,
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: MapData(
       id: 'field_map',
@@ -87,7 +86,8 @@ void main() {
   group('BattleBackgroundResolver', () {
     const resolver = BattleBackgroundResolver();
 
-    test('wild battle uses encounter zone explicit background when authored', () {
+    test('wild battle uses encounter zone explicit background when authored',
+        () {
       final bundle = _runtimeBundle(
         gameplayZones: const <MapGameplayZone>[
           MapGameplayZone(
@@ -193,7 +193,8 @@ void main() {
       size: Vector2(640, 360),
       backgroundSpec: const BattleBackgroundSpec.explicitImage(
         fallbackKey: BattleBackgroundKey.trainerOutdoor,
-        absolutePath: '/tmp/runtime_background_resolver_test_project/missing.png',
+        absolutePath:
+            '/tmp/runtime_background_resolver_test_project/missing.png',
       ),
     );
 

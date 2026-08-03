@@ -48,7 +48,8 @@ void main() {
       expect(find.text('Prêt'), findsWidgets);
       expect(find.text('Ready'), findsNothing);
       expect(find.text('Zoom 100 %'), findsWidgets);
-      expect(find.text('Zoom 100%'), findsNothing); // Zoom should have French spacing
+      expect(find.text('Zoom 100%'),
+          findsNothing); // Zoom should have French spacing
     });
 
     testWidgets(
@@ -100,8 +101,7 @@ void main() {
       expect(find.text('Zoom 125 %'), findsWidgets);
     });
 
-    testWidgets(
-        'Renders French status message when project is loaded',
+    testWidgets('Renders French status message when project is loaded',
         (tester) async {
       await pumpEditorShellPage(
         tester,

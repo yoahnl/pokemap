@@ -153,7 +153,7 @@ void main() {
       };
       final manifest = ProjectManifest.fromJson(json);
 
-      expect(manifest.version, ProjectVersion.v1);
+      expect(manifest.version, ProjectVersion.v6);
       expect(manifest.eventRegistry?.mode, EventSystemMode.v2Only);
       expect(manifest.toJson()['eventRegistry'], _registryJson(mode: 'v2Only'));
     });
@@ -293,6 +293,7 @@ Map<String, Object?> _registryJson({String mode = 'legacyOnly'}) => {
 
 Map<String, Object?> _minimalManifestJson() => {
       'name': 'Legacy project',
+      'version': 'v6',
       'maps': <Object?>[],
       'tilesets': <Object?>[],
     };

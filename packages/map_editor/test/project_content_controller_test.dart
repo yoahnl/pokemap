@@ -34,7 +34,6 @@ void main() {
       const current = EditorState(
         projectRootPath: '/tmp/demo',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -78,7 +77,6 @@ void main() {
       const current = EditorState(
         projectRootPath: '/tmp/demo',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -107,7 +105,6 @@ void main() {
       const current = EditorState(
         projectRootPath: '/tmp/demo',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -148,7 +145,6 @@ void main() {
       const current = EditorState(
         projectRootPath: '/tmp/demo',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -193,7 +189,6 @@ void main() {
       const current = EditorState(
         projectRootPath: '/tmp/demo',
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],

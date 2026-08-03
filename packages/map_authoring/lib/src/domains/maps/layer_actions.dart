@@ -81,10 +81,6 @@ final class MapLayerOperations {
       'name',
       'insertIndex',
       'tilesetId',
-      'presetId',
-      'usage',
-      'defaultMaterialId',
-      'layerSeed',
     });
     final layerId = _string(operation, 'layerId');
     final layerKind = _layerKind(_string(operation, 'layerKind'));
@@ -96,28 +92,14 @@ final class MapLayerOperations {
       );
     }
     final insertIndex = _optionalInt(operation, 'insertIndex');
-    late final MapData updated;
-    if (layerKind == MapLayerKind.smartTile) {
-      updated = addSmartTileLayer(
-        map,
-        id: layerId,
-        name: _string(operation, 'name'),
-        presetId: _string(operation, 'presetId'),
-        usage: _smartTileUsage(_string(operation, 'usage')),
-        defaultMaterialId: _string(operation, 'defaultMaterialId'),
-        layerSeed: _optionalInt(operation, 'layerSeed') ?? 0,
-        insertIndex: insertIndex,
-      );
-    } else {
-      updated = addMapLayer(
-        map,
-        kind: layerKind,
-        id: layerId,
-        name: _string(operation, 'name'),
-        tileTilesetId: _optionalString(operation, 'tilesetId'),
-        insertIndex: insertIndex,
-      );
-    }
+    final updated = addMapLayer(
+      map,
+      kind: layerKind,
+      id: layerId,
+      name: _string(operation, 'name'),
+      tileTilesetId: _optionalString(operation, 'tilesetId'),
+      insertIndex: insertIndex,
+    );
     return MapOperationStepResult(
       map: updated,
       changedCells: 0,
@@ -253,11 +235,6 @@ final class MapLayerOperations {
       TileLayer value => value.copyWith(tiles: List.filled(cellCount, 0)),
       CollisionLayer value =>
         value.copyWith(collisions: List.filled(cellCount, false)),
-      TerrainLayer value => value.copyWith(
-          terrains: List.filled(cellCount, TerrainType.none),
-        ),
-      PathLayer value => value.copyWith(cells: List.filled(cellCount, false)),
-      SurfaceLayer value => value.copyWith(placements: const []),
       SmartTileLayer value => value.copyWith(
           field: switch (value.field) {
             SmartTileCellField() => SmartTileField.cell(
@@ -333,10 +310,6 @@ MapLayer _layer(MapData map, String layerId) {
 int _authoredCellCount(MapLayer layer) => switch (layer) {
       TileLayer value => value.tiles.where((cell) => cell != 0).length,
       CollisionLayer value => value.collisions.where((cell) => cell).length,
-      TerrainLayer value =>
-        value.terrains.where((cell) => cell != TerrainType.none).length,
-      PathLayer value => value.cells.where((cell) => cell).length,
-      SurfaceLayer value => value.placements.length,
       SmartTileLayer value => smartTileAuthoredValueCount(value),
       ObjectLayer() || EnvironmentLayer() || BorderLayer() => 0,
     };
@@ -344,9 +317,6 @@ int _authoredCellCount(MapLayer layer) => switch (layer) {
 MapLayerKind _layerKind(String value) => switch (value) {
       'tile' => MapLayerKind.tile,
       'collision' => MapLayerKind.collision,
-      'terrain' => MapLayerKind.terrain,
-      'path' => MapLayerKind.path,
-      'surface' => MapLayerKind.surface,
       'smart_tile' => MapLayerKind.smartTile,
       'object' => MapLayerKind.object,
       'environment' => MapLayerKind.environment,
@@ -357,13 +327,6 @@ MapLayerKind _layerKind(String value) => switch (value) {
 String _layerKindName(MapLayerKind value) => switch (value) {
       MapLayerKind.smartTile => 'smart_tile',
       _ => value.name,
-    };
-
-SmartTileUsage _smartTileUsage(String value) => switch (value) {
-      'terrain' => SmartTileUsage.terrain,
-      'path' => SmartTileUsage.path,
-      'forest_surface' => SmartTileUsage.forestSurface,
-      _ => throw _invalid('usage', 'terrain, path, or forest_surface'),
     };
 
 void _only(Map<String, Object?> values, Set<String> allowed) {

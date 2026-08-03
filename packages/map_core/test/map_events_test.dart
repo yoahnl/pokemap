@@ -221,7 +221,6 @@ void main() {
         maps: [],
         tilesets: [],
         scripts: [],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
       );
       expect(
         () => MapValidator.validate(map, projectDialogueContext: project),
@@ -313,7 +312,6 @@ ProjectManifest _projectWithScenes(List<SceneAsset> scenes) {
     maps: const [],
     tilesets: const [],
     scenes: scenes,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

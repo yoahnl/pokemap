@@ -35,7 +35,8 @@ void main() {
 
     final backgroundPixel = await _pixelAt(image, 12, 12);
     final shadowPixel = await _pixelAt(image, 80, 150);
-    final buildingOverShadowPixel = await _pixelAt(image, _panelWidth + 80, 150);
+    final buildingOverShadowPixel =
+        await _pixelAt(image, _panelWidth + 80, 150);
 
     expect(backgroundPixel, _rgba(_backgroundColor));
     expect(shadowPixel, isNot(backgroundPixel));

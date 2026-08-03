@@ -9,7 +9,6 @@ ProjectManifest _manifest({
     name: 'authoring_diag',
     maps: const [],
     tilesets: const [],
-    surfaceCatalog: ProjectSurfaceCatalog(),
     environmentPresets: environmentPresets,
     elements: elements,
   );

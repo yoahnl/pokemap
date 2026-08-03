@@ -568,51 +568,6 @@ BorderPublicationRequest _masonryGroundRequest() {
   final revision = record.latestPublished!;
   final snapshotId =
       complete.nextManifest.borderCatalog.visualSnapshots.first.id;
-  final surfaceCatalog = ProjectSurfaceCatalog(
-    atlases: <ProjectSurfaceAtlas>[
-      ProjectSurfaceAtlas(
-        id: 'ground-atlas',
-        name: 'Ground atlas',
-        tilesetId: 'tileset',
-        geometry: SurfaceAtlasGeometry(
-          tileSize: SurfaceAtlasTileSize(width: 2, height: 2),
-          gridSize: SurfaceAtlasGridSize(columns: 1, rows: 1),
-        ),
-      ),
-    ],
-    animations: <ProjectSurfaceAnimation>[
-      ProjectSurfaceAnimation(
-        id: 'ground-isolated',
-        name: 'Ground isolated',
-        timeline: SurfaceAnimationTimeline(
-          frames: <SurfaceAnimationFrame>[
-            SurfaceAnimationFrame(
-              tileRef: SurfaceAtlasTileRef(
-                atlasId: 'ground-atlas',
-                column: 0,
-                row: 0,
-              ),
-              durationMs: 100,
-            ),
-          ],
-        ),
-      ),
-    ],
-    presets: <ProjectSurfacePreset>[
-      ProjectSurfacePreset(
-        id: 'ground-preset',
-        name: 'Ground preset',
-        variantAnimations: SurfaceVariantAnimationRefSet(
-          refs: <SurfaceVariantAnimationRef>[
-            SurfaceVariantAnimationRef(
-              role: SurfaceVariantRole.isolated,
-              animationId: 'ground-isolated',
-            ),
-          ],
-        ),
-      ),
-    ],
-  );
   final definition = BorderBlueprintPublishedDefinition(
     name: revision.definition.name,
     previewSeed: revision.definition.previewSeed,
@@ -636,11 +591,8 @@ BorderPublicationRequest _masonryGroundRequest() {
       definition: definition,
     ),
   );
-  final previous = complete.previousManifest.copyWith(
-    surfaceCatalog: surfaceCatalog,
-  );
+  final previous = complete.previousManifest.copyWith();
   final next = complete.nextManifest.copyWith(
-    surfaceCatalog: surfaceCatalog,
     borderCatalog: ProjectBorderCatalog(
       records: <BorderBlueprintRecord>[nextRecord],
       visualSnapshots: complete.nextManifest.borderCatalog.visualSnapshots,
@@ -764,7 +716,7 @@ BorderPublicationRequest _completeCoreRequest() {
     ),
   );
   final next = previous.copyWith(
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     borderCatalog: ProjectBorderCatalog(
       records: <BorderBlueprintRecord>[nextRecord],
       visualSnapshots: snapshots,

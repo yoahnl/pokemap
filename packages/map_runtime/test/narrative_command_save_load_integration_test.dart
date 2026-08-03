@@ -88,7 +88,6 @@ void main() {
         badges: <BadgeDefinition>[
           BadgeDefinition(id: 'badge_tide', label: 'Badge Marée'),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
       ),
       maxHpByPartyIndex: <int, int>{0: 24},
     );

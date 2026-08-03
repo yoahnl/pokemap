@@ -26,7 +26,6 @@ void main() {
 
   ProjectManifest baseManifest() {
     return const ProjectManifest(
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
       name: 'p',
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],

@@ -39,7 +39,6 @@ void main() {
       expect(updated.maps, base.maps);
       expect(updated.tilesets, base.tilesets);
       expect(updated.elements, base.elements);
-      expect(updated.surfaceCatalog, base.surfaceCatalog);
       expect(updated.settings.tileWidth, 99);
       expect(updated.settings.tileHeight, 11);
       expect(updated.pokemon.enabled, isFalse);
@@ -149,7 +148,6 @@ ProjectManifest _manifest({
     elements: elements,
     settings: settings,
     pokemon: pokemon,
-    surfaceCatalog: ProjectSurfaceCatalog(),
     shadowCatalog: shadowCatalog ?? ProjectShadowCatalog(),
   );
 }

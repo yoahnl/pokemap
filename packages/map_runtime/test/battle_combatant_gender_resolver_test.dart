@@ -23,7 +23,8 @@ void main() {
       );
     });
 
-    test('returns null when no honest gender is known for that lineup slot', () {
+    test('returns null when no honest gender is known for that lineup slot',
+        () {
       const resolver = BattleCombatantGenderResolver();
 
       expect(

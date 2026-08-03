@@ -8,7 +8,7 @@ import 'package:map_editor/src/features/editor_updates/domain/editor_exit_readin
 void main() {
   test('readiness provider maps editor flags and registered drafts', () {
     final registry = EditorUnsavedWorkRegistry();
-    registry.register(_DirtyPathParticipant());
+    registry.register(_DirtyDialogueParticipant());
     final container = ProviderContainer(
       overrides: [
         editorUnsavedWorkRegistryProvider.overrideWithValue(registry),
@@ -31,21 +31,21 @@ void main() {
         EditorExitBlockerKind.map,
         EditorExitBlockerKind.borderPreview,
         EditorExitBlockerKind.borderStudio,
-        EditorExitBlockerKind.pathStudio,
+        EditorExitBlockerKind.dialogueStudio,
       ],
     );
   });
 }
 
-final class _DirtyPathParticipant implements EditorUnsavedWorkParticipant {
+final class _DirtyDialogueParticipant implements EditorUnsavedWorkParticipant {
   @override
-  String get id => 'path-studio';
+  String get id => 'dialogue-studio';
 
   @override
   bool get isDirty => true;
 
   @override
-  EditorExitBlockerKind get kind => EditorExitBlockerKind.pathStudio;
+  EditorExitBlockerKind get kind => EditorExitBlockerKind.dialogueStudio;
 
   @override
   Future<EditorUnsavedWorkSaveOutcome> save() async {

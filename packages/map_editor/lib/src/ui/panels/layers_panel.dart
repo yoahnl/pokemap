@@ -14,9 +14,6 @@ import 'layers_panel_presentation.dart';
 enum _LayerCreationKind {
   tile,
   collision,
-  terrain,
-  path,
-  surface,
   object,
   environment,
   border,
@@ -34,22 +31,16 @@ class LayersPanel extends ConsumerWidget {
     return switch (k) {
       _LayerCreationKind.tile => 'Couche de tuiles (Tile)',
       _LayerCreationKind.collision => 'Couche de collision',
-      _LayerCreationKind.terrain => 'Couche de terrain',
-      _LayerCreationKind.path => 'Couche de chemin (Path)',
-      _LayerCreationKind.surface => 'Couche de surface',
       _LayerCreationKind.object => 'Couche d\'objets',
       _LayerCreationKind.environment => 'Couche d\'environnement',
       _LayerCreationKind.border => 'Couche de bordures',
     };
   }
 
-  static MapLayerKind? _mapLayerKindFor(_LayerCreationKind k) {
+  static MapLayerKind _mapLayerKindFor(_LayerCreationKind k) {
     return switch (k) {
       _LayerCreationKind.tile => MapLayerKind.tile,
       _LayerCreationKind.collision => MapLayerKind.collision,
-      _LayerCreationKind.terrain => MapLayerKind.terrain,
-      _LayerCreationKind.path => MapLayerKind.path,
-      _LayerCreationKind.surface => null,
       _LayerCreationKind.object => MapLayerKind.object,
       _LayerCreationKind.environment => MapLayerKind.environment,
       _LayerCreationKind.border => MapLayerKind.border,
@@ -147,10 +138,6 @@ class LayersPanel extends ConsumerWidget {
               onChanged: (picked) {
                 setState(() {
                   selectedType = picked;
-                  if (picked == _LayerCreationKind.surface &&
-                      nameController.text.trim().isEmpty) {
-                    nameController.text = 'Surfaces';
-                  }
                   if (picked == _LayerCreationKind.environment &&
                       nameController.text.trim().isEmpty) {
                     nameController.text = 'Environnement';
@@ -209,12 +196,8 @@ class LayersPanel extends ConsumerWidget {
     );
 
     if (!shouldSave) return;
-    if (selectedType == _LayerCreationKind.surface) {
-      notifier.addSurfaceLayer(name: nameController.text.trim());
-      return;
-    }
     notifier.addMapLayer(
-      kind: _mapLayerKindFor(selectedType)!,
+      kind: _mapLayerKindFor(selectedType),
       name: nameController.text.trim(),
     );
   }
@@ -767,9 +750,6 @@ class _LayerList extends StatelessWidget {
     return layer.map(
       tile: (_) => CupertinoIcons.square_grid_2x2,
       collision: (_) => CupertinoIcons.shield,
-      terrain: (_) => CupertinoIcons.tree,
-      path: (_) => CupertinoIcons.map,
-      surface: (_) => CupertinoIcons.map,
       smartTile: (_) => CupertinoIcons.square_grid_3x2,
       object: (_) => CupertinoIcons.square_stack_3d_up,
       environment: (_) => CupertinoIcons.cloud,
@@ -781,10 +761,6 @@ class _LayerList extends StatelessWidget {
     return layer.map(
       tile: (_) => 'tuiles',
       collision: (_) => 'collision',
-      terrain: (_) => 'terrain',
-      path: (_) => 'chemin',
-      surface: (surfaceLayer) =>
-          'surface · ${surfaceLayer.placements.length} placement(s)',
       smartTile: (smartLayer) =>
           'smart tile · ${smartLayer.usage.name} · ${smartLayer.presetId}',
       object: (_) => 'objets',

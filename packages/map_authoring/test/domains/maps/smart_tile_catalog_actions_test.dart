@@ -141,7 +141,7 @@ void main() {
         map: const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           size: GridSize(width: 1, height: 1),
         ),
         drafts: const <ProjectSmartTileAuthoringDraft>[_draft],
@@ -247,7 +247,7 @@ void main() {
         map: const MapData(
           id: 'map',
           name: 'Map',
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
             MapLayer.smartTile(
@@ -279,103 +279,6 @@ void main() {
         ),
       );
     });
-
-    test('all catalog mutations fail closed while any project map is legacy',
-        () {
-      final fixture = _fixture(
-        map: const MapData(
-          id: 'map',
-          name: 'Map',
-          version: ProjectVersion.v4,
-          size: GridSize(width: 1, height: 1),
-          layers: <MapLayer>[
-            MapLayer.terrain(
-              id: 'legacy',
-              name: 'Legacy',
-              terrains: <TerrainType>[TerrainType.grass],
-            ),
-          ],
-        ),
-        preset: _preset(),
-        animations: const <ProjectSmartTileAnimation>[
-          ProjectSmartTileAnimation(
-            id: 'wind',
-            name: 'Wind',
-            frames: <ProjectSmartTileAnimationFrame>[
-              ProjectSmartTileAnimationFrame(
-                frame: SmartTileFrameRef(
-                  atlasId: 'atlas',
-                  column: 0,
-                  row: 0,
-                ),
-                durationMs: 120,
-              ),
-            ],
-          ),
-        ],
-      );
-      final requests = <({String actionId, Map<String, Object?> parameters})>[
-        (
-          actionId: 'smart_tile.atlas.upsert',
-          parameters: <String, Object?>{'atlas': _atlas().toJson()},
-        ),
-        (
-          actionId: 'smart_tile.material.upsert',
-          parameters: <String, Object?>{'material': _material().toJson()},
-        ),
-        (
-          actionId: 'smart_tile.animation.upsert',
-          parameters: <String, Object?>{
-            'animation': const ProjectSmartTileAnimation(
-              id: 'wind',
-              name: 'Wind',
-              frames: <ProjectSmartTileAnimationFrame>[
-                ProjectSmartTileAnimationFrame(
-                  frame: SmartTileFrameRef(
-                    atlasId: 'atlas',
-                    column: 0,
-                    row: 0,
-                  ),
-                  durationMs: 120,
-                ),
-              ],
-            ).toJson(),
-          },
-        ),
-        (
-          actionId: 'smart_tile.animation.delete',
-          parameters: const <String, Object?>{'animationId': 'wind'},
-        ),
-        (
-          actionId: 'smart_tile.preset.publish',
-          parameters: <String, Object?>{'preset': _preset().toJson()},
-        ),
-        (
-          actionId: 'smart_tile.preset.delete',
-          parameters: const <String, Object?>{'presetId': 'grass'},
-        ),
-      ];
-
-      for (final request in requests) {
-        expect(
-          () => const SmartTileCatalogActions().build(
-            _context(
-              fixture,
-              actionId: request.actionId,
-              parameters: request.parameters,
-            ),
-          ),
-          throwsA(
-            isA<MapAuthoringException>().having(
-              (error) => error.code,
-              'code',
-              'smart_tile_legacy_project_unsupported',
-            ),
-          ),
-          reason: request.actionId,
-        );
-      }
-    });
   });
 }
 
@@ -383,7 +286,7 @@ void main() {
   MapData map = const MapData(
     id: 'map',
     name: 'Map',
-    version: ProjectVersion.v4,
+    version: ProjectVersion.v6,
     size: GridSize(width: 1, height: 1),
   ),
   ProjectSmartTilePreset? preset,
@@ -405,7 +308,7 @@ void main() {
   );
   final manifest = ProjectManifest(
     name: 'Smart Tile authoring fixture',
-    version: ProjectVersion.v5,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',

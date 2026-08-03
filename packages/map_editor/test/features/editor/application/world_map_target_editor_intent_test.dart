@@ -277,7 +277,7 @@ NarrativeEventProjectSummary _copySummary(
 const _map = MapData(
   id: 'map',
   name: 'Map',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
     ObjectLayer(id: 'events', name: 'Events'),
@@ -295,7 +295,7 @@ const _map = MapData(
 
 const _projectWithoutRegistry = ProjectManifest(
   name: 'Context intent',
-  version: ProjectVersion.v3,
+  version: ProjectVersion.v6,
   maps: <ProjectMapEntry>[
     ProjectMapEntry(
       id: 'map',
@@ -309,7 +309,7 @@ const _projectWithoutRegistry = ProjectManifest(
 ProjectManifest _project(EventSystemMode mode) {
   return ProjectManifest(
     name: 'Context intent',
-    version: ProjectVersion.v3,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map',

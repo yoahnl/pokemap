@@ -161,7 +161,6 @@ void main() {
       ),
     ],
     environmentPresets: [preset],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
   final area = EnvironmentArea(
     id: 'forest-area',

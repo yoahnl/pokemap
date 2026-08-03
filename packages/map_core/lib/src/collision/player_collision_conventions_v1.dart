@@ -37,8 +37,7 @@ class PlayerCollisionConventionsV1 {
   }) {
     final w = playerHitboxWidthPx;
     final h = playerHitboxHeightPx;
-    final left =
-        spriteTopLeftPx.leftPx + (spriteWidthPx - w) ~/ 2;
+    final left = spriteTopLeftPx.leftPx + (spriteWidthPx - w) ~/ 2;
     final top = spriteTopLeftPx.topPx + spriteHeightPx - h;
     return PixelRect(
       leftPx: left,

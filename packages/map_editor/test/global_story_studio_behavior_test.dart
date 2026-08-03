@@ -209,7 +209,6 @@ void main() {
         ],
       );
       final project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 't',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -305,7 +304,6 @@ void main() {
         ],
       );
       final project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 't',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -507,7 +505,6 @@ void main() {
     ],
   );
   final project = ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'test',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

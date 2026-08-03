@@ -228,7 +228,8 @@ const _guardCases = [
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('generates projected building shadow v2 adaptive depth width guard artifact',
+  test(
+      'generates projected building shadow v2 adaptive depth width guard artifact',
       () async {
     final image = await _renderArtifact();
     expect(image.width, _artifactWidth);
@@ -246,7 +247,8 @@ void main() {
       _expectGateClose(gates.adaptiveT, guard.expectedAdaptiveT);
 
       for (final mode in _shadowModes) {
-        final expected = mode.isAdaptive ? guard.adaptiveExpected : guard.standardExpected;
+        final expected =
+            mode.isAdaptive ? guard.adaptiveExpected : guard.standardExpected;
         final geometry = _geometryFor(mode, guard);
         final instruction = _instructionFor(mode, guard);
         final tuning = _effectiveTuningFor(mode, guard);
@@ -339,10 +341,14 @@ Future<ui.Image> _renderArtifact() async {
     final guard = _guardCases[index];
     final columnLeft = (index * _columnWidth).toDouble();
     _drawLabel(canvas, guard.label, columnLeft: columnLeft);
-    _drawCell(canvas, _standardMode, guard, columnLeft, _row0Top.toDouble(), false);
-    _drawCell(canvas, _adaptiveCPlusMode, guard, columnLeft, _row1Top.toDouble(), false);
-    _drawCell(canvas, _standardMode, guard, columnLeft, _row2Top.toDouble(), true);
-    _drawCell(canvas, _adaptiveCPlusMode, guard, columnLeft, _row3Top.toDouble(), true);
+    _drawCell(
+        canvas, _standardMode, guard, columnLeft, _row0Top.toDouble(), false);
+    _drawCell(canvas, _adaptiveCPlusMode, guard, columnLeft,
+        _row1Top.toDouble(), false);
+    _drawCell(
+        canvas, _standardMode, guard, columnLeft, _row2Top.toDouble(), true);
+    _drawCell(canvas, _adaptiveCPlusMode, guard, columnLeft,
+        _row3Top.toDouble(), true);
   }
 
   _drawDividers(canvas);
@@ -381,7 +387,8 @@ void _drawGrid(ui.Canvas canvas, {required double left, required double top}) {
     canvas.drawLine(ui.Offset(x, top), ui.Offset(x, top + _rowHeight), paint);
   }
   for (var y = top; y <= top + _rowHeight; y += 32) {
-    canvas.drawLine(ui.Offset(left, y), ui.Offset(left + _columnWidth, y), paint);
+    canvas.drawLine(
+        ui.Offset(left, y), ui.Offset(left + _columnWidth, y), paint);
   }
 }
 
@@ -517,9 +524,11 @@ _EffectiveTuning _effectiveTuningFor(_ShadowMode mode, _GuardCase guard) {
 
   final gates = _gatesFor(guard);
   return _EffectiveTuning(
-    attachYRatio: _lerp(mode.attachYRatio, mode.targetAttachYRatio, gates.adaptiveT),
+    attachYRatio:
+        _lerp(mode.attachYRatio, mode.targetAttachYRatio, gates.adaptiveT),
     frontWidthRatio: mode.frontWidthRatio,
-    rearWidthRatio: _lerp(mode.rearWidthRatio, mode.targetRearWidthRatio, gates.adaptiveT),
+    rearWidthRatio:
+        _lerp(mode.rearWidthRatio, mode.targetRearWidthRatio, gates.adaptiveT),
     depthRatio: _lerp(mode.depthRatio, mode.targetDepthRatio, gates.adaptiveT),
     skewXRatio: mode.skewXRatio,
     opacity: _lerp(mode.opacity, mode.targetOpacity, gates.adaptiveT),
@@ -569,7 +578,8 @@ void _drawWideHouse(
   final roof = _fillPaint(_roofColor);
 
   canvas.drawRect(ui.Rect.fromLTWH(left, top + 20, width, height - 20), fill);
-  canvas.drawRect(ui.Rect.fromLTWH(left, top + 20, width, height - 20), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(left, top + 20, width, height - 20), outline);
   canvas.drawPath(
     ui.Path()
       ..moveTo(left - 8, top + 22)
@@ -609,11 +619,13 @@ void _drawMediumShop(
   final sign = _fillPaint(_signColor);
 
   canvas.drawRect(ui.Rect.fromLTWH(left, top + 18, width, height - 18), fill);
-  canvas.drawRect(ui.Rect.fromLTWH(left, top + 18, width, height - 18), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(left, top + 18, width, height - 18), outline);
   canvas.drawRect(ui.Rect.fromLTWH(left - 4, top, width + 8, 20), roof);
   canvas.drawRect(ui.Rect.fromLTWH(left - 4, top, width + 8, 20), outline);
   canvas.drawRect(ui.Rect.fromLTWH(left + 10, top + 26, width - 20, 12), sign);
-  canvas.drawRect(ui.Rect.fromLTWH(left + 10, top + 26, width - 20, 12), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(left + 10, top + 26, width - 20, 12), outline);
   _drawDoor(canvas, left + width / 2 - 8, top + height - 30, 16, 30);
   _drawWindow(canvas, left + 14, top + 54, 14, 18);
   _drawWindow(canvas, left + width - 28, top + 54, 14, 18);
@@ -635,11 +647,13 @@ void _drawTallShop(
   final sign = _fillPaint(_signColor);
 
   canvas.drawRect(ui.Rect.fromLTWH(left, top + 16, width, height - 16), fill);
-  canvas.drawRect(ui.Rect.fromLTWH(left, top + 16, width, height - 16), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(left, top + 16, width, height - 16), outline);
   canvas.drawRect(ui.Rect.fromLTWH(left - 4, top, width + 8, 18), roof);
   canvas.drawRect(ui.Rect.fromLTWH(left - 4, top, width + 8, 18), outline);
   canvas.drawRect(ui.Rect.fromLTWH(left + 8, top + 22, width - 16, 12), sign);
-  canvas.drawRect(ui.Rect.fromLTWH(left + 8, top + 22, width - 16, 12), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(left + 8, top + 22, width - 16, 12), outline);
   _drawDoor(canvas, left + width / 2 - 8, top + height - 32, 16, 32);
   _drawWindow(canvas, left + 12, top + 58, 14, 22);
   _drawWindow(canvas, left + width - 26, top + 58, 14, 22);
@@ -658,8 +672,10 @@ void _drawThinPropLike(
   final metal = _fillPaint(_metalColor);
   final lamp = _fillPaint(_signColor);
 
-  canvas.drawRect(ui.Rect.fromLTWH(centerX - 5, top + 26, 10, guard.height - 26), metal);
-  canvas.drawRect(ui.Rect.fromLTWH(centerX - 5, top + 26, 10, guard.height - 26), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(centerX - 5, top + 26, 10, guard.height - 26), metal);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(centerX - 5, top + 26, 10, guard.height - 26), outline);
   canvas.drawRect(ui.Rect.fromLTWH(centerX - 14, top + 10, 28, 18), lamp);
   canvas.drawRect(ui.Rect.fromLTWH(centerX - 14, top + 10, 28, 18), outline);
   canvas.drawLine(
@@ -669,7 +685,8 @@ void _drawThinPropLike(
   );
 }
 
-void _drawDoor(ui.Canvas canvas, double left, double top, double width, double height) {
+void _drawDoor(
+    ui.Canvas canvas, double left, double top, double width, double height) {
   canvas.drawRect(
     ui.Rect.fromLTWH(left, top, width, height),
     _fillPaint(_doorColor),
@@ -680,7 +697,8 @@ void _drawDoor(ui.Canvas canvas, double left, double top, double width, double h
   );
 }
 
-void _drawWindow(ui.Canvas canvas, double left, double top, double width, double height) {
+void _drawWindow(
+    ui.Canvas canvas, double left, double top, double width, double height) {
   canvas.drawRect(
     ui.Rect.fromLTWH(left, top, width, height),
     _fillPaint(_windowColor),
@@ -724,34 +742,49 @@ void _drawLabel(
   final right = x + width;
   switch (label) {
     case 'A':
-      canvas.drawLine(ui.Offset(left, bottom), ui.Offset(x + width / 2, top), paint);
-      canvas.drawLine(ui.Offset(x + width / 2, top), ui.Offset(right, bottom), paint);
-      canvas.drawLine(ui.Offset(left + 4, middle), ui.Offset(right - 4, middle), paint);
+      canvas.drawLine(
+          ui.Offset(left, bottom), ui.Offset(x + width / 2, top), paint);
+      canvas.drawLine(
+          ui.Offset(x + width / 2, top), ui.Offset(right, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left + 4, middle), ui.Offset(right - 4, middle), paint);
     case 'B':
       canvas.drawLine(ui.Offset(left, top), ui.Offset(left, bottom), paint);
-      canvas.drawLine(ui.Offset(left, top), ui.Offset(right - 3, top + 3), paint);
-      canvas.drawLine(ui.Offset(right - 3, top + 3), ui.Offset(right - 3, middle - 2), paint);
-      canvas.drawLine(ui.Offset(right - 3, middle - 2), ui.Offset(left, middle), paint);
-      canvas.drawLine(ui.Offset(left, middle), ui.Offset(right, middle + 3), paint);
-      canvas.drawLine(ui.Offset(right, middle + 3), ui.Offset(right - 2, bottom - 2), paint);
-      canvas.drawLine(ui.Offset(right - 2, bottom - 2), ui.Offset(left, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left, top), ui.Offset(right - 3, top + 3), paint);
+      canvas.drawLine(ui.Offset(right - 3, top + 3),
+          ui.Offset(right - 3, middle - 2), paint);
+      canvas.drawLine(
+          ui.Offset(right - 3, middle - 2), ui.Offset(left, middle), paint);
+      canvas.drawLine(
+          ui.Offset(left, middle), ui.Offset(right, middle + 3), paint);
+      canvas.drawLine(ui.Offset(right, middle + 3),
+          ui.Offset(right - 2, bottom - 2), paint);
+      canvas.drawLine(
+          ui.Offset(right - 2, bottom - 2), ui.Offset(left, bottom), paint);
     case 'C':
       canvas.drawLine(ui.Offset(right, top), ui.Offset(left + 3, top), paint);
       canvas.drawLine(ui.Offset(left + 3, top), ui.Offset(left, middle), paint);
-      canvas.drawLine(ui.Offset(left, middle), ui.Offset(left + 3, bottom), paint);
-      canvas.drawLine(ui.Offset(left + 3, bottom), ui.Offset(right, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left, middle), ui.Offset(left + 3, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left + 3, bottom), ui.Offset(right, bottom), paint);
     case 'D':
       canvas.drawLine(ui.Offset(left, top), ui.Offset(left, bottom), paint);
-      canvas.drawLine(ui.Offset(left, top), ui.Offset(right - 2, top + 4), paint);
-      canvas.drawLine(ui.Offset(right - 2, top + 4), ui.Offset(right - 2, bottom - 4), paint);
-      canvas.drawLine(ui.Offset(right - 2, bottom - 4), ui.Offset(left, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left, top), ui.Offset(right - 2, top + 4), paint);
+      canvas.drawLine(ui.Offset(right - 2, top + 4),
+          ui.Offset(right - 2, bottom - 4), paint);
+      canvas.drawLine(
+          ui.Offset(right - 2, bottom - 4), ui.Offset(left, bottom), paint);
   }
 }
 
 Future<Uint8List> _pngBytes(ui.Image image) async {
   final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
   if (byteData == null) {
-    throw StateError('Could not encode ShadowV2 adaptive depth width guard artifact as PNG');
+    throw StateError(
+        'Could not encode ShadowV2 adaptive depth width guard artifact as PNG');
   }
   return byteData.buffer.asUint8List(
     byteData.offsetInBytes,
@@ -805,7 +838,8 @@ int _colorByte(double value) {
   return (value * 255.0).round().clamp(0, 255).toInt();
 }
 
-ProjectedBuildingShadowPoint _centroid(ProjectedBuildingShadowGeometry geometry) {
+ProjectedBuildingShadowPoint _centroid(
+    ProjectedBuildingShadowGeometry geometry) {
   var totalX = 0.0;
   var totalY = 0.0;
   for (final point in geometry.points) {
@@ -818,7 +852,8 @@ ProjectedBuildingShadowPoint _centroid(ProjectedBuildingShadowGeometry geometry)
   );
 }
 
-ProjectedBuildingShadowPoint _visibleShadowPoint(ProjectedBuildingShadowGeometry geometry) {
+ProjectedBuildingShadowPoint _visibleShadowPoint(
+    ProjectedBuildingShadowGeometry geometry) {
   final rearCenterX = (geometry.points[2].x + geometry.points[3].x) / 2;
   final rearY = math.max(geometry.points[2].y, geometry.points[3].y);
   return ProjectedBuildingShadowPoint(
@@ -836,7 +871,9 @@ void _expectGeometryClose(
   _ExpectedGeometry expected,
 ) {
   expect(geometry.points, hasLength(4));
-  for (var pointIndex = 0; pointIndex < expected.points.length; pointIndex += 1) {
+  for (var pointIndex = 0;
+      pointIndex < expected.points.length;
+      pointIndex += 1) {
     _expectPointClose(
       geometry.points[pointIndex],
       x: expected.points[pointIndex].x,
@@ -1017,7 +1054,11 @@ final class _Rgba {
 
   @override
   bool operator ==(Object other) {
-    return other is _Rgba && r == other.r && g == other.g && b == other.b && a == other.a;
+    return other is _Rgba &&
+        r == other.r &&
+        g == other.g &&
+        b == other.b &&
+        a == other.a;
   }
 
   @override

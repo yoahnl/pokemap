@@ -293,7 +293,7 @@ void main() {
             'project/project.json': utf8.encode(
               jsonEncode(<String, Object?>{
                 'name': 'Inspector Test',
-                'version': 'v2',
+                'version': 'v6',
                 'maps': <Object?>[],
                 'tilesets': <Object?>[],
                 'collisionProfile': <String, Object?>{
@@ -374,8 +374,8 @@ void main() {
             hubVersion: Version.parse('0.9.0'),
             runtimeApiVersion: Version.parse('1.4.0'),
             capabilities: const <String>{},
-            supportedProjectFormats: const <String>{'v1', 'v2'},
-            currentProjectFormat: 'v2',
+            supportedProjectFormats: const <String>{'v6'},
+            currentProjectFormat: 'v6',
             supportedSaveFormats: const <int>{1},
           ),
         ).inspect(tampered),
@@ -388,8 +388,8 @@ void main() {
             hubVersion: Version.parse('0.9.0'),
             runtimeApiVersion: Version.parse('3.0.0'),
             capabilities: const <String>{},
-            supportedProjectFormats: const <String>{'v1', 'v2'},
-            currentProjectFormat: 'v2',
+            supportedProjectFormats: const <String>{'v6'},
+            currentProjectFormat: 'v6',
             supportedSaveFormats: const <int>{1},
           ),
         ).inspect(tampered);
@@ -980,7 +980,7 @@ void main() {
             'project/project.json': utf8.encode(
               jsonEncode(<String, Object?>{
                 'name': 'Too deep',
-                'version': 'v2',
+                'version': 'v6',
                 'maps': <Object?>[],
                 'tilesets': <Object?>[],
                 'groups': <Object?>[
@@ -1338,7 +1338,7 @@ final class _SparseSegment {
 List<int> _validProjectBytes({String name = 'Inspector Test'}) => utf8.encode(
       jsonEncode(<String, Object?>{
         'name': name,
-        'version': 'v2',
+        'version': 'v6',
         'maps': <Object?>[],
         'tilesets': <Object?>[],
       }),
@@ -1373,7 +1373,7 @@ GamePackageBuildResult _build(Map<String, List<int>> payload) {
       'compatibility': <String, Object?>{
         'minHubVersion': '1.0.0',
         'runtimeApi': '>=1.0.0 <2.0.0',
-        'projectFormat': 'v2',
+        'projectFormat': 'v6',
         'saveFormat': 1,
         'compatibilityId': 'main',
         'requiredCapabilities': <String>[],
@@ -1406,7 +1406,7 @@ List<int> _rawPackage(
     'compatibility': <String, Object?>{
       'minHubVersion': '1.0.0',
       'runtimeApi': '>=1.0.0 <2.0.0',
-      'projectFormat': 'v2',
+      'projectFormat': 'v6',
       'saveFormat': 1,
       'compatibilityId': 'main',
       'requiredCapabilities': <String>[],

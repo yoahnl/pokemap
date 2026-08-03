@@ -41,21 +41,6 @@ MapData addMapLayer(
         name: normalizedName,
         collisions: List<bool>.filled(cellCount, false, growable: false),
       ),
-    MapLayerKind.terrain => MapLayer.terrain(
-        id: normalizedId,
-        name: normalizedName,
-        terrains: List<TerrainType>.filled(cellCount, TerrainType.none,
-            growable: false),
-      ),
-    MapLayerKind.path => MapLayer.path(
-        id: normalizedId,
-        name: normalizedName,
-        cells: List<bool>.filled(cellCount, false, growable: false),
-      ),
-    MapLayerKind.surface => MapLayer.surface(
-        id: normalizedId,
-        name: normalizedName,
-      ),
     MapLayerKind.smartTile => throw const ValidationException(
         'Use addSmartTileLayer to create a native Smart Tile layer',
       ),
@@ -79,24 +64,11 @@ MapData addMapLayer(
 
   final updatedLayers = List<MapLayer>.from(map.layers, growable: true);
   updatedLayers.insert(targetIndex, newLayer);
-  return map.copyWith(
-    version: kind == MapLayerKind.border && map.version == ProjectVersion.v1
-        ? ProjectVersion.v2
-        : map.version,
-    layers: updatedLayers,
-  );
+  return map.copyWith(version: ProjectVersion.v6, layers: updatedLayers);
 }
 
-int _resolveDefaultInsertIndex(MapData map, MapLayerKind kind) {
-  if (kind != MapLayerKind.path) {
-    return map.layers.length;
-  }
-  final terrainIndex = map.layers.indexWhere((layer) => layer is TerrainLayer);
-  if (terrainIndex >= 0) {
-    return terrainIndex;
-  }
-  return map.layers.length;
-}
+int _resolveDefaultInsertIndex(MapData map, MapLayerKind kind) =>
+    map.layers.length;
 
 MapData renameMapLayer(
   MapData map, {
@@ -256,21 +228,6 @@ MapLayer _copyLayer(
       name: name ?? collisionLayer.name,
       isVisible: isVisible ?? collisionLayer.isVisible,
       opacity: opacity ?? collisionLayer.opacity,
-    ),
-    terrain: (terrainLayer) => terrainLayer.copyWith(
-      name: name ?? terrainLayer.name,
-      isVisible: isVisible ?? terrainLayer.isVisible,
-      opacity: opacity ?? terrainLayer.opacity,
-    ),
-    path: (pathLayer) => pathLayer.copyWith(
-      name: name ?? pathLayer.name,
-      isVisible: isVisible ?? pathLayer.isVisible,
-      opacity: opacity ?? pathLayer.opacity,
-    ),
-    surface: (surfaceLayer) => surfaceLayer.copyWith(
-      name: name ?? surfaceLayer.name,
-      isVisible: isVisible ?? surfaceLayer.isVisible,
-      opacity: opacity ?? surfaceLayer.opacity,
     ),
     smartTile: (smartTileLayer) => smartTileLayer.copyWith(
       name: name ?? smartTileLayer.name,

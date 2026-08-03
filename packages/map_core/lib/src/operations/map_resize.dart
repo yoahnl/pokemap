@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import '../exceptions/map_exceptions.dart';
 import '../models/border_diagnostics.dart';
 import '../models/border_layer.dart';
-import '../models/enums.dart';
 import '../models/environment.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
@@ -22,10 +21,7 @@ const int _maximumResizeImpactPositionSamples = 8;
 enum MapResizeImpactKind {
   tileLayer,
   collisionLayer,
-  terrainLayer,
-  pathLayer,
   smartTileLayer,
-  surfaceLayer,
   environmentArea,
   borderLayer,
   placedElement,
@@ -217,32 +213,6 @@ MapResizePlan planMapResize(
       );
       continue;
     }
-    if (layer is TerrainLayer) {
-      _addClippedLayerImpact<TerrainType>(
-        impacts: impacts,
-        kind: MapResizeImpactKind.terrainLayer,
-        layerId: layer.id,
-        layerName: layer.name,
-        values: layer.terrains,
-        sourceSize: sourceSize,
-        targetSize: targetSize,
-        isMeaningful: (value) => value != TerrainType.none,
-      );
-      continue;
-    }
-    if (layer is PathLayer) {
-      _addClippedLayerImpact<bool>(
-        impacts: impacts,
-        kind: MapResizeImpactKind.pathLayer,
-        layerId: layer.id,
-        layerName: layer.name,
-        values: layer.cells,
-        sourceSize: sourceSize,
-        targetSize: targetSize,
-        isMeaningful: (value) => value,
-      );
-      continue;
-    }
     if (layer is SmartTileLayer) {
       _addClippedSmartTileLayerImpact(
         impacts: impacts,
@@ -250,28 +220,6 @@ MapResizePlan planMapResize(
         sourceSize: sourceSize,
         targetSize: targetSize,
       );
-      continue;
-    }
-    if (layer is SurfaceLayer) {
-      final clipped = _outsidePositionSummary(
-        positions: layer.placements.map(
-          (placement) => GridPos(x: placement.x, y: placement.y),
-        ),
-        targetSize: targetSize,
-      );
-      if (clipped.isNotEmpty) {
-        impacts.add(
-          MapResizeImpact(
-            kind: MapResizeImpactKind.surfaceLayer,
-            reason: MapResizeImpactReason.positionOutside,
-            subjectId: layer.id,
-            subjectLabel: _labelOrId(layer.name, layer.id),
-            layerId: layer.id,
-            affectedCount: clipped.count,
-            positions: clipped.positions,
-          ),
-        );
-      }
       continue;
     }
     if (layer is EnvironmentLayer) {
@@ -652,7 +600,7 @@ MapData resizeMapData(
     );
   }
 
-  return _resizeMapDataLegacyLayers(
+  return _resizeMapDataLayers(
     map,
     width: width,
     height: height,
@@ -714,7 +662,7 @@ MapResizeWithBorderDiagnosticsResult resizeMapDataWithBorderDiagnostics(
   }
 
   return MapResizeWithBorderDiagnosticsResult(
-    map: _resizeMapDataLegacyLayers(
+    map: _resizeMapDataLayers(
       map,
       width: width,
       height: height,
@@ -725,7 +673,7 @@ MapResizeWithBorderDiagnosticsResult resizeMapDataWithBorderDiagnostics(
   );
 }
 
-MapData _resizeMapDataLegacyLayers(
+MapData _resizeMapDataLayers(
   MapData map, {
   required int width,
   required int height,
@@ -752,37 +700,12 @@ MapData _resizeMapDataLegacyLayers(
               defaultValue: false,
             ),
           ),
-          terrain: (l) => l.copyWith(
-            terrains: _resizeFlattened<TerrainType>(
-              src: l.terrains,
-              srcSize: oldSize,
-              dstSize: GridSize(width: width, height: height),
-              defaultValue: TerrainType.none,
-            ),
-          ),
-          path: (l) => l.copyWith(
-            cells: _resizeFlattened<bool>(
-              src: l.cells,
-              srcSize: oldSize,
-              dstSize: GridSize(width: width, height: height),
-              defaultValue: false,
-            ),
-          ),
           smartTile: (l) => l.copyWith(
             field: _resizeSmartTileField(
               l.field,
               oldSize: oldSize,
               newSize: GridSize(width: width, height: height),
             ),
-          ),
-          surface: (l) => l.copyWith(
-            placements: l.placements
-                .where((placement) =>
-                    placement.x >= 0 &&
-                    placement.y >= 0 &&
-                    placement.x < width &&
-                    placement.y < height)
-                .toList(growable: false),
           ),
           object: (l) => l,
           environment: (l) => l.copyWith(

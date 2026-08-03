@@ -134,11 +134,10 @@ Future<void> _writePokemonMedia({
 }
 
 ProjectManifest _manifest() {
-  return ProjectManifest(
+  return const ProjectManifest(
     name: 'battle_pokemon_sprite_resolver_test',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 

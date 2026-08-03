@@ -1,4 +1,3 @@
-
 import '../exceptions/map_exceptions.dart';
 import '../models/project_manifest.dart';
 import 'map_placed_element_animation.dart';

@@ -76,8 +76,11 @@ void main() {
         expect(primitive.publishedMetrics, first.metrics);
         expect(result.nextManifest.name, manifest.name);
         expect(result.nextManifest.maps, manifest.maps);
-        expect(result.nextManifest.surfaceCatalog, manifest.surfaceCatalog);
-        expect(result.nextManifest.version, ProjectVersion.v5);
+        expect(
+          result.nextManifest.smartTileCatalog,
+          manifest.smartTileCatalog,
+        );
+        expect(result.nextManifest.version, ProjectVersion.v6);
         expect(result.files, first.files);
         expect(
           result.primitiveSnapshotIdsByPrimitiveId,
@@ -764,7 +767,7 @@ ProjectManifest _manifest({
 }) {
   return ProjectManifest(
     name: 'Candidate project',
-    version: ProjectVersion.v5,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     elements: elements,

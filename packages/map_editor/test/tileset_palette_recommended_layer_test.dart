@@ -128,7 +128,6 @@ ProjectManifest _project() {
       ),
     ],
     settings: ProjectSettings(tileWidth: 1, tileHeight: 1),
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
   );
 }
 

@@ -22,10 +22,12 @@ class PokeMapDesignSystemGallery extends StatefulWidget {
   const PokeMapDesignSystemGallery({super.key});
 
   @override
-  State<PokeMapDesignSystemGallery> createState() => _PokeMapDesignSystemGalleryState();
+  State<PokeMapDesignSystemGallery> createState() =>
+      _PokeMapDesignSystemGalleryState();
 }
 
-class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery> {
+class _PokeMapDesignSystemGalleryState
+    extends State<PokeMapDesignSystemGallery> {
   GalleryThemeMode _viewMode = GalleryThemeMode.compare;
 
   @override
@@ -71,7 +73,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       PokeMapButton(
-                        onPressed: () => setState(() => _viewMode = GalleryThemeMode.light),
+                        onPressed: () =>
+                            setState(() => _viewMode = GalleryThemeMode.light),
                         variant: _viewMode == GalleryThemeMode.light
                             ? PokeMapButtonVariant.primary
                             : PokeMapButtonVariant.ghost,
@@ -80,7 +83,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                       ),
                       const SizedBox(width: 8),
                       PokeMapButton(
-                        onPressed: () => setState(() => _viewMode = GalleryThemeMode.dark),
+                        onPressed: () =>
+                            setState(() => _viewMode = GalleryThemeMode.dark),
                         variant: _viewMode == GalleryThemeMode.dark
                             ? PokeMapButtonVariant.primary
                             : PokeMapButtonVariant.ghost,
@@ -89,7 +93,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                       ),
                       const SizedBox(width: 8),
                       PokeMapButton(
-                        onPressed: () => setState(() => _viewMode = GalleryThemeMode.compare),
+                        onPressed: () => setState(
+                            () => _viewMode = GalleryThemeMode.compare),
                         variant: _viewMode == GalleryThemeMode.compare
                             ? PokeMapButtonVariant.primary
                             : PokeMapButtonVariant.ghost,
@@ -162,9 +167,11 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                _buildThemeHeaderBanner('LIGHT MODE', Colors.blue.shade700),
+                                _buildThemeHeaderBanner(
+                                    'LIGHT MODE', Colors.blue.shade700),
                                 const SizedBox(height: 20),
-                                _buildGalleryWidgetsList(context, isSplit: true),
+                                _buildGalleryWidgetsList(context,
+                                    isSplit: true),
                               ],
                             ),
                           ),
@@ -185,9 +192,11 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                _buildThemeHeaderBanner('DARK MODE', Colors.purple.shade700),
+                                _buildThemeHeaderBanner(
+                                    'DARK MODE', Colors.purple.shade700),
                                 const SizedBox(height: 20),
-                                _buildGalleryWidgetsList(context, isSplit: true),
+                                _buildGalleryWidgetsList(context,
+                                    isSplit: true),
                               ],
                             ),
                           ),
@@ -213,7 +222,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _buildThemeHeaderBanner('LIGHT PREVIEW', Colors.blue.shade700),
+                              _buildThemeHeaderBanner(
+                                  'LIGHT PREVIEW', Colors.blue.shade700),
                               const SizedBox(height: 20),
                               _buildGalleryWidgetsList(context, isSplit: false),
                             ],
@@ -231,7 +241,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _buildThemeHeaderBanner('DARK PREVIEW', Colors.purple.shade700),
+                              _buildThemeHeaderBanner(
+                                  'DARK PREVIEW', Colors.purple.shade700),
                               const SizedBox(height: 20),
                               _buildGalleryWidgetsList(context, isSplit: false),
                             ],
@@ -273,7 +284,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
     );
   }
 
-  Widget _buildGalleryWidgetsList(BuildContext context, {required bool isSplit}) {
+  Widget _buildGalleryWidgetsList(BuildContext context,
+      {required bool isSplit}) {
     final colors = context.pokeMapColors;
 
     return Column(
@@ -283,7 +295,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
         _buildSectionWrapper(
           context: context,
           title: 'Buttons (PokeMapButton)',
-          description: 'Custom primary, secondary, ghost, success, and danger actions.',
+          description:
+              'Custom primary, secondary, ghost, success, and danger actions.',
           child: Wrap(
             spacing: 12,
             runSpacing: 12,
@@ -411,7 +424,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
             spacing: 8,
             runSpacing: 8,
             children: [
-              PokeMapBadge(label: 'Neutral', variant: PokeMapBadgeVariant.neutral),
+              PokeMapBadge(
+                  label: 'Neutral', variant: PokeMapBadgeVariant.neutral),
               PokeMapBadge(
                 label: 'Info',
                 variant: PokeMapBadgeVariant.info,
@@ -456,7 +470,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
         _buildSectionWrapper(
           context: context,
           title: 'Cards & Panels (PokeMapCard / PokeMapPanel)',
-          description: 'Containers resolved correctly across brightness presets.',
+          description:
+              'Containers resolved correctly across brightness presets.',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -477,7 +492,9 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text('Basic passive item wrapper', style: TextStyle(color: colors.textMuted, fontSize: 10)),
+                          Text('Basic passive item wrapper',
+                              style: TextStyle(
+                                  color: colors.textMuted, fontSize: 10)),
                         ],
                       ),
                     ),
@@ -498,7 +515,9 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text('Uses brand primary outline', style: TextStyle(color: colors.textMuted, fontSize: 10)),
+                          Text('Uses brand primary outline',
+                              style: TextStyle(
+                                  color: colors.textMuted, fontSize: 10)),
                         ],
                       ),
                     ),
@@ -527,21 +546,32 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                 child: PokeMapPanel(
                   expandChild: true,
                   header: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Panel Header', style: TextStyle(color: colors.textPrimary, fontWeight: FontWeight.bold, fontSize: 11)),
-                        const PokeMapBadge(label: 'V0 Panel', variant: PokeMapBadgeVariant.mapAccent),
+                        Text('Panel Header',
+                            style: TextStyle(
+                                color: colors.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11)),
+                        const PokeMapBadge(
+                            label: 'V0 Panel',
+                            variant: PokeMapBadgeVariant.mapAccent),
                       ],
                     ),
                   ),
                   footer: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Text('Panel Footer Actions', style: TextStyle(color: colors.textMuted, fontSize: 9)),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: Text('Panel Footer Actions',
+                        style: TextStyle(color: colors.textMuted, fontSize: 9)),
                   ),
                   child: Center(
-                    child: Text('Panel Content Area (Scrollable/Expanded)', style: TextStyle(color: colors.textSecondary, fontSize: 11)),
+                    child: Text('Panel Content Area (Scrollable/Expanded)',
+                        style: TextStyle(
+                            color: colors.textSecondary, fontSize: 11)),
                   ),
                 ),
               ),
@@ -554,7 +584,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
         _buildSectionWrapper(
           context: context,
           title: 'Toolbar Surfaces (PokeMapToolbarSurface)',
-          description: 'A bar that provides solid backgrounds and separator boundaries.',
+          description:
+              'A bar that provides solid backgrounds and separator boundaries.',
           child: PokeMapToolbarSurface(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             child: Row(
@@ -563,9 +594,14 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    PokeMapIconButton(onPressed: () {}, icon: const Icon(Icons.arrow_back)),
+                    PokeMapIconButton(
+                        onPressed: () {}, icon: const Icon(Icons.arrow_back)),
                     const SizedBox(width: 8),
-                    Text('Active Document Name', style: TextStyle(color: colors.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
+                    Text('Active Document Name',
+                        style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold)),
                   ],
                 ),
                 PokeMapButton(
@@ -584,12 +620,14 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
         _buildSectionWrapper(
           context: context,
           title: 'Empty States (PokeMapEmptyState)',
-          description: 'Centered empty screen layouts containing graphics and prompt triggers.',
+          description:
+              'Centered empty screen layouts containing graphics and prompt triggers.',
           child: PokeMapCard(
             padding: EdgeInsets.zero,
             child: PokeMapEmptyState(
               title: 'No Assets Imported Yet',
-              description: 'Import custom grids, PNG map tilesets, or story variables to build your RPG catalog list.',
+              description:
+                  'Import custom grids, PNG map tilesets, or story variables to build your RPG catalog list.',
               icon: const Icon(Icons.file_copy_outlined),
               action: PokeMapButton(
                 onPressed: () {},
@@ -606,7 +644,8 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
         _buildSectionWrapper(
           context: context,
           title: 'Sidebar Items (PokeMapSidebarItem)',
-          description: 'Navigation items optimized for sidebar list hierarchies.',
+          description:
+              'Navigation items optimized for sidebar list hierarchies.',
           child: Container(
             width: isSplit ? double.infinity : 280,
             decoration: BoxDecoration(
@@ -628,13 +667,15 @@ class _PokeMapDesignSystemGalleryState extends State<PokeMapDesignSystemGallery>
                   label: 'Map Editor Grid (Active)',
                   icon: const Icon(Icons.grid_view),
                   selected: true,
-                  trailing: const PokeMapBadge(label: 'Live', variant: PokeMapBadgeVariant.mapAccent),
+                  trailing: const PokeMapBadge(
+                      label: 'Live', variant: PokeMapBadgeVariant.mapAccent),
                   onTap: () {},
                 ),
                 PokeMapSidebarItem(
                   label: 'Narrative Studio (New Rules)',
                   icon: const Icon(Icons.movie_creation_outlined),
-                  trailing: const Icon(Icons.fiber_new, color: Colors.purpleAccent, size: 16),
+                  trailing: const Icon(Icons.fiber_new,
+                      color: Colors.purpleAccent, size: 16),
                   onTap: () {},
                 ),
                 const PokeMapSidebarItem(

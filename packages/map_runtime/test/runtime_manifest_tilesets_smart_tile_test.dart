@@ -8,7 +8,7 @@ void main() {
       const map = MapData(
         id: 'route-1',
         name: 'Route 1',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         tilesetId: 'base-world',
         size: GridSize(width: 4, height: 4),
         layers: <MapLayer>[
@@ -43,7 +43,7 @@ void main() {
       );
       final manifest = ProjectManifest(
         name: 'Smart Tile Runtime',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[
           ProjectTilesetEntry(
@@ -180,74 +180,6 @@ void main() {
       });
     });
 
-    test('collects pathPattern center frame tileset overrides', () {
-      const map = MapData(
-        id: 'route-path',
-        name: 'Route Path',
-        size: GridSize(width: 2, height: 2),
-        layers: [
-          MapLayer.path(
-            id: 'path',
-            name: 'Path',
-            presetId: 'water-base',
-            cells: [true, true, true, true],
-          ),
-        ],
-      );
-      final manifest = ProjectManifest(
-        name: 'PathPattern Runtime',
-        maps: const [],
-        tilesets: const [
-          ProjectTilesetEntry(
-            id: 'base-world',
-            name: 'Base World',
-            relativePath: 'tilesets/base.png',
-          ),
-          ProjectTilesetEntry(
-            id: 'water-fx',
-            name: 'Water FX',
-            relativePath: 'tilesets/water_fx.png',
-          ),
-        ],
-        pathPresets: const [
-          ProjectPathPreset(
-            id: 'water-base',
-            name: 'Water Base',
-            tilesetId: 'base-world',
-            variants: [],
-          ),
-        ],
-        pathPatternPresets: [
-          ProjectPathPatternPreset(
-            id: 'water-pattern',
-            name: 'Water Pattern',
-            basePathPresetId: 'water-base',
-            centerPattern: PathCenterPattern(
-              size: PathCenterPatternSize(width: 1, height: 1),
-              cells: [
-                PathCenterPatternCell(
-                  localX: 0,
-                  localY: 0,
-                  frames: [
-                    const TilesetVisualFrame(
-                      tilesetId: 'water-fx',
-                      source: TilesetSourceRect(x: 3, y: 2),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
-      );
-
-      expect(
-        collectAllRuntimeTilesetIds(map, manifest),
-        containsAll(<String>{'base-world', 'water-fx'}),
-      );
-    });
-
     test('collects placed-element frame tilesets once in encounter order', () {
       const map = MapData(
         id: 'placed-elements',
@@ -347,7 +279,7 @@ void main() {
       const baseMap = MapData(
         id: 'border-runtime',
         name: 'Border Runtime',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         tilesetId: 'base-world',
         size: GridSize(width: 2, height: 2),
         layers: <MapLayer>[
@@ -367,7 +299,7 @@ void main() {
       );
       final manifest = ProjectManifest(
         name: 'Border Runtime',
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[
           ProjectTilesetEntry(
@@ -411,8 +343,8 @@ void main() {
 
       final basePresetIds = <String>{};
       final borderPresetIds = <String>{};
-      addTerrainAndPathPresetTilesetIds(basePresetIds, baseMap, manifest);
-      addTerrainAndPathPresetTilesetIds(borderPresetIds, withBorder, manifest);
+      addSmartTileTilesetIds(basePresetIds, baseMap, manifest);
+      addSmartTileTilesetIds(borderPresetIds, withBorder, manifest);
       expect(borderPresetIds, basePresetIds);
 
       final expectedAll = collectAllRuntimeTilesetIds(baseMap, manifest);

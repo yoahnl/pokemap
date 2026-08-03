@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
-import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 
@@ -24,7 +23,6 @@ void main() {
           name: 'Demo',
           maps: [],
           tilesets: [],
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
         ),
         workspaceMode: EditorWorkspaceMode.dialogue,
         activeMap: map,
@@ -32,13 +30,6 @@ void main() {
         activeTool: EditorToolType.terrainPaint,
         activeLayerId: 'ground',
         hoveredTile: GridPos(x: 2, y: 3),
-        terrainSelectionMode: TerrainSelectionMode.path,
-        selectedTerrainType: TerrainType.rock,
-        selectedTerrainPresetId: 'terrain-water',
-        selectedPathPresetId: 'path-road',
-        selectedTerrainPresetByType: {
-          TerrainType.rock: 'terrain-water',
-        },
         eraserFootprint: EditorEraserFootprint.custom(
           size: GridSize(width: 3, height: 2),
         ),
@@ -59,9 +50,6 @@ void main() {
       expect(state.projectSession.activeMapPath, 'maps/map_001.json');
 
       expect(state.selection.activeTool, EditorToolType.terrainPaint);
-      expect(state.selection.terrainSelectionMode, TerrainSelectionMode.path);
-      expect(state.selection.selectedTerrainType, TerrainType.rock);
-      expect(state.selection.selectedPathPresetId, 'path-road');
       expect(
         state.selection.eraserFootprint,
         const EditorEraserFootprint.custom(
@@ -103,13 +91,7 @@ void main() {
               activeLayerId: 'entities',
               hoveredTile: null,
               activeBrush: EditorBrush.none(),
-              terrainSelectionMode: TerrainSelectionMode.terrain,
-              selectedTerrainType: TerrainType.grass,
               selectedEntityKind: MapEntityKind.custom,
-              selectedTerrainPresetId: null,
-              selectedPathPresetId: null,
-              selectedSurfacePresetId: null,
-              selectedTerrainPresetByType: {},
               eraserFootprint: EditorEraserFootprint.previousBrush(
                 size: GridSize(width: 2, height: 3),
               ),

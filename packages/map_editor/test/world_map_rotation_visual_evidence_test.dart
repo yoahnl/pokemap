@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 const _fixtureFingerprint = 'ROT-01/FP-52A7/2x1/q0-q3/light-east';
@@ -103,7 +102,6 @@ void main() {
       ),
     ],
     settings: const ProjectSettings(tileWidth: _tile, tileHeight: _tile),
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     elements: <ProjectElementEntry>[
       ProjectElementEntry(
         id: 'asymmetric-awning',
@@ -167,8 +165,6 @@ Future<ui.Image> _renderEditorEvidence(
       warps: const <MapWarp>[],
       gameplayZones: const <MapGameplayZone>[],
       connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-      pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-      terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
       project: fixture.manifest,
       showGrid: true,
       showEntityEditorChrome: false,

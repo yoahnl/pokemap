@@ -80,27 +80,10 @@ class ProjectValidator {
   }
 
   static void validate(ProjectManifest manifest) {
-    if (manifest.version == ProjectVersion.v1 &&
-        manifest.borderCatalog.isNotEmpty) {
+    if (manifest.version != ProjectVersion.v6) {
       throw const ValidationException(
-        'A non-empty Border catalog requires ProjectVersion.v2',
-      );
-    }
-    if (manifest.version != ProjectVersion.v5 &&
-        manifest.smartTileCatalog.isNotEmpty) {
-      throw const ValidationException(
-        'A non-empty Smart Tile catalog requires ProjectVersion.v5',
-      );
-    }
-    if (manifest.version == ProjectVersion.v5 &&
-        (manifest.terrainCategories.isNotEmpty ||
-            manifest.pathCategories.isNotEmpty ||
-            manifest.terrainPresets.isNotEmpty ||
-            manifest.pathPresets.isNotEmpty ||
-            manifest.pathPatternPresets.isNotEmpty)) {
-      throw const ValidationException(
-        'ProjectVersion.v5 rejects legacy terrain/path definitions',
-        code: 'smart_tile_v5_legacy_manifest_unsupported',
+        'Smart Tiles-only projects require ProjectVersion.v6',
+        code: 'smart_tile_v6_project_required',
       );
     }
     final smartTileDiagnostics = validateProjectSmartTileCatalog(
@@ -302,26 +285,6 @@ class ProjectValidator {
       duplicateMessagePrefix: 'Duplicate element ID',
     );
     _validateUniqueIds(
-      manifest.terrainCategories,
-      (category) => category.id,
-      duplicateMessagePrefix: 'Duplicate terrain category ID',
-    );
-    _validateUniqueIds(
-      manifest.pathCategories,
-      (category) => category.id,
-      duplicateMessagePrefix: 'Duplicate path category ID',
-    );
-    _validateUniqueIds(
-      manifest.terrainPresets,
-      (preset) => preset.id,
-      duplicateMessagePrefix: 'Duplicate terrain preset ID',
-    );
-    _validateUniqueIds(
-      manifest.pathPresets,
-      (preset) => preset.id,
-      duplicateMessagePrefix: 'Duplicate path preset ID',
-    );
-    _validateUniqueIds(
       manifest.encounterTables,
       (table) => table.id,
       duplicateMessagePrefix: 'Duplicate encounter table ID',
@@ -460,16 +423,6 @@ class ProjectValidator {
     _validateTilesets(manifest, groupIds);
     _validateElementCategories(manifest);
     _validateElements(manifest, groupIds);
-    _validatePresetCategories(
-      manifest.terrainCategories,
-      label: 'terrain category',
-    );
-    _validatePresetCategories(
-      manifest.pathCategories,
-      label: 'path category',
-    );
-    _validateTerrainPresets(manifest);
-    _validatePathPresets(manifest);
     _validateScenarios(manifest);
   }
 
@@ -827,153 +780,6 @@ class ProjectValidator {
       if (!seen.add(key)) {
         throw ValidationException(
           'Element $elementId collision profile contains duplicate $label cell ($key)',
-        );
-      }
-    }
-  }
-
-  static void _validatePresetCategories(
-    List<ProjectPresetCategory> categories, {
-    required String label,
-  }) {
-    final byId = <String, ProjectPresetCategory>{};
-    for (final category in categories) {
-      if (category.id.trim().isEmpty) {
-        throw ValidationException('${_capitalize(label)} ID cannot be empty');
-      }
-      if (category.name.trim().isEmpty) {
-        throw ValidationException(
-          '${_capitalize(label)} ${category.id} has an empty name',
-        );
-      }
-      byId[category.id] = category;
-    }
-
-    for (final category in categories) {
-      final parentId = category.parentCategoryId;
-      if (parentId == null) continue;
-      if (!byId.containsKey(parentId)) {
-        throw ValidationException(
-          '${_capitalize(label)} ${category.id} references missing parent: $parentId',
-        );
-      }
-      if (parentId == category.id) {
-        throw ValidationException(
-          '${_capitalize(label)} ${category.id} cannot be its own parent',
-        );
-      }
-      String? cursor = parentId;
-      final visited = <String>{category.id};
-      while (cursor != null) {
-        if (!visited.add(cursor)) {
-          throw ValidationException(
-            'Cycle detected in ${label}s at ${category.id}',
-          );
-        }
-        cursor = byId[cursor]?.parentCategoryId;
-      }
-    }
-  }
-
-  static void _validateTerrainPresets(ProjectManifest manifest) {
-    final tilesetIds = manifest.tilesets.map((tileset) => tileset.id).toSet();
-    final categoryIds =
-        manifest.terrainCategories.map((category) => category.id).toSet();
-
-    for (final preset in manifest.terrainPresets) {
-      if (preset.id.trim().isEmpty) {
-        throw const ValidationException('Terrain preset ID cannot be empty');
-      }
-      if (preset.name.trim().isEmpty) {
-        throw ValidationException(
-          'Terrain preset ${preset.id} has an empty name',
-        );
-      }
-      if (preset.terrainType == TerrainType.none) {
-        throw ValidationException(
-          'Terrain preset ${preset.id} cannot target terrain type "none"',
-        );
-      }
-      final tilesetId = preset.tilesetId.trim();
-      if (tilesetId.isNotEmpty && !tilesetIds.contains(tilesetId)) {
-        throw ValidationException(
-          'Terrain preset ${preset.id} references missing tileset: $tilesetId',
-        );
-      }
-      final categoryId = preset.categoryId?.trim();
-      if (categoryId != null &&
-          categoryId.isNotEmpty &&
-          !categoryIds.contains(categoryId)) {
-        throw ValidationException(
-          'Terrain preset ${preset.id} references missing terrain category: $categoryId',
-        );
-      }
-      for (var vi = 0; vi < preset.variants.length; vi++) {
-        final variant = preset.variants[vi];
-        if (variant.weight <= 0) {
-          throw ValidationException(
-            'Terrain preset ${preset.id} has an invalid variant weight',
-          );
-        }
-        _validateVisualFrames(
-          variant.frames,
-          context: 'Terrain preset ${preset.id} variant index $vi',
-          knownTilesetIds: tilesetIds,
-        );
-      }
-    }
-  }
-
-  static void _validatePathPresets(ProjectManifest manifest) {
-    final tilesetIds = manifest.tilesets.map((tileset) => tileset.id).toSet();
-    final categoryIds =
-        manifest.pathCategories.map((category) => category.id).toSet();
-
-    for (final preset in manifest.pathPresets) {
-      if (preset.id.trim().isEmpty) {
-        throw const ValidationException('Path preset ID cannot be empty');
-      }
-      if (preset.name.trim().isEmpty) {
-        throw ValidationException('Path preset ${preset.id} has an empty name');
-      }
-      final tilesetId = preset.tilesetId.trim();
-      if (tilesetId.isNotEmpty && !tilesetIds.contains(tilesetId)) {
-        throw ValidationException(
-          'Path preset ${preset.id} references missing tileset: $tilesetId',
-        );
-      }
-      final categoryId = preset.categoryId?.trim();
-      if (categoryId != null &&
-          categoryId.isNotEmpty &&
-          !categoryIds.contains(categoryId)) {
-        throw ValidationException(
-          'Path preset ${preset.id} references missing path category: $categoryId',
-        );
-      }
-      final variants = <TerrainPathVariant>{};
-      for (final mapping in preset.variants) {
-        if (!variants.add(mapping.variant)) {
-          throw ValidationException(
-            'Path preset ${preset.id} has duplicate variant mapping: ${mapping.variant.name}',
-          );
-        }
-        _validateVisualFrames(
-          mapping.frames,
-          context: 'Path preset ${preset.id} variant ${mapping.variant.name}',
-          knownTilesetIds: tilesetIds,
-        );
-      }
-    }
-
-    final terrainTilesetIds = manifest.terrainPresets
-        .map((preset) => preset.tilesetId.trim())
-        .where((id) => id.isNotEmpty)
-        .toSet();
-    for (final preset in manifest.pathPresets) {
-      final tilesetId = preset.tilesetId.trim();
-      if (tilesetId.isNotEmpty && terrainTilesetIds.contains(tilesetId)) {
-        throw ValidationException(
-          'Tileset $tilesetId cannot be shared between terrain and path presets',
         );
       }
     }
@@ -1659,11 +1465,6 @@ class ProjectValidator {
       }
     }
   }
-
-  static String _capitalize(String value) {
-    if (value.isEmpty) return value;
-    return value[0].toUpperCase() + value.substring(1);
-  }
 }
 
 void _requireScriptConditionReference(
@@ -1762,24 +1563,10 @@ class MapValidator {
         'Map $mapId has invalid size: ${map.size.width}x${map.size.height}',
       );
     }
-    if (map.version == ProjectVersion.v1 &&
-        map.layers.any((layer) => layer is BorderLayer)) {
+    if (map.version != ProjectVersion.v6) {
       throw const ValidationException(
-        'Border layers require ProjectVersion.v2',
-      );
-    }
-    if (map.version != ProjectVersion.v5 &&
-        map.layers.any((layer) => layer is SmartTileLayer)) {
-      throw const ValidationException(
-        'Smart Tile layers require ProjectVersion.v5',
-      );
-    }
-    if (map.version == ProjectVersion.v5 &&
-        map.layers
-            .any((layer) => layer is TerrainLayer || layer is PathLayer)) {
-      throw const ValidationException(
-        'ProjectVersion.v5 rejects legacy TerrainLayer/PathLayer',
-        code: 'smart_tile_v5_legacy_layer_unsupported',
+        'Smart Tiles-only maps require ProjectVersion.v6',
+        code: 'smart_tile_v6_map_required',
       );
     }
     final smartTileTerrainProviderIds = map.layers
@@ -1799,12 +1586,9 @@ class MapValidator {
     }
     final visualStack = map.visualStack;
     if (visualStack != null) {
-      if (map.version != ProjectVersion.v3 &&
-          map.version != ProjectVersion.v4 &&
-          map.version != ProjectVersion.v5) {
+      if (map.version != ProjectVersion.v6) {
         throw const ValidationException(
-          'visualStack requires ProjectVersion.v3, ProjectVersion.v4, or '
-          'ProjectVersion.v5',
+          'visualStack requires ProjectVersion.v6',
         );
       }
     }
@@ -2626,80 +2410,6 @@ class MapValidator {
           throw ValidationException(
             'Collision layer $layerId has invalid collision count: expected $expectedCellCount, got ${collisionLayer.collisions.length}',
           );
-        }
-      },
-      terrain: (terrainLayer) {
-        if (terrainLayer.terrains.length != expectedCellCount) {
-          throw ValidationException(
-            'Terrain layer $layerId has invalid terrain count: expected $expectedCellCount, got ${terrainLayer.terrains.length}',
-          );
-        }
-      },
-      path: (pathLayer) {
-        if (pathLayer.cells.length != expectedCellCount) {
-          throw ValidationException(
-            'Path layer $layerId has invalid cell count: expected $expectedCellCount, got ${pathLayer.cells.length}',
-          );
-        }
-        for (final key in pathLayer.properties.keys) {
-          if (key.trim().isEmpty) {
-            throw ValidationException(
-                'Path layer $layerId has an empty property key');
-          }
-        }
-        final triggerIds = <String>{};
-        for (var i = 0; i < pathLayer.animationTriggers.length; i++) {
-          final trigger = pathLayer.animationTriggers[i];
-          final resolvedId =
-              trigger.id.trim().isEmpty ? 'rule_$i' : trigger.id.trim();
-          if (!triggerIds.add(resolvedId)) {
-            throw ValidationException(
-              'Path layer $layerId has duplicate animation trigger id: $resolvedId',
-            );
-          }
-          if (trigger.mode == PathAnimationPlaybackMode.loopWhileActive &&
-              trigger.trigger != PathAnimationTriggerType.whileInside) {
-            throw ValidationException(
-              'Path layer $layerId trigger[$resolvedId] mode loopWhileActive requires trigger whileInside',
-            );
-          }
-          if (trigger.trigger == PathAnimationTriggerType.whileInside &&
-              trigger.mode != PathAnimationPlaybackMode.loopWhileActive) {
-            throw ValidationException(
-              'Path layer $layerId trigger[$resolvedId] trigger whileInside requires mode loopWhileActive',
-            );
-          }
-        }
-      },
-      surface: (surfaceLayer) {
-        final occupiedCells = <String>{};
-        for (var i = 0; i < surfaceLayer.placements.length; i++) {
-          final placement = surfaceLayer.placements[i];
-          if (placement.surfacePresetId.trim().isEmpty) {
-            throw ValidationException(
-              'Surface layer $layerId placement[$i] has an empty surfacePresetId',
-            );
-          }
-          if (placement.x < 0 ||
-              placement.y < 0 ||
-              placement.x >= mapWidth ||
-              placement.y >= mapHeight) {
-            throw ValidationException(
-              'Surface layer $layerId placement[$i] is outside map bounds: (${placement.x}, ${placement.y})',
-            );
-          }
-          final key = '${placement.x}:${placement.y}';
-          if (!occupiedCells.add(key)) {
-            throw ValidationException(
-              'Surface layer $layerId has duplicate placement coordinates: (${placement.x}, ${placement.y})',
-            );
-          }
-        }
-        for (final key in surfaceLayer.properties.keys) {
-          if (key.trim().isEmpty) {
-            throw ValidationException(
-                'Surface layer $layerId has an empty property key');
-          }
         }
       },
       smartTile: (smartTileLayer) {

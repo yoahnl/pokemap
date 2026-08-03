@@ -25,11 +25,13 @@ String npcRuntimePredicateKindLabelFr(MapEntityRuntimePredicateKind k) {
     MapEntityRuntimePredicateKind.storyFlagSet => 'Un flag est actif',
     MapEntityRuntimePredicateKind.storyFlagUnset => 'Un flag n’est pas actif',
     MapEntityRuntimePredicateKind.stepCompleted => 'Une step est terminée',
-    MapEntityRuntimePredicateKind.stepNotCompleted => 'Une step n’est pas terminée',
+    MapEntityRuntimePredicateKind.stepNotCompleted =>
+      'Une step n’est pas terminée',
     MapEntityRuntimePredicateKind.chapterCompleted => 'Un chapitre est terminé',
     MapEntityRuntimePredicateKind.chapterNotCompleted =>
       'Un chapitre n’est pas terminé',
-    MapEntityRuntimePredicateKind.cutsceneCompleted => 'Une cutscene est terminée',
+    MapEntityRuntimePredicateKind.cutsceneCompleted =>
+      'Une cutscene est terminée',
     MapEntityRuntimePredicateKind.cutsceneNotCompleted =>
       'Une cutscene n’est pas terminée',
   };
@@ -94,8 +96,11 @@ String? validateNpcVisibilityDraft({
 }
 
 /// Lit l’état UI depuis la donnée carte (pour l’inspecteur).
-({NpcRuntimeVisibilityUiMode mode, MapEntityRuntimePredicateKind kind, String refId})
-    parseVisibilityRuleFromNpc(MapEntityNpcData npc) {
+({
+  NpcRuntimeVisibilityUiMode mode,
+  MapEntityRuntimePredicateKind kind,
+  String refId
+}) parseVisibilityRuleFromNpc(MapEntityNpcData npc) {
   final rule = npc.visibilityRule;
   if (rule == null || rule.mode == MapEntityNpcVisibilityMode.always) {
     return (

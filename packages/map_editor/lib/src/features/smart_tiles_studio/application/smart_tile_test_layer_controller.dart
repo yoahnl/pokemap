@@ -299,7 +299,7 @@ final class SmartTileTestLayerController {
     return MapData(
       id: 'smart-tile-lab-map',
       name: 'Laboratoire Smart Tile',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: size,
       layers: <MapLayer>[layer],
     );

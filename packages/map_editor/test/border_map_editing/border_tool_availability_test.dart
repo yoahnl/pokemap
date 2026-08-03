@@ -167,7 +167,7 @@ ProjectManifest _manifest(
 MapData _map() => MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 3, height: 3),
       layers: <MapLayer>[
         MapLayer.border(
@@ -200,7 +200,7 @@ MapData _lineMap({
     MapData(
       id: 'line-map',
       name: 'Line Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 3, height: 3),
       layers: <MapLayer>[
         MapLayer.border(

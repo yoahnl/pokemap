@@ -88,7 +88,8 @@ void main() {
       );
     });
 
-    test('a no-op preserves identity and blank intent metadata is rejected', () {
+    test('a no-op preserves identity and blank intent metadata is rejected',
+        () {
       const stack = NarrativeUndoStack<String>();
 
       expect(

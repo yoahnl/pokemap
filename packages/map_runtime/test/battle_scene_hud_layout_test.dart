@@ -66,7 +66,8 @@ void main() {
       expect(layout.showsHpValue, isTrue);
     });
 
-    test('hides numeric hp before allowing internal overlap on compact player hud',
+    test(
+        'hides numeric hp before allowing internal overlap on compact player hud',
         () {
       final layout = BattleSceneHudLayout.forBounds(
         hudRect: const Rect.fromLTWH(0, 0, 154, 68),

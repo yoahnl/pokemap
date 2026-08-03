@@ -27,7 +27,8 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
       y: actor.position.y ?? 0,
     );
 
-    CinematicActorSpriteStatus status = CinematicActorSpriteStatus.placeholderFallback;
+    CinematicActorSpriteStatus status =
+        CinematicActorSpriteStatus.placeholderFallback;
     bool placeholderFallback = true;
     CinematicActorSpriteRef? spriteRef;
     ProjectCharacterEntry? resolvedCharacter;
@@ -60,19 +61,24 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
       if (appStatus == CinematicActorPreviewAppearanceStatus.notRequired) {
         status = CinematicActorSpriteStatus.hidden;
         placeholderFallback = false;
-      } else if (appStatus == CinematicActorPreviewAppearanceStatus.unsupported) {
+      } else if (appStatus ==
+          CinematicActorPreviewAppearanceStatus.unsupported) {
         status = CinematicActorSpriteStatus.unsupported;
         placeholderFallback = true;
-      } else if (appStatus == CinematicActorPreviewAppearanceStatus.placeholderOnly) {
+      } else if (appStatus ==
+          CinematicActorPreviewAppearanceStatus.placeholderOnly) {
         status = CinematicActorSpriteStatus.placeholderFallback;
         placeholderFallback = true;
-      } else if (appStatus == CinematicActorPreviewAppearanceStatus.missingCharacter) {
+      } else if (appStatus ==
+          CinematicActorPreviewAppearanceStatus.missingCharacter) {
         status = CinematicActorSpriteStatus.missingCharacter;
         placeholderFallback = true;
-      } else if (appStatus == CinematicActorPreviewAppearanceStatus.missingTileset) {
+      } else if (appStatus ==
+          CinematicActorPreviewAppearanceStatus.missingTileset) {
         status = CinematicActorSpriteStatus.missingTileset;
         placeholderFallback = true;
-      } else if (appStatus == CinematicActorPreviewAppearanceStatus.missingIdleAnimation) {
+      } else if (appStatus ==
+          CinematicActorPreviewAppearanceStatus.missingIdleAnimation) {
         status = CinematicActorSpriteStatus.missingIdleAnimation;
         placeholderFallback = true;
       } else {
@@ -81,7 +87,8 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
           status = CinematicActorSpriteStatus.missingCharacter;
           placeholderFallback = true;
           final diag = CinematicActorDisplayPreviewDiagnostic(
-            code: CinematicActorDisplayPreviewDiagnosticCode.actorDisplayUnknownCharacter,
+            code: CinematicActorDisplayPreviewDiagnosticCode
+                .actorDisplayUnknownCharacter,
             severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
             message: 'Character "$characterId" not found in project manifest.',
             actorId: actor.actorId,
@@ -103,9 +110,11 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
             status = CinematicActorSpriteStatus.missingTileset;
             placeholderFallback = true;
             final diag = CinematicActorDisplayPreviewDiagnostic(
-              code: CinematicActorDisplayPreviewDiagnosticCode.actorDisplayCharacterMissingTileset,
+              code: CinematicActorDisplayPreviewDiagnosticCode
+                  .actorDisplayCharacterMissingTileset,
               severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
-              message: 'Tileset "$tilesetId" not found in project tilesets for character "${resolvedCharacter.name}".',
+              message:
+                  'Tileset "$tilesetId" not found in project tilesets for character "${resolvedCharacter.name}".',
               actorId: actor.actorId,
               sourceId: resolvedCharacter.id,
             );
@@ -121,16 +130,16 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
                 .toList();
 
             // Find all exploitable idles (with frames)
-            final exploitableIdles = idleAnimations
-                .where((anim) => anim.frames.isNotEmpty)
-                .toList();
+            final exploitableIdles =
+                idleAnimations.where((anim) => anim.frames.isNotEmpty).toList();
 
             CharacterAnimation? selectedAnimation;
             bool directionFallback = false;
 
             if (exploitableIdles.isNotEmpty) {
               for (final anim in exploitableIdles) {
-                if (preferredFacing != null && anim.direction == preferredFacing) {
+                if (preferredFacing != null &&
+                    anim.direction == preferredFacing) {
                   selectedAnimation = anim;
                   break;
                 }
@@ -145,7 +154,8 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
               // Check if any empty idle animation matching preferred direction exists
               CharacterAnimation? emptyPreferredIdle;
               for (final anim in idleAnimations) {
-                if (preferredFacing != null && anim.direction == preferredFacing) {
+                if (preferredFacing != null &&
+                    anim.direction == preferredFacing) {
                   emptyPreferredIdle = anim;
                   break;
                 }
@@ -155,9 +165,12 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
                 status = CinematicActorSpriteStatus.missingDirectionFrame;
                 placeholderFallback = true;
                 final diag = CinematicActorDisplayPreviewDiagnostic(
-                  code: CinematicActorDisplayPreviewDiagnosticCode.actorDisplaySpriteUnavailable,
-                  severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
-                  message: 'Idle animation for requested direction ${actor.direction} has no frames.',
+                  code: CinematicActorDisplayPreviewDiagnosticCode
+                      .actorDisplaySpriteUnavailable,
+                  severity:
+                      CinematicActorDisplayPreviewDiagnosticSeverity.warning,
+                  message:
+                      'Idle animation for requested direction ${actor.direction} has no frames.',
                   actorId: actor.actorId,
                   sourceId: resolvedCharacter.id,
                 );
@@ -167,8 +180,10 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
                 status = CinematicActorSpriteStatus.missingIdleAnimation;
                 placeholderFallback = true;
                 final diag = CinematicActorDisplayPreviewDiagnostic(
-                  code: CinematicActorDisplayPreviewDiagnosticCode.actorDisplayCharacterMissingIdleAnimation,
-                  severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
+                  code: CinematicActorDisplayPreviewDiagnosticCode
+                      .actorDisplayCharacterMissingIdleAnimation,
+                  severity:
+                      CinematicActorDisplayPreviewDiagnosticSeverity.warning,
                   message: 'No exploitable idle animation found for character.',
                   actorId: actor.actorId,
                   sourceId: resolvedCharacter.id,
@@ -182,9 +197,12 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
                 status = CinematicActorSpriteStatus.invalidSourceRect;
                 placeholderFallback = true;
                 final diag = CinematicActorDisplayPreviewDiagnostic(
-                  code: CinematicActorDisplayPreviewDiagnosticCode.actorDisplaySpriteUnavailable,
-                  severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
-                  message: 'Invalid source tile rectangle coordinates: (${frame.source.x}, ${frame.source.y}).',
+                  code: CinematicActorDisplayPreviewDiagnosticCode
+                      .actorDisplaySpriteUnavailable,
+                  severity:
+                      CinematicActorDisplayPreviewDiagnosticSeverity.warning,
+                  message:
+                      'Invalid source tile rectangle coordinates: (${frame.source.x}, ${frame.source.y}).',
                   actorId: actor.actorId,
                   sourceId: resolvedCharacter.id,
                 );
@@ -210,9 +228,12 @@ CinematicActorSpritePreviewPlan buildCinematicActorSpritePreviewPlan({
 
                 if (directionFallback) {
                   final diag = CinematicActorDisplayPreviewDiagnostic(
-                    code: CinematicActorDisplayPreviewDiagnosticCode.actorDisplayDirectionFallback,
-                    severity: CinematicActorDisplayPreviewDiagnosticSeverity.warning,
-                    message: 'Idle animation for requested direction ${actor.direction} not found, using fallback.',
+                    code: CinematicActorDisplayPreviewDiagnosticCode
+                        .actorDisplayDirectionFallback,
+                    severity:
+                        CinematicActorDisplayPreviewDiagnosticSeverity.warning,
+                    message:
+                        'Idle animation for requested direction ${actor.direction} not found, using fallback.',
                     actorId: actor.actorId,
                     sourceId: resolvedCharacter.id,
                   );

@@ -255,7 +255,8 @@ const _buildingCases = [
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('generates projected building shadow v2 adaptive depth candidate matrix artifact',
+  test(
+      'generates projected building shadow v2 adaptive depth candidate matrix artifact',
       () async {
     final image = await _renderArtifact();
     expect(image.width, _artifactWidth);
@@ -269,7 +270,8 @@ void main() {
       final columnLeft = index * _columnWidth;
       final tall = _buildingCases[0];
       final tallGeometry = _geometryForCandidateAndBuilding(candidate, tall);
-      final tallInstruction = _instructionForCandidateAndBuilding(candidate, tall);
+      final tallInstruction =
+          _instructionForCandidateAndBuilding(candidate, tall);
       final tallValues = _effectiveCandidateForBuilding(candidate, tall);
 
       expect(tallGeometry.opacity, closeTo(tallValues.opacity, 0.000001));
@@ -346,7 +348,8 @@ void main() {
     for (final candidate in [_candidates[0], _candidates[3], _candidates[4]]) {
       for (final building in [_buildingCases[1], _buildingCases[2]]) {
         final geometry = _geometryForCandidateAndBuilding(candidate, building);
-        final instruction = _instructionForCandidateAndBuilding(candidate, building);
+        final instruction =
+            _instructionForCandidateAndBuilding(candidate, building);
         final values = _effectiveCandidateForBuilding(candidate, building);
         expect(geometry.opacity, closeTo(0.24, 0.000001));
         expect(values.opacity, closeTo(0.24, 0.000001));
@@ -378,10 +381,14 @@ Future<ui.Image> _renderArtifact() async {
     final candidate = _candidates[index];
     final columnLeft = (index * _columnWidth).toDouble();
     _drawLabel(canvas, candidate.label, columnLeft: columnLeft);
-    _drawMatrixCell(canvas, candidate, _buildingCases[0], columnLeft, _row0Top.toDouble(), false);
-    _drawMatrixCell(canvas, candidate, _buildingCases[0], columnLeft, _row1Top.toDouble(), true);
-    _drawMatrixCell(canvas, candidate, _buildingCases[1], columnLeft, _row2Top.toDouble(), true);
-    _drawMatrixCell(canvas, candidate, _buildingCases[2], columnLeft, _row3Top.toDouble(), true);
+    _drawMatrixCell(canvas, candidate, _buildingCases[0], columnLeft,
+        _row0Top.toDouble(), false);
+    _drawMatrixCell(canvas, candidate, _buildingCases[0], columnLeft,
+        _row1Top.toDouble(), true);
+    _drawMatrixCell(canvas, candidate, _buildingCases[1], columnLeft,
+        _row2Top.toDouble(), true);
+    _drawMatrixCell(canvas, candidate, _buildingCases[2], columnLeft,
+        _row3Top.toDouble(), true);
   }
 
   _drawDividers(canvas);
@@ -420,7 +427,8 @@ void _drawGrid(ui.Canvas canvas, {required double left, required double top}) {
     canvas.drawLine(ui.Offset(x, top), ui.Offset(x, top + _rowHeight), paint);
   }
   for (var y = top; y <= top + _rowHeight; y += 32) {
-    canvas.drawLine(ui.Offset(left, y), ui.Offset(left + _columnWidth, y), paint);
+    canvas.drawLine(
+        ui.Offset(left, y), ui.Offset(left + _columnWidth, y), paint);
   }
 }
 
@@ -552,10 +560,13 @@ _EffectiveShadowValues _effectiveCandidateForBuilding(
   final ratioGate = _clamp01((building.height / building.width - 1.25) / 0.50);
   final adaptiveT = heightGate * ratioGate;
   return _EffectiveShadowValues(
-    attachYRatio: _lerp(candidate.attachYRatio, candidate.targetAttachYRatio, adaptiveT),
+    attachYRatio:
+        _lerp(candidate.attachYRatio, candidate.targetAttachYRatio, adaptiveT),
     frontWidthRatio: candidate.frontWidthRatio,
-    rearWidthRatio: _lerp(candidate.rearWidthRatio, candidate.targetRearWidthRatio, adaptiveT),
-    depthRatio: _lerp(candidate.depthRatio, candidate.targetDepthRatio, adaptiveT),
+    rearWidthRatio: _lerp(
+        candidate.rearWidthRatio, candidate.targetRearWidthRatio, adaptiveT),
+    depthRatio:
+        _lerp(candidate.depthRatio, candidate.targetDepthRatio, adaptiveT),
     skewXRatio: candidate.skewXRatio,
     opacity: _lerp(candidate.opacity, candidate.targetOpacity, adaptiveT),
   );
@@ -603,7 +614,8 @@ void _drawSimpleHouse(
   final roof = _fillPaint(_buildingRoofColor);
 
   canvas.drawRect(ui.Rect.fromLTWH(left, top + 22, width, height - 22), fill);
-  canvas.drawRect(ui.Rect.fromLTWH(left, top + 22, width, height - 22), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(left, top + 22, width, height - 22), outline);
   canvas.drawPath(
     ui.Path()
       ..moveTo(left - 6, top + 24)
@@ -641,11 +653,13 @@ void _drawTallShop(
   final sign = _fillPaint(_buildingSignColor);
 
   canvas.drawRect(ui.Rect.fromLTWH(left, top + 16, width, height - 16), fill);
-  canvas.drawRect(ui.Rect.fromLTWH(left, top + 16, width, height - 16), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(left, top + 16, width, height - 16), outline);
   canvas.drawRect(ui.Rect.fromLTWH(left - 4, top, width + 8, 18), roof);
   canvas.drawRect(ui.Rect.fromLTWH(left - 4, top, width + 8, 18), outline);
   canvas.drawRect(ui.Rect.fromLTWH(left + 8, top + 22, width - 16, 12), sign);
-  canvas.drawRect(ui.Rect.fromLTWH(left + 8, top + 22, width - 16, 12), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(left + 8, top + 22, width - 16, 12), outline);
   _drawDoor(canvas, left + width / 2 - 8, top + height - 32, 16, 32);
   _drawWindow(canvas, left + 12, top + 58, 14, 22);
   _drawWindow(canvas, left + width - 26, top + 58, 14, 22);
@@ -667,7 +681,8 @@ void _drawSmallKiosk(
   final sign = _fillPaint(_buildingSignColor);
 
   canvas.drawRect(ui.Rect.fromLTWH(left, top + 18, width, height - 18), fill);
-  canvas.drawRect(ui.Rect.fromLTWH(left, top + 18, width, height - 18), outline);
+  canvas.drawRect(
+      ui.Rect.fromLTWH(left, top + 18, width, height - 18), outline);
   canvas.drawPath(
     ui.Path()
       ..moveTo(left - 5, top + 20)
@@ -690,7 +705,8 @@ void _drawSmallKiosk(
   _drawWindow(canvas, left + 8, top + 44, 14, 12);
 }
 
-void _drawDoor(ui.Canvas canvas, double left, double top, double width, double height) {
+void _drawDoor(
+    ui.Canvas canvas, double left, double top, double width, double height) {
   canvas.drawRect(
     ui.Rect.fromLTWH(left, top, width, height),
     _fillPaint(_buildingDoorColor),
@@ -701,7 +717,8 @@ void _drawDoor(ui.Canvas canvas, double left, double top, double width, double h
   );
 }
 
-void _drawWindow(ui.Canvas canvas, double left, double top, double width, double height) {
+void _drawWindow(
+    ui.Canvas canvas, double left, double top, double width, double height) {
   canvas.drawRect(
     ui.Rect.fromLTWH(left, top, width, height),
     _fillPaint(_buildingWindowColor),
@@ -745,43 +762,60 @@ void _drawLabel(
   final right = x + width;
   switch (label) {
     case 'A':
-      canvas.drawLine(ui.Offset(left, bottom), ui.Offset(x + width / 2, top), paint);
-      canvas.drawLine(ui.Offset(x + width / 2, top), ui.Offset(right, bottom), paint);
-      canvas.drawLine(ui.Offset(left + 4, middle), ui.Offset(right - 4, middle), paint);
+      canvas.drawLine(
+          ui.Offset(left, bottom), ui.Offset(x + width / 2, top), paint);
+      canvas.drawLine(
+          ui.Offset(x + width / 2, top), ui.Offset(right, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left + 4, middle), ui.Offset(right - 4, middle), paint);
     case 'B':
       canvas.drawLine(ui.Offset(left, top), ui.Offset(left, bottom), paint);
-      canvas.drawLine(ui.Offset(left, top), ui.Offset(right - 3, top + 3), paint);
-      canvas.drawLine(ui.Offset(right - 3, top + 3), ui.Offset(right - 3, middle - 2), paint);
-      canvas.drawLine(ui.Offset(right - 3, middle - 2), ui.Offset(left, middle), paint);
-      canvas.drawLine(ui.Offset(left, middle), ui.Offset(right, middle + 3), paint);
-      canvas.drawLine(ui.Offset(right, middle + 3), ui.Offset(right - 2, bottom - 2), paint);
-      canvas.drawLine(ui.Offset(right - 2, bottom - 2), ui.Offset(left, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left, top), ui.Offset(right - 3, top + 3), paint);
+      canvas.drawLine(ui.Offset(right - 3, top + 3),
+          ui.Offset(right - 3, middle - 2), paint);
+      canvas.drawLine(
+          ui.Offset(right - 3, middle - 2), ui.Offset(left, middle), paint);
+      canvas.drawLine(
+          ui.Offset(left, middle), ui.Offset(right, middle + 3), paint);
+      canvas.drawLine(ui.Offset(right, middle + 3),
+          ui.Offset(right - 2, bottom - 2), paint);
+      canvas.drawLine(
+          ui.Offset(right - 2, bottom - 2), ui.Offset(left, bottom), paint);
     case 'C':
       canvas.drawLine(ui.Offset(right, top), ui.Offset(left + 3, top), paint);
       canvas.drawLine(ui.Offset(left + 3, top), ui.Offset(left, middle), paint);
-      canvas.drawLine(ui.Offset(left, middle), ui.Offset(left + 3, bottom), paint);
-      canvas.drawLine(ui.Offset(left + 3, bottom), ui.Offset(right, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left, middle), ui.Offset(left + 3, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left + 3, bottom), ui.Offset(right, bottom), paint);
     case 'D':
       canvas.drawLine(ui.Offset(left, top), ui.Offset(left, bottom), paint);
-      canvas.drawLine(ui.Offset(left, top), ui.Offset(right - 2, top + 4), paint);
-      canvas.drawLine(ui.Offset(right - 2, top + 4), ui.Offset(right - 2, bottom - 4), paint);
-      canvas.drawLine(ui.Offset(right - 2, bottom - 4), ui.Offset(left, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left, top), ui.Offset(right - 2, top + 4), paint);
+      canvas.drawLine(ui.Offset(right - 2, top + 4),
+          ui.Offset(right - 2, bottom - 4), paint);
+      canvas.drawLine(
+          ui.Offset(right - 2, bottom - 4), ui.Offset(left, bottom), paint);
     case 'E':
       canvas.drawLine(ui.Offset(right, top), ui.Offset(left, top), paint);
       canvas.drawLine(ui.Offset(left, top), ui.Offset(left, bottom), paint);
-      canvas.drawLine(ui.Offset(left, middle), ui.Offset(right - 4, middle), paint);
+      canvas.drawLine(
+          ui.Offset(left, middle), ui.Offset(right - 4, middle), paint);
       canvas.drawLine(ui.Offset(left, bottom), ui.Offset(right, bottom), paint);
     case 'F':
       canvas.drawLine(ui.Offset(left, top), ui.Offset(left, bottom), paint);
       canvas.drawLine(ui.Offset(left, top), ui.Offset(right, top), paint);
-      canvas.drawLine(ui.Offset(left, middle), ui.Offset(right - 4, middle), paint);
+      canvas.drawLine(
+          ui.Offset(left, middle), ui.Offset(right - 4, middle), paint);
   }
 }
 
 Future<Uint8List> _pngBytes(ui.Image image) async {
   final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
   if (byteData == null) {
-    throw StateError('Could not encode ShadowV2 adaptive depth matrix artifact as PNG');
+    throw StateError(
+        'Could not encode ShadowV2 adaptive depth matrix artifact as PNG');
   }
   return byteData.buffer.asUint8List(
     byteData.offsetInBytes,
@@ -835,7 +869,8 @@ int _colorByte(double value) {
   return (value * 255.0).round().clamp(0, 255).toInt();
 }
 
-ProjectedBuildingShadowPoint _centroid(ProjectedBuildingShadowGeometry geometry) {
+ProjectedBuildingShadowPoint _centroid(
+    ProjectedBuildingShadowGeometry geometry) {
   var totalX = 0.0;
   var totalY = 0.0;
   for (final point in geometry.points) {
@@ -848,7 +883,8 @@ ProjectedBuildingShadowPoint _centroid(ProjectedBuildingShadowGeometry geometry)
   );
 }
 
-ProjectedBuildingShadowPoint _visibleShadowPoint(ProjectedBuildingShadowGeometry geometry) {
+ProjectedBuildingShadowPoint _visibleShadowPoint(
+    ProjectedBuildingShadowGeometry geometry) {
   final rearCenterX = (geometry.points[2].x + geometry.points[3].x) / 2;
   final rearY = math.max(geometry.points[2].y, geometry.points[3].y);
   return ProjectedBuildingShadowPoint(
@@ -866,7 +902,9 @@ void _expectGeometryClose(
   _ExpectedGeometry expected,
 ) {
   expect(geometry.points, hasLength(4));
-  for (var pointIndex = 0; pointIndex < expected.points.length; pointIndex += 1) {
+  for (var pointIndex = 0;
+      pointIndex < expected.points.length;
+      pointIndex += 1) {
     _expectPointClose(
       geometry.points[pointIndex],
       x: expected.points[pointIndex].x,

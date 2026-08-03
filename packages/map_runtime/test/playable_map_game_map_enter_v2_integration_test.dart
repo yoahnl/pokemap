@@ -107,18 +107,17 @@ Future<void> _waitForActivationDispatch(PlayableMapGame game) async {
 
 RuntimeMapBundle _bundle() {
   return RuntimeMapBundle(
-    manifest: ProjectManifest(
+    manifest: const ProjectManifest(
       name: 'Map Enter Load Integration Test',
-      maps: const <ProjectMapEntry>[
+      maps: <ProjectMapEntry>[
         ProjectMapEntry(
           id: _mapId,
           name: 'Map Enter Load',
           relativePath: 'maps/test_map_enter_load.json',
         ),
       ],
-      tilesets: const <ProjectTilesetEntry>[],
-      scenarios: const <ScenarioAsset>[_mapEnterScenario],
-      surfaceCatalog: ProjectSurfaceCatalog(),
+      tilesets: <ProjectTilesetEntry>[],
+      scenarios: <ScenarioAsset>[_mapEnterScenario],
     ),
     map: const MapData(
       id: _mapId,

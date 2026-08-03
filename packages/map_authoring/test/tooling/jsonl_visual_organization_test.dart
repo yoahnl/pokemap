@@ -74,7 +74,7 @@ final class _VisualFixture {
     final root = await Directory.systemTemp.createTemp('jsonl-visual-org-');
     final manifest = ProjectManifest(
       name: 'Visual organization fixture',
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       maps: const [],
       tilesets: const [],
     );

@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('shouldShowRuntimeBattleCommandOverlay', () {
-    test('shows the Flutter battle overlay whenever battle is active and snapshot exists', () {
+    test(
+        'shows the Flutter battle overlay whenever battle is active and snapshot exists',
+        () {
       expect(
         shouldShowRuntimeBattleCommandOverlay(
           supportsTouchControls: false,
@@ -15,7 +17,8 @@ void main() {
       );
     });
 
-    test('hides the Flutter battle overlay when there is no battle snapshot', () {
+    test('hides the Flutter battle overlay when there is no battle snapshot',
+        () {
       expect(
         shouldShowRuntimeBattleCommandOverlay(
           supportsTouchControls: true,

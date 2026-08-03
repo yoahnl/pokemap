@@ -288,7 +288,6 @@ void main() {
       records: records,
       legacyClaims: const [],
     ),
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
   return (project: project, map: map, sources: sources, outcome: outcome);
 }

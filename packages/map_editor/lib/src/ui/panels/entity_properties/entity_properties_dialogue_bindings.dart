@@ -652,5 +652,4 @@ extension _EntityPropertiesDialogueBindings on _EntityPropertiesPanelState {
       ),
     ];
   }
-
 }

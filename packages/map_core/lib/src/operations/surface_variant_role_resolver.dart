@@ -1,102 +1,17 @@
 import '../exceptions/map_exceptions.dart';
-import '../models/map_layer.dart';
 import '../models/surface.dart';
 
-/// Immutable occupancy index for one Surface placement collection.
+/// Resolves a canonical visual role against an arbitrary occupancy domain.
 ///
-/// Building the index is O(P). Every subsequent role lookup probes at most the
-/// eight neighboring coordinates, so editor/runtime callers can resolve a
-/// whole layer without repeatedly enumerating the same placements.
-///
-/// The index deliberately owns no application cache or revision policy. Those
-/// concerns stay in the editor/runtime packages that know when a layer changes.
-final class SurfacePlacementTopology {
-  SurfacePlacementTopology(Iterable<SurfaceCellPlacement> placements) {
-    final mutableCoordinatesByPresetId = <String, Set<(int, int)>>{};
-    for (final placement in placements) {
-      final presetId = placement.surfacePresetId.trim();
-      if (presetId.isEmpty) {
-        // An empty preset never matched the validated query adapter before the
-        // optimization, so retaining it would only create unreachable state.
-        continue;
-      }
-      mutableCoordinatesByPresetId
-          .putIfAbsent(presetId, () => <(int, int)>{})
-          .add((placement.x, placement.y));
-    }
-
-    _coordinatesByPresetId = Map<String, Set<(int, int)>>.unmodifiable(
-      <String, Set<(int, int)>>{
-        for (final entry in mutableCoordinatesByPresetId.entries)
-          entry.key: Set<(int, int)>.unmodifiable(entry.value),
-      },
-    );
-    occupiedCoordinateCount = _coordinatesByPresetId.values.fold<int>(
-      0,
-      (total, coordinates) => total + coordinates.length,
-    );
-  }
-
-  late final Map<String, Set<(int, int)>> _coordinatesByPresetId;
-
-  /// Number of unique `(preset, x, y)` occupancy entries held by the index.
-  late final int occupiedCoordinateCount;
-
-  /// Resolves a role from the already-indexed occupancy domain.
-  SurfaceVariantRole roleAt({
-    required int x,
-    required int y,
-    required String surfacePresetId,
-  }) {
-    _requireNonNegativeCoordinate(x: x, y: y);
-    final normalizedPresetId = _requireSurfacePresetId(surfacePresetId);
-    final matchingCoordinates =
-        _coordinatesByPresetId[normalizedPresetId] ?? const <(int, int)>{};
-
-    return resolveSurfaceVariantRoleAt(
-      x: x,
-      y: y,
-      matchesAt: (nextX, nextY) => matchingCoordinates.contains((nextX, nextY)),
-    );
-  }
-}
-
-/// Resolves the V0 visual role for a sparse Surface placement.
-///
-/// The resolver is deliberately pure and read-only: it computes a derived
-/// [SurfaceVariantRole] from neighboring placements without writing that role
-/// back into map JSON. Only placements from the same SurfaceLayer input and the
-/// same normalized `surfacePresetId` connect to each other; terrain, path, and
-/// other Surface presets are invisible to this calculation.
-SurfaceVariantRole resolveSurfaceVariantRoleForPlacement({
-  required Iterable<SurfaceCellPlacement> placements,
-  required int x,
-  required int y,
-  required String surfacePresetId,
-}) {
-  _requireNonNegativeCoordinate(x: x, y: y);
-  final normalizedPresetId = _requireSurfacePresetId(surfacePresetId);
-  return SurfacePlacementTopology(placements).roleAt(
-    x: x,
-    y: y,
-    surfacePresetId: normalizedPresetId,
-  );
-}
-
-/// Resolves a native Surface role against an arbitrary complete occupancy
-/// domain.
-///
-/// The callback is intentionally asset-agnostic. Border uses it to classify a
-/// cell against the complete painted region before retaining only its inner
-/// ground band; ordinary Surface layers keep using the placement adapter
-/// above.
+/// Border ground and Smart Tile-compatible consumers share this pure topology
+/// resolver. It owns no legacy surface placement or catalog semantics.
 SurfaceVariantRole resolveSurfaceVariantRoleAt({
   required int x,
   required int y,
   required bool Function(int x, int y) matchesAt,
 }) {
   _requireNonNegativeCoordinate(x: x, y: y);
-  final mask = _resolveSurfaceCardinalMaskAt(
+  final mask = _resolveCardinalMaskAt(
     x: x,
     y: y,
     matchesAt: matchesAt,
@@ -126,10 +41,9 @@ SurfaceVariantRole resolveSurfaceVariantRoleAt({
   return SurfaceVariantRole.cross;
 }
 
-/// Maps the V0 cardinal neighbor mask to the native Surface role vocabulary.
+/// Maps a cardinal neighbor mask to the canonical role vocabulary.
 ///
-/// Mask bits follow the existing path autotile convention:
-/// north = 1, east = 2, south = 4, west = 8.
+/// Mask bits are north = 1, east = 2, south = 4, west = 8.
 SurfaceVariantRole resolveSurfaceVariantRoleFromCardinalMask(int mask) {
   return switch (mask) {
     0 => SurfaceVariantRole.isolated,
@@ -152,7 +66,7 @@ SurfaceVariantRole resolveSurfaceVariantRoleFromCardinalMask(int mask) {
   };
 }
 
-int _resolveSurfaceCardinalMaskAt({
+int _resolveCardinalMaskAt({
   required int x,
   required int y,
   required bool Function(int x, int y) matchesAt,
@@ -174,12 +88,4 @@ void _requireNonNegativeCoordinate({
       'Surface role coordinates must be non-negative: ($x, $y)',
     );
   }
-}
-
-String _requireSurfacePresetId(String surfacePresetId) {
-  final normalized = surfacePresetId.trim();
-  if (normalized.isEmpty) {
-    throw const ValidationException('surfacePresetId cannot be empty');
-  }
-  return normalized;
 }

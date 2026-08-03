@@ -80,6 +80,7 @@ class InspectorEmbeddedDropdown extends StatelessWidget {
     required this.onSelected,
     this.selectedIdForCheck,
     this.tooltip,
+
     /// Quand la valeur affichée est un **placeholder** (ex. entité pas encore
     /// choisie pour une ligne `worldChanges`), on ne doit pas forcer
     /// `orderedIds.first` comme sélection implicite : sinon l’UI affiche une

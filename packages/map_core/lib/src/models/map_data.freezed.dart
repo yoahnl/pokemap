@@ -337,7 +337,7 @@ class _$MapDataImpl implements _MapData {
       {required this.id,
       required this.name,
       required this.size,
-      this.version = ProjectVersion.v1,
+      this.version = ProjectVersion.v6,
       @JsonKey(includeIfNull: false) this.visualStack,
       this.tilesetId = '',
       final List<MapLayer> layers = const [],

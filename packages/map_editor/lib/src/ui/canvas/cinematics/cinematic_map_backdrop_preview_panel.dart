@@ -1464,8 +1464,6 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final mapTone = PokeMapTone.map.resolve(context);
-    final terrainTone = PokeMapTone.success.resolve(context);
-    final pathTone = PokeMapTone.warning.resolve(context);
     final smartTileTone = PokeMapTone.info.resolve(context);
     final objectTone = PokeMapTone.cinematic.resolve(context);
     final environmentTone = PokeMapTone.narrative.resolve(context);
@@ -1474,8 +1472,6 @@ class _BackdropVisualPrimitiveMap extends StatelessWidget {
       border: colors.controlBorder,
       grid: colors.borderSubtle,
       tile: mapTone.icon,
-      terrain: terrainTone.icon,
-      path: pathTone.icon,
       smartTile: smartTileTone.icon,
       object: objectTone.icon,
       environment: environmentTone.icon,
@@ -2216,8 +2212,6 @@ List<(String, int, CinematicMapBackdropLayerKind)> _primitiveLayerCounts(
 String _layerKindLabel(CinematicMapBackdropLayerKind kind) {
   return switch (kind) {
     CinematicMapBackdropLayerKind.tile => 'tile',
-    CinematicMapBackdropLayerKind.terrain => 'terrain',
-    CinematicMapBackdropLayerKind.path => 'path',
     CinematicMapBackdropLayerKind.smartTile => 'smart tile',
     CinematicMapBackdropLayerKind.object => 'objet',
     CinematicMapBackdropLayerKind.environment => 'env',

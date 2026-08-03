@@ -255,7 +255,7 @@ void main() {
       const map = MapData(
         id: 'map',
         name: 'Map',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[first, second],
       );
@@ -360,7 +360,7 @@ MapData _mapWith(
     MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: size,
       layers: <MapLayer>[layer],
     );
@@ -409,7 +409,7 @@ void _validateStructure({
   final map = _mapWith(layer, size: size);
   final manifest = ProjectManifest(
     name: 'Project',
-    version: ProjectVersion.v5,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     smartTileCatalog: ProjectSmartTileCatalog(

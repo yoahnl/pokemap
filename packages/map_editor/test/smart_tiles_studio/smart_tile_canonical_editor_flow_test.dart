@@ -25,7 +25,7 @@ void main() {
     const map = MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       size: GridSize(width: 3, height: 2),
       visualStack: MapVisualStackConfig.canonicalV1,
     );
@@ -130,7 +130,7 @@ Future<void> _waitUntil(
 
 ProjectManifest _manifest() => ProjectManifest(
       name: 'Smart Tile editor flow',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[
         ProjectMapEntry(
           id: 'map',

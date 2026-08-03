@@ -59,7 +59,8 @@ final _candidates = [
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('generates projected building shadow footprint candidate matrix artifact',
+  test(
+      'generates projected building shadow footprint candidate matrix artifact',
       () async {
     final image = await _renderArtifact();
     expect(image.width, _artifactWidth);
@@ -104,7 +105,8 @@ void main() {
       expect(
         visibleShadowPixel,
         isNot(backgroundPixel),
-        reason: '${candidate.label} shadow should remain visible below building',
+        reason:
+            '${candidate.label} shadow should remain visible below building',
       );
     }
 
@@ -477,7 +479,8 @@ void _drawLabel(
       canvas.drawLine(
           ui.Offset(right, top + 3), ui.Offset(right, middle - 1), paint);
       canvas.drawLine(ui.Offset(left, middle), ui.Offset(right, middle), paint);
-      canvas.drawLine(ui.Offset(left + 6, middle), ui.Offset(right, bottom), paint);
+      canvas.drawLine(
+          ui.Offset(left + 6, middle), ui.Offset(right, bottom), paint);
     case 'A':
       canvas.drawLine(
           ui.Offset(left, bottom), ui.Offset(x + width / 2, top), paint);

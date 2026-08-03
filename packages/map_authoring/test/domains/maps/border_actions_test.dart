@@ -9,7 +9,6 @@ void main() {
         name: 'Border test',
         maps: const [],
         tilesets: const [],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         borderCatalog: ProjectBorderCatalog(
           records: [_draftOnlyRecord()],
         ),

@@ -663,7 +663,7 @@ void main() {
         'failed memory adoption keeps the durable journal and gates false recovery exits',
         (tester) async {
       final map = _mapWithBorderPreviewTarget();
-      final project = _project().copyWith(version: ProjectVersion.v2);
+      final project = _project().copyWith(version: ProjectVersion.v6);
       final fixture = (await tester.runAsync(
         () => createPersistenceFixture(
           registry: project.eventRegistry,
@@ -2557,7 +2557,7 @@ MapData _map() => const MapData(
 MapData _mapWithBorderPreviewTarget() {
   final base = _map();
   return base.copyWith(
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     layers: <MapLayer>[
       ...base.layers,
       MapLayer.border(

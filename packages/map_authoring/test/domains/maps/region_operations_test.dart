@@ -230,10 +230,8 @@ void main() {
       expect(clipboard.contains('cut'), isTrue);
     });
 
-    test('normalizes values for every non-SmartTile addressable layer kind',
-        () {
+    test('normalizes values for tile and collision layers', () {
       var map = _map(width: 2, height: 2).copyWith(
-        version: ProjectVersion.v4,
         layers: [
           MapLayer.tile(id: 'tile', name: 'Tile', tiles: List.filled(4, 0)),
           MapLayer.collision(
@@ -241,22 +239,12 @@ void main() {
             name: 'Collision',
             collisions: List.filled(4, false),
           ),
-          MapLayer.terrain(
-            id: 'terrain',
-            name: 'Terrain',
-            terrains: List.filled(4, TerrainType.none),
-          ),
-          MapLayer.path(id: 'path', name: 'Path', cells: List.filled(4, false)),
-          const MapLayer.surface(id: 'surface', name: 'Surface'),
         ],
       );
       const operations = MapRegionOperations();
       for (final entry in <String, Object?>{
         'tile': 7,
         'collision': true,
-        'terrain': 'grass',
-        'path': true,
-        'surface': 'surface_grass',
       }.entries) {
         map = operations.apply(map, {
           'kind': 'region.paint',
@@ -269,9 +257,6 @@ void main() {
 
       expect((map.layers[0] as TileLayer).tiles.last, 7);
       expect((map.layers[1] as CollisionLayer).collisions.last, isTrue);
-      expect((map.layers[2] as TerrainLayer).terrains.last, TerrainType.grass);
-      expect((map.layers[3] as PathLayer).cells.last, isTrue);
-      expect((map.layers[4] as SurfaceLayer).placements.single.x, 1);
     });
 
     test('rejects out-of-bounds and non-square odd rotations', () {
@@ -305,7 +290,7 @@ void main() {
 
     test('cell Smart Tile fields keep paint, fill, and erase authoring', () {
       final map = _map(width: 2, height: 2).copyWith(
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         layers: const [
           MapLayer.smartTile(
             id: 'smart',
@@ -500,7 +485,7 @@ void main() {
 
       for (final field in fields) {
         final map = _map(width: 2, height: 2).copyWith(
-          version: ProjectVersion.v5,
+          version: ProjectVersion.v6,
           layers: [
             MapLayer.smartTile(
               id: 'smart',
@@ -564,7 +549,7 @@ MapData _map({required int width, required int height}) => MapData(
       id: 'fixture',
       name: 'Fixture',
       size: GridSize(width: width, height: height),
-      version: ProjectVersion.v3,
+      version: ProjectVersion.v6,
       visualStack: MapVisualStackConfig.canonicalV1,
       layers: [
         MapLayer.tile(

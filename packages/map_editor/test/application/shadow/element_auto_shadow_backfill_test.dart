@@ -457,7 +457,6 @@ ProjectManifest _project({
     ],
     elements: elements,
     shadowCatalog: shadowCatalog,
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   );
 }
 

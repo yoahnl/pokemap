@@ -42,7 +42,11 @@ List<String> cutsceneStudioRuntimeAdvisories(CutsceneStudioDocument document) {
               );
             }
           }
-        case CutsceneFlowChoiceEntry(:final question, :final onYes, :final onNo):
+        case CutsceneFlowChoiceEntry(
+            :final question,
+            :final onYes,
+            :final onNo
+          ):
           walk(
             <CutsceneFlowEntry>[CutsceneFlowBlockEntry(question)],
             '$path > embranchement',

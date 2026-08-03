@@ -98,12 +98,11 @@ final class CinematicActorSpritePreviewPlan {
   final List<CinematicActorSpritePreviewActor> actors;
   final List<CinematicActorDisplayPreviewDiagnostic> diagnostics;
 
-  bool get hasReadySprites =>
-      actors.any((actor) => actor.status == CinematicActorSpriteStatus.spriteReady);
+  bool get hasReadySprites => actors
+      .any((actor) => actor.status == CinematicActorSpriteStatus.spriteReady);
 
-  bool get hasFallbacks =>
-      actors.any((actor) => actor.placeholderFallback);
+  bool get hasFallbacks => actors.any((actor) => actor.placeholderFallback);
 
-  bool get hasErrors =>
-      diagnostics.any((d) => d.severity == CinematicActorDisplayPreviewDiagnosticSeverity.error);
+  bool get hasErrors => diagnostics.any((d) =>
+      d.severity == CinematicActorDisplayPreviewDiagnosticSeverity.error);
 }

@@ -10,7 +10,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/application/use_cases/environment_mask_use_cases.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -549,7 +548,6 @@ void main() {
           name: 'p',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
         activeMap: map,
         activeLayerId: 'env1',
@@ -617,7 +615,6 @@ void main() {
           name: 'p',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
-          surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         ),
         activeMap: map,
         activeLayerId: 'env1',
@@ -702,7 +699,6 @@ void main() {
         name: 'p',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const [
           ProjectElementEntry(
             id: 'tree',
@@ -797,7 +793,6 @@ void main() {
         name: 'p',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         elements: const [
           ProjectElementEntry(
             id: 'tree',
@@ -895,9 +890,6 @@ void main() {
         selectedGameplayZoneId: null,
         selectedPlacedElementInstanceId: null,
         connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-        selectedPathAutotileSet: null,
-        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
         project: null,
         environmentMaskOverlay: mask,
       ).paint(canvas, const ui.Size(64, 64));

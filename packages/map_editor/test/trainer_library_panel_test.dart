@@ -161,7 +161,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_embedded',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_embedded',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -237,7 +236,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -406,7 +404,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_difficulty_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_difficulty_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -502,7 +499,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_rewards_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_rewards_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -609,7 +605,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_lifecycle_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_lifecycle_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -705,7 +700,6 @@ void main() {
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainer_picker_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -857,7 +851,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -986,7 +979,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1091,7 +1083,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1199,7 +1190,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1339,7 +1329,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1439,7 +1428,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1524,7 +1512,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1670,7 +1657,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -1806,7 +1792,6 @@ void main() {
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       projectRootPath: '/tmp/trainers_panel_test',
       project: ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'trainers_panel_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

@@ -414,7 +414,6 @@ ProjectManifest _manifest({bool missingBigTree = false}) {
         ],
       ),
     ],
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     environmentPresets: [
       EnvironmentPreset(
         id: 'forest',

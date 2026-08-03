@@ -18,7 +18,6 @@ void main() {
       addTearDown(container.dispose);
 
       expect(container.read(projectRepositoryProvider), isNotNull);
-      expect(container.read(terrainPresetResolverProvider), isNotNull);
       expect(container.read(createProjectDialogueUseCaseProvider), isNotNull);
       expect(container.read(pokemonDatabaseIndexProvider), isNotNull);
       expect(container.read(pokeApiLiveSourceProvider), isNotNull);
@@ -79,7 +78,6 @@ void main() {
 
       container.read(editorNotifierProvider.notifier).state = const EditorState(
         project: ProjectManifest(
-          surfaceCatalog: ProjectSurfaceCatalog.empty(),
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],

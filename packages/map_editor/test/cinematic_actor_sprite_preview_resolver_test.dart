@@ -5,7 +5,9 @@ import 'package:map_editor/src/ui/canvas/cinematics/cinematic_actor_sprite_previ
 
 void main() {
   group('Cinematic Actor Sprite Preview Resolver', () {
-    test('resolves cinematic only actor sprite preview plan from character idle frame', () {
+    test(
+        'resolves cinematic only actor sprite preview plan from character idle frame',
+        () {
       const character = ProjectCharacterEntry(
         id: 'char_professor',
         name: 'Professor',
@@ -26,7 +28,6 @@ void main() {
       );
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [
@@ -115,7 +116,6 @@ void main() {
       );
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [
@@ -175,7 +175,9 @@ void main() {
       expect(planActor.spriteRef!.characterId, 'char_player');
     });
 
-    test('resolves direction fallback warning when requested direction idle is missing', () {
+    test(
+        'resolves direction fallback warning when requested direction idle is missing',
+        () {
       const character = ProjectCharacterEntry(
         id: 'char_professor',
         name: 'Professor',
@@ -197,7 +199,6 @@ void main() {
       );
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [
@@ -229,7 +230,8 @@ void main() {
           characterId: 'char_professor',
           tilesetId: 'char_tileset_id',
         ),
-        direction: CinematicActorPreviewDirection.south, // Requested south, but we only have north
+        direction: CinematicActorPreviewDirection
+            .south, // Requested south, but we only have north
         directionSource: CinematicActorPreviewDirectionSource.actorFace,
         renderHint: CinematicActorPreviewRenderHint.sprite,
         diagnostics: const [],
@@ -256,13 +258,19 @@ void main() {
 
       // Verify that diagnostic warning is added
       final warnings = planActor.diagnostics.where(
-        (d) => d.code == CinematicActorDisplayPreviewDiagnosticCode.actorDisplayDirectionFallback,
+        (d) =>
+            d.code ==
+            CinematicActorDisplayPreviewDiagnosticCode
+                .actorDisplayDirectionFallback,
       );
       expect(warnings, hasLength(1));
-      expect(warnings.first.severity, CinematicActorDisplayPreviewDiagnosticSeverity.warning);
+      expect(warnings.first.severity,
+          CinematicActorDisplayPreviewDiagnosticSeverity.warning);
     });
 
-    test('returns missingDirectionFrame when idle animation for requested direction has no frames', () {
+    test(
+        'returns missingDirectionFrame when idle animation for requested direction has no frames',
+        () {
       const character = ProjectCharacterEntry(
         id: 'char_professor',
         name: 'Professor',
@@ -279,7 +287,6 @@ void main() {
       );
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [
@@ -331,17 +338,23 @@ void main() {
 
       expect(plan.actors, hasLength(1));
       final planActor = plan.actors.first;
-      expect(planActor.status, CinematicActorSpriteStatus.missingDirectionFrame);
+      expect(
+          planActor.status, CinematicActorSpriteStatus.missingDirectionFrame);
       expect(planActor.placeholderFallback, isTrue);
       expect(planActor.spriteRef, isNull);
 
       final warnings = planActor.diagnostics.where(
-        (d) => d.code == CinematicActorDisplayPreviewDiagnosticCode.actorDisplaySpriteUnavailable,
+        (d) =>
+            d.code ==
+            CinematicActorDisplayPreviewDiagnosticCode
+                .actorDisplaySpriteUnavailable,
       );
       expect(warnings, hasLength(1));
     });
 
-    test('returns missingIdleAnimation when character has no idle animations at all', () {
+    test(
+        'returns missingIdleAnimation when character has no idle animations at all',
+        () {
       const character = ProjectCharacterEntry(
         id: 'char_professor',
         name: 'Professor',
@@ -352,7 +365,6 @@ void main() {
       );
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [
@@ -408,14 +420,17 @@ void main() {
       expect(planActor.placeholderFallback, isTrue);
 
       final warnings = planActor.diagnostics.where(
-        (d) => d.code == CinematicActorDisplayPreviewDiagnosticCode.actorDisplayCharacterMissingIdleAnimation,
+        (d) =>
+            d.code ==
+            CinematicActorDisplayPreviewDiagnosticCode
+                .actorDisplayCharacterMissingIdleAnimation,
       );
       expect(warnings, hasLength(1));
     });
 
-    test('returns missingCharacter when character is not found in manifest', () {
+    test('returns missingCharacter when character is not found in manifest',
+        () {
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [],
@@ -465,12 +480,17 @@ void main() {
       expect(planActor.placeholderFallback, isTrue);
 
       final warnings = planActor.diagnostics.where(
-        (d) => d.code == CinematicActorDisplayPreviewDiagnosticCode.actorDisplayUnknownCharacter,
+        (d) =>
+            d.code ==
+            CinematicActorDisplayPreviewDiagnosticCode
+                .actorDisplayUnknownCharacter,
       );
       expect(warnings, hasLength(1));
     });
 
-    test('returns missingTileset when character tileset is not found in manifest', () {
+    test(
+        'returns missingTileset when character tileset is not found in manifest',
+        () {
       const character = ProjectCharacterEntry(
         id: 'char_professor',
         name: 'Professor',
@@ -481,7 +501,6 @@ void main() {
       );
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [], // No tilesets
@@ -531,12 +550,16 @@ void main() {
       expect(planActor.placeholderFallback, isTrue);
 
       final warnings = planActor.diagnostics.where(
-        (d) => d.code == CinematicActorDisplayPreviewDiagnosticCode.actorDisplayCharacterMissingTileset,
+        (d) =>
+            d.code ==
+            CinematicActorDisplayPreviewDiagnosticCode
+                .actorDisplayCharacterMissingTileset,
       );
       expect(warnings, hasLength(1));
     });
 
-    test('returns invalidSourceRect when frame source coordinates are negative', () {
+    test('returns invalidSourceRect when frame source coordinates are negative',
+        () {
       const character = ProjectCharacterEntry(
         id: 'char_professor',
         name: 'Professor',
@@ -549,7 +572,8 @@ void main() {
             direction: EntityFacing.south,
             frames: [
               CharacterAnimationFrame(
-                source: TilesetSourceRect(x: -1, y: 0, width: 1, height: 2), // Invalid X
+                source: TilesetSourceRect(
+                    x: -1, y: 0, width: 1, height: 2), // Invalid X
               ),
             ],
           ),
@@ -557,7 +581,6 @@ void main() {
       );
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [
@@ -613,14 +636,16 @@ void main() {
       expect(planActor.placeholderFallback, isTrue);
 
       final warnings = planActor.diagnostics.where(
-        (d) => d.code == CinematicActorDisplayPreviewDiagnosticCode.actorDisplaySpriteUnavailable,
+        (d) =>
+            d.code ==
+            CinematicActorDisplayPreviewDiagnosticCode
+                .actorDisplaySpriteUnavailable,
       );
       expect(warnings, hasLength(1));
     });
 
     test('resolves hidden actors without generating errors', () {
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [],
@@ -670,9 +695,10 @@ void main() {
       expect(planActor.placeholderFallback, isFalse);
     });
 
-    test('keeps visual element actors as placeholder only in sprite preview plan', () {
+    test(
+        'keeps visual element actors as placeholder only in sprite preview plan',
+        () {
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [],
@@ -722,7 +748,8 @@ void main() {
       expect(planActor.placeholderFallback, isTrue);
     });
 
-    test('resolves map entity npc actor sprite from display model character id', () {
+    test('resolves map entity npc actor sprite from display model character id',
+        () {
       const character = ProjectCharacterEntry(
         id: 'char_professor',
         name: 'Professor',
@@ -743,7 +770,6 @@ void main() {
       );
 
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [
@@ -799,9 +825,10 @@ void main() {
       expect(planActor.spriteRef!.characterId, 'char_professor');
     });
 
-    test('does not mutate project or map data when building sprite preview plan', () {
+    test(
+        'does not mutate project or map data when building sprite preview plan',
+        () {
       const project = ProjectManifest(
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
         name: 'test_project',
         maps: [],
         tilesets: [],

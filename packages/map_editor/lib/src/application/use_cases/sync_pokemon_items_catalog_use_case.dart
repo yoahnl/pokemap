@@ -330,7 +330,8 @@ class SyncExternalPokemonItemsCatalogUseCase {
     return segments.last.trim().toLowerCase();
   }
 
-  Map<String, dynamic> _convertExternalItemPayload(Map<String, dynamic> payload) {
+  Map<String, dynamic> _convertExternalItemPayload(
+      Map<String, dynamic> payload) {
     final id = _readRequiredSlug(payload, 'name');
     final names = _readLocalizedNames(payload);
     final displayName =
@@ -433,7 +434,8 @@ class SyncExternalPokemonItemsCatalogUseCase {
   }) async {
     final mergedWarnings = <String>[...warnings];
     final localById = <String, Map<String, dynamic>>{};
-    for (final entry in localCatalog?.entries ?? const <Map<String, dynamic>>[]) {
+    for (final entry
+        in localCatalog?.entries ?? const <Map<String, dynamic>>[]) {
       final id = ((entry['id'] as String?)?.trim() ?? '');
       if (id.isEmpty) {
         continue;
@@ -477,7 +479,8 @@ class SyncExternalPokemonItemsCatalogUseCase {
 
       final normalizedExternalEntry = _deepCopy(externalEntry);
       if (spriteOutcome.localSpritePath != null) {
-        normalizedExternalEntry['localSpritePath'] = spriteOutcome.localSpritePath;
+        normalizedExternalEntry['localSpritePath'] =
+            spriteOutcome.localSpritePath;
       }
 
       if (localEntry == null) {
@@ -569,7 +572,8 @@ class SyncExternalPokemonItemsCatalogUseCase {
   }) async {
     final id = (externalEntry['id'] as String).trim();
     final spriteUrl = (externalEntry['spriteUrl'] as String?)?.trim();
-    final targetRelativePath = p.normalize(p.join(assetsRootRelativePath, '$id.png'));
+    final targetRelativePath =
+        p.normalize(p.join(assetsRootRelativePath, '$id.png'));
     final absoluteTargetPath = workspace.resolveProjectRelativePath(
       targetRelativePath,
     );

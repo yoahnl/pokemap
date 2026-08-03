@@ -145,7 +145,6 @@ void main() {
             ),
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
       final world = GameplayWorldState.initial(
         map: MapData(

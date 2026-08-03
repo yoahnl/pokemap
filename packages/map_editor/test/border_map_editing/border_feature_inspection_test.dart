@@ -32,7 +32,7 @@ void main() {
     final map = MapData(
       id: 'inspection-map',
       name: 'Inspection map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: stoneChainVisualMapSize,
       layers: <MapLayer>[
         MapLayer.border(
@@ -131,7 +131,7 @@ void main() {
     final map = MapData(
       id: 'two-tier-inspection-map',
       name: 'Two-tier inspection map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: fixture.request.mapSize,
       layers: <MapLayer>[
         MapLayer.border(
@@ -346,7 +346,7 @@ void main() {
         final inspectedMap = MapData(
           id: 'inspection-$caseId',
           name: caseId,
-          version: ProjectVersion.v2,
+          version: ProjectVersion.v6,
           size: resolution.request.mapSize,
           layers: <MapLayer>[
             MapLayer.border(
@@ -412,12 +412,12 @@ void main() {
     const map = MapData(
       id: 'empty',
       name: 'Empty',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: GridSize(width: 1, height: 1),
     );
     const project = ProjectManifest(
       name: 'Inspection project',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
     );
@@ -464,7 +464,7 @@ Map<String, Object?> _inspectTwoTierMaterialization(
   final map = MapData(
     id: 'two-tier-inspection-map',
     name: 'Two-tier inspection map',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     size: fixture.request.mapSize,
     layers: <MapLayer>[
       MapLayer.border(
@@ -750,7 +750,7 @@ ProjectManifest _projectForTwoTierFixture(TwoTierStoneChainFixture fixture) {
   final published = fixture.blueprintRevision.definition;
   return ProjectManifest(
     name: 'Two-tier inspection project',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     borderCatalog: ProjectBorderCatalog(

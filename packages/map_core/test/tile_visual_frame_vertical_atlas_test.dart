@@ -14,7 +14,7 @@ void main() {
         );
 
         expect(frames, hasLength(4));
-        
+
         // Verify each frame has correct source position
         expect(frames[0].source.x, 3);
         expect(frames[0].source.y, 0);
@@ -37,10 +37,14 @@ void main() {
         expect(frames[3].source.height, 1);
 
         // Verify default duration
-        expect(frames[0].durationMs, defaultPlacedElementAnimationFrameDurationMs);
-        expect(frames[1].durationMs, defaultPlacedElementAnimationFrameDurationMs);
-        expect(frames[2].durationMs, defaultPlacedElementAnimationFrameDurationMs);
-        expect(frames[3].durationMs, defaultPlacedElementAnimationFrameDurationMs);
+        expect(
+            frames[0].durationMs, defaultPlacedElementAnimationFrameDurationMs);
+        expect(
+            frames[1].durationMs, defaultPlacedElementAnimationFrameDurationMs);
+        expect(
+            frames[2].durationMs, defaultPlacedElementAnimationFrameDurationMs);
+        expect(
+            frames[3].durationMs, defaultPlacedElementAnimationFrameDurationMs);
 
         // Verify empty tilesetId
         expect(frames[0].tilesetId, '');
@@ -294,7 +298,8 @@ void main() {
         );
       });
 
-      test('throws ValidationException when frameDurationsMs length mismatches', () {
+      test('throws ValidationException when frameDurationsMs length mismatches',
+          () {
         expect(
           () => createTileVisualFramesFromVerticalAtlas(
             column: 0,

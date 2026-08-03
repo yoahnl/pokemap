@@ -22,16 +22,19 @@ void assertValidDialogueStartNode(String? raw, {required String contextLabel}) {
 }
 
 /// Règles sur [ProjectDialogueEntry.relativePath] : relatif, sous `dialogues/`, sans `..`.
-void assertValidProjectDialogueRelativePath(String path, {required String dialogueId}) {
+void assertValidProjectDialogueRelativePath(String path,
+    {required String dialogueId}) {
   final p = path.trim();
   if (p.isEmpty) {
     throw ValidationException('Dialogue $dialogueId has an empty relativePath');
   }
   if (p.startsWith('/') || p.startsWith(r'\')) {
-    throw ValidationException('Dialogue $dialogueId relativePath must not be absolute');
+    throw ValidationException(
+        'Dialogue $dialogueId relativePath must not be absolute');
   }
   if (p.contains('..')) {
-    throw ValidationException('Dialogue $dialogueId relativePath must not contain ..');
+    throw ValidationException(
+        'Dialogue $dialogueId relativePath must not contain ..');
   }
   final norm = p.replaceAll(r'\', '/');
   if (!norm.startsWith('$kProjectDialoguesRelativeDir/')) {

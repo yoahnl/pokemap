@@ -15,12 +15,12 @@ const _stepStudioDoc = '''
 ]}''';
 
 ProjectManifest _manifestWithGlobalStory() {
-  return ProjectManifest(
+  return const ProjectManifest(
     name: 't',
-    maps: const [],
-    tilesets: const [],
+    maps: [],
+    tilesets: [],
     scenarios: [
-      const ScenarioAsset(
+      ScenarioAsset(
         id: 'g',
         name: 'g',
         entryNodeId: 'start',
@@ -30,7 +30,6 @@ ProjectManifest _manifestWithGlobalStory() {
         metadata: {kStepStudioDocumentMetadataKey: _stepStudioDoc},
       ),
     ],
-    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 

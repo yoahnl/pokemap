@@ -26,27 +26,27 @@ void main() {
       final readiness = EditorExitReadiness.fromBlockers(
         const [
           EditorExitBlocker(
-            id: 'path-b',
-            kind: EditorExitBlockerKind.pathStudio,
+            id: 'dialogue-b',
+            kind: EditorExitBlockerKind.dialogueStudio,
           ),
           EditorExitBlocker(
             id: 'map',
             kind: EditorExitBlockerKind.map,
           ),
           EditorExitBlocker(
-            id: 'path-a',
-            kind: EditorExitBlockerKind.pathStudio,
+            id: 'dialogue-a',
+            kind: EditorExitBlockerKind.dialogueStudio,
           ),
           EditorExitBlocker(
-            id: 'path-a',
-            kind: EditorExitBlockerKind.pathStudio,
+            id: 'dialogue-a',
+            kind: EditorExitBlockerKind.dialogueStudio,
           ),
         ],
       );
 
       expect(
         readiness.blockers.map((blocker) => blocker.id),
-        ['map', 'path-a', 'path-b'],
+        ['map', 'dialogue-a', 'dialogue-b'],
       );
     });
 
@@ -61,7 +61,6 @@ void main() {
             EditorExitBlockerKind.personalization,
             EditorExitBlockerKind.borderPreview,
             EditorExitBlockerKind.borderStudio,
-            EditorExitBlockerKind.pathStudio,
             EditorExitBlockerKind.stepStudio,
             EditorExitBlockerKind.environmentStudio,
             EditorExitBlockerKind.dialogueStudio,

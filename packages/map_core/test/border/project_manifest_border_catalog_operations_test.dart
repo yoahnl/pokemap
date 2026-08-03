@@ -26,9 +26,9 @@ void main() {
 
       final updated = replaceProjectBorderCatalog(original, catalog);
 
-      expect(original.version, ProjectVersion.v1);
+      expect(original.version, ProjectVersion.v6);
       expect(original.borderCatalog.isEmpty, isTrue);
-      expect(updated.version, ProjectVersion.v2);
+      expect(updated.version, ProjectVersion.v6);
       expect(updated.borderCatalog, catalog);
       expect(updated.name, original.name);
       expect(updated.maps, original.maps);
@@ -43,25 +43,25 @@ void main() {
       );
       final v2 = replaceProjectBorderCatalog(
         _manifest(
-          version: ProjectVersion.v2,
+          version: ProjectVersion.v6,
           borderCatalog: _catalog('coast'),
         ),
         const ProjectBorderCatalog.empty(),
       );
 
-      expect(v1.version, ProjectVersion.v1);
+      expect(v1.version, ProjectVersion.v6);
       expect(v1.borderCatalog.isEmpty, isTrue);
-      expect(v2.version, ProjectVersion.v2);
+      expect(v2.version, ProjectVersion.v6);
       expect(v2.borderCatalog.isEmpty, isTrue);
     });
 
     test('nonempty replacement never downgrades a Smart Tile V5 manifest', () {
       final updated = replaceProjectBorderCatalog(
-        _manifest(version: ProjectVersion.v5),
+        _manifest(version: ProjectVersion.v6),
         _catalog('coast'),
       );
 
-      expect(updated.version, ProjectVersion.v5);
+      expect(updated.version, ProjectVersion.v6);
       expect(updated.borderCatalog.isNotEmpty, isTrue);
     });
 
@@ -87,14 +87,14 @@ void main() {
 
       expect(callCount, 1);
       expect(identical(received, current), isTrue);
-      expect(updated.version, ProjectVersion.v2);
+      expect(updated.version, ProjectVersion.v6);
       expect(updated.borderCatalog, next);
     });
 
     test('update propagates failure without mutating the source', () {
       final current = _catalog('first');
       final manifest = _manifest(
-        version: ProjectVersion.v2,
+        version: ProjectVersion.v6,
         borderCatalog: current,
       );
 
@@ -106,41 +106,13 @@ void main() {
         throwsA(isA<StateError>()),
       );
       expect(identical(manifest.borderCatalog, current), isTrue);
-      expect(manifest.version, ProjectVersion.v2);
-    });
-
-    test('ProjectValidator rejects records or snapshots under V1', () {
-      for (final catalog in <ProjectBorderCatalog>[
-        _catalog('coast'),
-        ProjectBorderCatalog(
-          visualSnapshots: <BorderVisualSnapshot>[_snapshot('a')],
-        ),
-      ]) {
-        final invalid = _manifest(borderCatalog: catalog);
-
-        expect(
-          () => ProjectValidator.validate(invalid),
-          throwsA(
-            isA<ValidationException>().having(
-              (error) => error.message,
-              'message',
-              contains('ProjectVersion.v2'),
-            ),
-          ),
-        );
-        expect(
-          () => ProjectValidator.validate(
-            invalid.copyWith(version: ProjectVersion.v2),
-          ),
-          returnsNormally,
-        );
-      }
+      expect(manifest.version, ProjectVersion.v6);
     });
   });
 }
 
 ProjectManifest _manifest({
-  ProjectVersion version = ProjectVersion.v1,
+  ProjectVersion version = ProjectVersion.v6,
   ProjectBorderCatalog borderCatalog = const ProjectBorderCatalog.empty(),
   List<ProjectMapEntry> maps = const <ProjectMapEntry>[],
   Map<String, dynamic> globalProperties = const <String, dynamic>{},
@@ -180,18 +152,3 @@ BorderBlueprintRecord _record(String id) => BorderBlueprintRecord(
         ),
       ),
     );
-
-BorderVisualSnapshot _snapshot(String digit) {
-  final fingerprint = digit * 64;
-  return BorderVisualSnapshot(
-    id: 'border-snapshot-sha256:$fingerprint',
-    contentFingerprint: fingerprint,
-    frames: <BorderVisualFrameSnapshot>[
-      BorderVisualFrameSnapshot(
-        relativeAssetPath: 'assets/borders/snapshots/$digit.png',
-        sourceRectPx: BorderPixelRect(x: 0, y: 0, width: 8, height: 8),
-        durationMs: 100,
-      ),
-    ],
-  );
-}

@@ -295,7 +295,7 @@ void _expectCompleteGallery(BorderStudioPublicationPreview preview) {
 
 ProjectManifest _sourceManifest() => ProjectManifest(
       name: 'BORD-03 end-to-end project',
-      version: ProjectVersion.v5,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[
         ProjectTilesetEntry(
@@ -454,7 +454,7 @@ Future<void> _writeManifest(File file, ProjectManifest manifest) async {
 
 Future<ProjectManifest> _readManifest(File file) async {
   final json = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-  final manifest = ProjectManifest.fromJson(migrateProjectManifestJson(json));
+  final manifest = ProjectManifest.fromJson(json);
   ProjectValidator.validate(manifest);
   return manifest;
 }

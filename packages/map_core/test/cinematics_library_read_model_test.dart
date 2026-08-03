@@ -43,7 +43,6 @@ void main() {
 
     test('attaches diagnostics and reports empty timeline metrics', () {
       final project = ProjectManifest(
-        surfaceCatalog: const ProjectSurfaceCatalog.empty(),
         name: 'cinematic_project',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -237,7 +236,6 @@ ProjectManifest _projectWithCinematics({
   List<StorylineAsset> storylines = const <StorylineAsset>[],
 }) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'cinematic_project',
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(id: 'map_lab', name: 'Lab map', relativePath: 'lab.json'),

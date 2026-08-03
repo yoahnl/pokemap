@@ -193,9 +193,6 @@ String _layerTypeLabel(MapLayer layer) {
   return switch (layer) {
     TileLayer() => 'Tuiles',
     CollisionLayer() => 'Collision',
-    TerrainLayer() => 'Terrain',
-    PathLayer() => 'Path',
-    SurfaceLayer() => 'Surface',
     SmartTileLayer() => 'Smart Tile',
     ObjectLayer() => 'Objets',
     EnvironmentLayer() => 'Environnement',
@@ -226,12 +223,6 @@ String _cellValue({
         : collisions[index]
             ? 'Bloquée'
             : 'Libre',
-    TerrainLayer(:final terrains) =>
-      index >= terrains.length ? 'Donnée indisponible' : terrains[index].name,
-    PathLayer(:final cells, :final presetId) => index >= cells.length
-        ? 'Donnée indisponible'
-        : _pathValue(cells[index], presetId),
-    SurfaceLayer(:final placements) => _surfaceValue(placements, cell),
     final SmartTileLayer smart => index >= smartTileSemanticCells(smart).length
         ? 'Donnée indisponible'
         : smartTileSemanticCells(smart)[index] == 0
@@ -283,27 +274,4 @@ String? _tilesetName(ProjectManifest? project, String tilesetId) {
     }
   }
   return null;
-}
-
-String _pathValue(bool present, String presetId) {
-  if (!present) {
-    return 'Absent';
-  }
-  final normalizedPresetId = presetId.trim();
-  return normalizedPresetId.isEmpty
-      ? 'Présent · Aucun preset'
-      : 'Présent · Preset $normalizedPresetId';
-}
-
-String _surfaceValue(
-  List<SurfaceCellPlacement> placements,
-  GridPos cell,
-) {
-  final ids = <String>{
-    for (final placement in placements)
-      if (placement.x == cell.x && placement.y == cell.y)
-        placement.surfacePresetId,
-  }.toList()
-    ..sort();
-  return ids.isEmpty ? 'Aucune' : ids.join(', ');
 }

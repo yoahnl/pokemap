@@ -10,7 +10,6 @@ import '../services/map_dependency_preflight_service.dart';
 import '../services/map_lifecycle_transaction_service.dart';
 import '../services/project_map_id_policy.dart';
 import '../services/project_map_manifest_integrity_policy.dart';
-import 'project_use_case_support.dart';
 
 const ProjectMapIdPolicy _mapIdPolicy = ProjectMapIdPolicy();
 const ProjectMapManifestIntegrityPolicy _mapManifestIntegrityPolicy =
@@ -108,28 +107,13 @@ class CreateMapUseCase {
       _canonicalMapRelativePath(canonicalMapId),
     );
     _mapManifestIntegrityPolicy.requireValid(fs, project);
-    final defaultTilesetId = pickDefaultTilesetId(project, groupId);
-
     final map = MapData(
       id: canonicalMapId,
       name: canonicalMapId,
       size: GridSize(width: w, height: h),
-      version: ProjectVersion.v4,
+      version: ProjectVersion.v6,
       visualStack: MapVisualStackConfig.canonicalV1,
-      tilesetId: defaultTilesetId ?? '',
-      layers: [
-        MapLayer.tile(
-          id: 'l_base',
-          name: 'Base',
-          tilesetId: defaultTilesetId,
-          tiles: List.filled(w * h, 0),
-        ),
-        MapLayer.collision(
-          id: 'l_collisions',
-          name: 'Collisions',
-          collisions: List.filled(w * h, false),
-        ),
-      ],
+      layers: const <MapLayer>[],
     );
 
     final mapPath = fs.getMapRelativePath(canonicalMapId);

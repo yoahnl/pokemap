@@ -1942,70 +1942,6 @@ void main() {
   });
 
   testWidgets(
-    'builds extended backdrop bitmap instructions without legacy surfaces',
-    (tester) async {
-      final tilesetImage = await _makeExtendedBackdropTilesetImage();
-      final manifest = _extendedBackdropProject();
-      final mapData = _stageMapDataWithExtendedBackdrop();
-      final beforeManifest = manifest.toJson();
-      final beforeMapData = mapData.toJson();
-
-      final plan = buildCinematicMapBackdropLayerRenderPlan(
-        mapData: mapData,
-        manifest: manifest,
-        tilesets: {
-          'neutral_tiles': CinematicResolvedTilesetAsset.available(
-            tilesetId: 'neutral_tiles',
-            image: tilesetImage,
-            tileWidth: 8,
-            tileHeight: 8,
-          ),
-        },
-      );
-
-      expect(plan.hasBitmapInstructions, isTrue);
-      expect(plan.instructions.map((instruction) => instruction.renderPass), [
-        CinematicMapBackdropRenderPass.terrain,
-        CinematicMapBackdropRenderPass.path,
-        CinematicMapBackdropRenderPass.tileBackground,
-        CinematicMapBackdropRenderPass.placedBackground,
-        CinematicMapBackdropRenderPass.tileForeground,
-        CinematicMapBackdropRenderPass.placedForeground,
-      ]);
-      expect(
-        plan.instructions.map((instruction) => instruction.layerKind).toSet(),
-        containsAll(<CinematicMapBackdropLayerKind>{
-          CinematicMapBackdropLayerKind.terrain,
-          CinematicMapBackdropLayerKind.path,
-          CinematicMapBackdropLayerKind.tile,
-          CinematicMapBackdropLayerKind.object,
-        }),
-      );
-      expect(
-        plan.instructions
-            .where((instruction) => instruction.sourceFamily == 'environment')
-            .map((instruction) => instruction.sourceId)
-            .toSet(),
-        {'neutral_generated_tree'},
-      );
-      expect(
-        plan.instructions.map((instruction) => instruction.sourceFamily),
-        isNot(contains('event')),
-      );
-      expect(
-        plan.instructions.map((instruction) => instruction.sourceFamily),
-        isNot(contains('collision')),
-      );
-      expect(
-        plan.instructions.map((instruction) => instruction.sourceFamily),
-        isNot(contains('surface')),
-      );
-      expect(manifest.toJson(), beforeManifest);
-      expect(mapData.toJson(), beforeMapData);
-    },
-  );
-
-  testWidgets(
     'reproduces real cinematic backdrop depth divergence from Map Editor ordering',
     (tester) async {
       final tilesetImage = await _makeExtendedBackdropTilesetImage();
@@ -2027,11 +1963,15 @@ void main() {
             tilesetId: 'neutral_tiles',
             tiles: [2, 0, 0, 0],
           ),
-          MapLayer.path(
+          MapLayer.smartTile(
             id: 'layer_water',
             name: 'Water path',
             presetId: 'neutral_path',
-            cells: [true, false, false, false],
+            usage: SmartTileUsage.path,
+            materialPalette: <String>['', 'neutral'],
+            field: SmartTileField.cell(
+              semanticCells: <int>[1, 0, 0, 0],
+            ),
           ),
           MapLayer.tile(
             id: 'layer_ponton',
@@ -2094,13 +2034,13 @@ void main() {
   );
 
   testWidgets(
-    'uses Path Studio center pattern when a path layer references its base preset',
+    'renders a Smart Tiles Studio path preset through the canonical catalog',
     (tester) async {
       final tilesetImage = await _makeExtendedBackdropTilesetImage();
-      final manifest = _pathStudioWaterBackdropProject();
+      final manifest = _smartTileWaterBackdropProject();
 
       final plan = buildCinematicMapBackdropLayerRenderPlan(
-        mapData: _stageMapDataWithPathStudioWaterBackdrop(),
+        mapData: _stageMapDataWithSmartTileWaterBackdrop(),
         manifest: manifest,
         tilesets: {
           'neutral_tiles': CinematicResolvedTilesetAsset.available(
@@ -2113,16 +2053,16 @@ void main() {
       );
 
       final pathInstructions = plan.instructions
-          .where((instruction) => instruction.sourceFamily == 'path')
+          .where((instruction) => instruction.sourceFamily == 'smartTile')
           .toList();
       expect(pathInstructions, hasLength(4));
       expect(
         pathInstructions.map((instruction) => instruction.sourceId).toSet(),
-        {'water_pattern'},
+        {'water_base'},
       );
       expect(
         pathInstructions.map((instruction) => instruction.sourceRect.left),
-        [0.0, 8.0, 16.0, 24.0],
+        everyElement(0.0),
       );
     },
   );
@@ -15874,7 +15814,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       await _pumpBuilder(
         tester,
@@ -15896,7 +15836,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final pathInstructions = fixture.layerPlan.instructions
-          .where((instruction) => instruction.sourceFamily == 'path')
+          .where((instruction) => instruction.sourceFamily == 'smartTile')
           .toList();
       expect(pathInstructions, isNotEmpty);
       expect(
@@ -15935,7 +15875,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       await _pumpBuilder(
         tester,
@@ -16260,7 +16200,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       await _pumpBuilder(
         tester,
@@ -16316,7 +16256,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       await _pumpBuilder(
         tester,
@@ -16372,7 +16312,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       final professorActor = CinematicActorDisplayPreviewActor(
         actorId: 'actor_professor',
@@ -16548,7 +16488,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       ui.Image? actorImage;
       await tester.runAsync(() async {
@@ -16784,7 +16724,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       final assetWithPoints = CinematicAsset(
         id: fixture.asset.id,
@@ -16870,7 +16810,7 @@ void main() {
     'V1-102-bis — Stage Point Placement UX Discoverability and ESC cancellation',
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
       final project = _project(cinematics: [fixture.asset]);
 
       final backdropModel = buildCinematicMapBackdropPreviewModel(
@@ -17009,7 +16949,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       final assetWithPoints = CinematicAsset(
         id: fixture.asset.id,
@@ -17095,7 +17035,7 @@ void main() {
     'V1-103 — Cinematic Actor Initial Placement from Stage Points V0',
     (tester) async {
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       final assetWithPoints = CinematicAsset(
         id: fixture.asset.id,
@@ -17203,7 +17143,7 @@ void main() {
     tester,
   ) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
-    final fixture = await _largePathStudioWaterBackdropFixture();
+    final fixture = await _largeSmartTileWaterBackdropFixture();
 
     final assetWithPoints = CinematicAsset(
       id: fixture.asset.id,
@@ -17343,7 +17283,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       final assetWithPoints = CinematicAsset(
         id: fixture.asset.id,
@@ -17587,7 +17527,7 @@ void main() {
 
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
     await _loadScreenshotFonts();
-    final fixture = await _largePathStudioWaterBackdropFixture();
+    final fixture = await _largeSmartTileWaterBackdropFixture();
 
     final assetWithPoints = CinematicAsset(
       id: fixture.asset.id,
@@ -17829,7 +17769,7 @@ void main() {
 
   testWidgets('V1-108 — Cinematic Manual Path Drawing UI V0', (tester) async {
     _setLargeSurface(tester, _referenceTimelineSurfaceSize);
-    final fixture = await _largePathStudioWaterBackdropFixture();
+    final fixture = await _largeSmartTileWaterBackdropFixture();
 
     final assetWithMove = CinematicAsset(
       id: fixture.asset.id,
@@ -18308,7 +18248,7 @@ void main() {
 
       _setLargeSurface(tester, _referenceTimelineSurfaceSize);
       await _loadScreenshotFonts();
-      final fixture = await _largePathStudioWaterBackdropFixture();
+      final fixture = await _largeSmartTileWaterBackdropFixture();
 
       final assetWithMove = CinematicAsset(
         id: fixture.asset.id,
@@ -20842,7 +20782,6 @@ ProjectManifest _project({
   bool includeBridge = true,
 }) {
   return ProjectManifest(
-    surfaceCatalog: const ProjectSurfaceCatalog.empty(),
     name: 'cinematic_project',
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(id: 'map_lab', name: 'Lab map', relativePath: 'lab.json'),
@@ -20938,141 +20877,72 @@ ProjectManifest _extendedBackdropProject({List<CinematicAsset>? cinematics}) {
         collisionProfile: ElementCollisionProfile(cells: [GridPos(x: 0, y: 1)]),
       ),
     ],
-    terrainPresets: const [
-      ProjectTerrainPreset(
-        id: 'neutral_grass',
-        name: 'Neutral grass',
-        terrainType: TerrainType.grass,
-        tilesetId: 'neutral_tiles',
-        variants: [
-          TerrainPresetVariant(
-            frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
-          ),
-        ],
-      ),
-    ],
-    pathPresets: [
-      ProjectPathPreset(
-        id: 'neutral_path',
-        name: 'Neutral path',
-        tilesetId: 'neutral_tiles',
-        variants: [
-          for (final variant in TerrainPathVariant.values)
-            PathPresetVariantMapping(
-              variant: variant,
-              frames: const [
-                TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0)),
-              ],
-            ),
-        ],
-      ),
-    ],
-    surfaceCatalog: ProjectSurfaceCatalog(
-      atlases: [
-        ProjectSurfaceAtlas(
-          id: 'neutral_surface_atlas',
-          name: 'Neutral surface atlas',
-          tilesetId: 'neutral_tiles',
-          geometry: SurfaceAtlasGeometry(
-            tileSize: SurfaceAtlasTileSize(width: 8, height: 8),
-            gridSize: SurfaceAtlasGridSize(columns: 8, rows: 2),
-          ),
-        ),
-      ],
-      animations: [
-        ProjectSurfaceAnimation(
-          id: 'neutral_surface_animation',
-          name: 'Neutral surface animation',
-          timeline: SurfaceAnimationTimeline(
-            frames: [
-              SurfaceAnimationFrame(
-                tileRef: SurfaceAtlasTileRef(
-                  atlasId: 'neutral_surface_atlas',
-                  column: 2,
-                  row: 0,
-                ),
-                durationMs: 500,
-              ),
-            ],
-          ),
-        ),
-      ],
-      presets: [
-        ProjectSurfacePreset(
-          id: 'neutral_surface',
-          name: 'Neutral surface',
-          variantAnimations: SurfaceVariantAnimationRefSet(
-            refs: [
-              SurfaceVariantAnimationRef(
-                role: SurfaceVariantRole.isolated,
-                animationId: 'neutral_surface_animation',
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
   );
 }
 
-ProjectManifest _pathStudioWaterBackdropProject({
+ProjectManifest _smartTileWaterBackdropProject({
   List<CinematicAsset>? cinematics,
 }) {
   return _extendedBackdropProject(cinematics: cinematics).copyWith(
-    pathPresets: [
-      const ProjectPathPreset(
-        id: 'water_base',
-        name: 'Water base',
-        tilesetId: 'neutral_tiles',
-        surfaceKind: PathSurfaceKind.water,
-        variants: [
-          PathPresetVariantMapping(
-            variant: TerrainPathVariant.cross,
-            frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 7, y: 1))],
+    smartTileCatalog: ProjectSmartTileCatalog(
+      atlases: const <ProjectSmartTileAtlas>[
+        ProjectSmartTileAtlas(
+          id: 'water_atlas',
+          name: 'Water atlas',
+          tilesetId: 'neutral_tiles',
+          cellWidth: 8,
+          cellHeight: 8,
+          columns: 4,
+          rows: 1,
+        ),
+      ],
+      materials: const <ProjectSmartTileMaterial>[
+        ProjectSmartTileMaterial(
+          id: 'water',
+          name: 'Water',
+          connectionGroupId: 'water',
+        ),
+      ],
+      presets: const <ProjectSmartTilePreset>[
+        ProjectSmartTilePreset(
+          id: 'water_base',
+          name: 'Water path',
+          usage: SmartTileUsage.path,
+          topology: SmartTileTopology.uniform,
+          templateHint: SmartTileTemplateHint.simple,
+          status: SmartTilePresetStatus.published,
+          coveragePolicy: SmartTileCoveragePolicy.complete,
+          coverageProfile: SmartTileCoverageProfile(
+            mode: SmartTileCoverageMode.template,
           ),
-        ],
-      ),
-    ],
-    pathPatternPresets: [
-      ProjectPathPatternPreset(
-        id: 'water_pattern',
-        name: 'Water pattern',
-        basePathPresetId: 'water_base',
-        centerPattern: PathCenterPattern(
-          size: PathCenterPatternSize(width: 2, height: 2),
-          cells: [
-            PathCenterPatternCell(
-              localX: 0,
-              localY: 0,
-              frames: const [
-                TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-              ],
-            ),
-            PathCenterPatternCell(
-              localX: 1,
-              localY: 0,
-              frames: const [
-                TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0)),
-              ],
-            ),
-            PathCenterPatternCell(
-              localX: 0,
-              localY: 1,
-              frames: const [
-                TilesetVisualFrame(source: TilesetSourceRect(x: 2, y: 0)),
-              ],
-            ),
-            PathCenterPatternCell(
-              localX: 1,
-              localY: 1,
-              frames: const [
-                TilesetVisualFrame(source: TilesetSourceRect(x: 3, y: 0)),
+          transformPolicy: SmartTileTransformPolicy(),
+          defaultMaterialId: 'water',
+          allowedMaterialIds: <String>['water'],
+          rules: <SmartTileRule>[
+            SmartTileRule(
+              id: 'uniform_water',
+              centerMatch: SmartTileSlotMatch.material('water'),
+              candidates: <SmartTileCandidate>[
+                SmartTileCandidate(
+                  id: 'water_visual',
+                  parts: <SmartTileVisualPart>[
+                    SmartTileVisualPart(
+                      source: SmartTileVisualSource.frame(
+                        frame: SmartTileFrameRef(
+                          atlasId: 'water_atlas',
+                          column: 0,
+                          row: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ],
         ),
-      ),
-    ],
+      ],
+    ),
   );
 }
 
@@ -21132,11 +21002,13 @@ MapData _stageMapDataWithVisualLayers() {
         tilesetId: 'lab_tiles',
         tiles: [1, 2, 3, 4],
       ),
-      MapLayer.path(
+      MapLayer.smartTile(
         id: 'path_main',
         name: 'Main path',
         presetId: 'stone_path',
-        cells: [true, false, true],
+        usage: SmartTileUsage.path,
+        materialPalette: <String>['', 'stone'],
+        field: SmartTileField.cell(semanticCells: <int>[1, 0, 1]),
       ),
       MapLayer.collision(
         id: 'collision',
@@ -21192,50 +21064,25 @@ MapData _stageMapDataWithExtendedBackdrop() {
   ).copyWith(
     size: const GridSize(width: 4, height: 4),
     layers: [
-      const MapLayer.terrain(
+      const MapLayer.smartTile(
         id: 'neutral_terrain',
         name: 'Neutral terrain',
-        terrains: [
-          TerrainType.grass,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-          TerrainType.none,
-        ],
+        presetId: 'neutral_terrain',
+        usage: SmartTileUsage.terrain,
+        materialPalette: <String>['', 'neutral'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
       ),
-      const MapLayer.path(
+      const MapLayer.smartTile(
         id: 'neutral_path_layer',
         name: 'Neutral path',
         presetId: 'neutral_path',
-        cells: [
-          false,
-          true,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-        ],
+        usage: SmartTileUsage.path,
+        materialPalette: <String>['', 'neutral'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
       ),
       const MapLayer.tile(
         id: 'neutral_ground',
@@ -21243,12 +21090,15 @@ MapData _stageMapDataWithExtendedBackdrop() {
         tilesetId: 'neutral_tiles',
         tiles: [0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
-      const MapLayer.surface(
+      const MapLayer.smartTile(
         id: 'neutral_surface_layer',
         name: 'Neutral surface',
-        placements: [
-          SurfaceCellPlacement(x: 0, y: 2, surfacePresetId: 'neutral_surface'),
-        ],
+        presetId: 'neutral_surface',
+        usage: SmartTileUsage.forestSurface,
+        materialPalette: <String>['', 'neutral'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        ),
       ),
       const MapLayer.object(id: 'neutral_objects', name: 'Neutral objects'),
       MapLayer.environment(
@@ -21329,25 +21179,27 @@ MapData _stageMapDataWithExtendedBackdrop() {
   );
 }
 
-MapData _stageMapDataWithPathStudioWaterBackdrop() {
+MapData _stageMapDataWithSmartTileWaterBackdrop() {
   return _stageMapData(
     entities: const <MapEntity>[],
     events: const <MapEventDefinition>[],
   ).copyWith(
     size: const GridSize(width: 2, height: 2),
     layers: const [
-      MapLayer.path(
+      MapLayer.smartTile(
         id: 'water_path_layer',
         name: 'Water path',
         presetId: 'water_base',
-        cells: [true, true, true, true],
+        usage: SmartTileUsage.path,
+        materialPalette: <String>['', 'water'],
+        field: SmartTileField.cell(semanticCells: <int>[1, 1, 1, 1]),
       ),
     ],
   );
 }
 
-MapData _stageMapDataWithLargePathStudioWaterBackdrop() {
-  final waterCells = List<bool>.filled(55 * 55, true);
+MapData _stageMapDataWithLargeSmartTileWaterBackdrop() {
+  final waterCells = List<int>.filled(55 * 55, 1);
   return _stageMapData(
     entities: const <MapEntity>[],
     events: const <MapEventDefinition>[],
@@ -21360,11 +21212,13 @@ MapData _stageMapDataWithLargePathStudioWaterBackdrop() {
         tilesetId: 'neutral_tiles',
         tiles: List<int>.filled(55 * 55, 5),
       ),
-      MapLayer.path(
+      MapLayer.smartTile(
         id: 'large_water_path_layer',
         name: 'Large water path',
         presetId: 'water_base',
-        cells: waterCells,
+        usage: SmartTileUsage.path,
+        materialPalette: const <String>['', 'water'],
+        field: SmartTileField.cell(semanticCells: waterCells),
       ),
     ],
   );
@@ -21504,7 +21358,7 @@ Future<ui.Image> _makeExtendedBackdropTilesetImage() {
   return picture.toImage(64, 16);
 }
 
-Future<ui.Image> _makePathStudioWaterBackdropTilesetImage() {
+Future<ui.Image> _makeSmartTileWaterBackdropTilesetImage() {
   final recorder = ui.PictureRecorder();
   final canvas = Canvas(recorder);
   final paints = [
@@ -21548,16 +21402,16 @@ Future<_ExtendedBackdropFixture> _largeBackdropFixture() {
   return _extendedBackdropFixture(mapData: _stageMapDataWithLargeBackdrop());
 }
 
-Future<_ExtendedBackdropFixture> _largePathStudioWaterBackdropFixture() {
+Future<_ExtendedBackdropFixture> _largeSmartTileWaterBackdropFixture() {
   final cinematic = _stageContextCinematic();
-  final project = _pathStudioWaterBackdropProject(cinematics: [cinematic]);
-  final mapData = _stageMapDataWithLargePathStudioWaterBackdrop();
+  final project = _smartTileWaterBackdropProject(cinematics: [cinematic]);
+  final mapData = _stageMapDataWithLargeSmartTileWaterBackdrop();
   final backdropModel = buildCinematicMapBackdropPreviewModel(
     asset: cinematic,
     stageMap: project.maps.single,
     mapData: mapData,
   );
-  return _makePathStudioWaterBackdropTilesetImage().then((tilesetImage) {
+  return _makeSmartTileWaterBackdropTilesetImage().then((tilesetImage) {
     final layerPlan = buildCinematicMapBackdropLayerRenderPlan(
       mapData: mapData,
       manifest: project,

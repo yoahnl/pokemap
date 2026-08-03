@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../l10n/l10n.dart';
-import '../../../../application/models/terrain_selection_mode.dart';
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/world_map_observed_tool_family.dart';
@@ -162,7 +161,6 @@ class WorldMapToolbelt extends ConsumerWidget {
     final visualState = _resolveVisualToolState(
       session: session,
       activeTool: toolbar.activeTool,
-      terrainSelectionMode: toolbar.terrainSelectionMode,
       rememberedPaint: rememberedPaint,
       brushKind: brushKind,
     );
@@ -373,7 +371,6 @@ typedef _WorldMapVisualToolState = ({
 _WorldMapVisualToolState _resolveVisualToolState({
   required WorldMapWorkspaceSession session,
   required EditorToolType activeTool,
-  required TerrainSelectionMode terrainSelectionMode,
   required WorldMapPaintSubtool rememberedPaint,
   required EditorWorldMapBrushKind brushKind,
 }) {
@@ -397,14 +394,13 @@ _WorldMapVisualToolState _resolveVisualToolState({
       ),
     EditorToolType.terrainPaint => (
         family: family,
-        paintSubtool: terrainSelectionMode == TerrainSelectionMode.path
-            ? WorldMapPaintSubtool.path
-            : WorldMapPaintSubtool.terrain,
-        placementSubtool: session.lastPlacementSubtool,
-      ),
-    EditorToolType.surfacePaint => (
-        family: family,
-        paintSubtool: WorldMapPaintSubtool.surface,
+        paintSubtool: switch (rememberedPaint) {
+          WorldMapPaintSubtool.terrain ||
+          WorldMapPaintSubtool.path ||
+          WorldMapPaintSubtool.surface =>
+            rememberedPaint,
+          _ => WorldMapPaintSubtool.terrain,
+        },
         placementSubtool: session.lastPlacementSubtool,
       ),
     EditorToolType.collisionPaint => (

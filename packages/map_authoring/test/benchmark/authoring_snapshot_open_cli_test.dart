@@ -34,56 +34,6 @@ void main() {
         rows.every((row) => '${row['snapshotChecksum']}'.isNotEmpty), isTrue);
   });
 
-  test('measures the canonical Selbrume authoring snapshot', () async {
-    final output = await _temporaryOutput('authoring_snapshot_selbrume');
-    final result = await _run(<String>[
-      '--fixtures',
-      'selbrume',
-      '--warmups',
-      '0',
-      '--samples',
-      '1',
-      '--roots',
-      '1',
-      '--cycles',
-      '1',
-      '--output',
-      output.path,
-    ]);
-
-    expect(result.exitCode, 0, reason: '${result.stderr}');
-    final payload =
-        jsonDecode(await output.readAsString()) as Map<String, Object?>;
-    final rows =
-        (payload['results']! as List<Object?>).cast<Map<String, Object?>>();
-    expect(rows, hasLength(1));
-    expect(rows.single['fixturePath'], 'selbrume');
-    expect(rows.single['mapCount'], 10);
-    expect(rows.single['resourceCount'], 35);
-    expect(rows.single['resourceBytes'], 4753256);
-    final profile = Map<String, Object?>.from(
-      rows.single['snapshotProfile']! as Map,
-    );
-    expect(
-      profile.keys,
-      containsAll(<String>[
-        'initialRead',
-        'decodeModel',
-        'secondObservation',
-        'fingerprint',
-        'projection',
-        'total',
-      ]),
-    );
-    for (final stage in profile.values) {
-      final metric = Map<String, Object?>.from(stage! as Map);
-      expect(metric['samplesUs'], hasLength(1));
-      expect(metric['p50Us'], isA<int>());
-      expect(metric['p95Us'], isA<int>());
-      expect(metric['p99Us'], isA<int>());
-    }
-  }, timeout: const Timeout(Duration(minutes: 2)));
-
   test('rejects promotion checkpoint, zero samples, and escaped output',
       () async {
     final forbidden = await _run(const <String>[

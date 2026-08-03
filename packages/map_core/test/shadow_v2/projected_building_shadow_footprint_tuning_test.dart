@@ -123,7 +123,8 @@ void main() {
     test('defaults to directional geometry mode', () {
       final preset = _preset();
 
-      expect(preset.geometryMode, ProjectedBuildingShadowGeometryMode.directional);
+      expect(
+          preset.geometryMode, ProjectedBuildingShadowGeometryMode.directional);
       expect(preset.footprint, isNull);
     });
 
@@ -132,7 +133,8 @@ void main() {
         geometryMode: ProjectedBuildingShadowGeometryMode.directional,
       );
 
-      expect(preset.geometryMode, ProjectedBuildingShadowGeometryMode.directional);
+      expect(
+          preset.geometryMode, ProjectedBuildingShadowGeometryMode.directional);
       expect(preset.footprint, isNull);
     });
 
@@ -153,7 +155,8 @@ void main() {
         footprint: footprint,
       );
 
-      expect(preset.geometryMode, ProjectedBuildingShadowGeometryMode.footprint);
+      expect(
+          preset.geometryMode, ProjectedBuildingShadowGeometryMode.footprint);
       expect(preset.footprint, footprint);
     });
 

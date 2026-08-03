@@ -61,7 +61,6 @@ Directory _writeProject() {
     name: 'Desktop QA',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],
-    surfaceCatalog: ProjectSurfaceCatalog.empty(),
   );
   File(p.join(root.path, 'project.json')).writeAsStringSync(
     jsonEncode(manifest.toJson()),

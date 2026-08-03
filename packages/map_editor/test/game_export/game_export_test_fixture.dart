@@ -15,7 +15,7 @@ Future<Directory> createAuthorProject({
   final root = await Directory.systemTemp.createTemp('pokemap_author_export_');
   final project = ProjectManifest(
     name: name,
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     maps: const <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'map.start',
@@ -89,7 +89,7 @@ Future<Directory> createAuthorProject({
   final mapJson = const MapData(
     id: 'map.start',
     name: 'Start',
-    version: ProjectVersion.v2,
+    version: ProjectVersion.v6,
     size: GridSize(width: 8, height: 8),
     layers: <MapLayer>[
       MapLayer.object(id: 'events', name: 'Events'),

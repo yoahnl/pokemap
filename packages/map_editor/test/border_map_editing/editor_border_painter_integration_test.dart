@@ -1,69 +1,20 @@
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_transaction.dart';
 import 'package:map_editor/src/features/border_map_editing/presentation/border_diagnostic_presentation.dart';
 import 'package:map_editor/src/features/border_map_editing/presentation/border_preview_painter.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
-  test('legacy bottom_to_top follows the runtime-authored stack', () async {
-    final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
-    final tileImage = await _solidImage(const ui.Color(0xFF0000FF));
-    final map = MapData(
-      id: 'authored-border-order',
-      name: 'Authored Border order',
-      version: ProjectVersion.v2,
-      size: const GridSize(width: 1, height: 1),
-      properties: const <String, dynamic>{
-        'tileLayerOrder': 'bottom_to_top',
-      },
-      layers: <MapLayer>[
-        MapLayer.border(
-          id: 'border',
-          name: 'Border',
-          content: BorderLayerContent(
-            features: <BorderFeature>[_feature()],
-          ),
-        ),
-        const MapLayer.tile(
-          id: 'tile',
-          name: 'Tile',
-          tilesetId: 'tiles',
-          tiles: <int>[1],
-        ),
-      ],
-    );
-
-    final color = await _paintCenter(
-      map,
-      project: _manifest(),
-      images: <String, ui.Image?>{
-        'tiles': tileImage,
-        editorBorderFrameImageKey(_snapshotId, 0): borderImage,
-      },
-    );
-
-    expect(
-      color,
-      const ui.Color(0xFF0000FF),
-      reason: 'legacy runtime paints the serialized bottom_to_top sequence; '
-          'canonical top-first semantics require visualStack v1',
-    );
-    borderImage.dispose();
-    tileImage.dispose();
-  });
-
   test('paints a later Border above an earlier Tile', () async {
     final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
     final tileImage = await _solidImage(const ui.Color(0xFF0000FF));
     final map = MapData(
       id: 'tile-before-border',
       name: 'Tile before Border',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 1, height: 1),
       properties: const <String, dynamic>{
         'tileLayerOrder': 'bottom_to_top',
@@ -103,7 +54,7 @@ void main() {
     final map = MapData(
       id: 'two-borders',
       name: 'Two Borders',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 1, height: 1),
       properties: const <String, dynamic>{
         'tileLayerOrder': 'bottom_to_top',
@@ -145,413 +96,6 @@ void main() {
     expect(color, const ui.Color(0xFF00FF00));
     red.dispose();
     green.dispose();
-  });
-
-  test('a hidden Border preserves the legacy runtime authored dispatcher',
-      () async {
-    final surfaceImage = await _solidImage(const ui.Color(0xFFFF0000));
-    final tileImage = await _solidImage(const ui.Color(0xFF0000FF));
-    const map = MapData(
-      id: 'hidden-border-sentinel',
-      name: 'Hidden Border sentinel',
-      version: ProjectVersion.v2,
-      size: GridSize(width: 1, height: 1),
-      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
-      layers: <MapLayer>[
-        SurfaceLayer(
-          id: 'surface',
-          name: 'Surface',
-          placements: <SurfaceCellPlacement>[
-            SurfaceCellPlacement(
-              x: 0,
-              y: 0,
-              surfacePresetId: 'mutable-source-preset',
-            ),
-          ],
-        ),
-        BorderLayer(
-          id: 'border-hidden',
-          name: 'Hidden Border',
-          isVisible: false,
-        ),
-        TileLayer(
-          id: 'tile',
-          name: 'Tile',
-          tilesetId: 'tiles',
-          tiles: <int>[1],
-        ),
-      ],
-    );
-
-    final color = await _paintCenter(
-      map,
-      project: _manifest(surfaceCatalog: _surfaceCatalog()),
-      images: <String, ui.Image?>{
-        'source-tileset': surfaceImage,
-        'tiles': tileImage,
-      },
-    );
-
-    expect(color, const ui.Color(0xFF0000FF));
-    surfaceImage.dispose();
-    tileImage.dispose();
-  });
-
-  test('a hidden Border matches the legacy runtime Border dispatcher',
-      () async {
-    const legacyLayers = <MapLayer>[
-      TerrainLayer(
-        id: 'terrain',
-        name: 'Terrain',
-        terrains: <TerrainType>[TerrainType.grass],
-      ),
-      PathLayer(
-        id: 'ocean',
-        name: 'Ocean',
-        presetId: 'ocean',
-        cells: <bool>[true],
-      ),
-    ];
-    const baseline = MapData(
-      id: 'legacy-background-baseline',
-      name: 'Legacy background baseline',
-      version: ProjectVersion.v2,
-      size: GridSize(width: 1, height: 1),
-      layers: legacyLayers,
-    );
-    const withHiddenBorder = MapData(
-      id: 'legacy-background-with-border',
-      name: 'Legacy background with Border',
-      version: ProjectVersion.v2,
-      size: GridSize(width: 1, height: 1),
-      layers: <MapLayer>[
-        ...legacyLayers,
-        BorderLayer(
-          id: 'border-hidden',
-          name: 'Border hidden',
-          isVisible: false,
-        ),
-      ],
-    );
-
-    final baselineColor = await _paintCenter(
-      baseline,
-      project: _manifest(),
-      images: const <String, ui.Image?>{},
-    );
-    final withHiddenBorderColor = await _paintCenter(
-      withHiddenBorder,
-      project: _manifest(),
-      images: const <String, ui.Image?>{},
-    );
-
-    expect(withHiddenBorderColor, isNot(baselineColor));
-    expect(withHiddenBorderColor, const ui.Color(0xFFB2FF59));
-  });
-
-  test('legacy bottom_to_top maps match the runtime Border-selected dispatcher',
-      () async {
-    final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
-    const backgroundLayers = <MapLayer>[
-      PathLayer(
-        id: 'ocean',
-        name: 'Ocean',
-        presetId: 'ocean',
-        cells: <bool>[true, true],
-      ),
-      TerrainLayer(
-        id: 'terrain',
-        name: 'Terrain',
-        terrains: <TerrainType>[TerrainType.grass, TerrainType.grass],
-      ),
-    ];
-    const baseline = MapData(
-      id: 'bottom-to-top-ocean-baseline',
-      name: 'Bottom-to-top ocean baseline',
-      version: ProjectVersion.v2,
-      size: GridSize(width: 2, height: 1),
-      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
-      layers: backgroundLayers,
-    );
-    const withHiddenBorder = MapData(
-      id: 'bottom-to-top-ocean-hidden-border',
-      name: 'Bottom-to-top ocean hidden Border',
-      version: ProjectVersion.v2,
-      size: GridSize(width: 2, height: 1),
-      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
-      layers: <MapLayer>[
-        ...backgroundLayers,
-        BorderLayer(
-          id: 'border-hidden',
-          name: 'Border hidden',
-          isVisible: false,
-        ),
-      ],
-    );
-    final withVisibleBorder = MapData(
-      id: 'bottom-to-top-ocean-visible-border',
-      name: 'Bottom-to-top ocean visible Border',
-      version: ProjectVersion.v2,
-      size: const GridSize(width: 2, height: 1),
-      properties: const <String, dynamic>{
-        'tileLayerOrder': 'bottom_to_top',
-      },
-      layers: <MapLayer>[
-        ...backgroundLayers,
-        MapLayer.border(
-          id: 'border-visible',
-          name: 'Border visible',
-          content: BorderLayerContent(features: <BorderFeature>[_feature()]),
-        ),
-      ],
-    );
-
-    final baselineOcean = await _paintPixel(
-      baseline,
-      project: _manifest(),
-      images: const <String, ui.Image?>{},
-      x: 24,
-      y: 8,
-    );
-    final hiddenOcean = await _paintPixel(
-      withHiddenBorder,
-      project: _manifest(),
-      images: const <String, ui.Image?>{},
-      x: 24,
-      y: 8,
-    );
-    final visibleOcean = await _paintPixel(
-      withVisibleBorder,
-      project: _manifest(),
-      images: <String, ui.Image?>{
-        editorBorderFrameImageKey(_snapshotId, 0): borderImage,
-      },
-      x: 24,
-      y: 8,
-    );
-    final borderPixel = await _paintPixel(
-      withVisibleBorder,
-      project: _manifest(),
-      images: <String, ui.Image?>{
-        editorBorderFrameImageKey(_snapshotId, 0): borderImage,
-      },
-      x: 8,
-      y: 8,
-    );
-
-    expect(hiddenOcean, const ui.Color(0xFFB2FF59));
-    expect(visibleOcean, hiddenOcean);
-    expect(hiddenOcean, isNot(baselineOcean));
-    expect(borderPixel, const ui.Color(0xFFFF0000));
-    borderImage.dispose();
-  });
-
-  test('empty and hidden Border share the same legacy runtime raster',
-      () async {
-    const backgroundLayers = <MapLayer>[
-      PathLayer(
-        id: 'ocean',
-        name: 'Ocean',
-        presetId: 'ocean',
-        cells: <bool>[true, true],
-      ),
-      TerrainLayer(
-        id: 'terrain',
-        name: 'Terrain',
-        terrains: <TerrainType>[TerrainType.grass, TerrainType.grass],
-      ),
-    ];
-    const baseline = MapData(
-      id: 'bottom-to-top-baseline',
-      name: 'Bottom-to-top baseline',
-      version: ProjectVersion.v2,
-      size: GridSize(width: 2, height: 1),
-      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
-      layers: backgroundLayers,
-    );
-    const withEmptyBorder = MapData(
-      id: 'bottom-to-top-empty-border',
-      name: 'Bottom-to-top empty Border',
-      version: ProjectVersion.v2,
-      size: GridSize(width: 2, height: 1),
-      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
-      layers: <MapLayer>[
-        ...backgroundLayers,
-        BorderLayer(id: 'border-empty', name: 'Border empty'),
-      ],
-    );
-    const withHiddenBorder = MapData(
-      id: 'bottom-to-top-hidden-border',
-      name: 'Bottom-to-top hidden Border',
-      version: ProjectVersion.v2,
-      size: GridSize(width: 2, height: 1),
-      properties: <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
-      layers: <MapLayer>[
-        ...backgroundLayers,
-        BorderLayer(
-          id: 'border-hidden',
-          name: 'Border hidden',
-          isVisible: false,
-        ),
-      ],
-    );
-
-    final baselineRgba = await _paintRgba(
-      baseline,
-      project: _manifest(),
-      images: const <String, ui.Image?>{},
-    );
-    final emptyBorderRgba = await _paintRgba(
-      withEmptyBorder,
-      project: _manifest(),
-      images: const <String, ui.Image?>{},
-    );
-    final hiddenBorderRgba = await _paintRgba(
-      withHiddenBorder,
-      project: _manifest(),
-      images: const <String, ui.Image?>{},
-    );
-
-    // Border presence selects the historical runtime-authored dispatcher even
-    // if the layer is empty or hidden. Both variants must remain identical;
-    // canonical v1 removes this implicit selection entirely.
-    expect(emptyBorderRgba, hiddenBorderRgba);
-    expect(emptyBorderRgba, isNot(baselineRgba));
-  });
-
-  test('legacy reverse stack matches runtime when Border is appended',
-      () async {
-    final borderImage = await _solidImage(const ui.Color(0xFFFF0000));
-    final map = MapData(
-      id: 'legacy-visible-border',
-      name: 'Legacy visible Border',
-      version: ProjectVersion.v2,
-      size: const GridSize(width: 1, height: 1),
-      layers: <MapLayer>[
-        const TerrainLayer(
-          id: 'terrain',
-          name: 'Terrain',
-          terrains: <TerrainType>[TerrainType.grass],
-        ),
-        const PathLayer(
-          id: 'ocean',
-          name: 'Ocean',
-          presetId: 'ocean',
-          cells: <bool>[true],
-        ),
-        MapLayer.border(
-          id: 'border',
-          name: 'Border',
-          content: BorderLayerContent(
-            features: <BorderFeature>[_feature()],
-          ),
-        ),
-      ],
-    );
-
-    final color = await _paintCenter(
-      map,
-      project: _manifest(),
-      images: <String, ui.Image?>{
-        editorBorderFrameImageKey(_snapshotId, 0): borderImage,
-      },
-    );
-
-    expect(color, const ui.Color(0xFFB2FF59));
-    borderImage.dispose();
-  });
-
-  test('renders only referenced immutable snapshots, never source catalogs',
-      () async {
-    final red = await _solidImage(const ui.Color(0xFFFF0000));
-    final green = await _solidImage(const ui.Color(0xFF00FF00));
-    final blue = await _solidImage(const ui.Color(0xFF0000FF));
-    final map = _borderMap(
-      features: <BorderFeature>[_feature()],
-    );
-    final linkedRecord = _linkedRecord();
-    final sourceCatalogBefore = _manifest(
-      records: <BorderBlueprintRecord>[linkedRecord],
-      snapshots: <BorderVisualSnapshot>[
-        _snapshot(),
-        _snapshot(id: _unusedSnapshotId, assetName: 'green'),
-      ],
-      elements: const <ProjectElementEntry>[
-        ProjectElementEntry(
-          id: 'mutable-source-prop',
-          name: 'Mutable source prop',
-          tilesetId: 'source-tileset',
-          categoryId: 'source-category',
-          frames: <TilesetVisualFrame>[
-            TilesetVisualFrame(
-              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
-            ),
-          ],
-        ),
-      ],
-      surfaceCatalog: _surfaceCatalog(tilesetId: 'source-tileset'),
-    );
-    final sourceCatalogMutated = _manifest(
-      records: <BorderBlueprintRecord>[linkedRecord],
-      snapshots: <BorderVisualSnapshot>[
-        _snapshot(),
-        _snapshot(id: _unusedSnapshotId, assetName: 'green'),
-      ],
-      elements: const <ProjectElementEntry>[
-        ProjectElementEntry(
-          id: 'mutable-source-prop',
-          name: 'Source prop mutated',
-          tilesetId: 'mutated-source-tileset',
-          categoryId: 'source-category',
-          frames: <TilesetVisualFrame>[
-            TilesetVisualFrame(
-              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
-            ),
-          ],
-        ),
-      ],
-      surfaceCatalog: _surfaceCatalog(
-        tilesetId: 'mutated-source-tileset',
-      ),
-    );
-    expect(
-      linkedRecord
-          .latestPublished!.definition.primitives.single.sourceElementId,
-      'mutable-source-prop',
-    );
-    expect(
-      linkedRecord.latestPublished!.definition.ground!.sourceSmartTilePresetId,
-      'mutable-source-preset',
-    );
-
-    final beforeMutation = await _paintPixel(
-      map,
-      project: sourceCatalogBefore,
-      images: <String, ui.Image?>{
-        editorBorderFrameImageKey(_snapshotId, 0): red,
-        editorBorderFrameImageKey(_unusedSnapshotId, 0): green,
-        'source-tileset': green,
-      },
-      x: 8,
-      y: 8,
-    );
-    final afterMutation = await _paintPixel(
-      map,
-      project: sourceCatalogMutated,
-      images: <String, ui.Image?>{
-        editorBorderFrameImageKey(_snapshotId, 0): red,
-        editorBorderFrameImageKey(_unusedSnapshotId, 0): green,
-        'mutated-source-tileset': blue,
-      },
-      x: 8,
-      y: 8,
-    );
-
-    expect(beforeMutation, const ui.Color(0xFFFF0000));
-    expect(afterMutation, beforeMutation);
-    red.dispose();
-    green.dispose();
-    blue.dispose();
   });
 
   test('resolved preview replaces only its exact target until apply', () async {
@@ -668,7 +212,7 @@ void main() {
     final current = MapData(
       id: owner.id,
       name: 'Other map with same id',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 1, height: 1),
     );
     final preview = BorderPreviewTransaction(
@@ -831,8 +375,6 @@ Future<ui.Color> _paintPixel(
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     project: project,
     borderPreview: preview,
     borderDiagnosticOverlayPalette: diagnosticPalette,
@@ -853,47 +395,6 @@ Future<ui.Color> _paintPixel(
   picture.dispose();
   image.dispose();
   return color;
-}
-
-Future<Uint8List> _paintRgba(
-  MapData map, {
-  required ProjectManifest project,
-  required Map<String, ui.Image?> images,
-}) async {
-  final recorder = ui.PictureRecorder();
-  final canvas = ui.Canvas(recorder);
-  MapGridPainter(
-    map: map,
-    zoom: 1,
-    offset: ui.Offset.zero,
-    tileWidth: 16,
-    tileHeight: 16,
-    tilesetImagesById: images,
-    sourceTileWidth: 16,
-    sourceTileHeight: 16,
-    tilesPerRowById: const <String, int>{'tiles': 1},
-    warps: const <MapWarp>[],
-    gameplayZones: const <MapGameplayZone>[],
-    connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
-    project: project,
-  ).paint(
-    canvas,
-    ui.Size(map.size.width * 16, map.size.height * 16),
-  );
-  final picture = recorder.endRecording();
-  final image = await picture.toImage(
-    map.size.width * 16,
-    map.size.height * 16,
-  );
-  final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-  final rgba = Uint8List.fromList(
-    bytes!.buffer.asUint8List(bytes.offsetInBytes, bytes.lengthInBytes),
-  );
-  picture.dispose();
-  image.dispose();
-  return rgba;
 }
 
 Future<ui.Color> _paintCenter(
@@ -925,15 +426,13 @@ ProjectManifest _manifest({
   List<BorderBlueprintRecord> records = const <BorderBlueprintRecord>[],
   List<BorderVisualSnapshot>? snapshots,
   List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
-  ProjectSurfaceCatalog surfaceCatalog = const ProjectSurfaceCatalog.empty(),
 }) =>
     ProjectManifest(
       name: 'Border order',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       elements: elements,
-      surfaceCatalog: surfaceCatalog,
       borderCatalog: ProjectBorderCatalog(
         records: records,
         visualSnapshots: snapshots ?? <BorderVisualSnapshot>[_snapshot()],
@@ -948,7 +447,7 @@ MapData _borderMap({
     MapData(
       id: 'border-map',
       name: 'Border map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: GridSize(width: width, height: 1),
       properties: const <String, dynamic>{'tileLayerOrder': 'bottom_to_top'},
       layers: <MapLayer>[
@@ -1014,140 +513,6 @@ BorderVisualSnapshot _snapshot({
         ),
       ],
     );
-
-ProjectSurfaceCatalog _surfaceCatalog({
-  String tilesetId = 'source-tileset',
-}) =>
-    ProjectSurfaceCatalog(
-      atlases: <ProjectSurfaceAtlas>[
-        ProjectSurfaceAtlas(
-          id: 'mutable-source-atlas',
-          name: 'Mutable source atlas',
-          tilesetId: tilesetId,
-          geometry: SurfaceAtlasGeometry(
-            tileSize: SurfaceAtlasTileSize(width: 16, height: 16),
-            gridSize: SurfaceAtlasGridSize(columns: 1, rows: 1),
-            layout: SurfaceAtlasLayout.columnsAreVariantsRowsAreFrames,
-          ),
-        ),
-      ],
-      animations: <ProjectSurfaceAnimation>[
-        ProjectSurfaceAnimation(
-          id: 'mutable-source-animation',
-          name: 'Mutable source animation',
-          timeline: SurfaceAnimationTimeline(
-            frames: <SurfaceAnimationFrame>[
-              SurfaceAnimationFrame(
-                tileRef: SurfaceAtlasTileRef(
-                  atlasId: 'mutable-source-atlas',
-                  column: 0,
-                  row: 0,
-                ),
-                durationMs: 100,
-              ),
-            ],
-          ),
-        ),
-      ],
-      presets: <ProjectSurfacePreset>[
-        ProjectSurfacePreset(
-          id: 'mutable-source-preset',
-          name: 'Mutable source preset',
-          variantAnimations: SurfaceVariantAnimationRefSet(
-            refs: <SurfaceVariantAnimationRef>[
-              SurfaceVariantAnimationRef(
-                role: SurfaceVariantRole.isolated,
-                animationId: 'mutable-source-animation',
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-
-BorderBlueprintRecord _linkedRecord() {
-  const sourceElementId = 'mutable-source-prop';
-  const sourceSmartTilePresetId = 'mutable-source-preset';
-  final metrics = BorderPrimitiveAssetMetrics(
-    assetFingerprint: 'asset-source-prop',
-    pixelSize: const GridSize(width: 16, height: 16),
-    opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 16, height: 16),
-    defaultAnchorPx: const BorderPixelPos(x: 8, y: 8),
-    occupancyMaskRle: encodeBorderRleMask(
-      List<bool>.filled(16 * 16, true),
-    ),
-  );
-  final transforms = BorderTransformPolicy(
-    allowFlipX: false,
-    allowedQuarterTurns: const <int>[0],
-  );
-  final params = BorderGenerationParams(
-    irregularityPermille: 0,
-    detailDensityPermille: 0,
-    variationPermille: 0,
-    maxOverlapPx: 0,
-    gapTolerancePx: 0,
-    depthRows: 1,
-  );
-  return BorderBlueprintRecord(
-    id: 'blueprint',
-    draft: BorderBlueprintDraft(
-      baseRevision: 1,
-      definition: BorderBlueprintDraftDefinition(
-        name: 'Linked source blueprint',
-        previewSeed: BorderSignedInt64.zero,
-        template: BorderBlueprintTemplate.organicEdge,
-        primitives: <BorderPrimitiveDraft>[
-          BorderPrimitiveDraft(
-            id: 'source-prop',
-            sourceElementId: sourceElementId,
-            role: BorderPrimitiveRole.structureLarge,
-            weight: 1,
-            anchorPx: const BorderPixelPos(x: 8, y: 8),
-            transforms: transforms,
-            currentMetrics: metrics,
-          ),
-        ],
-        defaults: params,
-        ground: BorderGroundDraft(
-          sourceSmartTilePresetId: sourceSmartTilePresetId,
-          edgeBandCells: 1,
-        ),
-        sortOrder: 0,
-      ),
-    ),
-    latestPublished: BorderBlueprintRevision(
-      revision: 1,
-      definition: BorderBlueprintPublishedDefinition(
-        name: 'Linked source blueprint',
-        previewSeed: BorderSignedInt64.zero,
-        template: BorderBlueprintTemplate.organicEdge,
-        primitives: <BorderPublishedPrimitive>[
-          BorderPublishedPrimitive(
-            id: 'source-prop',
-            sourceElementId: sourceElementId,
-            visualSnapshotId: _snapshotId,
-            role: BorderPrimitiveRole.structureLarge,
-            weight: 1,
-            anchorPx: const BorderPixelPos(x: 8, y: 8),
-            transforms: transforms,
-            publishedMetrics: metrics,
-          ),
-        ],
-        defaults: params,
-        ground: BorderPublishedGround(
-          sourceSmartTilePresetId: sourceSmartTilePresetId,
-          edgeBandCells: 1,
-          visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-            for (final role in standardSurfaceVariantRoleOrder)
-              role: _snapshotId,
-          },
-        ),
-        sortOrder: 0,
-      ),
-    ),
-  );
-}
 
 BorderResolutionReceipt _receipt() {
   const fingerprint =

@@ -183,8 +183,6 @@ MapGridPainter _painter({
     warps: const <MapWarp>[],
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-    pathAutotileSetsByPresetId: const {},
-    terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
     project: _profileProject,
     editorEntityAnimationMs: 220,
     showGrid: false,
@@ -316,7 +314,7 @@ final class _CanvasProfileFixture {
       map: MapData(
         id: '${mode.name}-$extent',
         name: '${mode.name} $extent',
-        version: ProjectVersion.v5,
+        version: ProjectVersion.v6,
         size: GridSize(width: extent, height: extent),
         layers: layers,
         placedElements: placedElements,
@@ -327,10 +325,9 @@ final class _CanvasProfileFixture {
 
 final _profileProject = ProjectManifest(
   name: 'Canvas projection profile',
-  version: ProjectVersion.v5,
+  version: ProjectVersion.v6,
   maps: const <ProjectMapEntry>[],
   tilesets: const <ProjectTilesetEntry>[],
-  surfaceCatalog: const ProjectSurfaceCatalog.empty(),
   smartTileCatalog: ProjectSmartTileCatalog(
     atlases: const <ProjectSmartTileAtlas>[
       ProjectSmartTileAtlas(

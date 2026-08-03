@@ -282,10 +282,12 @@ void main() {
     );
 
     expect(result.downloadedSpriteIds, isEmpty);
-    expect(result.skippedSpriteIds, containsAll(<String>[
-      'poke-ball',
-      'mystery-item',
-    ]));
+    expect(
+        result.skippedSpriteIds,
+        containsAll(<String>[
+          'poke-ball',
+          'mystery-item',
+        ]));
     expect(result.failedSpriteIds, isEmpty);
     expect(externalRepository.fetchedBinaryAssets, isEmpty);
     expect(
@@ -336,8 +338,7 @@ void main() {
     );
   });
 
-  test(
-      'sync converts PokeAPI item payload fields into the local catalog shape',
+  test('sync converts PokeAPI item payload fields into the local catalog shape',
       () async {
     externalRepository.itemListPagesByOffset[0] = _buildItemsListPage(
       <Map<String, dynamic>>[
@@ -367,8 +368,10 @@ void main() {
     expect(masterBall['flingPower'], isNull);
     expect(masterBall['flingEffectId'], isNull);
     expect(masterBall['shortEffectText'], 'Catches wild Pokémon without fail.');
-    expect(masterBall['effectText'], 'The best Ball with the ultimate performance.');
-    expect(masterBall['flavorText'], 'The best Ball with the ultimate level of performance.');
+    expect(masterBall['effectText'],
+        'The best Ball with the ultimate performance.');
+    expect(masterBall['flavorText'],
+        'The best Ball with the ultimate level of performance.');
     expect(masterBall['spriteUrl'], _masterBallSpriteUrl);
     expect(masterBall['source'], 'pokeapi');
     expect(
@@ -817,7 +820,8 @@ class _FakePokemonExternalSourceRepository
   }
 
   @override
-  Future<Map<String, dynamic>> fetchPokeApiItemPayload(String itemIdOrName) async {
+  Future<Map<String, dynamic>> fetchPokeApiItemPayload(
+      String itemIdOrName) async {
     fetchedItems.add(itemIdOrName);
     final payload = itemPayloadsByName[itemIdOrName];
     if (payload == null) {
@@ -830,7 +834,8 @@ class _FakePokemonExternalSourceRepository
   Future<PokemonExternalBinaryAsset> fetchBinaryAsset(String sourceUrl) async {
     fetchedBinaryAssets.add(sourceUrl);
     if (failingBinaryUrls.contains(sourceUrl)) {
-      throw EditorPersistenceException('Binary asset download failed: $sourceUrl');
+      throw EditorPersistenceException(
+          'Binary asset download failed: $sourceUrl');
     }
     final asset = binaryAssetsByUrl[sourceUrl];
     if (asset == null) {

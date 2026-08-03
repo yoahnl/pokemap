@@ -8,18 +8,14 @@ import 'semantic_map_action_support.dart';
 ///
 /// Catalog mutations are project-wide by definition: changing a material,
 /// preset, atlas, or animation can invalidate a layer in a different map. This
-/// guard therefore rejects incomplete snapshots, legacy providers, and any
-/// projected state that fails canonical manifest/map validation.
+/// guard therefore rejects incomplete snapshots and any projected state that
+/// fails canonical manifest/map validation.
 void preflightNativeSmartTileMutation({
   required ProjectSnapshot snapshot,
   required ProjectManifest projectedManifest,
   Map<String, MapData> projectedMaps = const <String, MapData>{},
 }) {
   _requireCompleteMapSnapshot(snapshot);
-  _requireNoLegacyTerrainOrPath(
-    manifest: snapshot.manifest,
-    maps: snapshot.maps,
-  );
 
   final unknownProjectedIds = projectedMaps.keys
       .where((mapId) => snapshot.mapById(mapId) == null)
@@ -36,16 +32,10 @@ void preflightNativeSmartTileMutation({
   final maps = <MapData>[
     for (final map in snapshot.maps) projectedMaps[map.id] ?? map,
   ];
-  _requireNoLegacyTerrainOrPath(
-    manifest: projectedManifest,
-    maps: maps,
-  );
-
-  if (projectedManifest.smartTileCatalog.isNotEmpty &&
-      projectedManifest.version != ProjectVersion.v5) {
+  if (projectedManifest.version != ProjectVersion.v6) {
     throw semanticFailure(
       'smart_tile_native_project_version_required',
-      'A non-empty native Smart Tile catalog requires ProjectVersion.v5.',
+      'Smart Tile authoring requires ProjectVersion.v6.',
       details: <String, Object?>{
         'projectVersion': projectedManifest.version.name,
       },
@@ -55,10 +45,9 @@ void preflightNativeSmartTileMutation({
   try {
     ProjectValidator.validate(projectedManifest);
     for (final map in maps) {
-      if (map.layers.any((layer) => layer is SmartTileLayer) &&
-          map.version != ProjectVersion.v5) {
+      if (map.version != ProjectVersion.v6) {
         throw ValidationException(
-          'Map "${map.id}" contains Smart Tile layers before v5.',
+          'Map "${map.id}" is not a Smart Tiles-only v6 map.',
           code: 'smart_tile_native_project_version_required',
           details: <String, Object?>{
             'mapId': map.id,
@@ -100,14 +89,10 @@ void requireExistingNativeSmartTileProject(
   String? layerId,
 }) {
   _requireCompleteMapSnapshot(snapshot);
-  _requireNoLegacyTerrainOrPath(
-    manifest: snapshot.manifest,
-    maps: snapshot.maps,
-  );
-  if (snapshot.manifest.version != ProjectVersion.v5) {
+  if (snapshot.manifest.version != ProjectVersion.v6) {
     throw semanticFailure(
       'smart_tile_native_project_version_required',
-      'Native Smart Tile maintenance requires a ProjectVersion.v5 manifest.',
+      'Native Smart Tile maintenance requires a ProjectVersion.v6 manifest.',
       details: <String, Object?>{
         'projectVersion': snapshot.manifest.version.name,
         'operation': operation,
@@ -116,11 +101,10 @@ void requireExistingNativeSmartTileProject(
     );
   }
   for (final map in snapshot.maps) {
-    if (map.layers.any((candidate) => candidate is SmartTileLayer) &&
-        map.version != ProjectVersion.v5) {
+    if (map.version != ProjectVersion.v6) {
       throw semanticFailure(
         'smart_tile_native_project_version_required',
-        'Native Smart Tile maintenance requires ProjectVersion.v5 maps.',
+        'Native Smart Tile maintenance requires ProjectVersion.v6 maps.',
         details: <String, Object?>{
           'mapId': map.id,
           'mapVersion': map.version.name,
@@ -163,46 +147,5 @@ void _requireCompleteMapSnapshot(ProjectSnapshot snapshot) {
       'The project snapshot contains maps absent from the manifest.',
       details: <String, Object?>{'mapIds': extra},
     );
-  }
-}
-
-void _requireNoLegacyTerrainOrPath({
-  required ProjectManifest manifest,
-  required Iterable<MapData> maps,
-}) {
-  if (manifest.terrainCategories.isNotEmpty ||
-      manifest.pathCategories.isNotEmpty ||
-      manifest.terrainPresets.isNotEmpty ||
-      manifest.pathPresets.isNotEmpty ||
-      manifest.pathPatternPresets.isNotEmpty) {
-    throw semanticFailure(
-      'smart_tile_legacy_project_unsupported',
-      'Native Smart Tile authoring is blocked while the manifest still '
-          'contains legacy Terrain/Path definitions.',
-      details: const <String, Object?>{'resourceKind': 'project'},
-      remediation: const <String>[
-        'Remove or migrate every legacy Terrain/Path definition first.',
-      ],
-    );
-  }
-  for (final map in maps) {
-    final legacyLayerIds = <String>[
-      for (final layer in map.layers)
-        if (layer is TerrainLayer || layer is PathLayer) layer.id,
-    ];
-    if (legacyLayerIds.isNotEmpty) {
-      throw semanticFailure(
-        'smart_tile_legacy_project_unsupported',
-        'Native Smart Tile authoring is blocked while a map still contains '
-            'legacy Terrain/Path layers.',
-        details: <String, Object?>{
-          'mapId': map.id,
-          'layerIds': legacyLayerIds,
-        },
-        remediation: const <String>[
-          'Remove or migrate every legacy Terrain/Path layer first.',
-        ],
-      );
-    }
   }
 }

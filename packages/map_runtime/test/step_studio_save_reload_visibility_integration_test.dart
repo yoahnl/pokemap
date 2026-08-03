@@ -41,12 +41,11 @@ void main() {
           kStepStudioDocumentMetadataKey: _doc,
         },
       );
-      final manifest = ProjectManifest(
+      const manifest = ProjectManifest(
         name: 'test',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[],
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
         scenarios: <ScenarioAsset>[scenario],
-        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       final index = buildStepCompletionCutsceneIndex(manifest.scenarios);

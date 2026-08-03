@@ -633,7 +633,7 @@ void main() {
 MapData _map({MapLayer? collision}) => MapData(
       id: 'map',
       name: 'Map',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       size: const GridSize(width: 5, height: 4),
       layers: <MapLayer>[
         if (collision != null) collision,

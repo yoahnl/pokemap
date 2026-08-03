@@ -122,8 +122,7 @@ class _PokemonMovesCatalogWorkspaceState
     if (view.loadState == PokemonMovesCatalogLoadState.loadError) {
       return _MovesWorkspaceNotice(
         title: 'Moves',
-        message:
-            view.message ?? 'Le catalogue local des moves est illisible.',
+        message: view.message ?? 'Le catalogue local des moves est illisible.',
       );
     }
 
@@ -173,7 +172,8 @@ class _PokemonMovesCatalogWorkspaceState
   Widget _buildPageHeader(BuildContext context, String? projectRootPath) {
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
-    final hasProject = projectRootPath != null && projectRootPath.trim().isNotEmpty;
+    final hasProject =
+        projectRootPath != null && projectRootPath.trim().isNotEmpty;
     final statusText = _buildSyncStatusText();
 
     return Column(
@@ -902,12 +902,14 @@ class _MovesCatalogDetailPanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              _MovesCatalogDetailRow(label: 'Type', value: _labelOrDash(entry!.type)),
+              _MovesCatalogDetailRow(
+                  label: 'Type', value: _labelOrDash(entry!.type)),
               _MovesCatalogDetailRow(
                 label: 'Damage class',
                 value: _labelOrDash(entry!.category),
               ),
-              _MovesCatalogDetailRow(label: 'Power', value: _intOrDash(entry!.power)),
+              _MovesCatalogDetailRow(
+                  label: 'Power', value: _intOrDash(entry!.power)),
               _MovesCatalogDetailRow(
                 label: 'Accuracy',
                 value: entry!.accuracyLabel == '-' ? '—' : entry!.accuracyLabel,

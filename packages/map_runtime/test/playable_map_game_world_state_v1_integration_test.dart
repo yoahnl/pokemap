@@ -137,7 +137,6 @@ RuntimeMapBundle _bundle({
       facts: facts,
       storylines: storylines,
       worldRules: worldRules,
-      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'map_world_state',

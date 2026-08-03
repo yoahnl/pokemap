@@ -122,15 +122,13 @@ ProjectManifest _project() => const ProjectManifest(
       name: 'border-studio-project',
       maps: <ProjectMapEntry>[],
       tilesets: <ProjectTilesetEntry>[],
-      surfaceCatalog: ProjectSurfaceCatalog.empty(),
     );
 
 ProjectManifest _projectWithDraft() => ProjectManifest(
       name: 'border-studio-project',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
-      surfaceCatalog: const ProjectSurfaceCatalog.empty(),
       borderCatalog: ProjectBorderCatalog(
         records: <BorderBlueprintRecord>[
           BorderBlueprintRecord(

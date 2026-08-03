@@ -54,8 +54,7 @@ const String kCutsceneStudioActionFlowMerge = 'flowMerge';
 /// (évite tout `waitMs` à 0 ms qui ferait croire à une vraie pause).
 ///
 /// Doit rester aligné sur [kScenarioActionAuthoringPlaceholder] (`map_runtime`).
-const String kCutsceneStudioActionAuthoringPlaceholder =
-    'authoringPlaceholder';
+const String kCutsceneStudioActionAuthoringPlaceholder = 'authoringPlaceholder';
 
 /// Métadonnée nœud : kind d’origine pour un placeholder rechargé depuis graphe.
 const String kCutsceneStudioPlaceholderKindMetadataKey =
@@ -136,11 +135,15 @@ class CutsceneStudioSourceConfig {
   }) {
     return CutsceneStudioSourceConfig(
       kind: kind ?? this.kind,
-      mapId: identical(mapId, cutsceneStudioCopyUnset) ? this.mapId : mapId as String?,
-      triggerId:
-          identical(triggerId, cutsceneStudioCopyUnset) ? this.triggerId : triggerId as String?,
-      entityId:
-          identical(entityId, cutsceneStudioCopyUnset) ? this.entityId : entityId as String?,
+      mapId: identical(mapId, cutsceneStudioCopyUnset)
+          ? this.mapId
+          : mapId as String?,
+      triggerId: identical(triggerId, cutsceneStudioCopyUnset)
+          ? this.triggerId
+          : triggerId as String?,
+      entityId: identical(entityId, cutsceneStudioCopyUnset)
+          ? this.entityId
+          : entityId as String?,
     );
   }
 
@@ -379,31 +382,38 @@ class CutsceneStudioBlock {
     return CutsceneStudioBlock(
       id: id ?? this.id,
       kind: kind ?? this.kind,
-      actorId: identical(actorId, cutsceneStudioCopyUnset) ? this.actorId : actorId as String?,
+      actorId: identical(actorId, cutsceneStudioCopyUnset)
+          ? this.actorId
+          : actorId as String?,
       dialogueId: identical(dialogueId, cutsceneStudioCopyUnset)
           ? this.dialogueId
           : dialogueId as String?,
       messageText: identical(messageText, cutsceneStudioCopyUnset)
           ? this.messageText
           : messageText as String?,
-      scriptId:
-          identical(scriptId, cutsceneStudioCopyUnset) ? this.scriptId : scriptId as String?,
-      flagName:
-          identical(flagName, cutsceneStudioCopyUnset) ? this.flagName : flagName as String?,
-      outcomeId:
-          identical(outcomeId, cutsceneStudioCopyUnset) ? this.outcomeId : outcomeId as String?,
+      scriptId: identical(scriptId, cutsceneStudioCopyUnset)
+          ? this.scriptId
+          : scriptId as String?,
+      flagName: identical(flagName, cutsceneStudioCopyUnset)
+          ? this.flagName
+          : flagName as String?,
+      outcomeId: identical(outcomeId, cutsceneStudioCopyUnset)
+          ? this.outcomeId
+          : outcomeId as String?,
       resultLabel: identical(resultLabel, cutsceneStudioCopyUnset)
           ? this.resultLabel
           : resultLabel as String?,
       resultScope: identical(resultScope, cutsceneStudioCopyUnset)
           ? this.resultScope
           : resultScope as String?,
-      destinationTargetKind: identical(destinationTargetKind, cutsceneStudioCopyUnset)
-          ? this.destinationTargetKind
-          : destinationTargetKind as String?,
-      destinationTargetId: identical(destinationTargetId, cutsceneStudioCopyUnset)
-          ? this.destinationTargetId
-          : destinationTargetId as String?,
+      destinationTargetKind:
+          identical(destinationTargetKind, cutsceneStudioCopyUnset)
+              ? this.destinationTargetKind
+              : destinationTargetKind as String?,
+      destinationTargetId:
+          identical(destinationTargetId, cutsceneStudioCopyUnset)
+              ? this.destinationTargetId
+              : destinationTargetId as String?,
       transitionMapId: identical(transitionMapId, cutsceneStudioCopyUnset)
           ? this.transitionMapId
           : transitionMapId as String?,
@@ -413,8 +423,9 @@ class CutsceneStudioBlock {
       facingDirection: identical(facingDirection, cutsceneStudioCopyUnset)
           ? this.facingDirection
           : facingDirection as String?,
-      durationMs:
-          identical(durationMs, cutsceneStudioCopyUnset) ? this.durationMs : durationMs as int?,
+      durationMs: identical(durationMs, cutsceneStudioCopyUnset)
+          ? this.durationMs
+          : durationMs as int?,
       waitForCompletion: identical(waitForCompletion, cutsceneStudioCopyUnset)
           ? this.waitForCompletion
           : waitForCompletion as bool?,
@@ -708,7 +719,8 @@ String? resolveCutsceneStudioOutcomeId(CutsceneStudioBlock block) {
   return cutsceneStudioResolveOutcomeIdForResultBlock(block);
 }
 
-String? cutsceneStudioResolveOutcomeIdForResultBlock(CutsceneStudioBlock block) {
+String? cutsceneStudioResolveOutcomeIdForResultBlock(
+    CutsceneStudioBlock block) {
   final explicit = cutsceneStudioTrimOrNull(block.outcomeId);
   if (explicit != null) {
     return explicit;
@@ -718,9 +730,9 @@ String? cutsceneStudioResolveOutcomeIdForResultBlock(CutsceneStudioBlock block) 
     return null;
   }
   final slug = cutsceneStudioNormalizeNodeId(label, fallback: 'scene_result');
-  final scope =
-      (cutsceneStudioTrimOrNull(block.resultScope) ?? kCutsceneStudioResultScopeLocal)
-          .toLowerCase();
+  final scope = (cutsceneStudioTrimOrNull(block.resultScope) ??
+          kCutsceneStudioResultScopeLocal)
+      .toLowerCase();
   switch (scope) {
     case kCutsceneStudioResultScopeGlobal:
       return 'global.$slug';

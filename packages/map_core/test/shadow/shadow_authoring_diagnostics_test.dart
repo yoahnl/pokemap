@@ -204,7 +204,6 @@ ProjectManifest _manifest({
     maps: const [],
     tilesets: const [],
     elements: elements,
-    surfaceCatalog: ProjectSurfaceCatalog(),
     shadowCatalog: shadowCatalog ?? ProjectShadowCatalog(),
   );
 }

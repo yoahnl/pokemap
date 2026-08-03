@@ -61,25 +61,15 @@ void main() {
       );
     });
 
-    test('returns surface placements and metadata-only object layers', () {
+    test('returns metadata-only object layers', () {
       final result = queryMapRegion(
         _map(),
         const MapRegionQuery(x: 1, y: 1, width: 2, height: 2),
       );
       final layers =
           (result.toJson()['layers']! as List).cast<Map<String, Object?>>();
-      final surface = layers.singleWhere((layer) => layer['type'] == 'surface');
       final object = layers.singleWhere((layer) => layer['type'] == 'object');
 
-      expect(
-        (surface['placements']! as List)
-            .cast<Map<String, Object?>>()
-            .map((placement) => [placement['x'], placement['y']]),
-        [
-          [2, 1],
-          [1, 2],
-        ],
-      );
       expect(object['encoding'], 'metadata_only');
       expect(object, isNot(contains('content')));
     });
@@ -146,7 +136,7 @@ MapData _map() {
     id: 'region-map',
     name: 'Region Map',
     size: const GridSize(width: 4, height: 3),
-    version: ProjectVersion.v1,
+    version: ProjectVersion.v6,
     layers: [
       MapLayer.tile(
         id: 'ground',
@@ -171,26 +161,15 @@ MapData _map() {
           false,
         ],
       ),
-      const MapLayer.surface(
-        id: 'surface',
-        name: 'Surface',
-        placements: [
-          SurfaceCellPlacement(
-            x: 1,
-            y: 2,
-            surfacePresetId: 'flowers',
-          ),
-          SurfaceCellPlacement(
-            x: 2,
-            y: 1,
-            surfacePresetId: 'grass',
-          ),
-          SurfaceCellPlacement(
-            x: 0,
-            y: 0,
-            surfacePresetId: 'water',
-          ),
-        ],
+      const MapLayer.smartTile(
+        id: 'forest-surface',
+        name: 'Forest surface',
+        presetId: 'forest',
+        usage: SmartTileUsage.forestSurface,
+        materialPalette: <String>['', 'flowers', 'grass', 'water'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[3, 0, 0, 0, 0, 0, 2, 0, 0, 1, 0, 0],
+        ),
       ),
       const MapLayer.object(id: 'objects', name: 'Objects'),
     ],

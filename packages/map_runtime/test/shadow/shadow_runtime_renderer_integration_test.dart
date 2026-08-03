@@ -63,12 +63,12 @@ void main() {
       expect(await pixelAt(image, 16, 16), rgba(0, 255, 0, 255));
     });
 
-    test('renders shadows before tile and placed element sprites', () async {
+    test('renders shadows after authored Smart Tile and tile layers', () async {
       final component = MapLayersComponent(
         bundle: surfaceTestBundle(
           map: surfaceTestMap(
             layers: [
-              surfaceTestLayer(),
+              runtimeTestBaseLayer(),
               const MapLayer.tile(
                 id: 'tile',
                 name: 'Tile',
@@ -91,7 +91,7 @@ void main() {
 
       final image = await renderSurfaceTestComponent(component);
 
-      expect(await pixelAt(image, 16, 16), rgba(255, 0, 0, 255));
+      expect(await pixelAt(image, 16, 16), rgba(0, 0, 0, 255));
     });
 
     test('renders shadows before project element entities', () async {
@@ -99,7 +99,7 @@ void main() {
         bundle: surfaceTestBundle(
           elements: [surfaceTestElement()],
           map: surfaceTestMap(
-            layers: [surfaceTestLayer()],
+            layers: [runtimeTestBaseLayer()],
             entities: const [
               MapEntity(
                 id: 'entity',
@@ -201,7 +201,7 @@ Future<MapLayersComponent> _componentWithSurface({
 }) async {
   return MapLayersComponent(
     bundle: surfaceTestBundle(
-      map: surfaceTestMap(layers: [surfaceTestLayer()]),
+      map: surfaceTestMap(layers: [runtimeTestBaseLayer()]),
     ),
     tileImagesByTilesetId: {
       'surface-water': await runtimeTilesetImage([const Color(0xFF0000FF)]),

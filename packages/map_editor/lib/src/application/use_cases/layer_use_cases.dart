@@ -43,30 +43,6 @@ class AddMapLayerUseCase {
     return AddMapLayerResult(updated, created);
   }
 
-  AddMapLayerResult executeSurface(
-    MapData map, {
-    String name = 'Surfaces',
-    int? insertIndex,
-  }) {
-    final normalizedName = name.trim().isEmpty ? 'Surfaces' : name.trim();
-    final layerId = _generateUniqueSurfaceLayerId(map);
-    final layerName = _resolveSurfaceLayerName(map, normalizedName);
-    final layer = MapLayer.surface(
-      id: layerId,
-      name: layerName,
-    );
-
-    var targetIndex = insertIndex ?? map.layers.length;
-    if (targetIndex < 0) targetIndex = 0;
-    if (targetIndex > map.layers.length) targetIndex = map.layers.length;
-
-    final updatedLayers = List<MapLayer>.from(map.layers, growable: true)
-      ..insert(targetIndex, layer);
-    final updated = map.copyWith(layers: updatedLayers);
-    MapValidator.validate(updated);
-    return AddMapLayerResult(updated, layer);
-  }
-
   AddMapLayerResult executeSmartTile(
     MapData map, {
     required String name,
@@ -109,9 +85,6 @@ class AddMapLayerUseCase {
     final kindPrefix = switch (kind) {
       MapLayerKind.tile => 'l_tile',
       MapLayerKind.collision => 'l_collision',
-      MapLayerKind.terrain => 'l_terrain',
-      MapLayerKind.path => 'l_path',
-      MapLayerKind.surface => 'l_surface',
       MapLayerKind.smartTile => 'l_smart',
       MapLayerKind.object => 'l_object',
       MapLayerKind.environment => 'l_environment',
@@ -126,35 +99,6 @@ class AddMapLayerUseCase {
       suffix++;
     }
     return candidate;
-  }
-
-  String _generateUniqueSurfaceLayerId(MapData map) {
-    final existing = map.layers.map((layer) => layer.id).toSet();
-    const base = 'surface-main';
-    if (!existing.contains(base)) {
-      return base;
-    }
-    var suffix = 2;
-    while (existing.contains('surface-$suffix')) {
-      suffix++;
-    }
-    return 'surface-$suffix';
-  }
-
-  String _resolveSurfaceLayerName(MapData map, String requestedName) {
-    if (requestedName != 'Surfaces') {
-      return requestedName;
-    }
-    final existing = map.layers.map((layer) => layer.name).toSet();
-    const base = 'Surfaces';
-    if (!existing.contains(base)) {
-      return base;
-    }
-    var suffix = 2;
-    while (existing.contains('$base $suffix')) {
-      suffix++;
-    }
-    return '$base $suffix';
   }
 
   String _slugifyLayerName(String value) {

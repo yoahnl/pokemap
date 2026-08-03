@@ -101,4 +101,3 @@ final class CinematicMapBackdropViewportTransform {
     return tileX >= 0 && tileX <= mapWidth && tileY >= 0 && tileY <= mapHeight;
   }
 }
-

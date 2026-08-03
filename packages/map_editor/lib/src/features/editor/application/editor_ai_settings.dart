@@ -19,4 +19,3 @@ String resolveEditorMistralApiKey(ProjectSettings? settings) {
 
 bool hasEditorMistralApiKey(ProjectSettings? settings) =>
     resolveEditorMistralApiKey(settings).trim().isNotEmpty;
-

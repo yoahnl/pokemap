@@ -31,7 +31,8 @@ void main() {
       expect(find.text('v0.3.0'), findsOneWidget);
     });
 
-    testWidgets('Hides wide layout segments on narrow viewports to avoid overflows',
+    testWidgets(
+        'Hides wide layout segments on narrow viewports to avoid overflows',
         (tester) async {
       // Pump on narrow surface (800 wide) which is below the threshold
       await pumpStatusBarHarness(
