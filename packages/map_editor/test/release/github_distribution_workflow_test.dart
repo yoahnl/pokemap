@@ -85,19 +85,37 @@ void main() {
     expect(workflow, contains('pokemap-update-index.json'));
     expect(workflow, contains('SHA256SUMS'));
     expect(workflow, contains('validate_update_assets.dart'));
-    expect(workflow, contains(r'gh release download "$GITHUB_REF_NAME"'));
-    expect(
-      workflow,
-      contains(r'gh release edit "$GITHUB_REF_NAME" --draft=false'),
-    );
-    expect(workflow, contains('pokemap-editor-update-stable'));
-    expect(workflow, contains('--windows-manual'));
-    expect(workflow, contains('package_windows_manual_release.ps1'));
-
     final draft = workflow.indexOf('create-draft-release:');
     final smoke = workflow.indexOf('smoke-download-draft:');
     final publish = workflow.indexOf('publish-release:');
     final promote = workflow.indexOf('promote-stable-feed:');
+    final draftCreation = workflow.substring(draft, smoke);
+    final smokeDownload = workflow.substring(smoke, publish);
+    final publication = workflow.substring(publish, promote);
+
+    expect(
+      draftCreation,
+      contains(r'repos/$GITHUB_REPOSITORY/releases'),
+    );
+    expect(
+      smokeDownload,
+      contains(r'and .draft == true) | .id'),
+    );
+    expect(
+      smokeDownload,
+      contains("Accept: application/octet-stream"),
+    );
+    expect(
+      smokeDownload,
+      isNot(contains(r'gh release download "$GITHUB_REF_NAME"')),
+    );
+    expect(publication, contains('gh api --method PATCH'));
+    expect(publication, contains('-F draft=false'));
+    expect(publication, isNot(contains('gh release edit')));
+    expect(workflow, contains('pokemap-editor-update-stable'));
+    expect(workflow, contains('--windows-manual'));
+    expect(workflow, contains('package_windows_manual_release.ps1'));
+
     expect(draft, lessThan(smoke));
     expect(smoke, lessThan(publish));
     expect(publish, lessThan(promote));

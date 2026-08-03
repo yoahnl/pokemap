@@ -637,7 +637,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
         run: |
-          if gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+          EXISTING_RELEASE_ID="$(
+            gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
+              --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id"
+          )"
+          if [[ -n "$EXISTING_RELEASE_ID" ]]; then
             echo "Release $GITHUB_REF_NAME already exists; refusing to overwrite it." >&2
             exit 65
           fi
@@ -677,9 +681,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir dist
-          gh release download "$GITHUB_REF_NAME" \
-            --repo "$GITHUB_REPOSITORY" \
-            --dir dist
+          DRAFT_RELEASE_ID="$(
+            gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
+              --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\" and .draft == true) | .id"
+          )"
+          if [[ ! "$DRAFT_RELEASE_ID" =~ ^[0-9]+$ ]]; then
+            echo "Expected exactly one draft release for $GITHUB_REF_NAME." >&2
+            exit 66
+          fi
+          gh api --paginate \
+            "repos/$GITHUB_REPOSITORY/releases/$DRAFT_RELEASE_ID/assets" \
+            --jq '.[] | [.id, .name] | @tsv' |
+            while IFS=$'\t' read -r ASSET_ID ASSET_NAME; do
+              if [[ -z "$ASSET_ID" || -z "$ASSET_NAME" || "$ASSET_NAME" == */* ]]; then
+                echo "Unsafe or incomplete draft asset metadata." >&2
+                exit 67
+              fi
+              gh api -H 'Accept: application/octet-stream' \
+                "repos/$GITHUB_REPOSITORY/releases/assets/$ASSET_ID" \
+                > "dist/$ASSET_NAME"
+            done
       - name: Revalidate downloaded hashes, metadata and signatures
         working-directory: packages/map_editor
         run: |
@@ -705,8 +726,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release edit "$GITHUB_REF_NAME" --draft=false \
-            --repo "$GITHUB_REPOSITORY"
+          DRAFT_RELEASE_ID="$(
+            gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
+              --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\" and .draft == true) | .id"
+          )"
+          if [[ ! "$DRAFT_RELEASE_ID" =~ ^[0-9]+$ ]]; then
+            echo "Expected exactly one validated draft release for $GITHUB_REF_NAME." >&2
+            exit 68
+          fi
+          gh api --method PATCH \
+            "repos/$GITHUB_REPOSITORY/releases/$DRAFT_RELEASE_ID" \
+            -F draft=false >/dev/null
           test "$(gh release view "$GITHUB_REF_NAME" \
             --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = false
 
