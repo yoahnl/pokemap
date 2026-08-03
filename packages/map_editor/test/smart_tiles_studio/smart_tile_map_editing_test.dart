@@ -119,7 +119,7 @@ void main() {
     expect(smartTileSemanticCells(edited), [1]);
   });
 
-  test('edge Smart Tile fields keep paint and erase blocked before STN-05', () {
+  test('edge Smart Tile fields keep paint, preview, erase, and history', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier);
@@ -143,7 +143,7 @@ void main() {
       layers: [layer],
     );
     notifier.state = EditorState(
-      project: _project,
+      project: _wangProject,
       activeMap: map,
       savedMapSnapshot: map,
       activeLayerId: 'smart',
@@ -154,36 +154,51 @@ void main() {
       hoveredTile: const GridPos(x: 0, y: 0),
       tilesetColumnsById: const <String, int>{},
     );
-    expect(paintPreview?.validity, MapToolPreviewValidity.invalid);
-    expect(paintPreview?.reason, smartTileWangPaintRequiresStn05Code);
-    expect(notifier.resolveCurrentPaintFootprintForEraser(), isNull);
+    expect(paintPreview?.validity, MapToolPreviewValidity.valid);
+    expect(paintPreview?.reason, isNull);
+    expect(
+      notifier.resolveCurrentPaintFootprintForEraser(),
+      const GridSize(width: 1, height: 1),
+    );
 
+    notifier.beginMapStroke();
     notifier.paintSmartTileMaterialAt(
       const GridPos(x: 0, y: 0),
       materialId: 'grass',
     );
-    expect(notifier.state.activeMap, map);
-    expect(notifier.state.errorMessage, smartTileWangPaintRequiresStn05Code);
+    notifier.endMapStroke();
+    var edited = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(notifier.state.errorMessage, isNull);
+    expect(smartTileSemanticCells(edited), <int>[1]);
+    expect(smartTileHorizontalEdges(edited), <int>[1, 1]);
+    expect(smartTileVerticalEdges(edited), <int>[1, 1]);
+    expect(notifier.state.mapUndoStack, hasLength(1));
 
     notifier.state = notifier.state.copyWith(activeTool: EditorToolType.eraser);
     final erasePreview = notifier.resolveMapToolPreview(
       hoveredTile: const GridPos(x: 0, y: 0),
       tilesetColumnsById: const <String, int>{},
     );
-    expect(erasePreview?.validity, MapToolPreviewValidity.invalid);
-    expect(erasePreview?.reason, smartTileWangPaintRequiresStn05Code);
+    expect(erasePreview?.validity, MapToolPreviewValidity.valid);
+    expect(erasePreview?.reason, isNull);
 
     expect(
       notifier.eraseCellAt(
         layerId: 'smart',
         pos: const GridPos(x: 0, y: 0),
       ),
-      isFalse,
+      isTrue,
     );
-    expect(notifier.state.activeMap, map);
-    expect(notifier.state.mapUndoStack, isEmpty);
-    expect(notifier.state.isDirty, isFalse);
-    expect(notifier.state.errorMessage, smartTileWangPaintRequiresStn05Code);
+    edited = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(smartTileSemanticCells(edited), <int>[0]);
+    expect(smartTileHorizontalEdges(edited), <int>[0, 0]);
+    expect(smartTileVerticalEdges(edited), <int>[0, 0]);
+    expect(notifier.state.mapUndoStack, hasLength(2));
+    expect(notifier.state.errorMessage, isNull);
+
+    notifier.undoMap();
+    edited = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(smartTileHorizontalEdges(edited), <int>[1, 1]);
   });
 }
 
@@ -213,6 +228,18 @@ final _project = ProjectManifest(
         transformPolicy: SmartTileTransformPolicy(),
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
+      ),
+    ],
+  ),
+);
+
+final _wangProject = _project.copyWith(
+  smartTileCatalog: ProjectSmartTileCatalog(
+    materials: _project.smartTileCatalog.materials,
+    presets: <ProjectSmartTilePreset>[
+      _project.smartTileCatalog.presets.single.copyWith(
+        topology: SmartTileTopology.wangEdge4,
+        templateHint: SmartTileTemplateHint.edge16,
       ),
     ],
   ),

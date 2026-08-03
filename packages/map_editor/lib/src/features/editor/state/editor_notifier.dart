@@ -7,8 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:map_authoring/map_authoring.dart'
     show
         computeAuthoringJsonFingerprint,
-        smartTileCanonicalLayerActionRequiredCode,
-        smartTileWangPaintRequiresStn05Code;
+        smartTileCanonicalLayerActionRequiredCode;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -5484,16 +5483,11 @@ class EditorNotifier extends _$EditorNotifier
       );
       return;
     }
-    if (activeLayer.field is! SmartTileCellField) {
-      _setPaintError(smartTileWangPaintRequiresStn05Code);
-      return;
-    }
     try {
-      final paintedLayer = setSmartTileCellMaterial(
+      final paintedLayer = applySmartTileMaterialGesture(
         activeLayer,
         mapSize: map.size,
-        x: pos.x,
-        y: pos.y,
+        cells: <GridPos>[pos],
         materialId: materialId,
       );
       if (paintedLayer == activeLayer) {
@@ -5621,12 +5615,7 @@ class EditorNotifier extends _$EditorNotifier
         );
         return false;
       }
-      if (layer.field is! SmartTileCellField) {
-        _setPaintError(smartTileWangPaintRequiresStn05Code);
-        return false;
-      }
       try {
-        var erasedLayer = layer;
         final erasedCells = <GridPos>[];
         for (var y = 0; y < patternSize.height; y++) {
           for (var x = 0; x < patternSize.width; x++) {
@@ -5638,23 +5627,22 @@ class EditorNotifier extends _$EditorNotifier
                 targetY >= map.size.height) {
               continue;
             }
-            final before = smartTileMaterialIdAt(
-              erasedLayer,
+            final hasAuthoredValue = smartTileCellHasAuthoredValue(
+              layer,
               mapSize: map.size,
               x: targetX,
               y: targetY,
             );
-            if (before == null) continue;
-            erasedLayer = setSmartTileCellMaterial(
-              erasedLayer,
-              mapSize: map.size,
-              x: targetX,
-              y: targetY,
-              materialId: null,
-            );
+            if (!hasAuthoredValue) continue;
             erasedCells.add(GridPos(x: targetX, y: targetY));
           }
         }
+        final erasedLayer = applySmartTileMaterialGesture(
+          layer,
+          mapSize: map.size,
+          cells: erasedCells,
+          materialId: null,
+        );
         if (erasedLayer == layer) {
           state = state.copyWith(errorMessage: null);
           return false;
@@ -7935,14 +7923,10 @@ class EditorNotifier extends _$EditorNotifier
 
     if (tool == EditorToolType.terrainPaint) {
       if (activeLayer is SmartTileLayer) {
-        final editable = activeLayer.field is SmartTileCellField;
         return MapToolPreview.pathPaint(
           origin: hoveredTile,
           size: const GridSize(width: 1, height: 1),
-          validity: editable
-              ? MapToolPreviewValidity.valid
-              : MapToolPreviewValidity.invalid,
-          reason: editable ? null : smartTileWangPaintRequiresStn05Code,
+          validity: MapToolPreviewValidity.valid,
         );
       }
       return null;
@@ -7976,14 +7960,10 @@ class EditorNotifier extends _$EditorNotifier
       );
     }
     if (activeLayer is SmartTileLayer) {
-      final editable = activeLayer.field is SmartTileCellField;
       return MapToolPreview.pathErase(
         origin: hoveredTile,
         size: eraserFootprint.size,
-        validity: editable
-            ? MapToolPreviewValidity.valid
-            : MapToolPreviewValidity.invalid,
-        reason: editable ? null : smartTileWangPaintRequiresStn05Code,
+        validity: MapToolPreviewValidity.valid,
       );
     }
     return null;
@@ -8409,12 +8389,6 @@ class EditorNotifier extends _$EditorNotifier
       return _resolveCollisionFootprint(emitErrors: emitErrors);
     }
     if (activeLayer is SmartTileLayer) {
-      if (activeLayer.field is! SmartTileCellField) {
-        if (emitErrors) {
-          _setPaintError(smartTileWangPaintRequiresStn05Code);
-        }
-        return null;
-      }
       return const _ResolvedBrushFootprint(
         size: GridSize(width: 1, height: 1),
         failureLabel: 'Smart Tile cell',

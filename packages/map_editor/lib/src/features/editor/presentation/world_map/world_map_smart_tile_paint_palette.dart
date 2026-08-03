@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_authoring/map_authoring.dart'
-    show
-        smartTileCanonicalLayerActionRequiredCode,
-        smartTileWangPaintRequiresStn05Code;
+    show smartTileCanonicalLayerActionRequiredCode;
 import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
@@ -17,7 +15,7 @@ import 'world_map_workspace_session.dart';
 
 /// Direct, no-code access to the published Smart Tile presets used by Paint.
 ///
-/// Choosing a preset selects an existing cell-field layer, then arms the
+/// Choosing a preset selects an existing compatible layer, then arms the
 /// matching paint tool. New layers are created canonically from Layers or the
 /// Smart Tiles Studio publication handoff.
 class WorldMapSmartTilePaintPalette extends ConsumerWidget {
@@ -93,7 +91,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
       final current = ref.read(editorNotifierProvider);
       final map = current.activeMap;
       if (map == null) return;
-      final existing = _cellLayerForPreset(
+      final existing = _layerForPreset(
         map,
         presetId: preset.id,
         usage: preset.usage,
@@ -104,11 +102,11 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
       activate(ActivateWorldMapPaint(subtool));
     }
 
-    final canEdit = activeLayer?.field is SmartTileCellField;
-    final hasReusableCellLayer = snapshot.map != null &&
+    final canEdit = activeLayer != null;
+    final hasReusableLayer = snapshot.map != null &&
         presets.any(
           (preset) =>
-              _cellLayerForPreset(
+              _layerForPreset(
                 snapshot.map!,
                 presetId: preset.id,
                 usage: preset.usage,
@@ -116,11 +114,9 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
               ) !=
               null,
         );
-    final blockedCode = activeLayer != null && !canEdit
-        ? smartTileWangPaintRequiresStn05Code
-        : activeLayer == null && !hasReusableCellLayer
-            ? smartTileCanonicalLayerActionRequiredCode
-            : null;
+    final blockedCode = activeLayer == null && !hasReusableLayer
+        ? smartTileCanonicalLayerActionRequiredCode
+        : null;
     final isPainting =
         canEdit && snapshot.activeTool == EditorToolType.terrainPaint;
     final isErasing = canEdit && snapshot.activeTool == EditorToolType.eraser;
@@ -142,7 +138,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                 _ => throw StateError('Unsupported Smart Tile paint subtool.'),
               },
               description: activeLayer == null
-                  ? hasReusableCellLayer
+                  ? hasReusableLayer
                       ? 'Choisissez un preset déjà présent sur cette carte.'
                       : 'Aucun calque compatible. Ajoutez-en un depuis '
                           'le panneau Calques.'
@@ -244,17 +240,9 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                           itemBuilder: (context, index) {
                             final preset = presets[index];
                             final selected = activeLayer?.presetId == preset.id;
-                            final matchingLayer = snapshot.map == null
+                            final reusableLayer = snapshot.map == null
                                 ? null
                                 : _layerForPreset(
-                                    snapshot.map!,
-                                    presetId: preset.id,
-                                    usage: preset.usage,
-                                    preferredLayerId: snapshot.activeLayerId,
-                                  );
-                            final reusableCellLayer = snapshot.map == null
-                                ? null
-                                : _cellLayerForPreset(
                                     snapshot.map!,
                                     presetId: preset.id,
                                     usage: preset.usage,
@@ -278,13 +266,11 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                               label: preset.name,
                               description: selected && canEdit
                                   ? 'Prêt à peindre'
-                                  : reusableCellLayer != null
+                                  : reusableLayer != null
                                       ? 'Cliquer pour utiliser'
-                                      : matchingLayer != null
-                                          ? 'Peinture disponible après STN-05'
-                                          : 'Ajouter un calque depuis Calques',
+                                      : 'Ajouter un calque depuis Calques',
                               selected: selected,
-                              onPressed: reusableCellLayer == null
+                              onPressed: reusableLayer == null
                                   ? null
                                   : () => selectPreset(preset),
                               trailing: selected
@@ -360,28 +346,6 @@ SmartTileLayer? _layerForPreset(
     if (layer is SmartTileLayer &&
         layer.usage == usage &&
         layer.presetId == presetId) {
-      return layer;
-    }
-  }
-  return null;
-}
-
-SmartTileLayer? _cellLayerForPreset(
-  MapData map, {
-  required String presetId,
-  required SmartTileUsage usage,
-  required String? preferredLayerId,
-}) {
-  final preferred = _activeSmartTileLayer(map, preferredLayerId, usage);
-  if (preferred?.presetId == presetId &&
-      preferred?.field is SmartTileCellField) {
-    return preferred;
-  }
-  for (final layer in map.layers.reversed) {
-    if (layer is SmartTileLayer &&
-        layer.usage == usage &&
-        layer.presetId == presetId &&
-        layer.field is SmartTileCellField) {
       return layer;
     }
   }

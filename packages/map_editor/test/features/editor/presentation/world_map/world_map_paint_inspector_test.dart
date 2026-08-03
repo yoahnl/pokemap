@@ -660,7 +660,7 @@ void main() {
     },
   );
 
-  testWidgets('Wang Smart Tile actions stay disabled before STN-05',
+  testWidgets('Wang Smart Tile actions arm the typed World Map session',
       (tester) async {
     final harness = _PaintHarness(
       'smart-terrain',
@@ -671,13 +671,10 @@ void main() {
       ),
     );
     addTearDown(harness.dispose);
-    final editorBefore = harness.notifier.state;
-    final sessionBefore = harness.sessionState;
-
     await harness.pump(tester);
     expect(
       find.text(smartTileWangPaintRequiresStn05Code),
-      findsOneWidget,
+      findsNothing,
     );
 
     await tester.tap(
@@ -687,8 +684,18 @@ void main() {
     );
     await tester.pump();
 
-    expect(harness.notifier.state, same(editorBefore));
-    expect(harness.sessionState, same(sessionBefore));
+    expect(
+      harness.notifier.state.activeTool,
+      EditorToolType.terrainPaint,
+    );
+    expect(
+      harness.sessionState.activeFamily,
+      WorldMapToolFamily.paint,
+    );
+    expect(
+      harness.sessionState.lastPaintSubtool,
+      WorldMapPaintSubtool.terrain,
+    );
   });
 
   testWidgets(
