@@ -1,0 +1,103 @@
+<style>
+  .screen {
+    --bg:#07111f; --panel:#0d1a2a; --panel2:#111f31; --line:#263a55;
+    --blue:#5d97ff; --green:#55e397; --amber:#f6bd52; --muted:#91a4bb;
+    min-height:calc(100vh - 150px); overflow:hidden; color:#edf5ff;
+    border:1px solid #1c3049; border-radius:20px;
+    background:radial-gradient(circle at 12% 0%,rgba(85,227,151,.1),transparent 27%),var(--bg);
+    box-shadow:0 24px 80px rgba(0,0,0,.24);
+  }
+  .top { display:flex; justify-content:space-between; align-items:center; gap:16px; padding:17px 22px; border-bottom:1px solid var(--line); }
+  .brand { display:flex; align-items:center; gap:11px; }
+  .logo { width:35px;height:35px;display:grid;place-items:center;border-radius:10px;color:var(--green);background:rgba(85,227,151,.09);border:1px solid rgba(85,227,151,.25); }
+  .brand strong { display:block;font-size:14px; }.brand span { display:block;color:#7f94ad;font-size:10px; }
+  .confirmed { padding:6px 10px;border-radius:999px;background:rgba(85,227,151,.1);border:1px solid rgba(85,227,151,.27);color:#79eba9;font-size:10px;font-weight:800; }
+  .main-content { padding:26px; }
+  .step { color:#87a6cf;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase; }
+  .main-content h2 { margin:7px 0 7px;font-size:clamp(23px,3vw,36px);letter-spacing:-.03em; }
+  .intro { max-width:820px;margin-bottom:20px;color:#98abc1;font-size:13px; }
+  .usage-choice { display:flex;gap:7px;margin-bottom:20px; }
+  .usage-choice span { padding:6px 9px;border-radius:7px;background:#101e30;border:1px solid #263b55;color:#8297af;font-size:9px; }
+  .usage-choice span.active { border-color:var(--blue);background:rgba(93,151,255,.12);color:#dfeaff; }
+
+  .nav-grid { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px; }
+  .nav-card { position:relative;cursor:pointer;overflow:hidden;background:var(--panel);border:1px solid var(--line);border-radius:16px;transition:.18s ease; }
+  .nav-card:hover { transform:translateY(-3px);border-color:#4d72a0;box-shadow:0 16px 30px rgba(0,0,0,.2); }
+  .nav-card.selected { border:2px solid var(--blue);box-shadow:0 0 0 4px rgba(93,151,255,.12); }
+  .nav-card.selected::after { content:'✓';position:absolute;z-index:4;right:13px;top:13px;width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:var(--blue);color:#07111f;font-weight:900; }
+  .badge { position:absolute;right:13px;top:13px;z-index:3;padding:5px 8px;border-radius:999px;background:var(--green);color:#071c15;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.07em; }
+  .nav-card.selected .badge { display:none; }
+  .preview { height:225px;padding:16px;background:var(--panel2);border-bottom:1px solid var(--line); }
+  .window { height:100%;border:1px solid #2a405b;border-radius:10px;overflow:hidden;background:#081321; }
+  .windowbar { height:28px;display:flex;align-items:center;gap:5px;padding:0 9px;border-bottom:1px solid #22364e;color:#748ba6;font-size:8px; }
+  .dot { width:5px;height:5px;border-radius:50%;background:#38506d; }.windowbar b { margin-left:5px;color:#a8bbd0;font-weight:700; }
+
+  .hybrid-body { display:grid;grid-template-columns:1fr 24px 1fr;height:calc(100% - 28px);align-items:stretch; }
+  .phase { padding:10px; }.phase-label { color:#7590af;font-size:7px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px; }
+  .step-list { display:grid;gap:5px; }.step-row { display:flex;align-items:center;gap:6px;color:#7289a4;font-size:7px; }
+  .step-row i { width:14px;height:14px;display:grid;place-items:center;border-radius:50%;background:#152840;color:#7390b0;font-style:normal;font-size:6px; }
+  .step-row.done i { background:rgba(85,227,151,.15);color:var(--green); }.step-row.active { color:#e0eaff; }.step-row.active i { background:var(--blue);color:#07111f; }
+  .next-button { margin-top:8px;padding:5px 8px;text-align:center;border-radius:5px;background:#315f9e;color:white;font-size:7px; }
+  .phase-arrow { display:grid;place-items:center;color:var(--blue);font-size:14px;border-left:1px solid #20354d;border-right:1px solid #20354d; }
+  .work-tabs { display:flex;gap:3px;margin-bottom:8px; }.work-tabs span { padding:4px 5px;border-radius:4px;color:#7188a3;background:#122238;font-size:6px; }.work-tabs span.active { color:#e3edfa;background:#284d80; }
+  .mini-canvas { height:79px;position:relative;border:1px solid #243b57;border-radius:6px;background-color:#0e1d2d;background-image:linear-gradient(#172b41 1px,transparent 1px),linear-gradient(90deg,#172b41 1px,transparent 1px);background-size:13px 13px; }
+  .mini-canvas::after { content:'';position:absolute;left:26px;top:20px;width:50px;height:38px;border-radius:45% 54% 35% 60%;background:#9f7842;box-shadow:0 0 0 3px #6a9654; }
+
+  .wizard-layout { display:grid;grid-template-columns:82px 1fr;height:calc(100% - 28px); }
+  .wizard-side { padding:9px;border-right:1px solid #20354d;background:#0b1726; }.wizard-side div { padding:5px;color:#6f849d;font-size:6px;border-radius:4px;margin-bottom:3px; }.wizard-side div.active { color:#dce9f8;background:#284d80; }.wizard-side div.locked::after { content:' · verrouillé';color:#4d6178; }
+  .wizard-main { padding:12px; }.form-line { height:8px;border-radius:4px;background:#18304a;margin:0 0 8px; }.form-line.short { width:55%; }.form-box { height:67px;border:1px dashed #365272;border-radius:6px;margin:11px 0;display:grid;place-items:center;color:#657e9b;font-size:7px; }.wizard-actions { display:flex;justify-content:flex-end;gap:5px; }.wizard-actions span { padding:5px 8px;border-radius:4px;background:#172a41;color:#7f95ad;font-size:6px; }.wizard-actions span:last-child { color:white;background:#315f9e; }
+
+  .free-layout { display:grid;grid-template-columns:58px 1fr 64px;height:calc(100% - 28px); }.free-side,.free-inspector { padding:8px;background:#0b1726; }.free-side { border-right:1px solid #20354d; }.free-inspector { border-left:1px solid #20354d; }.free-side div,.free-inspector div { height:7px;margin-bottom:6px;border-radius:4px;background:#1a3048; }.free-side div.active { background:#315f9e; }.free-canvas { display:grid;place-items:center;color:#607894;font-size:8px;background-color:#0d1a29;background-image:linear-gradient(#14283d 1px,transparent 1px),linear-gradient(90deg,#14283d 1px,transparent 1px);background-size:16px 16px; }.free-canvas span { max-width:90px;text-align:center;padding:8px;border-radius:6px;background:#0b1726;border:1px dashed #35506d; }
+
+  .body { padding:17px; }.kicker { color:var(--blue);font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em; }.body h3 { margin:4px 0 7px;font-size:16px; }.body p { min-height:54px;color:var(--muted);font-size:11px;line-height:1.5; }.facts { display:grid;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid #22364d; }.facts div { color:#8398b0;font-size:9px; }.facts b { color:#c6d5e6; }.cta { display:flex;justify-content:space-between;margin-top:14px;color:#dce7f6;font-size:10px;font-weight:800; }.cta span:last-child { color:var(--blue);font-size:15px; }
+  .boundary { margin-top:19px;padding:11px 13px;border-radius:10px;background:rgba(246,189,82,.07);border:1px solid rgba(246,189,82,.22);color:#aebfd2;font-size:10px; }.boundary b { color:#f5d18a; }
+  @media(max-width:980px){.nav-grid{grid-template-columns:1fr}.body p{min-height:0}}
+</style>
+
+<div class="screen">
+  <div class="top">
+    <div class="brand"><div class="logo">▦</div><div><strong>Smart Tiles Studio</strong><span>Conception du parcours no-code</span></div></div>
+    <div class="confirmed">✓ Départ par intention validé</div>
+  </div>
+  <div class="main-content">
+    <div class="step">Décision 2 · structure de navigation</div>
+    <h2>Après l’intention, comment accompagne-t-on la création ?</h2>
+    <p class="intro">Nous devons concilier deux besoins : ne jamais perdre un débutant face à un atlas, et ne pas ralentir l’utilisateur qui revient simplement corriger une règle ou une variante.</p>
+    <div class="usage-choice"><span>Terrain</span><span class="active">Chemin</span><span>Forêt</span><span>→ Comment poursuivre ?</span></div>
+
+    <div class="cards nav-grid">
+      <article class="card nav-card" data-choice="navigation-hybrid" onclick="toggleSelect(this)" role="button" tabindex="0">
+        <span class="badge">Recommandé</span>
+        <div class="preview"><div class="window">
+          <div class="windowbar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><b>Guidé à la création · libre ensuite</b></div>
+          <div class="hybrid-body">
+            <div class="phase"><div class="phase-label">Première création</div><div class="step-list">
+              <div class="step-row done"><i>✓</i>Usage</div><div class="step-row done"><i>✓</i>Image</div><div class="step-row active"><i>3</i>Grille</div><div class="step-row"><i>4</i>Matériaux</div><div class="step-row"><i>5</i>Raccords</div>
+            </div><div class="next-button">Continuer</div></div>
+            <div class="phase-arrow">→</div>
+            <div class="phase"><div class="phase-label">Éditions suivantes</div><div class="work-tabs"><span>Atlas</span><span class="active">Règles</span><span>Essai</span></div><div class="mini-canvas"></div></div>
+          </div>
+        </div></div>
+        <div class="card-body body"><div class="kicker">Option A</div><h3>Parcours hybride</h3><p>Un guide progressif pour créer. Une fois le brouillon constitué, toutes les sections deviennent librement accessibles.</p><div class="facts"><div>✓ <b>Débutant :</b> toujours une prochaine action claire.</div><div>✓ <b>Expert :</b> aucune obligation de refaire le wizard.</div></div><div class="cta"><span>Choisir cette structure</span><span>→</span></div></div>
+      </article>
+
+      <article class="card nav-card" data-choice="navigation-wizard" onclick="toggleSelect(this)" role="button" tabindex="0">
+        <div class="preview"><div class="window">
+          <div class="windowbar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><b>Assistant permanent</b></div>
+          <div class="wizard-layout"><div class="wizard-side"><div>1 · Usage</div><div>2 · Image</div><div class="active">3 · Grille</div><div class="locked">4 · Matériaux</div><div class="locked">5 · Raccords</div><div class="locked">6 · Variantes</div></div><div class="wizard-main"><div class="form-line short"></div><div class="form-line"></div><div class="form-box">Aperçu et réglages de la grille</div><div class="wizard-actions"><span>Retour</span><span>Continuer</span></div></div></div>
+        </div></div>
+        <div class="card-body body"><div class="kicker">Option B</div><h3>Assistant permanent</h3><p>La création et toutes les modifications restent organisées dans un parcours linéaire avec étapes validées.</p><div class="facts"><div>✓ <b>Prévisible :</b> impossible de manquer une étape.</div><div>△ <b>Rigide :</b> modifier une variante devient plus long.</div></div><div class="cta"><span>Choisir cette structure</span><span>→</span></div></div>
+      </article>
+
+      <article class="card nav-card" data-choice="navigation-workbench" onclick="toggleSelect(this)" role="button" tabindex="0">
+        <div class="preview"><div class="window">
+          <div class="windowbar"><i class="dot"></i><i class="dot"></i><i class="dot"></i><b>Établi ouvert immédiatement</b></div>
+          <div class="free-layout"><div class="free-side"><div class="active"></div><div></div><div></div><div></div><div></div></div><div class="free-canvas"><span>Sélectionnez une section pour commencer</span></div><div class="free-inspector"><div></div><div></div><div></div><div></div></div></div>
+        </div></div>
+        <div class="card-body body"><div class="kicker">Option C</div><h3>Établi libre immédiat</h3><p>Toutes les sections, le canevas et l’inspecteur sont accessibles dès le début, sans ordre imposé.</p><div class="facts"><div>✓ <b>Puissant :</b> accès direct à tous les réglages.</div><div>△ <b>Dense :</b> risque d’écran vide et de surcharge cognitive.</div></div><div class="cta"><span>Choisir cette structure</span><span>→</span></div></div>
+      </article>
+    </div>
+
+    <div class="boundary"><b>Invariant quelle que soit l’option :</b> le travail reste un brouillon local tant qu’il n’est pas validé ; la publication passe uniquement par l’action d’authoring canonique introduite en STN-03.</div>
+  </div>
+</div>

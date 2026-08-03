@@ -1,0 +1,232 @@
+<style>
+  .studio-shell {
+    --studio-bg: #07111f;
+    --studio-panel: #0d1a2a;
+    --studio-panel-2: #111f31;
+    --studio-line: #263a55;
+    --studio-blue: #5d97ff;
+    --studio-green: #55e397;
+    --studio-amber: #f6bd52;
+    background:
+      radial-gradient(circle at 85% 0%, rgba(53, 111, 213, .18), transparent 33%),
+      var(--studio-bg);
+    border: 1px solid #1c3049;
+    border-radius: 20px;
+    color: #eef5ff;
+    min-height: calc(100vh - 150px);
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .24);
+  }
+
+  .studio-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 22px;
+    border-bottom: 1px solid var(--studio-line);
+    background: rgba(8, 19, 33, .82);
+  }
+
+  .studio-brand { display: flex; align-items: center; gap: 12px; }
+  .studio-logo {
+    width: 36px; height: 36px; display: grid; place-items: center;
+    border-radius: 11px; color: var(--studio-green);
+    background: rgba(85, 227, 151, .1); border: 1px solid rgba(85, 227, 151, .25);
+    font-size: 18px;
+  }
+  .studio-brand strong { display: block; font-size: 15px; }
+  .studio-brand span { color: #8296af; font-size: 11px; }
+  .decision-progress { display: flex; gap: 6px; align-items: center; }
+  .decision-progress i { width: 26px; height: 4px; background: #23364d; border-radius: 999px; }
+  .decision-progress i:first-child { background: var(--studio-blue); }
+
+  .studio-content { padding: 28px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    color: #89a8d2; font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .1em;
+  }
+  .eyebrow::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--studio-blue); }
+  .studio-content h2 { font-size: clamp(24px, 3vw, 38px); margin: 8px 0 8px; letter-spacing: -.03em; }
+  .studio-intro { color: #9cafc6; max-width: 760px; font-size: 14px; margin-bottom: 22px; }
+
+  .design-note {
+    display: flex; align-items: flex-start; gap: 10px; max-width: 900px;
+    margin-bottom: 22px; padding: 11px 14px; border-radius: 10px;
+    color: #b8c9dd; font-size: 12px; background: rgba(93, 151, 255, .08);
+    border: 1px solid rgba(93, 151, 255, .2);
+  }
+  .design-note b { color: #dceaff; }
+
+  .choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+  .choice-card {
+    position: relative; overflow: hidden; cursor: pointer;
+    background: var(--studio-panel); border: 1px solid var(--studio-line);
+    border-radius: 16px; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+  }
+  .choice-card:hover { transform: translateY(-3px); border-color: #4d72a0; box-shadow: 0 16px 32px rgba(0,0,0,.22); }
+  .choice-card.selected { border: 2px solid var(--studio-blue); box-shadow: 0 0 0 4px rgba(93,151,255,.12); }
+  .choice-card.selected::after {
+    content: '✓'; position: absolute; right: 14px; top: 14px; z-index: 3;
+    width: 25px; height: 25px; display: grid; place-items: center;
+    color: #07111f; background: var(--studio-blue); border-radius: 50%; font-weight: 900;
+  }
+  .recommended {
+    position: absolute; z-index: 3; top: 14px; right: 14px;
+    padding: 5px 8px; color: #082019; background: var(--studio-green);
+    border-radius: 999px; font-size: 9px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase;
+  }
+  .choice-card.selected .recommended { display: none; }
+
+  .choice-preview { min-height: 205px; padding: 18px; background: var(--studio-panel-2); border-bottom: 1px solid var(--studio-line); }
+  .preview-window { height: 168px; padding: 12px; border-radius: 10px; background: #081321; border: 1px solid #233a56; }
+  .preview-title { color: #dbe8f8; font-size: 11px; font-weight: 800; margin-bottom: 10px; }
+  .preview-copy { color: #7086a0; font-size: 9px; margin-top: -7px; margin-bottom: 11px; }
+
+  .intent-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+  .intent-tile {
+    min-height: 48px; padding: 8px; border-radius: 8px; border: 1px solid #263c56;
+    display: flex; align-items: center; gap: 8px; color: #9db0c7; font-size: 9px;
+    background: #0c1929;
+  }
+  .intent-tile span { font-size: 16px; }
+  .intent-tile.active { color: #dceaff; border-color: var(--studio-blue); background: rgba(93,151,255,.13); }
+  .intent-tile:last-child { grid-column: 1 / -1; }
+
+  .dropzone {
+    height: 88px; display: grid; place-items: center; text-align: center;
+    border: 1px dashed #4d6a8e; border-radius: 8px; color: #8ea4bd; font-size: 9px;
+    background: repeating-linear-gradient(45deg, #0b1828, #0b1828 8px, #0e1c2d 8px, #0e1c2d 16px);
+  }
+  .dropzone b { display: block; color: #c8d8ea; font-size: 11px; }
+  .detected-row { display: flex; gap: 5px; margin-top: 10px; }
+  .detected-row span { padding: 4px 6px; border-radius: 6px; color: #8fa5bd; background: #132238; font-size: 8px; }
+
+  .topology-board { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .topology {
+    height: 38px; display: grid; place-items: center; border: 1px solid #2d425b;
+    border-radius: 7px; background: #0d1a2a; color: #8fa5bd; font-size: 8px;
+  }
+  .topology:nth-child(5) { color: #ffd588; border-color: #8a6730; background: rgba(246,189,82,.1); }
+
+  .choice-body { padding: 18px; }
+  .choice-kicker { color: var(--studio-blue); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; }
+  .choice-body h3 { margin: 4px 0 8px; font-size: 17px; }
+  .choice-body > p { min-height: 55px; color: #91a4bb; font-size: 12px; line-height: 1.55; }
+  .choice-meta { display: grid; gap: 7px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #22364d; }
+  .choice-meta div { display: flex; gap: 7px; color: #8499b1; font-size: 10px; }
+  .choice-meta b { color: #c1d1e3; font-weight: 700; }
+  .choice-cta { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; color: #d7e4f4; font-size: 11px; font-weight: 800; }
+  .choice-cta span:last-child { color: var(--studio-blue); font-size: 17px; }
+
+  .flow-strip {
+    display: grid; grid-template-columns: repeat(9, auto); align-items: center; gap: 7px;
+    margin-top: 22px; padding: 13px 15px; border: 1px solid #20344d; border-radius: 12px;
+    background: rgba(13,26,42,.7); overflow-x: auto;
+  }
+  .flow-strip span { white-space: nowrap; color: #71869f; font-size: 9px; }
+  .flow-strip span:nth-child(odd) { padding: 5px 7px; border-radius: 6px; background: #122239; color: #9db1c8; }
+  .flow-strip span:first-child { color: white; background: #284e84; }
+
+  @media (max-width: 980px) {
+    .choice-grid { grid-template-columns: 1fr; }
+    .choice-preview { min-height: 180px; }
+    .choice-body > p { min-height: 0; }
+  }
+</style>
+
+<div class="studio-shell">
+  <div class="studio-topbar">
+    <div class="studio-brand">
+      <div class="studio-logo">▦</div>
+      <div><strong>Smart Tiles Studio</strong><span>Conception STN-04 · aucun code produit modifié</span></div>
+    </div>
+    <div class="decision-progress" title="Décision 1 sur 5"><i></i><i></i><i></i><i></i><i></i></div>
+  </div>
+
+  <div class="studio-content">
+    <div class="eyebrow">Décision 1 · point de départ</div>
+    <h2>Quand on clique sur « Nouveau », que demande le Studio ?</h2>
+    <p class="studio-intro">Le même moteur canonique se trouve derrière les trois propositions. Ici, nous choisissons seulement le langage et l’ordre dans lequel l’utilisateur découvre les possibilités.</p>
+
+    <div class="design-note">
+      <span>◎</span>
+      <span><b>Principe no-code :</b> Terrain, chemin et forêt décrivent l’usage dans la carte. Simple, Edge, Corner, Blob ou Mixed décrivent ensuite le modèle de raccords — ils ne doivent pas être un prérequis pour commencer.</span>
+    </div>
+
+    <div class="cards choice-grid">
+      <article id="choice-start-intention" class="card choice-card" data-choice="start-intention" onclick="toggleSelect(this)" role="button" tabindex="0">
+        <span class="recommended">Recommandé</span>
+        <div class="choice-preview">
+          <div class="preview-window">
+            <div class="preview-title">Que voulez-vous créer ?</div>
+            <div class="preview-copy">Le Studio adapte ensuite le guide à votre besoin.</div>
+            <div class="intent-tiles">
+              <div class="intent-tile"><span>▧</span> Terrain</div>
+              <div class="intent-tile active"><span>⑂</span> Chemin</div>
+              <div class="intent-tile"><span>♣</span> Forêt</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body choice-body">
+          <div class="choice-kicker">Option A</div>
+          <h3>Commencer par l’intention</h3>
+          <p>L’utilisateur dit ce qu’il veut fabriquer. Le Studio propose ensuite l’image, la grille et les modèles compatibles.</p>
+          <div class="choice-meta">
+            <div>✓ <span><b>Naturel :</b> on pense « chemin », pas « topologie Edge ».</span></div>
+            <div>↗ <span><b>Évolutif :</b> mode avancé accessible sans polluer le démarrage.</span></div>
+          </div>
+          <div class="choice-cta"><span>Choisir ce départ</span><span>→</span></div>
+        </div>
+      </article>
+
+      <article id="choice-start-image" class="card choice-card" data-choice="start-image" onclick="toggleSelect(this)" role="button" tabindex="0">
+        <div class="choice-preview">
+          <div class="preview-window">
+            <div class="preview-title">Ajoutez votre image</div>
+            <div class="dropzone"><span><b>PNG · spritesheet · atlas</b>Déposer ou parcourir les fichiers</span></div>
+            <div class="detected-row"><span>32 × 32 détecté</span><span>16 cellules</span><span>Transparence ✓</span></div>
+          </div>
+        </div>
+        <div class="card-body choice-body">
+          <div class="choice-kicker">Option B</div>
+          <h3>Commencer par l’image</h3>
+          <p>L’utilisateur importe son PNG immédiatement. Le Studio analyse l’atlas avant de demander son usage.</p>
+          <div class="choice-meta">
+            <div>✓ <span><b>Concret :</b> idéal lorsqu’on vient d’acheter un tileset.</span></div>
+            <div>△ <span><b>Risque :</b> l’analyse ne révèle pas toujours l’intention artistique.</span></div>
+          </div>
+          <div class="choice-cta"><span>Choisir ce départ</span><span>→</span></div>
+        </div>
+      </article>
+
+      <article id="choice-start-expert" class="card choice-card" data-choice="start-expert" onclick="toggleSelect(this)" role="button" tabindex="0">
+        <div class="choice-preview">
+          <div class="preview-window">
+            <div class="preview-title">Choisir un modèle de raccords</div>
+            <div class="preview-copy">Contrôle direct sur la topologie native.</div>
+            <div class="topology-board">
+              <div class="topology">Simple</div><div class="topology">Edge</div><div class="topology">Corner</div>
+              <div class="topology">Blob</div><div class="topology">Mixed</div><div class="topology">Libre</div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body choice-body">
+          <div class="choice-kicker">Option C</div>
+          <h3>Commencer en mode expert</h3>
+          <p>Le modèle de raccords est choisi avant l’image et l’usage, comme dans un outil technique de tilesets.</p>
+          <div class="choice-meta">
+            <div>✓ <span><b>Précis :</b> très rapide pour un utilisateur expérimenté.</span></div>
+            <div>△ <span><b>Coûteux :</b> expose le vocabulaire moteur trop tôt.</span></div>
+          </div>
+          <div class="choice-cta"><span>Choisir ce départ</span><span>→</span></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="flow-strip" aria-label="Parcours envisagé">
+      <span>Usage</span><span>→</span><span>Image</span><span>→</span><span>Grille</span><span>→</span><span>Matériaux</span><span>→</span><span>Raccords</span><span>→</span><span>Variantes</span><span>→</span><span>Essai</span><span>→</span><span>Publier</span>
+    </div>
+  </div>
+</div>
