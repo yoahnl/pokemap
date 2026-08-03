@@ -119,6 +119,7 @@ void main() {
     final linuxStart = workflow.indexOf('\n  linux-preview:', windowsStart);
     final windowsRelease = workflow.substring(windowsStart, linuxStart);
 
+    expect(workflow, contains(r'\r?$'));
     expect(windowsRelease, contains('package_windows_manual_release.ps1'));
     expect(windowsRelease, contains('PokeMap-Editor-Setup-*.exe'));
     expect(

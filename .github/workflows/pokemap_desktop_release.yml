@@ -251,7 +251,7 @@ jobs:
             -DestinationPath "build/release/PokeMap-windows-x64.zip"
           $versionMatch = [regex]::Match(
             (Get-Content pubspec.yaml -Raw),
-            '(?m)^version: ([0-9]+\.[0-9]+\.[0-9]+)\+[0-9]+$'
+            '(?m)^version: ([0-9]+\.[0-9]+\.[0-9]+)\+[0-9]+\r?$'
           )
           if (-not $versionMatch.Success) {
             throw "pubspec.yaml must contain a stable version and build number."
