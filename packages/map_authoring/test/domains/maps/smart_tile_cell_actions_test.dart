@@ -15,7 +15,11 @@ void main() {
         expect(descriptor.guarantees, contains(AuthoringGuarantee.atomic));
         expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
         expect(descriptor.extensions['gestureAtomic'], isTrue);
-        expect(descriptor.extensions['cellFieldOnly'], isTrue);
+        expect(descriptor.extensions['cellFieldOnly'], isFalse);
+        expect(
+          descriptor.extensions['supportedFieldKinds'],
+          <String>['cell', 'edge', 'corner', 'mixed'],
+        );
       }
     });
 
@@ -139,43 +143,101 @@ void main() {
       );
     });
 
-    test('refuses edge, corner and mixed Wang fields with the STN-05 code', () {
-      final fields = <SmartTileField>[
-        const SmartTileField.edge(
-          semanticCells: <int>[0, 0, 0, 0],
-          horizontalEdges: <int>[0, 0, 0, 0, 0, 0],
-          verticalEdges: <int>[0, 0, 0, 0, 0, 0],
+    test('projects paint across edge, corner and mixed Wang fields', () {
+      final cases =
+          <({SmartTileField field, List<int> edges, List<int> corners})>[
+        (
+          field: const SmartTileField.edge(
+            semanticCells: <int>[0, 0, 0, 0],
+            horizontalEdges: <int>[0, 0, 0, 0, 0, 0],
+            verticalEdges: <int>[0, 0, 0, 0, 0, 0],
+          ),
+          edges: <int>[1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+          corners: <int>[],
         ),
-        const SmartTileField.corner(
-          semanticCells: <int>[0, 0, 0, 0],
-          corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+        (
+          field: const SmartTileField.corner(
+            semanticCells: <int>[0, 0, 0, 0],
+            corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+          ),
+          edges: <int>[],
+          corners: <int>[1, 1, 0, 1, 1, 0, 0, 0, 0],
         ),
-        const SmartTileField.mixed(
-          semanticCells: <int>[0, 0, 0, 0],
-          horizontalEdges: <int>[0, 0, 0, 0, 0, 0],
-          verticalEdges: <int>[0, 0, 0, 0, 0, 0],
-          corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+        (
+          field: const SmartTileField.mixed(
+            semanticCells: <int>[0, 0, 0, 0],
+            horizontalEdges: <int>[0, 0, 0, 0, 0, 0],
+            verticalEdges: <int>[0, 0, 0, 0, 0, 0],
+            corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+          ),
+          edges: <int>[1, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+          corners: <int>[1, 1, 0, 1, 1, 0, 0, 0, 0],
         ),
       ];
 
-      for (final field in fields) {
-        expect(
-          () => _build(
-            _fixture(field: field).snapshot,
-            actionId: 'smart_tile.cell.paint',
-            parameters: const <String, Object?>{
-              'mapId': 'map',
-              'layerId': 'ground',
-              'materialId': 'grass',
-              'cells': <Map<String, int>>[
-                <String, int>{'x': 0, 'y': 0},
-              ],
-            },
-          ),
-          _failure(smartTileWangPaintRequiresStn05Code),
-          reason: field.runtimeType.toString(),
+      for (final paintCase in cases) {
+        final draft = _build(
+          _fixture(field: paintCase.field).snapshot,
+          actionId: 'smart_tile.cell.paint',
+          parameters: const <String, Object?>{
+            'mapId': 'map',
+            'layerId': 'ground',
+            'materialId': 'grass',
+            'cells': <Map<String, int>>[
+              <String, int>{'x': 0, 'y': 0},
+            ],
+          },
         );
+        final layer = _map(draft).layers.single as SmartTileLayer;
+
+        expect(
+          smartTileSemanticCells(layer),
+          <int>[1, 0, 0, 0],
+          reason: paintCase.field.runtimeType.toString(),
+        );
+        expect(
+          <int>[
+            ...smartTileHorizontalEdges(layer),
+            ...smartTileVerticalEdges(layer),
+          ],
+          paintCase.edges,
+          reason: paintCase.field.runtimeType.toString(),
+        );
+        expect(
+          smartTileCorners(layer),
+          paintCase.corners,
+          reason: paintCase.field.runtimeType.toString(),
+        );
+        expect(draft.preview['changedCellCount'], 1);
+        expect(draft.preview['fieldKind'], isNotEmpty);
       }
+    });
+
+    test('erases a mixed Wang gesture through the same undo boundary', () {
+      final draft = _build(
+        _fixture(
+          field: const SmartTileField.mixed(
+            semanticCells: <int>[0, 0, 0, 0],
+            horizontalEdges: <int>[1, 1, 1, 1, 1, 1],
+            verticalEdges: <int>[1, 1, 1, 1, 1, 1],
+            corners: <int>[1, 1, 1, 1, 1, 1, 1, 1, 1],
+          ),
+        ).snapshot,
+        actionId: 'smart_tile.cell.erase',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'cells': <Map<String, int>>[
+            <String, int>{'x': 0, 'y': 0},
+          ],
+        },
+      );
+      final layer = _map(draft).layers.single as SmartTileLayer;
+
+      expect(smartTileHorizontalEdges(layer), <int>[0, 1, 0, 1, 1, 1]);
+      expect(smartTileVerticalEdges(layer), <int>[0, 0, 1, 1, 1, 1]);
+      expect(smartTileCorners(layer), <int>[0, 0, 1, 0, 0, 1, 1, 1, 1]);
+      expect(draft.preview['undoBoundary'], 'gesture');
     });
   });
 }
@@ -231,6 +293,24 @@ AuthoringMutationDraft _build(
       ),
     ],
   );
+  final (topology, templateHint) = switch (field) {
+    SmartTileCellField() => (
+        SmartTileTopology.uniform,
+        SmartTileTemplateHint.simple,
+      ),
+    SmartTileEdgeField() => (
+        SmartTileTopology.wangEdge4,
+        SmartTileTemplateHint.edge16,
+      ),
+    SmartTileCornerField() => (
+        SmartTileTopology.wangCorner4,
+        SmartTileTemplateHint.corner16,
+      ),
+    SmartTileMixedField() => (
+        SmartTileTopology.wang8,
+        SmartTileTemplateHint.mixed256,
+      ),
+  };
   final manifest = ProjectManifest(
     name: 'Cell actions fixture',
     version: ProjectVersion.v6,
@@ -270,8 +350,8 @@ AuthoringMutationDraft _build(
           id: 'grass-preset',
           name: 'Grass',
           usage: SmartTileUsage.terrain,
-          topology: SmartTileTopology.uniform,
-          templateHint: SmartTileTemplateHint.simple,
+          topology: topology,
+          templateHint: templateHint,
           status: SmartTilePresetStatus.published,
           coveragePolicy: SmartTileCoveragePolicy.sparse,
           coverageProfile: SmartTileCoverageProfile(

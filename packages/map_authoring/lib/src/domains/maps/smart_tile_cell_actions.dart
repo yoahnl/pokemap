@@ -6,12 +6,12 @@ import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
 import 'smart_tile_native_transition_guard.dart';
 
-/// Stable refusal returned while Wang edge/corner painting remains reserved
-/// for STN-05. Publication and read-only resolution stay available.
+/// Transitional code kept public until every STN-04 editor badge is removed.
+/// Canonical actions no longer emit it now that Wang painting is available.
 const String smartTileWangPaintRequiresStn05Code =
     'smart_tile.wang_paint_requires_stn05';
 
-/// Canonical, transport-neutral cell-field painting actions.
+/// Canonical, transport-neutral Smart Tile material gesture actions.
 ///
 /// One request represents one complete editor gesture. This keeps a drag
 /// atomic and gives direct Dart, JSONL, editor and MCP the same undo boundary.
@@ -23,11 +23,11 @@ final class SmartTileCellActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     _descriptor(
       'smart_tile.cell.paint',
-      'Paint one atomic Smart Tile cell-field gesture',
+      'Paint one atomic Smart Tile material gesture',
     ),
     _descriptor(
       'smart_tile.cell.erase',
-      'Erase one atomic Smart Tile cell-field gesture',
+      'Erase one atomic Smart Tile material gesture',
     ),
   ]);
 
@@ -63,22 +63,6 @@ final class SmartTileCellActions {
       layerId: layerId,
     );
     final layer = _layer(context.map, layerId);
-    if (layer.field is! SmartTileCellField) {
-      throw semanticFailure(
-        smartTileWangPaintRequiresStn05Code,
-        'Drawing on Wang edge, corner, and mixed fields is available with '
-        'STN-05.',
-        details: <String, Object?>{
-          'mapId': context.map.id,
-          'layerId': layerId,
-          'fieldKind': layer.field.runtimeType.toString(),
-          'operation': operation,
-        },
-        remediation: const <String>[
-          'Test or publish this preset now, then draw it on a map after STN-05.',
-        ],
-      );
-    }
 
     final cells = _cells(
       context.parameters.list('cells'),
@@ -95,25 +79,23 @@ final class SmartTileCellActions {
       );
     }
 
-    var projectedLayer = layer;
-    var changedCellCount = 0;
-    for (final cell in cells) {
+    final changedCellCount = cells.where((cell) {
       final before = smartTileMaterialIdAt(
-        projectedLayer,
+        layer,
         mapSize: context.map.size,
         x: cell.x,
         y: cell.y,
       );
-      if (before == materialId) continue;
-      projectedLayer = setSmartTileCellMaterial(
-        projectedLayer,
-        mapSize: context.map.size,
-        x: cell.x,
-        y: cell.y,
-        materialId: materialId,
-      );
-      changedCellCount++;
-    }
+      return before != materialId;
+    }).length;
+    final projectedLayer = applySmartTileMaterialGesture(
+      layer,
+      mapSize: context.map.size,
+      cells: <GridPos>[
+        for (final cell in cells) GridPos(x: cell.x, y: cell.y),
+      ],
+      materialId: materialId,
+    );
     final projected = replaceSmartTileLayer(
       context.map,
       layer: projectedLayer,
@@ -127,6 +109,8 @@ final class SmartTileCellActions {
         preview: <String, Object?>{
           'presetId': preset.id,
           'usage': preset.usage.name,
+          'topology': preset.topology.name,
+          'fieldKind': _fieldKind(layer.field),
           'materialId': materialId,
           'gestureCellCount': cells.length,
           'cells': <Map<String, int>>[
@@ -169,9 +153,17 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         'semanticIds': true,
         'rawTilesetRequired': false,
         'gestureAtomic': true,
-        'cellFieldOnly': true,
+        'cellFieldOnly': false,
+        'supportedFieldKinds': <String>['cell', 'edge', 'corner', 'mixed'],
       },
     );
+
+String _fieldKind(SmartTileField field) => switch (field) {
+      SmartTileCellField() => 'cell',
+      SmartTileEdgeField() => 'edge',
+      SmartTileCornerField() => 'corner',
+      SmartTileMixedField() => 'mixed',
+    };
 
 SmartTileLayer _layer(MapData map, String layerId) {
   for (final layer in map.layers) {
