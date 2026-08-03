@@ -50,6 +50,7 @@ import '../../features/editor/application/map_canvas_object_move_planner.dart';
 import '../../features/editor/application/map_placed_element_rotation_planner.dart';
 import '../../features/editor/application/project_element_frame_resolver.dart';
 import '../../features/editor/presentation/world_map/map_placed_element_rotation_preview_controller.dart';
+import '../../features/editor/presentation/world_map/world_map_layer_hover_preview.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/border_map_editing/application/border_feature_hit_test.dart';
@@ -84,6 +85,7 @@ import '../../theme/theme.dart';
 // des part files dédiés pour rendre cette surface re-reviewable.
 part 'map_canvas/map_canvas_assets.dart';
 part 'map_canvas/map_grid_painter.dart';
+part 'map_canvas/tile_layer_hover_highlight_painter.dart';
 
 const bool _showMapGrid = bool.fromEnvironment(
   'POKEMAP_MARIONETTE_SHOW_MAP_GRID',
@@ -782,6 +784,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     final borderPreviewState = ref.watch(borderPreviewControllerProvider);
     final borderPreviewController =
         ref.read(borderPreviewControllerProvider.notifier);
+    final hoveredTileLayerId = ref.watch(worldMapHoveredTileLayerIdProvider);
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
     final connectionLabelsByDirection =
@@ -821,6 +824,16 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         }
       });
       return const MapWorkspaceEmptyState();
+    }
+
+    TileLayer? hoveredTileLayer;
+    if (hoveredTileLayerId != null) {
+      for (final layer in activeMap.layers) {
+        if (layer.id == hoveredTileLayerId && layer is TileLayer) {
+          hoveredTileLayer = layer;
+          break;
+        }
+      }
     }
 
     final tileWidth = settings.tileWidth * settings.displayScale;
@@ -1742,6 +1755,25 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                         ),
                       ),
                     ),
+                    if (hoveredTileLayer case final layer?)
+                      Positioned.fill(
+                        child: IgnorePointer(
+                          child: CustomPaint(
+                            key: const ValueKey<String>(
+                              'map-canvas-tile-layer-hover-highlight',
+                            ),
+                            painter: TileLayerHoverHighlightPainter(
+                              layer: layer,
+                              mapSize: activeMap.size,
+                              zoom: state.zoom,
+                              offset: state.panOffset,
+                              tileWidth: tileWidth,
+                              tileHeight: tileHeight,
+                              color: colors.brandPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
                     if (_objectMovePreview case final preview?)
                       Positioned.fill(
                         child: IgnorePointer(

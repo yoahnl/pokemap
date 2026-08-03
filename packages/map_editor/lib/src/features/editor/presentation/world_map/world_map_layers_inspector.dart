@@ -13,6 +13,7 @@ import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import '../../../../ui/canvas/map_canvas.dart';
 import 'world_map_layer_mutation_dialogs.dart';
+import 'world_map_layer_hover_preview.dart';
 import 'world_map_paint_inspection_intent.dart';
 import 'world_map_workspace_session.dart';
 
@@ -418,7 +419,7 @@ WorldMapPaintSubtool? _paintSubtoolForLayer(MapLayer layer) {
   };
 }
 
-final class _WorldMapLayerRow extends StatelessWidget {
+final class _WorldMapLayerRow extends ConsumerWidget {
   const _WorldMapLayerRow({
     required this.row,
     required this.reorderIndex,
@@ -442,7 +443,7 @@ final class _WorldMapLayerRow extends StatelessWidget {
   final bool reorderingDisabledByFilter;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final layer = row.layer;
     final layerId = layer.id;
     Widget buildTypeLabel() => PokeMapStatusLabel(
@@ -680,10 +681,24 @@ final class _WorldMapLayerRow extends StatelessWidget {
         ),
       ),
     );
+    final hoverPreviewCard = layer is TileLayer
+        ? MouseRegion(
+            key: ValueKey<String>(
+              'world-map-layer-hover-preview-$layerId',
+            ),
+            onEnter: (_) => ref
+                .read(worldMapHoveredTileLayerIdProvider.notifier)
+                .show(layerId),
+            onExit: (_) => ref
+                .read(worldMapHoveredTileLayerIdProvider.notifier)
+                .clear(layerId),
+            child: card,
+          )
+        : card;
     return _WorldMapLayerContextMenuInvoker(
       layerId: layerId,
       onRequested: onContextMenuRequested,
-      child: card,
+      child: hoverPreviewCard,
     );
   }
 

@@ -13,6 +13,7 @@ import 'package:map_editor/src/features/editor/application/map_context_target.da
 import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_layer_mutation_dialogs.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_layer_hover_preview.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_layers_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_paint_inspection_intent.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
@@ -52,6 +53,44 @@ void main() {
     );
     await tester.pump();
     expect(harness.notifier.state.activeLayerId, 'top');
+  });
+
+  testWidgets('tile layer cards expose a hover preview interaction',
+      (tester) async {
+    final map = _threeLayerMap();
+    final harness = _Harness(map, activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+
+    final hoverRegion = find.byKey(
+      const ValueKey<String>('world-map-layer-hover-preview-top'),
+    );
+    expect(hoverRegion, findsOneWidget);
+    expect(
+      harness.container.read(worldMapHoveredTileLayerIdProvider),
+      isNull,
+    );
+
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    addTearDown(mouse.removePointer);
+    await mouse.addPointer(location: Offset.zero);
+    await mouse.moveTo(tester.getCenter(hoverRegion));
+    await tester.pump();
+
+    expect(
+      harness.container.read(worldMapHoveredTileLayerIdProvider),
+      'top',
+    );
+    expect(harness.notifier.state.activeMap, same(map));
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+
+    await mouse.moveTo(Offset.zero);
+    await tester.pump();
+
+    expect(
+      harness.container.read(worldMapHoveredTileLayerIdProvider),
+      isNull,
+    );
   });
 
   testWidgets(
