@@ -75,6 +75,66 @@ void main() {
   );
 
   testWidgets(
+    'Paint Elements tabs list only instances placed on the active layer',
+    (tester) async {
+      final harness = await _InspectorHarness.create();
+      addTearDown(harness.dispose);
+      harness.session.activateTool(
+        harness.notifier,
+        const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
+      );
+
+      await harness.pump(tester, const AdaptiveMapInspector());
+
+      expect(
+        find.byKey(const ValueKey<String>('world-map-paint-tab-catalog')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('world-map-paint-tab-placed')),
+        findsOneWidget,
+      );
+      expect(find.text('Placés (2)'), findsOneWidget);
+      expect(
+        find.byKey(MapLayerAssetPaletteKeys.placedInstanceCard('ground-a')),
+        findsNothing,
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-paint-tab-placed')),
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(MapLayerAssetPaletteKeys.placedInstanceCard('ground-a')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(MapLayerAssetPaletteKeys.placedInstanceCard('ground-b')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(MapLayerAssetPaletteKeys.placedInstanceCard('decor-a')),
+        findsNothing,
+      );
+      expect(find.text('Position : (0, 0)'), findsOneWidget);
+      expect(find.text('Position : (1, 0)'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(MapLayerAssetPaletteKeys.placedInstanceCard('ground-b')),
+      );
+      await tester.pump();
+
+      expect(
+        harness.notifier.state.selectedPlacedElementInstanceId,
+        'ground-b',
+      );
+      expect(harness.notifier.state.activeMap, same(_map));
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
+    },
+  );
+
+  testWidgets(
     'Paint non-tile subtools show non-mutating guidance without an asset palette',
     (tester) async {
       final harness = await _InspectorHarness.create(
@@ -315,13 +375,39 @@ const _project = ProjectManifest(
 const _map = MapData(
   id: 'town',
   name: 'Ville',
-  size: GridSize(width: 1, height: 1),
+  size: GridSize(width: 2, height: 2),
   layers: <MapLayer>[
     TileLayer(
       id: 'ground',
       name: 'Sol',
       tilesetId: 'world',
-      tiles: <int>[0],
+      tiles: <int>[0, 0, 0, 0],
+    ),
+    TileLayer(
+      id: 'decor',
+      name: 'Décor',
+      tilesetId: 'world',
+      tiles: <int>[0, 0, 0, 0],
+    ),
+  ],
+  placedElements: <MapPlacedElement>[
+    MapPlacedElement(
+      id: 'ground-a',
+      layerId: 'ground',
+      elementId: 'tree',
+      pos: GridPos(x: 0, y: 0),
+    ),
+    MapPlacedElement(
+      id: 'ground-b',
+      layerId: 'ground',
+      elementId: 'tree',
+      pos: GridPos(x: 1, y: 0),
+    ),
+    MapPlacedElement(
+      id: 'decor-a',
+      layerId: 'decor',
+      elementId: 'tree',
+      pos: GridPos(x: 0, y: 1),
     ),
   ],
 );

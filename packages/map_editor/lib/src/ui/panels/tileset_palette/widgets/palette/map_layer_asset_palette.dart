@@ -28,9 +28,14 @@ typedef MapLayerElementActionsBuilder = Widget Function(
 abstract final class MapLayerAssetPaletteKeys {
   static const root = ValueKey<String>('world-map-layer-asset-palette');
   static const scroll = ValueKey<String>('world-map-layer-asset-scroll');
+  static const placedScroll =
+      ValueKey<String>('world-map-layer-placed-elements-scroll');
 
   static ValueKey<String> elementCard(String elementId) =>
       ValueKey<String>('world-map-layer-asset-element-$elementId');
+
+  static ValueKey<String> placedInstanceCard(String instanceId) =>
+      ValueKey<String>('world-map-layer-placed-element-$instanceId');
 }
 
 class MapLayerElementAssetPresentation {
@@ -53,6 +58,7 @@ class MapLayerAssetPalette extends ConsumerStatefulWidget {
     this.sourceId,
     this.visibleElementIds,
     this.elementActionsBuilder,
+    this.showPlacedInstances = false,
     this.debugOnBuild,
     super.key,
   });
@@ -61,6 +67,7 @@ class MapLayerAssetPalette extends ConsumerStatefulWidget {
   final String? sourceId;
   final Set<String>? visibleElementIds;
   final MapLayerElementActionsBuilder? elementActionsBuilder;
+  final bool showPlacedInstances;
   @visibleForTesting
   final VoidCallback? debugOnBuild;
 
@@ -137,6 +144,8 @@ class _MapLayerAssetPaletteState extends ConsumerState<MapLayerAssetPalette> {
           projectRootPath: snapshot.projectRootPath,
           settings: snapshot.settings,
           activeBrush: snapshot.activeBrush,
+          selectedPlacedElementInstanceId:
+              snapshot.selectedPlacedElementInstanceId,
         ),
       ),
     );
@@ -225,7 +234,13 @@ class _MapLayerAssetPaletteState extends ConsumerState<MapLayerAssetPalette> {
                 : null,
             visibleElementIds: widget.visibleElementIds,
             elementActionsBuilder: widget.elementActionsBuilder,
+            map: browserSnapshot.activeMap,
+            activeLayerId: browserSnapshot.activeLayerId,
+            showPlacedInstances: widget.showPlacedInstances,
+            selectedPlacedElementInstanceId:
+                paletteSnapshot.selectedPlacedElementInstanceId,
             onSelected: _selectElement,
+            onPlacedInstanceSelected: _selectPlacedInstance,
           );
         },
       ),
@@ -246,6 +261,14 @@ class _MapLayerAssetPaletteState extends ConsumerState<MapLayerAssetPalette> {
     }
     notifier.selectProjectElement(asset.element.id);
     notifier.selectTool(EditorToolType.tilePaint);
+  }
+
+  void _selectPlacedInstance(MapPlacedElement instance) {
+    ref.read(editorNotifierProvider.notifier).selectPlacedElementInstance(
+          instanceId: instance.id,
+          elementId: instance.elementId,
+          layerId: instance.layerId,
+        );
   }
 }
 
@@ -331,7 +354,12 @@ class _ElementAssetList extends StatelessWidget {
     required this.categoryId,
     required this.visibleElementIds,
     required this.elementActionsBuilder,
+    required this.map,
+    required this.activeLayerId,
+    required this.showPlacedInstances,
+    required this.selectedPlacedElementInstanceId,
     required this.onSelected,
+    required this.onPlacedInstanceSelected,
   });
 
   final ProjectTilesetEntry source;
@@ -343,10 +371,27 @@ class _ElementAssetList extends StatelessWidget {
   final String? categoryId;
   final Set<String>? visibleElementIds;
   final MapLayerElementActionsBuilder? elementActionsBuilder;
+  final MapData? map;
+  final String? activeLayerId;
+  final bool showPlacedInstances;
+  final String? selectedPlacedElementInstanceId;
   final ValueChanged<MapLayerElementAssetPresentation> onSelected;
+  final ValueChanged<MapPlacedElement> onPlacedInstanceSelected;
 
   @override
   Widget build(BuildContext context) {
+    if (showPlacedInstances) {
+      return _PlacedElementAssetList(
+        source: source,
+        image: image,
+        project: project,
+        settings: settings,
+        map: map,
+        activeLayerId: activeLayerId,
+        selectedInstanceId: selectedPlacedElementInstanceId,
+        onSelected: onPlacedInstanceSelected,
+      );
+    }
     final sourceElements = project.elements
         .where((element) => element.tilesetId == source.id)
         .toList(growable: false);
@@ -440,6 +485,112 @@ class _ElementAssetList extends StatelessWidget {
       ],
     );
   }
+}
+
+class _PlacedElementAssetList extends StatelessWidget {
+  const _PlacedElementAssetList({
+    required this.source,
+    required this.image,
+    required this.project,
+    required this.settings,
+    required this.map,
+    required this.activeLayerId,
+    required this.selectedInstanceId,
+    required this.onSelected,
+  });
+
+  final ProjectTilesetEntry source;
+  final ui.Image image;
+  final ProjectManifest project;
+  final ProjectSettings settings;
+  final MapData? map;
+  final String? activeLayerId;
+  final String? selectedInstanceId;
+  final ValueChanged<MapPlacedElement> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final layer = _findLayer(map, activeLayerId);
+    final instances = map?.placedElements
+            .where((instance) => instance.layerId == activeLayerId)
+            .toList(growable: true) ??
+        <MapPlacedElement>[];
+    instances.sort((a, b) {
+      final yComparison = a.pos.y.compareTo(b.pos.y);
+      if (yComparison != 0) return yComparison;
+      final xComparison = a.pos.x.compareTo(b.pos.x);
+      if (xComparison != 0) return xComparison;
+      return a.id.compareTo(b.id);
+    });
+    final elementsById = <String, ProjectElementEntry>{
+      for (final element in project.elements) element.id: element,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _AssetPaletteFixedHeader(
+          sourceName: layer == null
+              ? 'Éléments placés'
+              : 'Éléments placés · ${layer.name}',
+          count: instances.length,
+          disabledReason: null,
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: instances.isEmpty
+              ? const PokeMapEmptyState(
+                  icon: Icon(Icons.layers_clear_outlined),
+                  title: 'Aucun élément placé sur ce calque',
+                  description: 'Choisissez un élément dans le catalogue puis '
+                      'placez-le sur la carte pour le retrouver ici.',
+                )
+              : ListView.separated(
+                  key: MapLayerAssetPaletteKeys.placedScroll,
+                  padding: EdgeInsets.zero,
+                  itemCount: instances.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 6),
+                  itemBuilder: (context, index) {
+                    final instance = instances[index];
+                    final element = elementsById[instance.elementId];
+                    final canPreview = element != null &&
+                        element.tilesetId == source.id &&
+                        element.frames.isNotEmpty;
+                    return PokeMapAssetCard(
+                      key: MapLayerAssetPaletteKeys.placedInstanceCard(
+                        instance.id,
+                      ),
+                      thumbnail: SizedBox.square(
+                        dimension: 48,
+                        child: canPreview
+                            ? _ElementPreview(
+                                image: image,
+                                source: element.frames.primarySource,
+                                tileWidth: settings.tileWidth,
+                                tileHeight: settings.tileHeight,
+                              )
+                            : const Icon(Icons.image_not_supported_outlined),
+                      ),
+                      label: element?.name ?? instance.elementId,
+                      description:
+                          'Position : (${instance.pos.x}, ${instance.pos.y})',
+                      selected: selectedInstanceId == instance.id,
+                      onPressed: () => onSelected(instance),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+MapLayer? _findLayer(MapData? map, String? layerId) {
+  if (map == null || layerId == null) return null;
+  for (final layer in map.layers) {
+    if (layer.id == layerId) return layer;
+  }
+  return null;
 }
 
 class _AssetPaletteFixedHeader extends StatelessWidget {

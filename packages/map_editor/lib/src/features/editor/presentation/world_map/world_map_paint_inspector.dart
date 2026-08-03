@@ -11,6 +11,7 @@ import '../../application/world_map_subtool_body_projector.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
+import '../../state/models/editor_ui_modes.dart';
 import 'world_map_collision_inspector.dart';
 import 'world_map_paint_inspection_intent.dart';
 import 'world_map_subtool_disabled_guidance.dart';
@@ -41,6 +42,9 @@ class WorldMapPaintInspector extends ConsumerWidget {
       editorNotifierProvider.select(worldMapToolActivationSourceFromState),
     );
     final notifier = ref.read(editorNotifierProvider.notifier);
+    final tilesElementsPanelMode = ref.watch(
+      editorNotifierProvider.select((state) => state.tilesElementsPanelMode),
+    );
     final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
     final inspectionIntentController = ref.read(
       worldMapPaintInspectionIntentProvider.notifier,
@@ -176,6 +180,13 @@ class WorldMapPaintInspector extends ConsumerWidget {
       }
     }
 
+    final placedElementCount = activationSource.activeMap?.placedElements
+            .where(
+              (instance) => instance.layerId == activationSource.activeLayerId,
+            )
+            .length ??
+        0;
+
     final body = switch (projection.bodyKind) {
       WorldMapSubtoolBodyKind.tilesPalette => Semantics(
           container: true,
@@ -189,8 +200,39 @@ class WorldMapPaintInspector extends ConsumerWidget {
                   label: 'Changer de source',
                 ),
                 const SizedBox(height: 10),
+                PokeMapSegmentedTabs(
+                  tabs: <PokeMapSegmentedTab>[
+                    PokeMapSegmentedTab(
+                      key: const ValueKey<String>(
+                        'world-map-paint-tab-catalog',
+                      ),
+                      label: 'Catalogue',
+                      icon: Icons.grid_view_rounded,
+                      selected: tilesElementsPanelMode ==
+                          TilesElementsPanelMode.palette,
+                      onTap: () => notifier.setTilesElementsPanelMode(
+                        TilesElementsPanelMode.palette,
+                      ),
+                    ),
+                    PokeMapSegmentedTab(
+                      key: const ValueKey<String>(
+                        'world-map-paint-tab-placed',
+                      ),
+                      label: 'Placés ($placedElementCount)',
+                      icon: Icons.layers_outlined,
+                      selected: tilesElementsPanelMode ==
+                          TilesElementsPanelMode.placedInstances,
+                      onTap: () => notifier.setTilesElementsPanelMode(
+                        TilesElementsPanelMode.placedInstances,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
                 Expanded(
                   child: MapLayerAssetPalette(
+                    showPlacedInstances: tilesElementsPanelMode ==
+                        TilesElementsPanelMode.placedInstances,
                     debugOnBuild: debugOnPaletteBuild,
                   ),
                 ),
