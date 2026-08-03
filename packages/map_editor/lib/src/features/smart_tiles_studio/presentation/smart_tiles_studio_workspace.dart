@@ -10,6 +10,9 @@ import '../../editor/state/editor_notifier.dart';
 import '../../editor/state/editor_selectors.dart';
 import '../application/smart_tile_draft_persistence_coordinator.dart';
 import '../application/smart_tile_draft_persistence_state.dart';
+import '../application/smart_tile_atlas_image_loader.dart';
+import '../application/smart_tile_source_asset_import_service.dart';
+import '../application/smart_tile_source_image_picker.dart';
 import 'smart_tiles_studio_panel.dart';
 
 /// Riverpod orchestration boundary for the native Studio.
@@ -32,6 +35,7 @@ class _SmartTilesStudioWorkspaceState
   ProjectSmartTileAuthoringDraft? _pendingDraft;
   String? _pendingRootPath;
   ProjectSmartTileAuthoringDraft? _canonicalDraft;
+  SmartTileDraftPersistenceState? _persistenceState;
   String? _attachedRoot;
 
   @override
@@ -71,12 +75,16 @@ class _SmartTilesStudioWorkspaceState
       isCapturedMapAvailable:
           launch.context.isCapturedMapAvailable(launch.activeMap),
       canonicalDraft: _canonicalDraft,
+      persistenceState: _persistenceState,
       onDraftChanged: projectRootPath == null
           ? null
           : (draft) => unawaited(
                 _queueDraft(projectRootPath, draft),
               ),
       onDraftFlush: projectRootPath == null ? null : _flushDraft,
+      onImportProjectImage: projectRootPath == null
+          ? null
+          : () => _importProjectImage(projectRootPath),
     );
   }
 
@@ -145,11 +153,15 @@ class _SmartTilesStudioWorkspaceState
   }
 
   void _acceptPersistenceState(SmartTileDraftPersistenceState state) {
-    if (!mounted || state.phase != SmartTileDraftPersistencePhase.saved) {
-      return;
-    }
+    if (!mounted) return;
     final draft = _coordinator?.draft;
-    if (draft != null) setState(() => _canonicalDraft = draft);
+    setState(() {
+      _persistenceState = state;
+      if (state.phase == SmartTileDraftPersistencePhase.saved &&
+          draft != null) {
+        _canonicalDraft = draft;
+      }
+    });
   }
 
   void _acceptCanonicalSnapshot(SmartTileDraftCanonicalSnapshot snapshot) {
@@ -158,5 +170,34 @@ class _SmartTilesStudioWorkspaceState
           snapshot.manifest,
           statusMessage: 'Brouillon Smart Tile sauvegardé.',
         );
+  }
+
+  Future<SmartTileSourceImportResult?> _importProjectImage(
+    String projectRootPath,
+  ) async {
+    final picked = await const FilePickerSmartTileSourceImagePicker().pick();
+    if (picked == null || !mounted) return null;
+    await _flushDraft();
+    await _coordinator?.close();
+    _coordinator = null;
+    _attachedRoot = null;
+    final service = SmartTileSourceAssetImportService(
+      gateway: CanonicalSmartTileSourceAssetGateway(
+        mutations: ref.read(authoringMutationAdapterProvider),
+        queries: ref.read(authoringQueryAdapterProvider),
+      ),
+      imageLoader: const FileSmartTileAtlasImageLoader(),
+    );
+    final result = await service.importImage(
+      projectRootPath: projectRootPath,
+      sourcePath: picked.path,
+      displayName: picked.displayName,
+    );
+    if (!mounted) return null;
+    ref.read(editorNotifierProvider.notifier).acceptCanonicalProjectManifest(
+          result.manifest,
+          statusMessage: 'Image Smart Tile importée.',
+        );
+    return result;
   }
 }

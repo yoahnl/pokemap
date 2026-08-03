@@ -83,6 +83,33 @@ void main() {
         ),
       );
     });
+
+    test('authorizes exactly one user-selected source outside project roots',
+        () async {
+      final selected = File('${sandbox.path}/selected.png');
+      final sibling = File('${sandbox.path}/sibling.png');
+      await selected.writeAsBytes(_pngBytes);
+      await sibling.writeAsBytes(_pngBytes);
+      final store = LocalArtifactStore(
+        allowedSourceRoots: [allowed.path],
+        maximumArtifactBytes: 1024,
+      );
+
+      await store.authorizeSourceFile(selected.path);
+
+      final staged = await store.importFile(selected.path);
+      expect(staged.reference.mediaType, 'image/png');
+      await expectLater(
+        store.importFile(sibling.path),
+        throwsA(
+          isA<ArtifactStoreException>().having(
+            (error) => error.code,
+            'code',
+            'artifact.source_outside_allowed_roots',
+          ),
+        ),
+      );
+    });
   });
 }
 

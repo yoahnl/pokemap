@@ -109,5 +109,29 @@ void main() {
         throwsArgumentError,
       );
     });
+
+    test('manual rows and columns are explicit and fail closed outside image',
+        () {
+      const automatic = SmartTileGridGeometry(
+        imageWidth: 96,
+        imageHeight: 64,
+        cellWidth: 32,
+        cellHeight: 32,
+      );
+
+      final bounded = automatic.copyWith(
+        explicitColumns: 2,
+        explicitRows: 1,
+      );
+      final overflowing = automatic.copyWith(
+        explicitColumns: 4,
+        explicitRows: 3,
+      );
+
+      expect((bounded.columns, bounded.rows), (2, 1));
+      expect(bounded.isWithinImage, isTrue);
+      expect((overflowing.columns, overflowing.rows), (4, 3));
+      expect(overflowing.isWithinImage, isFalse);
+    });
   });
 }

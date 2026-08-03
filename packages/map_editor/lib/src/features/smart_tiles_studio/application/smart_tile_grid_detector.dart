@@ -26,7 +26,10 @@ final class SmartTileGridGeometry {
     this.marginY = 0,
     this.spacingX = 0,
     this.spacingY = 0,
-  });
+    this.explicitColumns,
+    this.explicitRows,
+  })  : assert(explicitColumns == null || explicitColumns > 0),
+        assert(explicitRows == null || explicitRows > 0);
 
   final int imageWidth;
   final int imageHeight;
@@ -38,17 +41,23 @@ final class SmartTileGridGeometry {
   final int marginY;
   final int spacingX;
   final int spacingY;
+  final int? explicitColumns;
+  final int? explicitRows;
 
   int get usableWidth => math.max(0, imageWidth - originX - marginX);
   int get usableHeight => math.max(0, imageHeight - originY - marginY);
 
-  int get columns => _axisCellCount(
+  int get columns =>
+      explicitColumns ??
+      _axisCellCount(
         usableExtent: usableWidth,
         cellExtent: cellWidth,
         spacing: spacingX,
       );
 
-  int get rows => _axisCellCount(
+  int get rows =>
+      explicitRows ??
+      _axisCellCount(
         usableExtent: usableHeight,
         cellExtent: cellHeight,
         spacing: spacingY,
@@ -73,6 +82,9 @@ final class SmartTileGridGeometry {
   bool get hasPartialCells =>
       columns == 0 || rows == 0 || trailingX != marginX || trailingY != marginY;
 
+  bool get isWithinImage =>
+      columns > 0 && rows > 0 && trailingX >= 0 && trailingY >= 0;
+
   SmartTileGridGeometry copyWith({
     int? imageWidth,
     int? imageHeight,
@@ -84,6 +96,8 @@ final class SmartTileGridGeometry {
     int? marginY,
     int? spacingX,
     int? spacingY,
+    int? explicitColumns,
+    int? explicitRows,
   }) {
     return SmartTileGridGeometry(
       imageWidth: imageWidth ?? this.imageWidth,
@@ -96,6 +110,8 @@ final class SmartTileGridGeometry {
       marginY: marginY ?? this.marginY,
       spacingX: spacingX ?? this.spacingX,
       spacingY: spacingY ?? this.spacingY,
+      explicitColumns: explicitColumns ?? this.explicitColumns,
+      explicitRows: explicitRows ?? this.explicitRows,
     );
   }
 }

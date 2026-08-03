@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_authoring_controller.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_source_asset_import_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_asset_card.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
@@ -13,7 +14,7 @@ import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 void main() {
   group('SmartTilesStudioPanel', () {
-    testWidgets('characterizes terrain and forest as disabled before STN-04', (
+    testWidgets('enables the three approved no-code usages', (
       tester,
     ) async {
       await _pumpPanel(tester, _manifest());
@@ -31,10 +32,11 @@ void main() {
         find.byKey(const Key('smart-tiles-usage-path')),
       );
 
-      expect(terrain.onPressed, isNull);
-      expect(forest.onPressed, isNull);
+      expect(terrain.onPressed, isNotNull);
+      expect(forest.onPressed, isNotNull);
       expect(path.onPressed, isNotNull);
-      expect(find.textContaining('Guide guidé à venir'), findsNWidgets(2));
+      expect(find.text('Surface organique'), findsOneWidget);
+      expect(find.textContaining('Recommandé :'), findsNWidgets(3));
     });
 
     testWidgets('renders the approved three-column studio shell', (
@@ -81,12 +83,67 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(
         find.byKey(const Key('smart-tiles-library-column')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('smart-tiles-workbench-column')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('smart-tiles-inspector-column')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('smart-tiles-open-library')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('smart-tiles-open-inspector')),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const Key('smart-tiles-open-library')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('smart-tiles-library-modal')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('moves only the inspector to a side sheet at medium width', (
+      tester,
+    ) async {
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        surfaceSize: const Size(900, 760),
+      );
+
+      expect(
+        find.byKey(const Key('smart-tiles-library-column')),
         findsOneWidget,
       );
       expect(
         find.byKey(const Key('smart-tiles-workbench-column')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('smart-tiles-inspector-column')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('smart-tiles-open-library')),
+        findsNothing,
+      );
+
+      await tester.tap(find.byKey(const Key('smart-tiles-open-inspector')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('smart-tiles-inspector-drawer')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('filters the permanent library by usage', (tester) async {
@@ -182,11 +239,14 @@ void main() {
       expect(find.text('0x00'), findsNothing);
     });
 
-    testWidgets('offers the recognizable ERW guide after choosing Path', (
+    testWidgets('offers the recognizable ERW guide after source setup', (
       tester,
     ) async {
-      await _pumpPanel(tester, _manifest(presets: const []));
-      await _startPathGuide(tester);
+      await _pumpGridStage(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+      );
+      await _confirmGridAndOpenConnections(tester);
 
       expect(
         find.byKey(const Key('smart-tiles-guide-erwCorner16')),
@@ -203,7 +263,7 @@ void main() {
         width: 1760,
         height: 2304,
       );
-      await _pumpGuidedAtlas(tester, loader: loader);
+      await _pumpGridStage(tester, loader: loader);
 
       expect(loader.lastTilesetId, _target.id);
       expect(find.textContaining('55 × 72 cellules'), findsWidgets);
@@ -226,7 +286,114 @@ void main() {
             .text,
         '48',
       );
-      expect(find.textContaining('replacez la cellule nº 1'), findsOneWidget);
+      expect(find.textContaining('36 × 72 cellules proposées'), findsOneWidget);
+    });
+
+    testWidgets('keeps detected geometry pending until explicit confirmation', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _pumpGridStage(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+
+      expect(
+          find.byKey(const Key('smart-tiles-atlas-viewport')), findsOneWidget);
+      expect(latestDraft, isNotNull);
+      expect(latestDraft!.lastStage, SmartTileAuthoringStage.grid);
+      expect(latestDraft!.sourceTilesetIds, <String>[_target.id]);
+      expect(latestDraft!.atlases, isEmpty);
+      expect(latestDraft!.primaryAtlasId, isNull);
+
+      final confirm = find.byKey(const Key('smart-tiles-confirm-grid'));
+      await tester.ensureVisible(confirm);
+      await tester.pumpAndSettle();
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+
+      expect(latestDraft!.lastStage, SmartTileAuthoringStage.materials);
+      expect(latestDraft!.atlases, hasLength(1));
+      expect(latestDraft!.primaryAtlasId, latestDraft!.atlases.single.id);
+      expect(latestDraft!.atlases.single.tilesetId, _target.id);
+    });
+
+    testWidgets('adopts a canonically imported project image', (tester) async {
+      var imports = 0;
+      final importedImage = _fakeImage(width: 96, height: 64);
+      final manifest = _manifest(
+        presets: const [],
+        tilesets: const <ProjectTilesetEntry>[_target],
+      );
+      await _pumpPanel(
+        tester,
+        manifest,
+        projectRootPath: '/tmp/erw-project',
+        onImportProjectImage: () async {
+          imports += 1;
+          return SmartTileSourceImportResult(
+            manifest: manifest,
+            tileset: _target,
+            image: importedImage,
+            assetId: 'asset-erw',
+          );
+        },
+      );
+      await _startPathImage(tester);
+      await tester.tap(
+        find.byKey(const Key('smart-tiles-source-project-image')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const Key('smart-tiles-import-project-image')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(imports, 1);
+      expect(
+        find.byKey(const Key('smart-tiles-source-image-preview')),
+        findsOneWidget,
+      );
+      expect(find.text('96 × 64 px'), findsOneWidget);
+      final next = tester.widget<PokeMapButton>(
+        find.byKey(const Key('smart-tiles-next-step')),
+      );
+      expect(next.onPressed, isNotNull);
+    });
+
+    testWidgets('shows canonical import failures without advancing', (
+      tester,
+    ) async {
+      await _pumpPanel(
+        tester,
+        _manifest(presets: const []),
+        projectRootPath: '/tmp/erw-project',
+        onImportProjectImage: () async =>
+            throw const SmartTileSourceImportException(
+          'smart_tile.source_not_image',
+          'Le fichier sélectionné n’est pas une image reconnue.',
+        ),
+      );
+      await _startPathImage(tester);
+      await tester.tap(
+        find.byKey(const Key('smart-tiles-source-project-image')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const Key('smart-tiles-import-project-image')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('smart-tiles-source-error')), findsOneWidget);
+      expect(
+        find.text('Le fichier sélectionné n’est pas une image reconnue.'),
+        findsOneWidget,
+      );
+      final next = tester.widget<PokeMapButton>(
+        find.byKey(const Key('smart-tiles-next-step')),
+      );
+      expect(next.onPressed, isNull);
     });
 
     testWidgets('one valid anchor associates and overlays all sixteen cells', (
@@ -456,7 +623,7 @@ const _target = ProjectTilesetEntry(
   relativePath: 'assets/erw/terrain_master.png',
 );
 
-Future<void> _startPathGuide(WidgetTester tester) async {
+Future<void> _startPathImage(WidgetTester tester) async {
   await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
   await tester.pump();
   await tester.tap(find.byKey(const Key('smart-tiles-usage-path')));
@@ -471,6 +638,26 @@ Future<void> _pumpGuidedAtlas(
   ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged,
   Size surfaceSize = const Size(1440, 900),
 }) async {
+  await _pumpGridStage(
+    tester,
+    loader: loader,
+    onDraftChanged: onDraftChanged,
+    surfaceSize: surfaceSize,
+  );
+  await _confirmGridAndOpenConnections(tester);
+  await tester.tap(find.byKey(const Key('smart-tiles-guide-erwCorner16')));
+  await tester.pump();
+  await tester.tap(find.byKey(const Key('smart-tiles-guide-next-step')));
+  await tester.pump();
+}
+
+Future<void> _pumpGridStage(
+  WidgetTester tester, {
+  required SmartTileAtlasImageLoader loader,
+  ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged,
+  Future<SmartTileSourceImportResult?> Function()? onImportProjectImage,
+  Size surfaceSize = const Size(1440, 900),
+}) async {
   await _pumpPanel(
     tester,
     _manifest(
@@ -478,14 +665,11 @@ Future<void> _pumpGuidedAtlas(
     projectRootPath: '/tmp/erw-project',
     imageLoader: loader,
     onDraftChanged: onDraftChanged,
+    onImportProjectImage: onImportProjectImage,
     surfaceSize: surfaceSize,
   );
-  await _startPathGuide(tester);
-  await tester.tap(find.byKey(const Key('smart-tiles-guide-erwCorner16')));
-  await tester.pump();
-  await tester.tap(find.byKey(const Key('smart-tiles-guide-next-step')));
-  await tester.pump();
-  await tester.tap(find.text('Image du projet'));
+  await _startPathImage(tester);
+  await tester.tap(find.byKey(const Key('smart-tiles-source-project-image')));
   await tester.pump();
   await tester.tap(find.byKey(const Key('smart-tiles-choose-project-image')));
   await tester.pumpAndSettle();
@@ -495,6 +679,21 @@ Future<void> _pumpGuidedAtlas(
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const Key('smart-tiles-next-step')));
   await tester.pump();
+}
+
+Future<void> _confirmGridAndOpenConnections(WidgetTester tester) async {
+  final confirm = find.byKey(const Key('smart-tiles-confirm-grid'));
+  await tester.ensureVisible(confirm);
+  await tester.pumpAndSettle();
+  await tester.tap(confirm);
+  await tester.pumpAndSettle();
+  final materialsNext = find.byKey(
+    const Key('smart-tiles-materials-next-step'),
+  );
+  await tester.ensureVisible(materialsNext);
+  await tester.pumpAndSettle();
+  await tester.tap(materialsNext);
+  await tester.pumpAndSettle();
 }
 
 Future<void> _tapVisibleValidAnchor(
@@ -512,6 +711,7 @@ Future<void> _pumpPanel(
   ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged,
   String? projectRootPath,
   SmartTileAtlasImageLoader imageLoader = const FileSmartTileAtlasImageLoader(),
+  Future<SmartTileSourceImportResult?> Function()? onImportProjectImage,
   Size surfaceSize = const Size(1440, 900),
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
@@ -523,6 +723,7 @@ Future<void> _pumpPanel(
           manifest: manifest,
           projectRootPath: projectRootPath,
           imageLoader: imageLoader,
+          onImportProjectImage: onImportProjectImage,
           onDraftChanged: onDraftChanged,
         ),
       ),
@@ -687,6 +888,16 @@ final class _FakeSmartTileAtlasImageLoader
     );
   }
 }
+
+SmartTileAtlasImage _fakeImage({required int width, required int height}) =>
+    SmartTileAtlasImage(
+      absolutePath: '/tmp/erw-project/${_target.relativePath}',
+      bytes: _onePixelPng,
+      width: width,
+      height: height,
+      columnAlphaCoverage: List<double>.filled(width, 1),
+      rowAlphaCoverage: List<double>.filled(height, 1),
+    );
 
 final Uint8List _onePixelPng = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk'

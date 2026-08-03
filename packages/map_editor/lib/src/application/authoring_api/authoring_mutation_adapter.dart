@@ -39,6 +39,16 @@ final class EditorAuthoringMutationResult {
   final String? resourceRevision;
 }
 
+final class EditorStagedArtifact {
+  const EditorStagedArtifact({
+    required this.reference,
+    required this.deduplicated,
+  });
+
+  final ContentArtifactRef reference;
+  final bool deduplicated;
+}
+
 /// Direct-Dart bridge from editor gestures to canonical plan/apply/history.
 ///
 /// The adapter owns only session composition and editor CAS translation. All
@@ -100,6 +110,37 @@ final class AuthoringMutationAdapter
           expectedRevision: expectedRevision,
         ),
       );
+    } on Object catch (error) {
+      throw EditorAuthoringMutationFailure.capture(error);
+    }
+  }
+
+  /// Stages one exact file selected by the local user into an opaque handle.
+  ///
+  /// The source path never enters an action request, receipt, plan or project
+  /// document. The session grants only this resolved file, not its directory.
+  Future<EditorStagedArtifact> stageArtifact(
+    String projectRootPath, {
+    required String sourcePath,
+    String? declaredMediaType,
+  }) async {
+    try {
+      final session = await _open(projectRootPath);
+      return await session.use(() async {
+        await session.artifactStore.authorizeSourceFile(sourcePath);
+        final result = await session.mutations.stageArtifact(
+          sourcePath: sourcePath,
+          declaredMediaType: declaredMediaType,
+        );
+        return EditorStagedArtifact(
+          reference: ContentArtifactRef(
+            digest: result['digest']! as String,
+            mediaType: result['mediaType']! as String,
+            byteLength: result['byteLength']! as int,
+          ),
+          deduplicated: result['deduplicated']! as bool,
+        );
+      });
     } on Object catch (error) {
       throw EditorAuthoringMutationFailure.capture(error);
     }
@@ -441,6 +482,7 @@ final class _EditorMutationSession {
     required this.projectHandle,
     required this.reads,
     required this.mutations,
+    required this.artifactStore,
     required ProjectSnapshotLoader snapshots,
     required void Function(int delta) onOperationDelta,
     required void Function() onClosed,
@@ -472,9 +514,14 @@ final class _EditorMutationSession {
     final workspaceHandle =
         WorkspaceHandle(opened['workspaceHandle']! as String);
     final projectHandle = ProjectHandle(opened['projectHandle']! as String);
+    final artifactStore = LocalArtifactStore(
+      allowedSourceRoots: [canonicalRoot],
+      maximumArtifactBytes: 64 << 20,
+    );
     final mutations = LocalMapAuthoringMutationApi(
       policy: policy,
       snapshotLoader: snapshots,
+      artifactStore: artifactStore,
     );
     try {
       await mutations.attachProject(
@@ -488,6 +535,7 @@ final class _EditorMutationSession {
         projectHandle: projectHandle,
         reads: reads,
         mutations: mutations,
+        artifactStore: artifactStore,
         snapshots: snapshots,
         onOperationDelta: onOperationDelta,
         onClosed: onClosed,
@@ -503,6 +551,7 @@ final class _EditorMutationSession {
   final ProjectHandle projectHandle;
   final AuthoringReadApi reads;
   final LocalMapAuthoringMutationApi mutations;
+  final LocalArtifactStore artifactStore;
   final ProjectSnapshotLoader _snapshots;
   final void Function(int delta) _onOperationDelta;
   final void Function() _onClosed;

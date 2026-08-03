@@ -166,6 +166,34 @@ final class LocalArtifactStore implements ArtifactStore, ArtifactFileStager {
 
   final List<String> _allowedSourceRoots;
   final MemoryArtifactStore _memory;
+  final Set<String> _authorizedSourceFiles = <String>{};
+
+  /// Grants one exact, user-selected file to this staging session.
+  ///
+  /// The resolved path is captured instead of its parent directory so a file
+  /// picker does not silently broaden the staging capability to Downloads or
+  /// another ambient folder. [importFile] resolves the path again, which also
+  /// rejects a symlink that was retargeted after authorization.
+  Future<void> authorizeSourceFile(String sourcePath) async {
+    final source = File(sourcePath);
+    late final String resolvedSource;
+    try {
+      resolvedSource = await source.resolveSymbolicLinks();
+    } on FileSystemException {
+      throw const ArtifactStoreException(
+        'artifact.source_unavailable',
+        'The artifact source is unavailable.',
+      );
+    }
+    final metadata = await File(resolvedSource).stat();
+    if (metadata.type != FileSystemEntityType.file) {
+      throw const ArtifactStoreException(
+        'artifact.source_not_regular',
+        'The artifact source must be a regular file.',
+      );
+    }
+    _authorizedSourceFiles.add(resolvedSource);
+  }
 
   @override
   Future<StoredArtifact> importFile(
@@ -193,9 +221,11 @@ final class LocalArtifactStore implements ArtifactStore, ArtifactFileStager {
         );
       }
     }
-    if (!roots.any(
-      (root) => workspacePathIsWithin(root: root, candidate: resolvedSource),
-    )) {
+    if (!_authorizedSourceFiles.contains(resolvedSource) &&
+        !roots.any(
+          (root) =>
+              workspacePathIsWithin(root: root, candidate: resolvedSource),
+        )) {
       throw const ArtifactStoreException(
         'artifact.source_outside_allowed_roots',
         'The artifact source resolves outside the allowed roots.',
