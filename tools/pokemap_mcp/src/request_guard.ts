@@ -1,7 +1,8 @@
-import type {
-  AuthoringGateway,
-  AuthoringWorkerSuccess,
-  JsonRecord,
+import {
+  DEFAULT_AUTHORING_MAX_INPUT_BYTES,
+  type AuthoringGateway,
+  type AuthoringWorkerSuccess,
+  type JsonRecord,
 } from "./authoring_client.js";
 import type {
   ArtifactReader,
@@ -38,7 +39,7 @@ export class PokeMapRequestGuard {
     );
     this.#windowMs = positiveInteger(options.windowMs ?? 60_000, "windowMs");
     this.#maxInputBytes = positiveInteger(
-      options.maxInputBytes ?? 64 * 1024,
+      options.maxInputBytes ?? DEFAULT_AUTHORING_MAX_INPUT_BYTES,
       "maxInputBytes",
     );
     this.#clock = options.clock ?? Date.now;

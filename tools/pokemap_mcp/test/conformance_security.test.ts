@@ -11,7 +11,10 @@ import type {
   AuthoringGateway,
   JsonRecord,
 } from "../src/authoring_client.js";
-import { LocalAuthoringClient } from "../src/authoring_client.js";
+import {
+  DEFAULT_AUTHORING_MAX_INPUT_BYTES,
+  LocalAuthoringClient,
+} from "../src/authoring_client.js";
 import { MemoryArtifactReader } from "../src/artifacts.js";
 import { PokeMapRequestGuard } from "../src/request_guard.js";
 import { createPokeMapMcpServer } from "../src/server.js";
@@ -119,6 +122,33 @@ test("rate and UTF-8 size budgets fail closed before reaching a gateway", async 
     await fixture.client.close();
     await fixture.server.close();
   }
+});
+
+test("default authoring budget accepts the exact limit and rejects limit + 1", async () => {
+  const guard = new PokeMapRequestGuard();
+  const baseBytes = Buffer.byteLength(JSON.stringify({ payload: "" }), "utf8");
+  const exact = {
+    payload: "x".repeat(DEFAULT_AUTHORING_MAX_INPUT_BYTES - baseBytes),
+  };
+  let calls = 0;
+
+  await guard.run("authoring.plan", exact, async () => {
+    calls += 1;
+  });
+  await assert.rejects(
+    guard.run(
+      "authoring.plan",
+      { payload: `${exact.payload}x` },
+      async () => {
+        calls += 1;
+      },
+    ),
+    (error: unknown) =>
+      error instanceof Error &&
+      "code" in error &&
+      (error as { code: unknown }).code === "resource_limit",
+  );
+  assert.equal(calls, 1);
 });
 
 test("strict schemas reject a deterministic malformed-envelope corpus", async () => {

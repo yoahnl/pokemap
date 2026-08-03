@@ -5,7 +5,7 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('queries all five native Smart Tile resource kinds', () {
+  test('queries all six native Smart Tile resource kinds', () {
     final snapshot = _snapshot();
     final expected = <String, int>{
       'smartTileAtlas': 1,
@@ -13,6 +13,7 @@ void main() {
       'smartTileAnimation': 1,
       'smartTilePreset': 1,
       'smartTileLayer': 1,
+      'smartTileDraft': 1,
     };
 
     for (final entry in expected.entries) {
@@ -27,6 +28,23 @@ void main() {
       expect(page.totalAvailable, entry.value, reason: entry.key);
       expect(page.items.single['resourceKind'], entry.key);
     }
+  });
+
+  test('draft detail exposes the byte-stable canonical document', () {
+    final page = const ProjectQueryService().query(
+      _snapshot(),
+      AuthoringQueryRequest(
+        resourceKind: 'smartTileDraft',
+        operation: AuthoringQueryOperation.get,
+        view: AuthoringQueryView.detail,
+        ids: <String>['draft-grass'],
+      ),
+    );
+
+    expect(page.items.single, <String, Object?>{
+      ..._draft.toJson(),
+      'resourceKind': 'smartTileDraft',
+    });
   });
 
   test('preset detail includes exact coverage diagnostics', () {
@@ -146,6 +164,7 @@ ProjectSnapshot _snapshot() {
       materials: const <ProjectSmartTileMaterial>[material],
       animations: const <ProjectSmartTileAnimation>[animation],
       presets: const <ProjectSmartTilePreset>[preset],
+      drafts: const <ProjectSmartTileAuthoringDraft>[_draft],
     ),
   );
   final projectBytes = _encode(manifest.toJson());
@@ -174,6 +193,14 @@ ProjectSnapshot _snapshot() {
     },
   );
 }
+
+const _draft = ProjectSmartTileAuthoringDraft(
+  id: 'draft-grass',
+  targetPresetId: 'future-grass',
+  name: 'Future grass',
+  usage: SmartTileUsage.terrain,
+  lastStage: SmartTileAuthoringStage.image,
+);
 
 List<int> _encode(Object? value) =>
     utf8.encode(const JsonEncoder.withIndent('  ').convert(value));

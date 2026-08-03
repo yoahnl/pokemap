@@ -87,7 +87,7 @@ final class _CliOptions {
   factory _CliOptions.parse(List<String> arguments) {
     final roots = <String>[];
     var timeoutMs = 10000;
-    var maxInputBytes = 64 * 1024;
+    var maxInputBytes = defaultAuthoringJsonlMaxInputBytes;
     var index = 0;
     while (index < arguments.length) {
       final option = arguments[index++];

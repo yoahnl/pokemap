@@ -182,6 +182,7 @@ final Set<String> _approvedResourceKinds = {
   'smartTileMaterial',
   'smartTileAnimation',
   'smartTilePreset',
+  'smartTileDraft',
   'smartTileLayer',
   'environmentPreset',
   'borderBlueprint',

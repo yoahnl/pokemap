@@ -856,6 +856,8 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "smart_tile.layer.merge",
       "smart_tile.layer.normalize",
       "smart_tile.material.upsert",
+      "smart_tile.preset.draft.delete",
+      "smart_tile.preset.draft.upsert",
       "smart_tile.preset.delete",
       "smart_tile.preset.publish",
     ]) {
@@ -867,6 +869,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     for (const resourceKind of [
       "smartTileAnimation",
       "smartTileAtlas",
+      "smartTileDraft",
       "smartTileLayer",
       "smartTileMaterial",
       "smartTilePreset",
@@ -999,6 +1002,28 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       },
       "animation",
     );
+
+    await applyAction(
+      "smart_tile.preset.draft.upsert",
+      {
+        draft: {
+          id: "mcp-draft",
+          targetPresetId: "mcp-draft-target",
+          name: "MCP draft",
+          usage: "terrain",
+          lastStage: "usage",
+        },
+      },
+      "draft-upsert",
+    );
+    const queriedDraft = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "smartTileDraft",
+      operation: "get",
+      view: "detail",
+      ids: ["mcp-draft"],
+    });
+    assert.equal(record((queriedDraft.items as unknown[])[0]).id, "mcp-draft");
 
     const queriedAnimations = await toolData(
       fixture.client,

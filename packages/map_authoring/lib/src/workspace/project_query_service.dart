@@ -148,6 +148,17 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
             },
           ),
       ];
+    case 'smartTileDraft':
+      return <_QueryRecord>[
+        for (final draft in snapshot.manifest.smartTileCatalog.drafts)
+          _QueryRecord(
+            summary: _smartTileDraftSummary(draft),
+            detail: <String, Object?>{
+              ...draft.toJson(),
+              'resourceKind': 'smartTileDraft',
+            },
+          ),
+      ];
     case 'smartTilePreset':
       final catalog = snapshot.manifest.smartTileCatalog;
       return <_QueryRecord>[
@@ -424,6 +435,21 @@ Map<String, Object?> _smartTileAnimationSummary(
       'frameCount': animation.frames.length,
       'sync': animation.sync.name,
       'loop': animation.loop.name,
+    };
+
+Map<String, Object?> _smartTileDraftSummary(
+  ProjectSmartTileAuthoringDraft draft,
+) =>
+    <String, Object?>{
+      'id': draft.id,
+      'name': draft.name,
+      'resourceKind': 'smartTileDraft',
+      'targetPresetId': draft.targetPresetId,
+      'usage': draft.usage.name,
+      'lastStage': draft.lastStage.name,
+      'atlasCount': draft.atlases.length,
+      'materialCount': draft.materials.length,
+      'ruleCount': draft.rules.length,
     };
 
 Map<String, Object?> _smartTilePresetSummary(ProjectSmartTilePreset preset) =>

@@ -103,6 +103,7 @@ void main() {
           'script',
           'smartTileAnimation',
           'smartTileAtlas',
+          'smartTileDraft',
           'smartTileLayer',
           'smartTileMaterial',
           'smartTilePreset',

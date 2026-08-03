@@ -158,6 +158,12 @@ final class AuthoringResourceKindRegistry {
         summary: 'Decoded-image-bounded atlas geometry for Smart Tiles',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'smartTileDraft',
+        version: 1,
+        displayName: 'Smart Tile draft',
+        summary: 'Durable isolated Smart Tiles Studio authoring state',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'smartTileMaterial',
         version: 1,
         displayName: 'Smart Tile material',

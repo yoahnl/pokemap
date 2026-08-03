@@ -59,6 +59,7 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
                   kind.id == 'smartTileAtlas' ||
                   kind.id == 'smartTileMaterial' ||
                   kind.id == 'smartTileAnimation' ||
+                  kind.id == 'smartTileDraft' ||
                   kind.id == 'smartTilePreset' ||
                   kind.id == 'smartTileLayer',
             )

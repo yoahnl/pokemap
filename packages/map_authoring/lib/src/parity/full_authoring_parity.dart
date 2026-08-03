@@ -224,6 +224,7 @@ AuthoringResourceParity _resourceParity(String kind, String owner) {
         derived || sandbox,
       AuthoringParityCapability.references => derived || sandbox,
       AuthoringParityCapability.visualization => !visual,
+      AuthoringParityCapability.runtime => kind == 'smartTileDraft',
       _ => false,
     };
     if (notApplicable) {
@@ -304,6 +305,11 @@ String _notApplicableReason(
     return '$kind has no visual surface; rendering its owning aggregate would '
         'misrepresent this resource.';
   }
+  if (kind == 'smartTileDraft' &&
+      capability == AuthoringParityCapability.runtime) {
+    return 'smartTileDraft is authoring-only; runtime resolution deliberately '
+        'reads published presets and never draft state.';
+  }
   if (kind == 'gamePackage') {
     return 'gamePackage is a derived, content-addressed release artifact. It '
         'is built and inspected by the release gate, never mutated in-place.';
@@ -327,6 +333,10 @@ final class _ContractEvidenceRule {
 }
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
+  _ContractEvidenceRule(
+    ['smart_tile.preset.draft.'],
+    'test/domains/maps/smart_tile_draft_actions_test.dart',
+  ),
   _ContractEvidenceRule(
     ['map.'],
     'test/domains/maps/map_lifecycle_contract_test.dart',
@@ -460,6 +470,7 @@ const _semanticOwners = <String, String>{
   'smartTileAtlas': 'project',
   'smartTileMaterial': 'project',
   'smartTileAnimation': 'project',
+  'smartTileDraft': 'project',
   'smartTilePreset': 'project',
   'smartTileLayer': 'map',
   'environmentPreset': 'project',

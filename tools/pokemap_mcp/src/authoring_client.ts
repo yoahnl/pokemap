@@ -4,6 +4,9 @@ import { createInterface, type Interface as ReadLineInterface } from "node:readl
 
 export type JsonRecord = Record<string, unknown>;
 
+/** Matches map_authoring.defaultAuthoringJsonlMaxInputBytes. */
+export const DEFAULT_AUTHORING_MAX_INPUT_BYTES = 1024 * 1024;
+
 export interface AuthoringWorkerError {
   code: string;
   message: string;
@@ -87,7 +90,7 @@ export class LocalAuthoringClient
       dartExecutable: options.dartExecutable ?? "dart",
       requestTimeoutMs: options.requestTimeoutMs ?? 15_000,
       workerTimeoutMs: options.workerTimeoutMs ?? 10_000,
-      maxInputBytes: options.maxInputBytes ?? 64 * 1024,
+      maxInputBytes: options.maxInputBytes ?? DEFAULT_AUTHORING_MAX_INPUT_BYTES,
     };
   }
 

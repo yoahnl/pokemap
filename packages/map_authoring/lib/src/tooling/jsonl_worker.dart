@@ -30,11 +30,17 @@ import '../workspace/project_query_service.dart';
 import '../workspace/project_snapshot.dart';
 import '../workspace/workspace_handle_store.dart';
 
+/// Bounded transport budget shared by the CLI worker and the MCP bridge.
+///
+/// One complete mixed-256 Smart Tile draft is intentionally accepted as a
+/// single semantic mutation. Callers can still lower this limit explicitly.
+const int defaultAuthoringJsonlMaxInputBytes = 1024 * 1024;
+
 final class JsonlWorker {
   JsonlWorker({
     required AuthoringReadApiPort api,
     AuthoringMutationApiPort? mutations,
-    this.maxInputBytes = 64 * 1024,
+    this.maxInputBytes = defaultAuthoringJsonlMaxInputBytes,
     this.commandTimeout = const Duration(seconds: 10),
   })  : _api = api,
         _mutations = mutations {

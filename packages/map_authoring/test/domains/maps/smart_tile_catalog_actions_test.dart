@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('SmartTileCatalogActions', () {
-    test('advertises the six canonical catalog mutations', () {
+    test('advertises the eight canonical catalog mutations', () {
       expect(
         SmartTileCatalogActions.descriptors.map((item) => item.id),
         <String>[
@@ -15,6 +15,8 @@ void main() {
           'smart_tile.atlas.upsert',
           'smart_tile.material.upsert',
           'smart_tile.preset.delete',
+          'smart_tile.preset.draft.delete',
+          'smart_tile.preset.draft.upsert',
           'smart_tile.preset.publish',
         ],
       );

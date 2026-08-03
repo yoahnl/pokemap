@@ -69,6 +69,26 @@ final class SmartTileCatalogActions {
         risk: AuthoringRiskLevel.high,
       ),
       _descriptor(
+        'smart_tile.preset.draft.delete',
+        'Delete one isolated Smart Tile authoring draft',
+        resourceKinds: const <String>[
+          'project',
+          'smartTileDraft',
+        ],
+        risk: AuthoringRiskLevel.high,
+      ),
+      _descriptor(
+        'smart_tile.preset.draft.upsert',
+        'Create or replace one isolated Smart Tile authoring draft',
+        resourceKinds: const <String>[
+          'project',
+          'smartTileDraft',
+          'smartTileAtlas',
+          'smartTileMaterial',
+          'smartTileAnimation',
+        ],
+      ),
+      _descriptor(
         'smart_tile.preset.publish',
         'Publish a Smart Tile preset with optional atomic layer creation',
         resourceKinds: const <String>[
@@ -76,6 +96,7 @@ final class SmartTileCatalogActions {
           'map',
           'smartTilePreset',
           'smartTileLayer',
+          'smartTileDraft',
         ],
       ),
     ]..sort((left, right) => left.id.compareTo(right.id)),
@@ -96,6 +117,8 @@ final class SmartTileCatalogActions {
       'smart_tile.material.upsert' => _upsertMaterial(planning),
       'smart_tile.animation.upsert' => _upsertAnimation(planning),
       'smart_tile.animation.delete' => _deleteAnimation(planning),
+      'smart_tile.preset.draft.upsert' => _upsertDraft(planning),
+      'smart_tile.preset.draft.delete' => _deleteDraft(planning),
       'smart_tile.preset.publish' => _publishPreset(planning),
       'smart_tile.preset.delete' => _deletePreset(planning),
       _ => throw semanticFailure(
@@ -254,18 +277,151 @@ final class SmartTileCatalogActions {
     );
   }
 
+  AuthoringMutationDraft _upsertDraft(AuthoringPlanningContext planning) {
+    final parameters = SemanticParameters(
+      planning.request.parameters,
+      allowed: const <String>{'draft'},
+    );
+    final draft = _decode(
+      parameters.object('draft'),
+      field: 'draft',
+      decode: ProjectSmartTileAuthoringDraft.fromJson,
+    );
+    final catalog = planning.snapshot.manifest.smartTileCatalog;
+    final before = _findById(catalog.drafts, draft.id, (item) => item.id);
+    _validateDraftTarget(catalog, draft, replacingDraftId: draft.id);
+    final projected = _catalogWith(
+      catalog,
+      drafts: _upsertById(catalog.drafts, draft, (item) => item.id),
+    );
+    return _manifestDraft(
+      planning,
+      manifest: _nativeManifest(planning.snapshot.manifest, projected),
+      operation: 'smart_tile.preset.draft.upsert',
+      path: '/smartTileCatalog/drafts/${draft.id}',
+      before: before?.toJson(),
+      after: draft.toJson(),
+    );
+  }
+
+  AuthoringMutationDraft _deleteDraft(AuthoringPlanningContext planning) {
+    final parameters = SemanticParameters(
+      planning.request.parameters,
+      allowed: const <String>{'draftId'},
+    );
+    final draftId = parameters.string('draftId');
+    final catalog = planning.snapshot.manifest.smartTileCatalog;
+    final existing = _findById(catalog.drafts, draftId, (item) => item.id);
+    if (existing == null) {
+      throw semanticFailure(
+        'smart_tile.draft.unknown',
+        'The requested Smart Tile draft does not exist.',
+        details: <String, Object?>{'draftId': draftId},
+      );
+    }
+    final projected = _catalogWith(
+      catalog,
+      drafts: <ProjectSmartTileAuthoringDraft>[
+        for (final draft in catalog.drafts)
+          if (draft.id != draftId) draft,
+      ],
+    );
+    return _manifestDraft(
+      planning,
+      manifest: _nativeManifest(planning.snapshot.manifest, projected),
+      operation: 'smart_tile.preset.draft.delete',
+      path: '/smartTileCatalog/drafts/$draftId',
+      before: existing.toJson(),
+    );
+  }
+
   AuthoringMutationDraft _publishPreset(AuthoringPlanningContext planning) {
     final parameters = SemanticParameters(
       planning.request.parameters,
-      allowed: const <String>{'preset', 'layer'},
+      allowed: const <String>{'preset', 'draftId', 'layer'},
     );
-    final supplied = _decode(
-      parameters.object('preset'),
-      field: 'preset',
-      decode: ProjectSmartTilePreset.fromJson,
-    );
-    final preset = supplied.copyWith(status: SmartTilePresetStatus.published);
     final currentCatalog = planning.snapshot.manifest.smartTileCatalog;
+    final hasPreset = parameters.contains('preset');
+    final hasDraft = parameters.contains('draftId');
+    if (hasPreset == hasDraft) {
+      throw semanticFailure(
+        'smart_tile.request_invalid',
+        'Smart Tile publication requires exactly one of preset or draftId.',
+        details: const <String, Object?>{
+          'exclusiveParameters': <String>['preset', 'draftId'],
+        },
+      );
+    }
+
+    late final ProjectSmartTilePreset preset;
+    ProjectSmartTileAuthoringDraft? publishedDraft;
+    var projectedAtlases = currentCatalog.atlases;
+    var projectedMaterials = currentCatalog.materials;
+    var projectedAnimations = currentCatalog.animations;
+    var projectedDrafts = currentCatalog.drafts;
+    if (hasPreset) {
+      final supplied = _decode(
+        parameters.object('preset'),
+        field: 'preset',
+        decode: ProjectSmartTilePreset.fromJson,
+      );
+      preset = supplied.copyWith(status: SmartTilePresetStatus.published);
+    } else {
+      final draftId = parameters.string('draftId');
+      publishedDraft = _findById(
+        currentCatalog.drafts,
+        draftId,
+        (item) => item.id,
+      );
+      if (publishedDraft == null) {
+        throw semanticFailure(
+          'smart_tile.draft.unknown',
+          'The requested Smart Tile draft does not exist.',
+          details: <String, Object?>{'draftId': draftId},
+        );
+      }
+      _validateDraftTarget(
+        currentCatalog,
+        publishedDraft,
+        replacingDraftId: publishedDraft.id,
+      );
+      _validateSharedDraftDependencies(currentCatalog, publishedDraft);
+      for (final atlas in publishedDraft.atlases) {
+        _validateAtlasImageBounds(planning.snapshot, atlas);
+      }
+      final compilation = compileSmartTileAuthoringDraft(
+        draft: publishedDraft,
+        catalog: currentCatalog,
+        manifest: planning.snapshot.manifest,
+      );
+      if (compilation case final SmartTileDraftCompilationFailure failure) {
+        throw semanticFailure(
+          'smart_tile.publish.incomplete',
+          'The Smart Tile draft is not ready for publication.',
+          details: <String, Object?>{
+            'draftId': publishedDraft.id,
+            'diagnostics': <Map<String, Object?>>[
+              for (final diagnostic in failure.diagnostics)
+                <String, Object?>{
+                  'code': diagnostic.code,
+                  'severity': diagnostic.severity.name,
+                  'path': diagnostic.path,
+                  'message': diagnostic.message,
+                },
+            ],
+          },
+        );
+      }
+      final success = compilation as SmartTileDraftCompilationSuccess;
+      preset = success.preset;
+      projectedAtlases = success.atlases;
+      projectedMaterials = success.materials;
+      projectedAnimations = success.animations;
+      projectedDrafts = <ProjectSmartTileAuthoringDraft>[
+        for (final draft in currentCatalog.drafts)
+          if (draft.id != publishedDraft.id) draft,
+      ];
+    }
     final before = _findById(
       currentCatalog.presets,
       preset.id,
@@ -273,11 +429,15 @@ final class SmartTileCatalogActions {
     );
     final projectedCatalog = _catalogWith(
       currentCatalog,
+      atlases: projectedAtlases,
+      materials: projectedMaterials,
+      animations: projectedAnimations,
       presets: _upsertById(
         currentCatalog.presets,
         preset,
         (item) => item.id,
       ),
+      drafts: projectedDrafts,
     );
     var projectedManifest = _nativeManifest(
       planning.snapshot.manifest,
@@ -292,6 +452,7 @@ final class SmartTileCatalogActions {
         path: '/smartTileCatalog/presets/${preset.id}',
         before: before?.toJson(),
         after: preset.toJson(),
+        removedDraft: publishedDraft,
       );
     }
 
@@ -326,6 +487,7 @@ final class SmartTileCatalogActions {
       presetBefore: before,
       presetAfter: preset,
       layerId: success.layerId,
+      removedDraft: publishedDraft,
     );
   }
 
@@ -477,6 +639,169 @@ T? _findById<T>(Iterable<T> values, String id, String Function(T) idOf) {
   return null;
 }
 
+void _validateDraftTarget(
+  ProjectSmartTileCatalog catalog,
+  ProjectSmartTileAuthoringDraft draft, {
+  required String replacingDraftId,
+}) {
+  final competingDraft = catalog.drafts
+      .where(
+        (candidate) =>
+            candidate.id != replacingDraftId &&
+            candidate.targetPresetId == draft.targetPresetId,
+      )
+      .firstOrNull;
+  if (competingDraft != null) {
+    throw semanticFailure(
+      'smart_tile.draft.target_in_use',
+      'Another Smart Tile draft already targets this preset.',
+      details: <String, Object?>{
+        'draftId': draft.id,
+        'targetPresetId': draft.targetPresetId,
+        'competingDraftId': competingDraft.id,
+      },
+    );
+  }
+  final publishedTarget = _findById(
+    catalog.presets,
+    draft.targetPresetId,
+    (item) => item.id,
+  );
+  if (publishedTarget != null && draft.sourcePresetId != draft.targetPresetId) {
+    throw semanticFailure(
+      'smart_tile.draft.target_conflict',
+      'The draft target already identifies a published preset.',
+      details: <String, Object?>{
+        'draftId': draft.id,
+        'targetPresetId': draft.targetPresetId,
+        'sourcePresetId': draft.sourcePresetId,
+      },
+      remediation: const <String>[
+        'Open the published preset for editing or choose a new preset id.',
+      ],
+    );
+  }
+}
+
+void _validateSharedDraftDependencies(
+  ProjectSmartTileCatalog catalog,
+  ProjectSmartTileAuthoringDraft draft,
+) {
+  final excludedPresetIds = <String>{
+    draft.targetPresetId,
+    if (draft.sourcePresetId != null) draft.sourcePresetId!,
+  };
+  final otherPresets = catalog.presets
+      .where((preset) => !excludedPresetIds.contains(preset.id))
+      .toList(growable: false);
+  final conflicts = <Map<String, Object?>>[];
+
+  for (final incoming in draft.atlases) {
+    final existing = _findById(catalog.atlases, incoming.id, (item) => item.id);
+    if (existing == null || existing == incoming) continue;
+    final presetIds = otherPresets
+        .where((preset) => _presetReferencesAtlas(catalog, preset, incoming.id))
+        .map((preset) => preset.id)
+        .toList(growable: false);
+    if (presetIds.isNotEmpty) {
+      conflicts.add(<String, Object?>{
+        'resourceKind': 'smartTileAtlas',
+        'resourceId': incoming.id,
+        'presetIds': presetIds,
+      });
+    }
+  }
+  for (final incoming in draft.materials) {
+    final existing =
+        _findById(catalog.materials, incoming.id, (item) => item.id);
+    if (existing == null || existing == incoming) continue;
+    final presetIds = otherPresets
+        .where((preset) => preset.allowedMaterialIds.contains(incoming.id))
+        .map((preset) => preset.id)
+        .toList(growable: false);
+    if (presetIds.isNotEmpty) {
+      conflicts.add(<String, Object?>{
+        'resourceKind': 'smartTileMaterial',
+        'resourceId': incoming.id,
+        'presetIds': presetIds,
+      });
+    }
+  }
+  for (final incoming in draft.animations) {
+    final existing =
+        _findById(catalog.animations, incoming.id, (item) => item.id);
+    if (existing == null || existing == incoming) continue;
+    final presetIds = otherPresets
+        .where((preset) => _presetReferencesAnimation(preset, incoming.id))
+        .map((preset) => preset.id)
+        .toList(growable: false);
+    if (presetIds.isNotEmpty) {
+      conflicts.add(<String, Object?>{
+        'resourceKind': 'smartTileAnimation',
+        'resourceId': incoming.id,
+        'presetIds': presetIds,
+      });
+    }
+  }
+
+  if (conflicts.isNotEmpty) {
+    throw semanticFailure(
+      'smart_tile.draft.shared_dependency_conflict',
+      'The draft changes resources shared by another published preset.',
+      details: <String, Object?>{
+        'draftId': draft.id,
+        'conflicts': conflicts,
+      },
+      remediation: const <String>[
+        'Duplicate the shared resource into this draft before publishing.',
+      ],
+    );
+  }
+}
+
+bool _presetReferencesAtlas(
+  ProjectSmartTileCatalog catalog,
+  ProjectSmartTilePreset preset,
+  String atlasId,
+) {
+  for (final source in _presetVisualSources(preset)) {
+    if (source case SmartTileFrameSource(:final frame)) {
+      if (frame.atlasId == atlasId) return true;
+    }
+    if (source case SmartTileAnimationSource(:final animationId)) {
+      final animation =
+          _findById(catalog.animations, animationId, (item) => item.id);
+      if (animation?.frames.any((frame) => frame.frame.atlasId == atlasId) ??
+          false) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool _presetReferencesAnimation(
+  ProjectSmartTilePreset preset,
+  String animationId,
+) =>
+    _presetVisualSources(preset).any(
+      (source) =>
+          source is SmartTileAnimationSource &&
+          source.animationId == animationId,
+    );
+
+Iterable<SmartTileVisualSource> _presetVisualSources(
+  ProjectSmartTilePreset preset,
+) sync* {
+  for (final rule in preset.rules) {
+    for (final candidate in rule.candidates) {
+      for (final part in candidate.parts) {
+        yield part.source;
+      }
+    }
+  }
+}
+
 AuthoringMutationDraft _manifestDraft(
   AuthoringPlanningContext planning, {
   required ProjectManifest manifest,
@@ -484,6 +809,7 @@ AuthoringMutationDraft _manifestDraft(
   required String path,
   Object? before,
   Object? after,
+  ProjectSmartTileAuthoringDraft? removedDraft,
 }) {
   preflightNativeSmartTileMutation(
     snapshot: planning.snapshot,
@@ -523,11 +849,19 @@ AuthoringMutationDraft _manifestDraft(
           before: before,
           after: after,
         ),
+        if (removedDraft != null)
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.remove,
+            resource: project,
+            path: '/smartTileCatalog/drafts/${removedDraft.id}',
+            before: removedDraft.toJson(),
+          ),
       ]),
     ),
     preview: <String, Object?>{
       'operation': operation,
       'path': path,
+      if (removedDraft != null) 'draftId': removedDraft.id,
       'projectWidePreflight': 'passed',
     },
   );
@@ -541,6 +875,7 @@ AuthoringMutationDraft _manifestAndMapDraft(
   required ProjectSmartTilePreset? presetBefore,
   required ProjectSmartTilePreset presetAfter,
   required String layerId,
+  ProjectSmartTileAuthoringDraft? removedDraft,
 }) {
   final mapEntry = planning.snapshot.manifest.maps
       .where((entry) => entry.id == map.id)
@@ -589,6 +924,13 @@ AuthoringMutationDraft _manifestAndMapDraft(
             before: presetBefore?.toJson(),
             after: presetAfter.toJson(),
           ),
+        if (projectChanged && removedDraft != null)
+          AuthoringDiffEntry(
+            operation: AuthoringDiffOperation.remove,
+            resource: project,
+            path: '/smartTileCatalog/drafts/${removedDraft.id}',
+            before: removedDraft.toJson(),
+          ),
         AuthoringDiffEntry(
           operation: AuthoringDiffOperation.add,
           resource: mapResource,
@@ -606,6 +948,7 @@ AuthoringMutationDraft _manifestAndMapDraft(
       'presetId': presetAfter.id,
       'mapId': map.id,
       'layerId': layerId,
+      if (removedDraft != null) 'draftId': removedDraft.id,
       'batchAtomicity': 'all_or_nothing',
       'manifestChanged': projectChanged,
       'projectWidePreflight': 'passed',

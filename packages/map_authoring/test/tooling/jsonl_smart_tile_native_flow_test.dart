@@ -82,6 +82,45 @@ void main() {
       expect(smartTileSemanticCells(layer), <int>[1]);
     });
 
+    test('persists, reopens and publishes drafts byte-identically', () async {
+      final direct = await _Harness.create('draft_direct');
+      final jsonl = await _Harness.create('draft_jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+
+      final directResult = await direct.applyDirectDraftFlow();
+      final jsonlResult = await jsonl.applyJsonlDraftFlow();
+
+      expect(directResult.queryBeforeReopen, directResult.queryAfterReopen);
+      expect(jsonlResult.queryBeforeReopen, jsonlResult.queryAfterReopen);
+      expect(
+        directResult.queryAfterReopen['items'],
+        jsonlResult.queryAfterReopen['items'],
+      );
+      expect(
+        _stableReceipt(directResult.upsertReceipt),
+        _stableReceipt(jsonlResult.upsertReceipt),
+      );
+      expect(
+        _stableReceipt(directResult.publishReceipt),
+        _stableReceipt(jsonlResult.publishReceipt),
+      );
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      expect(await direct.mapBytes(), await jsonl.mapBytes());
+
+      final manifest = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(await direct.projectBytes()))
+            as Map<String, dynamic>,
+      );
+      expect(manifest.smartTileCatalog.drafts, isEmpty);
+      expect(manifest.smartTileCatalog.presets.single.id, 'grass-draft');
+      final map = MapData.fromJson(
+        jsonDecode(utf8.decode(await direct.mapBytes()))
+            as Map<String, dynamic>,
+      );
+      expect(map.layers.single, isA<SmartTileLayer>());
+    });
+
     test('rejects stale planning and replays one operation exactly once',
         () async {
       final harness = await _Harness.create('cas');
@@ -93,9 +132,9 @@ void main() {
         _request(
           workspaceHandle: opened.workspace.value,
           revision: before.revision,
-          actionId: 'smart_tile.animation.upsert',
+          actionId: 'smart_tile.preset.draft.upsert',
           parameters: <String, Object?>{
-            'animation': _animation().toJson(),
+            'draft': _draft().toJson(),
           },
           sequence: 'cas-apply',
         ),
@@ -358,6 +397,78 @@ final class _Harness {
     );
   }
 
+  Future<_DraftFlowResult> applyDirectDraftFlow() async {
+    final opened = await openDirect();
+
+    Future<Map<String, Object?>> apply({
+      required String actionId,
+      required Map<String, Object?> parameters,
+      required String sequence,
+      required String operationId,
+    }) async {
+      final snapshot = await snapshots.load(opened.project);
+      final plan = await mutations.plan(
+        opened.project,
+        _request(
+          workspaceHandle: opened.workspace.value,
+          revision: snapshot.revision,
+          actionId: actionId,
+          parameters: parameters,
+          sequence: sequence,
+        ),
+      );
+      return mutations.apply(
+        opened.project,
+        planId: plan['planId']! as String,
+        operationId: operationId,
+      );
+    }
+
+    final upsert = await apply(
+      actionId: 'smart_tile.preset.draft.upsert',
+      parameters: <String, Object?>{'draft': _draft().toJson()},
+      sequence: 'draft-upsert',
+      operationId: 'operation-draft-upsert',
+    );
+    final queryBefore = await readApi.query(
+      opened.project,
+      AuthoringQueryRequest(
+        resourceKind: 'smartTileDraft',
+        operation: AuthoringQueryOperation.get,
+        ids: <String>['draft-grass'],
+      ),
+    );
+
+    final reopened = await openDirect();
+    final queryAfter = await readApi.query(
+      reopened.project,
+      AuthoringQueryRequest(
+        resourceKind: 'smartTileDraft',
+        operation: AuthoringQueryOperation.get,
+        ids: <String>['draft-grass'],
+      ),
+    );
+    final publish = await apply(
+      actionId: 'smart_tile.preset.publish',
+      parameters: const <String, Object?>{
+        'draftId': 'draft-grass',
+        'layer': <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'terrain',
+          'name': 'Terrain',
+        },
+      },
+      sequence: 'draft-publish',
+      operationId: 'operation-draft-publish',
+    );
+    return _DraftFlowResult(
+      upsertReceipt: _receipt(upsert),
+      publishReceipt: _receipt(publish),
+      queryBeforeReopen: queryBefore,
+      queryAfterReopen: queryAfter,
+    );
+  }
+
   Future<AuthoringResult> planJsonlFailure({
     required String actionId,
     required Map<String, Object?> parameters,
@@ -457,6 +568,88 @@ final class _Harness {
     );
   }
 
+  Future<_DraftFlowResult> applyJsonlDraftFlow() async {
+    var opened = await _jsonl('open', <String, Object?>{
+      'projectRoot': root.path,
+    });
+    var project = opened['projectHandle']! as String;
+    var workspace = opened['workspaceHandle']! as String;
+
+    Future<Map<String, Object?>> apply({
+      required String actionId,
+      required Map<String, Object?> parameters,
+      required String sequence,
+      required String operationId,
+    }) async {
+      final validation = await _jsonl('validate', <String, Object?>{
+        'projectHandle': project,
+      });
+      final plan = await _jsonl('plan', <String, Object?>{
+        'projectHandle': project,
+        'request': _request(
+          workspaceHandle: workspace,
+          revision: validation['snapshotRevision']! as String,
+          actionId: actionId,
+          parameters: parameters,
+          sequence: sequence,
+        ).toJson(),
+      });
+      return _jsonl('apply', <String, Object?>{
+        'projectHandle': project,
+        'planId': plan['planId'],
+        'operationId': operationId,
+      });
+    }
+
+    final upsert = await apply(
+      actionId: 'smart_tile.preset.draft.upsert',
+      parameters: <String, Object?>{'draft': _draft().toJson()},
+      sequence: 'draft-upsert',
+      operationId: 'operation-draft-upsert',
+    );
+    final queryBefore = await _jsonl('query', <String, Object?>{
+      'projectHandle': project,
+      'request': AuthoringQueryRequest(
+        resourceKind: 'smartTileDraft',
+        operation: AuthoringQueryOperation.get,
+        ids: <String>['draft-grass'],
+      ).toJson(),
+    });
+
+    opened = await _jsonl('open', <String, Object?>{
+      'projectRoot': root.path,
+    });
+    project = opened['projectHandle']! as String;
+    workspace = opened['workspaceHandle']! as String;
+    final queryAfter = await _jsonl('query', <String, Object?>{
+      'projectHandle': project,
+      'request': AuthoringQueryRequest(
+        resourceKind: 'smartTileDraft',
+        operation: AuthoringQueryOperation.get,
+        ids: <String>['draft-grass'],
+      ).toJson(),
+    });
+    final publish = await apply(
+      actionId: 'smart_tile.preset.publish',
+      parameters: const <String, Object?>{
+        'draftId': 'draft-grass',
+        'layer': <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'terrain',
+          'name': 'Terrain',
+        },
+      },
+      sequence: 'draft-publish',
+      operationId: 'operation-draft-publish',
+    );
+    return _DraftFlowResult(
+      upsertReceipt: _receipt(upsert),
+      publishReceipt: _receipt(publish),
+      queryBeforeReopen: queryBefore,
+      queryAfterReopen: queryAfter,
+    );
+  }
+
   Future<Map<String, Object?>> _jsonl(
     String command,
     Map<String, Object?> args,
@@ -509,6 +702,20 @@ final class _FlowResult {
   final Map<String, Object?> animationReplay;
   final Map<String, Object?> publishReceipt;
   final Map<String, Object?> animationQuery;
+}
+
+final class _DraftFlowResult {
+  const _DraftFlowResult({
+    required this.upsertReceipt,
+    required this.publishReceipt,
+    required this.queryBeforeReopen,
+    required this.queryAfterReopen,
+  });
+
+  final Map<String, Object?> upsertReceipt;
+  final Map<String, Object?> publishReceipt;
+  final Map<String, Object?> queryBeforeReopen;
+  final Map<String, Object?> queryAfterReopen;
 }
 
 AuthoringRequest _request({
@@ -600,6 +807,28 @@ ProjectSmartTilePreset _preset() => const ProjectSmartTilePreset(
           ],
         ),
       ],
+    );
+
+ProjectSmartTileAuthoringDraft _draft() => ProjectSmartTileAuthoringDraft(
+      id: 'draft-grass',
+      targetPresetId: 'grass-draft',
+      name: 'Grass draft',
+      usage: SmartTileUsage.terrain,
+      lastStage: SmartTileAuthoringStage.publish,
+      sourceTilesetIds: const <String>['tileset'],
+      atlases: <ProjectSmartTileAtlas>[_atlas()],
+      primaryAtlasId: 'atlas',
+      materials: const <ProjectSmartTileMaterial>[
+        ProjectSmartTileMaterial(
+          id: 'grass',
+          name: 'Grass',
+          connectionGroupId: 'ground',
+        ),
+      ],
+      animations: <ProjectSmartTileAnimation>[_animation()],
+      defaultMaterialId: 'grass',
+      allowedMaterialIds: const <String>['grass'],
+      rules: _preset().rules,
     );
 
 List<int> _encode(Object? value) =>
