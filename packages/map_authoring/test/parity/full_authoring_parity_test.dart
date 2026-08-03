@@ -7,6 +7,21 @@ import 'package:test/test.dart';
 
 void main() {
   group('PMCP-085 full authoring parity', () {
+    test('characterizes the nineteen legacy actions before STN-04 cutover', () {
+      final legacyActionIds = AuthoringMutationDispatcher.canonical()
+          .descriptors
+          .map((descriptor) => descriptor.id)
+          .where(
+            (id) =>
+                id.startsWith('terrain.') ||
+                id.startsWith('path.') ||
+                id.startsWith('surface.'),
+          )
+          .toSet();
+
+      expect(legacyActionIds, _stn04LegacyActionBaseline);
+    });
+
     test('registers every approved semantic resource without hidden gaps', () {
       final catalog = AuthoringFullParityCatalog.canonical();
 
@@ -202,6 +217,28 @@ final Set<String> _approvedResourceKinds = {
   'pokemonCatalog',
   'gameSave',
   'gamePackage',
+};
+
+const Set<String> _stn04LegacyActionBaseline = {
+  'terrain.paint',
+  'terrain.fill',
+  'terrain.erase',
+  'terrain.replace',
+  'terrain.paint_pattern',
+  'terrain.erase_pattern',
+  'path.paint',
+  'path.fill',
+  'path.erase',
+  'path.assign_preset',
+  'path.set_properties',
+  'path.set_animation_mode',
+  'path.paint_pattern',
+  'path.erase_pattern',
+  'surface.paint',
+  'surface.erase',
+  'surface.erase_area',
+  'surface.clear',
+  'surface.replace_placements',
 };
 
 final class _GoldenHarness {

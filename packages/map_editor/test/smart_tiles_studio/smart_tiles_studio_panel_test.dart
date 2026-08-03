@@ -7,11 +7,36 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_authoring_controller.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
+import 'package:map_editor/src/ui/design_system/pokemap_asset_card.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 void main() {
   group('SmartTilesStudioPanel', () {
+    testWidgets('characterizes terrain and forest as disabled before STN-04', (
+      tester,
+    ) async {
+      await _pumpPanel(tester, _manifest());
+
+      await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
+      await tester.pump();
+
+      final terrain = tester.widget<PokeMapAssetCard>(
+        find.byKey(const Key('smart-tiles-usage-terrain')),
+      );
+      final forest = tester.widget<PokeMapAssetCard>(
+        find.byKey(const Key('smart-tiles-usage-forestSurface')),
+      );
+      final path = tester.widget<PokeMapAssetCard>(
+        find.byKey(const Key('smart-tiles-usage-path')),
+      );
+
+      expect(terrain.onPressed, isNull);
+      expect(forest.onPressed, isNull);
+      expect(path.onPressed, isNotNull);
+      expect(find.textContaining('Guide guidé à venir'), findsNWidgets(2));
+    });
+
     testWidgets('renders the approved three-column studio shell', (
       tester,
     ) async {
