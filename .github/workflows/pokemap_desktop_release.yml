@@ -659,8 +659,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment: pokemap-release
+    # Draft releases are hidden from read-only GitHub Actions tokens.
     permissions:
-      contents: read
+      contents: write
     env:
       RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
       RELEASE_BUILD_NUMBER: ${{ needs.validate-release.outputs.build_number }}

@@ -103,6 +103,11 @@ void main() {
     );
     expect(
       smokeDownload,
+      contains('permissions:\n      contents: write'),
+      reason: 'GitHub hides draft releases from read-only workflow tokens.',
+    );
+    expect(
+      smokeDownload,
       contains("Accept: application/octet-stream"),
     );
     expect(
