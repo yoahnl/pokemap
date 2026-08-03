@@ -2,25 +2,25 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('SurfaceGameplayZoneGenerationAssessmentPolicy', () {
+  group('SmartTileGameplayZoneGenerationAssessmentPolicy', () {
     test('default policy is valid', () {
       expect(
-        SurfaceGameplayZoneGenerationAssessmentPolicy
+        SmartTileGameplayZoneGenerationAssessmentPolicy
             .defaultPolicy.maxExtraCellRatioBeforeWarning,
         0,
       );
       expect(
-        SurfaceGameplayZoneGenerationAssessmentPolicy
+        SmartTileGameplayZoneGenerationAssessmentPolicy
             .defaultPolicy.maxExtraCellRatioBeforeBlocking,
         0.25,
       );
       expect(
-        SurfaceGameplayZoneGenerationAssessmentPolicy
+        SmartTileGameplayZoneGenerationAssessmentPolicy
             .defaultPolicy.maxGeneratedZonesBeforeWarning,
         8,
       );
       expect(
-        SurfaceGameplayZoneGenerationAssessmentPolicy
+        SmartTileGameplayZoneGenerationAssessmentPolicy
             .defaultPolicy.maxGeneratedZonesBeforeBlocking,
         32,
       );
@@ -28,7 +28,7 @@ void main() {
 
     test('rejects invalid ratios and thresholds', () {
       expect(
-        () => SurfaceGameplayZoneGenerationAssessmentPolicy(
+        () => SmartTileGameplayZoneGenerationAssessmentPolicy(
           maxExtraCellRatioBeforeWarning: -0.1,
           maxExtraCellRatioBeforeBlocking: 0.25,
           maxGeneratedZonesBeforeWarning: 8,
@@ -37,7 +37,7 @@ void main() {
         throwsA(isA<ValidationException>()),
       );
       expect(
-        () => SurfaceGameplayZoneGenerationAssessmentPolicy(
+        () => SmartTileGameplayZoneGenerationAssessmentPolicy(
           maxExtraCellRatioBeforeWarning: 0,
           maxExtraCellRatioBeforeBlocking: 1.1,
           maxGeneratedZonesBeforeWarning: 8,
@@ -46,7 +46,7 @@ void main() {
         throwsA(isA<ValidationException>()),
       );
       expect(
-        () => SurfaceGameplayZoneGenerationAssessmentPolicy(
+        () => SmartTileGameplayZoneGenerationAssessmentPolicy(
           maxExtraCellRatioBeforeWarning: 0.5,
           maxExtraCellRatioBeforeBlocking: 0.25,
           maxGeneratedZonesBeforeWarning: 8,
@@ -55,7 +55,7 @@ void main() {
         throwsA(isA<ValidationException>()),
       );
       expect(
-        () => SurfaceGameplayZoneGenerationAssessmentPolicy(
+        () => SmartTileGameplayZoneGenerationAssessmentPolicy(
           maxExtraCellRatioBeforeWarning: 0,
           maxExtraCellRatioBeforeBlocking: 0.25,
           maxGeneratedZonesBeforeWarning: 0,
@@ -64,7 +64,7 @@ void main() {
         throwsA(isA<ValidationException>()),
       );
       expect(
-        () => SurfaceGameplayZoneGenerationAssessmentPolicy(
+        () => SmartTileGameplayZoneGenerationAssessmentPolicy(
           maxExtraCellRatioBeforeWarning: 0,
           maxExtraCellRatioBeforeBlocking: 0.25,
           maxGeneratedZonesBeforeWarning: 8,
@@ -75,9 +75,9 @@ void main() {
     });
   });
 
-  group('assessSurfaceGameplayZoneGenerationPlan ready', () {
+  group('assessSmartTileGameplayZoneGenerationPlan ready', () {
     test('marks an exact greedy rectangle plan ready', () {
-      final assessment = assessSurfaceGameplayZoneGenerationPlan(
+      final assessment = assessSmartTileGameplayZoneGenerationPlan(
         _planForCells(
           const [
             GridPos(x: 0, y: 0),
@@ -85,13 +85,13 @@ void main() {
             GridPos(x: 0, y: 1),
             GridPos(x: 1, y: 1),
           ],
-          strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+          strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         ),
       );
 
       expect(
         assessment.status,
-        SurfaceGameplayZoneGenerationAssessmentStatus.ready,
+        SmartTileGameplayZoneGenerationAssessmentStatus.ready,
       );
       expect(assessment.canApply, isTrue);
       expect(assessment.requiresReview, isFalse);
@@ -105,10 +105,10 @@ void main() {
     });
   });
 
-  group('assessSurfaceGameplayZoneGenerationPlan needsReview', () {
+  group('assessSmartTileGameplayZoneGenerationPlan needsReview', () {
     test('marks bounding-box extra cells as needsReview below blocking ratio',
         () {
-      final assessment = assessSurfaceGameplayZoneGenerationPlan(
+      final assessment = assessSmartTileGameplayZoneGenerationPlan(
         _planForCells(
           const [
             GridPos(x: 0, y: 0),
@@ -117,13 +117,13 @@ void main() {
             GridPos(x: 0, y: 1),
             GridPos(x: 1, y: 1),
           ],
-          strategy: SurfaceGameplayZoneGenerationStrategy.boundingBox,
+          strategy: SmartTileGameplayZoneGenerationStrategy.boundingBox,
         ),
       );
 
       expect(
         assessment.status,
-        SurfaceGameplayZoneGenerationAssessmentStatus.needsReview,
+        SmartTileGameplayZoneGenerationAssessmentStatus.needsReview,
       );
       expect(assessment.canApply, isTrue);
       expect(assessment.requiresReview, isTrue);
@@ -135,10 +135,10 @@ void main() {
     });
 
     test('presents overlap and id collision diagnostics for review', () {
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(const [GridPos(x: 0, y: 0)]),
         behavior: _encounterBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'grass',
         zoneNamePrefix: 'Grass',
         existingZones: const [
@@ -152,11 +152,11 @@ void main() {
           ),
         ],
       );
-      final assessment = assessSurfaceGameplayZoneGenerationPlan(plan);
+      final assessment = assessSmartTileGameplayZoneGenerationPlan(plan);
 
       expect(
         assessment.status,
-        SurfaceGameplayZoneGenerationAssessmentStatus.needsReview,
+        SmartTileGameplayZoneGenerationAssessmentStatus.needsReview,
       );
       expect(
         assessment.warningMessages.map((message) => message.title),
@@ -169,7 +169,7 @@ void main() {
     });
 
     test('marks too many rectangles warning as needsReview under blocking', () {
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(
           const [
             GridPos(x: 0, y: 0),
@@ -178,16 +178,16 @@ void main() {
           ],
         ),
         behavior: _encounterBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'grass',
         zoneNamePrefix: 'Grass',
         maxRectanglesWarningThreshold: 2,
       );
-      final assessment = assessSurfaceGameplayZoneGenerationPlan(plan);
+      final assessment = assessSmartTileGameplayZoneGenerationPlan(plan);
 
       expect(
         assessment.status,
-        SurfaceGameplayZoneGenerationAssessmentStatus.needsReview,
+        SmartTileGameplayZoneGenerationAssessmentStatus.needsReview,
       );
       expect(
         assessment.warningMessages.map((message) => message.title),
@@ -196,21 +196,21 @@ void main() {
     });
   });
 
-  group('assessSurfaceGameplayZoneGenerationPlan blocked', () {
+  group('assessSmartTileGameplayZoneGenerationPlan blocked', () {
     test('blocks when extra cell ratio reaches blocking threshold', () {
-      final assessment = assessSurfaceGameplayZoneGenerationPlan(
+      final assessment = assessSmartTileGameplayZoneGenerationPlan(
         _planForCells(
           const [
             GridPos(x: 0, y: 0),
             GridPos(x: 3, y: 0),
           ],
-          strategy: SurfaceGameplayZoneGenerationStrategy.boundingBox,
+          strategy: SmartTileGameplayZoneGenerationStrategy.boundingBox,
         ),
       );
 
       expect(
         assessment.status,
-        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+        SmartTileGameplayZoneGenerationAssessmentStatus.blocked,
       );
       expect(assessment.canApply, isFalse);
       expect(assessment.requiresReview, isFalse);
@@ -225,16 +225,16 @@ void main() {
     });
 
     test('blocks when generated zone count reaches blocking threshold', () {
-      final assessment = assessSurfaceGameplayZoneGenerationPlan(
+      final assessment = assessSmartTileGameplayZoneGenerationPlan(
         _planForCells(
           const [
             GridPos(x: 0, y: 0),
             GridPos(x: 2, y: 0),
             GridPos(x: 4, y: 0),
           ],
-          strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+          strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         ),
-        policy: SurfaceGameplayZoneGenerationAssessmentPolicy(
+        policy: SmartTileGameplayZoneGenerationAssessmentPolicy(
           maxExtraCellRatioBeforeWarning: 0,
           maxExtraCellRatioBeforeBlocking: 0.25,
           maxGeneratedZonesBeforeWarning: 2,
@@ -244,7 +244,7 @@ void main() {
 
       expect(
         assessment.status,
-        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+        SmartTileGameplayZoneGenerationAssessmentStatus.blocked,
       );
       expect(
         assessment.errorMessages.map((message) => message.title),
@@ -255,9 +255,9 @@ void main() {
     test('blocks a plan with an existing error diagnostic or no zones', () {
       final base = _planForCells(
         const [GridPos(x: 0, y: 0)],
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
       );
-      final errored = SurfaceGameplayZoneGenerationPlan(
+      final errored = SmartTileGameplayZoneGenerationPlan(
         source: base.source,
         behavior: base.behavior,
         strategy: base.strategy,
@@ -265,20 +265,20 @@ void main() {
         rectangles: base.rectangles,
         coverage: base.coverage,
         diagnostics: const [
-          SurfaceGameplayZoneGenerationDiagnostic(
-            severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.error,
-            kind: SurfaceGameplayZoneGenerationDiagnosticKind.noGeneratedZone,
+          SmartTileGameplayZoneGenerationDiagnostic(
+            severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
+            kind: SmartTileGameplayZoneGenerationDiagnosticKind.noGeneratedZone,
             message: 'No zones.',
           ),
         ],
       );
-      final empty = SurfaceGameplayZoneGenerationPlan(
+      final empty = SmartTileGameplayZoneGenerationPlan(
         source: base.source,
         behavior: base.behavior,
         strategy: base.strategy,
         generatedZones: const [],
         rectangles: const [],
-        coverage: const SurfaceGameplayZoneCoverageReport(
+        coverage: const SmartTileGameplayZoneCoverageReport(
           sourceCellCount: 1,
           coveredSourceCellCount: 0,
           missingSourceCellCount: 1,
@@ -289,19 +289,19 @@ void main() {
       );
 
       expect(
-        assessSurfaceGameplayZoneGenerationPlan(errored).status,
-        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+        assessSmartTileGameplayZoneGenerationPlan(errored).status,
+        SmartTileGameplayZoneGenerationAssessmentStatus.blocked,
       );
       expect(
-        assessSurfaceGameplayZoneGenerationPlan(empty).status,
-        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+        assessSmartTileGameplayZoneGenerationPlan(empty).status,
+        SmartTileGameplayZoneGenerationAssessmentStatus.blocked,
       );
     });
   });
 
   group('assessment messages and immutability', () {
     test('messages are immutable and helper filters are stable', () {
-      final assessment = assessSurfaceGameplayZoneGenerationPlan(
+      final assessment = assessSmartTileGameplayZoneGenerationPlan(
         _planForCells(
           const [
             GridPos(x: 0, y: 0),
@@ -310,7 +310,7 @@ void main() {
             GridPos(x: 0, y: 1),
             GridPos(x: 1, y: 1),
           ],
-          strategy: SurfaceGameplayZoneGenerationStrategy.boundingBox,
+          strategy: SmartTileGameplayZoneGenerationStrategy.boundingBox,
         ),
       );
 
@@ -324,18 +324,18 @@ void main() {
     });
 
     test('assessment does not mutate the source plan', () {
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(const [GridPos(x: 0, y: 0)]),
         behavior: _encounterBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'grass',
         zoneNamePrefix: 'Grass',
       );
       final originalZones = List<MapGameplayZone>.of(plan.generatedZones);
       final originalDiagnostics =
-          List<SurfaceGameplayZoneGenerationDiagnostic>.of(plan.diagnostics);
+          List<SmartTileGameplayZoneGenerationDiagnostic>.of(plan.diagnostics);
 
-      final assessment = assessSurfaceGameplayZoneGenerationPlan(plan);
+      final assessment = assessSmartTileGameplayZoneGenerationPlan(plan);
 
       expect(plan.generatedZones, originalZones);
       expect(plan.diagnostics, originalDiagnostics);
@@ -344,27 +344,27 @@ void main() {
     });
 
     test('assessment messages and assessment support value equality', () {
-      final first = assessSurfaceGameplayZoneGenerationPlan(
+      final first = assessSmartTileGameplayZoneGenerationPlan(
         _planForCells(
           const [GridPos(x: 0, y: 0)],
-          strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+          strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         ),
       );
-      final second = assessSurfaceGameplayZoneGenerationPlan(
+      final second = assessSmartTileGameplayZoneGenerationPlan(
         _planForCells(
           const [GridPos(x: 0, y: 0)],
-          strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+          strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         ),
       );
 
       expect(
-        const SurfaceGameplayZoneGenerationAssessmentMessage(
-          severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.info,
+        const SmartTileGameplayZoneGenerationAssessmentMessage(
+          severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.info,
           title: 'Couverture exacte',
           description: 'Toutes les cellules source sont couvertes.',
         ),
-        const SurfaceGameplayZoneGenerationAssessmentMessage(
-          severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.info,
+        const SmartTileGameplayZoneGenerationAssessmentMessage(
+          severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.info,
           title: 'Couverture exacte',
           description: 'Toutes les cellules source sont couvertes.',
         ),
@@ -375,11 +375,11 @@ void main() {
   });
 }
 
-SurfaceGameplayZoneGenerationPlan _planForCells(
+SmartTileGameplayZoneGenerationPlan _planForCells(
   List<GridPos> cells, {
-  required SurfaceGameplayZoneGenerationStrategy strategy,
+  required SmartTileGameplayZoneGenerationStrategy strategy,
 }) {
-  return createSurfaceGameplayZoneGenerationPlan(
+  return createSmartTileGameplayZoneGenerationPlan(
     source: _source(cells),
     behavior: _encounterBehavior(),
     strategy: strategy,
@@ -388,17 +388,18 @@ SurfaceGameplayZoneGenerationPlan _planForCells(
   );
 }
 
-SurfaceGameplayZoneGenerationSource _source(List<GridPos> cells) {
-  return SurfaceGameplayZoneGenerationSource(
-    surfaceLayerId: 'surfaces',
-    surfaceLayerName: 'Surfaces',
-    surfacePresetId: 'tall_grass',
+SmartTileGameplayZoneGenerationSource _source(List<GridPos> cells) {
+  return SmartTileGameplayZoneGenerationSource(
+    smartTileLayerId: 'surfaces',
+    smartTileLayerName: 'Surfaces',
+    smartTilePresetId: 'tall_grass',
+    materialId: 'grass',
     cells: cells,
   );
 }
 
-SurfaceGameplayZoneBehaviorDraft _encounterBehavior() {
-  return SurfaceGameplayZoneBehaviorDraft.encounter(
+SmartTileGameplayZoneBehaviorDraft _encounterBehavior() {
+  return SmartTileGameplayZoneBehaviorDraft.encounter(
     const EncounterZonePayload(
       encounterTableId: 'route-1',
       encounterKind: EncounterKind.walk,

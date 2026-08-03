@@ -55,6 +55,16 @@ void main() {
       expect(v2.borderCatalog.isEmpty, isTrue);
     });
 
+    test('nonempty replacement never downgrades a Smart Tile V5 manifest', () {
+      final updated = replaceProjectBorderCatalog(
+        _manifest(version: ProjectVersion.v5),
+        _catalog('coast'),
+      );
+
+      expect(updated.version, ProjectVersion.v5);
+      expect(updated.borderCatalog.isNotEmpty, isTrue);
+    });
+
     test('update receives the current catalog once and applies promotion', () {
       final current = _catalog('first');
       final next = ProjectBorderCatalog(

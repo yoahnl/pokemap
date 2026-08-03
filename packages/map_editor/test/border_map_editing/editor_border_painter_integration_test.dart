@@ -520,7 +520,7 @@ void main() {
       'mutable-source-prop',
     );
     expect(
-      linkedRecord.latestPublished!.definition.ground!.sourceSurfacePresetId,
+      linkedRecord.latestPublished!.definition.ground!.sourceSmartTilePresetId,
       'mutable-source-preset',
     );
 
@@ -1067,7 +1067,7 @@ ProjectSurfaceCatalog _surfaceCatalog({
 
 BorderBlueprintRecord _linkedRecord() {
   const sourceElementId = 'mutable-source-prop';
-  const sourceSurfacePresetId = 'mutable-source-preset';
+  const sourceSmartTilePresetId = 'mutable-source-preset';
   final metrics = BorderPrimitiveAssetMetrics(
     assetFingerprint: 'asset-source-prop',
     pixelSize: const GridSize(width: 16, height: 16),
@@ -1110,7 +1110,7 @@ BorderBlueprintRecord _linkedRecord() {
         ],
         defaults: params,
         ground: BorderGroundDraft(
-          sourceSurfacePresetId: sourceSurfacePresetId,
+          sourceSmartTilePresetId: sourceSmartTilePresetId,
           edgeBandCells: 1,
         ),
         sortOrder: 0,
@@ -1136,7 +1136,7 @@ BorderBlueprintRecord _linkedRecord() {
         ],
         defaults: params,
         ground: BorderPublishedGround(
-          sourceSurfacePresetId: sourceSurfacePresetId,
+          sourceSmartTilePresetId: sourceSmartTilePresetId,
           edgeBandCells: 1,
           visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
             for (final role in standardSurfaceVariantRoleOrder)

@@ -233,7 +233,7 @@ void main() {
               sourceElementId: 'current-source-y',
             ),
           ],
-          ground: _ground(sourceSurfacePresetId: 'current-surface-y'),
+          ground: _ground(sourceSmartTilePresetId: 'current-surface-y'),
           snapshots: <BorderVisualSnapshot>[
             _snapshot(_hexA),
             _snapshot(_hexB),
@@ -1210,7 +1210,7 @@ BorderPrimitiveAssetMetrics _metrics(
 
 BorderPublishedGround _ground({
   bool reverseInsertion = false,
-  String sourceSurfacePresetId = 'current-surface',
+  String sourceSmartTilePresetId = 'current-surface',
   int edgeBandCells = 2,
   SurfaceVariantRole? snapshotOverrideRole,
   String? snapshotOverrideId,
@@ -1219,7 +1219,7 @@ BorderPublishedGround _ground({
       ? standardSurfaceVariantRoleOrder.reversed
       : standardSurfaceVariantRoleOrder;
   return BorderPublishedGround(
-    sourceSurfacePresetId: sourceSurfacePresetId,
+    sourceSmartTilePresetId: sourceSmartTilePresetId,
     edgeBandCells: edgeBandCells,
     visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
       for (final role in roles)

@@ -6,6 +6,8 @@ import '../models/cinematic_asset.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
+import '../models/smart_tile.dart';
+import '../operations/smart_tile_layer_visual_resolver.dart';
 
 enum CinematicMapBackdropPreviewStatus {
   backdropDisabled,
@@ -21,7 +23,7 @@ enum CinematicMapBackdropLayerKind {
   tile,
   terrain,
   path,
-  surface,
+  smartTile,
   object,
   environment,
 }
@@ -30,7 +32,7 @@ enum CinematicMapBackdropVisualPrimitiveKind {
   tileCell,
   terrainCell,
   pathCell,
-  surfaceCell,
+  smartTilePart,
   objectAnchor,
   environmentAnchor,
   layerSummary,
@@ -225,6 +227,8 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
   required MapData? mapData,
   Set<String>? availableTilesetIds,
   CinematicMapBackdropViewportSize? viewportSize,
+  ProjectSmartTileCatalog smartTileCatalog =
+      const ProjectSmartTileCatalog.empty(),
 }) {
   final requestedMapId = asset.mapId?._trimmedOrNull;
   final stageMapId = stageMap?._normalizedId;
@@ -358,12 +362,16 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
     );
   }
 
-  final layers = _projectVisualLayers(mapData);
-  final visualPrimitives = _projectVisualPrimitives(mapData);
+  final layers = _projectVisualLayers(mapData, smartTileCatalog);
+  final visualPrimitives = _projectVisualPrimitives(
+    mapData,
+    smartTileCatalog,
+  );
   final diagnostics = <CinematicMapBackdropPreviewDiagnostic>[];
   final missingTilesetIds = _missingTilesetIds(
     mapData: mapData,
     availableTilesetIds: availableTilesetIds,
+    smartTileCatalog: smartTileCatalog,
   );
   if (missingTilesetIds.isNotEmpty) {
     diagnostics.add(
@@ -401,6 +409,7 @@ CinematicMapBackdropPreviewModel buildCinematicMapBackdropPreviewModel({
 
 List<CinematicMapBackdropVisualPrimitive> _projectVisualPrimitives(
   MapData mapData,
+  ProjectSmartTileCatalog smartTileCatalog,
 ) {
   final primitives = <CinematicMapBackdropVisualPrimitive>[];
 
@@ -490,23 +499,44 @@ List<CinematicMapBackdropVisualPrimitive> _projectVisualPrimitives(
       if (localOrder == 0) {
         primitives.add(_summaryPrimitive(layer, mapData, layerIndex));
       }
-    } else if (layer is SurfaceLayer) {
+    } else if (layer is SmartTileLayer) {
       var localOrder = 0;
-      for (final placement in layer.placements) {
-        if (!_isInsideMap(mapData, placement.x, placement.y)) {
-          continue;
-        }
+      final visuals = <SmartTileLayerVisual>[
+        ...resolveSmartTileLayerVisuals(
+          map: mapData,
+          layer: layer,
+          catalog: smartTileCatalog,
+          pass: SmartTileVisualPass.background,
+        ),
+        ...resolveSmartTileLayerVisuals(
+          map: mapData,
+          layer: layer,
+          catalog: smartTileCatalog,
+          pass: SmartTileVisualPass.foreground,
+        ),
+      ];
+      for (final visual in visuals) {
         primitives.add(
-          _primitive(
-            layer: layer,
+          CinematicMapBackdropVisualPrimitive(
+            id: '${layer.id}:smartTile:${visual.cellX}:${visual.cellY}:'
+                '${visual.ruleId}:${visual.candidateId}:'
+                '${visual.channel.name}:$localOrder',
+            layerId: layer.id,
+            layerLabel: _labelOrId(layer.name, layer.id),
+            layerKind: CinematicMapBackdropLayerKind.smartTile,
+            kind: CinematicMapBackdropVisualPrimitiveKind.smartTilePart,
             layerIndex: layerIndex,
             localOrder: localOrder++,
-            kind: CinematicMapBackdropVisualPrimitiveKind.surfaceCell,
-            x: placement.x,
-            y: placement.y,
-            label: placement.surfacePresetId,
-            summary: 'Placement surface depuis MapData.',
-            source: 'surfacePreset:${placement.surfacePresetId}',
+            visible: layer.isVisible,
+            opacity: layer.opacity,
+            x: visual.cellX,
+            y: visual.cellY,
+            width: visual.footprintWidth,
+            height: visual.footprintHeight,
+            label: layer.presetId,
+            summary: 'Partie Smart Tile ${visual.channel.name} resolue par '
+                '${visual.ruleId}.',
+            source: _smartTileVisualSource(layer, visual),
           ),
         );
       }
@@ -657,8 +687,8 @@ CinematicMapBackdropLayerKind _layerKindFor(MapLayer layer) {
   if (layer is PathLayer) {
     return CinematicMapBackdropLayerKind.path;
   }
-  if (layer is SurfaceLayer) {
-    return CinematicMapBackdropLayerKind.surface;
+  if (layer is SmartTileLayer) {
+    return CinematicMapBackdropLayerKind.smartTile;
   }
   if (layer is ObjectLayer) {
     return CinematicMapBackdropLayerKind.object;
@@ -666,7 +696,10 @@ CinematicMapBackdropLayerKind _layerKindFor(MapLayer layer) {
   return CinematicMapBackdropLayerKind.environment;
 }
 
-List<CinematicMapBackdropLayerPreview> _projectVisualLayers(MapData mapData) {
+List<CinematicMapBackdropLayerPreview> _projectVisualLayers(
+  MapData mapData,
+  ProjectSmartTileCatalog smartTileCatalog,
+) {
   final layers = <CinematicMapBackdropLayerPreview>[];
 
   for (final layer in mapData.layers) {
@@ -715,16 +748,25 @@ List<CinematicMapBackdropLayerPreview> _projectVisualLayers(MapData mapData) {
           ],
         ),
       );
-    } else if (layer is SurfaceLayer) {
+    } else if (layer is SmartTileLayer) {
+      final paintedCellCount =
+          layer.field.semanticCells.where((value) => value > 0).length;
+      final presetExists = smartTileCatalog.presets.any(
+        (preset) => preset.id == layer.presetId,
+      );
       layers.add(
         CinematicMapBackdropLayerPreview(
           id: layer.id,
           label: _labelOrId(layer.name, layer.id),
-          kind: CinematicMapBackdropLayerKind.surface,
+          kind: CinematicMapBackdropLayerKind.smartTile,
           visible: layer.isVisible,
           opacity: layer.opacity,
-          summary: '${layer.placements.length} placement(s) de surface',
-          renderRefs: ['surfacePlacements:${layer.placements.length}'],
+          summary: '$paintedCellCount cellule(s) Smart Tile',
+          renderRefs: <String>[
+            'smartTilePreset:${layer.presetId}',
+            'smartTileUsage:${layer.usage.name}',
+            if (!presetExists) 'smartTilePresetMissing:${layer.presetId}',
+          ],
         ),
       );
     } else if (layer is ObjectLayer) {
@@ -759,6 +801,7 @@ List<CinematicMapBackdropLayerPreview> _projectVisualLayers(MapData mapData) {
 List<String> _missingTilesetIds({
   required MapData mapData,
   required Set<String>? availableTilesetIds,
+  required ProjectSmartTileCatalog smartTileCatalog,
 }) {
   if (availableTilesetIds == null) {
     return const [];
@@ -780,11 +823,34 @@ List<String> _missingTilesetIds({
       if (tilesetId != null) {
         required.add(tilesetId);
       }
+    } else if (layer is SmartTileLayer) {
+      for (final pass in SmartTileVisualPass.values) {
+        for (final visual in resolveSmartTileLayerVisuals(
+          map: mapData,
+          layer: layer,
+          catalog: smartTileCatalog,
+          pass: pass,
+        )) {
+          required.add(visual.tilesetId);
+        }
+      }
     }
   }
 
   final missing = required.difference(available).toList()..sort();
   return missing;
+}
+
+String _smartTileVisualSource(
+  SmartTileLayer layer,
+  SmartTileLayerVisual visual,
+) {
+  final rect = visual.sourceRect;
+  final transform = visual.transform;
+  return 'smartTile:${layer.presetId}:${visual.ruleId}:'
+      '${visual.candidateId}:${visual.channel.name}:${visual.tilesetId}:'
+      '${rect.x},${rect.y},${rect.width},${rect.height}:'
+      '${transform.quarterTurns},${transform.flipX ? 1 : 0}';
 }
 
 CinematicMapBackdropViewportRecommendation _viewportRecommendationFor({

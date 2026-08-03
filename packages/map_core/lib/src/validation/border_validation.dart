@@ -7,6 +7,7 @@ import '../models/border_value_objects.dart';
 import '../models/border_visual_snapshot.dart';
 import '../models/geometry.dart';
 import '../models/project_manifest.dart';
+import '../models/smart_tile.dart';
 import '../operations/border_materialization_freshness.dart';
 import '../operations/border_rle_codec.dart';
 
@@ -69,19 +70,24 @@ BorderDiagnosticsReport diagnoseBorderBlueprint(
       );
     }
     final ground = draft.ground;
+    final smartTilePreset = ground == null
+        ? null
+        : project.smartTileCatalog.presets
+            .where((preset) => preset.id == ground.sourceSmartTilePresetId)
+            .firstOrNull;
     if (ground != null &&
-        project.surfaceCatalog.presetById(ground.sourceSurfacePresetId) ==
-            null) {
+        (smartTilePreset == null ||
+            smartTilePreset.status != SmartTilePresetStatus.published)) {
       diagnostics.add(_diagnostic(
-        code: 'border.blueprint.source_surface_preset_missing',
+        code: 'border.blueprint.source_smart_tile_preset_missing',
         severity: BorderDiagnosticSeverity.error,
         phase: phase,
         scope: BorderDiagnosticScope.blueprint,
         blueprintId: record.id,
         parameters: <String, Object?>{
-          'sourceSurfacePresetId': ground.sourceSurfacePresetId,
+          'sourceSmartTilePresetId': ground.sourceSmartTilePresetId,
         },
-        action: 'border.action.select_existing_surface_preset',
+        action: 'border.action.select_published_smart_tile_preset',
       ));
     }
   }

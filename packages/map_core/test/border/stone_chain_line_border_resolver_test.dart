@@ -3409,7 +3409,7 @@ void main() {
     ).request;
     final ground = StoneChainLineFixture(
       ground: BorderPublishedGround(
-        sourceSurfacePresetId: 'ground',
+        sourceSmartTilePresetId: 'ground',
         edgeBandCells: 1,
         visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
           for (final role in standardSurfaceVariantRoleOrder)

@@ -134,52 +134,52 @@ final class BorderPublishedPrimitive {
       );
 }
 
-/// Optional editable Surface ground band.
+/// Optional editable Smart Tile ground band.
 @immutable
 final class BorderGroundDraft {
   BorderGroundDraft({
-    required this.sourceSurfacePresetId,
+    required this.sourceSmartTilePresetId,
     required this.edgeBandCells,
   }) {
     _requireNonEmpty(
-      sourceSurfacePresetId,
-      'BorderGroundDraft.sourceSurfacePresetId',
+      sourceSmartTilePresetId,
+      'BorderGroundDraft.sourceSmartTilePresetId',
     );
     _requirePositiveEdgeBand(edgeBandCells, 'BorderGroundDraft');
   }
 
-  final String sourceSurfacePresetId;
+  final String sourceSmartTilePresetId;
   final int edgeBandCells;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BorderGroundDraft &&
-          sourceSurfacePresetId == other.sourceSurfacePresetId &&
+          sourceSmartTilePresetId == other.sourceSmartTilePresetId &&
           edgeBandCells == other.edgeBandCells;
 
   @override
-  int get hashCode => Object.hash(sourceSurfacePresetId, edgeBandCells);
+  int get hashCode => Object.hash(sourceSmartTilePresetId, edgeBandCells);
 }
 
-/// Immutable published Surface ground band with resolved visual snapshots.
+/// Immutable published Smart Tile ground band with resolved visual snapshots.
 @immutable
 final class BorderPublishedGround {
   BorderPublishedGround({
-    required this.sourceSurfacePresetId,
+    required this.sourceSmartTilePresetId,
     required this.edgeBandCells,
     required Map<SurfaceVariantRole, String> visualSnapshotIdsByRole,
   }) : _visualSnapshotIdsByRole = _copyPublishedGroundSnapshots(
           visualSnapshotIdsByRole,
         ) {
     _requireNonEmpty(
-      sourceSurfacePresetId,
-      'BorderPublishedGround.sourceSurfacePresetId',
+      sourceSmartTilePresetId,
+      'BorderPublishedGround.sourceSmartTilePresetId',
     );
     _requirePositiveEdgeBand(edgeBandCells, 'BorderPublishedGround');
   }
 
-  final String sourceSurfacePresetId;
+  final String sourceSmartTilePresetId;
   final int edgeBandCells;
   final Map<SurfaceVariantRole, String> _visualSnapshotIdsByRole;
 
@@ -190,7 +190,7 @@ final class BorderPublishedGround {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BorderPublishedGround &&
-          sourceSurfacePresetId == other.sourceSurfacePresetId &&
+          sourceSmartTilePresetId == other.sourceSmartTilePresetId &&
           edgeBandCells == other.edgeBandCells &&
           _mapsEqual(
             _visualSnapshotIdsByRole,
@@ -199,7 +199,7 @@ final class BorderPublishedGround {
 
   @override
   int get hashCode => Object.hash(
-        sourceSurfacePresetId,
+        sourceSmartTilePresetId,
         edgeBandCells,
         _unorderedMapHash(_visualSnapshotIdsByRole),
       );

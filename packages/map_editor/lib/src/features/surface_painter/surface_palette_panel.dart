@@ -5,7 +5,6 @@ import 'package:map_core/map_core.dart';
 import '../editor/state/editor_notifier.dart';
 import '../editor/tools/editor_tool.dart';
 import 'surface_catalog_availability.dart';
-import 'surface_behavior_action_menu.dart';
 import '../../ui/shared/cupertino_editor_widgets.dart';
 
 /// Minimal Surface palette for map placement authoring.
@@ -119,8 +118,6 @@ class SurfacePainterPanel extends ConsumerWidget {
         map?.layers.whereType<SurfaceLayer>().toList(growable: false) ??
             const <SurfaceLayer>[];
     final activeLayer = _activeSurfaceLayer(map, state.activeLayerId);
-    final generationLayer =
-        activeLayer ?? (surfaceLayers.length == 1 ? surfaceLayers.first : null);
     final canPaint = map != null &&
         availability.canPaint &&
         (state.selectedSurfacePresetId?.trim().isNotEmpty ?? false);
@@ -184,14 +181,6 @@ class SurfacePainterPanel extends ConsumerWidget {
                       Text('Effacer Surface'),
                     ],
                   ),
-                ),
-                SurfaceBehaviorActionMenu(
-                  map: map,
-                  surfaceLayer: generationLayer,
-                  surfacePresetId: state.selectedSurfacePresetId,
-                  presets: presets,
-                  encounterTables: state.project?.encounterTables ?? const [],
-                  notifier: notifier,
                 ),
               ],
             ),

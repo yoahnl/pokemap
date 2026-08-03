@@ -11,7 +11,7 @@ class CinematicMapBackdropPrimitivePalette {
     required this.tile,
     required this.terrain,
     required this.path,
-    required this.surface,
+    required this.smartTile,
     required this.object,
     required this.environment,
     required this.summary,
@@ -23,7 +23,7 @@ class CinematicMapBackdropPrimitivePalette {
   final Color tile;
   final Color terrain;
   final Color path;
-  final Color surface;
+  final Color smartTile;
   final Color object;
   final Color environment;
   final Color summary;
@@ -158,7 +158,7 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
           ..strokeWidth = 1;
         canvas.drawRect(rect.deflate(1), outlinePaint);
       case CinematicMapBackdropVisualPrimitiveKind.terrainCell:
-      case CinematicMapBackdropVisualPrimitiveKind.surfaceCell:
+      case CinematicMapBackdropVisualPrimitiveKind.smartTilePart:
         final inset = _cellInset(rect);
         final cellRect = rect.deflate(inset);
         canvas
@@ -197,7 +197,8 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
       CinematicMapBackdropVisualPrimitiveKind.tileCell => palette.tile,
       CinematicMapBackdropVisualPrimitiveKind.terrainCell => palette.terrain,
       CinematicMapBackdropVisualPrimitiveKind.pathCell => palette.path,
-      CinematicMapBackdropVisualPrimitiveKind.surfaceCell => palette.surface,
+      CinematicMapBackdropVisualPrimitiveKind.smartTilePart =>
+        palette.smartTile,
       CinematicMapBackdropVisualPrimitiveKind.objectAnchor => palette.object,
       CinematicMapBackdropVisualPrimitiveKind.environmentAnchor =>
         palette.environment,
@@ -223,7 +224,7 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
       CinematicMapBackdropVisualPrimitiveKind.tileCell => 0.48,
       CinematicMapBackdropVisualPrimitiveKind.terrainCell => 0.58,
       CinematicMapBackdropVisualPrimitiveKind.pathCell => 0.78,
-      CinematicMapBackdropVisualPrimitiveKind.surfaceCell => 0.7,
+      CinematicMapBackdropVisualPrimitiveKind.smartTilePart => 0.7,
       CinematicMapBackdropVisualPrimitiveKind.objectAnchor ||
       CinematicMapBackdropVisualPrimitiveKind.environmentAnchor =>
         0.82,
@@ -238,7 +239,7 @@ class CinematicMapBackdropVisualPrimitivesPainter extends CustomPainter {
       CinematicMapBackdropVisualPrimitiveKind.tileCell => 0.0,
       CinematicMapBackdropVisualPrimitiveKind.terrainCell => 0.54,
       CinematicMapBackdropVisualPrimitiveKind.pathCell => 0.9,
-      CinematicMapBackdropVisualPrimitiveKind.surfaceCell => 0.78,
+      CinematicMapBackdropVisualPrimitiveKind.smartTilePart => 0.78,
       CinematicMapBackdropVisualPrimitiveKind.objectAnchor ||
       CinematicMapBackdropVisualPrimitiveKind.environmentAnchor =>
         0.9,

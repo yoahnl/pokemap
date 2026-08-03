@@ -14,7 +14,7 @@ import 'package:map_editor/src/features/border_map_editing/state/border_map_edit
 import 'package:map_editor/src/features/border_map_editing/state/border_preview_providers.dart';
 import 'package:map_editor/src/features/border_studio/application/border_asset_snapshot_service.dart';
 import 'package:map_editor/src/features/border_studio/application/border_project_element_asset_service.dart';
-import 'package:map_editor/src/features/border_studio/application/border_surface_ground_snapshot_service.dart';
+import 'package:map_editor/src/features/border_studio/application/border_smart_tile_ground_snapshot_service.dart';
 import 'package:map_editor/src/features/border_studio/state/border_studio_providers.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
@@ -582,7 +582,7 @@ Future<developer.ServiceExtensionResponse>
   required Map<String, String> parameters,
 }) async {
   const assetService = BorderProjectElementAssetService();
-  const groundSnapshotService = BorderSurfaceGroundSnapshotService();
+  const groundSnapshotService = BorderSmartTileGroundSnapshotService();
   var stage = 'validate-input';
   String? blueprintId;
   final reanalyzedPrimitives = <Map<String, Object?>>[];
@@ -723,7 +723,7 @@ Future<developer.ServiceExtensionResponse>
         : await groundSnapshotService.prepareAllRoles(
             manifest: savedDraftManifest,
             projectRootPath: projectRootPath,
-            sourceSurfacePresetId: ground.sourceSurfacePresetId,
+            sourceSmartTilePresetId: ground.sourceSmartTilePresetId,
           );
     final preview = await prepareCoordinator.prepare(
       manifest: savedDraftManifest,

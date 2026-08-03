@@ -392,13 +392,13 @@ void main() {
         () async {
       final target = _record(
         ground: BorderGroundDraft(
-          sourceSurfacePresetId: 'shore',
+          sourceSmartTilePresetId: 'shore',
           edgeBandCells: 1,
         ),
       );
       final manifest = _manifest(
         record: target,
-        surfacePreset: _surfacePreset('shore'),
+        smartTilePreset: _smartTilePreset('shore'),
       );
       final ground = <SurfaceVariantRole, BorderAssetSnapshotPreparation>{
         for (final role in standardSurfaceVariantRoleOrder)
@@ -919,16 +919,26 @@ BorderPreparedProjectElementAsset _preparedProjectElement({
 ProjectManifest _manifest({
   required BorderBlueprintRecord record,
   List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
-  ProjectSurfacePreset? surfacePreset,
+  ProjectSmartTilePreset? smartTilePreset,
 }) {
   return ProjectManifest(
     name: 'Coordinator project',
+    version: ProjectVersion.v5,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     elements: elements,
-    surfaceCatalog: surfacePreset == null
-        ? const ProjectSurfaceCatalog.empty()
-        : ProjectSurfaceCatalog(presets: <ProjectSurfacePreset>[surfacePreset]),
+    smartTileCatalog: smartTilePreset == null
+        ? const ProjectSmartTileCatalog.empty()
+        : ProjectSmartTileCatalog(
+            materials: const <ProjectSmartTileMaterial>[
+              ProjectSmartTileMaterial(
+                id: 'ground',
+                name: 'Ground',
+                connectionGroupId: 'ground',
+              ),
+            ],
+            presets: <ProjectSmartTilePreset>[smartTilePreset],
+          ),
     borderCatalog: ProjectBorderCatalog(
       records: <BorderBlueprintRecord>[record],
     ),
@@ -1032,18 +1042,20 @@ ProjectElementEntry _element(String id) {
   );
 }
 
-ProjectSurfacePreset _surfacePreset(String id) {
-  return ProjectSurfacePreset(
+ProjectSmartTilePreset _smartTilePreset(String id) {
+  return ProjectSmartTilePreset(
     id: id,
     name: id,
-    variantAnimations: SurfaceVariantAnimationRefSet(
-      refs: <SurfaceVariantAnimationRef>[
-        SurfaceVariantAnimationRef(
-          role: SurfaceVariantRole.isolated,
-          animationId: 'surface-animation',
-        ),
-      ],
+    usage: SmartTileUsage.terrain,
+    topology: SmartTileTopology.uniform,
+    status: SmartTilePresetStatus.published,
+    coveragePolicy: SmartTileCoveragePolicy.sparse,
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.explicit,
     ),
+    transformPolicy: const SmartTileTransformPolicy(),
+    defaultMaterialId: 'ground',
+    allowedMaterialIds: const <String>['ground'],
   );
 }
 

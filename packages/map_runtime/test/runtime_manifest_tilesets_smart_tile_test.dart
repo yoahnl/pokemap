@@ -4,53 +4,179 @@ import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
 
 void main() {
   group('runtime manifest tileset collection', () {
-    test('collects Surface atlas tilesets through the runtime manifest path',
-        () {
+    test('collects every multipart and animated Smart Tile atlas tileset', () {
       const map = MapData(
         id: 'route-1',
         name: 'Route 1',
+        version: ProjectVersion.v5,
         tilesetId: 'base-world',
         size: GridSize(width: 4, height: 4),
-        layers: [
-          MapLayer.surface(
-            id: 'surfaces',
-            name: 'Surfaces',
-            placements: [
-              SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
-            ],
+        layers: <MapLayer>[
+          MapLayer.smartTile(
+            id: 'smart-water',
+            name: 'Smart water',
+            presetId: 'water',
+            usage: SmartTileUsage.terrain,
+            materialPalette: <String>['', 'water'],
+            field: SmartTileField.cell(
+              semanticCells: <int>[
+                1,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+            ),
           ),
         ],
       );
       final manifest = ProjectManifest(
-        name: 'Surface Runtime',
-        maps: const [],
-        tilesets: const [
+        name: 'Smart Tile Runtime',
+        version: ProjectVersion.v5,
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[
           ProjectTilesetEntry(
             id: 'base-world',
             name: 'Base World',
             relativePath: 'tilesets/base.png',
           ),
           ProjectTilesetEntry(
-            id: 'surface-water',
-            name: 'Surface Water',
-            relativePath: 'tilesets/water.png',
+            id: 'smart-ground',
+            name: 'Smart ground',
+            relativePath: 'tilesets/ground.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'smart-foreground',
+            name: 'Smart foreground',
+            relativePath: 'tilesets/foreground.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'smart-animated',
+            name: 'Smart animated',
+            relativePath: 'tilesets/animated.png',
           ),
         ],
-        surfaceCatalog: ProjectSurfaceCatalog(
-          atlases: [_atlas(id: 'water-atlas', tilesetId: 'surface-water')],
-          animations: [
-            _animation(
-              id: 'water-isolated',
-              frames: [_frame(atlasId: 'water-atlas')],
+        smartTileCatalog: ProjectSmartTileCatalog(
+          atlases: const <ProjectSmartTileAtlas>[
+            ProjectSmartTileAtlas(
+              id: 'ground-atlas',
+              name: 'Ground atlas',
+              tilesetId: 'smart-ground',
+              columns: 1,
+              rows: 1,
+            ),
+            ProjectSmartTileAtlas(
+              id: 'foreground-atlas',
+              name: 'Foreground atlas',
+              tilesetId: 'smart-foreground',
+              columns: 1,
+              rows: 1,
+            ),
+            ProjectSmartTileAtlas(
+              id: 'animated-atlas',
+              name: 'Animated atlas',
+              tilesetId: 'smart-animated',
+              columns: 1,
+              rows: 1,
             ),
           ],
-          presets: [_preset(id: 'water', animationId: 'water-isolated')],
+          animations: const <ProjectSmartTileAnimation>[
+            ProjectSmartTileAnimation(
+              id: 'ripples',
+              name: 'Ripples',
+              frames: <ProjectSmartTileAnimationFrame>[
+                ProjectSmartTileAnimationFrame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'animated-atlas',
+                    column: 0,
+                    row: 0,
+                  ),
+                  durationMs: 100,
+                ),
+              ],
+            ),
+          ],
+          materials: const <ProjectSmartTileMaterial>[
+            ProjectSmartTileMaterial(
+              id: 'water',
+              name: 'Water',
+              connectionGroupId: 'water',
+            ),
+          ],
+          presets: const <ProjectSmartTilePreset>[
+            ProjectSmartTilePreset(
+              id: 'water',
+              name: 'Water',
+              usage: SmartTileUsage.terrain,
+              topology: SmartTileTopology.uniform,
+              templateHint: SmartTileTemplateHint.simple,
+              status: SmartTilePresetStatus.published,
+              coveragePolicy: SmartTileCoveragePolicy.complete,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
+              defaultMaterialId: 'water',
+              allowedMaterialIds: <String>['water'],
+              rules: <SmartTileRule>[
+                SmartTileRule(
+                  id: 'uniform',
+                  centerMatch: SmartTileSlotMatch.material('water'),
+                  candidates: <SmartTileCandidate>[
+                    SmartTileCandidate(
+                      id: 'visual',
+                      parts: <SmartTileVisualPart>[
+                        SmartTileVisualPart(
+                          source: SmartTileVisualSource.frame(
+                            frame: SmartTileFrameRef(
+                              atlasId: 'ground-atlas',
+                              column: 0,
+                              row: 0,
+                            ),
+                          ),
+                        ),
+                        SmartTileVisualPart(
+                          source: SmartTileVisualSource.frame(
+                            frame: SmartTileFrameRef(
+                              atlasId: 'foreground-atlas',
+                              column: 0,
+                              row: 0,
+                            ),
+                          ),
+                          channel: SmartTileRenderChannel.foreground,
+                        ),
+                        SmartTileVisualPart(
+                          source: SmartTileVisualSource.animation(
+                            animationId: 'ripples',
+                          ),
+                          channel: SmartTileRenderChannel.understory,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
         ),
       );
 
       expect(collectAllRuntimeTilesetIds(map, manifest), {
         'base-world',
-        'surface-water',
+        'smart-ground',
+        'smart-foreground',
+        'smart-animated',
       });
     });
 
@@ -302,55 +428,4 @@ void main() {
       );
     });
   });
-}
-
-ProjectSurfaceAtlas _atlas({
-  required String id,
-  required String tilesetId,
-}) {
-  return ProjectSurfaceAtlas(
-    id: id,
-    name: id,
-    tilesetId: tilesetId,
-    geometry: SurfaceAtlasGeometry(
-      tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
-      gridSize: SurfaceAtlasGridSize(columns: 4, rows: 4),
-    ),
-  );
-}
-
-ProjectSurfaceAnimation _animation({
-  required String id,
-  required List<SurfaceAnimationFrame> frames,
-}) {
-  return ProjectSurfaceAnimation(
-    id: id,
-    name: id,
-    timeline: SurfaceAnimationTimeline(frames: frames),
-  );
-}
-
-SurfaceAnimationFrame _frame({required String atlasId}) {
-  return SurfaceAnimationFrame(
-    tileRef: SurfaceAtlasTileRef(atlasId: atlasId, column: 0, row: 0),
-    durationMs: 100,
-  );
-}
-
-ProjectSurfacePreset _preset({
-  required String id,
-  required String animationId,
-}) {
-  return ProjectSurfacePreset(
-    id: id,
-    name: id,
-    variantAnimations: SurfaceVariantAnimationRefSet(
-      refs: [
-        SurfaceVariantAnimationRef(
-          role: SurfaceVariantRole.isolated,
-          animationId: animationId,
-        ),
-      ],
-    ),
-  );
 }

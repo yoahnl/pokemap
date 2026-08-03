@@ -4,20 +4,21 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_gameplay_zone_payloads.dart';
 
-enum SurfaceGameplayZoneGenerationStrategy {
+enum SmartTileGameplayZoneGenerationStrategy {
   boundingBox,
   greedyRectangles,
 }
 
-enum SurfaceGameplayZoneGenerationDiagnosticSeverity {
+enum SmartTileGameplayZoneGenerationDiagnosticSeverity {
   error,
   warning,
   info,
 }
 
-enum SurfaceGameplayZoneGenerationDiagnosticKind {
+enum SmartTileGameplayZoneGenerationDiagnosticKind {
   emptySource,
-  missingSurfacePresetId,
+  missingSmartTilePresetId,
+  missingMaterialId,
   noGeneratedZone,
   extraCellsIncluded,
   tooManyRectangles,
@@ -26,76 +27,85 @@ enum SurfaceGameplayZoneGenerationDiagnosticKind {
   zoneIdCollisionResolved,
 }
 
-final class SurfaceGameplayZoneGenerationSource {
-  SurfaceGameplayZoneGenerationSource({
-    required String surfaceLayerId,
-    required String surfaceLayerName,
-    required String surfacePresetId,
+final class SmartTileGameplayZoneGenerationSource {
+  SmartTileGameplayZoneGenerationSource({
+    required String smartTileLayerId,
+    required String smartTileLayerName,
+    required String smartTilePresetId,
+    required String materialId,
     required Iterable<GridPos> cells,
     this.mapSize,
-  })  : surfaceLayerId = surfaceLayerId.trim(),
-        surfaceLayerName = surfaceLayerName.trim(),
-        surfacePresetId = surfacePresetId.trim(),
+  })  : smartTileLayerId = smartTileLayerId.trim(),
+        smartTileLayerName = smartTileLayerName.trim(),
+        smartTilePresetId = smartTilePresetId.trim(),
+        materialId = materialId.trim(),
         cells = _normalizeCells(cells, mapSize: mapSize) {
-    if (this.surfacePresetId.isEmpty) {
-      throw const ValidationException('surfacePresetId cannot be empty');
+    if (this.smartTilePresetId.isEmpty) {
+      throw const ValidationException('smartTilePresetId cannot be empty');
+    }
+    if (this.materialId.isEmpty) {
+      throw const ValidationException('materialId cannot be empty');
     }
     if (this.cells.isEmpty) {
       throw const ValidationException(
-          'surface generation source cannot be empty');
+        'Smart Tile generation source cannot be empty',
+      );
     }
   }
 
-  final String surfaceLayerId;
-  final String surfaceLayerName;
-  final String surfacePresetId;
+  final String smartTileLayerId;
+  final String smartTileLayerName;
+  final String smartTilePresetId;
+  final String materialId;
   final List<GridPos> cells;
   final GridSize? mapSize;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is SurfaceGameplayZoneGenerationSource &&
-            other.surfaceLayerId == surfaceLayerId &&
-            other.surfaceLayerName == surfaceLayerName &&
-            other.surfacePresetId == surfacePresetId &&
+        other is SmartTileGameplayZoneGenerationSource &&
+            other.smartTileLayerId == smartTileLayerId &&
+            other.smartTileLayerName == smartTileLayerName &&
+            other.smartTilePresetId == smartTilePresetId &&
+            other.materialId == materialId &&
             other.mapSize == mapSize &&
             _listEquals(other.cells, cells);
   }
 
   @override
   int get hashCode => Object.hash(
-        surfaceLayerId,
-        surfaceLayerName,
-        surfacePresetId,
+        smartTileLayerId,
+        smartTileLayerName,
+        smartTilePresetId,
+        materialId,
         mapSize,
         Object.hashAll(cells),
       );
 }
 
-final class SurfaceGameplayZoneBehaviorDraft {
-  const SurfaceGameplayZoneBehaviorDraft.encounter(
+final class SmartTileGameplayZoneBehaviorDraft {
+  const SmartTileGameplayZoneBehaviorDraft.encounter(
     EncounterZonePayload this.encounter,
   )   : kind = GameplayZoneKind.encounter,
         movement = null,
         hazard = null,
         special = null;
 
-  const SurfaceGameplayZoneBehaviorDraft.movement(
+  const SmartTileGameplayZoneBehaviorDraft.movement(
     MovementZonePayload this.movement,
   )   : kind = GameplayZoneKind.movement,
         encounter = null,
         hazard = null,
         special = null;
 
-  const SurfaceGameplayZoneBehaviorDraft.hazard(
+  const SmartTileGameplayZoneBehaviorDraft.hazard(
     HazardZonePayload this.hazard,
   )   : kind = GameplayZoneKind.hazard,
         encounter = null,
         movement = null,
         special = null;
 
-  const SurfaceGameplayZoneBehaviorDraft.special(
+  const SmartTileGameplayZoneBehaviorDraft.special(
     SpecialZonePayload this.special,
   )   : kind = GameplayZoneKind.special,
         encounter = null,
@@ -111,7 +121,7 @@ final class SurfaceGameplayZoneBehaviorDraft {
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is SurfaceGameplayZoneBehaviorDraft &&
+        other is SmartTileGameplayZoneBehaviorDraft &&
             other.kind == kind &&
             other.encounter == encounter &&
             other.movement == movement &&
@@ -129,8 +139,8 @@ final class SurfaceGameplayZoneBehaviorDraft {
       );
 }
 
-final class SurfaceGameplayZoneCoverageReport {
-  const SurfaceGameplayZoneCoverageReport({
+final class SmartTileGameplayZoneCoverageReport {
+  const SmartTileGameplayZoneCoverageReport({
     required this.sourceCellCount,
     required this.coveredSourceCellCount,
     required this.missingSourceCellCount,
@@ -152,7 +162,7 @@ final class SurfaceGameplayZoneCoverageReport {
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is SurfaceGameplayZoneCoverageReport &&
+        other is SmartTileGameplayZoneCoverageReport &&
             other.sourceCellCount == sourceCellCount &&
             other.coveredSourceCellCount == coveredSourceCellCount &&
             other.missingSourceCellCount == missingSourceCellCount &&
@@ -170,21 +180,21 @@ final class SurfaceGameplayZoneCoverageReport {
       );
 }
 
-final class SurfaceGameplayZoneGenerationDiagnostic {
-  const SurfaceGameplayZoneGenerationDiagnostic({
+final class SmartTileGameplayZoneGenerationDiagnostic {
+  const SmartTileGameplayZoneGenerationDiagnostic({
     required this.severity,
     required this.kind,
     required this.message,
   });
 
-  final SurfaceGameplayZoneGenerationDiagnosticSeverity severity;
-  final SurfaceGameplayZoneGenerationDiagnosticKind kind;
+  final SmartTileGameplayZoneGenerationDiagnosticSeverity severity;
+  final SmartTileGameplayZoneGenerationDiagnosticKind kind;
   final String message;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is SurfaceGameplayZoneGenerationDiagnostic &&
+        other is SmartTileGameplayZoneGenerationDiagnostic &&
             other.severity == severity &&
             other.kind == kind &&
             other.message == message;
@@ -194,40 +204,40 @@ final class SurfaceGameplayZoneGenerationDiagnostic {
   int get hashCode => Object.hash(severity, kind, message);
 }
 
-final class SurfaceGameplayZoneGenerationPlan {
-  SurfaceGameplayZoneGenerationPlan({
+final class SmartTileGameplayZoneGenerationPlan {
+  SmartTileGameplayZoneGenerationPlan({
     required this.source,
     required this.behavior,
     required this.strategy,
     required Iterable<MapGameplayZone> generatedZones,
     required Iterable<MapRect> rectangles,
     required this.coverage,
-    required Iterable<SurfaceGameplayZoneGenerationDiagnostic> diagnostics,
+    required Iterable<SmartTileGameplayZoneGenerationDiagnostic> diagnostics,
   })  : generatedZones = List<MapGameplayZone>.unmodifiable(generatedZones),
         rectangles = List<MapRect>.unmodifiable(rectangles),
         diagnostics =
-            List<SurfaceGameplayZoneGenerationDiagnostic>.unmodifiable(
+            List<SmartTileGameplayZoneGenerationDiagnostic>.unmodifiable(
           diagnostics,
         );
 
-  final SurfaceGameplayZoneGenerationSource source;
-  final SurfaceGameplayZoneBehaviorDraft behavior;
-  final SurfaceGameplayZoneGenerationStrategy strategy;
+  final SmartTileGameplayZoneGenerationSource source;
+  final SmartTileGameplayZoneBehaviorDraft behavior;
+  final SmartTileGameplayZoneGenerationStrategy strategy;
   final List<MapGameplayZone> generatedZones;
   final List<MapRect> rectangles;
-  final SurfaceGameplayZoneCoverageReport coverage;
-  final List<SurfaceGameplayZoneGenerationDiagnostic> diagnostics;
+  final SmartTileGameplayZoneCoverageReport coverage;
+  final List<SmartTileGameplayZoneGenerationDiagnostic> diagnostics;
 
   bool get hasBlockingDiagnostics => diagnostics.any(
         (diagnostic) =>
             diagnostic.severity ==
-            SurfaceGameplayZoneGenerationDiagnosticSeverity.error,
+            SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
       );
 
   bool get hasWarnings => diagnostics.any(
         (diagnostic) =>
             diagnostic.severity ==
-            SurfaceGameplayZoneGenerationDiagnosticSeverity.warning,
+            SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
       );
 
   bool get isExactCoverage => coverage.isExact;
@@ -237,7 +247,7 @@ final class SurfaceGameplayZoneGenerationPlan {
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is SurfaceGameplayZoneGenerationPlan &&
+        other is SmartTileGameplayZoneGenerationPlan &&
             other.source == source &&
             other.behavior == behavior &&
             other.strategy == strategy &&
@@ -259,10 +269,10 @@ final class SurfaceGameplayZoneGenerationPlan {
       );
 }
 
-SurfaceGameplayZoneGenerationPlan createSurfaceGameplayZoneGenerationPlan({
-  required SurfaceGameplayZoneGenerationSource source,
-  required SurfaceGameplayZoneBehaviorDraft behavior,
-  required SurfaceGameplayZoneGenerationStrategy strategy,
+SmartTileGameplayZoneGenerationPlan createSmartTileGameplayZoneGenerationPlan({
+  required SmartTileGameplayZoneGenerationSource source,
+  required SmartTileGameplayZoneBehaviorDraft behavior,
+  required SmartTileGameplayZoneGenerationStrategy strategy,
   required String zoneIdPrefix,
   required String zoneNamePrefix,
   int priority = 0,
@@ -270,29 +280,29 @@ SurfaceGameplayZoneGenerationPlan createSurfaceGameplayZoneGenerationPlan({
   int maxRectanglesWarningThreshold = 8,
 }) {
   final rectangles = switch (strategy) {
-    SurfaceGameplayZoneGenerationStrategy.boundingBox => [
+    SmartTileGameplayZoneGenerationStrategy.boundingBox => [
         _boundingBox(source.cells),
       ],
-    SurfaceGameplayZoneGenerationStrategy.greedyRectangles =>
+    SmartTileGameplayZoneGenerationStrategy.greedyRectangles =>
       _greedyRectangles(source.cells),
   };
 
-  final diagnostics = <SurfaceGameplayZoneGenerationDiagnostic>[];
+  final diagnostics = <SmartTileGameplayZoneGenerationDiagnostic>[];
   final coverage = _buildCoverage(source.cells, rectangles);
   if (rectangles.isEmpty) {
     diagnostics.add(
-      const SurfaceGameplayZoneGenerationDiagnostic(
-        severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.error,
-        kind: SurfaceGameplayZoneGenerationDiagnosticKind.noGeneratedZone,
-        message: 'No gameplay zone could be generated from this surface.',
+      const SmartTileGameplayZoneGenerationDiagnostic(
+        severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
+        kind: SmartTileGameplayZoneGenerationDiagnosticKind.noGeneratedZone,
+        message: 'No gameplay zone could be generated from this Smart Tile.',
       ),
     );
   }
   if (coverage.extraCellCount > 0) {
     diagnostics.add(
-      SurfaceGameplayZoneGenerationDiagnostic(
-        severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.warning,
-        kind: SurfaceGameplayZoneGenerationDiagnosticKind.extraCellsIncluded,
+      SmartTileGameplayZoneGenerationDiagnostic(
+        severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
+        kind: SmartTileGameplayZoneGenerationDiagnosticKind.extraCellsIncluded,
         message:
             '${coverage.extraCellCount} extra ${_pluralize('cell', coverage.extraCellCount)} '
             'will be included by generated rectangles.',
@@ -301,9 +311,9 @@ SurfaceGameplayZoneGenerationPlan createSurfaceGameplayZoneGenerationPlan({
   }
   if (rectangles.length > maxRectanglesWarningThreshold) {
     diagnostics.add(
-      SurfaceGameplayZoneGenerationDiagnostic(
-        severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.warning,
-        kind: SurfaceGameplayZoneGenerationDiagnosticKind.tooManyRectangles,
+      SmartTileGameplayZoneGenerationDiagnostic(
+        severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
+        kind: SmartTileGameplayZoneGenerationDiagnosticKind.tooManyRectangles,
         message: '${rectangles.length} rectangles will be generated, above the '
             'recommended threshold of $maxRectanglesWarningThreshold.',
       ),
@@ -313,9 +323,9 @@ SurfaceGameplayZoneGenerationPlan createSurfaceGameplayZoneGenerationPlan({
     for (final existingZone in existingZones) {
       if (_rectsOverlap(rectangle, existingZone.area)) {
         diagnostics.add(
-          SurfaceGameplayZoneGenerationDiagnostic(
-            severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.warning,
-            kind: SurfaceGameplayZoneGenerationDiagnosticKind
+          SmartTileGameplayZoneGenerationDiagnostic(
+            severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
+            kind: SmartTileGameplayZoneGenerationDiagnosticKind
                 .overlapsExistingGameplayZone,
             message:
                 'Generated rectangle overlaps existing gameplay zone ${existingZone.id}.',
@@ -331,16 +341,16 @@ SurfaceGameplayZoneGenerationPlan createSurfaceGameplayZoneGenerationPlan({
   for (var i = 0; i < rectangles.length; i++) {
     final baseId = _baseZoneId(
       zoneIdPrefix: zoneIdPrefix,
-      fallback: source.surfacePresetId,
+      fallback: source.smartTilePresetId,
       index: i,
       count: rectangles.length,
     );
     final id = _nextAvailableId(baseId, usedIds);
     if (id != baseId) {
       diagnostics.add(
-        SurfaceGameplayZoneGenerationDiagnostic(
-          severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.info,
-          kind: SurfaceGameplayZoneGenerationDiagnosticKind
+        SmartTileGameplayZoneGenerationDiagnostic(
+          severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.info,
+          kind: SmartTileGameplayZoneGenerationDiagnosticKind
               .zoneIdCollisionResolved,
           message: 'Generated zone id $baseId was already used; using $id.',
         ),
@@ -352,9 +362,9 @@ SurfaceGameplayZoneGenerationPlan createSurfaceGameplayZoneGenerationPlan({
         id: id,
         name: _zoneName(
           zoneNamePrefix: zoneNamePrefix,
-          fallback: source.surfaceLayerName.isEmpty
-              ? source.surfacePresetId
-              : source.surfaceLayerName,
+          fallback: source.smartTileLayerName.isEmpty
+              ? source.smartTilePresetId
+              : source.smartTileLayerName,
           index: i,
           count: rectangles.length,
         ),
@@ -365,7 +375,7 @@ SurfaceGameplayZoneGenerationPlan createSurfaceGameplayZoneGenerationPlan({
     );
   }
 
-  return SurfaceGameplayZoneGenerationPlan(
+  return SmartTileGameplayZoneGenerationPlan(
     source: source,
     behavior: behavior,
     strategy: strategy,
@@ -384,13 +394,13 @@ List<GridPos> _normalizeCells(
   for (final cell in cells) {
     if (cell.x < 0 || cell.y < 0) {
       throw ValidationException(
-        'surface generation cell is out of bounds: (${cell.x}, ${cell.y})',
+        'Smart Tile generation cell is out of bounds: (${cell.x}, ${cell.y})',
       );
     }
     if (mapSize != null &&
         (cell.x >= mapSize.width || cell.y >= mapSize.height)) {
       throw ValidationException(
-        'surface generation cell is out of bounds: (${cell.x}, ${cell.y})',
+        'Smart Tile generation cell is out of bounds: (${cell.x}, ${cell.y})',
       );
     }
     unique.add(cell);
@@ -461,7 +471,7 @@ List<MapRect> _greedyRectangles(List<GridPos> cells) {
   return List<MapRect>.unmodifiable(rectangles);
 }
 
-SurfaceGameplayZoneCoverageReport _buildCoverage(
+SmartTileGameplayZoneCoverageReport _buildCoverage(
   List<GridPos> sourceCells,
   List<MapRect> rectangles,
 ) {
@@ -480,7 +490,7 @@ SurfaceGameplayZoneCoverageReport _buildCoverage(
   final extraCellCount =
       coveredCells.where((cell) => !sourceSet.contains(cell)).length;
 
-  return SurfaceGameplayZoneCoverageReport(
+  return SmartTileGameplayZoneCoverageReport(
     sourceCellCount: sourceSet.length,
     coveredSourceCellCount: coveredSourceCellCount,
     missingSourceCellCount: missingSourceCellCount,
@@ -494,7 +504,7 @@ MapGameplayZone _zoneFromDraft({
   required String name,
   required MapRect area,
   required int priority,
-  required SurfaceGameplayZoneBehaviorDraft behavior,
+  required SmartTileGameplayZoneBehaviorDraft behavior,
 }) {
   return MapGameplayZone(
     id: id,
@@ -523,7 +533,7 @@ String _baseZoneId({
 
 String _normalizeIdPrefix(String value) {
   final normalized = value.trim().replaceAll(RegExp(r'\s+'), '-');
-  if (normalized.isEmpty) return 'surface-zone';
+  if (normalized.isEmpty) return 'smart-tile-zone';
   return normalized;
 }
 

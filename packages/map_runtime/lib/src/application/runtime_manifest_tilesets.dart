@@ -1,6 +1,5 @@
 import 'package:map_core/map_core.dart';
 
-import '../surface/surface_runtime_tileset_collector.dart';
 import 'runtime_character_refs.dart';
 
 Map<TerrainType, ProjectTerrainPreset> runtimeTerrainPresetsByType(
@@ -31,34 +30,8 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
   }
 
   add(map.tilesetId);
-  for (final layer in map.layers) {
-    layer.when(
-      tile: (id, name, tilesetId, isVisible, opacity, tiles) => add(tilesetId),
-      collision: (id, name, isVisible, opacity, collisions) {},
-      terrain: (id, name, isVisible, opacity, terrains) {},
-      path: (id, name, isVisible, opacity, presetId, cells, properties,
-          animationMode, animationTriggers) {},
-      smartTile: (
-        id,
-        name,
-        isVisible,
-        opacity,
-        presetId,
-        usage,
-        materialPalette,
-        field,
-        layerSeed,
-        properties,
-      ) {},
-      // Surface layers are no-op in runtime V0; a later runtime Surface lot
-      // will resolve placed preset ids into catalog atlas/tileset references.
-      surface: (id, name, isVisible, opacity, placements, properties) {},
-      object: (id, name, isVisible, opacity) {},
-      environment: (id, name, isVisible, opacity, content, properties) {},
-      // Border snapshots are not runtime tilesets; their dedicated immutable
-      // snapshot cache collects and loads them separately.
-      border: (id, name, isVisible, opacity, content, properties) {},
-    );
+  for (final layer in map.layers.whereType<TileLayer>()) {
+    add(layer.tilesetId);
   }
   return ids;
 }
@@ -70,90 +43,66 @@ void addTerrainAndPathPresetTilesetIds(
 ) {
   final terrainByType = runtimeTerrainPresetsByType(manifest);
   for (final layer in map.layers) {
-    layer.when(
-      tile: (id, name, tilesetId, isVisible, opacity, tiles) {},
-      collision: (id, name, isVisible, opacity, collisions) {},
-      terrain: (id, name, isVisible, opacity, terrains) {
-        for (final t in terrains) {
-          if (t == TerrainType.none) {
-            continue;
+    if (layer is TerrainLayer) {
+      for (final terrain in layer.terrains) {
+        if (terrain == TerrainType.none) {
+          continue;
+        }
+        final preset = terrainByType[terrain];
+        if (preset == null) {
+          continue;
+        }
+        final presetTilesetId = preset.tilesetId.trim();
+        if (presetTilesetId.isNotEmpty) {
+          ids.add(presetTilesetId);
+        }
+        for (final variant in preset.variants) {
+          for (final frame in variant.frames) {
+            final overrideTilesetId = frame.tilesetId.trim();
+            if (overrideTilesetId.isNotEmpty) {
+              ids.add(overrideTilesetId);
+            }
           }
-          final preset = terrainByType[t];
-          if (preset == null) {
-            continue;
-          }
+        }
+      }
+      continue;
+    }
+    if (layer is PathLayer) {
+      final presetId = layer.presetId.trim();
+      if (presetId.isEmpty) {
+        continue;
+      }
+      for (final preset in manifest.pathPresets) {
+        if (preset.id == presetId) {
           final presetTilesetId = preset.tilesetId.trim();
           if (presetTilesetId.isNotEmpty) {
             ids.add(presetTilesetId);
           }
-          for (final variant in preset.variants) {
-            for (final frame in variant.frames) {
+          for (final mapping in preset.variants) {
+            for (final frame in mapping.frames) {
               final overrideTilesetId = frame.tilesetId.trim();
               if (overrideTilesetId.isNotEmpty) {
                 ids.add(overrideTilesetId);
               }
             }
           }
-        }
-      },
-      path: (id, name, isVisible, opacity, presetId, cells, properties,
-          animationMode, animationTriggers) {
-        final pid = presetId.trim();
-        if (pid.isEmpty) {
-          return;
-        }
-        for (final p in manifest.pathPresets) {
-          if (p.id == pid) {
-            final presetTilesetId = p.tilesetId.trim();
-            if (presetTilesetId.isNotEmpty) {
-              ids.add(presetTilesetId);
+          for (final pattern in manifest.pathPatternPresets) {
+            if (pattern.basePathPresetId != presetId) {
+              continue;
             }
-            for (final mapping in p.variants) {
-              for (final frame in mapping.frames) {
+            for (final cell in pattern.centerPattern.cells) {
+              for (final frame in cell.frames) {
                 final overrideTilesetId = frame.tilesetId.trim();
                 if (overrideTilesetId.isNotEmpty) {
                   ids.add(overrideTilesetId);
                 }
               }
             }
-            for (final pattern in manifest.pathPatternPresets) {
-              if (pattern.basePathPresetId != pid) {
-                continue;
-              }
-              for (final cell in pattern.centerPattern.cells) {
-                for (final frame in cell.frames) {
-                  final overrideTilesetId = frame.tilesetId.trim();
-                  if (overrideTilesetId.isNotEmpty) {
-                    ids.add(overrideTilesetId);
-                  }
-                }
-              }
-            }
-            return;
           }
+          break;
         }
-      },
-      smartTile: (
-        id,
-        name,
-        isVisible,
-        opacity,
-        presetId,
-        usage,
-        materialPalette,
-        field,
-        layerSeed,
-        properties,
-      ) {},
-      // Surface render work stays out of this file, but Lot 89 now collects the
-      // atlas tilesets used by placed Surface presets below.
-      surface: (id, name, isVisible, opacity, placements, properties) {},
-      object: (id, name, isVisible, opacity) {},
-      environment: (id, name, isVisible, opacity, content, properties) {},
-      // Border snapshots are not terrain/path preset tileset references and
-      // remain owned by the dedicated immutable snapshot cache.
-      border: (id, name, isVisible, opacity, content, properties) {},
-    );
+      }
+    }
   }
 }
 
@@ -271,12 +220,6 @@ Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
   final ids = collectTilesetIdsReferencedOnMap(map);
   addTerrainAndPathPresetTilesetIds(ids, map, manifest);
   addSmartTileTilesetIds(ids, map, manifest);
-  ids.addAll(
-    collectSurfaceRuntimeTilesetIds(
-      map: map,
-      catalog: manifest.surfaceCatalog,
-    ),
-  );
   addEntityVisualTilesetIds(ids, map, manifest);
   addCharacterTilesetIds(ids, map, manifest);
   // Append placed-element visuals after the established sources so their

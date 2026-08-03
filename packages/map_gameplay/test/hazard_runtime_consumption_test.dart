@@ -219,28 +219,29 @@ void main() {
       expect(effect.priority, 5);
     });
 
-    test('generated lava zones from surface plan produce hazard effect', () {
-      final map = _surfaceMap();
-      final surfaceLayer = map.layers.whereType<SurfaceLayer>().single;
-      final originalPlacements = surfaceLayer.placements;
-      final plan = createSurfaceGameplayZoneGenerationPlan(
-        source: SurfaceGameplayZoneGenerationSource(
-          surfaceLayerId: surfaceLayer.id,
-          surfaceLayerName: surfaceLayer.name,
-          surfacePresetId: 'lava',
-          cells: surfaceLayer.placements
-              .where((placement) => placement.surfacePresetId == 'lava')
-              .map((placement) => GridPos(x: placement.x, y: placement.y))
+    test('generated lava zones from Smart Tile plan produce hazard effect', () {
+      final map = _smartTileMap();
+      final smartTileLayer = map.layers.whereType<SmartTileLayer>().single;
+      final originalCells = smartTileLayer.field.semanticCells;
+      final plan = createSmartTileGameplayZoneGenerationPlan(
+        source: SmartTileGameplayZoneGenerationSource(
+          smartTileLayerId: smartTileLayer.id,
+          smartTileLayerName: smartTileLayer.name,
+          smartTilePresetId: smartTileLayer.presetId,
+          materialId: 'lava',
+          cells: smartTileLayer.field.semanticCells.indexed
+              .where((entry) => entry.$2 == 1)
+              .map((entry) => GridPos(x: entry.$1, y: 0))
               .toList(growable: false),
           mapSize: map.size,
         ),
-        behavior: const SurfaceGameplayZoneBehaviorDraft.hazard(
+        behavior: const SmartTileGameplayZoneBehaviorDraft.hazard(
           HazardZonePayload(
             hazardKind: HazardKind.lava,
             damagePerStep: 5,
           ),
         ),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'lava-hazard',
         zoneNamePrefix: 'Lava - Hazard',
         existingZones: map.gameplayZones,
@@ -263,10 +264,11 @@ void main() {
       expect(effect.damagePerStep, 5);
       expect(
         mapWithGeneratedZones.layers
-            .whereType<SurfaceLayer>()
+            .whereType<SmartTileLayer>()
             .single
-            .placements,
-        originalPlacements,
+            .field
+            .semanticCells,
+        originalCells,
       );
     });
   });
@@ -316,10 +318,10 @@ MapData _baseMap({
   );
 }
 
-MapData _surfaceMap() {
+MapData _smartTileMap() {
   return const MapData(
-    id: 'surface_lava_map',
-    name: 'Surface Lava Map',
+    id: 'smart_tile_lava_map',
+    name: 'Smart Tile Lava Map',
     size: GridSize(width: 3, height: 1),
     layers: [
       MapLayer.tile(
@@ -332,16 +334,13 @@ MapData _surfaceMap() {
         name: 'Collision',
         collisions: [false, false, false],
       ),
-      SurfaceLayer(
-        id: 'surface-main',
-        name: 'Surfaces',
-        placements: [
-          SurfaceCellPlacement(
-            x: 1,
-            y: 0,
-            surfacePresetId: 'lava',
-          ),
-        ],
+      SmartTileLayer(
+        id: 'smart-terrain-main',
+        name: 'Smart terrain',
+        presetId: 'terrain-materials',
+        usage: SmartTileUsage.terrain,
+        materialPalette: <String>['', 'lava'],
+        field: SmartTileField.cell(semanticCells: <int>[0, 1, 0]),
       ),
     ],
   );
@@ -352,21 +351,5 @@ ProjectManifest _project() {
     name: 'Hazard Project',
     maps: const [],
     tilesets: const [],
-    surfaceCatalog: ProjectSurfaceCatalog(
-      presets: [
-        ProjectSurfacePreset(
-          id: 'lava',
-          name: 'Lava',
-          variantAnimations: SurfaceVariantAnimationRefSet(
-            refs: [
-              SurfaceVariantAnimationRef(
-                role: SurfaceVariantRole.isolated,
-                animationId: 'lava-idle',
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
   );
 }

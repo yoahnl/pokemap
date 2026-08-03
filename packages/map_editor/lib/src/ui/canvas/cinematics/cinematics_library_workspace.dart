@@ -742,6 +742,7 @@ class _CinematicsLibraryWorkspaceState
       stageMap: stageMap,
       mapData: mapData,
       availableTilesetIds: _availableTilesetIds(widget.project),
+      smartTileCatalog: widget.project.smartTileCatalog,
     );
   }
 

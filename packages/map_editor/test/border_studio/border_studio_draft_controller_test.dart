@@ -70,7 +70,7 @@ void main() {
       controller.setGenerationParams(masonryRules);
       controller.setGround(
         BorderGroundDraft(
-          sourceSurfacePresetId: 'ground-stone',
+          sourceSmartTilePresetId: 'ground-stone',
           edgeBandCells: 2,
         ),
       );
@@ -393,7 +393,7 @@ void main() {
           _primitive(id: 'rock', role: BorderPrimitiveRole.structureLarge),
         ],
         ground: BorderGroundDraft(
-          sourceSurfacePresetId: 'ground-sand',
+          sourceSmartTilePresetId: 'ground-sand',
           edgeBandCells: 1,
         ),
       );
@@ -465,7 +465,7 @@ void main() {
           _primitive(id: 'rock', role: BorderPrimitiveRole.structureLarge),
         ],
         ground: BorderGroundDraft(
-          sourceSurfacePresetId: 'ground-sand',
+          sourceSmartTilePresetId: 'ground-sand',
           edgeBandCells: 1,
         ),
       );

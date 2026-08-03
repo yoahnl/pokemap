@@ -1942,7 +1942,7 @@ void main() {
   });
 
   testWidgets(
-    'builds extended backdrop bitmap instructions for neutral terrain path surface and placed elements',
+    'builds extended backdrop bitmap instructions without legacy surfaces',
     (tester) async {
       final tilesetImage = await _makeExtendedBackdropTilesetImage();
       final manifest = _extendedBackdropProject();
@@ -1968,7 +1968,6 @@ void main() {
         CinematicMapBackdropRenderPass.terrain,
         CinematicMapBackdropRenderPass.path,
         CinematicMapBackdropRenderPass.tileBackground,
-        CinematicMapBackdropRenderPass.surface,
         CinematicMapBackdropRenderPass.placedBackground,
         CinematicMapBackdropRenderPass.tileForeground,
         CinematicMapBackdropRenderPass.placedForeground,
@@ -1979,7 +1978,6 @@ void main() {
           CinematicMapBackdropLayerKind.terrain,
           CinematicMapBackdropLayerKind.path,
           CinematicMapBackdropLayerKind.tile,
-          CinematicMapBackdropLayerKind.surface,
           CinematicMapBackdropLayerKind.object,
         }),
       );
@@ -1997,6 +1995,10 @@ void main() {
       expect(
         plan.instructions.map((instruction) => instruction.sourceFamily),
         isNot(contains('collision')),
+      );
+      expect(
+        plan.instructions.map((instruction) => instruction.sourceFamily),
+        isNot(contains('surface')),
       );
       expect(manifest.toJson(), beforeManifest);
       expect(mapData.toJson(), beforeMapData);

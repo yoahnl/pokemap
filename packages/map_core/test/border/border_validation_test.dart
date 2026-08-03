@@ -81,7 +81,8 @@ void main() {
       expect(report.diagnostics, isEmpty);
     });
 
-    test('draft source element and surface references are recoverable errors',
+    test(
+        'draft source element and Smart Tile references are recoverable errors',
         () {
       final report = diagnoseBorderBlueprint(
         _record(
@@ -89,7 +90,7 @@ void main() {
             _draftPrimitive(sourceElementId: 'missing-element'),
           ],
           draftGround: BorderGroundDraft(
-            sourceSurfacePresetId: 'missing-surface',
+            sourceSmartTilePresetId: 'missing-smart-tile',
             edgeBandCells: 1,
           ),
         ),
@@ -102,7 +103,7 @@ void main() {
         _codes(report),
         containsAll(<String>[
           'border.blueprint.source_element_missing',
-          'border.blueprint.source_surface_preset_missing',
+          'border.blueprint.source_smart_tile_preset_missing',
         ]),
       );
       expect(report.errorCount, 2);
@@ -212,7 +213,7 @@ void main() {
 
     test('deduplicates shared published ground snapshot diagnostics', () {
       final sharedGround = BorderPublishedGround(
-        sourceSurfacePresetId: 'surface',
+        sourceSmartTilePresetId: 'surface',
         edgeBandCells: 1,
         visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
           for (final role in standardSurfaceVariantRoleOrder) role: _snapshotB,

@@ -9,7 +9,7 @@ import 'package:map_editor/src/features/border_studio/application/border_project
 import 'package:map_editor/src/features/border_studio/application/border_publication_candidate_builder.dart';
 import 'package:map_editor/src/features/border_studio/application/border_publication_transaction.dart';
 import 'package:map_editor/src/features/border_studio/application/border_studio_publication_coordinator.dart';
-import 'package:map_editor/src/features/border_studio/application/border_surface_ground_snapshot_service.dart';
+import 'package:map_editor/src/features/border_studio/application/border_smart_tile_ground_snapshot_service.dart';
 import 'package:map_editor/src/features/border_studio/infrastructure/filesystem/file_border_asset_snapshot_store.dart';
 import 'package:map_editor/src/features/border_studio/infrastructure/filesystem/file_border_publication_manifest_port.dart';
 import 'package:path/path.dart' as p;
@@ -44,7 +44,7 @@ void main() {
       );
 
       const assetService = BorderProjectElementAssetService();
-      const groundSnapshotService = BorderSurfaceGroundSnapshotService();
+      const groundSnapshotService = BorderSmartTileGroundSnapshotService();
       final sourceManifest = _sourceManifest();
       final authoredPrimitives = <BorderPrimitiveDraft>[];
       for (final primitiveId in const <String>[
@@ -118,7 +118,7 @@ void main() {
       final groundPreparationsV1 = await groundSnapshotService.prepareAllRoles(
         manifest: initialManifest,
         projectRootPath: projectRoot.path,
-        sourceSurfacePresetId: 'shore',
+        sourceSmartTilePresetId: 'shore',
       );
       final previewV1 = await coordinator.prepare(
         manifest: initialManifest,
@@ -204,7 +204,7 @@ void main() {
       final groundPreparationsV2 = await groundSnapshotService.prepareAllRoles(
         manifest: refreshedManifest,
         projectRootPath: projectRoot.path,
-        sourceSurfacePresetId: 'shore',
+        sourceSmartTilePresetId: 'shore',
       );
       final previewV2 = await coordinator.prepare(
         manifest: refreshedManifest,
@@ -295,7 +295,7 @@ void _expectCompleteGallery(BorderStudioPublicationPreview preview) {
 
 ProjectManifest _sourceManifest() => ProjectManifest(
       name: 'BORD-03 end-to-end project',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v5,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[
         ProjectTilesetEntry(
@@ -325,48 +325,74 @@ ProjectManifest _sourceManifest() => ProjectManifest(
           ],
         ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(
-        atlases: <ProjectSurfaceAtlas>[
-          ProjectSurfaceAtlas(
+      smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: const <ProjectSmartTileAtlas>[
+          ProjectSmartTileAtlas(
             id: 'shore-atlas',
             name: 'Shore atlas',
             tilesetId: 'shore-tileset',
-            geometry: SurfaceAtlasGeometry(
-              tileSize: SurfaceAtlasTileSize(width: 16, height: 16),
-              gridSize: SurfaceAtlasGridSize(columns: 1, rows: 1),
-            ),
+            cellWidth: 16,
+            cellHeight: 16,
+            columns: 1,
+            rows: 1,
           ),
         ],
-        animations: <ProjectSurfaceAnimation>[
-          ProjectSurfaceAnimation(
-            id: 'shore-horizontal',
-            name: 'Shore horizontal',
-            timeline: SurfaceAnimationTimeline(
-              frames: <SurfaceAnimationFrame>[
-                SurfaceAnimationFrame(
-                  tileRef: SurfaceAtlasTileRef(
-                    atlasId: 'shore-atlas',
-                    column: 0,
-                    row: 0,
-                  ),
-                  durationMs: 80,
+        animations: const <ProjectSmartTileAnimation>[
+          ProjectSmartTileAnimation(
+            id: 'shore-ground',
+            name: 'Shore ground',
+            frames: <ProjectSmartTileAnimationFrame>[
+              ProjectSmartTileAnimationFrame(
+                frame: SmartTileFrameRef(
+                  atlasId: 'shore-atlas',
+                  column: 0,
+                  row: 0,
                 ),
-              ],
-            ),
+                durationMs: 80,
+              ),
+            ],
           ),
         ],
-        presets: <ProjectSurfacePreset>[
-          ProjectSurfacePreset(
+        materials: const <ProjectSmartTileMaterial>[
+          ProjectSmartTileMaterial(
+            id: 'shore-ground',
+            name: 'Shore ground',
+            connectionGroupId: 'shore-ground',
+          ),
+        ],
+        presets: const <ProjectSmartTilePreset>[
+          ProjectSmartTilePreset(
             id: 'shore',
             name: 'Shore',
-            variantAnimations: SurfaceVariantAnimationRefSet(
-              refs: <SurfaceVariantAnimationRef>[
-                SurfaceVariantAnimationRef(
-                  role: SurfaceVariantRole.horizontal,
-                  animationId: 'shore-horizontal',
-                ),
-              ],
+            usage: SmartTileUsage.terrain,
+            topology: SmartTileTopology.uniform,
+            templateHint: SmartTileTemplateHint.simple,
+            status: SmartTilePresetStatus.published,
+            coveragePolicy: SmartTileCoveragePolicy.complete,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
             ),
+            transformPolicy: SmartTileTransformPolicy(),
+            defaultMaterialId: 'shore-ground',
+            allowedMaterialIds: <String>['shore-ground'],
+            rules: <SmartTileRule>[
+              SmartTileRule(
+                id: 'ground',
+                centerMatch: SmartTileSlotMatch.material('shore-ground'),
+                candidates: <SmartTileCandidate>[
+                  SmartTileCandidate(
+                    id: 'ground',
+                    parts: <SmartTileVisualPart>[
+                      SmartTileVisualPart(
+                        source: SmartTileVisualSource.animation(
+                          animationId: 'shore-ground',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
       ),
@@ -396,7 +422,7 @@ BorderBlueprintRecord _record({
             depthRows: 1,
           ),
           ground: BorderGroundDraft(
-            sourceSurfacePresetId: 'shore',
+            sourceSmartTilePresetId: 'shore',
             edgeBandCells: 2,
           ),
           sortOrder: 0,

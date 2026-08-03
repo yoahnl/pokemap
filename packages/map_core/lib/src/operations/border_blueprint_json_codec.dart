@@ -52,11 +52,11 @@ const Set<String> _transformKeys = <String>{
 };
 const Set<String> _pixelPosKeys = <String>{'x', 'y'};
 const Set<String> _draftGroundKeys = <String>{
-  'sourceSurfacePresetId',
+  'sourceSmartTilePresetId',
   'edgeBandCells',
 };
 const Set<String> _publishedGroundKeys = <String>{
-  'sourceSurfacePresetId',
+  'sourceSmartTilePresetId',
   'edgeBandCells',
   'visualSnapshotIdsByRole',
 };
@@ -1048,12 +1048,12 @@ Map<String, Object?> _encodeDraftGround(
   String path,
 ) {
   _validateGroundFields(
-    value.sourceSurfacePresetId,
+    value.sourceSmartTilePresetId,
     value.edgeBandCells,
     path,
   );
   return <String, Object?>{
-    'sourceSurfacePresetId': value.sourceSurfacePresetId,
+    'sourceSmartTilePresetId': value.sourceSmartTilePresetId,
     'edgeBandCells': value.edgeBandCells,
   };
 }
@@ -1069,7 +1069,7 @@ BorderGroundDraft _decodeDraftGround(Object? json, String path) {
   return borderJsonConstructAtPath(
     path,
     () => BorderGroundDraft(
-      sourceSurfacePresetId: fields.sourceSurfacePresetId,
+      sourceSmartTilePresetId: fields.sourceSmartTilePresetId,
       edgeBandCells: fields.edgeBandCells,
     ),
   );
@@ -1080,7 +1080,7 @@ Map<String, Object?> _encodePublishedGround(
   String path,
 ) {
   _validateGroundFields(
-    value.sourceSurfacePresetId,
+    value.sourceSmartTilePresetId,
     value.edgeBandCells,
     path,
   );
@@ -1094,7 +1094,7 @@ Map<String, Object?> _encodePublishedGround(
     snapshots[_encodeSurfaceRole(role)] = value.visualSnapshotIdsByRole[role]!;
   }
   return <String, Object?>{
-    'sourceSurfacePresetId': value.sourceSurfacePresetId,
+    'sourceSmartTilePresetId': value.sourceSmartTilePresetId,
     'edgeBandCells': value.edgeBandCells,
     'visualSnapshotIdsByRole': snapshots,
   };
@@ -1129,42 +1129,42 @@ BorderPublishedGround _decodePublishedGround(Object? json, String path) {
   return borderJsonConstructAtPath(
     path,
     () => BorderPublishedGround(
-      sourceSurfacePresetId: fields.sourceSurfacePresetId,
+      sourceSmartTilePresetId: fields.sourceSmartTilePresetId,
       edgeBandCells: fields.edgeBandCells,
       visualSnapshotIdsByRole: snapshots,
     ),
   );
 }
 
-({String sourceSurfacePresetId, int edgeBandCells}) _decodeGroundFields(
+({String sourceSmartTilePresetId, int edgeBandCells}) _decodeGroundFields(
   BorderJsonObject value,
   String path,
 ) {
-  final sourcePath = borderJsonPropertyPath(path, 'sourceSurfacePresetId');
+  final sourcePath = borderJsonPropertyPath(path, 'sourceSmartTilePresetId');
   final edgeBandPath = borderJsonPropertyPath(path, 'edgeBandCells');
-  final sourceSurfacePresetId = borderJsonRequireString(
-    borderJsonRequireField(value, 'sourceSurfacePresetId', path),
+  final sourceSmartTilePresetId = borderJsonRequireString(
+    borderJsonRequireField(value, 'sourceSmartTilePresetId', path),
     sourcePath,
   );
   final edgeBandCells = borderJsonRequireInt(
     borderJsonRequireField(value, 'edgeBandCells', path),
     edgeBandPath,
   );
-  _validateGroundFields(sourceSurfacePresetId, edgeBandCells, path);
+  _validateGroundFields(sourceSmartTilePresetId, edgeBandCells, path);
   return (
-    sourceSurfacePresetId: sourceSurfacePresetId,
+    sourceSmartTilePresetId: sourceSmartTilePresetId,
     edgeBandCells: edgeBandCells,
   );
 }
 
 void _validateGroundFields(
-  String sourceSurfacePresetId,
+  String sourceSmartTilePresetId,
   int edgeBandCells,
   String path,
 ) {
   _requireNonEmpty(
-    sourceSurfacePresetId,
-    borderJsonPropertyPath(path, 'sourceSurfacePresetId'),
+    sourceSmartTilePresetId,
+    borderJsonPropertyPath(path, 'sourceSmartTilePresetId'),
   );
   if (edgeBandCells < 1) {
     throw FormatException(

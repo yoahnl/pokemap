@@ -1,35 +1,37 @@
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
-import 'surface_to_gameplay_zone_presenter.dart';
+import '../application/smart_tile_to_gameplay_zone_presenter.dart';
 
-class SurfaceToGameplayZoneDialog extends StatefulWidget {
-  const SurfaceToGameplayZoneDialog({
+class SmartTileToGameplayZoneDialog extends StatefulWidget {
+  const SmartTileToGameplayZoneDialog({
     super.key,
     required this.map,
-    required this.surfaceLayer,
-    required this.surfacePresetId,
-    required this.presets,
+    required this.smartTileLayer,
+    required this.smartTilePresetId,
+    this.materialId,
+    required this.catalog,
     required this.encounterTables,
     required this.onConfirm,
     this.onCancel,
   });
 
   final MapData? map;
-  final SurfaceLayer? surfaceLayer;
-  final String? surfacePresetId;
-  final List<ProjectSurfacePreset> presets;
+  final SmartTileLayer? smartTileLayer;
+  final String? smartTilePresetId;
+  final String? materialId;
+  final ProjectSmartTileCatalog catalog;
   final List<ProjectEncounterTable> encounterTables;
-  final ValueChanged<SurfaceGameplayZoneGenerationPlan> onConfirm;
+  final ValueChanged<SmartTileGameplayZoneGenerationPlan> onConfirm;
   final VoidCallback? onCancel;
 
   @override
-  State<SurfaceToGameplayZoneDialog> createState() =>
-      _SurfaceToGameplayZoneDialogState();
+  State<SmartTileToGameplayZoneDialog> createState() =>
+      _SmartTileToGameplayZoneDialogState();
 }
 
-class _SurfaceToGameplayZoneDialogState
-    extends State<SurfaceToGameplayZoneDialog> {
+class _SmartTileToGameplayZoneDialogState
+    extends State<SmartTileToGameplayZoneDialog> {
   late final TextEditingController _encounterTableController;
 
   @override
@@ -49,16 +51,17 @@ class _SurfaceToGameplayZoneDialogState
 
   @override
   Widget build(BuildContext context) {
-    final preview = buildTallGrassEncounterSurfaceGameplayZonePreview(
+    final preview = buildTallGrassEncounterSmartTileGameplayZonePreview(
       map: widget.map,
-      surfaceLayer: widget.surfaceLayer,
-      surfacePresetId: widget.surfacePresetId,
-      presets: widget.presets,
+      smartTileLayer: widget.smartTileLayer,
+      smartTilePresetId: widget.smartTilePresetId,
+      materialId: widget.materialId,
+      catalog: widget.catalog,
       encounterTableId: _encounterTableController.text,
     );
 
     return CupertinoAlertDialog(
-      title: const Text('Créer une zone de rencontre depuis cette surface'),
+      title: const Text('Créer une zone de rencontre depuis ce Smart Tile'),
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -76,7 +79,7 @@ class _SurfaceToGameplayZoneDialogState
           ),
           const SizedBox(height: 6),
           CupertinoTextField(
-            key: const Key('surface-to-gameplay-zone-encounter-table-field'),
+            key: const Key('smart-tile-to-gameplay-zone-encounter-table-field'),
             controller: _encounterTableController,
             placeholder: 'route_1_grass',
             onChanged: (_) => setState(() {}),
@@ -143,31 +146,34 @@ class _SurfaceToGameplayZoneDialogState
   }
 }
 
-class SurfableWaterSurfaceGameplayZoneDialog extends StatelessWidget {
-  const SurfableWaterSurfaceGameplayZoneDialog({
+class SurfableWaterSmartTileGameplayZoneDialog extends StatelessWidget {
+  const SurfableWaterSmartTileGameplayZoneDialog({
     super.key,
     required this.map,
-    required this.surfaceLayer,
-    required this.surfacePresetId,
-    required this.presets,
+    required this.smartTileLayer,
+    required this.smartTilePresetId,
+    this.materialId,
+    required this.catalog,
     required this.onConfirm,
     this.onCancel,
   });
 
   final MapData? map;
-  final SurfaceLayer? surfaceLayer;
-  final String? surfacePresetId;
-  final List<ProjectSurfacePreset> presets;
-  final ValueChanged<SurfaceGameplayZoneGenerationPlan> onConfirm;
+  final SmartTileLayer? smartTileLayer;
+  final String? smartTilePresetId;
+  final String? materialId;
+  final ProjectSmartTileCatalog catalog;
+  final ValueChanged<SmartTileGameplayZoneGenerationPlan> onConfirm;
   final VoidCallback? onCancel;
 
   @override
   Widget build(BuildContext context) {
-    final preview = buildSurfableWaterSurfaceGameplayZonePreview(
+    final preview = buildSurfableWaterSmartTileGameplayZonePreview(
       map: map,
-      surfaceLayer: surfaceLayer,
-      surfacePresetId: surfacePresetId,
-      presets: presets,
+      smartTileLayer: smartTileLayer,
+      smartTilePresetId: smartTilePresetId,
+      materialId: materialId,
+      catalog: catalog,
     );
 
     return CupertinoAlertDialog(
@@ -231,31 +237,33 @@ class SurfableWaterSurfaceGameplayZoneDialog extends StatelessWidget {
   }
 }
 
-class LavaHazardSurfaceGameplayZoneDialog extends StatefulWidget {
-  const LavaHazardSurfaceGameplayZoneDialog({
+class LavaHazardSmartTileGameplayZoneDialog extends StatefulWidget {
+  const LavaHazardSmartTileGameplayZoneDialog({
     super.key,
     required this.map,
-    required this.surfaceLayer,
-    required this.surfacePresetId,
-    required this.presets,
+    required this.smartTileLayer,
+    required this.smartTilePresetId,
+    this.materialId,
+    required this.catalog,
     required this.onConfirm,
     this.onCancel,
   });
 
   final MapData? map;
-  final SurfaceLayer? surfaceLayer;
-  final String? surfacePresetId;
-  final List<ProjectSurfacePreset> presets;
-  final ValueChanged<SurfaceGameplayZoneGenerationPlan> onConfirm;
+  final SmartTileLayer? smartTileLayer;
+  final String? smartTilePresetId;
+  final String? materialId;
+  final ProjectSmartTileCatalog catalog;
+  final ValueChanged<SmartTileGameplayZoneGenerationPlan> onConfirm;
   final VoidCallback? onCancel;
 
   @override
-  State<LavaHazardSurfaceGameplayZoneDialog> createState() =>
-      _LavaHazardSurfaceGameplayZoneDialogState();
+  State<LavaHazardSmartTileGameplayZoneDialog> createState() =>
+      _LavaHazardSmartTileGameplayZoneDialogState();
 }
 
-class _LavaHazardSurfaceGameplayZoneDialogState
-    extends State<LavaHazardSurfaceGameplayZoneDialog> {
+class _LavaHazardSmartTileGameplayZoneDialogState
+    extends State<LavaHazardSmartTileGameplayZoneDialog> {
   late final TextEditingController _damageController;
 
   @override
@@ -272,11 +280,12 @@ class _LavaHazardSurfaceGameplayZoneDialogState
 
   @override
   Widget build(BuildContext context) {
-    final preview = buildLavaHazardSurfaceGameplayZonePreview(
+    final preview = buildLavaHazardSmartTileGameplayZonePreview(
       map: widget.map,
-      surfaceLayer: widget.surfaceLayer,
-      surfacePresetId: widget.surfacePresetId,
-      presets: widget.presets,
+      smartTileLayer: widget.smartTileLayer,
+      smartTilePresetId: widget.smartTilePresetId,
+      materialId: widget.materialId,
+      catalog: widget.catalog,
       damagePerStep: int.tryParse(_damageController.text.trim()),
     );
 
@@ -297,7 +306,7 @@ class _LavaHazardSurfaceGameplayZoneDialogState
           ),
           const SizedBox(height: 6),
           CupertinoTextField(
-            key: const Key('surface-to-gameplay-zone-lava-damage-field'),
+            key: const Key('smart-tile-to-gameplay-zone-lava-damage-field'),
             controller: _damageController,
             keyboardType: TextInputType.number,
             placeholder: '5',

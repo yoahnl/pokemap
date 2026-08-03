@@ -1,10 +1,10 @@
 import 'package:map_core/map_core.dart';
 
-import '../editor/state/editor_notifier.dart';
+import '../../editor/state/editor_notifier.dart';
 
 bool applyTallGrassEncounterGameplayZonePlan({
   required EditorNotifier notifier,
-  required SurfaceGameplayZoneGenerationPlan plan,
+  required SmartTileGameplayZoneGenerationPlan plan,
 }) {
   final zones = plan.generatedZones;
   if (zones.isEmpty) {
@@ -17,13 +17,13 @@ bool applyTallGrassEncounterGameplayZonePlan({
   return notifier.applyGeneratedGameplayZones(
     zones: zones,
     selectZoneId: zones.first.id,
-    statusMessage: 'Zones de rencontre créées depuis la surface',
+    statusMessage: 'Zones de rencontre créées depuis le Smart Tile',
   );
 }
 
 bool applySurfableWaterGameplayZonePlan({
   required EditorNotifier notifier,
-  required SurfaceGameplayZoneGenerationPlan plan,
+  required SmartTileGameplayZoneGenerationPlan plan,
 }) {
   final zones = plan.generatedZones;
   if (zones.isEmpty) {
@@ -36,13 +36,13 @@ bool applySurfableWaterGameplayZonePlan({
   return notifier.applyGeneratedGameplayZones(
     zones: zones,
     selectZoneId: zones.first.id,
-    statusMessage: 'Zones Surf créées depuis la surface',
+    statusMessage: 'Zones Surf créées depuis le Smart Tile',
   );
 }
 
 bool applyLavaHazardGameplayZonePlan({
   required EditorNotifier notifier,
-  required SurfaceGameplayZoneGenerationPlan plan,
+  required SmartTileGameplayZoneGenerationPlan plan,
 }) {
   // Authoring only: this stores lava damage metadata on gameplay zones.
   // HP / party mutation is intentionally left to gameplay/runtime consumers.
@@ -57,7 +57,7 @@ bool applyLavaHazardGameplayZonePlan({
   return notifier.applyGeneratedGameplayZones(
     zones: zones,
     selectZoneId: zones.first.id,
-    statusMessage: 'Zones de lave créées depuis la surface',
+    statusMessage: 'Zones de lave créées depuis le Smart Tile',
   );
 }
 

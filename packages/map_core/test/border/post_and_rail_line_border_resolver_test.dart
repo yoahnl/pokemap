@@ -1039,7 +1039,7 @@ String _diagnostics(BorderResolutionResult result) => result.diagnostics
     .join(', ');
 
 BorderPublishedGround _unusedGround() => BorderPublishedGround(
-      sourceSurfacePresetId: 'unused-ground',
+      sourceSmartTilePresetId: 'unused-ground',
       edgeBandCells: 1,
       visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
         for (final role in standardSurfaceVariantRoleOrder) role: 'unused',

@@ -66,14 +66,14 @@ void main() {
     test('draft ground requires a positive inner edge band', () {
       expect(
         BorderGroundDraft(
-          sourceSurfacePresetId: 'water',
+          sourceSmartTilePresetId: 'water',
           edgeBandCells: 1,
         ).edgeBandCells,
         1,
       );
       expect(
         () => BorderGroundDraft(
-          sourceSurfacePresetId: 'water',
+          sourceSmartTilePresetId: 'water',
           edgeBandCells: 0,
         ),
         throwsA(isA<ValidationException>()),
@@ -83,7 +83,7 @@ void main() {
     test('published ground freezes a total role-to-snapshot map', () {
       final snapshots = _surfaceSnapshots();
       final ground = BorderPublishedGround(
-        sourceSurfacePresetId: 'water',
+        sourceSmartTilePresetId: 'water',
         edgeBandCells: 2,
         visualSnapshotIdsByRole: snapshots,
       );
@@ -101,7 +101,7 @@ void main() {
       expect(
         ground,
         BorderPublishedGround(
-          sourceSurfacePresetId: 'water',
+          sourceSmartTilePresetId: 'water',
           edgeBandCells: 2,
           visualSnapshotIdsByRole: _surfaceSnapshots(),
         ),
@@ -114,7 +114,7 @@ void main() {
 
       expect(
         () => BorderPublishedGround(
-          sourceSurfacePresetId: 'water',
+          sourceSmartTilePresetId: 'water',
           edgeBandCells: 1,
           visualSnapshotIdsByRole: incomplete,
         ),
@@ -122,7 +122,7 @@ void main() {
       );
       expect(
         () => BorderPublishedGround(
-          sourceSurfacePresetId: 'water',
+          sourceSmartTilePresetId: 'water',
           edgeBandCells: 0,
           visualSnapshotIdsByRole: _surfaceSnapshots(),
         ),
@@ -139,11 +139,11 @@ void main() {
         visualSnapshotId: 'missing-snapshot',
       );
       final draftGround = BorderGroundDraft(
-        sourceSurfacePresetId: 'missing-surface',
+        sourceSmartTilePresetId: 'missing-surface',
         edgeBandCells: 1,
       );
       final publishedGround = BorderPublishedGround(
-        sourceSurfacePresetId: 'missing-surface',
+        sourceSmartTilePresetId: 'missing-surface',
         edgeBandCells: 1,
         visualSnapshotIdsByRole: _surfaceSnapshots(
           snapshotId: 'missing-snapshot',
@@ -153,7 +153,7 @@ void main() {
       expect(draftPrimitive.sourceElementId, 'missing-element');
       expect(publishedPrimitive.sourceElementId, 'missing-element');
       expect(publishedPrimitive.visualSnapshotId, 'missing-snapshot');
-      expect(draftGround.sourceSurfacePresetId, 'missing-surface');
+      expect(draftGround.sourceSmartTilePresetId, 'missing-surface');
       expect(
         publishedGround.visualSnapshotIdsByRole[SurfaceVariantRole.isolated],
         'missing-snapshot',
@@ -168,16 +168,16 @@ void main() {
         () => _publishedPrimitive(sourceElementId: ''),
         () => _publishedPrimitive(visualSnapshotId: ''),
         () => BorderGroundDraft(
-              sourceSurfacePresetId: '',
+              sourceSmartTilePresetId: '',
               edgeBandCells: 1,
             ),
         () => BorderPublishedGround(
-              sourceSurfacePresetId: '',
+              sourceSmartTilePresetId: '',
               edgeBandCells: 1,
               visualSnapshotIdsByRole: _surfaceSnapshots(),
             ),
         () => BorderPublishedGround(
-              sourceSurfacePresetId: 'surface',
+              sourceSmartTilePresetId: 'surface',
               edgeBandCells: 1,
               visualSnapshotIdsByRole: _surfaceSnapshots()
                 ..[SurfaceVariantRole.isolated] = '',
@@ -433,7 +433,7 @@ BorderBlueprintDefinition<BorderPrimitiveDraft, BorderGroundDraft>
     primitives: primitives ?? <BorderPrimitiveDraft>[_draftPrimitive()],
     defaults: _defaults(),
     ground: BorderGroundDraft(
-      sourceSurfacePresetId: 'water',
+      sourceSmartTilePresetId: 'water',
       edgeBandCells: 2,
     ),
     categoryId: 'nature',
@@ -451,7 +451,7 @@ BorderBlueprintDefinition<BorderPublishedPrimitive, BorderPublishedGround>
     primitives: <BorderPublishedPrimitive>[_publishedPrimitive()],
     defaults: _defaults(),
     ground: BorderPublishedGround(
-      sourceSurfacePresetId: 'water',
+      sourceSmartTilePresetId: 'water',
       edgeBandCells: 2,
       visualSnapshotIdsByRole: _surfaceSnapshots(),
     ),

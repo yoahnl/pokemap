@@ -1,14 +1,14 @@
 import '../exceptions/map_exceptions.dart';
-import 'surface_to_gameplay_zone_generation_plan.dart';
+import 'smart_tile_to_gameplay_zone_generation_plan.dart';
 
-enum SurfaceGameplayZoneGenerationAssessmentStatus {
+enum SmartTileGameplayZoneGenerationAssessmentStatus {
   ready,
   needsReview,
   blocked,
 }
 
-final class SurfaceGameplayZoneGenerationAssessmentPolicy {
-  SurfaceGameplayZoneGenerationAssessmentPolicy({
+final class SmartTileGameplayZoneGenerationAssessmentPolicy {
+  SmartTileGameplayZoneGenerationAssessmentPolicy({
     required this.maxExtraCellRatioBeforeWarning,
     required this.maxExtraCellRatioBeforeBlocking,
     required this.maxGeneratedZonesBeforeWarning,
@@ -44,7 +44,7 @@ final class SurfaceGameplayZoneGenerationAssessmentPolicy {
     }
   }
 
-  static final defaultPolicy = SurfaceGameplayZoneGenerationAssessmentPolicy(
+  static final defaultPolicy = SmartTileGameplayZoneGenerationAssessmentPolicy(
     maxExtraCellRatioBeforeWarning: 0,
     maxExtraCellRatioBeforeBlocking: 0.25,
     maxGeneratedZonesBeforeWarning: 8,
@@ -59,7 +59,7 @@ final class SurfaceGameplayZoneGenerationAssessmentPolicy {
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is SurfaceGameplayZoneGenerationAssessmentPolicy &&
+        other is SmartTileGameplayZoneGenerationAssessmentPolicy &&
             other.maxExtraCellRatioBeforeWarning ==
                 maxExtraCellRatioBeforeWarning &&
             other.maxExtraCellRatioBeforeBlocking ==
@@ -79,23 +79,23 @@ final class SurfaceGameplayZoneGenerationAssessmentPolicy {
       );
 }
 
-final class SurfaceGameplayZoneGenerationAssessmentMessage {
-  const SurfaceGameplayZoneGenerationAssessmentMessage({
+final class SmartTileGameplayZoneGenerationAssessmentMessage {
+  const SmartTileGameplayZoneGenerationAssessmentMessage({
     required this.severity,
     required this.title,
     required this.description,
     this.diagnosticKind,
   });
 
-  final SurfaceGameplayZoneGenerationDiagnosticSeverity severity;
+  final SmartTileGameplayZoneGenerationDiagnosticSeverity severity;
   final String title;
   final String description;
-  final SurfaceGameplayZoneGenerationDiagnosticKind? diagnosticKind;
+  final SmartTileGameplayZoneGenerationDiagnosticKind? diagnosticKind;
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is SurfaceGameplayZoneGenerationAssessmentMessage &&
+        other is SmartTileGameplayZoneGenerationAssessmentMessage &&
             other.severity == severity &&
             other.title == title &&
             other.description == description &&
@@ -111,69 +111,70 @@ final class SurfaceGameplayZoneGenerationAssessmentMessage {
       );
 }
 
-final class SurfaceGameplayZoneGenerationAssessment {
-  SurfaceGameplayZoneGenerationAssessment({
+final class SmartTileGameplayZoneGenerationAssessment {
+  SmartTileGameplayZoneGenerationAssessment({
     required this.plan,
     required this.status,
-    required Iterable<SurfaceGameplayZoneGenerationAssessmentMessage> messages,
+    required Iterable<SmartTileGameplayZoneGenerationAssessmentMessage>
+        messages,
     required this.extraCellRatio,
     required this.coveragePercent,
     required this.summaryTitle,
     required this.summaryDescription,
   }) : messages =
-            List<SurfaceGameplayZoneGenerationAssessmentMessage>.unmodifiable(
+            List<SmartTileGameplayZoneGenerationAssessmentMessage>.unmodifiable(
           messages,
         );
 
-  final SurfaceGameplayZoneGenerationPlan plan;
-  final SurfaceGameplayZoneGenerationAssessmentStatus status;
-  final List<SurfaceGameplayZoneGenerationAssessmentMessage> messages;
+  final SmartTileGameplayZoneGenerationPlan plan;
+  final SmartTileGameplayZoneGenerationAssessmentStatus status;
+  final List<SmartTileGameplayZoneGenerationAssessmentMessage> messages;
   final double extraCellRatio;
   final double coveragePercent;
   final String summaryTitle;
   final String summaryDescription;
 
   bool get canApply =>
-      status != SurfaceGameplayZoneGenerationAssessmentStatus.blocked;
+      status != SmartTileGameplayZoneGenerationAssessmentStatus.blocked;
 
   bool get requiresReview =>
-      status == SurfaceGameplayZoneGenerationAssessmentStatus.needsReview;
+      status == SmartTileGameplayZoneGenerationAssessmentStatus.needsReview;
 
   bool get hasErrors => errorMessages.isNotEmpty;
 
   bool get hasWarnings => warningMessages.isNotEmpty;
 
-  List<SurfaceGameplayZoneGenerationAssessmentMessage> get infoMessages =>
-      List<SurfaceGameplayZoneGenerationAssessmentMessage>.unmodifiable(
+  List<SmartTileGameplayZoneGenerationAssessmentMessage> get infoMessages =>
+      List<SmartTileGameplayZoneGenerationAssessmentMessage>.unmodifiable(
         messages.where(
           (message) =>
               message.severity ==
-              SurfaceGameplayZoneGenerationDiagnosticSeverity.info,
+              SmartTileGameplayZoneGenerationDiagnosticSeverity.info,
         ),
       );
 
-  List<SurfaceGameplayZoneGenerationAssessmentMessage> get warningMessages =>
-      List<SurfaceGameplayZoneGenerationAssessmentMessage>.unmodifiable(
+  List<SmartTileGameplayZoneGenerationAssessmentMessage> get warningMessages =>
+      List<SmartTileGameplayZoneGenerationAssessmentMessage>.unmodifiable(
         messages.where(
           (message) =>
               message.severity ==
-              SurfaceGameplayZoneGenerationDiagnosticSeverity.warning,
+              SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
         ),
       );
 
-  List<SurfaceGameplayZoneGenerationAssessmentMessage> get errorMessages =>
-      List<SurfaceGameplayZoneGenerationAssessmentMessage>.unmodifiable(
+  List<SmartTileGameplayZoneGenerationAssessmentMessage> get errorMessages =>
+      List<SmartTileGameplayZoneGenerationAssessmentMessage>.unmodifiable(
         messages.where(
           (message) =>
               message.severity ==
-              SurfaceGameplayZoneGenerationDiagnosticSeverity.error,
+              SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
         ),
       );
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
-        other is SurfaceGameplayZoneGenerationAssessment &&
+        other is SmartTileGameplayZoneGenerationAssessment &&
             other.plan == plan &&
             other.status == status &&
             _listEquals(other.messages, messages) &&
@@ -195,18 +196,19 @@ final class SurfaceGameplayZoneGenerationAssessment {
       );
 }
 
-SurfaceGameplayZoneGenerationAssessment assessSurfaceGameplayZoneGenerationPlan(
-  SurfaceGameplayZoneGenerationPlan plan, {
-  SurfaceGameplayZoneGenerationAssessmentPolicy? policy,
+SmartTileGameplayZoneGenerationAssessment
+    assessSmartTileGameplayZoneGenerationPlan(
+  SmartTileGameplayZoneGenerationPlan plan, {
+  SmartTileGameplayZoneGenerationAssessmentPolicy? policy,
 }) {
   final effectivePolicy =
-      policy ?? SurfaceGameplayZoneGenerationAssessmentPolicy.defaultPolicy;
+      policy ?? SmartTileGameplayZoneGenerationAssessmentPolicy.defaultPolicy;
   final coverage = plan.coverage;
   final extraCellRatio =
       coverage.extraCellCount / _positiveDenominator(coverage.sourceCellCount);
   final coveragePercent = coverage.coveredSourceCellCount /
       _positiveDenominator(coverage.sourceCellCount);
-  final messages = <SurfaceGameplayZoneGenerationAssessmentMessage>[];
+  final messages = <SmartTileGameplayZoneGenerationAssessmentMessage>[];
 
   var blocked = false;
   var needsReview = false;
@@ -214,23 +216,23 @@ SurfaceGameplayZoneGenerationAssessment assessSurfaceGameplayZoneGenerationPlan(
   if (plan.generatedZones.isEmpty) {
     blocked = true;
     messages.add(
-      const SurfaceGameplayZoneGenerationAssessmentMessage(
-        severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.error,
+      const SmartTileGameplayZoneGenerationAssessmentMessage(
+        severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
         title: 'Aucune zone générée',
         description: 'Le plan ne contient aucune zone gameplay à créer.',
         diagnosticKind:
-            SurfaceGameplayZoneGenerationDiagnosticKind.noGeneratedZone,
+            SmartTileGameplayZoneGenerationDiagnosticKind.noGeneratedZone,
       ),
     );
   }
 
   for (final diagnostic in plan.diagnostics) {
     switch (diagnostic.severity) {
-      case SurfaceGameplayZoneGenerationDiagnosticSeverity.error:
+      case SmartTileGameplayZoneGenerationDiagnosticSeverity.error:
         blocked = true;
-      case SurfaceGameplayZoneGenerationDiagnosticSeverity.warning:
+      case SmartTileGameplayZoneGenerationDiagnosticSeverity.warning:
         needsReview = true;
-      case SurfaceGameplayZoneGenerationDiagnosticSeverity.info:
+      case SmartTileGameplayZoneGenerationDiagnosticSeverity.info:
         break;
     }
     messages.add(_messageForDiagnostic(diagnostic));
@@ -240,14 +242,14 @@ SurfaceGameplayZoneGenerationAssessment assessSurfaceGameplayZoneGenerationPlan(
       extraCellRatio >= effectivePolicy.maxExtraCellRatioBeforeBlocking) {
     blocked = true;
     messages.add(
-      SurfaceGameplayZoneGenerationAssessmentMessage(
-        severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.error,
+      SmartTileGameplayZoneGenerationAssessmentMessage(
+        severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
         title: 'Trop de cellules hors surface',
         description:
             '${coverage.extraCellCount} cellules hors surface seraient incluses '
             '(${_formatPercent(extraCellRatio)} de la surface source).',
         diagnosticKind:
-            SurfaceGameplayZoneGenerationDiagnosticKind.extraCellsIncluded,
+            SmartTileGameplayZoneGenerationDiagnosticKind.extraCellsIncluded,
       ),
     );
   } else if (coverage.extraCellCount > 0 &&
@@ -258,36 +260,36 @@ SurfaceGameplayZoneGenerationAssessment assessSurfaceGameplayZoneGenerationPlan(
   if (coverage.zoneCount >= effectivePolicy.maxGeneratedZonesBeforeBlocking) {
     blocked = true;
     messages.add(
-      SurfaceGameplayZoneGenerationAssessmentMessage(
-        severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.error,
+      SmartTileGameplayZoneGenerationAssessmentMessage(
+        severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
         title: 'Trop de zones générées',
         description:
             '${coverage.zoneCount} zones seraient générées. Réduisez la surface '
             'ou choisissez une autre stratégie.',
         diagnosticKind:
-            SurfaceGameplayZoneGenerationDiagnosticKind.tooManyRectangles,
+            SmartTileGameplayZoneGenerationDiagnosticKind.tooManyRectangles,
       ),
     );
   } else if (coverage.zoneCount >
       effectivePolicy.maxGeneratedZonesBeforeWarning) {
     needsReview = true;
     messages.add(
-      SurfaceGameplayZoneGenerationAssessmentMessage(
-        severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.warning,
+      SmartTileGameplayZoneGenerationAssessmentMessage(
+        severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
         title: 'Beaucoup de zones générées',
         description:
             '${coverage.zoneCount} zones seront créées. Vérifiez que le résultat '
             'reste lisible.',
         diagnosticKind:
-            SurfaceGameplayZoneGenerationDiagnosticKind.tooManyRectangles,
+            SmartTileGameplayZoneGenerationDiagnosticKind.tooManyRectangles,
       ),
     );
   }
 
   if (coverage.isExact) {
     messages.add(
-      const SurfaceGameplayZoneGenerationAssessmentMessage(
-        severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.info,
+      const SmartTileGameplayZoneGenerationAssessmentMessage(
+        severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.info,
         title: 'Couverture exacte',
         description:
             'Toutes les cellules source sont couvertes sans cellule hors surface.',
@@ -296,13 +298,13 @@ SurfaceGameplayZoneGenerationAssessment assessSurfaceGameplayZoneGenerationPlan(
   }
 
   final status = blocked
-      ? SurfaceGameplayZoneGenerationAssessmentStatus.blocked
+      ? SmartTileGameplayZoneGenerationAssessmentStatus.blocked
       : needsReview
-          ? SurfaceGameplayZoneGenerationAssessmentStatus.needsReview
-          : SurfaceGameplayZoneGenerationAssessmentStatus.ready;
+          ? SmartTileGameplayZoneGenerationAssessmentStatus.needsReview
+          : SmartTileGameplayZoneGenerationAssessmentStatus.ready;
   messages.insert(0, _summaryMessageForStatus(status));
 
-  return SurfaceGameplayZoneGenerationAssessment(
+  return SmartTileGameplayZoneGenerationAssessment(
     plan: plan,
     status: status,
     messages: messages,
@@ -324,62 +326,69 @@ double _positiveDenominator(int value) {
   return value.toDouble();
 }
 
-SurfaceGameplayZoneGenerationAssessmentMessage _messageForDiagnostic(
-  SurfaceGameplayZoneGenerationDiagnostic diagnostic,
+SmartTileGameplayZoneGenerationAssessmentMessage _messageForDiagnostic(
+  SmartTileGameplayZoneGenerationDiagnostic diagnostic,
 ) {
   switch (diagnostic.kind) {
-    case SurfaceGameplayZoneGenerationDiagnosticKind.extraCellsIncluded:
-      return SurfaceGameplayZoneGenerationAssessmentMessage(
+    case SmartTileGameplayZoneGenerationDiagnosticKind.extraCellsIncluded:
+      return SmartTileGameplayZoneGenerationAssessmentMessage(
         severity: diagnostic.severity,
         title: 'Cellules hors surface incluses',
         description: diagnostic.message,
         diagnosticKind: diagnostic.kind,
       );
-    case SurfaceGameplayZoneGenerationDiagnosticKind.tooManyRectangles:
-      return SurfaceGameplayZoneGenerationAssessmentMessage(
+    case SmartTileGameplayZoneGenerationDiagnosticKind.tooManyRectangles:
+      return SmartTileGameplayZoneGenerationAssessmentMessage(
         severity: diagnostic.severity,
         title: 'Beaucoup de zones générées',
         description: diagnostic.message,
         diagnosticKind: diagnostic.kind,
       );
-    case SurfaceGameplayZoneGenerationDiagnosticKind
+    case SmartTileGameplayZoneGenerationDiagnosticKind
           .overlapsExistingGameplayZone:
-      return SurfaceGameplayZoneGenerationAssessmentMessage(
+      return SmartTileGameplayZoneGenerationAssessmentMessage(
         severity: diagnostic.severity,
         title: 'Zones existantes chevauchées',
         description: diagnostic.message,
         diagnosticKind: diagnostic.kind,
       );
-    case SurfaceGameplayZoneGenerationDiagnosticKind.zoneIdCollisionResolved:
-      return SurfaceGameplayZoneGenerationAssessmentMessage(
+    case SmartTileGameplayZoneGenerationDiagnosticKind.zoneIdCollisionResolved:
+      return SmartTileGameplayZoneGenerationAssessmentMessage(
         severity: diagnostic.severity,
         title: 'IDs ajustés',
         description: diagnostic.message,
         diagnosticKind: diagnostic.kind,
       );
-    case SurfaceGameplayZoneGenerationDiagnosticKind.noGeneratedZone:
-      return SurfaceGameplayZoneGenerationAssessmentMessage(
+    case SmartTileGameplayZoneGenerationDiagnosticKind.noGeneratedZone:
+      return SmartTileGameplayZoneGenerationAssessmentMessage(
         severity: diagnostic.severity,
         title: 'Aucune zone générée',
         description: diagnostic.message,
         diagnosticKind: diagnostic.kind,
       );
-    case SurfaceGameplayZoneGenerationDiagnosticKind.emptySource:
-      return SurfaceGameplayZoneGenerationAssessmentMessage(
+    case SmartTileGameplayZoneGenerationDiagnosticKind.emptySource:
+      return SmartTileGameplayZoneGenerationAssessmentMessage(
         severity: diagnostic.severity,
-        title: 'Surface vide',
+        title: 'Smart Tile vide',
         description: diagnostic.message,
         diagnosticKind: diagnostic.kind,
       );
-    case SurfaceGameplayZoneGenerationDiagnosticKind.missingSurfacePresetId:
-      return SurfaceGameplayZoneGenerationAssessmentMessage(
+    case SmartTileGameplayZoneGenerationDiagnosticKind.missingSmartTilePresetId:
+      return SmartTileGameplayZoneGenerationAssessmentMessage(
         severity: diagnostic.severity,
-        title: 'Surface introuvable',
+        title: 'Preset Smart Tile introuvable',
         description: diagnostic.message,
         diagnosticKind: diagnostic.kind,
       );
-    case SurfaceGameplayZoneGenerationDiagnosticKind.unsupportedBehavior:
-      return SurfaceGameplayZoneGenerationAssessmentMessage(
+    case SmartTileGameplayZoneGenerationDiagnosticKind.missingMaterialId:
+      return SmartTileGameplayZoneGenerationAssessmentMessage(
+        severity: diagnostic.severity,
+        title: 'Matériau Smart Tile introuvable',
+        description: diagnostic.message,
+        diagnosticKind: diagnostic.kind,
+      );
+    case SmartTileGameplayZoneGenerationDiagnosticKind.unsupportedBehavior:
+      return SmartTileGameplayZoneGenerationAssessmentMessage(
         severity: diagnostic.severity,
         title: 'Comportement non supporté',
         description: diagnostic.message,
@@ -388,17 +397,17 @@ SurfaceGameplayZoneGenerationAssessmentMessage _messageForDiagnostic(
   }
 }
 
-SurfaceGameplayZoneGenerationAssessmentMessage _summaryMessageForStatus(
-  SurfaceGameplayZoneGenerationAssessmentStatus status,
+SmartTileGameplayZoneGenerationAssessmentMessage _summaryMessageForStatus(
+  SmartTileGameplayZoneGenerationAssessmentStatus status,
 ) {
-  return SurfaceGameplayZoneGenerationAssessmentMessage(
+  return SmartTileGameplayZoneGenerationAssessmentMessage(
     severity: switch (status) {
-      SurfaceGameplayZoneGenerationAssessmentStatus.ready =>
-        SurfaceGameplayZoneGenerationDiagnosticSeverity.info,
-      SurfaceGameplayZoneGenerationAssessmentStatus.needsReview =>
-        SurfaceGameplayZoneGenerationDiagnosticSeverity.warning,
-      SurfaceGameplayZoneGenerationAssessmentStatus.blocked =>
-        SurfaceGameplayZoneGenerationDiagnosticSeverity.error,
+      SmartTileGameplayZoneGenerationAssessmentStatus.ready =>
+        SmartTileGameplayZoneGenerationDiagnosticSeverity.info,
+      SmartTileGameplayZoneGenerationAssessmentStatus.needsReview =>
+        SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
+      SmartTileGameplayZoneGenerationAssessmentStatus.blocked =>
+        SmartTileGameplayZoneGenerationDiagnosticSeverity.error,
     },
     title: _summaryTitleForStatus(status),
     description: _summaryDescriptionForStatus(status),
@@ -406,26 +415,26 @@ SurfaceGameplayZoneGenerationAssessmentMessage _summaryMessageForStatus(
 }
 
 String _summaryTitleForStatus(
-  SurfaceGameplayZoneGenerationAssessmentStatus status,
+  SmartTileGameplayZoneGenerationAssessmentStatus status,
 ) {
   return switch (status) {
-    SurfaceGameplayZoneGenerationAssessmentStatus.ready =>
+    SmartTileGameplayZoneGenerationAssessmentStatus.ready =>
       'Plan prêt à appliquer',
-    SurfaceGameplayZoneGenerationAssessmentStatus.needsReview =>
+    SmartTileGameplayZoneGenerationAssessmentStatus.needsReview =>
       'Plan à vérifier',
-    SurfaceGameplayZoneGenerationAssessmentStatus.blocked => 'Plan bloqué',
+    SmartTileGameplayZoneGenerationAssessmentStatus.blocked => 'Plan bloqué',
   };
 }
 
 String _summaryDescriptionForStatus(
-  SurfaceGameplayZoneGenerationAssessmentStatus status,
+  SmartTileGameplayZoneGenerationAssessmentStatus status,
 ) {
   return switch (status) {
-    SurfaceGameplayZoneGenerationAssessmentStatus.ready =>
+    SmartTileGameplayZoneGenerationAssessmentStatus.ready =>
       'La génération peut être appliquée sans alerte importante.',
-    SurfaceGameplayZoneGenerationAssessmentStatus.needsReview =>
+    SmartTileGameplayZoneGenerationAssessmentStatus.needsReview =>
       'Vérifiez la couverture et les avertissements avant de créer les zones.',
-    SurfaceGameplayZoneGenerationAssessmentStatus.blocked =>
+    SmartTileGameplayZoneGenerationAssessmentStatus.blocked =>
       'Corrigez la surface ou choisissez une autre stratégie avant de continuer.',
   };
 }

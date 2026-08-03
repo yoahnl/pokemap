@@ -90,7 +90,7 @@ final class CinematicMapBackdropLayerRenderPainter extends CustomPainter {
     required double scaleY,
     required Paint paint,
   }) {
-    if (instruction.quarterTurns == 0) {
+    if (instruction.quarterTurns == 0 && !instruction.flipX) {
       canvas.drawImageRect(
         image,
         instruction.sourceRect,
@@ -111,6 +111,9 @@ final class CinematicMapBackdropLayerRenderPainter extends CustomPainter {
     canvas.clipRect(destination);
     canvas.translate(destination.center.dx, destination.center.dy);
     canvas.rotate(instruction.quarterTurns * math.pi / 2);
+    if (instruction.flipX) {
+      canvas.scale(-1, 1);
+    }
     canvas.drawImageRect(
       image,
       instruction.sourceRect,

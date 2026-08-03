@@ -897,7 +897,7 @@ BorderBlueprintRecord _record({
         defaults: _params(),
         ground: withGround
             ? BorderGroundDraft(
-                sourceSurfacePresetId: 'water',
+                sourceSmartTilePresetId: 'water',
                 edgeBandCells: 2,
               )
             : null,
@@ -929,7 +929,7 @@ BorderBlueprintRecord _record({
               defaults: _params(),
               ground: withGround
                   ? BorderPublishedGround(
-                      sourceSurfacePresetId: 'water',
+                      sourceSmartTilePresetId: 'water',
                       edgeBandCells: 2,
                       visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
                         for (final role in standardSurfaceVariantRoleOrder)

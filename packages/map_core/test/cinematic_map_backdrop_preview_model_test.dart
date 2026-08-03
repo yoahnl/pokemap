@@ -220,7 +220,6 @@ void main() {
         CinematicMapBackdropLayerKind.tile,
         CinematicMapBackdropLayerKind.terrain,
         CinematicMapBackdropLayerKind.path,
-        CinematicMapBackdropLayerKind.surface,
         CinematicMapBackdropLayerKind.object,
         CinematicMapBackdropLayerKind.environment,
       ]);
@@ -228,7 +227,6 @@ void main() {
         'Ground',
         'Terrain',
         'Path',
-        'Surface',
         'Objects',
         'Environment',
       ]);
@@ -274,7 +272,6 @@ void main() {
         CinematicMapBackdropVisualPrimitiveKind.tileCell,
         CinematicMapBackdropVisualPrimitiveKind.pathCell,
         CinematicMapBackdropVisualPrimitiveKind.pathCell,
-        CinematicMapBackdropVisualPrimitiveKind.surfaceCell,
         CinematicMapBackdropVisualPrimitiveKind.layerSummary,
       ]);
       expect(
@@ -291,9 +288,65 @@ void main() {
           ('ground', 2, 1, 1, 1, 'tile:8'),
           ('walkway', 1, 0, 1, 1, 'pathPreset:stone_path'),
           ('walkway', 2, 1, 1, 1, 'pathPreset:stone_path'),
-          ('decor', 3, 2, 1, 1, 'surfacePreset:flowers'),
           ('objects', 0, 0, 4, 3, 'layerSummary'),
         ],
+      );
+    });
+
+    test('projects multipart Smart Tile visuals through the native resolver',
+        () {
+      final catalog = _smartTileCatalog();
+      final model = buildCinematicMapBackdropPreviewModel(
+        asset: _asset(),
+        stageMap: _stageMap(),
+        mapData: _mapData(
+          size: const GridSize(width: 1, height: 1),
+          layers: const <MapLayer>[
+            MapLayer.smartTile(
+              id: 'smart-ground',
+              name: 'Smart ground',
+              presetId: 'grass',
+              usage: SmartTileUsage.terrain,
+              materialPalette: <String>['', 'grass'],
+              field: SmartTileField.cell(semanticCells: <int>[1]),
+            ),
+          ],
+        ),
+        smartTileCatalog: catalog,
+        availableTilesetIds: const <String>{'smart-tiles'},
+      );
+
+      expect(model.status, CinematicMapBackdropPreviewStatus.available);
+      expect(model.layers.single.kind, CinematicMapBackdropLayerKind.smartTile);
+      expect(model.visualPrimitives, hasLength(2));
+      expect(
+        model.visualPrimitives.map((primitive) => primitive.kind),
+        everyElement(
+          CinematicMapBackdropVisualPrimitiveKind.smartTilePart,
+        ),
+      );
+      final sources = model.visualPrimitives
+          .map((primitive) => primitive.source)
+          .toList(growable: false);
+      expect(
+        sources.any(
+          (source) => source.contains(
+            'smartTile:grass:uniform:visual:ground:smart-tiles',
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        sources.any(
+          (source) => source.contains(
+            'smartTile:grass:uniform:visual:foreground:smart-tiles',
+          ),
+        ),
+        isTrue,
+      );
+      expect(
+        model.visualPrimitives.map((primitive) => primitive.width),
+        containsAll(<int>[1, 2]),
       );
     });
 
@@ -552,3 +605,73 @@ MapData _mapData({
     gameplayZones: gameplayZones,
   );
 }
+
+ProjectSmartTileCatalog _smartTileCatalog() => ProjectSmartTileCatalog(
+      atlases: const <ProjectSmartTileAtlas>[
+        ProjectSmartTileAtlas(
+          id: 'atlas',
+          name: 'Atlas',
+          tilesetId: 'smart-tiles',
+          columns: 2,
+          rows: 1,
+        ),
+      ],
+      materials: const <ProjectSmartTileMaterial>[
+        ProjectSmartTileMaterial(
+          id: 'grass',
+          name: 'Grass',
+          connectionGroupId: 'grass',
+        ),
+      ],
+      presets: const <ProjectSmartTilePreset>[
+        ProjectSmartTilePreset(
+          id: 'grass',
+          name: 'Grass',
+          usage: SmartTileUsage.terrain,
+          topology: SmartTileTopology.uniform,
+          templateHint: SmartTileTemplateHint.simple,
+          status: SmartTilePresetStatus.published,
+          coveragePolicy: SmartTileCoveragePolicy.complete,
+          coverageProfile: SmartTileCoverageProfile(
+            mode: SmartTileCoverageMode.template,
+          ),
+          transformPolicy: SmartTileTransformPolicy(),
+          defaultMaterialId: 'grass',
+          allowedMaterialIds: <String>['grass'],
+          rules: <SmartTileRule>[
+            SmartTileRule(
+              id: 'uniform',
+              centerMatch: SmartTileSlotMatch.material('grass'),
+              candidates: <SmartTileCandidate>[
+                SmartTileCandidate(
+                  id: 'visual',
+                  parts: <SmartTileVisualPart>[
+                    SmartTileVisualPart(
+                      source: SmartTileVisualSource.frame(
+                        frame: SmartTileFrameRef(
+                          atlasId: 'atlas',
+                          column: 0,
+                          row: 0,
+                        ),
+                      ),
+                    ),
+                    SmartTileVisualPart(
+                      source: SmartTileVisualSource.frame(
+                        frame: SmartTileFrameRef(
+                          atlasId: 'atlas',
+                          column: 1,
+                          row: 0,
+                        ),
+                      ),
+                      channel: SmartTileRenderChannel.foreground,
+                      footprintWidth: 2,
+                      drawOrder: 1,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    );

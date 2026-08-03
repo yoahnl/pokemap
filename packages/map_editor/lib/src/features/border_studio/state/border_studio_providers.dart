@@ -96,7 +96,7 @@ final borderPublicationTransactionProvider =
 
 /// Project-scoped V1 Border publication orchestration.
 ///
-/// Surface snapshot preparations remain explicit inputs to [prepare]; this
+/// Smart Tile snapshot preparations remain explicit inputs to [prepare]; this
 /// provider wires only the current-source primitive reader, pure candidate
 /// builder, real canonical gallery, and crash-safe transaction.
 final borderStudioPublicationCoordinatorProvider =

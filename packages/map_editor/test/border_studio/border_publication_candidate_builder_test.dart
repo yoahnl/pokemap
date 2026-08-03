@@ -77,7 +77,7 @@ void main() {
         expect(result.nextManifest.name, manifest.name);
         expect(result.nextManifest.maps, manifest.maps);
         expect(result.nextManifest.surfaceCatalog, manifest.surfaceCatalog);
-        expect(result.nextManifest.version, ProjectVersion.v2);
+        expect(result.nextManifest.version, ProjectVersion.v5);
         expect(result.files, first.files);
         expect(
           result.primitiveSnapshotIdsByPrimitiveId,
@@ -92,7 +92,7 @@ void main() {
       },
     );
 
-    test('publishes connected-line slots and promotes the catalog to V2', () {
+    test('publishes connected-line slots while preserving the V5 manifest', () {
       final preparations = <String, BorderAssetSnapshotPreparation>{
         'cap-a': _preparation('a', sourceElementId: 'element-cap-a'),
         'cap-b': _preparation('b', sourceElementId: 'element-cap-b'),
@@ -528,11 +528,12 @@ void main() {
       );
     });
 
-    test('rejects a ground draft that references an absent Surface preset', () {
+    test('rejects a ground draft that references an absent Smart Tile preset',
+        () {
       final target = _record(
         id: 'coast',
         ground: BorderGroundDraft(
-          sourceSurfacePresetId: 'missing-surface',
+          sourceSmartTilePresetId: 'missing-surface',
           edgeBandCells: 2,
         ),
       );
@@ -550,17 +551,17 @@ void main() {
           isA<BorderPublicationCandidateException>().having(
             (error) => error.code,
             'code',
-            BorderPublicationCandidateErrorCode.sourceSurfacePresetMissing,
+            BorderPublicationCandidateErrorCode.sourceSmartTilePresetMissing,
           ),
         ),
       );
     });
 
-    test('requires every standard Surface role for published ground', () {
+    test('requires every standard Smart Tile role for published ground', () {
       final target = _record(
         id: 'coast',
         ground: BorderGroundDraft(
-          sourceSurfacePresetId: 'shore',
+          sourceSmartTilePresetId: 'shore',
           edgeBandCells: 2,
         ),
       );
@@ -573,7 +574,7 @@ void main() {
         () => const BorderPublicationCandidateBuilder().build(
           manifest: _manifest(
             records: <BorderBlueprintRecord>[target],
-            surfacePreset: _surfacePreset('shore'),
+            smartTilePreset: _smartTilePreset('shore'),
           ),
           draftRecord: target,
           primitiveSnapshotsByPrimitiveId: const <String,
@@ -596,7 +597,7 @@ void main() {
       );
     });
 
-    test('publishes complete ground snapshots in stable Surface role order',
+    test('publishes complete ground snapshots in stable Smart Tile role order',
         () {
       final shared = _preparation('d', sourceElementId: 'shore');
       final byRole = <SurfaceVariantRole, BorderAssetSnapshotPreparation>{
@@ -605,7 +606,7 @@ void main() {
       final target = _record(
         id: 'coast',
         ground: BorderGroundDraft(
-          sourceSurfacePresetId: 'shore',
+          sourceSmartTilePresetId: 'shore',
           edgeBandCells: 3,
         ),
       );
@@ -613,7 +614,7 @@ void main() {
       final result = const BorderPublicationCandidateBuilder().build(
         manifest: _manifest(
           records: <BorderBlueprintRecord>[target],
-          surfacePreset: _surfacePreset('shore'),
+          smartTilePreset: _smartTilePreset('shore'),
         ),
         draftRecord: target,
         primitiveSnapshotsByPrimitiveId: const <String,
@@ -623,7 +624,7 @@ void main() {
 
       final ground = result.nextManifest.borderCatalog.records.single
           .latestPublished!.definition.ground!;
-      expect(ground.sourceSurfacePresetId, 'shore');
+      expect(ground.sourceSmartTilePresetId, 'shore');
       expect(ground.edgeBandCells, 3);
       expect(
         ground.visualSnapshotIdsByRole.keys,
@@ -642,11 +643,12 @@ void main() {
       );
     });
 
-    test('rejects ground snapshots prepared from another Surface preset', () {
+    test('rejects ground snapshots prepared from another Smart Tile preset',
+        () {
       final target = _record(
         id: 'coast',
         ground: BorderGroundDraft(
-          sourceSurfacePresetId: 'shore',
+          sourceSmartTilePresetId: 'shore',
           edgeBandCells: 2,
         ),
       );
@@ -659,7 +661,7 @@ void main() {
         () => const BorderPublicationCandidateBuilder().build(
           manifest: _manifest(
             records: <BorderBlueprintRecord>[target],
-            surfacePreset: _surfacePreset('shore'),
+            smartTilePreset: _smartTilePreset('shore'),
           ),
           draftRecord: target,
           primitiveSnapshotsByPrimitiveId: const <String,
@@ -684,8 +686,8 @@ void main() {
                 SurfaceVariantRole.isolated,
               )
               .having(
-                (error) => error.sourceSurfacePresetId,
-                'sourceSurfacePresetId',
+                (error) => error.sourceSmartTilePresetId,
+                'sourceSmartTilePresetId',
                 'shore',
               )
               .having(
@@ -758,17 +760,27 @@ ProjectManifest _manifest({
   required List<BorderBlueprintRecord> records,
   List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
   List<BorderVisualSnapshot> snapshots = const <BorderVisualSnapshot>[],
-  ProjectSurfacePreset? surfacePreset,
+  ProjectSmartTilePreset? smartTilePreset,
 }) {
   return ProjectManifest(
     name: 'Candidate project',
+    version: ProjectVersion.v5,
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],
     elements: elements,
     globalProperties: const <String, Object?>{'untouched': true},
-    surfaceCatalog: surfacePreset == null
-        ? const ProjectSurfaceCatalog.empty()
-        : ProjectSurfaceCatalog(presets: <ProjectSurfacePreset>[surfacePreset]),
+    smartTileCatalog: smartTilePreset == null
+        ? const ProjectSmartTileCatalog.empty()
+        : ProjectSmartTileCatalog(
+            materials: const <ProjectSmartTileMaterial>[
+              ProjectSmartTileMaterial(
+                id: 'ground',
+                name: 'Ground',
+                connectionGroupId: 'ground',
+              ),
+            ],
+            presets: <ProjectSmartTilePreset>[smartTilePreset],
+          ),
     borderCatalog: ProjectBorderCatalog(
       records: records,
       visualSnapshots: snapshots,
@@ -851,18 +863,20 @@ ProjectElementEntry _element(String id) {
   );
 }
 
-ProjectSurfacePreset _surfacePreset(String id) {
-  return ProjectSurfacePreset(
+ProjectSmartTilePreset _smartTilePreset(String id) {
+  return ProjectSmartTilePreset(
     id: id,
     name: id,
-    variantAnimations: SurfaceVariantAnimationRefSet(
-      refs: <SurfaceVariantAnimationRef>[
-        SurfaceVariantAnimationRef(
-          role: SurfaceVariantRole.isolated,
-          animationId: 'surface-animation',
-        ),
-      ],
+    usage: SmartTileUsage.terrain,
+    topology: SmartTileTopology.uniform,
+    status: SmartTilePresetStatus.published,
+    coveragePolicy: SmartTileCoveragePolicy.sparse,
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.explicit,
     ),
+    transformPolicy: const SmartTileTransformPolicy(),
+    defaultMaterialId: 'ground',
+    allowedMaterialIds: const <String>['ground'],
   );
 }
 

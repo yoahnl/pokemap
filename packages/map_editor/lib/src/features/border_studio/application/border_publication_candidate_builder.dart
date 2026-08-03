@@ -11,7 +11,7 @@ enum BorderPublicationCandidateErrorCode {
   primitiveSnapshotMissing,
   primitiveSnapshotSourceMismatch,
   unexpectedPrimitiveSnapshot,
-  sourceSurfacePresetMissing,
+  sourceSmartTilePresetMissing,
   groundSnapshotRoleMissing,
   groundSnapshotSourceMismatch,
   unexpectedGroundSnapshots,
@@ -25,7 +25,7 @@ final class BorderPublicationCandidateException implements Exception {
     required this.userMessage,
     this.primitiveId,
     this.sourceElementId,
-    this.sourceSurfacePresetId,
+    this.sourceSmartTilePresetId,
     this.surfaceRole,
     this.snapshotId,
     this.relativePath,
@@ -35,7 +35,7 @@ final class BorderPublicationCandidateException implements Exception {
   final String userMessage;
   final String? primitiveId;
   final String? sourceElementId;
-  final String? sourceSurfacePresetId;
+  final String? sourceSmartTilePresetId;
   final SurfaceVariantRole? surfaceRole;
   final String? snapshotId;
   final String? relativePath;
@@ -79,9 +79,9 @@ final class BorderPublicationCandidate {
 
 /// Builds the immutable published Border revision without performing I/O.
 ///
-/// Primitive and Surface snapshot inputs must already have been prepared by
+/// Primitive and Smart Tile snapshot inputs must already have been prepared by
 /// [BorderAssetSnapshotService]. Ground inputs are deliberately supplied by
-/// logical [SurfaceVariantRole]; this builder never reads a Surface atlas or
+/// logical [SurfaceVariantRole]; this builder never reads a Smart Tile atlas or
 /// invents filesystem state.
 final class BorderPublicationCandidateBuilder {
   const BorderPublicationCandidateBuilder();
@@ -241,19 +241,23 @@ final class BorderPublicationCandidateBuilder {
         throw const BorderPublicationCandidateException(
           code: BorderPublicationCandidateErrorCode.unexpectedGroundSnapshots,
           userMessage:
-              'Retirez les snapshots de sol : ce brouillon n’utilise pas de bande Surface.',
+              'Retirez les snapshots de sol : ce brouillon n’utilise pas de bande Smart Tile.',
         );
       }
     } else {
-      if (manifest.surfaceCatalog.presetById(
-            draftGround.sourceSurfacePresetId,
-          ) ==
-          null) {
+      final sourcePreset = manifest.smartTileCatalog.presets
+          .where(
+            (preset) => preset.id == draftGround.sourceSmartTilePresetId,
+          )
+          .firstOrNull;
+      if (sourcePreset == null ||
+          sourcePreset.status != SmartTilePresetStatus.published) {
         throw BorderPublicationCandidateException(
-          code: BorderPublicationCandidateErrorCode.sourceSurfacePresetMissing,
+          code:
+              BorderPublicationCandidateErrorCode.sourceSmartTilePresetMissing,
           userMessage:
-              'La Surface « ${draftGround.sourceSurfacePresetId} » n’existe plus dans le projet.',
-          sourceSurfacePresetId: draftGround.sourceSurfacePresetId,
+              'Le preset Smart Tile publié « ${draftGround.sourceSmartTilePresetId} » n’existe plus dans le projet.',
+          sourceSmartTilePresetId: draftGround.sourceSmartTilePresetId,
         );
       }
       for (final role in standardSurfaceVariantRoleOrder) {
@@ -262,25 +266,26 @@ final class BorderPublicationCandidateBuilder {
           throw BorderPublicationCandidateException(
             code: BorderPublicationCandidateErrorCode.groundSnapshotRoleMissing,
             userMessage:
-                'Préparez la variante Surface « ${role.name} » avant de publier.',
+                'Préparez la variante Smart Tile « ${role.name} » avant de publier.',
             surfaceRole: role,
           );
         }
-        if (preparation.sourceElementId != draftGround.sourceSurfacePresetId) {
+        if (preparation.sourceElementId !=
+            draftGround.sourceSmartTilePresetId) {
           throw BorderPublicationCandidateException(
             code: BorderPublicationCandidateErrorCode
                 .groundSnapshotSourceMismatch,
             userMessage:
-                'Réanalysez la variante Surface « ${role.name} » depuis le preset « ${draftGround.sourceSurfacePresetId} ».',
+                'Réanalysez la variante Smart Tile « ${role.name} » depuis le preset « ${draftGround.sourceSmartTilePresetId} ».',
             sourceElementId: preparation.sourceElementId,
-            sourceSurfacePresetId: draftGround.sourceSurfacePresetId,
+            sourceSmartTilePresetId: draftGround.sourceSmartTilePresetId,
             surfaceRole: role,
           );
         }
         groundBindings[role] = registerSnapshot(preparation);
       }
       publishedGround = BorderPublishedGround(
-        sourceSurfacePresetId: draftGround.sourceSurfacePresetId,
+        sourceSmartTilePresetId: draftGround.sourceSmartTilePresetId,
         edgeBandCells: draftGround.edgeBandCells,
         visualSnapshotIdsByRole: groundBindings,
       );

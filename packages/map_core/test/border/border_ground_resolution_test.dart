@@ -97,7 +97,7 @@ BorderRegionGeometry _region(List<String> rows) => BorderRegionGeometry(
 
 BorderPublishedGround _ground({required int edgeBandCells}) =>
     BorderPublishedGround(
-      sourceSurfacePresetId: 'ground',
+      sourceSmartTilePresetId: 'ground',
       edgeBandCells: edgeBandCells,
       visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
         for (final role in standardSurfaceVariantRoleOrder)

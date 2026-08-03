@@ -1004,7 +1004,7 @@ void main() {
       final result = resolveMasonryLineBorder(
         MasonryLineFixture(
           ground: BorderPublishedGround(
-            sourceSurfacePresetId: 'ground',
+            sourceSmartTilePresetId: 'ground',
             edgeBandCells: 1,
             visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
               for (final role in standardSurfaceVariantRoleOrder)

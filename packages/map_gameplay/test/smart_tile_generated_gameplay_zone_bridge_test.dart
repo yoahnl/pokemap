@@ -5,9 +5,9 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('surface generated gameplay zone bridge', () {
-    test('SurfaceLayer alone stays visual for water, grass, and lava', () {
-      final map = _baseSurfaceMap();
+  group('Smart Tile generated gameplay zone bridge', () {
+    test('SmartTileLayer alone stays visual for water, grass, and lava', () {
+      final map = _baseSmartTileMap();
       final project = _project();
 
       final walkWorld = GameplayWorldState.initial(
@@ -52,10 +52,10 @@ void main() {
     });
 
     test('generated water movement surf zones are consumed by movement', () {
-      final map = _baseSurfaceMap();
+      final map = _baseSmartTileMap();
       final project = _project();
       final plan = _waterGenerationPlan(map);
-      final originalSurfacePlacements = _surfaceLayer(map).placements;
+      final originalSmartTileCells = _smartTileLayer(map).field.semanticCells;
 
       expect(
         plan.generatedZones,
@@ -71,7 +71,10 @@ void main() {
       );
 
       final mapWithZones = map.copyWith(gameplayZones: plan.generatedZones);
-      expect(_surfaceLayer(mapWithZones).placements, originalSurfacePlacements);
+      expect(
+        _smartTileLayer(mapWithZones).field.semanticCells,
+        originalSmartTileCells,
+      );
 
       final walkingWorld = GameplayWorldState.initial(
         map: mapWithZones,
@@ -102,10 +105,10 @@ void main() {
     });
 
     test('generated tall grass encounter zones are consumed by encounters', () {
-      final map = _baseSurfaceMap();
+      final map = _baseSmartTileMap();
       final project = _project();
       final plan = _tallGrassGenerationPlan(map);
-      final originalSurfacePlacements = _surfaceLayer(map).placements;
+      final originalSmartTileCells = _smartTileLayer(map).field.semanticCells;
 
       expect(
         plan.generatedZones,
@@ -126,7 +129,10 @@ void main() {
       );
 
       final mapWithZones = map.copyWith(gameplayZones: plan.generatedZones);
-      expect(_surfaceLayer(mapWithZones).placements, originalSurfacePlacements);
+      expect(
+        _smartTileLayer(mapWithZones).field.semanticCells,
+        originalSmartTileCells,
+      );
 
       final world = GameplayWorldState.initial(
         map: mapWithZones,
@@ -152,7 +158,7 @@ void main() {
 
     test('authored encounter rate is used when no test override is provided',
         () {
-      final map = _baseSurfaceMap();
+      final map = _baseSmartTileMap();
       final plan = _tallGrassGenerationPlan(map);
       final project = _project().copyWith(
         encounterTables: <ProjectEncounterTable>[
@@ -176,7 +182,7 @@ void main() {
     });
 
     test('authored conditions fail closed and unlock from real game state', () {
-      final map = _baseSurfaceMap();
+      final map = _baseSmartTileMap();
       final plan = _tallGrassGenerationPlan(map);
       final project = _project().copyWith(
         encounterTables: <ProjectEncounterTable>[
@@ -227,7 +233,7 @@ void main() {
     });
 
     test('surf checks do not reuse walk zones outside authored water', () {
-      final map = _baseSurfaceMap();
+      final map = _baseSmartTileMap();
       final plan = _tallGrassGenerationPlan(map);
       final project = _project();
       final world = GameplayWorldState.initial(
@@ -252,10 +258,10 @@ void main() {
     });
 
     test('generated lava hazard zones are consumed by hazard effects', () {
-      final map = _baseSurfaceMap();
+      final map = _baseSmartTileMap();
       final project = _project();
       final plan = _lavaGenerationPlan(map);
-      final originalSurfacePlacements = _surfaceLayer(map).placements;
+      final originalSmartTileCells = _smartTileLayer(map).field.semanticCells;
 
       expect(
         plan.generatedZones,
@@ -276,7 +282,10 @@ void main() {
       );
 
       final mapWithZones = map.copyWith(gameplayZones: plan.generatedZones);
-      expect(_surfaceLayer(mapWithZones).placements, originalSurfacePlacements);
+      expect(
+        _smartTileLayer(mapWithZones).field.semanticCells,
+        originalSmartTileCells,
+      );
 
       final world = GameplayWorldState.initial(
         map: mapWithZones,
@@ -298,7 +307,7 @@ void main() {
     });
 
     test('generated lava hazard preserves custom damagePerStep', () {
-      final map = _baseSurfaceMap();
+      final map = _baseSmartTileMap();
       final project = _project();
       final plan = _lavaGenerationPlan(map, damagePerStep: 8);
       final mapWithZones = map.copyWith(gameplayZones: plan.generatedZones);
@@ -315,7 +324,7 @@ void main() {
     });
 
     test('blocked movement into generated lava does not trigger hazard', () {
-      final map = _baseSurfaceMap(blockLavaTarget: true);
+      final map = _baseSmartTileMap(blockLavaTarget: true);
       final project = _project();
       final plan = _lavaGenerationPlan(map);
       final mapWithZones = map.copyWith(gameplayZones: plan.generatedZones);
@@ -335,78 +344,85 @@ void main() {
   });
 }
 
-SurfaceGameplayZoneGenerationPlan _waterGenerationPlan(MapData map) {
-  return createSurfaceGameplayZoneGenerationPlan(
-    source: _sourceForPreset(map, 'water'),
-    behavior: const SurfaceGameplayZoneBehaviorDraft.movement(
+SmartTileGameplayZoneGenerationPlan _waterGenerationPlan(MapData map) {
+  return createSmartTileGameplayZoneGenerationPlan(
+    source: _sourceForMaterial(map, 'water'),
+    behavior: const SmartTileGameplayZoneBehaviorDraft.movement(
       MovementZonePayload(requiredMode: MovementMode.surf),
     ),
-    strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+    strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
     zoneIdPrefix: 'water-surf',
     zoneNamePrefix: 'Water - Surf',
     existingZones: map.gameplayZones,
   );
 }
 
-SurfaceGameplayZoneGenerationPlan _tallGrassGenerationPlan(MapData map) {
-  return createSurfaceGameplayZoneGenerationPlan(
-    source: _sourceForPreset(map, 'tall_grass'),
-    behavior: const SurfaceGameplayZoneBehaviorDraft.encounter(
+SmartTileGameplayZoneGenerationPlan _tallGrassGenerationPlan(MapData map) {
+  return createSmartTileGameplayZoneGenerationPlan(
+    source: _sourceForMaterial(map, 'tall_grass'),
+    behavior: const SmartTileGameplayZoneBehaviorDraft.encounter(
       EncounterZonePayload(
         encounterTableId: 'route_1_grass',
         encounterKind: EncounterKind.walk,
       ),
     ),
-    strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+    strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
     zoneIdPrefix: 'tall-grass-encounter',
     zoneNamePrefix: 'Tall Grass - Rencontre',
     existingZones: map.gameplayZones,
   );
 }
 
-SurfaceGameplayZoneGenerationPlan _lavaGenerationPlan(
+SmartTileGameplayZoneGenerationPlan _lavaGenerationPlan(
   MapData map, {
   int damagePerStep = 5,
 }) {
-  return createSurfaceGameplayZoneGenerationPlan(
-    source: _sourceForPreset(map, 'lava'),
-    behavior: SurfaceGameplayZoneBehaviorDraft.hazard(
+  return createSmartTileGameplayZoneGenerationPlan(
+    source: _sourceForMaterial(map, 'lava'),
+    behavior: SmartTileGameplayZoneBehaviorDraft.hazard(
       HazardZonePayload(
         hazardKind: HazardKind.lava,
         damagePerStep: damagePerStep,
       ),
     ),
-    strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+    strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
     zoneIdPrefix: 'lava-hazard',
     zoneNamePrefix: 'Lava - Hazard',
     existingZones: map.gameplayZones,
   );
 }
 
-SurfaceGameplayZoneGenerationSource _sourceForPreset(
+SmartTileGameplayZoneGenerationSource _sourceForMaterial(
   MapData map,
-  String surfacePresetId,
+  String materialId,
 ) {
-  final surfaceLayer = _surfaceLayer(map);
-  final cells = surfaceLayer.placements
-      .where((placement) => placement.surfacePresetId == surfacePresetId)
-      .map((placement) => GridPos(x: placement.x, y: placement.y))
+  final layer = _smartTileLayer(map);
+  final materialValue = layer.materialPalette.indexOf(materialId);
+  final cells = layer.field.semanticCells.indexed
+      .where((entry) => entry.$2 == materialValue)
+      .map(
+        (entry) => GridPos(
+          x: entry.$1 % map.size.width,
+          y: entry.$1 ~/ map.size.width,
+        ),
+      )
       .toList(growable: false);
 
-  return SurfaceGameplayZoneGenerationSource(
-    surfaceLayerId: surfaceLayer.id,
-    surfaceLayerName: surfaceLayer.name,
-    surfacePresetId: surfacePresetId,
+  return SmartTileGameplayZoneGenerationSource(
+    smartTileLayerId: layer.id,
+    smartTileLayerName: layer.name,
+    smartTilePresetId: layer.presetId,
+    materialId: materialId,
     cells: cells,
     mapSize: map.size,
   );
 }
 
-SurfaceLayer _surfaceLayer(MapData map) {
-  return map.layers.whereType<SurfaceLayer>().single;
+SmartTileLayer _smartTileLayer(MapData map) {
+  return map.layers.whereType<SmartTileLayer>().single;
 }
 
-MapData _baseSurfaceMap({bool blockLavaTarget = false}) {
+MapData _baseSmartTileMap({bool blockLavaTarget = false}) {
   return MapData(
     id: 'route_1',
     name: 'Route 1',
@@ -463,46 +479,28 @@ MapData _baseSurfaceMap({bool blockLavaTarget = false}) {
                 false,
               ],
       ),
-      const SurfaceLayer(
-        id: 'surface-main',
-        name: 'Surfaces',
-        placements: [
-          SurfaceCellPlacement(
-            x: 1,
-            y: 0,
-            surfacePresetId: 'water',
-          ),
-          SurfaceCellPlacement(
-            x: 2,
-            y: 0,
-            surfacePresetId: 'water',
-          ),
-          SurfaceCellPlacement(
-            x: 0,
-            y: 1,
-            surfacePresetId: 'tall_grass',
-          ),
-          SurfaceCellPlacement(
-            x: 1,
-            y: 1,
-            surfacePresetId: 'tall_grass',
-          ),
-          SurfaceCellPlacement(
-            x: 2,
-            y: 1,
-            surfacePresetId: 'lava',
-          ),
-          SurfaceCellPlacement(
-            x: 3,
-            y: 1,
-            surfacePresetId: 'lava',
-          ),
-          SurfaceCellPlacement(
-            x: 2,
-            y: 2,
-            surfacePresetId: 'lava',
-          ),
-        ],
+      const SmartTileLayer(
+        id: 'smart-terrain-main',
+        name: 'Smart terrain',
+        presetId: 'terrain-materials',
+        usage: SmartTileUsage.terrain,
+        materialPalette: <String>['', 'water', 'tall_grass', 'lava'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[
+            0,
+            1,
+            1,
+            0,
+            2,
+            2,
+            3,
+            3,
+            0,
+            0,
+            3,
+            0,
+          ],
+        ),
       ),
     ],
   );
@@ -527,45 +525,5 @@ ProjectManifest _project() {
         ],
       ),
     ],
-    surfaceCatalog: ProjectSurfaceCatalog(
-      presets: [
-        ProjectSurfacePreset(
-          id: 'water',
-          name: 'Water',
-          variantAnimations: SurfaceVariantAnimationRefSet(
-            refs: [
-              SurfaceVariantAnimationRef(
-                role: SurfaceVariantRole.isolated,
-                animationId: 'water-idle',
-              ),
-            ],
-          ),
-        ),
-        ProjectSurfacePreset(
-          id: 'tall_grass',
-          name: 'Tall Grass',
-          variantAnimations: SurfaceVariantAnimationRefSet(
-            refs: [
-              SurfaceVariantAnimationRef(
-                role: SurfaceVariantRole.isolated,
-                animationId: 'tall-grass-idle',
-              ),
-            ],
-          ),
-        ),
-        ProjectSurfacePreset(
-          id: 'lava',
-          name: 'Lava',
-          variantAnimations: SurfaceVariantAnimationRefSet(
-            refs: [
-              SurfaceVariantAnimationRef(
-                role: SurfaceVariantRole.isolated,
-                animationId: 'lava-idle',
-              ),
-            ],
-          ),
-        ),
-      ],
-    ),
   );
 }

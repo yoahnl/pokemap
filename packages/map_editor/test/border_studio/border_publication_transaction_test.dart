@@ -620,7 +620,7 @@ BorderPublicationRequest _masonryGroundRequest() {
     primitives: revision.definition.primitives,
     defaults: revision.definition.defaults,
     ground: BorderPublishedGround(
-      sourceSurfacePresetId: 'ground-preset',
+      sourceSmartTilePresetId: 'ground-preset',
       edgeBandCells: 1,
       visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
         for (final role in standardSurfaceVariantRoleOrder) role: snapshotId,

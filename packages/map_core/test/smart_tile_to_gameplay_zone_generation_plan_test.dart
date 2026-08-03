@@ -2,25 +2,27 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('SurfaceGameplayZoneGenerationSource', () {
+  group('SmartTileGameplayZoneGenerationSource', () {
     test('rejects an empty source', () {
       expect(
-        () => SurfaceGameplayZoneGenerationSource(
-          surfaceLayerId: 'surfaces',
-          surfaceLayerName: 'Surfaces',
-          surfacePresetId: 'tall_grass',
+        () => SmartTileGameplayZoneGenerationSource(
+          smartTileLayerId: 'surfaces',
+          smartTileLayerName: 'Surfaces',
+          smartTilePresetId: 'tall_grass',
+          materialId: 'grass',
           cells: const [],
         ),
         throwsA(isA<ValidationException>()),
       );
     });
 
-    test('rejects an empty surfacePresetId', () {
+    test('rejects an empty smartTilePresetId', () {
       expect(
-        () => SurfaceGameplayZoneGenerationSource(
-          surfaceLayerId: 'surfaces',
-          surfaceLayerName: 'Surfaces',
-          surfacePresetId: '   ',
+        () => SmartTileGameplayZoneGenerationSource(
+          smartTileLayerId: 'surfaces',
+          smartTileLayerName: 'Surfaces',
+          smartTilePresetId: '   ',
+          materialId: 'grass',
           cells: const [GridPos(x: 0, y: 0)],
         ),
         throwsA(isA<ValidationException>()),
@@ -28,10 +30,11 @@ void main() {
     });
 
     test('deduplicates coordinates and keeps a stable y/x order', () {
-      final source = SurfaceGameplayZoneGenerationSource(
-        surfaceLayerId: ' surfaces ',
-        surfaceLayerName: ' Surfaces ',
-        surfacePresetId: ' tall_grass ',
+      final source = SmartTileGameplayZoneGenerationSource(
+        smartTileLayerId: ' surfaces ',
+        smartTileLayerName: ' Surfaces ',
+        smartTilePresetId: ' tall_grass ',
+        materialId: ' grass ',
         cells: const [
           GridPos(x: 2, y: 1),
           GridPos(x: 0, y: 0),
@@ -40,9 +43,9 @@ void main() {
         ],
       );
 
-      expect(source.surfaceLayerId, 'surfaces');
-      expect(source.surfaceLayerName, 'Surfaces');
-      expect(source.surfacePresetId, 'tall_grass');
+      expect(source.smartTileLayerId, 'surfaces');
+      expect(source.smartTileLayerName, 'Surfaces');
+      expect(source.smartTilePresetId, 'tall_grass');
       expect(source.cells, const [
         GridPos(x: 0, y: 0),
         GridPos(x: 1, y: 0),
@@ -51,9 +54,9 @@ void main() {
     });
   });
 
-  group('createSurfaceGameplayZoneGenerationPlan boundingBox', () {
+  group('createSmartTileGameplayZoneGenerationPlan boundingBox', () {
     test('generates one exact zone for a full rectangle', () {
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(
           const [
             GridPos(x: 1, y: 1),
@@ -63,7 +66,7 @@ void main() {
           ],
         ),
         behavior: _tallGrassBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.boundingBox,
+        strategy: SmartTileGameplayZoneGenerationStrategy.boundingBox,
         zoneIdPrefix: 'tall-grass',
         zoneNamePrefix: 'Herbe haute',
       );
@@ -84,7 +87,7 @@ void main() {
     });
 
     test('generates one box with extra cells warning for an L shape', () {
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(
           const [
             GridPos(x: 0, y: 0),
@@ -93,7 +96,7 @@ void main() {
           ],
         ),
         behavior: _tallGrassBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.boundingBox,
+        strategy: SmartTileGameplayZoneGenerationStrategy.boundingBox,
         zoneIdPrefix: 'tall-grass',
         zoneNamePrefix: 'Herbe haute',
       );
@@ -107,10 +110,10 @@ void main() {
       expect(
         plan.diagnostics,
         contains(
-          const SurfaceGameplayZoneGenerationDiagnostic(
-            severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.warning,
-            kind:
-                SurfaceGameplayZoneGenerationDiagnosticKind.extraCellsIncluded,
+          const SmartTileGameplayZoneGenerationDiagnostic(
+            severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.warning,
+            kind: SmartTileGameplayZoneGenerationDiagnosticKind
+                .extraCellsIncluded,
             message: '1 extra cell will be included by generated rectangles.',
           ),
         ),
@@ -118,9 +121,9 @@ void main() {
     });
   });
 
-  group('createSurfaceGameplayZoneGenerationPlan greedyRectangles', () {
+  group('createSmartTileGameplayZoneGenerationPlan greedyRectangles', () {
     test('generates one exact zone for a full rectangle', () {
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(
           const [
             GridPos(x: 2, y: 3),
@@ -130,7 +133,7 @@ void main() {
           ],
         ),
         behavior: _tallGrassBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'grass',
         zoneNamePrefix: 'Grass',
       );
@@ -141,7 +144,7 @@ void main() {
     });
 
     test('splits an L shape into exact rectangles without extra cells', () {
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(
           const [
             GridPos(x: 0, y: 0),
@@ -150,7 +153,7 @@ void main() {
           ],
         ),
         behavior: _tallGrassBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'grass',
         zoneNamePrefix: 'Grass',
       );
@@ -173,7 +176,7 @@ void main() {
 
     test('creates one zone per separated island and ignores placement order',
         () {
-      final first = createSurfaceGameplayZoneGenerationPlan(
+      final first = createSmartTileGameplayZoneGenerationPlan(
         source: _source(
           const [
             GridPos(x: 5, y: 0),
@@ -181,11 +184,11 @@ void main() {
           ],
         ),
         behavior: _tallGrassBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'island',
         zoneNamePrefix: 'Island',
       );
-      final second = createSurfaceGameplayZoneGenerationPlan(
+      final second = createSmartTileGameplayZoneGenerationPlan(
         source: _source(
           const [
             GridPos(x: 0, y: 0),
@@ -193,7 +196,7 @@ void main() {
           ],
         ),
         behavior: _tallGrassBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'island',
         zoneNamePrefix: 'Island',
       );
@@ -231,7 +234,7 @@ void main() {
 
     test('generates surfable water movement payload', () {
       final plan = _oneCellPlan(
-        SurfaceGameplayZoneBehaviorDraft.movement(
+        SmartTileGameplayZoneBehaviorDraft.movement(
           const MovementZonePayload(requiredMode: MovementMode.surf),
         ),
       );
@@ -246,7 +249,7 @@ void main() {
 
     test('generates lava hazard payload', () {
       final plan = _oneCellPlan(
-        SurfaceGameplayZoneBehaviorDraft.hazard(
+        SmartTileGameplayZoneBehaviorDraft.hazard(
           const HazardZonePayload(
             hazardKind: HazardKind.lava,
             damagePerStep: 5,
@@ -266,7 +269,7 @@ void main() {
 
   group('diagnostics and immutability', () {
     test('warns when greedy rectangles exceed threshold', () {
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(
           const [
             GridPos(x: 0, y: 0),
@@ -275,7 +278,7 @@ void main() {
           ],
         ),
         behavior: _tallGrassBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'grass',
         zoneNamePrefix: 'Grass',
         maxRectanglesWarningThreshold: 2,
@@ -284,7 +287,8 @@ void main() {
       expect(plan.generatedZones, hasLength(3));
       expect(
         plan.diagnostics.map((diagnostic) => diagnostic.kind),
-        contains(SurfaceGameplayZoneGenerationDiagnosticKind.tooManyRectangles),
+        contains(
+            SmartTileGameplayZoneGenerationDiagnosticKind.tooManyRectangles),
       );
     });
 
@@ -299,10 +303,10 @@ void main() {
           ),
         ),
       ];
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(const [GridPos(x: 0, y: 0)]),
         behavior: _tallGrassBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'grass',
         zoneNamePrefix: 'Grass',
         existingZones: existing,
@@ -311,7 +315,7 @@ void main() {
       expect(
         plan.diagnostics.map((diagnostic) => diagnostic.kind),
         contains(
-          SurfaceGameplayZoneGenerationDiagnosticKind
+          SmartTileGameplayZoneGenerationDiagnosticKind
               .overlapsExistingGameplayZone,
         ),
       );
@@ -319,10 +323,10 @@ void main() {
     });
 
     test('suffixes IDs that collide with existing zones', () {
-      final plan = createSurfaceGameplayZoneGenerationPlan(
+      final plan = createSmartTileGameplayZoneGenerationPlan(
         source: _source(const [GridPos(x: 1, y: 1)]),
         behavior: _tallGrassBehavior(),
-        strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+        strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
         zoneIdPrefix: 'grass',
         zoneNamePrefix: 'Grass',
         existingZones: const [
@@ -341,7 +345,7 @@ void main() {
       expect(
         plan.diagnostics.map((diagnostic) => diagnostic.kind),
         contains(
-          SurfaceGameplayZoneGenerationDiagnosticKind.zoneIdCollisionResolved,
+          SmartTileGameplayZoneGenerationDiagnosticKind.zoneIdCollisionResolved,
         ),
       );
     });
@@ -357,14 +361,14 @@ void main() {
 
     test('coverage and diagnostics support value equality', () {
       expect(
-        const SurfaceGameplayZoneCoverageReport(
+        const SmartTileGameplayZoneCoverageReport(
           sourceCellCount: 1,
           coveredSourceCellCount: 1,
           missingSourceCellCount: 0,
           extraCellCount: 0,
           zoneCount: 1,
         ),
-        const SurfaceGameplayZoneCoverageReport(
+        const SmartTileGameplayZoneCoverageReport(
           sourceCellCount: 1,
           coveredSourceCellCount: 1,
           missingSourceCellCount: 0,
@@ -373,15 +377,15 @@ void main() {
         ),
       );
       expect(
-        const SurfaceGameplayZoneGenerationDiagnostic(
-          severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.info,
-          kind: SurfaceGameplayZoneGenerationDiagnosticKind
+        const SmartTileGameplayZoneGenerationDiagnostic(
+          severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.info,
+          kind: SmartTileGameplayZoneGenerationDiagnosticKind
               .zoneIdCollisionResolved,
           message: 'ID changed.',
         ),
-        const SurfaceGameplayZoneGenerationDiagnostic(
-          severity: SurfaceGameplayZoneGenerationDiagnosticSeverity.info,
-          kind: SurfaceGameplayZoneGenerationDiagnosticKind
+        const SmartTileGameplayZoneGenerationDiagnostic(
+          severity: SmartTileGameplayZoneGenerationDiagnosticSeverity.info,
+          kind: SmartTileGameplayZoneGenerationDiagnosticKind
               .zoneIdCollisionResolved,
           message: 'ID changed.',
         ),
@@ -390,17 +394,18 @@ void main() {
   });
 }
 
-SurfaceGameplayZoneGenerationSource _source(List<GridPos> cells) {
-  return SurfaceGameplayZoneGenerationSource(
-    surfaceLayerId: 'surfaces',
-    surfaceLayerName: 'Surfaces',
-    surfacePresetId: 'tall_grass',
+SmartTileGameplayZoneGenerationSource _source(List<GridPos> cells) {
+  return SmartTileGameplayZoneGenerationSource(
+    smartTileLayerId: 'surfaces',
+    smartTileLayerName: 'Surfaces',
+    smartTilePresetId: 'tall_grass',
+    materialId: 'grass',
     cells: cells,
   );
 }
 
-SurfaceGameplayZoneBehaviorDraft _tallGrassBehavior() {
-  return SurfaceGameplayZoneBehaviorDraft.encounter(
+SmartTileGameplayZoneBehaviorDraft _tallGrassBehavior() {
+  return SmartTileGameplayZoneBehaviorDraft.encounter(
     const EncounterZonePayload(
       encounterTableId: 'route-1-grass',
       encounterKind: EncounterKind.walk,
@@ -408,13 +413,13 @@ SurfaceGameplayZoneBehaviorDraft _tallGrassBehavior() {
   );
 }
 
-SurfaceGameplayZoneGenerationPlan _oneCellPlan(
-  SurfaceGameplayZoneBehaviorDraft behavior,
+SmartTileGameplayZoneGenerationPlan _oneCellPlan(
+  SmartTileGameplayZoneBehaviorDraft behavior,
 ) {
-  return createSurfaceGameplayZoneGenerationPlan(
+  return createSmartTileGameplayZoneGenerationPlan(
     source: _source(const [GridPos(x: 0, y: 0)]),
     behavior: behavior,
-    strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+    strategy: SmartTileGameplayZoneGenerationStrategy.greedyRectangles,
     zoneIdPrefix: 'zone',
     zoneNamePrefix: 'Zone',
   );

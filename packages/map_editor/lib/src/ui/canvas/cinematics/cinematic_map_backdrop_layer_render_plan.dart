@@ -2,7 +2,6 @@ import 'dart:ui' as ui;
 
 import 'package:map_core/map_core.dart';
 
-import '../../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'cinematic_map_backdrop_render_pass.dart';
 import 'cinematic_map_backdrop_tile_plan_loader.dart';
 import 'cinematic_map_backdrop_tile_render_plan.dart';
@@ -27,6 +26,7 @@ final class CinematicMapBackdropLayerBitmapInstruction {
     required this.quarterTurns,
     required this.destinationWidthPx,
     required this.destinationHeightPx,
+    this.flipX = false,
     this.tileId,
   });
 
@@ -48,6 +48,7 @@ final class CinematicMapBackdropLayerBitmapInstruction {
   final int quarterTurns;
   final int destinationWidthPx;
   final int destinationHeightPx;
+  final bool flipX;
   final int? tileId;
 }
 
@@ -166,23 +167,20 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
           zOrder: zOrder,
           layerIndex: i,
         );
-      case SurfaceLayer():
-        zOrder = _appendSurfaceInstructions(
+      case SmartTileLayer():
+        zOrder = _appendSmartTileInstructions(
+          mapData: mapData,
           manifest: manifest,
           layer: layer,
           tileWidth: tileWidth,
           tileHeight: tileHeight,
+          manifestTilesetIds: manifestTilesetIds,
           tilesets: tilesets,
           diagnostics: diagnostics,
           instructions: instructions,
           zOrder: zOrder,
           layerIndex: i,
         );
-      case SmartTileLayer():
-        // Cinematic backdrop export remains on its legacy bitmap contract.
-        // Native map/runtime rendering is handled by the shared Smart Tile
-        // resolver and must not be approximated by another family here.
-        break;
       case CollisionLayer():
       case ObjectLayer():
       case EnvironmentLayer():
@@ -191,6 +189,10 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
         // Border rendering is intentionally deferred. Keeping this branch
         // explicit prevents a Border layer from falling through another
         // layer family's renderer. The empty-plan diagnostic remains valid.
+        break;
+      case _:
+        // Legacy layer families are deliberately ignored by the cinematic
+        // renderer. Smart Tile is the only authored surface source.
         break;
     }
   }
@@ -217,7 +219,7 @@ CinematicMapBackdropLayerRenderPlan buildCinematicMapBackdropLayerRenderPlan({
           return 1;
         case CinematicMapBackdropRenderPass.tileBackground:
           return 2;
-        case CinematicMapBackdropRenderPass.surface:
+        case CinematicMapBackdropRenderPass.smartTileBackground:
           return 3;
         case CinematicMapBackdropRenderPass.placedBackground:
           return 4;
@@ -291,12 +293,6 @@ Set<String> collectCinematicMapBackdropLayerTilesetIds({
 }) {
   final ids = <String>{};
   ids.addAll(collectCinematicMapBackdropTileLayerTilesetIds(mapData));
-  ids.addAll(
-    collectSurfaceTilePreviewTilesetIds(
-      map: mapData,
-      catalog: manifest.surfaceCatalog,
-    ),
-  );
   for (final layer in mapData.layers) {
     if (!layer.isVisible || layer.opacity <= 0) {
       continue;
@@ -343,6 +339,24 @@ Set<String> collectCinematicMapBackdropLayerTilesetIds({
         );
         if (tilesetId.isNotEmpty) {
           ids.add(tilesetId);
+        }
+      }
+      continue;
+    }
+    if (layer is SmartTileLayer) {
+      for (final pass in SmartTileVisualPass.values) {
+        for (final visual in resolveSmartTileLayerVisuals(
+          map: mapData,
+          layer: layer,
+          catalog: manifest.smartTileCatalog,
+          pass: pass,
+          destinationCellWidth: manifest.settings.tileWidth.toDouble(),
+          destinationCellHeight: manifest.settings.tileHeight.toDouble(),
+          sourceCellWidth: manifest.settings.tileWidth.toDouble(),
+          sourceCellHeight: manifest.settings.tileHeight.toDouble(),
+        )) {
+          final tilesetId = visual.tilesetId.trim();
+          if (tilesetId.isNotEmpty) ids.add(tilesetId);
         }
       }
     }
@@ -722,11 +736,13 @@ int _appendTileInstructions({
   return nextZ;
 }
 
-int _appendSurfaceInstructions({
+int _appendSmartTileInstructions({
+  required MapData mapData,
   required ProjectManifest manifest,
-  required SurfaceLayer layer,
+  required SmartTileLayer layer,
   required int tileWidth,
   required int tileHeight,
+  required Set<String> manifestTilesetIds,
   required Map<String, CinematicResolvedTilesetAsset> tilesets,
   required List<CinematicMapBackdropTileDiagnostic> diagnostics,
   required List<CinematicMapBackdropLayerBitmapInstruction> instructions,
@@ -734,79 +750,88 @@ int _appendSurfaceInstructions({
   required int layerIndex,
 }) {
   var nextZ = zOrder;
-  final availableTilesetIds = {
-    for (final entry in tilesets.entries)
-      if (entry.value.isAvailable) entry.key,
-  };
-  final topology = SurfacePlacementTopology(layer.placements);
-  for (final placement in layer.placements) {
-    final resolved = resolveSurfaceTilePreviewInstruction(
+  for (final pass in SmartTileVisualPass.values) {
+    final visuals = resolveSmartTileLayerVisuals(
+      map: mapData,
       layer: layer,
-      placement: placement,
-      catalog: manifest.surfaceCatalog,
-      availableTilesetIds: availableTilesetIds,
-      topology: topology,
+      catalog: manifest.smartTileCatalog,
+      pass: pass,
+      destinationCellWidth: tileWidth.toDouble(),
+      destinationCellHeight: tileHeight.toDouble(),
+      sourceCellWidth: tileWidth.toDouble(),
+      sourceCellHeight: tileHeight.toDouble(),
     );
-    if (resolved == null) {
-      _addDiagnostic(
-        diagnostics,
-        code: 'missingSurfaceVisual',
-        message: 'Surface ${placement.surfacePresetId} indisponible.',
-        layerId: layer.id,
+    for (final visual in visuals) {
+      final asset = _availableTilesetAsset(
+        tilesetId: visual.tilesetId,
+        layer: layer,
+        manifestTilesetIds: manifestTilesetIds,
+        tilesets: tilesets,
+        diagnostics: diagnostics,
       );
-      continue;
-    }
-    final asset = tilesets[resolved.tilesetId];
-    if (asset == null || !asset.isAvailable) {
-      _addDiagnostic(
-        diagnostics,
-        code: asset?.status.name ?? 'missingResolvedTileset',
-        message: asset?.diagnosticMessage ??
-            'Image de tileset indisponible pour ${resolved.tilesetId}.',
-        layerId: layer.id,
-        tilesetId: resolved.tilesetId,
+      if (asset == null) continue;
+      final sourceRect = ui.Rect.fromLTWH(
+        visual.sourceRect.x.toDouble(),
+        visual.sourceRect.y.toDouble(),
+        visual.sourceRect.width.toDouble(),
+        visual.sourceRect.height.toDouble(),
       );
-      continue;
-    }
-    if (!_sourceRectFits(asset, resolved.sourceRect)) {
-      _addDiagnostic(
-        diagnostics,
-        code: 'surfaceSourceRectOutOfBounds',
-        message:
-            'Surface ${placement.surfacePresetId} hors atlas pour ${resolved.tilesetId}.',
-        layerId: layer.id,
-        tilesetId: resolved.tilesetId,
-      );
-      continue;
-    }
-    instructions.add(
-      CinematicMapBackdropLayerBitmapInstruction(
-        id: '${layer.id}:surface:${placement.x}:${placement.y}',
-        layerId: layer.id,
-        layerLabel: layer.name,
-        layerKind: CinematicMapBackdropLayerKind.surface,
-        renderPass: CinematicMapBackdropRenderPass.surface,
-        zOrder: nextZ,
-        tilesetId: resolved.tilesetId,
-        sourceRect: resolved.sourceRect,
-        destinationRect: _cellDestinationRect(
-          placement.x,
-          placement.y,
-          tileWidth,
-          tileHeight,
+      if (!_sourceRectFits(asset, sourceRect)) {
+        _addDiagnostic(
+          diagnostics,
+          code: 'smartTileSourceRectOutOfBounds',
+          message: 'Smart Tile ${layer.presetId} hors atlas pour '
+              '${visual.tilesetId}.',
+          layerId: layer.id,
+          tilesetId: visual.tilesetId,
+        );
+        continue;
+      }
+      final bounds = visual.geometry.visualBounds;
+      final destination = visual.geometry.destinationRect;
+      final isForeground = switch (visual.channel) {
+        SmartTileRenderChannel.canopy ||
+        SmartTileRenderChannel.foreground =>
+          true,
+        SmartTileRenderChannel.ground ||
+        SmartTileRenderChannel.understory ||
+        SmartTileRenderChannel.shadow =>
+          false,
+      };
+      instructions.add(
+        CinematicMapBackdropLayerBitmapInstruction(
+          id: '${layer.id}:smartTile:${visual.cellX}:${visual.cellY}:'
+              '${visual.ruleId}:${visual.candidateId}:'
+              '${visual.channel.name}:$nextZ',
+          layerId: layer.id,
+          layerLabel: layer.name,
+          layerKind: CinematicMapBackdropLayerKind.smartTile,
+          renderPass: isForeground
+              ? CinematicMapBackdropRenderPass.tileForeground
+              : CinematicMapBackdropRenderPass.smartTileBackground,
+          zOrder: nextZ,
+          tilesetId: visual.tilesetId,
+          sourceRect: sourceRect,
+          destinationRect: ui.Rect.fromLTWH(
+            bounds.left,
+            bounds.top,
+            bounds.width,
+            bounds.height,
+          ),
+          opacity: _opacity(layer.opacity),
+          sourceFamily: 'smartTile',
+          sourceId: layer.presetId,
+          elementBottomY: bounds.bottom / tileHeight,
+          elementX: bounds.left / tileWidth,
+          layerIndex: layerIndex,
+          quarterTurns: visual.transform.quarterTurns,
+          flipX: visual.transform.flipX,
+          destinationWidthPx: destination.width.round(),
+          destinationHeightPx: destination.height.round(),
         ),
-        opacity: _opacity(layer.opacity),
-        sourceFamily: 'surface',
-        sourceId: placement.surfacePresetId,
-        elementBottomY: placement.y + 1.0,
-        elementX: placement.x.toDouble(),
-        layerIndex: layerIndex,
-        quarterTurns: 0,
-        destinationWidthPx: tileWidth,
-        destinationHeightPx: tileHeight,
-      ),
-    );
-    nextZ += 1;
+      );
+      nextZ += 1;
+    }
   }
   return nextZ;
 }

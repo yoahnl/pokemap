@@ -14,7 +14,7 @@ import 'application/border_publication_transaction.dart';
 import 'application/border_studio_draft.dart';
 import 'application/border_studio_draft_controller.dart';
 import 'application/border_studio_publication_coordinator.dart';
-import 'application/border_surface_ground_snapshot_service.dart';
+import 'application/border_smart_tile_ground_snapshot_service.dart';
 import 'presentation/border_assets_step.dart';
 import 'presentation/border_preview_publication_step.dart';
 import 'presentation/border_roles_step.dart';
@@ -44,7 +44,7 @@ class BorderStudioWorkspace extends ConsumerStatefulWidget {
 
 class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
   static const _assetService = BorderProjectElementAssetService();
-  static const _groundSnapshotService = BorderSurfaceGroundSnapshotService();
+  static const _groundSnapshotService = BorderSmartTileGroundSnapshotService();
 
   int _activeStep = 0;
   String? _feedback;
@@ -771,7 +771,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
           : await _groundSnapshotService.prepareAllRoles(
               manifest: manifest,
               projectRootPath: projectRootPath,
-              sourceSurfacePresetId: ground.sourceSurfacePresetId,
+              sourceSmartTilePresetId: ground.sourceSmartTilePresetId,
             );
       final prepared = await coordinator.prepare(
         manifest: manifest,
@@ -837,7 +837,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
         _isPreparingPublication = false;
         _feedback = error.userMessage;
       });
-    } on BorderSurfaceGroundSnapshotException catch (error) {
+    } on BorderSmartTileGroundSnapshotException catch (error) {
       if (!mounted) return;
       setState(() {
         _isPreparingPublication = false;

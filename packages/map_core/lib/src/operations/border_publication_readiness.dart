@@ -7,6 +7,7 @@ import '../models/border_materialization.dart';
 import '../models/border_value_objects.dart';
 import '../models/border_visual_snapshot.dart';
 import '../models/project_manifest.dart';
+import '../models/smart_tile.dart';
 import '../models/surface.dart';
 import 'border_coverage.dart';
 import 'border_rle_codec.dart';
@@ -555,7 +556,7 @@ void _diagnoseTemplatePrimitiveRoles(
 
 /// Keeps publication capability aligned with the V1 resolver families.
 ///
-/// A Surface ground band is defined by organic region geometry. Linear
+/// A Smart Tile ground band is defined by organic region geometry. Linear
 /// resolvers deliberately have no equivalent ground contract, so allowing it
 /// through publication would create a revision that cannot be resolved.
 void _diagnoseTemplateGround(
@@ -702,16 +703,22 @@ void _diagnoseProjectReferences(
     ));
   }
   final ground = definition.ground;
+  final smartTilePreset = ground == null
+      ? null
+      : project.smartTileCatalog.presets
+          .where((preset) => preset.id == ground.sourceSmartTilePresetId)
+          .firstOrNull;
   if (ground != null &&
-      project.surfaceCatalog.presetById(ground.sourceSurfacePresetId) == null) {
+      (smartTilePreset == null ||
+          smartTilePreset.status != SmartTilePresetStatus.published)) {
     diagnostics.add(_diagnostic(
-      code: 'border.blueprint.source_surface_preset_missing',
+      code: 'border.blueprint.source_smart_tile_preset_missing',
       scope: BorderDiagnosticScope.blueprint,
       blueprintId: blueprintId,
       parameters: <String, Object?>{
-        'sourceSurfacePresetId': ground.sourceSurfacePresetId,
+        'sourceSmartTilePresetId': ground.sourceSmartTilePresetId,
       },
-      action: 'border.action.select_existing_surface_preset',
+      action: 'border.action.select_published_smart_tile_preset',
     ));
   }
 }
@@ -1303,62 +1310,13 @@ void _diagnoseGroundCompleteness(
   ];
   if (missing.isNotEmpty) {
     diagnostics.add(_diagnostic(
-      code: 'border.publication.ground_surface_roles_incomplete',
+      code: 'border.publication.ground_smart_tile_roles_incomplete',
       scope: BorderDiagnosticScope.blueprint,
       blueprintId: blueprintId,
       parameters: <String, Object?>{'roles': missing},
-      action: 'border.action.resolve_all_surface_role_snapshots',
+      action: 'border.action.resolve_all_smart_tile_role_snapshots',
     ));
   }
-
-  final preset =
-      project.surfaceCatalog.presetById(ground.sourceSurfacePresetId);
-  if (preset == null) return;
-  final unresolvedRoles = <String>[];
-  final missingAnimationIds = <String>{};
-  for (final role in standardSurfaceVariantRoleOrder) {
-    final animationId = _resolveGroundSurfaceAnimationId(preset, role);
-    if (animationId == null) {
-      unresolvedRoles.add(_surfaceRoleV1WireName(role));
-      continue;
-    }
-    if (project.surfaceCatalog.animationById(animationId) == null) {
-      unresolvedRoles.add(_surfaceRoleV1WireName(role));
-      missingAnimationIds.add(animationId);
-    }
-  }
-  if (unresolvedRoles.isEmpty) return;
-  final sortedAnimationIds = missingAnimationIds.toList(growable: false)
-    ..sort(compareNarrativeEventUtf16);
-  diagnostics.add(_diagnostic(
-    code: 'border.publication.ground_surface_unresolvable',
-    scope: BorderDiagnosticScope.blueprint,
-    blueprintId: blueprintId,
-    parameters: <String, Object?>{
-      'sourceSurfacePresetId': ground.sourceSurfacePresetId,
-      'roles': unresolvedRoles,
-      'missingAnimationIds': sortedAnimationIds,
-    },
-    action: 'border.action.resolve_surface_role_animations',
-  ));
-}
-
-String? _resolveGroundSurfaceAnimationId(
-  ProjectSurfacePreset preset,
-  SurfaceVariantRole role,
-) {
-  final exact = preset.animationIdForRole(role)?.trim();
-  if (exact != null && exact.isNotEmpty) return exact;
-
-  final isolated =
-      preset.animationIdForRole(SurfaceVariantRole.isolated)?.trim();
-  if (isolated != null && isolated.isNotEmpty) return isolated;
-
-  for (final ref in preset.variantAnimations.refs) {
-    final animationId = ref.animationId.trim();
-    if (animationId.isNotEmpty) return animationId;
-  }
-  return null;
 }
 
 void _diagnoseCanonicalGallery(
@@ -2029,7 +1987,7 @@ Object _publicationCandidateProjection(
     'ground': ground == null
         ? null
         : <String, Object?>{
-            'sourceSurfacePresetId': ground.sourceSurfacePresetId,
+            'sourceSmartTilePresetId': ground.sourceSmartTilePresetId,
             'edgeBandCells': ground.edgeBandCells.toString(),
             'visualSnapshotIdsByRole': <String, Object?>{
               for (final role in standardSurfaceVariantRoleOrder)

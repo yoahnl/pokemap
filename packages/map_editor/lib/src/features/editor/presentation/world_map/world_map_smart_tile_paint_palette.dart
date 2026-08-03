@@ -7,6 +7,7 @@ import 'package:map_authoring/map_authoring.dart'
 import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
+import '../../../smart_tiles_studio/presentation/smart_tile_behavior_action_menu.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
@@ -57,6 +58,8 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
       snapshot.activeLayerId,
       _usage,
     );
+    final activePreset =
+        activeLayer == null ? null : _presetById(presets, activeLayer.presetId);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
     final intent = ref.read(worldMapPaintInspectionIntentProvider.notifier);
@@ -193,6 +196,23 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                 ),
               ],
             ),
+            if (snapshot.project != null &&
+                activeLayer != null &&
+                activePreset != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: SmartTileBehaviorActionMenu(
+                  map: snapshot.map,
+                  smartTileLayer: activeLayer,
+                  smartTilePresetId: activePreset.id,
+                  materialId: activePreset.defaultMaterialId,
+                  catalog: snapshot.project!.smartTileCatalog,
+                  encounterTables: snapshot.project!.encounterTables,
+                  notifier: notifier,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Expanded(
               child: presets.isEmpty
@@ -281,6 +301,16 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
       ),
     );
   }
+}
+
+ProjectSmartTilePreset? _presetById(
+  List<ProjectSmartTilePreset> presets,
+  String presetId,
+) {
+  for (final preset in presets) {
+    if (preset.id == presetId) return preset;
+  }
+  return null;
 }
 
 List<ProjectSmartTilePreset> _publishedPresets(

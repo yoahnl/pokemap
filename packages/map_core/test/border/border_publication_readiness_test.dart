@@ -1113,7 +1113,8 @@ void main() {
       );
     });
 
-    test('checks candidate source-element and selected Surface references', () {
+    test('checks candidate source-element and selected Smart Tile references',
+        () {
       final fixture = _Fixture.complete();
       final missingElement = _assess(
         fixture,
@@ -1126,11 +1127,11 @@ void main() {
           ],
         ),
       );
-      final missingSurface = _assess(
+      final missingSmartTile = _assess(
         fixture,
         definition: fixture.definitionFor(
           ground: _ground(
-            presetId: 'missing-surface',
+            presetId: 'missing-smart-tile',
             snapshotId: fixture.snapshotId(0),
           ),
         ),
@@ -1141,11 +1142,11 @@ void main() {
         contains('border.blueprint.source_element_missing'),
       );
       expect(
-        _codes(missingSurface),
-        contains('border.blueprint.source_surface_preset_missing'),
+        _codes(missingSmartTile),
+        contains('border.blueprint.source_smart_tile_preset_missing'),
       );
       expect(missingElement.canPublish, isFalse);
-      expect(missingSurface.canPublish, isFalse);
+      expect(missingSmartTile.canPublish, isFalse);
     });
 
     test('rejects ground for every linear template', () {
@@ -1226,7 +1227,8 @@ void main() {
       }
     });
 
-    test('ground role snapshots and isolated Surface fallback must resolve',
+    test(
+        'ground role snapshots suffice once the source Smart Tile is published',
         () {
       final fixture = _Fixture.complete();
       final groundSnapshotId = fixture.snapshotId(3);
@@ -1249,88 +1251,27 @@ void main() {
           groundSnapshotId: fixture.validIntegrity(groundSnapshotId),
         },
       );
-      final brokenProject = fixture.project.copyWith(
-        surfaceCatalog: ProjectSurfaceCatalog(
-          animations: <ProjectSurfaceAnimation>[
-            _surfaceAnimation('sand-isolated'),
-          ],
-          presets: <ProjectSurfacePreset>[
-            ProjectSurfacePreset(
-              id: 'broken',
-              name: 'Broken',
-              variantAnimations: SurfaceVariantAnimationRefSet(
-                refs: <SurfaceVariantAnimationRef>[
-                  SurfaceVariantAnimationRef(
-                    role: SurfaceVariantRole.isolated,
-                    animationId: 'sand-isolated',
-                  ),
-                  SurfaceVariantAnimationRef(
-                    role: SurfaceVariantRole.endNorth,
-                    animationId: 'missing-animation',
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-      final brokenDefinition = fixture.definitionFor(
-        ground: _ground(
-          presetId: 'broken',
-          snapshotId: fixture.snapshotId(0),
-        ),
-      );
-      final broken = _assess(
-        fixture,
-        definition: brokenDefinition,
-        project: brokenProject,
-      );
-
       expect(
         _codes(missingSnapshot),
         contains('border.blueprint.visual_snapshot_missing'),
       );
       expect(available.canPublish, isTrue);
-      expect(
-        _codes(broken),
-        contains('border.publication.ground_surface_unresolvable'),
-      );
-      final unresolved = broken.diagnosticReport.diagnostics.singleWhere(
-        (item) => item.code == 'border.publication.ground_surface_unresolvable',
-      );
-      expect(unresolved.parameters['roles'], <String>['endNorth']);
-      expect(
-        unresolved.parameters['missingAnimationIds'],
-        <String>['missing-animation'],
-      );
-      expect(broken.canPublish, isFalse);
     });
 
-    test('ground Surface fallback uses the first authored reference', () {
+    test('ground readiness ignores mutable Smart Tile rules after snapshotting',
+        () {
       final fixture = _Fixture.complete();
       final project = fixture.project.copyWith(
-        surfaceCatalog: ProjectSurfaceCatalog(
-          animations: <ProjectSurfaceAnimation>[
-            _surfaceAnimation('sand-horizontal'),
-            _surfaceAnimation('sand-corner'),
-          ],
-          presets: <ProjectSurfacePreset>[
-            ProjectSurfacePreset(
-              id: 'first-authored-fallback',
-              name: 'First authored fallback',
-              variantAnimations: SurfaceVariantAnimationRefSet(
-                refs: <SurfaceVariantAnimationRef>[
-                  SurfaceVariantAnimationRef(
-                    role: SurfaceVariantRole.horizontal,
-                    animationId: 'sand-horizontal',
-                  ),
-                  SurfaceVariantAnimationRef(
-                    role: SurfaceVariantRole.cornerNE,
-                    animationId: 'sand-corner',
-                  ),
-                ],
-              ),
+        smartTileCatalog: ProjectSmartTileCatalog(
+          materials: const <ProjectSmartTileMaterial>[
+            ProjectSmartTileMaterial(
+              id: 'ground',
+              name: 'Ground',
+              connectionGroupId: 'ground',
             ),
+          ],
+          presets: <ProjectSmartTilePreset>[
+            _publishedSmartTilePreset('changed-after-snapshot'),
           ],
         ),
       );
@@ -1339,16 +1280,12 @@ void main() {
         project: project,
         definition: fixture.definitionFor(
           ground: _ground(
-            presetId: 'first-authored-fallback',
+            presetId: 'changed-after-snapshot',
             snapshotId: fixture.snapshotId(0),
           ),
         ),
       );
 
-      expect(
-        _codes(result),
-        isNot(contains('border.publication.ground_surface_unresolvable')),
-      );
       expect(result.canPublish, isTrue);
     });
 
@@ -2418,7 +2355,7 @@ BorderPublishedGround _ground({
   required String snapshotId,
 }) =>
     BorderPublishedGround(
-      sourceSurfacePresetId: presetId,
+      sourceSmartTilePresetId: presetId,
       edgeBandCells: 2,
       visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
         for (final role in standardSurfaceVariantRoleOrder) role: snapshotId,
@@ -2563,26 +2500,25 @@ BorderVisualSnapshotIntegrity _validIntegrity(String id) =>
       contentFingerprintMatches: true,
     );
 
-ProjectSurfaceAnimation _surfaceAnimation(String id) => ProjectSurfaceAnimation(
+ProjectSmartTilePreset _publishedSmartTilePreset(String id) =>
+    ProjectSmartTilePreset(
       id: id,
       name: id,
-      timeline: SurfaceAnimationTimeline(
-        frames: <SurfaceAnimationFrame>[
-          SurfaceAnimationFrame(
-            tileRef: SurfaceAtlasTileRef(
-              atlasId: 'surface-atlas',
-              column: 0,
-              row: 0,
-            ),
-            durationMs: 100,
-          ),
-        ],
+      usage: SmartTileUsage.terrain,
+      topology: SmartTileTopology.uniform,
+      status: SmartTilePresetStatus.published,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: const SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
       ),
+      transformPolicy: const SmartTileTransformPolicy(),
+      defaultMaterialId: 'ground',
+      allowedMaterialIds: const <String>['ground'],
     );
 
 ProjectManifest _project() => ProjectManifest(
       name: 'Project',
-      version: ProjectVersion.v2,
+      version: ProjectVersion.v5,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       elements: <ProjectElementEntry>[
@@ -2608,23 +2544,16 @@ ProjectManifest _project() => ProjectManifest(
             ],
           ),
       ],
-      surfaceCatalog: ProjectSurfaceCatalog(
-        animations: <ProjectSurfaceAnimation>[
-          _surfaceAnimation('sand-isolated'),
-        ],
-        presets: <ProjectSurfacePreset>[
-          ProjectSurfacePreset(
-            id: 'sand',
-            name: 'Sand',
-            variantAnimations: SurfaceVariantAnimationRefSet(
-              refs: <SurfaceVariantAnimationRef>[
-                SurfaceVariantAnimationRef(
-                  role: SurfaceVariantRole.isolated,
-                  animationId: 'sand-isolated',
-                ),
-              ],
-            ),
+      smartTileCatalog: ProjectSmartTileCatalog(
+        materials: const <ProjectSmartTileMaterial>[
+          ProjectSmartTileMaterial(
+            id: 'ground',
+            name: 'Ground',
+            connectionGroupId: 'ground',
           ),
+        ],
+        presets: <ProjectSmartTilePreset>[
+          _publishedSmartTilePreset('sand'),
         ],
       ),
     );
