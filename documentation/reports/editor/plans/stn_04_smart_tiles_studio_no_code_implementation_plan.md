@@ -19,7 +19,7 @@
 | Branche auditée | `main` |
 | HEAD de référence | `160ab3256c3defce4a9e67ebfee7a02c3ac16991` |
 | Dépendances livrées | STN-01 `b79d11bcb`, STN-02 `f5f8b9bc8`, STN-03 `11f71230b` |
-| Statut actuel | `TODO` — plan prêt, implémentation non commencée |
+| Statut actuel | `PARTIAL` — périmètre STN ciblé livré ; gate globale rouge sur des baselines hors Smart Tiles |
 | Nombre de séquences | 12 sous-lots, `STN-04.0` à `STN-04.11` |
 | Rupture de compatibilité | assumée ; aucun migrateur Terrain/Path/Surface n’est requis |
 | Import Tiled/TSX/Wang | hors périmètre ; second temps |
@@ -1147,11 +1147,21 @@ Les seules occurrences permises sont les tests de rejet historique et le texte d
 
 ### STN-04.11 — Certification, catalogue MCP et ouverture du gate
 
-**Statut d’exécution au 3 août 2026 : `PARTIAL`.** Les vingt acceptations
-STN, les transports ciblés, les analyzers, les builds et le catalogue MCP live
-sont verts. La gate globale du §17 reste rouge uniquement sur des tests hors
-Smart Tiles dépendant d’artefacts de rapports UI/Selbrume absents ou de routes
+**Statut d’exécution au 4 août 2026 : `PARTIAL`.** La matrice ciblée A01–A20,
+les transports ciblés, les analyzers, les builds et le catalogue MCP live sont
+verts. La gate globale du §17 reste rouge uniquement sur des tests hors Smart
+Tiles dépendant d’artefacts de rapports UI/Selbrume absents ou de routes
 narratives pendantes ; ces baselines ne sont pas modifiées par ce lot.
+
+Le contre-audit a initialement refusé la clôture pour trois défauts P1, corrigés
+avant le commit final : la bibliothèque permet désormais de reprendre un draft
+à son `lastStage` avec son image, un autosave no-op préserve le
+`coverageProfile` canonique personnalisé, et les transformations D4 passent par
+une proposition affichant les formes gagnées/perdues avant acceptation ou
+annulation. Les tests widget couvrent ces trois gestes. A01 et A20 restent deux
+preuves raccordées par le schéma canonique plutôt qu’un unique test UI → runtime
+inter-packages ; ce point est conservé comme risque de couverture, pas comme
+runtime alternatif.
 
 **Modifier :**
 
@@ -1200,7 +1210,7 @@ Répéter le parcours pour :
 - [x] Supprimer le faux gate d’exposition sans consommateur de production.
 - [x] Rédiger la clôture avec état Git initial/final, résultats et limites.
 
-**Commit proposé :** `test(smart-tiles): certify STN-04 no-code workflow`.
+**Commit d’implémentation :** `3e93ab79b feat(smart-tiles): complete STN-04 cutover`.
 
 ## 14. Matrice de tests d’acceptation
 

@@ -768,7 +768,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       onRemoveAnimationFrame: _removeAnimationFrame,
       onClearAnimationFrames: _clearAnimationFrames,
       onCreateAnimation: _canCreateAnimation ? _createAnimation : null,
-      onContinue: _moveToForms,
+      onContinue: proposal == null ? _moveToForms : null,
     );
   }
 

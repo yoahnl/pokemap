@@ -28,17 +28,34 @@ final class SmartTileTransformProposal {
   SmartTileTransformProposal({
     required this.currentPolicy,
     required this.proposedPolicy,
-    required Iterable<int> gainedMasks,
-    required Iterable<int> lostMasks,
-  })  : gainedMasks = List<int>.unmodifiable(gainedMasks),
-        lostMasks = List<int>.unmodifiable(lostMasks);
+    required Iterable<SmartTileTransformImpact> gainedForms,
+    required Iterable<SmartTileTransformImpact> lostForms,
+  })  : gainedForms = List<SmartTileTransformImpact>.unmodifiable(gainedForms),
+        lostForms = List<SmartTileTransformImpact>.unmodifiable(lostForms);
 
   final SmartTileTransformPolicy currentPolicy;
   final SmartTileTransformPolicy proposedPolicy;
-  final List<int> gainedMasks;
-  final List<int> lostMasks;
+  final List<SmartTileTransformImpact> gainedForms;
+  final List<SmartTileTransformImpact> lostForms;
+
+  List<int> get gainedMasks =>
+      List<int>.unmodifiable(gainedForms.map((impact) => impact.mask));
+  List<int> get lostMasks =>
+      List<int>.unmodifiable(lostForms.map((impact) => impact.mask));
 
   bool get hasChanges => currentPolicy != proposedPolicy;
+}
+
+final class SmartTileTransformImpact {
+  const SmartTileTransformImpact({
+    required this.mask,
+    required this.sourceMask,
+    required this.transform,
+  });
+
+  final int mask;
+  final int sourceMask;
+  final SmartTileSpriteTransform transform;
 }
 
 final class SmartTileAuthoringDraft {
@@ -327,6 +344,7 @@ final class SmartTileAuthoringController {
               ? firstId
               : _state.activeMaterialId),
     );
+    _preservedCoverageProfile = null;
   }
 
   ProjectSmartTileMaterial createMaterial({required String name}) {
@@ -354,6 +372,9 @@ final class SmartTileAuthoringController {
 
   void setDefaultMaterial(String materialId) {
     _requireMaterial(materialId);
+    if (_state.defaultMaterialId != materialId) {
+      _preservedCoverageProfile = null;
+    }
     _state = _state.copyWith(defaultMaterialId: materialId);
   }
 
@@ -388,6 +409,7 @@ final class SmartTileAuthoringController {
           .where((material) => material.id != materialId)
           .toList(),
     );
+    _preservedCoverageProfile = null;
   }
 
   void configureConnections(
@@ -396,6 +418,9 @@ final class SmartTileAuthoringController {
   }) {
     final changesContract = _state.topology != configuration.topology ||
         _state.templateHint != configuration.templateHint;
+    final changesCoverage = changesContract ||
+        _state.boundaryPolicy != configuration.boundaryPolicy ||
+        _state.coveragePolicy != configuration.coveragePolicy;
     if (changesContract && _state.mappings.isNotEmpty && !clearMappings) {
       throw StateError(
         'Changing a Smart Tile connection contract requires mapping confirmation.',
@@ -410,7 +435,7 @@ final class SmartTileAuthoringController {
           ? const <int, List<SmartTileCandidate>>{}
           : _state.mappings,
     );
-    if (changesContract) _preservedCoverageProfile = null;
+    if (changesCoverage) _preservedCoverageProfile = null;
   }
 
   void configureAtlas({
@@ -526,6 +551,10 @@ final class SmartTileAuthoringController {
       }
     }
 
+    if (mappings.keys.any((mask) => !_state.mappings.containsKey(mask))) {
+      _preservedCoverageProfile = null;
+    }
+
     _state = _state.copyWith(
       topology: guide.topology,
       templateHint: guide.templateHint,
@@ -615,25 +644,41 @@ final class SmartTileAuthoringController {
     if (topology == null) {
       throw StateError('Choose a Smart Tile topology before transforms.');
     }
-    final currentMasks = _generatedMasksForPolicy(
+    final universe = <int>{
+      ..._theoreticalMasksForPolicy(
+        _state.transformPolicy,
+        topology: topology,
+      ),
+      ..._theoreticalMasksForPolicy(policy, topology: topology),
+    };
+    final current = _resolvedFormsForPolicy(
       _state.transformPolicy,
       topology: topology,
+      masks: universe,
     );
-    final proposedMasks = _generatedMasksForPolicy(
+    final proposed = _resolvedFormsForPolicy(
       policy,
       topology: topology,
+      masks: universe,
     );
-    final gained = proposedMasks.difference(currentMasks).toList()..sort();
-    final lost = currentMasks.difference(proposedMasks).toList()..sort();
+    final gainedMasks = proposed.keys.toSet().difference(current.keys.toSet())
+      ..retainAll(universe);
+    final lostMasks = current.keys.toSet().difference(proposed.keys.toSet())
+      ..retainAll(universe);
+    final gained = gainedMasks.map((mask) => proposed[mask]!).toList()
+      ..sort((left, right) => left.mask.compareTo(right.mask));
+    final lost = lostMasks.map((mask) => current[mask]!).toList()
+      ..sort((left, right) => left.mask.compareTo(right.mask));
     return SmartTileTransformProposal(
       currentPolicy: _state.transformPolicy,
       proposedPolicy: policy,
-      gainedMasks: gained,
-      lostMasks: lost,
+      gainedForms: gained,
+      lostForms: lost,
     );
   }
 
   void clearMappings() {
+    if (_state.mappings.isNotEmpty) _preservedCoverageProfile = null;
     _state = _state.copyWith(
       mappings: const <int, List<SmartTileCandidate>>{},
     );
@@ -741,6 +786,7 @@ final class SmartTileAuthoringController {
     final mappings = <int, List<SmartTileCandidate>>{..._state.mappings};
     if (candidates.isEmpty) {
       mappings.remove(normalized);
+      _preservedCoverageProfile = null;
     } else {
       mappings[normalized] = candidates;
     }
@@ -1027,7 +1073,7 @@ final class SmartTileAuthoringController {
     );
   }
 
-  Set<int> _generatedMasksForPolicy(
+  Set<int> _theoreticalMasksForPolicy(
     SmartTileTransformPolicy policy, {
     required SmartTileTopology topology,
   }) {
@@ -1048,11 +1094,96 @@ final class SmartTileAuthoringController {
     return masks;
   }
 
+  Map<int, SmartTileTransformImpact> _resolvedFormsForPolicy(
+    SmartTileTransformPolicy policy, {
+    required SmartTileTopology topology,
+    required Set<int> masks,
+  }) {
+    if (masks.isEmpty || _state.mappings.isEmpty) {
+      return const <int, SmartTileTransformImpact>{};
+    }
+    final materialId = _state.defaultMaterialId.isNotEmpty
+        ? _state.defaultMaterialId
+        : _state.materials
+            .where((material) => !material.isEmpty)
+            .map((material) => material.id)
+            .firstOrNull;
+    if (materialId == null || materialId.isEmpty) {
+      return const <int, SmartTileTransformImpact>{};
+    }
+    final sortedMasks = masks.toList()..sort();
+    final scenarios = <SmartTileCoverageScenario>[
+      for (final mask in sortedMasks)
+        SmartTileCoverageScenario(
+          id: 'transform_${smartTileCanonicalRuleId(mask)}',
+          centerMaterialId: materialId,
+          signature: _exactSignatureForMask(
+            mask,
+            topology: topology,
+            materialId: materialId,
+          ),
+        ),
+    ];
+    final preset = compilePreset().copyWith(
+      templateHint: SmartTileTemplateHint.free,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
+        requiredScenarios: scenarios,
+      ),
+      transformPolicy: policy,
+    );
+    final report = analyzeSmartTileCoverage(
+      preset: preset,
+      materials: _state.materials,
+      atlases: <ProjectSmartTileAtlas>[compileAtlas()],
+      animations: _state.animations,
+    );
+    final impacts = <int, SmartTileTransformImpact>{};
+    for (var index = 0; index < report.cases.length; index += 1) {
+      final coverageCase = report.cases[index];
+      if (coverageCase.status != SmartTileCoverageStatus.exact &&
+          coverageCase.status != SmartTileCoverageStatus.transformed) {
+        continue;
+      }
+      final resolution = resolveSmartTile(
+        preset: preset,
+        materials: _state.materials,
+        context: coverageCase.context,
+        x: index,
+        y: 0,
+        mapId: 'smart_tile_transform_proposal',
+        layerId: preset.id,
+      );
+      final ruleId = resolution.ruleId;
+      if (resolution.status != SmartTileResolutionStatus.resolved ||
+          ruleId == null) {
+        continue;
+      }
+      final rule =
+          preset.rules.where((candidate) => candidate.id == ruleId).firstOrNull;
+      if (rule == null) continue;
+      final sourceMask = smartTileMaskForSignature(
+        rule.signature,
+        topology: topology,
+      );
+      if (sourceMask == null) continue;
+      final mask = sortedMasks[index];
+      impacts[mask] = SmartTileTransformImpact(
+        mask: mask,
+        sourceMask: sourceMask,
+        transform: resolution.transform,
+      );
+    }
+    return impacts;
+  }
+
   void _upsertCandidate({
     required int mask,
     required SmartTileCandidate candidate,
   }) {
     final normalized = _normalizeMask(mask);
+    final addsCoverageForm = !_state.mappings.containsKey(normalized);
     final candidates =
         List<SmartTileCandidate>.from(_state.mappings[normalized] ?? const []);
     final index = candidates.indexWhere((item) => item.id == candidate.id);
@@ -1062,6 +1193,7 @@ final class SmartTileAuthoringController {
       candidates[index] = candidate;
     }
     _replaceMapping(normalized, candidates);
+    if (addsCoverageForm) _preservedCoverageProfile = null;
   }
 
   void _replaceMapping(int mask, List<SmartTileCandidate> candidates) {

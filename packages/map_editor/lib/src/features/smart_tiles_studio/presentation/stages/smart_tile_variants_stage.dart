@@ -48,7 +48,7 @@ class SmartTileVariantsStage extends StatelessWidget {
   final ValueChanged<int> onRemoveAnimationFrame;
   final VoidCallback onClearAnimationFrames;
   final VoidCallback? onCreateAnimation;
-  final VoidCallback onContinue;
+  final VoidCallback? onContinue;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +158,7 @@ class SmartTileVariantsStage extends StatelessWidget {
                 _TransformImpactGroup(
                   title: 'Formes gagnées',
                   emptyLabel: 'Aucune forme supplémentaire',
-                  masks: proposal.gainedMasks,
+                  impacts: proposal.gainedForms,
                   topology: topology,
                   badgeVariant: PokeMapBadgeVariant.success,
                 ),
@@ -166,7 +166,7 @@ class SmartTileVariantsStage extends StatelessWidget {
                 _TransformImpactGroup(
                   title: 'Formes perdues',
                   emptyLabel: 'Aucune forme perdue',
-                  masks: proposal.lostMasks,
+                  impacts: proposal.lostForms,
                   topology: topology,
                   badgeVariant: PokeMapBadgeVariant.warning,
                 ),
@@ -303,14 +303,14 @@ class _TransformImpactGroup extends StatelessWidget {
   const _TransformImpactGroup({
     required this.title,
     required this.emptyLabel,
-    required this.masks,
+    required this.impacts,
     required this.topology,
     required this.badgeVariant,
   });
 
   final String title;
   final String emptyLabel;
-  final List<int> masks;
+  final List<SmartTileTransformImpact> impacts;
   final SmartTileTopology topology;
   final PokeMapBadgeVariant badgeVariant;
 
@@ -319,20 +319,32 @@ class _TransformImpactGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        Text('$title (${masks.length})'),
+        Text('$title (${impacts.length})'),
         const SizedBox(height: 6),
-        if (masks.isEmpty)
+        if (impacts.isEmpty)
           Text(emptyLabel)
         else
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              for (final mask in masks)
-                PokeMapBadge(
-                  label: smartTileFormHumanLabel(mask, topology),
-                  variant: badgeVariant,
+              for (final impact in impacts) ...[
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: <Widget>[
+                    PokeMapBadge(
+                      label: smartTileFormHumanLabel(impact.mask, topology),
+                      variant: badgeVariant,
+                    ),
+                    Text(
+                      'Depuis ${smartTileFormHumanLabel(impact.sourceMask, topology)} · '
+                      '${smartTileTransformHumanLabel(impact.transform)}',
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 6),
+              ],
             ],
           ),
       ],

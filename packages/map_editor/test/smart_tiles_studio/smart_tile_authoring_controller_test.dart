@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_authoring_controller.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_connection_profile.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_grid_detector.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_guide.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_guide_placement.dart';
@@ -92,6 +93,84 @@ void main() {
       expect(firstSave.coverageProfile, customProfile);
       expect(secondSave.coverageProfile, customProfile);
       expect(resumed.compilePreset().coverageProfile, customProfile);
+
+      final mappingEdited = SmartTileAuthoringController.fromCanonicalDraft(
+        canonical,
+      )..addAtlasVariant(
+          mask: smartTileEastBit,
+          column: 1,
+          row: 0,
+          candidateId: 'east',
+        );
+      expect(
+        mappingEdited.compilePreset().coverageProfile,
+        isNot(customProfile),
+      );
+      expect(
+        mappingEdited.compilePreset().coverageProfile.requiredScenarios,
+        hasLength(2),
+      );
+
+      final materialEdited = SmartTileAuthoringController.fromCanonicalDraft(
+        canonical,
+      )..addMaterial(
+          const ProjectSmartTileMaterial(
+            id: 'mud',
+            name: 'Boue',
+            connectionGroupId: 'mud',
+          ),
+        );
+      expect(
+        materialEdited.compilePreset().coverageProfile,
+        isNot(customProfile),
+      );
+      expect(
+        materialEdited.compilePreset().coverageProfile.requiredScenarios,
+        hasLength(2),
+      );
+
+      final policyEdited = SmartTileAuthoringController.fromCanonicalDraft(
+        canonical,
+      )..configureConnections(
+          const SmartTileConnectionConfiguration(
+            topology: SmartTileTopology.blob8,
+            templateHint: SmartTileTemplateHint.blob47,
+            boundaryPolicy: SmartTileBoundaryPolicy.connected,
+            coveragePolicy: SmartTileCoveragePolicy.complete,
+          ),
+          clearMappings: false,
+        );
+      expect(
+        policyEdited.compilePreset().coverageProfile.mode,
+        SmartTileCoverageMode.template,
+      );
+
+      final multiMaterialSource = _configuredController()
+        ..selectUsage(SmartTileUsage.path)
+        ..addMaterial(
+          const ProjectSmartTileMaterial(
+            id: 'mud',
+            name: 'Boue',
+            connectionGroupId: 'mud',
+          ),
+          makeActive: false,
+        )
+        ..addAtlasVariant(
+          mask: smartTileNorthBit,
+          column: 0,
+          row: 0,
+          candidateId: 'north',
+        );
+      final multiMaterialCanonical = multiMaterialSource
+          .compileAuthoringDraft(lastStage: SmartTileAuthoringStage.materials)
+          .copyWith(coverageProfile: customProfile);
+      final defaultEdited = SmartTileAuthoringController.fromCanonicalDraft(
+        multiMaterialCanonical,
+      )..setDefaultMaterial('mud');
+      expect(
+        defaultEdited.compilePreset().coverageProfile,
+        isNot(customProfile),
+      );
     });
 
     test('proposes gained and lost forms without mutating active transforms',
@@ -117,6 +196,13 @@ void main() {
         smartTileWestBit,
       ]);
       expect(gain.lostMasks, isEmpty);
+      expect(gain.gainedForms.map((impact) => impact.sourceMask).toSet(), {
+        smartTileNorthBit,
+      });
+      expect(
+        gain.gainedForms.map((impact) => impact.transform).toSet(),
+        contains(const SmartTileSpriteTransform(quarterTurns: 1)),
+      );
 
       controller.setTransformPolicy(quarterTurns);
       final loss = controller.proposeTransformPolicy(
@@ -128,6 +214,35 @@ void main() {
         smartTileSouthBit,
         smartTileWestBit,
       ]);
+    });
+
+    test('transform proposal excludes unresolved and invalid visual forms', () {
+      final source = _configuredController()
+        ..selectUsage(SmartTileUsage.terrain)
+        ..addAtlasVariant(
+          mask: smartTileNorthBit,
+          column: 0,
+          row: 0,
+          candidateId: 'north',
+        );
+      final canonical = source.compileAuthoringDraft(
+        lastStage: SmartTileAuthoringStage.variants,
+      );
+      final brokenRule = canonical.rules.single.copyWith(
+        candidates: const <SmartTileCandidate>[
+          SmartTileCandidate(id: 'missing-visual'),
+        ],
+      );
+      final resumed = SmartTileAuthoringController.fromCanonicalDraft(
+        canonical.copyWith(rules: <SmartTileRule>[brokenRule]),
+      );
+
+      final proposal = resumed.proposeTransformPolicy(
+        const SmartTileTransformPolicy(allowQuarterTurns: true),
+      );
+
+      expect(proposal.gainedForms, isEmpty);
+      expect(proposal.lostForms, isEmpty);
     });
 
     test('Simple compiles an explicit center-material rule', () {

@@ -933,6 +933,14 @@ void main() {
       expect(find.text('Extrémité est'), findsOneWidget);
       expect(find.text('Extrémité sud'), findsOneWidget);
       expect(find.text('Extrémité ouest'), findsOneWidget);
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const Key('smart-tiles-variants-next-step')),
+            )
+            .onPressed,
+        isNull,
+      );
 
       var accept = find.byKey(const Key('smart-tiles-transform-accept'));
       await tester.ensureVisible(accept);
