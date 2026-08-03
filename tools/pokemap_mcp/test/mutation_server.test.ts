@@ -773,7 +773,7 @@ test("MCP rejects generic operations for Smart Tile layer creation", async () =>
   }
 });
 
-test("MCP relays the canonical STN-05 Smart Tile paint rejection", async () => {
+test("MCP paints every lattice of a mixed Wang Smart Tile gesture", async () => {
   const fixture = await mutationFixture({ withNativeSmartTileV5: "mixed" });
   try {
     const opened = await toolData(fixture.client, "pokemap_workspace", {
@@ -784,44 +784,49 @@ test("MCP relays the canonical STN-05 Smart Tile paint rejection", async () => {
     const before = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
-    const beforeMap = await readFile(join(fixture.root, "maps/native_v5.json"));
-
-    const rejected = await fixture.client.callTool({
-      name: "pokemap_plan",
-      arguments: {
-        projectHandle,
-        request: {
-          requestId: "native-v5-paint-rejected",
-          actionId: "smart_tile.cell.paint",
-          actionVersion: 1,
-          workspaceHandle: opened.workspaceHandle,
-          parameters: {
-            mapId: "native_v5",
-            layerId: "smart",
-            materialId: "road",
-            cells: [{ x: 0, y: 0 }],
-          },
-          expectedRevision: before.snapshotRevision,
-          idempotencyKey: "idem-native-v5-paint-rejected",
-          dryRun: false,
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "native-v5-mixed-paint",
+        actionId: "smart_tile.cell.paint",
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: {
+          mapId: "native_v5",
+          layerId: "smart",
+          materialId: "road",
+          cells: [{ x: 0, y: 0 }],
         },
+        expectedRevision: before.snapshotRevision,
+        idempotencyKey: "idem-native-v5-mixed-paint",
+        dryRun: false,
       },
     });
-
-    assert.equal(rejected.isError, true);
-    const error = record(record(rejected.structuredContent).error);
-    assert.equal(
-      error.domainCode,
-      "smart_tile.wang_paint_requires_stn05",
-    );
+    const applied = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "operation-native-v5-mixed-paint",
+    });
+    assert.equal(record(applied.receipt).actionId, "smart_tile.cell.paint");
     const after = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
-    assert.equal(after.snapshotRevision, before.snapshotRevision);
-    assert.deepEqual(
-      await readFile(join(fixture.root, "maps/native_v5.json")),
-      beforeMap,
+    assert.notEqual(after.snapshotRevision, before.snapshotRevision);
+    const persisted = record(
+      JSON.parse(
+        await readFile(join(fixture.root, "maps/native_v5.json"), "utf8"),
+      ),
     );
+    const smartLayerValue = (persisted.layers as unknown[]).find(
+      (layer) => record(layer).id === "smart",
+    );
+    assert.ok(smartLayerValue);
+    const field = record(record(smartLayerValue).field);
+    assert.deepEqual(field.semanticCells, [1, 0, 0, 0]);
+    assert.deepEqual(field.horizontalEdges, [1, 0, 1, 0, 0, 0]);
+    assert.deepEqual(field.verticalEdges, [1, 1, 0, 0, 0, 0]);
+    assert.deepEqual(field.corners, [1, 1, 0, 1, 1, 0, 0, 0, 0]);
   } finally {
     await fixture.client.close();
     await fixture.server.close();

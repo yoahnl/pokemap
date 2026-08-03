@@ -6,11 +6,6 @@ import '../../transactions/authoring_plan.dart';
 import 'semantic_map_action_support.dart';
 import 'smart_tile_native_transition_guard.dart';
 
-/// Transitional code kept public until every STN-04 editor badge is removed.
-/// Canonical actions no longer emit it now that Wang painting is available.
-const String smartTileWangPaintRequiresStn05Code =
-    'smart_tile.wang_paint_requires_stn05';
-
 /// Canonical, transport-neutral Smart Tile material gesture actions.
 ///
 /// One request represents one complete editor gesture. This keeps a drag

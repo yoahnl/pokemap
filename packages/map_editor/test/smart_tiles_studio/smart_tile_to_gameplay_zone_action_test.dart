@@ -114,6 +114,45 @@ void main() {
       expect(preview.plan!.generatedZones.single.area.size.width, 2);
     });
 
+    test('derives gameplay cells from a painted Wang field', () {
+      final semanticCells = List<int>.filled(8 * 8, 0)
+        ..[0] = 1
+        ..[1] = 1;
+      final base = _tallGrassLayer();
+      final layer = base.copyWith(
+        field: SmartTileField.mixed(
+          semanticCells: semanticCells,
+          horizontalEdges: List<int>.filled(8 * 9, 0),
+          verticalEdges: List<int>.filled(9 * 8, 0),
+          corners: List<int>.filled(9 * 9, 0),
+        ),
+      );
+      final map = _mapWithTallGrassSmartTile().copyWith(
+        layers: <MapLayer>[layer],
+      );
+
+      final preview = buildTallGrassEncounterSmartTileGameplayZonePreview(
+        map: map,
+        smartTileLayer: layer,
+        smartTilePresetId: 'tall_grass',
+        catalog: _smartTileCatalog(
+          presets: <ProjectSmartTilePreset>[
+            _smartTilePreset(id: 'tall_grass', name: 'Tall Grass').copyWith(
+              topology: SmartTileTopology.wang8,
+              templateHint: SmartTileTemplateHint.mixed256,
+            ),
+          ],
+        ),
+        encounterTableId: 'route_1_grass',
+      );
+
+      expect(preview.canConfirm, isTrue);
+      expect(
+        preview.plan!.source.cells,
+        const <GridPos>[GridPos(x: 0, y: 0), GridPos(x: 1, y: 0)],
+      );
+    });
+
     test('blocks confirmation when encounterTableId is empty', () {
       final preview = buildTallGrassEncounterSmartTileGameplayZonePreview(
         map: _mapWithTallGrassSmartTile(),

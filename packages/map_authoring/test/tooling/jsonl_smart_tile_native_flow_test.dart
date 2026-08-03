@@ -149,6 +149,11 @@ void main() {
       );
       final layer = map.layers.single as SmartTileLayer;
       expect(smartTileSemanticCells(layer), <int>[1]);
+      expect(layer.field, isA<SmartTileMixedField>());
+      final field = layer.field as SmartTileMixedField;
+      expect(field.horizontalEdges, <int>[1, 1]);
+      expect(field.verticalEdges, <int>[1, 1]);
+      expect(field.corners, <int>[1, 1, 1, 1]);
     });
 
     test('rejects stale planning and replays one operation exactly once',
@@ -931,12 +936,12 @@ ProjectSmartTileAnimation _animation() => const ProjectSmartTileAnimation(
       ],
     );
 
-ProjectSmartTilePreset _preset() => const ProjectSmartTilePreset(
+ProjectSmartTilePreset _preset() => ProjectSmartTilePreset(
       id: 'grass',
       name: 'Grass',
       usage: SmartTileUsage.terrain,
-      topology: SmartTileTopology.uniform,
-      templateHint: SmartTileTemplateHint.simple,
+      topology: SmartTileTopology.wang8,
+      templateHint: SmartTileTemplateHint.mixed256,
       coveragePolicy: SmartTileCoveragePolicy.complete,
       coverageProfile: SmartTileCoverageProfile(
         mode: SmartTileCoverageMode.template,
@@ -945,23 +950,27 @@ ProjectSmartTilePreset _preset() => const ProjectSmartTilePreset(
       defaultMaterialId: 'grass',
       allowedMaterialIds: <String>['grass'],
       rules: <SmartTileRule>[
-        SmartTileRule(
-          id: 'base',
-          centerMatch: SmartTileSlotMatch.material('grass'),
-          signature: SmartTileSignature(),
-          candidates: <SmartTileCandidate>[
-            SmartTileCandidate(
-              id: 'base',
-              parts: <SmartTileVisualPart>[
-                SmartTileVisualPart(
-                  source: SmartTileVisualSource.animation(
-                    animationId: 'wind',
-                  ),
-                ),
-              ],
+        for (var mask = 0; mask < 256; mask++)
+          SmartTileRule(
+            id: smartTileCanonicalRuleId(mask),
+            centerMatch: const SmartTileSlotMatch.material('grass'),
+            signature: smartTileSignatureForMask(
+              mask,
+              topology: SmartTileTopology.wang8,
             ),
-          ],
-        ),
+            candidates: <SmartTileCandidate>[
+              const SmartTileCandidate(
+                id: 'base',
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.animation(
+                      animationId: 'wind',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
       ],
     );
 
@@ -984,6 +993,8 @@ ProjectSmartTileAuthoringDraft _draft() => ProjectSmartTileAuthoringDraft(
       animations: <ProjectSmartTileAnimation>[_animation()],
       defaultMaterialId: 'grass',
       allowedMaterialIds: const <String>['grass'],
+      topology: SmartTileTopology.wang8,
+      templateHint: SmartTileTemplateHint.mixed256,
       rules: _preset().rules,
     );
 

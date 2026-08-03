@@ -7,9 +7,9 @@ import 'smart_tile_templates.dart';
 
 /// Whether the manual cell-grid bench can reproduce this topology exactly.
 ///
-/// Wang topologies read dedicated edge/corner lattices in production. A cell
-/// grid cannot represent those values without running the region compiler
-/// planned for STN-05, so the manual bench fails closed for them.
+/// Wang topologies read dedicated edge/corner lattices in production. The
+/// semantic-cell bench cannot edit those lattices faithfully, so it fails
+/// closed and leaves Wang inspection to the dedicated lattice bench.
 bool smartTileTestGridSupportsTopology(SmartTileTopology topology) =>
     switch (topology) {
       SmartTileTopology.uniform ||

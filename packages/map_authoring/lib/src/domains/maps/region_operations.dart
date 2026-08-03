@@ -112,7 +112,7 @@ final class MapRegionOperations {
     final layer =
         map.layers.where((candidate) => candidate.id == layerId).firstOrNull;
     if (layer is SmartTileLayer && layer.field is! SmartTileCellField) {
-      throw smartTileWangPaintCompilerRequired(
+      throw smartTileWangGestureActionRequired(
         map: map,
         operation: kind,
         layerId: layerId,

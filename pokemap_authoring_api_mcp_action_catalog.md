@@ -1050,10 +1050,12 @@ smart_tile.preset.draft.upsert
 smart_tile.preset.publish
 ```
 
-Les champs cellule `uniform`, `cardinal4` et `blob8` sont peignables. Les
-topologies Wang restent authorables, testables, publiables et rendues, mais la
-compilation d'un geste World Map vers leurs arêtes et coins appartient à
-STN-05.
+Les champs `cell`, `edge`, `corner` et `mixed` sont peignables par geste
+atomique avec `smart_tile.cell.paint` et `smart_tile.cell.erase`. Un geste Wang
+projette le matériau vers la cellule sémantique et toutes les arêtes et/ou tous
+les coins actifs de son empreinte. Les opérations de région génériques restent
+refusées sur Wang, car elles ne portent pas l'intention mono-matériau nécessaire
+pour résoudre sans ambiguïté les raccords partagés.
 
 ### 13.2 Environnements
 

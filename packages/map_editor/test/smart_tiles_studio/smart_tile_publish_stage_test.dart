@@ -8,7 +8,7 @@ import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
 
 void main() {
-  testWidgets('requires an explicit destination and explains Wang handoff',
+  testWidgets('requires an explicit destination without a deferred Wang gate',
       (tester) async {
     final layerId = TextEditingController(text: 'path_layer');
     final layerName = TextEditingController(text: 'Chemin');
@@ -20,16 +20,11 @@ void main() {
       tester,
       layerId: layerId,
       layerName: layerName,
-      wangDrawingDeferred: true,
       onTargetChanged: (target) => selectedTarget = target,
     );
 
     expect(find.text('Bibliothèque seulement'), findsOneWidget);
     expect(find.text('Map map'), findsOneWidget);
-    expect(
-      find.text('Dessin sur carte disponible avec STN-05'),
-      findsOneWidget,
-    );
     await tester.tap(
       find.byKey(const Key('smart-tiles-publish-target-map')),
     );
@@ -87,7 +82,6 @@ Future<void> _pumpStage(
   SmartTilePublicationTargetKind targetKind =
       SmartTilePublicationTargetKind.library,
   SmartTilePublicationPlan? plan,
-  bool wangDrawingDeferred = false,
   ValueChanged<SmartTilePublicationTargetKind>? onTargetChanged,
   VoidCallback? onApply,
 }) {
@@ -113,7 +107,6 @@ Future<void> _pumpStage(
               layerNameController: layerName,
               blockingDiagnostics: const <SmartTileDiagnostic>[],
               warningDiagnostics: const <SmartTileDiagnostic>[],
-              wangDrawingDeferred: wangDrawingDeferred,
               busy: false,
               plan: plan,
               errorCode: null,

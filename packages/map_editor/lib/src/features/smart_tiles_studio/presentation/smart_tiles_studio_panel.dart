@@ -1210,7 +1210,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
     final blocking = diagnostics.where((item) => item.isError).toList();
     final warnings = diagnostics.where((item) => !item.isError).toList();
-    final topology = compiled.presets.single.topology;
     return SmartTilePublishStage(
       name: _authoring.state.name,
       usage: _authoring.state.usage!,
@@ -1230,9 +1229,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       layerNameController: _publicationLayerNameController,
       blockingDiagnostics: blocking,
       warningDiagnostics: warnings,
-      wangDrawingDeferred: topology == SmartTileTopology.wangEdge4 ||
-          topology == SmartTileTopology.wangCorner4 ||
-          topology == SmartTileTopology.wang8,
       busy: _publicationBusy,
       plan: _publicationPlan,
       errorCode: _publicationErrorCode,

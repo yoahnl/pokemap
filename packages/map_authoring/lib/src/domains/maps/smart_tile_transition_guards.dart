@@ -4,12 +4,12 @@ import 'map_lifecycle_adapter.dart';
 
 const String smartTileCanonicalLayerActionRequiredCode =
     'smart_tile_canonical_layer_action_required';
-const String smartTileWangPaintCompilerRequiredCode =
-    'smart_tile_wang_paint_compiler_required';
+const String smartTileWangGestureActionRequiredCode =
+    'smart_tile_wang_gesture_action_required';
 
 bool isSmartTileTransitionGuardCode(String code) =>
     code == smartTileCanonicalLayerActionRequiredCode ||
-    code == smartTileWangPaintCompilerRequiredCode;
+    code == smartTileWangGestureActionRequiredCode;
 
 MapAuthoringException canonicalSmartTileLayerActionRequired({
   required MapData map,
@@ -31,16 +31,15 @@ MapAuthoringException canonicalSmartTileLayerActionRequired({
       ],
     );
 
-MapAuthoringException smartTileWangPaintCompilerRequired({
+MapAuthoringException smartTileWangGestureActionRequired({
   required MapData map,
   required String operation,
   required String layerId,
 }) =>
     MapAuthoringException(
-      code: smartTileWangPaintCompilerRequiredCode,
-      message:
-          'Wang Smart Tile painting requires the STN-05 compiler to project '
-          'semantic gestures into edge and corner lattices.',
+      code: smartTileWangGestureActionRequiredCode,
+      message: 'Generic region operations cannot express an atomic Wang '
+          'material gesture without ambiguous shared edges or corners.',
       details: {
         'mapId': map.id,
         'mapVersion': map.version.name,
@@ -48,7 +47,7 @@ MapAuthoringException smartTileWangPaintCompilerRequired({
         'layerId': layerId,
       },
       remediation: const [
-        'Use read-only inspection, normalize, or merge until STN-05 is '
-            'available.',
+        'Use smart_tile.cell.paint or smart_tile.cell.erase so the canonical '
+            'gesture compiler updates every active lattice.',
       ],
     );

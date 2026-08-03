@@ -21,7 +21,6 @@ class SmartTilePublishStage extends StatelessWidget {
     required this.layerNameController,
     required this.blockingDiagnostics,
     required this.warningDiagnostics,
-    required this.wangDrawingDeferred,
     required this.busy,
     required this.plan,
     required this.errorCode,
@@ -46,7 +45,6 @@ class SmartTilePublishStage extends StatelessWidget {
   final TextEditingController layerNameController;
   final List<SmartTileDiagnostic> blockingDiagnostics;
   final List<SmartTileDiagnostic> warningDiagnostics;
-  final bool wangDrawingDeferred;
   final bool busy;
   final SmartTilePublicationPlan? plan;
   final String? errorCode;
@@ -169,14 +167,6 @@ class SmartTilePublishStage extends StatelessWidget {
                 ),
               ],
             ),
-          ),
-        ],
-        if (wangDrawingDeferred) ...[
-          const SizedBox(height: 10),
-          const PokeMapBadge(
-            key: Key('smart-tiles-publish-wang-stn05'),
-            label: 'Dessin sur carte disponible avec STN-05',
-            variant: PokeMapBadgeVariant.warning,
           ),
         ],
         if (blockingDiagnostics.isNotEmpty ||

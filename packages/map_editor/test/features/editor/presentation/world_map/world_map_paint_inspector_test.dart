@@ -583,10 +583,6 @@ void main() {
       );
       addTearDown(terrainHarness.dispose);
       await terrainHarness.pump(tester);
-      expect(
-        find.text(smartTileWangPaintRequiresStn05Code),
-        findsNothing,
-      );
       await tester.tap(
         find.byKey(
           const ValueKey<String>('world-map-smart-tile-terrain-paint'),
@@ -617,10 +613,6 @@ void main() {
       );
       addTearDown(pathHarness.dispose);
       await pathHarness.pump(tester);
-      expect(
-        find.text(smartTileWangPaintRequiresStn05Code),
-        findsNothing,
-      );
       await tester.tap(
         find.byKey(
           const ValueKey<String>('world-map-smart-tile-path-paint'),
@@ -672,11 +664,6 @@ void main() {
     );
     addTearDown(harness.dispose);
     await harness.pump(tester);
-    expect(
-      find.text(smartTileWangPaintRequiresStn05Code),
-      findsNothing,
-    );
-
     await tester.tap(
       find.byKey(
         const ValueKey<String>('world-map-smart-tile-terrain-paint'),

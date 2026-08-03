@@ -344,9 +344,7 @@ void main() {
       );
     });
 
-    test(
-        'rejects every v5 Smart Tile mutator for edge, corner, and mixed fields',
-        () {
+    test('rejects Wang region mutators in favor of canonical gestures', () {
       final fields = <SmartTileField>[
         const SmartTileField.corner(
           semanticCells: [0, 0, 0, 0],
@@ -510,7 +508,7 @@ void main() {
                   .having(
                     (error) => error.code,
                     'code',
-                    'smart_tile_wang_paint_compiler_required',
+                    'smart_tile_wang_gesture_action_required',
                   )
                   .having(
                     (error) => error.details['operation'],

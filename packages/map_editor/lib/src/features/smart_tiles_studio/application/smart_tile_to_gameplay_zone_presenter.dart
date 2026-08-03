@@ -420,19 +420,9 @@ _SmartTileSourceResolution _resolveSmartTileGameplayZoneSource({
       ),
     );
   }
-  final field = layer.field;
-  if (field is! SmartTileCellField) {
-    return _BlockedSmartTileSource(
-      _SmartTileSourceIssue(
-        title: 'Champ Wang non pris en charge',
-        description: 'La génération de zones depuis un champ Wang arrivera '
-            'avec STN-05.',
-        sourceLabel: '${preset.name} · ${material.name}',
-      ),
-    );
-  }
+  final semanticCells = smartTileSemanticCells(layer);
   final expectedCellCount = map.size.width * map.size.height;
-  if (field.semanticCells.length != expectedCellCount) {
+  if (semanticCells.length != expectedCellCount) {
     return _BlockedSmartTileSource(
       _SmartTileSourceIssue(
         title: 'Champ Smart Tile invalide',
@@ -442,8 +432,8 @@ _SmartTileSourceResolution _resolveSmartTileGameplayZoneSource({
     );
   }
   final cells = <GridPos>[];
-  for (var index = 0; index < field.semanticCells.length; index++) {
-    if (field.semanticCells[index] != paletteIndex) continue;
+  for (var index = 0; index < semanticCells.length; index++) {
+    if (semanticCells[index] != paletteIndex) continue;
     cells.add(
       GridPos(x: index % map.size.width, y: index ~/ map.size.width),
     );
