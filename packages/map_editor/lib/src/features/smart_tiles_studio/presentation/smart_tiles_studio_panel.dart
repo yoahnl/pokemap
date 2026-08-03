@@ -105,6 +105,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   _LibraryUsageFilter _usageFilter = _LibraryUsageFilter.all;
   String _query = '';
   String? _selectedItemKey;
+  String? _resumedDraftId;
   int? _selectedMask;
   SmartTileFrameRef? _lastMappedFrame;
   SmartTileFrameRef? _pendingAtlasFrame;
@@ -131,6 +132,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   SmartTileTopology? _customConnectionTopology;
   SmartTileTestLayerController? _testLabController;
   SmartTileLabTool _testLabTool = SmartTileLabTool.pencil;
+  SmartTileTransformProposal? _transformProposal;
   SmartTilePublicationTargetKind _publicationTargetKind =
       SmartTilePublicationTargetKind.library;
   SmartTilePublicationPlan? _publicationPlan;
@@ -284,14 +286,17 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                         ),
                         label: item.name,
                         description: '${item.usageLabel} • ${item.statusLabel}',
-                        onPressed: () => setState(() {
-                          _session.cancelDraft();
-                          _selectedItemKey = item.key;
-                          _focusedRuleId = null;
-                          _focusedMask = null;
-                          _testLabController = null;
-                          _testLabTool = SmartTileLabTool.pencil;
-                        }),
+                        onPressed: item.isResumableDraft
+                            ? () =>
+                                unawaited(_resumeDraft(item.canonicalDraft!))
+                            : () => setState(() {
+                                  _session.cancelDraft();
+                                  _selectedItemKey = item.key;
+                                  _focusedRuleId = null;
+                                  _focusedMask = null;
+                                  _testLabController = null;
+                                  _testLabTool = SmartTileLabTool.pencil;
+                                }),
                         selected: !_session.state.isCreating &&
                             _selectedItemKey == item.key,
                       );
@@ -391,8 +396,11 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       child: ListView(
         children: <Widget>[
           if (_session.state.isCreating) ...[
-            const PokeMapBadge(
-              label: 'Brouillon de session',
+            PokeMapBadge(
+              key: const Key('smart-tiles-active-draft-kind'),
+              label: _resumedDraftId == null
+                  ? 'Brouillon de session'
+                  : 'Brouillon repris',
               variant: PokeMapBadgeVariant.warning,
             ),
             const SizedBox(height: 12),
@@ -729,9 +737,15 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
 
   Widget _buildVariantsStep() {
     final geometry = _session.state.gridGeometry!;
+    final proposal = _transformProposal;
+    final displayedPolicy =
+        proposal?.proposedPolicy ?? _authoring.state.transformPolicy;
     return SmartTileVariantsStage(
-      transformPolicy: _authoring.state.transformPolicy,
-      allowedTransforms: _authoring.allowedTransforms,
+      transformPolicy: displayedPolicy,
+      currentTransformPolicy: _authoring.state.transformPolicy,
+      allowedTransforms: smartTileAllowedTransforms(displayedPolicy),
+      topology: _authoring.state.topology!,
+      transformProposal: proposal,
       animations: _authoring.state.animations,
       selectedAnimationFrames: _animationFrames,
       animationNameController: _animationNameController,
@@ -746,7 +760,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           row: cell.row,
         ),
       ),
-      onTransformPolicyChanged: _setTransformPolicy,
+      onTransformPolicyChanged: _proposeTransformPolicy,
+      onAcceptTransformProposal: _acceptTransformProposal,
+      onDiscardTransformProposal: _discardTransformProposal,
       onAnimationNameChanged: (_) => setState(() {}),
       onAnimationDurationChanged: (_) => setState(() {}),
       onRemoveAnimationFrame: _removeAnimationFrame,
@@ -1508,6 +1524,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   void _startDraft() {
     setState(() {
       _session.startDraft();
+      _resumedDraftId = null;
       final id = _nextDraftId();
       _authoring = SmartTileAuthoringController.blank()
         ..configureIdentity(
@@ -1533,8 +1550,101 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _customConnectionTopology = null;
       _testLabController = null;
       _testLabTool = SmartTileLabTool.pencil;
+      _transformProposal = null;
       _resetPublicationState();
       _tab = SmartTilesStudioTab.atlas;
+    });
+  }
+
+  Future<void> _resumeDraft(ProjectSmartTileAuthoringDraft draft) async {
+    final authoring = SmartTileAuthoringController.fromCanonicalDraft(
+      draft,
+      catalogMaterials: widget.manifest.smartTileCatalog.materials,
+    );
+    final connectionProfile = smartTileConnectionProfileForConfiguration(
+      topology: draft.topology,
+      templateHint: draft.templateHint,
+    );
+    final atlas = draft.atlases
+        .where((candidate) => candidate.id == draft.primaryAtlasId)
+        .firstOrNull;
+    final tilesetId = atlas?.tilesetId ?? draft.sourceTilesetIds.firstOrNull;
+    final tileset = widget.manifest.tilesets
+        .where((candidate) => candidate.id == tilesetId)
+        .firstOrNull;
+    setState(() {
+      _authoring = authoring;
+      _resumedDraftId = draft.id;
+      _session.resumeDraft(
+        draft,
+        gridGeometry: authoring.state.gridGeometry,
+      );
+      _selectedItemKey = 'draft:${draft.id}';
+      _newMaterialNameController.clear();
+      _animationNameController.clear();
+      _animationDurationController.text = '180';
+      _selectedMask = null;
+      _lastMappedFrame = null;
+      _pendingAtlasFrame = null;
+      _animationFrames = const <SmartTileFrameRef>[];
+      _lastCandidateId = null;
+      _selectedRenderChannel = SmartTileRenderChannel.ground;
+      _guidePlacement = null;
+      _correctionNumber = null;
+      _placementMessage = 'Brouillon repris à l’étape « '
+          '${_wizardStepLabel(_session.state.wizardStep)} ».';
+      _draftMessage = null;
+      _clearSourceImageSelection();
+      _selectedSourceTilesetId = tilesetId;
+      _selectedRegisteredAtlasId = widget.manifest.smartTileCatalog.atlases
+              .any((candidate) => candidate.id == atlas?.id)
+          ? atlas?.id
+          : null;
+      _selectedConnectionProfileId =
+          connectionProfile?.id ?? SmartTileConnectionProfileId.custom;
+      _customConnectionTopology =
+          connectionProfile == null ? draft.topology : null;
+      _testLabController = null;
+      _testLabTool = SmartTileLabTool.pencil;
+      _transformProposal = null;
+      _resetPublicationState();
+      _tab = SmartTilesStudioTab.atlas;
+    });
+    if (tileset == null) return;
+    await _loadSourceImage(tileset);
+    if (!mounted ||
+        _session.state.wizardStep != SmartTileStudioWizardStep.grid) {
+      return;
+    }
+    final image = _sourceImageResult?.image;
+    if (image == null) return;
+    final canonical = authoring.state.gridGeometry;
+    final proposals = canonical == null
+        ? _gridDetector.detect(
+            SmartTileGridDetectionInput(
+              imageWidth: image.width,
+              imageHeight: image.height,
+              columnAlphaCoverage: image.columnAlphaCoverage,
+              rowAlphaCoverage: image.rowAlphaCoverage,
+            ),
+          )
+        : <SmartTileGridCandidate>[
+            SmartTileGridCandidate(
+              geometry: canonical.copyWith(
+                imageWidth: image.width,
+                imageHeight: image.height,
+              ),
+              confidence: 1,
+              reason: 'Grille restaurée depuis le brouillon canonique.',
+            ),
+          ];
+    final geometry = proposals.first.geometry;
+    _setGridControllers(geometry);
+    setState(() {
+      _gridProposals = proposals;
+      _selectedGridProposal = 0;
+      _pendingGridGeometry = geometry;
+      _session.resumeDraft(draft, gridGeometry: geometry);
     });
   }
 
@@ -1875,9 +1985,25 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         duration <= 60000;
   }
 
-  void _setTransformPolicy(SmartTileTransformPolicy policy) {
-    setState(() => _authoring.setTransformPolicy(policy));
+  void _proposeTransformPolicy(SmartTileTransformPolicy policy) {
+    setState(() {
+      _transformProposal = _authoring.proposeTransformPolicy(policy);
+    });
+  }
+
+  void _acceptTransformProposal() {
+    final proposal = _transformProposal;
+    if (proposal == null || !proposal.hasChanges) return;
+    setState(() {
+      _authoring.setTransformPolicy(proposal.proposedPolicy);
+      _transformProposal = null;
+    });
     _notifyDraftChanged();
+  }
+
+  void _discardTransformProposal() {
+    if (_transformProposal == null) return;
+    setState(() => _transformProposal = null);
   }
 
   void _toggleAnimationFrame({required int column, required int row}) {

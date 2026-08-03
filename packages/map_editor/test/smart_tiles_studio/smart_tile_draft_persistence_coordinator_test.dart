@@ -171,6 +171,15 @@ void main() {
         gateway.calls.single.idempotencyKey,
         'smart-tile-draft:${draft.id}:$fingerprint',
       );
+      expect(
+        gateway.calls.single.operationId,
+        'smart-tile-draft-apply-$fingerprint',
+      );
+      expect(
+        gateway.calls.single.operationId,
+        matches(RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$')),
+      );
+      expect(gateway.calls.single.operationId.length, lessThanOrEqualTo(120));
     });
   });
 }
@@ -300,6 +309,7 @@ final class _FakeGateway implements SmartTileDraftPersistenceGateway {
       draft: draft,
       expectedRevision: expectedRevision,
       idempotencyKey: idempotencyKey,
+      operationId: operationId,
       completer: completer,
       succeed: (revision) {
         _canonicalDraft = draft;
@@ -321,6 +331,7 @@ final class _FakeUpsertCall {
     required this.draft,
     required this.expectedRevision,
     required this.idempotencyKey,
+    required this.operationId,
     required Completer<SmartTileDraftPersistenceApplyResult> completer,
     required void Function(String revision) succeed,
   })  : _completer = completer,
@@ -329,6 +340,7 @@ final class _FakeUpsertCall {
   final ProjectSmartTileAuthoringDraft draft;
   final String expectedRevision;
   final String idempotencyKey;
+  final String operationId;
   final Completer<SmartTileDraftPersistenceApplyResult> _completer;
   final void Function(String revision) _onSucceed;
 

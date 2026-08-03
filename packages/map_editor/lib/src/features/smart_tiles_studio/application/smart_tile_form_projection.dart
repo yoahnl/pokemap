@@ -95,7 +95,7 @@ List<SmartTileFormReadModel> projectSmartTileForms({
       for (final mask in sortedMasks)
         SmartTileFormReadModel(
           mask: mask,
-          label: _formLabel(mask, preset.topology),
+          label: smartTileFormHumanLabel(mask, preset.topology),
           description: _formDescription(mask, preset.topology),
           status: statusesByMask[mask] ??
               ((candidatesByMask[mask]?.isNotEmpty ?? false)
@@ -167,7 +167,7 @@ int _statusSeverity(SmartTileVisibleFormStatus status) => switch (status) {
       SmartTileVisibleFormStatus.missing => 4,
     };
 
-String _formLabel(int mask, SmartTileTopology topology) {
+String smartTileFormHumanLabel(int mask, SmartTileTopology topology) {
   if (topology == SmartTileTopology.uniform) return 'Surface continue';
   final cardinal = <String>[
     if (mask & smartTileNorthBit != 0) 'nord',

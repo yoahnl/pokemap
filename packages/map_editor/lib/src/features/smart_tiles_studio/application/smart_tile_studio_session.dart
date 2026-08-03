@@ -100,6 +100,32 @@ final class SmartTileStudioSession {
     _state = const SmartTileStudioSessionState(isCreating: true);
   }
 
+  void resumeDraft(
+    ProjectSmartTileAuthoringDraft draft, {
+    SmartTileGridGeometry? gridGeometry,
+  }) {
+    final sourceChoice = draft.sourceTilesetIds.isNotEmpty
+        ? SmartTileStudioSourceChoice.projectImage
+        : draft.lastStage.index >= SmartTileAuthoringStage.grid.index
+            ? SmartTileStudioSourceChoice.emptyPreset
+            : null;
+    SmartTileGuideId? guideId;
+    final canonicalGuideId = draft.guideId;
+    if (canonicalGuideId != null) {
+      guideId = SmartTileGuideId.values
+          .where((candidate) => candidate.name == canonicalGuideId)
+          .firstOrNull;
+    }
+    _state = SmartTileStudioSessionState(
+      isCreating: true,
+      wizardStep: SmartTileStudioWizardStep.values.byName(draft.lastStage.name),
+      usage: draft.usage,
+      guideId: guideId,
+      sourceChoice: sourceChoice,
+      gridGeometry: gridGeometry,
+    );
+  }
+
   void cancelDraft() {
     _state = const SmartTileStudioSessionState();
   }

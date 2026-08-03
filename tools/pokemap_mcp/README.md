@@ -69,8 +69,8 @@ references.
 
 ## Conformance and security
 
-The PMCP-085 inventory currently covers 62 approved semantic resources and all
-229 canonical mutation actions. A release is refused when any applicable cell
+The PMCP-085 inventory currently covers 61 approved semantic resources and all
+219 canonical mutation actions. A release is refused when any applicable cell
 is `MISSING` or `BLOCKED`; every `NOT_APPLICABLE` cell carries a reason. Generate
 the machine-readable matrix with:
 

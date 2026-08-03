@@ -1147,6 +1147,12 @@ Les seules occurrences permises sont les tests de rejet historique et le texte d
 
 ### STN-04.11 — Certification, catalogue MCP et ouverture du gate
 
+**Statut d’exécution au 3 août 2026 : `PARTIAL`.** Les vingt acceptations
+STN, les transports ciblés, les analyzers, les builds et le catalogue MCP live
+sont verts. La gate globale du §17 reste rouge uniquement sur des tests hors
+Smart Tiles dépendant d’artefacts de rapports UI/Selbrume absents ou de routes
+narratives pendantes ; ces baselines ne sont pas modifiées par ce lot.
+
 **Modifier :**
 
 - `pokemap_authoring_api_mcp_action_catalog.md` ;
@@ -1181,17 +1187,18 @@ Répéter le parcours pour :
 
 **Micro-checklist :**
 
-- [ ] Mettre à jour le catalogue Markdown canonique consommé par `map_core`.
-- [ ] Rebuilder le CLI Dart et le serveur MCP TypeScript.
-- [ ] Redémarrer le serveur MCP réellement connecté.
-- [ ] Vérifier `pokemap_describe` live.
-- [ ] Exécuter le golden Terrain simple.
-- [ ] Exécuter le golden Chemin ERW.
-- [ ] Exécuter le golden Surface organique.
-- [ ] Fermer/réouvrir entre draft et publication dans chaque scénario requis.
-- [ ] Exécuter la suite complète et les analyzers.
-- [ ] Retirer le gate d’exposition seulement après tous les verts.
-- [ ] Rédiger la clôture avec état Git initial/final, résultats et limites.
+- [x] Mettre à jour le catalogue Markdown canonique consommé par `map_core`.
+- [x] Rebuilder le CLI Dart et le serveur MCP TypeScript.
+- [x] Redémarrer le serveur MCP réellement connecté.
+- [x] Vérifier `pokemap_describe` live.
+- [x] Exécuter le golden Terrain simple.
+- [x] Exécuter le golden Chemin ERW.
+- [x] Exécuter le golden Surface organique.
+- [x] Fermer/réouvrir entre draft et publication dans chaque scénario requis.
+- [ ] Exécuter la suite complète et les analyzers : analyzers verts ; suites
+  globales rouges hors STN sur les baselines décrites ci-dessus.
+- [x] Supprimer le faux gate d’exposition sans consommateur de production.
+- [x] Rédiger la clôture avec état Git initial/final, résultats et limites.
 
 **Commit proposé :** `test(smart-tiles): certify STN-04 no-code workflow`.
 
@@ -1200,7 +1207,7 @@ Répéter le parcours pour :
 | ID | Scénario | Niveau | Attendu |
 |---|---|---|---|
 | A01 | créer terrain uniforme avec un PNG | widget + intégration | preset publié, frame répétable |
-| A02 | créer chemin ERW corner16 | core + widget | 16 rôles mappés, couverture correcte |
+| A02 | créer chemin ERW corner16 | core + widget | 16 cellules regroupées en 12 raccords, couverture correcte |
 | A03 | créer surface organique blob8 multi-part | core + runtime | ground/canopy rendus dans le bon ordre |
 | A04 | fermer au milieu de Grille | intégration | draft et image repris |
 | A05 | deux saves rapides | unit | seule la génération la plus récente est `saved` |

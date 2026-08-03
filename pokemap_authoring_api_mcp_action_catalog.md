@@ -460,13 +460,12 @@ tilesetElementGroup
 tilesetPaletteEntry
 elementCategory
 element
-terrainPresetCategory
-pathPresetCategory
-terrainPreset
-pathPreset
-pathPatternPreset
-surfacePreset
-surfaceAtlas
+smartTileAtlas
+smartTileMaterial
+smartTileAnimation
+smartTileDraft
+smartTilePreset
+smartTileLayer
 environmentPreset
 borderBlueprint
 borderFeature
@@ -1026,52 +1025,37 @@ autotile.validate
 autotile.rebuild_region
 ```
 
-## 13. Terrains, chemins, surfaces, environnements et bordures
+## 13. Smart Tiles, environnements et bordures
 
-État actuel : `E/P`, mais les workflows sont répartis entre core, use cases,
-contrôleurs et état d’éditeur.
+Les terrains, chemins et surfaces organiques utilisent exclusivement le
+catalogue et les couches Smart Tiles du format v6. Les actions historiques
+Terrain/Path/Surface ne font plus partie du contrat découvrable.
 
-### 13.1 Terrain et chemins
-
-```text
-terrain.paint
-terrain.paint_pattern
-terrain.erase
-terrain.erase_pattern
-terrain.fill
-terrain.replace
-
-path.paint
-path.paint_pattern
-path.erase
-path.erase_pattern
-path.fill
-path.assign_preset
-path.set_properties
-path.set_animation_mode
-path.trigger_add
-path.trigger_update
-path.trigger_remove
-path.preview
-```
-
-### 13.2 Surfaces
+### 13.1 Smart Tiles
 
 ```text
-surface.ensure_layer
-surface.paint
-surface.erase
-surface.erase_area
-surface.replace_placements
-surface.clear
-surface.inspect_usage
-surface.generate_gameplay_zones_plan
-surface.generate_gameplay_zones_apply
-surface.validate
-surface.render_preview
+smart_tile.animation.delete
+smart_tile.animation.upsert
+smart_tile.atlas.upsert
+smart_tile.cell.erase
+smart_tile.cell.paint
+smart_tile.layer.create
+smart_tile.layer.delete
+smart_tile.layer.merge
+smart_tile.layer.normalize
+smart_tile.material.upsert
+smart_tile.preset.delete
+smart_tile.preset.draft.delete
+smart_tile.preset.draft.upsert
+smart_tile.preset.publish
 ```
 
-### 13.3 Environnements
+Les champs cellule `uniform`, `cardinal4` et `blob8` sont peignables. Les
+topologies Wang restent authorables, testables, publiables et rendues, mais la
+compilation d'un geste World Map vers leurs arêtes et coins appartient à
+STN-05.
+
+### 13.2 Environnements
 
 ```text
 environment.attach_to_tile_layer
@@ -1100,7 +1084,7 @@ environment.diagnostics
 environment.render_preview
 ```
 
-### 13.4 Bordures
+### 13.3 Bordures
 
 ```text
 border_layer.stroke_add
@@ -2576,22 +2560,22 @@ Limites volontaires :
   tests frais ;
 - aucune modification des changements préexistants du worktree.
 
-### 30.1 Gate PMCP-085 — preuves fraîches du 31 juillet 2026
+### 30.1 Gate PMCP-085 — preuves fraîches du 3 août 2026
 
 Le catalogue est désormais matérialisé par
 `AuthoringFullParityCatalog.canonical()` et inspectable avec
 `dart run tool/pmcp085_conformance.dart` depuis `packages/map_authoring`.
-La gate couvre explicitement les 62 `resourceKind` sémantiques de la section 7,
+La gate couvre explicitement les 61 `resourceKind` sémantiques de la section 7,
 avec un propriétaire canonique pour chaque agrégat, afin qu’un outil générique
 ne puisse pas masquer une ressource oubliée.
 
 Preuve fraîche ciblée :
 
 ```text
-resourceCount: 62
-mutationActionCount: 223
+resourceCount: 61
+mutationActionCount: 219
 blockedOrMissingCount: 0
-notApplicableCount: 51
+notApplicableCount: 53
 coverageScope: canonicalAuthoringCatalog
 catalogComplete: true
 ```
@@ -2603,7 +2587,7 @@ l'inventaire PMCP-081 contient cinq chemins de mutation éditeur hors API
 Le script de release exécute toutes les validations puis retourne volontairement
 un code non nul tant que cette dette explicite existe.
 
-Les 51 cellules `NOT_APPLICABLE` sont principalement les rendus de ressources
+Les 53 cellules `NOT_APPLICABLE` sont principalement les rendus de ressources
 sans surface visuelle, plus les garanties de mutation projet volontairement
 inapplicables à `gameSave` sandboxé et `gamePackage` dérivé. Chaque cellule
 porte sa justification dans la sortie JSON. La gate de release complète reste

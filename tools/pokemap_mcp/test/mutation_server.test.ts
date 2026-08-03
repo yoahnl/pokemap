@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
@@ -73,6 +74,7 @@ async function mutationFixture(
       join(root, "maps/map_hanazuki_village.json"),
       JSON.stringify(smartTileM01Map()),
     );
+    await writeCanonicalSmartTileImage(root);
   } else if (options.withLegacyAtlasGap) {
     const project = JSON.parse(scaffoldBytes.toString("utf8")) as JsonRecord;
     const tilesets = Array.isArray(project.tilesets) ? project.tilesets : [];
@@ -119,6 +121,56 @@ async function mutationFixture(
   await server.connect(serverTransport);
   await client.connect(clientTransport);
   return { authoring, client, root, server };
+}
+
+async function writeCanonicalSmartTileImage(root: string): Promise<void> {
+  const bytes = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+    "base64",
+  );
+  const logicalName = Buffer.from("artifact-content", "utf8");
+  const pathLength = Buffer.alloc(8);
+  pathLength.writeBigUInt64BE(BigInt(logicalName.length));
+  const byteLength = Buffer.alloc(8);
+  byteLength.writeBigUInt64BE(BigInt(bytes.length));
+  const hexDigest = createHash("sha256")
+    .update(pathLength)
+    .update(logicalName)
+    .update(byteLength)
+    .update(bytes)
+    .digest("hex");
+  const digest = `sha256:${hexDigest}`;
+  const artifact = {
+    digest,
+    handle: `artifact://sha256/${hexDigest}`,
+    mediaType: "image/png",
+    byteLength: bytes.length,
+  };
+
+  // Publishing validates the decoded bytes from the canonical asset store;
+  // merely placing a PNG beside project.json would bypass the contract being
+  // certified by this MCP workflow.
+  await mkdir(join(root, "assets/.pokemap-store"), { recursive: true });
+  await writeFile(join(root, "assets/smart_tileset.png"), bytes);
+  await writeFile(
+    join(root, "assets/.pokemap-assets.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      records: [
+        {
+          id: "smart-tileset-image",
+          logicalPath: "assets/smart_tileset.png",
+          artifact,
+          usages: [],
+          tags: [],
+        },
+      ],
+    }),
+  );
+  await writeFile(
+    join(root, `assets/.pokemap-store/${hexDigest}.blob`),
+    bytes,
+  );
 }
 
 function nativeSmartTileV5Project(mixed = false): JsonRecord {
@@ -419,6 +471,77 @@ function smartTileM01Map(): JsonRecord {
         name: "Collisions",
         collisions: Array<boolean>(9).fill(false),
         runtimeType: "collision",
+      },
+    ],
+  };
+}
+
+function completeSimpleSmartTileDraft(input: {
+  id: string;
+  targetPresetId: string;
+  usage: "terrain" | "path" | "forest_surface";
+}): JsonRecord {
+  const atlasId = `${input.id}-atlas`;
+  const materialId = `${input.id}-material`;
+  return {
+    id: input.id,
+    targetPresetId: input.targetPresetId,
+    name: `Certified ${input.targetPresetId}`,
+    usage: input.usage,
+    lastStage: "publish",
+    sourceTilesetIds: ["smart_tileset"],
+    atlases: [
+      {
+        id: atlasId,
+        name: `Atlas ${input.targetPresetId}`,
+        tilesetId: "smart_tileset",
+        cellWidth: 1,
+        cellHeight: 1,
+        columns: 1,
+        rows: 1,
+      },
+    ],
+    primaryAtlasId: atlasId,
+    materials: [
+      {
+        id: materialId,
+        name: `Material ${input.targetPresetId}`,
+        connectionGroupId: materialId,
+      },
+    ],
+    defaultMaterialId: materialId,
+    allowedMaterialIds: [materialId],
+    topology: "uniform",
+    templateHint: "simple",
+    coveragePolicy: "complete",
+    coverageProfile: {
+      mode: "template",
+      requiredScenarios: [],
+      allowFallback: false,
+    },
+    transformPolicy: {
+      allowHFlip: false,
+      allowVFlip: false,
+      allowQuarterTurns: false,
+      preferUntransformed: true,
+    },
+    rules: [
+      {
+        id: "base",
+        centerMatch: { kind: "material", materialId },
+        candidates: [
+          {
+            id: "base",
+            parts: [
+              {
+                source: {
+                  kind: "frame",
+                  frame: { atlasId, column: 0, row: 0 },
+                },
+              },
+            ],
+          },
+        ],
       },
     ],
   };
@@ -1020,24 +1143,75 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     await applyAction(
       "smart_tile.preset.draft.upsert",
       {
-        draft: {
-          id: "mcp-draft",
-          targetPresetId: "mcp-draft-target",
-          name: "MCP draft",
+        draft: completeSimpleSmartTileDraft({
+          id: "mcp-library-draft",
+          targetPresetId: "mcp-library-preset",
           usage: "terrain",
-          lastStage: "usage",
-        },
+        }),
       },
-      "draft-upsert",
+      "draft-upsert-library",
     );
     const queriedDraft = await toolData(fixture.client, "pokemap_query", {
       projectHandle,
       resourceKind: "smartTileDraft",
       operation: "get",
       view: "detail",
-      ids: ["mcp-draft"],
+      ids: ["mcp-library-draft"],
     });
-    assert.equal(record((queriedDraft.items as unknown[])[0]).id, "mcp-draft");
+    assert.equal(
+      record((queriedDraft.items as unknown[])[0]).id,
+      "mcp-library-draft",
+    );
+
+    await applyAction(
+      "smart_tile.preset.publish",
+      { draftId: "mcp-library-draft" },
+      "publish-library",
+    );
+    const libraryPresets = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "smartTilePreset",
+      operation: "list",
+    });
+    assert.ok(
+      (libraryPresets.items as JsonRecord[]).some(
+        (item) => item.id === "mcp-library-preset",
+      ),
+    );
+
+    await applyAction(
+      "smart_tile.preset.draft.upsert",
+      {
+        draft: completeSimpleSmartTileDraft({
+          id: "mcp-map-draft",
+          targetPresetId: "mcp-map-preset",
+          usage: "path",
+        }),
+      },
+      "draft-upsert-map",
+    );
+    await applyAction(
+      "smart_tile.preset.publish",
+      {
+        draftId: "mcp-map-draft",
+        layer: {
+          mapId: "map_hanazuki_village",
+          layerId: "mcp_map_layer",
+          name: "MCP map layer",
+        },
+      },
+      "publish-map",
+    );
+    const publishedLayers = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "smartTileLayer",
+      operation: "list",
+    });
+    assert.ok(
+      (publishedLayers.items as JsonRecord[]).some(
+        (item) => item.id === "map_hanazuki_village:mcp_map_layer",
+      ),
+    );
 
     const queriedAnimations = await toolData(
       fixture.client,
@@ -1070,7 +1244,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     const layers = map.layers as JsonRecord[];
     assert.deepEqual(
       layers.map((layer) => layer.id),
-      ["base", "terrain", "path_target", "collisions"],
+      ["base", "terrain", "path_target", "collisions", "mcp_map_layer"],
     );
     const terrain = layers[1];
     const target = layers[2];
@@ -1124,6 +1298,31 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     assert.deepEqual(
       (reopenedAnimations.items as JsonRecord[]).map((item) => item.id),
       ["wind"],
+    );
+    const reopenedPresets = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(reopened.projectHandle),
+      resourceKind: "smartTilePreset",
+      operation: "list",
+    });
+    assert.ok(
+      (reopenedPresets.items as JsonRecord[]).some(
+        (item) => item.id === "mcp-library-preset",
+      ),
+    );
+    assert.ok(
+      (reopenedPresets.items as JsonRecord[]).some(
+        (item) => item.id === "mcp-map-preset",
+      ),
+    );
+    const reopenedLayers = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: String(reopened.projectHandle),
+      resourceKind: "smartTileLayer",
+      operation: "list",
+    });
+    assert.ok(
+      (reopenedLayers.items as JsonRecord[]).some(
+        (item) => item.id === "map_hanazuki_village:mcp_map_layer",
+      ),
     );
     await toolData(fixture.client, "pokemap_workspace", {
       operation: "close",

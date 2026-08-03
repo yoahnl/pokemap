@@ -135,4 +135,28 @@ void main() {
     expect(session.state.gridGeometry, geometry);
     expect(session.state.anchor, isNull);
   });
+
+  test('restores the canonical wizard stage and source for a saved draft', () {
+    const draft = ProjectSmartTileAuthoringDraft(
+      id: 'draft',
+      targetPresetId: 'preset',
+      name: 'Draft',
+      usage: SmartTileUsage.path,
+      lastStage: SmartTileAuthoringStage.grid,
+      sourceTilesetIds: <String>['source'],
+      guideId: 'erwCorner16',
+    );
+    final session = SmartTileStudioSession()
+      ..resumeDraft(draft, gridGeometry: geometry);
+
+    expect(session.state.isCreating, isTrue);
+    expect(session.state.wizardStep, SmartTileStudioWizardStep.grid);
+    expect(session.state.usage, SmartTileUsage.path);
+    expect(session.state.guideId, SmartTileGuideId.erwCorner16);
+    expect(
+      session.state.sourceChoice,
+      SmartTileStudioSourceChoice.projectImage,
+    );
+    expect(session.state.gridGeometry, geometry);
+  });
 }

@@ -3,18 +3,25 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
+import '../../application/smart_tile_authoring_controller.dart';
+import '../../application/smart_tile_form_projection.dart';
 
 class SmartTileVariantsStage extends StatelessWidget {
   const SmartTileVariantsStage({
     super.key,
     required this.transformPolicy,
+    required this.currentTransformPolicy,
     required this.allowedTransforms,
+    required this.topology,
+    required this.transformProposal,
     required this.animations,
     required this.selectedAnimationFrames,
     required this.animationNameController,
     required this.animationDurationController,
     required this.atlasPreview,
     required this.onTransformPolicyChanged,
+    required this.onAcceptTransformProposal,
+    required this.onDiscardTransformProposal,
     required this.onAnimationNameChanged,
     required this.onAnimationDurationChanged,
     required this.onRemoveAnimationFrame,
@@ -24,13 +31,18 @@ class SmartTileVariantsStage extends StatelessWidget {
   });
 
   final SmartTileTransformPolicy transformPolicy;
+  final SmartTileTransformPolicy currentTransformPolicy;
   final List<SmartTileSpriteTransform> allowedTransforms;
+  final SmartTileTopology topology;
+  final SmartTileTransformProposal? transformProposal;
   final List<ProjectSmartTileAnimation> animations;
   final List<SmartTileFrameRef> selectedAnimationFrames;
   final TextEditingController animationNameController;
   final TextEditingController animationDurationController;
   final Widget atlasPreview;
   final ValueChanged<SmartTileTransformPolicy> onTransformPolicyChanged;
+  final VoidCallback onAcceptTransformProposal;
+  final VoidCallback onDiscardTransformProposal;
   final ValueChanged<String> onAnimationNameChanged;
   final ValueChanged<String> onAnimationDurationChanged;
   final ValueChanged<int> onRemoveAnimationFrame;
@@ -125,6 +137,64 @@ class SmartTileVariantsStage extends StatelessWidget {
             ],
           ),
         ),
+        if (transformProposal case final proposal?) ...[
+          const SizedBox(height: 12),
+          PokeMapPanel(
+            key: const Key('smart-tiles-transform-proposal'),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                const PokeMapSectionHeader(
+                  title: 'Proposition à vérifier',
+                  description:
+                      'Le réglage actif reste intact tant que vous n’acceptez pas cette proposition.',
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  '${smartTileAllowedTransforms(currentTransformPolicy).length} orientation(s) actives → ${allowedTransforms.length} proposées',
+                ),
+                const SizedBox(height: 10),
+                _TransformImpactGroup(
+                  title: 'Formes gagnées',
+                  emptyLabel: 'Aucune forme supplémentaire',
+                  masks: proposal.gainedMasks,
+                  topology: topology,
+                  badgeVariant: PokeMapBadgeVariant.success,
+                ),
+                const SizedBox(height: 8),
+                _TransformImpactGroup(
+                  title: 'Formes perdues',
+                  emptyLabel: 'Aucune forme perdue',
+                  masks: proposal.lostMasks,
+                  topology: topology,
+                  badgeVariant: PokeMapBadgeVariant.warning,
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
+                  children: <Widget>[
+                    PokeMapButton(
+                      key: const Key('smart-tiles-transform-discard'),
+                      onPressed: onDiscardTransformProposal,
+                      variant: PokeMapButtonVariant.ghost,
+                      child: const Text('Annuler la proposition'),
+                    ),
+                    PokeMapButton(
+                      key: const Key('smart-tiles-transform-accept'),
+                      onPressed: proposal.hasChanges
+                          ? onAcceptTransformProposal
+                          : null,
+                      child: const Text('Accepter les transformations'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 18),
         const PokeMapSectionHeader(
           title: 'Animations facultatives',
@@ -224,6 +294,47 @@ class SmartTileVariantsStage extends StatelessWidget {
             child: const Text('Configurer les formes'),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _TransformImpactGroup extends StatelessWidget {
+  const _TransformImpactGroup({
+    required this.title,
+    required this.emptyLabel,
+    required this.masks,
+    required this.topology,
+    required this.badgeVariant,
+  });
+
+  final String title;
+  final String emptyLabel;
+  final List<int> masks;
+  final SmartTileTopology topology;
+  final PokeMapBadgeVariant badgeVariant;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text('$title (${masks.length})'),
+        const SizedBox(height: 6),
+        if (masks.isEmpty)
+          Text(emptyLabel)
+        else
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: <Widget>[
+              for (final mask in masks)
+                PokeMapBadge(
+                  label: smartTileFormHumanLabel(mask, topology),
+                  variant: badgeVariant,
+                ),
+            ],
+          ),
       ],
     );
   }

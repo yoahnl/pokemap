@@ -43,7 +43,91 @@ void main() {
           entry.$2,
           reason: entry.$1.name,
         );
+        final profile = controller.compilePreset().coverageProfile;
+        if (entry.$2 == SmartTileCoveragePolicy.complete) {
+          expect(profile.mode, SmartTileCoverageMode.template);
+        } else {
+          expect(profile.mode, SmartTileCoverageMode.explicit);
+          expect(profile.requiredScenarios, hasLength(1));
+          expect(profile.requiredScenarios.single.centerMaterialId, 'grass');
+        }
       }
+    });
+
+    test('preserves a canonical custom coverage profile across no-op saves',
+        () {
+      final source = _configuredController()
+        ..selectUsage(SmartTileUsage.path)
+        ..addAtlasVariant(
+          mask: smartTileNorthBit,
+          column: 0,
+          row: 0,
+          candidateId: 'north',
+        );
+      const customProfile = SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.templateAndExplicit,
+        allowFallback: true,
+        requiredScenarios: <SmartTileCoverageScenario>[
+          SmartTileCoverageScenario(
+            id: 'custom-wang-contract',
+            centerMaterialId: 'grass',
+            signature: SmartTileExactSignature(northEdge: 'grass'),
+          ),
+        ],
+      );
+      final canonical = source
+          .compileAuthoringDraft(lastStage: SmartTileAuthoringStage.forms)
+          .copyWith(coverageProfile: customProfile);
+
+      final resumed = SmartTileAuthoringController.fromCanonicalDraft(
+        canonical,
+      );
+      final firstSave = resumed.compileAuthoringDraft(
+        lastStage: SmartTileAuthoringStage.forms,
+      );
+      final secondSave = resumed.compileAuthoringDraft(
+        lastStage: SmartTileAuthoringStage.forms,
+      );
+
+      expect(firstSave.coverageProfile, customProfile);
+      expect(secondSave.coverageProfile, customProfile);
+      expect(resumed.compilePreset().coverageProfile, customProfile);
+    });
+
+    test('proposes gained and lost forms without mutating active transforms',
+        () {
+      final controller = _configuredController()
+        ..selectUsage(SmartTileUsage.terrain)
+        ..addAtlasVariant(
+          mask: smartTileNorthBit,
+          column: 0,
+          row: 0,
+          candidateId: 'north',
+        );
+      const quarterTurns = SmartTileTransformPolicy(
+        allowQuarterTurns: true,
+      );
+
+      final gain = controller.proposeTransformPolicy(quarterTurns);
+
+      expect(controller.state.transformPolicy.allowQuarterTurns, isFalse);
+      expect(gain.gainedMasks, <int>[
+        smartTileEastBit,
+        smartTileSouthBit,
+        smartTileWestBit,
+      ]);
+      expect(gain.lostMasks, isEmpty);
+
+      controller.setTransformPolicy(quarterTurns);
+      final loss = controller.proposeTransformPolicy(
+        const SmartTileTransformPolicy(),
+      );
+      expect(loss.gainedMasks, isEmpty);
+      expect(loss.lostMasks, <int>[
+        smartTileEastBit,
+        smartTileSouthBit,
+        smartTileWestBit,
+      ]);
     });
 
     test('Simple compiles an explicit center-material rule', () {

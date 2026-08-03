@@ -260,6 +260,43 @@ void main() {
       expect(actionIds, contains('action.playtest.start'));
     });
 
+    test('catalog certifies Smart Tiles and contains no legacy paint actions',
+        () {
+      final actionIds = inventory.entries
+          .where((entry) => entry.kind == AuthoringCapabilityKind.catalogAction)
+          .map((entry) => entry.id.replaceFirst('action.', ''))
+          .toSet();
+
+      expect(
+        actionIds.where((id) => id.startsWith('smart_tile.')).toSet(),
+        <String>{
+          'smart_tile.animation.delete',
+          'smart_tile.animation.upsert',
+          'smart_tile.atlas.upsert',
+          'smart_tile.cell.erase',
+          'smart_tile.cell.paint',
+          'smart_tile.layer.create',
+          'smart_tile.layer.delete',
+          'smart_tile.layer.merge',
+          'smart_tile.layer.normalize',
+          'smart_tile.material.upsert',
+          'smart_tile.preset.delete',
+          'smart_tile.preset.draft.delete',
+          'smart_tile.preset.draft.upsert',
+          'smart_tile.preset.publish',
+        },
+      );
+      expect(
+        actionIds.where(
+          (id) =>
+              id.startsWith('terrain.') ||
+              id.startsWith('path.') ||
+              id.startsWith('surface.'),
+        ),
+        isEmpty,
+      );
+    });
+
     test('is byte-stable over repeated collection', () {
       final second = RepositoryAuthoringCapabilityCollector(
         repositoryRoot: repositoryRoot,

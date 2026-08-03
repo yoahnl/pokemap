@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -49,6 +50,64 @@ void main() {
     foregroundImage.dispose();
   });
 
+  test('runtime render is byte-identical after reopening v6 project data',
+      () async {
+    final tileset = await runtimeTilesetImage(
+      const <Color>[Color(0xFFFF0000), Color(0xFF0000FF)],
+    );
+    addTearDown(tileset.dispose);
+    final reopenedManifest = ProjectManifest.fromJson(
+      Map<String, dynamic>.from(
+        jsonDecode(jsonEncode(_manifest.toJson())) as Map,
+      ),
+    );
+    final reopenedMap = MapData.fromJson(
+      Map<String, dynamic>.from(jsonDecode(jsonEncode(_map.toJson())) as Map),
+    );
+
+    // The certification compares final pixels rather than model equality: a
+    // codec or runtime regression can preserve JSON fields yet still change a
+    // channel, transform or draw order after the project is reopened.
+    for (final renderPass in MapLayerRenderPass.values) {
+      final before = await _render(
+        MapLayersComponent(
+          bundle: RuntimeMapBundle(
+            manifest: _manifest,
+            map: _map,
+            projectRootDirectory: '/tmp/smart-runtime-reopen-before',
+            tilesetAbsolutePathsById: const <String, String>{},
+          ),
+          tileImagesByTilesetId: <String, RuntimeTilesetImage>{
+            'smart': tileset,
+          },
+          renderPass: renderPass,
+        ),
+      );
+      final after = await _render(
+        MapLayersComponent(
+          bundle: RuntimeMapBundle(
+            manifest: reopenedManifest,
+            map: reopenedMap,
+            projectRootDirectory: '/tmp/smart-runtime-reopen-after',
+            tilesetAbsolutePathsById: const <String, String>{},
+          ),
+          tileImagesByTilesetId: <String, RuntimeTilesetImage>{
+            'smart': tileset,
+          },
+          renderPass: renderPass,
+        ),
+      );
+
+      expect(
+        await _rgbaBytes(after),
+        orderedEquals(await _rgbaBytes(before)),
+        reason: renderPass.name,
+      );
+      before.dispose();
+      after.dispose();
+    }
+  });
+
   test('runtime applies flipX before clockwise rotation with nearest filtering',
       () async {
     final image = await _asymmetricRuntimeImage();
@@ -77,6 +136,11 @@ Future<ui.Image> _render(MapLayersComponent component) {
   final recorder = ui.PictureRecorder();
   component.render(Canvas(recorder));
   return recorder.endRecording().toImage(32, 32);
+}
+
+Future<List<int>> _rgbaBytes(ui.Image image) async {
+  final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  return data!.buffer.asUint8List();
 }
 
 Future<RuntimeTilesetImage> _asymmetricRuntimeImage() async {

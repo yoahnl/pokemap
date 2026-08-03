@@ -10,6 +10,7 @@ final class SmartTileLibraryItem {
     this.usage,
     this.categoryId,
     this.nativePreset,
+    this.canonicalDraft,
   });
 
   final String key;
@@ -20,6 +21,9 @@ final class SmartTileLibraryItem {
   final String statusLabel;
   final int sortOrder;
   final ProjectSmartTilePreset? nativePreset;
+  final ProjectSmartTileAuthoringDraft? canonicalDraft;
+
+  bool get isResumableDraft => canonicalDraft != null;
 
   String get usageLabel => switch (usage) {
         SmartTileUsage.terrain => 'Terrain',
@@ -33,6 +37,17 @@ List<SmartTileLibraryItem> buildSmartTileStudioLibrary(
   ProjectManifest manifest,
 ) {
   final items = <SmartTileLibraryItem>[
+    for (final draft in manifest.smartTileCatalog.drafts)
+      SmartTileLibraryItem(
+        key: 'draft:${draft.id}',
+        id: draft.targetPresetId,
+        name: draft.name,
+        usage: draft.usage,
+        categoryId: draft.categoryId.isEmpty ? null : draft.categoryId,
+        statusLabel: 'Brouillon à reprendre',
+        sortOrder: draft.sortOrder,
+        canonicalDraft: draft,
+      ),
     for (final preset in manifest.smartTileCatalog.presets)
       SmartTileLibraryItem(
         key: 'native:${preset.id}',

@@ -24,6 +24,23 @@ final class SmartTileMaterialInUseException implements Exception {
       'SmartTileMaterialInUseException($materialId, ${blocker.name})';
 }
 
+final class SmartTileTransformProposal {
+  SmartTileTransformProposal({
+    required this.currentPolicy,
+    required this.proposedPolicy,
+    required Iterable<int> gainedMasks,
+    required Iterable<int> lostMasks,
+  })  : gainedMasks = List<int>.unmodifiable(gainedMasks),
+        lostMasks = List<int>.unmodifiable(lostMasks);
+
+  final SmartTileTransformPolicy currentPolicy;
+  final SmartTileTransformPolicy proposedPolicy;
+  final List<int> gainedMasks;
+  final List<int> lostMasks;
+
+  bool get hasChanges => currentPolicy != proposedPolicy;
+}
+
 final class SmartTileAuthoringDraft {
   SmartTileAuthoringDraft({
     this.id = '',
@@ -127,7 +144,8 @@ final class SmartTileAuthoringController {
   SmartTileAuthoringController({
     SmartTileAuthoringDraft? initialState,
   })  : _state = initialState ?? SmartTileAuthoringDraft(),
-        _canonicalBase = null;
+        _canonicalBase = null,
+        _preservedCoverageProfile = null;
 
   factory SmartTileAuthoringController.blank() =>
       SmartTileAuthoringController();
@@ -147,6 +165,7 @@ final class SmartTileAuthoringController {
 
   SmartTileAuthoringDraft _state;
   ProjectSmartTileAuthoringDraft? _canonicalBase;
+  SmartTileCoverageProfile? _preservedCoverageProfile;
 
   SmartTileAuthoringDraft get state => _state;
 
@@ -176,6 +195,7 @@ final class SmartTileAuthoringController {
       if (mask != null) mappings[mask] = rule.candidates;
     }
     _canonicalBase = draft;
+    _preservedCoverageProfile = draft.coverageProfile;
     _state = SmartTileAuthoringDraft(
       id: draft.targetPresetId,
       name: draft.name,
@@ -247,6 +267,7 @@ final class SmartTileAuthoringController {
       templateHint: _state.templateHint,
       boundaryPolicy: _state.boundaryPolicy,
       coveragePolicy: _state.coveragePolicy,
+      coverageProfile: _compileCoverageProfile(topology),
       transformPolicy: _state.transformPolicy,
       rules: rules,
     );
@@ -389,6 +410,7 @@ final class SmartTileAuthoringController {
           ? const <int, List<SmartTileCandidate>>{}
           : _state.mappings,
     );
+    if (changesContract) _preservedCoverageProfile = null;
   }
 
   void configureAtlas({
@@ -428,6 +450,7 @@ final class SmartTileAuthoringController {
           : SmartTileCoveragePolicy.sparse,
       mappings: const <int, List<SmartTileCandidate>>{},
     );
+    _preservedCoverageProfile = null;
   }
 
   void selectTemplate(SmartTileTemplateHint template) {
@@ -446,6 +469,7 @@ final class SmartTileAuthoringController {
       topology: topology,
       mappings: const <int, List<SmartTileCandidate>>{},
     );
+    _preservedCoverageProfile = null;
   }
 
   /// Prefills every cell from a validated guide without deleting manual work.
@@ -582,6 +606,31 @@ final class SmartTileAuthoringController {
 
   void setTransformPolicy(SmartTileTransformPolicy policy) {
     _state = _state.copyWith(transformPolicy: policy);
+  }
+
+  SmartTileTransformProposal proposeTransformPolicy(
+    SmartTileTransformPolicy policy,
+  ) {
+    final topology = _state.topology;
+    if (topology == null) {
+      throw StateError('Choose a Smart Tile topology before transforms.');
+    }
+    final currentMasks = _generatedMasksForPolicy(
+      _state.transformPolicy,
+      topology: topology,
+    );
+    final proposedMasks = _generatedMasksForPolicy(
+      policy,
+      topology: topology,
+    );
+    final gained = proposedMasks.difference(currentMasks).toList()..sort();
+    final lost = currentMasks.difference(proposedMasks).toList()..sort();
+    return SmartTileTransformProposal(
+      currentPolicy: _state.transformPolicy,
+      proposedPolicy: policy,
+      gainedMasks: gained,
+      lostMasks: lost,
+    );
   }
 
   void clearMappings() {
@@ -883,9 +932,7 @@ final class SmartTileAuthoringController {
       templateHint: _state.templateHint,
       status: _state.status,
       coveragePolicy: _state.coveragePolicy,
-      coverageProfile: const SmartTileCoverageProfile(
-        mode: SmartTileCoverageMode.template,
-      ),
+      coverageProfile: _compileCoverageProfile(topology),
       transformPolicy: _state.transformPolicy,
       boundaryPolicy: _state.boundaryPolicy,
       defaultMaterialId: _state.defaultMaterialId,
@@ -944,6 +991,61 @@ final class SmartTileAuthoringController {
           candidates: _state.mappings[mask]!,
         ),
     ];
+  }
+
+  SmartTileCoverageProfile _compileCoverageProfile(
+    SmartTileTopology topology,
+  ) {
+    final preserved = _preservedCoverageProfile;
+    if (preserved != null) return preserved;
+    if (_state.coveragePolicy == SmartTileCoveragePolicy.complete) {
+      return const SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.template,
+      );
+    }
+    final masks = _state.mappings.keys.toList()..sort();
+    final materialIds = _state.materials
+        .where((material) => !material.isEmpty)
+        .map((material) => material.id)
+        .toList()
+      ..sort();
+    return SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.explicit,
+      requiredScenarios: <SmartTileCoverageScenario>[
+        for (final materialId in materialIds)
+          for (final mask in masks)
+            SmartTileCoverageScenario(
+              id: 'sparse_${materialId}_${smartTileCanonicalRuleId(mask)}',
+              centerMaterialId: materialId,
+              signature: _exactSignatureForMask(
+                mask,
+                topology: topology,
+                materialId: materialId,
+              ),
+            ),
+      ],
+    );
+  }
+
+  Set<int> _generatedMasksForPolicy(
+    SmartTileTransformPolicy policy, {
+    required SmartTileTopology topology,
+  }) {
+    final masks = <int>{};
+    for (final sourceMask in _state.mappings.keys) {
+      final signature = smartTileSignatureForMask(
+        sourceMask,
+        topology: topology,
+      );
+      for (final transform in smartTileAllowedTransforms(policy)) {
+        final generated = smartTileMaskForSignature(
+          transformSmartTileSignature(signature, transform),
+          topology: topology,
+        );
+        if (generated != null) masks.add(generated);
+      }
+    }
+    return masks;
   }
 
   void _upsertCandidate({
@@ -1012,6 +1114,47 @@ final class SmartTileAuthoringController {
     }
     return geometry;
   }
+}
+
+SmartTileExactSignature _exactSignatureForMask(
+  int mask, {
+  required SmartTileTopology topology,
+  required String materialId,
+}) {
+  final normalized = topology == SmartTileTopology.blob8
+      ? normalizeSmartTileBlobMask(mask)
+      : mask & smartTileEightNeighborMask;
+  String? materialAt(int bit) => normalized & bit == 0 ? null : materialId;
+
+  return switch (topology) {
+    SmartTileTopology.uniform => const SmartTileExactSignature(),
+    SmartTileTopology.cardinal4 ||
+    SmartTileTopology.wangEdge4 =>
+      SmartTileExactSignature(
+        northEdge: materialAt(smartTileNorthBit),
+        eastEdge: materialAt(smartTileEastBit),
+        southEdge: materialAt(smartTileSouthBit),
+        westEdge: materialAt(smartTileWestBit),
+      ),
+    SmartTileTopology.wangCorner4 => SmartTileExactSignature(
+        northWestCorner: materialAt(smartTileNorthWestBit),
+        northEastCorner: materialAt(smartTileNorthEastBit),
+        southEastCorner: materialAt(smartTileSouthEastBit),
+        southWestCorner: materialAt(smartTileSouthWestBit),
+      ),
+    SmartTileTopology.blob8 ||
+    SmartTileTopology.wang8 =>
+      SmartTileExactSignature(
+        northWestCorner: materialAt(smartTileNorthWestBit),
+        northEdge: materialAt(smartTileNorthBit),
+        northEastCorner: materialAt(smartTileNorthEastBit),
+        eastEdge: materialAt(smartTileEastBit),
+        southEastCorner: materialAt(smartTileSouthEastBit),
+        southEdge: materialAt(smartTileSouthBit),
+        southWestCorner: materialAt(smartTileSouthWestBit),
+        westEdge: materialAt(smartTileWestBit),
+      ),
+  };
 }
 
 bool _ruleUsesMaterial(SmartTileRule rule, String materialId) {

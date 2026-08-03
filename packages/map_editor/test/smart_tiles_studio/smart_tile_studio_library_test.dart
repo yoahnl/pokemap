@@ -56,4 +56,33 @@ void main() {
 
     expect(items, isEmpty);
   });
+
+  test('lists canonical drafts as resumable no-code records', () {
+    final manifest = ProjectManifest(
+      name: 'draft library',
+      version: ProjectVersion.v6,
+      maps: <ProjectMapEntry>[],
+      tilesets: <ProjectTilesetEntry>[],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        drafts: const <ProjectSmartTileAuthoringDraft>[
+          ProjectSmartTileAuthoringDraft(
+            id: 'draft-grass',
+            targetPresetId: 'grass',
+            name: 'Herbe en cours',
+            usage: SmartTileUsage.terrain,
+            lastStage: SmartTileAuthoringStage.grid,
+          ),
+        ],
+      ),
+    );
+
+    final items = buildSmartTileStudioLibrary(manifest);
+
+    expect(items, hasLength(1));
+    expect(items.single.key, 'draft:draft-grass');
+    expect(items.single.statusLabel, 'Brouillon à reprendre');
+    expect(items.single.isResumableDraft, isTrue);
+    expect(
+        items.single.canonicalDraft?.lastStage, SmartTileAuthoringStage.grid);
+  });
 }

@@ -681,15 +681,21 @@ void main() {
       );
       await _jumpWorkbenchToTop(tester);
 
-      await tester.tap(
-        find.descendant(
-          of: find.byKey(
-            const Key('smart-tiles-transform-quarter-turns'),
-          ),
-          matching: find.byType(CupertinoSwitch),
+      final quarterTurnsSwitch = find.descendant(
+        of: find.byKey(
+          const Key('smart-tiles-transform-quarter-turns'),
         ),
+        matching: find.byType(CupertinoSwitch),
       );
+      await tester.ensureVisible(quarterTurnsSwitch);
+      await tester.pumpAndSettle();
+      await tester.tap(quarterTurnsSwitch);
       await tester.pump();
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isFalse);
+      expect(
+        find.byKey(const Key('smart-tiles-transform-proposal')),
+        findsOneWidget,
+      );
       await tester.tap(
         find.descendant(
           of: find.byKey(
@@ -700,10 +706,52 @@ void main() {
       );
       await tester.pump();
 
-      expect(latestDraft!.transformPolicy.allowQuarterTurns, isTrue);
-      expect(latestDraft!.transformPolicy.allowHFlip, isTrue);
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isFalse);
+      expect(latestDraft!.transformPolicy.allowHFlip, isFalse);
       expect(find.text('8 orientation(s) réellement autorisée(s)'),
           findsOneWidget);
+      expect(find.text('Formes gagnées (0)'), findsOneWidget);
+      expect(find.text('Formes perdues (0)'), findsOneWidget);
+
+      final discard = find.byKey(const Key('smart-tiles-transform-discard'));
+      await tester.ensureVisible(discard);
+      await tester.pumpAndSettle();
+      await tester.tap(discard);
+      await tester.pump();
+      expect(
+        find.byKey(const Key('smart-tiles-transform-proposal')),
+        findsNothing,
+      );
+      expect(find.text('1 orientation(s) réellement autorisée(s)'),
+          findsOneWidget);
+
+      await tester.ensureVisible(quarterTurnsSwitch);
+      await tester.pumpAndSettle();
+      await tester.tap(quarterTurnsSwitch);
+      await tester.pump();
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isFalse);
+      expect(find.text('4 orientation(s) réellement autorisée(s)'),
+          findsOneWidget);
+      var accept = find.byKey(const Key('smart-tiles-transform-accept'));
+      await tester.ensureVisible(accept);
+      await tester.pumpAndSettle();
+      await tester.tap(accept);
+      await tester.pump();
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isTrue);
+
+      await tester.ensureVisible(quarterTurnsSwitch);
+      await tester.pumpAndSettle();
+      await tester.tap(quarterTurnsSwitch);
+      await tester.pump();
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isTrue);
+      expect(find.text('1 orientation(s) réellement autorisée(s)'),
+          findsOneWidget);
+      accept = find.byKey(const Key('smart-tiles-transform-accept'));
+      await tester.ensureVisible(accept);
+      await tester.pumpAndSettle();
+      await tester.tap(accept);
+      await tester.pump();
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isFalse);
 
       final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
       await tester.ensureVisible(viewport);
@@ -732,6 +780,183 @@ void main() {
           animation.frames.every((frame) => frame.durationMs == 120), isTrue);
       expect(find.text('Herbe au vent'), findsOneWidget);
       expect(find.text(animation.id), findsNothing);
+    });
+
+    testWidgets('resumes a persisted grid draft and reloads its source image', (
+      tester,
+    ) async {
+      const tileset = ProjectTilesetEntry(
+        id: 'resumable-source',
+        name: 'Source reprise',
+        relativePath: 'assets/resumable.png',
+      );
+      const draft = ProjectSmartTileAuthoringDraft(
+        id: 'resumable-draft',
+        targetPresetId: 'resumable-preset',
+        name: 'Terrain à reprendre',
+        usage: SmartTileUsage.terrain,
+        lastStage: SmartTileAuthoringStage.grid,
+        sourceTilesetIds: <String>['resumable-source'],
+        atlases: <ProjectSmartTileAtlas>[
+          ProjectSmartTileAtlas(
+            id: 'resumable-atlas',
+            name: 'Atlas repris',
+            tilesetId: 'resumable-source',
+            cellWidth: 32,
+            cellHeight: 32,
+            columns: 10,
+            rows: 6,
+          ),
+        ],
+        primaryAtlasId: 'resumable-atlas',
+        topology: SmartTileTopology.cardinal4,
+        templateHint: SmartTileTemplateHint.edge16,
+      );
+      final loader = _FakeSmartTileAtlasImageLoader(width: 320, height: 192);
+
+      await _pumpPanel(
+        tester,
+        _manifest(
+          tilesets: const <ProjectTilesetEntry>[tileset],
+          drafts: <ProjectSmartTileAuthoringDraft>[draft],
+        ),
+        projectRootPath: '/tmp/resumable-project',
+        imageLoader: loader,
+      );
+
+      expect(find.text('Terrain à reprendre'), findsWidgets);
+      expect(find.textContaining('Brouillon à reprendre'), findsOneWidget);
+      await tester.tap(
+        find.byKey(
+          const Key('smart-tiles-library-item-draft:resumable-draft'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(loader.lastTilesetId, 'resumable-source');
+      expect(find.text('Confirmer la grille'), findsOneWidget);
+      expect(find.text('Confirmer et continuer'), findsOneWidget);
+      expect(find.text('Brouillon repris'), findsOneWidget);
+    });
+
+    testWidgets('previews gained and lost forms before accepting transforms', (
+      tester,
+    ) async {
+      const tileset = ProjectTilesetEntry(
+        id: 'transform-source',
+        name: 'Source transformations',
+        relativePath: 'assets/transforms.png',
+      );
+      final draft = ProjectSmartTileAuthoringDraft(
+        id: 'transform-draft',
+        targetPresetId: 'transform-preset',
+        name: 'Chemin orienté',
+        usage: SmartTileUsage.path,
+        lastStage: SmartTileAuthoringStage.variants,
+        sourceTilesetIds: <String>['transform-source'],
+        atlases: <ProjectSmartTileAtlas>[
+          const ProjectSmartTileAtlas(
+            id: 'transform-atlas',
+            name: 'Atlas transformations',
+            tilesetId: 'transform-source',
+            columns: 4,
+            rows: 4,
+          ),
+        ],
+        primaryAtlasId: 'transform-atlas',
+        defaultMaterialId: 'dirt',
+        allowedMaterialIds: <String>['dirt'],
+        topology: SmartTileTopology.cardinal4,
+        templateHint: SmartTileTemplateHint.free,
+        coveragePolicy: SmartTileCoveragePolicy.sparse,
+        coverageProfile: const SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.explicit,
+        ),
+        rules: <SmartTileRule>[
+          SmartTileRule(
+            id: 'north',
+            centerMatch: const SmartTileSlotMatch.any(),
+            signature: smartTileSignatureForMask(
+              smartTileNorthBit,
+              topology: SmartTileTopology.cardinal4,
+            ),
+            candidates: const <SmartTileCandidate>[
+              SmartTileCandidate(
+                id: 'north-visual',
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                        atlasId: 'transform-atlas',
+                        column: 0,
+                        row: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _pumpPanel(
+        tester,
+        _manifest(
+          tilesets: const <ProjectTilesetEntry>[tileset],
+          drafts: <ProjectSmartTileAuthoringDraft>[draft],
+        ),
+        projectRootPath: '/tmp/transform-project',
+        imageLoader: _FakeSmartTileAtlasImageLoader(width: 128, height: 128),
+        onDraftChanged: (value) => latestDraft = value,
+      );
+      await tester.tap(
+        find.byKey(
+          const Key('smart-tiles-library-item-draft:transform-draft'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _jumpWorkbenchToTop(tester);
+
+      final quarterTurns = find.descendant(
+        of: find.byKey(const Key('smart-tiles-transform-quarter-turns')),
+        matching: find.byType(CupertinoSwitch),
+      );
+      await tester.ensureVisible(quarterTurns);
+      await tester.pumpAndSettle();
+      await tester.tap(quarterTurns);
+      await tester.pump();
+
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isFalse);
+      expect(find.text('Formes gagnées (3)'), findsOneWidget);
+      expect(find.text('Formes perdues (0)'), findsOneWidget);
+      expect(find.text('Extrémité est'), findsOneWidget);
+      expect(find.text('Extrémité sud'), findsOneWidget);
+      expect(find.text('Extrémité ouest'), findsOneWidget);
+
+      var accept = find.byKey(const Key('smart-tiles-transform-accept'));
+      await tester.ensureVisible(accept);
+      await tester.pumpAndSettle();
+      await tester.tap(accept);
+      await tester.pump();
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isTrue);
+
+      await tester.ensureVisible(quarterTurns);
+      await tester.pumpAndSettle();
+      await tester.tap(quarterTurns);
+      await tester.pump();
+      expect(find.text('Formes gagnées (0)'), findsOneWidget);
+      expect(find.text('Formes perdues (3)'), findsOneWidget);
+      final discard = find.byKey(const Key('smart-tiles-transform-discard'));
+      await tester.ensureVisible(discard);
+      await tester.pumpAndSettle();
+      await tester.tap(discard);
+      await tester.pump();
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isTrue);
+      expect(
+        find.byKey(const Key('smart-tiles-transform-proposal')),
+        findsNothing,
+      );
     });
 
     testWidgets('maps a form then manages exact weighted variants', (
@@ -1280,6 +1505,8 @@ ProjectManifest _manifest({
     ),
   ],
   List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[],
+  List<ProjectSmartTileAuthoringDraft> drafts =
+      const <ProjectSmartTileAuthoringDraft>[],
 }) {
   return ProjectManifest(
     name: 'Smart Tiles test',
@@ -1305,6 +1532,7 @@ ProjectManifest _manifest({
         ),
       ],
       presets: presets,
+      drafts: drafts,
     ),
   );
 }

@@ -378,7 +378,10 @@ final class SmartTileDraftPersistenceCoordinator {
             draft: draft,
             expectedRevision: expectedRevision,
             idempotencyKey: 'smart-tile-draft:${draft.id}:$fingerprint',
-            operationId: 'smart-tile-draft-apply:${draft.id}:$fingerprint',
+            // Transaction operation ids only accept [A-Za-z0-9_.-] and are
+            // capped at 120 characters. The canonical draft fingerprint is
+            // already project-local, deterministic and collision-resistant.
+            operationId: 'smart-tile-draft-apply-$fingerprint',
           );
           final canonical = await _gateway.load(
             projectRootPath: projectRootPath,
