@@ -18,6 +18,7 @@ import '../../../app/providers/core_providers.dart';
 import '../../../app/providers/editor_workspace_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
+import '../../../application/authoring_api/authoring_mutation_adapter.dart';
 import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../../../application/services/map_dependency_preflight_service.dart';
 import '../../../application/services/map_viewport_navigation.dart';
@@ -172,12 +173,42 @@ final class _PendingSmartTileGesture {
     required this.mapId,
     required this.layerId,
     required this.materialId,
+    required this.rollbackState,
   });
 
   final String mapId;
   final String layerId;
   final String? materialId;
+  final EditorState rollbackState;
   final Set<GridPos> cells = <GridPos>{};
+}
+
+final class _CanonicalSmartTileHistoryEntry {
+  const _CanonicalSmartTileHistoryEntry({
+    required this.projectRootPath,
+    required this.receiptId,
+    required this.mapId,
+    required this.layerId,
+    required this.materialId,
+    required this.cells,
+  });
+
+  final String projectRootPath;
+  final String receiptId;
+  final String mapId;
+  final String layerId;
+  final String? materialId;
+  final List<GridPos> cells;
+
+  _CanonicalSmartTileHistoryEntry withReceipt(String nextReceiptId) =>
+      _CanonicalSmartTileHistoryEntry(
+        projectRootPath: projectRootPath,
+        receiptId: nextReceiptId,
+        mapId: mapId,
+        layerId: layerId,
+        materialId: materialId,
+        cells: cells,
+      );
 }
 
 BorderPreviewContext? _borderPreviewContext(EditorState state) {
@@ -277,7 +308,12 @@ class EditorNotifier extends _$EditorNotifier
   bool _registeredNarrativeDocumentDisposal = false;
   _PendingSmartTileGesture? _pendingSmartTileGesture;
   bool _smartTileGestureCommitInProgress = false;
+  bool _smartTileCanonicalRecoveryRequired = false;
   int _smartTileGestureSequence = 0;
+  final List<_CanonicalSmartTileHistoryEntry> _canonicalSmartTileUndoStack =
+      <_CanonicalSmartTileHistoryEntry>[];
+  final List<_CanonicalSmartTileHistoryEntry> _canonicalSmartTileRedoStack =
+      <_CanonicalSmartTileHistoryEntry>[];
   // An attestation binds the revision to the exact object returned by a load.
   // Path-only lookups are used only after that object has become the active
   // document; snapshot activation additionally checks object identity.
@@ -881,6 +917,7 @@ class EditorNotifier extends _$EditorNotifier
     required String layerId,
     String? statusMessage,
     bool preservePaintTool = false,
+    bool preserveCanonicalGestureHistory = false,
   }) {
     final activeMap = state.activeMap;
     final activeMapPath = state.activeMapPath;
@@ -926,6 +963,9 @@ class EditorNotifier extends _$EditorNotifier
       revision: mapRevision,
       sourceDocument: map,
     );
+    if (!preserveCanonicalGestureHistory) {
+      _clearCanonicalSmartTileHistory();
+    }
     _coerceActiveToolIfIncompatibleWithLayer();
     return true;
   }
@@ -1949,6 +1989,15 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null || path == null) {
       return ActiveMapSaveOutcome.unavailable;
     }
+    if (_smartTileGestureCommitInProgress) {
+      return ActiveMapSaveOutcome.unavailable;
+    }
+    if (_smartTileCanonicalRecoveryRequired) {
+      state = state.copyWith(
+        errorMessage: 'smart_tile.cell.reload_required',
+      );
+      return ActiveMapSaveOutcome.unavailable;
+    }
     // The canvas arbiter still owns this gesture. Saving here would persist a
     // partial document and clear the rollback checkpoint behind its back.
     if (state.mapStrokeStart != null) {
@@ -2161,6 +2210,7 @@ class EditorNotifier extends _$EditorNotifier
         ),
         statusMessage: 'Carte « $id » créée avec succès',
       );
+      _clearCanonicalSmartTileHistory();
       state = _activatePaletteContext(state);
       _rememberMapDocumentRevision(
         mapPath,
@@ -2393,6 +2443,7 @@ class EditorNotifier extends _$EditorNotifier
         ),
         statusMessage: 'Carte « ${map.id} » chargée',
       );
+      _clearCanonicalSmartTileHistory();
       state = _activatePaletteContext(state);
       final visualComposition = buildMapVisualCompositionPlan(map);
       if (visualComposition.requiresReadOnly) {
@@ -5475,11 +5526,14 @@ class EditorNotifier extends _$EditorNotifier
     }
     if (state.projectRootPath != null &&
         (_smartTileGestureCommitInProgress ||
+            _smartTileCanonicalRecoveryRequired ||
             state.isDirty && state.mapStrokeStart == null)) {
       _setPaintError(
-        _smartTileGestureCommitInProgress
-            ? 'smart_tile.cell.commit_in_progress'
-            : 'smart_tile.cell.clean_map_required',
+        _smartTileCanonicalRecoveryRequired
+            ? 'smart_tile.cell.reload_required'
+            : _smartTileGestureCommitInProgress
+                ? 'smart_tile.cell.commit_in_progress'
+                : 'smart_tile.cell.clean_map_required',
       );
       return;
     }
@@ -5607,11 +5661,14 @@ class EditorNotifier extends _$EditorNotifier
     } else if (layer is SmartTileLayer) {
       if (state.projectRootPath != null &&
           (_smartTileGestureCommitInProgress ||
+              _smartTileCanonicalRecoveryRequired ||
               state.isDirty && state.mapStrokeStart == null)) {
         _setPaintError(
-          _smartTileGestureCommitInProgress
-              ? 'smart_tile.cell.commit_in_progress'
-              : 'smart_tile.cell.clean_map_required',
+          _smartTileCanonicalRecoveryRequired
+              ? 'smart_tile.cell.reload_required'
+              : _smartTileGestureCommitInProgress
+                  ? 'smart_tile.cell.commit_in_progress'
+                  : 'smart_tile.cell.clean_map_required',
         );
         return false;
       }
@@ -7986,13 +8043,17 @@ class EditorNotifier extends _$EditorNotifier
     final activeLayer =
         map == null || layerId == null ? null : _findLayerById(map, layerId);
     if (activeLayer is SmartTileLayer &&
-        (state.isDirty || _smartTileGestureCommitInProgress)) {
+        (state.isDirty ||
+            _smartTileGestureCommitInProgress ||
+            _smartTileCanonicalRecoveryRequired)) {
       state = state.copyWith(
-        errorMessage: _smartTileGestureCommitInProgress
-            ? 'La peinture Smart Tile précédente est encore en cours '
-                'd’enregistrement.'
-            : 'Enregistrez les modifications de la map avant de peindre un '
-                'Smart Tile.',
+        errorMessage: _smartTileCanonicalRecoveryRequired
+            ? 'Rechargez la map avant de continuer la peinture Smart Tile.'
+            : _smartTileGestureCommitInProgress
+                ? 'La peinture Smart Tile précédente est encore en cours '
+                    'd’enregistrement.'
+                : 'Enregistrez les modifications de la map avant de peindre un '
+                    'Smart Tile.',
       );
       return;
     }
@@ -8023,10 +8084,23 @@ class EditorNotifier extends _$EditorNotifier
     if (additions.isEmpty) return;
     var gesture = _pendingSmartTileGesture;
     if (gesture == null) {
+      final rollbackState = state.mapStrokeStart == null
+          ? _mapEditingController.undo(state)?.copyWith(
+              mapRedoStack: const [],
+              canRedoMap: false,
+            )
+          : _mapEditingController.cancelStroke(state);
+      if (rollbackState == null) {
+        state = state.copyWith(
+          errorMessage: 'smart_tile.cell.rollback_checkpoint_missing',
+        );
+        return;
+      }
       gesture = _PendingSmartTileGesture(
         mapId: mapId,
         layerId: layerId,
         materialId: materialId,
+        rollbackState: rollbackState,
       );
       _pendingSmartTileGesture = gesture;
     } else if (gesture.mapId != mapId ||
@@ -8068,69 +8142,175 @@ class EditorNotifier extends _$EditorNotifier
         'sequence': sequence,
       },
     );
+    EditorAuthoringMutationResult? applied;
     try {
       final mutations = ref.read(authoringMutationAdapterProvider);
       final plan = await mutations.plan(
         projectRootPath,
         actionId: actionId,
-        parameters: <String, Object?>{
-          'mapId': gesture.mapId,
-          'layerId': gesture.layerId,
-          if (gesture.materialId case final materialId?)
-            'materialId': materialId,
-          'cells': <Map<String, int>>[
-            for (final cell in cells) <String, int>{'x': cell.x, 'y': cell.y},
-          ],
-        },
+        parameters: _smartTileGestureParameters(
+          mapId: gesture.mapId,
+          layerId: gesture.layerId,
+          materialId: gesture.materialId,
+          cells: cells,
+        ),
         idempotencyKey: identity,
         requestId: identity,
       );
-      final applied = await mutations.apply(
+      applied = await mutations.apply(
         plan,
         operationId: '$identity-apply',
       );
-      final canonical =
-          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
-      if (canonical.snapshotRevision != applied.snapshotRevision) {
-        throw const EditorAuthoringMutationFailure(
-          code: 'smart_tile.cell.snapshot_stale',
-          message: 'Le snapshot canonique du geste Smart Tile est obsolète.',
-        );
-      }
-      final map = canonical.mapById(gesture.mapId);
-      final mapRevision = canonical.resourceRevision('map:${gesture.mapId}');
-      if (map == null || mapRevision == null) {
-        throw const EditorAuthoringMutationFailure(
-          code: 'smart_tile.cell.snapshot_missing',
-          message: 'La map modifiée est absente du snapshot canonique.',
-        );
-      }
-      if (state.activeMap?.id != gesture.mapId) return;
-      _smartTileGestureCommitInProgress = false;
-      acceptCanonicalSmartTilePublication(
-        manifest: canonical.manifest,
-        map: map,
-        mapRevision: mapRevision,
+      final historyEntry = _CanonicalSmartTileHistoryEntry(
+        projectRootPath: projectRootPath,
+        receiptId: applied.receipt.receiptId,
+        mapId: gesture.mapId,
+        layerId: gesture.layerId,
+        materialId: gesture.materialId,
+        cells: List<GridPos>.unmodifiable(cells),
+      );
+      final adopted = await _adoptCanonicalSmartTileSnapshot(
+        projectRootPath: projectRootPath,
+        expectedSnapshotRevision: applied.snapshotRevision,
+        mapId: gesture.mapId,
         layerId: gesture.layerId,
         statusMessage: gesture.materialId == null
             ? '${cells.length} cellule(s) Smart Tile effacée(s).'
             : '${cells.length} cellule(s) Smart Tile peinte(s).',
-        preservePaintTool: true,
       );
+      _canonicalSmartTileUndoStack.add(historyEntry);
+      _canonicalSmartTileRedoStack.clear();
+      _smartTileCanonicalRecoveryRequired = false;
+      if (adopted) _syncCanonicalSmartTileHistoryFlags();
     } on Object catch (error) {
       final failure = EditorAuthoringMutationFailure.capture(error);
-      state = state.copyWith(errorMessage: failure.code);
+      if (applied == null) {
+        _rollbackOptimisticSmartTileGesture(gesture, failure.code);
+      } else {
+        _smartTileCanonicalRecoveryRequired = true;
+        state = state.copyWith(errorMessage: 'smart_tile.cell.reload_required');
+      }
     } finally {
       _smartTileGestureCommitInProgress = false;
     }
+  }
+
+  Map<String, Object?> _smartTileGestureParameters({
+    required String mapId,
+    required String layerId,
+    required String? materialId,
+    required Iterable<GridPos> cells,
+  }) =>
+      <String, Object?>{
+        'mapId': mapId,
+        'layerId': layerId,
+        if (materialId case final value?) 'materialId': value,
+        'cells': <Map<String, int>>[
+          for (final cell in cells) <String, int>{'x': cell.x, 'y': cell.y},
+        ],
+      };
+
+  Future<bool> _adoptCanonicalSmartTileSnapshot({
+    required String projectRootPath,
+    required String expectedSnapshotRevision,
+    required String mapId,
+    required String layerId,
+    required String statusMessage,
+  }) async {
+    final canonical =
+        await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+    if (canonical.snapshotRevision != expectedSnapshotRevision) {
+      throw const EditorAuthoringMutationFailure(
+        code: 'smart_tile.cell.snapshot_stale',
+        message: 'Le snapshot canonique du geste Smart Tile est obsolète.',
+      );
+    }
+    final map = canonical.mapById(mapId);
+    final mapRevision = canonical.resourceRevision('map:$mapId');
+    if (map == null || mapRevision == null) {
+      throw const EditorAuthoringMutationFailure(
+        code: 'smart_tile.cell.snapshot_missing',
+        message: 'La map modifiée est absente du snapshot canonique.',
+      );
+    }
+    if (state.activeMap?.id != mapId ||
+        state.projectRootPath != projectRootPath) {
+      return false;
+    }
+    return acceptCanonicalSmartTilePublication(
+      manifest: canonical.manifest,
+      map: map,
+      mapRevision: mapRevision,
+      layerId: layerId,
+      statusMessage: statusMessage,
+      preservePaintTool: true,
+      preserveCanonicalGestureHistory: true,
+    );
+  }
+
+  void _rollbackOptimisticSmartTileGesture(
+    _PendingSmartTileGesture gesture,
+    String errorCode,
+  ) {
+    final rollback = gesture.rollbackState;
+    if (state.activeMap?.id != gesture.mapId ||
+        state.projectRootPath != rollback.projectRootPath) {
+      state = state.copyWith(errorMessage: errorCode);
+      return;
+    }
+    state = state.copyWith(
+      activeMap: rollback.activeMap,
+      activeLayerId: rollback.activeLayerId,
+      mapUndoStack: rollback.mapUndoStack,
+      mapRedoStack: rollback.mapRedoStack,
+      mapStrokeStart: null,
+      savedMapSnapshot: rollback.savedMapSnapshot,
+      canUndoMap: rollback.canUndoMap,
+      canRedoMap: rollback.canRedoMap,
+      isDirty: rollback.isDirty,
+      errorMessage: errorCode,
+    );
+    _syncCanonicalSmartTileHistoryFlags();
+  }
+
+  bool _canonicalSmartTileHistoryMatchesActiveMap(
+    _CanonicalSmartTileHistoryEntry entry,
+  ) =>
+      state.projectRootPath == entry.projectRootPath &&
+      state.activeMap?.id == entry.mapId;
+
+  void _syncCanonicalSmartTileHistoryFlags() {
+    final canUndoCanonical = _canonicalSmartTileUndoStack.isNotEmpty &&
+        _canonicalSmartTileHistoryMatchesActiveMap(
+          _canonicalSmartTileUndoStack.last,
+        );
+    final canRedoCanonical = _canonicalSmartTileRedoStack.isNotEmpty &&
+        _canonicalSmartTileHistoryMatchesActiveMap(
+          _canonicalSmartTileRedoStack.last,
+        );
+    state = state.copyWith(
+      canUndoMap: state.mapUndoStack.isNotEmpty || canUndoCanonical,
+      canRedoMap: state.mapRedoStack.isNotEmpty || canRedoCanonical,
+    );
+  }
+
+  void _clearCanonicalSmartTileHistory() {
+    _canonicalSmartTileUndoStack.clear();
+    _canonicalSmartTileRedoStack.clear();
+    _smartTileCanonicalRecoveryRequired = false;
   }
 
   void undoMap() {
     // History commands must never terminate a gesture still owned by the
     // canvas. Pointer-up or cancellation remains its single terminal event.
     if (state.mapStrokeStart != null ||
+        _smartTileGestureCommitInProgress ||
+        _smartTileCanonicalRecoveryRequired ||
         _rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease()) {
+      if (_smartTileCanonicalRecoveryRequired) {
+        state = state.copyWith(errorMessage: 'smart_tile.cell.reload_required');
+      }
       return;
     }
     final initialState = state;
@@ -8140,6 +8320,16 @@ class EditorNotifier extends _$EditorNotifier
     final restored = _mapEditingController.undo(historyReadyState);
     if (restored == null) {
       state = historyReadyState;
+      final canUndoCanonical = !state.isDirty &&
+          _canonicalSmartTileUndoStack.isNotEmpty &&
+          _canonicalSmartTileHistoryMatchesActiveMap(
+            _canonicalSmartTileUndoStack.last,
+          );
+      if (canUndoCanonical) {
+        unawaited(_undoCanonicalSmartTileGesture());
+      } else {
+        _syncCanonicalSmartTileHistoryFlags();
+      }
       return;
     }
     final currentMap = historyReadyState.activeMap;
@@ -8162,14 +8352,20 @@ class EditorNotifier extends _$EditorNotifier
       restored.copyWith(paletteSession: outgoingPaletteSession),
     );
     state = _activatePaletteContext(adopted);
+    _syncCanonicalSmartTileHistoryFlags();
   }
 
   void redoMap() {
     // In particular, finalizing here would clear a pre-existing redo stack
     // before the physical pointer session has ended.
     if (state.mapStrokeStart != null ||
+        _smartTileGestureCommitInProgress ||
+        _smartTileCanonicalRecoveryRequired ||
         _rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease()) {
+      if (_smartTileCanonicalRecoveryRequired) {
+        state = state.copyWith(errorMessage: 'smart_tile.cell.reload_required');
+      }
       return;
     }
     final initialState = state;
@@ -8179,6 +8375,16 @@ class EditorNotifier extends _$EditorNotifier
     final restored = _mapEditingController.redo(historyReadyState);
     if (restored == null) {
       state = historyReadyState;
+      final canRedoCanonical = !state.isDirty &&
+          _canonicalSmartTileRedoStack.isNotEmpty &&
+          _canonicalSmartTileHistoryMatchesActiveMap(
+            _canonicalSmartTileRedoStack.last,
+          );
+      if (canRedoCanonical) {
+        unawaited(_redoCanonicalSmartTileGesture());
+      } else {
+        _syncCanonicalSmartTileHistoryFlags();
+      }
       return;
     }
     final currentMap = historyReadyState.activeMap;
@@ -8201,6 +8407,126 @@ class EditorNotifier extends _$EditorNotifier
       restored.copyWith(paletteSession: outgoingPaletteSession),
     );
     state = _activatePaletteContext(adopted);
+    _syncCanonicalSmartTileHistoryFlags();
+  }
+
+  Future<void> _undoCanonicalSmartTileGesture() async {
+    if (_canonicalSmartTileUndoStack.isEmpty) return;
+    final entry = _canonicalSmartTileUndoStack.last;
+    if (!_canonicalSmartTileHistoryMatchesActiveMap(entry) || state.isDirty) {
+      _syncCanonicalSmartTileHistoryFlags();
+      return;
+    }
+    _smartTileGestureCommitInProgress = true;
+    final sequence = ++_smartTileGestureSequence;
+    final identity = _smartTileEditorMutationIdentity(
+      purpose: 'smart-tile-history-undo',
+      values: <String, Object?>{
+        'mapId': entry.mapId,
+        'entryId': entry.receiptId,
+        'sequence': sequence,
+      },
+    );
+    EditorAuthoringMutationResult? applied;
+    try {
+      applied = await ref.read(authoringMutationAdapterProvider).undo(
+            entry.projectRootPath,
+            entryId: entry.receiptId,
+            idempotencyKey: identity,
+          );
+      final adopted = await _adoptCanonicalSmartTileSnapshot(
+        projectRootPath: entry.projectRootPath,
+        expectedSnapshotRevision: applied.snapshotRevision,
+        mapId: entry.mapId,
+        layerId: entry.layerId,
+        statusMessage: 'Geste Smart Tile annulé.',
+      );
+      if (_canonicalSmartTileUndoStack.isNotEmpty &&
+          _canonicalSmartTileUndoStack.last.receiptId == entry.receiptId) {
+        _canonicalSmartTileUndoStack.removeLast();
+        _canonicalSmartTileRedoStack.add(entry);
+      }
+      _smartTileCanonicalRecoveryRequired = false;
+      if (adopted) _syncCanonicalSmartTileHistoryFlags();
+    } on Object catch (error) {
+      final failure = EditorAuthoringMutationFailure.capture(error);
+      if (applied != null) _smartTileCanonicalRecoveryRequired = true;
+      state = state.copyWith(
+        errorMessage:
+            applied == null ? failure.code : 'smart_tile.cell.reload_required',
+      );
+    } finally {
+      _smartTileGestureCommitInProgress = false;
+      _syncCanonicalSmartTileHistoryFlags();
+    }
+  }
+
+  Future<void> _redoCanonicalSmartTileGesture() async {
+    if (_canonicalSmartTileRedoStack.isEmpty) return;
+    final entry = _canonicalSmartTileRedoStack.last;
+    if (!_canonicalSmartTileHistoryMatchesActiveMap(entry) || state.isDirty) {
+      _syncCanonicalSmartTileHistoryFlags();
+      return;
+    }
+    _smartTileGestureCommitInProgress = true;
+    final sequence = ++_smartTileGestureSequence;
+    final identity = _smartTileEditorMutationIdentity(
+      purpose: 'smart-tile-history-redo',
+      values: <String, Object?>{
+        'mapId': entry.mapId,
+        'entryId': entry.receiptId,
+        'sequence': sequence,
+      },
+    );
+    final actionId = entry.materialId == null
+        ? 'smart_tile.cell.erase'
+        : 'smart_tile.cell.paint';
+    EditorAuthoringMutationResult? applied;
+    try {
+      final mutations = ref.read(authoringMutationAdapterProvider);
+      final plan = await mutations.plan(
+        entry.projectRootPath,
+        actionId: actionId,
+        parameters: _smartTileGestureParameters(
+          mapId: entry.mapId,
+          layerId: entry.layerId,
+          materialId: entry.materialId,
+          cells: entry.cells,
+        ),
+        idempotencyKey: identity,
+        requestId: identity,
+      );
+      applied = await mutations.apply(
+        plan,
+        operationId: '$identity-apply',
+      );
+      final adopted = await _adoptCanonicalSmartTileSnapshot(
+        projectRootPath: entry.projectRootPath,
+        expectedSnapshotRevision: applied.snapshotRevision,
+        mapId: entry.mapId,
+        layerId: entry.layerId,
+        statusMessage: 'Geste Smart Tile réappliqué.',
+      );
+      if (_canonicalSmartTileRedoStack.isNotEmpty &&
+          _canonicalSmartTileRedoStack.last.receiptId == entry.receiptId) {
+        _canonicalSmartTileRedoStack.removeLast();
+        _canonicalSmartTileUndoStack.add(
+          entry.withReceipt(applied.receipt.receiptId),
+        );
+      }
+      _smartTileCanonicalRecoveryRequired = false;
+      if (adopted) _syncCanonicalSmartTileHistoryFlags();
+    } on Object catch (error) {
+      final failure = EditorAuthoringMutationFailure.capture(error);
+      if (applied != null) _smartTileCanonicalRecoveryRequired = true;
+      state = state.copyWith(
+        errorMessage:
+            applied == null ? failure.code : 'smart_tile.cell.reload_required',
+      );
+    } finally {
+      _smartTileGestureCommitInProgress = false;
+      _syncCanonicalSmartTileHistoryFlags();
+    }
   }
 
   EditorBrush _clearBrushIfTilesetRemoved(EditorBrush brush, String tilesetId) {
