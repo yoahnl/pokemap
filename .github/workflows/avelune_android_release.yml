@@ -67,6 +67,18 @@ jobs:
       AVELUNE_REQUIRE_RELEASE_SIGNING: "true"
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Validate Avelune release version
+        working-directory: apps/pokemap_hub
+        run: |
+          PUBSPEC_VERSION="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)"
+          if [[ ! "$PUBSPEC_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\+([1-9][0-9]*)$ ]]; then
+            echo "Invalid Avelune pubspec version: $PUBSPEC_VERSION" >&2
+            exit 64
+          fi
+          VERSION="${BASH_REMATCH[1]}"
+          BUILD_NUMBER="${BASH_REMATCH[2]}"
+          test "$GITHUB_REF_NAME" = "avelune-v$VERSION"
+          printf 'Validated Avelune %s build %s.\n' "$VERSION" "$BUILD_NUMBER"
       - name: Install pinned Flutter SDK
         run: |
           git init "$RUNNER_TEMP/flutter"

@@ -44,8 +44,7 @@ void main() {
   });
 
   test('Android identity, branding, and signing belong to Avelune', () async {
-    final settings =
-        await File('android/settings.gradle.kts').readAsString();
+    final settings = await File('android/settings.gradle.kts').readAsString();
     final gradle = await File('android/app/build.gradle.kts').readAsString();
     final manifest =
         await File('android/app/src/main/AndroidManifest.xml').readAsString();
@@ -111,7 +110,13 @@ void main() {
     expect(androidWorkflow, contains('flutter build apk --debug'));
     expect(androidWorkflow, contains('flutter build apk --release'));
     expect(androidWorkflow, contains('AVELUNE_ANDROID_KEYSTORE_BASE64'));
-    expect(androidWorkflow, contains('AVELUNE_REQUIRE_RELEASE_SIGNING: "true"'));
+    expect(
+        androidWorkflow, contains('AVELUNE_REQUIRE_RELEASE_SIGNING: "true"'));
+    expect(androidWorkflow, contains('Validate Avelune release version'));
+    expect(
+      androidWorkflow,
+      contains(r'test "$GITHUB_REF_NAME" = "avelune-v$VERSION"'),
+    );
     expect(androidWorkflow, contains('Avelune-android-'));
     expect(
       androidWorkflow,
