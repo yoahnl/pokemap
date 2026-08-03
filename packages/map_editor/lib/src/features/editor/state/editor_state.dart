@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../application/models/map_history_snapshot.dart';
 import '../../../application/models/terrain_selection_mode.dart';
+import '../../smart_tiles_studio/application/smart_tile_studio_launch_context.dart';
 import 'models/editor_ui_modes.dart';
 import 'models/editor_palette_session.dart';
 import 'models/editor_workspace_mode.dart';
@@ -68,6 +69,8 @@ class EditorState with _$EditorState {
     String? projectRootPath,
     ProjectManifest? project,
     @Default(EditorWorkspaceMode.map) EditorWorkspaceMode workspaceMode,
+    @Default(SmartTilesStudioLaunchContext.library())
+    SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,
     @Default(PokemonCatalogSection.pokedex)
     PokemonCatalogSection pokemonCatalogSection,
 

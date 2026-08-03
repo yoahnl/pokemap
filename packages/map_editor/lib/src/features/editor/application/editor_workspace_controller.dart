@@ -1,4 +1,5 @@
 import '../state/editor_state.dart';
+import '../../smart_tiles_studio/application/smart_tile_studio_launch_context.dart';
 
 /// Routeur pur des workspaces centraux de l'éditeur.
 ///
@@ -87,7 +88,25 @@ class EditorWorkspaceController {
   }
 
   EditorState selectSmartTilesStudioWorkspace(EditorState current) {
-    return _openWorkspace(current, EditorWorkspaceMode.smartTilesStudio);
+    final activeMap = current.activeMap;
+    return _openWorkspace(
+      current.copyWith(
+        smartTilesStudioLaunchContext: activeMap == null
+            ? const SmartTilesStudioLaunchContext.library()
+            : SmartTilesStudioLaunchContext.map(mapId: activeMap.id),
+      ),
+      EditorWorkspaceMode.smartTilesStudio,
+    );
+  }
+
+  EditorState selectSmartTilesStudioLibraryWorkspace(EditorState current) {
+    return _openWorkspace(
+      current.copyWith(
+        smartTilesStudioLaunchContext:
+            const SmartTilesStudioLaunchContext.library(),
+      ),
+      EditorWorkspaceMode.smartTilesStudio,
+    );
   }
 
   EditorState selectPathStudioWorkspace(EditorState current) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
@@ -12,6 +13,7 @@ import '../application/smart_tile_grid_detector.dart';
 import '../application/smart_tile_guide.dart';
 import '../application/smart_tile_guide_placement.dart';
 import '../application/smart_tile_studio_library.dart';
+import '../application/smart_tile_studio_launch_context.dart';
 import '../application/smart_tile_studio_session.dart';
 import 'smart_tile_guide_diagram.dart';
 import 'smart_tile_guide_overlay_painter.dart';
@@ -26,15 +28,21 @@ class SmartTilesStudioPanel extends StatefulWidget {
     required this.manifest,
     this.projectRootPath,
     this.imageLoader = const FileSmartTileAtlasImageLoader(),
-    this.onManifestChanged,
-    this.onAddToActiveMap,
+    this.launchContext = const SmartTilesStudioLaunchContext.library(),
+    this.isCapturedMapAvailable = false,
+    this.canonicalDraft,
+    this.onDraftChanged,
+    this.onDraftFlush,
   });
 
   final ProjectManifest manifest;
   final String? projectRootPath;
   final SmartTileAtlasImageLoader imageLoader;
-  final ValueChanged<ProjectManifest>? onManifestChanged;
-  final ValueChanged<ProjectSmartTilePreset>? onAddToActiveMap;
+  final SmartTilesStudioLaunchContext launchContext;
+  final bool isCapturedMapAvailable;
+  final ProjectSmartTileAuthoringDraft? canonicalDraft;
+  final ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged;
+  final Future<void> Function()? onDraftFlush;
 
   @override
   State<SmartTilesStudioPanel> createState() => _SmartTilesStudioPanelState();
@@ -97,6 +105,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     }
     if (oldWidget.projectRootPath != widget.projectRootPath) {
       _clearSourceImageSelection();
+    }
+    final canonicalDraft = widget.canonicalDraft;
+    if (canonicalDraft != null &&
+        canonicalDraft != oldWidget.canonicalDraft &&
+        canonicalDraft.targetPresetId == _authoring.state.id) {
+      _authoring.replaceFromCanonicalDraft(canonicalDraft);
     }
   }
 
@@ -453,10 +467,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         const SizedBox(height: 22),
         if (_session.state.wizardStep == SmartTileStudioWizardStep.usage)
           _buildUsageStep()
-        else if (_session.state.wizardStep == SmartTileStudioWizardStep.guide)
-          _buildGuideStep()
         else if (_session.state.wizardStep ==
-            SmartTileStudioWizardStep.placement)
+            SmartTileStudioWizardStep.connections)
+          _buildGuideStep()
+        else if (_session.state.wizardStep == SmartTileStudioWizardStep.forms)
           _buildPlacementStep()
         else if (_session.state.wizardStep == SmartTileStudioWizardStep.test)
           _buildTestStep(),
@@ -1546,6 +1560,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _clearSourceImageSelection();
       _selectedRegisteredAtlasId = null;
     });
+    _notifyDraftChanged();
   }
 
   Future<void> _chooseProjectImage() async {
@@ -1632,6 +1647,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _sourceImageResult = result;
       _isLoadingSourceImage = false;
     });
+    _notifyDraftChanged();
   }
 
   void _moveToGrid() {
@@ -1678,6 +1694,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     _setGridControllers(detected);
     _configureDraftAtlas(detected);
     setState(() => _session.configureGrid(detected));
+    _notifyDraftChanged();
   }
 
   void _setGridControllers(SmartTileGridGeometry geometry) {
@@ -1723,10 +1740,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _placementMessage = 'Grille modifiée : replacez la cellule nº 1.';
       _authoring.clearMappings();
     });
+    _notifyDraftChanged();
   }
 
   void _moveToGuide() {
     setState(_session.moveToGuide);
+    _flushDraftAfterStepChange();
   }
 
   void _selectUsage(SmartTileUsage usage) {
@@ -1740,6 +1759,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _correctionNumber = null;
       _placementMessage = null;
     });
+    _notifyDraftChanged();
   }
 
   void _selectGuide(SmartTileGuideId guideId) {
@@ -1750,10 +1770,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _placementMessage = null;
       _authoring.clearMappings();
     });
+    _notifyDraftChanged();
   }
 
   void _moveToPlacement() {
     setState(_session.moveToPlacement);
+    _flushDraftAfterStepChange();
   }
 
   void _resetPlacementSource() {
@@ -1766,6 +1788,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _placementMessage = null;
       _authoring.clearMappings();
     });
+    _notifyDraftChanged();
   }
 
   void _selectGuideAtlasCell({
@@ -1802,6 +1825,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         _correctionNumber = null;
         _placementMessage = 'Case $correctionNumber corrigée.';
       });
+      _notifyDraftChanged();
       return;
     }
 
@@ -1820,6 +1844,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         _authoring.clearMappings();
         _session.clearAnchor();
       });
+      _notifyDraftChanged();
       return;
     }
 
@@ -1831,6 +1856,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _placementMessage =
           '${placement.frames.length} cellules associées — prêt pour le banc d’essai.';
     });
+    _notifyDraftChanged();
   }
 
   void _mapAtlasCell({
@@ -1860,6 +1886,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       );
       _lastCandidateId = candidateId;
     });
+    _notifyDraftChanged();
   }
 
   void _addCanopyPart() {
@@ -1886,14 +1913,40 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     setState(() {
       _draftMessage = 'Couche de canopée ajoutée au candidat.';
     });
+    _notifyDraftChanged();
   }
 
   void _moveToTest() {
     setState(_session.moveToTest);
+    _flushDraftAfterStepChange();
   }
 
   void _moveToPublish() {
     setState(_session.moveToPublish);
+    _flushDraftAfterStepChange();
+  }
+
+  void _notifyDraftChanged() {
+    final callback = widget.onDraftChanged;
+    if (callback == null || _authoring.state.usage == null) return;
+    final stage = SmartTileAuthoringStage.values.byName(
+      _session.state.wizardStep.name,
+    );
+    callback(
+      _authoring.compileAuthoringDraft(
+        lastStage: stage,
+        guideId: _session.state.guideId?.name,
+        sourceTilesetIds: <String>[
+          if (_selectedSourceTilesetId case final id?) id,
+        ],
+      ),
+    );
+  }
+
+  void _flushDraftAfterStepChange() {
+    _notifyDraftChanged();
+    final flush = widget.onDraftFlush;
+    if (flush != null) unawaited(flush());
   }
 
   void _paintTestCell({
@@ -2564,8 +2617,12 @@ String _templateLabel(SmartTileTemplateHint template) => switch (template) {
 
 String _wizardStepLabel(SmartTileStudioWizardStep step) => switch (step) {
       SmartTileStudioWizardStep.usage => 'Usage',
-      SmartTileStudioWizardStep.guide => 'Guide',
-      SmartTileStudioWizardStep.placement => 'Placement',
+      SmartTileStudioWizardStep.image => 'Image',
+      SmartTileStudioWizardStep.grid => 'Grille',
+      SmartTileStudioWizardStep.materials => 'Matériaux',
+      SmartTileStudioWizardStep.connections => 'Raccords',
+      SmartTileStudioWizardStep.variants => 'Variantes',
+      SmartTileStudioWizardStep.forms => 'Formes',
       SmartTileStudioWizardStep.test => 'Essai',
       SmartTileStudioWizardStep.publish => 'Publier',
     };

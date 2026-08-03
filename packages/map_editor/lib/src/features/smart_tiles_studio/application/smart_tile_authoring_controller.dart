@@ -97,14 +97,114 @@ final class SmartTileAuthoringDraft {
 final class SmartTileAuthoringController {
   SmartTileAuthoringController({
     SmartTileAuthoringDraft? initialState,
-  }) : _state = initialState ?? SmartTileAuthoringDraft();
+  })  : _state = initialState ?? SmartTileAuthoringDraft(),
+        _canonicalBase = null;
 
   factory SmartTileAuthoringController.blank() =>
       SmartTileAuthoringController();
 
+  factory SmartTileAuthoringController.fromCanonicalDraft(
+    ProjectSmartTileAuthoringDraft draft,
+  ) {
+    final controller = SmartTileAuthoringController.blank();
+    controller.replaceFromCanonicalDraft(draft);
+    return controller;
+  }
+
   SmartTileAuthoringDraft _state;
+  ProjectSmartTileAuthoringDraft? _canonicalBase;
 
   SmartTileAuthoringDraft get state => _state;
+
+  /// Replaces local editable state with the canonical post-apply snapshot.
+  void replaceFromCanonicalDraft(ProjectSmartTileAuthoringDraft draft) {
+    final atlas = draft.atlases
+        .where((candidate) => candidate.id == draft.primaryAtlasId)
+        .firstOrNull;
+    final material = draft.materials
+        .where((candidate) => candidate.id == draft.defaultMaterialId)
+        .firstOrNull;
+    final mappings = <int, List<SmartTileCandidate>>{};
+    for (final rule in draft.rules) {
+      final mask = smartTileMaskForSignature(
+        rule.signature,
+        topology: draft.topology,
+      );
+      if (mask != null) mappings[mask] = rule.candidates;
+    }
+    _canonicalBase = draft;
+    _state = SmartTileAuthoringDraft(
+      id: draft.targetPresetId,
+      name: draft.name,
+      materialId: material?.id ?? draft.defaultMaterialId ?? '',
+      materialName: material?.name ?? '',
+      connectionGroupId: material?.connectionGroupId ?? '',
+      atlasId: atlas?.id ?? draft.primaryAtlasId ?? '',
+      atlasName: atlas?.name ?? '',
+      tilesetId: atlas?.tilesetId ?? draft.sourceTilesetIds.firstOrNull ?? '',
+      gridGeometry: atlas == null ? null : _geometryFromAtlas(atlas),
+      usage: draft.usage,
+      topology: draft.topology,
+      templateHint: draft.templateHint,
+      status: SmartTilePresetStatus.draft,
+      mappings: mappings,
+      animations: draft.animations,
+    );
+  }
+
+  /// Projects incomplete local state into the durable core draft schema.
+  ProjectSmartTileAuthoringDraft compileAuthoringDraft({
+    required SmartTileAuthoringStage lastStage,
+    String? guideId,
+    List<String>? sourceTilesetIds,
+  }) {
+    final usage = _state.usage;
+    if (usage == null) {
+      throw StateError('Choose a Smart Tile usage before saving the draft.');
+    }
+    final base = _canonicalBase;
+    final atlas = _tryCompileAtlas();
+    final material = _tryCompileMaterial();
+    final topology =
+        _state.topology ?? base?.topology ?? SmartTileTopology.uniform;
+    final rules = _compileRules(topology);
+    final draft = (base ??
+            ProjectSmartTileAuthoringDraft(
+              id: _state.id,
+              targetPresetId: _state.id,
+              name: _state.name,
+              usage: usage,
+              lastStage: lastStage,
+            ))
+        .copyWith(
+      targetPresetId: _state.id,
+      name: _state.name,
+      usage: usage,
+      lastStage: lastStage,
+      guideId: guideId ?? base?.guideId,
+      sourceTilesetIds: sourceTilesetIds ??
+          (atlas == null
+              ? base?.sourceTilesetIds ?? const <String>[]
+              : <String>[atlas.tilesetId]),
+      atlases: atlas == null
+          ? base?.atlases ?? const <ProjectSmartTileAtlas>[]
+          : <ProjectSmartTileAtlas>[atlas],
+      primaryAtlasId: atlas?.id ?? base?.primaryAtlasId,
+      materials: material == null
+          ? base?.materials ?? const <ProjectSmartTileMaterial>[]
+          : <ProjectSmartTileMaterial>[material],
+      animations: _state.animations,
+      defaultMaterialId: material?.id ?? base?.defaultMaterialId,
+      allowedMaterialIds: material == null
+          ? base?.allowedMaterialIds ?? const <String>[]
+          : <String>[material.id],
+      topology: topology,
+      templateHint: _state.templateHint,
+      rules: rules,
+    );
+    _canonicalBase = draft;
+    return draft;
+  }
 
   void configureIdentity({
     required String id,
@@ -487,6 +587,45 @@ final class SmartTileAuthoringController {
     );
   }
 
+  ProjectSmartTileAtlas? _tryCompileAtlas() {
+    final geometry = _state.gridGeometry;
+    if (geometry == null ||
+        _state.atlasId.trim().isEmpty ||
+        _state.atlasName.trim().isEmpty ||
+        _state.tilesetId.trim().isEmpty) {
+      return null;
+    }
+    return compileAtlas();
+  }
+
+  ProjectSmartTileMaterial? _tryCompileMaterial() {
+    if (_state.materialId.trim().isEmpty ||
+        _state.materialName.trim().isEmpty ||
+        _state.connectionGroupId.trim().isEmpty) {
+      return null;
+    }
+    return ProjectSmartTileMaterial(
+      id: _state.materialId,
+      name: _state.materialName,
+      connectionGroupId: _state.connectionGroupId,
+    );
+  }
+
+  List<SmartTileRule> _compileRules(SmartTileTopology topology) {
+    final masks = _state.mappings.keys.toList()..sort();
+    return <SmartTileRule>[
+      for (final mask in masks)
+        SmartTileRule(
+          id: smartTileCanonicalRuleId(mask),
+          centerMatch: _state.templateHint == SmartTileTemplateHint.simple
+              ? SmartTileSlotMatch.material(_state.materialId)
+              : const SmartTileSlotMatch.any(),
+          signature: smartTileSignatureForMask(mask, topology: topology),
+          candidates: _state.mappings[mask]!,
+        ),
+    ];
+  }
+
   void _upsertCandidate({
     required int mask,
     required SmartTileCandidate candidate,
@@ -543,6 +682,25 @@ final class SmartTileAuthoringController {
     }
     return geometry;
   }
+}
+
+SmartTileGridGeometry _geometryFromAtlas(ProjectSmartTileAtlas atlas) {
+  final usedWidth =
+      atlas.columns * atlas.cellWidth + (atlas.columns - 1) * atlas.spacingX;
+  final usedHeight =
+      atlas.rows * atlas.cellHeight + (atlas.rows - 1) * atlas.spacingY;
+  return SmartTileGridGeometry(
+    imageWidth: atlas.originX + atlas.marginX + usedWidth,
+    imageHeight: atlas.originY + atlas.marginY + usedHeight,
+    cellWidth: atlas.cellWidth,
+    cellHeight: atlas.cellHeight,
+    originX: atlas.originX,
+    originY: atlas.originY,
+    marginX: atlas.marginX,
+    marginY: atlas.marginY,
+    spacingX: atlas.spacingX,
+    spacingY: atlas.spacingY,
+  );
 }
 
 void _requireText(String value, String label) {

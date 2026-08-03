@@ -2,6 +2,8 @@ import 'package:map_core/map_core.dart';
 
 import 'smart_tile_authoring_controller.dart'
     show smartTileStudioAuthoringRequiresStn04Code;
+import 'smart_tile_draft_persistence_coordinator.dart';
+import 'smart_tile_draft_persistence_state.dart';
 
 final class SmartTilePublicationResult {
   const SmartTilePublicationResult({
@@ -20,6 +22,14 @@ final class SmartTilePublicationResult {
 /// No partial catalog mutation is returned when a blocking diagnostic exists.
 class SmartTilePublicationService {
   const SmartTilePublicationService();
+
+  /// Publication may only start after the latest local generation is durable.
+  Future<bool> flushBeforePublication(
+    SmartTileDraftPersistenceCoordinator coordinator,
+  ) async {
+    final state = await coordinator.flush();
+    return state.phase == SmartTileDraftPersistencePhase.saved;
+  }
 
   SmartTilePublicationResult publish({
     required ProjectManifest manifest,

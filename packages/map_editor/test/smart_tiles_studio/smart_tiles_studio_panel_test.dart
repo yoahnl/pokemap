@@ -135,12 +135,7 @@ void main() {
 
     testWidgets('keeps add-to-active-map disabled until STN-04 wiring',
         (tester) async {
-      ProjectSmartTilePreset? addedToMap;
-      await _pumpPanel(
-        tester,
-        _manifest(),
-        onAddToActiveMap: (preset) => addedToMap = preset,
-      );
+      await _pumpPanel(tester, _manifest());
 
       final finder = find.byKey(const Key('smart-tiles-add-to-active-map'));
       final button = tester.widget<PokeMapButton>(finder);
@@ -156,7 +151,6 @@ void main() {
 
       await tester.tap(finder);
       await tester.pump();
-      expect(addedToMap, isNull);
     });
 
     testWidgets('starts the guided flow with human labels and no masks', (
@@ -168,11 +162,19 @@ void main() {
       await tester.pump();
 
       expect(find.text('Nouveau Smart Tile'), findsOneWidget);
-      expect(find.text('1. Usage'), findsOneWidget);
-      expect(find.text('2. Guide'), findsOneWidget);
-      expect(find.text('3. Placement'), findsOneWidget);
-      expect(find.text('4. Essai'), findsOneWidget);
-      expect(find.text('5. Publier'), findsOneWidget);
+      for (final stage in const <String>[
+        '1. Usage',
+        '2. Image',
+        '3. Grille',
+        '4. Matériaux',
+        '5. Raccords',
+        '6. Variantes',
+        '7. Formes',
+        '8. Essai',
+        '9. Publier',
+      ]) {
+        expect(find.text(stage), findsOneWidget);
+      }
       expect(
         find.byKey(const Key('smart-tiles-usage-path')),
         findsOneWidget,
@@ -312,19 +314,17 @@ void main() {
       );
     });
 
-    testWidgets('keeps the guided preset in memory until STN-04 wiring', (
+    testWidgets('emits a canonical draft while publication remains gated', (
       tester,
     ) async {
-      ProjectManifest? published;
-      ProjectSmartTilePreset? addedToMap;
+      ProjectSmartTileAuthoringDraft? durableDraft;
       await _pumpGuidedAtlas(
         tester,
         loader: _FakeSmartTileAtlasImageLoader(
           width: 1760,
           height: 2304,
         ),
-        onManifestChanged: (next) => published = next,
-        onAddToActiveMap: (preset) => addedToMap = preset,
+        onDraftChanged: (next) => durableDraft = next,
       );
       final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
       await tester.ensureVisible(viewport);
@@ -363,8 +363,9 @@ void main() {
       await tester.tap(publish);
       await tester.pump();
 
-      expect(published, isNull);
-      expect(addedToMap, isNull);
+      expect(durableDraft, isNotNull);
+      expect(durableDraft!.lastStage, SmartTileAuthoringStage.publish);
+      expect(durableDraft!.rules, hasLength(12));
       expect(
         find.text(smartTileStudioAuthoringRequiresStn04Code),
         findsWidgets,
@@ -427,12 +428,7 @@ void main() {
     testWidgets('validation does not persist a preset before STN-04 wiring', (
       tester,
     ) async {
-      ProjectManifest? published;
-      await _pumpPanel(
-        tester,
-        _completeManifest(),
-        onManifestChanged: (next) => published = next,
-      );
+      await _pumpPanel(tester, _completeManifest());
 
       await tester.tap(find.byKey(const Key('smart-tiles-tab-validation')));
       await tester.pump();
@@ -446,7 +442,6 @@ void main() {
       await tester.tap(publish);
       await tester.pump();
 
-      expect(published, isNull);
       expect(
         find.text(smartTileStudioAuthoringRequiresStn04Code),
         findsWidgets,
@@ -473,8 +468,7 @@ Future<void> _startPathGuide(WidgetTester tester) async {
 Future<void> _pumpGuidedAtlas(
   WidgetTester tester, {
   required SmartTileAtlasImageLoader loader,
-  ValueChanged<ProjectManifest>? onManifestChanged,
-  ValueChanged<ProjectSmartTilePreset>? onAddToActiveMap,
+  ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged,
   Size surfaceSize = const Size(1440, 900),
 }) async {
   await _pumpPanel(
@@ -483,8 +477,7 @@ Future<void> _pumpGuidedAtlas(
         presets: const [], tilesets: const <ProjectTilesetEntry>[_target]),
     projectRootPath: '/tmp/erw-project',
     imageLoader: loader,
-    onManifestChanged: onManifestChanged,
-    onAddToActiveMap: onAddToActiveMap,
+    onDraftChanged: onDraftChanged,
     surfaceSize: surfaceSize,
   );
   await _startPathGuide(tester);
@@ -516,8 +509,7 @@ Future<void> _tapVisibleValidAnchor(
 Future<void> _pumpPanel(
   WidgetTester tester,
   ProjectManifest manifest, {
-  ValueChanged<ProjectManifest>? onManifestChanged,
-  ValueChanged<ProjectSmartTilePreset>? onAddToActiveMap,
+  ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged,
   String? projectRootPath,
   SmartTileAtlasImageLoader imageLoader = const FileSmartTileAtlasImageLoader(),
   Size surfaceSize = const Size(1440, 900),
@@ -531,8 +523,7 @@ Future<void> _pumpPanel(
           manifest: manifest,
           projectRootPath: projectRootPath,
           imageLoader: imageLoader,
-          onManifestChanged: onManifestChanged,
-          onAddToActiveMap: onAddToActiveMap,
+          onDraftChanged: onDraftChanged,
         ),
       ),
     ),

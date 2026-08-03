@@ -428,7 +428,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
               project.surfaceCatalog.presets.length,
           selected:
               snapshot.workspaceMode == EditorWorkspaceMode.smartTilesStudio,
-          onTap: notifier.selectSmartTilesStudioWorkspace,
+          onTap: notifier.selectSmartTilesStudioLibraryWorkspace,
         ),
         if (project.terrainPresets.isNotEmpty)
           ProjectExplorerModuleCard(

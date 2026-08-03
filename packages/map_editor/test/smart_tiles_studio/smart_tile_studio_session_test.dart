@@ -37,6 +37,41 @@ void main() {
     );
   });
 
+  test('canonical wizard exposes exactly the nine validated stages in order',
+      () {
+    expect(
+      SmartTileStudioWizardStep.values.map((step) => step.name),
+      <String>[
+        'usage',
+        'image',
+        'grid',
+        'materials',
+        'connections',
+        'variants',
+        'forms',
+        'test',
+        'publish',
+      ],
+    );
+    final session = SmartTileStudioSession()..startDraft();
+    session
+      ..chooseUsage(SmartTileUsage.path)
+      ..moveToImage()
+      ..chooseSource(SmartTileStudioSourceChoice.projectImage)
+      ..moveToGrid()
+      ..configureGrid(geometry)
+      ..moveToMaterials()
+      ..moveToConnections()
+      ..chooseGuide(SmartTileGuideId.erwCorner16)
+      ..moveToVariants()
+      ..moveToForms()
+      ..placeGuide(anchorColumn: 20, anchorRow: 20)
+      ..moveToTest()
+      ..moveToPublish();
+
+    expect(session.state.wizardStep, SmartTileStudioWizardStep.publish);
+  });
+
   test('guards every transition that needs a previous user decision', () {
     final session = SmartTileStudioSession()..startDraft();
 
@@ -77,7 +112,8 @@ void main() {
     expect(session.state.anchor, isNull);
   });
 
-  test('changing guide only clears the placement decisions', () {
+  test('changing connections preserves image and grid but clears placement',
+      () {
     final session = SmartTileStudioSession()..startDraft();
     session
       ..chooseUsage(SmartTileUsage.path)
@@ -92,8 +128,11 @@ void main() {
 
     expect(session.state.usage, SmartTileUsage.path);
     expect(session.state.guideId, SmartTileGuideId.erwCorner16);
-    expect(session.state.sourceChoice, isNull);
-    expect(session.state.gridGeometry, isNull);
+    expect(
+      session.state.sourceChoice,
+      SmartTileStudioSourceChoice.projectImage,
+    );
+    expect(session.state.gridGeometry, geometry);
     expect(session.state.anchor, isNull);
   });
 }

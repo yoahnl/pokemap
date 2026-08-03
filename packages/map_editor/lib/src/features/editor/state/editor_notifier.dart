@@ -858,6 +858,23 @@ class EditorNotifier extends _$EditorNotifier
           );
   }
 
+  /// Accepte un snapshot déjà appliqué par l’API Authoring canonique.
+  ///
+  /// Contrairement à [applyInMemoryProjectManifest], cette projection ne crée
+  /// aucune dette de sauvegarde locale : les octets disque sont déjà ceux du
+  /// reçu transactionnel.
+  void acceptCanonicalProjectManifest(
+    ProjectManifest manifest, {
+    String? statusMessage,
+  }) {
+    state = state.copyWith(
+      project: manifest,
+      isProjectDirty: false,
+      errorMessage: null,
+      statusMessage: statusMessage ?? state.statusMessage,
+    );
+  }
+
   PersonalizationStudioSessionState? get personalizationStudioSessionState =>
       _personalizationStudioSession?.state;
 
@@ -4400,6 +4417,12 @@ class EditorNotifier extends _$EditorNotifier
   /// Ouvre le studio natif unifié des terrains, chemins et forêts.
   void selectSmartTilesStudioWorkspace() {
     state = _editorWorkspaceController.selectSmartTilesStudioWorkspace(state);
+  }
+
+  /// Ouvre Smart Tiles Studio depuis l’explorateur sans cible de carte.
+  void selectSmartTilesStudioLibraryWorkspace() {
+    state = _editorWorkspaceController
+        .selectSmartTilesStudioLibraryWorkspace(state);
   }
 
   /// Bascule vers Path Studio.

@@ -1225,6 +1225,8 @@ mixin _$EditorState {
   String? get projectRootPath => throw _privateConstructorUsedError;
   ProjectManifest? get project => throw _privateConstructorUsedError;
   EditorWorkspaceMode get workspaceMode => throw _privateConstructorUsedError;
+  SmartTilesStudioLaunchContext get smartTilesStudioLaunchContext =>
+      throw _privateConstructorUsedError;
   PokemonCatalogSection get pokemonCatalogSection =>
       throw _privateConstructorUsedError; // Document map actif
   MapData? get activeMap => throw _privateConstructorUsedError;
@@ -1326,6 +1328,7 @@ abstract class $EditorStateCopyWith<$Res> {
       {String? projectRootPath,
       ProjectManifest? project,
       EditorWorkspaceMode workspaceMode,
+      SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,
       PokemonCatalogSection pokemonCatalogSection,
       MapData? activeMap,
       String? activeMapPath,
@@ -1403,6 +1406,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? projectRootPath = freezed,
     Object? project = freezed,
     Object? workspaceMode = null,
+    Object? smartTilesStudioLaunchContext = null,
     Object? pokemonCatalogSection = null,
     Object? activeMap = freezed,
     Object? activeMapPath = freezed,
@@ -1464,6 +1468,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.workspaceMode
           : workspaceMode // ignore: cast_nullable_to_non_nullable
               as EditorWorkspaceMode,
+      smartTilesStudioLaunchContext: null == smartTilesStudioLaunchContext
+          ? _value.smartTilesStudioLaunchContext
+          : smartTilesStudioLaunchContext // ignore: cast_nullable_to_non_nullable
+              as SmartTilesStudioLaunchContext,
       pokemonCatalogSection: null == pokemonCatalogSection
           ? _value.pokemonCatalogSection
           : pokemonCatalogSection // ignore: cast_nullable_to_non_nullable
@@ -1784,6 +1792,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       {String? projectRootPath,
       ProjectManifest? project,
       EditorWorkspaceMode workspaceMode,
+      SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,
       PokemonCatalogSection pokemonCatalogSection,
       MapData? activeMap,
       String? activeMapPath,
@@ -1868,6 +1877,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? projectRootPath = freezed,
     Object? project = freezed,
     Object? workspaceMode = null,
+    Object? smartTilesStudioLaunchContext = null,
     Object? pokemonCatalogSection = null,
     Object? activeMap = freezed,
     Object? activeMapPath = freezed,
@@ -1929,6 +1939,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.workspaceMode
           : workspaceMode // ignore: cast_nullable_to_non_nullable
               as EditorWorkspaceMode,
+      smartTilesStudioLaunchContext: null == smartTilesStudioLaunchContext
+          ? _value.smartTilesStudioLaunchContext
+          : smartTilesStudioLaunchContext // ignore: cast_nullable_to_non_nullable
+              as SmartTilesStudioLaunchContext,
       pokemonCatalogSection: null == pokemonCatalogSection
           ? _value.pokemonCatalogSection
           : pokemonCatalogSection // ignore: cast_nullable_to_non_nullable
@@ -2129,6 +2143,8 @@ class _$EditorStateImpl implements _EditorState {
       {this.projectRootPath,
       this.project,
       this.workspaceMode = EditorWorkspaceMode.map,
+      this.smartTilesStudioLaunchContext =
+          const SmartTilesStudioLaunchContext.library(),
       this.pokemonCatalogSection = PokemonCatalogSection.pokedex,
       this.activeMap,
       this.activeMapPath,
@@ -2188,6 +2204,9 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final EditorWorkspaceMode workspaceMode;
+  @override
+  @JsonKey()
+  final SmartTilesStudioLaunchContext smartTilesStudioLaunchContext;
   @override
   @JsonKey()
   final PokemonCatalogSection pokemonCatalogSection;
@@ -2350,7 +2369,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, eraserFootprint: $eraserFootprint, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteSession: $paletteSession, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, smartTilesStudioLaunchContext: $smartTilesStudioLaunchContext, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, eraserFootprint: $eraserFootprint, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteSession: $paletteSession, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -2363,6 +2382,9 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.project, project) || other.project == project) &&
             (identical(other.workspaceMode, workspaceMode) ||
                 other.workspaceMode == workspaceMode) &&
+            (identical(other.smartTilesStudioLaunchContext, smartTilesStudioLaunchContext) ||
+                other.smartTilesStudioLaunchContext ==
+                    smartTilesStudioLaunchContext) &&
             (identical(other.pokemonCatalogSection, pokemonCatalogSection) ||
                 other.pokemonCatalogSection == pokemonCatalogSection) &&
             (identical(other.activeMap, activeMap) ||
@@ -2413,15 +2435,10 @@ class _$EditorStateImpl implements _EditorState {
                 other.selectedEnvironmentAreaId == selectedEnvironmentAreaId) &&
             (identical(other.environmentMaskEditMode, environmentMaskEditMode) ||
                 other.environmentMaskEditMode == environmentMaskEditMode) &&
-            (identical(other.gameplayZoneDraftArea, gameplayZoneDraftArea) ||
-                other.gameplayZoneDraftArea == gameplayZoneDraftArea) &&
-            (identical(other.selectedTilesetEditorId, selectedTilesetEditorId) ||
-                other.selectedTilesetEditorId == selectedTilesetEditorId) &&
-            (identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) ||
-                other.selectedTilesetElementGroupId ==
-                    selectedTilesetElementGroupId) &&
-            (identical(other.paletteSession, paletteSession) ||
-                other.paletteSession == paletteSession) &&
+            (identical(other.gameplayZoneDraftArea, gameplayZoneDraftArea) || other.gameplayZoneDraftArea == gameplayZoneDraftArea) &&
+            (identical(other.selectedTilesetEditorId, selectedTilesetEditorId) || other.selectedTilesetEditorId == selectedTilesetEditorId) &&
+            (identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) || other.selectedTilesetElementGroupId == selectedTilesetElementGroupId) &&
+            (identical(other.paletteSession, paletteSession) || other.paletteSession == paletteSession) &&
             (identical(other.tilesElementsPanelMode, tilesElementsPanelMode) || other.tilesElementsPanelMode == tilesElementsPanelMode) &&
             (identical(other.selectedPlacedElementInstanceId, selectedPlacedElementInstanceId) || other.selectedPlacedElementInstanceId == selectedPlacedElementInstanceId) &&
             (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) || other.selectedProjectDialogueId == selectedProjectDialogueId) &&
@@ -2449,6 +2466,7 @@ class _$EditorStateImpl implements _EditorState {
         projectRootPath,
         project,
         workspaceMode,
+        smartTilesStudioLaunchContext,
         pokemonCatalogSection,
         activeMap,
         activeMapPath,
@@ -2512,6 +2530,7 @@ abstract class _EditorState implements EditorState {
       {final String? projectRootPath,
       final ProjectManifest? project,
       final EditorWorkspaceMode workspaceMode,
+      final SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,
       final PokemonCatalogSection pokemonCatalogSection,
       final MapData? activeMap,
       final String? activeMapPath,
@@ -2567,6 +2586,8 @@ abstract class _EditorState implements EditorState {
   ProjectManifest? get project;
   @override
   EditorWorkspaceMode get workspaceMode;
+  @override
+  SmartTilesStudioLaunchContext get smartTilesStudioLaunchContext;
   @override
   PokemonCatalogSection get pokemonCatalogSection; // Document map actif
   @override

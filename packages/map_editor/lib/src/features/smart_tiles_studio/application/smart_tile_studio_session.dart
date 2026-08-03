@@ -4,7 +4,17 @@ import 'smart_tile_grid_detector.dart';
 import 'smart_tile_guide.dart';
 import 'smart_tile_guide_placement.dart';
 
-enum SmartTileStudioWizardStep { usage, guide, placement, test, publish }
+enum SmartTileStudioWizardStep {
+  usage,
+  image,
+  grid,
+  materials,
+  connections,
+  variants,
+  forms,
+  test,
+  publish,
+}
 
 enum SmartTileStudioSourceChoice {
   projectImage,
@@ -110,11 +120,15 @@ final class SmartTileStudioSession {
     if (_state.usage == null) {
       throw StateError('Choisissez un usage avant le guide.');
     }
-    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.guide);
+    _state = _state.copyWith(
+      wizardStep: SmartTileStudioWizardStep.connections,
+    );
   }
 
   void chooseGuide(SmartTileGuideId guideId) {
-    _requireStep(SmartTileStudioWizardStep.guide, 'choisir un guide');
+    if (_state.wizardStep != SmartTileStudioWizardStep.connections) {
+      throw StateError('Impossible de choisir un guide pendant cette étape.');
+    }
     final usage = _state.usage;
     final guide = smartTileGuideById(guideId);
     if (usage == null || !guide.supportedUsages.contains(usage)) {
@@ -122,22 +136,26 @@ final class SmartTileStudioSession {
     }
     _state = _state.copyWith(
       guideId: guideId,
-      clearSource: true,
-      clearGrid: true,
       clearAnchor: true,
     );
   }
 
   void moveToPlacement() {
-    _requireStep(SmartTileStudioWizardStep.guide, 'ouvrir le placement');
+    _requireStep(
+      SmartTileStudioWizardStep.connections,
+      'ouvrir le placement',
+    );
     if (_state.guideId == null) {
       throw StateError('Choisissez un guide avant son placement.');
     }
-    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.placement);
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.forms);
   }
 
   void chooseSource(SmartTileStudioSourceChoice choice) {
-    _requireStep(SmartTileStudioWizardStep.placement, 'choisir une source');
+    if (_state.wizardStep != SmartTileStudioWizardStep.image &&
+        _state.wizardStep != SmartTileStudioWizardStep.forms) {
+      throw StateError('Impossible de choisir une source pendant cette étape.');
+    }
     _state = _state.copyWith(
       sourceChoice: choice,
       clearGrid: true,
@@ -146,7 +164,12 @@ final class SmartTileStudioSession {
   }
 
   void configureGrid(SmartTileGridGeometry geometry) {
-    _requireStep(SmartTileStudioWizardStep.placement, 'configurer la grille');
+    if (_state.wizardStep != SmartTileStudioWizardStep.grid &&
+        _state.wizardStep != SmartTileStudioWizardStep.forms) {
+      throw StateError(
+        'Impossible de configurer la grille pendant cette étape.',
+      );
+    }
     if (_state.sourceChoice == null) {
       throw StateError('Choisissez une image avant de configurer sa grille.');
     }
@@ -159,7 +182,7 @@ final class SmartTileStudioSession {
   void updateGrid(SmartTileGridGeometry geometry) => configureGrid(geometry);
 
   void placeGuide({required int anchorColumn, required int anchorRow}) {
-    _requireStep(SmartTileStudioWizardStep.placement, 'placer le guide');
+    _requireStep(SmartTileStudioWizardStep.forms, 'placer le guide');
     final guideId = _state.guideId;
     final geometry = _state.gridGeometry;
     if (guideId == null || geometry == null || _state.sourceChoice == null) {
@@ -186,12 +209,12 @@ final class SmartTileStudioSession {
   }
 
   void clearAnchor() {
-    _requireStep(SmartTileStudioWizardStep.placement, 'effacer le placement');
+    _requireStep(SmartTileStudioWizardStep.forms, 'effacer le placement');
     _state = _state.copyWith(clearAnchor: true);
   }
 
   void resetPlacementSource() {
-    _requireStep(SmartTileStudioWizardStep.placement, 'changer de source');
+    _requireStep(SmartTileStudioWizardStep.forms, 'changer de source');
     _state = _state.copyWith(
       clearSource: true,
       clearGrid: true,
@@ -200,7 +223,7 @@ final class SmartTileStudioSession {
   }
 
   void moveToTest() {
-    _requireStep(SmartTileStudioWizardStep.placement, 'ouvrir le banc d’essai');
+    _requireStep(SmartTileStudioWizardStep.forms, 'ouvrir le banc d’essai');
     if (_state.sourceChoice == null ||
         _state.gridGeometry == null ||
         _state.anchor == null) {
@@ -222,14 +245,57 @@ final class SmartTileStudioSession {
     if (_state.usage == null) {
       throw StateError('Aucun usage à conserver.');
     }
-    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.guide);
+    _state = _state.copyWith(
+      wizardStep: SmartTileStudioWizardStep.connections,
+    );
   }
 
   void returnToPlacement() {
     if (_state.guideId == null) {
       throw StateError('Aucun guide à replacer.');
     }
-    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.placement);
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.forms);
+  }
+
+  void moveToImage() {
+    _requireStep(SmartTileStudioWizardStep.usage, 'ouvrir l’image');
+    if (_state.usage == null) {
+      throw StateError('Choisissez un usage avant l’image.');
+    }
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.image);
+  }
+
+  void moveToGrid() {
+    _requireStep(SmartTileStudioWizardStep.image, 'ouvrir la grille');
+    if (_state.sourceChoice == null) {
+      throw StateError('Choisissez une image avant sa grille.');
+    }
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.grid);
+  }
+
+  void moveToMaterials() {
+    _requireStep(SmartTileStudioWizardStep.grid, 'ouvrir les matériaux');
+    if (_state.gridGeometry == null) {
+      throw StateError('Confirmez la grille avant les matériaux.');
+    }
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.materials);
+  }
+
+  void moveToConnections() {
+    _requireStep(SmartTileStudioWizardStep.materials, 'ouvrir les raccords');
+    _state = _state.copyWith(
+      wizardStep: SmartTileStudioWizardStep.connections,
+    );
+  }
+
+  void moveToVariants() {
+    _requireStep(SmartTileStudioWizardStep.connections, 'ouvrir les variantes');
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.variants);
+  }
+
+  void moveToForms() {
+    _requireStep(SmartTileStudioWizardStep.variants, 'ouvrir les formes');
+    _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.forms);
   }
 
   void _requireStep(SmartTileStudioWizardStep expected, String action) {

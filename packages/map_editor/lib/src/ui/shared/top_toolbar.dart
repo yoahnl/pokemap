@@ -675,6 +675,7 @@ class TopToolbar extends ConsumerWidget {
               onPressed: notifier.selectDialogueWorkspace,
             ),
             ToolbarCapsuleButton(
+              key: const ValueKey<String>('smart-tiles-studio-toolbar-button'),
               icon: CupertinoIcons.square_grid_3x2,
               tooltip: 'Switch to Smart Tiles Studio',
               selected:
