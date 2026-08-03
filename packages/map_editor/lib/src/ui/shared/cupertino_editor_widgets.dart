@@ -751,6 +751,7 @@ class CupertinoDisclosureTile extends StatefulWidget {
     this.tilePadding = EdgeInsets.zero,
     this.childrenPadding = EdgeInsets.zero,
     this.onSecondaryTapDown,
+    this.onExpansionChanged,
 
     /// En-tête pleine largeur, typographie / icônes comme la sidebar macos_ui.
     this.useEditorMacosSidebarDisclosureStyle = false,
@@ -769,6 +770,7 @@ class CupertinoDisclosureTile extends StatefulWidget {
 
   /// Clic droit sur la ligne d’en-tête (menu contextuel).
   final void Function(TapDownDetails details)? onSecondaryTapDown;
+  final ValueChanged<bool>? onExpansionChanged;
   final bool useEditorMacosSidebarDisclosureStyle;
   final Widget Function(Widget header)? wrapHeader;
 
@@ -810,7 +812,11 @@ class _CupertinoDisclosureTileState extends State<CupertinoDisclosureTile> {
         child: CupertinoButton(
           padding: widget.tilePadding,
           minimumSize: Size.zero,
-          onPressed: () => setState(() => _expanded = !_expanded),
+          onPressed: () {
+            final expanded = !_expanded;
+            setState(() => _expanded = expanded);
+            widget.onExpansionChanged?.call(expanded);
+          },
           child: Row(
             children: [
               Transform.rotate(

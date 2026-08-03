@@ -32,6 +32,101 @@ Future<void> _pumpInBridge(
 
 void main() {
   group('PokeMap Project Explorer Inner Trees Polish', () {
+    testWidgets(
+        'collapsing a tileset folder also collapses every nested folder',
+        (tester) async {
+      const parentFolder = ProjectTilesetFolder(
+        id: 'parent',
+        name: 'Parent',
+      );
+      const childFolder = ProjectTilesetFolder(
+        id: 'child',
+        name: 'Child',
+        parentFolderId: 'parent',
+      );
+      const grandchildFolder = ProjectTilesetFolder(
+        id: 'grandchild',
+        name: 'Grandchild',
+        parentFolderId: 'child',
+      );
+      const greatGrandchildFolder = ProjectTilesetFolder(
+        id: 'great-grandchild',
+        name: 'Great-grandchild',
+        parentFolderId: 'grandchild',
+      );
+      final project = buildShellChromeProject(name: 'Test Project').copyWith(
+        tilesetFolders: const [
+          parentFolder,
+          childFolder,
+          grandchildFolder,
+          greatGrandchildFolder,
+        ],
+      );
+      const branch = TilesetLibraryBranch(
+        folder: parentFolder,
+        childFolders: [
+          TilesetLibraryBranch(
+            folder: childFolder,
+            childFolders: [
+              TilesetLibraryBranch(
+                folder: grandchildFolder,
+                childFolders: [
+                  TilesetLibraryBranch(
+                    folder: greatGrandchildFolder,
+                    childFolders: [],
+                    tilesets: [],
+                  ),
+                ],
+                tilesets: [],
+              ),
+            ],
+            tilesets: [],
+          ),
+        ],
+        tilesets: [],
+      );
+      final container = ProviderContainer();
+      final sub = container.listen(editorNotifierProvider, (_, __) {});
+      final notifier = container.read(editorNotifierProvider.notifier);
+
+      addTearDown(() async {
+        sub.close();
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pump();
+        container.dispose();
+      });
+
+      await _pumpInBridge(
+        tester,
+        TilesetLibraryFolderNode(
+          branch: branch,
+          depth: 0,
+          project: project,
+          notifier: notifier,
+          selectedTilesetId: null,
+          scopeLabel: (_) => 'Global',
+        ),
+        theme: PokeMapTheme.dark(),
+      );
+
+      expect(find.text('Grandchild'), findsOneWidget);
+      expect(find.text('Great-grandchild'), findsOneWidget);
+
+      await tester.tap(find.text('Parent'));
+      await tester.pump();
+      await tester.tap(find.text('Parent'));
+      await tester.pump();
+
+      expect(find.text('Child'), findsOneWidget);
+      expect(find.text('Grandchild'), findsNothing);
+
+      await tester.tap(find.text('Child'));
+      await tester.pump();
+
+      expect(find.text('Grandchild'), findsOneWidget);
+      expect(find.text('Great-grandchild'), findsNothing);
+    });
+
     testWidgets('TilesetLibraryRootDropStrip renders French drag-and-drop texts & warning accent color',
         (tester) async {
       final project = buildShellChromeProject(name: 'Test Project');

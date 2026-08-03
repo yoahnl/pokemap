@@ -78,7 +78,7 @@ class TilesetLibraryRootDropStrip extends StatelessWidget {
   }
 }
 
-class TilesetLibraryFolderNode extends StatelessWidget {
+class TilesetLibraryFolderNode extends StatefulWidget {
   const TilesetLibraryFolderNode({
     super.key,
     required this.branch,
@@ -87,6 +87,7 @@ class TilesetLibraryFolderNode extends StatelessWidget {
     required this.notifier,
     required this.selectedTilesetId,
     required this.scopeLabel,
+    this.initiallyExpanded = true,
   });
 
   final TilesetLibraryBranch branch;
@@ -95,15 +96,29 @@ class TilesetLibraryFolderNode extends StatelessWidget {
   final EditorNotifier notifier;
   final String? selectedTilesetId;
   final String Function(ProjectTilesetEntry) scopeLabel;
+  final bool initiallyExpanded;
+
+  @override
+  State<TilesetLibraryFolderNode> createState() =>
+      _TilesetLibraryFolderNodeState();
+}
+
+class _TilesetLibraryFolderNodeState extends State<TilesetLibraryFolderNode> {
+  late bool _descendantsInitiallyExpanded = widget.initiallyExpanded;
 
   @override
   Widget build(BuildContext context) {
-    final folder = branch.folder;
-    final indent = 6.0 + depth * 10.0;
+    final folder = widget.branch.folder;
+    final indent = 6.0 + widget.depth * 10.0;
 
     return CupertinoDisclosureTile(
       useEditorMacosSidebarDisclosureStyle: true,
-      initiallyExpanded: true,
+      initiallyExpanded: widget.initiallyExpanded,
+      onExpansionChanged: (expanded) {
+        if (!expanded) {
+          setState(() => _descendantsInitiallyExpanded = false);
+        }
+      },
       tilePadding: EdgeInsets.only(left: indent, right: 8, top: 4, bottom: 4),
       childrenPadding: EdgeInsets.zero,
       leading: const MacosIcon(CupertinoIcons.folder_fill, size: 16),
@@ -115,8 +130,8 @@ class TilesetLibraryFolderNode extends StatelessWidget {
       onSecondaryTapDown: (details) => openTilesetLibraryFolderContextMenu(
         context,
         folder: folder,
-        project: project,
-        notifier: notifier,
+        project: widget.project,
+        notifier: widget.notifier,
         anchorGlobal: details.globalPosition,
       ),
       trailing: Builder(
@@ -127,8 +142,8 @@ class TilesetLibraryFolderNode extends StatelessWidget {
           onPressed: () => openTilesetLibraryFolderContextMenu(
             context,
             folder: folder,
-            project: project,
-            notifier: notifier,
+            project: widget.project,
+            notifier: widget.notifier,
             anchorGlobal: editorMenuAnchorBelowWidget(buttonContext),
           ),
         ),
@@ -136,28 +151,29 @@ class TilesetLibraryFolderNode extends StatelessWidget {
       wrapHeader: (header) => _TilesetFolderHeaderDnD(
         header: header,
         folder: folder,
-        project: project,
-        notifier: notifier,
+        project: widget.project,
+        notifier: widget.notifier,
       ),
       children: [
-        ...branch.childFolders.map(
+        ...widget.branch.childFolders.map(
           (childBranch) => TilesetLibraryFolderNode(
             branch: childBranch,
-            depth: depth + 1,
-            project: project,
-            notifier: notifier,
-            selectedTilesetId: selectedTilesetId,
-            scopeLabel: scopeLabel,
+            depth: widget.depth + 1,
+            project: widget.project,
+            notifier: widget.notifier,
+            selectedTilesetId: widget.selectedTilesetId,
+            scopeLabel: widget.scopeLabel,
+            initiallyExpanded: _descendantsInitiallyExpanded,
           ),
         ),
-        ...branch.tilesets.map(
+        ...widget.branch.tilesets.map(
           (tileset) => TilesetNode(
             tileset: tileset,
-            project: project,
-            notifier: notifier,
-            selected: selectedTilesetId == tileset.id,
+            project: widget.project,
+            notifier: widget.notifier,
+            selected: widget.selectedTilesetId == tileset.id,
             leftIndent: indent + 14,
-            scopeLabel: scopeLabel(tileset),
+            scopeLabel: widget.scopeLabel(tileset),
           ),
         ),
       ],

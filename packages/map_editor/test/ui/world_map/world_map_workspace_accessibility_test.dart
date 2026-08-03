@@ -142,6 +142,43 @@ void main() {
   );
 
   testWidgets(
+    'Escape exits project-element placement while a workspace control has focus',
+    (tester) async {
+      final harness = await _pumpWorkspace(
+        tester,
+        size: const Size(1280, 800),
+        state: _state.copyWith(
+          activeTool: EditorToolType.tilePaint,
+          activeBrush:
+              const EditorBrush.projectElement(elementId: 'fridge'),
+        ),
+      );
+      addTearDown(() => harness.dispose(tester));
+
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pump();
+      expect(
+        _focusTarget(FocusManager.instance.primaryFocus!),
+        'global:world-map-command-save',
+      );
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+
+      final cancelled = harness.container.read(editorNotifierProvider);
+      expect(cancelled.activeTool, EditorToolType.selection);
+      expect(
+        cancelled.activeBrush,
+        const EditorBrush.projectElement(elementId: 'fridge'),
+      );
+      expect(cancelled.activeMap, _map);
+      expect(cancelled.isDirty, isFalse);
+    },
+  );
+
+  testWidgets(
     'compact inspector closed from its button restores the Layers invoker',
     (tester) async {
       final selectionFocus = FocusNode(debugLabel: 'fallback selection');

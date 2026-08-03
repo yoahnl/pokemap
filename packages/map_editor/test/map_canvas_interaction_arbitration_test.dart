@@ -361,6 +361,49 @@ void main() {
       expect(cancelled.isDirty, isFalse);
     });
 
+    testWidgets('Escape exits project-element placement without editing the map',
+        (tester) async {
+      const map = MapData(
+        id: 'element-placement-map',
+        name: 'Element placement map',
+        size: GridSize(width: 4, height: 2),
+        layers: <MapLayer>[
+          TileLayer(id: 'decor', name: 'Decor'),
+        ],
+      );
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        project: _project,
+        activeMap: map,
+        activeLayerId: 'decor',
+        activeTool: EditorToolType.tilePaint,
+        activeBrush: EditorBrush.projectElement(elementId: 'fridge'),
+        savedMapSnapshot: map,
+      );
+
+      await _pumpCanvas(tester, container);
+      final mapFocus = tester
+          .widget<Focus>(
+            find.byKey(const ValueKey<String>('map-canvas-focus')),
+          )
+          .focusNode!;
+      mapFocus.requestFocus();
+      await tester.pump();
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.escape);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+
+      final cancelled = container.read(editorNotifierProvider);
+      expect(cancelled.activeTool, EditorToolType.selection);
+      expect(
+        cancelled.activeBrush,
+        const EditorBrush.projectElement(elementId: 'fridge'),
+      );
+      expect(cancelled.activeMap, map);
+      expect(cancelled.mapUndoStack, isEmpty);
+      expect(cancelled.isDirty, isFalse);
+    });
+
     testWidgets(
       'a child control cannot strand canvas ownership after pointer up',
       (tester) async {
