@@ -53,6 +53,34 @@ if [[ "$timestamp_enabled" == false && "$identity" != '-' ]]; then
   exit 64
 fi
 
+info_plist_path="$app_path/Contents/Info.plist"
+if ! bundle_identifier="$(
+  /usr/bin/plutil -extract CFBundleIdentifier raw "$info_plist_path" 2>/dev/null
+)" || [[ ! "$bundle_identifier" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]]; then
+  echo "The app has no valid CFBundleIdentifier: $app_path" >&2
+  exit 66
+fi
+
+expanded_entitlements_path="$(
+  /usr/bin/mktemp "${TMPDIR:-/tmp}/pokemap-signing-entitlements.XXXXXX"
+)"
+cleanup() {
+  /bin/rm -f "$expanded_entitlements_path"
+}
+trap cleanup EXIT
+
+/usr/bin/sed \
+  -e "s|\$(PRODUCT_BUNDLE_IDENTIFIER)|$bundle_identifier|g" \
+  -e "s|\${PRODUCT_BUNDLE_IDENTIFIER}|$bundle_identifier|g" \
+  "$entitlements_path" > "$expanded_entitlements_path"
+if /usr/bin/grep -q -E \
+  '\$\(PRODUCT_BUNDLE_IDENTIFIER\)|\$\{PRODUCT_BUNDLE_IDENTIFIER\}' \
+  "$expanded_entitlements_path"; then
+  echo 'CFBundleIdentifier expansion failed in release entitlements.' >&2
+  exit 65
+fi
+/usr/bin/plutil -lint "$expanded_entitlements_path" >/dev/null
+
 codesign_arguments=(--force --options runtime)
 if [[ "$timestamp_enabled" == true ]]; then
   codesign_arguments+=(--timestamp)
@@ -78,7 +106,7 @@ fi
 
 /usr/bin/codesign \
   "${codesign_arguments[@]}" \
-  --entitlements "$entitlements_path" \
+  --entitlements "$expanded_entitlements_path" \
   "$app_path"
 
 /usr/bin/codesign --verify --deep --strict --verbose=4 "$app_path"
