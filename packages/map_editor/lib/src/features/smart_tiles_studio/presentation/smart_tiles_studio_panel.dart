@@ -20,6 +20,7 @@ import '../application/smart_tile_studio_library.dart';
 import '../application/smart_tile_studio_launch_context.dart';
 import '../application/smart_tile_studio_session.dart';
 import '../application/smart_tile_source_asset_import_service.dart';
+import '../application/smart_tile_test_layer_controller.dart';
 import 'smart_tile_guide_diagram.dart';
 import 'smart_tile_guide_overlay_painter.dart';
 import 'smart_tiles_studio_shell.dart';
@@ -30,6 +31,7 @@ import 'stages/smart_tile_connections_stage.dart';
 import 'stages/smart_tile_forms_stage.dart';
 import 'stages/smart_tile_material_picker.dart';
 import 'stages/smart_tile_materials_stage.dart';
+import 'stages/smart_tile_test_stage.dart';
 import 'stages/smart_tile_usage_stage.dart';
 import 'stages/smart_tile_variants_stage.dart';
 
@@ -110,7 +112,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   SmartTileGridGeometry? _pendingGridGeometry;
   SmartTileConnectionProfileId? _selectedConnectionProfileId;
   SmartTileTopology? _customConnectionTopology;
-  SmartTileTestGrid _testGrid = SmartTileTestGrid.empty(width: 7, height: 7);
+  SmartTileTestLayerController? _testLabController;
+  SmartTileLabTool _testLabTool = SmartTileLabTool.pencil;
 
   @override
   void initState() {
@@ -123,6 +126,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   void didUpdateWidget(covariant SmartTilesStudioPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.manifest != widget.manifest) {
+      _testLabController = null;
       final keys = buildSmartTileStudioLibrary(widget.manifest)
           .map((item) => item.key)
           .toSet();
@@ -258,8 +262,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                           _selectedItemKey = item.key;
                           _focusedRuleId = null;
                           _focusedMask = null;
-                          _testGrid =
-                              SmartTileTestGrid.empty(width: 7, height: 7);
+                          _testLabController = null;
+                          _testLabTool = SmartTileLabTool.pencil;
                         }),
                         selected: !_session.state.isCreating &&
                             _selectedItemKey == item.key,
@@ -1120,72 +1124,43 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   Widget _buildTestStep() {
     final catalog = _authoring.compileCatalog();
     final preset = catalog.presets.single;
-    final results = runSmartTileTemplateBench(
+    final controller = _testLabFor(preset: preset, catalog: catalog);
+    final scenarios = controller.runCanonicalScenarios();
+    final isComplete = _labIsPublishable(
+      preset: preset,
+      scenarios: scenarios,
+    );
+    final forms = projectSmartTileForms(
       preset: preset,
       materials: catalog.materials,
-      materialId: preset.defaultMaterialId,
-      mapId: 'guided-authoring-bench',
-      layerId: preset.id,
+      atlases: catalog.atlases,
+      animations: catalog.animations,
     );
-    final resolved = results
-        .where(
-          (result) =>
-              result.resolution.status == SmartTileResolutionStatus.resolved,
-        )
-        .length;
-    final isComplete = results.isNotEmpty && resolved == results.length;
     final guideId = _session.state.guideId;
     final guide = guideId == null ? null : smartTileGuideById(guideId);
     final variantCount = preset.rules.fold<int>(
       0,
       (count, rule) => count + math.max(0, rule.candidates.length - 1),
     );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        PokeMapSectionHeader(
-          title: 'Banc d’essai du Smart Tile',
-          description:
-              'PokeMap vérifie les mêmes raccords que ceux utilisés sur une vraie map.',
-          trailing: PokeMapBadge(
-            label: '$resolved / ${results.length} résolus',
-            variant: isComplete
-                ? PokeMapBadgeVariant.success
-                : PokeMapBadgeVariant.error,
-          ),
-        ),
-        const SizedBox(height: 14),
-        PokeMapBadge(
-          label: isComplete
-              ? 'Aucune forme manquante'
-              : '${results.length - resolved} forme(s) manquante(s)',
-          variant: isComplete
-              ? PokeMapBadgeVariant.success
-              : PokeMapBadgeVariant.error,
-        ),
-        const SizedBox(height: 14),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: <Widget>[
-            if (guide != null) ...[
-              const PokeMapBadge(label: '4 coins extérieurs'),
-              const PokeMapBadge(label: '4 bords'),
-              const PokeMapBadge(label: '4 coins intérieurs'),
+    return SmartTileTestStage(
+      controller: controller,
+      tool: _testLabTool,
+      forms: forms,
+      scenarios: scenarios,
+      isPublishable: isComplete,
+      variantCount: variantCount,
+      guideSummaryLabels: guide == null
+          ? const <String>[]
+          : const <String>[
+              '4 coins extérieurs',
+              '4 bords',
+              '4 coins intérieurs',
             ],
-            PokeMapBadge(label: '$variantCount variantes supplémentaires'),
-          ],
-        ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: PokeMapButton(
-            key: const Key('smart-tiles-go-to-publish'),
-            onPressed: isComplete ? _moveToPublish : null,
-            trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Vérifier avant publication'),
-          ),
-        ),
-      ],
+      onToolChanged: (tool) => setState(() => _testLabTool = tool),
+      onTargetPressed: _applyLabTarget,
+      onReset: _resetLab,
+      onScenarioSelected: _loadLabScenario,
+      onContinue: _moveToPublish,
     );
   }
 
@@ -1396,124 +1371,37 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         icon: Icon(CupertinoIcons.hammer),
       );
     }
-    final results = runSmartTileTemplateBench(
+    final catalog = widget.manifest.smartTileCatalog;
+    final controller = _testLabFor(preset: preset, catalog: catalog);
+    final scenarios = controller.runCanonicalScenarios();
+    final forms = projectSmartTileForms(
       preset: preset,
-      materials: widget.manifest.smartTileCatalog.materials,
-      materialId: preset.defaultMaterialId,
-      mapId: 'studio-test-bench',
-      layerId: preset.id,
+      materials: catalog.materials,
+      atlases: catalog.atlases,
+      animations: catalog.animations,
     );
-    final resolved = results
-        .where(
-          (item) =>
-              item.resolution.status == SmartTileResolutionStatus.resolved,
-        )
-        .length;
-    final supportsManualGrid =
-        smartTileTestGridSupportsTopology(preset.topology);
-    final formsByMask = <int, SmartTileFormReadModel>{
-      for (final form in projectSmartTileForms(
-        preset: preset,
-        materials: widget.manifest.smartTileCatalog.materials,
-        atlases: widget.manifest.smartTileCatalog.atlases,
-        animations: widget.manifest.smartTileCatalog.animations,
-      ))
-        form.mask: form,
-    };
+    final variantCount = preset.rules.fold<int>(
+      0,
+      (count, rule) => count + math.max(0, rule.candidates.length - 1),
+    );
     return ListView(
       padding: const EdgeInsets.all(18),
       children: <Widget>[
-        PokeMapSectionHeader(
-          title: 'Peinture manuelle',
-          description:
-              'Cliquez pour peindre ou effacer le matériau du preset sur une grille logique 7 × 7.',
-          trailing: PokeMapBadge(
-            label: preset.defaultMaterialId,
-            variant: PokeMapBadgeVariant.mapAccent,
+        SmartTileTestStage(
+          controller: controller,
+          tool: _testLabTool,
+          forms: forms,
+          scenarios: scenarios,
+          isPublishable: _labIsPublishable(
+            preset: preset,
+            scenarios: scenarios,
           ),
+          variantCount: variantCount,
+          onToolChanged: (tool) => setState(() => _testLabTool = tool),
+          onTargetPressed: _applyLabTarget,
+          onReset: _resetLab,
+          onScenarioSelected: _loadLabScenario,
         ),
-        const SizedBox(height: 10),
-        if (!supportsManualGrid)
-          const PokeMapEmptyState(
-            key: Key('smart-tiles-wang-manual-bench-deferred'),
-            title: 'Grille Wang dédiée',
-            description:
-                'Cette topologie utilise ses propres arêtes et coins. Les scénarios canoniques ci-dessous sont exacts ; la peinture libre arrivera avec le compilateur Wang STN-05.',
-            icon: Icon(CupertinoIcons.square_grid_3x2),
-          )
-        else
-          Center(
-            child: SizedBox(
-              width: 7 * 38,
-              child: Wrap(
-                spacing: 2,
-                runSpacing: 2,
-                children: <Widget>[
-                  for (var y = 0; y < _testGrid.height; y += 1)
-                    for (var x = 0; x < _testGrid.width; x += 1)
-                      SizedBox(
-                        width: 36,
-                        height: 36,
-                        child: PokeMapButton(
-                          key: Key('smart-tiles-test-cell-$x-$y'),
-                          onPressed: () => _paintTestCell(
-                            x: x,
-                            y: y,
-                            materialId: preset.defaultMaterialId,
-                          ),
-                          variant: PokeMapButtonVariant.ghost,
-                          size: PokeMapButtonSize.small,
-                          isSelected: _testGrid.materialAt(x, y) != null,
-                          child: Text(_testCellLabel(
-                            x: x,
-                            y: y,
-                            preset: preset,
-                          )),
-                        ),
-                      ),
-                ],
-              ),
-            ),
-          ),
-        const SizedBox(height: 20),
-        PokeMapSectionHeader(
-          title: 'Scénarios générés',
-          description:
-              'Chaque cas appelle directement resolveSmartTile, comme l’éditeur et le runtime.',
-          trailing: PokeMapBadge(
-            key: const Key('smart-tiles-generated-bench-result'),
-            label: '$resolved / ${results.length} résolus',
-            variant: resolved == results.length
-                ? PokeMapBadgeVariant.success
-                : PokeMapBadgeVariant.error,
-          ),
-        ),
-        const SizedBox(height: 10),
-        if (results.isEmpty)
-          const PokeMapEmptyState(
-            title: 'Aucun scénario canonique',
-            description:
-                'Le gabarit Libre se vérifie uniquement sur la grille manuelle.',
-          )
-        else
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: <Widget>[
-              for (final result in results)
-                PokeMapButton(
-                  key: Key('smart-tiles-bench-mask-${result.mask}'),
-                  onPressed: () => _openBenchResult(result),
-                  variant: PokeMapButtonVariant.ghost,
-                  size: PokeMapButtonSize.small,
-                  isSelected: result.resolution.status ==
-                      SmartTileResolutionStatus.resolved,
-                  child: Text(
-                    formsByMask[result.mask]?.label ?? 'Forme personnalisée',
-                  ),
-                ),
-            ],
-          ),
       ],
     );
   }
@@ -1664,6 +1552,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _selectedRegisteredAtlasId = null;
       _selectedConnectionProfileId = null;
       _customConnectionTopology = null;
+      _testLabController = null;
+      _testLabTool = SmartTileLabTool.pencil;
       _tab = SmartTilesStudioTab.atlas;
     });
   }
@@ -2219,6 +2109,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _placementMessage = null;
       _selectedConnectionProfileId = null;
       _customConnectionTopology = null;
+      _testLabController = null;
+      _testLabTool = SmartTileLabTool.pencil;
     });
     _notifyDraftChanged();
   }
@@ -2530,7 +2422,11 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   }
 
   void _moveToTest() {
-    setState(_session.moveToTest);
+    setState(() {
+      _testLabController = null;
+      _testLabTool = SmartTileLabTool.pencil;
+      _session.moveToTest();
+    });
     _flushDraftAfterStepChange();
   }
 
@@ -2563,45 +2459,63 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     if (flush != null) unawaited(flush());
   }
 
-  void _paintTestCell({
-    required int x,
-    required int y,
-    required String materialId,
-  }) {
-    setState(() {
-      _testGrid = _testGrid.paint(
-        x: x,
-        y: y,
-        materialId: _testGrid.materialAt(x, y) == null ? materialId : null,
-      );
-    });
-  }
-
-  String _testCellLabel({
-    required int x,
-    required int y,
+  SmartTileTestLayerController _testLabFor({
     required ProjectSmartTilePreset preset,
+    required ProjectSmartTileCatalog catalog,
   }) {
-    if (_testGrid.materialAt(x, y) == null) {
-      return '·';
+    final current = _testLabController;
+    if (current != null && current.preset == preset) {
+      return current;
     }
-    final resolution = _testGrid.resolveAt(
-      x: x,
-      y: y,
+    final next = SmartTileTestLayerController(
       preset: preset,
-      materials: widget.manifest.smartTileCatalog.materials,
-      mapId: 'studio-test-bench',
-      layerId: preset.id,
+      catalog: catalog,
     );
-    return resolution.status == SmartTileResolutionStatus.resolved ? '✓' : '!';
+    _testLabController = next;
+    _testLabTool = SmartTileLabTool.pencil;
+    return next;
   }
 
-  void _openBenchResult(SmartTileTemplateBenchResult result) {
-    setState(() {
-      _focusedMask = result.mask;
-      _focusedRuleId = result.resolution.ruleId;
-      _tab = SmartTilesStudioTab.rules;
-    });
+  bool _labIsPublishable({
+    required ProjectSmartTilePreset preset,
+    required List<SmartTileLabScenarioResult> scenarios,
+  }) {
+    if (scenarios.isEmpty) return false;
+    final resolved = scenarios.where((scenario) => scenario.isResolved).length;
+    if (preset.coveragePolicy == SmartTileCoveragePolicy.sparse) {
+      final hasBlockingResolution = scenarios.any(
+        (scenario) => switch (scenario.inspection.resolution.status) {
+          SmartTileResolutionStatus.ambiguousRule ||
+          SmartTileResolutionStatus.noCandidate ||
+          SmartTileResolutionStatus.invalidRule =>
+            true,
+          SmartTileResolutionStatus.resolved ||
+          SmartTileResolutionStatus.noIntent ||
+          SmartTileResolutionStatus.noMatchingRule =>
+            false,
+        },
+      );
+      return resolved > 0 && !hasBlockingResolution;
+    }
+    return resolved == scenarios.length;
+  }
+
+  void _applyLabTarget(SmartTileLabTarget target) {
+    final controller = _testLabController;
+    if (controller == null) return;
+    setState(() => controller.applyTarget(target, tool: _testLabTool));
+  }
+
+  void _resetLab() {
+    final controller = _testLabController;
+    if (controller == null) return;
+    setState(controller.reset);
+  }
+
+  void _loadLabScenario(int mask) {
+    final controller = _testLabController;
+    if (controller == null) return;
+    setState(() => controller.loadCanonicalScenario(mask));
   }
 
   void _openDiagnostic(SmartTileDiagnostic diagnostic) {

@@ -893,12 +893,22 @@ void main() {
 
       expect(find.text('16 / 16 résolus'), findsOneWidget);
       expect(
-        find.byKey(const Key('smart-tiles-test-cell-3-3')),
+        find.byKey(const Key('smart-tiles-compact-lab')),
         findsOneWidget,
       );
+      final lab = find.byKey(const Key('smart-tiles-compact-lab'));
+      await tester.ensureVisible(lab);
+      await tester.tapAt(tester.getTopLeft(lab) + const Offset(168, 168));
+      await tester.pump();
+      expect(
+        find.byKey(const Key('smart-tiles-lab-inspection')),
+        findsOneWidget,
+      );
+      expect(find.text('Résolue'), findsOneWidget);
+      _expectNoTechnicalMaskText(tester);
     });
 
-    testWidgets('manual bench fails closed for dedicated Wang lattices', (
+    testWidgets('manual bench exposes dedicated Wang lattices', (
       tester,
     ) async {
       await _pumpPanel(
@@ -927,13 +937,14 @@ void main() {
       await tester.pump();
 
       expect(
-        find.byKey(const Key('smart-tiles-wang-manual-bench-deferred')),
+        find.byKey(const Key('smart-tiles-compact-lab')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const Key('smart-tiles-test-cell-3-3')),
+        find.byKey(const Key('smart-tiles-wang-manual-bench-deferred')),
         findsNothing,
       );
+      expect(find.textContaining('arêtes horizontales'), findsOneWidget);
     });
 
     testWidgets('validation does not persist a preset before STN-04 wiring', (
