@@ -18,13 +18,15 @@ if (-not (Test-Path (Join-Path $BundleDir "PokeMap.exe"))) {
 }
 
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
-& $InnoCompiler "/DAppVersion=$Version" "/DSourceDir=$BundleDir" "/DOutputDir=$OutputDir" $installerScript
+$resolvedBundleDir = (Resolve-Path -LiteralPath $BundleDir).Path
+$resolvedOutputDir = (Resolve-Path -LiteralPath $OutputDir).Path
+& $InnoCompiler "/DAppVersion=$Version" "/DSourceDir=$resolvedBundleDir" "/DOutputDir=$resolvedOutputDir" $installerScript
 if ($LASTEXITCODE -ne 0) {
   throw "ISCC.exe failed with exit code $LASTEXITCODE."
 }
 
 $installerName = "PokeMap-Editor-Setup-$Version.exe"
-$installerPath = Join-Path $OutputDir $installerName
+$installerPath = Join-Path $resolvedOutputDir $installerName
 if (-not (Test-Path $installerPath)) {
   throw "Inno Setup did not produce $installerName."
 }

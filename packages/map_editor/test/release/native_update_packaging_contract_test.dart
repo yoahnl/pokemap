@@ -38,6 +38,7 @@ void main() {
     ).readAsStringSync();
 
     expect(script, contains('ISCC.exe'));
+    expect(script, contains('Resolve-Path'));
     expect(script, contains('PokeMap-Editor-Setup-'));
     expect(script, contains('PokeMap.exe'));
     expect(script, isNot(contains('winsparkle-tool')));
