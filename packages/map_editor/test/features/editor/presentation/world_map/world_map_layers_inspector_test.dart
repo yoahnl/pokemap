@@ -399,6 +399,16 @@ void main() {
       find.byKey(const ValueKey<String>('world-map-layer-type-filter')),
       findsOneWidget,
     );
+    expect(
+      tester
+          .widget<ReorderableDragStartListener>(
+            find.byKey(
+              const ValueKey<String>('world-map-layer-drag-handle-tiles'),
+            ),
+          )
+          .enabled,
+      isTrue,
+    );
 
     await tester.enterText(search, 'bloc');
     await tester.pump();
@@ -412,6 +422,16 @@ void main() {
       findsNothing,
     );
     expect(find.text('1 calque affiché sur 4'), findsOneWidget);
+    expect(
+      tester
+          .widget<ReorderableDragStartListener>(
+            find.byKey(
+              const ValueKey<String>('world-map-layer-drag-handle-collision'),
+            ),
+          )
+          .enabled,
+      isFalse,
+    );
 
     await tester.enterText(search, '');
     await tester.pump();
@@ -742,6 +762,31 @@ void main() {
       harness.notifier.state.activeMap!.layers.map((layer) => layer.id),
       const ['top', 'middle', 'bottom'],
     );
+  });
+
+  testWidgets('drags a layer group to a new visual position', (tester) async {
+    final harness = _Harness(_threeLayerMap(), activeLayerId: 'middle');
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+
+    final topHandle = find.byKey(
+      const ValueKey<String>('world-map-layer-drag-handle-top'),
+    );
+    expect(topHandle, findsOneWidget);
+
+    final gesture = await tester.startGesture(tester.getCenter(topHandle));
+    await tester.pump(kPressTimeout);
+    await gesture.moveBy(const Offset(0, 100));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(
+      harness.notifier.state.activeMap!.layers.map((layer) => layer.id),
+      const ['middle', 'top', 'bottom'],
+    );
+    expect(harness.notifier.state.activeLayerId, 'middle');
+    expect(harness.notifier.state.mapUndoStack, hasLength(1));
   });
 
   testWidgets('coalesces one opacity drag into one undo entry', (tester) async {

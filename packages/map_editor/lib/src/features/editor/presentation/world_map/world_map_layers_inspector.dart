@@ -340,17 +340,27 @@ final class _WorldMapLayersInspectorState
           else
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 10),
-              sliver: SliverList.builder(
+              sliver: SliverReorderableList(
                 itemCount: visibleRows.length,
+                onReorderItem: (oldIndex, newIndex) {
+                  if (filtersActive) return;
+                  final beforeVisibleIndex =
+                      newIndex > oldIndex ? newIndex + 1 : newIndex;
+                  notifier.moveMapLayerGroupBeforeVisibleIndex(
+                    visibleRows[oldIndex].layer.id,
+                    beforeVisibleIndex,
+                  );
+                },
                 itemBuilder: (context, index) {
                   final row = visibleRows[index];
                   return Padding(
+                    key: ValueKey<String>(
+                      'world-map-layer-row-${row.layer.id}',
+                    ),
                     padding: EdgeInsets.only(top: index == 0 ? 0 : 8),
                     child: _WorldMapLayerRow(
-                      key: ValueKey<String>(
-                        'world-map-layer-row-${row.layer.id}',
-                      ),
                       row: row,
+                      reorderIndex: index,
                       notifier: notifier,
                       onActivate: () => _openLayerEditor(
                         notifier: notifier,
@@ -411,6 +421,7 @@ WorldMapPaintSubtool? _paintSubtoolForLayer(MapLayer layer) {
 final class _WorldMapLayerRow extends StatelessWidget {
   const _WorldMapLayerRow({
     required this.row,
+    required this.reorderIndex,
     required this.notifier,
     required this.onActivate,
     required this.readActiveMap,
@@ -418,10 +429,10 @@ final class _WorldMapLayerRow extends StatelessWidget {
     required this.onDeleteRequested,
     required this.onContextMenuRequested,
     required this.reorderingDisabledByFilter,
-    super.key,
   });
 
   final LayerPanelPresentationRow row;
+  final int reorderIndex;
   final EditorNotifier notifier;
   final VoidCallback onActivate;
   final MapData? Function() readActiveMap;
@@ -456,6 +467,38 @@ final class _WorldMapLayerRow extends StatelessWidget {
           onChangeEnd:
               row.opacity.enabled ? (_) => notifier.endMapStroke() : null,
         );
+    Widget buildDragHandle() {
+      final enabled = !reorderingDisabledByFilter;
+      return Tooltip(
+        message: enabled
+            ? 'Faites glisser pour réordonner'
+            : 'Réinitialisez les filtres pour réordonner',
+        child: ReorderableDragStartListener(
+          key: ValueKey<String>('world-map-layer-drag-handle-$layerId'),
+          index: reorderIndex,
+          enabled: enabled,
+          child: MouseRegion(
+            cursor:
+                enabled ? SystemMouseCursors.grab : SystemMouseCursors.basic,
+            child: Semantics(
+              label: 'Réordonner le calque ${layer.name}',
+              enabled: enabled,
+              child: SizedBox.square(
+                dimension: 28,
+                child: Icon(
+                  Icons.drag_indicator_rounded,
+                  size: 18,
+                  color: enabled
+                      ? context.pokeMapColors.textMuted
+                      : context.pokeMapColors.textDisabled,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     List<Widget> buildReorderActions() => [
           PokeMapIconButton(
             key: ValueKey<String>('world-map-layer-move-up-$layerId'),
@@ -502,6 +545,7 @@ final class _WorldMapLayerRow extends StatelessWidget {
               children: [
                 Row(
                   children: [
+                    buildDragHandle(),
                     Expanded(
                       child: PokeMapButton(
                         key: ValueKey<String>(
