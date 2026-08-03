@@ -148,6 +148,124 @@ void main() {
     });
   });
 
+  group('atomic material gesture projection', () {
+    test('projects one cell onto every active edge lattice slot', () {
+      final source = _layer(
+        const SmartTileField.edge(
+          semanticCells: <int>[0, 0, 0, 0],
+          horizontalEdges: <int>[0, 0, 0, 0, 0, 0],
+          verticalEdges: <int>[0, 0, 0, 0, 0, 0],
+        ),
+      );
+
+      final result = applySmartTileMaterialGesture(
+        source,
+        mapSize: mapSize,
+        cells: const <GridPos>[GridPos(x: 0, y: 0)],
+        materialId: 'grass',
+      );
+
+      expect(smartTileSemanticCells(result), <int>[1, 0, 0, 0]);
+      expect(smartTileHorizontalEdges(result), <int>[1, 0, 1, 0, 0, 0]);
+      expect(smartTileVerticalEdges(result), <int>[1, 1, 0, 0, 0, 0]);
+      expect(smartTileCorners(result), isEmpty);
+    });
+
+    test('projects one cell onto every active corner lattice slot', () {
+      final source = _layer(
+        const SmartTileField.corner(
+          semanticCells: <int>[0, 0, 0, 0],
+          corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+      );
+
+      final result = applySmartTileMaterialGesture(
+        source,
+        mapSize: mapSize,
+        cells: const <GridPos>[GridPos(x: 0, y: 0)],
+        materialId: 'grass',
+      );
+
+      expect(smartTileSemanticCells(result), <int>[1, 0, 0, 0]);
+      expect(smartTileHorizontalEdges(result), isEmpty);
+      expect(smartTileVerticalEdges(result), isEmpty);
+      expect(smartTileCorners(result), <int>[1, 1, 0, 1, 1, 0, 0, 0, 0]);
+    });
+
+    test('mixed projection is duplicate- and order-independent', () {
+      final source = _layer(
+        const SmartTileField.mixed(
+          semanticCells: <int>[0, 0, 0, 0],
+          horizontalEdges: <int>[0, 0, 0, 0, 0, 0],
+          verticalEdges: <int>[0, 0, 0, 0, 0, 0],
+          corners: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+      );
+
+      final forward = applySmartTileMaterialGesture(
+        source,
+        mapSize: mapSize,
+        cells: const <GridPos>[
+          GridPos(x: 0, y: 0),
+          GridPos(x: 1, y: 0),
+          GridPos(x: 0, y: 0),
+        ],
+        materialId: 'grass',
+      );
+      final reverse = applySmartTileMaterialGesture(
+        source,
+        mapSize: mapSize,
+        cells: const <GridPos>[
+          GridPos(x: 1, y: 0),
+          GridPos(x: 0, y: 0),
+        ],
+        materialId: 'grass',
+      );
+
+      expect(forward, reverse);
+      expect(smartTileSemanticCells(forward), <int>[1, 1, 0, 0]);
+      expect(
+        smartTileHorizontalEdges(forward),
+        <int>[1, 1, 1, 1, 0, 0],
+      );
+      expect(smartTileVerticalEdges(forward), <int>[1, 1, 1, 0, 0, 0]);
+      expect(smartTileCorners(forward), <int>[1, 1, 1, 1, 1, 1, 0, 0, 0]);
+    });
+
+    test('erase clears the same mixed slots and rejects invalid cells', () {
+      final source = _layer(
+        const SmartTileField.mixed(
+          semanticCells: <int>[1, 1, 1, 1],
+          horizontalEdges: <int>[1, 1, 1, 1, 1, 1],
+          verticalEdges: <int>[1, 1, 1, 1, 1, 1],
+          corners: <int>[1, 1, 1, 1, 1, 1, 1, 1, 1],
+        ),
+      );
+
+      final erased = applySmartTileMaterialGesture(
+        source,
+        mapSize: mapSize,
+        cells: const <GridPos>[GridPos(x: 0, y: 0)],
+        materialId: null,
+      );
+
+      expect(smartTileSemanticCells(erased), <int>[0, 1, 1, 1]);
+      expect(smartTileHorizontalEdges(erased), <int>[0, 1, 0, 1, 1, 1]);
+      expect(smartTileVerticalEdges(erased), <int>[0, 0, 1, 1, 1, 1]);
+      expect(smartTileCorners(erased), <int>[0, 0, 1, 0, 0, 1, 1, 1, 1]);
+      expect(
+        () => applySmartTileMaterialGesture(
+          source,
+          mapSize: mapSize,
+          cells: const <GridPos>[GridPos(x: 2, y: 0)],
+          materialId: null,
+        ),
+        throwsRangeError,
+      );
+      expect(smartTileSemanticCells(source), <int>[1, 1, 1, 1]);
+    });
+  });
+
   test('normalization reindexes only active lattices and keeps the variant',
       () {
     final source = _layer(

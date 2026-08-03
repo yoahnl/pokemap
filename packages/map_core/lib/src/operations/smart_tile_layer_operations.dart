@@ -232,6 +232,121 @@ SmartTileLayer setSmartTileCornerMaterial(
   );
 }
 
+/// Projects one map-cell brush gesture onto every lattice owned by the field.
+///
+/// Each touched cell receives the material in `semanticCells`. Edge fields also
+/// receive it on the north, east, south, and west edges; corner fields receive
+/// it on their four corners; mixed fields receive all eight Wang slots. Shared
+/// slots and duplicate cells are written once, making a gesture independent of
+/// input order. Passing `null` or an empty material erases the same footprint.
+SmartTileLayer applySmartTileMaterialGesture(
+  SmartTileLayer layer, {
+  required GridSize mapSize,
+  required Iterable<GridPos> cells,
+  required String? materialId,
+}) {
+  final cellIndices = <int>{};
+  final horizontalEdgeIndices = <int>{};
+  final verticalEdgeIndices = <int>{};
+  final cornerIndices = <int>{};
+  final hasEdges =
+      layer.field is SmartTileEdgeField || layer.field is SmartTileMixedField;
+  final hasCorners =
+      layer.field is SmartTileCornerField || layer.field is SmartTileMixedField;
+  final verticalStride = mapSize.width + 1;
+
+  for (final cell in cells) {
+    _checkCoordinate(
+      cell.x,
+      cell.y,
+      mapSize.width,
+      mapSize.height,
+      'cell',
+    );
+    cellIndices.add(cell.y * mapSize.width + cell.x);
+    if (hasEdges) {
+      horizontalEdgeIndices
+        ..add(cell.y * mapSize.width + cell.x)
+        ..add((cell.y + 1) * mapSize.width + cell.x);
+      verticalEdgeIndices
+        ..add(cell.y * verticalStride + cell.x)
+        ..add(cell.y * verticalStride + cell.x + 1);
+    }
+    if (hasCorners) {
+      cornerIndices
+        ..add(cell.y * verticalStride + cell.x)
+        ..add(cell.y * verticalStride + cell.x + 1)
+        ..add((cell.y + 1) * verticalStride + cell.x)
+        ..add((cell.y + 1) * verticalStride + cell.x + 1);
+    }
+  }
+  if (cellIndices.isEmpty) return layer;
+
+  final interned = _internMaterial(layer, materialId);
+  final semanticCells = List<int>.of(smartTileSemanticCells(layer));
+  for (final index in cellIndices) {
+    semanticCells[index] = interned.index;
+  }
+
+  final field = switch (layer.field) {
+    SmartTileCellField() => SmartTileField.cell(
+        semanticCells: semanticCells,
+      ),
+    SmartTileEdgeField(:final horizontalEdges, :final verticalEdges) => () {
+        final nextHorizontalEdges = List<int>.of(horizontalEdges);
+        final nextVerticalEdges = List<int>.of(verticalEdges);
+        for (final index in horizontalEdgeIndices) {
+          nextHorizontalEdges[index] = interned.index;
+        }
+        for (final index in verticalEdgeIndices) {
+          nextVerticalEdges[index] = interned.index;
+        }
+        return SmartTileField.edge(
+          semanticCells: semanticCells,
+          horizontalEdges: nextHorizontalEdges,
+          verticalEdges: nextVerticalEdges,
+        );
+      }(),
+    SmartTileCornerField(:final corners) => () {
+        final nextCorners = List<int>.of(corners);
+        for (final index in cornerIndices) {
+          nextCorners[index] = interned.index;
+        }
+        return SmartTileField.corner(
+          semanticCells: semanticCells,
+          corners: nextCorners,
+        );
+      }(),
+    SmartTileMixedField(
+      :final horizontalEdges,
+      :final verticalEdges,
+      :final corners,
+    ) =>
+      () {
+        final nextHorizontalEdges = List<int>.of(horizontalEdges);
+        final nextVerticalEdges = List<int>.of(verticalEdges);
+        final nextCorners = List<int>.of(corners);
+        for (final index in horizontalEdgeIndices) {
+          nextHorizontalEdges[index] = interned.index;
+        }
+        for (final index in verticalEdgeIndices) {
+          nextVerticalEdges[index] = interned.index;
+        }
+        for (final index in cornerIndices) {
+          nextCorners[index] = interned.index;
+        }
+        return SmartTileField.mixed(
+          semanticCells: semanticCells,
+          horizontalEdges: nextHorizontalEdges,
+          verticalEdges: nextVerticalEdges,
+          corners: nextCorners,
+        );
+      }(),
+  };
+
+  return layer.copyWith(materialPalette: interned.palette, field: field);
+}
+
 MapData replaceSmartTileLayer(
   MapData map, {
   required SmartTileLayer layer,
