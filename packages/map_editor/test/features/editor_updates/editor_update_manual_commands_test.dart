@@ -183,6 +183,9 @@ final class _FakeNativeUpdater implements EditorNativeUpdater {
   }) async {}
 
   @override
+  Future<void> setRestartReady({required bool canRestart}) async {}
+
+  @override
   Future<void> respondToRestart({
     required String operationId,
     required bool canRestart,

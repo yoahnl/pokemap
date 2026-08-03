@@ -152,6 +152,7 @@ void main() {
     await controller.openNativeUpdateFlow();
     expect(controller.state.phase, EditorUpdatePhase.handingOff);
     expect(updater.openCalls, 1);
+    expect(updater.restartReadiness, [true]);
 
     updater.emit(EditorNativeUpdateEvent.cancelled(updater.lastOperationId!));
     await pumpEventQueue();
@@ -205,6 +206,28 @@ void main() {
     expect(updater.restartDecisions, [false]);
     expect(controller.state.phase, EditorUpdatePhase.blockedByUnsavedWork);
 
+    await controller.dispose();
+  });
+
+  test('synchronizes the native restart gate when editor readiness changes',
+      () async {
+    final updater = _FakeNativeUpdater();
+    final controller = _controller(
+      catalog: _FakeCatalog(),
+      updater: updater,
+    );
+
+    await controller.synchronizeRestartReadiness(EditorExitReadiness.clean);
+    await controller.synchronizeRestartReadiness(
+      EditorExitReadiness.fromBlockers([
+        const EditorExitBlocker(
+          id: 'path-studio',
+          kind: EditorExitBlockerKind.pathStudio,
+        ),
+      ]),
+    );
+
+    expect(updater.restartReadiness, [true, false]);
     await controller.dispose();
   });
 
@@ -305,6 +328,7 @@ final class _FakeNativeUpdater implements EditorNativeUpdater {
   int openCalls = 0;
   String? lastOperationId;
   final restartDecisions = <bool>[];
+  final restartReadiness = <bool>[];
   bool isDisposed = false;
 
   @override
@@ -324,6 +348,11 @@ final class _FakeNativeUpdater implements EditorNativeUpdater {
   }) async {
     openCalls += 1;
     lastOperationId = operationId;
+  }
+
+  @override
+  Future<void> setRestartReady({required bool canRestart}) async {
+    restartReadiness.add(canRestart);
   }
 
   @override

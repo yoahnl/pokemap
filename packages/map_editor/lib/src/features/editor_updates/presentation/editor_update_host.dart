@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../l10n/l10n.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
+import '../application/editor_update_controller.dart';
 import '../application/editor_update_providers.dart';
 import '../domain/editor_exit_readiness.dart';
 import '../domain/editor_update_models.dart';
@@ -25,6 +26,7 @@ final class EditorUpdateHost extends ConsumerStatefulWidget {
 
 final class _EditorUpdateHostState extends ConsumerState<EditorUpdateHost> {
   bool _automaticCheckScheduled = false;
+  bool? _queuedRestartReadiness;
 
   @override
   void initState() {
@@ -46,6 +48,7 @@ final class _EditorUpdateHostState extends ConsumerState<EditorUpdateHost> {
     final state =
         ref.watch(editorUpdateStateProvider).valueOrNull ?? controller.state;
     final readiness = ref.watch(editorExitReadinessProvider);
+    _queueRestartReadinessSynchronization(controller, readiness);
     final banner = _bannerFor(
       context,
       state: state,
@@ -80,6 +83,23 @@ final class _EditorUpdateHostState extends ConsumerState<EditorUpdateHost> {
           ),
       ],
     );
+  }
+
+  void _queueRestartReadinessSynchronization(
+    EditorUpdateController controller,
+    EditorExitReadiness readiness,
+  ) {
+    final canRestart = readiness.canExit;
+    if (_queuedRestartReadiness == canRestart) {
+      return;
+    }
+    _queuedRestartReadiness = canRestart;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _queuedRestartReadiness != canRestart) {
+        return;
+      }
+      unawaited(controller.synchronizeRestartReadiness(readiness));
+    });
   }
 }
 

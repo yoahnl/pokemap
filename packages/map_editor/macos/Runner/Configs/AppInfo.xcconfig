@@ -12,3 +12,7 @@ PRODUCT_BUNDLE_IDENTIFIER = com.yoahnl.pokemap.editor
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 PokeMap. All rights reserved.
+
+// Release CI writes the public (never private) Sparkle key to the optional file.
+POKEMAP_SPARKLE_PUBLIC_ED_KEY =
+#include? "UpdateKeys.xcconfig"

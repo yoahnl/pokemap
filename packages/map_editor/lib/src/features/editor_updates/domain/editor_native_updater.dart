@@ -70,6 +70,8 @@ abstract interface class EditorNativeUpdater {
     required EditorUpdateRelease release,
   });
 
+  Future<void> setRestartReady({required bool canRestart});
+
   Future<void> respondToRestart({
     required String operationId,
     required bool canRestart,

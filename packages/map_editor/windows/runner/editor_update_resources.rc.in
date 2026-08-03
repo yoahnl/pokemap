@@ -1,0 +1,5 @@
+#include "winres.h"
+
+FeedURL APPCAST {"https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-windows.xml"}
+
+EdDSAPub EDDSA {"@POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY@"}

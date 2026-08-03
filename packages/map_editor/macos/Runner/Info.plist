@@ -34,5 +34,17 @@
 	<string>RPG Map Editor a besoin d’accéder au dossier Documents pour ouvrir et restaurer vos projets.</string>
 	<key>NSDownloadsFolderUsageDescription</key>
 	<string>RPG Map Editor peut accéder aux téléchargements pour importer des assets de projet.</string>
+	<key>SUFeedURL</key>
+	<string>https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>$(POKEMAP_SPARKLE_PUBLIC_ED_KEY)</string>
+	<key>SUEnableAutomaticChecks</key>
+	<false/>
+	<key>SURequireSignedFeed</key>
+	<true/>
+	<key>SUVerifyUpdateBeforeExtraction</key>
+	<true/>
+	<key>SUEnableInstallerLauncherService</key>
+	<true/>
 </dict>
 </plist>

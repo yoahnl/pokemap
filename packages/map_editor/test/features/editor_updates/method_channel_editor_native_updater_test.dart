@@ -33,6 +33,7 @@ void main() {
       operationId: 'operation-1',
       release: _release(),
     );
+    await updater.setRestartReady(canRestart: true);
     await updater.respondToRestart(
       operationId: 'operation-1',
       canRestart: false,
@@ -40,6 +41,7 @@ void main() {
 
     expect(calls.map((call) => call.method), [
       'openUpdateFlow',
+      'setRestartReady',
       'respondToRestart',
     ]);
     expect(calls.first.arguments, {
@@ -47,6 +49,7 @@ void main() {
       'version': '0.3.1',
       'tag': 'pokemap-v0.3.1',
     });
+    expect(calls[1].arguments, {'canRestart': true});
     expect(calls.last.arguments, {
       'operationId': 'operation-1',
       'canRestart': false,

@@ -78,6 +78,7 @@ jobs:
           path: packages/map_editor/build/release/PokeMap-macos-preview.dmg
 
   windows:
+    if: ${{ !startsWith(github.ref, 'refs/tags/pokemap-v') }}
     runs-on: windows-2025
     timeout-minutes: 60
     steps:
@@ -118,6 +119,94 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           path: packages/map_editor/build/release/PokeMap-windows-x64.zip
+
+  windows-release:
+    if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    needs: validate-release
+    runs-on: windows-2025
+    timeout-minutes: 60
+    environment: pokemap-release
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        shell: pwsh
+        run: |
+          git init "$env:RUNNER_TEMP/flutter"
+          git -C "$env:RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$env:RUNNER_TEMP/flutter" fetch --depth 1 origin `
+            "refs/tags/$env:FLUTTER_VERSION`:refs/tags/$env:FLUTTER_VERSION"
+          git -C "$env:RUNNER_TEMP/flutter" checkout --detach "$env:FLUTTER_VERSION"
+          $revision = git -C "$env:RUNNER_TEMP/flutter" rev-parse HEAD
+          if ($revision -ne "$env:FLUTTER_REVISION") {
+            throw "Unexpected Flutter revision: $revision"
+          }
+          "$env:RUNNER_TEMP/flutter/bin" |
+            Out-File -FilePath "$env:GITHUB_PATH" -Encoding utf8 -Append
+      - name: Build verified WinSparkle runner
+        working-directory: packages/map_editor
+        shell: pwsh
+        env:
+          POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY: ${{ secrets.POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY)) {
+            throw "POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY is required."
+          }
+          try {
+            $publicKeyBytes = [Convert]::FromBase64String(
+              $env:POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY
+            )
+          } catch {
+            throw "POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY must be valid base64."
+          }
+          if ($publicKeyBytes.Length -ne 32) {
+            throw "POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY must encode 32 bytes."
+          }
+          flutter pub get
+          flutter test test/release test/features/editor_updates/native_update_phase3_contract_test.dart
+          flutter analyze
+          flutter build windows --release
+          $bundle = "build/windows/x64/runner/Release"
+          foreach ($file in @("PokeMap.exe", "WinSparkle.dll")) {
+            if (-not (Test-Path "$bundle/$file")) {
+              throw "PokeMap Windows bundle is missing $file."
+            }
+          }
+      - name: Package signed Windows update
+        working-directory: packages/map_editor
+        shell: pwsh
+        env:
+          WINSPARKLE_PRIVATE_ED_KEY_BASE64: ${{ secrets.WINSPARKLE_PRIVATE_ED_KEY_BASE64 }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:WINSPARKLE_PRIVATE_ED_KEY_BASE64)) {
+            throw "WINSPARKLE_PRIVATE_ED_KEY_BASE64 is required."
+          }
+          $privateKey = Join-Path $env:RUNNER_TEMP "winsparkle-private.key"
+          [IO.File]::WriteAllBytes(
+            $privateKey,
+            [Convert]::FromBase64String($env:WINSPARKLE_PRIVATE_ED_KEY_BASE64)
+          )
+          $tool = Get-ChildItem "build/windows/x64/winsparkle/0.9.4" `
+            -Filter "winsparkle-tool.exe" -Recurse |
+            Select-Object -First 1 -ExpandProperty FullName
+          if (-not $tool) {
+            throw "winsparkle-tool was not found in the pinned NuGet package."
+          }
+          $version = $env:GITHUB_REF_NAME -replace '^pokemap-v', ''
+          ./tool/release/package_windows_update.ps1 `
+            -Version $version `
+            -BundleDir "build/windows/x64/runner/Release" `
+            -OutputDir "build/release" `
+            -PrivateKeyFile $privateKey `
+            -WinSparkleTool $tool
+      - name: Preserve signed Windows update
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pokemap-windows-${{ github.sha }}
+          if-no-files-found: error
+          retention-days: 90
+          path: |
+            packages/map_editor/build/release/PokeMap-Editor-Setup-*.exe
+            packages/map_editor/build/release/appcast-windows.xml
 
   linux:
     runs-on: ubuntu-24.04
@@ -168,7 +257,7 @@ jobs:
     if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs:
       - validate-release
-      - windows
+      - windows-release
       - linux
     runs-on: macos-15
     timeout-minutes: 60
@@ -208,10 +297,19 @@ jobs:
         working-directory: packages/map_editor
         env:
           DEVELOPER_ID_APPLICATION: ${{ secrets.DEVELOPER_ID_APPLICATION }}
+          POKEMAP_SPARKLE_PUBLIC_ED_KEY: ${{ secrets.POKEMAP_SPARKLE_PUBLIC_ED_KEY }}
         run: |
           test -n "$DEVELOPER_ID_APPLICATION"
+          test -n "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"
+          SPARKLE_PUBLIC_KEY_BYTES="$(
+            printf '%s' "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" | base64 --decode | wc -c | tr -d ' '
+          )"
+          test "$SPARKLE_PUBLIC_KEY_BYTES" = 32
+          printf 'POKEMAP_SPARKLE_PUBLIC_ED_KEY = "%s"\n' \
+            "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
+            > macos/Runner/Configs/UpdateKeys.xcconfig
           flutter pub get
-          flutter test test/release
+          flutter test test/release test/features/editor_updates/native_update_phase3_contract_test.dart
           flutter analyze
           flutter build macos --release
           ../../apps/pokemap_hub/tool/release/sign_macos_app.sh \
@@ -235,23 +333,47 @@ jobs:
           VERSION="${GITHUB_REF_NAME#pokemap-v}"
           ../../apps/pokemap_hub/tool/release/notarize_macos_release.sh \
             --app "build/macos/Build/Products/Release/PokeMap.app" \
-            --dmg "build/release/PokeMap-macos-$VERSION.dmg" \
+            --dmg "build/release/PokeMap-Editor-$VERSION-macOS.dmg" \
             --notary-profile pokemap-release \
             --result-json "$RUNNER_TEMP/notary-result.json" \
             --log-directory "$RUNNER_TEMP/notary-logs" \
             --volume-name PokeMap
+      - name: Package signed Sparkle update
+        working-directory: packages/map_editor
+        env:
+          SPARKLE_PRIVATE_ED_KEY_BASE64: ${{ secrets.SPARKLE_PRIVATE_ED_KEY_BASE64 }}
+        run: |
+          test -n "$SPARKLE_PRIVATE_ED_KEY_BASE64"
+          PRIVATE_KEY="$RUNNER_TEMP/sparkle-private.key"
+          printf '%s' "$SPARKLE_PRIVATE_ED_KEY_BASE64" | base64 --decode > "$PRIVATE_KEY"
+          chmod 600 "$PRIVATE_KEY"
+          GENERATE_APPCAST="$(find build/macos -type f \
+            -path '*/Sparkle/bin/generate_appcast' -perm -111 -print -quit)"
+          test -n "$GENERATE_APPCAST"
+          VERSION="${GITHUB_REF_NAME#pokemap-v}"
+          tool/release/package_macos_update.sh \
+            --app "build/macos/Build/Products/Release/PokeMap.app" \
+            --version "$VERSION" \
+            --output-dir build/release \
+            --generate-appcast "$GENERATE_APPCAST" \
+            --private-key-file "$PRIVATE_KEY" \
+            --download-url-prefix \
+              "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/"
       - name: Preserve notarized macOS package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pokemap-macos-${{ github.sha }}
           if-no-files-found: error
           retention-days: 90
-          path: packages/map_editor/build/release/PokeMap-macos-*.dmg
+          path: |
+            packages/map_editor/build/release/PokeMap-Editor-*-macOS.dmg
+            packages/map_editor/build/release/PokeMap-Editor-*-macOS.app.zip
+            packages/map_editor/build/release/appcast-macos.xml
 
   publish:
     if: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') }}
     needs:
-      - windows
+      - windows-release
       - linux
       - macos-release
     runs-on: ubuntu-24.04
@@ -278,7 +400,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
-            dist/PokeMap-* \
+            dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "PokeMap ${GITHUB_REF_NAME#pokemap-v}" \
             --generate-notes

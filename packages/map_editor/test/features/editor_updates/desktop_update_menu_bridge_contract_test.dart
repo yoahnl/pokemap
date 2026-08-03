@@ -8,21 +8,21 @@ void main() {
         File('macos/Runner/Base.lproj/MainMenu.xib').readAsStringSync();
     final appDelegate =
         File('macos/Runner/AppDelegate.swift').readAsStringSync();
-    final window =
-        File('macos/Runner/MainFlutterWindow.swift').readAsStringSync();
+    final bridge =
+        File('macos/Runner/EditorUpdaterBridge.swift').readAsStringSync();
 
     expect(menu, contains('title="Check for Updates…"'));
     expect(menu, contains('selector="checkForUpdates:"'));
-    expect(appDelegate, contains('EditorUpdateBridge.requestManualCheck()'));
-    expect(window, contains('name: "map_editor/editor_updates"'));
-    expect(window, contains('"manualCheckRequested"'));
+    expect(appDelegate, contains('EditorUpdaterBridge.requestManualCheck()'));
+    expect(bridge, contains('name: "map_editor/editor_updates"'));
+    expect(bridge, contains('"manualCheckRequested"'));
   });
 
   test('both desktop runners open trusted update links natively', () {
     final macos =
-        File('macos/Runner/MainFlutterWindow.swift').readAsStringSync();
+        File('macos/Runner/EditorUpdaterBridge.swift').readAsStringSync();
     final windows =
-        File('windows/runner/flutter_window.cpp').readAsStringSync();
+        File('windows/runner/editor_updater_bridge.cpp').readAsStringSync();
 
     expect(macos, contains('case "openExternalUri"'));
     expect(macos, contains('NSWorkspace.shared.open'));

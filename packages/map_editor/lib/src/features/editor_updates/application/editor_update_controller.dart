@@ -105,6 +105,21 @@ final class EditorUpdateController {
     );
   }
 
+  Future<void> synchronizeRestartReadiness(
+    EditorExitReadiness readiness,
+  ) async {
+    if (_disposed || !_nativeUpdater.isSupported) {
+      return;
+    }
+    try {
+      await _nativeUpdater.setRestartReady(canRestart: readiness.canExit);
+    } catch (error) {
+      _onBackgroundFailure?.call(
+        _failureFrom(error, fallbackCode: 'native_readiness_failed'),
+      );
+    }
+  }
+
   void dismissAvailableBanner() {
     if (_disposed) return;
     _emit(EditorUpdateState.idle(currentVersion: _state.currentVersion));
@@ -157,6 +172,7 @@ final class EditorUpdateController {
       ),
     );
     try {
+      await _nativeUpdater.setRestartReady(canRestart: true);
       await _nativeUpdater.openUpdateFlow(
         operationId: operationId,
         release: release,

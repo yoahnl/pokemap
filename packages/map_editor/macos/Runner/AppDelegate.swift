@@ -4,7 +4,7 @@ import FlutterMacOS
 @main
 class AppDelegate: FlutterAppDelegate {
   @IBAction func checkForUpdates(_ sender: Any?) {
-    EditorUpdateBridge.requestManualCheck()
+    EditorUpdaterBridge.requestManualCheck()
   }
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {

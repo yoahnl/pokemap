@@ -55,6 +55,16 @@ final class MethodChannelEditorNativeUpdater implements EditorNativeUpdater {
   }
 
   @override
+  Future<void> setRestartReady({required bool canRestart}) async {
+    if (!isSupported) {
+      return;
+    }
+    await _channel.invokeMethod<void>('setRestartReady', {
+      'canRestart': canRestart,
+    });
+  }
+
+  @override
   Future<void> respondToRestart({
     required String operationId,
     required bool canRestart,

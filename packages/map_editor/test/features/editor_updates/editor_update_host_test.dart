@@ -13,6 +13,25 @@ import 'package:map_editor/src/theme/theme.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 void main() {
+  test('controller creation does not eagerly initialize exit readiness', () {
+    var readinessReads = 0;
+    final nativeUpdater = _FakeNativeUpdater();
+    final container = ProviderContainer(
+      overrides: [
+        editorNativeUpdaterProvider.overrideWithValue(nativeUpdater),
+        editorExitReadinessProvider.overrideWith((ref) {
+          readinessReads += 1;
+          return EditorExitReadiness.clean;
+        }),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorUpdateControllerProvider);
+
+    expect(readinessReads, 0);
+  });
+
   testWidgets('starts one delayed check without rebuilding the shell',
       (tester) async {
     final delay = _ControlledTimerFactory();
@@ -39,6 +58,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Editor shell'), findsOneWidget);
+    expect(nativeUpdater.restartReadyCalls, [true]);
     expect(delay.durations, [const Duration(seconds: 12)]);
     expect(catalog.calls, 0);
 
@@ -175,6 +195,7 @@ final class _FakeNativeUpdater implements EditorNativeUpdater {
   Stream<void> get manualCheckRequests => const Stream<void>.empty();
 
   int openCalls = 0;
+  final restartReadyCalls = <bool>[];
 
   @override
   Future<void> openUpdateFlow({
@@ -182,6 +203,11 @@ final class _FakeNativeUpdater implements EditorNativeUpdater {
     required EditorUpdateRelease release,
   }) async {
     openCalls += 1;
+  }
+
+  @override
+  Future<void> setRestartReady({required bool canRestart}) async {
+    restartReadyCalls.add(canRestart);
   }
 
   @override
