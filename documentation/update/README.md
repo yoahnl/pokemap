@@ -18,9 +18,9 @@ un paquet téléchargeable sans mise à jour automatique.
 
 | Plateforme | Implémentation | Certification réelle | Diffusion stable |
 |---|---|---|---|
-| macOS | Sparkle 2.9.5, signature Developer ID, notarisation et feed signé | PARTIAL : signature/notarisation Apple prouvées ; feed à revalider après correction, puis cycle `0.3.0 → 0.3.1` | Bloquée tant que la release multi-plateforme n’est pas certifiée |
+| macOS | Sparkle 2.9.5, signature Developer ID, notarisation et feed signé | PARTIAL : preflight complet vert ; cycle installé `0.3.0 → 0.3.1` encore à certifier | Bloquée tant que la release multi-plateforme n’est pas certifiée |
 | Windows | WinSparkle 0.9.4, Inno Setup et appcast EdDSA | BLOCKED : clés/secrets et test sur machine propre manquants | Bloquée |
-| Linux | archive `.tar.gz` versionnée et checksums | PARTIAL : build GitHub et lancement sur Linux à confirmer | Téléchargement manuel seulement |
+| Linux | archive `.tar.gz` versionnée et checksums | PARTIAL : build GitHub vert ; installation et lancement sur machine Linux propre à confirmer | Téléchargement manuel seulement |
 
 Important : **ne pas pousser de tag `pokemap-v*` tant que Windows est mis de
 côté**. Le pipeline de release est fail-closed et exige les artefacts macOS,
@@ -516,7 +516,7 @@ sur macOS.
 | UPD-01 | PARTIAL | Garde de fermeture présent, couverture des studios spécialisés incomplète |
 | UPD-02 | PARTIAL | Détection et tests présents, comportement réseau réel à certifier |
 | UPD-03 | PARTIAL | UX implémentée et testée, certification binaire réelle manquante |
-| UPD-04 | PARTIAL | Signature/notarisation Apple prouvées ; feed signé à revalider après correction, puis E2E macOS à exécuter |
+| UPD-04 | PARTIAL | Preflight Apple complet vert, archive et feed Sparkle signés ; E2E installé macOS encore à exécuter |
 | UPD-05 | BLOCKED | Code présent, secrets et certification Windows manquants |
 | UPD-06 | PARTIAL | Pipeline atomique testé par contrat, aucune release taggée complète exécutée |
 | UPD-07 | BLOCKED | Bootstrap et boucle réelle `0.3.0 → 0.3.1` non exécutés |
@@ -602,18 +602,27 @@ de configuration distinctes :
 
 La reproduction locale du correctif a confirmé une clé publique compilée de
 32 octets, une signature `sparkle:edSignature` sur l’archive et un bloc de
-signature du feed. Un nouveau preflight GitHub sur le commit corrigé reste
-obligatoire avant de proposer `UPD-04` comme terminé.
+signature du feed.
+
+Le run final
+[`30800867440`](https://github.com/yoahnl/pokemap/actions/runs/30800867440),
+exécuté sur le commit `160ab3256c3defce4a9e67ebfee7a02c3ac16991`,
+a ensuite validé en **7 min 33 s** l’intégralité du preflight : import de
+l’identité Developer ID, build et signature, notarisation Apple, stapling,
+contrôle Gatekeeper, génération de l’archive et du feed Sparkle signés, puis
+conservation des preuves. Aucun tag ni aucune release n’a été créé.
 
 ### Limites de validation restantes
 
 - aucun build natif Windows ne peut être exécuté sur le Mac local ;
-- le build Linux natif doit être exécuté sur le runner Ubuntu ;
+- le build Linux est vert sur le runner Ubuntu, mais son installation et son
+  lancement sur une machine propre restent à certifier ;
 - une ancienne tentative de suite Flutter complète a rencontré des échecs
   historiques hors chantier (goldens, fixture Selbrume absente et conflits de
   révisions Border). La suite ciblée update/release reste verte ;
-- le push `main` a certifié les trois previews ; un nouveau preflight macOS sur
-  le correctif et la boucle taggée restent des preuves distinctes.
+- le push `main` a certifié les trois previews et le preflight macOS corrigé est
+  vert ; la boucle réelle entre deux versions installées reste une preuve
+  distincte.
 
 ## 14. Inventaire complet des fichiers du chantier
 
@@ -755,9 +764,9 @@ commit documentaire et du push. Une décision séparée devra déterminer s’il
 doivent être versionnés comme les lockfiles SwiftPM déjà suivis dans
 `apps/pokemap_hub`.
 
-État attendu immédiatement après le commit documentaire et de durcissement :
+État final après les commits de durcissement, de correction et de documentation :
 
-- `main` possède 27 commits d’avance sur `origin/main` avant le push ;
+- `main` et `origin/main` sont synchronisés après le push final ;
 - aucun changement suivi ne reste dans le worktree ;
 - dix fichiers non suivis restent volontairement exclus : huit artefacts
   préexistants `.superpowers`/`__pycache__` et les deux `Package.resolved` ;
@@ -773,8 +782,9 @@ doivent être versionnés comme les lockfiles SwiftPM déjà suivis dans
 - **Tests :** contrats positifs, négatifs, sécurité, UI et publication couverts ;
   suite ciblée de 86 tests verte après rebase et durcissement final.
 - **Build / Validation :** analyse, scripts natifs, build macOS Release local et
-  previews GitHub macOS/Windows/Linux verts ; signature, notarisation et
-  Gatekeeper macOS verts, feed signé à revalider après correction.
+  previews GitHub macOS/Windows/Linux verts ; preflight final macOS entièrement
+  vert, y compris signature, notarisation, Gatekeeper, archive et feed Sparkle
+  signés.
 - **Documentation :** un document consolidé dans le dossier explicitement
   demandé, sans multiplier les rapports Markdown.
 - **Critique finale :** la qualification production doit rester refusée tant que
@@ -783,14 +793,12 @@ doivent être versionnés comme les lockfiles SwiftPM déjà suivis dans
 
 ## 17. Prochain ordre de travail recommandé
 
-1. Pousser le correctif d’injection `SUPublicEDKey` sur `main` et attendre les
-   trois previews GitHub.
-2. Relancer `macos-preflight` et conserver le run vert comme preuve.
-3. Raccorder tous les studios spécialisés au registre de travail non sauvegardé.
-4. Automatiser la comparaison du build number avec la dernière release stable.
-5. Quand Windows redevient disponible, générer et sauvegarder sa paire EdDSA.
-6. Ajouter les deux secrets Windows et certifier l’installation initiale.
-7. Certifier le cycle complet `0.3.0 → 0.3.1` sur macOS et Windows propres.
-8. Pousser un tag stable seulement après ces preuves.
-9. Conserver Linux en téléchargement manuel jusqu’à une décision produit
+1. Raccorder tous les studios spécialisés au registre de travail non sauvegardé.
+2. Automatiser la comparaison du build number avec la dernière release stable.
+3. Certifier le cycle complet `0.3.0 → 0.3.1` sur un Mac propre.
+4. Quand Windows redevient disponible, générer et sauvegarder sa paire EdDSA.
+5. Ajouter les deux secrets Windows et certifier l’installation initiale.
+6. Certifier le cycle complet `0.3.0 → 0.3.1` sur un PC Windows propre.
+7. Pousser un tag stable seulement après ces preuves.
+8. Conserver Linux en téléchargement manuel jusqu’à une décision produit
    explicite sur son format d’installation et son mécanisme d’update.
