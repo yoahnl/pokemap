@@ -140,6 +140,16 @@ final class SmartTileStudioSession {
     );
   }
 
+  void clearGuideChoice() {
+    if (_state.wizardStep != SmartTileStudioWizardStep.connections &&
+        _state.wizardStep != SmartTileStudioWizardStep.variants &&
+        _state.wizardStep != SmartTileStudioWizardStep.forms) {
+      throw StateError(
+          'Impossible de désactiver un guide pendant cette étape.');
+    }
+    _state = _state.copyWith(clearGuide: true, clearAnchor: true);
+  }
+
   void moveToPlacement() {
     _requireStep(
       SmartTileStudioWizardStep.connections,
@@ -224,9 +234,10 @@ final class SmartTileStudioSession {
 
   void moveToTest() {
     _requireStep(SmartTileStudioWizardStep.forms, 'ouvrir le banc d’essai');
-    if (_state.sourceChoice == null ||
-        _state.gridGeometry == null ||
-        _state.anchor == null) {
+    if (_state.sourceChoice == null || _state.gridGeometry == null) {
+      throw StateError('Confirmez la source et sa grille avant de tester.');
+    }
+    if (_state.guideId != null && _state.anchor == null) {
       throw StateError('Placez entièrement le guide avant de le tester.');
     }
     _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.test);
@@ -251,9 +262,6 @@ final class SmartTileStudioSession {
   }
 
   void returnToPlacement() {
-    if (_state.guideId == null) {
-      throw StateError('Aucun guide à replacer.');
-    }
     _state = _state.copyWith(wizardStep: SmartTileStudioWizardStep.forms);
   }
 

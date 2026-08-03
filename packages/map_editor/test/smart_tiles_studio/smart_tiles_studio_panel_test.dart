@@ -1,7 +1,7 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
@@ -671,6 +671,218 @@ void main() {
       );
     });
 
+    testWidgets('authors D4 transforms and animations without exposing ids', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _openVariantsWithoutGuide(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+      await _jumpWorkbenchToTop(tester);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(
+            const Key('smart-tiles-transform-quarter-turns'),
+          ),
+          matching: find.byType(CupertinoSwitch),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(
+            const Key('smart-tiles-transform-horizontal-flip'),
+          ),
+          matching: find.byType(CupertinoSwitch),
+        ),
+      );
+      await tester.pump();
+
+      expect(latestDraft!.transformPolicy.allowQuarterTurns, isTrue);
+      expect(latestDraft!.transformPolicy.allowHFlip, isTrue);
+      expect(find.text('8 orientation(s) réellement autorisée(s)'),
+          findsOneWidget);
+
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await tester.pumpAndSettle();
+      await _tapAtlasDisplay(tester, viewport, const Offset(2, 2));
+      await _tapAtlasDisplay(tester, viewport, const Offset(9, 2));
+      expect(find.text('Image 1'), findsOneWidget);
+      expect(find.text('Image 2'), findsOneWidget);
+
+      final name = find.byKey(const Key('smart-tiles-animation-name'));
+      final duration = find.byKey(const Key('smart-tiles-animation-duration'));
+      await tester.ensureVisible(name);
+      await tester.enterText(name, 'Herbe au vent');
+      await tester.enterText(duration, '120');
+      await tester.pump();
+      final create = find.byKey(const Key('smart-tiles-create-animation'));
+      await tester.ensureVisible(create);
+      await tester.tap(create);
+      await tester.pump();
+
+      expect(latestDraft!.animations, hasLength(1));
+      final animation = latestDraft!.animations.single;
+      expect(animation.name, 'Herbe au vent');
+      expect(animation.frames, hasLength(2));
+      expect(
+          animation.frames.every((frame) => frame.durationMs == 120), isTrue);
+      expect(find.text('Herbe au vent'), findsOneWidget);
+      expect(find.text(animation.id), findsNothing);
+    });
+
+    testWidgets('maps a form then manages exact weighted variants', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _openFormsWithoutGuide(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+
+      final form = find.byKey(const Key('smart-tiles-form-0'));
+      await tester.ensureVisible(form);
+      await tester.tap(form);
+      await tester.pump();
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await tester.pumpAndSettle();
+      await _tapAtlasDisplay(tester, viewport, const Offset(2, 2));
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+      await _tapAtlasDisplay(tester, viewport, const Offset(9, 2));
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+      await tester.pump();
+
+      var candidates = latestDraft!.rules.single.candidates;
+      expect(candidates, hasLength(2));
+      expect(find.text('50 %'), findsNWidgets(2));
+      final firstId = candidates.first.id;
+      final secondId = candidates.last.id;
+      final weight = find.byKey(Key('smart-tiles-weight-$firstId'));
+      await tester.ensureVisible(weight);
+      await tester.enterText(weight, '3');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+
+      candidates = latestDraft!.rules.single.candidates;
+      expect(candidates.first.weight, 3);
+      expect(find.text('75 %'), findsOneWidget);
+      expect(find.text('25 %'), findsOneWidget);
+
+      final moveDown = find.byKey(Key('smart-tiles-variant-down-$firstId'));
+      await tester.ensureVisible(moveDown);
+      await tester.tap(moveDown);
+      await tester.pump();
+      expect(latestDraft!.rules.single.candidates.map((item) => item.id),
+          <String>[secondId, firstId]);
+
+      final remove = find.byKey(Key('smart-tiles-variant-remove-$firstId'));
+      await tester.ensureVisible(remove);
+      await tester.tap(remove);
+      await tester.pump();
+      expect(latestDraft!.rules.single.candidates.single.id, secondId);
+      _expectNoTechnicalMaskText(tester);
+    });
+
+    testWidgets('maps an atlas cell back to the next human form', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _openFormsWithoutGuide(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await tester.pumpAndSettle();
+      await _tapAtlasDisplay(tester, viewport, const Offset(2, 2));
+      expect(
+        find.byKey(const Key('smart-tiles-clear-pending-frame')),
+        findsOneWidget,
+      );
+
+      final form = find.byKey(const Key('smart-tiles-form-0'));
+      await tester.ensureVisible(form);
+      await tester.tap(form);
+      await tester.pump();
+
+      expect(latestDraft!.rules, hasLength(1));
+      expect(latestDraft!.rules.single.candidates, hasLength(1));
+      expect(
+        find.byKey(const Key('smart-tiles-clear-pending-frame')),
+        findsNothing,
+      );
+      _expectNoTechnicalMaskText(tester);
+    });
+
+    testWidgets('disables a guide without deleting its prefilled mappings', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _pumpGuidedAtlas(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await _tapVisibleValidAnchor(tester, viewport);
+      await tester.pump();
+
+      expect(latestDraft!.guideId, isNotNull);
+      expect(latestDraft!.rules, hasLength(12));
+      await _jumpWorkbenchToTop(tester);
+      final disable = find.byKey(const Key('smart-tiles-disable-guide'));
+      await tester.ensureVisible(disable);
+      await tester.tap(disable);
+      await tester.pump();
+
+      expect(latestDraft!.guideId, isNull);
+      expect(latestDraft!.rules, hasLength(12));
+      expect(find.byKey(const Key('smart-tiles-guide-overlay')), findsNothing);
+    });
+
+    testWidgets('composes forest ground and canopy as visual channels', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _openFormsWithoutGuide(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+        usage: SmartTileUsage.forestSurface,
+      );
+
+      final form = find.byKey(const Key('smart-tiles-form-0'));
+      await tester.ensureVisible(form);
+      await tester.tap(form);
+      await tester.pump();
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await _tapAtlasDisplay(tester, viewport, const Offset(2, 2));
+      final canopy = find.byKey(const Key('smart-tiles-channel-canopy'));
+      await tester.ensureVisible(canopy);
+      await tester.tap(canopy);
+      await tester.pump();
+      await tester.ensureVisible(viewport);
+      await _tapAtlasDisplay(tester, viewport, const Offset(9, 2));
+
+      final parts = latestDraft!.rules.single.candidates.single.parts;
+      expect(
+          parts.map((part) => part.channel),
+          containsAll(<Object?>[
+            SmartTileRenderChannel.ground,
+            SmartTileRenderChannel.canopy,
+          ]));
+    });
+
     testWidgets('test bench resolves every canonical Edge 16 scenario', (
       tester,
     ) async {
@@ -756,12 +968,62 @@ const _target = ProjectTilesetEntry(
 );
 
 Future<void> _startPathImage(WidgetTester tester) async {
+  await _startUsageImage(tester, SmartTileUsage.path);
+}
+
+Future<void> _startUsageImage(
+  WidgetTester tester,
+  SmartTileUsage usage,
+) async {
   await tester.tap(find.byKey(const Key('smart-tiles-new-preset')));
   await tester.pump();
-  await tester.tap(find.byKey(const Key('smart-tiles-usage-path')));
+  await tester.tap(find.byKey(Key('smart-tiles-usage-${usage.name}')));
   await tester.pump();
   await tester.tap(find.byKey(const Key('smart-tiles-usage-next-step')));
   await tester.pump();
+}
+
+Future<void> _openVariantsWithoutGuide(
+  WidgetTester tester, {
+  required SmartTileAtlasImageLoader loader,
+  ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged,
+  SmartTileUsage usage = SmartTileUsage.path,
+}) async {
+  await _pumpGridStage(
+    tester,
+    loader: loader,
+    onDraftChanged: onDraftChanged,
+    usage: usage,
+  );
+  await _confirmGridAndOpenConnections(tester);
+  final noConnections = find.byKey(const Key('smart-tiles-connection-none'));
+  await tester.ensureVisible(noConnections);
+  await tester.tap(noConnections);
+  await tester.pumpAndSettle();
+  final next = find.byKey(const Key('smart-tiles-connections-next-step'));
+  await tester.ensureVisible(next);
+  await tester.pumpAndSettle();
+  await tester.tap(next);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _openFormsWithoutGuide(
+  WidgetTester tester, {
+  required SmartTileAtlasImageLoader loader,
+  ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged,
+  SmartTileUsage usage = SmartTileUsage.path,
+}) async {
+  await _openVariantsWithoutGuide(
+    tester,
+    loader: loader,
+    onDraftChanged: onDraftChanged,
+    usage: usage,
+  );
+  final next = find.byKey(const Key('smart-tiles-variants-next-step'));
+  await tester.ensureVisible(next);
+  await tester.pumpAndSettle();
+  await tester.tap(next);
+  await tester.pumpAndSettle();
 }
 
 Future<void> _pumpGuidedAtlas(
@@ -779,18 +1041,21 @@ Future<void> _pumpGuidedAtlas(
   await _confirmGridAndOpenConnections(tester);
   final guide = find.byKey(const Key('smart-tiles-guide-erwCorner16'));
   await tester.ensureVisible(guide);
+  await tester.pumpAndSettle();
   await tester.tap(guide);
-  await tester.pump();
+  await tester.pumpAndSettle();
   final connectionsNext = find.byKey(
     const Key('smart-tiles-connections-next-step'),
   );
   await tester.ensureVisible(connectionsNext);
+  await tester.pumpAndSettle();
   await tester.tap(connectionsNext);
   await tester.pumpAndSettle();
   final variantsNext = find.byKey(
     const Key('smart-tiles-variants-next-step'),
   );
   await tester.ensureVisible(variantsNext);
+  await tester.pumpAndSettle();
   await tester.tap(variantsNext);
   await tester.pumpAndSettle();
 }
@@ -801,6 +1066,7 @@ Future<void> _pumpGridStage(
   ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged,
   Future<SmartTileSourceImportResult?> Function()? onImportProjectImage,
   Size surfaceSize = const Size(1440, 900),
+  SmartTileUsage usage = SmartTileUsage.path,
 }) async {
   await _pumpPanel(
     tester,
@@ -812,7 +1078,7 @@ Future<void> _pumpGridStage(
     onImportProjectImage: onImportProjectImage,
     surfaceSize: surfaceSize,
   );
-  await _startPathImage(tester);
+  await _startUsageImage(tester, usage);
   await tester.tap(find.byKey(const Key('smart-tiles-source-project-image')));
   await tester.pump();
   await tester.tap(find.byKey(const Key('smart-tiles-choose-project-image')));
@@ -855,6 +1121,38 @@ Future<void> _tapVisibleValidAnchor(
   final topLeft = tester.getTopLeft(viewport);
   final size = tester.getSize(viewport);
   await tester.tapAt(topLeft + Offset(size.width / 2, 80));
+}
+
+Future<void> _tapAtlasDisplay(
+  WidgetTester tester,
+  Finder viewport,
+  Offset localOffset,
+) async {
+  await tester.tapAt(tester.getTopLeft(viewport) + localOffset);
+  await tester.pump();
+}
+
+Future<void> _jumpWorkbenchToTop(WidgetTester tester) async {
+  final listView = find
+      .descendant(
+        of: find.byKey(const Key('smart-tiles-workbench-column')),
+        matching: find.byType(ListView),
+      )
+      .first;
+  await tester.fling(listView, const Offset(0, 1000), 3000);
+  await tester.pumpAndSettle();
+}
+
+void _expectNoTechnicalMaskText(WidgetTester tester) {
+  final visibleTexts = tester
+      .widgetList<Text>(find.byType(Text))
+      .map((widget) => widget.data ?? '')
+      .join('\n');
+  expect(visibleTexts, isNot(contains(RegExp(r'0x[0-9a-fA-F]+'))));
+  expect(
+    visibleTexts,
+    isNot(contains(RegExp(r'mask[_ -]?\d', caseSensitive: false))),
+  );
 }
 
 Future<void> _pumpPanel(

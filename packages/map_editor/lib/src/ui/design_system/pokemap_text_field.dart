@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../theme/theme.dart';
 
@@ -20,6 +21,7 @@ class PokeMapTextField extends StatelessWidget {
     this.readOnly = false,
     this.autofocus = false,
     this.keyboardType,
+    this.inputFormatters,
     this.textInputAction = TextInputAction.done,
   });
 
@@ -37,6 +39,7 @@ class PokeMapTextField extends StatelessWidget {
   final bool readOnly;
   final bool autofocus;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
   final TextInputAction textInputAction;
 
   @override
@@ -69,6 +72,7 @@ class PokeMapTextField extends StatelessWidget {
               enabled: enabled,
               readOnly: readOnly,
               keyboardType: keyboardType,
+              inputFormatters: inputFormatters,
               textInputAction: textInputAction,
               onTap: onTap,
               onChanged: onChanged,

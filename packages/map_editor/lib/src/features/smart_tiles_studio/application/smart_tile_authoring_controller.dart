@@ -2,8 +2,8 @@ import 'dart:collection';
 
 import 'package:map_core/map_core.dart';
 
-import 'smart_tile_grid_detector.dart';
 import 'smart_tile_connection_profile.dart';
+import 'smart_tile_grid_detector.dart';
 import 'smart_tile_guide.dart';
 import 'smart_tile_guide_placement.dart';
 
@@ -44,6 +44,7 @@ final class SmartTileAuthoringDraft {
     this.templateHint = SmartTileTemplateHint.free,
     this.boundaryPolicy = SmartTileBoundaryPolicy.empty,
     this.coveragePolicy = SmartTileCoveragePolicy.complete,
+    this.transformPolicy = const SmartTileTransformPolicy(),
     this.status = SmartTilePresetStatus.draft,
     Map<int, List<SmartTileCandidate>> mappings =
         const <int, List<SmartTileCandidate>>{},
@@ -72,6 +73,7 @@ final class SmartTileAuthoringDraft {
   final SmartTileTemplateHint templateHint;
   final SmartTileBoundaryPolicy boundaryPolicy;
   final SmartTileCoveragePolicy coveragePolicy;
+  final SmartTileTransformPolicy transformPolicy;
   final SmartTilePresetStatus status;
   final Map<int, List<SmartTileCandidate>> mappings;
   final List<ProjectSmartTileAnimation> animations;
@@ -91,6 +93,7 @@ final class SmartTileAuthoringDraft {
     SmartTileTemplateHint? templateHint,
     SmartTileBoundaryPolicy? boundaryPolicy,
     SmartTileCoveragePolicy? coveragePolicy,
+    SmartTileTransformPolicy? transformPolicy,
     SmartTilePresetStatus? status,
     Map<int, List<SmartTileCandidate>>? mappings,
     List<ProjectSmartTileAnimation>? animations,
@@ -110,6 +113,7 @@ final class SmartTileAuthoringDraft {
       templateHint: templateHint ?? this.templateHint,
       boundaryPolicy: boundaryPolicy ?? this.boundaryPolicy,
       coveragePolicy: coveragePolicy ?? this.coveragePolicy,
+      transformPolicy: transformPolicy ?? this.transformPolicy,
       status: status ?? this.status,
       mappings: mappings ?? this.mappings,
       animations: animations ?? this.animations,
@@ -190,6 +194,7 @@ final class SmartTileAuthoringController {
       templateHint: draft.templateHint,
       boundaryPolicy: draft.boundaryPolicy,
       coveragePolicy: draft.coveragePolicy,
+      transformPolicy: draft.transformPolicy,
       status: SmartTilePresetStatus.draft,
       mappings: mappings,
       animations: draft.animations,
@@ -200,6 +205,7 @@ final class SmartTileAuthoringController {
   ProjectSmartTileAuthoringDraft compileAuthoringDraft({
     required SmartTileAuthoringStage lastStage,
     String? guideId,
+    bool clearGuide = false,
     List<String>? sourceTilesetIds,
   }) {
     final usage = _state.usage;
@@ -224,7 +230,7 @@ final class SmartTileAuthoringController {
       name: _state.name,
       usage: usage,
       lastStage: lastStage,
-      guideId: guideId ?? base?.guideId,
+      guideId: clearGuide ? null : guideId ?? base?.guideId,
       sourceTilesetIds: sourceTilesetIds ??
           (atlas == null
               ? base?.sourceTilesetIds ?? const <String>[]
@@ -244,6 +250,7 @@ final class SmartTileAuthoringController {
       templateHint: _state.templateHint,
       boundaryPolicy: _state.boundaryPolicy,
       coveragePolicy: _state.coveragePolicy,
+      transformPolicy: _state.transformPolicy,
       rules: rules,
     );
     _canonicalBase = draft;
@@ -444,7 +451,7 @@ final class SmartTileAuthoringController {
     );
   }
 
-  /// Replaces the current mapping with every cell from a validated guide.
+  /// Prefills every cell from a validated guide without deleting manual work.
   ///
   /// Validation happens before building the replacement map, so a rejected
   /// placement cannot leave the draft half-configured.
@@ -466,25 +473,36 @@ final class SmartTileAuthoringController {
       throw StateError('Le guide sélectionné ne convient pas à cet usage.');
     }
 
-    final mappings = <int, List<SmartTileCandidate>>{};
+    final mappings = <int, List<SmartTileCandidate>>{
+      for (final entry in _state.mappings.entries)
+        entry.key: List<SmartTileCandidate>.from(entry.value),
+    };
     for (final placed in placement.frames) {
       final cell = placed.guideCell;
-      mappings.putIfAbsent(cell.mask, () => <SmartTileCandidate>[]).add(
-            SmartTileCandidate(
-              id: 'guide_cell_${cell.number}',
-              parts: <SmartTileVisualPart>[
-                SmartTileVisualPart(
-                  source: SmartTileVisualSource.frame(
-                    frame: SmartTileFrameRef(
-                      atlasId: _state.atlasId,
-                      column: placed.column,
-                      row: placed.row,
-                    ),
-                  ),
-                ),
-              ],
+      final candidates =
+          mappings.putIfAbsent(cell.mask, () => <SmartTileCandidate>[]);
+      final candidate = SmartTileCandidate(
+        id: 'guide_cell_${cell.number}',
+        parts: <SmartTileVisualPart>[
+          SmartTileVisualPart(
+            source: SmartTileVisualSource.frame(
+              frame: SmartTileFrameRef(
+                atlasId: _state.atlasId,
+                column: placed.column,
+                row: placed.row,
+              ),
             ),
-          );
+          ),
+        ],
+      );
+      final existingIndex = candidates.indexWhere(
+        (existing) => existing.id == candidate.id,
+      );
+      if (existingIndex < 0) {
+        candidates.add(candidate);
+      } else {
+        candidates[existingIndex] = candidate;
+      }
     }
 
     _state = _state.copyWith(
@@ -518,19 +536,37 @@ final class SmartTileAuthoringController {
       throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
     }
     final current = candidates[candidateIndex];
-    candidates[candidateIndex] = current.copyWith(
-      parts: <SmartTileVisualPart>[
-        SmartTileVisualPart(
-          source: SmartTileVisualSource.frame(
-            frame: SmartTileFrameRef(
-              atlasId: _state.atlasId,
-              column: column,
-              row: row,
-            ),
-          ),
-          channel: channel,
+    final replacement = SmartTileVisualPart(
+      source: SmartTileVisualSource.frame(
+        frame: SmartTileFrameRef(
+          atlasId: _state.atlasId,
+          column: column,
+          row: row,
         ),
-      ],
+      ),
+      channel: channel,
+    );
+    final parts = List<SmartTileVisualPart>.from(current.parts);
+    final partIndex = parts.indexWhere((part) => part.channel == channel);
+    if (partIndex < 0) {
+      parts.add(replacement);
+    } else {
+      final previous = parts[partIndex];
+      parts[partIndex] = replacement.copyWith(
+        transform: previous.transform,
+        frameSampling: previous.frameSampling,
+        offsetUnit: previous.offsetUnit,
+        offsetX: previous.offsetX,
+        offsetY: previous.offsetY,
+        footprintWidth: previous.footprintWidth,
+        footprintHeight: previous.footprintHeight,
+        anchorX: previous.anchorX,
+        anchorY: previous.anchorY,
+        drawOrder: previous.drawOrder,
+      );
+    }
+    candidates[candidateIndex] = current.copyWith(
+      parts: parts,
     );
     _state = _state.copyWith(
       mappings: <int, List<SmartTileCandidate>>{
@@ -542,6 +578,13 @@ final class SmartTileAuthoringController {
 
   void setStatus(SmartTilePresetStatus status) {
     _state = _state.copyWith(status: status);
+  }
+
+  List<SmartTileSpriteTransform> get allowedTransforms =>
+      smartTileAllowedTransforms(_state.transformPolicy);
+
+  void setTransformPolicy(SmartTileTransformPolicy policy) {
+    _state = _state.copyWith(transformPolicy: policy);
   }
 
   void clearMappings() {
@@ -560,6 +603,7 @@ final class SmartTileAuthoringController {
     int columnSpan = 1,
     int rowSpan = 1,
   }) {
+    _requireCandidateWeight(weight);
     _ensureAtlasCell(
       column: column,
       row: row,
@@ -596,6 +640,7 @@ final class SmartTileAuthoringController {
     int weight = 1,
     SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
   }) {
+    _requireCandidateWeight(weight);
     if (!_state.animations.any((item) => item.id == animationId)) {
       throw ArgumentError('Unknown Smart Tile animation "$animationId".');
     }
@@ -621,6 +666,7 @@ final class SmartTileAuthoringController {
     required String candidateId,
     required int weight,
   }) {
+    _requireCandidateWeight(weight);
     final normalized = _normalizeMask(mask);
     final candidates =
         List<SmartTileCandidate>.from(_state.mappings[normalized] ?? const []);
@@ -629,6 +675,93 @@ final class SmartTileAuthoringController {
       throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
     }
     candidates[index] = candidates[index].copyWith(weight: weight);
+    _replaceMapping(normalized, candidates);
+  }
+
+  void removeCandidate({
+    required int mask,
+    required String candidateId,
+  }) {
+    final normalized = _normalizeMask(mask);
+    final candidates = List<SmartTileCandidate>.from(
+      _state.mappings[normalized] ?? const <SmartTileCandidate>[],
+    );
+    final candidateIndex =
+        candidates.indexWhere((item) => item.id == candidateId);
+    if (candidateIndex < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    candidates.removeAt(candidateIndex);
+    final mappings = <int, List<SmartTileCandidate>>{..._state.mappings};
+    if (candidates.isEmpty) {
+      mappings.remove(normalized);
+    } else {
+      mappings[normalized] = candidates;
+    }
+    _state = _state.copyWith(mappings: mappings);
+  }
+
+  void reorderCandidate({
+    required int mask,
+    required String candidateId,
+    required int newIndex,
+  }) {
+    final normalized = _normalizeMask(mask);
+    final candidates = List<SmartTileCandidate>.from(
+      _state.mappings[normalized] ?? const <SmartTileCandidate>[],
+    );
+    final currentIndex =
+        candidates.indexWhere((candidate) => candidate.id == candidateId);
+    if (currentIndex < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    if (newIndex < 0 || newIndex >= candidates.length) {
+      throw RangeError.range(newIndex, 0, candidates.length - 1, 'newIndex');
+    }
+    final candidate = candidates.removeAt(currentIndex);
+    candidates.insert(newIndex, candidate);
+    _replaceMapping(normalized, candidates);
+  }
+
+  void replaceCandidateWithAnimation({
+    required int mask,
+    required String candidateId,
+    required String animationId,
+  }) {
+    if (!_state.animations.any((animation) => animation.id == animationId)) {
+      throw ArgumentError('Unknown Smart Tile animation "$animationId".');
+    }
+    final normalized = _normalizeMask(mask);
+    final candidates = List<SmartTileCandidate>.from(
+      _state.mappings[normalized] ?? const <SmartTileCandidate>[],
+    );
+    final index =
+        candidates.indexWhere((candidate) => candidate.id == candidateId);
+    if (index < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    final current = candidates[index];
+    final firstPart = current.parts.firstOrNull;
+    candidates[index] = current.copyWith(
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.animation(animationId: animationId),
+          transform: firstPart?.transform ?? const SmartTileSpriteTransform(),
+          channel: firstPart?.channel ?? SmartTileRenderChannel.ground,
+          frameSampling:
+              firstPart?.frameSampling ?? SmartTileFrameSampling.fullFrame,
+          offsetUnit: firstPart?.offsetUnit ?? SmartTileOffsetUnit.pixel,
+          offsetX: firstPart?.offsetX ?? 0,
+          offsetY: firstPart?.offsetY ?? 0,
+          footprintWidth: firstPart?.footprintWidth ?? 1,
+          footprintHeight: firstPart?.footprintHeight ?? 1,
+          anchorX: firstPart?.anchorX ?? 0,
+          anchorY: firstPart?.anchorY ?? 0,
+          drawOrder: firstPart?.drawOrder ?? 0,
+        ),
+        ...current.parts.skip(1),
+      ],
+    );
     _replaceMapping(normalized, candidates);
   }
 
@@ -662,6 +795,55 @@ final class SmartTileAuthoringController {
       animations[index] = animation;
     }
     _state = _state.copyWith(animations: animations);
+  }
+
+  ProjectSmartTileAnimation createAnimation({
+    required String name,
+    required List<SmartTileFrameRef> frames,
+    required int durationMs,
+  }) {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      throw ArgumentError.value(name, 'name', 'Animation name is required.');
+    }
+    if (frames.isEmpty) {
+      throw ArgumentError.value(frames, 'frames', 'Choose at least one frame.');
+    }
+    if (durationMs < 1 || durationMs > 60000) {
+      throw RangeError.range(durationMs, 1, 60000, 'durationMs');
+    }
+    for (final frame in frames) {
+      if (frame.atlasId != _state.atlasId) {
+        throw ArgumentError('Animation frames must use the active atlas.');
+      }
+      _ensureAtlasCell(
+        column: frame.column,
+        row: frame.row,
+        columnSpan: frame.columnSpan,
+        rowSpan: frame.rowSpan,
+      );
+    }
+    final idBase = '${_state.id}-animation-${_slugify(normalizedName)}';
+    final occupied = _state.animations.map((animation) => animation.id).toSet();
+    var id = idBase;
+    var suffix = 2;
+    while (occupied.contains(id)) {
+      id = '$idBase-$suffix';
+      suffix += 1;
+    }
+    final animation = ProjectSmartTileAnimation(
+      id: id,
+      name: normalizedName,
+      frames: <ProjectSmartTileAnimationFrame>[
+        for (final frame in frames)
+          ProjectSmartTileAnimationFrame(
+            frame: frame,
+            durationMs: durationMs,
+          ),
+      ],
+    );
+    addAnimation(animation);
+    return animation;
   }
 
   ProjectSmartTileAtlas compileAtlas() {
@@ -707,7 +889,7 @@ final class SmartTileAuthoringController {
       coverageProfile: const SmartTileCoverageProfile(
         mode: SmartTileCoverageMode.template,
       ),
-      transformPolicy: const SmartTileTransformPolicy(),
+      transformPolicy: _state.transformPolicy,
       boundaryPolicy: _state.boundaryPolicy,
       defaultMaterialId: _state.defaultMaterialId,
       allowedMaterialIds:
@@ -923,5 +1105,11 @@ SmartTileGridGeometry _geometryFromAtlas(ProjectSmartTileAtlas atlas) {
 void _requireText(String value, String label) {
   if (value.trim().isEmpty) {
     throw StateError('Smart Tile $label is required.');
+  }
+}
+
+void _requireCandidateWeight(int weight) {
+  if (weight < 1 || weight > 1000) {
+    throw RangeError.range(weight, 1, 1000, 'weight');
   }
 }

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
@@ -11,6 +12,7 @@ import '../application/smart_tile_atlas_image_loader.dart';
 import '../application/smart_tile_authoring_controller.dart';
 import '../application/smart_tile_connection_profile.dart';
 import '../application/smart_tile_draft_persistence_state.dart';
+import '../application/smart_tile_form_projection.dart';
 import '../application/smart_tile_grid_detector.dart';
 import '../application/smart_tile_guide.dart';
 import '../application/smart_tile_guide_placement.dart';
@@ -25,9 +27,11 @@ import 'smart_tiles_studio_stage_header.dart';
 import 'stages/smart_tile_grid_stage.dart';
 import 'stages/smart_tile_image_stage.dart';
 import 'stages/smart_tile_connections_stage.dart';
+import 'stages/smart_tile_forms_stage.dart';
 import 'stages/smart_tile_material_picker.dart';
 import 'stages/smart_tile_materials_stage.dart';
 import 'stages/smart_tile_usage_stage.dart';
+import 'stages/smart_tile_variants_stage.dart';
 
 enum SmartTilesStudioTab { atlas, rules, animations, testBench, validation }
 
@@ -69,6 +73,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _newMaterialNameController =
       TextEditingController();
+  final TextEditingController _animationNameController =
+      TextEditingController();
+  final TextEditingController _animationDurationController =
+      TextEditingController(text: '180');
   final Map<String, TextEditingController> _gridControllers =
       <String, TextEditingController>{};
   SmartTileAuthoringController _authoring =
@@ -80,7 +88,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   String? _selectedItemKey;
   int? _selectedMask;
   SmartTileFrameRef? _lastMappedFrame;
+  SmartTileFrameRef? _pendingAtlasFrame;
+  List<SmartTileFrameRef> _animationFrames = const <SmartTileFrameRef>[];
   String? _lastCandidateId;
+  SmartTileRenderChannel _selectedRenderChannel = SmartTileRenderChannel.ground;
   SmartTileGuidePlacementResult? _guidePlacement;
   int? _correctionNumber;
   String? _placementMessage;
@@ -145,6 +156,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   void dispose() {
     _searchController.dispose();
     _newMaterialNameController.dispose();
+    _animationNameController.dispose();
+    _animationDurationController.dispose();
     for (final controller in _gridControllers.values) {
       controller.dispose();
     }
@@ -440,7 +453,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           _buildConnectionsStep()
         else if (_session.state.wizardStep ==
             SmartTileStudioWizardStep.variants)
-          _buildVariantsPlaceholder()
+          _buildVariantsStep()
         else if (_session.state.wizardStep == SmartTileStudioWizardStep.forms)
           _buildPlacementStep()
         else if (_session.state.wizardStep == SmartTileStudioWizardStep.test)
@@ -656,6 +669,16 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               'Si votre atlas suit un dessin connu, le guide préremplira les formes sans devenir obligatoire.',
         ),
         const SizedBox(height: 12),
+        PokeMapAssetCard(
+          key: const Key('smart-tiles-guide-none'),
+          thumbnail: const Icon(CupertinoIcons.hand_raised, size: 20),
+          label: 'Sans guide',
+          description:
+              'Associer librement les cellules de l’atlas aux formes attendues.',
+          selected: _session.state.guideId == null,
+          onPressed: _disableGuide,
+        ),
+        const SizedBox(height: 8),
         if (guides.isEmpty)
           const PokeMapEmptyState(
             title: 'Aucun guide guidé pour cet usage',
@@ -673,7 +696,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               label: guide.name,
               description: guide.description,
               selected: _session.state.guideId == guide.id,
-              onPressed: () => _selectGuide(guide.id),
+              onPressed: () => unawaited(_selectGuide(guide.id)),
             ),
             const SizedBox(height: 8),
           ],
@@ -681,28 +704,32 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
-  Widget _buildVariantsPlaceholder() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        const PokeMapEmptyState(
-          key: Key('smart-tiles-variants-stage-placeholder'),
-          title: 'Matières et raccords prêts',
-          description:
-              'Les variantes détaillées arrivent dans STN-04.6. Le guide choisi reste facultatif.',
-          icon: Icon(CupertinoIcons.square_stack_3d_up),
+  Widget _buildVariantsStep() {
+    final geometry = _session.state.gridGeometry!;
+    return SmartTileVariantsStage(
+      transformPolicy: _authoring.state.transformPolicy,
+      allowedTransforms: _authoring.allowedTransforms,
+      animations: _authoring.state.animations,
+      selectedAnimationFrames: _animationFrames,
+      animationNameController: _animationNameController,
+      animationDurationController: _animationDurationController,
+      atlasPreview: _SmartTileAtlasMappingViewport(
+        geometry: geometry,
+        image: _sourceImageResult?.image,
+        selectedFrame: _animationFrames.isEmpty ? null : _animationFrames.last,
+        enabled: true,
+        onCellSelected: (cell) => _toggleAnimationFrame(
+          column: cell.column,
+          row: cell.row,
         ),
-        const SizedBox(height: 14),
-        Align(
-          alignment: Alignment.centerRight,
-          child: PokeMapButton(
-            key: const Key('smart-tiles-variants-next-step'),
-            onPressed: _moveToForms,
-            trailing: const Icon(CupertinoIcons.chevron_right, size: 14),
-            child: const Text('Configurer les formes'),
-          ),
-        ),
-      ],
+      ),
+      onTransformPolicyChanged: _setTransformPolicy,
+      onAnimationNameChanged: (_) => setState(() {}),
+      onAnimationDurationChanged: (_) => setState(() {}),
+      onRemoveAnimationFrame: _removeAnimationFrame,
+      onClearAnimationFrames: _clearAnimationFrames,
+      onCreateAnimation: _canCreateAnimation ? _createAnimation : null,
+      onContinue: _moveToForms,
     );
   }
 
@@ -710,16 +737,155 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     if (_session.state.gridGeometry == null) {
       return _buildSourceStep();
     }
+    final catalog = _authoring.compileCatalog();
+    final preset = catalog.presets.single;
+    final forms = projectSmartTileForms(
+      preset: preset,
+      materials: catalog.materials,
+      atlases: catalog.atlases,
+      animations: catalog.animations,
+    );
+    final ambiguous = forms.any(
+      (form) => form.status == SmartTileVisibleFormStatus.ambiguous,
+    );
+    final missing = forms.any(
+      (form) => form.status == SmartTileVisibleFormStatus.missing,
+    );
+    final canContinue = _authoring.state.mappings.isNotEmpty &&
+        !ambiguous &&
+        (preset.coveragePolicy == SmartTileCoveragePolicy.sparse || !missing);
     final guideId = _session.state.guideId;
-    if (guideId == null) {
-      return _buildLegacyMappingStep();
-    }
-    if (guideId != SmartTileGuideId.erwCorner16) {
-      return _buildLegacyMappingStep();
-    }
-    return _buildGuidedPlacementMapping(smartTileGuideById(guideId));
+    final guide = guideId == null ? null : smartTileGuideById(guideId);
+    final geometry = _session.state.gridGeometry!;
+    return SmartTileFormsStage(
+      usage: _session.state.usage!,
+      topology: preset.topology,
+      forms: forms,
+      selectedMask: _selectedMask,
+      pendingAtlasFrame: _pendingAtlasFrame,
+      selectedChannel: _selectedRenderChannel,
+      animations: catalog.animations,
+      guideWorkbench: guide == null ? null : _buildGuideFormsWorkbench(guide),
+      atlasWorkbench: _SmartTileAtlasMappingViewport(
+        geometry: geometry,
+        image: _sourceImageResult?.image,
+        selectedFrame: _pendingAtlasFrame ?? _lastMappedFrame,
+        enabled: true,
+        guide: guide,
+        placement: _guidePlacement,
+        onCellSelected: (cell) {
+          if (guide != null &&
+              (_guidePlacement?.isValid != true || _correctionNumber != null)) {
+            _selectGuideAtlasCell(
+              guide: guide,
+              column: cell.column,
+              row: cell.row,
+            );
+            return;
+          }
+          _selectFormsAtlasCell(column: cell.column, row: cell.row);
+        },
+      ),
+      onFormSelected: _selectForm,
+      onClearPendingFrame: _clearPendingAtlasFrame,
+      onChannelSelected: (channel) {
+        setState(() => _selectedRenderChannel = channel);
+      },
+      onAnimationSelected: _mapAnimationToForm,
+      onWeightChanged: _updateVariantWeight,
+      onMoveVariant: _moveVariant,
+      onRemoveVariant: _removeVariant,
+      onContinue: canContinue ? _moveToTest : null,
+    );
   }
 
+  Widget _buildGuideFormsWorkbench(SmartTileGuideDefinition guide) {
+    final placement = _guidePlacement;
+    final isPlaced = placement?.isValid == true;
+    return PokeMapPanel(
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          PokeMapSectionHeader(
+            title: isPlaced
+                ? '${guide.name} a prérempli les formes'
+                : 'Préremplir avec ${guide.name}',
+            description: isPlaced
+                ? 'Le guide reste une aide : chaque forme et chaque variante demeure modifiable.'
+                : 'Cliquez la cellule nº 1 dans l’atlas. Le préremplissage conservera les variantes déjà créées.',
+            trailing: PokeMapBadge(
+              label: isPlaced ? 'Prérempli' : 'Facultatif',
+              variant: isPlaced
+                  ? PokeMapBadgeVariant.success
+                  : PokeMapBadgeVariant.info,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PokeMapBadge(
+              label:
+                  '${placement?.frames.length ?? 0} cellules • ${_authoring.state.mappings.length} raccords',
+              variant: isPlaced
+                  ? PokeMapBadgeVariant.success
+                  : PokeMapBadgeVariant.warning,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 12,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              SmartTileGuideDiagram(guide: guide),
+              if (isPlaced)
+                PokeMapButton(
+                  key: const Key('smart-tiles-disable-guide'),
+                  onPressed: _disableGuide,
+                  variant: PokeMapButtonVariant.ghost,
+                  size: PokeMapButtonSize.small,
+                  child: const Text('Désactiver le guide'),
+                ),
+            ],
+          ),
+          if (_placementMessage case final message?) ...[
+            const SizedBox(height: 8),
+            PokeMapBadge(
+              label: message,
+              variant: isPlaced
+                  ? PokeMapBadgeVariant.success
+                  : PokeMapBadgeVariant.warning,
+            ),
+          ],
+          if (isPlaced) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: <Widget>[
+                for (final cell in guide.cells)
+                  PokeMapButton(
+                    key: Key('smart-tiles-correction-${cell.number}'),
+                    onPressed: () => setState(() {
+                      _correctionNumber =
+                          _correctionNumber == cell.number ? null : cell.number;
+                    }),
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    isSelected: _correctionNumber == cell.number,
+                    child: Text('Corriger ${cell.roleLabel}'),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // Kept until the legacy cutover lot removes the former guided renderer.
+  // ignore: unused_element
   Widget _buildGuidedPlacementMapping(SmartTileGuideDefinition guide) {
     final geometry = _session.state.gridGeometry!;
     final placement = _guidePlacement;
@@ -858,6 +1024,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
+  // Kept until the legacy cutover lot removes the former mask renderer.
+  // ignore: unused_element
   Widget _buildLegacyMappingStep() {
     final geometry = _session.state.gridGeometry!;
     final template = _authoring.state.templateHint;
@@ -966,13 +1134,17 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         )
         .length;
     final isComplete = results.isNotEmpty && resolved == results.length;
-    final guide = smartTileGuideById(_session.state.guideId!);
-    final variantCount = guide.cells.length - guide.requiredMasks.length;
+    final guideId = _session.state.guideId;
+    final guide = guideId == null ? null : smartTileGuideById(guideId);
+    final variantCount = preset.rules.fold<int>(
+      0,
+      (count, rule) => count + math.max(0, rule.candidates.length - 1),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         PokeMapSectionHeader(
-          title: 'Banc d’essai du chemin',
+          title: 'Banc d’essai du Smart Tile',
           description:
               'PokeMap vérifie les mêmes raccords que ceux utilisés sur une vraie map.',
           trailing: PokeMapBadge(
@@ -996,9 +1168,11 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           spacing: 8,
           runSpacing: 8,
           children: <Widget>[
-            const PokeMapBadge(label: '4 coins extérieurs'),
-            const PokeMapBadge(label: '4 bords'),
-            const PokeMapBadge(label: '4 coins intérieurs'),
+            if (guide != null) ...[
+              const PokeMapBadge(label: '4 coins extérieurs'),
+              const PokeMapBadge(label: '4 bords'),
+              const PokeMapBadge(label: '4 coins intérieurs'),
+            ],
             PokeMapBadge(label: '$variantCount variantes supplémentaires'),
           ],
         ),
@@ -1016,7 +1190,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   }
 
   Widget _buildPublishStep() {
-    final guide = smartTileGuideById(_session.state.guideId!);
+    final guideId = _session.state.guideId;
+    final guide = guideId == null ? null : smartTileGuideById(guideId);
     final geometry = _session.state.gridGeometry!;
     final compiled = _authoring.compileCatalog();
     final diagnostics = validateProjectSmartTileCatalog(
@@ -1048,7 +1223,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             children: <Widget>[
               _InspectorValue(label: 'Nom', value: _authoring.state.name),
               const SizedBox(height: 8),
-              const _InspectorValue(label: 'Usage', value: 'Chemin'),
+              _InspectorValue(
+                label: 'Usage',
+                value: _usageLabel(_authoring.state.usage!),
+              ),
               const SizedBox(height: 8),
               _InspectorValue(
                 label: 'Atlas',
@@ -1061,13 +1239,18 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                     '${geometry.cellWidth} × ${geometry.cellHeight} px — ${geometry.columns} × ${geometry.rows} cellules',
               ),
               const SizedBox(height: 8),
-              _InspectorValue(label: 'Guide', value: guide.name),
+              _InspectorValue(
+                label: 'Guide',
+                value: guide?.name ?? 'Aucun — associations libres',
+              ),
               const SizedBox(height: 8),
               _InspectorValue(
                 label: 'Associations',
-                value: '${guide.cells.length} cellules • '
-                    '${guide.requiredMasks.length} raccords • '
-                    '${guide.cells.length - guide.requiredMasks.length} variantes',
+                value: guide == null
+                    ? '${_authoring.state.mappings.length} formes • ${_authoring.state.mappings.values.expand((variants) => variants).length} variantes'
+                    : '${guide.cells.length} cellules • '
+                        '${guide.requiredMasks.length} raccords • '
+                        '${guide.cells.length - guide.requiredMasks.length} variantes',
               ),
             ],
           ),
@@ -1157,6 +1340,15 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         icon: Icon(CupertinoIcons.arrow_branch),
       );
     }
+    final formsByMask = <int, SmartTileFormReadModel>{
+      for (final form in projectSmartTileForms(
+        preset: preset,
+        materials: widget.manifest.smartTileCatalog.materials,
+        atlases: widget.manifest.smartTileCatalog.atlases,
+        animations: widget.manifest.smartTileCatalog.animations,
+      ))
+        form.mask: form,
+    };
     return ListView.separated(
       padding: const EdgeInsets.all(18),
       itemCount: preset.rules.length,
@@ -1167,10 +1359,13 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           rule.signature,
           topology: preset.topology,
         );
+        final form = mask == null ? null : formsByMask[mask];
         return PokeMapAssetCard(
           key: Key('smart-tiles-rule-${rule.id}'),
           thumbnail: const Icon(CupertinoIcons.arrow_branch, size: 20),
-          label: rule.id,
+          label: form?.label ?? 'Forme personnalisée',
+          description: form?.description ??
+              'Cette règle avancée ne correspond pas à une forme standard.',
           selected: _focusedRuleId == rule.id ||
               (_focusedRuleId == null && _focusedMask == mask),
           onPressed: () => setState(() {
@@ -1180,13 +1375,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              if (mask != null)
-                PokeMapBadge(
-                  label:
-                      '0x${mask.toRadixString(16).padLeft(2, '0').toUpperCase()}',
-                  variant: PokeMapBadgeVariant.info,
-                ),
-              const SizedBox(width: 6),
               PokeMapBadge(
                 label: '${rule.candidates.length} variante(s)',
                 variant: PokeMapBadgeVariant.neutral,
@@ -1223,6 +1411,15 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         .length;
     final supportsManualGrid =
         smartTileTestGridSupportsTopology(preset.topology);
+    final formsByMask = <int, SmartTileFormReadModel>{
+      for (final form in projectSmartTileForms(
+        preset: preset,
+        materials: widget.manifest.smartTileCatalog.materials,
+        atlases: widget.manifest.smartTileCatalog.atlases,
+        animations: widget.manifest.smartTileCatalog.animations,
+      ))
+        form.mask: form,
+    };
     return ListView(
       padding: const EdgeInsets.all(18),
       children: <Widget>[
@@ -1312,7 +1509,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                   isSelected: result.resolution.status ==
                       SmartTileResolutionStatus.resolved,
                   child: Text(
-                    '0x${result.mask.toRadixString(16).padLeft(2, '0').toUpperCase()}',
+                    formsByMask[result.mask]?.label ?? 'Forme personnalisée',
                   ),
                 ),
             ],
@@ -1451,9 +1648,14 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           name: 'Nouveau Smart Tile',
         );
       _newMaterialNameController.clear();
+      _animationNameController.clear();
+      _animationDurationController.text = '180';
       _selectedMask = null;
       _lastMappedFrame = null;
+      _pendingAtlasFrame = null;
+      _animationFrames = const <SmartTileFrameRef>[];
       _lastCandidateId = null;
+      _selectedRenderChannel = SmartTileRenderChannel.ground;
       _guidePlacement = null;
       _correctionNumber = null;
       _placementMessage = null;
@@ -1794,6 +1996,67 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     _flushDraftAfterStepChange();
   }
 
+  bool get _canCreateAnimation {
+    final duration = int.tryParse(_animationDurationController.text);
+    return _animationNameController.text.trim().isNotEmpty &&
+        _animationFrames.length >= 2 &&
+        duration != null &&
+        duration >= 1 &&
+        duration <= 60000;
+  }
+
+  void _setTransformPolicy(SmartTileTransformPolicy policy) {
+    setState(() => _authoring.setTransformPolicy(policy));
+    _notifyDraftChanged();
+  }
+
+  void _toggleAnimationFrame({required int column, required int row}) {
+    final frame = SmartTileFrameRef(
+      atlasId: _authoring.state.atlasId,
+      column: column,
+      row: row,
+    );
+    setState(() {
+      final frames = List<SmartTileFrameRef>.from(_animationFrames);
+      final index = frames.indexOf(frame);
+      if (index < 0) {
+        frames.add(frame);
+      } else {
+        frames.removeAt(index);
+      }
+      _animationFrames = List<SmartTileFrameRef>.unmodifiable(frames);
+    });
+  }
+
+  void _removeAnimationFrame(int index) {
+    if (index < 0 || index >= _animationFrames.length) return;
+    setState(() {
+      final frames = List<SmartTileFrameRef>.from(_animationFrames)
+        ..removeAt(index);
+      _animationFrames = List<SmartTileFrameRef>.unmodifiable(frames);
+    });
+  }
+
+  void _clearAnimationFrames() {
+    setState(() => _animationFrames = const <SmartTileFrameRef>[]);
+  }
+
+  void _createAnimation() {
+    if (!_canCreateAnimation) return;
+    final duration = int.parse(_animationDurationController.text);
+    final animation = _authoring.createAnimation(
+      name: _animationNameController.text,
+      frames: _animationFrames,
+      durationMs: duration,
+    );
+    setState(() {
+      _animationNameController.clear();
+      _animationFrames = const <SmartTileFrameRef>[];
+      _draftMessage = 'Animation « ${animation.name} » créée.';
+    });
+    _notifyDraftChanged();
+  }
+
   List<SmartTileMaterialPickerItem> _materialPickerItems() {
     final allowed = <String, ProjectSmartTileMaterial>{
       for (final material in _authoring.state.materials) material.id: material,
@@ -1930,8 +2193,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _selectedConnectionProfileId = profile.id;
       _customConnectionTopology = customTopology;
       if (changesContract) {
+        if (_session.state.guideId != null) {
+          _session.clearGuideChoice();
+        }
         _guidePlacement = null;
         _correctionNumber = null;
+        _pendingAtlasFrame = null;
       }
     });
     _notifyDraftChanged();
@@ -1943,7 +2210,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _authoring.selectUsage(usage);
       _selectedMask = null;
       _lastMappedFrame = null;
+      _pendingAtlasFrame = null;
+      _animationFrames = const <SmartTileFrameRef>[];
       _lastCandidateId = null;
+      _selectedRenderChannel = SmartTileRenderChannel.ground;
       _guidePlacement = null;
       _correctionNumber = null;
       _placementMessage = null;
@@ -1953,14 +2223,47 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     _notifyDraftChanged();
   }
 
-  void _selectGuide(SmartTileGuideId guideId) {
+  void _disableGuide() {
+    if (_session.state.guideId == null) return;
+    setState(() {
+      _session.clearGuideChoice();
+      _guidePlacement = null;
+      _correctionNumber = null;
+      _placementMessage = null;
+    });
+    _notifyDraftChanged();
+  }
+
+  Future<void> _selectGuide(SmartTileGuideId guideId) async {
+    const configuration = SmartTileConnectionConfiguration(
+      topology: SmartTileTopology.wangCorner4,
+      templateHint: SmartTileTemplateHint.corner12,
+      coveragePolicy: SmartTileCoveragePolicy.complete,
+    );
+    final state = _authoring.state;
+    final changesContract = state.topology != configuration.topology ||
+        state.templateHint != configuration.templateHint;
+    var clearMappings = false;
+    if (changesContract && state.mappings.isNotEmpty) {
+      clearMappings = await showPokeMapBinaryConfirmationDialog(
+        context,
+        title: 'Adapter les formes au guide ERW ?',
+        message:
+            'Le guide utilise une structure par coins. Les associations incompatibles devront être retirées.',
+        secondaryLabel: 'Conserver mes formes',
+        primaryLabel: 'Adapter et continuer',
+        primaryIsDestructive: true,
+        icon: CupertinoIcons.square_grid_3x2,
+      );
+      if (!clearMappings || !mounted) return;
+    }
     setState(() {
       final profile = smartTileConnectionProfileById(
         SmartTileConnectionProfileId.corners,
       );
       _authoring.configureConnections(
-        profile.resolve(),
-        clearMappings: _authoring.state.mappings.isNotEmpty,
+        configuration,
+        clearMappings: clearMappings,
       );
       _selectedConnectionProfileId = profile.id;
       _customConnectionTopology = null;
@@ -1968,7 +2271,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _guidePlacement = null;
       _correctionNumber = null;
       _placementMessage = null;
-      _authoring.clearMappings();
     });
     _notifyDraftChanged();
   }
@@ -2036,7 +2338,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         _correctionNumber = null;
         _placementMessage =
             'Le guide dépasse l’atlas (cases ${placement.outOfBoundsNumbers.join(', ')}). Choisissez la vraie case nº 1.';
-        _authoring.clearMappings();
         _session.clearAnchor();
       });
       _notifyDraftChanged();
@@ -2054,32 +2355,149 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     _notifyDraftChanged();
   }
 
+  void _selectFormsAtlasCell({required int column, required int row}) {
+    if (_selectedMask == null) {
+      setState(() {
+        _pendingAtlasFrame = SmartTileFrameRef(
+          atlasId: _authoring.state.atlasId,
+          column: column,
+          row: row,
+        );
+      });
+      return;
+    }
+    _mapAtlasCell(
+      column: column,
+      row: row,
+      addVariant: HardwareKeyboard.instance.isShiftPressed,
+    );
+  }
+
+  void _selectForm(int mask) {
+    final pending = _pendingAtlasFrame;
+    setState(() => _selectedMask = mask);
+    if (pending == null) return;
+    _mapAtlasCell(
+      column: pending.column,
+      row: pending.row,
+      explicitMask: mask,
+      addVariant: HardwareKeyboard.instance.isShiftPressed,
+    );
+  }
+
+  void _clearPendingAtlasFrame() {
+    setState(() => _pendingAtlasFrame = null);
+  }
+
   void _mapAtlasCell({
     required int column,
     required int row,
+    int? explicitMask,
+    bool addVariant = false,
   }) {
-    final mask = _selectedMask;
+    final mask = explicitMask ?? _selectedMask;
     if (mask == null) {
       return;
     }
-    final variantIndex = _authoring.state.mappings[mask]?.length ?? 0;
-    final candidateId = 'cell_${column}_${row}_$variantIndex';
-    _authoring.addAtlasVariant(
-      mask: mask,
+    final candidates =
+        _authoring.state.mappings[mask] ?? const <SmartTileCandidate>[];
+    final frame = SmartTileFrameRef(
+      atlasId: _authoring.state.atlasId,
       column: column,
       row: row,
-      candidateId: candidateId,
-      channel: _session.state.usage == SmartTileUsage.forestSurface
-          ? SmartTileRenderChannel.understory
-          : SmartTileRenderChannel.ground,
     );
-    setState(() {
-      _lastMappedFrame = SmartTileFrameRef(
-        atlasId: _authoring.state.atlasId,
+    String candidateId;
+    if (_session.state.usage == SmartTileUsage.forestSurface &&
+        _selectedRenderChannel != SmartTileRenderChannel.ground &&
+        candidates.isNotEmpty) {
+      candidateId = candidates.last.id;
+      _authoring.addVisualPart(
+        mask: mask,
+        candidateId: candidateId,
+        part: SmartTileVisualPart(
+          source: SmartTileVisualSource.frame(frame: frame),
+          channel: _selectedRenderChannel,
+          drawOrder:
+              _selectedRenderChannel == SmartTileRenderChannel.canopy ? 10 : 0,
+        ),
+      );
+    } else if (candidates.isNotEmpty && !addVariant) {
+      candidateId = candidates.first.id;
+      _authoring.replaceAtlasCandidate(
+        mask: mask,
         column: column,
         row: row,
+        candidateId: candidateId,
+        channel: _selectedRenderChannel,
       );
+    } else {
+      var sequence = candidates.length + 1;
+      var proposed = 'cell_${column}_${row}_$sequence';
+      while (candidates.any((candidate) => candidate.id == proposed)) {
+        sequence += 1;
+        proposed = 'cell_${column}_${row}_$sequence';
+      }
+      candidateId = proposed;
+      _authoring.addAtlasVariant(
+        mask: mask,
+        column: column,
+        row: row,
+        candidateId: candidateId,
+        channel: _selectedRenderChannel,
+      );
+    }
+    setState(() {
+      _lastMappedFrame = frame;
+      _pendingAtlasFrame = null;
       _lastCandidateId = candidateId;
+    });
+    _notifyDraftChanged();
+  }
+
+  void _mapAnimationToForm(int mask, String animationId) {
+    final variants =
+        _authoring.state.mappings[mask] ?? const <SmartTileCandidate>[];
+    final candidateId = 'animation_${animationId}_${variants.length + 1}';
+    _authoring.addAnimationVariant(
+      mask: mask,
+      animationId: animationId,
+      candidateId: candidateId,
+      channel: _selectedRenderChannel,
+    );
+    setState(() {
+      _selectedMask = mask;
+      _lastCandidateId = candidateId;
+      _pendingAtlasFrame = null;
+    });
+    _notifyDraftChanged();
+  }
+
+  void _updateVariantWeight(int mask, String candidateId, int weight) {
+    setState(() {
+      _authoring.updateCandidateWeight(
+        mask: mask,
+        candidateId: candidateId,
+        weight: weight,
+      );
+    });
+    _notifyDraftChanged();
+  }
+
+  void _moveVariant(int mask, String candidateId, int newIndex) {
+    setState(() {
+      _authoring.reorderCandidate(
+        mask: mask,
+        candidateId: candidateId,
+        newIndex: newIndex,
+      );
+    });
+    _notifyDraftChanged();
+  }
+
+  void _removeVariant(int mask, String candidateId) {
+    setState(() {
+      _authoring.removeCandidate(mask: mask, candidateId: candidateId);
+      if (_lastCandidateId == candidateId) _lastCandidateId = null;
     });
     _notifyDraftChanged();
   }
@@ -2131,6 +2549,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _authoring.compileAuthoringDraft(
         lastStage: stage,
         guideId: _session.state.guideId?.name,
+        clearGuide: _session.state.guideId == null,
         sourceTilesetIds: <String>[
           if (_selectedSourceTilesetId case final id?) id,
         ],
@@ -2720,6 +3139,12 @@ String _usageFilterLabel(_LibraryUsageFilter filter) => switch (filter) {
       _LibraryUsageFilter.terrain => 'Terrain',
       _LibraryUsageFilter.path => 'Chemin',
       _LibraryUsageFilter.forestSurface => 'Forêt',
+    };
+
+String _usageLabel(SmartTileUsage usage) => switch (usage) {
+      SmartTileUsage.terrain => 'Terrain',
+      SmartTileUsage.path => 'Chemin',
+      SmartTileUsage.forestSurface => 'Surface organique',
     };
 
 String _templateLabel(SmartTileTemplateHint template) => switch (template) {
