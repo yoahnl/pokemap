@@ -600,3 +600,120 @@ const _$SmartTileCoveragePolicyEnumMap = {
   SmartTileCoveragePolicy.complete: 'complete',
   SmartTileCoveragePolicy.sparse: 'sparse',
 };
+
+_$ProjectSmartTileAuthoringDraftImpl
+    _$$ProjectSmartTileAuthoringDraftImplFromJson(Map<String, dynamic> json) =>
+        _$ProjectSmartTileAuthoringDraftImpl(
+          id: json['id'] as String,
+          targetPresetId: json['targetPresetId'] as String,
+          sourcePresetId: json['sourcePresetId'] as String?,
+          name: json['name'] as String,
+          categoryId: json['categoryId'] as String? ?? '',
+          usage: $enumDecode(_$SmartTileUsageEnumMap, json['usage']),
+          lastStage:
+              $enumDecode(_$SmartTileAuthoringStageEnumMap, json['lastStage']),
+          guideId: json['guideId'] as String?,
+          sourceTilesetIds: (json['sourceTilesetIds'] as List<dynamic>?)
+                  ?.map((e) => e as String)
+                  .toList() ??
+              const <String>[],
+          atlases: (json['atlases'] as List<dynamic>?)
+                  ?.map((e) =>
+                      ProjectSmartTileAtlas.fromJson(e as Map<String, dynamic>))
+                  .toList() ??
+              const <ProjectSmartTileAtlas>[],
+          primaryAtlasId: json['primaryAtlasId'] as String?,
+          materials: (json['materials'] as List<dynamic>?)
+                  ?.map((e) => ProjectSmartTileMaterial.fromJson(
+                      e as Map<String, dynamic>))
+                  .toList() ??
+              const <ProjectSmartTileMaterial>[],
+          animations: (json['animations'] as List<dynamic>?)
+                  ?.map((e) => ProjectSmartTileAnimation.fromJson(
+                      e as Map<String, dynamic>))
+                  .toList() ??
+              const <ProjectSmartTileAnimation>[],
+          defaultMaterialId: json['defaultMaterialId'] as String?,
+          allowedMaterialIds: (json['allowedMaterialIds'] as List<dynamic>?)
+                  ?.map((e) => e as String)
+                  .toList() ??
+              const <String>[],
+          topology: $enumDecodeNullable(
+                  _$SmartTileTopologyEnumMap, json['topology']) ??
+              SmartTileTopology.uniform,
+          templateHint: $enumDecodeNullable(
+                  _$SmartTileTemplateHintEnumMap, json['templateHint']) ??
+              SmartTileTemplateHint.simple,
+          boundaryPolicy: $enumDecodeNullable(
+                  _$SmartTileBoundaryPolicyEnumMap, json['boundaryPolicy']) ??
+              SmartTileBoundaryPolicy.empty,
+          coveragePolicy: $enumDecodeNullable(
+                  _$SmartTileCoveragePolicyEnumMap, json['coveragePolicy']) ??
+              SmartTileCoveragePolicy.complete,
+          coverageProfile: json['coverageProfile'] == null
+              ? const SmartTileCoverageProfile(
+                  mode: SmartTileCoverageMode.template)
+              : SmartTileCoverageProfile.fromJson(
+                  json['coverageProfile'] as Map<String, dynamic>),
+          transformPolicy: json['transformPolicy'] == null
+              ? const SmartTileTransformPolicy()
+              : SmartTileTransformPolicy.fromJson(
+                  json['transformPolicy'] as Map<String, dynamic>),
+          rules: (json['rules'] as List<dynamic>?)
+                  ?.map(
+                      (e) => SmartTileRule.fromJson(e as Map<String, dynamic>))
+                  .toList() ??
+              const <SmartTileRule>[],
+          fallbackRuleId: json['fallbackRuleId'] as String?,
+          tags: (json['tags'] as List<dynamic>?)
+                  ?.map((e) => e as String)
+                  .toList() ??
+              const <String>[],
+          sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+          seedSalt: (json['seedSalt'] as num?)?.toInt() ?? 0,
+        );
+
+Map<String, dynamic> _$$ProjectSmartTileAuthoringDraftImplToJson(
+        _$ProjectSmartTileAuthoringDraftImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'targetPresetId': instance.targetPresetId,
+      'sourcePresetId': instance.sourcePresetId,
+      'name': instance.name,
+      'categoryId': instance.categoryId,
+      'usage': _$SmartTileUsageEnumMap[instance.usage]!,
+      'lastStage': _$SmartTileAuthoringStageEnumMap[instance.lastStage]!,
+      'guideId': instance.guideId,
+      'sourceTilesetIds': instance.sourceTilesetIds,
+      'atlases': instance.atlases.map((e) => e.toJson()).toList(),
+      'primaryAtlasId': instance.primaryAtlasId,
+      'materials': instance.materials.map((e) => e.toJson()).toList(),
+      'animations': instance.animations.map((e) => e.toJson()).toList(),
+      'defaultMaterialId': instance.defaultMaterialId,
+      'allowedMaterialIds': instance.allowedMaterialIds,
+      'topology': _$SmartTileTopologyEnumMap[instance.topology]!,
+      'templateHint': _$SmartTileTemplateHintEnumMap[instance.templateHint]!,
+      'boundaryPolicy':
+          _$SmartTileBoundaryPolicyEnumMap[instance.boundaryPolicy]!,
+      'coveragePolicy':
+          _$SmartTileCoveragePolicyEnumMap[instance.coveragePolicy]!,
+      'coverageProfile': instance.coverageProfile.toJson(),
+      'transformPolicy': instance.transformPolicy.toJson(),
+      'rules': instance.rules.map((e) => e.toJson()).toList(),
+      'fallbackRuleId': instance.fallbackRuleId,
+      'tags': instance.tags,
+      'sortOrder': instance.sortOrder,
+      'seedSalt': instance.seedSalt,
+    };
+
+const _$SmartTileAuthoringStageEnumMap = {
+  SmartTileAuthoringStage.usage: 'usage',
+  SmartTileAuthoringStage.image: 'image',
+  SmartTileAuthoringStage.grid: 'grid',
+  SmartTileAuthoringStage.materials: 'materials',
+  SmartTileAuthoringStage.connections: 'connections',
+  SmartTileAuthoringStage.variants: 'variants',
+  SmartTileAuthoringStage.forms: 'forms',
+  SmartTileAuthoringStage.test: 'test',
+  SmartTileAuthoringStage.publish: 'publish',
+};

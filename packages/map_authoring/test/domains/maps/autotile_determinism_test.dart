@@ -215,7 +215,7 @@ void main() {
       ),
     ],
     tilesets: [],
-    smartTileCatalog: ProjectSmartTileCatalog(formatVersion: 2),
+    smartTileCatalog: ProjectSmartTileCatalog(),
   );
   final projectBytes = _encode(manifest.toJson());
   final mapBytes = _encode(map.toJson());

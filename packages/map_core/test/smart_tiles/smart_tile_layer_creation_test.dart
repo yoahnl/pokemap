@@ -278,7 +278,9 @@ void main() {
         version: ProjectVersion.v4,
         size: GridSize(width: 2, height: 2),
       );
-      final manifest = _manifestWithMaterials();
+      final manifest = _manifestWithMaterials(
+        drafts: const <ProjectSmartTileAuthoringDraft>[_draft],
+      );
       final preset = _preset(
         topology: SmartTileTopology.cardinal4,
         coveragePolicy: SmartTileCoveragePolicy.sparse,
@@ -302,6 +304,10 @@ void main() {
       expect(success.map.version, ProjectVersion.v5);
       expect(success.manifest.version, ProjectVersion.v5);
       expect(success.manifest.smartTileCatalog.presets, contains(preset));
+      expect(
+        success.manifest.smartTileCatalog.drafts,
+        const <ProjectSmartTileAuthoringDraft>[_draft],
+      );
       expect(layer.materialPalette, <String>['', 'grass', 'dirt']);
       expect(
         smartTileSemanticCells(layer),
@@ -569,6 +575,8 @@ ProjectManifest _manifestWithMaterials({
     ),
   ],
   List<ProjectSmartTilePreset> presets = const <ProjectSmartTilePreset>[],
+  List<ProjectSmartTileAuthoringDraft> drafts =
+      const <ProjectSmartTileAuthoringDraft>[],
 }) =>
     ProjectManifest(
       name: 'Project',
@@ -589,8 +597,17 @@ ProjectManifest _manifestWithMaterials({
           ),
         ],
         presets: presets,
+        drafts: drafts,
       ),
     );
+
+const _draft = ProjectSmartTileAuthoringDraft(
+  id: 'draft-grass',
+  targetPresetId: 'future-grass',
+  name: 'Future grass',
+  usage: SmartTileUsage.terrain,
+  lastStage: SmartTileAuthoringStage.image,
+);
 
 ProjectSmartTilePreset _preset({
   required SmartTileTopology topology,

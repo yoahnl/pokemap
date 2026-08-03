@@ -60,6 +60,8 @@ final class _SmartTileCatalogValidator {
       _firstById(catalog.materials, (item) => item.id);
   late final Map<String, ProjectSmartTileAnimation> _animationsById =
       _firstById(catalog.animations, (item) => item.id);
+  late final Map<String, ProjectSmartTilePreset> _presetsById =
+      _firstById(catalog.presets, (item) => item.id);
   late final Set<String> _categoryIds =
       catalog.categories.map((item) => item.id).toSet();
 
@@ -70,6 +72,7 @@ final class _SmartTileCatalogValidator {
     _validateAtlases();
     _validateAnimations();
     _validatePresets();
+    _validateDrafts();
     return List<SmartTileDiagnostic>.unmodifiable(_diagnostics);
   }
 
@@ -171,6 +174,319 @@ final class _SmartTileCatalogValidator {
       (item) => item.id,
       r'$.smartTileCatalog.presets',
     );
+    _duplicates(
+      catalog.drafts,
+      (item) => item.id,
+      r'$.smartTileCatalog.drafts',
+    );
+  }
+
+  void _validateDrafts() {
+    final targetPresetIds = <String>{};
+    for (var draftIndex = 0;
+        draftIndex < catalog.drafts.length;
+        draftIndex += 1) {
+      final draft = catalog.drafts[draftIndex];
+      final draftPath = r'$.smartTileCatalog.drafts[' '$draftIndex]';
+      _validateCanonicalId(draft.id, '$draftPath.id');
+      _validateCanonicalId(draft.targetPresetId, '$draftPath.targetPresetId');
+      _validateCanonicalName(draft.name, '$draftPath.name');
+      if (!targetPresetIds.add(draft.targetPresetId)) {
+        _error(
+          code: 'smart_tiles.draft.target_in_use',
+          path: '$draftPath.targetPresetId',
+          message: 'Another Smart Tile draft already targets preset '
+              '"${draft.targetPresetId}".',
+        );
+      }
+      if (draft.sourcePresetId case final sourcePresetId?) {
+        _validateCanonicalId(sourcePresetId, '$draftPath.sourcePresetId');
+        if (!_presetsById.containsKey(sourcePresetId)) {
+          _error(
+            code: 'smart_tiles.reference.preset_missing',
+            path: '$draftPath.sourcePresetId',
+            message: 'Draft "${draft.id}" references missing source preset '
+                '"$sourcePresetId".',
+          );
+        }
+      }
+      if (draft.guideId case final guideId?) {
+        _validateCanonicalId(guideId, '$draftPath.guideId');
+      }
+      if (draft.categoryId.isNotEmpty) {
+        _validateCanonicalId(draft.categoryId, '$draftPath.categoryId');
+        if (!_categoryIds.contains(draft.categoryId)) {
+          _error(
+            code: 'smart_tiles.reference.category_missing',
+            path: '$draftPath.categoryId',
+            message: 'Draft "${draft.id}" references missing category '
+                '"${draft.categoryId}".',
+          );
+        }
+      }
+
+      final sourceTilesetIds = <String>{};
+      for (var index = 0; index < draft.sourceTilesetIds.length; index += 1) {
+        final tilesetId = draft.sourceTilesetIds[index];
+        _validateCanonicalId(
+          tilesetId,
+          '$draftPath.sourceTilesetIds[$index]',
+        );
+        if (!sourceTilesetIds.add(tilesetId)) {
+          _error(
+            code: 'smart_tiles.id.duplicate',
+            path: '$draftPath.sourceTilesetIds[$index]',
+            message: 'Duplicate Smart Tile tileset id "$tilesetId".',
+          );
+        }
+        if (!projectTilesetIds.contains(tilesetId)) {
+          _error(
+            code: 'smart_tiles.reference.tileset_missing',
+            path: '$draftPath.sourceTilesetIds[$index]',
+            message: 'Draft "${draft.id}" references missing tileset '
+                '"$tilesetId".',
+          );
+        }
+      }
+
+      _duplicates(draft.atlases, (item) => item.id, '$draftPath.atlases');
+      _duplicates(
+        draft.materials,
+        (item) => item.id,
+        '$draftPath.materials',
+      );
+      _duplicates(
+        draft.animations,
+        (item) => item.id,
+        '$draftPath.animations',
+      );
+      _duplicates(draft.rules, (item) => item.id, '$draftPath.rules');
+
+      final draftAtlases = <String, ProjectSmartTileAtlas>{
+        ..._atlasesById,
+        for (final atlas in draft.atlases) atlas.id: atlas,
+      };
+      for (var index = 0; index < draft.atlases.length; index += 1) {
+        final atlas = draft.atlases[index];
+        final path = '$draftPath.atlases[$index]';
+        _validateCanonicalId(atlas.id, '$path.id');
+        _validateCanonicalName(atlas.name, '$path.name');
+        _validateCanonicalId(atlas.tilesetId, '$path.tilesetId');
+        if (!projectTilesetIds.contains(atlas.tilesetId)) {
+          _error(
+            code: 'smart_tiles.reference.tileset_missing',
+            path: '$path.tilesetId',
+            message: 'Draft atlas "${atlas.id}" references missing tileset '
+                '"${atlas.tilesetId}".',
+          );
+        }
+        if (atlas.cellWidth <= 0 ||
+            atlas.cellHeight <= 0 ||
+            atlas.originX < 0 ||
+            atlas.originY < 0 ||
+            atlas.marginX < 0 ||
+            atlas.marginY < 0 ||
+            atlas.spacingX < 0 ||
+            atlas.spacingY < 0 ||
+            atlas.columns <= 0 ||
+            atlas.rows <= 0) {
+          _error(
+            code: 'smart_tiles.atlas.invalid',
+            path: path,
+            message: 'Draft atlas geometry is invalid.',
+          );
+        }
+      }
+      if (draft.primaryAtlasId case final primaryAtlasId?) {
+        _validateCanonicalId(primaryAtlasId, '$draftPath.primaryAtlasId');
+        if (!draftAtlases.containsKey(primaryAtlasId)) {
+          _error(
+            code: 'smart_tiles.draft.atlas_missing',
+            path: '$draftPath.primaryAtlasId',
+            message: 'Draft "${draft.id}" references missing primary atlas '
+                '"$primaryAtlasId".',
+          );
+        }
+      }
+
+      final draftMaterials = <String, ProjectSmartTileMaterial>{
+        ..._materialsById,
+        for (final material in draft.materials) material.id: material,
+      };
+      for (var index = 0; index < draft.materials.length; index += 1) {
+        final material = draft.materials[index];
+        final path = '$draftPath.materials[$index]';
+        _validateCanonicalId(material.id, '$path.id');
+        _validateCanonicalName(material.name, '$path.name');
+        _validateCanonicalId(
+          material.connectionGroupId,
+          '$path.connectionGroupId',
+        );
+        if (material.categoryId.isNotEmpty) {
+          _validateCanonicalId(material.categoryId, '$path.categoryId');
+          if (!_categoryIds.contains(material.categoryId)) {
+            _error(
+              code: 'smart_tiles.reference.category_missing',
+              path: '$path.categoryId',
+              message: 'Draft material "${material.id}" references missing '
+                  'category "${material.categoryId}".',
+            );
+          }
+        }
+      }
+      final allowedMaterialIds = <String>{};
+      for (var index = 0; index < draft.allowedMaterialIds.length; index += 1) {
+        final materialId = draft.allowedMaterialIds[index];
+        _validateCanonicalId(
+          materialId,
+          '$draftPath.allowedMaterialIds[$index]',
+        );
+        if (!allowedMaterialIds.add(materialId)) {
+          _error(
+            code: 'smart_tiles.id.duplicate',
+            path: '$draftPath.allowedMaterialIds[$index]',
+            message: 'Duplicate allowed material id "$materialId".',
+          );
+        }
+        if (!draftMaterials.containsKey(materialId)) {
+          _missingMaterial(
+            materialId,
+            '$draftPath.allowedMaterialIds[$index]',
+          );
+        }
+      }
+
+      if (!_templateMatchesTopologyValues(
+        topology: draft.topology,
+        template: draft.templateHint,
+      )) {
+        _error(
+          code: 'smart_tiles.topology.template_mismatch',
+          path: '$draftPath.topology',
+          message: 'Draft template ${draft.templateHint.name} is not '
+              'compatible with topology ${draft.topology.name}.',
+        );
+      }
+      if (draft.fallbackRuleId case final fallbackRuleId?) {
+        _validateCanonicalId(fallbackRuleId, '$draftPath.fallbackRuleId');
+        if (!draft.rules.any((rule) => rule.id == fallbackRuleId)) {
+          _error(
+            code: 'smart_tiles.reference.fallback_rule_missing',
+            path: '$draftPath.fallbackRuleId',
+            message: 'Draft "${draft.id}" references missing fallback rule '
+                '"$fallbackRuleId".',
+          );
+        }
+      }
+      if (draft.defaultMaterialId case final defaultMaterialId?) {
+        _validateCanonicalId(
+          defaultMaterialId,
+          '$draftPath.defaultMaterialId',
+        );
+        if (!draftMaterials.containsKey(defaultMaterialId)) {
+          _error(
+            code: 'smart_tiles.draft.default_material_missing',
+            path: '$draftPath.defaultMaterialId',
+            message: 'Draft "${draft.id}" references missing default '
+                'material "$defaultMaterialId".',
+          );
+        }
+        if (!draft.allowedMaterialIds.contains(defaultMaterialId)) {
+          _error(
+            code: 'smart_tiles.reference.material_missing',
+            path: '$draftPath.defaultMaterialId',
+            message: 'Draft default material "$defaultMaterialId" is not '
+                'allowed.',
+          );
+        }
+      }
+
+      final draftAnimations = <String, ProjectSmartTileAnimation>{
+        ..._animationsById,
+        for (final animation in draft.animations) animation.id: animation,
+      };
+      for (var animationIndex = 0;
+          animationIndex < draft.animations.length;
+          animationIndex += 1) {
+        final animation = draft.animations[animationIndex];
+        final animationPath = '$draftPath.animations[$animationIndex]';
+        _validateCanonicalId(animation.id, '$animationPath.id');
+        _validateCanonicalName(animation.name, '$animationPath.name');
+        for (var frameIndex = 0;
+            frameIndex < animation.frames.length;
+            frameIndex += 1) {
+          final frame = animation.frames[frameIndex];
+          final framePath = '$animationPath.frames[$frameIndex]';
+          if (frame.durationMs <= 0) {
+            _error(
+              code: 'smart_tiles.animation.invalid',
+              path: '$framePath.durationMs',
+              message: 'Animation frame duration must be positive.',
+            );
+          }
+          _validateFrameRefAgainst(
+            frame.frame,
+            path: '$framePath.frame',
+            atlasesById: draftAtlases,
+          );
+        }
+      }
+
+      for (var ruleIndex = 0; ruleIndex < draft.rules.length; ruleIndex += 1) {
+        final rule = draft.rules[ruleIndex];
+        final rulePath = '$draftPath.rules[$ruleIndex]';
+        _validateCanonicalId(rule.id, '$rulePath.id');
+        final centerMaterialId = rule.centerMatch.materialId;
+        if (centerMaterialId != null &&
+            (!draftMaterials.containsKey(centerMaterialId) ||
+                !allowedMaterialIds.contains(centerMaterialId))) {
+          _error(
+            code: 'smart_tiles.reference.material_not_allowed',
+            path: '$rulePath.centerMatch.materialId',
+            message: 'Material "$centerMaterialId" is not available to '
+                'draft "${draft.id}".',
+          );
+        }
+        _duplicates(
+          rule.candidates,
+          (item) => item.id,
+          '$rulePath.candidates',
+        );
+        for (var candidateIndex = 0;
+            candidateIndex < rule.candidates.length;
+            candidateIndex += 1) {
+          final candidate = rule.candidates[candidateIndex];
+          final candidatePath = '$rulePath.candidates[$candidateIndex]';
+          _validateCanonicalId(candidate.id, '$candidatePath.id');
+          for (var partIndex = 0;
+              partIndex < candidate.parts.length;
+              partIndex += 1) {
+            final part = candidate.parts[partIndex];
+            final sourcePath = '$candidatePath.parts[$partIndex].source';
+            part.source.when(
+              frame: (frame) => _validateFrameRefAgainst(
+                frame,
+                path: '$sourcePath.frame',
+                atlasesById: draftAtlases,
+              ),
+              animation: (animationId) {
+                _validateCanonicalId(
+                  animationId,
+                  '$sourcePath.animationId',
+                );
+                if (!draftAnimations.containsKey(animationId)) {
+                  _error(
+                    code: 'smart_tiles.reference.animation_missing',
+                    path: '$sourcePath.animationId',
+                    message: 'Missing Smart Tile animation "$animationId".',
+                  );
+                }
+              },
+            );
+          }
+        }
+      }
+    }
   }
 
   void _validateAtlases() {
@@ -750,6 +1066,18 @@ final class _SmartTileCatalogValidator {
   }
 
   void _validateFrameRef(SmartTileFrameRef frame, {required String path}) {
+    _validateFrameRefAgainst(
+      frame,
+      path: path,
+      atlasesById: _atlasesById,
+    );
+  }
+
+  void _validateFrameRefAgainst(
+    SmartTileFrameRef frame, {
+    required String path,
+    required Map<String, ProjectSmartTileAtlas> atlasesById,
+  }) {
     _validateCanonicalId(frame.atlasId, '$path.atlasId');
     if (frame.column < 0 ||
         frame.row < 0 ||
@@ -763,7 +1091,7 @@ final class _SmartTileCatalogValidator {
       );
       return;
     }
-    final atlas = _atlasesById[frame.atlasId];
+    final atlas = atlasesById[frame.atlasId];
     if (atlas == null) {
       _error(
         code: 'smart_tiles.reference.atlas_missing',
@@ -895,16 +1223,25 @@ final class _SmartTileCatalogValidator {
 }
 
 bool _templateMatchesTopology(ProjectSmartTilePreset preset) {
-  final template = preset.templateHint;
+  return _templateMatchesTopologyValues(
+    topology: preset.topology,
+    template: preset.templateHint,
+  );
+}
+
+bool _templateMatchesTopologyValues({
+  required SmartTileTopology topology,
+  required SmartTileTemplateHint template,
+}) {
   if (template == SmartTileTemplateHint.free ||
       template == SmartTileTemplateHint.legacy20) {
     return true;
   }
   if (template == SmartTileTemplateHint.edge16) {
-    return preset.topology == SmartTileTopology.cardinal4 ||
-        preset.topology == SmartTileTopology.wangEdge4;
+    return topology == SmartTileTopology.cardinal4 ||
+        topology == SmartTileTopology.wangEdge4;
   }
-  return preset.topology == smartTileTopologyForTemplate(template);
+  return topology == smartTileTopologyForTemplate(template);
 }
 
 Map<String, T> _firstById<T>(

@@ -5299,3 +5299,827 @@ abstract class _ProjectSmartTilePreset implements ProjectSmartTilePreset {
   _$$ProjectSmartTilePresetImplCopyWith<_$ProjectSmartTilePresetImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
+
+ProjectSmartTileAuthoringDraft _$ProjectSmartTileAuthoringDraftFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectSmartTileAuthoringDraft.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectSmartTileAuthoringDraft {
+  String get id => throw _privateConstructorUsedError;
+  String get targetPresetId => throw _privateConstructorUsedError;
+  String? get sourcePresetId => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  String get categoryId => throw _privateConstructorUsedError;
+  SmartTileUsage get usage => throw _privateConstructorUsedError;
+  SmartTileAuthoringStage get lastStage => throw _privateConstructorUsedError;
+  String? get guideId => throw _privateConstructorUsedError;
+  List<String> get sourceTilesetIds => throw _privateConstructorUsedError;
+  List<ProjectSmartTileAtlas> get atlases => throw _privateConstructorUsedError;
+  String? get primaryAtlasId => throw _privateConstructorUsedError;
+  List<ProjectSmartTileMaterial> get materials =>
+      throw _privateConstructorUsedError;
+  List<ProjectSmartTileAnimation> get animations =>
+      throw _privateConstructorUsedError;
+  String? get defaultMaterialId => throw _privateConstructorUsedError;
+  List<String> get allowedMaterialIds => throw _privateConstructorUsedError;
+  SmartTileTopology get topology => throw _privateConstructorUsedError;
+  SmartTileTemplateHint get templateHint => throw _privateConstructorUsedError;
+  SmartTileBoundaryPolicy get boundaryPolicy =>
+      throw _privateConstructorUsedError;
+  SmartTileCoveragePolicy get coveragePolicy =>
+      throw _privateConstructorUsedError;
+  SmartTileCoverageProfile get coverageProfile =>
+      throw _privateConstructorUsedError;
+  SmartTileTransformPolicy get transformPolicy =>
+      throw _privateConstructorUsedError;
+  List<SmartTileRule> get rules => throw _privateConstructorUsedError;
+  String? get fallbackRuleId => throw _privateConstructorUsedError;
+  List<String> get tags => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+  int get seedSalt => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectSmartTileAuthoringDraft to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectSmartTileAuthoringDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectSmartTileAuthoringDraftCopyWith<ProjectSmartTileAuthoringDraft>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectSmartTileAuthoringDraftCopyWith<$Res> {
+  factory $ProjectSmartTileAuthoringDraftCopyWith(
+          ProjectSmartTileAuthoringDraft value,
+          $Res Function(ProjectSmartTileAuthoringDraft) then) =
+      _$ProjectSmartTileAuthoringDraftCopyWithImpl<$Res,
+          ProjectSmartTileAuthoringDraft>;
+  @useResult
+  $Res call(
+      {String id,
+      String targetPresetId,
+      String? sourcePresetId,
+      String name,
+      String categoryId,
+      SmartTileUsage usage,
+      SmartTileAuthoringStage lastStage,
+      String? guideId,
+      List<String> sourceTilesetIds,
+      List<ProjectSmartTileAtlas> atlases,
+      String? primaryAtlasId,
+      List<ProjectSmartTileMaterial> materials,
+      List<ProjectSmartTileAnimation> animations,
+      String? defaultMaterialId,
+      List<String> allowedMaterialIds,
+      SmartTileTopology topology,
+      SmartTileTemplateHint templateHint,
+      SmartTileBoundaryPolicy boundaryPolicy,
+      SmartTileCoveragePolicy coveragePolicy,
+      SmartTileCoverageProfile coverageProfile,
+      SmartTileTransformPolicy transformPolicy,
+      List<SmartTileRule> rules,
+      String? fallbackRuleId,
+      List<String> tags,
+      int sortOrder,
+      int seedSalt});
+
+  $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile;
+  $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy;
+}
+
+/// @nodoc
+class _$ProjectSmartTileAuthoringDraftCopyWithImpl<$Res,
+        $Val extends ProjectSmartTileAuthoringDraft>
+    implements $ProjectSmartTileAuthoringDraftCopyWith<$Res> {
+  _$ProjectSmartTileAuthoringDraftCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectSmartTileAuthoringDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? targetPresetId = null,
+    Object? sourcePresetId = freezed,
+    Object? name = null,
+    Object? categoryId = null,
+    Object? usage = null,
+    Object? lastStage = null,
+    Object? guideId = freezed,
+    Object? sourceTilesetIds = null,
+    Object? atlases = null,
+    Object? primaryAtlasId = freezed,
+    Object? materials = null,
+    Object? animations = null,
+    Object? defaultMaterialId = freezed,
+    Object? allowedMaterialIds = null,
+    Object? topology = null,
+    Object? templateHint = null,
+    Object? boundaryPolicy = null,
+    Object? coveragePolicy = null,
+    Object? coverageProfile = null,
+    Object? transformPolicy = null,
+    Object? rules = null,
+    Object? fallbackRuleId = freezed,
+    Object? tags = null,
+    Object? sortOrder = null,
+    Object? seedSalt = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      targetPresetId: null == targetPresetId
+          ? _value.targetPresetId
+          : targetPresetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      sourcePresetId: freezed == sourcePresetId
+          ? _value.sourcePresetId
+          : sourcePresetId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
+      usage: null == usage
+          ? _value.usage
+          : usage // ignore: cast_nullable_to_non_nullable
+              as SmartTileUsage,
+      lastStage: null == lastStage
+          ? _value.lastStage
+          : lastStage // ignore: cast_nullable_to_non_nullable
+              as SmartTileAuthoringStage,
+      guideId: freezed == guideId
+          ? _value.guideId
+          : guideId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sourceTilesetIds: null == sourceTilesetIds
+          ? _value.sourceTilesetIds
+          : sourceTilesetIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      atlases: null == atlases
+          ? _value.atlases
+          : atlases // ignore: cast_nullable_to_non_nullable
+              as List<ProjectSmartTileAtlas>,
+      primaryAtlasId: freezed == primaryAtlasId
+          ? _value.primaryAtlasId
+          : primaryAtlasId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      materials: null == materials
+          ? _value.materials
+          : materials // ignore: cast_nullable_to_non_nullable
+              as List<ProjectSmartTileMaterial>,
+      animations: null == animations
+          ? _value.animations
+          : animations // ignore: cast_nullable_to_non_nullable
+              as List<ProjectSmartTileAnimation>,
+      defaultMaterialId: freezed == defaultMaterialId
+          ? _value.defaultMaterialId
+          : defaultMaterialId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      allowedMaterialIds: null == allowedMaterialIds
+          ? _value.allowedMaterialIds
+          : allowedMaterialIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      topology: null == topology
+          ? _value.topology
+          : topology // ignore: cast_nullable_to_non_nullable
+              as SmartTileTopology,
+      templateHint: null == templateHint
+          ? _value.templateHint
+          : templateHint // ignore: cast_nullable_to_non_nullable
+              as SmartTileTemplateHint,
+      boundaryPolicy: null == boundaryPolicy
+          ? _value.boundaryPolicy
+          : boundaryPolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileBoundaryPolicy,
+      coveragePolicy: null == coveragePolicy
+          ? _value.coveragePolicy
+          : coveragePolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoveragePolicy,
+      coverageProfile: null == coverageProfile
+          ? _value.coverageProfile
+          : coverageProfile // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoverageProfile,
+      transformPolicy: null == transformPolicy
+          ? _value.transformPolicy
+          : transformPolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileTransformPolicy,
+      rules: null == rules
+          ? _value.rules
+          : rules // ignore: cast_nullable_to_non_nullable
+              as List<SmartTileRule>,
+      fallbackRuleId: freezed == fallbackRuleId
+          ? _value.fallbackRuleId
+          : fallbackRuleId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      tags: null == tags
+          ? _value.tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      seedSalt: null == seedSalt
+          ? _value.seedSalt
+          : seedSalt // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+
+  /// Create a copy of ProjectSmartTileAuthoringDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile {
+    return $SmartTileCoverageProfileCopyWith<$Res>(_value.coverageProfile,
+        (value) {
+      return _then(_value.copyWith(coverageProfile: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ProjectSmartTileAuthoringDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy {
+    return $SmartTileTransformPolicyCopyWith<$Res>(_value.transformPolicy,
+        (value) {
+      return _then(_value.copyWith(transformPolicy: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectSmartTileAuthoringDraftImplCopyWith<$Res>
+    implements $ProjectSmartTileAuthoringDraftCopyWith<$Res> {
+  factory _$$ProjectSmartTileAuthoringDraftImplCopyWith(
+          _$ProjectSmartTileAuthoringDraftImpl value,
+          $Res Function(_$ProjectSmartTileAuthoringDraftImpl) then) =
+      __$$ProjectSmartTileAuthoringDraftImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String targetPresetId,
+      String? sourcePresetId,
+      String name,
+      String categoryId,
+      SmartTileUsage usage,
+      SmartTileAuthoringStage lastStage,
+      String? guideId,
+      List<String> sourceTilesetIds,
+      List<ProjectSmartTileAtlas> atlases,
+      String? primaryAtlasId,
+      List<ProjectSmartTileMaterial> materials,
+      List<ProjectSmartTileAnimation> animations,
+      String? defaultMaterialId,
+      List<String> allowedMaterialIds,
+      SmartTileTopology topology,
+      SmartTileTemplateHint templateHint,
+      SmartTileBoundaryPolicy boundaryPolicy,
+      SmartTileCoveragePolicy coveragePolicy,
+      SmartTileCoverageProfile coverageProfile,
+      SmartTileTransformPolicy transformPolicy,
+      List<SmartTileRule> rules,
+      String? fallbackRuleId,
+      List<String> tags,
+      int sortOrder,
+      int seedSalt});
+
+  @override
+  $SmartTileCoverageProfileCopyWith<$Res> get coverageProfile;
+  @override
+  $SmartTileTransformPolicyCopyWith<$Res> get transformPolicy;
+}
+
+/// @nodoc
+class __$$ProjectSmartTileAuthoringDraftImplCopyWithImpl<$Res>
+    extends _$ProjectSmartTileAuthoringDraftCopyWithImpl<$Res,
+        _$ProjectSmartTileAuthoringDraftImpl>
+    implements _$$ProjectSmartTileAuthoringDraftImplCopyWith<$Res> {
+  __$$ProjectSmartTileAuthoringDraftImplCopyWithImpl(
+      _$ProjectSmartTileAuthoringDraftImpl _value,
+      $Res Function(_$ProjectSmartTileAuthoringDraftImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectSmartTileAuthoringDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? targetPresetId = null,
+    Object? sourcePresetId = freezed,
+    Object? name = null,
+    Object? categoryId = null,
+    Object? usage = null,
+    Object? lastStage = null,
+    Object? guideId = freezed,
+    Object? sourceTilesetIds = null,
+    Object? atlases = null,
+    Object? primaryAtlasId = freezed,
+    Object? materials = null,
+    Object? animations = null,
+    Object? defaultMaterialId = freezed,
+    Object? allowedMaterialIds = null,
+    Object? topology = null,
+    Object? templateHint = null,
+    Object? boundaryPolicy = null,
+    Object? coveragePolicy = null,
+    Object? coverageProfile = null,
+    Object? transformPolicy = null,
+    Object? rules = null,
+    Object? fallbackRuleId = freezed,
+    Object? tags = null,
+    Object? sortOrder = null,
+    Object? seedSalt = null,
+  }) {
+    return _then(_$ProjectSmartTileAuthoringDraftImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      targetPresetId: null == targetPresetId
+          ? _value.targetPresetId
+          : targetPresetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      sourcePresetId: freezed == sourcePresetId
+          ? _value.sourcePresetId
+          : sourcePresetId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
+      usage: null == usage
+          ? _value.usage
+          : usage // ignore: cast_nullable_to_non_nullable
+              as SmartTileUsage,
+      lastStage: null == lastStage
+          ? _value.lastStage
+          : lastStage // ignore: cast_nullable_to_non_nullable
+              as SmartTileAuthoringStage,
+      guideId: freezed == guideId
+          ? _value.guideId
+          : guideId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      sourceTilesetIds: null == sourceTilesetIds
+          ? _value._sourceTilesetIds
+          : sourceTilesetIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      atlases: null == atlases
+          ? _value._atlases
+          : atlases // ignore: cast_nullable_to_non_nullable
+              as List<ProjectSmartTileAtlas>,
+      primaryAtlasId: freezed == primaryAtlasId
+          ? _value.primaryAtlasId
+          : primaryAtlasId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      materials: null == materials
+          ? _value._materials
+          : materials // ignore: cast_nullable_to_non_nullable
+              as List<ProjectSmartTileMaterial>,
+      animations: null == animations
+          ? _value._animations
+          : animations // ignore: cast_nullable_to_non_nullable
+              as List<ProjectSmartTileAnimation>,
+      defaultMaterialId: freezed == defaultMaterialId
+          ? _value.defaultMaterialId
+          : defaultMaterialId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      allowedMaterialIds: null == allowedMaterialIds
+          ? _value._allowedMaterialIds
+          : allowedMaterialIds // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      topology: null == topology
+          ? _value.topology
+          : topology // ignore: cast_nullable_to_non_nullable
+              as SmartTileTopology,
+      templateHint: null == templateHint
+          ? _value.templateHint
+          : templateHint // ignore: cast_nullable_to_non_nullable
+              as SmartTileTemplateHint,
+      boundaryPolicy: null == boundaryPolicy
+          ? _value.boundaryPolicy
+          : boundaryPolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileBoundaryPolicy,
+      coveragePolicy: null == coveragePolicy
+          ? _value.coveragePolicy
+          : coveragePolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoveragePolicy,
+      coverageProfile: null == coverageProfile
+          ? _value.coverageProfile
+          : coverageProfile // ignore: cast_nullable_to_non_nullable
+              as SmartTileCoverageProfile,
+      transformPolicy: null == transformPolicy
+          ? _value.transformPolicy
+          : transformPolicy // ignore: cast_nullable_to_non_nullable
+              as SmartTileTransformPolicy,
+      rules: null == rules
+          ? _value._rules
+          : rules // ignore: cast_nullable_to_non_nullable
+              as List<SmartTileRule>,
+      fallbackRuleId: freezed == fallbackRuleId
+          ? _value.fallbackRuleId
+          : fallbackRuleId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      tags: null == tags
+          ? _value._tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      seedSalt: null == seedSalt
+          ? _value.seedSalt
+          : seedSalt // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectSmartTileAuthoringDraftImpl
+    implements _ProjectSmartTileAuthoringDraft {
+  const _$ProjectSmartTileAuthoringDraftImpl(
+      {required this.id,
+      required this.targetPresetId,
+      this.sourcePresetId,
+      required this.name,
+      this.categoryId = '',
+      required this.usage,
+      required this.lastStage,
+      this.guideId,
+      final List<String> sourceTilesetIds = const <String>[],
+      final List<ProjectSmartTileAtlas> atlases =
+          const <ProjectSmartTileAtlas>[],
+      this.primaryAtlasId,
+      final List<ProjectSmartTileMaterial> materials =
+          const <ProjectSmartTileMaterial>[],
+      final List<ProjectSmartTileAnimation> animations =
+          const <ProjectSmartTileAnimation>[],
+      this.defaultMaterialId,
+      final List<String> allowedMaterialIds = const <String>[],
+      this.topology = SmartTileTopology.uniform,
+      this.templateHint = SmartTileTemplateHint.simple,
+      this.boundaryPolicy = SmartTileBoundaryPolicy.empty,
+      this.coveragePolicy = SmartTileCoveragePolicy.complete,
+      this.coverageProfile =
+          const SmartTileCoverageProfile(mode: SmartTileCoverageMode.template),
+      this.transformPolicy = const SmartTileTransformPolicy(),
+      final List<SmartTileRule> rules = const <SmartTileRule>[],
+      this.fallbackRuleId,
+      final List<String> tags = const <String>[],
+      this.sortOrder = 0,
+      this.seedSalt = 0})
+      : assert(id != "", 'id must not be blank'),
+        assert(targetPresetId != "", 'targetPresetId must not be blank'),
+        assert(name != "", 'name must not be blank'),
+        _sourceTilesetIds = sourceTilesetIds,
+        _atlases = atlases,
+        _materials = materials,
+        _animations = animations,
+        _allowedMaterialIds = allowedMaterialIds,
+        _rules = rules,
+        _tags = tags;
+
+  factory _$ProjectSmartTileAuthoringDraftImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$ProjectSmartTileAuthoringDraftImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String targetPresetId;
+  @override
+  final String? sourcePresetId;
+  @override
+  final String name;
+  @override
+  @JsonKey()
+  final String categoryId;
+  @override
+  final SmartTileUsage usage;
+  @override
+  final SmartTileAuthoringStage lastStage;
+  @override
+  final String? guideId;
+  final List<String> _sourceTilesetIds;
+  @override
+  @JsonKey()
+  List<String> get sourceTilesetIds {
+    if (_sourceTilesetIds is EqualUnmodifiableListView)
+      return _sourceTilesetIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_sourceTilesetIds);
+  }
+
+  final List<ProjectSmartTileAtlas> _atlases;
+  @override
+  @JsonKey()
+  List<ProjectSmartTileAtlas> get atlases {
+    if (_atlases is EqualUnmodifiableListView) return _atlases;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_atlases);
+  }
+
+  @override
+  final String? primaryAtlasId;
+  final List<ProjectSmartTileMaterial> _materials;
+  @override
+  @JsonKey()
+  List<ProjectSmartTileMaterial> get materials {
+    if (_materials is EqualUnmodifiableListView) return _materials;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_materials);
+  }
+
+  final List<ProjectSmartTileAnimation> _animations;
+  @override
+  @JsonKey()
+  List<ProjectSmartTileAnimation> get animations {
+    if (_animations is EqualUnmodifiableListView) return _animations;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_animations);
+  }
+
+  @override
+  final String? defaultMaterialId;
+  final List<String> _allowedMaterialIds;
+  @override
+  @JsonKey()
+  List<String> get allowedMaterialIds {
+    if (_allowedMaterialIds is EqualUnmodifiableListView)
+      return _allowedMaterialIds;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_allowedMaterialIds);
+  }
+
+  @override
+  @JsonKey()
+  final SmartTileTopology topology;
+  @override
+  @JsonKey()
+  final SmartTileTemplateHint templateHint;
+  @override
+  @JsonKey()
+  final SmartTileBoundaryPolicy boundaryPolicy;
+  @override
+  @JsonKey()
+  final SmartTileCoveragePolicy coveragePolicy;
+  @override
+  @JsonKey()
+  final SmartTileCoverageProfile coverageProfile;
+  @override
+  @JsonKey()
+  final SmartTileTransformPolicy transformPolicy;
+  final List<SmartTileRule> _rules;
+  @override
+  @JsonKey()
+  List<SmartTileRule> get rules {
+    if (_rules is EqualUnmodifiableListView) return _rules;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_rules);
+  }
+
+  @override
+  final String? fallbackRuleId;
+  final List<String> _tags;
+  @override
+  @JsonKey()
+  List<String> get tags {
+    if (_tags is EqualUnmodifiableListView) return _tags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tags);
+  }
+
+  @override
+  @JsonKey()
+  final int sortOrder;
+  @override
+  @JsonKey()
+  final int seedSalt;
+
+  @override
+  String toString() {
+    return 'ProjectSmartTileAuthoringDraft(id: $id, targetPresetId: $targetPresetId, sourcePresetId: $sourcePresetId, name: $name, categoryId: $categoryId, usage: $usage, lastStage: $lastStage, guideId: $guideId, sourceTilesetIds: $sourceTilesetIds, atlases: $atlases, primaryAtlasId: $primaryAtlasId, materials: $materials, animations: $animations, defaultMaterialId: $defaultMaterialId, allowedMaterialIds: $allowedMaterialIds, topology: $topology, templateHint: $templateHint, boundaryPolicy: $boundaryPolicy, coveragePolicy: $coveragePolicy, coverageProfile: $coverageProfile, transformPolicy: $transformPolicy, rules: $rules, fallbackRuleId: $fallbackRuleId, tags: $tags, sortOrder: $sortOrder, seedSalt: $seedSalt)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectSmartTileAuthoringDraftImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.targetPresetId, targetPresetId) ||
+                other.targetPresetId == targetPresetId) &&
+            (identical(other.sourcePresetId, sourcePresetId) ||
+                other.sourcePresetId == sourcePresetId) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.categoryId, categoryId) ||
+                other.categoryId == categoryId) &&
+            (identical(other.usage, usage) || other.usage == usage) &&
+            (identical(other.lastStage, lastStage) ||
+                other.lastStage == lastStage) &&
+            (identical(other.guideId, guideId) || other.guideId == guideId) &&
+            const DeepCollectionEquality()
+                .equals(other._sourceTilesetIds, _sourceTilesetIds) &&
+            const DeepCollectionEquality().equals(other._atlases, _atlases) &&
+            (identical(other.primaryAtlasId, primaryAtlasId) ||
+                other.primaryAtlasId == primaryAtlasId) &&
+            const DeepCollectionEquality()
+                .equals(other._materials, _materials) &&
+            const DeepCollectionEquality()
+                .equals(other._animations, _animations) &&
+            (identical(other.defaultMaterialId, defaultMaterialId) ||
+                other.defaultMaterialId == defaultMaterialId) &&
+            const DeepCollectionEquality()
+                .equals(other._allowedMaterialIds, _allowedMaterialIds) &&
+            (identical(other.topology, topology) ||
+                other.topology == topology) &&
+            (identical(other.templateHint, templateHint) ||
+                other.templateHint == templateHint) &&
+            (identical(other.boundaryPolicy, boundaryPolicy) ||
+                other.boundaryPolicy == boundaryPolicy) &&
+            (identical(other.coveragePolicy, coveragePolicy) ||
+                other.coveragePolicy == coveragePolicy) &&
+            (identical(other.coverageProfile, coverageProfile) ||
+                other.coverageProfile == coverageProfile) &&
+            (identical(other.transformPolicy, transformPolicy) ||
+                other.transformPolicy == transformPolicy) &&
+            const DeepCollectionEquality().equals(other._rules, _rules) &&
+            (identical(other.fallbackRuleId, fallbackRuleId) ||
+                other.fallbackRuleId == fallbackRuleId) &&
+            const DeepCollectionEquality().equals(other._tags, _tags) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder) &&
+            (identical(other.seedSalt, seedSalt) ||
+                other.seedSalt == seedSalt));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hashAll([
+        runtimeType,
+        id,
+        targetPresetId,
+        sourcePresetId,
+        name,
+        categoryId,
+        usage,
+        lastStage,
+        guideId,
+        const DeepCollectionEquality().hash(_sourceTilesetIds),
+        const DeepCollectionEquality().hash(_atlases),
+        primaryAtlasId,
+        const DeepCollectionEquality().hash(_materials),
+        const DeepCollectionEquality().hash(_animations),
+        defaultMaterialId,
+        const DeepCollectionEquality().hash(_allowedMaterialIds),
+        topology,
+        templateHint,
+        boundaryPolicy,
+        coveragePolicy,
+        coverageProfile,
+        transformPolicy,
+        const DeepCollectionEquality().hash(_rules),
+        fallbackRuleId,
+        const DeepCollectionEquality().hash(_tags),
+        sortOrder,
+        seedSalt
+      ]);
+
+  /// Create a copy of ProjectSmartTileAuthoringDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectSmartTileAuthoringDraftImplCopyWith<
+          _$ProjectSmartTileAuthoringDraftImpl>
+      get copyWith => __$$ProjectSmartTileAuthoringDraftImplCopyWithImpl<
+          _$ProjectSmartTileAuthoringDraftImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectSmartTileAuthoringDraftImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectSmartTileAuthoringDraft
+    implements ProjectSmartTileAuthoringDraft {
+  const factory _ProjectSmartTileAuthoringDraft(
+      {required final String id,
+      required final String targetPresetId,
+      final String? sourcePresetId,
+      required final String name,
+      final String categoryId,
+      required final SmartTileUsage usage,
+      required final SmartTileAuthoringStage lastStage,
+      final String? guideId,
+      final List<String> sourceTilesetIds,
+      final List<ProjectSmartTileAtlas> atlases,
+      final String? primaryAtlasId,
+      final List<ProjectSmartTileMaterial> materials,
+      final List<ProjectSmartTileAnimation> animations,
+      final String? defaultMaterialId,
+      final List<String> allowedMaterialIds,
+      final SmartTileTopology topology,
+      final SmartTileTemplateHint templateHint,
+      final SmartTileBoundaryPolicy boundaryPolicy,
+      final SmartTileCoveragePolicy coveragePolicy,
+      final SmartTileCoverageProfile coverageProfile,
+      final SmartTileTransformPolicy transformPolicy,
+      final List<SmartTileRule> rules,
+      final String? fallbackRuleId,
+      final List<String> tags,
+      final int sortOrder,
+      final int seedSalt}) = _$ProjectSmartTileAuthoringDraftImpl;
+
+  factory _ProjectSmartTileAuthoringDraft.fromJson(Map<String, dynamic> json) =
+      _$ProjectSmartTileAuthoringDraftImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get targetPresetId;
+  @override
+  String? get sourcePresetId;
+  @override
+  String get name;
+  @override
+  String get categoryId;
+  @override
+  SmartTileUsage get usage;
+  @override
+  SmartTileAuthoringStage get lastStage;
+  @override
+  String? get guideId;
+  @override
+  List<String> get sourceTilesetIds;
+  @override
+  List<ProjectSmartTileAtlas> get atlases;
+  @override
+  String? get primaryAtlasId;
+  @override
+  List<ProjectSmartTileMaterial> get materials;
+  @override
+  List<ProjectSmartTileAnimation> get animations;
+  @override
+  String? get defaultMaterialId;
+  @override
+  List<String> get allowedMaterialIds;
+  @override
+  SmartTileTopology get topology;
+  @override
+  SmartTileTemplateHint get templateHint;
+  @override
+  SmartTileBoundaryPolicy get boundaryPolicy;
+  @override
+  SmartTileCoveragePolicy get coveragePolicy;
+  @override
+  SmartTileCoverageProfile get coverageProfile;
+  @override
+  SmartTileTransformPolicy get transformPolicy;
+  @override
+  List<SmartTileRule> get rules;
+  @override
+  String? get fallbackRuleId;
+  @override
+  List<String> get tags;
+  @override
+  int get sortOrder;
+  @override
+  int get seedSalt;
+
+  /// Create a copy of ProjectSmartTileAuthoringDraft
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectSmartTileAuthoringDraftImplCopyWith<
+          _$ProjectSmartTileAuthoringDraftImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}

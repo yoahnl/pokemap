@@ -142,6 +142,7 @@ void main() {
           version: ProjectVersion.v5,
           size: GridSize(width: 1, height: 1),
         ),
+        drafts: const <ProjectSmartTileAuthoringDraft>[_draft],
       );
       const material = ProjectSmartTileMaterial(
         id: 'dirt',
@@ -163,6 +164,15 @@ void main() {
       expect(
         draft.changeSet.diff.entries.single.path,
         '/smartTileCatalog/materials/dirt',
+      );
+      final projectedManifest = ProjectManifest.fromJson(
+        jsonDecode(
+          utf8.decode(draft.changeSet.changes.single.afterBytes!),
+        ) as Map<String, dynamic>,
+      );
+      expect(
+        projectedManifest.smartTileCatalog.drafts,
+        const <ProjectSmartTileAuthoringDraft>[_draft],
       );
     });
 
@@ -376,6 +386,7 @@ void main() {
   ),
   ProjectSmartTilePreset? preset,
   List<ProjectSmartTileAnimation> animations = const [],
+  List<ProjectSmartTileAuthoringDraft> drafts = const [],
 }) {
   final artifact = ContentArtifactRef.fromBytes(
     _pngBytes,
@@ -414,6 +425,7 @@ void main() {
       presets: <ProjectSmartTilePreset>[
         if (preset != null) preset,
       ],
+      drafts: drafts,
     ),
   );
   final projectBytes = _encode(manifest.toJson());
@@ -455,6 +467,14 @@ void main() {
     ),
   );
 }
+
+const _draft = ProjectSmartTileAuthoringDraft(
+  id: 'draft-grass',
+  targetPresetId: 'future-grass',
+  name: 'Future grass',
+  usage: SmartTileUsage.terrain,
+  lastStage: SmartTileAuthoringStage.image,
+);
 
 AuthoringPlanningContext _context(
   ({ProjectSnapshot snapshot, ProjectManifest manifest, MapData map}) fixture, {

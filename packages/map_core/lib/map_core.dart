@@ -111,6 +111,7 @@ export 'src/operations/border_stroke_editing.dart';
 export 'src/operations/map_visual_composition.dart';
 export 'src/operations/map_visual_stack_migration.dart';
 export 'src/operations/smart_tile_catalog_validation.dart';
+export 'src/operations/smart_tile_authoring_draft_compiler.dart';
 export 'src/operations/smart_tile_cell_context.dart';
 export 'src/operations/smart_tile_coverage.dart';
 export 'src/operations/smart_tile_layer_context.dart';

@@ -446,6 +446,7 @@ ProjectSmartTileCatalog _catalogWith(
   List<ProjectSmartTileMaterial>? materials,
   List<ProjectSmartTileAnimation>? animations,
   List<ProjectSmartTilePreset>? presets,
+  List<ProjectSmartTileAuthoringDraft>? drafts,
 }) =>
     ProjectSmartTileCatalog(
       categories: catalog.categories,
@@ -453,6 +454,7 @@ ProjectSmartTileCatalog _catalogWith(
       materials: materials ?? catalog.materials,
       animations: animations ?? catalog.animations,
       presets: presets ?? catalog.presets,
+      drafts: drafts ?? catalog.drafts,
     );
 
 List<T> _upsertById<T>(

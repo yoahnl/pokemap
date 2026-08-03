@@ -189,7 +189,9 @@ Alternative rejetée : un bundle `{preset, atlases, materials, animations}` dire
 
 ### 7.2 Modèle cible
 
-Créer `packages/map_core/lib/src/models/smart_tile_authoring_draft.dart` :
+Définir dans `packages/map_core/lib/src/models/smart_tile.dart` (le catalogue
+référence directement le draft ; le co-localiser évite une dépendance
+circulaire Dart) :
 
 ```dart
 @freezed
@@ -732,8 +734,8 @@ Chaque sous-lot suit : test rouge ciblé → implémentation minimale → tests 
 
 **Créer :**
 
-- `packages/map_core/lib/src/models/smart_tile_authoring_draft.dart` ;
-- fichiers Freezed/JSON générés associés ;
+- sections Freezed/JSON générées associées dans `smart_tile.freezed.dart` et
+  `smart_tile.g.dart` ;
 - `packages/map_core/lib/src/operations/smart_tile_authoring_draft_compiler.dart` ;
 - `packages/map_core/test/smart_tiles/smart_tile_authoring_draft_test.dart` ;
 - `packages/map_core/test/smart_tiles/smart_tile_authoring_draft_compiler_test.dart`.

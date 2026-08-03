@@ -80,6 +80,27 @@ enum SmartTilePresetStatus {
   published,
 }
 
+enum SmartTileAuthoringStage {
+  @JsonValue('usage')
+  usage,
+  @JsonValue('image')
+  image,
+  @JsonValue('grid')
+  grid,
+  @JsonValue('materials')
+  materials,
+  @JsonValue('connections')
+  connections,
+  @JsonValue('variants')
+  variants,
+  @JsonValue('forms')
+  forms,
+  @JsonValue('test')
+  test,
+  @JsonValue('publish')
+  publish,
+}
+
 enum SmartTileRenderChannel {
   @JsonValue('ground')
   ground,
@@ -732,9 +753,65 @@ ProjectSmartTilePreset _projectSmartTilePresetFromJson(
   return _$ProjectSmartTilePresetFromJson(json);
 }
 
+/// Durable, isolated work-in-progress owned by Smart Tiles Studio.
+///
+/// Draft resources remain private until the publication compiler projects
+/// them into the canonical catalog. Runtime resolution never reads this type.
+@freezed
+class ProjectSmartTileAuthoringDraft with _$ProjectSmartTileAuthoringDraft {
+  @Assert('id != ""', 'id must not be blank')
+  @Assert('targetPresetId != ""', 'targetPresetId must not be blank')
+  @Assert('name != ""', 'name must not be blank')
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectSmartTileAuthoringDraft({
+    required String id,
+    required String targetPresetId,
+    String? sourcePresetId,
+    required String name,
+    @Default('') String categoryId,
+    required SmartTileUsage usage,
+    required SmartTileAuthoringStage lastStage,
+    String? guideId,
+    @Default(<String>[]) List<String> sourceTilesetIds,
+    @Default(<ProjectSmartTileAtlas>[]) List<ProjectSmartTileAtlas> atlases,
+    String? primaryAtlasId,
+    @Default(<ProjectSmartTileMaterial>[])
+    List<ProjectSmartTileMaterial> materials,
+    @Default(<ProjectSmartTileAnimation>[])
+    List<ProjectSmartTileAnimation> animations,
+    String? defaultMaterialId,
+    @Default(<String>[]) List<String> allowedMaterialIds,
+    @Default(SmartTileTopology.uniform) SmartTileTopology topology,
+    @Default(SmartTileTemplateHint.simple) SmartTileTemplateHint templateHint,
+    @Default(SmartTileBoundaryPolicy.empty)
+    SmartTileBoundaryPolicy boundaryPolicy,
+    @Default(SmartTileCoveragePolicy.complete)
+    SmartTileCoveragePolicy coveragePolicy,
+    @Default(SmartTileCoverageProfile(mode: SmartTileCoverageMode.template))
+    SmartTileCoverageProfile coverageProfile,
+    @Default(SmartTileTransformPolicy())
+    SmartTileTransformPolicy transformPolicy,
+    @Default(<SmartTileRule>[]) List<SmartTileRule> rules,
+    String? fallbackRuleId,
+    @Default(<String>[]) List<String> tags,
+    @Default(0) int sortOrder,
+    @Default(0) int seedSalt,
+  }) = _ProjectSmartTileAuthoringDraft;
+
+  factory ProjectSmartTileAuthoringDraft.fromJson(Map<String, dynamic> json) =>
+      _projectSmartTileAuthoringDraftFromJson(json);
+}
+
+ProjectSmartTileAuthoringDraft _projectSmartTileAuthoringDraftFromJson(
+  Map<String, dynamic> json,
+) {
+  _requireStrictJsonIntegers(json, const <String>['sortOrder', 'seedSalt']);
+  return _$ProjectSmartTileAuthoringDraftFromJson(json);
+}
+
 @immutable
 final class ProjectSmartTileCatalog {
-  static const int currentFormatVersion = 2;
+  static const int currentFormatVersion = 3;
 
   const ProjectSmartTileCatalog.empty()
       : formatVersion = currentFormatVersion,
@@ -742,7 +819,8 @@ final class ProjectSmartTileCatalog {
         _atlases = const <ProjectSmartTileAtlas>[],
         _materials = const <ProjectSmartTileMaterial>[],
         _animations = const <ProjectSmartTileAnimation>[],
-        _presets = const <ProjectSmartTilePreset>[];
+        _presets = const <ProjectSmartTilePreset>[],
+        _drafts = const <ProjectSmartTileAuthoringDraft>[];
 
   factory ProjectSmartTileCatalog({
     int formatVersion = currentFormatVersion,
@@ -754,6 +832,8 @@ final class ProjectSmartTileCatalog {
     List<ProjectSmartTileAnimation> animations =
         const <ProjectSmartTileAnimation>[],
     List<ProjectSmartTilePreset> presets = const <ProjectSmartTilePreset>[],
+    List<ProjectSmartTileAuthoringDraft> drafts =
+        const <ProjectSmartTileAuthoringDraft>[],
   }) {
     if (formatVersion != currentFormatVersion) {
       throw ArgumentError.value(
@@ -770,6 +850,7 @@ final class ProjectSmartTileCatalog {
       materials: materials,
       animations: animations,
       presets: presets,
+      drafts: drafts,
     );
   }
 
@@ -780,11 +861,13 @@ final class ProjectSmartTileCatalog {
     required List<ProjectSmartTileMaterial> materials,
     required List<ProjectSmartTileAnimation> animations,
     required List<ProjectSmartTilePreset> presets,
+    required List<ProjectSmartTileAuthoringDraft> drafts,
   })  : _categories = List<ProjectSmartTileCategory>.unmodifiable(categories),
         _atlases = List<ProjectSmartTileAtlas>.unmodifiable(atlases),
         _materials = List<ProjectSmartTileMaterial>.unmodifiable(materials),
         _animations = List<ProjectSmartTileAnimation>.unmodifiable(animations),
-        _presets = List<ProjectSmartTilePreset>.unmodifiable(presets);
+        _presets = List<ProjectSmartTilePreset>.unmodifiable(presets),
+        _drafts = List<ProjectSmartTileAuthoringDraft>.unmodifiable(drafts);
 
   factory ProjectSmartTileCatalog.fromJson(Map<String, dynamic> json) {
     final rawVersion = json['formatVersion'];
@@ -802,7 +885,7 @@ final class ProjectSmartTileCatalog {
         'smart_tile_catalog_version_unsupported ($version)',
       );
     }
-    if (version < currentFormatVersion) {
+    if (version == 1) {
       if (_catalogJsonIsStrictlyEmpty(json)) {
         return const ProjectSmartTileCatalog.empty();
       }
@@ -812,7 +895,6 @@ final class ProjectSmartTileCatalog {
       );
     }
     return ProjectSmartTileCatalog(
-      formatVersion: version,
       categories: _decodeList(
         json['categories'],
         ProjectSmartTileCategory.fromJson,
@@ -823,6 +905,12 @@ final class ProjectSmartTileCatalog {
       animations:
           _decodeList(json['animations'], ProjectSmartTileAnimation.fromJson),
       presets: _decodeList(json['presets'], ProjectSmartTilePreset.fromJson),
+      drafts: version >= 3
+          ? _decodeList(
+              json['drafts'],
+              ProjectSmartTileAuthoringDraft.fromJson,
+            )
+          : const <ProjectSmartTileAuthoringDraft>[],
     );
   }
 
@@ -832,19 +920,22 @@ final class ProjectSmartTileCatalog {
   final List<ProjectSmartTileMaterial> _materials;
   final List<ProjectSmartTileAnimation> _animations;
   final List<ProjectSmartTilePreset> _presets;
+  final List<ProjectSmartTileAuthoringDraft> _drafts;
 
   List<ProjectSmartTileCategory> get categories => _categories;
   List<ProjectSmartTileAtlas> get atlases => _atlases;
   List<ProjectSmartTileMaterial> get materials => _materials;
   List<ProjectSmartTileAnimation> get animations => _animations;
   List<ProjectSmartTilePreset> get presets => _presets;
+  List<ProjectSmartTileAuthoringDraft> get drafts => _drafts;
 
   bool get isEmpty =>
       categories.isEmpty &&
       atlases.isEmpty &&
       materials.isEmpty &&
       animations.isEmpty &&
-      presets.isEmpty;
+      presets.isEmpty &&
+      drafts.isEmpty;
 
   bool get isNotEmpty => !isEmpty;
 
@@ -855,6 +946,7 @@ final class ProjectSmartTileCatalog {
         'materials': materials.map((item) => item.toJson()).toList(),
         'animations': animations.map((item) => item.toJson()).toList(),
         'presets': presets.map((item) => item.toJson()).toList(),
+        'drafts': drafts.map((item) => item.toJson()).toList(),
       };
 
   @override
@@ -866,7 +958,8 @@ final class ProjectSmartTileCatalog {
           _listsEqual(other.atlases, atlases) &&
           _listsEqual(other.materials, materials) &&
           _listsEqual(other.animations, animations) &&
-          _listsEqual(other.presets, presets);
+          _listsEqual(other.presets, presets) &&
+          _listsEqual(other.drafts, drafts);
 
   @override
   int get hashCode => Object.hash(
@@ -876,6 +969,7 @@ final class ProjectSmartTileCatalog {
         Object.hashAll(materials),
         Object.hashAll(animations),
         Object.hashAll(presets),
+        Object.hashAll(drafts),
       );
 }
 
@@ -887,6 +981,7 @@ bool _catalogJsonIsStrictlyEmpty(Map<String, dynamic> json) {
     'materials',
     'animations',
     'presets',
+    'drafts',
   };
   // Unknown v1 keys may carry semantics from another catalog dialect. Treat
   // them as data instead of silently erasing them during empty normalization.
