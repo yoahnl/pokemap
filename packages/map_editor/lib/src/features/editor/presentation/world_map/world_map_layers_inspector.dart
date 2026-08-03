@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:map_authoring/map_authoring.dart'
-    show smartTileCanonicalLayerActionRequiredCode;
 import 'package:map_core/map_core.dart';
 
 import '../../../../theme/theme.dart';
@@ -23,6 +21,7 @@ enum WorldMapLayerCreationKind {
   collision,
   smartTerrain,
   smartPath,
+  smartSurface,
   object,
   environment,
   border,
@@ -221,15 +220,6 @@ final class _WorldMapLayersInspectorState
                           PokeMapMenuItem<WorldMapLayerCreationKind>(
                             value: kind,
                             label: _creationKindLabel(kind),
-                            enabled: kind !=
-                                    WorldMapLayerCreationKind.smartTerrain &&
-                                kind != WorldMapLayerCreationKind.smartPath,
-                            disabledReason: kind ==
-                                        WorldMapLayerCreationKind
-                                            .smartTerrain ||
-                                    kind == WorldMapLayerCreationKind.smartPath
-                                ? smartTileCanonicalLayerActionRequiredCode
-                                : null,
                           ),
                       ],
                       onSelected: (kind) {
@@ -238,6 +228,8 @@ final class _WorldMapLayersInspectorState
                             SmartTileUsage.terrain,
                           WorldMapLayerCreationKind.smartPath =>
                             SmartTileUsage.path,
+                          WorldMapLayerCreationKind.smartSurface =>
+                            SmartTileUsage.forestSurface,
                           _ => null,
                         };
                         if (smartTileUsage != null) {
@@ -252,7 +244,9 @@ final class _WorldMapLayersInspectorState
                               usage: smartTileUsage,
                               subtool: smartTileUsage == SmartTileUsage.terrain
                                   ? WorldMapPaintSubtool.terrain
-                                  : WorldMapPaintSubtool.path,
+                                  : smartTileUsage == SmartTileUsage.path
+                                      ? WorldMapPaintSubtool.path
+                                      : WorldMapPaintSubtool.surface,
                             ),
                           );
                           return;
@@ -405,7 +399,7 @@ WorldMapPaintSubtool? _paintSubtoolForLayer(MapLayer layer) {
     SmartTileLayer(:final usage) => switch (usage) {
         SmartTileUsage.terrain => WorldMapPaintSubtool.terrain,
         SmartTileUsage.path => WorldMapPaintSubtool.path,
-        SmartTileUsage.forestSurface => null,
+        SmartTileUsage.forestSurface => WorldMapPaintSubtool.surface,
       },
     SurfaceLayer() => WorldMapPaintSubtool.surface,
     BorderLayer() => WorldMapPaintSubtool.border,
@@ -772,6 +766,7 @@ void _addLayer(
       );
     case WorldMapLayerCreationKind.smartTerrain:
     case WorldMapLayerCreationKind.smartPath:
+    case WorldMapLayerCreationKind.smartSurface:
       throw StateError(
         'Terrain and path layers require a published preset.',
       );
@@ -818,18 +813,22 @@ Future<void> _addSmartTileLayerFromPreset({
       false;
   if (!stillPublished) return;
 
-  notifier.addSmartTileLayer(
-    presetId: preset.id,
-    usage: preset.usage,
-    defaultMaterialId: preset.defaultMaterialId,
+  final created = await notifier.createCanonicalSmartTileLayer(
+    preset: preset,
     name: preset.name,
   );
+  if (!created || !context.mounted) return;
   final updatedState = ref.read(editorNotifierProvider);
   final activeMap = updatedState.activeMap;
   final activeLayerId = updatedState.activeLayerId;
   final activeLayer =
       activeMap?.layers.where((layer) => layer.id == activeLayerId).firstOrNull;
   if (activeLayer is SmartTileLayer && activeLayer.presetId == preset.id) {
+    if (preset.topology == SmartTileTopology.wangEdge4 ||
+        preset.topology == SmartTileTopology.wangCorner4 ||
+        preset.topology == SmartTileTopology.wang8) {
+      return;
+    }
     session.routePaintSubtool(
       notifier,
       subtool,
@@ -903,6 +902,9 @@ MapLayerKind _mapLayerKind(WorldMapLayerCreationKind kind) {
     WorldMapLayerCreationKind.smartPath => throw StateError(
         'Smart Tile path layers require addSmartTileLayer.',
       ),
+    WorldMapLayerCreationKind.smartSurface => throw StateError(
+        'Smart Tile organic surface layers require addSmartTileLayer.',
+      ),
     WorldMapLayerCreationKind.object => MapLayerKind.object,
     WorldMapLayerCreationKind.environment => MapLayerKind.environment,
     WorldMapLayerCreationKind.border => MapLayerKind.border,
@@ -918,6 +920,7 @@ String _creationKindLabel(WorldMapLayerCreationKind kind) {
     WorldMapLayerCreationKind.collision => 'Couche de collision',
     WorldMapLayerCreationKind.smartTerrain => 'Terrain',
     WorldMapLayerCreationKind.smartPath => 'Chemin',
+    WorldMapLayerCreationKind.smartSurface => 'Surface organique',
     WorldMapLayerCreationKind.object => 'Couche d’objets',
     WorldMapLayerCreationKind.environment => 'Couche d’environnement',
     WorldMapLayerCreationKind.border => 'Couche de bordures',
@@ -931,6 +934,7 @@ String _creationKindDefaultName(WorldMapLayerCreationKind kind) {
     WorldMapLayerCreationKind.collision => 'Collision',
     WorldMapLayerCreationKind.smartTerrain => 'Terrain intelligent',
     WorldMapLayerCreationKind.smartPath => 'Chemin intelligent',
+    WorldMapLayerCreationKind.smartSurface => 'Surface organique intelligente',
     WorldMapLayerCreationKind.object => 'Objets',
     WorldMapLayerCreationKind.environment => 'Environnement',
     WorldMapLayerCreationKind.border => 'Bordures',

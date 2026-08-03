@@ -6,8 +6,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_authoring/map_authoring.dart'
     show
+        computeAuthoringJsonFingerprint,
         smartTileCanonicalLayerActionRequiredCode,
-        smartTileWangPaintCompilerRequiredCode;
+        smartTileWangPaintRequiresStn05Code;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -18,6 +19,7 @@ import '../../../app/providers/core_providers.dart';
 import '../../../app/providers/editor_workspace_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
+import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../../../application/services/map_dependency_preflight_service.dart';
 import '../../../application/services/map_viewport_navigation.dart';
 import '../../../application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
@@ -100,6 +102,35 @@ const String _eventBuilderConditionLockedMessage =
     'Elle ne peut pas être éditée partiellement.';
 const MethodChannel _macOsFileAccessChannel =
     MethodChannel('map_editor/file_access');
+
+String _nextCanonicalSmartTileLayerId(MapData map, String presetId) {
+  final normalized = presetId
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9_-]+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^[_-]+|[_-]+$'), '');
+  final stem = '${normalized.isEmpty ? 'smart_tile' : normalized}_layer';
+  final existing = map.layers.map((layer) => layer.id).toSet();
+  if (!existing.contains(stem)) return stem;
+  var suffix = 2;
+  while (existing.contains('${stem}_$suffix')) {
+    suffix++;
+  }
+  return '${stem}_$suffix';
+}
+
+String _smartTileEditorMutationIdentity({
+  required String purpose,
+  required Map<String, Object?> values,
+}) {
+  final digest = computeAuthoringJsonFingerprint(
+    values,
+    logicalName: '$purpose-identity.json',
+  );
+  return '$purpose-${digest.substring('sha256:'.length, 39)}';
+}
+
 typedef _NarrativeEventSourceCleanupInterlock = ({
   String projectRootPath,
   String mapPath,
@@ -144,6 +175,20 @@ typedef _MapDocumentRevisionAttestation = ({
   String revision,
   MapData sourceDocument,
 });
+
+final class _PendingSmartTileGesture {
+  _PendingSmartTileGesture({
+    required this.mapId,
+    required this.layerId,
+    required this.materialId,
+  });
+
+  final String mapId;
+  final String layerId;
+  final String? materialId;
+  final Set<GridPos> cells = <GridPos>{};
+}
+
 BorderPreviewContext? _borderPreviewContext(EditorState state) {
   final projectRootPath = state.projectRootPath;
   final project = state.project;
@@ -239,6 +284,9 @@ class EditorNotifier extends _$EditorNotifier
   MapCanvasObjectTarget? _lastCanvasObjectSelectionTarget;
   bool _suppressBorderSelectionReconciliation = false;
   bool _registeredNarrativeDocumentDisposal = false;
+  _PendingSmartTileGesture? _pendingSmartTileGesture;
+  bool _smartTileGestureCommitInProgress = false;
+  int _smartTileGestureSequence = 0;
   // An attestation binds the revision to the exact object returned by a load.
   // Path-only lookups are used only after that object has become the active
   // document; snapshot activation additionally checks object identity.
@@ -873,6 +921,75 @@ class EditorNotifier extends _$EditorNotifier
       errorMessage: null,
       statusMessage: statusMessage ?? state.statusMessage,
     );
+  }
+
+  /// Adopts the authoritative manifest + active map returned by one atomic
+  /// Authoring transaction, then focuses the newly-created layer.
+  ///
+  /// This is intentionally an adoption path, not a local edit: disk already
+  /// contains these exact bytes and neither project nor map is marked dirty.
+  bool acceptCanonicalSmartTilePublication({
+    required ProjectManifest manifest,
+    required MapData map,
+    required String mapRevision,
+    required String layerId,
+    String? statusMessage,
+    bool preservePaintTool = false,
+  }) {
+    final activeMap = state.activeMap;
+    final activeMapPath = state.activeMapPath;
+    if (activeMap == null ||
+        activeMap.id != map.id ||
+        activeMapPath == null ||
+        !map.layers.any((layer) => layer.id == layerId)) {
+      state = state.copyWith(
+        errorMessage: 'Le snapshot Smart Tile publié ne correspond plus à '
+            'la map active.',
+      );
+      return false;
+    }
+    final activeTool = state.activeTool;
+    final activeBrush = state.activeBrush;
+    final terrainSelectionMode = state.terrainSelectionMode;
+    final eraserFootprint = state.eraserFootprint;
+    final presetSelection = _terrainPresetSelectionCoordinator.normalize(
+      project: manifest,
+      current: _currentTerrainPresetSelection(),
+    );
+    state = _projectSessionController.openMapDocument(
+      current: state.copyWith(
+        project: manifest,
+        isProjectDirty: false,
+      ),
+      document: MapDocumentLoadResult(
+        map: map,
+        activeMapPath: activeMapPath,
+        presetSelection: presetSelection,
+        selectedTilesetEditorId:
+            _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(map),
+      ),
+      statusMessage:
+          statusMessage ?? 'Smart Tile publié dans la couche « $layerId ».',
+    );
+    state = state.copyWith(
+      activeLayerId: layerId,
+      activeTool: preservePaintTool ? activeTool : state.activeTool,
+      activeBrush: preservePaintTool ? activeBrush : state.activeBrush,
+      terrainSelectionMode:
+          preservePaintTool ? terrainSelectionMode : state.terrainSelectionMode,
+      eraserFootprint:
+          preservePaintTool ? eraserFootprint : state.eraserFootprint,
+      isDirty: false,
+      isProjectDirty: false,
+      errorMessage: null,
+    );
+    _rememberMapDocumentRevision(
+      activeMapPath,
+      revision: mapRevision,
+      sourceDocument: map,
+    );
+    _coerceActiveToolIfIncompatibleWithLayer();
+    return true;
   }
 
   PersonalizationStudioSessionState? get personalizationStudioSessionState =>
@@ -5756,8 +5873,18 @@ class EditorNotifier extends _$EditorNotifier
       _setPaintError('Active layer is not a Smart Tile layer');
       return;
     }
+    if (state.projectRootPath != null &&
+        (_smartTileGestureCommitInProgress ||
+            state.isDirty && state.mapStrokeStart == null)) {
+      _setPaintError(
+        _smartTileGestureCommitInProgress
+            ? 'smart_tile.cell.commit_in_progress'
+            : 'smart_tile.cell.clean_map_required',
+      );
+      return;
+    }
     if (activeLayer.field is! SmartTileCellField) {
-      _setPaintError(smartTileWangPaintCompilerRequiredCode);
+      _setPaintError(smartTileWangPaintRequiresStn05Code);
       return;
     }
     try {
@@ -5785,6 +5912,13 @@ class EditorNotifier extends _$EditorNotifier
             ? 'Smart Tile cell erased'
             : 'Smart Tile material painted',
         partOfStroke: true,
+      );
+      _recordSmartTileGesture(
+        mapId: map.id,
+        layerId: layerId,
+        materialId: materialId,
+        cells: <GridPos>[pos],
+        commitImmediately: state.mapStrokeStart == null,
       );
     } catch (e) {
       _setPaintError('Failed to paint Smart Tile material: $e');
@@ -5953,12 +6087,23 @@ class EditorNotifier extends _$EditorNotifier
         partOfStroke: partOfStroke,
       );
     } else if (layer is SmartTileLayer) {
+      if (state.projectRootPath != null &&
+          (_smartTileGestureCommitInProgress ||
+              state.isDirty && state.mapStrokeStart == null)) {
+        _setPaintError(
+          _smartTileGestureCommitInProgress
+              ? 'smart_tile.cell.commit_in_progress'
+              : 'smart_tile.cell.clean_map_required',
+        );
+        return false;
+      }
       if (layer.field is! SmartTileCellField) {
-        _setPaintError(smartTileWangPaintCompilerRequiredCode);
+        _setPaintError(smartTileWangPaintRequiresStn05Code);
         return false;
       }
       try {
         var erasedLayer = layer;
+        final erasedCells = <GridPos>[];
         for (var y = 0; y < patternSize.height; y++) {
           for (var x = 0; x < patternSize.width; x++) {
             final targetX = pos.x + x;
@@ -5969,6 +6114,13 @@ class EditorNotifier extends _$EditorNotifier
                 targetY >= map.size.height) {
               continue;
             }
+            final before = smartTileMaterialIdAt(
+              erasedLayer,
+              mapSize: map.size,
+              x: targetX,
+              y: targetY,
+            );
+            if (before == null) continue;
             erasedLayer = setSmartTileCellMaterial(
               erasedLayer,
               mapSize: map.size,
@@ -5976,6 +6128,7 @@ class EditorNotifier extends _$EditorNotifier
               y: targetY,
               materialId: null,
             );
+            erasedCells.add(GridPos(x: targetX, y: targetY));
           }
         }
         if (erasedLayer == layer) {
@@ -5993,6 +6146,13 @@ class EditorNotifier extends _$EditorNotifier
           preferredActiveLayerId: layerId,
           statusMessage: 'Smart Tile cells erased',
           partOfStroke: partOfStroke,
+        );
+        _recordSmartTileGesture(
+          mapId: map.id,
+          layerId: layerId,
+          materialId: null,
+          cells: erasedCells,
+          commitImmediately: !partOfStroke,
         );
       } catch (e) {
         _setPaintError('Failed to erase Smart Tile material: $e');
@@ -8298,7 +8458,7 @@ class EditorNotifier extends _$EditorNotifier
           validity: editable
               ? MapToolPreviewValidity.valid
               : MapToolPreviewValidity.invalid,
-          reason: editable ? null : smartTileWangPaintCompilerRequiredCode,
+          reason: editable ? null : smartTileWangPaintRequiresStn05Code,
         );
       }
       return null;
@@ -8360,7 +8520,7 @@ class EditorNotifier extends _$EditorNotifier
         validity: editable
             ? MapToolPreviewValidity.valid
             : MapToolPreviewValidity.invalid,
-        reason: editable ? null : smartTileWangPaintCompilerRequiredCode,
+        reason: editable ? null : smartTileWangPaintRequiresStn05Code,
       );
     }
     return null;
@@ -8378,15 +8538,148 @@ class EditorNotifier extends _$EditorNotifier
         _rejectMapDiskMutationLease()) {
       return;
     }
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    final activeLayer =
+        map == null || layerId == null ? null : _findLayerById(map, layerId);
+    if (activeLayer is SmartTileLayer &&
+        (state.isDirty || _smartTileGestureCommitInProgress)) {
+      state = state.copyWith(
+        errorMessage: _smartTileGestureCommitInProgress
+            ? 'La peinture Smart Tile précédente est encore en cours '
+                'd’enregistrement.'
+            : 'Enregistrez les modifications de la map avant de peindre un '
+                'Smart Tile.',
+      );
+      return;
+    }
+    _pendingSmartTileGesture = null;
     state = _mapEditingController.beginStroke(state);
   }
 
   void endMapStroke() {
+    final gesture = _pendingSmartTileGesture;
+    _pendingSmartTileGesture = null;
     state = _mapEditingController.endStroke(state);
+    if (gesture != null) unawaited(_commitCanonicalSmartTileGesture(gesture));
   }
 
   void cancelMapStroke() {
+    _pendingSmartTileGesture = null;
     state = _mapEditingController.cancelStroke(state);
+  }
+
+  void _recordSmartTileGesture({
+    required String mapId,
+    required String layerId,
+    required String? materialId,
+    required Iterable<GridPos> cells,
+    required bool commitImmediately,
+  }) {
+    final additions = cells.toList(growable: false);
+    if (additions.isEmpty) return;
+    var gesture = _pendingSmartTileGesture;
+    if (gesture == null) {
+      gesture = _PendingSmartTileGesture(
+        mapId: mapId,
+        layerId: layerId,
+        materialId: materialId,
+      );
+      _pendingSmartTileGesture = gesture;
+    } else if (gesture.mapId != mapId ||
+        gesture.layerId != layerId ||
+        gesture.materialId != materialId) {
+      state = state.copyWith(
+        errorMessage: 'Un geste Smart Tile ne peut viser qu’une seule couche '
+            'et un seul matériau.',
+      );
+      return;
+    }
+    gesture.cells.addAll(additions);
+    if (commitImmediately) {
+      _pendingSmartTileGesture = null;
+      unawaited(_commitCanonicalSmartTileGesture(gesture));
+    }
+  }
+
+  Future<void> _commitCanonicalSmartTileGesture(
+    _PendingSmartTileGesture gesture,
+  ) async {
+    final projectRootPath = state.projectRootPath;
+    if (projectRootPath == null || gesture.cells.isEmpty) return;
+    _smartTileGestureCommitInProgress = true;
+    final cells = gesture.cells.toList(growable: false)
+      ..sort((left, right) {
+        final byY = left.y.compareTo(right.y);
+        return byY != 0 ? byY : left.x.compareTo(right.x);
+      });
+    final actionId = gesture.materialId == null
+        ? 'smart_tile.cell.erase'
+        : 'smart_tile.cell.paint';
+    final sequence = ++_smartTileGestureSequence;
+    final identity = _smartTileEditorMutationIdentity(
+      purpose: 'smart-tile-cell-gesture',
+      values: <String, Object?>{
+        'mapId': gesture.mapId,
+        'layerId': gesture.layerId,
+        'sequence': sequence,
+      },
+    );
+    try {
+      final mutations = ref.read(authoringMutationAdapterProvider);
+      final plan = await mutations.plan(
+        projectRootPath,
+        actionId: actionId,
+        parameters: <String, Object?>{
+          'mapId': gesture.mapId,
+          'layerId': gesture.layerId,
+          if (gesture.materialId case final materialId?)
+            'materialId': materialId,
+          'cells': <Map<String, int>>[
+            for (final cell in cells) <String, int>{'x': cell.x, 'y': cell.y},
+          ],
+        },
+        idempotencyKey: identity,
+        requestId: identity,
+      );
+      final applied = await mutations.apply(
+        plan,
+        operationId: '$identity-apply',
+      );
+      final canonical =
+          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      if (canonical.snapshotRevision != applied.snapshotRevision) {
+        throw const EditorAuthoringMutationFailure(
+          code: 'smart_tile.cell.snapshot_stale',
+          message: 'Le snapshot canonique du geste Smart Tile est obsolète.',
+        );
+      }
+      final map = canonical.mapById(gesture.mapId);
+      final mapRevision = canonical.resourceRevision('map:${gesture.mapId}');
+      if (map == null || mapRevision == null) {
+        throw const EditorAuthoringMutationFailure(
+          code: 'smart_tile.cell.snapshot_missing',
+          message: 'La map modifiée est absente du snapshot canonique.',
+        );
+      }
+      if (state.activeMap?.id != gesture.mapId) return;
+      _smartTileGestureCommitInProgress = false;
+      acceptCanonicalSmartTilePublication(
+        manifest: canonical.manifest,
+        map: map,
+        mapRevision: mapRevision,
+        layerId: gesture.layerId,
+        statusMessage: gesture.materialId == null
+            ? '${cells.length} cellule(s) Smart Tile effacée(s).'
+            : '${cells.length} cellule(s) Smart Tile peinte(s).',
+        preservePaintTool: true,
+      );
+    } on Object catch (error) {
+      final failure = EditorAuthoringMutationFailure.capture(error);
+      state = state.copyWith(errorMessage: failure.code);
+    } finally {
+      _smartTileGestureCommitInProgress = false;
+    }
   }
 
   void undoMap() {
@@ -8671,7 +8964,7 @@ class EditorNotifier extends _$EditorNotifier
     if (activeLayer is SmartTileLayer) {
       if (activeLayer.field is! SmartTileCellField) {
         if (emitErrors) {
-          _setPaintError(smartTileWangPaintCompilerRequiredCode);
+          _setPaintError(smartTileWangPaintRequiresStn05Code);
         }
         return null;
       }
@@ -9307,6 +9600,83 @@ class EditorNotifier extends _$EditorNotifier
     state = state.copyWith(
       errorMessage: smartTileCanonicalLayerActionRequiredCode,
     );
+  }
+
+  /// Creates one published Smart Tile layer through the canonical atomic
+  /// Authoring action, then adopts the resulting manifest and active map.
+  Future<bool> createCanonicalSmartTileLayer({
+    required ProjectSmartTilePreset preset,
+    String? name,
+  }) async {
+    final map = state.activeMap;
+    final projectRootPath = state.projectRootPath;
+    if (map == null || projectRootPath == null) return false;
+    if (state.isDirty || state.isProjectDirty) {
+      state = state.copyWith(
+        errorMessage: 'Enregistrez les modifications en cours avant d’ajouter '
+            'un calque Smart Tile.',
+      );
+      return false;
+    }
+    final layerId = _nextCanonicalSmartTileLayerId(map, preset.id);
+    final layerName = (name ?? preset.name).trim();
+    if (layerName.isEmpty) return false;
+    try {
+      final queries = ref.read(authoringQueryAdapterProvider);
+      final mutations = ref.read(authoringMutationAdapterProvider);
+      final before = await queries.open(projectRootPath);
+      final identity = _smartTileEditorMutationIdentity(
+        purpose: 'smart-tile-layer-create',
+        values: <String, Object?>{
+          'mapId': map.id,
+          'layerId': layerId,
+          'revision': before.snapshotRevision,
+        },
+      );
+      final plan = await mutations.plan(
+        projectRootPath,
+        actionId: 'smart_tile.layer.create',
+        parameters: <String, Object?>{
+          'mapId': map.id,
+          'presetId': preset.id,
+          'layerId': layerId,
+          'name': layerName,
+        },
+        expectedRevision: before.snapshotRevision,
+        idempotencyKey: identity,
+        requestId: identity,
+      );
+      final applied = await mutations.apply(
+        plan,
+        operationId: '$identity-apply',
+      );
+      final after = await queries.open(projectRootPath);
+      if (after.snapshotRevision != applied.snapshotRevision) {
+        throw const EditorAuthoringMutationFailure(
+          code: 'smart_tile.layer.snapshot_stale',
+          message: 'Le snapshot canonique du nouveau calque est obsolète.',
+        );
+      }
+      final canonicalMap = after.mapById(map.id);
+      final mapRevision = after.resourceRevision('map:${map.id}');
+      if (canonicalMap == null || mapRevision == null) {
+        throw const EditorAuthoringMutationFailure(
+          code: 'smart_tile.layer.snapshot_missing',
+          message: 'Le nouveau calque est absent du snapshot canonique.',
+        );
+      }
+      return acceptCanonicalSmartTilePublication(
+        manifest: after.manifest,
+        map: canonicalMap,
+        mapRevision: mapRevision,
+        layerId: layerId,
+        statusMessage: 'Calque Smart Tile « $layerName » ajouté.',
+      );
+    } on Object catch (error) {
+      final failure = EditorAuthoringMutationFailure.capture(error);
+      state = state.copyWith(errorMessage: failure.code);
+      return false;
+    }
   }
 
   /// Lot Environment-20 : [EnvironmentLayerContent.targetTileLayerId] uniquement.

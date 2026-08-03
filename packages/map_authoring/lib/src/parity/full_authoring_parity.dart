@@ -355,6 +355,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/smart_tile_catalog_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['smart_tile.cell.'],
+    'test/domains/maps/smart_tile_cell_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['smart_tile.layer.create', 'smart_tile.layer.delete'],
     'test/domains/maps/smart_tile_layer_editing_actions_test.dart',
   ),

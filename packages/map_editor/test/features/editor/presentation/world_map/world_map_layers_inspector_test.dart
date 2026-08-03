@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/terrain_selection_mode.dart';
 import 'package:map_editor/src/features/editor/application/map_layer_deletion_impact.dart';
@@ -896,7 +895,8 @@ void main() {
     for (final kind in WorldMapLayerCreationKind.values.where(
       (kind) =>
           kind != WorldMapLayerCreationKind.smartTerrain &&
-          kind != WorldMapLayerCreationKind.smartPath,
+          kind != WorldMapLayerCreationKind.smartPath &&
+          kind != WorldMapLayerCreationKind.smartSurface,
     )) {
       add.onSelected(kind);
       await tester.pump();
@@ -932,7 +932,7 @@ void main() {
     );
   });
 
-  testWidgets('requires the canonical action for Smart Tile terrain creation',
+  testWidgets('offers the canonical preset chooser for Smart Tile terrain',
       (tester) async {
     final harness = _Harness(
       _threeLayerMap(),
@@ -949,16 +949,26 @@ void main() {
       (item) => item.label == 'Terrain',
     );
 
-    expect(smartTerrain.enabled, isFalse);
+    expect(smartTerrain.enabled, isTrue);
+    expect(smartTerrain.disabledReason, isNull);
+
+    add.onSelected(smartTerrain.value);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ajouter un terrain'), findsOneWidget);
     expect(
-      smartTerrain.disabledReason,
-      smartTileCanonicalLayerActionRequiredCode,
+      find.byKey(
+        const ValueKey<String>('world-map-smart-terrain-preset-prairie'),
+      ),
+      findsOneWidget,
     );
     expect(harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
         isEmpty);
+    await tester.tap(find.text('Fermer'));
+    await tester.pumpAndSettle();
   });
 
-  testWidgets('requires the canonical action for Smart Tile path creation',
+  testWidgets('offers the canonical preset chooser for Smart Tile path',
       (tester) async {
     final harness = _Harness(
       _threeLayerMap(),
@@ -975,13 +985,23 @@ void main() {
       (item) => item.label == 'Chemin',
     );
 
-    expect(smartPath.enabled, isFalse);
+    expect(smartPath.enabled, isTrue);
+    expect(smartPath.disabledReason, isNull);
+
+    add.onSelected(smartPath.value);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ajouter un chemin'), findsOneWidget);
     expect(
-      smartPath.disabledReason,
-      smartTileCanonicalLayerActionRequiredCode,
+      find.byKey(
+        const ValueKey<String>('world-map-smart-path-preset-path'),
+      ),
+      findsOneWidget,
     );
     expect(harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
         isEmpty);
+    await tester.tap(find.text('Fermer'));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('rename cancellation leaves map and history untouched',

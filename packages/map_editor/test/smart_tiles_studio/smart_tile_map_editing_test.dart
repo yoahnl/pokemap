@@ -155,7 +155,7 @@ void main() {
       tilesetColumnsById: const <String, int>{},
     );
     expect(paintPreview?.validity, MapToolPreviewValidity.invalid);
-    expect(paintPreview?.reason, smartTileWangPaintCompilerRequiredCode);
+    expect(paintPreview?.reason, smartTileWangPaintRequiresStn05Code);
     expect(notifier.resolveCurrentPaintFootprintForEraser(), isNull);
 
     notifier.paintSmartTileMaterialAt(
@@ -163,7 +163,7 @@ void main() {
       materialId: 'grass',
     );
     expect(notifier.state.activeMap, map);
-    expect(notifier.state.errorMessage, smartTileWangPaintCompilerRequiredCode);
+    expect(notifier.state.errorMessage, smartTileWangPaintRequiresStn05Code);
 
     notifier.state = notifier.state.copyWith(activeTool: EditorToolType.eraser);
     final erasePreview = notifier.resolveMapToolPreview(
@@ -171,7 +171,7 @@ void main() {
       tilesetColumnsById: const <String, int>{},
     );
     expect(erasePreview?.validity, MapToolPreviewValidity.invalid);
-    expect(erasePreview?.reason, smartTileWangPaintCompilerRequiredCode);
+    expect(erasePreview?.reason, smartTileWangPaintRequiresStn05Code);
 
     expect(
       notifier.eraseCellAt(
@@ -183,7 +183,7 @@ void main() {
     expect(notifier.state.activeMap, map);
     expect(notifier.state.mapUndoStack, isEmpty);
     expect(notifier.state.isDirty, isFalse);
-    expect(notifier.state.errorMessage, smartTileWangPaintCompilerRequiredCode);
+    expect(notifier.state.errorMessage, smartTileWangPaintRequiresStn05Code);
   });
 }
 

@@ -669,20 +669,14 @@ test("MCP relays the canonical STN-05 Smart Tile paint rejection", async () => {
         projectHandle,
         request: {
           requestId: "native-v5-paint-rejected",
-          actionId: "map.apply_operations",
+          actionId: "smart_tile.cell.paint",
           actionVersion: 1,
           workspaceHandle: opened.workspaceHandle,
           parameters: {
             mapId: "native_v5",
-            operations: [
-              {
-                kind: "region.paint",
-                layerId: "smart",
-                x: 0,
-                y: 0,
-                value: "road",
-              },
-            ],
+            layerId: "smart",
+            materialId: "road",
+            cells: [{ x: 0, y: 0 }],
           },
           expectedRevision: before.snapshotRevision,
           idempotencyKey: "idem-native-v5-paint-rejected",
@@ -695,7 +689,7 @@ test("MCP relays the canonical STN-05 Smart Tile paint rejection", async () => {
     const error = record(record(rejected.structuredContent).error);
     assert.equal(
       error.domainCode,
-      "smart_tile_wang_paint_compiler_required",
+      "smart_tile.wang_paint_requires_stn05",
     );
     const after = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
@@ -724,38 +718,56 @@ test("MCP applies Smart Tile cell edits through the canonical transport", async 
     const before = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
-    const planned = await toolData(fixture.client, "pokemap_plan", {
-      projectHandle,
-      request: {
-        requestId: "native-v5-clear",
-        actionId: "map.apply_operations",
-        actionVersion: 1,
-        workspaceHandle: opened.workspaceHandle,
-        parameters: {
-          mapId: "native_v5",
-          operations: [
-            { kind: "layer.clear", layerId: "smart" },
-            {
-              kind: "region.paint",
-              layerId: "smart",
-              x: 1,
-              y: 1,
-              value: "road",
-            },
-          ],
+    let revision = String(before.snapshotRevision);
+    async function applyCellAction(
+      actionId: "smart_tile.cell.erase" | "smart_tile.cell.paint",
+      parameters: JsonRecord,
+      sequence: string,
+    ): Promise<void> {
+      const planned = await toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `native-v5-${sequence}`,
+          actionId,
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle,
+          parameters,
+          expectedRevision: revision,
+          idempotencyKey: `idem-native-v5-${sequence}`,
+          dryRun: false,
         },
-        expectedRevision: before.snapshotRevision,
-        idempotencyKey: "idem-native-v5-clear",
-        dryRun: false,
+      });
+      const applied = await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: `operation-native-v5-${sequence}`,
+      });
+      assert.equal(record(applied.receipt).actionId, actionId);
+      const validated = await toolData(fixture.client, "pokemap_validate", {
+        projectHandle,
+      });
+      revision = String(validated.snapshotRevision);
+    }
+    await applyCellAction(
+      "smart_tile.cell.erase",
+      {
+        mapId: "native_v5",
+        layerId: "smart",
+        cells: [{ x: 0, y: 0 }],
       },
-    });
-    const applied = await toolData(fixture.client, "pokemap_apply", {
-      operation: "apply",
-      projectHandle,
-      planId: planned.planId,
-      operationId: "operation-native-v5-clear",
-    });
-    assert.equal(record(applied.receipt).actionId, "map.apply_operations");
+      "erase",
+    );
+    await applyCellAction(
+      "smart_tile.cell.paint",
+      {
+        mapId: "native_v5",
+        layerId: "smart",
+        materialId: "road",
+        cells: [{ x: 1, y: 1 }, { x: 0, y: 1 }],
+      },
+      "paint",
+    );
     const after = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
     });
@@ -771,7 +783,7 @@ test("MCP applies Smart Tile cell edits through the canonical transport", async 
     assert.ok(smartLayerValue);
     const smartLayer = record(smartLayerValue);
     const field = record(smartLayer.field);
-    assert.deepEqual(field.semanticCells, [0, 0, 0, 1]);
+    assert.deepEqual(field.semanticCells, [0, 0, 1, 1]);
   } finally {
     await fixture.client.close();
     await fixture.server.close();
@@ -851,6 +863,8 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "smart_tile.animation.delete",
       "smart_tile.animation.upsert",
       "smart_tile.atlas.upsert",
+      "smart_tile.cell.erase",
+      "smart_tile.cell.paint",
       "smart_tile.layer.create",
       "smart_tile.layer.delete",
       "smart_tile.layer.merge",

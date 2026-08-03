@@ -4,7 +4,6 @@ import 'package:map_core/map_core.dart';
 
 import '../../../border_map_editing/presentation/border_layer_inspector_panel.dart';
 import '../../../border_map_editing/state/border_map_editing_providers.dart';
-import '../../../surface_painter/surface_palette_panel.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../../../ui/panels/tileset_palette/widgets/browser/map_palette_asset_browser.dart';
 import '../../../../ui/panels/tileset_palette/widgets/palette/map_layer_asset_palette.dart';
@@ -99,7 +98,8 @@ class WorldMapPaintInspector extends ConsumerWidget {
     }
 
     if (subtool == WorldMapPaintSubtool.terrain ||
-        subtool == WorldMapPaintSubtool.path) {
+        subtool == WorldMapPaintSubtool.path ||
+        subtool == WorldMapPaintSubtool.surface) {
       return KeyedSubtree(
         key: ValueKey<String>(
           'world-map-paint-body-${projection.bodyKind.name}',
@@ -201,13 +201,8 @@ class WorldMapPaintInspector extends ConsumerWidget {
       WorldMapSubtoolBodyKind.terrainPainter ||
       WorldMapSubtoolBodyKind.pathPainter =>
         throw StateError('Smart Tile paint bodies are routed above.'),
-      WorldMapSubtoolBodyKind.surfacePainter => SurfacePainterPanel(
-          embedded: true,
-          onSurfacePresetSelected: notifier.selectSurfacePresetForSetup,
-          onPaintRequested: () => activate(
-            const ActivateWorldMapPaint(WorldMapPaintSubtool.surface),
-          ),
-          onEraseRequested: () => activate(const ActivateWorldMapErase()),
+      WorldMapSubtoolBodyKind.surfacePainter => throw StateError(
+          'Organic Surface Smart Tile bodies are routed above.',
         ),
       WorldMapSubtoolBodyKind.borderInspector => BorderLayerInspectorPanel(
           onPaintRequested: () => activate(

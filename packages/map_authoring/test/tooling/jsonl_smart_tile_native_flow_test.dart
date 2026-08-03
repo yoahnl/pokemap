@@ -121,6 +121,36 @@ void main() {
       expect(map.layers.single, isA<SmartTileLayer>());
     });
 
+    test('paints and erases one gesture byte-identically through JSONL',
+        () async {
+      final direct = await _Harness.create('cells_direct');
+      final jsonl = await _Harness.create('cells_jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+
+      await direct.applyDirectFlow();
+      await jsonl.applyJsonlFlow();
+      final directResult = await direct.applyDirectCellFlow();
+      final jsonlResult = await jsonl.applyJsonlCellFlow();
+
+      expect(
+        _stableReceipt(directResult.eraseReceipt),
+        _stableReceipt(jsonlResult.eraseReceipt),
+      );
+      expect(
+        _stableReceipt(directResult.paintReceipt),
+        _stableReceipt(jsonlResult.paintReceipt),
+      );
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      expect(await direct.mapBytes(), await jsonl.mapBytes());
+      final map = MapData.fromJson(
+        jsonDecode(utf8.decode(await direct.mapBytes()))
+            as Map<String, dynamic>,
+      );
+      final layer = map.layers.single as SmartTileLayer;
+      expect(smartTileSemanticCells(layer), <int>[1]);
+    });
+
     test('rejects stale planning and replays one operation exactly once',
         () async {
       final harness = await _Harness.create('cas');
@@ -469,6 +499,61 @@ final class _Harness {
     );
   }
 
+  Future<_CellFlowResult> applyDirectCellFlow() async {
+    final opened = await openDirect();
+
+    Future<Map<String, Object?>> apply(
+      String actionId,
+      Map<String, Object?> parameters,
+      String sequence,
+    ) async {
+      final snapshot = await snapshots.load(opened.project);
+      final plan = await mutations.plan(
+        opened.project,
+        _request(
+          workspaceHandle: opened.workspace.value,
+          revision: snapshot.revision,
+          actionId: actionId,
+          parameters: parameters,
+          sequence: sequence,
+        ),
+      );
+      return mutations.apply(
+        opened.project,
+        planId: plan['planId']! as String,
+        operationId: 'operation-$sequence',
+      );
+    }
+
+    final erase = await apply(
+      'smart_tile.cell.erase',
+      const <String, Object?>{
+        'mapId': 'map',
+        'layerId': 'terrain',
+        'cells': <Map<String, int>>[
+          <String, int>{'x': 0, 'y': 0},
+        ],
+      },
+      'cell-erase',
+    );
+    final paint = await apply(
+      'smart_tile.cell.paint',
+      const <String, Object?>{
+        'mapId': 'map',
+        'layerId': 'terrain',
+        'materialId': 'grass',
+        'cells': <Map<String, int>>[
+          <String, int>{'x': 0, 'y': 0},
+        ],
+      },
+      'cell-paint',
+    );
+    return _CellFlowResult(
+      eraseReceipt: _receipt(erase),
+      paintReceipt: _receipt(paint),
+    );
+  }
+
   Future<AuthoringResult> planJsonlFailure({
     required String actionId,
     required Map<String, Object?> parameters,
@@ -650,6 +735,67 @@ final class _Harness {
     );
   }
 
+  Future<_CellFlowResult> applyJsonlCellFlow() async {
+    final opened = await _jsonl('open', <String, Object?>{
+      'projectRoot': root.path,
+    });
+    final project = opened['projectHandle']! as String;
+    final workspace = opened['workspaceHandle']! as String;
+
+    Future<Map<String, Object?>> apply(
+      String actionId,
+      Map<String, Object?> parameters,
+      String sequence,
+    ) async {
+      final validation = await _jsonl('validate', <String, Object?>{
+        'projectHandle': project,
+      });
+      final plan = await _jsonl('plan', <String, Object?>{
+        'projectHandle': project,
+        'request': _request(
+          workspaceHandle: workspace,
+          revision: validation['snapshotRevision']! as String,
+          actionId: actionId,
+          parameters: parameters,
+          sequence: sequence,
+        ).toJson(),
+      });
+      return _jsonl('apply', <String, Object?>{
+        'projectHandle': project,
+        'planId': plan['planId'],
+        'operationId': 'operation-$sequence',
+      });
+    }
+
+    final erase = await apply(
+      'smart_tile.cell.erase',
+      const <String, Object?>{
+        'mapId': 'map',
+        'layerId': 'terrain',
+        'cells': <Map<String, int>>[
+          <String, int>{'x': 0, 'y': 0},
+        ],
+      },
+      'cell-erase',
+    );
+    final paint = await apply(
+      'smart_tile.cell.paint',
+      const <String, Object?>{
+        'mapId': 'map',
+        'layerId': 'terrain',
+        'materialId': 'grass',
+        'cells': <Map<String, int>>[
+          <String, int>{'x': 0, 'y': 0},
+        ],
+      },
+      'cell-paint',
+    );
+    return _CellFlowResult(
+      eraseReceipt: _receipt(erase),
+      paintReceipt: _receipt(paint),
+    );
+  }
+
   Future<Map<String, Object?>> _jsonl(
     String command,
     Map<String, Object?> args,
@@ -716,6 +862,16 @@ final class _DraftFlowResult {
   final Map<String, Object?> publishReceipt;
   final Map<String, Object?> queryBeforeReopen;
   final Map<String, Object?> queryAfterReopen;
+}
+
+final class _CellFlowResult {
+  const _CellFlowResult({
+    required this.eraseReceipt,
+    required this.paintReceipt,
+  });
+
+  final Map<String, Object?> eraseReceipt;
+  final Map<String, Object?> paintReceipt;
 }
 
 AuthoringRequest _request({

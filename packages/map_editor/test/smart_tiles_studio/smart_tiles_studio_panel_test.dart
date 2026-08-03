@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
-import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_authoring_controller.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_source_asset_import_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_asset_card.dart';
@@ -190,24 +189,28 @@ void main() {
       expect(find.text('Terrain Hanazuki'), findsNothing);
     });
 
-    testWidgets('keeps add-to-active-map disabled until STN-04 wiring',
+    testWidgets('adds a published preset to the captured map canonically',
         (tester) async {
-      await _pumpPanel(tester, _manifest());
+      ProjectSmartTilePreset? addedPreset;
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        isCapturedMapAvailable: true,
+        onAddPresetToCapturedMap: (preset) async {
+          addedPreset = preset;
+          return true;
+        },
+      );
 
       final finder = find.byKey(const Key('smart-tiles-add-to-active-map'));
       final button = tester.widget<PokeMapButton>(finder);
-      expect(button.onPressed, isNull);
-      expect(
-        button.disabledReason,
-        smartTileStudioAuthoringRequiresStn04Code,
-      );
-      expect(
-        find.text(smartTileStudioAuthoringRequiresStn04Code),
-        findsWidgets,
-      );
+      expect(button.onPressed, isNotNull);
+      expect(button.disabledReason, isNull);
 
       await tester.tap(finder);
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(addedPreset?.id, 'hanazuki-path');
     });
 
     testWidgets('starts the guided flow with human labels and no masks', (
@@ -613,7 +616,7 @@ void main() {
       );
     });
 
-    testWidgets('emits a canonical draft while publication remains gated', (
+    testWidgets('emits a canonical draft and exposes the real publication', (
       tester,
     ) async {
       ProjectSmartTileAuthoringDraft? durableDraft;
@@ -644,21 +647,17 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(toPublish);
       await tester.pump();
-      expect(find.text('Publication dans STN-04'), findsOneWidget);
+      expect(find.text('Prêt à planifier'), findsOneWidget);
       expect(
         find.text('16 cellules • 12 raccords • 4 variantes'),
         findsOneWidget,
       );
 
-      final publish = find.byKey(const Key('smart-tiles-publish-guided'));
+      final publish = find.byKey(const Key('smart-tiles-publish-plan'));
       await tester.ensureVisible(publish);
       await tester.pumpAndSettle();
       final publishButton = tester.widget<PokeMapButton>(publish);
-      expect(publishButton.onPressed, isNull);
-      expect(
-        publishButton.disabledReason,
-        smartTileStudioAuthoringRequiresStn04Code,
-      );
+      expect(publishButton.onPressed, isNotNull);
       await tester.tap(publish);
       await tester.pump();
 
@@ -666,8 +665,8 @@ void main() {
       expect(durableDraft!.lastStage, SmartTileAuthoringStage.publish);
       expect(durableDraft!.rules, hasLength(12));
       expect(
-        find.text(smartTileStudioAuthoringRequiresStn04Code),
-        findsWidgets,
+        find.text('smart_tile.publish.session_unavailable'),
+        findsOneWidget,
       );
     });
 
@@ -947,27 +946,16 @@ void main() {
       expect(find.textContaining('arêtes horizontales'), findsOneWidget);
     });
 
-    testWidgets('validation does not persist a preset before STN-04 wiring', (
+    testWidgets('validation reports an existing draft without a fake gate', (
       tester,
     ) async {
       await _pumpPanel(tester, _completeManifest());
 
       await tester.tap(find.byKey(const Key('smart-tiles-tab-validation')));
       await tester.pump();
-      final publish = find.byKey(const Key('smart-tiles-publish'));
-      final publishButton = tester.widget<PokeMapButton>(publish);
-      expect(publishButton.onPressed, isNull);
-      expect(
-        publishButton.disabledReason,
-        smartTileStudioAuthoringRequiresStn04Code,
-      );
-      await tester.tap(publish);
-      await tester.pump();
-
-      expect(
-        find.text(smartTileStudioAuthoringRequiresStn04Code),
-        findsWidgets,
-      );
+      expect(find.byKey(const Key('smart-tiles-publish')), findsNothing);
+      expect(find.text('Brouillon valide'), findsOneWidget);
+      expect(find.textContaining('STN-04'), findsNothing);
     });
   });
 }
@@ -1173,6 +1161,9 @@ Future<void> _pumpPanel(
   String? projectRootPath,
   SmartTileAtlasImageLoader imageLoader = const FileSmartTileAtlasImageLoader(),
   Future<SmartTileSourceImportResult?> Function()? onImportProjectImage,
+  bool isCapturedMapAvailable = false,
+  Future<bool> Function(ProjectSmartTilePreset preset)?
+      onAddPresetToCapturedMap,
   Size surfaceSize = const Size(1440, 900),
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
@@ -1186,6 +1177,8 @@ Future<void> _pumpPanel(
           imageLoader: imageLoader,
           onImportProjectImage: onImportProjectImage,
           onDraftChanged: onDraftChanged,
+          isCapturedMapAvailable: isCapturedMapAvailable,
+          onAddPresetToCapturedMap: onAddPresetToCapturedMap,
         ),
       ),
     ),

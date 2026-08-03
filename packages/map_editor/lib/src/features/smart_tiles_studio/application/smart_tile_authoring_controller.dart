@@ -7,9 +7,6 @@ import 'smart_tile_grid_detector.dart';
 import 'smart_tile_guide.dart';
 import 'smart_tile_guide_placement.dart';
 
-const String smartTileStudioAuthoringRequiresStn04Code =
-    'smart_tile_studio_authoring_requires_stn04';
-
 enum SmartTileMaterialRemovalBlocker {
   defaultMaterial,
   activeMaterial,
@@ -920,12 +917,6 @@ final class SmartTileAuthoringController {
       materials: _state.materials,
       animations: _state.animations,
       presets: <ProjectSmartTilePreset>[compilePreset()],
-    );
-  }
-
-  ProjectManifest applyToManifest(ProjectManifest manifest) {
-    throw StateError(
-      smartTileStudioAuthoringRequiresStn04Code,
     );
   }
 

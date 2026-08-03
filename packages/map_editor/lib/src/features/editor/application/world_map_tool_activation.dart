@@ -184,7 +184,9 @@ bool isWorldMapPaintLayerCompatible(
       layer is SmartTileLayer && layer.usage == SmartTileUsage.terrain,
     WorldMapPaintSubtool.path =>
       layer is SmartTileLayer && layer.usage == SmartTileUsage.path,
-    WorldMapPaintSubtool.surface => layer is SurfaceLayer,
+    WorldMapPaintSubtool.surface =>
+      layer is SmartTileLayer && layer.usage == SmartTileUsage.forestSurface ||
+          layer is SurfaceLayer,
     WorldMapPaintSubtool.border => layer is BorderLayer,
     WorldMapPaintSubtool.collision => layer is CollisionLayer,
   };
@@ -366,6 +368,15 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
         rejectionReason: null,
       );
     case WorldMapPaintSubtool.surface:
+      if (layer is SmartTileLayer) {
+        return (
+          resultingTool: EditorToolType.terrainPaint,
+          terrainSelectionMode: null,
+          resultingBrush: const EditorBrush.none(),
+          tilesElementsPanelMode: null,
+          rejectionReason: null,
+        );
+      }
       if (!_surfacePresetExists(
         source.project,
         source.selectedSurfacePresetId,

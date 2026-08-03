@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_authoring/map_authoring.dart'
     show
         smartTileCanonicalLayerActionRequiredCode,
-        smartTileWangPaintCompilerRequiredCode;
+        smartTileWangPaintRequiresStn05Code;
 import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
@@ -17,15 +17,17 @@ import 'world_map_workspace_session.dart';
 /// Direct, no-code access to the published Smart Tile presets used by Paint.
 ///
 /// Choosing a preset selects an existing cell-field layer, then arms the
-/// matching paint tool. UI-driven layer creation is wired in STN-04.
+/// matching paint tool. New layers are created canonically from Layers or the
+/// Smart Tiles Studio publication handoff.
 class WorldMapSmartTilePaintPalette extends ConsumerWidget {
   const WorldMapSmartTilePaintPalette({
     super.key,
     required this.subtool,
   }) : assert(
           subtool == WorldMapPaintSubtool.terrain ||
-              subtool == WorldMapPaintSubtool.path,
-          'Smart Tile palette supports only Terrain and Path.',
+              subtool == WorldMapPaintSubtool.path ||
+              subtool == WorldMapPaintSubtool.surface,
+          'Smart Tile palette supports Terrain, Path, and Organic Surface.',
         );
 
   final WorldMapPaintSubtool subtool;
@@ -33,6 +35,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
   SmartTileUsage get _usage => switch (subtool) {
         WorldMapPaintSubtool.terrain => SmartTileUsage.terrain,
         WorldMapPaintSubtool.path => SmartTileUsage.path,
+        WorldMapPaintSubtool.surface => SmartTileUsage.forestSurface,
         _ => throw StateError('Unsupported Smart Tile paint subtool.'),
       };
 
@@ -57,7 +60,12 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
     final intent = ref.read(worldMapPaintInspectionIntentProvider.notifier);
-    final noun = subtool == WorldMapPaintSubtool.terrain ? 'terrain' : 'chemin';
+    final noun = switch (subtool) {
+      WorldMapPaintSubtool.terrain => 'terrain',
+      WorldMapPaintSubtool.path => 'chemin',
+      WorldMapPaintSubtool.surface => 'surface organique',
+      _ => throw StateError('Unsupported Smart Tile paint subtool.'),
+    };
 
     void activate(WorldMapToolActivationRequest request) {
       final result = session.activateTool(notifier, request);
@@ -106,7 +114,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
               null,
         );
     final blockedCode = activeLayer != null && !canEdit
-        ? smartTileWangPaintCompilerRequiredCode
+        ? smartTileWangPaintRequiresStn05Code
         : activeLayer == null && !hasReusableCellLayer
             ? smartTileCanonicalLayerActionRequiredCode
             : null;
@@ -124,14 +132,17 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             PokeMapSectionHeader(
-              title: subtool == WorldMapPaintSubtool.terrain
-                  ? 'Peindre un terrain'
-                  : 'Peindre un chemin',
+              title: switch (subtool) {
+                WorldMapPaintSubtool.terrain => 'Peindre un terrain',
+                WorldMapPaintSubtool.path => 'Peindre un chemin',
+                WorldMapPaintSubtool.surface => 'Peindre une surface organique',
+                _ => throw StateError('Unsupported Smart Tile paint subtool.'),
+              },
               description: activeLayer == null
                   ? hasReusableCellLayer
                       ? 'Choisissez un preset déjà présent sur cette carte.'
-                      : 'Aucun calque compatible. Création guidée dans '
-                          'STN-04.'
+                      : 'Aucun calque compatible. Ajoutez-en un depuis '
+                          'le panneau Calques.'
                   : 'Actif : ${activeLayer.name}',
             ),
             if (blockedCode != null) ...[
@@ -234,9 +245,15 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                                 'world-map-smart-tile-${_usage.name}-preset-${preset.id}',
                               ),
                               thumbnail: Icon(
-                                subtool == WorldMapPaintSubtool.terrain
-                                    ? Icons.landscape_outlined
-                                    : Icons.route_outlined,
+                                switch (subtool) {
+                                  WorldMapPaintSubtool.terrain =>
+                                    Icons.landscape_outlined,
+                                  WorldMapPaintSubtool.path =>
+                                    Icons.route_outlined,
+                                  WorldMapPaintSubtool.surface =>
+                                    Icons.park_outlined,
+                                  _ => Icons.auto_awesome_mosaic_outlined,
+                                },
                               ),
                               label: preset.name,
                               description: selected && canEdit
@@ -245,7 +262,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                                       ? 'Cliquer pour utiliser'
                                       : matchingLayer != null
                                           ? 'Peinture disponible après STN-05'
-                                          : 'Création guidée dans STN-04',
+                                          : 'Ajouter un calque depuis Calques',
                               selected: selected,
                               onPressed: reusableCellLayer == null
                                   ? null

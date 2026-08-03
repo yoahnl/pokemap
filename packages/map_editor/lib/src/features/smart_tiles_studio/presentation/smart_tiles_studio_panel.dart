@@ -8,6 +8,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
+import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../application/smart_tile_atlas_image_loader.dart';
 import '../application/smart_tile_authoring_controller.dart';
 import '../application/smart_tile_connection_profile.dart';
@@ -16,6 +17,7 @@ import '../application/smart_tile_form_projection.dart';
 import '../application/smart_tile_grid_detector.dart';
 import '../application/smart_tile_guide.dart';
 import '../application/smart_tile_guide_placement.dart';
+import '../application/smart_tile_publication_service.dart';
 import '../application/smart_tile_studio_library.dart';
 import '../application/smart_tile_studio_launch_context.dart';
 import '../application/smart_tile_studio_session.dart';
@@ -31,6 +33,7 @@ import 'stages/smart_tile_connections_stage.dart';
 import 'stages/smart_tile_forms_stage.dart';
 import 'stages/smart_tile_material_picker.dart';
 import 'stages/smart_tile_materials_stage.dart';
+import 'stages/smart_tile_publish_stage.dart';
 import 'stages/smart_tile_test_stage.dart';
 import 'stages/smart_tile_usage_stage.dart';
 import 'stages/smart_tile_variants_stage.dart';
@@ -47,11 +50,15 @@ class SmartTilesStudioPanel extends StatefulWidget {
     this.imageLoader = const FileSmartTileAtlasImageLoader(),
     this.launchContext = const SmartTilesStudioLaunchContext.library(),
     this.isCapturedMapAvailable = false,
+    this.capturedMap,
     this.canonicalDraft,
     this.persistenceState,
     this.onDraftChanged,
     this.onDraftFlush,
     this.onImportProjectImage,
+    this.publicationService,
+    this.onPublicationApplied,
+    this.onAddPresetToCapturedMap,
   });
 
   final ProjectManifest manifest;
@@ -59,11 +66,17 @@ class SmartTilesStudioPanel extends StatefulWidget {
   final SmartTileAtlasImageLoader imageLoader;
   final SmartTilesStudioLaunchContext launchContext;
   final bool isCapturedMapAvailable;
+  final MapData? capturedMap;
   final ProjectSmartTileAuthoringDraft? canonicalDraft;
   final SmartTileDraftPersistenceState? persistenceState;
   final ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged;
   final Future<void> Function()? onDraftFlush;
   final Future<SmartTileSourceImportResult?> Function()? onImportProjectImage;
+  final SmartTilePublicationService? publicationService;
+  final Future<void> Function(SmartTilePublicationResult result)?
+      onPublicationApplied;
+  final Future<bool> Function(ProjectSmartTilePreset preset)?
+      onAddPresetToCapturedMap;
 
   @override
   State<SmartTilesStudioPanel> createState() => _SmartTilesStudioPanelState();
@@ -79,6 +92,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       TextEditingController();
   final TextEditingController _animationDurationController =
       TextEditingController(text: '180');
+  final TextEditingController _publicationLayerIdController =
+      TextEditingController();
+  final TextEditingController _publicationLayerNameController =
+      TextEditingController();
   final Map<String, TextEditingController> _gridControllers =
       <String, TextEditingController>{};
   SmartTileAuthoringController _authoring =
@@ -114,6 +131,14 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   SmartTileTopology? _customConnectionTopology;
   SmartTileTestLayerController? _testLabController;
   SmartTileLabTool _testLabTool = SmartTileLabTool.pencil;
+  SmartTilePublicationTargetKind _publicationTargetKind =
+      SmartTilePublicationTargetKind.library;
+  SmartTilePublicationPlan? _publicationPlan;
+  bool _publicationBusy = false;
+  bool _publicationApplied = false;
+  bool _addingSelectedPreset = false;
+  String? _publicationErrorCode;
+  String? _publicationErrorMessage;
 
   @override
   void initState() {
@@ -162,6 +187,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     _newMaterialNameController.dispose();
     _animationNameController.dispose();
     _animationDurationController.dispose();
+    _publicationLayerIdController.dispose();
+    _publicationLayerNameController.dispose();
     for (final controller in _gridControllers.values) {
       controller.dispose();
     }
@@ -396,22 +423,16 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             ),
             if (selectedItem.nativePreset != null) ...[
               const SizedBox(height: 12),
-              const PokeMapButton(
-                key: Key('smart-tiles-add-to-active-map'),
-                onPressed: null,
-                disabledReason: smartTileStudioAuthoringRequiresStn04Code,
-                leading: Icon(CupertinoIcons.square_grid_3x2, size: 15),
-                child: Text('Ajouter à la map active'),
-              ),
-              const SizedBox(height: 8),
-              const PokeMapBadge(
-                label: smartTileStudioAuthoringRequiresStn04Code,
-                variant: PokeMapBadgeVariant.warning,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'L’ajout guidé à une map sera câblé dans STN-04.',
-                style: TextStyle(color: context.pokeMapColors.textSecondary),
+              PokeMapButton(
+                key: const Key('smart-tiles-add-to-active-map'),
+                onPressed: _canAddSelectedPresetToMap(selectedItem)
+                    ? () => unawaited(_addSelectedPresetToMap(selectedItem))
+                    : null,
+                disabledReason: _addSelectedPresetDisabledReason(selectedItem),
+                leading: _addingSelectedPreset
+                    ? const CupertinoActivityIndicator(radius: 7)
+                    : const Icon(CupertinoIcons.square_grid_3x2, size: 15),
+                child: const Text('Ajouter à la map active'),
               ),
             ],
           ] else
@@ -1173,92 +1194,40 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       catalog: compiled,
       projectTilesetIds: widget.manifest.tilesets.map((tileset) => tileset.id),
     );
-    final blocking = diagnostics.where((item) => item.isError).length;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: <Widget>[
-        PokeMapSectionHeader(
-          title: 'Publier le Smart Tile',
-          description:
-              'Dernière vérification humaine avant d’ajouter le preset au projet.',
-          trailing: PokeMapBadge(
-            label: blocking == 0
-                ? 'Publication dans STN-04'
-                : '$blocking erreur(s) bloquante(s)',
-            variant: blocking == 0
-                ? PokeMapBadgeVariant.warning
-                : PokeMapBadgeVariant.error,
-          ),
-        ),
-        const SizedBox(height: 14),
-        PokeMapPanel(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              _InspectorValue(label: 'Nom', value: _authoring.state.name),
-              const SizedBox(height: 8),
-              _InspectorValue(
-                label: 'Usage',
-                value: _usageLabel(_authoring.state.usage!),
-              ),
-              const SizedBox(height: 8),
-              _InspectorValue(
-                label: 'Atlas',
-                value: _authoring.state.atlasName,
-              ),
-              const SizedBox(height: 8),
-              _InspectorValue(
-                label: 'Grille',
-                value:
-                    '${geometry.cellWidth} × ${geometry.cellHeight} px — ${geometry.columns} × ${geometry.rows} cellules',
-              ),
-              const SizedBox(height: 8),
-              _InspectorValue(
-                label: 'Guide',
-                value: guide?.name ?? 'Aucun — associations libres',
-              ),
-              const SizedBox(height: 8),
-              _InspectorValue(
-                label: 'Associations',
-                value: guide == null
-                    ? '${_authoring.state.mappings.length} formes • ${_authoring.state.mappings.values.expand((variants) => variants).length} variantes'
-                    : '${guide.cells.length} cellules • '
-                        '${guide.requiredMasks.length} raccords • '
-                        '${guide.cells.length - guide.requiredMasks.length} variantes',
-              ),
-            ],
-          ),
-        ),
-        if (_draftMessage != null) ...[
-          const SizedBox(height: 10),
-          PokeMapBadge(
-            label: _draftMessage!,
-            variant: PokeMapBadgeVariant.warning,
-          ),
-        ],
-        const SizedBox(height: 10),
-        const PokeMapBadge(
-          label: smartTileStudioAuthoringRequiresStn04Code,
-          variant: PokeMapBadgeVariant.warning,
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'La publication guidée sera câblée dans STN-04.',
-          style: TextStyle(color: context.pokeMapColors.textSecondary),
-        ),
-        const SizedBox(height: 16),
-        const Align(
-          alignment: Alignment.centerRight,
-          child: PokeMapButton(
-            key: Key('smart-tiles-publish-guided'),
-            onPressed: null,
-            disabledReason: smartTileStudioAuthoringRequiresStn04Code,
-            leading: Icon(CupertinoIcons.check_mark_circled, size: 15),
-            child: Text('Publier et utiliser dans une map'),
-          ),
-        ),
-      ],
+    final blocking = diagnostics.where((item) => item.isError).toList();
+    final warnings = diagnostics.where((item) => !item.isError).toList();
+    final topology = compiled.presets.single.topology;
+    return SmartTilePublishStage(
+      name: _authoring.state.name,
+      usage: _authoring.state.usage!,
+      atlasSummary: _authoring.state.atlasName,
+      gridSummary:
+          '${geometry.cellWidth} × ${geometry.cellHeight} px — ${geometry.columns} × ${geometry.rows} cellules',
+      guideSummary: guide?.name ?? 'Aucun — associations libres',
+      mappingSummary: guide == null
+          ? '${_authoring.state.mappings.length} formes • ${_authoring.state.mappings.values.expand((variants) => variants).length} variantes'
+          : '${guide.cells.length} cellules • '
+              '${guide.requiredMasks.length} raccords • '
+              '${guide.cells.length - guide.requiredMasks.length} variantes',
+      targetKind: _publicationTargetKind,
+      mapId: widget.launchContext.capturedMapId,
+      mapAvailable: widget.isCapturedMapAvailable && widget.capturedMap != null,
+      layerIdController: _publicationLayerIdController,
+      layerNameController: _publicationLayerNameController,
+      blockingDiagnostics: blocking,
+      warningDiagnostics: warnings,
+      wangDrawingDeferred: topology == SmartTileTopology.wangEdge4 ||
+          topology == SmartTileTopology.wangCorner4 ||
+          topology == SmartTileTopology.wang8,
+      busy: _publicationBusy,
+      plan: _publicationPlan,
+      errorCode: _publicationErrorCode,
+      errorMessage: _publicationErrorMessage,
+      published: _publicationApplied,
+      onTargetChanged: _changePublicationTarget,
+      onLayerIdentityChanged: _clearPublicationPlan,
+      onPlan: () => unawaited(_planPublication(diagnostics)),
+      onApply: () => unawaited(_applyPublication()),
     );
   }
 
@@ -1424,15 +1393,19 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       padding: const EdgeInsets.all(18),
       children: <Widget>[
         PokeMapSectionHeader(
-          title: 'Validation avant publication',
+          title: 'Validation du preset',
           description:
               'Couverture, ambiguïtés, références, poids, durées et limites d’atlas.',
           trailing: PokeMapBadge(
             label: blocking == 0
-                ? 'Publication dans STN-04'
+                ? selectedItem.statusLabel == 'Publié'
+                    ? 'Preset publié et valide'
+                    : 'Brouillon valide'
                 : '$blocking erreur(s) bloquante(s)',
             variant: blocking == 0
-                ? PokeMapBadgeVariant.warning
+                ? selectedItem.statusLabel == 'Publié'
+                    ? PokeMapBadgeVariant.success
+                    : PokeMapBadgeVariant.info
                 : PokeMapBadgeVariant.error,
           ),
         ),
@@ -1443,16 +1416,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             variant: PokeMapBadgeVariant.warning,
           ),
         ],
-        const SizedBox(height: 10),
-        const PokeMapBadge(
-          label: smartTileStudioAuthoringRequiresStn04Code,
-          variant: PokeMapBadgeVariant.warning,
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'La publication guidée sera câblée dans STN-04.',
-          style: TextStyle(color: context.pokeMapColors.textSecondary),
-        ),
         const SizedBox(height: 12),
         if (diagnostics.isEmpty)
           const PokeMapEmptyState(
@@ -1478,19 +1441,53 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             ),
             const SizedBox(height: 8),
           ],
-        const SizedBox(height: 14),
-        const Align(
-          alignment: Alignment.centerRight,
-          child: PokeMapButton(
-            key: Key('smart-tiles-publish'),
-            onPressed: null,
-            disabledReason: smartTileStudioAuthoringRequiresStn04Code,
-            leading: Icon(CupertinoIcons.check_mark_circled, size: 15),
-            child: Text('Publier'),
-          ),
-        ),
       ],
     );
+  }
+
+  bool _canAddSelectedPresetToMap(SmartTileLibraryItem item) {
+    return !_addingSelectedPreset &&
+        item.nativePreset?.status == SmartTilePresetStatus.published &&
+        widget.isCapturedMapAvailable &&
+        widget.onAddPresetToCapturedMap != null;
+  }
+
+  String? _addSelectedPresetDisabledReason(SmartTileLibraryItem item) {
+    if (_addingSelectedPreset) return 'Ajout de la couche en cours.';
+    if (item.nativePreset?.status != SmartTilePresetStatus.published) {
+      return 'Publiez ce preset avant de l’ajouter à une carte.';
+    }
+    if (!widget.isCapturedMapAvailable) {
+      return 'Ouvrez une carte enregistrée depuis laquelle le Studio a été lancé.';
+    }
+    if (widget.onAddPresetToCapturedMap == null) {
+      return 'La session canonique de la carte n’est pas disponible.';
+    }
+    return null;
+  }
+
+  Future<void> _addSelectedPresetToMap(SmartTileLibraryItem item) async {
+    final preset = item.nativePreset;
+    final callback = widget.onAddPresetToCapturedMap;
+    if (preset == null || callback == null || _addingSelectedPreset) return;
+    setState(() {
+      _addingSelectedPreset = true;
+      _draftMessage = null;
+    });
+    try {
+      final added = await callback(preset);
+      if (!mounted) return;
+      setState(() {
+        _draftMessage = added
+            ? 'Couche « ${preset.name} » ajoutée et sélectionnée.'
+            : 'La couche n’a pas pu être ajoutée à la carte.';
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _draftMessage = 'Échec de l’ajout : $error');
+    } finally {
+      if (mounted) setState(() => _addingSelectedPreset = false);
+    }
   }
 
   Widget _buildAnimationsTab(SmartTileLibraryItem selectedItem) {
@@ -1554,6 +1551,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _customConnectionTopology = null;
       _testLabController = null;
       _testLabTool = SmartTileLabTool.pencil;
+      _resetPublicationState();
       _tab = SmartTilesStudioTab.atlas;
     });
   }
@@ -2431,26 +2429,172 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   }
 
   void _moveToPublish() {
-    setState(_session.moveToPublish);
+    setState(() {
+      _session.moveToPublish();
+      _seedPublicationTarget();
+    });
     _flushDraftAfterStepChange();
+  }
+
+  void _seedPublicationTarget() {
+    final capturedMap = widget.capturedMap;
+    final canUseMap = widget.isCapturedMapAvailable && capturedMap != null;
+    _publicationTargetKind = canUseMap
+        ? SmartTilePublicationTargetKind.map
+        : SmartTilePublicationTargetKind.library;
+    _publicationLayerIdController.text =
+        SmartTilePublicationService.suggestLayerId(
+      presetId: _authoring.state.id,
+      existingLayerIds:
+          capturedMap?.layers.map((layer) => layer.id) ?? const <String>[],
+    );
+    _publicationLayerNameController.text = _authoring.state.name;
+    _clearPublicationPlanState();
+  }
+
+  void _changePublicationTarget(SmartTilePublicationTargetKind target) {
+    if (_publicationTargetKind == target) return;
+    setState(() {
+      _publicationTargetKind = target;
+      _clearPublicationPlanState();
+    });
+  }
+
+  void _clearPublicationPlan() {
+    if (_publicationPlan == null &&
+        _publicationErrorCode == null &&
+        _publicationErrorMessage == null) {
+      return;
+    }
+    setState(_clearPublicationPlanState);
+  }
+
+  void _clearPublicationPlanState() {
+    _publicationPlan = null;
+    _publicationApplied = false;
+    _publicationErrorCode = null;
+    _publicationErrorMessage = null;
+  }
+
+  void _resetPublicationState() {
+    _publicationTargetKind = SmartTilePublicationTargetKind.library;
+    _publicationLayerIdController.clear();
+    _publicationLayerNameController.clear();
+    _publicationBusy = false;
+    _clearPublicationPlanState();
+  }
+
+  Future<void> _planPublication(List<SmartTileDiagnostic> diagnostics) async {
+    final service = widget.publicationService;
+    final projectRootPath = widget.projectRootPath;
+    final flush = widget.onDraftFlush;
+    if (service == null || projectRootPath == null || flush == null) {
+      setState(() {
+        _publicationErrorCode = 'smart_tile.publish.session_unavailable';
+        _publicationErrorMessage =
+            'La session canonique du projet n’est pas disponible.';
+      });
+      return;
+    }
+    final draft = _currentAuthoringDraft();
+    final target = switch (_publicationTargetKind) {
+      SmartTilePublicationTargetKind.library =>
+        const SmartTilePublicationTarget.library(),
+      SmartTilePublicationTargetKind.map => SmartTilePublicationTarget.map(
+          mapId: widget.launchContext.capturedMapId ?? '',
+          layerId: _publicationLayerIdController.text,
+          layerName: _publicationLayerNameController.text,
+        ),
+    };
+    setState(() {
+      _publicationBusy = true;
+      _publicationErrorCode = null;
+      _publicationErrorMessage = null;
+    });
+    try {
+      _notifyDraftChanged();
+      final plan = await service.plan(
+        projectRootPath: projectRootPath,
+        draftId: draft.id,
+        presetId: draft.targetPresetId,
+        target: target,
+        flushDraft: flush,
+        diagnostics: diagnostics,
+      );
+      if (!mounted) return;
+      setState(() => _publicationPlan = plan);
+    } on Object catch (error) {
+      if (!mounted) return;
+      _acceptPublicationFailure(error);
+    } finally {
+      if (mounted) setState(() => _publicationBusy = false);
+    }
+  }
+
+  Future<void> _applyPublication() async {
+    final service = widget.publicationService;
+    final projectRootPath = widget.projectRootPath;
+    final plan = _publicationPlan;
+    if (service == null || projectRootPath == null || plan == null) return;
+    setState(() {
+      _publicationBusy = true;
+      _publicationErrorCode = null;
+      _publicationErrorMessage = null;
+    });
+    try {
+      final result = await service.apply(
+        plan,
+        projectRootPath: projectRootPath,
+      );
+      await widget.onPublicationApplied?.call(result);
+      if (!mounted) return;
+      setState(() {
+        _publicationApplied = true;
+        _draftMessage = plan.layerId == null
+            ? 'Smart Tile publié dans la bibliothèque.'
+            : 'Smart Tile publié et couche « ${plan.layerId} » ouverte.';
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      _acceptPublicationFailure(error);
+    } finally {
+      if (mounted) setState(() => _publicationBusy = false);
+    }
+  }
+
+  void _acceptPublicationFailure(Object error) {
+    if (error is SmartTilePublicationException) {
+      setState(() {
+        _publicationErrorCode = error.code;
+        _publicationErrorMessage = error.message;
+      });
+      return;
+    }
+    final failure = EditorAuthoringMutationFailure.capture(error);
+    setState(() {
+      _publicationErrorCode = failure.code;
+      _publicationErrorMessage = failure.message;
+    });
+  }
+
+  ProjectSmartTileAuthoringDraft _currentAuthoringDraft() {
+    final stage = SmartTileAuthoringStage.values.byName(
+      _session.state.wizardStep.name,
+    );
+    return _authoring.compileAuthoringDraft(
+      lastStage: stage,
+      guideId: _session.state.guideId?.name,
+      clearGuide: _session.state.guideId == null,
+      sourceTilesetIds: <String>[
+        if (_selectedSourceTilesetId case final id?) id,
+      ],
+    );
   }
 
   void _notifyDraftChanged() {
     final callback = widget.onDraftChanged;
     if (callback == null || _authoring.state.usage == null) return;
-    final stage = SmartTileAuthoringStage.values.byName(
-      _session.state.wizardStep.name,
-    );
-    callback(
-      _authoring.compileAuthoringDraft(
-        lastStage: stage,
-        guideId: _session.state.guideId?.name,
-        clearGuide: _session.state.guideId == null,
-        sourceTilesetIds: <String>[
-          if (_selectedSourceTilesetId case final id?) id,
-        ],
-      ),
-    );
+    callback(_currentAuthoringDraft());
   }
 
   void _flushDraftAfterStepChange() {
@@ -3053,12 +3197,6 @@ String _usageFilterLabel(_LibraryUsageFilter filter) => switch (filter) {
       _LibraryUsageFilter.terrain => 'Terrain',
       _LibraryUsageFilter.path => 'Chemin',
       _LibraryUsageFilter.forestSurface => 'Forêt',
-    };
-
-String _usageLabel(SmartTileUsage usage) => switch (usage) {
-      SmartTileUsage.terrain => 'Terrain',
-      SmartTileUsage.path => 'Chemin',
-      SmartTileUsage.forestSurface => 'Surface organique',
     };
 
 String _templateLabel(SmartTileTemplateHint template) => switch (template) {

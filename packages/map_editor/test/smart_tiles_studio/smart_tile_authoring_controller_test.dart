@@ -300,46 +300,6 @@ void main() {
         'grass-wind',
       );
     });
-
-    test('keeps private Studio persistence blocked until STN-04 wiring', () {
-      final controller = _configuredController();
-      controller
-        ..selectUsage(SmartTileUsage.path)
-        ..addAtlasVariant(
-          mask: 0,
-          column: 0,
-          row: 0,
-          candidateId: 'isolated',
-        );
-      const legacy = ProjectTerrainPreset(
-        id: 'legacy-grass',
-        name: 'Legacy grass',
-        terrainType: TerrainType.grass,
-        tilesetId: 'legacy',
-      );
-      const manifest = ProjectManifest(
-        name: 'legacy-project',
-        version: ProjectVersion.v3,
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[],
-        terrainPresets: <ProjectTerrainPreset>[legacy],
-        surfaceCatalog: ProjectSurfaceCatalog.empty(),
-      );
-
-      expect(
-        () => controller.applyToManifest(manifest),
-        throwsA(
-          isA<StateError>().having(
-            (error) => error.message,
-            'diagnostic',
-            'smart_tile_studio_authoring_requires_stn04',
-          ),
-        ),
-      );
-      expect(manifest.version, ProjectVersion.v3);
-      expect(manifest.terrainPresets, [legacy]);
-      expect(manifest.smartTileCatalog.presets, isEmpty);
-    });
   });
 }
 

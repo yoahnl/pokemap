@@ -11,6 +11,7 @@ import '../../editor/state/editor_selectors.dart';
 import '../application/smart_tile_draft_persistence_coordinator.dart';
 import '../application/smart_tile_draft_persistence_state.dart';
 import '../application/smart_tile_atlas_image_loader.dart';
+import '../application/smart_tile_publication_service.dart';
 import '../application/smart_tile_source_asset_import_service.dart';
 import '../application/smart_tile_source_image_picker.dart';
 import 'smart_tiles_studio_panel.dart';
@@ -54,6 +55,7 @@ class _SmartTilesStudioWorkspaceState
         (state) => (
           context: state.smartTilesStudioLaunchContext,
           activeMap: state.activeMap,
+          mapIsDirty: state.isDirty,
         ),
       ),
     );
@@ -73,7 +75,11 @@ class _SmartTilesStudioWorkspaceState
       projectRootPath: projectRootPath,
       launchContext: launch.context,
       isCapturedMapAvailable:
-          launch.context.isCapturedMapAvailable(launch.activeMap),
+          launch.context.isCapturedMapAvailable(launch.activeMap) &&
+              !launch.mapIsDirty,
+      capturedMap: launch.context.isCapturedMapAvailable(launch.activeMap)
+          ? launch.activeMap
+          : null,
       canonicalDraft: _canonicalDraft,
       persistenceState: _persistenceState,
       onDraftChanged: projectRootPath == null
@@ -85,7 +91,57 @@ class _SmartTilesStudioWorkspaceState
       onImportProjectImage: projectRootPath == null
           ? null
           : () => _importProjectImage(projectRootPath),
+      publicationService: projectRootPath == null
+          ? null
+          : SmartTilePublicationService(
+              gateway: CanonicalSmartTilePublicationGateway(
+                mutations: ref.read(authoringMutationAdapterProvider),
+                queries: ref.read(authoringQueryAdapterProvider),
+              ),
+            ),
+      onPublicationApplied:
+          projectRootPath == null ? null : _acceptPublicationResult,
+      onAddPresetToCapturedMap: projectRootPath == null ||
+              !launch.context.isCapturedMapAvailable(launch.activeMap) ||
+              launch.mapIsDirty
+          ? null
+          : (preset) => ref
+              .read(editorNotifierProvider.notifier)
+              .createCanonicalSmartTileLayer(preset: preset),
     );
+  }
+
+  Future<void> _acceptPublicationResult(
+    SmartTilePublicationResult result,
+  ) async {
+    final coordinator = _coordinator;
+    if (coordinator != null) await coordinator.close();
+    _coordinator = null;
+    _attachedRoot = null;
+    _pendingDraft = null;
+    _pendingRootPath = null;
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final map = result.map;
+    final layerId = result.layerId;
+    final mapRevision = result.mapRevision;
+    if (map != null && layerId != null && mapRevision != null) {
+      notifier.acceptCanonicalSmartTilePublication(
+        manifest: result.manifest,
+        map: map,
+        mapRevision: mapRevision,
+        layerId: layerId,
+      );
+    } else {
+      notifier.acceptCanonicalProjectManifest(
+        result.manifest,
+        statusMessage: 'Smart Tile publié dans la bibliothèque.',
+      );
+    }
+    if (!mounted) return;
+    setState(() {
+      _canonicalDraft = null;
+      _persistenceState = null;
+    });
   }
 
   Future<void> _queueDraft(
