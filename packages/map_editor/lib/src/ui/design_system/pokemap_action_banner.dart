@@ -103,6 +103,7 @@ class PokeMapActionBanner extends StatelessWidget {
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
                               height: 1.25,
+                              decoration: TextDecoration.none,
                             ),
                           ),
                           const SizedBox(height: 4),
@@ -112,6 +113,7 @@ class PokeMapActionBanner extends StatelessWidget {
                               color: colors.textSecondary,
                               fontSize: 12,
                               height: 1.4,
+                              decoration: TextDecoration.none,
                             ),
                           ),
                         ],
@@ -158,7 +160,12 @@ class PokeMapActionBanner extends StatelessWidget {
                           isLoading: actions[index].isLoading,
                           semanticLabel: actions[index].semanticLabel ??
                               actions[index].label,
-                          child: Text(actions[index].label),
+                          child: Text(
+                            actions[index].label,
+                            style: const TextStyle(
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
                         ),
                       ),
                   ],

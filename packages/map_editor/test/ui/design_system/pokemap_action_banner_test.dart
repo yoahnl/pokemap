@@ -49,6 +49,56 @@ void main() {
     }
   });
 
+  testWidgets('neutralizes inherited decoration on banner copy',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.dark(),
+        home: Scaffold(
+          body: DefaultTextStyle(
+            style: const TextStyle(
+              decoration: TextDecoration.underline,
+              decorationColor: Colors.yellow,
+              decorationStyle: TextDecorationStyle.double,
+            ),
+            child: PokeMapActionBanner(
+              title: 'PokeMap is up to date',
+              message: 'You are already using the latest available version.',
+              tone: PokeMapTone.success,
+              actions: [
+                PokeMapActionBannerAction(
+                  label: 'Check again',
+                  onPressed: () {},
+                ),
+              ],
+              dismissLabel: 'Dismiss',
+              onDismiss: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    TextStyle effectiveStyle(String text) {
+      final finder = find.text(text);
+      final widget = tester.widget<Text>(finder);
+      return DefaultTextStyle.of(tester.element(finder)).style.merge(
+            widget.style,
+          );
+    }
+
+    expect(
+      effectiveStyle('PokeMap is up to date').decoration,
+      TextDecoration.none,
+    );
+    expect(
+      effectiveStyle('You are already using the latest available version.')
+          .decoration,
+      TextDecoration.none,
+    );
+    expect(effectiveStyle('Check again').decoration, TextDecoration.none);
+  });
+
   testWidgets('exposes semantics and a keyboard focus order', (tester) async {
     var primaryActivations = 0;
     final semantics = tester.ensureSemantics();
