@@ -23,6 +23,8 @@ final class MethodChannelEditorNativeUpdater implements EditorNativeUpdater {
   final MethodChannel _channel;
   final StreamController<EditorNativeUpdateEvent> _events =
       StreamController<EditorNativeUpdateEvent>.broadcast(sync: true);
+  final StreamController<void> _manualCheckRequests =
+      StreamController<void>.broadcast(sync: true);
 
   @override
   final bool isSupported;
@@ -32,6 +34,9 @@ final class MethodChannelEditorNativeUpdater implements EditorNativeUpdater {
 
   @override
   Stream<EditorNativeUpdateEvent> get events => _events.stream;
+
+  @override
+  Stream<void> get manualCheckRequests => _manualCheckRequests.stream;
 
   @override
   Future<void> openUpdateFlow({
@@ -67,9 +72,16 @@ final class MethodChannelEditorNativeUpdater implements EditorNativeUpdater {
   Future<void> dispose() async {
     _channel.setMethodCallHandler(null);
     await _events.close();
+    await _manualCheckRequests.close();
   }
 
   Future<void> _handleMethodCall(MethodCall call) async {
+    if (call.method == 'manualCheckRequested') {
+      if (!_manualCheckRequests.isClosed) {
+        _manualCheckRequests.add(null);
+      }
+      return;
+    }
     if (call.method != 'updateEvent' || _events.isClosed) {
       return;
     }

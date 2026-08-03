@@ -78,6 +78,27 @@ void main() {
     await updater.dispose();
   });
 
+  test('exposes native Help menu requests separately from install events',
+      () async {
+    final updater = MethodChannelEditorNativeUpdater(
+      channel: channel,
+      isSupported: true,
+      capabilities: EditorNativeUpdaterCapabilities.macosV1,
+    );
+    final request = updater.manualCheckRequests.first;
+
+    await messenger.handlePlatformMessage(
+      channel.name,
+      const StandardMethodCodec().encodeMethodCall(
+        const MethodCall('manualCheckRequested'),
+      ),
+      (_) {},
+    );
+
+    await request;
+    await updater.dispose();
+  });
+
   test('ignores malformed and unknown native callbacks', () async {
     final updater = MethodChannelEditorNativeUpdater(
       channel: channel,

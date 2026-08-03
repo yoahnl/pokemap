@@ -63,6 +63,7 @@ abstract interface class EditorNativeUpdater {
   bool get isSupported;
   EditorNativeUpdaterCapabilities get capabilities;
   Stream<EditorNativeUpdateEvent> get events;
+  Stream<void> get manualCheckRequests;
 
   Future<void> openUpdateFlow({
     required String operationId,

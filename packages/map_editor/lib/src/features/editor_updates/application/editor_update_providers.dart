@@ -16,6 +16,7 @@ import '../domain/editor_update_models.dart';
 import '../infrastructure/github_release_update_catalog.dart';
 import '../infrastructure/method_channel_editor_native_updater.dart';
 import '../infrastructure/package_info_installed_version_reader.dart';
+import '../infrastructure/method_channel_editor_update_link_opener.dart';
 import 'editor_exit_readiness_resolver.dart';
 import 'editor_update_controller.dart';
 
@@ -96,6 +97,14 @@ final editorNativeUpdaterProvider = Provider<EditorNativeUpdater>((ref) {
   return MethodChannelEditorNativeUpdater();
 });
 
+final editorUpdateLinkOpenerProvider = Provider((ref) {
+  return const MethodChannelEditorUpdateLinkOpener();
+});
+
+final editorManualUpdateCheckRequestsProvider = StreamProvider<void>((ref) {
+  return ref.watch(editorNativeUpdaterProvider).manualCheckRequests;
+});
+
 final editorUpdateTimerFactoryProvider =
     Provider<EditorUpdateTimerFactory>((ref) {
   return Timer.new;
@@ -114,6 +123,7 @@ final editorUpdateControllerProvider =
     catalog: ref.watch(editorUpdateCatalogProvider),
     installedVersionReader: ref.watch(editorInstalledVersionReaderProvider),
     nativeUpdater: ref.watch(editorNativeUpdaterProvider),
+    linkOpener: ref.watch(editorUpdateLinkOpenerProvider),
     readExitReadiness: () => ref.read(editorExitReadinessProvider),
     scheduleTimer: ref.watch(editorUpdateTimerFactoryProvider),
     onBackgroundFailure: ref.watch(

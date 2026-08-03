@@ -890,6 +890,240 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Le preflight n’a pas pu lire tous les fichiers. Vérifiez les autorisations du projet puis réessayez.'**
   String get personalizationPreflightReadError;
+
+  /// No description provided for @editorUpdateAvailableTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Une nouvelle aventure t’attend ✨'**
+  String get editorUpdateAvailableTitle;
+
+  /// Available editor update message.
+  ///
+  /// In fr, this message translates to:
+  /// **'PokeMap {version} est prêt à rejoindre ton équipe.'**
+  String editorUpdateAvailableBody(String version);
+
+  /// No description provided for @editorUpdateReadNotes.
+  ///
+  /// In fr, this message translates to:
+  /// **'Lire les notes'**
+  String get editorUpdateReadNotes;
+
+  /// No description provided for @editorUpdateInstall.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mettre à jour'**
+  String get editorUpdateInstall;
+
+  /// No description provided for @editorUpdateCheck.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérifier les mises à jour'**
+  String get editorUpdateCheck;
+
+  /// No description provided for @editorUpdateChecking.
+  ///
+  /// In fr, this message translates to:
+  /// **'Vérification en cours…'**
+  String get editorUpdateChecking;
+
+  /// No description provided for @editorUpdateUpToDate.
+  ///
+  /// In fr, this message translates to:
+  /// **'PokeMap est déjà à jour'**
+  String get editorUpdateUpToDate;
+
+  /// No description provided for @editorUpdateUpToDateBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tu utilises déjà la dernière version disponible.'**
+  String get editorUpdateUpToDateBody;
+
+  /// No description provided for @editorUpdateManualCheckFailedTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'La vérification a échoué'**
+  String get editorUpdateManualCheckFailedTitle;
+
+  /// No description provided for @editorUpdateManualCheckFailed.
+  ///
+  /// In fr, this message translates to:
+  /// **'Impossible de vérifier les mises à jour pour le moment.'**
+  String get editorUpdateManualCheckFailed;
+
+  /// No description provided for @editorUpdateRetry.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer'**
+  String get editorUpdateRetry;
+
+  /// No description provided for @editorUpdateOpenGitHub.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ouvrir GitHub'**
+  String get editorUpdateOpenGitHub;
+
+  /// No description provided for @editorUpdateUnsavedTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Des créations restent à sauvegarder'**
+  String get editorUpdateUnsavedTitle;
+
+  /// No description provided for @editorUpdateUnsavedBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tes créations ne sont pas encore toutes sauvegardées. On garde tout bien au chaud avant de redémarrer.'**
+  String get editorUpdateUnsavedBody;
+
+  /// No description provided for @editorUpdateSaveBeforeRestart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Sauvegarder et redémarrer'**
+  String get editorUpdateSaveBeforeRestart;
+
+  /// No description provided for @editorUpdateCancelled.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mise à jour annulée. Tu peux la relancer quand tu veux.'**
+  String get editorUpdateCancelled;
+
+  /// No description provided for @editorUpdateUnsupported.
+  ///
+  /// In fr, this message translates to:
+  /// **'Les mises à jour automatiques ne sont pas disponibles sur cette plateforme.'**
+  String get editorUpdateUnsupported;
+
+  /// No description provided for @editorUpdateUnsupportedTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Mise à jour automatique indisponible'**
+  String get editorUpdateUnsupportedTitle;
+
+  /// No description provided for @editorUpdateDismiss.
+  ///
+  /// In fr, this message translates to:
+  /// **'Fermer'**
+  String get editorUpdateDismiss;
+
+  /// No description provided for @editorUpdateBackToEditor.
+  ///
+  /// In fr, this message translates to:
+  /// **'Revenir à l’éditeur'**
+  String get editorUpdateBackToEditor;
+
+  /// No description provided for @editorUpdateRetryRestart.
+  ///
+  /// In fr, this message translates to:
+  /// **'Réessayer le redémarrage'**
+  String get editorUpdateRetryRestart;
+
+  /// No description provided for @editorUpdateInstalling.
+  ///
+  /// In fr, this message translates to:
+  /// **'Installation de la mise à jour en cours…'**
+  String get editorUpdateInstalling;
+
+  /// No description provided for @editorUpdateRestarting.
+  ///
+  /// In fr, this message translates to:
+  /// **'PokeMap redémarre pour terminer la mise à jour…'**
+  String get editorUpdateRestarting;
+
+  /// No description provided for @editorUpdateHelp.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aide'**
+  String get editorUpdateHelp;
+
+  /// No description provided for @editorUpdateBlockerMap.
+  ///
+  /// In fr, this message translates to:
+  /// **'Carte active'**
+  String get editorUpdateBlockerMap;
+
+  /// No description provided for @editorUpdateBlockerProjectManifest.
+  ///
+  /// In fr, this message translates to:
+  /// **'Projet'**
+  String get editorUpdateBlockerProjectManifest;
+
+  /// No description provided for @editorUpdateBlockerNarrative.
+  ///
+  /// In fr, this message translates to:
+  /// **'Narrative Studio'**
+  String get editorUpdateBlockerNarrative;
+
+  /// No description provided for @editorUpdateBlockerPersonalization.
+  ///
+  /// In fr, this message translates to:
+  /// **'Personalization Studio'**
+  String get editorUpdateBlockerPersonalization;
+
+  /// No description provided for @editorUpdateBlockerBorderPreview.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aperçu des bordures'**
+  String get editorUpdateBlockerBorderPreview;
+
+  /// No description provided for @editorUpdateBlockerBorderStudio.
+  ///
+  /// In fr, this message translates to:
+  /// **'Border Studio'**
+  String get editorUpdateBlockerBorderStudio;
+
+  /// No description provided for @editorUpdateBlockerPathStudio.
+  ///
+  /// In fr, this message translates to:
+  /// **'Path Studio'**
+  String get editorUpdateBlockerPathStudio;
+
+  /// No description provided for @editorUpdateBlockerStepStudio.
+  ///
+  /// In fr, this message translates to:
+  /// **'Step Studio'**
+  String get editorUpdateBlockerStepStudio;
+
+  /// No description provided for @editorUpdateBlockerEnvironmentStudio.
+  ///
+  /// In fr, this message translates to:
+  /// **'Environment Studio'**
+  String get editorUpdateBlockerEnvironmentStudio;
+
+  /// No description provided for @editorUpdateBlockerDialogueStudio.
+  ///
+  /// In fr, this message translates to:
+  /// **'Dialogue Studio'**
+  String get editorUpdateBlockerDialogueStudio;
+
+  /// No description provided for @editorUpdateBlockerGlobalStoryStudio.
+  ///
+  /// In fr, this message translates to:
+  /// **'Global Story Studio'**
+  String get editorUpdateBlockerGlobalStoryStudio;
+
+  /// No description provided for @editorUpdateBlockerEventBuilderV2.
+  ///
+  /// In fr, this message translates to:
+  /// **'Event Builder'**
+  String get editorUpdateBlockerEventBuilderV2;
+
+  /// No description provided for @editorUpdateBlockerPendingTemplate.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modèle en cours'**
+  String get editorUpdateBlockerPendingTemplate;
+
+  /// No description provided for @editorUpdateBlockerSaveInProgress.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrement en cours'**
+  String get editorUpdateBlockerSaveInProgress;
+
+  /// No description provided for @editorUpdateBlockerUnknown.
+  ///
+  /// In fr, this message translates to:
+  /// **'Espace de travail non sauvegardé'**
+  String get editorUpdateBlockerUnknown;
 }
 
 class _AppLocalizationsDelegate

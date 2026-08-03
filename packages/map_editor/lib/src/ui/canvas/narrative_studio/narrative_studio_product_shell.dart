@@ -19,6 +19,8 @@ const narrativeStudioProductShellNavigationKey =
     ValueKey<String>('narrative-studio-product-shell-navigation');
 const narrativeStudioProductShellWorkspaceKey =
     ValueKey<String>('narrative-studio-product-shell-workspace');
+const narrativeStudioCheckForUpdatesKey =
+    ValueKey<String>('narrative-studio-check-for-updates');
 
 /// Provider-free rail geometry selected only from the available viewport.
 ///
@@ -76,6 +78,8 @@ class NarrativeStudioProductShell extends StatelessWidget {
     this.globalSearchIndex,
     this.onOpenSearchEntry,
     this.commandPaletteActions = const [],
+    this.onCheckForUpdates,
+    this.isUpdateCheckActive = false,
   });
 
   final NarrativeStudioDestination selectedDestination;
@@ -92,6 +96,8 @@ class NarrativeStudioProductShell extends StatelessWidget {
   final NarrativeGlobalSearchIndex? globalSearchIndex;
   final ValueChanged<NarrativeGlobalSearchEntry>? onOpenSearchEntry;
   final List<NarrativeCommandPaletteAction> commandPaletteActions;
+  final VoidCallback? onCheckForUpdates;
+  final bool isUpdateCheckActive;
 
   Future<void> _openCommandPalette(BuildContext context) async {
     final index = globalSearchIndex;
@@ -138,6 +144,8 @@ class NarrativeStudioProductShell extends StatelessWidget {
                         globalSearchIndex == null || onOpenSearchEntry == null
                             ? null
                             : () => _openCommandPalette(context),
+                    onCheckForUpdates: onCheckForUpdates,
+                    isUpdateCheckActive: isUpdateCheckActive,
                   ),
                   Expanded(
                     child: Row(
@@ -207,11 +215,15 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
     required this.appMark,
     required this.documentActions,
     required this.onOpenCommandPalette,
+    required this.onCheckForUpdates,
+    required this.isUpdateCheckActive,
   });
 
   final Widget? appMark;
   final Widget? documentActions;
   final VoidCallback? onOpenCommandPalette;
+  final VoidCallback? onCheckForUpdates;
+  final bool isUpdateCheckActive;
 
   @override
   Widget build(BuildContext context) {
@@ -258,18 +270,39 @@ class _NarrativeStudioProductHeader extends StatelessWidget {
               label: l10n.beta,
               variant: PokeMapBadgeVariant.info,
             ),
-            if (documentActions != null || onOpenCommandPalette != null) ...[
+            if (documentActions != null ||
+                onOpenCommandPalette != null ||
+                onCheckForUpdates != null) ...[
               const Spacer(),
-              if (onOpenCommandPalette != null)
+              if (onCheckForUpdates != null)
                 PokeMapIconButton(
-                  key: const ValueKey('narrative-command-palette-open'),
-                  onPressed: onOpenCommandPalette,
-                  tooltip: l10n.commandPaletteTooltip,
+                  key: narrativeStudioCheckForUpdatesKey,
+                  onPressed: isUpdateCheckActive ? null : onCheckForUpdates,
+                  tooltip: isUpdateCheckActive
+                      ? l10n.editorUpdateChecking
+                      : l10n.editorUpdateCheck,
+                  semanticLabel: isUpdateCheckActive
+                      ? l10n.editorUpdateChecking
+                      : l10n.editorUpdateCheck,
                   variant: PokeMapIconButtonVariant.soft,
-                  icon: const Icon(CupertinoIcons.search),
+                  icon: const Icon(CupertinoIcons.arrow_2_circlepath),
+                ),
+              if (onOpenCommandPalette != null)
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: onCheckForUpdates == null ? 0 : 8,
+                  ),
+                  child: PokeMapIconButton(
+                    key: const ValueKey('narrative-command-palette-open'),
+                    onPressed: onOpenCommandPalette,
+                    tooltip: l10n.commandPaletteTooltip,
+                    variant: PokeMapIconButtonVariant.soft,
+                    icon: const Icon(CupertinoIcons.search),
+                  ),
                 ),
               if (documentActions != null) ...[
-                if (onOpenCommandPalette != null) const SizedBox(width: 8),
+                if (onOpenCommandPalette != null || onCheckForUpdates != null)
+                  const SizedBox(width: 8),
                 documentActions!,
               ],
             ],

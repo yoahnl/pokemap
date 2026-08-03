@@ -38,6 +38,8 @@ import '../features/editor/presentation/world_map/world_map_workspace_session.da
 import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
+import '../features/editor_updates/application/editor_update_providers.dart';
+import '../features/editor_updates/domain/editor_update_models.dart';
 import '../features/narrative/state/narrative_event_builder_v2_providers.dart';
 import '../features/narrative/state/narrative_validator_providers.dart';
 import '../application/services/narrative_document_session.dart';
@@ -199,6 +201,21 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             ? navigationState.location
             : workspaceLocation;
     final notifier = ref.read(editorNotifierProvider.notifier);
+    final updateController = ref.read(editorUpdateControllerProvider);
+    final updateState = ref.watch(editorUpdateStateProvider).valueOrNull ??
+        updateController.state;
+    final isUpdateCheckActive = updateState.phase == EditorUpdatePhase.checking;
+
+    void checkForUpdates() {
+      if (isUpdateCheckActive) return;
+      unawaited(updateController.checkManually());
+    }
+
+    ref.listen(editorManualUpdateCheckRequestsProvider, (previous, next) {
+      if (next.hasValue) {
+        checkForUpdates();
+      }
+    });
 
     Future<void> openWorldMapTargetEditor(
       WorldMapTargetEditorIntent intent,
@@ -702,6 +719,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                     clipBehavior: Clip.none,
                     children: [
                       NarrativeStudioProductShell(
+                        onCheckForUpdates: checkForUpdates,
+                        isUpdateCheckActive: isUpdateCheckActive,
                         selectedDestination:
                             selectedNarrativeLocation.destination,
                         selectedLocation: selectedNarrativeLocation,
@@ -849,6 +868,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                             isError: true,
                                           ),
                                           toolSlot: WorldMapToolbelt(
+                                            onCheckForUpdates: checkForUpdates,
+                                            isUpdateCheckActive:
+                                                isUpdateCheckActive,
                                             selectionFocusNode:
                                                 _worldMapSelectionFocusNode,
                                             onSave: () =>
@@ -976,6 +998,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                 return Column(
                                   children: [
                                     TopToolbar(
+                                      onCheckForUpdates: checkForUpdates,
+                                      isUpdateCheckActive: isUpdateCheckActive,
                                       onToggleRightPanel: () {
                                         setState(() {
                                           _rightInspectorVisible =

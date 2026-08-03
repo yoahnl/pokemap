@@ -5,6 +5,7 @@ import 'package:map_editor/src/features/editor_updates/application/editor_update
 import 'package:map_editor/src/features/editor_updates/domain/editor_exit_readiness.dart';
 import 'package:map_editor/src/features/editor_updates/domain/editor_native_updater.dart';
 import 'package:map_editor/src/features/editor_updates/domain/editor_update_catalog.dart';
+import 'package:map_editor/src/features/editor_updates/domain/editor_update_link_opener.dart';
 import 'package:map_editor/src/features/editor_updates/domain/editor_update_models.dart';
 import 'package:pub_semver/pub_semver.dart';
 
@@ -133,7 +134,19 @@ void main() {
 
     await controller.openNativeUpdateFlow();
     expect(controller.state.phase, EditorUpdatePhase.blockedByUnsavedWork);
+    expect(
+      controller.state.exitBlockers,
+      [
+        const EditorExitBlocker(
+          id: 'active-map',
+          kind: EditorExitBlockerKind.map,
+        ),
+      ],
+    );
     expect(updater.openCalls, 0);
+
+    controller.returnToEditor();
+    expect(controller.state.phase, EditorUpdatePhase.available);
 
     readiness = EditorExitReadiness.clean;
     await controller.openNativeUpdateFlow();
@@ -143,6 +156,26 @@ void main() {
     updater.emit(EditorNativeUpdateEvent.cancelled(updater.lastOperationId!));
     await pumpEventQueue();
     expect(controller.state.phase, EditorUpdatePhase.available);
+
+    await controller.dispose();
+  });
+
+  test('release notes open externally and dismissing hides the banner',
+      () async {
+    final linkOpener = _FakeLinkOpener();
+    final controller = _controller(
+      catalog: _FakeCatalog()..nextRelease = _release(),
+      linkOpener: linkOpener,
+    );
+    await controller.checkManually();
+
+    await controller.openReleaseNotes();
+    expect(linkOpener.openedUris, [_release().releaseNotesUri]);
+    expect(controller.state.phase, EditorUpdatePhase.available);
+
+    controller.dismissAvailableBanner();
+    expect(controller.state.phase, EditorUpdatePhase.idle);
+    expect(controller.state.currentVersion, Version.parse('0.3.0'));
 
     await controller.dispose();
   });
@@ -203,6 +236,7 @@ EditorUpdateController _controller({
   EditorUpdateTimerFactory? scheduleTimer,
   EditorExitReadiness Function()? readExitReadiness,
   void Function(EditorUpdateFailure)? onBackgroundFailure,
+  EditorUpdateLinkOpener? linkOpener,
 }) {
   return EditorUpdateController(
     catalog: catalog,
@@ -210,8 +244,19 @@ EditorUpdateController _controller({
     nativeUpdater: updater ?? _FakeNativeUpdater(),
     scheduleTimer: scheduleTimer ?? Timer.new,
     readExitReadiness: readExitReadiness ?? () => EditorExitReadiness.clean,
+    linkOpener: linkOpener ?? _FakeLinkOpener(),
     onBackgroundFailure: onBackgroundFailure,
   );
+}
+
+final class _FakeLinkOpener implements EditorUpdateLinkOpener {
+  final openedUris = <Uri>[];
+
+  @override
+  Future<bool> open(Uri uri) async {
+    openedUris.add(uri);
+    return true;
+  }
 }
 
 EditorUpdateRelease _release() {
@@ -268,6 +313,9 @@ final class _FakeNativeUpdater implements EditorNativeUpdater {
 
   @override
   Stream<EditorNativeUpdateEvent> get events => _events.stream;
+
+  @override
+  Stream<void> get manualCheckRequests => const Stream<void>.empty();
 
   @override
   Future<void> openUpdateFlow({

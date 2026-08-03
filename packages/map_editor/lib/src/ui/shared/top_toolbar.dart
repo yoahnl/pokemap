@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../application/models/terrain_selection_mode.dart';
 import '../../features/border_map_editing/application/border_tool_availability.dart';
 import '../../features/border_map_editing/presentation/pending_border_save_dialog.dart';
@@ -17,16 +18,23 @@ import 'top_toolbar/dialogs/top_toolbar_dialogs.dart';
 import 'top_toolbar/widgets/toolbar_brand.dart';
 import 'top_toolbar/widgets/toolbar_capsules.dart';
 
+const editorUpdateCheckToolbarActionKey =
+    ValueKey<String>('editor-update-check-toolbar-action');
+
 /// Barre d’outils native PokeMap.
 class TopToolbar extends ConsumerWidget {
   const TopToolbar({
     super.key,
     this.onToggleRightPanel,
     this.rightPanelVisible = false,
+    this.onCheckForUpdates,
+    this.isUpdateCheckActive = false,
   });
 
   final VoidCallback? onToggleRightPanel;
   final bool rightPanelVisible;
+  final VoidCallback? onCheckForUpdates;
+  final bool isUpdateCheckActive;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => TopToolbar.buildToolBar(
@@ -34,6 +42,8 @@ class TopToolbar extends ConsumerWidget {
         ref,
         onToggleRightPanel: onToggleRightPanel,
         rightPanelVisible: rightPanelVisible,
+        onCheckForUpdates: onCheckForUpdates,
+        isUpdateCheckActive: isUpdateCheckActive,
       );
 
   static List<MacosPulldownMenuEntry> _terrainPulldownItems(
@@ -128,8 +138,11 @@ class TopToolbar extends ConsumerWidget {
     WidgetRef ref, {
     VoidCallback? onToggleRightPanel,
     bool rightPanelVisible = false,
+    VoidCallback? onCheckForUpdates,
+    bool isUpdateCheckActive = false,
   }) {
     final colors = context.pokeMapColors;
+    final l10n = context.pokeMapL10n;
     final toolbar = ref.watch(editorToolbarSnapshotProvider);
     final activeBorderFeature =
         ref.watch(activeBorderFeatureControllerProvider);
@@ -512,6 +525,22 @@ class TopToolbar extends ConsumerWidget {
               tooltip: 'Masquer/Afficher le panneau des calques',
               selected: rightPanelVisible,
               onPressed: onToggleRightPanel,
+            ),
+          ],
+        ),
+      if (onCheckForUpdates != null)
+        _groupItem(
+          context,
+          title: l10n.editorUpdateHelp,
+          overflowLabel: l10n.editorUpdateHelp,
+          children: [
+            ToolbarCapsuleButton(
+              key: editorUpdateCheckToolbarActionKey,
+              icon: CupertinoIcons.arrow_2_circlepath,
+              tooltip: isUpdateCheckActive
+                  ? l10n.editorUpdateChecking
+                  : l10n.editorUpdateCheck,
+              onPressed: isUpdateCheckActive ? null : onCheckForUpdates,
             ),
           ],
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../../l10n/l10n.dart';
 import '../../../../application/models/terrain_selection_mode.dart';
 import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
@@ -25,6 +26,8 @@ class WorldMapToolbelt extends ConsumerWidget {
     this.onExportGame,
     this.onNewMap,
     this.onResizeMap,
+    this.onCheckForUpdates,
+    this.isUpdateCheckActive = false,
     this.onActivationRejected,
     this.selectionFocusNode,
     this.debugOnBuild,
@@ -40,6 +43,8 @@ class WorldMapToolbelt extends ConsumerWidget {
   final VoidCallback? onExportGame;
   final VoidCallback? onNewMap;
   final VoidCallback? onResizeMap;
+  final VoidCallback? onCheckForUpdates;
+  final bool isUpdateCheckActive;
   final ValueChanged<String>? onActivationRejected;
   final FocusNode? selectionFocusNode;
   @visibleForTesting
@@ -220,6 +225,8 @@ class WorldMapToolbelt extends ConsumerWidget {
                 onExportGame: onExportGame,
                 onNewMap: onNewMap,
                 onResizeMap: onResizeMap,
+                onCheckForUpdates: onCheckForUpdates,
+                isUpdateCheckActive: isUpdateCheckActive,
                 onUnavailable: reportRejection,
               ),
             ],
@@ -535,6 +542,7 @@ enum _WorldMapMoreAction {
   exportGame,
   newMap,
   resizeMap,
+  checkForUpdates,
 }
 
 class _WorldMapPlusMenu extends StatefulWidget {
@@ -546,6 +554,8 @@ class _WorldMapPlusMenu extends StatefulWidget {
     this.onExportGame,
     this.onNewMap,
     this.onResizeMap,
+    this.onCheckForUpdates,
+    this.isUpdateCheckActive = false,
     this.onUnavailable,
   });
 
@@ -556,6 +566,8 @@ class _WorldMapPlusMenu extends StatefulWidget {
   final VoidCallback? onExportGame;
   final VoidCallback? onNewMap;
   final VoidCallback? onResizeMap;
+  final VoidCallback? onCheckForUpdates;
+  final bool isUpdateCheckActive;
   final ValueChanged<String>? onUnavailable;
 
   @override
@@ -633,6 +645,15 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
           disabledReason:
               widget.onResizeMap == null ? 'Ouvrez une carte.' : null,
         ),
+        if (widget.onCheckForUpdates != null)
+          PokeMapMenuItem<_WorldMapMoreAction>(
+            value: _WorldMapMoreAction.checkForUpdates,
+            label: 'Aide · ${context.pokeMapL10n.editorUpdateCheck}',
+            enabled: !widget.isUpdateCheckActive,
+            disabledReason: widget.isUpdateCheckActive
+                ? context.pokeMapL10n.editorUpdateChecking
+                : null,
+          ),
       ];
 
   void _openMenu() {
@@ -650,7 +671,9 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
       builder: (context) => PokeMapContextMenu<_WorldMapMoreAction>(
         anchor: anchor,
         items: _items,
-        dividerAfter: const <int>{3},
+        dividerAfter: widget.onCheckForUpdates == null
+            ? const <int>{3}
+            : const <int>{3, 5},
         invokerFocusNode: _focusNode,
         semanticLabel: 'Plus d’actions World Map',
         onSelected: _activate,
@@ -679,6 +702,8 @@ class _WorldMapPlusMenuState extends State<_WorldMapPlusMenu> {
       _WorldMapMoreAction.exportGame => widget.onExportGame,
       _WorldMapMoreAction.newMap => widget.onNewMap,
       _WorldMapMoreAction.resizeMap => widget.onResizeMap,
+      _WorldMapMoreAction.checkForUpdates =>
+        widget.isUpdateCheckActive ? null : widget.onCheckForUpdates,
     };
     if (callback == null) {
       final disabledReason =

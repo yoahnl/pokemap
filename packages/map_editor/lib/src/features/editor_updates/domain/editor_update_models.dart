@@ -1,5 +1,7 @@
 import 'package:pub_semver/pub_semver.dart';
 
+import 'editor_exit_readiness.dart';
+
 enum EditorUpdatePhase {
   idle,
   checking,
@@ -44,6 +46,7 @@ final class EditorUpdateState {
     required this.userInitiated,
     this.availableRelease,
     this.failure,
+    this.exitBlockers = const [],
   });
 
   factory EditorUpdateState.available({
@@ -101,12 +104,14 @@ final class EditorUpdateState {
   factory EditorUpdateState.blockedByUnsavedWork({
     required Version currentVersion,
     required EditorUpdateRelease release,
+    required List<EditorExitBlocker> blockers,
   }) {
     return EditorUpdateState._(
       phase: EditorUpdatePhase.blockedByUnsavedWork,
       currentVersion: currentVersion,
       availableRelease: release,
       userInitiated: true,
+      exitBlockers: List.unmodifiable(blockers),
     );
   }
 
@@ -162,6 +167,7 @@ final class EditorUpdateState {
   final EditorUpdateRelease? availableRelease;
   final EditorUpdateFailure? failure;
   final bool userInitiated;
+  final List<EditorExitBlocker> exitBlockers;
 }
 
 final class EditorNativeUpdaterCapabilities {

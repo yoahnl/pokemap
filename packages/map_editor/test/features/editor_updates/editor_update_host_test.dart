@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/features/editor_updates/application/editor_update_providers.dart';
+import 'package:map_editor/src/features/editor_updates/domain/editor_exit_readiness.dart';
 import 'package:map_editor/src/features/editor_updates/domain/editor_native_updater.dart';
 import 'package:map_editor/src/features/editor_updates/domain/editor_update_catalog.dart';
 import 'package:map_editor/src/features/editor_updates/domain/editor_update_models.dart';
 import 'package:map_editor/src/features/editor_updates/presentation/editor_update_host.dart';
+import 'package:map_editor/src/theme/theme.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 void main() {
@@ -48,15 +50,106 @@ void main() {
     await tester.pump();
     expect(catalog.calls, 1);
   });
+
+  testWidgets('shows an available update without replacing the editor',
+      (tester) async {
+    final catalog = _FakeCatalog()..nextRelease = _release();
+    final nativeUpdater = _FakeNativeUpdater();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          editorUpdateCatalogProvider.overrideWithValue(catalog),
+          editorInstalledVersionReaderProvider.overrideWithValue(
+            _FakeVersionReader(),
+          ),
+          editorNativeUpdaterProvider.overrideWithValue(nativeUpdater),
+          editorExitReadinessProvider.overrideWithValue(
+            EditorExitReadiness.clean,
+          ),
+        ],
+        child: MaterialApp(
+          theme: PokeMapTheme.dark(),
+          home: const EditorUpdateHost(child: Text('Editor shell')),
+        ),
+      ),
+    );
+    await tester.pump();
+    final container = ProviderScope.containerOf(
+      tester.element(find.text('Editor shell')),
+    );
+
+    await container.read(editorUpdateControllerProvider).checkManually();
+    await tester.pump();
+
+    expect(find.text('Editor shell'), findsOneWidget);
+    expect(find.text('Une nouvelle aventure t’attend ✨'), findsOneWidget);
+    expect(find.text('Mettre à jour'), findsOneWidget);
+  });
+
+  testWidgets('lists every blocker and returns to the available banner',
+      (tester) async {
+    final catalog = _FakeCatalog()..nextRelease = _release();
+    final nativeUpdater = _FakeNativeUpdater();
+    final readiness = EditorExitReadiness.fromBlockers([
+      const EditorExitBlocker(
+        id: 'active-map',
+        kind: EditorExitBlockerKind.map,
+      ),
+      const EditorExitBlocker(
+        id: 'dialogue-draft',
+        kind: EditorExitBlockerKind.dialogueStudio,
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          editorUpdateCatalogProvider.overrideWithValue(catalog),
+          editorInstalledVersionReaderProvider.overrideWithValue(
+            _FakeVersionReader(),
+          ),
+          editorNativeUpdaterProvider.overrideWithValue(nativeUpdater),
+          editorExitReadinessProvider.overrideWithValue(readiness),
+        ],
+        child: MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: const EditorUpdateHost(child: Text('Editor shell')),
+        ),
+      ),
+    );
+    await tester.pump();
+    final container = ProviderScope.containerOf(
+      tester.element(find.text('Editor shell')),
+    );
+    final controller = container.read(editorUpdateControllerProvider);
+    await controller.checkManually();
+    await tester.pump();
+    await tester.tap(find.text('Mettre à jour'));
+    await tester.pump();
+
+    expect(find.text('Des créations restent à sauvegarder'), findsOneWidget);
+    expect(find.text('Carte active'), findsOneWidget);
+    expect(find.text('Dialogue Studio'), findsOneWidget);
+    expect(find.text('Sauvegarder et redémarrer'), findsNothing);
+    expect(find.text('Revenir à l’éditeur'), findsOneWidget);
+    expect(find.text('Réessayer le redémarrage'), findsOneWidget);
+
+    await tester.tap(find.text('Revenir à l’éditeur'));
+    await tester.pump();
+    expect(find.text('Une nouvelle aventure t’attend ✨'), findsOneWidget);
+    expect(nativeUpdater.openCalls, 0);
+  });
 }
 
 final class _FakeCatalog implements EditorUpdateCatalog {
   int calls = 0;
+  EditorUpdateRelease? nextRelease;
 
   @override
   Future<EditorUpdateRelease?> latestStable(Version currentVersion) async {
     calls += 1;
-    return null;
+    return nextRelease;
   }
 }
 
@@ -79,10 +172,17 @@ final class _FakeNativeUpdater implements EditorNativeUpdater {
   Stream<EditorNativeUpdateEvent> get events => _events.stream;
 
   @override
+  Stream<void> get manualCheckRequests => const Stream<void>.empty();
+
+  int openCalls = 0;
+
+  @override
   Future<void> openUpdateFlow({
     required String operationId,
     required EditorUpdateRelease release,
-  }) async {}
+  }) async {
+    openCalls += 1;
+  }
 
   @override
   Future<void> respondToRestart({
@@ -94,6 +194,17 @@ final class _FakeNativeUpdater implements EditorNativeUpdater {
   Future<void> dispose() async {
     await _events.close();
   }
+}
+
+EditorUpdateRelease _release() {
+  return EditorUpdateRelease(
+    version: Version.parse('0.3.1'),
+    tag: 'pokemap-v0.3.1',
+    publishedAt: DateTime.utc(2026, 8, 3),
+    releaseNotesUri: Uri.parse(
+      'https://github.com/yoahnl/pokemap/releases/tag/pokemap-v0.3.1',
+    ),
+  );
 }
 
 final class _ControlledTimerFactory {

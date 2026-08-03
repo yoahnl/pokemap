@@ -10,8 +10,44 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     MacOsFileAccessBridge.install(on: flutterViewController)
+    EditorUpdateBridge.install(on: flutterViewController)
 
     super.awakeFromNib()
+  }
+}
+
+/// Shared bridge for update UI commands that are safe before Sparkle lands.
+final class EditorUpdateBridge {
+  private static var channel: FlutterMethodChannel?
+
+  static func install(on controller: FlutterViewController) {
+    let updateChannel = FlutterMethodChannel(
+      name: "map_editor/editor_updates",
+      binaryMessenger: controller.engine.binaryMessenger
+    )
+    channel = updateChannel
+    updateChannel.setMethodCallHandler { call, result in
+      switch call.method {
+      case "openExternalUri":
+        guard
+          let arguments = call.arguments as? [String: Any],
+          let rawUri = arguments["uri"] as? String,
+          let uri = URL(string: rawUri),
+          uri.scheme == "https",
+          uri.host == "github.com"
+        else {
+          result(false)
+          return
+        }
+        result(NSWorkspace.shared.open(uri))
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  static func requestManualCheck() {
+    channel?.invokeMethod("manualCheckRequested", arguments: nil)
   }
 }
 

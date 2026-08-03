@@ -458,4 +458,129 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get personalizationPreflightReadError =>
       'Preflight could not read every file. Check the project permissions and try again.';
+
+  @override
+  String get editorUpdateAvailableTitle => 'A new adventure awaits ✨';
+
+  @override
+  String editorUpdateAvailableBody(String version) {
+    return 'PokeMap $version is ready to join your team.';
+  }
+
+  @override
+  String get editorUpdateReadNotes => 'Read release notes';
+
+  @override
+  String get editorUpdateInstall => 'Update now';
+
+  @override
+  String get editorUpdateCheck => 'Check for updates';
+
+  @override
+  String get editorUpdateChecking => 'Checking for updates…';
+
+  @override
+  String get editorUpdateUpToDate => 'PokeMap is up to date';
+
+  @override
+  String get editorUpdateUpToDateBody =>
+      'You are already using the latest available version.';
+
+  @override
+  String get editorUpdateManualCheckFailedTitle => 'Update check failed';
+
+  @override
+  String get editorUpdateManualCheckFailed =>
+      'PokeMap could not check for updates right now.';
+
+  @override
+  String get editorUpdateRetry => 'Try again';
+
+  @override
+  String get editorUpdateOpenGitHub => 'Open GitHub';
+
+  @override
+  String get editorUpdateUnsavedTitle => 'Some work still needs to be saved';
+
+  @override
+  String get editorUpdateUnsavedBody =>
+      'Save your open work before PokeMap restarts so everything stays safe.';
+
+  @override
+  String get editorUpdateSaveBeforeRestart => 'Save and restart';
+
+  @override
+  String get editorUpdateCancelled =>
+      'Update cancelled. You can try again whenever you are ready.';
+
+  @override
+  String get editorUpdateUnsupported =>
+      'Automatic updates are not available on this platform.';
+
+  @override
+  String get editorUpdateUnsupportedTitle => 'Automatic updates unavailable';
+
+  @override
+  String get editorUpdateDismiss => 'Dismiss';
+
+  @override
+  String get editorUpdateBackToEditor => 'Return to the editor';
+
+  @override
+  String get editorUpdateRetryRestart => 'Try restarting again';
+
+  @override
+  String get editorUpdateInstalling => 'Installing the update…';
+
+  @override
+  String get editorUpdateRestarting =>
+      'PokeMap is restarting to finish the update…';
+
+  @override
+  String get editorUpdateHelp => 'Help';
+
+  @override
+  String get editorUpdateBlockerMap => 'Active map';
+
+  @override
+  String get editorUpdateBlockerProjectManifest => 'Project';
+
+  @override
+  String get editorUpdateBlockerNarrative => 'Narrative Studio';
+
+  @override
+  String get editorUpdateBlockerPersonalization => 'Personalization Studio';
+
+  @override
+  String get editorUpdateBlockerBorderPreview => 'Border preview';
+
+  @override
+  String get editorUpdateBlockerBorderStudio => 'Border Studio';
+
+  @override
+  String get editorUpdateBlockerPathStudio => 'Path Studio';
+
+  @override
+  String get editorUpdateBlockerStepStudio => 'Step Studio';
+
+  @override
+  String get editorUpdateBlockerEnvironmentStudio => 'Environment Studio';
+
+  @override
+  String get editorUpdateBlockerDialogueStudio => 'Dialogue Studio';
+
+  @override
+  String get editorUpdateBlockerGlobalStoryStudio => 'Global Story Studio';
+
+  @override
+  String get editorUpdateBlockerEventBuilderV2 => 'Event Builder';
+
+  @override
+  String get editorUpdateBlockerPendingTemplate => 'Template draft';
+
+  @override
+  String get editorUpdateBlockerSaveInProgress => 'Save in progress';
+
+  @override
+  String get editorUpdateBlockerUnknown => 'Unsaved workspace';
 }

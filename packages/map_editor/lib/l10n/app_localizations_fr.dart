@@ -465,4 +465,131 @@ class AppLocalizationsFr extends AppLocalizations {
   @override
   String get personalizationPreflightReadError =>
       'Le preflight n’a pas pu lire tous les fichiers. Vérifiez les autorisations du projet puis réessayez.';
+
+  @override
+  String get editorUpdateAvailableTitle => 'Une nouvelle aventure t’attend ✨';
+
+  @override
+  String editorUpdateAvailableBody(String version) {
+    return 'PokeMap $version est prêt à rejoindre ton équipe.';
+  }
+
+  @override
+  String get editorUpdateReadNotes => 'Lire les notes';
+
+  @override
+  String get editorUpdateInstall => 'Mettre à jour';
+
+  @override
+  String get editorUpdateCheck => 'Vérifier les mises à jour';
+
+  @override
+  String get editorUpdateChecking => 'Vérification en cours…';
+
+  @override
+  String get editorUpdateUpToDate => 'PokeMap est déjà à jour';
+
+  @override
+  String get editorUpdateUpToDateBody =>
+      'Tu utilises déjà la dernière version disponible.';
+
+  @override
+  String get editorUpdateManualCheckFailedTitle => 'La vérification a échoué';
+
+  @override
+  String get editorUpdateManualCheckFailed =>
+      'Impossible de vérifier les mises à jour pour le moment.';
+
+  @override
+  String get editorUpdateRetry => 'Réessayer';
+
+  @override
+  String get editorUpdateOpenGitHub => 'Ouvrir GitHub';
+
+  @override
+  String get editorUpdateUnsavedTitle => 'Des créations restent à sauvegarder';
+
+  @override
+  String get editorUpdateUnsavedBody =>
+      'Tes créations ne sont pas encore toutes sauvegardées. On garde tout bien au chaud avant de redémarrer.';
+
+  @override
+  String get editorUpdateSaveBeforeRestart => 'Sauvegarder et redémarrer';
+
+  @override
+  String get editorUpdateCancelled =>
+      'Mise à jour annulée. Tu peux la relancer quand tu veux.';
+
+  @override
+  String get editorUpdateUnsupported =>
+      'Les mises à jour automatiques ne sont pas disponibles sur cette plateforme.';
+
+  @override
+  String get editorUpdateUnsupportedTitle =>
+      'Mise à jour automatique indisponible';
+
+  @override
+  String get editorUpdateDismiss => 'Fermer';
+
+  @override
+  String get editorUpdateBackToEditor => 'Revenir à l’éditeur';
+
+  @override
+  String get editorUpdateRetryRestart => 'Réessayer le redémarrage';
+
+  @override
+  String get editorUpdateInstalling =>
+      'Installation de la mise à jour en cours…';
+
+  @override
+  String get editorUpdateRestarting =>
+      'PokeMap redémarre pour terminer la mise à jour…';
+
+  @override
+  String get editorUpdateHelp => 'Aide';
+
+  @override
+  String get editorUpdateBlockerMap => 'Carte active';
+
+  @override
+  String get editorUpdateBlockerProjectManifest => 'Projet';
+
+  @override
+  String get editorUpdateBlockerNarrative => 'Narrative Studio';
+
+  @override
+  String get editorUpdateBlockerPersonalization => 'Personalization Studio';
+
+  @override
+  String get editorUpdateBlockerBorderPreview => 'Aperçu des bordures';
+
+  @override
+  String get editorUpdateBlockerBorderStudio => 'Border Studio';
+
+  @override
+  String get editorUpdateBlockerPathStudio => 'Path Studio';
+
+  @override
+  String get editorUpdateBlockerStepStudio => 'Step Studio';
+
+  @override
+  String get editorUpdateBlockerEnvironmentStudio => 'Environment Studio';
+
+  @override
+  String get editorUpdateBlockerDialogueStudio => 'Dialogue Studio';
+
+  @override
+  String get editorUpdateBlockerGlobalStoryStudio => 'Global Story Studio';
+
+  @override
+  String get editorUpdateBlockerEventBuilderV2 => 'Event Builder';
+
+  @override
+  String get editorUpdateBlockerPendingTemplate => 'Modèle en cours';
+
+  @override
+  String get editorUpdateBlockerSaveInProgress => 'Enregistrement en cours';
+
+  @override
+  String get editorUpdateBlockerUnknown => 'Espace de travail non sauvegardé';
 }

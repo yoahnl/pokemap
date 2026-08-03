@@ -5,6 +5,7 @@ import 'package:pub_semver/pub_semver.dart';
 import '../domain/editor_exit_readiness.dart';
 import '../domain/editor_native_updater.dart';
 import '../domain/editor_update_catalog.dart';
+import '../domain/editor_update_link_opener.dart';
 import '../domain/editor_update_models.dart';
 
 typedef EditorUpdateTimerFactory = Timer Function(
@@ -18,6 +19,7 @@ final class EditorUpdateController {
     required EditorUpdateCatalog catalog,
     required EditorInstalledVersionReader installedVersionReader,
     required EditorNativeUpdater nativeUpdater,
+    required EditorUpdateLinkOpener linkOpener,
     required EditorExitReadinessReader readExitReadiness,
     EditorUpdateTimerFactory scheduleTimer = Timer.new,
     void Function(EditorUpdateFailure)? onBackgroundFailure,
@@ -26,6 +28,7 @@ final class EditorUpdateController {
   })  : _catalog = catalog,
         _installedVersionReader = installedVersionReader,
         _nativeUpdater = nativeUpdater,
+        _linkOpener = linkOpener,
         _readExitReadiness = readExitReadiness,
         _scheduleTimer = scheduleTimer,
         _onBackgroundFailure = onBackgroundFailure {
@@ -37,6 +40,7 @@ final class EditorUpdateController {
   final EditorUpdateCatalog _catalog;
   final EditorInstalledVersionReader _installedVersionReader;
   final EditorNativeUpdater _nativeUpdater;
+  final EditorUpdateLinkOpener _linkOpener;
   final EditorExitReadinessReader _readExitReadiness;
   final EditorUpdateTimerFactory _scheduleTimer;
   final void Function(EditorUpdateFailure)? _onBackgroundFailure;
@@ -87,6 +91,42 @@ final class EditorUpdateController {
 
   Future<void> checkManually() => _startCheck(userInitiated: true);
 
+  Future<void> openReleaseNotes() async {
+    final release = _availableRelease;
+    if (_disposed || release == null) {
+      return;
+    }
+    await _openLink(release.releaseNotesUri);
+  }
+
+  Future<void> openReleasesPage() {
+    return _openLink(
+      Uri.parse('https://github.com/yoahnl/pokemap/releases'),
+    );
+  }
+
+  void dismissAvailableBanner() {
+    if (_disposed) return;
+    _emit(EditorUpdateState.idle(currentVersion: _state.currentVersion));
+  }
+
+  void returnToEditor() {
+    if (_disposed) return;
+    final release = _availableRelease;
+    final currentVersion = _state.currentVersion;
+    if (release == null || currentVersion == null) {
+      dismissAvailableBanner();
+      return;
+    }
+    _emit(
+      EditorUpdateState.available(
+        currentVersion: currentVersion,
+        release: release,
+        userInitiated: true,
+      ),
+    );
+  }
+
   Future<void> openNativeUpdateFlow() async {
     if (_disposed || !_nativeUpdater.isSupported) {
       return;
@@ -96,11 +136,13 @@ final class EditorUpdateController {
     if (release == null || currentVersion == null) {
       return;
     }
-    if (!_readExitReadiness().canExit) {
+    final readiness = _readExitReadiness();
+    if (!readiness.canExit) {
       _emit(
         EditorUpdateState.blockedByUnsavedWork(
           currentVersion: currentVersion,
           release: release,
+          blockers: readiness.blockers,
         ),
       );
       return;
@@ -123,6 +165,7 @@ final class EditorUpdateController {
       if (_disposed || _activeNativeOperationId != operationId) {
         return;
       }
+      _activeNativeOperationId = null;
       _emit(
         EditorUpdateState.failed(
           currentVersion: currentVersion,
@@ -293,7 +336,8 @@ final class EditorUpdateController {
           ),
         );
       case EditorNativeUpdateEventKind.restartRequested:
-        final canRestart = _readExitReadiness().canExit;
+        final readiness = _readExitReadiness();
+        final canRestart = readiness.canExit;
         await _nativeUpdater.respondToRestart(
           operationId: event.operationId,
           canRestart: canRestart,
@@ -310,6 +354,7 @@ final class EditorUpdateController {
               : EditorUpdateState.blockedByUnsavedWork(
                   currentVersion: currentVersion,
                   release: release,
+                  blockers: readiness.blockers,
                 ),
         );
       case EditorNativeUpdateEventKind.failed:
@@ -342,6 +387,27 @@ final class EditorUpdateController {
       code: fallbackCode,
       message: 'The update operation failed.',
     );
+  }
+
+  Future<void> _openLink(Uri uri) async {
+    try {
+      final opened = await _linkOpener.open(uri);
+      if (!opened) {
+        throw StateError('The external link was rejected.');
+      }
+    } catch (_) {
+      if (_disposed) return;
+      _emit(
+        EditorUpdateState.failed(
+          currentVersion: _state.currentVersion,
+          failure: const EditorUpdateFailure(
+            code: 'external_link_failed',
+            message: 'The external link could not be opened.',
+          ),
+          userInitiated: true,
+        ),
+      );
+    }
   }
 
   void _emit(EditorUpdateState state) {

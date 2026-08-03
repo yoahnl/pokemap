@@ -5,6 +5,7 @@ library;
 export 'narrative/pokemap_dependency_inspector.dart';
 export 'narrative/pokemap_event_source_picker.dart';
 export 'narrative/pokemap_narrative_reference_picker.dart';
+export 'pokemap_action_banner.dart';
 export 'pokemap_action_tile.dart';
 export 'pokemap_asset_card.dart';
 export 'pokemap_badge.dart';
