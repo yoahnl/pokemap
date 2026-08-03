@@ -1,6 +1,24 @@
 name: Avelune Android distribution
 
 on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Build a preview or publish the signed Android release
+        required: true
+        default: preflight
+        type: choice
+        options:
+          - preflight
+          - release
+      version:
+        description: Required for release mode and must match pubspec.yaml
+        required: false
+        type: string
+      confirmation:
+        description: Type RELEASE in release mode
+        required: false
+        type: string
   pull_request:
     paths:
       - "apps/pokemap_hub/**"
@@ -18,13 +36,22 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ (startsWith(github.ref, 'refs/tags/avelune-v') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')) && 'avelune-android-stable-release' || format('avelune-android-{0}', github.ref) }}
+  cancel-in-progress: false
+
 env:
   FLUTTER_VERSION: 3.46.0-0.3.pre
   FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('avelune-v{0}', inputs.version) || github.ref_name }}
 
 jobs:
   preview:
-    if: ${{ !startsWith(github.ref, 'refs/tags/avelune-v') }}
+    if: >-
+      ${{
+        !startsWith(github.ref, 'refs/tags/avelune-v') &&
+        (github.event_name != 'workflow_dispatch' || inputs.mode == 'preflight')
+      }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -55,9 +82,14 @@ jobs:
           path: apps/pokemap_hub/build/app/outputs/flutter-apk/app-debug.apk
 
   release:
-    if: ${{ startsWith(github.ref, 'refs/tags/avelune-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/avelune-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    environment: pokemap-release
     permissions:
       contents: write
     env:
@@ -69,7 +101,19 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Validate Avelune release version
         working-directory: apps/pokemap_hub
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          REQUEST_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$REQUEST_CONFIRMATION" = RELEASE
+            test -n "$REQUESTED_VERSION"
+            if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+              echo "Stable tag $RELEASE_TAG already exists; refusing to overwrite it." >&2
+              exit 65
+            fi
+          fi
           PUBSPEC_VERSION="$(sed -n 's/^version:[[:space:]]*//p' pubspec.yaml)"
           if [[ ! "$PUBSPEC_VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)\+([1-9][0-9]*)$ ]]; then
             echo "Invalid Avelune pubspec version: $PUBSPEC_VERSION" >&2
@@ -77,7 +121,7 @@ jobs:
           fi
           VERSION="${BASH_REMATCH[1]}"
           BUILD_NUMBER="${BASH_REMATCH[2]}"
-          test "$GITHUB_REF_NAME" = "avelune-v$VERSION"
+          test "$RELEASE_TAG" = "avelune-v$VERSION"
           printf 'Validated Avelune %s build %s.\n' "$VERSION" "$BUILD_NUMBER"
       - name: Install pinned Flutter SDK
         run: |
@@ -108,7 +152,7 @@ jobs:
           flutter test test/release/mobile_platform_release_gate_test.dart
           flutter analyze
           flutter build apk --release
-          VERSION="${GITHUB_REF_NAME#avelune-v}"
+          VERSION="${RELEASE_TAG#avelune-v}"
           mkdir -p build/release
           cp build/app/outputs/flutter-apk/app-release.apk \
             "build/release/Avelune-android-$VERSION.apk"
@@ -116,7 +160,7 @@ jobs:
       - name: Preserve signed APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: avelune-android-${{ github.ref_name }}
+          name: avelune-android-${{ github.sha }}
           if-no-files-found: error
           retention-days: 90
           path: apps/pokemap_hub/build/release/Avelune-android-*.apk
@@ -125,8 +169,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
+          TARGET_ARGS=()
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            TARGET_ARGS=(--target "$GITHUB_SHA")
+          fi
+          gh release create "$RELEASE_TAG" "${TARGET_ARGS[@]}" \
             build/release/Avelune-android-*.apk \
             --repo "$GITHUB_REPOSITORY" \
-            --title "Avelune ${GITHUB_REF_NAME#avelune-v}" \
+            --title "Avelune ${RELEASE_TAG#avelune-v}" \
             --generate-notes

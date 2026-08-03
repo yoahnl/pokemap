@@ -2,6 +2,23 @@ name: PokeMap desktop distribution
 
 on:
   workflow_dispatch:
+    inputs:
+      mode:
+        description: Run the signed macOS preflight or publish all platforms
+        required: true
+        default: preflight
+        type: choice
+        options:
+          - preflight
+          - release
+      version:
+        description: Required for release mode and must match pubspec.yaml
+        required: false
+        type: string
+      confirmation:
+        description: Type RELEASE in release mode
+        required: false
+        type: string
   pull_request:
     paths:
       - "packages/map_core/**"
@@ -20,16 +37,21 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ startsWith(github.ref, 'refs/tags/pokemap-v') && 'pokemap-desktop-stable-release' || format('pokemap-desktop-{0}', github.ref) }}
+  group: ${{ (startsWith(github.ref, 'refs/tags/pokemap-v') || (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')) && 'pokemap-desktop-stable-release' || format('pokemap-desktop-{0}', github.ref) }}
   cancel-in-progress: false
 
 env:
   FLUTTER_VERSION: 3.46.0-0.3.pre
   FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+  RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('pokemap-v{0}', inputs.version) || github.ref_name }}
 
 jobs:
   validate-release:
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
@@ -50,9 +72,21 @@ jobs:
       - name: Validate release tag and build
         id: release-contract
         working-directory: packages/map_editor
+        env:
+          REQUESTED_VERSION: ${{ inputs.version }}
+          REQUEST_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            test "$GITHUB_REF" = refs/heads/main
+            test "$REQUEST_CONFIRMATION" = RELEASE
+            test -n "$REQUESTED_VERSION"
+            if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null 2>&1; then
+              echo "Stable tag $RELEASE_TAG already exists; refusing to overwrite it." >&2
+              exit 65
+            fi
+          fi
           flutter pub get
-          dart run tool/release/validate_release_version.dart --tag "$GITHUB_REF_NAME" --pubspec pubspec.yaml --github-output "$GITHUB_OUTPUT"
+          dart run tool/release/validate_release_version.dart --tag "$RELEASE_TAG" --pubspec pubspec.yaml --github-output "$GITHUB_OUTPUT"
 
   macos-preview:
     if: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/pokemap-v') }}
@@ -88,7 +122,7 @@ jobs:
           path: packages/map_editor/build/release/PokeMap-macos-preview.dmg
 
   macos-preflight:
-    if: ${{ github.event_name == 'workflow_dispatch' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'preflight' }}
     runs-on: macos-15
     timeout-minutes: 90
     environment: pokemap-release
@@ -271,7 +305,11 @@ jobs:
             packages/map_editor/build/release/PokeMap-Editor-Setup-*.exe
 
   windows-release:
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     needs: validate-release
     runs-on: windows-2025
     timeout-minutes: 60
@@ -374,7 +412,11 @@ jobs:
           path: packages/map_editor/build/release/PokeMap-linux-x64.tar.gz
 
   linux-release:
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     needs: validate-release
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -426,7 +468,11 @@ jobs:
           path: packages/map_editor/build/release/PokeMap-Editor-*-linux-x64.tar.gz
 
   macos-release:
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     needs: validate-release
     runs-on: macos-15
     timeout-minutes: 90
@@ -534,7 +580,7 @@ jobs:
             --generate-appcast "$GENERATE_APPCAST" \
             --private-key-file "$PRIVATE_KEY" \
             --download-url-prefix \
-              "https://github.com/$GITHUB_REPOSITORY/releases/download/$GITHUB_REF_NAME/"
+              "https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG/"
           grep -q '<!-- sparkle-signatures:' build/release/appcast-macos.xml
       - name: Preserve notarized macOS package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -548,7 +594,11 @@ jobs:
             packages/map_editor/build/release/appcast-macos.xml
 
   assemble-release:
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     needs:
       - validate-release
       - windows-release
@@ -596,14 +646,14 @@ jobs:
           dart run tool/release/generate_update_index.dart \
             --output ../../dist/pokemap-update-index.json \
             --version "$RELEASE_VERSION" \
-            --tag "$GITHUB_REF_NAME" \
+            --tag "$RELEASE_TAG" \
             --published-at "$PUBLISHED_AT" \
             --repository "$GITHUB_REPOSITORY"
           dart run tool/release/validate_update_assets.dart \
             --directory ../../dist \
             --version "$RELEASE_VERSION" \
             --build-number "$RELEASE_BUILD_NUMBER" \
-            --tag "$GITHUB_REF_NAME" \
+            --tag "$RELEASE_TAG" \
             --repository "$GITHUB_REPOSITORY" \
             --macos-public-key "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
             --windows-manual \
@@ -618,7 +668,11 @@ jobs:
           path: dist/*
 
   create-draft-release:
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     needs:
       - validate-release
       - assemble-release
@@ -639,20 +693,28 @@ jobs:
         run: |
           EXISTING_RELEASE_ID="$(
             gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
-              --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\") | .id"
+              --jq ".[] | select(.tag_name == \"$RELEASE_TAG\") | .id"
           )"
           if [[ -n "$EXISTING_RELEASE_ID" ]]; then
-            echo "Release $GITHUB_REF_NAME already exists; refusing to overwrite it." >&2
+            echo "Release $RELEASE_TAG already exists; refusing to overwrite it." >&2
             exit 65
           fi
-          gh release create "$GITHUB_REF_NAME" --draft \
+          TARGET_ARGS=()
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            TARGET_ARGS=(--target "$GITHUB_SHA")
+          fi
+          gh release create "$RELEASE_TAG" --draft "${TARGET_ARGS[@]}" \
             dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "PokeMap $RELEASE_VERSION" \
             --generate-notes
 
   smoke-download-draft:
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     needs:
       - validate-release
       - create-draft-release
@@ -684,10 +746,10 @@ jobs:
           mkdir dist
           DRAFT_RELEASE_ID="$(
             gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
-              --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\" and .draft == true) | .id"
+              --jq ".[] | select(.tag_name == \"$RELEASE_TAG\" and .draft == true) | .id"
           )"
           if [[ ! "$DRAFT_RELEASE_ID" =~ ^[0-9]+$ ]]; then
-            echo "Expected exactly one draft release for $GITHUB_REF_NAME." >&2
+            echo "Expected exactly one draft release for $RELEASE_TAG." >&2
             exit 66
           fi
           gh api --paginate \
@@ -710,13 +772,17 @@ jobs:
             --directory ../../dist \
             --version "$RELEASE_VERSION" \
             --build-number "$RELEASE_BUILD_NUMBER" \
-            --tag "$GITHUB_REF_NAME" \
+            --tag "$RELEASE_TAG" \
             --repository "$GITHUB_REPOSITORY" \
             --macos-public-key "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
             --windows-manual
 
   publish-release:
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     needs: smoke-download-draft
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -729,20 +795,24 @@ jobs:
         run: |
           DRAFT_RELEASE_ID="$(
             gh api --paginate "repos/$GITHUB_REPOSITORY/releases" \
-              --jq ".[] | select(.tag_name == \"$GITHUB_REF_NAME\" and .draft == true) | .id"
+              --jq ".[] | select(.tag_name == \"$RELEASE_TAG\" and .draft == true) | .id"
           )"
           if [[ ! "$DRAFT_RELEASE_ID" =~ ^[0-9]+$ ]]; then
-            echo "Expected exactly one validated draft release for $GITHUB_REF_NAME." >&2
+            echo "Expected exactly one validated draft release for $RELEASE_TAG." >&2
             exit 68
           fi
           gh api --method PATCH \
             "repos/$GITHUB_REPOSITORY/releases/$DRAFT_RELEASE_ID" \
             -F draft=false >/dev/null
-          test "$(gh release view "$GITHUB_REF_NAME" \
+          test "$(gh release view "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" = false
 
   promote-stable-feed:
-    if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
+    if: >-
+      ${{
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v')) ||
+        (github.event_name == 'workflow_dispatch' && inputs.mode == 'release')
+      }}
     needs:
       - validate-release
       - publish-release
@@ -758,7 +828,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir stable
-          gh release download "$GITHUB_REF_NAME" \
+          gh release download "$RELEASE_TAG" \
             --repo "$GITHUB_REPOSITORY" \
             --dir stable \
             --pattern appcast-macos.xml \

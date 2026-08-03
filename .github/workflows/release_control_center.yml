@@ -1,0 +1,184 @@
+name: Release Control Center
+
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: Product to validate or publish
+        required: true
+        default: pokemap
+        type: choice
+        options:
+          - pokemap
+          - avelune
+          - both
+      action:
+        description: Run a safe preflight or publish a stable release
+        required: true
+        default: preflight
+        type: choice
+        options:
+          - preflight
+          - publish
+      pokemap_version:
+        description: Required for a PokeMap publication (for example 0.3.4)
+        required: false
+        type: string
+      avelune_version:
+        description: Required for an Avelune publication (for example 0.1.2)
+        required: false
+        type: string
+      confirmation:
+        description: Type RELEASE when publishing; leave empty for preflight
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-control-center
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.46.0-0.3.pre
+  FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+
+jobs:
+  validate-request:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    outputs:
+      action: ${{ steps.contract.outputs.action }}
+      pokemap_selected: ${{ steps.contract.outputs.pokemap_selected }}
+      avelune_selected: ${{ steps.contract.outputs.avelune_selected }}
+      pokemap_version: ${{ steps.contract.outputs.pokemap_version }}
+      avelune_version: ${{ steps.contract.outputs.avelune_version }}
+      pokemap_tag: ${{ steps.contract.outputs.pokemap_tag }}
+      avelune_tag: ${{ steps.contract.outputs.avelune_tag }}
+    steps:
+      - name: Require the protected main branch
+        run: test "$GITHUB_REF" = refs/heads/main
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install pinned Flutter SDK
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin \
+            "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+          git -C "$RUNNER_TEMP/flutter" checkout --detach "$FLUTTER_VERSION"
+          test "$(git -C "$RUNNER_TEMP/flutter" rev-parse HEAD)" = "$FLUTTER_REVISION"
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
+      - name: Validate control center request
+        id: contract
+        env:
+          REQUEST_PRODUCT: ${{ inputs.product }}
+          REQUEST_ACTION: ${{ inputs.action }}
+          REQUEST_POKEMAP_VERSION: ${{ inputs.pokemap_version }}
+          REQUEST_AVELUNE_VERSION: ${{ inputs.avelune_version }}
+          REQUEST_CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          dart run tool/release_control_center/validate_release_request.dart \
+            --product "$REQUEST_PRODUCT" \
+            --action "$REQUEST_ACTION" \
+            --ref "$GITHUB_REF" \
+            --pokemap-pubspec packages/map_editor/pubspec.yaml \
+            --avelune-pubspec apps/pokemap_hub/pubspec.yaml \
+            --pokemap-version "$REQUEST_POKEMAP_VERSION" \
+            --avelune-version "$REQUEST_AVELUNE_VERSION" \
+            --confirmation "$REQUEST_CONFIRMATION" \
+            --github-output "$GITHUB_OUTPUT"
+
+  dispatch-preflight:
+    if: ${{ needs.validate-request.outputs.action == 'preflight' }}
+    needs: validate-request
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ACTION: preflight
+      CONFIRMATION: ""
+    steps:
+      - name: Dispatch selected preflights
+        env:
+          POKEMAP_SELECTED: ${{ needs.validate-request.outputs.pokemap_selected }}
+          AVELUNE_SELECTED: ${{ needs.validate-request.outputs.avelune_selected }}
+          POKEMAP_VERSION: ${{ needs.validate-request.outputs.pokemap_version }}
+          AVELUNE_VERSION: ${{ needs.validate-request.outputs.avelune_version }}
+        run: |
+          if [[ "$POKEMAP_SELECTED" == true ]]; then
+            gh workflow run pokemap_desktop_release.yml --ref main \
+              --repo "$GITHUB_REPOSITORY" \
+              -f mode="$ACTION" \
+              -f version="$POKEMAP_VERSION" \
+              -f confirmation="$CONFIRMATION"
+          fi
+          if [[ "$AVELUNE_SELECTED" == true ]]; then
+            gh workflow run avelune_android_release.yml --ref main \
+              --repo "$GITHUB_REPOSITORY" \
+              -f mode="$ACTION" \
+              -f version="$AVELUNE_VERSION" \
+              -f confirmation="$CONFIRMATION"
+          fi
+
+  dispatch-publication:
+    if: ${{ needs.validate-request.outputs.action == 'publish' }}
+    needs: validate-request
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: pokemap-release
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ACTION: release
+      CONFIRMATION: RELEASE
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Refuse existing stable tags
+        env:
+          POKEMAP_SELECTED: ${{ needs.validate-request.outputs.pokemap_selected }}
+          AVELUNE_SELECTED: ${{ needs.validate-request.outputs.avelune_selected }}
+          POKEMAP_TAG: ${{ needs.validate-request.outputs.pokemap_tag }}
+          AVELUNE_TAG: ${{ needs.validate-request.outputs.avelune_tag }}
+        run: |
+          check_tag() {
+            local tag="$1"
+            if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
+              echo "Stable tag $tag already exists; refusing to overwrite it." >&2
+              exit 65
+            fi
+          }
+          if [[ "$POKEMAP_SELECTED" == true ]]; then
+            check_tag "$POKEMAP_TAG"
+          fi
+          if [[ "$AVELUNE_SELECTED" == true ]]; then
+            check_tag "$AVELUNE_TAG"
+          fi
+      - name: Dispatch selected publications
+        env:
+          POKEMAP_SELECTED: ${{ needs.validate-request.outputs.pokemap_selected }}
+          AVELUNE_SELECTED: ${{ needs.validate-request.outputs.avelune_selected }}
+          POKEMAP_VERSION: ${{ needs.validate-request.outputs.pokemap_version }}
+          AVELUNE_VERSION: ${{ needs.validate-request.outputs.avelune_version }}
+        run: |
+          if [[ "$POKEMAP_SELECTED" == true ]]; then
+            gh workflow run pokemap_desktop_release.yml --ref main \
+              --repo "$GITHUB_REPOSITORY" \
+              -f mode="$ACTION" \
+              -f version="$POKEMAP_VERSION" \
+              -f confirmation="$CONFIRMATION"
+          fi
+          if [[ "$AVELUNE_SELECTED" == true ]]; then
+            gh workflow run avelune_android_release.yml --ref main \
+              --repo "$GITHUB_REPOSITORY" \
+              -f mode="$ACTION" \
+              -f version="$AVELUNE_VERSION" \
+              -f confirmation="$CONFIRMATION"
+          fi

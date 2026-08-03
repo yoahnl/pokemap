@@ -29,7 +29,7 @@ void main() {
     expect(workflow, contains('promote-stable-feed:'));
     expect(
       workflow,
-      contains(r'gh release create "$GITHUB_REF_NAME" --draft'),
+      contains(r'gh release create "$RELEASE_TAG" --draft'),
     );
   });
 
@@ -59,7 +59,7 @@ void main() {
       workflow,
       contains(
         r'dart run tool/release/validate_release_version.dart '
-        r'--tag "$GITHUB_REF_NAME" --pubspec pubspec.yaml '
+        r'--tag "$RELEASE_TAG" --pubspec pubspec.yaml '
         r'--github-output "$GITHUB_OUTPUT"',
       ),
     );
@@ -205,15 +205,40 @@ void main() {
     }
   });
 
-  test('manual dispatch can never satisfy a tagged publication job', () async {
+  test('manual publication is guarded while tag publication stays supported',
+      () async {
     final workflow = await File(
       '../../.github/workflows/pokemap_desktop_release.yml',
     ).readAsString();
-    const releaseCondition = r"github.event_name == 'push' && "
-        r"startsWith(github.ref, 'refs/tags/pokemap-v')";
+    const manualReleaseCondition =
+        r"github.event_name == 'workflow_dispatch' && inputs.mode == 'release'";
 
-    expect(RegExp(RegExp.escape(releaseCondition)).allMatches(workflow),
-        hasLength(9));
+    expect(
+      RegExp(RegExp.escape(manualReleaseCondition)).allMatches(workflow),
+      hasLength(10),
+    );
+    expect(
+      workflow,
+      contains(
+        r"github.event_name == 'push' && "
+        r"startsWith(github.ref, 'refs/tags/pokemap-v')",
+      ),
+    );
+    expect(workflow, contains(r'test "$GITHUB_REF" = refs/heads/main'));
+    expect(
+      workflow,
+      contains(r'test "$REQUEST_CONFIRMATION" = RELEASE'),
+    );
+    expect(
+      workflow,
+      isNot(contains(r'test "${{ inputs.confirmation }}" = RELEASE')),
+    );
+    expect(
+      workflow,
+      contains(
+        r'git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG"',
+      ),
+    );
     expect(
       workflow,
       isNot(contains(

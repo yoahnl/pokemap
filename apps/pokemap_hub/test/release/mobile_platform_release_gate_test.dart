@@ -115,12 +115,20 @@ void main() {
     expect(androidWorkflow, contains('Validate Avelune release version'));
     expect(
       androidWorkflow,
-      contains(r'test "$GITHUB_REF_NAME" = "avelune-v$VERSION"'),
+      contains(r'test "$RELEASE_TAG" = "avelune-v$VERSION"'),
+    );
+    expect(
+      androidWorkflow,
+      contains(r'test "$REQUEST_CONFIRMATION" = RELEASE'),
+    );
+    expect(
+      androidWorkflow,
+      isNot(contains(r'test "${{ inputs.confirmation }}" = RELEASE')),
     );
     expect(androidWorkflow, contains('Avelune-android-'));
     expect(
       androidWorkflow,
-      contains(r'gh release create "$GITHUB_REF_NAME"'),
+      contains(r'gh release create "$RELEASE_TAG"'),
     );
     expect(androidWorkflow, isNot(contains('PokeMap-android')));
   });
