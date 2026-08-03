@@ -16,12 +16,13 @@ Future<int> validateReleaseVersionCommand(
   final tag = _readOption(arguments, '--tag');
   final pubspecPath = _readOption(arguments, '--pubspec');
   final previousBuildText = _readOption(arguments, '--previous-build');
+  final githubOutputPath = _readOption(arguments, '--github-output');
 
   if (tag == null || pubspecPath == null) {
     stderrSink.writeln(
       'Usage: validate_release_version.dart '
       '--tag pokemap-vX.Y.Z --pubspec path/to/pubspec.yaml '
-      '[--previous-build N]',
+      '[--previous-build N] [--github-output path]',
     );
     return 64;
   }
@@ -57,6 +58,20 @@ Future<int> validateReleaseVersionCommand(
     'Validated PokeMap Editor ${validation.displayVersion} '
     'build ${validation.buildNumber}.',
   );
+  if (githubOutputPath != null) {
+    try {
+      await File(githubOutputPath).writeAsString(
+        'version=${validation.displayVersion}\n'
+        'build_number=${validation.buildNumber}\n'
+        'tag=$tag\n',
+        mode: FileMode.append,
+        flush: true,
+      );
+    } on FileSystemException catch (error) {
+      stderrSink.writeln('Unable to write GitHub outputs: ${error.message}');
+      return 73;
+    }
+  }
   return 0;
 }
 

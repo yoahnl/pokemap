@@ -33,6 +33,9 @@ void main() {
   });
 
   test('release version CLI accepts a matching stable release', () async {
+    final githubOutput = File(
+      p.join(temporaryDirectory.path, 'github-output.txt'),
+    );
     final result = await Process.run(
       dartExecutable,
       [
@@ -43,6 +46,8 @@ void main() {
         temporaryPubspec.path,
         '--previous-build',
         '299',
+        '--github-output',
+        githubOutput.path,
       ],
     );
 
@@ -50,6 +55,10 @@ void main() {
     expect(
       result.stdout,
       contains('Validated PokeMap Editor 0.3.0 build 300.'),
+    );
+    expect(
+      await githubOutput.readAsLines(),
+      ['version=0.3.0', 'build_number=300', 'tag=pokemap-v0.3.0'],
     );
   });
 
