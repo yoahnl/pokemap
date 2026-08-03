@@ -31,6 +31,19 @@ void main() {
     expect(script, contains('PokeMap-Editor-Setup-'));
   });
 
+  test('Windows manual packager creates an installer without an update feed',
+      () {
+    final script = File(
+      'tool/release/package_windows_manual_release.ps1',
+    ).readAsStringSync();
+
+    expect(script, contains('ISCC.exe'));
+    expect(script, contains('PokeMap-Editor-Setup-'));
+    expect(script, contains('PokeMap.exe'));
+    expect(script, isNot(contains('winsparkle-tool')));
+    expect(script, isNot(contains('appcast-windows.xml')));
+  });
+
   test('release workflow injects public keys without publishing private keys',
       () {
     final workflow = File(
@@ -38,11 +51,10 @@ void main() {
     ).readAsStringSync();
 
     expect(workflow, contains('POKEMAP_SPARKLE_PUBLIC_ED_KEY'));
-    expect(workflow, contains('POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY'));
     expect(workflow, contains('SPARKLE_PRIVATE_ED_KEY_BASE64'));
-    expect(workflow, contains('WINSPARKLE_PRIVATE_ED_KEY_BASE64'));
     expect(workflow, contains('package_macos_update.sh'));
-    expect(workflow, contains('package_windows_update.ps1'));
+    expect(workflow, contains('package_windows_manual_release.ps1'));
+    expect(workflow, isNot(contains('WINSPARKLE_PRIVATE_ED_KEY_BASE64')));
     expect(workflow, isNot(contains('sparkle_private_key=')));
   });
 }

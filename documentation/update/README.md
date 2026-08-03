@@ -10,21 +10,21 @@ stable.
 État au 3 août 2026 : **implémenté, mais pas encore certifié pour la
 production**.
 
-La détection et l’expérience Flutter, l’intégration native macOS et Windows,
-ainsi que la publication atomique GitHub sont présentes dans le code. Une
+La détection et l’expérience Flutter, l’intégration native macOS ainsi que la
+publication atomique GitHub sont présentes dans le code. Une
 première vraie boucle d’update entre deux versions installées reste toutefois
-à prouver. Windows est volontairement mis de côté pour le moment et Linux reste
-un paquet téléchargeable sans mise à jour automatique.
+à prouver. La politique de la première release active l’auto-update uniquement
+sur macOS ; Windows et Linux sont distribués en téléchargement manuel.
 
 | Plateforme | Implémentation | Certification réelle | Diffusion stable |
 |---|---|---|---|
-| macOS | Sparkle 2.9.5, signature Developer ID, notarisation et feed signé | PARTIAL : preflight complet vert ; cycle installé `0.3.0 → 0.3.1` encore à certifier | Bloquée tant que la release multi-plateforme n’est pas certifiée |
-| Windows | WinSparkle 0.9.4, Inno Setup et appcast EdDSA | BLOCKED : clés/secrets et test sur machine propre manquants | Bloquée |
+| macOS | Sparkle 2.9.5, signature Developer ID, notarisation et feed signé | PARTIAL : preflight complet vert ; cycle installé `0.3.0 → 0.3.1` encore à certifier | Auto-update stable autorisé |
+| Windows | Installateur Inno Setup ; WinSparkle présent mais désactivé par défaut | PARTIAL : build CI vert ; installation sur machine propre à confirmer | Téléchargement manuel seulement |
 | Linux | archive `.tar.gz` versionnée et checksums | PARTIAL : build GitHub vert ; installation et lancement sur machine Linux propre à confirmer | Téléchargement manuel seulement |
 
-Important : **ne pas pousser de tag `pokemap-v*` tant que Windows est mis de
-côté**. Le pipeline de release est fail-closed et exige les artefacts macOS,
-Windows et Linux avant toute publication.
+Le pipeline reste fail-closed et exige les trois paquets avant publication.
+Seul l’appcast macOS est promu dans le canal stable ; aucun appcast Windows
+vide, factice ou non signé n’est publié.
 
 ## 2. Résumé exécutif
 
@@ -32,17 +32,18 @@ Le système est divisé en trois couches :
 
 1. Flutter consulte un petit index JSON stable pour annoncer une nouvelle
    version et présenter une interface PokeMap cohérente.
-2. Sparkle sur macOS ou WinSparkle sur Windows prend ensuite en charge le
-   téléchargement, la signature, l’installation et le redémarrage natifs.
+2. Sparkle sur macOS prend ensuite en charge le téléchargement, la vérification,
+   l’installation et le redémarrage natifs. Les paquets Windows et Linux restent
+   disponibles sur la release pour une installation manuelle.
 3. GitHub Actions construit les paquets, valide leurs métadonnées et signatures,
    crée une release brouillon, retélécharge les fichiers, les revalide, publie
    la release versionnée, puis promeut les feeds stables.
 
 L’index Flutter n’est pas une autorité de confiance suffisante pour exécuter un
-binaire. Les archives natives sont vérifiées avec Ed25519 par les frameworks
-natifs et par le validateur de release. Une altération des artefacts couverts
-après leur signature ou leur checksum est détectée par la revalidation
-correspondante avant publication.
+binaire. L’archive macOS est vérifiée avec Ed25519 par Sparkle et par le
+validateur de release. Tous les paquets sont couverts par `SHA256SUMS` et sont
+retéléchargés avant publication ; Windows et Linux restent des téléchargements
+manuels sans promesse de mise à jour native.
 
 La parité PokeMap MCP est **non applicable** : ce chantier distribue le binaire
 de l’éditeur, sans ajouter ni modifier une sémantique d’authoring, un format de
@@ -109,7 +110,8 @@ Windows :
 - acquisition NuGet protégée par un SHA-256 fixe ;
 - bridge C++ thread-safe et callbacks de fermeture ;
 - installateur Inno Setup par utilisateur ;
-- appcast Windows et installateur signés avec EdDSA ;
+- activation explicite requise à la compilation pour autoriser WinSparkle ;
+- mode courant : installateur manuel sans appcast ni secret WinSparkle ;
 - inclusion contrôlée de `WinSparkle.dll` dans le bundle Release.
 
 Volume du commit : 30 fichiers, 1 400 insertions, 125 suppressions.
@@ -123,13 +125,13 @@ Commit : `feat(map_editor): publish atomic desktop updates`.
 - génération déterministe de `pokemap-update-index.json` ;
 - génération de `SHA256SUMS` ;
 - parsing XML/JSON robuste et validation fail-closed des assets ;
-- vérification cryptographique Ed25519 de l’archive macOS, du feed macOS signé
-  et de l’installateur Windows ;
+- vérification cryptographique Ed25519 de l’archive macOS et du feed macOS
+  signé ;
 - création d’une release GitHub en brouillon ;
 - retéléchargement depuis GitHub et nouvelle validation des tailles, hashes,
   versions, URLs, types MIME et signatures ;
 - publication de la release versionnée uniquement après le smoke test ;
-- promotion des deux appcasts, puis de l’index commun **en dernier** vers la
+- promotion de l’appcast macOS, puis de l’index commun **en dernier** vers la
   release roulante `pokemap-editor-update-stable` ;
 - workflow manuel `macos-preflight` pour tester les secrets Apple sans publier
   de release et sans dépendre de Windows.
@@ -165,11 +167,12 @@ Quand une version est disponible :
 1. Flutter affiche la version et un lien sûr vers les notes de release.
 2. L’utilisateur déclenche le flux natif.
 3. Le contrôleur vérifie si l’éditeur est prêt à fermer.
-4. Sparkle ou WinSparkle télécharge et vérifie le paquet signé.
+4. Le framework natif activé télécharge et vérifie le paquet signé.
 5. Le framework natif installe la nouvelle version et gère le redémarrage.
 
-Linux expose un état non supporté pour l’installation automatique. Le paquet
-Linux reste téléchargeable depuis la release GitHub.
+Dans la politique courante, ce flux complet est activé uniquement sur macOS via
+Sparkle. Windows et Linux exposent un état non supporté pour l’installation
+automatique ; leurs paquets restent téléchargeables depuis la release GitHub.
 
 ## 5. Contrats de version et de publication
 
@@ -214,15 +217,15 @@ URL roulante consommée par Flutter :
 https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/pokemap-update-index.json
 ```
 
-### Appcasts natifs
+### Appcast natif actif
 
 ```text
 https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-macos.xml
-https://github.com/yoahnl/pokemap/releases/download/pokemap-editor-update-stable/appcast-windows.xml
 ```
 
-Chaque appcast pointe vers l’asset immutable de la release versionnée, jamais
-vers un binaire roulant.
+L’appcast pointe vers l’asset immutable de la release versionnée, jamais vers
+un binaire roulant. Aucun appcast Windows n’est promu tant que WinSparkle reste
+désactivé.
 
 ### Assets exigés pour une release stable
 
@@ -234,7 +237,6 @@ PokeMap-Editor-X.Y.Z-macOS.dmg
 PokeMap-Editor-X.Y.Z-macOS.app.zip
 PokeMap-Editor-X.Y.Z-linux-x64.tar.gz
 appcast-macos.xml
-appcast-windows.xml
 pokemap-update-index.json
 SHA256SUMS
 ```
@@ -244,10 +246,10 @@ SHA256SUMS
 - toutes les URLs d’update sont HTTPS et limitées au dépôt GitHub attendu ;
 - l’index JSON annonce une version, mais n’autorise pas à lui seul l’exécution
   d’un paquet ;
-- Sparkle et WinSparkle utilisent des clés Ed25519 publiques embarquées ;
+- Sparkle utilise une clé Ed25519 publique embarquée ;
 - les clés privées ne sont jamais écrites dans le dépôt ;
-- l’archive Sparkle, le feed macOS signé et l’installateur Windows sont
-  revérifiés cryptographiquement pendant l’assemblage ;
+- l’archive Sparkle et le feed macOS signé sont revérifiés
+  cryptographiquement pendant l’assemblage ;
 - `SHA256SUMS` protège l’intégrité publique de tous les assets ;
 - le brouillon GitHub est retéléchargé et vérifié avant de devenir public ;
 - la release versionnée existante n’est jamais écrasée silencieusement ;
@@ -303,7 +305,7 @@ Une clé privée exportée directement dans le secret serait décodée en octets
 binaires par le workflow et `generate_appcast` la refuserait comme texte UTF-8.
 Le preflight manuel permet de détecter cette erreur sans publier de release.
 
-### Windows — encore manquants
+### Windows — requis uniquement pour réactiver l’auto-update
 
 ```text
 POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY
@@ -314,6 +316,10 @@ La paire Windows doit être distincte de la paire Sparkle macOS. La clé publiqu
 représente exactement 32 octets encodés en base64. Le secret privé représente
 le fichier privé WinSparkle complet, lui-même réencodé en base64 pour son
 transport dans GitHub Actions.
+
+Ces secrets ne sont pas requis pour la politique de distribution actuelle.
+Sans activation explicite à la compilation, le client Windows n’initialise pas
+WinSparkle et la release contient uniquement l’installateur manuel.
 
 Ne jamais afficher une valeur de secret dans un log, une issue, une capture ou
 un fichier du dépôt. Conserver une sauvegarde chiffrée des clés privées hors de
@@ -362,7 +368,7 @@ Le job `macos-preflight` :
 7. conserve ces preuves comme artefact GitHub pendant sept jours ;
 8. ne crée et ne publie aucune GitHub Release.
 
-### Release stable complète — à ne pas lancer actuellement
+### Release stable multi-plateforme
 
 Un tag `pokemap-vX.Y.Z` déclenche :
 
@@ -383,10 +389,12 @@ publish-release
 promote-stable-feed
 ```
 
-La release complète restera bloquée tant que les secrets Windows ne sont pas
-présents. C’est volontaire : aucun canal stable partiel n’est publié par erreur.
+Le job Windows produit l’installateur Inno Setup sans appcast. Le job macOS
+reste signé et notarié, et lui seul promeut un feed d’auto-update. Les trois
+paquets, leurs métadonnées et leurs checksums doivent être présents avant que
+la release brouillon puisse devenir publique.
 
-## 9. Travail restant pour Windows
+## 9. Travail restant pour l’auto-update Windows
 
 ### 9.1 Générer et sauvegarder la paire EdDSA
 
@@ -517,7 +525,7 @@ sur macOS.
 | UPD-02 | PARTIAL | Détection et tests présents, comportement réseau réel à certifier |
 | UPD-03 | PARTIAL | UX implémentée et testée, certification binaire réelle manquante |
 | UPD-04 | PARTIAL | Preflight Apple complet vert, archive et feed Sparkle signés ; E2E installé macOS encore à exécuter |
-| UPD-05 | BLOCKED | Code présent, secrets et certification Windows manquants |
+| UPD-05 | DIFFÉRÉ | Distribution manuelle active ; clés, activation et certification WinSparkle manquantes |
 | UPD-06 | PARTIAL | Pipeline atomique testé par contrat, aucune release taggée complète exécutée |
 | UPD-07 | BLOCKED | Bootstrap et boucle réelle `0.3.0 → 0.3.1` non exécutés |
 | UPD-08 | DIFFÉRÉ | Linux distribué manuellement, aucun updater Linux |
@@ -536,7 +544,8 @@ flutter test --no-pub --reporter compact \
   test/features/editor_updates test/release
 ```
 
-Résultat exact : **86 tests réussis**.
+Résultat exact après activation de la politique macOS automatique et
+Windows/Linux manuelle : **90 tests réussis**.
 
 ### Analyse statique
 
@@ -545,7 +554,7 @@ cd packages/map_editor
 flutter analyze --no-pub
 ```
 
-Résultat frais sur `main` : **No issues found (7,4 s)**.
+Résultat frais : **No issues found (7,8 s)**.
 
 ### Workflow et hygiène
 
@@ -636,7 +645,7 @@ Chaque groupe ci-dessous partage la même zone et le même impact :
 | macOS | projet Xcode, plist, entitlements, bridge Swift | intégrer Sparkle dans le runner sandboxé | téléchargement/install natifs vérifiés sur macOS |
 | Windows | CMake, ressources, bridge C++, Inno Setup | intégrer WinSparkle et produire un installateur stable | update Windows possible après certification et secrets |
 | Outils de release | générateurs, packagers et validateurs | refuser les métadonnées/assets incohérents | publication fail-closed et preuves reproductibles |
-| Tests update/release/UI | tests unitaires, widgets, contrats natifs et workflow | couvrir succès, erreurs, sécurité et non-régression | 86 tests ciblés et contrats de distribution vérifiables |
+| Tests update/release/UI | tests unitaires, widgets, contrats natifs et workflow | couvrir succès, erreurs, sécurité et non-régression | 90 tests ciblés et contrats de distribution vérifiables |
 
 ### Workflow et dépendances
 
@@ -780,7 +789,7 @@ doivent être versionnés comme les lockfiles SwiftPM déjà suivis dans
 - **Implémentation :** quatre phases isolées en commits, rebasées sans conflit et
   fusionnées en fast-forward sur `main`.
 - **Tests :** contrats positifs, négatifs, sécurité, UI et publication couverts ;
-  suite ciblée de 86 tests verte après rebase et durcissement final.
+  suite ciblée de 90 tests verte après adaptation de la distribution manuelle.
 - **Build / Validation :** analyse, scripts natifs, build macOS Release local et
   previews GitHub macOS/Windows/Linux verts ; preflight final macOS entièrement
   vert, y compris signature, notarisation, Gatekeeper, archive et feed Sparkle
@@ -796,9 +805,9 @@ doivent être versionnés comme les lockfiles SwiftPM déjà suivis dans
 1. Raccorder tous les studios spécialisés au registre de travail non sauvegardé.
 2. Automatiser la comparaison du build number avec la dernière release stable.
 3. Certifier le cycle complet `0.3.0 → 0.3.1` sur un Mac propre.
-4. Quand Windows redevient disponible, générer et sauvegarder sa paire EdDSA.
-5. Ajouter les deux secrets Windows et certifier l’installation initiale.
-6. Certifier le cycle complet `0.3.0 → 0.3.1` sur un PC Windows propre.
-7. Pousser un tag stable seulement après ces preuves.
-8. Conserver Linux en téléchargement manuel jusqu’à une décision produit
+4. Certifier l’installation manuelle `0.3.0` sur un PC Windows propre.
+5. Quand l’auto-update Windows redevient prioritaire, générer et sauvegarder sa
+   paire EdDSA, ajouter les secrets et activer explicitement WinSparkle.
+6. Certifier alors le cycle complet `0.3.0 → 0.3.1` sur Windows.
+7. Conserver Linux en téléchargement manuel jusqu’à une décision produit
    explicite sur son format d’installation et son mécanisme d’update.

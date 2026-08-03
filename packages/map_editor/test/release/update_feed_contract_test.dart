@@ -98,6 +98,36 @@ void main() {
     expect(checksums, everyElement(matches(r'^[0-9a-f]{64}  [^/]+$')));
   });
 
+  test('validator accepts a manual Windows installer without an appcast',
+      () async {
+    await _writeSignedAssets(
+      directory: temporaryDirectory,
+      macosKeyPair: macosKeyPair,
+      windowsKeyPair: windowsKeyPair,
+      dartExecutable: dartExecutable,
+      writeWindowsAppcast: false,
+    );
+
+    final result = await _runValidator(
+      dartExecutable: dartExecutable,
+      directory: temporaryDirectory,
+      macosPublicKey: macosPublicKey,
+      windowsManual: true,
+      writeChecksums: true,
+    );
+
+    expect(result.exitCode, 0, reason: result.stderr.toString());
+    expect(result.stdout, contains('Validated 6 release assets'));
+    final checksums = await File(
+      p.join(temporaryDirectory.path, 'SHA256SUMS'),
+    ).readAsLines();
+    expect(checksums, hasLength(6));
+    expect(
+      checksums,
+      everyElement(isNot(contains('appcast-windows.xml'))),
+    );
+  });
+
   test('validator fails closed when a signed asset changes after upload',
       () async {
     await _writeSignedAssets(
@@ -179,7 +209,8 @@ Future<ProcessResult> _runValidator({
   required String dartExecutable,
   required Directory directory,
   required String macosPublicKey,
-  required String windowsPublicKey,
+  String? windowsPublicKey,
+  bool windowsManual = false,
   bool writeChecksums = false,
 }) {
   return Process.run(dartExecutable, [
@@ -196,8 +227,11 @@ Future<ProcessResult> _runValidator({
     'yoahnl/pokemap',
     '--macos-public-key',
     macosPublicKey,
-    '--windows-public-key',
-    windowsPublicKey,
+    if (windowsPublicKey != null) ...[
+      '--windows-public-key',
+      windowsPublicKey,
+    ],
+    if (windowsManual) '--windows-manual',
     if (writeChecksums) '--write-checksums',
   ]);
 }
@@ -208,6 +242,7 @@ Future<void> _writeSignedAssets({
   required SimpleKeyPair windowsKeyPair,
   required String dartExecutable,
   String windowsScheme = 'https',
+  bool writeWindowsAppcast = true,
 }) async {
   final files = <String, List<int>>{
     'PokeMap-Editor-Setup-0.3.1.exe': utf8.encode('windows-installer'),
@@ -253,12 +288,13 @@ Future<void> _writeSignedAssets({
     '-->\n',
   );
 
-  final windowsInstaller = files['PokeMap-Editor-Setup-0.3.1.exe']!;
-  final windowsSignature = await algorithm.sign(
-    windowsInstaller,
-    keyPair: windowsKeyPair,
-  );
-  await File(p.join(directory.path, 'appcast-windows.xml')).writeAsString('''
+  if (writeWindowsAppcast) {
+    final windowsInstaller = files['PokeMap-Editor-Setup-0.3.1.exe']!;
+    final windowsSignature = await algorithm.sign(
+      windowsInstaller,
+      keyPair: windowsKeyPair,
+    );
+    await File(p.join(directory.path, 'appcast-windows.xml')).writeAsString('''
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
   <channel><item>
@@ -272,4 +308,5 @@ Future<void> _writeSignedAssets({
   </item></channel>
 </rss>
 ''');
+  }
 }

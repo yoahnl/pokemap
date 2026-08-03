@@ -249,13 +249,26 @@ jobs:
           New-Item -ItemType Directory -Force -Path "build/release" | Out-Null
           Compress-Archive -Path "$bundle/*" `
             -DestinationPath "build/release/PokeMap-windows-x64.zip"
+          $versionMatch = [regex]::Match(
+            (Get-Content pubspec.yaml -Raw),
+            '(?m)^version: ([0-9]+\.[0-9]+\.[0-9]+)\+[0-9]+$'
+          )
+          if (-not $versionMatch.Success) {
+            throw "pubspec.yaml must contain a stable version and build number."
+          }
+          ./tool/release/package_windows_manual_release.ps1 `
+            -Version $versionMatch.Groups[1].Value `
+            -BundleDir $bundle `
+            -OutputDir "build/release"
       - name: Preserve Windows package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pokemap-windows-${{ github.sha }}
           if-no-files-found: error
           retention-days: 30
-          path: packages/map_editor/build/release/PokeMap-windows-x64.zip
+          path: |
+            packages/map_editor/build/release/PokeMap-windows-x64.zip
+            packages/map_editor/build/release/PokeMap-Editor-Setup-*.exe
 
   windows-release:
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
@@ -282,25 +295,10 @@ jobs:
           }
           "$env:RUNNER_TEMP/flutter/bin" |
             Out-File -FilePath "$env:GITHUB_PATH" -Encoding utf8 -Append
-      - name: Build verified WinSparkle runner
+      - name: Build Windows manual release
         working-directory: packages/map_editor
         shell: pwsh
-        env:
-          POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY: ${{ secrets.POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY)) {
-            throw "POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY is required."
-          }
-          try {
-            $publicKeyBytes = [Convert]::FromBase64String(
-              $env:POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY
-            )
-          } catch {
-            throw "POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY must be valid base64."
-          }
-          if ($publicKeyBytes.Length -ne 32) {
-            throw "POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY must encode 32 bytes."
-          }
           flutter pub get
           flutter test test/release test/features/editor_updates/native_update_phase3_contract_test.dart
           flutter analyze
@@ -313,41 +311,21 @@ jobs:
               throw "PokeMap Windows bundle is missing $file."
             }
           }
-      - name: Package signed Windows update
+      - name: Package Windows manual installer
         working-directory: packages/map_editor
         shell: pwsh
-        env:
-          WINSPARKLE_PRIVATE_ED_KEY_BASE64: ${{ secrets.WINSPARKLE_PRIVATE_ED_KEY_BASE64 }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:WINSPARKLE_PRIVATE_ED_KEY_BASE64)) {
-            throw "WINSPARKLE_PRIVATE_ED_KEY_BASE64 is required."
-          }
-          $privateKey = Join-Path $env:RUNNER_TEMP "winsparkle-private.key"
-          [IO.File]::WriteAllBytes(
-            $privateKey,
-            [Convert]::FromBase64String($env:WINSPARKLE_PRIVATE_ED_KEY_BASE64)
-          )
-          $tool = Get-ChildItem "build/windows/x64/winsparkle/0.9.4" `
-            -Filter "winsparkle-tool.exe" -Recurse |
-            Select-Object -First 1 -ExpandProperty FullName
-          if (-not $tool) {
-            throw "winsparkle-tool was not found in the pinned NuGet package."
-          }
-          ./tool/release/package_windows_update.ps1 `
+          ./tool/release/package_windows_manual_release.ps1 `
             -Version $env:RELEASE_VERSION `
             -BundleDir "build/windows/x64/runner/Release" `
-            -OutputDir "build/release" `
-            -PrivateKeyFile $privateKey `
-            -WinSparkleTool $tool
-      - name: Preserve signed Windows update
+            -OutputDir "build/release"
+      - name: Preserve Windows manual installer
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: pokemap-windows-${{ github.sha }}
           if-no-files-found: error
           retention-days: 90
-          path: |
-            packages/map_editor/build/release/PokeMap-Editor-Setup-*.exe
-            packages/map_editor/build/release/appcast-windows.xml
+          path: packages/map_editor/build/release/PokeMap-Editor-Setup-*.exe
 
   linux-preview:
     if: ${{ github.event_name != 'workflow_dispatch' && !startsWith(github.ref, 'refs/tags/pokemap-v') }}
@@ -583,7 +561,6 @@ jobs:
       RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
       RELEASE_BUILD_NUMBER: ${{ needs.validate-release.outputs.build_number }}
       POKEMAP_SPARKLE_PUBLIC_ED_KEY: ${{ secrets.POKEMAP_SPARKLE_PUBLIC_ED_KEY }}
-      POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY: ${{ secrets.POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install pinned Flutter SDK
@@ -614,7 +591,6 @@ jobs:
         working-directory: packages/map_editor
         run: |
           test -n "$POKEMAP_SPARKLE_PUBLIC_ED_KEY"
-          test -n "$POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY"
           flutter pub get
           PUBLISHED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           dart run tool/release/generate_update_index.dart \
@@ -630,7 +606,7 @@ jobs:
             --tag "$GITHUB_REF_NAME" \
             --repository "$GITHUB_REPOSITORY" \
             --macos-public-key "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
-            --windows-public-key "$POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY" \
+            --windows-manual \
             --write-checksums
           test -s ../../dist/SHA256SUMS
       - name: Preserve complete release candidate
@@ -685,7 +661,6 @@ jobs:
       RELEASE_VERSION: ${{ needs.validate-release.outputs.version }}
       RELEASE_BUILD_NUMBER: ${{ needs.validate-release.outputs.build_number }}
       POKEMAP_SPARKLE_PUBLIC_ED_KEY: ${{ secrets.POKEMAP_SPARKLE_PUBLIC_ED_KEY }}
-      POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY: ${{ secrets.POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install pinned Flutter SDK
@@ -716,7 +691,7 @@ jobs:
             --tag "$GITHUB_REF_NAME" \
             --repository "$GITHUB_REPOSITORY" \
             --macos-public-key "$POKEMAP_SPARKLE_PUBLIC_ED_KEY" \
-            --windows-public-key "$POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY"
+            --windows-manual
 
   publish-release:
     if: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/tags/pokemap-v') }}
@@ -756,7 +731,6 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --dir stable \
             --pattern appcast-macos.xml \
-            --pattern appcast-windows.xml \
             --pattern pokemap-update-index.json
       - name: Ensure rolling stable release exists
         env:
@@ -768,13 +742,12 @@ jobs:
               --title "PokeMap Editor stable update feed" \
               --notes "Machine-readable stable update metadata."
           fi
-      - name: Promote native appcasts first
+      - name: Promote macOS appcast first
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "$STABLE_TAG" \
             stable/appcast-macos.xml \
-            stable/appcast-windows.xml \
             --repo "$GITHUB_REPOSITORY" \
             --clobber
       - name: Promote stable update index last
@@ -787,7 +760,7 @@ jobs:
             --clobber
       - name: Verify rolling stable download URLs
         run: |
-          for ASSET_NAME in appcast-macos.xml appcast-windows.xml pokemap-update-index.json; do
+          for ASSET_NAME in appcast-macos.xml pokemap-update-index.json; do
             VERIFIED=false
             for ATTEMPT in 1 2 3 4 5 6; do
               curl --fail --location --silent --show-error \

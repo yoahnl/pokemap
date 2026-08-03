@@ -74,7 +74,8 @@ void main() {
     );
   });
 
-  test('stable publication is atomic and promotes its index last', () async {
+  test('stable publication is atomic and promotes its macOS index last',
+      () async {
     final workflow = await File(
       '../../.github/workflows/pokemap_desktop_release.yml',
     ).readAsString();
@@ -90,6 +91,8 @@ void main() {
       contains(r'gh release edit "$GITHUB_REF_NAME" --draft=false'),
     );
     expect(workflow, contains('pokemap-editor-update-stable'));
+    expect(workflow, contains('--windows-manual'));
+    expect(workflow, contains('package_windows_manual_release.ps1'));
 
     final draft = workflow.indexOf('create-draft-release:');
     final smoke = workflow.indexOf('smoke-download-draft:');
@@ -101,10 +104,27 @@ void main() {
 
     final stablePromotion = workflow.substring(promote);
     final macosFeed = stablePromotion.lastIndexOf('appcast-macos.xml');
-    final windowsFeed = stablePromotion.lastIndexOf('appcast-windows.xml');
     final index = stablePromotion.lastIndexOf('pokemap-update-index.json');
     expect(index, greaterThan(macosFeed));
-    expect(index, greaterThan(windowsFeed));
+    expect(stablePromotion, isNot(contains('appcast-windows.xml')));
+  });
+
+  test('current Windows release is a manual installer without updater keys',
+      () async {
+    final workflow = await File(
+      '../../.github/workflows/pokemap_desktop_release.yml',
+    ).readAsString();
+
+    final windowsStart = workflow.indexOf('  windows-release:');
+    final linuxStart = workflow.indexOf('\n  linux-preview:', windowsStart);
+    final windowsRelease = workflow.substring(windowsStart, linuxStart);
+
+    expect(windowsRelease, contains('package_windows_manual_release.ps1'));
+    expect(windowsRelease, contains('PokeMap-Editor-Setup-*.exe'));
+    expect(
+        windowsRelease, isNot(contains('POKEMAP_WINSPARKLE_EDDSA_PUBLIC_KEY')));
+    expect(windowsRelease, isNot(contains('WINSPARKLE_PRIVATE_ED_KEY_BASE64')));
+    expect(windowsRelease, isNot(contains('appcast-windows.xml')));
   });
 
   test('manual macOS preflight cannot publish a release', () async {

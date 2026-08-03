@@ -57,6 +57,16 @@ void main() {
   });
 
   group('UPD-05 Windows WinSparkle contract', () {
+    test('keeps Windows native updates disabled unless explicitly enabled', () {
+      final updater = File(
+        'lib/src/features/editor_updates/infrastructure/'
+        'method_channel_editor_native_updater.dart',
+      ).readAsStringSync();
+
+      expect(updater, contains('POKEMAP_WINDOWS_AUTO_UPDATE_ENABLED'));
+      expect(updater, contains('defaultValue: false'));
+    });
+
     test('acquires WinSparkle 0.9.4 deterministically', () {
       final cmake = File(
         'windows/runner/CMakeLists.txt',

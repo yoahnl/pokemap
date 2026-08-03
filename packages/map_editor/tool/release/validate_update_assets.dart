@@ -26,6 +26,7 @@ Future<int> validateUpdateAssetsCommand(
   final repository = _readOption(arguments, '--repository');
   final macosPublicKeyText = _readOption(arguments, '--macos-public-key');
   final windowsPublicKeyText = _readOption(arguments, '--windows-public-key');
+  final windowsManual = arguments.contains('--windows-manual');
   final writeChecksums = arguments.contains('--write-checksums');
 
   if ([
@@ -35,13 +36,14 @@ Future<int> validateUpdateAssetsCommand(
     tag,
     repository,
     macosPublicKeyText,
-    windowsPublicKeyText,
+    if (!windowsManual) windowsPublicKeyText,
   ].any((value) => value == null)) {
     stderrSink.writeln(
       'Usage: validate_update_assets.dart --directory path '
       '--version X.Y.Z --build-number N --tag pokemap-vX.Y.Z '
       '--repository owner/repo --macos-public-key base64 '
-      '--windows-public-key base64 [--write-checksums]',
+      '(--windows-public-key base64 | --windows-manual) '
+      '[--write-checksums]',
     );
     return 64;
   }
@@ -64,11 +66,13 @@ Future<int> validateUpdateAssetsCommand(
     'macOS',
     errors,
   );
-  final windowsPublicKey = _decodePublicKey(
-    windowsPublicKeyText!,
-    'Windows',
-    errors,
-  );
+  final windowsPublicKey = windowsManual
+      ? null
+      : _decodePublicKey(
+          windowsPublicKeyText!,
+          'Windows',
+          errors,
+        );
 
   final directory = Directory(directoryPath!);
   if (!await directory.exists()) {
@@ -80,7 +84,7 @@ Future<int> validateUpdateAssetsCommand(
     'PokeMap-Editor-$version-macOS.app.zip',
     'PokeMap-Editor-$version-linux-x64.tar.gz',
     'appcast-macos.xml',
-    'appcast-windows.xml',
+    if (!windowsManual) 'appcast-windows.xml',
     'pokemap-update-index.json',
   ]..sort();
   final assets = <String, File>{
@@ -116,18 +120,20 @@ Future<int> validateUpdateAssetsCommand(
       requireSignedFeed: true,
       errors: errors,
     );
-    await _validateAppcast(
-      label: 'Windows',
-      appcast: assets['appcast-windows.xml']!,
-      archive: assets['PokeMap-Editor-Setup-$version.exe']!,
-      expectedUrl: 'https://github.com/$repository/releases/download/$tag/'
-          'PokeMap-Editor-Setup-$version.exe',
-      expectedVersion: version,
-      expectedShortVersion: version,
-      publicKey: windowsPublicKey!,
-      requireSignedFeed: false,
-      errors: errors,
-    );
+    if (!windowsManual) {
+      await _validateAppcast(
+        label: 'Windows',
+        appcast: assets['appcast-windows.xml']!,
+        archive: assets['PokeMap-Editor-Setup-$version.exe']!,
+        expectedUrl: 'https://github.com/$repository/releases/download/$tag/'
+            'PokeMap-Editor-Setup-$version.exe',
+        expectedVersion: version,
+        expectedShortVersion: version,
+        publicKey: windowsPublicKey!,
+        requireSignedFeed: false,
+        errors: errors,
+      );
+    }
   }
 
   final checksumFile = File(p.join(directory.path, 'SHA256SUMS'));
@@ -148,7 +154,8 @@ Future<int> validateUpdateAssetsCommand(
   }
 
   stdoutSink.writeln(
-    'Validated ${assetNames.length} update assets and SHA256SUMS.',
+    'Validated ${assetNames.length} '
+    '${windowsManual ? 'release' : 'update'} assets and SHA256SUMS.',
   );
   return 0;
 }

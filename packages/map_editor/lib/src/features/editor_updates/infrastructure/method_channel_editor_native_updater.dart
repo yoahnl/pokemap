@@ -6,13 +6,20 @@ import 'package:flutter/services.dart';
 import '../domain/editor_native_updater.dart';
 import '../domain/editor_update_models.dart';
 
+const _windowsNativeUpdateEnabled = bool.fromEnvironment(
+  'POKEMAP_WINDOWS_AUTO_UPDATE_ENABLED',
+  defaultValue: false,
+);
+
 final class MethodChannelEditorNativeUpdater implements EditorNativeUpdater {
   MethodChannelEditorNativeUpdater({
     MethodChannel channel = const MethodChannel('map_editor/editor_updates'),
     bool? isSupported,
     EditorNativeUpdaterCapabilities? capabilities,
   })  : _channel = channel,
-        isSupported = isSupported ?? (Platform.isMacOS || Platform.isWindows),
+        isSupported = isSupported ??
+            (Platform.isMacOS ||
+                (Platform.isWindows && _windowsNativeUpdateEnabled)),
         capabilities = capabilities ??
             (Platform.isWindows
                 ? EditorNativeUpdaterCapabilities.windowsV1
