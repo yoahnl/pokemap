@@ -454,6 +454,35 @@ void main() {
       expect(tester.widget<PokeMapButton>(next).onPressed, isNotNull);
     });
 
+    testWidgets('makes filled versus paintable coverage an explicit choice', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _pumpGridStage(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+      await _confirmGridAndOpenConnections(tester);
+
+      final complete = find.byKey(
+        const Key('smart-tiles-coverage-complete'),
+      );
+      final sparse = find.byKey(
+        const Key('smart-tiles-coverage-sparse'),
+      );
+      expect(complete, findsOneWidget);
+      expect(sparse, findsOneWidget);
+      expect(tester.widget<PokeMapAssetCard>(sparse).selected, isTrue);
+
+      await tester.ensureVisible(complete);
+      await tester.tap(complete);
+      await tester.pumpAndSettle();
+
+      expect(latestDraft!.coveragePolicy, SmartTileCoveragePolicy.complete);
+      expect(tester.widget<PokeMapAssetCard>(complete).selected, isTrue);
+    });
+
     testWidgets('adopts a canonically imported project image', (tester) async {
       var imports = 0;
       final importedImage = _fakeImage(width: 96, height: 64);

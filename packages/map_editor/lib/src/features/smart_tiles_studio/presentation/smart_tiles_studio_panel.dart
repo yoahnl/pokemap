@@ -675,6 +675,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             _customConnectionTopology != null);
     return SmartTileConnectionsStage(
       usage: usage,
+      coveragePolicy: _authoring.state.coveragePolicy,
       selectedProfileId: _selectedConnectionProfileId,
       customTopology: _customConnectionTopology,
       onProfileSelected: (profile) {
@@ -683,6 +684,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       onCustomTopologySelected: (topology) {
         unawaited(_selectCustomConnectionTopology(topology));
       },
+      onCoveragePolicySelected: _selectCoveragePolicy,
       onContinue: hasSelection ? _moveToVariants : null,
       guidePicker: _buildOptionalGuidePicker(),
     );
@@ -2140,6 +2142,11 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       return;
     }
     await _applyConnectionProfile(profile, profile.resolve());
+  }
+
+  void _selectCoveragePolicy(SmartTileCoveragePolicy policy) {
+    setState(() => _authoring.setCoveragePolicy(policy));
+    _notifyDraftChanged();
   }
 
   Future<void> _selectCustomConnectionTopology(

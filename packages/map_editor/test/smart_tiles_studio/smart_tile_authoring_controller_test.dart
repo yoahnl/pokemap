@@ -55,6 +55,29 @@ void main() {
       }
     });
 
+    test('keeps coverage tied to usage when the connection profile changes',
+        () {
+      final path = _configuredController()
+        ..selectUsage(SmartTileUsage.path)
+        ..configureConnections(
+          smartTileConnectionProfileById(
+            SmartTileConnectionProfileId.borders,
+          ).resolve(),
+          clearMappings: false,
+        );
+      final terrain = _configuredController()
+        ..selectUsage(SmartTileUsage.terrain)
+        ..configureConnections(
+          smartTileConnectionProfileById(
+            SmartTileConnectionProfileId.organic,
+          ).resolve(),
+          clearMappings: false,
+        );
+
+      expect(path.state.coveragePolicy, SmartTileCoveragePolicy.sparse);
+      expect(terrain.state.coveragePolicy, SmartTileCoveragePolicy.complete);
+    });
+
     test('preserves a canonical custom coverage profile across no-op saves',
         () {
       final source = _configuredController()

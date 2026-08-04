@@ -14,13 +14,16 @@ final class SmartTileConnectionConfiguration {
     required this.topology,
     required this.templateHint,
     this.boundaryPolicy = SmartTileBoundaryPolicy.empty,
-    this.coveragePolicy = SmartTileCoveragePolicy.complete,
+    this.coveragePolicy,
   });
 
   final SmartTileTopology topology;
   final SmartTileTemplateHint templateHint;
   final SmartTileBoundaryPolicy boundaryPolicy;
-  final SmartTileCoveragePolicy coveragePolicy;
+
+  /// Optional author override. Connection geometry does not normally decide
+  /// whether a layer is a filled base or an empty overlay.
+  final SmartTileCoveragePolicy? coveragePolicy;
 }
 
 /// Human-facing projection of the canonical Smart Tile topology contracts.
@@ -60,7 +63,6 @@ final class SmartTileConnectionProfile {
     return SmartTileConnectionConfiguration(
       topology: customTopology,
       templateHint: SmartTileTemplateHint.free,
-      coveragePolicy: SmartTileCoveragePolicy.sparse,
     );
   }
 }
@@ -106,7 +108,6 @@ const List<SmartTileConnectionProfile> smartTileConnectionProfiles =
     configuration: SmartTileConnectionConfiguration(
       topology: SmartTileTopology.blob8,
       templateHint: SmartTileTemplateHint.blob47,
-      coveragePolicy: SmartTileCoveragePolicy.sparse,
     ),
     recommendedUsages: <SmartTileUsage>{
       SmartTileUsage.path,
@@ -121,7 +122,6 @@ const List<SmartTileConnectionProfile> smartTileConnectionProfiles =
     configuration: SmartTileConnectionConfiguration(
       topology: SmartTileTopology.wang8,
       templateHint: SmartTileTemplateHint.mixed256,
-      coveragePolicy: SmartTileCoveragePolicy.sparse,
     ),
   ),
   SmartTileConnectionProfile(

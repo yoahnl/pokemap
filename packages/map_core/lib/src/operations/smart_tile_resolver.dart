@@ -645,18 +645,20 @@ bool _slotMatches({
   final centerHasMaterial = !_isEmptyMaterial(centerMaterialId, materials);
   return switch (match.kind) {
     SmartTileMatchKind.any => true,
-    SmartTileMatchKind.same => centerHasMaterial &&
-        _sameConnectionGroup(
-          centerMaterialId!,
-          neighborMaterialId,
-          materials,
-        ),
-    SmartTileMatchKind.different => centerHasMaterial &&
-        !_sameConnectionGroup(
-          centerMaterialId!,
-          neighborMaterialId,
-          materials,
-        ),
+    SmartTileMatchKind.same => centerHasMaterial
+        ? _sameConnectionGroup(
+            centerMaterialId!,
+            neighborMaterialId,
+            materials,
+          )
+        : _isEmptyMaterial(neighborMaterialId, materials),
+    SmartTileMatchKind.different => centerHasMaterial
+        ? !_sameConnectionGroup(
+            centerMaterialId!,
+            neighborMaterialId,
+            materials,
+          )
+        : !_isEmptyMaterial(neighborMaterialId, materials),
     SmartTileMatchKind.empty => _isEmptyMaterial(neighborMaterialId, materials),
     SmartTileMatchKind.material => neighborMaterialId == match.materialId,
   };

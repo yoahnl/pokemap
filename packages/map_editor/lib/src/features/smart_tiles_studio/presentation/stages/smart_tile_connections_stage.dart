@@ -8,19 +8,23 @@ class SmartTileConnectionsStage extends StatelessWidget {
   const SmartTileConnectionsStage({
     super.key,
     required this.usage,
+    required this.coveragePolicy,
     required this.selectedProfileId,
     required this.customTopology,
     required this.onProfileSelected,
     required this.onCustomTopologySelected,
+    required this.onCoveragePolicySelected,
     required this.onContinue,
     this.guidePicker,
   });
 
   final SmartTileUsage usage;
+  final SmartTileCoveragePolicy coveragePolicy;
   final SmartTileConnectionProfileId? selectedProfileId;
   final SmartTileTopology? customTopology;
   final ValueChanged<SmartTileConnectionProfile> onProfileSelected;
   final ValueChanged<SmartTileTopology> onCustomTopologySelected;
+  final ValueChanged<SmartTileCoveragePolicy> onCoveragePolicySelected;
   final VoidCallback? onContinue;
   final Widget? guidePicker;
 
@@ -29,6 +33,36 @@ class SmartTileConnectionsStage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        const PokeMapSectionHeader(
+          title: 'Comment le calque démarre-t-il ?',
+          description:
+              'Le raccord visuel et le remplissage sont deux choix indépendants.',
+        ),
+        const SizedBox(height: 12),
+        PokeMapAssetCard(
+          key: const Key('smart-tiles-coverage-complete'),
+          thumbnail: const Icon(CupertinoIcons.square_fill, size: 21),
+          label: 'Fond de carte rempli',
+          description:
+              'La matière par défaut couvre toute la carte dès la création.',
+          selected: coveragePolicy == SmartTileCoveragePolicy.complete,
+          onPressed: () => onCoveragePolicySelected(
+            SmartTileCoveragePolicy.complete,
+          ),
+        ),
+        const SizedBox(height: 8),
+        PokeMapAssetCard(
+          key: const Key('smart-tiles-coverage-sparse'),
+          thumbnail: const Icon(CupertinoIcons.paintbrush, size: 21),
+          label: 'Calque vide à peindre',
+          description:
+              'La matière apparaît uniquement aux endroits peints sur la carte.',
+          selected: coveragePolicy == SmartTileCoveragePolicy.sparse,
+          onPressed: () => onCoveragePolicySelected(
+            SmartTileCoveragePolicy.sparse,
+          ),
+        ),
+        const SizedBox(height: 18),
         const PokeMapSectionHeader(
           title: 'Comment les cellules se raccordent-elles ?',
           description:

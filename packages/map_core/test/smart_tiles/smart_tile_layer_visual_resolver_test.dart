@@ -117,6 +117,206 @@ void main() {
     expect(visuals.single.sourceRect.x, 32);
   });
 
+  for (final scenario in <({
+    SmartTileTopology topology,
+    SmartTileTemplateHint template,
+    Set<int> masks,
+  })>[
+    (
+      topology: SmartTileTopology.blob8,
+      template: SmartTileTemplateHint.blob47,
+      masks: <int>{0},
+    ),
+    (
+      topology: SmartTileTopology.wangEdge4,
+      template: SmartTileTemplateHint.edge16,
+      masks: <int>{0x0f, 0x0b, 0x07, 0x0e, 0x0d},
+    ),
+    (
+      topology: SmartTileTopology.wangCorner4,
+      template: SmartTileTemplateHint.corner16,
+      masks: <int>{0xf0, 0xb0, 0x30, 0x70, 0x60, 0xe0, 0xc0, 0xd0, 0x90},
+    ),
+    (
+      topology: SmartTileTopology.wang8,
+      template: SmartTileTemplateHint.mixed256,
+      masks: <int>{0xff, 0xbf, 0x3b, 0x7f, 0x67, 0xef, 0xce, 0xdf, 0x9d},
+    ),
+  ]) {
+    test(
+        'paint gestures resolve isolated, line, L and rectangle '
+        '${scenario.topology.name} visuals', () {
+      final preset = ProjectSmartTilePreset(
+        id: 'gesture',
+        name: 'Gesture',
+        usage: SmartTileUsage.path,
+        topology: scenario.topology,
+        templateHint: scenario.template,
+        coveragePolicy: SmartTileCoveragePolicy.sparse,
+        coverageProfile: const SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: const SmartTileTransformPolicy(),
+        defaultMaterialId: 'dirt',
+        allowedMaterialIds: const <String>['dirt', 'grass'],
+        rules: <SmartTileRule>[
+          for (final mask in smartTileCanonicalMasks(scenario.template))
+            SmartTileRule(
+              id: 'mask_$mask',
+              centerMatch: const SmartTileSlotMatch.any(),
+              signature: smartTileSignatureForMask(
+                mask,
+                topology: scenario.topology,
+              ),
+              candidates: const <SmartTileCandidate>[
+                SmartTileCandidate(
+                  id: 'frame',
+                  parts: <SmartTileVisualPart>[
+                    SmartTileVisualPart(
+                      source: SmartTileVisualSource.frame(
+                        frame: SmartTileFrameRef(
+                          atlasId: 'atlas',
+                          column: 0,
+                          row: 0,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+        ],
+      );
+      final source = SmartTileLayer(
+        id: 'path',
+        name: 'Path',
+        presetId: preset.id,
+        usage: SmartTileUsage.path,
+        materialPalette: const <String>['', 'dirt', 'grass'],
+        field: _emptyField(scenario.topology),
+      );
+      const size = GridSize(width: 3, height: 3);
+      final painted = applySmartTileMaterialGesture(
+        source,
+        mapSize: size,
+        cells: const <GridPos>[GridPos(x: 1, y: 1)],
+        materialId: 'grass',
+      );
+      final map = MapData(
+        id: 'map',
+        name: 'Map',
+        version: ProjectVersion.v6,
+        size: size,
+        layers: <MapLayer>[painted],
+      );
+      final catalog = ProjectSmartTileCatalog(
+        atlases: const <ProjectSmartTileAtlas>[atlas],
+        materials: materials,
+        presets: <ProjectSmartTilePreset>[preset],
+      );
+
+      final visuals = resolveSmartTileLayerVisuals(
+        map: map,
+        layer: painted,
+        catalog: catalog,
+        pass: SmartTileVisualPass.background,
+      );
+      expect(
+        visuals.map((visual) => visual.ruleId).toSet(),
+        <String>{for (final mask in scenario.masks) 'mask_$mask'},
+      );
+      expect(visuals, hasLength(scenario.masks.length));
+
+      final erased = applySmartTileMaterialGesture(
+        painted,
+        mapSize: size,
+        cells: const <GridPos>[GridPos(x: 1, y: 1)],
+        materialId: null,
+      );
+      final erasedMap = map.copyWith(layers: <MapLayer>[erased]);
+      expect(
+        resolveSmartTileLayerVisuals(
+          map: erasedMap,
+          layer: erased,
+          catalog: catalog,
+          pass: SmartTileVisualPass.background,
+        ),
+        isEmpty,
+      );
+
+      const largerSize = GridSize(width: 5, height: 5);
+      for (final shape in <List<GridPos>>[
+        const <GridPos>[
+          GridPos(x: 1, y: 2),
+          GridPos(x: 2, y: 2),
+          GridPos(x: 3, y: 2),
+        ],
+        const <GridPos>[
+          GridPos(x: 1, y: 1),
+          GridPos(x: 1, y: 2),
+          GridPos(x: 2, y: 2),
+        ],
+        const <GridPos>[
+          GridPos(x: 1, y: 1),
+          GridPos(x: 2, y: 1),
+          GridPos(x: 1, y: 2),
+          GridPos(x: 2, y: 2),
+        ],
+      ]) {
+        final shapedSource = source.copyWith(
+          field: _emptyField(
+            scenario.topology,
+            width: largerSize.width,
+            height: largerSize.height,
+          ),
+        );
+        final shaped = applySmartTileMaterialGesture(
+          shapedSource,
+          mapSize: largerSize,
+          cells: shape,
+          materialId: 'grass',
+        );
+        final shapedMap = map.copyWith(
+          size: largerSize,
+          layers: <MapLayer>[shaped],
+        );
+        final shapedVisuals = resolveSmartTileLayerVisuals(
+          map: shapedMap,
+          layer: shaped,
+          catalog: catalog,
+          pass: SmartTileVisualPass.background,
+        );
+
+        expect(
+          shapedVisuals
+              .map((visual) => (x: visual.cellX, y: visual.cellY))
+              .toSet(),
+          _expectedVisualCells(
+            painted: shape,
+            topology: scenario.topology,
+            size: largerSize,
+          ),
+        );
+
+        final cleared = applySmartTileMaterialGesture(
+          shaped,
+          mapSize: largerSize,
+          cells: shape,
+          materialId: null,
+        );
+        expect(
+          resolveSmartTileLayerVisuals(
+            map: shapedMap.copyWith(layers: <MapLayer>[cleared]),
+            layer: cleared,
+            catalog: catalog,
+            pass: SmartTileVisualPass.background,
+          ),
+          isEmpty,
+        );
+      }
+    });
+  }
+
   test('splits multi-part visuals into stable background and foreground passes',
       () {
     const preset = ProjectSmartTilePreset(
@@ -554,4 +754,72 @@ void main() {
     expect(visuals.single.cellX, 1);
     expect(visuals.single.geometry.visualBounds.right, 224);
   });
+}
+
+SmartTileField _emptyField(
+  SmartTileTopology topology, {
+  int width = 3,
+  int height = 3,
+}) =>
+    switch (topology) {
+      SmartTileTopology.blob8 => SmartTileField.cell(
+          semanticCells: List<int>.filled(width * height, 0),
+        ),
+      SmartTileTopology.wangEdge4 => SmartTileField.edge(
+          semanticCells: List<int>.filled(width * height, 0),
+          horizontalEdges: List<int>.filled(width * (height + 1), 0),
+          verticalEdges: List<int>.filled((width + 1) * height, 0),
+        ),
+      SmartTileTopology.wangCorner4 => SmartTileField.corner(
+          semanticCells: List<int>.filled(width * height, 0),
+          corners: List<int>.filled((width + 1) * (height + 1), 0),
+        ),
+      SmartTileTopology.wang8 => SmartTileField.mixed(
+          semanticCells: List<int>.filled(width * height, 0),
+          horizontalEdges: List<int>.filled(width * (height + 1), 0),
+          verticalEdges: List<int>.filled((width + 1) * height, 0),
+          corners: List<int>.filled((width + 1) * (height + 1), 0),
+        ),
+      _ => throw ArgumentError.value(topology, 'topology'),
+    };
+
+Set<({int x, int y})> _expectedVisualCells({
+  required Iterable<GridPos> painted,
+  required SmartTileTopology topology,
+  required GridSize size,
+}) {
+  final offsets = switch (topology) {
+    SmartTileTopology.blob8 => const <({int x, int y})>[(x: 0, y: 0)],
+    SmartTileTopology.wangEdge4 => const <({int x, int y})>[
+        (x: 0, y: 0),
+        (x: 0, y: -1),
+        (x: 1, y: 0),
+        (x: 0, y: 1),
+        (x: -1, y: 0),
+      ],
+    SmartTileTopology.wangCorner4 ||
+    SmartTileTopology.wang8 =>
+      const <({int x, int y})>[
+        (x: -1, y: -1),
+        (x: 0, y: -1),
+        (x: 1, y: -1),
+        (x: -1, y: 0),
+        (x: 0, y: 0),
+        (x: 1, y: 0),
+        (x: -1, y: 1),
+        (x: 0, y: 1),
+        (x: 1, y: 1),
+      ],
+    _ => throw ArgumentError.value(topology, 'topology'),
+  };
+
+  return <({int x, int y})>{
+    for (final cell in painted)
+      for (final offset in offsets)
+        if (cell.x + offset.x >= 0 &&
+            cell.x + offset.x < size.width &&
+            cell.y + offset.y >= 0 &&
+            cell.y + offset.y < size.height)
+          (x: cell.x + offset.x, y: cell.y + offset.y),
+  };
 }

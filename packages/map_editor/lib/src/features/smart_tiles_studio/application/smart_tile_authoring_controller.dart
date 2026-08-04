@@ -416,11 +416,13 @@ final class SmartTileAuthoringController {
     SmartTileConnectionConfiguration configuration, {
     required bool clearMappings,
   }) {
+    final nextCoveragePolicy =
+        configuration.coveragePolicy ?? _state.coveragePolicy;
     final changesContract = _state.topology != configuration.topology ||
         _state.templateHint != configuration.templateHint;
     final changesCoverage = changesContract ||
         _state.boundaryPolicy != configuration.boundaryPolicy ||
-        _state.coveragePolicy != configuration.coveragePolicy;
+        _state.coveragePolicy != nextCoveragePolicy;
     if (changesContract && _state.mappings.isNotEmpty && !clearMappings) {
       throw StateError(
         'Changing a Smart Tile connection contract requires mapping confirmation.',
@@ -430,12 +432,18 @@ final class SmartTileAuthoringController {
       topology: configuration.topology,
       templateHint: configuration.templateHint,
       boundaryPolicy: configuration.boundaryPolicy,
-      coveragePolicy: configuration.coveragePolicy,
+      coveragePolicy: nextCoveragePolicy,
       mappings: changesContract && clearMappings
           ? const <int, List<SmartTileCandidate>>{}
           : _state.mappings,
     );
     if (changesCoverage) _preservedCoverageProfile = null;
+  }
+
+  void setCoveragePolicy(SmartTileCoveragePolicy policy) {
+    if (_state.coveragePolicy == policy) return;
+    _state = _state.copyWith(coveragePolicy: policy);
+    _preservedCoverageProfile = null;
   }
 
   void configureAtlas({
