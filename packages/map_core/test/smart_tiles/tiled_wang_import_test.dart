@@ -22,18 +22,138 @@ void main() {
       expect(document.tiles[0]!.animation.last.durationMs, 200);
     });
 
-    test('rejects collection-of-images TSX explicitly', () {
+    test('reads sparse collection-of-images dependencies without I/O', () {
+      final document = parseTiledTileset(_imageCollectionTsx);
+
+      expect(document.name, 'Synthetic props');
+      expect(document.layout, isA<TiledImageCollectionLayout>());
+      expect(document.tileWidth, 96);
+      expect(document.tileHeight, 128);
+      expect(document.tileCount, 2);
+      expect(document.tileOffsetX, -8);
+      expect(document.tileOffsetY, 4);
+      expect(document.tiles.keys, <int>[2, 9]);
+      expect(document.tiles[2]!.image!.pixelWidth, 32);
+      expect(document.tiles[9]!.image!.pixelHeight, 128);
+      expect(document.tiles[9]!.animation, hasLength(2));
+      expect(document.properties, hasLength(2));
       expect(
-        () => parseTiledWangTileset('''
-<tileset name="Collection" tilewidth="32" tileheight="32" tilecount="1" columns="0">
-  <tile id="0"><image source="tile.png" width="32" height="32"/></tile>
-</tileset>
-'''),
+        document.properties.last.type,
+        TiledPropertyValueType.structured,
+      );
+      expect(document.properties.last.members.single.value, 0.75);
+      expect(document.tiles[2]!.properties.single.value, false);
+      expect(document.tiles[2]!.collisionObjects, hasLength(1));
+      expect(
+        document.tiles[2]!.collisionObjects.single.shape,
+        TiledCollisionShape.rectangle,
+      );
+      expect(
+        document.tiles[2]!.collisionObjects.single.properties.single.value,
+        'trunk',
+      );
+      expect(
+        document.dependencyClosure.images.map((image) => image.source),
+        <String>['images/small.png', 'images/tree.png'],
+      );
+      expect(document.dependencyClosure.images.first.tileIds, <int>[2]);
+      expect(document.wangSets, isEmpty);
+    });
+
+    test('keeps the Wang-only compiler regular-atlas specific', () {
+      expect(
+        () => parseTiledWangTileset(_imageCollectionTsx),
         throwsA(
           isA<TiledWangImportException>().having(
             (error) => error.code,
             'code',
             'smart_tile.tiled.image_collection_unsupported',
+          ),
+        ),
+      );
+    });
+
+    test('diagnoses missing, duplicate and invalid collection images', () {
+      final cases = <(String, String)>[
+        (
+          _imageCollectionTsx.replaceFirst(
+            '<image source="./images/small.png" width="32" height="48"/>',
+            '',
+          ),
+          'smart_tile.tiled.tile_image_required',
+        ),
+        (
+          _imageCollectionTsx.replaceFirst(
+            '<image source="./images/small.png" width="32" height="48"/>',
+            '<image source="./images/small.png" width="32" height="48"/>'
+                '<image source="other.png" width="32" height="48"/>',
+          ),
+          'smart_tile.tiled.tile_image_duplicate',
+        ),
+        (
+          _imageCollectionTsx.replaceFirst('width="32"', 'width="0"'),
+          'smart_tile.tiled.image_dimensions_invalid',
+        ),
+        (
+          _imageCollectionTsx.replaceFirst('width="32" ', ''),
+          'smart_tile.tiled.image_dimensions_invalid',
+        ),
+        (
+          _imageCollectionTsx.replaceFirst(
+            './images/small.png',
+            'file:/outside/small.png',
+          ),
+          'smart_tile.tiled.image_reference_invalid',
+        ),
+        (
+          _imageCollectionTsx.replaceFirst('id="9"', 'id="2"'),
+          'smart_tile.tiled.tile_duplicate',
+        ),
+        (
+          _imageCollectionTsx.replaceFirst('tileid="2"', 'tileid="8"'),
+          'smart_tile.tiled.image_reference_invalid',
+        ),
+      ];
+
+      for (final (tsx, code) in cases) {
+        expect(
+          () => parseTiledTileset(tsx),
+          throwsA(
+            isA<TiledWangImportException>().having(
+              (error) => error.code,
+              'code',
+              code,
+            ),
+          ),
+          reason: code,
+        );
+      }
+    });
+
+    test('deduplicates normalized image dependencies and detects conflicts',
+        () {
+      final shared = _imageCollectionTsx
+          .replaceFirst('images/tree.png', 'folder/../images/small.png')
+          .replaceFirst('width="96" height="128"', 'width="32" height="48"');
+      final document = parseTiledTileset(shared);
+
+      expect(document.dependencyClosure.images, hasLength(1));
+      expect(
+        document.dependencyClosure.images.single.tileIds,
+        <int>[2, 9],
+      );
+      expect(
+        () => parseTiledTileset(
+          shared.replaceFirst(
+            'folder/../images/small.png" width="32"',
+            'folder/../images/small.png" width="64"',
+          ),
+        ),
+        throwsA(
+          isA<TiledWangImportException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile.tiled.image_dimensions_conflict',
           ),
         ),
       );
@@ -179,5 +299,41 @@ const _tsx = '''
       <wangtile tileid="2" wangid="1,0,1,0,1,0,1,0"/>
     </wangset>
   </wangsets>
+</tileset>
+''';
+
+const _imageCollectionTsx = '''
+<?xml version="1.0" encoding="UTF-8"?>
+<tileset version="1.10" tiledversion="1.10.2" name="Synthetic props"
+    tilewidth="96" tileheight="128" tilecount="2" columns="0">
+  <properties>
+    <property name="category" value="props"/>
+    <property name="settings" type="class" propertytype="Vegetation">
+      <properties>
+        <property name="density" type="float" value="0.75"/>
+      </properties>
+    </property>
+  </properties>
+  <tileoffset x="-8" y="4"/>
+  <tile id="2">
+    <image source="./images/small.png" width="32" height="48"/>
+    <properties>
+      <property name="passable" type="bool" value="false"/>
+    </properties>
+    <objectgroup>
+      <object id="1" class="collision" x="4" y="24" width="24" height="16">
+        <properties>
+          <property name="kind" value="trunk"/>
+        </properties>
+      </object>
+    </objectgroup>
+  </tile>
+  <tile id="9">
+    <image source="images/tree.png" width="96" height="128"/>
+    <animation>
+      <frame tileid="2" duration="120"/>
+      <frame tileid="9" duration="80"/>
+    </animation>
+  </tile>
 </tileset>
 ''';

@@ -77,7 +77,7 @@ Future<SmartTileTiledWangSource> loadSmartTileTiledWangSource(
   try {
     tsx = await file.readAsString();
     document = parseTiledWangTileset(tsx);
-  } on TiledWangImportException catch (error) {
+  } on TiledTilesetImportException catch (error) {
     throw SmartTileTiledWangImportServiceException(error.code, error.message);
   } on FileSystemException {
     throw const SmartTileTiledWangImportServiceException(
@@ -168,7 +168,7 @@ final class SmartTileTiledWangImportService {
         tilesetId: 'pending-tileset',
         selections: selected,
       );
-    } on TiledWangImportException catch (error) {
+    } on TiledTilesetImportException catch (error) {
       throw SmartTileTiledWangImportServiceException(
         error.code,
         error.message,

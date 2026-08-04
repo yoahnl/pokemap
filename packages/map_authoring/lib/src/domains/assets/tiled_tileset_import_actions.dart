@@ -111,7 +111,7 @@ final class TiledTilesetImportActions {
 TiledWangTilesetDocument _parseTsx(String source) {
   try {
     return parseTiledWangTileset(source);
-  } on TiledWangImportException catch (error) {
+  } on TiledTilesetImportException catch (error) {
     throw semanticFailure(error.code, error.message);
   }
 }
@@ -129,7 +129,7 @@ TiledWangImportBundle _compileWang(
       tilesetId: tilesetId,
       selections: selections,
     );
-  } on TiledWangImportException catch (error) {
+  } on TiledTilesetImportException catch (error) {
     throw semanticFailure(error.code, error.message);
   }
 }

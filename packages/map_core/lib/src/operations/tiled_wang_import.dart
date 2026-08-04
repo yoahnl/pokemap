@@ -7,16 +7,32 @@ import '../models/smart_tile.dart';
 
 enum TiledWangSetType { corner, edge, mixed }
 
+enum TiledPropertyValueType {
+  string,
+  integer,
+  decimal,
+  boolean,
+  color,
+  file,
+  object,
+  structured,
+}
+
+enum TiledCollisionShape { rectangle, ellipse, polygon, polyline, point }
+
 @immutable
-final class TiledWangImportException implements Exception {
-  const TiledWangImportException(this.code, this.message);
+final class TiledTilesetImportException implements Exception {
+  const TiledTilesetImportException(this.code, this.message);
 
   final String code;
   final String message;
 
   @override
-  String toString() => 'TiledWangImportException($code): $message';
+  String toString() => 'TiledTilesetImportException($code): $message';
 }
+
+@Deprecated('Use TiledTilesetImportException for the generalized TSX parser.')
+typedef TiledWangImportException = TiledTilesetImportException;
 
 @immutable
 final class TiledAnimationFrame {
@@ -27,16 +43,81 @@ final class TiledAnimationFrame {
 }
 
 @immutable
+final class TiledProperty {
+  TiledProperty({
+    required this.name,
+    required this.type,
+    this.value,
+    this.customType,
+    Iterable<TiledProperty> members = const <TiledProperty>[],
+  }) : members = List<TiledProperty>.unmodifiable(members);
+
+  final String name;
+  final TiledPropertyValueType type;
+  final Object? value;
+  final String? customType;
+  final List<TiledProperty> members;
+}
+
+@immutable
+final class TiledPoint {
+  const TiledPoint({required this.x, required this.y});
+
+  final double x;
+  final double y;
+}
+
+@immutable
+final class TiledCollisionObject {
+  TiledCollisionObject({
+    required this.id,
+    required this.name,
+    required this.className,
+    required this.shape,
+    required this.x,
+    required this.y,
+    required this.width,
+    required this.height,
+    required this.rotation,
+    required Iterable<TiledPoint> points,
+    required Iterable<TiledProperty> properties,
+  })  : points = List<TiledPoint>.unmodifiable(points),
+        properties = List<TiledProperty>.unmodifiable(properties);
+
+  final int id;
+  final String name;
+  final String className;
+  final TiledCollisionShape shape;
+  final double x;
+  final double y;
+  final double width;
+  final double height;
+  final double rotation;
+  final List<TiledPoint> points;
+  final List<TiledProperty> properties;
+}
+
+@immutable
 final class TiledTileMetadata {
   TiledTileMetadata({
     required this.tileId,
     required this.probability,
+    this.image,
     Iterable<TiledAnimationFrame> animation = const <TiledAnimationFrame>[],
-  }) : animation = List<TiledAnimationFrame>.unmodifiable(animation);
+    Iterable<TiledProperty> properties = const <TiledProperty>[],
+    Iterable<TiledCollisionObject> collisionObjects =
+        const <TiledCollisionObject>[],
+  })  : animation = List<TiledAnimationFrame>.unmodifiable(animation),
+        properties = List<TiledProperty>.unmodifiable(properties),
+        collisionObjects =
+            List<TiledCollisionObject>.unmodifiable(collisionObjects);
 
   final int tileId;
   final double probability;
+  final TiledTilesetImageReference? image;
   final List<TiledAnimationFrame> animation;
+  final List<TiledProperty> properties;
+  final List<TiledCollisionObject> collisionObjects;
 }
 
 @immutable
@@ -75,6 +156,113 @@ final class TiledWangSet {
   final TiledWangSetType type;
   final List<TiledWangColor> colors;
   final List<TiledWangTile> tiles;
+}
+
+@immutable
+final class TiledTilesetImageReference {
+  const TiledTilesetImageReference({
+    required this.source,
+    required this.pixelWidth,
+    required this.pixelHeight,
+  });
+
+  final String source;
+  final int pixelWidth;
+  final int pixelHeight;
+}
+
+/// One unique external image required by a parsed TSX document.
+///
+/// [tileIds] is empty for a regular atlas and contains every sparse local tile
+/// identity that refers to the image for a collection. Repeated references to
+/// the same normalized source are represented once.
+@immutable
+final class TiledTilesetImageDependency {
+  TiledTilesetImageDependency({
+    required this.source,
+    required this.pixelWidth,
+    required this.pixelHeight,
+    Iterable<int> tileIds = const <int>[],
+  }) : tileIds = List<int>.unmodifiable(tileIds);
+
+  final String source;
+  final int pixelWidth;
+  final int pixelHeight;
+  final List<int> tileIds;
+}
+
+@immutable
+final class TiledTilesetDependencyClosure {
+  TiledTilesetDependencyClosure({
+    required Iterable<TiledTilesetImageDependency> images,
+  }) : images = List<TiledTilesetImageDependency>.unmodifiable(images);
+
+  final List<TiledTilesetImageDependency> images;
+}
+
+sealed class TiledTilesetLayout {
+  const TiledTilesetLayout();
+}
+
+@immutable
+final class TiledRegularAtlasLayout extends TiledTilesetLayout {
+  const TiledRegularAtlasLayout({
+    required this.image,
+    required this.columns,
+    required this.rows,
+    required this.margin,
+    required this.spacing,
+  });
+
+  final TiledTilesetImageReference image;
+  final int columns;
+  final int rows;
+  final int margin;
+  final int spacing;
+}
+
+@immutable
+final class TiledImageCollectionLayout extends TiledTilesetLayout {
+  TiledImageCollectionLayout({required Iterable<int> tileIds})
+      : tileIds = List<int>.unmodifiable(tileIds);
+
+  final List<int> tileIds;
+}
+
+/// Pure, format-boundary representation of one TSX tileset.
+///
+/// Parsing this document performs no filesystem or image-decoding I/O. The
+/// complete normalized dependency closure is exposed for the authoring layer
+/// to stage, decode, validate and pack atomically.
+@immutable
+final class TiledTilesetDocument {
+  TiledTilesetDocument({
+    required this.name,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.tileCount,
+    required this.tileOffsetX,
+    required this.tileOffsetY,
+    required this.layout,
+    required this.dependencyClosure,
+    required Iterable<TiledProperty> properties,
+    required Map<int, TiledTileMetadata> tiles,
+    required Iterable<TiledWangSet> wangSets,
+  })  : properties = List<TiledProperty>.unmodifiable(properties),
+        tiles = Map<int, TiledTileMetadata>.unmodifiable(tiles),
+        wangSets = List<TiledWangSet>.unmodifiable(wangSets);
+
+  final String name;
+  final int tileWidth;
+  final int tileHeight;
+  final int tileCount;
+  final int tileOffsetX;
+  final int tileOffsetY;
+  final TiledTilesetLayout layout;
+  final TiledTilesetDependencyClosure dependencyClosure;
+  final List<TiledProperty> properties;
+  final Map<int, TiledTileMetadata> tiles;
+  final List<TiledWangSet> wangSets;
 }
 
 /// Neutral representation of the portable subset of a Tiled TSX tileset.
@@ -150,7 +338,7 @@ final class TiledWangImportBundle {
       };
 }
 
-TiledWangTilesetDocument parseTiledWangTileset(String source) {
+TiledTilesetDocument parseTiledTileset(String source) {
   final XmlDocument xml;
   try {
     xml = XmlDocument.parse(source.trim());
@@ -172,37 +360,80 @@ TiledWangTilesetDocument parseTiledWangTileset(String source) {
   final tileWidth = _positiveIntAttribute(root, 'tilewidth');
   final tileHeight = _positiveIntAttribute(root, 'tileheight');
   final tileCount = _positiveIntAttribute(root, 'tilecount');
-  final columns = _nonNegativeIntAttribute(root, 'columns');
-  if (columns == 0) {
-    throw const TiledWangImportException(
-      'smart_tile.tiled.image_collection_unsupported',
-      'Les TSX composés d’une image par tuile ne sont pas encore pris en charge.',
-    );
-  }
+  final columns = _nonNegativeIntAttribute(root, 'columns', fallback: 0);
+  final isImageCollection = columns == 0;
   final margin = _nonNegativeIntAttribute(root, 'margin', fallback: 0);
   final spacing = _nonNegativeIntAttribute(root, 'spacing', fallback: 0);
-  final images = root.findElements('image').toList(growable: false);
-  if (images.length != 1) {
+  final rootImages = root.findElements('image').toList(growable: false);
+  if (!isImageCollection && rootImages.length != 1) {
     throw const TiledWangImportException(
       'smart_tile.tiled.source_image_required',
       'Le TSX doit référencer exactement une image atlas.',
     );
   }
-  final image = images.single;
-  final imageSource = image.getAttribute('source')?.trim() ?? '';
-  if (imageSource.isEmpty) {
+  if (isImageCollection && rootImages.isNotEmpty) {
     throw const TiledWangImportException(
-      'smart_tile.tiled.source_image_required',
-      'L’image atlas du TSX ne possède pas de chemin source.',
+      'smart_tile.tiled.layout_mixed',
+      'Un TSX ne peut pas mélanger image atlas et collection d’images.',
     );
   }
-  final imageWidth = _positiveIntAttribute(image, 'width');
-  final imageHeight = _positiveIntAttribute(image, 'height');
-  final rows = (tileCount + columns - 1) ~/ columns;
+  final atlasImage = isImageCollection
+      ? null
+      : _parseTilesetImage(rootImages.single, context: 'atlas');
+  final tileOffsets = root.findElements('tileoffset').toList(growable: false);
+  if (tileOffsets.length > 1) {
+    throw const TiledWangImportException(
+      'smart_tile.tiled.tile_offset_duplicate',
+      'Le TSX contient plusieurs offsets de dessin concurrents.',
+    );
+  }
+  final tileOffsetX =
+      tileOffsets.isEmpty ? 0 : _requiredIntAttribute(tileOffsets.single, 'x');
+  final tileOffsetY =
+      tileOffsets.isEmpty ? 0 : _requiredIntAttribute(tileOffsets.single, 'y');
+  final properties = _parseTiledProperties(root, context: 'tileset');
 
   final tileMetadata = <int, TiledTileMetadata>{};
   for (final tile in root.findElements('tile')) {
-    final tileId = _tileId(tile, tileCount: tileCount);
+    final tileId = _tileId(
+      tile,
+      tileCount: tileCount,
+      sparse: isImageCollection,
+    );
+    if (tileMetadata.containsKey(tileId)) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.tile_duplicate',
+        'La tuile locale $tileId est déclarée plusieurs fois.',
+      );
+    }
+    final tileImages = tile.findElements('image').toList(growable: false);
+    final TiledTilesetImageReference? tileImage;
+    if (isImageCollection) {
+      if (tileImages.isEmpty) {
+        throw TiledWangImportException(
+          'smart_tile.tiled.tile_image_required',
+          'La tuile locale $tileId ne référence aucune image.',
+        );
+      }
+      if (tileImages.length > 1) {
+        throw TiledWangImportException(
+          'smart_tile.tiled.tile_image_duplicate',
+          'La tuile locale $tileId référence plusieurs images concurrentes.',
+        );
+      }
+      tileImage = _parseTilesetImage(
+        tileImages.single,
+        context: 'tuile $tileId',
+      );
+    } else {
+      if (tileImages.isNotEmpty) {
+        throw TiledWangImportException(
+          'smart_tile.tiled.layout_mixed',
+          'La tuile locale $tileId ajoute une image à un atlas régulier.',
+        );
+      }
+      tileImage = null;
+    }
     final probability = _probability(tile.getAttribute('probability'));
     final animation = <TiledAnimationFrame>[];
     final animationElements = tile.findElements('animation').toList();
@@ -216,7 +447,8 @@ TiledWangTilesetDocument parseTiledWangTileset(String source) {
       for (final frame in animationElements.single.findElements('frame')) {
         final frameTileId = _requiredIntAttribute(frame, 'tileid');
         final durationMs = _positiveIntAttribute(frame, 'duration');
-        if (frameTileId < 0 || frameTileId >= tileCount) {
+        if (frameTileId < 0 ||
+            (!isImageCollection && frameTileId >= tileCount)) {
           throw TiledWangImportException(
             'smart_tile.tiled.animation_frame_out_of_bounds',
             'L’animation de la tuile $tileId référence la tuile $frameTileId hors atlas.',
@@ -236,8 +468,38 @@ TiledWangTilesetDocument parseTiledWangTileset(String source) {
     tileMetadata[tileId] = TiledTileMetadata(
       tileId: tileId,
       probability: probability,
+      image: tileImage,
       animation: animation,
+      properties: _parseTiledProperties(tile, context: 'tuile $tileId'),
+      collisionObjects: _parseTiledCollisionObjects(tile, tileId: tileId),
     );
+  }
+
+  if (isImageCollection && tileMetadata.isEmpty) {
+    throw const TiledWangImportException(
+      'smart_tile.tiled.tile_image_required',
+      'Une collection d’images doit déclarer au moins une tuile illustrée.',
+    );
+  }
+  if (isImageCollection) {
+    if (tileMetadata.length != tileCount) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.tile_count_mismatch',
+        'La collection annonce $tileCount tuiles mais en déclare '
+            '${tileMetadata.length}.',
+      );
+    }
+    for (final tile in tileMetadata.values) {
+      for (final frame in tile.animation) {
+        if (!tileMetadata.containsKey(frame.tileId)) {
+          throw TiledWangImportException(
+            'smart_tile.tiled.image_reference_invalid',
+            'L’animation de la tuile ${tile.tileId} référence la tuile '
+                '${frame.tileId}, absente de la collection.',
+          );
+        }
+      }
+    }
   }
 
   final wangSets = <TiledWangSet>[];
@@ -253,6 +515,16 @@ TiledWangTilesetDocument parseTiledWangTileset(String source) {
       final colors = <TiledWangColor>[];
       for (final color in wangSet.findElements('wangcolor')) {
         final rawTileId = _requiredIntAttribute(color, 'tile');
+        if ((!isImageCollection && rawTileId >= tileCount) ||
+            (isImageCollection &&
+                rawTileId >= 0 &&
+                !tileMetadata.containsKey(rawTileId))) {
+          throw TiledWangImportException(
+            'smart_tile.tiled.image_reference_invalid',
+            'Un matériau Wang référence la tuile locale $rawTileId, absente '
+                'du tileset.',
+          );
+        }
         colors.add(
           TiledWangColor(
             name: _canonicalName(
@@ -272,7 +544,19 @@ TiledWangTilesetDocument parseTiledWangTileset(String source) {
       }
       final wangTiles = <TiledWangTile>[];
       for (final wangTile in wangSet.findElements('wangtile')) {
-        final tileId = _tileId(wangTile, tileCount: tileCount, field: 'tileid');
+        final tileId = _tileId(
+          wangTile,
+          tileCount: tileCount,
+          field: 'tileid',
+          sparse: isImageCollection,
+        );
+        if (isImageCollection && !tileMetadata.containsKey(tileId)) {
+          throw TiledWangImportException(
+            'smart_tile.tiled.image_reference_invalid',
+            'Le Wang Set référence la tuile locale $tileId, absente de la '
+                'collection.',
+          );
+        }
         final rawWangId = wangTile.getAttribute('wangid')?.trim() ?? '';
         final values = rawWangId
             .split(',')
@@ -312,27 +596,109 @@ TiledWangTilesetDocument parseTiledWangTileset(String source) {
       );
     }
   }
-  if (wangSets.isEmpty) {
+
+  final TiledTilesetLayout layout;
+  final TiledTilesetDependencyClosure dependencyClosure;
+  if (isImageCollection) {
+    final sortedTiles = tileMetadata.values.toList(growable: false)
+      ..sort((left, right) => left.tileId.compareTo(right.tileId));
+    final dependenciesBySource =
+        <String, (TiledTilesetImageReference, List<int>)>{};
+    for (final tile in sortedTiles) {
+      final image = tile.image!;
+      final existing = dependenciesBySource[image.source];
+      if (existing == null) {
+        dependenciesBySource[image.source] = (image, <int>[tile.tileId]);
+      } else {
+        if (existing.$1.pixelWidth != image.pixelWidth ||
+            existing.$1.pixelHeight != image.pixelHeight) {
+          throw TiledWangImportException(
+            'smart_tile.tiled.image_dimensions_conflict',
+            'L’image ${image.source} possède plusieurs dimensions déclarées.',
+          );
+        }
+        existing.$2.add(tile.tileId);
+      }
+    }
+    layout = TiledImageCollectionLayout(
+      tileIds: sortedTiles.map((tile) => tile.tileId),
+    );
+    dependencyClosure = TiledTilesetDependencyClosure(
+      images: <TiledTilesetImageDependency>[
+        for (final entry in dependenciesBySource.values)
+          TiledTilesetImageDependency(
+            source: entry.$1.source,
+            pixelWidth: entry.$1.pixelWidth,
+            pixelHeight: entry.$1.pixelHeight,
+            tileIds: entry.$2,
+          ),
+      ],
+    );
+  } else {
+    final image = atlasImage!;
+    final rows = (tileCount + columns - 1) ~/ columns;
+    layout = TiledRegularAtlasLayout(
+      image: image,
+      columns: columns,
+      rows: rows,
+      margin: margin,
+      spacing: spacing,
+    );
+    dependencyClosure = TiledTilesetDependencyClosure(
+      images: <TiledTilesetImageDependency>[
+        TiledTilesetImageDependency(
+          source: image.source,
+          pixelWidth: image.pixelWidth,
+          pixelHeight: image.pixelHeight,
+        ),
+      ],
+    );
+  }
+
+  return TiledTilesetDocument(
+    name: name,
+    tileWidth: tileWidth,
+    tileHeight: tileHeight,
+    tileCount: tileCount,
+    tileOffsetX: tileOffsetX,
+    tileOffsetY: tileOffsetY,
+    layout: layout,
+    dependencyClosure: dependencyClosure,
+    properties: properties,
+    tiles: tileMetadata,
+    wangSets: wangSets,
+  );
+}
+
+TiledWangTilesetDocument parseTiledWangTileset(String source) {
+  final document = parseTiledTileset(source);
+  final layout = document.layout;
+  if (layout is! TiledRegularAtlasLayout) {
+    throw const TiledWangImportException(
+      'smart_tile.tiled.image_collection_unsupported',
+      'La compilation Wang directe attend encore un atlas régulier packé.',
+    );
+  }
+  if (document.wangSets.isEmpty) {
     throw const TiledWangImportException(
       'smart_tile.tiled.wang_sets_required',
       'Le TSX ne contient aucun Wang Set importable.',
     );
   }
-
   return TiledWangTilesetDocument(
-    name: name,
-    imageSource: imageSource,
-    imageWidth: imageWidth,
-    imageHeight: imageHeight,
-    tileWidth: tileWidth,
-    tileHeight: tileHeight,
-    tileCount: tileCount,
-    columns: columns,
-    rows: rows,
-    margin: margin,
-    spacing: spacing,
-    tiles: tileMetadata,
-    wangSets: wangSets,
+    name: document.name,
+    imageSource: layout.image.source,
+    imageWidth: layout.image.pixelWidth,
+    imageHeight: layout.image.pixelHeight,
+    tileWidth: document.tileWidth,
+    tileHeight: document.tileHeight,
+    tileCount: document.tileCount,
+    columns: layout.columns,
+    rows: layout.rows,
+    margin: layout.margin,
+    spacing: layout.spacing,
+    tiles: document.tiles,
+    wangSets: document.wangSets,
   );
 }
 
@@ -625,13 +991,319 @@ TiledWangSetType _wangSetType(String? value) {
   };
 }
 
+List<TiledProperty> _parseTiledProperties(
+  XmlElement owner, {
+  required String context,
+}) {
+  final containers = owner.findElements('properties').toList(growable: false);
+  if (containers.length > 1) {
+    throw TiledWangImportException(
+      'smart_tile.tiled.properties_duplicate',
+      'Le $context contient plusieurs blocs de propriétés concurrents.',
+    );
+  }
+  if (containers.isEmpty) return const <TiledProperty>[];
+
+  final names = <String>{};
+  final result = <TiledProperty>[];
+  for (final property in containers.single.findElements('property')) {
+    final name = property.getAttribute('name')?.trim() ?? '';
+    if (name.isEmpty) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.property_name_invalid',
+        'Une propriété du $context ne possède pas de nom.',
+      );
+    }
+    if (!names.add(name)) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.property_duplicate',
+        'La propriété $name est déclarée plusieurs fois sur le $context.',
+      );
+    }
+    final rawType = property.getAttribute('type')?.trim().toLowerCase();
+    final customType = property.getAttribute('propertytype')?.trim();
+    final rawValue = property.getAttribute('value') ?? property.innerText;
+    final TiledPropertyValueType type;
+    final Object? value;
+    final List<TiledProperty> members;
+    switch (rawType == null || rawType.isEmpty ? 'string' : rawType) {
+      case 'string':
+        type = TiledPropertyValueType.string;
+        value = rawValue;
+        members = const <TiledProperty>[];
+      case 'int':
+        type = TiledPropertyValueType.integer;
+        value = int.tryParse(rawValue.trim());
+        members = const <TiledProperty>[];
+      case 'float':
+        type = TiledPropertyValueType.decimal;
+        final parsed = double.tryParse(rawValue.trim());
+        value = parsed != null && parsed.isFinite ? parsed : null;
+        members = const <TiledProperty>[];
+      case 'bool':
+        type = TiledPropertyValueType.boolean;
+        value = switch (rawValue.trim().toLowerCase()) {
+          'true' || '1' => true,
+          'false' || '0' => false,
+          _ => null,
+        };
+        members = const <TiledProperty>[];
+      case 'color':
+        type = TiledPropertyValueType.color;
+        final canonical = rawValue.trim();
+        value =
+            RegExp(r'^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$').hasMatch(canonical)
+                ? canonical
+                : null;
+        members = const <TiledProperty>[];
+      case 'file':
+        type = TiledPropertyValueType.file;
+        value = _normalizeImageReference(rawValue);
+        members = const <TiledProperty>[];
+      case 'object':
+        type = TiledPropertyValueType.object;
+        final parsed = int.tryParse(rawValue.trim());
+        value = parsed != null && parsed >= 0 ? parsed : null;
+        members = const <TiledProperty>[];
+      case 'class':
+        type = TiledPropertyValueType.structured;
+        value = null;
+        members = _parseTiledProperties(
+          property,
+          context: 'propriété structurée $name',
+        );
+      default:
+        throw TiledWangImportException(
+          'smart_tile.tiled.property_type_unsupported',
+          'La propriété $name du $context utilise un type non pris en charge.',
+        );
+    }
+    if (type == TiledPropertyValueType.structured) {
+      if (customType == null || customType.isEmpty) {
+        throw TiledWangImportException(
+          'smart_tile.tiled.property_value_invalid',
+          'La propriété structurée $name du $context ne possède pas de type.',
+        );
+      }
+    } else if (value == null) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.property_value_invalid',
+        'La valeur de la propriété $name du $context est invalide.',
+      );
+    }
+    result.add(
+      TiledProperty(
+        name: name,
+        type: type,
+        value: value,
+        customType:
+            customType == null || customType.isEmpty ? null : customType,
+        members: members,
+      ),
+    );
+  }
+  return List<TiledProperty>.unmodifiable(result);
+}
+
+List<TiledCollisionObject> _parseTiledCollisionObjects(
+  XmlElement tile, {
+  required int tileId,
+}) {
+  final groups = tile.findElements('objectgroup').toList(growable: false);
+  if (groups.length > 1) {
+    throw TiledWangImportException(
+      'smart_tile.tiled.collision_group_duplicate',
+      'La tuile $tileId contient plusieurs groupes de collision.',
+    );
+  }
+  if (groups.isEmpty) return const <TiledCollisionObject>[];
+
+  final objectIds = <int>{};
+  final result = <TiledCollisionObject>[];
+  for (final object in groups.single.findElements('object')) {
+    final id = _requiredIntAttribute(object, 'id');
+    if (id < 0 || !objectIds.add(id)) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.collision_object_duplicate',
+        'La tuile $tileId possède un objet de collision dupliqué : $id.',
+      );
+    }
+    if (object.getAttribute('gid') != null ||
+        object.findElements('text').isNotEmpty) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.collision_shape_unsupported',
+        'L’objet $id de la tuile $tileId n’est pas une forme de collision.',
+      );
+    }
+    final shapeElements = <XmlElement>[
+      ...object.findElements('ellipse'),
+      ...object.findElements('polygon'),
+      ...object.findElements('polyline'),
+      ...object.findElements('point'),
+    ];
+    if (shapeElements.length > 1) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.collision_shape_invalid',
+        'L’objet $id de la tuile $tileId possède plusieurs formes.',
+      );
+    }
+    final shape = switch (shapeElements.firstOrNull?.name.local) {
+      'ellipse' => TiledCollisionShape.ellipse,
+      'polygon' => TiledCollisionShape.polygon,
+      'polyline' => TiledCollisionShape.polyline,
+      'point' => TiledCollisionShape.point,
+      _ => TiledCollisionShape.rectangle,
+    };
+    final points = switch (shape) {
+      TiledCollisionShape.polygon ||
+      TiledCollisionShape.polyline =>
+        _parseTiledPoints(shapeElements.single, tileId: tileId, objectId: id),
+      _ => const <TiledPoint>[],
+    };
+    final x = _finiteDoubleAttribute(object, 'x');
+    final y = _finiteDoubleAttribute(object, 'y');
+    final width = _finiteDoubleAttribute(object, 'width', fallback: 0);
+    final height = _finiteDoubleAttribute(object, 'height', fallback: 0);
+    final rotation = _finiteDoubleAttribute(object, 'rotation', fallback: 0);
+    final dimensionsAreValid = switch (shape) {
+      TiledCollisionShape.rectangle ||
+      TiledCollisionShape.ellipse =>
+        width > 0 && height > 0,
+      TiledCollisionShape.polygon => points.length >= 3,
+      TiledCollisionShape.polyline => points.length >= 2,
+      TiledCollisionShape.point => width == 0 && height == 0,
+    };
+    if (!dimensionsAreValid) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.collision_shape_invalid',
+        'La forme de l’objet $id de la tuile $tileId est invalide.',
+      );
+    }
+    result.add(
+      TiledCollisionObject(
+        id: id,
+        name: object.getAttribute('name')?.trim() ?? '',
+        className:
+            (object.getAttribute('class') ?? object.getAttribute('type') ?? '')
+                .trim(),
+        shape: shape,
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+        rotation: rotation,
+        points: points,
+        properties: _parseTiledProperties(
+          object,
+          context: 'objet $id de la tuile $tileId',
+        ),
+      ),
+    );
+  }
+  return List<TiledCollisionObject>.unmodifiable(result);
+}
+
+List<TiledPoint> _parseTiledPoints(
+  XmlElement shape, {
+  required int tileId,
+  required int objectId,
+}) {
+  final raw = shape.getAttribute('points')?.trim() ?? '';
+  final result = <TiledPoint>[];
+  for (final pair in raw.split(RegExp(r'\s+'))) {
+    if (pair.isEmpty) continue;
+    final coordinates = pair.split(',');
+    final x = coordinates.length == 2 ? double.tryParse(coordinates[0]) : null;
+    final y = coordinates.length == 2 ? double.tryParse(coordinates[1]) : null;
+    if (x == null || y == null || !x.isFinite || !y.isFinite) {
+      throw TiledWangImportException(
+        'smart_tile.tiled.collision_shape_invalid',
+        'Les points de l’objet $objectId de la tuile $tileId sont invalides.',
+      );
+    }
+    result.add(TiledPoint(x: x, y: y));
+  }
+  return List<TiledPoint>.unmodifiable(result);
+}
+
+double _finiteDoubleAttribute(
+  XmlElement element,
+  String field, {
+  double? fallback,
+}) {
+  final raw = element.getAttribute(field);
+  if (raw == null && fallback != null) return fallback;
+  final value = double.tryParse(raw ?? '');
+  if (value == null || !value.isFinite) {
+    throw TiledWangImportException(
+      'smart_tile.tiled.number_invalid',
+      'L’attribut $field doit être un nombre fini.',
+    );
+  }
+  return value;
+}
+
+TiledTilesetImageReference _parseTilesetImage(
+  XmlElement image, {
+  required String context,
+}) {
+  final source = _normalizeImageReference(image.getAttribute('source'));
+  final width = int.tryParse(image.getAttribute('width') ?? '');
+  final height = int.tryParse(image.getAttribute('height') ?? '');
+  if (width == null || height == null || width <= 0 || height <= 0) {
+    throw TiledWangImportException(
+      'smart_tile.tiled.image_dimensions_invalid',
+      'L’image du $context doit déclarer une largeur et une hauteur '
+          'strictement positives.',
+    );
+  }
+  return TiledTilesetImageReference(
+    source: source,
+    pixelWidth: width,
+    pixelHeight: height,
+  );
+}
+
+String _normalizeImageReference(String? raw) {
+  final value = raw?.trim().replaceAll('\\', '/') ?? '';
+  final hasScheme = RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*:').hasMatch(value);
+  if (value.isEmpty ||
+      value.contains('\u0000') ||
+      value.startsWith('/') ||
+      value.startsWith('//') ||
+      value.startsWith(':/') ||
+      hasScheme) {
+    throw const TiledWangImportException(
+      'smart_tile.tiled.image_reference_invalid',
+      'Une image du TSX possède une référence locale invalide.',
+    );
+  }
+  final normalized = <String>[];
+  for (final segment in value.split('/')) {
+    if (segment.isEmpty || segment == '.') continue;
+    if (segment == '..' && normalized.isNotEmpty && normalized.last != '..') {
+      normalized.removeLast();
+      continue;
+    }
+    normalized.add(segment);
+  }
+  if (normalized.isEmpty) {
+    throw const TiledWangImportException(
+      'smart_tile.tiled.image_reference_invalid',
+      'Une image du TSX possède une référence locale invalide.',
+    );
+  }
+  return normalized.join('/');
+}
+
 int _tileId(
   XmlElement element, {
   required int tileCount,
   String field = 'id',
+  bool sparse = false,
 }) {
   final value = _requiredIntAttribute(element, field);
-  if (value < 0 || value >= tileCount) {
+  if (value < 0 || (!sparse && value >= tileCount)) {
     throw TiledWangImportException(
       'smart_tile.tiled.tile_out_of_bounds',
       'La tuile $value est hors des limites du tileset.',
