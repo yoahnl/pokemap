@@ -574,22 +574,62 @@ TilesetSourceRect? _regridSource(
   ProjectRegularAtlasTilesetSource before,
   ProjectRegularAtlasTilesetSource after,
 ) {
-  final x = source.x * before.tileWidth;
-  final y = source.y * before.tileHeight;
-  final width = source.width * before.tileWidth;
-  final height = source.height * before.tileHeight;
-  if (x % after.tileWidth != 0 ||
-      y % after.tileHeight != 0 ||
-      width % after.tileWidth != 0 ||
-      height % after.tileHeight != 0) {
+  final horizontal = _regridAxis(
+    sourceStart: source.x,
+    sourceCount: source.width,
+    beforeTileExtent: before.tileWidth,
+    beforeMargin: before.marginX,
+    beforeSpacing: before.spacingX,
+    afterTileExtent: after.tileWidth,
+    afterMargin: after.marginX,
+    afterSpacing: after.spacingX,
+  );
+  final vertical = _regridAxis(
+    sourceStart: source.y,
+    sourceCount: source.height,
+    beforeTileExtent: before.tileHeight,
+    beforeMargin: before.marginY,
+    beforeSpacing: before.spacingY,
+    afterTileExtent: after.tileHeight,
+    afterMargin: after.marginY,
+    afterSpacing: after.spacingY,
+  );
+  if (horizontal == null || vertical == null) {
     return null;
   }
   return TilesetSourceRect(
-    x: x ~/ after.tileWidth,
-    y: y ~/ after.tileHeight,
-    width: width ~/ after.tileWidth,
-    height: height ~/ after.tileHeight,
+    x: horizontal.start,
+    y: vertical.start,
+    width: horizontal.count,
+    height: vertical.count,
   );
+}
+
+({int start, int count})? _regridAxis({
+  required int sourceStart,
+  required int sourceCount,
+  required int beforeTileExtent,
+  required int beforeMargin,
+  required int beforeSpacing,
+  required int afterTileExtent,
+  required int afterMargin,
+  required int afterSpacing,
+}) {
+  final pixelStart =
+      beforeMargin + sourceStart * (beforeTileExtent + beforeSpacing);
+  final pixelExtent =
+      sourceCount * beforeTileExtent + (sourceCount - 1) * beforeSpacing;
+  final relativeStart = pixelStart - afterMargin;
+  final afterStride = afterTileExtent + afterSpacing;
+  final extentNumerator = pixelExtent + afterSpacing;
+  if (relativeStart < 0 ||
+      relativeStart % afterStride != 0 ||
+      extentNumerator % afterStride != 0) {
+    return null;
+  }
+  final count = extentNumerator ~/ afterStride;
+  if (count <= 0) return null;
+  return (start: relativeStart ~/ afterStride, count: count);
 }
 
 ProjectRegularAtlasTilesetSource _requireRegularAtlas(
@@ -620,11 +660,23 @@ void _validateRegularAtlas(
       atlas.pixelHeight <= 0 ||
       atlas.tileWidth <= 0 ||
       atlas.tileHeight <= 0 ||
-      atlas.pixelWidth % atlas.tileWidth != 0 ||
-      atlas.pixelHeight % atlas.tileHeight != 0) {
+      atlas.marginX < 0 ||
+      atlas.marginY < 0 ||
+      atlas.spacingX < 0 ||
+      atlas.spacingY < 0 ||
+      atlas.columns <= 0 ||
+      atlas.rows <= 0 ||
+      atlas.marginX * 2 +
+              atlas.columns * atlas.tileWidth +
+              (atlas.columns - 1) * atlas.spacingX !=
+          atlas.pixelWidth ||
+      atlas.marginY * 2 +
+              atlas.rows * atlas.tileHeight +
+              (atlas.rows - 1) * atlas.spacingY !=
+          atlas.pixelHeight) {
     throw VisualLibraryException(
       'tileset.grid_invalid',
-      'Atlas dimensions must be positive multiples of the tile grid.',
+      'Atlas dimensions must exactly match its margins, spacing and tile grid.',
       details: atlas.toJson(),
     );
   }
@@ -658,6 +710,13 @@ ProjectRegularAtlasTilesetSource _regridAtlas(
     pixelHeight: atlas.pixelHeight,
     tileWidth: tileWidth,
     tileHeight: tileHeight,
+    marginX: atlas.marginX,
+    marginY: atlas.marginY,
+    spacingX: atlas.spacingX,
+    spacingY: atlas.spacingY,
+    pixelOffsetX: atlas.pixelOffsetX,
+    pixelOffsetY: atlas.pixelOffsetY,
+    tileProperties: atlas.tileProperties,
   );
   _validateRegularAtlas(tilesetId, result);
   return result;

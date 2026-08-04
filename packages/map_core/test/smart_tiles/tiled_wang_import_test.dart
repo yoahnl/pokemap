@@ -14,12 +14,29 @@ void main() {
       expect(document.rows, 2);
       expect(document.margin, 1);
       expect(document.spacing, 2);
+      expect(document.tileOffsetX, -3);
+      expect(document.tileOffsetY, 5);
       expect(document.wangSets, hasLength(2));
       expect(document.wangSets.first.type, TiledWangSetType.corner);
       expect(document.wangSets.first.colors.first.colorArgb, 0xff35a853);
       expect(document.tiles[0]!.probability, 0.25);
       expect(document.tiles[0]!.animation, hasLength(2));
       expect(document.tiles[0]!.animation.last.durationMs, 200);
+
+      final bundle = compileTiledWangImport(
+        document: document,
+        importId: 'synthetic',
+        tilesetId: 'synthetic-tileset',
+        selections: const <TiledWangSetSelection>[
+          TiledWangSetSelection(
+            wangSetIndex: 0,
+            usage: SmartTileUsage.terrain,
+          ),
+        ],
+      );
+      expect(bundle.atlas.sourceRectFor(column: 1, row: 1).toJson(),
+          <String, Object?>{'x': 35, 'y': 35, 'width': 32, 'height': 32});
+      expect((bundle.atlas.pixelOffsetX, bundle.atlas.pixelOffsetY), (-3, 5));
     });
 
     test('reads sparse collection-of-images dependencies without I/O', () {
@@ -280,6 +297,7 @@ const _tsx = '''
     tilewidth="32" tileheight="32" tilecount="4" columns="2"
     margin="1" spacing="2">
   <image source="../images/terrain.png" width="68" height="68"/>
+  <tileoffset x="-3" y="5"/>
   <tile id="0" probability="0.25">
     <animation>
       <frame tileid="2" duration="100"/>

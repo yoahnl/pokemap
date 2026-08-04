@@ -651,8 +651,20 @@ class ProjectValidator {
         source.pixelHeight <= 0 ||
         source.tileWidth <= 0 ||
         source.tileHeight <= 0 ||
-        source.pixelWidth % source.tileWidth != 0 ||
-        source.pixelHeight % source.tileHeight != 0) {
+        source.marginX < 0 ||
+        source.marginY < 0 ||
+        source.spacingX < 0 ||
+        source.spacingY < 0 ||
+        source.columns <= 0 ||
+        source.rows <= 0 ||
+        source.marginX * 2 +
+                source.columns * source.tileWidth +
+                (source.columns - 1) * source.spacingX !=
+            source.pixelWidth ||
+        source.marginY * 2 +
+                source.rows * source.tileHeight +
+                (source.rows - 1) * source.spacingY !=
+            source.pixelHeight) {
       throw ValidationException(
         'Tileset ${tileset.id} has an invalid regular atlas source',
       );

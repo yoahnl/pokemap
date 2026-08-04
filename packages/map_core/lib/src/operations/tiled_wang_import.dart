@@ -283,6 +283,8 @@ final class TiledWangTilesetDocument {
     required this.rows,
     required this.margin,
     required this.spacing,
+    required this.tileOffsetX,
+    required this.tileOffsetY,
     required Map<int, TiledTileMetadata> tiles,
     required Iterable<TiledWangSet> wangSets,
   })  : tiles = Map<int, TiledTileMetadata>.unmodifiable(tiles),
@@ -299,6 +301,8 @@ final class TiledWangTilesetDocument {
   final int rows;
   final int margin;
   final int spacing;
+  final int tileOffsetX;
+  final int tileOffsetY;
   final Map<int, TiledTileMetadata> tiles;
   final List<TiledWangSet> wangSets;
 }
@@ -697,6 +701,8 @@ TiledWangTilesetDocument parseTiledWangTileset(String source) {
     rows: layout.rows,
     margin: layout.margin,
     spacing: layout.spacing,
+    tileOffsetX: document.tileOffsetX,
+    tileOffsetY: document.tileOffsetY,
     tiles: document.tiles,
     wangSets: document.wangSets,
   );
@@ -759,6 +765,8 @@ TiledWangImportBundle compileTiledWangImport({
     spacingY: document.spacing,
     columns: document.columns,
     rows: document.rows,
+    pixelOffsetX: document.tileOffsetX,
+    pixelOffsetY: document.tileOffsetY,
   );
   final materials = <ProjectSmartTileMaterial>[];
   final animationsByTile = <int, ProjectSmartTileAnimation>{};

@@ -182,6 +182,12 @@ sealed class ProjectTilesetSource {
     required int pixelHeight,
     required int tileWidth,
     required int tileHeight,
+    @Default(0) int marginX,
+    @Default(0) int marginY,
+    @Default(0) int spacingX,
+    @Default(0) int spacingY,
+    @Default(0) int pixelOffsetX,
+    @Default(0) int pixelOffsetY,
     @Default(<VisualTileProperty>[]) List<VisualTileProperty> tileProperties,
   }) = ProjectRegularAtlasTilesetSource;
 
@@ -288,6 +294,12 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
     required this.pixelHeight,
     required this.tileWidth,
     required this.tileHeight,
+    this.marginX = 0,
+    this.marginY = 0,
+    this.spacingX = 0,
+    this.spacingY = 0,
+    this.pixelOffsetX = 0,
+    this.pixelOffsetY = 0,
     this.tileProperties = const <VisualTileProperty>[],
   });
 
@@ -301,6 +313,12 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
       'pixelHeight',
       'tileWidth',
       'tileHeight',
+      'marginX',
+      'marginY',
+      'spacingX',
+      'spacingY',
+      'pixelOffsetX',
+      'pixelOffsetY',
       'tileProperties',
     };
     if (json.keys.any((key) => !allowed.contains(key)) ||
@@ -320,6 +338,12 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
       pixelHeight: json['pixelHeight']! as int,
       tileWidth: json['tileWidth']! as int,
       tileHeight: json['tileHeight']! as int,
+      marginX: _optionalJsonInt(json, 'marginX'),
+      marginY: _optionalJsonInt(json, 'marginY'),
+      spacingX: _optionalJsonInt(json, 'spacingX'),
+      spacingY: _optionalJsonInt(json, 'spacingY'),
+      pixelOffsetX: _optionalJsonInt(json, 'pixelOffsetX'),
+      pixelOffsetY: _optionalJsonInt(json, 'pixelOffsetY'),
       tileProperties: <VisualTileProperty>[
         for (final raw in json['tileProperties']! as List)
           if (raw is Map)
@@ -337,10 +361,26 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
   final int pixelHeight;
   final int tileWidth;
   final int tileHeight;
+  final int marginX;
+  final int marginY;
+  final int spacingX;
+  final int spacingY;
+  final int pixelOffsetX;
+  final int pixelOffsetY;
   final List<VisualTileProperty> tileProperties;
 
-  int get columns => pixelWidth ~/ tileWidth;
-  int get rows => pixelHeight ~/ tileHeight;
+  int get columns => _regularAtlasAxisCount(
+        pixelExtent: pixelWidth,
+        tileExtent: tileWidth,
+        margin: marginX,
+        spacing: spacingX,
+      );
+  int get rows => _regularAtlasAxisCount(
+        pixelExtent: pixelHeight,
+        tileExtent: tileHeight,
+        margin: marginY,
+        spacing: spacingY,
+      );
   int get tileCount => columns * rows;
 
   @override
@@ -351,6 +391,12 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
         'pixelHeight': pixelHeight,
         'tileWidth': tileWidth,
         'tileHeight': tileHeight,
+        if (marginX != 0) 'marginX': marginX,
+        if (marginY != 0) 'marginY': marginY,
+        if (spacingX != 0) 'spacingX': spacingX,
+        if (spacingY != 0) 'spacingY': spacingY,
+        if (pixelOffsetX != 0) 'pixelOffsetX': pixelOffsetX,
+        if (pixelOffsetY != 0) 'pixelOffsetY': pixelOffsetY,
         'tileProperties': <Object?>[
           for (final property in tileProperties) property.toJson(),
         ],
@@ -365,6 +411,12 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
           other.pixelHeight == pixelHeight &&
           other.tileWidth == tileWidth &&
           other.tileHeight == tileHeight &&
+          other.marginX == marginX &&
+          other.marginY == marginY &&
+          other.spacingX == spacingX &&
+          other.spacingY == spacingY &&
+          other.pixelOffsetX == pixelOffsetX &&
+          other.pixelOffsetY == pixelOffsetY &&
           _listEquals(other.tileProperties, tileProperties);
 
   @override
@@ -374,8 +426,34 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
         pixelHeight,
         tileWidth,
         tileHeight,
+        marginX,
+        marginY,
+        spacingX,
+        spacingY,
+        pixelOffsetX,
+        pixelOffsetY,
         Object.hashAll(tileProperties),
       );
+}
+
+int _optionalJsonInt(Map<String, dynamic> json, String field) {
+  final value = json[field];
+  if (value == null) return 0;
+  if (value is! int) {
+    throw FormatException(r'$.source.' '$field: expected an integer');
+  }
+  return value;
+}
+
+int _regularAtlasAxisCount({
+  required int pixelExtent,
+  required int tileExtent,
+  required int margin,
+  required int spacing,
+}) {
+  final usable = pixelExtent - margin * 2;
+  if (usable < tileExtent || tileExtent <= 0 || spacing < 0) return 0;
+  return (usable + spacing) ~/ (tileExtent + spacing);
 }
 
 bool _listEquals<T>(List<T> left, List<T> right) {

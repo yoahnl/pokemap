@@ -43,6 +43,45 @@ void main() {
       expect(ProjectTilesetEntry.fromJson(tileset.toJson()), tileset);
     });
 
+    test('preserves regular atlas margins spacing and drawing offsets', () {
+      const source = ProjectTilesetSource.regularAtlas(
+        assetId: 'asset-spaced',
+        pixelWidth: 68,
+        pixelHeight: 68,
+        tileWidth: 32,
+        tileHeight: 32,
+        marginX: 1,
+        marginY: 1,
+        spacingX: 2,
+        spacingY: 2,
+        pixelOffsetX: -3,
+        pixelOffsetY: 5,
+      );
+      const tileset = ProjectTilesetEntry(
+        id: 'spaced',
+        name: 'Spaced',
+        relativePath: 'assets/spaced.png',
+        source: source,
+      );
+
+      final decoded = ProjectTilesetEntry.fromJson(tileset.toJson());
+      final decodedSource = decoded.source! as ProjectRegularAtlasTilesetSource;
+      expect(decodedSource, source);
+      expect((decodedSource.columns, decodedSource.rows), (2, 2));
+      expect(decodedSource.marginX, 1);
+      expect(decodedSource.spacingY, 2);
+      expect((decodedSource.pixelOffsetX, decodedSource.pixelOffsetY), (-3, 5));
+      expect(
+          () => ProjectValidator.validate(
+                const ProjectManifest(
+                  name: 'Spaced atlas project',
+                  maps: <ProjectMapEntry>[],
+                  tilesets: <ProjectTilesetEntry>[tileset],
+                ),
+              ),
+          returnsNormally);
+    });
+
     test('migrates legacy atlas metadata into the canonical source', () {
       final manifest = ProjectManifest.fromJson(<String, Object?>{
         'name': 'Legacy atlas project',
@@ -154,6 +193,42 @@ void main() {
               pixelHeight: 48,
               tileWidth: 16,
               tileHeight: 16,
+            ),
+          ),
+        ],
+      );
+
+      expect(
+        () => ProjectValidator.validate(manifest),
+        throwsA(
+          isA<ValidationException>().having(
+            (error) => error.message,
+            'message',
+            contains('invalid regular atlas source'),
+          ),
+        ),
+      );
+    });
+
+    test('project validation rejects inconsistent spaced atlas geometry', () {
+      const manifest = ProjectManifest(
+        name: 'Invalid spaced atlas project',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'world',
+            name: 'World',
+            relativePath: 'assets/world.png',
+            source: ProjectTilesetSource.regularAtlas(
+              assetId: 'asset-world',
+              pixelWidth: 69,
+              pixelHeight: 68,
+              tileWidth: 32,
+              tileHeight: 32,
+              marginX: 1,
+              marginY: 1,
+              spacingX: 2,
+              spacingY: 2,
             ),
           ),
         ],

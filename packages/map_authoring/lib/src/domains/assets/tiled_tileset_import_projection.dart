@@ -56,6 +56,12 @@ final class TiledTilesetImportProjector {
         source.pixelHeight != dimensions.height ||
         source.tileWidth != wangBundle.atlas.cellWidth ||
         source.tileHeight != wangBundle.atlas.cellHeight ||
+        source.marginX != wangBundle.atlas.marginX ||
+        source.marginY != wangBundle.atlas.marginY ||
+        source.spacingX != wangBundle.atlas.spacingX ||
+        source.spacingY != wangBundle.atlas.spacingY ||
+        source.pixelOffsetX != wangBundle.atlas.pixelOffsetX ||
+        source.pixelOffsetY != wangBundle.atlas.pixelOffsetY ||
         source.columns != wangBundle.atlas.columns ||
         source.rows != wangBundle.atlas.rows) {
       throw VisualLibraryException(

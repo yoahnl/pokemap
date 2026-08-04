@@ -145,6 +145,41 @@ void main() {
       expect(preview.after.tileWidth, 8);
     });
 
+    test('regrid preserves pixel regions for spaced atlases', () {
+      const spaced = ProjectRegularAtlasTilesetSource(
+        assetId: 'world-atlas',
+        pixelWidth: 68,
+        pixelHeight: 34,
+        tileWidth: 32,
+        tileHeight: 32,
+        marginX: 1,
+        marginY: 1,
+        spacingX: 2,
+        spacingY: 2,
+      );
+      final base = _manifest();
+      final manifest = base.copyWith(
+        tilesets: [
+          base.tilesets.single.copyWith(source: spaced),
+        ],
+      );
+
+      final preview = const TilesetActions().previewRegrid(
+        manifest,
+        tilesetId: 'world',
+        tileWidth: 15,
+        tileHeight: 15,
+      );
+
+      expect(preview.canApply, isTrue);
+      expect(preview.after.columns, 4);
+      expect(preview.after.rows, 2);
+      expect(preview.impacts[0].after,
+          const TilesetSourceRect(x: 2, y: 0, width: 2, height: 2));
+      expect(preview.impacts[1].after,
+          const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2));
+    });
+
     test('element deletion scans every loaded map', () {
       final town = const MapData(
         id: 'town',

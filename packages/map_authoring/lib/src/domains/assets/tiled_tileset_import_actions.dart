@@ -95,6 +95,12 @@ final class TiledTilesetImportActions {
         pixelHeight: document.imageHeight,
         tileWidth: document.tileWidth,
         tileHeight: document.tileHeight,
+        marginX: document.margin,
+        marginY: document.margin,
+        spacingX: document.spacing,
+        spacingY: document.spacing,
+        pixelOffsetX: document.tileOffsetX,
+        pixelOffsetY: document.tileOffsetY,
       ),
     );
     return const TiledTilesetImportProjector().project(
