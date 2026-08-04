@@ -26,7 +26,10 @@ void main() {
     );
     controller = HubDashboardController(
       libraryStore: store,
-      activityReader: (_) async => const HubGameActivity(),
+      activityReader: (_) async => HubGameActivity(
+        canContinue: true,
+        lastSaveAt: DateTime.utc(2026, 7, 25),
+      ),
     );
     await controller.initialize();
   });
@@ -48,7 +51,8 @@ void main() {
         PokeMapHubApp(
           controller: controller,
           initializeController: false,
-          playerBuilder: (context, selected, onHubRequested) => Scaffold(
+          playerBuilder: (context, selected, intent, onHubRequested) =>
+              Scaffold(
             body: Column(
               children: <Widget>[
                 Text('Lecteur ${selected.game.title}'),
@@ -76,6 +80,74 @@ void main() {
   );
 
   testWidgets(
+    'mobile Continue forwards an explicit resume intent to the real player',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      HubPlayerLaunchIntent? launchIntent;
+
+      await tester.pumpWidget(
+        PokeMapHubApp(
+          productName: 'Avelune',
+          mobileConsoleExperience: true,
+          controller: controller,
+          initializeController: false,
+          playerBuilder: (
+            context,
+            selected,
+            intent,
+            onHubRequested,
+          ) {
+            launchIntent = intent;
+            return Scaffold(body: Text('Lecteur ${selected.game.title}'));
+          },
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('avelune-hero-cartridge')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 380));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 180));
+      await tester.pump();
+
+      expect(launchIntent, HubPlayerLaunchIntent.continueGame);
+      expect(find.text('Lecteur Aube'), findsOneWidget);
+    },
+  );
+
+  testWidgets('mobile Settings opens the existing preferences screen',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(
+      PokeMapHubApp(
+        productName: 'Avelune',
+        mobileConsoleExperience: true,
+        controller: controller,
+        initializeController: false,
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-nav-settings')),
+    );
+    await tester.pump();
+
+    expect(controller.snapshot.section, HubSection.preferences);
+    expect(find.byType(AveluneMobileHome), findsNothing);
+    expect(
+      find.byType(DropdownButtonFormField<PlayerLanguage>),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
     'startup preference opens the most recent healthy game exactly once',
     (tester) async {
       unawaited(
@@ -90,7 +162,8 @@ void main() {
         PokeMapHubApp(
           controller: controller,
           initializeController: false,
-          playerBuilder: (context, selected, onHubRequested) => Scaffold(
+          playerBuilder: (context, selected, intent, onHubRequested) =>
+              Scaffold(
             body: Column(
               children: <Widget>[
                 Text('Lecteur ${selected.game.title}'),

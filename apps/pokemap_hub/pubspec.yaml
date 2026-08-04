@@ -39,6 +39,7 @@ flutter:
   assets:
     - assets/certification/intro_landscape_h264_aac.mp4
     - assets/certification/intro_portrait_h264_aac.mp4
+    - ios/Runner/Assets.xcassets/AppIcon.appiconset/180.png
 
 dependency_overrides:
   gamepads_darwin:

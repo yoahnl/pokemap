@@ -4,6 +4,9 @@ import 'package:map_player_ui/map_player_ui.dart';
 
 import '../display/hub_display_preferences.dart';
 import '../display/hub_display_preferences_controller.dart';
+import 'avelune/avelune_mobile_home.dart';
+import 'avelune/avelune_navigation.dart';
+import 'avelune/avelune_theme.dart';
 import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
 import 'hub_install_progress.dart';
@@ -19,6 +22,7 @@ class HubShell extends StatelessWidget {
     required this.onGameSelected,
     required this.onGameDetailsClosed,
     required this.onPreferencesChanged,
+    this.mobileConsoleExperience = false,
     this.displayPreferencesController,
     this.onCancelInstall,
   });
@@ -31,6 +35,7 @@ class HubShell extends StatelessWidget {
   final ValueChanged<String> onGameSelected;
   final VoidCallback onGameDetailsClosed;
   final ValueChanged<PlayerPreferences> onPreferencesChanged;
+  final bool mobileConsoleExperience;
   final HubDisplayPreferencesController? displayPreferencesController;
   final VoidCallback? onCancelInstall;
 
@@ -40,23 +45,43 @@ class HubShell extends StatelessWidget {
           builder: (context, constraints) {
             final wide = constraints.maxWidth >= 840;
             final content = _content(context);
-            final shell = wide
-                ? Row(
-                    children: <Widget>[
-                      _navigationRail(context),
-                      VerticalDivider(
-                        width: 1,
-                        color: context.playerColors.outline,
-                      ),
-                      Expanded(child: content),
-                    ],
+            final shell = mobileConsoleExperience
+                ? AnnotatedRegion<SystemUiOverlayStyle>(
+                    value: SystemUiOverlayStyle.light.copyWith(
+                      statusBarColor: context.aveluneColors.background,
+                      systemNavigationBarColor:
+                          context.aveluneColors.background,
+                      systemNavigationBarDividerColor:
+                          context.aveluneColors.background,
+                      systemNavigationBarIconBrightness: Brightness.light,
+                    ),
+                    child: Column(
+                      children: <Widget>[
+                        Expanded(child: content),
+                        AveluneBottomNavigation(
+                          selectedSection: snapshot.section,
+                          onSectionSelected: onSectionSelected,
+                        ),
+                      ],
+                    ),
                   )
-                : Column(
-                    children: <Widget>[
-                      Expanded(child: content),
-                      _navigationBar(context),
-                    ],
-                  );
+                : wide
+                    ? Row(
+                        children: <Widget>[
+                          _navigationRail(context),
+                          VerticalDivider(
+                            width: 1,
+                            color: context.playerColors.outline,
+                          ),
+                          Expanded(child: content),
+                        ],
+                      )
+                    : Column(
+                        children: <Widget>[
+                          Expanded(child: content),
+                          _navigationBar(context),
+                        ],
+                      );
             return Stack(
               fit: StackFit.expand,
               children: <Widget>[
@@ -105,43 +130,38 @@ class HubShell extends StatelessWidget {
       );
     }
     final selectedGame = snapshot.selectedGame;
-    final content = selectedGame != null
-        ? HubGameDetailView(
-            game: selectedGame,
-            actions: actions,
-            onBack: onGameDetailsClosed,
-          )
-        : switch (snapshot.section) {
-            HubSection.home => _HubHome(
+    final content = mobileConsoleExperience
+        ? switch (snapshot.section) {
+            HubSection.home || HubSection.library => AveluneMobileHome(
                 productName: productName,
                 snapshot: snapshot,
                 actions: actions,
-                onGameSelected: onGameSelected,
               ),
-            HubSection.library => _HubLibrary(
-                snapshot: snapshot,
-                actions: actions,
-                onQueryChanged: onQueryChanged,
-                onGameSelected: onGameSelected,
-              ),
-            HubSection.preferences => switch (displayPreferencesController) {
-                final controller? => ListenableBuilder(
-                    listenable: controller,
-                    builder: (context, _) => _HubPreferences(
-                      preferences: snapshot.preferences,
-                      onChanged: onPreferencesChanged,
-                      displaySnapshot: controller.snapshot,
-                      onDisplayChanged: (preferences) =>
-                          controller.update(preferences),
-                    ),
-                  ),
-                null => _HubPreferences(
-                    preferences: snapshot.preferences,
-                    onChanged: onPreferencesChanged,
-                  ),
-              },
+            HubSection.preferences => _preferencesContent(context),
             HubSection.diagnostics => _HubDiagnostics(snapshot: snapshot),
-          };
+          }
+        : selectedGame != null
+            ? HubGameDetailView(
+                game: selectedGame,
+                actions: actions,
+                onBack: onGameDetailsClosed,
+              )
+            : switch (snapshot.section) {
+                HubSection.home => _HubHome(
+                    productName: productName,
+                    snapshot: snapshot,
+                    actions: actions,
+                    onGameSelected: onGameSelected,
+                  ),
+                HubSection.library => _HubLibrary(
+                    snapshot: snapshot,
+                    actions: actions,
+                    onQueryChanged: onQueryChanged,
+                    onGameSelected: onGameSelected,
+                  ),
+                HubSection.preferences => _preferencesContent(context),
+                HubSection.diagnostics => _HubDiagnostics(snapshot: snapshot),
+              };
     final error = snapshot.status == HubDashboardStatus.error
         ? snapshot.diagnostics
             .where(
@@ -158,6 +178,23 @@ class HubShell extends StatelessWidget {
       ],
     );
   }
+
+  Widget _preferencesContent(BuildContext context) =>
+      switch (displayPreferencesController) {
+        final controller? => ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) => _HubPreferences(
+              preferences: snapshot.preferences,
+              onChanged: onPreferencesChanged,
+              displaySnapshot: controller.snapshot,
+              onDisplayChanged: (preferences) => controller.update(preferences),
+            ),
+          ),
+        null => _HubPreferences(
+            preferences: snapshot.preferences,
+            onChanged: onPreferencesChanged,
+          ),
+      };
 
   Widget _navigationRail(BuildContext context) => NavigationRail(
         selectedIndex: snapshot.section.index,

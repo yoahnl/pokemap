@@ -79,7 +79,8 @@ class ProjectBrandingEditor extends StatelessWidget {
         const PokeMapSectionHeader(
           title: 'Identité du titre',
           description:
-              'Choisissez la couleur d’accent et la composition générale.',
+              'Choisissez la coque de la cartouche Avelune, les accents du '
+              'titre et la composition générale.',
         ),
         const SizedBox(height: 8),
         PokeMapCard(
@@ -87,10 +88,15 @@ class ProjectBrandingEditor extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               const Text(
-                'Couleur d’accent',
+                'Couleur de cartouche Avelune et accent',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
+              const Text(
+                'Cette couleur teinte la coque de la cartouche dans Avelune '
+                'et les accents de l’écran titre.',
+              ),
+              const SizedBox(height: 6),
               Text(profile.accentColor ?? 'Thème par défaut'),
               const SizedBox(height: 10),
               Wrap(

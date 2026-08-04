@@ -23,6 +23,7 @@ import '../../session/installed_game_launch_resolver.dart';
 import '../preferences/hub_preferences_store.dart';
 import 'hub_intro_video_player.dart';
 import 'hub_installed_player_strings.dart';
+import 'hub_player_launch_intent.dart';
 import 'hub_save_profiles_screen.dart';
 import 'hub_title_presentation_loader.dart';
 
@@ -40,6 +41,7 @@ class HubInstalledGamePlayer extends StatefulWidget {
     required this.launchResolver,
     required this.game,
     required this.onHubRequested,
+    this.initialLaunchIntent = HubPlayerLaunchIntent.title,
     this.diagnosticLogFile,
     player_ui.PlayerPreferences? preferences,
   });
@@ -48,6 +50,7 @@ class HubInstalledGamePlayer extends StatefulWidget {
   final InstalledGameLaunchResolver launchResolver;
   final InstalledGame game;
   final HubPlayerReturnRequest onHubRequested;
+  final HubPlayerLaunchIntent initialLaunchIntent;
   final File? diagnosticLogFile;
 
   @override
@@ -135,7 +138,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       final loadedTypography = await _loadTypography(titlePresentation);
       final intro = titlePresentation.intro;
       _reducedMotion = preferences.reducedMotion;
-      _introComplete = intro == null ||
+      _introComplete = widget.initialLaunchIntent.skipsIntro ||
+          intro == null ||
           (_reducedMotion &&
               (intro.reducedMotionBehavior == 'skip' || intro.poster == null));
       final gameSource = HubRuntimeGameSource(
@@ -161,6 +165,18 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         externalExit: HubRuntimeExternalExit(widget.onHubRequested),
       );
       await coordinator.initialize();
+      final initialLaunch = await dispatchHubInitialLaunchIntent(
+        intent: widget.initialLaunchIntent,
+        snapshot: coordinator.snapshot,
+        dispatch: coordinator.dispatch,
+      );
+      if (initialLaunch != null &&
+          initialLaunch.status != RuntimePlayerCommandStatus.accepted) {
+        throw StateError(
+          initialLaunch.safeMessage ??
+              'The selected save could not be resumed from Avelune.',
+        );
+      }
       titleMusicController = RuntimeTitleMusicController(mixer: audioMixer);
       titleMusicSubscription = coordinator.snapshots.listen(
         (snapshot) => unawaited(

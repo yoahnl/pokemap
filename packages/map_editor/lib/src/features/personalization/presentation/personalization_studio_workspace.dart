@@ -451,7 +451,7 @@ class _PersonalizationStudioWorkspaceState
         profile.branding.accentColor ?? safeProjectSemanticTheme.primary;
     final value = await showProjectThemeTokenDialog(
       context: context,
-      tokenLabel: 'Accent du titre',
+      tokenLabel: 'Cartouche Avelune et accent du titre',
       currentValue: currentValue,
     );
     if (!mounted || value == null || value == profile.branding.accentColor) {
@@ -461,7 +461,7 @@ class _PersonalizationStudioWorkspaceState
       profile.copyWith(
         branding: profile.branding.copyWith(accentColor: value),
       ),
-      label: 'Modifier la couleur d’accent',
+      label: 'Modifier la couleur de cartouche et d’accent',
     );
   }
 
@@ -620,7 +620,7 @@ class _PersonalizationStudioWorkspaceState
                     profile.copyWith(
                       branding: profile.branding.copyWith(accentColor: null),
                     ),
-                    label: 'Réinitialiser la couleur d’accent',
+                    label: 'Réinitialiser la couleur de cartouche et d’accent',
                   ),
                 );
               },

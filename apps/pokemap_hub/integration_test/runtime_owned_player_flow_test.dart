@@ -81,10 +81,12 @@ void main() {
         PokeMapHubApp(
           controller: controller,
           initializeController: false,
-          playerBuilder: (_, game, onHubRequested) => HubInstalledGamePlayer(
+          playerBuilder: (_, game, intent, onHubRequested) =>
+              HubInstalledGamePlayer(
             supportRoot: supportRoot,
             launchResolver: launchResolver,
             game: game.game,
+            initialLaunchIntent: intent,
             onHubRequested: onHubRequested,
           ),
         ),

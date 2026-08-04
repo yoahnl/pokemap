@@ -7,10 +7,13 @@ import '../display/hub_display_preferences_controller.dart';
 import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
 import 'hub_shell.dart';
+import 'avelune/avelune_theme.dart';
+import 'player/hub_player_launch_intent.dart';
 
 typedef HubPlayerBuilder = Widget Function(
   BuildContext context,
   HubGameView game,
+  HubPlayerLaunchIntent intent,
   Future<void> Function() onHubRequested,
 );
 
@@ -24,6 +27,7 @@ class PokeMapHubApp extends StatefulWidget {
     this.actions = const HubUiActions(),
     this.playerBuilder,
     this.displayPreferencesController,
+    this.mobileConsoleExperience = false,
     this.initializeController = true,
   });
 
@@ -32,6 +36,7 @@ class PokeMapHubApp extends StatefulWidget {
   final HubUiActions actions;
   final HubPlayerBuilder? playerBuilder;
   final HubDisplayPreferencesController? displayPreferencesController;
+  final bool mobileConsoleExperience;
   final bool initializeController;
 
   @override
@@ -40,6 +45,7 @@ class PokeMapHubApp extends StatefulWidget {
 
 class _PokeMapHubAppState extends State<PokeMapHubApp> {
   HubGameView? _activeGame;
+  HubPlayerLaunchIntent _activeLaunchIntent = HubPlayerLaunchIntent.title;
   bool _startupLaunchEvaluated = false;
 
   @override
@@ -61,6 +67,7 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
     oldWidget.controller.removeListener(_handleControllerChanged);
     widget.controller.addListener(_handleControllerChanged);
     _activeGame = null;
+    _activeLaunchIntent = HubPlayerLaunchIntent.title;
     _startupLaunchEvaluated = false;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeLaunchMostRecentGame();
@@ -92,7 +99,10 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
       }
     }
     if (target != null) {
-      setState(() => _activeGame = target);
+      setState(() {
+        _activeGame = target;
+        _activeLaunchIntent = HubPlayerLaunchIntent.title;
+      });
     }
   }
 
@@ -102,8 +112,14 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
     if (playerBuilder == null) return actions;
     return HubUiActions(
       onImportRequested: actions.onImportRequested,
-      onContinue: _openPlayer,
-      onNewGame: _openPlayer,
+      onContinue: (game) => _openPlayer(
+        game,
+        intent: HubPlayerLaunchIntent.continueGame,
+      ),
+      onNewGame: (game) => _openPlayer(
+        game,
+        intent: HubPlayerLaunchIntent.title,
+      ),
       onUpdate: actions.onUpdate,
       onRepair: actions.onRepair,
       onManageSaves: actions.onManageSaves,
@@ -111,14 +127,26 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
     );
   }
 
-  void _openPlayer(HubGameView game) {
-    if (_activeGame?.game.gameId == game.game.gameId) return;
-    setState(() => _activeGame = game);
+  void _openPlayer(
+    HubGameView game, {
+    required HubPlayerLaunchIntent intent,
+  }) {
+    if (_activeGame?.game.gameId == game.game.gameId &&
+        _activeLaunchIntent == intent) {
+      return;
+    }
+    setState(() {
+      _activeGame = game;
+      _activeLaunchIntent = intent;
+    });
   }
 
   Future<void> _returnToHub() async {
     if (_activeGame == null) return;
-    setState(() => _activeGame = null);
+    setState(() {
+      _activeGame = null;
+      _activeLaunchIntent = HubPlayerLaunchIntent.title;
+    });
     await widget.controller.refresh();
   }
 
@@ -138,13 +166,19 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
             title: widget.productName,
             debugShowCheckedModeBanner: false,
             themeMode: preferences.themeMode,
-            theme: PokeMapPlayerTheme.light(
+            theme: applyAveluneTheme(
+              PokeMapPlayerTheme.light(
+                highContrast: preferences.highContrast,
+                reducedMotion: preferences.reducedMotion,
+              ),
               highContrast: preferences.highContrast,
-              reducedMotion: preferences.reducedMotion,
             ),
-            darkTheme: PokeMapPlayerTheme.dark(
+            darkTheme: applyAveluneTheme(
+              PokeMapPlayerTheme.dark(
+                highContrast: preferences.highContrast,
+                reducedMotion: preferences.reducedMotion,
+              ),
               highContrast: preferences.highContrast,
-              reducedMotion: preferences.reducedMotion,
             ),
             locale: preferences.locale,
             supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
@@ -166,12 +200,17 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
               );
             },
             home: switch ((_activeGame, widget.playerBuilder)) {
-              (final game?, final playerBuilder?) =>
-                playerBuilder(context, game, _returnToHub),
+              (final game?, final playerBuilder?) => playerBuilder(
+                  context,
+                  game,
+                  _activeLaunchIntent,
+                  _returnToHub,
+                ),
               _ => HubShell(
                   productName: widget.productName,
                   snapshot: snapshot,
                   actions: _effectiveActions,
+                  mobileConsoleExperience: widget.mobileConsoleExperience,
                   displayPreferencesController:
                       widget.displayPreferencesController,
                   onSectionSelected: widget.controller.selectSection,

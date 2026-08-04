@@ -141,12 +141,14 @@ final class HubComposition implements HubAppComposition {
         productName: publicProductName,
         controller: controller,
         actions: actions,
+        mobileConsoleExperience: Platform.isAndroid || Platform.isIOS,
         displayPreferencesController: displayPreferencesController,
-        playerBuilder: (context, game, onHubRequested) =>
+        playerBuilder: (context, game, intent, onHubRequested) =>
             HubInstalledGamePlayer(
           supportRoot: supportRoot,
           launchResolver: launchResolver,
           game: game.game,
+          initialLaunchIntent: intent,
           preferences: controller.snapshot.preferences,
           diagnosticLogFile: File(
             p.join(supportRoot.path, 'logs', 'hub-player.log'),

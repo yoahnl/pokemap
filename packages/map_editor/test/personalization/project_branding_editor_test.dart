@@ -81,6 +81,11 @@ void main() {
     );
 
     expect(find.text('#123456'), findsOneWidget);
+    expect(find.text('Couleur de cartouche Avelune et accent'), findsOneWidget);
+    expect(
+      find.textContaining('teinte la coque de la cartouche'),
+      findsOneWidget,
+    );
     await tester.ensureVisible(
       find.byKey(const ValueKey<String>('branding-edit-accent')),
     );

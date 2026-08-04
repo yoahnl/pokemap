@@ -114,7 +114,7 @@ class _HubGameCard extends StatelessWidget {
                           activity.iconPath,
                       icon: Icons.landscape_rounded,
                       accentColor:
-                          _decodeAccentColor(game.branding?.accentColor),
+                          decodeHubAccentColor(game.branding?.accentColor),
                     ),
                   ),
                 ),
@@ -225,7 +225,7 @@ class HubGameDetailView extends StatelessWidget {
                           activity.coverPath ??
                           activity.iconPath,
                       icon: Icons.explore_rounded,
-                      accentColor: _decodeAccentColor(
+                      accentColor: decodeHubAccentColor(
                         installation.branding?.accentColor,
                       ),
                     ),
@@ -381,7 +381,7 @@ class _HubGameInformation extends StatelessWidget {
                   child: HubArtwork(
                     path: activity.iconPath,
                     icon: Icons.catching_pokemon_rounded,
-                    accentColor: _decodeAccentColor(
+                    accentColor: decodeHubAccentColor(
                       installation.branding?.accentColor,
                     ),
                   ),
@@ -510,7 +510,7 @@ class HubArtwork extends StatelessWidget {
   }
 }
 
-Color? _decodeAccentColor(String? source) {
+Color? decodeHubAccentColor(String? source) {
   if (source == null || !source.startsWith('#')) return null;
   final hex = source.substring(1);
   try {
