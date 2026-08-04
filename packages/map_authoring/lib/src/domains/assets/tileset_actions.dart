@@ -84,6 +84,21 @@ final class TilesetRegridPreview {
       };
 }
 
+/// Pure canonical tileset projector shared by standalone and composite flows.
+final class TilesetImportProjector {
+  const TilesetImportProjector();
+
+  ProjectManifest project(
+    ProjectManifest manifest, {
+    required AssetCatalog assets,
+    required ProjectTilesetEntry tileset,
+  }) {
+    final atlas = _requireRegularAtlas(tileset);
+    _requireAssetPath(assets, atlas, tileset.relativePath);
+    return const TilesetActions().upsert(manifest, tileset: tileset);
+  }
+}
+
 final class TilesetActions {
   const TilesetActions();
 
@@ -108,9 +123,12 @@ final class TilesetActions {
         final tileset = ProjectTilesetEntry.fromJson(
           Map<String, dynamic>.from(parameters.object('tileset')),
         );
-        final atlas = _requireRegularAtlas(tileset);
-        _requireAssetPath(context.snapshot, atlas, tileset.relativePath);
-        final next = upsert(manifest, tileset: tileset);
+        final assets = _requireAssetCatalog(context.snapshot);
+        final next = const TilesetImportProjector().project(
+          manifest,
+          assets: assets,
+          tileset: tileset,
+        );
         return buildVisualManifestDraft(
           context.snapshot,
           next,
@@ -512,21 +530,11 @@ final class VisualLibraryParameters {
 }
 
 void _requireAssetPath(
-  ProjectSnapshot snapshot,
+  AssetCatalog catalog,
   ProjectRegularAtlasTilesetSource atlas,
   String relativePath,
 ) {
-  final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
-  if (bytes == null) {
-    throw VisualLibraryException(
-      'tileset.asset_catalog_required',
-      'Tileset authoring requires the canonical asset catalog.',
-    );
-  }
   try {
-    final decoded = jsonDecode(utf8.decode(bytes));
-    if (decoded is! Map) throw const FormatException();
-    final catalog = AssetCatalog.fromJson(Map<String, dynamic>.from(decoded));
     final asset = catalog.require(atlas.assetId);
     if (asset.logicalPath != relativePath ||
         !asset.artifact.mediaType.startsWith('image/')) {
@@ -537,6 +545,26 @@ void _requireAssetPath(
       'tileset.asset_invalid',
       'Tileset metadata must reference a catalogued image at the same path.',
       details: {'assetId': atlas.assetId, 'relativePath': relativePath},
+    );
+  }
+}
+
+AssetCatalog _requireAssetCatalog(ProjectSnapshot snapshot) {
+  final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
+  if (bytes == null) {
+    throw VisualLibraryException(
+      'tileset.asset_catalog_required',
+      'Tileset authoring requires the canonical asset catalog.',
+    );
+  }
+  try {
+    final decoded = jsonDecode(utf8.decode(bytes));
+    if (decoded is! Map) throw const FormatException();
+    return AssetCatalog.fromJson(Map<String, dynamic>.from(decoded));
+  } on Object {
+    throw VisualLibraryException(
+      'tileset.asset_catalog_invalid',
+      'The canonical asset catalog cannot be decoded.',
     );
   }
 }

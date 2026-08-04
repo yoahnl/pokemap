@@ -4,7 +4,6 @@ import 'package:map_core/map_core.dart';
 import '../../contracts/action_descriptor.dart';
 import '../../contracts/authoring_diff.dart';
 import '../../contracts/resource_ref.dart';
-import '../../domains/assets/raster_image_dimensions.dart';
 import '../../domains/assets/asset_store.dart';
 import '../../domains/assets/tileset_actions.dart';
 import '../../transactions/action_planner.dart';
@@ -14,6 +13,7 @@ import '../../workspace/project_snapshot.dart';
 import 'map_lifecycle_adapter.dart';
 import 'semantic_map_action_support.dart';
 import 'smart_tile_native_transition_guard.dart';
+import 'smart_tile_tiled_wang_projection.dart';
 
 /// Canonical native Smart Tile catalog mutations shared by every transport.
 final class SmartTileCatalogActions {
@@ -233,68 +233,16 @@ final class SmartTileCatalogActions {
     } on TiledWangImportException catch (error) {
       throw semanticFailure(error.code, error.message);
     }
-    _validateAtlasImageBounds(planning.snapshot, bundle.atlas);
-
-    final current = planning.snapshot.manifest.smartTileCatalog;
-    final conflicts = <String>[
-      if (current.atlases.any((item) => item.id == bundle.atlas.id))
-        'atlas:${bundle.atlas.id}',
-      ..._importConflicts(
-        current.materials,
-        bundle.materials,
-        (item) => item.id,
-        'material',
-      ),
-      ..._importConflicts(
-        current.animations,
-        bundle.animations,
-        (item) => item.id,
-        'animation',
-      ),
-      ..._importConflicts(
-        current.presets,
-        bundle.presets,
-        (item) => item.id,
-        'preset',
-      ),
-    ]..sort();
-    if (conflicts.isNotEmpty) {
-      throw semanticFailure(
-        'smart_tile.tiled_wang.id_conflict',
-        'The Tiled Wang import would replace existing Smart Tile resources.',
-        details: <String, Object?>{'conflicts': conflicts},
-        remediation: const <String>[
-          'Choose another import namespace or remove the previous import.',
-        ],
-      );
-    }
-
-    final catalog = _catalogWith(
-      current,
-      atlases: _appendAndSortById(
-        current.atlases,
-        <ProjectSmartTileAtlas>[bundle.atlas],
-        (item) => item.id,
-      ),
-      materials: _appendAndSortById(
-        current.materials,
-        bundle.materials,
-        (item) => item.id,
-      ),
-      animations: _appendAndSortById(
-        current.animations,
-        bundle.animations,
-        (item) => item.id,
-      ),
-      presets: _appendAndSortById(
-        current.presets,
-        bundle.presets,
-        (item) => item.id,
-      ),
+    final image = _atlasImageState(planning.snapshot, bundle.atlas);
+    final manifest = const TiledWangImportProjector().project(
+      planning.snapshot.manifest,
+      assets: image.assets,
+      imageBytes: image.bytes,
+      bundle: bundle,
     );
     return _manifestDraft(
       planning,
-      manifest: _nativeManifest(planning.snapshot.manifest, catalog),
+      manifest: manifest,
       operation: 'smart_tile.tiled_wang.import',
       path: '/smartTileCatalog/imports/${parameters.string('importId')}',
       after: bundle.toJson(),
@@ -888,29 +836,6 @@ List<T> _upsertById<T>(
   return List<T>.unmodifiable(result);
 }
 
-List<T> _appendAndSortById<T>(
-  Iterable<T> current,
-  Iterable<T> imported,
-  String Function(T) idOf,
-) {
-  final result = <T>[...current, ...imported]
-    ..sort((left, right) => idOf(left).compareTo(idOf(right)));
-  return List<T>.unmodifiable(result);
-}
-
-List<String> _importConflicts<T>(
-  Iterable<T> current,
-  Iterable<T> imported,
-  String Function(T) idOf,
-  String kind,
-) {
-  final existingIds = current.map(idOf).toSet();
-  return <String>[
-    for (final item in imported)
-      if (existingIds.contains(idOf(item))) '$kind:${idOf(item)}',
-  ];
-}
-
 T? _findById<T>(Iterable<T> values, String id, String Function(T) idOf) {
   for (final value in values) {
     if (idOf(value) == id) return value;
@@ -1310,6 +1235,19 @@ void _validateAtlasImageBounds(
   ProjectSnapshot snapshot,
   ProjectSmartTileAtlas atlas,
 ) {
+  final image = _atlasImageState(snapshot, atlas);
+  validateSmartTileAtlasImageBounds(
+    manifest: snapshot.manifest,
+    assets: image.assets,
+    imageBytes: image.bytes,
+    atlas: atlas,
+  );
+}
+
+({AssetCatalog assets, List<int> bytes}) _atlasImageState(
+  ProjectSnapshot snapshot,
+  ProjectSmartTileAtlas atlas,
+) {
   final tileset = snapshot.manifest.tilesets
       .where((entry) => entry.id == atlas.tilesetId)
       .firstOrNull;
@@ -1372,42 +1310,7 @@ void _validateAtlasImageBounds(
       details: <String, Object?>{'assetId': asset.id},
     );
   }
-  final dimensions = decodeRasterImageDimensions(
-    blob,
-    mediaType: asset.artifact.mediaType,
-  );
-  if (dimensions == null) {
-    throw semanticFailure(
-      'smart_tile.atlas.image_decode_failed',
-      'The canonical tileset image dimensions cannot be decoded.',
-      details: <String, Object?>{'assetId': asset.id},
-    );
-  }
-
-  final right = atlas.originX +
-      atlas.marginX +
-      (atlas.columns - 1) * (atlas.cellWidth + atlas.spacingX) +
-      atlas.cellWidth;
-  final bottom = atlas.originY +
-      atlas.marginY +
-      (atlas.rows - 1) * (atlas.cellHeight + atlas.spacingY) +
-      atlas.cellHeight;
-  if (right > dimensions.width || bottom > dimensions.height) {
-    throw semanticFailure(
-      'smart_tile.atlas.out_of_image',
-      'The Smart Tile atlas grid extends outside the decoded image.',
-      details: <String, Object?>{
-        'atlasId': atlas.id,
-        'imageWidth': dimensions.width,
-        'imageHeight': dimensions.height,
-        'requiredWidth': right,
-        'requiredHeight': bottom,
-      },
-      remediation: const <String>[
-        'Reduce the grid, origin, margins, or spacing to stay in the image.',
-      ],
-    );
-  }
+  return (assets: assets, bytes: blob);
 }
 
 List<Map<String, Object?>> _animationReferences(

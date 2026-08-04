@@ -59,6 +59,37 @@ final class AssetActionResult {
       };
 }
 
+/// Pure asset-catalog projector used by both standalone and composite imports.
+///
+/// It intentionally has no access to an artifact store or filesystem. The
+/// caller owns staging bytes and turning the projected catalog into a durable
+/// transaction plan.
+final class AssetImportProjector {
+  const AssetImportProjector();
+
+  AssetActionResult project(
+    AssetCatalog catalog, {
+    required AssetRecord record,
+  }) {
+    if (catalog.find(record.id) != null) {
+      throw AssetActionException(
+        'asset.id_conflict',
+        'An asset already owns this identity.',
+        details: {'assetId': record.id},
+      );
+    }
+    final deduplicated = catalog.records.any(
+      (candidate) => candidate.artifact.digest == record.artifact.digest,
+    );
+    return AssetActionResult(
+      operation: 'import',
+      catalog: AssetCatalog(records: [...catalog.records, record]),
+      after: record,
+      deduplicated: deduplicated,
+    );
+  }
+}
+
 /// Pure asset catalog operations. Durable filesystem application is left to
 /// the Phase-3 transaction boundary so these methods cannot bypass recovery.
 final class AssetActions {
@@ -169,24 +200,8 @@ final class AssetActions {
   AssetActionResult import(
     AssetCatalog catalog, {
     required AssetRecord record,
-  }) {
-    if (catalog.find(record.id) != null) {
-      throw AssetActionException(
-        'asset.id_conflict',
-        'An asset already owns this identity.',
-        details: {'assetId': record.id},
-      );
-    }
-    final deduplicated = catalog.records.any(
-      (candidate) => candidate.artifact.digest == record.artifact.digest,
-    );
-    return AssetActionResult(
-      operation: 'import',
-      catalog: AssetCatalog(records: [...catalog.records, record]),
-      after: record,
-      deduplicated: deduplicated,
-    );
-  }
+  }) =>
+      const AssetImportProjector().project(catalog, record: record);
 
   AssetActionResult replace(
     AssetCatalog catalog, {
