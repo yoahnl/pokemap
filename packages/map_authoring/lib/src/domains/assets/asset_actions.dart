@@ -78,6 +78,15 @@ final class AssetImportProjector {
         details: {'assetId': record.id},
       );
     }
+    if (catalog.records.any(
+      (candidate) => candidate.logicalPath == record.logicalPath,
+    )) {
+      throw AssetActionException(
+        'asset.path_conflict',
+        'An asset already owns this logical path.',
+        details: {'logicalPath': record.logicalPath},
+      );
+    }
     final deduplicated = catalog.records.any(
       (candidate) => candidate.artifact.digest == record.artifact.digest,
     );

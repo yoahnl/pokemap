@@ -14,6 +14,7 @@ import '../maps/smart_tile_native_transition_guard.dart';
 import '../maps/smart_tile_tiled_wang_projection.dart';
 import 'asset_actions.dart';
 import 'asset_store.dart';
+import 'raster_image_dimensions.dart';
 import 'tileset_actions.dart';
 
 /// Builds the complete immutable projection for a regular Tiled tileset.
@@ -44,6 +45,31 @@ final class TiledTilesetImportProjector {
         details: <String, Object?>{'assetId': asset.id},
       );
     }
+    final dimensions = decodeRasterImageDimensions(
+      imageBytes,
+      mediaType: asset.artifact.mediaType,
+    );
+    final source = tileset.source;
+    if (dimensions == null ||
+        source is! ProjectRegularAtlasTilesetSource ||
+        source.pixelWidth != dimensions.width ||
+        source.pixelHeight != dimensions.height ||
+        source.tileWidth != wangBundle.atlas.cellWidth ||
+        source.tileHeight != wangBundle.atlas.cellHeight ||
+        source.columns != wangBundle.atlas.columns ||
+        source.rows != wangBundle.atlas.rows) {
+      throw VisualLibraryException(
+        'tileset.tiled.image_geometry_mismatch',
+        'The TSX grid and decoded image geometry must match exactly.',
+        details: <String, Object?>{
+          'tilesetId': tileset.id,
+          if (dimensions != null) ...<String, Object?>{
+            'decodedWidth': dimensions.width,
+            'decodedHeight': dimensions.height,
+          },
+        },
+      );
+    }
 
     final catalogBeforeBytes =
         snapshot.findResourceBytes(assetCatalogResourceIdentity);
@@ -53,6 +79,14 @@ final class TiledTilesetImportProjector {
       record: asset,
     );
     final catalogAfter = assetProjection.catalog;
+
+    if (snapshot.manifest.tilesets.any((entry) => entry.id == tileset.id)) {
+      throw VisualLibraryException(
+        'tileset.id_conflict',
+        'A canonical tileset already owns this identity.',
+        details: <String, Object?>{'tilesetId': tileset.id},
+      );
+    }
 
     final withTileset = const TilesetImportProjector().project(
       snapshot.manifest,

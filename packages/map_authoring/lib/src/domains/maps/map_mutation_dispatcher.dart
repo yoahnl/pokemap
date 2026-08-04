@@ -6,6 +6,7 @@ import '../../domains/assets/element_actions.dart';
 import '../../domains/assets/palette_actions.dart';
 import '../../domains/assets/presentation_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
+import '../../domains/assets/tiled_tileset_import_actions.dart';
 import '../../domains/assets/visual_organization_actions.dart';
 import '../../domains/gameplay/pokemon_catalog_actions.dart';
 import '../../domains/gameplay/campaign_content_actions.dart';
@@ -68,9 +69,11 @@ final class MapMutationDispatcher {
     const placedElement = PlacedElementActions();
     const triggerZone = TriggerZoneActions();
     const warpConnection = WarpConnectionActions();
-    final assets = AssetActions(
-      artifactStore:
-          artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20),
+    final artifacts =
+        artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20);
+    final assets = AssetActions(artifactStore: artifacts);
+    final tiledTilesets = TiledTilesetImportActions(
+      artifactStore: artifacts,
     );
     const tilesets = TilesetActions();
     const visualOrganization = VisualOrganizationActions();
@@ -162,6 +165,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: tilesets.build,
+        ),
+      for (final descriptor in TiledTilesetImportActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: tiledTilesets.build,
         ),
       for (final descriptor in VisualOrganizationActions.descriptors)
         MapMutationActionRegistration(
