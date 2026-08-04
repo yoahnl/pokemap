@@ -1,0 +1,375 @@
+{
+  "schemaVersion": 1,
+  "target": {
+    "id": "m1-pro-32gb-macos27-flutter3460-beta",
+    "machine": "Apple M1 Pro",
+    "memoryBytes": 34359738368,
+    "os": "macOS 27.0 (26A5378n)",
+    "hostArchitecture": "arm64",
+    "flutterTesterArchitecture": "x64",
+    "dart": "3.12.1 stable",
+    "flutter": "3.46.0-0.3.pre beta",
+    "flame": "1.37.0",
+    "measuredAt": "2026-08-05"
+  },
+  "policy": {
+    "portableGate": "identity and work budgets are always enforced",
+    "timingGate": "explicit target id required",
+    "timingHeadroomMultiplier": 1.5,
+    "executionMode": "dart-jit and flutter_tester",
+    "note": "Timing ceilings are rounded up from measured p95 values."
+  },
+  "benchmarks": {
+    "smart_tiles_rich_map_scaling": {
+      "measurement": {
+        "warmups": 2,
+        "samples": 5,
+        "receiptRssBytes": 335462400,
+        "maximumRssBytesAfterSamples": 603734016,
+        "commit": "0bfe01dbf6f11696f675d9c1498c0c32f3e2ba84",
+        "treeState": "dirty",
+        "treeFingerprint": "b6190658920c303a"
+      },
+      "rows": {
+        "128": {
+          "expectedValues": {
+            "fixtureChecksum": "a04716672fd4554e"
+          },
+          "workBudgets": {
+            "viewportWorkCounts.requestedCellCount": 432,
+            "viewportWorkCounts.resolvedVisualCount": 2048
+          },
+          "timingBudgetsUs": {
+            "profiles.generation.p95Us": 10000,
+            "profiles.fullFieldResolve.p95Us": 803000,
+            "profiles.viewportResolve.p95Us": 23000,
+            "profiles.jsonRoundtrip.p95Us": 17000
+          }
+        },
+        "256": {
+          "expectedValues": {
+            "fixtureChecksum": "818e845d4b04d52e"
+          },
+          "workBudgets": {
+            "viewportWorkCounts.requestedCellCount": 432,
+            "viewportWorkCounts.resolvedVisualCount": 2048
+          },
+          "timingBudgetsUs": {
+            "profiles.generation.p95Us": 35000,
+            "profiles.fullFieldResolve.p95Us": 3219000,
+            "profiles.viewportResolve.p95Us": 23000,
+            "profiles.jsonRoundtrip.p95Us": 53000
+          }
+        },
+        "512": {
+          "expectedValues": {
+            "fixtureChecksum": "d7e7ca61f27170e7"
+          },
+          "workBudgets": {
+            "viewportWorkCounts.requestedCellCount": 432,
+            "viewportWorkCounts.resolvedVisualCount": 2048
+          },
+          "timingBudgetsUs": {
+            "profiles.generation.p95Us": 129000,
+            "profiles.fullFieldResolve.p95Us": 12933000,
+            "profiles.viewportResolve.p95Us": 23000,
+            "profiles.jsonRoundtrip.p95Us": 198000
+          }
+        },
+        "1024": {
+          "expectedValues": {
+            "fixtureChecksum": "04e83a4381a13b96"
+          },
+          "workBudgets": {
+            "viewportWorkCounts.requestedCellCount": 432,
+            "viewportWorkCounts.resolvedVisualCount": 2048
+          },
+          "timingBudgetsUs": {
+            "profiles.generation.p95Us": 494000,
+            "profiles.fullFieldResolve.p95Us": 52568000,
+            "profiles.viewportResolve.p95Us": 24000,
+            "profiles.jsonRoundtrip.p95Us": 753000
+          }
+        }
+      }
+    },
+    "smart_tiles_rich_authoring_scaling": {
+      "measurement": {
+        "warmups": 1,
+        "samples": 3,
+        "recoverySamples": 1,
+        "receiptRssBytes": 889520128,
+        "maximumRssBytesAfterSamples": 860618752,
+        "commit": "0bfe01dbf6f11696f675d9c1498c0c32f3e2ba84",
+        "treeState": "dirty",
+        "treeFingerprint": "214cb05a6a3f37fa"
+      },
+      "rows": {
+        "128": {
+          "expectedValues": {
+            "datasetFingerprint": "ec8a0a80cc9b6268",
+            "reopenedSnapshotChecksum": "aff42466c24680cb"
+          },
+          "workBudgets": {
+            "workCounts.sourceCellCount": 49152,
+            "workCounts.tileLayerCount": 3,
+            "workCounts.objectCount": 16,
+            "workCounts.affectedResourceCount": 4,
+            "workCounts.diffEntryCount": 5
+          },
+          "timingBudgetsUs": {
+            "profiles.plan.p95Us": 88000,
+            "profiles.apply.p95Us": 261000,
+            "profiles.reopen.p95Us": 52000,
+            "profiles.recovery.p95Us": 344000
+          }
+        },
+        "256": {
+          "expectedValues": {
+            "datasetFingerprint": "c0d73e3fd1747e13",
+            "reopenedSnapshotChecksum": "557d79c9db9554d6"
+          },
+          "workBudgets": {
+            "workCounts.sourceCellCount": 196608,
+            "workCounts.tileLayerCount": 3,
+            "workCounts.objectCount": 64,
+            "workCounts.affectedResourceCount": 4,
+            "workCounts.diffEntryCount": 5
+          },
+          "timingBudgetsUs": {
+            "profiles.plan.p95Us": 251000,
+            "profiles.apply.p95Us": 780000,
+            "profiles.reopen.p95Us": 163000,
+            "profiles.recovery.p95Us": 1067000
+          }
+        },
+        "512": {
+          "expectedValues": {
+            "datasetFingerprint": "597ac69f6dea315c",
+            "reopenedSnapshotChecksum": "4e06d56b97305991"
+          },
+          "workBudgets": {
+            "workCounts.sourceCellCount": 786432,
+            "workCounts.tileLayerCount": 3,
+            "workCounts.objectCount": 256,
+            "workCounts.affectedResourceCount": 4,
+            "workCounts.diffEntryCount": 5
+          },
+          "timingBudgetsUs": {
+            "profiles.plan.p95Us": 857000,
+            "profiles.apply.p95Us": 2843000,
+            "profiles.reopen.p95Us": 641000,
+            "profiles.recovery.p95Us": 3923000
+          }
+        },
+        "1024": {
+          "expectedValues": {
+            "datasetFingerprint": "0f9a8d1b34592ee3",
+            "reopenedSnapshotChecksum": "35b3935cf02afb92"
+          },
+          "workBudgets": {
+            "workCounts.sourceCellCount": 3145728,
+            "workCounts.tileLayerCount": 3,
+            "workCounts.objectCount": 1024,
+            "workCounts.affectedResourceCount": 4,
+            "workCounts.diffEntryCount": 5
+          },
+          "timingBudgetsUs": {
+            "profiles.plan.p95Us": 3518000,
+            "profiles.apply.p95Us": 11252000,
+            "profiles.reopen.p95Us": 2525000,
+            "profiles.recovery.p95Us": 15477000
+          }
+        }
+      }
+    },
+    "smart_tiles_rich_editor_scaling": {
+      "measurement": {
+        "warmups": 2,
+        "samples": 5,
+        "navigationSamplesPerExtent": 25,
+        "receiptRssBytes": 456228864,
+        "maximumRssBytesAfterSamples": 429293568,
+        "commit": "0bfe01dbf6f11696f675d9c1498c0c32f3e2ba84",
+        "treeState": "dirty",
+        "treeFingerprint": "214cb05a6a3f37fa"
+      },
+      "rows": {
+        "128": {
+          "expectedValues": {
+            "fixtureChecksum": "a04716672fd4554e"
+          },
+          "workBudgets": {
+            "workCounts.visibleCell": 2048,
+            "workCounts.tile": 4096,
+            "workCounts.collision": 2048,
+            "workCounts.smartOwner": 15000,
+            "workCounts.objectCandidate": 128,
+            "workCounts.objectVisualCache": 64,
+            "workCounts.gridLine": 256
+          },
+          "timingBudgetsUs": {
+            "profiles.firstPaint.p95Us": 304000,
+            "profiles.stableNavigation.p95Us": 108000
+          }
+        },
+        "256": {
+          "expectedValues": {
+            "fixtureChecksum": "818e845d4b04d52e"
+          },
+          "workBudgets": {
+            "workCounts.visibleCell": 2048,
+            "workCounts.tile": 4096,
+            "workCounts.collision": 2048,
+            "workCounts.smartOwner": 15000,
+            "workCounts.objectCandidate": 128,
+            "workCounts.objectVisualCache": 64,
+            "workCounts.gridLine": 256
+          },
+          "timingBudgetsUs": {
+            "profiles.firstPaint.p95Us": 71000,
+            "profiles.stableNavigation.p95Us": 109000
+          }
+        },
+        "512": {
+          "expectedValues": {
+            "fixtureChecksum": "d7e7ca61f27170e7"
+          },
+          "workBudgets": {
+            "workCounts.visibleCell": 2048,
+            "workCounts.tile": 4096,
+            "workCounts.collision": 2048,
+            "workCounts.smartOwner": 15000,
+            "workCounts.objectCandidate": 128,
+            "workCounts.objectVisualCache": 64,
+            "workCounts.gridLine": 256
+          },
+          "timingBudgetsUs": {
+            "profiles.firstPaint.p95Us": 88000,
+            "profiles.stableNavigation.p95Us": 107000
+          }
+        },
+        "1024": {
+          "expectedValues": {
+            "fixtureChecksum": "04e83a4381a13b96"
+          },
+          "workBudgets": {
+            "workCounts.visibleCell": 2048,
+            "workCounts.tile": 4096,
+            "workCounts.collision": 2048,
+            "workCounts.smartOwner": 15000,
+            "workCounts.objectCandidate": 128,
+            "workCounts.objectVisualCache": 64,
+            "workCounts.gridLine": 256
+          },
+          "timingBudgetsUs": {
+            "profiles.firstPaint.p95Us": 87000,
+            "profiles.stableNavigation.p95Us": 109000
+          }
+        }
+      }
+    },
+    "smart_tiles_rich_runtime_scaling": {
+      "measurement": {
+        "warmups": 1,
+        "samples": 3,
+        "navigationSamplesPerExtent": 9,
+        "receiptRssBytes": 551223296,
+        "maximumRssBytesAfterSamples": 520192000,
+        "commit": "0bfe01dbf6f11696f675d9c1498c0c32f3e2ba84",
+        "treeState": "dirty",
+        "treeFingerprint": "214cb05a6a3f37fa"
+      },
+      "rows": {
+        "128": {
+          "expectedValues": {
+            "fixtureChecksum": "a04716672fd4554e"
+          },
+          "workBudgets": {
+            "workCounts.visibleCell": 2048,
+            "workCounts.tile": 4096,
+            "workCounts.collision": 2048,
+            "workCounts.smartOwner": 15000,
+            "workCounts.objectCandidate": 128,
+            "workCounts.placedCandidate": 128,
+            "workCounts.entityCandidate": 128,
+            "workCounts.regularVisualCache": 64,
+            "workCounts.objectVisualCache": 64
+          },
+          "timingBudgetsUs": {
+            "profiles.bundleLoad.p95Us": 28000,
+            "profiles.componentBuild.p95Us": 92000,
+            "profiles.firstFrame.p95Us": 252000,
+            "profiles.stableNavigation.p95Us": 36000
+          }
+        },
+        "256": {
+          "expectedValues": {
+            "fixtureChecksum": "818e845d4b04d52e"
+          },
+          "workBudgets": {
+            "workCounts.visibleCell": 2048,
+            "workCounts.tile": 4096,
+            "workCounts.collision": 2048,
+            "workCounts.smartOwner": 15000,
+            "workCounts.objectCandidate": 128,
+            "workCounts.placedCandidate": 128,
+            "workCounts.entityCandidate": 128,
+            "workCounts.regularVisualCache": 64,
+            "workCounts.objectVisualCache": 64
+          },
+          "timingBudgetsUs": {
+            "profiles.bundleLoad.p95Us": 56000,
+            "profiles.componentBuild.p95Us": 1000,
+            "profiles.firstFrame.p95Us": 33000,
+            "profiles.stableNavigation.p95Us": 32000
+          }
+        },
+        "512": {
+          "expectedValues": {
+            "fixtureChecksum": "d7e7ca61f27170e7"
+          },
+          "workBudgets": {
+            "workCounts.visibleCell": 2048,
+            "workCounts.tile": 4096,
+            "workCounts.collision": 2048,
+            "workCounts.smartOwner": 15000,
+            "workCounts.objectCandidate": 128,
+            "workCounts.placedCandidate": 128,
+            "workCounts.entityCandidate": 128,
+            "workCounts.regularVisualCache": 64,
+            "workCounts.objectVisualCache": 64
+          },
+          "timingBudgetsUs": {
+            "profiles.bundleLoad.p95Us": 141000,
+            "profiles.componentBuild.p95Us": 2000,
+            "profiles.firstFrame.p95Us": 33000,
+            "profiles.stableNavigation.p95Us": 31000
+          }
+        },
+        "1024": {
+          "expectedValues": {
+            "fixtureChecksum": "04e83a4381a13b96"
+          },
+          "workBudgets": {
+            "workCounts.visibleCell": 2048,
+            "workCounts.tile": 4096,
+            "workCounts.collision": 2048,
+            "workCounts.smartOwner": 15000,
+            "workCounts.objectCandidate": 128,
+            "workCounts.placedCandidate": 128,
+            "workCounts.entityCandidate": 128,
+            "workCounts.regularVisualCache": 64,
+            "workCounts.objectVisualCache": 64
+          },
+          "timingBudgetsUs": {
+            "profiles.bundleLoad.p95Us": 504000,
+            "profiles.componentBuild.p95Us": 5000,
+            "profiles.firstFrame.p95Us": 35000,
+            "profiles.stableNavigation.p95Us": 32000
+          }
+        }
+      }
+    }
+  }
+}

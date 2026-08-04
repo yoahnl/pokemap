@@ -18,6 +18,7 @@ import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 import '../../../../../tools/performance/smart_tiles_rich_map_fixture.dart';
+import '../../../../../tools/performance/smart_tiles_performance_policy.dart';
 
 void main() {
   group('resolveEditorMapVisibleCellBounds', () {
@@ -434,6 +435,22 @@ void main() {
     expect(
       large.smartTilePatternIndexEntries,
       lessThan(large.totalMapCellCount),
+    );
+    expect(
+      smartTilesWorkBudgetViolations(
+        actual: <String, int>{
+          'visibleCell': large.visibleBounds.cellCount,
+          'tile': large.tileCellVisits,
+          'collision': large.collisionCellVisits,
+          'smartOwner': large.smartTileOwnerCellVisits,
+          'smartPattern': large.smartTilePatternStrokeCellVisits,
+          'objectCandidate': large.objectTileCandidateVisits,
+          'objectVisualCache': large.objectVisualDefinitionCacheSize,
+          'gridLine': large.gridLineVisits,
+        },
+        budget: smartTilesEditorNavigationWorkBudget,
+      ),
+      isEmpty,
     );
   });
 }

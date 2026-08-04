@@ -193,6 +193,13 @@ Future<_ImportMeasurement> _measureImport(
       policy: policy,
       snapshotLoader: snapshots,
       artifactStore: artifacts,
+      // The production default remains 1 MiB. This synthetic benchmark owns
+      // its input and opts into a finite ceiling sized from that input so the
+      // 1024² case measures plan/apply/recovery instead of the interactive
+      // transport guardrail.
+      authorizationLimits: AuthoringSecurityLimits(
+        maxRequestBytes: source.tmx.length * 4 + (1 << 20),
+      ),
       clock: () => DateTime.utc(2026, 8, 5, 10),
       faultInjector: recovery
           ? (context) {

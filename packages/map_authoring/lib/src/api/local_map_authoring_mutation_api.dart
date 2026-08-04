@@ -49,11 +49,14 @@ final class LocalMapAuthoringMutationApi
     ArtifactStore? artifactStore,
     TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
     AuthoringActor? actor,
+    AuthoringSecurityLimits authorizationLimits =
+        const AuthoringSecurityLimits(),
     DateTime Function()? clock,
     AuthoringTransactionFaultInjector? faultInjector,
   })  : _policy = policy,
         _snapshotLoader = snapshotLoader,
         _actor = actor ?? _localActor,
+        _authorizationLimits = authorizationLimits,
         _clock = clock ?? _systemClock,
         _faultInjector = faultInjector {
     artifacts =
@@ -70,6 +73,7 @@ final class LocalMapAuthoringMutationApi
   late final MapMutationDispatcher _dispatcher;
   late final ArtifactStore artifacts;
   final AuthoringActor _actor;
+  final AuthoringSecurityLimits _authorizationLimits;
   final DateTime Function() _clock;
   final AuthoringTransactionFaultInjector? _faultInjector;
   final Map<ProjectHandle, _LocalMapAuthoringSession> _sessions = {};
@@ -158,6 +162,7 @@ final class LocalMapAuthoringMutationApi
       snapshotLoader: _snapshotLoader,
       dispatcher: _dispatcher,
       actor: _actor,
+      authorizationLimits: _authorizationLimits,
       clock: _clock,
       faultInjector: _faultInjector,
     );
@@ -293,6 +298,7 @@ final class _LocalMapAuthoringSession {
     required ProjectSnapshotLoader snapshotLoader,
     required MapMutationDispatcher dispatcher,
     required AuthoringActor actor,
+    required AuthoringSecurityLimits authorizationLimits,
     required DateTime Function() clock,
     AuthoringTransactionFaultInjector? faultInjector,
   }) async {
@@ -333,6 +339,7 @@ final class _LocalMapAuthoringSession {
     final confirmations = AuthoringConfirmationStore(clock: clock);
     final policy = AuthoringAuthorizationPolicy(
       confirmations: confirmations,
+      limits: authorizationLimits,
       clock: clock,
     );
     final executor = SecureAuthoringMutationExecutor(

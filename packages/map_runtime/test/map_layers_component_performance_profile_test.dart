@@ -6,6 +6,7 @@ import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
 
 import '../../../tools/performance/smart_tiles_rich_map_fixture.dart';
+import '../../../tools/performance/smart_tiles_performance_policy.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -71,5 +72,23 @@ void main() {
       lessThanOrEqualTo(large.last.objectVisualDefinitionCacheCapacity),
     );
     expect(large.last.tilesetImageCount, 0);
+    expect(
+      smartTilesWorkBudgetViolations(
+        actual: <String, int>{
+          'visibleCell': large.last.visibleCellCount,
+          'tile': large.last.tileCellVisits,
+          'collision': large.last.collisionCellVisits,
+          'smartOwner': large.last.smartTileOwnerCellVisits,
+          'smartPattern': large.last.smartTilePatternStrokeCellVisits,
+          'objectCandidate': large.last.objectTileCandidateVisits,
+          'placedCandidate': large.last.placedElementCandidateVisits,
+          'entityCandidate': large.last.entityCandidateVisits,
+          'regularVisualCache': large.last.regularTileVisualCacheSize,
+          'objectVisualCache': large.last.objectVisualDefinitionCacheSize,
+        },
+        budget: smartTilesRuntimeNavigationWorkBudget,
+      ),
+      isEmpty,
+    );
   });
 }
