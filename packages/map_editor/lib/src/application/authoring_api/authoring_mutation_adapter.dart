@@ -5,6 +5,7 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
+import '../services/tiled_image_collection_raster_codec.dart';
 import 'authoring_query_adapter.dart';
 import 'authoring_session_lifecycle.dart';
 import 'editor_receipt_presenter.dart';
@@ -522,6 +523,8 @@ final class _EditorMutationSession {
       policy: policy,
       snapshotLoader: snapshots,
       artifactStore: artifactStore,
+      tiledImageCollectionRasterCodec:
+          const ImagePackageTiledImageCollectionRasterCodec(),
     );
     try {
       await mutations.attachProject(

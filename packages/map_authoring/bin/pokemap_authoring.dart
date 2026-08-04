@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:map_authoring/map_authoring.dart';
 
+import 'src/tiled_image_collection_cli_png_codec.dart';
+
 Future<void> main(List<String> arguments) async {
   late final _CliOptions options;
   try {
@@ -52,6 +54,8 @@ Future<void> main(List<String> arguments) async {
     policy: policy,
     snapshotLoader: snapshots,
     artifactStore: artifacts,
+    tiledImageCollectionRasterCodec:
+        const CliPngTiledImageCollectionRasterCodec(),
   );
   final worker = JsonlWorker(
     api: api,

@@ -7,6 +7,7 @@ import '../../domains/assets/palette_actions.dart';
 import '../../domains/assets/presentation_actions.dart';
 import '../../domains/assets/tileset_actions.dart';
 import '../../domains/assets/tiled_tileset_import_actions.dart';
+import '../../domains/assets/tiled_image_collection_packer.dart';
 import '../../domains/assets/visual_organization_actions.dart';
 import '../../domains/gameplay/pokemon_catalog_actions.dart';
 import '../../domains/gameplay/campaign_content_actions.dart';
@@ -55,7 +56,10 @@ final class MapMutationDispatcher {
   MapMutationDispatcher(Iterable<MapMutationActionRegistration> registrations)
       : _registrations = _validatedRegistrations(registrations);
 
-  factory MapMutationDispatcher.canonical({ArtifactStore? artifactStore}) {
+  factory MapMutationDispatcher.canonical({
+    ArtifactStore? artifactStore,
+    TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
+  }) {
     const lifecycle = MapLifecycleActions();
     const operations = MapOperationsActions();
     const smartTileCatalog = SmartTileCatalogActions();
@@ -74,6 +78,7 @@ final class MapMutationDispatcher {
     final assets = AssetActions(artifactStore: artifacts);
     final tiledTilesets = TiledTilesetImportActions(
       artifactStore: artifacts,
+      imageCollectionRasterCodec: tiledImageCollectionRasterCodec,
     );
     const tilesets = TilesetActions();
     const visualOrganization = VisualOrganizationActions();

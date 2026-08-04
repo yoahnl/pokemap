@@ -1749,9 +1749,11 @@ Future<void> _pumpPanel(
 final _tiledWangSource = SmartTileTiledWangSource(
   tsxPath: '/outside/road.tsx',
   imagePath: '/outside/road.png',
+  imagePaths: const <String, String>{'road.png': '/outside/road.png'},
   displayName: 'road.tsx',
   tsx: _tiledWangTsx,
   importId: 'road-import',
+  tilesetDocument: parseTiledTileset(_tiledWangTsx),
   document: parseTiledWangTileset(_tiledWangTsx),
 );
 

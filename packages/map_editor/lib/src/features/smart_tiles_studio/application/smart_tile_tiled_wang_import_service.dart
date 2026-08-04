@@ -14,18 +14,25 @@ final class SmartTileTiledWangSource {
   const SmartTileTiledWangSource({
     required this.tsxPath,
     required this.imagePath,
+    required this.imagePaths,
     required this.displayName,
     required this.tsx,
     required this.importId,
+    required this.tilesetDocument,
     required this.document,
   });
 
   final String tsxPath;
   final String imagePath;
+  final Map<String, String> imagePaths;
   final String displayName;
   final String tsx;
   final String importId;
-  final TiledWangTilesetDocument document;
+  final TiledTilesetDocument tilesetDocument;
+  final TiledWangTilesetDocument? document;
+
+  bool get isImageCollection =>
+      tilesetDocument.layout is TiledImageCollectionLayout;
 }
 
 final class SmartTileTiledWangImportServiceException implements Exception {
@@ -73,10 +80,14 @@ Future<SmartTileTiledWangSource> loadSmartTileTiledWangSource(
     );
   }
   late final String tsx;
-  late final TiledWangTilesetDocument document;
+  late final TiledTilesetDocument tilesetDocument;
+  TiledWangTilesetDocument? document;
   try {
     tsx = await file.readAsString();
-    document = parseTiledWangTileset(tsx);
+    tilesetDocument = parseTiledTileset(tsx);
+    if (tilesetDocument.layout is TiledRegularAtlasLayout) {
+      document = parseTiledWangTileset(tsx);
+    }
   } on TiledTilesetImportException catch (error) {
     throw SmartTileTiledWangImportServiceException(error.code, error.message);
   } on FileSystemException {
@@ -85,52 +96,58 @@ Future<SmartTileTiledWangSource> loadSmartTileTiledWangSource(
       'Le fichier TSX sélectionné ne peut pas être lu.',
     );
   }
-  final imageSource = document.imageSource.replaceAll('/', p.separator);
-  final imagePath = p.normalize(
-    p.isAbsolute(imageSource)
-        ? imageSource
-        : p.join(p.dirname(canonicalPath), imageSource),
-  );
-  if (!await File(imagePath).exists()) {
-    throw SmartTileTiledWangImportServiceException(
-      'smart_tile.tiled_wang.image_missing',
-      'L’image atlas référencée par le TSX est introuvable : '
-          '${document.imageSource}',
+  final imagePaths = <String, String>{};
+  for (final dependency in tilesetDocument.dependencyClosure.images) {
+    final imageSource = dependency.source.replaceAll('/', p.separator);
+    final imagePath = p.normalize(
+      p.join(p.dirname(canonicalPath), imageSource),
     );
-  }
-  late final img.Image decodedImage;
-  try {
-    final imageBytes = await File(imagePath).readAsBytes();
-    final decoded = img.decodeImage(imageBytes);
-    if (decoded == null) {
-      throw const FormatException('Unsupported image');
+    if (!await File(imagePath).exists()) {
+      throw SmartTileTiledWangImportServiceException(
+        'smart_tile.tiled_wang.image_missing',
+        'Une image référencée par le TSX est introuvable : '
+            '${dependency.source}',
+      );
     }
-    decodedImage = decoded;
-  } on FileSystemException {
-    throw const SmartTileTiledWangImportServiceException(
-      'smart_tile.tiled_wang.image_unreadable',
-      'L’image atlas référencée par le TSX ne peut pas être lue.',
-    );
-  } on FormatException {
-    throw const SmartTileTiledWangImportServiceException(
-      'smart_tile.tiled_wang.image_unreadable',
-      'L’image atlas référencée par le TSX n’est pas décodable.',
-    );
-  }
-  if (decodedImage.width != document.imageWidth ||
-      decodedImage.height != document.imageHeight) {
-    throw const SmartTileTiledWangImportServiceException(
-      'smart_tile.tiled_wang.image_dimensions_mismatch',
-      'Les dimensions réelles de l’image ne correspondent pas au TSX.',
-    );
+    late final img.DecodeInfo decodedImage;
+    try {
+      final imageBytes = await File(imagePath).readAsBytes();
+      final decoder = img.findDecoderForData(imageBytes);
+      final decoded = decoder?.startDecode(imageBytes);
+      if (decoded == null) {
+        throw const FormatException('Unsupported image');
+      }
+      decodedImage = decoded;
+    } on FileSystemException {
+      throw SmartTileTiledWangImportServiceException(
+        'smart_tile.tiled_wang.image_unreadable',
+        'L’image ${dependency.source} ne peut pas être lue.',
+      );
+    } on FormatException {
+      throw SmartTileTiledWangImportServiceException(
+        'smart_tile.tiled_wang.image_unreadable',
+        'L’image ${dependency.source} n’est pas décodable.',
+      );
+    }
+    if (decodedImage.width != dependency.pixelWidth ||
+        decodedImage.height != dependency.pixelHeight) {
+      throw SmartTileTiledWangImportServiceException(
+        'smart_tile.tiled_wang.image_dimensions_mismatch',
+        'Les dimensions réelles de ${dependency.source} ne correspondent '
+            'pas au TSX.',
+      );
+    }
+    imagePaths[dependency.source] = imagePath;
   }
   final digest = sha256.convert(utf8.encode(tsx)).toString().substring(0, 12);
   return SmartTileTiledWangSource(
     tsxPath: canonicalPath,
-    imagePath: imagePath,
+    imagePath: imagePaths.values.first,
+    imagePaths: Map<String, String>.unmodifiable(imagePaths),
     displayName: p.basename(canonicalPath),
     tsx: tsx,
-    importId: '${_slug(document.name)}-$digest',
+    importId: '${_slug(tilesetDocument.name)}-$digest',
+    tilesetDocument: tilesetDocument,
     document: document,
   );
 }
@@ -161,40 +178,72 @@ final class SmartTileTiledWangImportService {
     required Iterable<TiledWangSetSelection> selections,
   }) async {
     final selected = selections.toList(growable: false);
-    try {
-      compileTiledWangImport(
-        document: source.document,
-        importId: source.importId,
-        tilesetId: 'pending-tileset',
-        selections: selected,
-      );
-    } on TiledTilesetImportException catch (error) {
-      throw SmartTileTiledWangImportServiceException(
-        error.code,
-        error.message,
+    final wangDocument = source.document;
+    if (wangDocument != null) {
+      try {
+        compileTiledWangImport(
+          document: wangDocument,
+          importId: source.importId,
+          tilesetId: 'pending-tileset',
+          selections: selected,
+        );
+      } on TiledTilesetImportException catch (error) {
+        throw SmartTileTiledWangImportServiceException(
+          error.code,
+          error.message,
+        );
+      }
+    } else if (selected.isNotEmpty) {
+      throw const SmartTileTiledWangImportServiceException(
+        'smart_tile.tiled_wang.collection_selection_invalid',
+        'Une collection d’images ne demande pas de rôle Wang.',
       );
     }
 
-    final staged = await _gateway.stageExactFile(
-      projectRootPath: projectRootPath,
-      sourcePath: source.imagePath,
-    );
-    if (!staged.mediaType.startsWith('image/')) {
-      throw const SmartTileTiledWangImportServiceException(
-        'smart_tile.tiled_wang.image_media_type_invalid',
-        'L’atlas référencé par le TSX doit être une image reconnue.',
+    final stagedBySource = <String, ContentArtifactRef>{};
+    for (final dependency in source.tilesetDocument.dependencyClosure.images) {
+      final sourcePath = source.imagePaths[dependency.source];
+      if (sourcePath == null) {
+        throw SmartTileTiledWangImportServiceException(
+          'smart_tile.tiled_wang.image_missing',
+          'La dépendance ${dependency.source} n’a pas été résolue.',
+        );
+      }
+      final staged = await _gateway.stageExactFile(
+        projectRootPath: projectRootPath,
+        sourcePath: sourcePath,
       );
+      if (!staged.mediaType.startsWith('image/')) {
+        throw const SmartTileTiledWangImportServiceException(
+          'smart_tile.tiled_wang.image_media_type_invalid',
+          'Toutes les images référencées doivent être des rasters reconnus.',
+        );
+      }
+      stagedBySource[dependency.source] = staged;
     }
-    final suffix = staged.hexDigest.substring(0, 16);
+    final stagedDigests = stagedBySource.values
+        .map((item) => item.digest)
+        .toList(growable: false)
+      ..sort();
+    final suffix = stagedBySource.length == 1
+        ? stagedBySource.values.single.hexDigest.substring(0, 16)
+        : sha256
+            .convert(utf8.encode(stagedDigests.join('|')))
+            .toString()
+            .substring(0, 16);
     final assetId = 'smart-tile-image-$suffix';
     final tilesetId = 'smart-tile-tileset-$suffix';
-    final logicalPath = assetBlobStorageKey(staged);
-    final expected = compileTiledWangImport(
-      document: source.document,
-      importId: source.importId,
-      tilesetId: tilesetId,
-      selections: selected,
-    );
+    final logicalPath = source.isImageCollection
+        ? 'assets/tilesets/$assetId'
+        : assetBlobStorageKey(stagedBySource.values.single);
+    final expected = wangDocument == null
+        ? null
+        : compileTiledWangImport(
+            document: wangDocument,
+            importId: source.importId,
+            tilesetId: tilesetId,
+            selections: selected,
+          );
     final before = await _gateway.load(projectRootPath: projectRootPath);
     final selectionJson = <Object?>[
       for (final selection in selected)
@@ -206,7 +255,7 @@ final class SmartTileTiledWangImportService {
     final fingerprint = sha256
         .convert(
           utf8.encode(
-            '${source.importId}|$tilesetId|${staged.digest}|'
+            '${source.importId}|$tilesetId|${stagedDigests.join('|')}|'
             '${jsonEncode(selectionJson)}',
           ),
         )
@@ -216,11 +265,21 @@ final class SmartTileTiledWangImportService {
       projectRootPath: projectRootPath,
       actionId: 'tileset.tiled.import',
       parameters: <String, Object?>{
-        'artifactHandle': staged.handle,
+        if (!source.isImageCollection)
+          'artifactHandle': stagedBySource.values.single.handle,
+        if (source.isImageCollection)
+          'imageArtifacts': <Object?>[
+            for (final dependency
+                in source.tilesetDocument.dependencyClosure.images)
+              <String, Object?>{
+                'source': dependency.source,
+                'artifactHandle': stagedBySource[dependency.source]!.handle,
+              },
+          ],
         'assetId': assetId,
         'logicalPath': logicalPath,
         'tilesetId': tilesetId,
-        'displayName': source.document.name,
+        'displayName': source.tilesetDocument.name,
         'tsx': source.tsx,
         'importId': source.importId,
         'selections': selectionJson,
@@ -237,18 +296,54 @@ final class SmartTileTiledWangImportService {
         'Le snapshot canonique après import TSX/Wang est obsolète.',
       );
     }
-    if (!_containsExpectedBundle(canonical.manifest, expected)) {
+    if (expected != null &&
+        !_containsExpectedBundle(canonical.manifest, expected)) {
       throw const SmartTileTiledWangImportServiceException(
         'smart_tile.tiled_wang.snapshot_mismatch',
         'Le snapshot canonique ne contient pas exactement l’import TSX/Wang.',
       );
     }
+    if (expected == null &&
+        !_containsExpectedImageCollection(
+          canonical.manifest,
+          tilesetId: tilesetId,
+          expectedTileIds: source.tilesetDocument.tiles.keys,
+        )) {
+      throw const SmartTileTiledWangImportServiceException(
+        'smart_tile.tiled_wang.snapshot_mismatch',
+        'Le snapshot canonique ne contient pas exactement la collection TSX.',
+      );
+    }
     return SmartTileTiledWangImportResult(
       manifest: canonical.manifest,
-      presetIds: expected.presets.map((preset) => preset.id),
+      presetIds: expected?.presets.map((preset) => preset.id) ?? const [],
       receiptId: applied.receiptId,
     );
   }
+}
+
+bool _containsExpectedImageCollection(
+  ProjectManifest manifest, {
+  required String tilesetId,
+  required Iterable<int> expectedTileIds,
+}) {
+  final tileset = manifest.tilesets
+      .where((candidate) => candidate.id == tilesetId)
+      .singleOrNull;
+  final source = tileset?.source;
+  if (source is! ProjectImageCollectionTilesetSource) return false;
+  final expected = expectedTileIds.toList()..sort();
+  final actual = source.tileDefinitions.map((tile) => tile.tileId).toList()
+    ..sort();
+  return _sameInts(expected, actual);
+}
+
+bool _sameInts(List<int> left, List<int> right) {
+  if (left.length != right.length) return false;
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) return false;
+  }
+  return true;
 }
 
 bool _containsExpectedBundle(

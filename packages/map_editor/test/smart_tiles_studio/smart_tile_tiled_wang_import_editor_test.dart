@@ -65,15 +65,61 @@ void main() {
     expect(find.textContaining('presets restent en brouillon'), findsOneWidget);
     expect(find.byKey(const Key('smart-tiles-tiled-wang-error')), findsNothing);
   });
+
+  testWidgets('offers a no-code import for image collections', (tester) async {
+    List<TiledWangSetSelection>? submitted;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SmartTileTiledWangImportEditor(
+            source: _collectionSource,
+            onCancel: () {},
+            onImport: (selections) async => submitted = selections,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('smart-tiles-tiled-image-collection-summary')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('2 éléments seront regroupés'), findsOneWidget);
+    expect(find.text('Importer la collection'), findsOneWidget);
+    final submit = tester.widget<PokeMapButton>(
+      find.byKey(const Key('smart-tiles-tiled-wang-submit')),
+    );
+    expect(submit.onPressed, isNotNull);
+
+    await tester.tap(find.byKey(const Key('smart-tiles-tiled-wang-submit')));
+    await tester.pump();
+    expect(submitted, isEmpty);
+  });
 }
 
 final _source = SmartTileTiledWangSource(
   tsxPath: '/outside/road.tsx',
   imagePath: '/outside/road.png',
+  imagePaths: const <String, String>{'road.png': '/outside/road.png'},
   displayName: 'road.tsx',
   tsx: _tsx,
   importId: 'road-import',
+  tilesetDocument: parseTiledTileset(_tsx),
   document: parseTiledWangTileset(_tsx),
+);
+
+final _collectionSource = SmartTileTiledWangSource(
+  tsxPath: '/outside/props.tsx',
+  imagePath: '/outside/flower.png',
+  imagePaths: const <String, String>{
+    'flower.png': '/outside/flower.png',
+    'water.png': '/outside/water.png',
+  },
+  displayName: 'props.tsx',
+  tsx: _collectionTsx,
+  importId: 'props-import',
+  tilesetDocument: parseTiledTileset(_collectionTsx),
+  document: null,
 );
 
 const _tsx = '''
@@ -85,5 +131,12 @@ const _tsx = '''
       <wangtile tileid="0" wangid="1,0,1,0,1,0,1,0"/>
     </wangset>
   </wangsets>
+</tileset>
+''';
+
+const _collectionTsx = '''
+<tileset name="Props" tilewidth="16" tileheight="16" tilecount="2" columns="0">
+  <tile id="5"><image source="flower.png" width="16" height="16"/></tile>
+  <tile id="9"><image source="water.png" width="16" height="16"/></tile>
 </tileset>
 ''';

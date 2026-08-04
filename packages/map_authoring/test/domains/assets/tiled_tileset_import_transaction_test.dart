@@ -7,6 +7,90 @@ import 'package:test/test.dart';
 
 void main() {
   group('tileset.tiled.import', () {
+    test('packs and reopens one sparse image collection atomically', () async {
+      final setup = await _ImageCollectionImportSetup.create();
+      addTearDown(setup.dispose);
+
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      final request = AuthoringRequest(
+        requestId: 'request-image-collection',
+        actionId: 'tileset.tiled.import',
+        actionVersion: 1,
+        workspaceHandle: setup.workspaceHandle.value,
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'image-collection-import',
+        parameters: <String, Object?>{
+          'assetId': 'props',
+          'logicalPath': 'assets/tilesets/props',
+          'tilesetId': 'props',
+          'displayName': 'Props',
+          'importId': 'props',
+          'tsx': _imageCollectionTsx,
+          'imageArtifacts': <Object?>[
+            <String, Object?>{
+              'source': 'props/flower.png',
+              'artifactHandle': setup.artifact.handle,
+            },
+            <String, Object?>{
+              'source': 'props/water.png',
+              'artifactHandle': setup.artifact.handle,
+            },
+          ],
+          'selections': const <Object?>[],
+          'tags': const <String>['tiled', 'prop'],
+          'usages': const <String>['smart-tiles-studio'],
+        },
+      );
+
+      final planned = await setup.mutations.plan(setup.projectHandle, request);
+      final plan = Map<String, Object?>.from(planned['plan']! as Map);
+      final preview = Map<String, Object?>.from(plan['preview']! as Map);
+      expect(preview['sourceKind'], 'image_collection');
+      expect(preview['sourceImageCount'], 2);
+      expect(preview['generatedPageCount'], 1);
+      expect(preview['tileCount'], 2);
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation-image-collection',
+      );
+
+      final reopened = await setup.snapshots.load(setup.projectHandle);
+      final tileset = reopened.manifest.tilesets.single;
+      final source = tileset.source as ProjectImageCollectionTilesetSource;
+      expect(source.pages, hasLength(1));
+      expect(source.tileDefinitions.map((tile) => tile.tileId), <int>[5, 9]);
+      expect(source.tileDefinitions.first.offsetX, 2);
+      expect(source.tileDefinitions.first.offsetY, -3);
+      expect(source.tileDefinitions.first.properties.single.name, 'name');
+      expect(source.tileDefinitions.first.collisionObjects.single.name, 'hit');
+      expect(
+        source.tileDefinitions.last.animation.single,
+        const ProjectImageCollectionAnimationFrame(
+          tileId: 5,
+          durationMs: 120,
+        ),
+      );
+
+      final catalogBytes = reopened.findResourceBytes(
+        assetCatalogResourceIdentity,
+      );
+      final catalog = AssetCatalog.fromJson(
+        Map<String, dynamic>.from(
+          jsonDecode(utf8.decode(catalogBytes!)) as Map,
+        ),
+      );
+      expect(catalog.records, hasLength(1));
+      expect(catalog.records.single.id, 'props-page-0000');
+      expect(
+        reopened.findResourceBytes(
+          assetBlobResourceIdentity(catalog.records.single.artifact.digest),
+        ),
+        isNotNull,
+      );
+    });
+
     test('plans, applies and replays one composite receipt', () async {
       final setup = await _TiledImportSetup.create();
       addTearDown(setup.dispose);
@@ -162,6 +246,118 @@ void main() {
       });
     }
   });
+}
+
+final class _ImageCollectionImportSetup {
+  const _ImageCollectionImportSetup({
+    required this.root,
+    required this.mutations,
+    required this.workspaceHandle,
+    required this.projectHandle,
+    required this.snapshots,
+    required this.artifact,
+  });
+
+  static Future<_ImageCollectionImportSetup> create() async {
+    final root = await Directory.systemTemp.createTemp('tiled-collection-');
+    final manifest = ProjectManifest(
+      name: 'Tiled collection fixture',
+      version: ProjectVersion.v6,
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[],
+    );
+    await File('${root.path}/project.json').writeAsBytes(
+      _encode(manifest.toJson()),
+      flush: true,
+    );
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: <String>[root.path],
+      fileReader: reader,
+    );
+    final handles = WorkspaceHandleStore(
+      tokenFactory: (prefix) => '${prefix}tiled-collection',
+    );
+    final opened = await ProjectOpenService(
+      policy: policy,
+      fileReader: reader,
+      handles: handles,
+    ).openProject(root.path);
+    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final artifacts = MemoryArtifactStore(maximumArtifactBytes: 1024);
+    final stored = await artifacts.put(
+      _pngBytes,
+      declaredMediaType: 'image/png',
+    );
+    final mutations = LocalMapAuthoringMutationApi(
+      policy: policy,
+      snapshotLoader: snapshots,
+      artifactStore: artifacts,
+      tiledImageCollectionRasterCodec: const _OnePixelRasterCodec(),
+      clock: () => DateTime.utc(2026, 8, 4, 12),
+    );
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: opened.workspaceHandle,
+      projectHandle: opened.projectHandle,
+    );
+    return _ImageCollectionImportSetup(
+      root: root,
+      mutations: mutations,
+      workspaceHandle: opened.workspaceHandle,
+      projectHandle: opened.projectHandle,
+      snapshots: snapshots,
+      artifact: stored.reference,
+    );
+  }
+
+  final Directory root;
+  final LocalMapAuthoringMutationApi mutations;
+  final WorkspaceHandle workspaceHandle;
+  final ProjectHandle projectHandle;
+  final ProjectSnapshotLoader snapshots;
+  final ContentArtifactRef artifact;
+
+  Future<void> dispose() => root.delete(recursive: true);
+}
+
+final class _OnePixelRasterCodec implements TiledImageCollectionRasterCodec {
+  const _OnePixelRasterCodec();
+
+  @override
+  TiledImageCollectionRasterMetadata inspect(List<int> encodedBytes) =>
+      TiledImageCollectionRasterMetadata(
+        pixelWidth: _pngDimension(encodedBytes, 16),
+        pixelHeight: _pngDimension(encodedBytes, 20),
+      );
+
+  @override
+  TiledImageCollectionRgbaImage decode(List<int> encodedBytes) =>
+      TiledImageCollectionRgbaImage(
+        pixelWidth: 1,
+        pixelHeight: 1,
+        rgbaBytes: const <int>[12, 34, 56, 255],
+      );
+
+  @override
+  List<int> encodePng(TiledImageCollectionRgbaImage image) =>
+      _fakePng(image.pixelWidth, image.pixelHeight);
+}
+
+int _pngDimension(List<int> bytes, int offset) =>
+    (bytes[offset] << 24) |
+    (bytes[offset + 1] << 16) |
+    (bytes[offset + 2] << 8) |
+    bytes[offset + 3];
+
+List<int> _fakePng(int width, int height) {
+  final bytes = List<int>.from(_pngBytes);
+  for (var index = 0; index < 4; index += 1) {
+    final shift = (3 - index) * 8;
+    bytes[16 + index] = (width >> shift) & 0xff;
+    bytes[20 + index] = (height >> shift) & 0xff;
+  }
+  return bytes;
 }
 
 final class _RecoveryCase {
@@ -409,5 +605,22 @@ const _tsx = '''
       <wangtile tileid="0" wangid="1,0,1,0,1,0,1,0"/>
     </wangset>
   </wangsets>
+</tileset>
+''';
+
+const _imageCollectionTsx = '''
+<tileset name="Props" tilewidth="1" tileheight="1" tilecount="2" columns="0">
+  <tileoffset x="2" y="-3"/>
+  <tile id="5">
+    <properties><property name="name" value="Flower"/></properties>
+    <image source="props/flower.png" width="1" height="1"/>
+    <objectgroup>
+      <object id="1" name="hit" x="0" y="0" width="1" height="1"/>
+    </objectgroup>
+  </tile>
+  <tile id="9">
+    <image source="props/water.png" width="1" height="1"/>
+    <animation><frame tileid="5" duration="120"/></animation>
+  </tile>
 </tileset>
 ''';

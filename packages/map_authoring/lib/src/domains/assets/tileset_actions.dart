@@ -93,8 +93,19 @@ final class TilesetImportProjector {
     required AssetCatalog assets,
     required ProjectTilesetEntry tileset,
   }) {
-    final atlas = _requireRegularAtlas(tileset);
-    _requireAssetPath(assets, atlas, tileset.relativePath);
+    final source = tileset.source;
+    switch (source) {
+      case ProjectRegularAtlasTilesetSource():
+        _requireAssetPath(assets, source, tileset.relativePath);
+      case ProjectImageCollectionTilesetSource():
+        _requireCollectionAssets(assets, source);
+      case null:
+        throw VisualLibraryException(
+          'tileset.source_required',
+          'Tileset authoring requires a canonical source.',
+          details: <String, Object?>{'tilesetId': tileset.id},
+        );
+    }
     return const TilesetActions().upsert(manifest, tileset: tileset);
   }
 }
@@ -160,14 +171,34 @@ final class TilesetActions {
     ProjectManifest manifest, {
     required ProjectTilesetEntry tileset,
   }) {
-    final atlas = _requireRegularAtlas(tileset);
-    _validateRegularAtlas(tileset.id, atlas);
+    final source = tileset.source;
+    if (source is ProjectRegularAtlasTilesetSource) {
+      _validateRegularAtlas(tileset.id, source);
+    } else if (source is! ProjectImageCollectionTilesetSource) {
+      throw VisualLibraryException(
+        'tileset.source_required',
+        'Tileset authoring requires a canonical source.',
+        details: <String, Object?>{'tilesetId': tileset.id},
+      );
+    }
     final tilesets = [
       for (final existing in manifest.tilesets)
         if (existing.id != tileset.id) existing,
       tileset,
     ]..sort((left, right) => left.id.compareTo(right.id));
     final next = manifest.copyWith(tilesets: tilesets);
+    try {
+      ProjectValidator.validate(next);
+    } on Object catch (error) {
+      throw VisualLibraryException(
+        'tileset.source_invalid',
+        'The canonical tileset source is invalid.',
+        details: <String, Object?>{
+          'tilesetId': tileset.id,
+          'validationType': error.runtimeType.toString(),
+        },
+      );
+    }
     final atlases = readTilesetAtlases(next);
     _validateManifestFramesForTileset(next, atlases, tileset.id);
     return next;
@@ -549,6 +580,29 @@ void _requireAssetPath(
   }
 }
 
+void _requireCollectionAssets(
+  AssetCatalog catalog,
+  ProjectImageCollectionTilesetSource source,
+) {
+  for (final page in source.pages) {
+    try {
+      final asset = catalog.require(page.assetId);
+      if (!asset.artifact.mediaType.startsWith('image/')) {
+        throw const FormatException();
+      }
+    } on Object {
+      throw VisualLibraryException(
+        'tileset.collection_asset_invalid',
+        'Every image collection page must reference a catalogued image.',
+        details: <String, Object?>{
+          'pageId': page.id,
+          'assetId': page.assetId,
+        },
+      );
+    }
+  }
+}
+
 AssetCatalog _requireAssetCatalog(ProjectSnapshot snapshot) {
   final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
   if (bytes == null) {
@@ -630,20 +684,6 @@ TilesetSourceRect? _regridSource(
   final count = extentNumerator ~/ afterStride;
   if (count <= 0) return null;
   return (start: relativeStart ~/ afterStride, count: count);
-}
-
-ProjectRegularAtlasTilesetSource _requireRegularAtlas(
-  ProjectTilesetEntry tileset,
-) {
-  final source = tileset.source;
-  if (source is! ProjectRegularAtlasTilesetSource) {
-    throw VisualLibraryException(
-      'tileset.atlas_required',
-      'Tileset authoring requires a canonical regular atlas source.',
-      details: <String, Object?>{'tilesetId': tileset.id},
-    );
-  }
-  return source;
 }
 
 void _validateRegularAtlas(

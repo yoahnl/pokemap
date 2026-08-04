@@ -241,6 +241,242 @@ final class TiledTilesetImportProjector {
       ],
     );
   }
+
+  /// Projects generated image-collection pages, their asset records and the
+  /// canonical tileset through one recoverable multi-resource transaction.
+  AuthoringMutationDraft projectImageCollection({
+    required ProjectSnapshot snapshot,
+    required List<AssetRecord> assets,
+    required Map<String, List<int>> pageBytes,
+    required ProjectTilesetEntry tileset,
+    required String importId,
+    required int sourceImageCount,
+  }) {
+    final source = tileset.source;
+    if (source is! ProjectImageCollectionTilesetSource ||
+        assets.isEmpty ||
+        source.pages.length != assets.length ||
+        pageBytes.length != source.pages.length) {
+      throw VisualLibraryException(
+        'tileset.tiled.image_collection_projection_invalid',
+        'The generated collection pages and canonical source must match.',
+        details: <String, Object?>{'tilesetId': tileset.id},
+      );
+    }
+    final assetsById = <String, AssetRecord>{
+      for (final asset in assets) asset.id: asset,
+    };
+    final pagesById = <String, ProjectImageCollectionPage>{
+      for (final page in source.pages) page.id: page,
+    };
+    for (final page in source.pages) {
+      final asset = assetsById[page.assetId];
+      final bytes = pageBytes[page.id];
+      if (asset == null || bytes == null) {
+        throw VisualLibraryException(
+          'tileset.tiled.image_collection_projection_invalid',
+          'A generated collection page is missing its asset or bytes.',
+          details: <String, Object?>{'pageId': page.id},
+        );
+      }
+      _validateGeneratedPage(page, asset, bytes);
+    }
+    if (pagesById.length != source.pages.length ||
+        assetsById.length != assets.length) {
+      throw VisualLibraryException(
+        'tileset.tiled.image_collection_projection_invalid',
+        'Generated collection page and asset identities must be unique.',
+        details: <String, Object?>{'tilesetId': tileset.id},
+      );
+    }
+
+    final catalogBeforeBytes =
+        snapshot.findResourceBytes(assetCatalogResourceIdentity);
+    final catalogBefore = _decodeAssetCatalog(catalogBeforeBytes);
+    var catalogAfter = catalogBefore;
+    for (final asset in assets) {
+      final projection = const AssetImportProjector().project(
+        catalogAfter,
+        record: asset,
+      );
+      catalogAfter = projection.catalog;
+    }
+
+    if (snapshot.manifest.tilesets.any((entry) => entry.id == tileset.id)) {
+      throw VisualLibraryException(
+        'tileset.id_conflict',
+        'A canonical tileset already owns this identity.',
+        details: <String, Object?>{'tilesetId': tileset.id},
+      );
+    }
+    final projectedManifest = const TilesetImportProjector().project(
+      snapshot.manifest,
+      assets: catalogAfter,
+      tileset: tileset,
+    );
+    try {
+      ProjectValidator.validate(projectedManifest);
+    } on Object catch (error) {
+      throw VisualLibraryException(
+        'visual.projected_state_invalid',
+        'The Tiled image collection import would invalidate the project.',
+        details: <String, Object?>{
+          'validationType': error.runtimeType.toString(),
+        },
+      );
+    }
+    preflightNativeSmartTileMutation(
+      snapshot: snapshot,
+      projectedManifest: projectedManifest,
+    );
+
+    final changes = <AuthoringResourceChange>[
+      AuthoringResourceChange(
+        resource: AuthoringResourceRef(
+          kind: 'assetCatalog',
+          id: 'project',
+          revision: snapshot.resourceFingerprints[assetCatalogResourceIdentity],
+        ),
+        storageKey: assetCatalogStorageKey,
+        beforeBytes: catalogBeforeBytes,
+        afterBytes: _encodeAssetCatalog(catalogAfter),
+      ),
+    ];
+    final diff = <AuthoringDiffEntry>[
+      for (final asset in assets)
+        AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.add,
+          resource: changes.single.resource,
+          path: '/records/${asset.id}',
+          after: asset.toJson(),
+        ),
+    ];
+    final emittedDigests = <String>{};
+    final existingDigests = catalogBefore.records
+        .map((asset) => asset.artifact.digest)
+        .toSet();
+    for (final page in source.pages) {
+      final asset = assetsById[page.assetId]!;
+      final bytes = pageBytes[page.id]!;
+      if (!emittedDigests.add(asset.artifact.digest)) continue;
+      final existingBlob = snapshot.findResourceBytes(
+        assetBlobResourceIdentity(asset.artifact.digest),
+      );
+      if (existingDigests.contains(asset.artifact.digest)) {
+        _validateDeduplicatedBlob(asset, bytes, existingBlob);
+        continue;
+      }
+      if (existingBlob != null) {
+        throw AssetActionException(
+          'asset.orphan_blob_conflict',
+          'An unowned blob already occupies an imported page digest.',
+          details: <String, Object?>{'digest': asset.artifact.digest},
+        );
+      }
+      final blobResource = AuthoringResourceRef(
+        kind: 'assetBlob',
+        id: asset.artifact.digest,
+      );
+      changes.add(
+        AuthoringResourceChange(
+          resource: blobResource,
+          storageKey: assetBlobStorageKey(asset.artifact),
+          beforeBytes: null,
+          afterBytes: bytes,
+        ),
+      );
+      diff.add(
+        AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.add,
+          resource: blobResource,
+          path: '/',
+          after: asset.artifact.toJson(),
+        ),
+      );
+    }
+
+    final projectResource = AuthoringResourceRef(
+      kind: 'project',
+      id: 'project',
+      revision: snapshot.resourceFingerprints['project'],
+    );
+    changes.add(
+      AuthoringResourceChange(
+        resource: projectResource,
+        storageKey: 'project.json',
+        beforeBytes: snapshot.resourceBytes('project'),
+        afterBytes: encodeProjectAuthoringDocument(
+          snapshot,
+          projectedManifest,
+        ),
+      ),
+    );
+    diff.add(
+      AuthoringDiffEntry(
+        operation: AuthoringDiffOperation.replace,
+        resource: projectResource,
+        path: '/tilesets/${tileset.id}',
+        after: <String, Object?>{'tileset': tileset.toJson()},
+      ),
+    );
+
+    return AuthoringMutationDraft(
+      changeSet: AuthoringChangeSet(
+        changes: changes,
+        diff: AuthoringDiff(diff),
+      ),
+      preview: <String, Object?>{
+        'operation': 'tileset.tiled.import',
+        'sourceKind': 'image_collection',
+        'importId': importId,
+        'tilesetId': tileset.id,
+        'sourceImageCount': sourceImageCount,
+        'generatedPageCount': source.pages.length,
+        'tileCount': source.tileDefinitions.length,
+        'changeCount': changes.length,
+      },
+      referenceImpact: <String, Object?>{
+        'tilesetId': tileset.id,
+        'assetIds': <String>[for (final asset in assets) asset.id],
+      },
+      artifacts: <AuthoringArtifactRef>[
+        for (final asset in assets)
+          AuthoringArtifactRef(
+            id: asset.artifact.digest,
+            mediaType: asset.artifact.mediaType,
+            uri: asset.artifact.handle,
+            byteLength: asset.artifact.byteLength,
+            sha256: asset.artifact.digest,
+          ),
+      ],
+    );
+  }
+}
+
+void _validateGeneratedPage(
+  ProjectImageCollectionPage page,
+  AssetRecord asset,
+  List<int> bytes,
+) {
+  final actual = ContentArtifactRef.fromBytes(
+    bytes,
+    mediaType: asset.artifact.mediaType,
+  );
+  final dimensions = decodeRasterImageDimensions(
+    bytes,
+    mediaType: asset.artifact.mediaType,
+  );
+  if (asset.artifact.mediaType != 'image/png' ||
+      actual != asset.artifact ||
+      dimensions == null ||
+      dimensions.width != page.pixelWidth ||
+      dimensions.height != page.pixelHeight) {
+    throw VisualLibraryException(
+      'tileset.tiled.generated_page_invalid',
+      'A generated image collection page does not match its declaration.',
+      details: <String, Object?>{'pageId': page.id},
+    );
+  }
 }
 
 AssetCatalog _decodeAssetCatalog(List<int>? bytes) {

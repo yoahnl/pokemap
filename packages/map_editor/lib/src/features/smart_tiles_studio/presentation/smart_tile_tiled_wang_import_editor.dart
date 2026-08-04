@@ -34,11 +34,9 @@ class _SmartTileTiledWangImportEditorState
   @override
   void initState() {
     super.initState();
+    final wangSets = widget.source.document?.wangSets ?? const <TiledWangSet>[];
     _included = <int>{
-      for (var index = 0;
-          index < widget.source.document.wangSets.length;
-          index++)
-        index,
+      for (var index = 0; index < wangSets.length; index++) index,
     };
     _usageBySet = <int, String>{
       for (final index in _included) index: '',
@@ -47,22 +45,29 @@ class _SmartTileTiledWangImportEditorState
 
   bool get _canImport =>
       !widget.isImporting &&
-      _included.isNotEmpty &&
-      _included.every((index) => (_usageBySet[index] ?? '').isNotEmpty);
+      (widget.source.isImageCollection ||
+          (_included.isNotEmpty &&
+              _included.every(
+                (index) => (_usageBySet[index] ?? '').isNotEmpty,
+              )));
 
   @override
   Widget build(BuildContext context) {
-    final document = widget.source.document;
+    final document = widget.source.tilesetDocument;
+    final wangSets = widget.source.document?.wangSets ?? const <TiledWangSet>[];
     return ListView(
       key: const Key('smart-tiles-tiled-wang-import-editor'),
       padding: const EdgeInsets.all(18),
       children: <Widget>[
         PokeMapSectionHeader(
           title: 'Importer un tileset Tiled',
-          description:
-              'Le Studio convertit les Wang Sets en Smart Tiles natifs. Tiled ne sera pas requis ensuite.',
+          description: widget.source.isImageCollection
+              ? 'Le Studio regroupe les images en pages PokeMap possédées par le projet. Tiled ne sera pas requis ensuite.'
+              : 'Le Studio convertit les Wang Sets en Smart Tiles natifs. Tiled ne sera pas requis ensuite.',
           trailing: PokeMapBadge(
-            label: '${document.wangSets.length} Wang Set(s)',
+            label: widget.source.isImageCollection
+                ? '${document.dependencyClosure.images.length} image(s)'
+                : '${wangSets.length} Wang Set(s)',
             variant: PokeMapBadgeVariant.info,
           ),
         ),
@@ -92,10 +97,11 @@ class _SmartTileTiledWangImportEditorState
                     label: '${document.tileWidth} × ${document.tileHeight} px',
                     variant: PokeMapBadgeVariant.neutral,
                   ),
-                  PokeMapBadge(
-                    label: '${document.columns} × ${document.rows} cellules',
-                    variant: PokeMapBadgeVariant.neutral,
-                  ),
+                  if (document.layout case final TiledRegularAtlasLayout layout)
+                    PokeMapBadge(
+                      label: '${layout.columns} × ${layout.rows} cellules',
+                      variant: PokeMapBadgeVariant.neutral,
+                    ),
                   PokeMapBadge(
                     label: '${document.tileCount} tuiles',
                     variant: PokeMapBadgeVariant.neutral,
@@ -106,41 +112,53 @@ class _SmartTileTiledWangImportEditorState
           ),
         ),
         const SizedBox(height: 16),
-        const PokeMapSectionHeader(
-          title: 'Wang Sets à convertir',
-          description:
-              'Choisissez leur rôle dans PokeMap. Chaque sélection deviendra un preset brouillon vérifiable avant publication.',
-        ),
-        const SizedBox(height: 10),
-        for (var index = 0; index < document.wangSets.length; index++) ...[
-          _WangSetChoice(
-            key: Key('smart-tiles-wang-set-$index'),
-            index: index,
-            wangSet: document.wangSets[index],
-            included: _included.contains(index),
-            usage: _usageBySet[index] ?? '',
-            enabled: !widget.isImporting,
-            onIncludedChanged: (included) {
-              setState(() {
-                if (included) {
-                  _included.add(index);
-                  _usageBySet.putIfAbsent(index, () => '');
-                } else {
-                  _included.remove(index);
-                }
-              });
-            },
-            onUsageChanged: (usage) {
-              setState(() => _usageBySet[index] = usage);
-            },
+        if (widget.source.isImageCollection) ...[
+          PokeMapDiagnosticCallout(
+            key: const Key('smart-tiles-tiled-image-collection-summary'),
+            severity: PokeMapDiagnosticSeverity.info,
+            title: 'Collection d’éléments détectée',
+            message:
+                '${document.tiles.length} éléments seront regroupés sans redimensionnement. Propriétés, collisions visuelles, offsets et animations seront conservés.',
           ),
           const SizedBox(height: 10),
+        ] else ...[
+          const PokeMapSectionHeader(
+            title: 'Wang Sets à convertir',
+            description:
+                'Choisissez leur rôle dans PokeMap. Chaque sélection deviendra un preset brouillon vérifiable avant publication.',
+          ),
+          const SizedBox(height: 10),
+          for (var index = 0; index < wangSets.length; index++) ...[
+            _WangSetChoice(
+              key: Key('smart-tiles-wang-set-$index'),
+              index: index,
+              wangSet: wangSets[index],
+              included: _included.contains(index),
+              usage: _usageBySet[index] ?? '',
+              enabled: !widget.isImporting,
+              onIncludedChanged: (included) {
+                setState(() {
+                  if (included) {
+                    _included.add(index);
+                    _usageBySet.putIfAbsent(index, () => '');
+                  } else {
+                    _included.remove(index);
+                  }
+                });
+              },
+              onUsageChanged: (usage) {
+                setState(() => _usageBySet[index] = usage);
+              },
+            ),
+            const SizedBox(height: 10),
+          ],
         ],
-        const PokeMapDiagnosticCallout(
+        PokeMapDiagnosticCallout(
           severity: PokeMapDiagnosticSeverity.info,
           title: 'Import non destructif',
-          message:
-              'Les matériaux, variantes, probabilités et animations sont conservés. Les presets restent en brouillon jusqu’à votre validation.',
+          message: widget.source.isImageCollection
+              ? 'Les images sources restent inchangées et le projet reçoit ses propres pages PNG adressées par contenu.'
+              : 'Les matériaux, variantes, probabilités et animations sont conservés. Les presets restent en brouillon jusqu’à votre validation.',
         ),
         if (widget.externalError case final error?) ...[
           const SizedBox(height: 10),
@@ -173,7 +191,11 @@ class _SmartTileTiledWangImportEditorState
                     )
                   : const Icon(CupertinoIcons.arrow_down_doc, size: 15),
               child: Text(
-                widget.isImporting ? 'Import en cours…' : 'Importer',
+                widget.isImporting
+                    ? 'Import en cours…'
+                    : widget.source.isImageCollection
+                        ? 'Importer la collection'
+                        : 'Importer',
               ),
             ),
           ],
@@ -184,6 +206,7 @@ class _SmartTileTiledWangImportEditorState
 
   String? _disabledReason() {
     if (widget.isImporting) return 'Import en cours.';
+    if (widget.source.isImageCollection) return null;
     if (_included.isEmpty) return 'Sélectionnez au moins un Wang Set.';
     if (_included.any((index) => (_usageBySet[index] ?? '').isEmpty)) {
       return 'Choisissez un usage pour chaque Wang Set sélectionné.';
@@ -192,6 +215,10 @@ class _SmartTileTiledWangImportEditorState
   }
 
   Future<void> _submit() async {
+    if (widget.source.isImageCollection) {
+      await widget.onImport(const <TiledWangSetSelection>[]);
+      return;
+    }
     final selections = <TiledWangSetSelection>[
       for (final index in _included.toList()..sort())
         TiledWangSetSelection(

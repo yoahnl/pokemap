@@ -1797,9 +1797,11 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             ? null
             : 'native:${result.presetIds.first}';
         _tiledWangSource = null;
-        _draftMessage = result.presetIds.length == 1
-            ? 'Wang Set importé comme brouillon Smart Tile.'
-            : '${result.presetIds.length} Wang Sets importés comme brouillons Smart Tiles.';
+        _draftMessage = source.isImageCollection
+            ? 'Collection Tiled importée dans la bibliothèque PokeMap.'
+            : result.presetIds.length == 1
+                ? 'Wang Set importé comme brouillon Smart Tile.'
+                : '${result.presetIds.length} Wang Sets importés comme brouillons Smart Tiles.';
       });
     } on Object catch (error) {
       if (!mounted) return;

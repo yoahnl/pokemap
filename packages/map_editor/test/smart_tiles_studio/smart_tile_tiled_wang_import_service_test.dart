@@ -14,20 +14,130 @@ import 'package:path/path.dart' as p;
 
 void main() {
   final licensedErwTsx = Platform.environment['POKEMAP_STN07_ERW_TSX'];
+  final licensedErwRoot = Platform.environment['POKEMAP_ERW_ROOT'];
+
+  test(
+    'imports and reopens all four locally licensed ERW image collections',
+    () async {
+      final tilesetRoot = _erwTilesetRoot(licensedErwRoot!);
+      final sources = <SmartTileTiledWangSource>[];
+      for (final fileName in _erwCollectionFiles) {
+        sources.add(
+          await loadSmartTileTiledWangSource(
+              p.join(tilesetRoot.path, fileName)),
+        );
+      }
+      expect(sources, everyElement(isA<SmartTileTiledWangSource>()));
+      expect(sources.every((source) => source.isImageCollection), isTrue);
+      expect(
+        sources.fold<int>(
+          0,
+          (total, source) =>
+              total + source.tilesetDocument.dependencyClosure.images.length,
+        ),
+        1318,
+      );
+
+      final sandbox = await Directory.systemTemp.createTemp(
+        'pokemap_erw_collections_',
+      );
+      final projectRoot = await Directory(
+        p.join(sandbox.path, 'project'),
+      ).create();
+      const manifest = ProjectManifest(
+        name: 'ERW collection proof',
+        version: ProjectVersion.v6,
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+      );
+      await File(p.join(projectRoot.path, 'project.json')).writeAsString(
+        jsonEncode(manifest.toJson()),
+        flush: true,
+      );
+      const reader = EditorProjectFileReader();
+      final queries = AuthoringQueryAdapter(fileReader: reader);
+      final mutations = AuthoringMutationAdapter(
+        fileReader: reader,
+        queries: queries,
+        projectRoots: reader,
+      );
+      addTearDown(() async {
+        await mutations.closeAll();
+        await queries.closeAll();
+        if (await sandbox.exists()) await sandbox.delete(recursive: true);
+      });
+      final service = SmartTileTiledWangImportService(
+        gateway: CanonicalSmartTileSourceAssetGateway(
+          mutations: mutations,
+          queries: queries,
+        ),
+      );
+
+      for (final source in sources) {
+        final result = await service.import(
+          projectRootPath: projectRoot.path,
+          source: source,
+          selections: const <TiledWangSetSelection>[],
+        );
+        expect(result.presetIds, isEmpty);
+      }
+      await mutations.closeAll();
+      await queries.closeAll();
+
+      final projectText =
+          await File(p.join(projectRoot.path, 'project.json')).readAsString();
+      expect(projectText, isNot(contains(licensedErwRoot)));
+      final reopened = ProjectManifest.fromJson(
+        Map<String, dynamic>.from(jsonDecode(projectText) as Map),
+      );
+      ProjectValidator.validate(reopened);
+      expect(reopened.tilesets, hasLength(4));
+      expect(
+        reopened.tilesets.fold<int>(0, (total, tileset) {
+          final collection =
+              tileset.source as ProjectImageCollectionTilesetSource;
+          return total + collection.tileDefinitions.length;
+        }),
+        1318,
+      );
+      final catalog = AssetCatalog.fromJson(
+        Map<String, dynamic>.from(
+          jsonDecode(
+            await File(p.join(projectRoot.path, assetCatalogStorageKey))
+                .readAsString(),
+          ) as Map,
+        ),
+      );
+      expect(catalog.records, isNotEmpty);
+      for (final asset in catalog.records) {
+        expect(
+          await File(
+            p.join(projectRoot.path, assetBlobStorageKey(asset.artifact)),
+          ).exists(),
+          isTrue,
+        );
+      }
+    },
+    skip: licensedErwRoot == null
+        ? 'Set POKEMAP_ERW_ROOT to the locally licensed ERW pack root.'
+        : false,
+    timeout: const Timeout(Duration(minutes: 20)),
+  );
 
   test(
     'accepts a user-owned ERW Wang atlas without copying licensed assets',
     () async {
       final source = await loadSmartTileTiledWangSource(licensedErwTsx!);
+      final document = source.document!;
       final selections = <TiledWangSetSelection>[
-        for (var index = 0; index < source.document.wangSets.length; index++)
+        for (var index = 0; index < document.wangSets.length; index++)
           TiledWangSetSelection(
             wangSetIndex: index,
             usage: SmartTileUsage.forestSurface,
           ),
       ];
       final bundle = compileTiledWangImport(
-        document: source.document,
+        document: document,
         importId: source.importId,
         tilesetId: 'licensed-erw-atlas',
         selections: selections,
@@ -43,8 +153,8 @@ void main() {
       );
 
       expect(source.imagePath, isNot(equals(licensedErwTsx)));
-      expect(source.document.wangSets, isNotEmpty);
-      expect(bundle.presets, hasLength(source.document.wangSets.length));
+      expect(document.wangSets, isNotEmpty);
+      expect(bundle.presets, hasLength(document.wangSets.length));
       expect(
         bundle.presets.map((preset) => preset.usage),
         everyElement(SmartTileUsage.forestSurface),
@@ -74,7 +184,7 @@ void main() {
     final source = await loadSmartTileTiledWangSource(tsx.path);
 
     expect(source.displayName, 'road.tsx');
-    expect(source.document.wangSets.single.name, 'Road');
+    expect(source.document!.wangSets.single.name, 'Road');
     expect(source.imagePath, p.normalize(image.path));
     expect(source.importId, startsWith('road-'));
     expect(source.importId, hasLength('road-'.length + 12));
@@ -105,9 +215,13 @@ void main() {
     final source = SmartTileTiledWangSource(
       tsxPath: '/outside/road.tsx',
       imagePath: '/outside/road.png',
+      imagePaths: const <String, String>{
+        'road.png': '/outside/road.png',
+      },
       displayName: 'road.tsx',
       tsx: _tsx,
       importId: 'road-123456789abc',
+      tilesetDocument: parseTiledTileset(_tsx),
       document: parseTiledWangTileset(_tsx),
     );
     final gateway = _Gateway();
@@ -224,13 +338,109 @@ void main() {
     );
   });
 
+  test('imports and reopens a collection through the real editor adapters',
+      () async {
+    final sandbox = await Directory.systemTemp.createTemp(
+      'pokemap_tiled_collection_editor_',
+    );
+    final projectRoot = await Directory(
+      p.join(sandbox.path, 'project'),
+    ).create();
+    final externalRoot = await Directory(
+      p.join(sandbox.path, 'external'),
+    ).create();
+    final sprites = await Directory(
+      p.join(externalRoot.path, 'sprites'),
+    ).create();
+    for (final name in const <String>['flower.png', 'water.png']) {
+      await File(p.join(sprites.path, name)).writeAsBytes(
+        img.encodePng(img.Image(width: 1, height: 1)),
+      );
+    }
+    final tsx = File(p.join(externalRoot.path, 'props.tsx'));
+    await tsx.writeAsString(_collectionTsx);
+    const manifest = ProjectManifest(
+      name: 'Tiled collection integration',
+      version: ProjectVersion.v6,
+      maps: <ProjectMapEntry>[],
+      tilesets: <ProjectTilesetEntry>[],
+    );
+    await File(p.join(projectRoot.path, 'project.json')).writeAsString(
+      jsonEncode(manifest.toJson()),
+      flush: true,
+    );
+    const reader = EditorProjectFileReader();
+    final queries = AuthoringQueryAdapter(fileReader: reader);
+    final mutations = AuthoringMutationAdapter(
+      fileReader: reader,
+      queries: queries,
+      projectRoots: reader,
+    );
+    addTearDown(() async {
+      await mutations.closeAll();
+      await queries.closeAll();
+      if (await sandbox.exists()) await sandbox.delete(recursive: true);
+    });
+    final service = SmartTileTiledWangImportService(
+      gateway: CanonicalSmartTileSourceAssetGateway(
+        mutations: mutations,
+        queries: queries,
+      ),
+    );
+
+    final source = await loadSmartTileTiledWangSource(tsx.path);
+    expect(source.isImageCollection, isTrue);
+    expect(source.document, isNull);
+    final result = await service.import(
+      projectRootPath: projectRoot.path,
+      source: source,
+      selections: const <TiledWangSetSelection>[],
+    );
+
+    expect(result.presetIds, isEmpty);
+    expect(mutations.lastAppliedReceipt?.actionId, 'tileset.tiled.import');
+    final serialized = ProjectManifest.fromJson(
+      Map<String, dynamic>.from(
+        jsonDecode(
+          await File(p.join(projectRoot.path, 'project.json')).readAsString(),
+        ) as Map,
+      ),
+    );
+    final collection = serialized.tilesets.single.source
+        as ProjectImageCollectionTilesetSource;
+    expect(collection.tileDefinitions.map((tile) => tile.tileId), <int>[5, 9]);
+    expect(collection.pages, hasLength(1));
+    final catalog = AssetCatalog.fromJson(
+      Map<String, dynamic>.from(
+        jsonDecode(
+          await File(p.join(projectRoot.path, assetCatalogStorageKey))
+              .readAsString(),
+        ) as Map,
+      ),
+    );
+    expect(catalog.records, hasLength(1));
+    expect(
+      await File(
+        p.join(
+          projectRoot.path,
+          assetBlobStorageKey(catalog.records.single.artifact),
+        ),
+      ).exists(),
+      isTrue,
+    );
+  });
+
   test('rejects a stale snapshot after canonical Wang apply', () async {
     final source = SmartTileTiledWangSource(
       tsxPath: '/outside/road.tsx',
       imagePath: '/outside/road.png',
+      imagePaths: const <String, String>{
+        'road.png': '/outside/road.png',
+      },
       displayName: 'road.tsx',
       tsx: _tsx,
       importId: 'road-123456789abc',
+      tilesetDocument: parseTiledTileset(_tsx),
       document: parseTiledWangTileset(_tsx),
     );
     final gateway = _Gateway(staleAfterApply: true);
@@ -259,6 +469,27 @@ void main() {
     );
   });
 }
+
+Directory _erwTilesetRoot(String rootPath) {
+  final candidates = <Directory>[
+    Directory(p.join(rootPath, 'TiledMap Editor', 'Tilesets')),
+    Directory(p.join(rootPath, 'Tilesets')),
+    Directory(rootPath),
+  ];
+  return candidates.firstWhere(
+    (candidate) => File(
+      p.join(candidate.path, _erwCollectionFiles.first),
+    ).existsSync(),
+    orElse: () => throw StateError('Unable to locate the ERW Tilesets folder.'),
+  );
+}
+
+const _erwCollectionFiles = <String>[
+  'Atlas-Props-sheet1-sprites.tsx',
+  'Atlas-Props-sheet2-sprites.tsx',
+  'Atlas-props-sheet3-sprites.tsx',
+  'Atlas-Props-sheet4-sprites.tsx',
+];
 
 final class _Gateway implements SmartTileSourceAssetGateway {
   _Gateway({this.staleAfterApply = false});
@@ -369,5 +600,19 @@ const _tsx = '''
       <wangtile tileid="0" wangid="1,0,1,0,1,0,1,0"/>
     </wangset>
   </wangsets>
+</tileset>
+''';
+
+const _collectionTsx = '''
+<tileset name="Props" tilewidth="1" tileheight="1" tilecount="2" columns="0">
+  <tileoffset x="2" y="-3"/>
+  <tile id="5">
+    <properties><property name="name" value="Flower"/></properties>
+    <image source="sprites/flower.png" width="1" height="1"/>
+  </tile>
+  <tile id="9">
+    <image source="sprites/water.png" width="1" height="1"/>
+    <animation><frame tileid="5" duration="120"/></animation>
+  </tile>
 </tileset>
 ''';

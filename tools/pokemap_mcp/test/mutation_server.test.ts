@@ -1216,6 +1216,101 @@ test("MCP imports a Tiled tileset through one canonical receipt", async () => {
   }
 });
 
+test("MCP packs a Tiled image collection through one canonical receipt", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const sourcePath = join(fixture.root, "prop.png");
+    await writeFile(
+      sourcePath,
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    );
+    const staged = await toolData(fixture.client, "pokemap_artifact_stage", {
+      sourcePath,
+      declaredMediaType: "image/png",
+    });
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "tiled-collection-import",
+        actionId: "tileset.tiled.import",
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: {
+          imageArtifacts: [
+            { source: "flower.png", artifactHandle: staged.artifactHandle },
+            { source: "water.png", artifactHandle: staged.artifactHandle },
+          ],
+          assetId: "mcp-props",
+          logicalPath: "assets/tilesets/mcp-props",
+          tilesetId: "mcp-props",
+          displayName: "MCP Props",
+          tsx: tiledCollectionTsx,
+          importId: "mcp-props",
+          selections: [],
+          tags: ["tiled", "prop"],
+          usages: ["smart-tiles-studio"],
+        },
+        expectedRevision: validated.snapshotRevision,
+        idempotencyKey: "idem-tiled-collection-import",
+        dryRun: false,
+      },
+    });
+    const preview = record(record(planned.plan).preview);
+    assert.equal(preview.sourceKind, "image_collection");
+    assert.equal(preview.sourceImageCount, 2);
+    assert.equal(preview.generatedPageCount, 1);
+
+    const applied = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "operation-tiled-collection-import",
+    });
+    assert.equal(record(applied.receipt).actionId, "tileset.tiled.import");
+    const persisted = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    const tilesets = persisted.tilesets as JsonRecord[];
+    const imported = tilesets.find((tileset) => tileset.id === "mcp-props");
+    assert.ok(imported);
+    const source = record(imported.source);
+    assert.equal(source.kind, "image_collection");
+    assert.deepEqual(
+      (source.tileDefinitions as JsonRecord[]).map((tile) => tile.tileId),
+      [5, 9],
+    );
+    const assets = record(
+      JSON.parse(
+        await readFile(
+          join(fixture.root, "assets/.pokemap-assets.json"),
+          "utf8",
+        ),
+      ),
+    );
+    assert.ok(
+      (assets.records as JsonRecord[]).some(
+        (asset) => asset.id === "mcp-props-page-0000",
+      ),
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP marks dry-run plans non-applicable before confirmation or apply", async () => {
   const fixture = await mutationFixture();
   try {
@@ -1690,6 +1785,17 @@ const tiledWangTsx = `
       <wangtile tileid="0" wangid="1,0,1,0,1,0,1,0"/>
     </wangset>
   </wangsets>
+</tileset>
+`;
+
+const tiledCollectionTsx = `
+<tileset name="Props" tilewidth="1" tileheight="1" tilecount="2" columns="0">
+  <tileoffset x="2" y="-3"/>
+  <tile id="5"><image source="flower.png" width="1" height="1"/></tile>
+  <tile id="9">
+    <image source="water.png" width="1" height="1"/>
+    <animation><frame tileid="5" duration="120"/></animation>
+  </tile>
 </tileset>
 `;
 

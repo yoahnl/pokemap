@@ -7,6 +7,7 @@ import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
 import '../contracts/json_contract_support.dart';
 import '../domains/maps/map_mutation_dispatcher.dart';
+import '../domains/assets/tiled_image_collection_packer.dart';
 import '../history/content_blob_store.dart';
 import '../history/file_history_store.dart';
 import '../history/history_store.dart';
@@ -46,6 +47,7 @@ final class LocalMapAuthoringMutationApi
     required ProjectSnapshotLoader snapshotLoader,
     MapMutationDispatcher? dispatcher,
     ArtifactStore? artifactStore,
+    TiledImageCollectionRasterCodec? tiledImageCollectionRasterCodec,
     AuthoringActor? actor,
     DateTime Function()? clock,
     AuthoringTransactionFaultInjector? faultInjector,
@@ -56,8 +58,11 @@ final class LocalMapAuthoringMutationApi
         _faultInjector = faultInjector {
     artifacts =
         artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20);
-    _dispatcher =
-        dispatcher ?? MapMutationDispatcher.canonical(artifactStore: artifacts);
+    _dispatcher = dispatcher ??
+        MapMutationDispatcher.canonical(
+          artifactStore: artifacts,
+          tiledImageCollectionRasterCodec: tiledImageCollectionRasterCodec,
+        );
   }
 
   final WorkspacePolicy _policy;
