@@ -531,7 +531,7 @@ final class _MutationFixture {
         MapLayer.tile(
           id: 'l_base',
           name: 'Base',
-          tiles: [0, 0, 0, 0],
+          cells: [0, 0, 0, 0],
         ),
         MapLayer.collision(
           id: 'l_collisions',
@@ -652,7 +652,7 @@ final class _MutationFixture {
         MapLayer.tile(
           id: 'base',
           name: 'Base',
-          tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+          cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
         ),
         MapLayer.smartTile(
           id: 'terrain',

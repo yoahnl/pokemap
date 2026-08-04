@@ -231,7 +231,7 @@ MapData _map({
       TileLayer(
         id: 'tiles',
         name: 'Sol',
-        tiles: List<int>.filled(width * height, 0),
+        cells: List<int>.filled(width * height, 0),
       ),
       MapLayer.environment(
         id: 'env',

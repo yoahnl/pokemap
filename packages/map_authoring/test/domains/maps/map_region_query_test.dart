@@ -141,7 +141,7 @@ MapData _map() {
       MapLayer.tile(
         id: 'ground',
         name: 'Ground',
-        tiles: List.generate(12, (index) => index),
+        cells: List.generate(12, (index) => index),
       ),
       const MapLayer.collision(
         id: 'collision',

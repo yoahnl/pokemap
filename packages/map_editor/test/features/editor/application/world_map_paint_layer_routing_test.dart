@@ -546,8 +546,7 @@ const _allLayerKindsMap = MapData(
     TileLayer(
       id: 'tile',
       name: 'Éléments',
-      tilesetId: 'world',
-      tiles: _sixteenCells,
+      cells: _sixteenCells,
     ),
     SmartTileLayer(
       id: 'smart-terrain',
@@ -588,8 +587,7 @@ const _multiplePathMap = MapData(
     TileLayer(
       id: 'tile',
       name: 'Éléments',
-      tilesetId: 'world',
-      tiles: _sixteenCells,
+      cells: _sixteenCells,
     ),
     SmartTileLayer(
       id: 'path-a',
@@ -616,8 +614,7 @@ const _tileOnlyMap = MapData(
     TileLayer(
       id: 'tile',
       name: 'Éléments',
-      tilesetId: 'world',
-      tiles: _sixteenCells,
+      cells: _sixteenCells,
     ),
   ],
 );
@@ -663,8 +660,7 @@ const _routingMapA = MapData(
     TileLayer(
       id: 'tile-a',
       name: 'Éléments A',
-      tilesetId: 'world',
-      tiles: _sixteenCells,
+      cells: _sixteenCells,
     ),
     SmartTileLayer(
       id: 'path-a',
@@ -692,8 +688,7 @@ const _routingMapB = MapData(
     TileLayer(
       id: 'tile-b',
       name: 'Éléments B',
-      tilesetId: 'world',
-      tiles: _sixteenCells,
+      cells: _sixteenCells,
     ),
     SmartTileLayer(
       id: 'path-c',
@@ -721,8 +716,7 @@ const _sharedProjectMap = MapData(
     TileLayer(
       id: 'tile',
       name: 'Éléments',
-      tilesetId: 'world',
-      tiles: _sixteenCells,
+      cells: _sixteenCells,
     ),
     SmartTileLayer(
       id: 'path-a',
@@ -750,8 +744,7 @@ const _uniquePathRoutingMap = MapData(
     TileLayer(
       id: 'tile',
       name: 'Éléments',
-      tilesetId: 'world',
-      tiles: _sixteenCells,
+      cells: _sixteenCells,
     ),
     SmartTileLayer(
       id: 'path',

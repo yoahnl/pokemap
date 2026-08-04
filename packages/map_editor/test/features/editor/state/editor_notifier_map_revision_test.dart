@@ -131,8 +131,7 @@ void main() {
       expect(await File(fixture.mapPath).readAsBytes(), beforeBytes);
     });
 
-    test(
-        'active-layer tileset assignment is undoable and conflicts only on save',
+    test('source selection does not mutate the map or its disk revision',
         () async {
       final fixture = await _Fixture.create();
       addTearDown(fixture.dispose);
@@ -142,39 +141,16 @@ void main() {
       await fixture.writeMap(_map(name: 'External tileset race'));
       final externalBytes = await File(fixture.mapPath).readAsBytes();
 
-      await notifier.assignTilesetToActiveLayer('alternate');
+      notifier.selectTilesetEditorContext('alternate');
 
       expect(notifier.state.errorMessage, isNull);
-      expect(notifier.state.isDirty, isTrue);
-      expect(notifier.state.mapUndoStack, hasLength(1));
-      expect(notifier.state.activeMap!.layers.first, isA<TileLayer>());
-      expect(
-        (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
-        'alternate',
-      );
-      expect(await File(fixture.mapPath).readAsBytes(), externalBytes);
-
-      notifier.undoMap();
-      expect(
-        (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
-        'base_tiles',
-      );
-      notifier.redoMap();
-      expect(
-        (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
-        'alternate',
-      );
-
-      expect(await notifier.saveActiveMap(), ActiveMapSaveOutcome.conflict);
-      expect(notifier.state.errorMessage, contains('modifiée en dehors'));
-      expect(
-        (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
-        'alternate',
-      );
+      expect(notifier.state.isDirty, isFalse);
+      expect(notifier.state.mapUndoStack, isEmpty);
+      expect(notifier.getSelectedTilesetEntry()?.id, 'alternate');
       expect(await File(fixture.mapPath).readAsBytes(), externalBytes);
     });
 
-    test('active-layer tileset assignment rejects a non-empty layer', () async {
+    test('source selection accepts a non-empty multi-tileset layer', () async {
       final fixture = await _Fixture.create();
       addTearDown(fixture.dispose);
       final notifier = fixture.notifier;
@@ -183,7 +159,15 @@ void main() {
       final layer = map.layers.first as TileLayer;
       final occupiedMap = map.copyWith(
         layers: <MapLayer>[
-          layer.copyWith(tiles: const <int>[1, 0, 0, 0]),
+          layer.copyWith(
+            palette: const <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(
+                tilesetId: 'base_tiles',
+                localTileId: 0,
+              ),
+            ],
+            cells: const <int>[1, 0, 0, 0],
+          ),
           ...map.layers.skip(1),
         ],
       );
@@ -191,11 +175,12 @@ void main() {
       final historyBefore = notifier.state.mapUndoStack;
       final diskBefore = await File(fixture.mapPath).readAsBytes();
 
-      await notifier.assignTilesetToActiveLayer('alternate');
+      notifier.selectTilesetEditorContext('alternate');
 
       expect(notifier.state.activeMap, occupiedMap);
       expect(notifier.state.mapUndoStack, historyBefore);
-      expect(notifier.state.errorMessage, contains('Videz-la'));
+      expect(notifier.state.errorMessage, isNull);
+      expect(notifier.getSelectedTilesetEntry()?.id, 'alternate');
       expect(await File(fixture.mapPath).readAsBytes(), diskBefore);
     });
 
@@ -216,9 +201,9 @@ void main() {
       notifier.addMapLayer(
         kind: MapLayerKind.tile,
         name: 'Details',
-        tileTilesetId: 'alternate',
       );
       final detailsLayerId = notifier.state.activeLayerId!;
+      notifier.selectTilesetEditorContext('alternate');
       notifier.setPaletteCategoryFilter(PaletteCategory.decorations);
       notifier.selectPaletteTile(2);
 
@@ -252,7 +237,7 @@ void main() {
 
       notifier.undoMap();
       expect(notifier.state.activeLayerId, detailsLayerId);
-      expect(notifier.getSelectedTilesetEntry()?.id, 'alternate');
+      expect(notifier.getSelectedTilesetEntry()?.id, 'base_tiles');
       expect(notifier.state.activeBrush, const EditorBrush.none());
       expect(notifier.state.paletteCategoryFilter, isNull);
 
@@ -458,8 +443,7 @@ MapData _map({required String name}) => MapData(
         TileLayer(
           id: 'base',
           name: 'Base',
-          tilesetId: 'base_tiles',
-          tiles: <int>[0, 0, 0, 0],
+          cells: <int>[0, 0, 0, 0],
         ),
         CollisionLayer(
           id: 'collision',

@@ -986,7 +986,7 @@ final _map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Sol',
-      tiles: List<int>.filled(64, 0, growable: false),
+      cells: List<int>.filled(64, 0, growable: false),
     ),
     CollisionLayer(
       id: 'collision',
@@ -1028,8 +1028,7 @@ const _keyboardMoveMap = MapData(
     TileLayer(
       id: 'objects',
       name: 'Objets',
-      tilesetId: 'objects',
-      tiles: <int>[
+      cells: <int>[
         0,
         0,
         0,
@@ -1168,7 +1167,7 @@ const _incompatibleEraseMap = MapData(
     TileLayer(
       id: 'ground',
       name: 'Sol',
-      tiles: <int>[0, 0, 0, 0],
+      cells: <int>[0, 0, 0, 0],
     ),
     ObjectLayer(id: 'objects', name: 'Objets'),
   ],
@@ -1199,8 +1198,7 @@ const _blockedRotationMap = MapData(
     TileLayer(
       id: 'ground',
       name: 'Sol',
-      tilesetId: 'objects',
-      tiles: <int>[0, 0],
+      cells: <int>[0, 0],
     ),
   ],
   placedElements: <MapPlacedElement>[
@@ -1258,7 +1256,7 @@ const _animatedMap = MapData(
     TileLayer(
       id: 'ground',
       name: 'Sol',
-      tiles: <int>[0, 0, 0, 0],
+      cells: <int>[0, 0, 0, 0],
     ),
     ObjectLayer(id: 'objects', name: 'Objets'),
   ],

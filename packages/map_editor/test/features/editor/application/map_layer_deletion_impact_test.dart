@@ -232,7 +232,7 @@ TileLayer _tile(String id) {
   return TileLayer(
     id: id,
     name: id,
-    tiles: List<int>.filled(9, 0),
+    cells: List<int>.filled(9, 0),
   );
 }
 

@@ -92,6 +92,79 @@ void main() {
       expect(await alphaAtGridLine(showGrid: false), 0);
     });
 
+    test('renders multiple tilesets and D4 transforms per tile cell', () async {
+      const map = MapData(
+        id: 'multi-tileset-d4',
+        name: 'Multi tileset D4',
+        size: GridSize(width: 3, height: 1),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'ground',
+            name: 'Ground',
+            palette: <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(tilesetId: 'base', localTileId: 0),
+              TileLayerPaletteEntry(
+                tilesetId: 'detail',
+                localTileId: 0,
+                transform: SmartTileSpriteTransform(quarterTurns: 1),
+              ),
+              TileLayerPaletteEntry(
+                tilesetId: 'detail',
+                localTileId: 0,
+                transform: SmartTileSpriteTransform(
+                  quarterTurns: 1,
+                  flipX: true,
+                ),
+              ),
+            ],
+            cells: <int>[1, 2, 3],
+          ),
+        ],
+      );
+      final base = await _quadrantUiImage(const <ui.Color>[
+        ui.Color(0xFFCC1010),
+        ui.Color(0xFFCC1010),
+        ui.Color(0xFFCC1010),
+        ui.Color(0xFFCC1010),
+      ]);
+      final detail = await _quadrantUiImage(const <ui.Color>[
+        ui.Color(0xFF10CC10),
+        ui.Color(0xFF1010CC),
+        ui.Color(0xFFCCCC10),
+        ui.Color(0xFFFFFFFF),
+      ]);
+      final recorder = ui.PictureRecorder();
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: <String, ui.Image?>{
+          'base': base,
+          'detail': detail,
+        },
+        sourceTileWidth: 2,
+        sourceTileHeight: 2,
+        tilesPerRowById: const <String, int>{'base': 1, 'detail': 1},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        showGrid: false,
+        showEditorOverlays: false,
+      ).paint(ui.Canvas(recorder), const ui.Size(96, 32));
+      final image = await recorder.endRecording().toImage(96, 32);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+
+      expect(_rgbaAt(pixels!, image.width, 4, 4), <int>[204, 16, 16, 255]);
+      expect(_rgbaAt(pixels, image.width, 36, 4), <int>[204, 204, 16, 255]);
+      expect(_rgbaAt(pixels, image.width, 68, 4), <int>[255, 255, 255, 255]);
+
+      base.dispose();
+      detail.dispose();
+      image.dispose();
+    });
+
     test(
         'marks only non-collision cells of multi-tile placed elements as foreground',
         () {
@@ -103,7 +176,13 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tiles: <int>[
+            palette: <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(
+                tilesetId: 'ground',
+                localTileId: 0,
+              ),
+            ],
+            cells: <int>[
               1,
               1,
               0,
@@ -166,7 +245,13 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tiles: List<int>.filled(16, 1, growable: false),
+            palette: <TileLayerPaletteEntry>[
+              const TileLayerPaletteEntry(
+                tilesetId: 'ground',
+                localTileId: 0,
+              ),
+            ],
+            cells: List<int>.filled(16, 1, growable: false),
           ),
         ],
         placedElements: const <MapPlacedElement>[
@@ -309,8 +394,7 @@ void main() {
           TileLayer(
             id: 'environment',
             name: 'Environment',
-            tilesetId: 'element-tileset',
-            tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+            cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
         ],
         placedElements: <MapPlacedElement>[
@@ -394,8 +478,7 @@ void main() {
             TileLayer(
               id: 'decor',
               name: 'Decor',
-              tilesetId: 'rectangular',
-              tiles: <int>[0, 0, 0, 0],
+              cells: <int>[0, 0, 0, 0],
             ),
           ],
           placedElements: <MapPlacedElement>[
@@ -520,8 +603,7 @@ void main() {
           TileLayer(
             id: 'decor',
             name: 'Decor',
-            tilesetId: 'tiles',
-            tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
         ],
         placedElements: <MapPlacedElement>[
@@ -611,8 +693,7 @@ void main() {
           TileLayer(
             id: 'environment',
             name: 'Environment',
-            tilesetId: 'element-tileset',
-            tiles: <int>[
+            cells: <int>[
               0,
               0,
               0,
@@ -725,8 +806,7 @@ void main() {
           TileLayer(
             id: 'environment',
             name: 'Environment',
-            tilesetId: 'element-tileset',
-            tiles: <int>[
+            cells: <int>[
               0,
               0,
               0,
@@ -881,8 +961,13 @@ void main() {
           TileLayer(
             id: 'environment',
             name: 'Environment',
-            tilesetId: 'element-tileset',
-            tiles: <int>[3],
+            palette: <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(
+                tilesetId: 'element-tileset',
+                localTileId: 2,
+              ),
+            ],
+            cells: <int>[1],
           ),
         ],
         placedElements: <MapPlacedElement>[
@@ -962,8 +1047,13 @@ void main() {
           TileLayer(
             id: 'environment',
             name: 'Environment',
-            tilesetId: 'element-tileset',
-            tiles: <int>[4],
+            palette: <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(
+                tilesetId: 'element-tileset',
+                localTileId: 3,
+              ),
+            ],
+            cells: <int>[1],
           ),
         ],
         placedElements: <MapPlacedElement>[
@@ -1043,8 +1133,7 @@ void main() {
           TileLayer(
             id: 'environment',
             name: 'Environment',
-            tilesetId: 'element-tileset',
-            tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
+            cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
         ],
         placedElements: <MapPlacedElement>[
@@ -1236,6 +1325,34 @@ Future<ui.Image> _testTilesetImage() async {
   final image = await picture.toImage(128, 128);
   picture.dispose();
   return image;
+}
+
+Future<ui.Image> _quadrantUiImage(List<ui.Color> colors) async {
+  assert(colors.length == 4);
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  for (var index = 0; index < colors.length; index++) {
+    canvas.drawRect(
+      ui.Rect.fromLTWH(
+        (index % 2).toDouble(),
+        (index ~/ 2).toDouble(),
+        1,
+        1,
+      ),
+      ui.Paint()..color = colors[index],
+    );
+  }
+  return recorder.endRecording().toImage(2, 2);
+}
+
+List<int> _rgbaAt(ByteData pixels, int width, int x, int y) {
+  final offset = ((y * width) + x) * 4;
+  return <int>[
+    pixels.getUint8(offset),
+    pixels.getUint8(offset + 1),
+    pixels.getUint8(offset + 2),
+    pixels.getUint8(offset + 3),
+  ];
 }
 
 Future<ui.Image> _solidColorImage({

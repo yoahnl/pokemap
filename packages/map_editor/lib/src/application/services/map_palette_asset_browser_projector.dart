@@ -85,7 +85,7 @@ class MapPaletteAssetBrowserProjector {
       diagnostic = 'Le calque actif n’existe plus dans cette carte.';
     } else if (activeLayer is! TileLayer) {
       status = MapPaletteAssetBrowserStatus.unsupportedLayer;
-      diagnostic = 'Sélectionnez un calque de tuiles pour assigner une source.';
+      diagnostic = 'Sélectionnez un calque de tuiles pour utiliser une source.';
     }
 
     List<ProjectTilesetEntry> assignableInResolverOrder;
@@ -118,22 +118,7 @@ class MapPaletteAssetBrowserProjector {
           .add(element);
     }
 
-    final assignedTilesetId =
-        activeLayer is TileLayer ? _assignedTilesetId(map, activeLayer) : null;
-    final layerIsEmpty = activeLayer is TileLayer &&
-        activeLayer.tiles.every((tile) => tile == 0);
-    final assignedSourceMissing = assignedTilesetId != null &&
-        !project.tilesets.any((tileset) => tileset.id == assignedTilesetId);
-    if (status == MapPaletteAssetBrowserStatus.ready && assignedSourceMissing) {
-      status = MapPaletteAssetBrowserStatus.assignedSourceMissing;
-      diagnostic = layerIsEmpty
-          ? 'La source assignée « $assignedTilesetId » n’existe plus dans le '
-              'projet. Choisissez puis assignez une source disponible pour '
-              'réparer ce calque vide.'
-          : 'La source assignée « $assignedTilesetId » n’existe plus dans le '
-              'projet. Ce calque contient encore des tuiles : videz-le avant '
-              'de changer de source afin de ne pas réinterpréter leurs IDs.';
-    }
+    const assignedTilesetId = null;
     final recentIndexById = <String, int>{
       for (var index = 0; index < recentTilesetIds.length; index++)
         recentTilesetIds[index]: index,
@@ -158,14 +143,13 @@ class MapPaletteAssetBrowserProjector {
     final projected = <MapPaletteAssetBrowserItem>[];
     var hiddenIncompatibleCount = 0;
     for (final tileset in orderedTilesets) {
-      final isAssigned = tileset.id == assignedTilesetId;
+      const isAssigned = false;
       final isScopeAssignable = assignableIds.contains(tileset.id);
       final assignment = _assignmentFor(
         activeLayerId: activeLayerId,
         activeLayer: activeLayer,
         isAssigned: isAssigned,
         isScopeAssignable: isScopeAssignable,
-        layerIsEmpty: layerIsEmpty,
       );
       final isCompatible =
           assignment == MapPaletteAssetAssignmentState.alreadyAssigned ||
@@ -286,7 +270,6 @@ class MapPaletteAssetBrowserProjector {
     required MapLayer? activeLayer,
     required bool isAssigned,
     required bool isScopeAssignable,
-    required bool layerIsEmpty,
   }) {
     if (activeLayerId == null) {
       return MapPaletteAssetAssignmentState.noLayer;
@@ -302,9 +285,6 @@ class MapPaletteAssetBrowserProjector {
     }
     if (!isScopeAssignable) {
       return MapPaletteAssetAssignmentState.outsideMapScope;
-    }
-    if (!layerIsEmpty) {
-      return MapPaletteAssetAssignmentState.layerNotEmpty;
     }
     return MapPaletteAssetAssignmentState.canAssign;
   }
@@ -327,13 +307,6 @@ class MapPaletteAssetBrowserProjector {
       MapPaletteAssetAssignmentState.layerNotEmpty =>
         'Ce calque contient déjà des tuiles d’une autre source.',
     };
-  }
-
-  String? _assignedTilesetId(MapData map, TileLayer layer) {
-    final layerId = layer.tilesetId?.trim();
-    if (layerId != null && layerId.isNotEmpty) return layerId;
-    final mapId = map.tilesetId.trim();
-    return mapId.isEmpty ? null : mapId;
   }
 
   List<MapPaletteAssetFolderRow> _folderRows(ProjectManifest project) {

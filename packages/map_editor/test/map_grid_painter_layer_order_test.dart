@@ -143,14 +143,14 @@ void main() {
           TileLayer(
             id: 'blue_top',
             name: 'Blue top',
-            tilesetId: 'test_tileset',
-            tiles: <int>[2],
+            palette: _testPalette,
+            cells: <int>[2],
           ),
           TileLayer(
             id: 'red_bottom',
             name: 'Red bottom',
-            tilesetId: 'test_tileset',
-            tiles: <int>[1],
+            palette: _testPalette,
+            cells: <int>[1],
           ),
         ],
       );
@@ -168,6 +168,10 @@ void main() {
 
 const _red = ui.Color(0xFFFF0000);
 const _blue = ui.Color(0xFF0000FF);
+const _testPalette = <TileLayerPaletteEntry>[
+  TileLayerPaletteEntry(tilesetId: 'test_tileset', localTileId: 0),
+  TileLayerPaletteEntry(tilesetId: 'test_tileset', localTileId: 1),
+];
 
 Future<ui.Color> _paintOverlappingLayers({
   Map<String, dynamic> properties = const <String, dynamic>{},
@@ -186,16 +190,16 @@ Future<ui.Color> _paintOverlappingLayers({
       TileLayer(
         id: bottomId,
         name: bottomId,
-        tilesetId: 'test_tileset',
-        tiles: <int>[placedElements ? 0 : 1],
+        palette: _testPalette,
+        cells: <int>[placedElements ? 0 : 1],
       ),
       if (includeBorder)
         const BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),
       TileLayer(
         id: topId,
         name: topId,
-        tilesetId: 'test_tileset',
-        tiles: <int>[placedElements ? 0 : 2],
+        palette: _testPalette,
+        cells: <int>[placedElements ? 0 : 2],
       ),
     ],
     placedElements: placedElements
@@ -320,8 +324,8 @@ Future<ui.Color> _paintLayerAgainstEntity(
         TileLayer(
           id: layerId,
           name: layerId,
-          tilesetId: 'test_tileset',
-          tiles: <int>[placedElement ? 0 : 2],
+          palette: _testPalette,
+          cells: <int>[placedElement ? 0 : 2],
         ),
         if (includeBorder)
           const BorderLayer(id: 'border-sentinel', name: 'Border sentinel'),

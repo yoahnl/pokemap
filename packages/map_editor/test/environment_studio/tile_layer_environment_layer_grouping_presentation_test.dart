@@ -13,7 +13,7 @@ void main() {
           TileLayer(
             id: 'decor',
             name: 'Décor',
-            tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
         ],
       );
@@ -119,7 +119,7 @@ void main() {
           const TileLayer(
             id: 'decor',
             name: 'Décor',
-            tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+            cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
           _environmentLayer('env_decor', 'decor'),
           const ObjectLayer(id: 'objects', name: 'Objects'),
@@ -168,7 +168,7 @@ MapData _mapWithAttachedEnvironment({bool extraAttached = false}) {
       const TileLayer(
         id: 'decor',
         name: 'Décor',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       _environmentLayer('env_decor', 'decor'),
       if (extraAttached) _environmentLayer('env_decor_alt', 'decor'),
@@ -186,7 +186,7 @@ MapData _mapWithEnvironmentTarget(String targetLayerId) {
       const TileLayer(
         id: 'decor',
         name: 'Décor',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       const ObjectLayer(id: 'objects', name: 'Objects'),
       _environmentLayer('env_decor', targetLayerId),

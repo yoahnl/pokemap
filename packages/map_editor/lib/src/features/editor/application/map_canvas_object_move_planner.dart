@@ -331,7 +331,7 @@ final class MapCanvasObjectMovePlanner {
           y: destinationAnchor.y + localY,
         );
         if (_contains(tilePatternTarget, destination)) continue;
-        if (_tileAt(layer.tiles, map.size, destination) != 0) {
+        if (_tileAt(layer.cells, map.size, destination) != 0) {
           return MapCanvasObjectMovePlan.rejected(
             sourceMap: map,
             sourceTarget: sourceTarget,
@@ -347,7 +347,7 @@ final class MapCanvasObjectMovePlanner {
       for (var localY = 0; localY < tilePatternSize.height; localY++)
         for (var localX = 0; localX < tilePatternSize.width; localX++)
           _tileAt(
-            layer.tiles,
+            layer.cells,
             map.size,
             GridPos(
               x: placed.pos.x + localX,
@@ -357,11 +357,11 @@ final class MapCanvasObjectMovePlanner {
     ];
     final expectedTileCount = map.size.width * map.size.height;
     final nextTiles = List<int>.filled(expectedTileCount, 0, growable: false);
-    final copyCount = layer.tiles.length < expectedTileCount
-        ? layer.tiles.length
+    final copyCount = layer.cells.length < expectedTileCount
+        ? layer.cells.length
         : expectedTileCount;
     for (var index = 0; index < copyCount; index++) {
-      nextTiles[index] = layer.tiles[index];
+      nextTiles[index] = layer.cells[index];
     }
     for (var localY = 0; localY < tilePatternSize.height; localY++) {
       for (var localX = 0; localX < tilePatternSize.width; localX++) {
@@ -380,7 +380,7 @@ final class MapCanvasObjectMovePlanner {
     }
 
     final nextLayers = List<MapLayer>.from(map.layers, growable: false);
-    nextLayers[layerIndex] = layer.copyWith(tiles: nextTiles);
+    nextLayers[layerIndex] = layer.copyWith(cells: nextTiles);
     final withMovedTiles = map.copyWith(layers: nextLayers);
     final candidate = _movePositionOnly(
       map: withMovedTiles,

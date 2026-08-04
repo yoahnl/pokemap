@@ -14,6 +14,221 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
+TileLayerPaletteEntry _$TileLayerPaletteEntryFromJson(
+    Map<String, dynamic> json) {
+  return _TileLayerPaletteEntry.fromJson(json);
+}
+
+/// @nodoc
+mixin _$TileLayerPaletteEntry {
+  String get tilesetId => throw _privateConstructorUsedError;
+  int get localTileId => throw _privateConstructorUsedError;
+  SmartTileSpriteTransform get transform => throw _privateConstructorUsedError;
+
+  /// Serializes this TileLayerPaletteEntry to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of TileLayerPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $TileLayerPaletteEntryCopyWith<TileLayerPaletteEntry> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $TileLayerPaletteEntryCopyWith<$Res> {
+  factory $TileLayerPaletteEntryCopyWith(TileLayerPaletteEntry value,
+          $Res Function(TileLayerPaletteEntry) then) =
+      _$TileLayerPaletteEntryCopyWithImpl<$Res, TileLayerPaletteEntry>;
+  @useResult
+  $Res call(
+      {String tilesetId, int localTileId, SmartTileSpriteTransform transform});
+
+  $SmartTileSpriteTransformCopyWith<$Res> get transform;
+}
+
+/// @nodoc
+class _$TileLayerPaletteEntryCopyWithImpl<$Res,
+        $Val extends TileLayerPaletteEntry>
+    implements $TileLayerPaletteEntryCopyWith<$Res> {
+  _$TileLayerPaletteEntryCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of TileLayerPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? tilesetId = null,
+    Object? localTileId = null,
+    Object? transform = null,
+  }) {
+    return _then(_value.copyWith(
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      localTileId: null == localTileId
+          ? _value.localTileId
+          : localTileId // ignore: cast_nullable_to_non_nullable
+              as int,
+      transform: null == transform
+          ? _value.transform
+          : transform // ignore: cast_nullable_to_non_nullable
+              as SmartTileSpriteTransform,
+    ) as $Val);
+  }
+
+  /// Create a copy of TileLayerPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $SmartTileSpriteTransformCopyWith<$Res> get transform {
+    return $SmartTileSpriteTransformCopyWith<$Res>(_value.transform, (value) {
+      return _then(_value.copyWith(transform: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$TileLayerPaletteEntryImplCopyWith<$Res>
+    implements $TileLayerPaletteEntryCopyWith<$Res> {
+  factory _$$TileLayerPaletteEntryImplCopyWith(
+          _$TileLayerPaletteEntryImpl value,
+          $Res Function(_$TileLayerPaletteEntryImpl) then) =
+      __$$TileLayerPaletteEntryImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String tilesetId, int localTileId, SmartTileSpriteTransform transform});
+
+  @override
+  $SmartTileSpriteTransformCopyWith<$Res> get transform;
+}
+
+/// @nodoc
+class __$$TileLayerPaletteEntryImplCopyWithImpl<$Res>
+    extends _$TileLayerPaletteEntryCopyWithImpl<$Res,
+        _$TileLayerPaletteEntryImpl>
+    implements _$$TileLayerPaletteEntryImplCopyWith<$Res> {
+  __$$TileLayerPaletteEntryImplCopyWithImpl(_$TileLayerPaletteEntryImpl _value,
+      $Res Function(_$TileLayerPaletteEntryImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of TileLayerPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? tilesetId = null,
+    Object? localTileId = null,
+    Object? transform = null,
+  }) {
+    return _then(_$TileLayerPaletteEntryImpl(
+      tilesetId: null == tilesetId
+          ? _value.tilesetId
+          : tilesetId // ignore: cast_nullable_to_non_nullable
+              as String,
+      localTileId: null == localTileId
+          ? _value.localTileId
+          : localTileId // ignore: cast_nullable_to_non_nullable
+              as int,
+      transform: null == transform
+          ? _value.transform
+          : transform // ignore: cast_nullable_to_non_nullable
+              as SmartTileSpriteTransform,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$TileLayerPaletteEntryImpl implements _TileLayerPaletteEntry {
+  const _$TileLayerPaletteEntryImpl(
+      {required this.tilesetId,
+      required this.localTileId,
+      this.transform = const SmartTileSpriteTransform()});
+
+  factory _$TileLayerPaletteEntryImpl.fromJson(Map<String, dynamic> json) =>
+      _$$TileLayerPaletteEntryImplFromJson(json);
+
+  @override
+  final String tilesetId;
+  @override
+  final int localTileId;
+  @override
+  @JsonKey()
+  final SmartTileSpriteTransform transform;
+
+  @override
+  String toString() {
+    return 'TileLayerPaletteEntry(tilesetId: $tilesetId, localTileId: $localTileId, transform: $transform)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$TileLayerPaletteEntryImpl &&
+            (identical(other.tilesetId, tilesetId) ||
+                other.tilesetId == tilesetId) &&
+            (identical(other.localTileId, localTileId) ||
+                other.localTileId == localTileId) &&
+            (identical(other.transform, transform) ||
+                other.transform == transform));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, tilesetId, localTileId, transform);
+
+  /// Create a copy of TileLayerPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$TileLayerPaletteEntryImplCopyWith<_$TileLayerPaletteEntryImpl>
+      get copyWith => __$$TileLayerPaletteEntryImplCopyWithImpl<
+          _$TileLayerPaletteEntryImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$TileLayerPaletteEntryImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _TileLayerPaletteEntry implements TileLayerPaletteEntry {
+  const factory _TileLayerPaletteEntry(
+      {required final String tilesetId,
+      required final int localTileId,
+      final SmartTileSpriteTransform transform}) = _$TileLayerPaletteEntryImpl;
+
+  factory _TileLayerPaletteEntry.fromJson(Map<String, dynamic> json) =
+      _$TileLayerPaletteEntryImpl.fromJson;
+
+  @override
+  String get tilesetId;
+  @override
+  int get localTileId;
+  @override
+  SmartTileSpriteTransform get transform;
+
+  /// Create a copy of TileLayerPaletteEntry
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$TileLayerPaletteEntryImplCopyWith<_$TileLayerPaletteEntryImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 MapLayer _$MapLayerFromJson(Map<String, dynamic> json) {
   switch (json['runtimeType']) {
     case 'tile':
@@ -43,8 +258,13 @@ mixin _$MapLayer {
   double get opacity => throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, String? tilesetId,
-            bool isVisible, double opacity, List<int> tiles)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -92,8 +312,8 @@ mixin _$MapLayer {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -140,8 +360,8 @@ mixin _$MapLayer {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -289,10 +509,10 @@ abstract class _$$TileLayerImplCopyWith<$Res>
   $Res call(
       {String id,
       String name,
-      String? tilesetId,
       bool isVisible,
       double opacity,
-      List<int> tiles});
+      List<TileLayerPaletteEntry> palette,
+      List<int> cells});
 }
 
 /// @nodoc
@@ -310,10 +530,10 @@ class __$$TileLayerImplCopyWithImpl<$Res>
   $Res call({
     Object? id = null,
     Object? name = null,
-    Object? tilesetId = freezed,
     Object? isVisible = null,
     Object? opacity = null,
-    Object? tiles = null,
+    Object? palette = null,
+    Object? cells = null,
   }) {
     return _then(_$TileLayerImpl(
       id: null == id
@@ -324,10 +544,6 @@ class __$$TileLayerImplCopyWithImpl<$Res>
           ? _value.name
           : name // ignore: cast_nullable_to_non_nullable
               as String,
-      tilesetId: freezed == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String?,
       isVisible: null == isVisible
           ? _value.isVisible
           : isVisible // ignore: cast_nullable_to_non_nullable
@@ -336,26 +552,33 @@ class __$$TileLayerImplCopyWithImpl<$Res>
           ? _value.opacity
           : opacity // ignore: cast_nullable_to_non_nullable
               as double,
-      tiles: null == tiles
-          ? _value._tiles
-          : tiles // ignore: cast_nullable_to_non_nullable
+      palette: null == palette
+          ? _value._palette
+          : palette // ignore: cast_nullable_to_non_nullable
+              as List<TileLayerPaletteEntry>,
+      cells: null == cells
+          ? _value._cells
+          : cells // ignore: cast_nullable_to_non_nullable
               as List<int>,
     ));
   }
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$TileLayerImpl extends TileLayer {
   const _$TileLayerImpl(
       {required this.id,
       required this.name,
-      this.tilesetId,
       this.isVisible = true,
       this.opacity = 1.0,
-      final List<int> tiles = const [],
+      final List<TileLayerPaletteEntry> palette =
+          const <TileLayerPaletteEntry>[],
+      final List<int> cells = const <int>[],
       final String? $type})
-      : _tiles = tiles,
+      : _palette = palette,
+        _cells = cells,
         $type = $type ?? 'tile',
         super._();
 
@@ -367,20 +590,27 @@ class _$TileLayerImpl extends TileLayer {
   @override
   final String name;
   @override
-  final String? tilesetId;
-  @override
   @JsonKey()
   final bool isVisible;
   @override
   @JsonKey()
   final double opacity;
-  final List<int> _tiles;
+  final List<TileLayerPaletteEntry> _palette;
   @override
   @JsonKey()
-  List<int> get tiles {
-    if (_tiles is EqualUnmodifiableListView) return _tiles;
+  List<TileLayerPaletteEntry> get palette {
+    if (_palette is EqualUnmodifiableListView) return _palette;
     // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tiles);
+    return EqualUnmodifiableListView(_palette);
+  }
+
+  final List<int> _cells;
+  @override
+  @JsonKey()
+  List<int> get cells {
+    if (_cells is EqualUnmodifiableListView) return _cells;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_cells);
   }
 
   @JsonKey(name: 'runtimeType')
@@ -388,7 +618,7 @@ class _$TileLayerImpl extends TileLayer {
 
   @override
   String toString() {
-    return 'MapLayer.tile(id: $id, name: $name, tilesetId: $tilesetId, isVisible: $isVisible, opacity: $opacity, tiles: $tiles)';
+    return 'MapLayer.tile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, palette: $palette, cells: $cells)';
   }
 
   @override
@@ -398,18 +628,23 @@ class _$TileLayerImpl extends TileLayer {
             other is _$TileLayerImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId) &&
             (identical(other.isVisible, isVisible) ||
                 other.isVisible == isVisible) &&
             (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            const DeepCollectionEquality().equals(other._tiles, _tiles));
+            const DeepCollectionEquality().equals(other._palette, _palette) &&
+            const DeepCollectionEquality().equals(other._cells, _cells));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, tilesetId, isVisible,
-      opacity, const DeepCollectionEquality().hash(_tiles));
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      isVisible,
+      opacity,
+      const DeepCollectionEquality().hash(_palette),
+      const DeepCollectionEquality().hash(_cells));
 
   /// Create a copy of MapLayer
   /// with the given fields replaced by the non-null parameter values.
@@ -422,8 +657,13 @@ class _$TileLayerImpl extends TileLayer {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, String? tilesetId,
-            bool isVisible, double opacity, List<int> tiles)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -468,14 +708,14 @@ class _$TileLayerImpl extends TileLayer {
             Map<String, String> properties)
         border,
   }) {
-    return tile(id, name, tilesetId, isVisible, opacity, tiles);
+    return tile(id, name, isVisible, opacity, palette, cells);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -519,14 +759,14 @@ class _$TileLayerImpl extends TileLayer {
             Map<String, String> properties)?
         border,
   }) {
-    return tile?.call(id, name, tilesetId, isVisible, opacity, tiles);
+    return tile?.call(id, name, isVisible, opacity, palette, cells);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -572,7 +812,7 @@ class _$TileLayerImpl extends TileLayer {
     required TResult orElse(),
   }) {
     if (tile != null) {
-      return tile(id, name, tilesetId, isVisible, opacity, tiles);
+      return tile(id, name, isVisible, opacity, palette, cells);
     }
     return orElse();
   }
@@ -632,10 +872,10 @@ abstract class TileLayer extends MapLayer {
   const factory TileLayer(
       {required final String id,
       required final String name,
-      final String? tilesetId,
       final bool isVisible,
       final double opacity,
-      final List<int> tiles}) = _$TileLayerImpl;
+      final List<TileLayerPaletteEntry> palette,
+      final List<int> cells}) = _$TileLayerImpl;
   const TileLayer._() : super._();
 
   factory TileLayer.fromJson(Map<String, dynamic> json) =
@@ -645,12 +885,12 @@ abstract class TileLayer extends MapLayer {
   String get id;
   @override
   String get name;
-  String? get tilesetId;
   @override
   bool get isVisible;
   @override
   double get opacity;
-  List<int> get tiles;
+  List<TileLayerPaletteEntry> get palette;
+  List<int> get cells;
 
   /// Create a copy of MapLayer
   /// with the given fields replaced by the non-null parameter values.
@@ -795,8 +1035,13 @@ class _$CollisionLayerImpl extends CollisionLayer {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, String? tilesetId,
-            bool isVisible, double opacity, List<int> tiles)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -847,8 +1092,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -898,8 +1143,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -1272,8 +1517,13 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, String? tilesetId,
-            bool isVisible, double opacity, List<int> tiles)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -1325,8 +1575,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -1377,8 +1627,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -1634,8 +1884,13 @@ class _$ObjectLayerImpl extends ObjectLayer {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, String? tilesetId,
-            bool isVisible, double opacity, List<int> tiles)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -1686,8 +1941,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -1737,8 +1992,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2023,8 +2278,13 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, String? tilesetId,
-            bool isVisible, double opacity, List<int> tiles)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -2075,8 +2335,8 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2126,8 +2386,8 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2424,8 +2684,13 @@ class _$BorderLayerImpl extends BorderLayer {
   @override
   @optionalTypeArgs
   TResult when<TResult extends Object?>({
-    required TResult Function(String id, String name, String? tilesetId,
-            bool isVisible, double opacity, List<int> tiles)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)
         tile,
     required TResult Function(String id, String name, bool isVisible,
             double opacity, List<bool> collisions)
@@ -2476,8 +2741,8 @@ class _$BorderLayerImpl extends BorderLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2527,8 +2792,8 @@ class _$BorderLayerImpl extends BorderLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, String? tilesetId, bool isVisible,
-            double opacity, List<int> tiles)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TileLayerPaletteEntry> palette, List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?

@@ -146,8 +146,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'tiles',
-            tiles: List<int>.filled(20 * 15, 0, growable: false),
+            cells: List<int>.filled(20 * 15, 0, growable: false),
           ),
         ],
       );
@@ -170,7 +169,10 @@ void main() {
                   map,
                   layerId: 'ground',
                   pos: const GridPos(x: 1, y: 1),
-                  tileId: 1,
+                  tile: const TileLayerPaletteEntry(
+                    tilesetId: 'world',
+                    localTileId: 0,
+                  ),
                 ),
               );
 

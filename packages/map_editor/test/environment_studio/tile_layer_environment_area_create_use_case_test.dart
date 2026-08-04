@@ -98,7 +98,7 @@ void main() {
         () => _useCase.execute(
           _mapWithAttachment(
             layers: const [
-              TileLayer(id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0, 0, 0]),
+              TileLayer(id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0, 0, 0]),
             ],
           ),
           manifest: _manifest(),
@@ -141,7 +141,7 @@ void main() {
         placedElements: [placed],
         layers: [
           const TileLayer(
-              id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0, 0, 0]),
+              id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0, 0, 0]),
           MapLayer.environment(
             id: 'env',
             name: 'Environment',
@@ -169,7 +169,7 @@ void main() {
         _mapWithAttachment(
           layers: [
             const TileLayer(
-                id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0, 0, 0]),
+                id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0, 0, 0]),
             MapLayer.environment(
               id: 'env_a',
               name: 'Environment A',
@@ -210,7 +210,7 @@ MapData _mapWithAttachment({
     layers: layers ??
         [
           const TileLayer(
-              id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0, 0, 0]),
+              id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0, 0, 0]),
           MapLayer.environment(
             id: 'env',
             name: 'Environment',

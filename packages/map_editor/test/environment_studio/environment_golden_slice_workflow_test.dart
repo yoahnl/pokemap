@@ -73,7 +73,7 @@ MapData _map(EnvironmentArea area) {
   final tile = TileLayer(
     id: 'tiles',
     name: 'T',
-    tiles: List<int>.filled(4, 0),
+    cells: List<int>.filled(4, 0),
   );
   return MapData(
     id: 'm',
@@ -98,7 +98,7 @@ TileLayer _tileLayer(MapData map) =>
 EnvironmentArea _envArea(MapData map) =>
     (map.layers.first as EnvironmentLayer).content.areas.single;
 
-List<int> _tilesSnapshot(MapData map) => List<int>.from(_tileLayer(map).tiles);
+List<int> _tilesSnapshot(MapData map) => List<int>.from(_tileLayer(map).cells);
 
 /// Invariants Lot 29 : manifest et tuiles intacts, masque / preset / cible stables,
 /// sélection cohérente, chaque id généré référence un placement existant (≠ manuel).
@@ -324,7 +324,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -383,7 +383,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',

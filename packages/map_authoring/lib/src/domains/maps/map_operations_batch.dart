@@ -48,6 +48,24 @@ final class MapOperationsActions {
         'maxOperations': maxOperations,
         'maxMapCells': maxMapCells,
         'receiptPayload': 'bounded_summary',
+        'tileLayerEncoding': 'tile_palette_v1',
+        'tileLayerAddParameters': <String>[
+          'kind',
+          'layerKind',
+          'layerId',
+          'name',
+          'insertIndex',
+        ],
+        'tileCellValue': <String, Object?>{
+          'empty': null,
+          'entrySchema': 'tile_palette_entry_v1',
+        },
+        'boundedRegionQuery': <String, Object?>{
+          'resourceKind': 'map',
+          'operation': 'get',
+          'view': 'detail',
+          'requestExtension': 'region',
+        },
       },
     ),
   ]);

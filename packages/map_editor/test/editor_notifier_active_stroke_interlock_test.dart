@@ -142,8 +142,7 @@ const _cleanMap = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tilesetId: 'world',
-      tiles: <int>[1, 1],
+      cells: <int>[1, 1],
     ),
   ],
 );
@@ -156,8 +155,7 @@ const _partialMap = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tilesetId: 'world',
-      tiles: <int>[0, 1],
+      cells: <int>[0, 1],
     ),
   ],
 );
@@ -170,8 +168,7 @@ const _undoCandidate = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tilesetId: 'world',
-      tiles: <int>[2, 2],
+      cells: <int>[2, 2],
     ),
   ],
 );
@@ -184,8 +181,7 @@ const _redoCandidate = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tilesetId: 'world',
-      tiles: <int>[3, 3],
+      cells: <int>[3, 3],
     ),
   ],
 );

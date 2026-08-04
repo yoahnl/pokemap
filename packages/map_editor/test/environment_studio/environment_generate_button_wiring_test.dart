@@ -87,7 +87,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(n, 0),
+        cells: List<int>.filled(n, 0),
       );
       final map = MapData(
         id: 'm1',
@@ -138,7 +138,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm1',
@@ -193,7 +193,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm1',
@@ -238,7 +238,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm1',
@@ -282,7 +282,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final blocker = MapPlacedElement(
         id: 'env_gen_area1_0_0_e1',
@@ -334,7 +334,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm1',
@@ -397,7 +397,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm1',
@@ -444,7 +444,7 @@ void main() {
       expect(genBtn.onPressed, isNull);
     });
 
-    testWidgets('cible tileset incompatible : bouton désactivé', (
+    testWidgets('la source du preset ne bloque pas le TileLayer cible', (
       tester,
     ) async {
       final area = _area(id: 'area1', w: 2, h: 2);
@@ -459,8 +459,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tilesetId: 'cliff',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm1',
@@ -497,16 +496,10 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(
-        tester
-            .widget<Text>(find.byKey(const Key('env-area-generate-hint-area1')))
-            .data,
-        'Le TileLayer cible utilise un tileset incompatible avec ce preset.',
-      );
       final genBtn = tester.widget<PushButton>(
         find.byKey(const Key('env-area-generate-area1')),
       );
-      expect(genBtn.onPressed, isNull);
+      expect(genBtn.onPressed, isNotNull);
     });
 
     testWidgets('clic Générer : placements + bouton désactivé ensuite', (
@@ -524,7 +517,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm1',
@@ -592,7 +585,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final env = MapLayer.environment(
         id: 'env',
@@ -667,7 +660,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final env = MapLayer.environment(
         id: 'env',
@@ -733,7 +726,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final env = MapLayer.environment(
         id: 'env',
@@ -833,7 +826,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm1',

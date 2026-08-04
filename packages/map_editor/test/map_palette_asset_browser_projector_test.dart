@@ -32,7 +32,7 @@ void main() {
           'town_details',
         ],
       );
-      expect(result.items.first.isAssigned, isTrue);
+      expect(result.items.every((item) => !item.isAssigned), isTrue);
       expect(result.items.every((item) => item.isCompatible), isTrue);
       expect(
         result.items.map((item) => item.tileset.id),
@@ -191,14 +191,19 @@ void main() {
       );
     });
 
-    test('surfaces a durable assigned source missing from the manifest', () {
+    test('does not treat palette dependencies as source assignment', () {
       final missingSourceMap = mapWithLayer().copyWith(
         layers: const <MapLayer>[
           TileLayer(
             id: 'ground',
             name: 'Sol',
-            tilesetId: 'deleted_source',
-            tiles: <int>[0],
+            palette: <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(
+                tilesetId: 'deleted_source',
+                localTileId: 0,
+              ),
+            ],
+            cells: <int>[0],
           ),
         ],
       );
@@ -211,10 +216,10 @@ void main() {
 
       expect(
         result.status,
-        MapPaletteAssetBrowserStatus.assignedSourceMissing,
+        MapPaletteAssetBrowserStatus.ready,
       );
-      expect(result.assignedTilesetId, 'deleted_source');
-      expect(result.diagnostic, contains('deleted_source'));
+      expect(result.assignedTilesetId, isNull);
+      expect(result.diagnostic, isNull);
       expect(result.items, isNotEmpty);
       expect(result.items.every((item) => item.canAssign), isTrue);
 
@@ -225,16 +230,26 @@ void main() {
             TileLayer(
               id: 'ground',
               name: 'Sol',
-              tilesetId: 'deleted_source',
-              tiles: <int>[1],
+              palette: <TileLayerPaletteEntry>[
+                TileLayerPaletteEntry(
+                  tilesetId: 'deleted_source',
+                  localTileId: 0,
+                ),
+              ],
+              cells: <int>[1],
             ),
           ],
         ),
         activeLayerId: 'ground',
         showIncompatible: true,
       );
-      expect(occupied.diagnostic, contains('videz-le avant'));
-      expect(occupied.items.every((item) => !item.canAssign), isTrue);
+      expect(occupied.diagnostic, isNull);
+      expect(
+        occupied.items
+            .where((item) => item.isScopeAssignable)
+            .every((item) => item.canAssign),
+        isTrue,
+      );
     });
 
     test('surfaces an invalid map scope as a diagnostic projection', () {
@@ -296,8 +311,7 @@ void main() {
       expect(favorites.items.every((item) => item.isFavorite), isTrue);
     });
 
-    test('keeps the assigned source on a non-empty layer and disables others',
-        () {
+    test('keeps every compatible source available on a non-empty layer', () {
       final hidden = projector.project(
         project: project,
         map: mapWithLayer(occupied: true),
@@ -312,18 +326,23 @@ void main() {
 
       expect(
         hidden.items.map((item) => item.tileset.id),
-        <String>['world'],
+        <String>[
+          'world',
+          'unclassified',
+          'regional_details',
+          'town_details',
+        ],
       );
       final other = revealed.items.singleWhere(
         (item) => item.tileset.id == 'regional_details',
       );
-      expect(other.isCompatible, isFalse);
-      expect(other.disabledReason, contains('contient déjà'));
+      expect(other.isCompatible, isTrue);
+      expect(other.disabledReason, isNull);
       expect(
         revealed.items
             .singleWhere((item) => item.tileset.id == 'world')
             .canAssign,
-        isFalse,
+        isTrue,
       );
     });
 
@@ -465,8 +484,10 @@ MapData mapWithLayer({bool occupied = false}) => MapData(
         TileLayer(
           id: 'ground',
           name: 'Sol',
-          tilesetId: 'world',
-          tiles: <int>[occupied ? 1 : 0],
+          palette: const <TileLayerPaletteEntry>[
+            TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+          ],
+          cells: <int>[occupied ? 1 : 0],
         ),
         const CollisionLayer(
           id: 'collision',

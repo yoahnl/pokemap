@@ -21,8 +21,7 @@ void main() {
           const TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'world',
-            tiles: [],
+            cells: [],
           ),
         ],
       );

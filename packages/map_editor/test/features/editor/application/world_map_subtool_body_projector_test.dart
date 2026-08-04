@@ -389,8 +389,7 @@ final _map = MapData(
     const TileLayer(
       id: 'tile',
       name: 'Tile',
-      tilesetId: 'world',
-      tiles: <int>[],
+      cells: <int>[],
     ),
     const SmartTileLayer(
       id: 'terrain',

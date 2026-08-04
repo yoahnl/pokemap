@@ -1959,7 +1959,11 @@ void main() {
 
       late final Future<ActiveMapSaveOutcome> writer;
       await tester.runAsync(() async {
-        await notifier.assignTilesetToActiveLayer('secondary');
+        notifier.updateMapMetadata(
+          notifier.state.activeMap!.mapMetadata.copyWith(
+            displayName: 'Writer snapshot',
+          ),
+        );
         expect(notifier.state.isDirty, isTrue);
         writer = notifier.saveActiveMap();
         await Future<void>.delayed(Duration.zero);
@@ -2027,11 +2031,6 @@ void main() {
       expect(notifier.state.activeMap, same(concurrentMap));
       expect(notifier.state.activeMap!.mapMetadata.displayName,
           'Concurrent editor snapshot');
-      expect(
-        (notifier.state.activeMap!.layers.single as TileLayer).tilesetId,
-        'secondary',
-        reason: 'A stale writer result must not replace the newer snapshot.',
-      );
       final diskMap = decodeValidatedNarrativeEventAuthoringMap(
         (await tester.runAsync(
           () => File(fixture.session.mapPaths['map_a']!).readAsBytes(),
@@ -2039,7 +2038,7 @@ void main() {
         fixture.session.mapPaths['map_a']!,
       );
       expect(diskMap.entities, hasLength(1));
-      expect((diskMap.layers.single as TileLayer).tilesetId, 'secondary');
+      expect(diskMap.mapMetadata.displayName, 'Writer snapshot');
     });
 
     testWidgets(
@@ -2611,8 +2610,7 @@ MapData _tileMap() => MapData(
         TileLayer(
           id: 'ground',
           name: 'Ground',
-          tilesetId: 'primary',
-          tiles: List<int>.filled(20 * 15, 0),
+          cells: List<int>.filled(20 * 15, 0),
         ),
       ],
     );

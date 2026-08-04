@@ -21,7 +21,7 @@ void main() {
           MapLayer.tile(
             id: 'tiles',
             name: 'Tiles',
-            tiles: <int>[
+            cells: <int>[
               0,
               0,
               0,

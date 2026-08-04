@@ -658,8 +658,11 @@ final class _DenseLayerGrid {
     switch (layer) {
       case TileLayer value:
         kind = 'tile';
-        empty = 0;
-        values = List<Object?>.from(value.tiles);
+        empty = null;
+        values = <Object?>[
+          for (var index = 0; index < value.cells.length; index++)
+            resolveTileLayerCell(value, index),
+        ];
       case CollisionLayer value:
         kind = 'collision';
         empty = false;
@@ -785,8 +788,22 @@ final class _DenseLayerGrid {
   Object? normalize(Object? value, {required String field}) {
     switch (layerKind) {
       case 'tile':
-        if (value is int && value >= 0) return value;
-        throw _invalid(field, 'a non-negative tile integer');
+        if (value == null) return null;
+        if (value is Map && value.keys.every((key) => key is String)) {
+          try {
+            final entry = TileLayerPaletteEntry.fromJson(
+              Map<String, dynamic>.from(value),
+            );
+            if (entry.tilesetId.trim() == entry.tilesetId &&
+                entry.tilesetId.isNotEmpty &&
+                entry.localTileId >= 0) {
+              return entry;
+            }
+          } on Object {
+            // Normalized into one stable authoring validation error below.
+          }
+        }
+        throw _invalid(field, 'null or a canonical tile palette entry');
       case 'collision':
         if (value is bool) return value;
         throw _invalid(field, 'a boolean');
@@ -805,7 +822,21 @@ final class _DenseLayerGrid {
     late final MapLayer updated;
     switch (layer) {
       case TileLayer value:
-        updated = value.copyWith(tiles: values.cast<int>());
+        final palette = <TileLayerPaletteEntry>[];
+        final paletteCells = <TileLayerPaletteEntry, int>{};
+        final cells = <int>[];
+        for (final raw in values) {
+          final entry = raw as TileLayerPaletteEntry?;
+          cells.add(
+            entry == null
+                ? 0
+                : paletteCells.putIfAbsent(entry, () {
+                    palette.add(entry);
+                    return palette.length;
+                  }),
+          );
+        }
+        updated = value.copyWith(palette: palette, cells: cells);
       case CollisionLayer value:
         updated = value.copyWith(collisions: values.cast<bool>());
       case SmartTileLayer value:

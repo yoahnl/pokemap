@@ -1230,7 +1230,7 @@ MapData _map() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
@@ -1259,7 +1259,7 @@ MapData _mapForSceneAction() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
@@ -1296,7 +1296,7 @@ MapData _mapForBehaviorAuthoring() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
@@ -1338,7 +1338,7 @@ MapData _mapForFactConditions({ScriptCondition? condition}) {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
@@ -1380,7 +1380,7 @@ MapData _mapForEventConsumedConditions({ScriptCondition? condition}) {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
@@ -1444,7 +1444,7 @@ MapData _mapForTriggerTypeAuthoring() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
@@ -1482,7 +1482,7 @@ MapData _mapWithoutEventPages() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
@@ -1506,7 +1506,7 @@ MapData _mapWithoutObjectLayer() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ],
     events: [],

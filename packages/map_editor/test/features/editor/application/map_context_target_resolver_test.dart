@@ -306,8 +306,14 @@ const _baseMap = MapData(
   visualStack: MapVisualStackConfig.canonicalV1,
   size: GridSize(width: 4, height: 4),
   layers: <MapLayer>[
-    TileLayer(id: 'top', name: 'Top', tilesetId: 'tiles'),
-    TileLayer(id: 'bottom', name: 'Bottom', tilesetId: 'tiles'),
+    TileLayer(
+      id: 'top',
+      name: 'Top',
+    ),
+    TileLayer(
+      id: 'bottom',
+      name: 'Bottom',
+    ),
   ],
 );
 
@@ -375,21 +381,18 @@ const _paintedLayersMap = MapData(
     TileLayer(
       id: 'hidden',
       name: 'Hidden',
-      tilesetId: 'tiles',
       isVisible: false,
-      tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0],
+      cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0],
     ),
     TileLayer(
       id: 'top',
       name: 'Top',
-      tilesetId: 'tiles',
-      tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0],
+      cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0],
     ),
     TileLayer(
       id: 'bottom',
       name: 'Bottom',
-      tilesetId: 'tiles',
-      tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+      cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
     ),
     BorderLayer(id: 'border', name: 'Border'),
   ],

@@ -856,7 +856,6 @@ void main() {
         kind: NarrativeEventPhysicalSourceKind.npc,
       );
       final writeLease = notifier.beginNarrativeEventSourceMapWriteLease();
-      await notifier.assignTilesetToActiveLayer('secondary');
       await notifier.createReciprocalWarpForSelectedWarp();
 
       expect(proposal, isNull);
@@ -886,7 +885,6 @@ void main() {
         kind: NarrativeEventPhysicalSourceKind.npc,
       );
       final writeLease = notifier.beginNarrativeEventSourceMapWriteLease();
-      await notifier.assignTilesetToActiveLayer('secondary');
       await notifier.createReciprocalWarpForSelectedWarp();
 
       expect(proposal, isNull);
@@ -1063,8 +1061,7 @@ MapData _alphaWithBorder() => MapData(
         const TileLayer(
           id: 'ground',
           name: 'Sol',
-          tilesetId: 'primary',
-          tiles: <int>[0, 0, 0, 0],
+          cells: <int>[0, 0, 0, 0],
         ),
         MapLayer.border(
           id: 'borders',

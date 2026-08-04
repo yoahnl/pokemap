@@ -80,7 +80,6 @@ final class MapLayerOperations {
       'layerId',
       'name',
       'insertIndex',
-      'tilesetId',
     });
     final layerId = _string(operation, 'layerId');
     final layerKind = _layerKind(_string(operation, 'layerKind'));
@@ -97,7 +96,6 @@ final class MapLayerOperations {
       kind: layerKind,
       id: layerId,
       name: _string(operation, 'name'),
-      tileTilesetId: _optionalString(operation, 'tilesetId'),
       insertIndex: insertIndex,
     );
     return MapOperationStepResult(
@@ -232,7 +230,10 @@ final class MapLayerOperations {
     final layer = map.layers[index];
     final cellCount = map.size.width * map.size.height;
     final cleared = switch (layer) {
-      TileLayer value => value.copyWith(tiles: List.filled(cellCount, 0)),
+      TileLayer value => value.copyWith(
+          palette: const <TileLayerPaletteEntry>[],
+          cells: List.filled(cellCount, 0),
+        ),
       CollisionLayer value =>
         value.copyWith(collisions: List.filled(cellCount, false)),
       SmartTileLayer value => value.copyWith(
@@ -308,7 +309,7 @@ MapLayer _layer(MapData map, String layerId) {
 }
 
 int _authoredCellCount(MapLayer layer) => switch (layer) {
-      TileLayer value => value.tiles.where((cell) => cell != 0).length,
+      TileLayer value => value.cells.where((cell) => cell != 0).length,
       CollisionLayer value => value.collisions.where((cell) => cell).length,
       SmartTileLayer value => smartTileAuthoredValueCount(value),
       ObjectLayer() || EnvironmentLayer() || BorderLayer() => 0,
@@ -348,9 +349,6 @@ String _string(Map<String, Object?> values, String key) {
   }
   return value;
 }
-
-String? _optionalString(Map<String, Object?> values, String key) =>
-    values[key] == null ? null : _string(values, key);
 
 int _int(Map<String, Object?> values, String key) {
   final value = values[key];

@@ -5,11 +5,11 @@ void main() {
   group('MapCore Strict Tests', () {
     test('MapLayer serialization (Union)', () {
       const layer =
-          MapLayer.tile(id: 'l1', name: 'Ground', tiles: [1, 2, 3, 4]);
+          MapLayer.tile(id: 'l1', name: 'Ground', cells: [1, 2, 3, 4]);
       final json = layer.toJson();
       final decoded = MapLayer.fromJson(json);
       expect(decoded, isA<TileLayer>());
-      expect((decoded as TileLayer).tiles, [1, 2, 3, 4]);
+      expect((decoded as TileLayer).cells, [1, 2, 3, 4]);
     });
 
     test('ProjectValidator detects duplicates', () {
@@ -36,7 +36,7 @@ void main() {
         tilesetId: 'ts1',
         layers: [
           const MapLayer.tile(
-              id: 'l1', name: 'Ground', tiles: [0, 0, 0]), // Only 3 tiles
+              id: 'l1', name: 'Ground', cells: [0, 0, 0]), // Only 3 tiles
         ],
       );
 

@@ -99,7 +99,15 @@ void main() {
       TileLayer(
         id: 'base',
         name: 'Base',
-        tiles: [1, 2, 3, 4, 5, 6],
+        palette: [
+          TileLayerPaletteEntry(tilesetId: 'base', localTileId: 0),
+          TileLayerPaletteEntry(tilesetId: 'base', localTileId: 1),
+          TileLayerPaletteEntry(tilesetId: 'base', localTileId: 2),
+          TileLayerPaletteEntry(tilesetId: 'base', localTileId: 3),
+          TileLayerPaletteEntry(tilesetId: 'base', localTileId: 4),
+          TileLayerPaletteEntry(tilesetId: 'base', localTileId: 5),
+        ],
+        cells: [1, 2, 3, 4, 5, 6],
       ),
       CollisionLayer(
         id: 'collision',

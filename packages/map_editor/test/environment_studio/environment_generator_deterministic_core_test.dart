@@ -275,7 +275,7 @@ void main() {
           TileLayer(
             id: 'house',
             name: 'House',
-            tiles: [0, 0, 0, 0],
+            cells: [0, 0, 0, 0],
           ),
         ],
         placedElements: const [
@@ -319,7 +319,7 @@ void main() {
             id: 'debug-hidden',
             name: 'Debug hidden',
             isVisible: false,
-            tiles: [0, 0, 0, 0],
+            cells: [0, 0, 0, 0],
           ),
         ],
         placedElements: const [
@@ -534,7 +534,7 @@ void main() {
         name: 'M',
         size: GridSize(width: 1, height: 1),
         layers: [
-          TileLayer(id: 'env', name: 'T', tiles: [0]),
+          TileLayer(id: 'env', name: 'T', cells: [0]),
         ],
       );
       final r2 = uc.execute(
@@ -549,7 +549,7 @@ void main() {
         isNotEmpty,
       );
 
-      const tile = TileLayer(id: 't', name: 'T', tiles: [0]);
+      const tile = TileLayer(id: 't', name: 'T', cells: [0]);
       final area = EnvironmentArea(
         id: 'a',
         name: 'Z',
@@ -689,13 +689,15 @@ void main() {
       );
     });
 
-    test('erreur : tileset cible incompatible avec la palette', () {
+    test('la source de la palette peut différer du contenu du TileLayer', () {
       final ctx = _fullScenario(
         mapW: 1,
         mapH: 1,
         activeAll: true,
         elementTilesetId: 'arbre_pixellab',
         targetLayerTilesetId: 'cliff',
+        params:
+            _params(density: 1, edgeDensity: 1, variation: 0, minSpacing: 0),
       );
       final uc = GenerateEnvironmentAreaPlacementsUseCase();
       final r = uc.execute(
@@ -704,13 +706,8 @@ void main() {
         environmentLayerId: 'env',
         areaId: 'area1',
       );
-      expect(
-        r.issuesForKind(
-          EnvironmentGenerationIssueKind.targetTileLayerTilesetMismatch,
-        ),
-        isNotEmpty,
-      );
-      expect(r.placements, isEmpty);
+      expect(r.hasErrors, isFalse);
+      expect(r.placements, isNotEmpty);
     });
 
     test('erreur : invalidMaskSize', () {
@@ -817,7 +814,7 @@ void main() {
       final envLayer = mapBefore.layers.first as EnvironmentLayer;
       final areaBefore = envLayer.content.areas.single;
       final tileLayer = mapBefore.layers[1] as TileLayer;
-      final tilesBefore = List<int>.from(tileLayer.tiles);
+      final tilesBefore = List<int>.from(tileLayer.cells);
       final genIdsBefore = List<String>.from(areaBefore.generatedPlacementIds);
       final placedBefore =
           List<MapPlacedElement>.from(mapBefore.placedElements);
@@ -838,7 +835,7 @@ void main() {
       final areaAfter = envAfter.content.areas.single;
       expect(areaAfter.generatedPlacementIds, genIdsBefore);
       final tileAfter = mapBefore.layers[1] as TileLayer;
-      expect(tileAfter.tiles, tilesBefore);
+      expect(tileAfter.cells, tilesBefore);
       expect(mapBefore.placedElements, placedBefore);
     });
   });
@@ -991,8 +988,7 @@ MapData _mapWithEnv({
   final tile = TileLayer(
     id: 'tiles',
     name: 'T',
-    tilesetId: targetLayerTilesetId,
-    tiles: List<int>.filled(n, 0),
+    cells: List<int>.filled(n, 0),
   );
   return MapData(
     id: 'map1',

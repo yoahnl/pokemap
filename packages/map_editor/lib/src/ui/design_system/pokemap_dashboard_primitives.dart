@@ -448,11 +448,14 @@ class PokeMapSegmentedTabs extends StatelessWidget {
         border: Border.all(color: colors.controlBorder),
       ),
       padding: const EdgeInsets.all(3),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final tab in tabs) _PokeMapSegmentedTabButton(tab: tab),
-        ],
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final tab in tabs) _PokeMapSegmentedTabButton(tab: tab),
+          ],
+        ),
       ),
     );
   }

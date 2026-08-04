@@ -22,7 +22,7 @@ void main() {
         const TileLayer(
           id: 'tiles',
           name: 'Sol',
-          tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ),
         MapLayer.environment(
           id: 'env',
@@ -95,7 +95,7 @@ void main() {
         const TileLayer(
           id: 'tiles',
           name: 'Sol',
-          tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ),
         MapLayer.environment(
           id: 'env',
@@ -171,7 +171,7 @@ void main() {
         const TileLayer(
           id: 'tiles',
           name: 'Sol',
-          tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ),
         MapLayer.environment(
           id: 'env',
@@ -248,7 +248,7 @@ void main() {
         const TileLayer(
           id: 'tiles',
           name: 'Sol',
-          tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ),
         MapLayer.environment(
           id: 'env',

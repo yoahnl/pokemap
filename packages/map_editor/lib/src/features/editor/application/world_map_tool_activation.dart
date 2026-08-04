@@ -260,8 +260,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
       resultingTool: EditorToolType.tilePaint,
       resultingBrush: _compatibleProjectElementBrushForLayer(
         source,
-        map,
-        layer,
       ),
       tilesElementsPanelMode: TilesElementsPanelMode.palette,
       rejectionReason: null,
@@ -332,8 +330,6 @@ WorldMapToolActivationAssessment assessWorldMapToolActivation({
         resultingTool: EditorToolType.tilePaint,
         resultingBrush: _compatibleTilePaintBrushForLayer(
           source,
-          map,
-          layer as TileLayer,
         ),
         tilesElementsPanelMode: TilesElementsPanelMode.palette,
         rejectionReason: null,
@@ -405,22 +401,16 @@ MapLayer? _findLayerById(MapData map, String layerId) {
 
 EditorBrush _compatibleTilePaintBrushForLayer(
   WorldMapToolActivationSource source,
-  MapData map,
-  TileLayer layer,
 ) {
-  final assignedTilesetId = _assignedTilesetIdForLayer(map, layer);
   return switch (source.activeBrush) {
     TileEditorBrush(:final tileId, :final tilesetId)
-        when tileId > 0 && tilesetId == assignedTilesetId =>
+        when tileId > 0 && _tilesetExists(source.project, tilesetId) =>
       source.activeBrush,
     PaletteEntryEditorBrush(:final entryId, :final tilesetId)
-        when tilesetId == assignedTilesetId &&
-            _paletteEntryExists(source.project, tilesetId, entryId) =>
+        when _paletteEntryExists(source.project, tilesetId, entryId) =>
       source.activeBrush,
     ProjectElementEditorBrush() => _compatibleProjectElementBrushForLayer(
         source,
-        map,
-        layer,
       ),
     _ => const EditorBrush.none(),
   };
@@ -428,31 +418,22 @@ EditorBrush _compatibleTilePaintBrushForLayer(
 
 EditorBrush _compatibleProjectElementBrushForLayer(
   WorldMapToolActivationSource source,
-  MapData map,
-  TileLayer layer,
 ) {
   final brush = source.activeBrush;
   if (brush is! ProjectElementEditorBrush) {
     return const EditorBrush.none();
   }
-  final assignedTilesetId = _assignedTilesetIdForLayer(map, layer);
   final element = source.project?.elements
       .where((candidate) => candidate.id == brush.elementId)
       .firstOrNull;
-  if (element == null || element.tilesetId != assignedTilesetId) {
+  if (element == null) {
     return const EditorBrush.none();
   }
   return brush;
 }
 
-String? _assignedTilesetIdForLayer(MapData map, TileLayer layer) {
-  final layerTilesetId = layer.tilesetId?.trim();
-  if (layerTilesetId != null && layerTilesetId.isNotEmpty) {
-    return layerTilesetId;
-  }
-  final mapTilesetId = map.tilesetId.trim();
-  return mapTilesetId.isEmpty ? null : mapTilesetId;
-}
+bool _tilesetExists(ProjectManifest? project, String tilesetId) =>
+    project?.tilesets.any((candidate) => candidate.id == tilesetId) == true;
 
 bool _paletteEntryExists(
   ProjectManifest? project,

@@ -76,8 +76,10 @@ void main() {
           MapLayer.tile(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'tiles',
-            tiles: [1],
+            palette: [
+              TileLayerPaletteEntry(tilesetId: 'tiles', localTileId: 0),
+            ],
+            cells: [1],
           ),
         ],
       ),
@@ -221,8 +223,7 @@ MapData _map({required MapPlacedElement element}) {
       TileLayer(
         id: 'objects',
         name: 'Objects',
-        tilesetId: 'tiles',
-        tiles: List<int>.filled(16, 0),
+        cells: List<int>.filled(16, 0),
       ),
     ],
     placedElements: [element],

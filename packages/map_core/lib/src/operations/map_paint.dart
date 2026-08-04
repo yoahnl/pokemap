@@ -7,17 +7,14 @@ MapData paintTileOnLayer(
   MapData map, {
   required String layerId,
   required GridPos pos,
-  required int tileId,
+  required TileLayerPaletteEntry tile,
 }) {
-  if (tileId < 0) {
-    throw const ValidationException('Tile ID must be >= 0');
-  }
   return paintTilePatternOnLayer(
     map,
     layerId: layerId,
     pos: pos,
     patternSize: const GridSize(width: 1, height: 1),
-    tiles: [tileId],
+    tiles: [tile],
     clipToMapBounds: false,
   );
 }
@@ -27,7 +24,7 @@ MapData paintTilePatternOnLayer(
   required String layerId,
   required GridPos pos,
   required GridSize patternSize,
-  required List<int> tiles,
+  required List<TileLayerPaletteEntry?> tiles,
   bool clipToMapBounds = true,
 }) {
   if (patternSize.width <= 0 || patternSize.height <= 0) {
@@ -38,8 +35,12 @@ MapData paintTilePatternOnLayer(
     throw const ValidationException('Pattern tile data is incomplete');
   }
   for (var i = 0; i < patternLength; i++) {
-    if (tiles[i] < 0) {
-      throw const ValidationException('Pattern tile IDs must be >= 0');
+    final tile = tiles[i];
+    if (tile != null &&
+        (tile.tilesetId.trim().isEmpty ||
+            tile.tilesetId != tile.tilesetId.trim() ||
+            tile.localTileId < 0)) {
+      throw const ValidationException('Pattern tiles must be canonical');
     }
   }
 
@@ -54,13 +55,17 @@ MapData paintTilePatternOnLayer(
   }
 
   final expectedLength = map.size.width * map.size.height;
-  final nextTiles = List<int>.filled(expectedLength, 0, growable: false);
-  final sourceTiles = target.tiles;
+  final nextCells = List<int>.filled(expectedLength, 0, growable: false);
+  final sourceTiles = target.cells;
   final copyLimit =
       sourceTiles.length < expectedLength ? sourceTiles.length : expectedLength;
   for (var i = 0; i < copyLimit; i++) {
-    nextTiles[i] = sourceTiles[i];
+    nextCells[i] = sourceTiles[i];
   }
+  final nextPalette = List<TileLayerPaletteEntry>.from(target.palette);
+  final paletteCells = <TileLayerPaletteEntry, int>{
+    for (var i = 0; i < nextPalette.length; i++) nextPalette[i]: i + 1,
+  };
 
   for (var y = 0; y < patternSize.height; y++) {
     for (var x = 0; x < patternSize.width; x++) {
@@ -78,12 +83,21 @@ MapData paintTilePatternOnLayer(
 
       final patternIndex = y * patternSize.width + x;
       final mapIndex = mapY * map.size.width + mapX;
-      nextTiles[mapIndex] = tiles[patternIndex];
+      final tile = tiles[patternIndex];
+      nextCells[mapIndex] = tile == null
+          ? 0
+          : paletteCells.putIfAbsent(tile, () {
+              nextPalette.add(tile);
+              return nextPalette.length;
+            });
     }
   }
 
   final updatedLayers = List<MapLayer>.from(map.layers, growable: false);
-  updatedLayers[layerIndex] = target.copyWith(tiles: nextTiles);
+  updatedLayers[layerIndex] = target.copyWith(
+    palette: nextPalette,
+    cells: nextCells,
+  );
   return map.copyWith(layers: updatedLayers);
 }
 
@@ -117,7 +131,11 @@ MapData eraseTilePatternOnLayer(
     layerId: layerId,
     pos: pos,
     patternSize: patternSize,
-    tiles: List<int>.filled(tileCount, 0, growable: false),
+    tiles: List<TileLayerPaletteEntry?>.filled(
+      tileCount,
+      null,
+      growable: false,
+    ),
     clipToMapBounds: clipToMapBounds,
   );
 }

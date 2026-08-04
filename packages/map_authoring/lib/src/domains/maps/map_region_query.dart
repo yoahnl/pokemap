@@ -150,10 +150,10 @@ Map<String, Object?> _sliceLayer(
     TileLayer() => {
         ...base,
         'type': 'tile',
-        'encoding': 'grid_rows',
-        if (layer.tilesetId != null) 'tilesetId': layer.tilesetId,
+        'encoding': 'tile_palette_v1',
+        'palette': [for (final entry in layer.palette) entry.toJson()],
         'rows': _sliceFlat(
-          layer.tiles,
+          layer.cells,
           mapWidth: mapWidth,
           query: query,
           encode: (value) => value,

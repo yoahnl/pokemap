@@ -27,8 +27,7 @@ void main() {
             TileLayer(
               id: 'ground',
               name: 'Ground',
-              tilesetId: 'world',
-              tiles: [],
+              cells: [],
             ),
           ],
         ),
@@ -67,8 +66,10 @@ void main() {
             TileLayer(
               id: 'ground',
               name: 'Ground',
-              tilesetId: 'world',
-              tiles: [],
+              palette: [
+                TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+              ],
+              cells: [],
             ),
           ],
         ),
@@ -121,8 +122,10 @@ void main() {
             TileLayer(
               id: 'ground',
               name: 'Ground',
-              tilesetId: 'world',
-              tiles: [],
+              palette: [
+                TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+              ],
+              cells: [],
             ),
           ],
         ),
@@ -161,7 +164,7 @@ void main() {
             TileLayer(
               id: 'ground',
               name: 'Ground',
-              tiles: <int>[0],
+              cells: <int>[0],
             ),
           ],
         ),
@@ -199,8 +202,10 @@ void main() {
             TileLayer(
               id: 'ground',
               name: 'Ground',
-              tilesetId: 'world',
-              tiles: <int>[0],
+              palette: <TileLayerPaletteEntry>[
+                TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+              ],
+              cells: <int>[0],
             ),
           ],
         ),
@@ -406,8 +411,10 @@ void main() {
             TileLayer(
               id: 'ground',
               name: 'Ground',
-              tilesetId: 'world',
-              tiles: [],
+              palette: [
+                TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+              ],
+              cells: [],
             ),
           ],
         ),
@@ -444,8 +451,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'world',
-            tiles: <int>[],
+            cells: <int>[],
           ),
         ],
       );
@@ -489,8 +495,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'world',
-            tiles: <int>[],
+            cells: <int>[],
           ),
         ],
       );
@@ -656,8 +661,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'world',
-            tiles: <int>[],
+            cells: <int>[],
           ),
         ],
         placedElements: <MapPlacedElement>[

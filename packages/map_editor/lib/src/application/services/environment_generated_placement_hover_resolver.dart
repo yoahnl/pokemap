@@ -45,12 +45,10 @@ EnvironmentGeneratedPlacementAddPreview?
   final preset = _environmentPresetById(manifest, area.presetId);
   if (preset == null) return null;
 
-  final targetTilesetId = _effectiveTileLayerTilesetId(targetLayer, map);
   final selection = _resolveAddPreviewPaletteSelection(
     manifest: manifest,
     preset: preset,
     selectedElementId: selectedElementId,
-    targetTilesetId: targetTilesetId,
   );
   if (selection == null) return null;
 
@@ -61,11 +59,6 @@ EnvironmentGeneratedPlacementAddPreview?
     footprint: footprint,
     mapSize: map.size,
   );
-  final isCompatible = _elementMatchesTargetTileset(
-    element: selection.element,
-    targetTilesetId: targetTilesetId,
-  );
-
   final placedId = uniqueGeneratedEnvironmentPlacementId(
     map,
     area: area,
@@ -83,12 +76,8 @@ EnvironmentGeneratedPlacementAddPreview?
     ),
     element: selection.element,
     footprint: footprint,
-    isValid: isInBounds && isCompatible,
-    invalidReason: !isCompatible
-        ? 'Élément incompatible avec ce layer'
-        : !isInBounds
-            ? 'Position hors carte'
-            : null,
+    isValid: isInBounds,
+    invalidReason: !isInBounds ? 'Position hors carte' : null,
   );
 }
 
@@ -264,26 +253,6 @@ bool isEnvironmentGeneratedPlacementFootprintInBounds({
       pos.y + footprint.height <= mapSize.height;
 }
 
-String _effectiveTileLayerTilesetId(TileLayer layer, MapData map) {
-  return (layer.tilesetId ?? map.tilesetId).trim();
-}
-
-String _elementPrimaryTilesetId(ProjectElementEntry element) {
-  final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
-  if (frameTilesetId.isNotEmpty) return frameTilesetId;
-  return element.tilesetId.trim();
-}
-
-bool _elementMatchesTargetTileset({
-  required ProjectElementEntry element,
-  required String targetTilesetId,
-}) {
-  final elementTilesetId = _elementPrimaryTilesetId(element);
-  return targetTilesetId.isEmpty ||
-      elementTilesetId.isEmpty ||
-      targetTilesetId == elementTilesetId;
-}
-
 bool _applyCollisionFromEnvironmentMode(EnvironmentCollisionMode mode) {
   switch (mode) {
     case EnvironmentCollisionMode.forceEnabled:
@@ -317,7 +286,6 @@ _EnvironmentGeneratedPlacementAddSelection? _resolveAddPreviewPaletteSelection({
   required ProjectManifest manifest,
   required EnvironmentPreset preset,
   required String? selectedElementId,
-  required String targetTilesetId,
 }) {
   final selectedId = selectedElementId?.trim();
   if (selectedId != null && selectedId.isNotEmpty) {
@@ -335,12 +303,6 @@ _EnvironmentGeneratedPlacementAddSelection? _resolveAddPreviewPaletteSelection({
   for (final item in preset.palette) {
     final element = _projectElementById(manifest, item.elementId);
     if (element == null) continue;
-    if (!_elementMatchesTargetTileset(
-      element: element,
-      targetTilesetId: targetTilesetId,
-    )) {
-      continue;
-    }
     candidates.add(
       _EnvironmentGeneratedPlacementAddSelection(
         item: item,

@@ -138,6 +138,7 @@ void main() {
     'Paint non-tile subtools show non-mutating guidance without an asset palette',
     (tester) async {
       final harness = await _InspectorHarness.create(
+        activeLayerId: 'terrain',
         initialSession: const WorldMapWorkspaceSession(
           activeFamily: WorldMapToolFamily.paint,
           lastPaintSubtool: WorldMapPaintSubtool.terrain,
@@ -227,19 +228,21 @@ class _InspectorHarness {
   _InspectorHarness._({
     required this.container,
     required this.image,
+    required String activeLayerId,
   }) {
     keepAlive = container.listen(editorNotifierProvider, (_, __) {});
-    notifier.state = const EditorState(
+    notifier.state = EditorState(
       projectRootPath: '/virtual/project',
       project: _project,
       workspaceMode: EditorWorkspaceMode.map,
       activeMap: _map,
-      activeLayerId: 'ground',
+      activeLayerId: activeLayerId,
     );
   }
 
   static Future<_InspectorHarness> create({
     WorldMapWorkspaceSession initialSession = const WorldMapWorkspaceSession(),
+    String activeLayerId = 'ground',
   }) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -266,6 +269,7 @@ class _InspectorHarness {
     return _InspectorHarness._(
       container: container,
       image: image,
+      activeLayerId: activeLayerId,
     );
   }
 
@@ -380,14 +384,26 @@ const _map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Sol',
-      tilesetId: 'world',
-      tiles: <int>[0, 0, 0, 0],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+      ],
+      cells: <int>[0, 0, 0, 0],
     ),
     TileLayer(
       id: 'decor',
       name: 'Décor',
-      tilesetId: 'world',
-      tiles: <int>[0, 0, 0, 0],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+      ],
+      cells: <int>[0, 0, 0, 0],
+    ),
+    SmartTileLayer(
+      id: 'terrain',
+      name: 'Terrain',
+      presetId: 'grass',
+      usage: SmartTileUsage.terrain,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(semanticCells: <int>[0, 0, 0, 0]),
     ),
   ],
   placedElements: <MapPlacedElement>[

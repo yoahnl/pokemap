@@ -465,8 +465,15 @@ MapData _map({
           MapLayer.tile(
             id: 'decor',
             name: tileLayerName,
-            tilesetId: layerTilesetId,
-            tiles: List<int>.filled(
+            palette: layerTilesetId == 'tiles'
+                ? const <TileLayerPaletteEntry>[]
+                : <TileLayerPaletteEntry>[
+                    TileLayerPaletteEntry(
+                      tilesetId: layerTilesetId,
+                      localTileId: 0,
+                    ),
+                  ],
+            cells: List<int>.filled(
               size.width * size.height,
               0,
               growable: false,

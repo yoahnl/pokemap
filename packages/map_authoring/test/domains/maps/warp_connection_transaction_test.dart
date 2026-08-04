@@ -625,7 +625,7 @@ MapData _map(
         MapLayer.tile(
           id: 'base',
           name: 'Base',
-          tiles: List<int>.filled(width * height, 0),
+          cells: List<int>.filled(width * height, 0),
         ),
       ],
     );

@@ -246,8 +246,10 @@ MapData _mapFor(String tilesetId) {
       TileLayer(
         id: 'ground',
         name: 'Sol',
-        tilesetId: tilesetId,
-        tiles: const <int>[1, 0, 0, 0],
+        palette: <TileLayerPaletteEntry>[
+          TileLayerPaletteEntry(tilesetId: tilesetId, localTileId: 0),
+        ],
+        cells: const <int>[1, 0, 0, 0],
       ),
     ],
   );

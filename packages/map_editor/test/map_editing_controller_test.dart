@@ -47,7 +47,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 4, height: 4),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [0]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [0]),
         ],
       );
       const updatedMap = MapData(
@@ -55,7 +55,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 4, height: 4),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [1]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [1]),
         ],
         events: [
           MapEventDefinition(
@@ -102,7 +102,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 4, height: 4),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [0]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [0]),
         ],
       );
       const updatedMap = MapData(
@@ -110,7 +110,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 4, height: 4),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [1]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [1]),
         ],
       );
       const current = EditorState(
@@ -143,8 +143,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'map_tiles',
-            tiles: [0],
+            cells: [0],
           ),
         ],
       );
@@ -156,8 +155,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'map_tiles',
-            tiles: [1],
+            cells: [1],
           ),
         ],
       );
@@ -207,7 +205,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 2, height: 1),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [0, 0]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [0, 0]),
         ],
       );
       const firstSample = MapData(
@@ -215,7 +213,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 2, height: 1),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 0]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [1, 0]),
         ],
       );
       const secondSample = MapData(
@@ -223,7 +221,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 2, height: 1),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 1]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [1, 1]),
         ],
       );
       const historical = MapHistorySnapshot(
@@ -274,7 +272,7 @@ void main() {
           name: 'Map 1',
           size: GridSize(width: 1, height: 1),
           layers: [
-            TileLayer(id: 'ground', name: 'Ground', tiles: [1]),
+            TileLayer(id: 'ground', name: 'Ground', cells: [1]),
           ],
           placedElements: [
             MapPlacedElement(
@@ -290,7 +288,7 @@ void main() {
           name: 'Map 1',
           size: GridSize(width: 1, height: 1),
           layers: [
-            TileLayer(id: 'ground', name: 'Ground', tiles: [0]),
+            TileLayer(id: 'ground', name: 'Ground', cells: [0]),
           ],
         );
         final started = controller.beginStroke(
@@ -326,7 +324,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 2, height: 1),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [0, 0]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [0, 0]),
         ],
         entities: [
           MapEntity(
@@ -358,7 +356,7 @@ void main() {
       );
       final firstSample = original.copyWith(
         layers: const [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 0]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [1, 0]),
         ],
       );
       const current = EditorState(
@@ -413,7 +411,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 2, height: 1),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [0, 0]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [0, 0]),
         ],
       );
       const firstSample = MapData(
@@ -421,7 +419,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 2, height: 1),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 0]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [1, 0]),
         ],
       );
       const secondSample = MapData(
@@ -429,7 +427,7 @@ void main() {
         name: 'Map 1',
         size: GridSize(width: 2, height: 1),
         layers: [
-          TileLayer(id: 'ground', name: 'Ground', tiles: [1, 1]),
+          TileLayer(id: 'ground', name: 'Ground', cells: [1, 1]),
         ],
       );
       final started = controller.beginStroke(

@@ -240,7 +240,7 @@ void main() {
           TileLayer(
             id: 't1',
             name: 'T',
-            tiles: <int>[1, 0, 0, 1],
+            cells: <int>[1, 0, 0, 1],
           ),
         ],
       );

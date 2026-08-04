@@ -325,7 +325,7 @@ void main() {
 
       final activeLayer = notifier.state.activeMap!.layers.single as TileLayer;
       expect(
-        activeLayer.tiles,
+        activeLayer.cells,
         everyElement(0),
         reason: 'Guided create mode must not leak into tile painting.',
       );
@@ -479,8 +479,7 @@ MapData _guidedDragMap() {
       TileLayer(
         id: 'ground',
         name: 'Ground',
-        tilesetId: 'primary',
-        tiles: List<int>.filled(20 * 15, 0),
+        cells: List<int>.filled(20 * 15, 0),
       ),
     ],
   );

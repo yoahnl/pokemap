@@ -241,8 +241,7 @@ const townMap = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tilesetId: 'world',
-      tiles: <int>[0],
+      cells: <int>[0],
     ),
   ],
 );

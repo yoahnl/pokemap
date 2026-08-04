@@ -206,7 +206,7 @@ MapData _map({List<MapEventDefinition> events = const []}) {
     name: 'Selbrume',
     size: const GridSize(width: 8, height: 8),
     layers: const [
-      MapLayer.tile(id: 'events', name: 'Events', tiles: []),
+      MapLayer.tile(id: 'events', name: 'Events', cells: []),
     ],
     events: events,
   );

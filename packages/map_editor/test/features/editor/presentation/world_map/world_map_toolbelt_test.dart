@@ -1494,8 +1494,7 @@ EditorState _tileState() {
         TileLayer(
           id: 'tile',
           name: 'Tile',
-          tilesetId: 'world',
-          tiles: <int>[],
+          cells: <int>[],
         ),
       ],
     ),
@@ -1527,8 +1526,7 @@ const _paintMap = MapData(
     TileLayer(
       id: 'tile',
       name: 'Tile',
-      tilesetId: 'world',
-      tiles: <int>[],
+      cells: <int>[],
     ),
     SmartTileLayer(
       id: 'terrain',
@@ -1587,8 +1585,7 @@ EditorState _sameIdTileState() {
         TileLayer(
           id: 'shared-layer',
           name: 'Shared tile',
-          tilesetId: 'world',
-          tiles: <int>[],
+          cells: <int>[],
         ),
       ],
     ),

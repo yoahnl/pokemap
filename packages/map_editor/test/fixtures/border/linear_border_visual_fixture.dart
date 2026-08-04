@@ -491,8 +491,7 @@ MapData _mapWithFeature({
         TileLayer(
           id: 'ground',
           name: 'Ground',
-          tilesetId: linearGoldenGroundTilesetId,
-          tiles: List<int>.filled(
+          cells: List<int>.filled(
             linearGoldenMapSize.width * linearGoldenMapSize.height,
             1,
           ),

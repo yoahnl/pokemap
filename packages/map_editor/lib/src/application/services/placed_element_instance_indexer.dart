@@ -39,20 +39,10 @@ class PlacedElementInstanceIndexer {
     if (layer == null) {
       return map;
     }
-    final layerTilesetId = (layer.tilesetId ?? map.tilesetId).trim();
-    if (layerTilesetId.isEmpty) {
-      return _replaceLayerPlacedElements(
-        map,
-        layerId: layerId,
-        protectedPlacements: protectedPlacements,
-        indexedInstances: const [],
-      );
-    }
-
     final elements = project.elements
         .where(
           (entry) =>
-              _resolveElementPrimaryTilesetId(entry) == layerTilesetId &&
+              _resolveElementPrimaryTilesetId(entry).isNotEmpty &&
               entry.frames.primarySource.width > 0 &&
               entry.frames.primarySource.height > 0,
         )
@@ -93,18 +83,6 @@ class PlacedElementInstanceIndexer {
     }
 
     final columnsByTilesetId = _resolveTilesetColumns(project);
-    final baselineColumns = columnsByTilesetId[layerTilesetId] ?? 0;
-    final columns = _resolveLayerTilesetColumns(
-      layer: layer,
-      mapWidth: mapWidth,
-      mapHeight: mapHeight,
-      elements: elements,
-      minimumColumns: baselineColumns,
-    );
-    if (columns <= 0) {
-      return map;
-    }
-
     final existingByKey = <String, MapPlacedElement>{};
     final existingByPos = <String, MapPlacedElement>{};
     final reservedPlacementIds = <String>{
@@ -139,19 +117,23 @@ class PlacedElementInstanceIndexer {
         if (covered[index]) {
           continue;
         }
-        final tileId = _tileAt(
-          tiles: layer.tiles,
+        final tile = _entryAt(
+          layer: layer,
           mapWidth: mapWidth,
           mapHeight: mapHeight,
           x: x,
           y: y,
         );
-        if (tileId <= 0) {
+        if (tile == null) {
           continue;
         }
         ProjectElementEntry? matched;
         TilesetSourceRect? source;
         for (final element in elements) {
+          final elementTilesetId = _resolveElementPrimaryTilesetId(element);
+          if (elementTilesetId != tile.tilesetId) continue;
+          final columns = columnsByTilesetId[elementTilesetId] ?? 0;
+          if (columns <= 0) continue;
           final candidateSource = element.frames.primarySource;
           if (x + candidateSource.width > mapWidth ||
               y + candidateSource.height > mapHeight) {
@@ -175,6 +157,7 @@ class PlacedElementInstanceIndexer {
             originY: y,
             source: candidateSource,
             tilesetColumns: columns,
+            tilesetId: elementTilesetId,
           );
           if (!matches) {
             continue;
@@ -341,6 +324,11 @@ class PlacedElementInstanceIndexer {
     }
     final out = <String, int>{};
     for (final tileset in project.tilesets) {
+      final source = tileset.source;
+      if (source is ProjectRegularAtlasTilesetSource) {
+        out[tileset.id] = source.columns;
+        continue;
+      }
       final maxRight = _maxFrameRightForTileset(
         project: project,
         tilesetId: tileset.id,
@@ -390,176 +378,6 @@ class PlacedElementInstanceIndexer {
     return entry.tilesetId.trim();
   }
 
-  int _resolveLayerTilesetColumns({
-    required TileLayer layer,
-    required int mapWidth,
-    required int mapHeight,
-    required List<ProjectElementEntry> elements,
-    required int minimumColumns,
-  }) {
-    if (elements.isEmpty) {
-      return minimumColumns;
-    }
-    final minColumns = minimumColumns > 0 ? minimumColumns : 1;
-    final uniqueTileIds = <int>{};
-    for (final tileId in layer.tiles) {
-      if (tileId > 0) {
-        uniqueTileIds.add(tileId);
-      }
-    }
-    if (uniqueTileIds.isEmpty) {
-      return minColumns;
-    }
-    final candidates = <int>{minColumns};
-    final verticalDiffCandidates = _collectVerticalDiffCandidates(
-      layer: layer,
-      mapWidth: mapWidth,
-      mapHeight: mapHeight,
-    );
-    for (final candidate in verticalDiffCandidates) {
-      if (candidate < minColumns || candidate > 4096) {
-        continue;
-      }
-      candidates.add(candidate);
-    }
-    for (final tileId in uniqueTileIds) {
-      for (final element in elements) {
-        final source = element.frames.primarySource;
-        if (source.y <= 0) {
-          continue;
-        }
-        final numerator = tileId - source.x - 1;
-        if (numerator <= 0) {
-          continue;
-        }
-        if (numerator % source.y != 0) {
-          continue;
-        }
-        final candidate = numerator ~/ source.y;
-        if (candidate < minColumns) {
-          continue;
-        }
-        if (candidate > 4096) {
-          continue;
-        }
-        candidates.add(candidate);
-      }
-    }
-    if (candidates.length == 1) {
-      return minColumns;
-    }
-
-    final sortedCandidates = candidates.toList(growable: false)..sort();
-    var bestColumns = minColumns;
-    var bestScore = _scoreColumns(
-      layer: layer,
-      mapWidth: mapWidth,
-      mapHeight: mapHeight,
-      elements: elements,
-      columns: minColumns,
-    );
-
-    for (final candidate in sortedCandidates) {
-      if (candidate == minColumns) {
-        continue;
-      }
-      final score = _scoreColumns(
-        layer: layer,
-        mapWidth: mapWidth,
-        mapHeight: mapHeight,
-        elements: elements,
-        columns: candidate,
-      );
-      if (score > bestScore) {
-        bestScore = score;
-        bestColumns = candidate;
-      }
-    }
-    return bestColumns;
-  }
-
-  Set<int> _collectVerticalDiffCandidates({
-    required TileLayer layer,
-    required int mapWidth,
-    required int mapHeight,
-  }) {
-    final out = <int>{};
-    for (var y = 0; y < mapHeight - 1; y++) {
-      for (var x = 0; x < mapWidth; x++) {
-        final top = _tileAt(
-          tiles: layer.tiles,
-          mapWidth: mapWidth,
-          mapHeight: mapHeight,
-          x: x,
-          y: y,
-        );
-        final bottom = _tileAt(
-          tiles: layer.tiles,
-          mapWidth: mapWidth,
-          mapHeight: mapHeight,
-          x: x,
-          y: y + 1,
-        );
-        if (top <= 0 || bottom <= 0) {
-          continue;
-        }
-        final diff = bottom - top;
-        if (diff <= 0) {
-          continue;
-        }
-        out.add(diff);
-      }
-    }
-    return out;
-  }
-
-  int _scoreColumns({
-    required TileLayer layer,
-    required int mapWidth,
-    required int mapHeight,
-    required List<ProjectElementEntry> elements,
-    required int columns,
-  }) {
-    var score = 0;
-    for (var originY = 0; originY < mapHeight; originY++) {
-      for (var originX = 0; originX < mapWidth; originX++) {
-        final tileId = _tileAt(
-          tiles: layer.tiles,
-          mapWidth: mapWidth,
-          mapHeight: mapHeight,
-          x: originX,
-          y: originY,
-        );
-        if (tileId <= 0) {
-          continue;
-        }
-        for (final element in elements) {
-          final source = element.frames.primarySource;
-          if (originX + source.width > mapWidth ||
-              originY + source.height > mapHeight) {
-            continue;
-          }
-          final expectedTopLeft = source.y * columns + source.x + 1;
-          if (tileId != expectedTopLeft) {
-            continue;
-          }
-          if (_matchesElementPatternAt(
-            layer: layer,
-            mapWidth: mapWidth,
-            mapHeight: mapHeight,
-            originX: originX,
-            originY: originY,
-            source: source,
-            tilesetColumns: columns,
-          )) {
-            score++;
-          }
-        }
-      }
-    }
-    return score;
-  }
-
   bool _matchesElementPatternAt({
     required TileLayer layer,
     required int mapWidth,
@@ -568,19 +386,20 @@ class PlacedElementInstanceIndexer {
     required int originY,
     required TilesetSourceRect source,
     required int tilesetColumns,
+    required String tilesetId,
   }) {
     for (var y = 0; y < source.height; y++) {
       for (var x = 0; x < source.width; x++) {
-        final tileId = _tileAt(
-          tiles: layer.tiles,
+        final tile = _entryAt(
+          layer: layer,
           mapWidth: mapWidth,
           mapHeight: mapHeight,
           x: originX + x,
           y: originY + y,
         );
-        final expectedTileId =
-            (source.y + y) * tilesetColumns + (source.x + x) + 1;
-        if (tileId != expectedTileId) {
+        final expectedTileId = (source.y + y) * tilesetColumns + (source.x + x);
+        if (tile?.tilesetId != tilesetId ||
+            tile?.localTileId != expectedTileId) {
           return false;
         }
       }
@@ -588,21 +407,18 @@ class PlacedElementInstanceIndexer {
     return true;
   }
 
-  int _tileAt({
-    required List<int> tiles,
+  TileLayerPaletteEntry? _entryAt({
+    required TileLayer layer,
     required int mapWidth,
     required int mapHeight,
     required int x,
     required int y,
   }) {
     if (x < 0 || y < 0 || x >= mapWidth || y >= mapHeight) {
-      return 0;
+      return null;
     }
     final index = y * mapWidth + x;
-    if (index < 0 || index >= tiles.length) {
-      return 0;
-    }
-    return tiles[index];
+    return resolveTileLayerCell(layer, index);
   }
 
   bool _canUseCells({

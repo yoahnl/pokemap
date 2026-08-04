@@ -205,8 +205,7 @@ const _map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tilesetId: 'world',
-      tiles: <int>[
+      cells: <int>[
         0,
         0,
         0,

@@ -931,80 +931,57 @@ nouveau modèle `worldLayout`; elle ne doit pas être simulée à partir de l’
 
 ## 12. Layers et édition de cellules/régions
 
-État actuel : `E/P` pour les opérations de base ; `M` pour les transformations
-de région et le batch atomique universel.
+État actuel : `M` via l’action atomique `map.apply_operations`. Une couche de
+tuiles est créée vide, sans `tilesetId`; chaque cellule référence ensuite une
+entrée de sa palette canonique multi-tilesets.
 
 ### 12.1 Layers
 
 ```text
-layer.list
-layer.get
-layer.add_tile
-layer.add_collision
-layer.add_terrain
-layer.add_path
-layer.add_surface
-layer.add_object
-layer.add_environment
-layer.add_border
-layer.rename
-layer.clone
+layer.add
+layer.clear
 layer.delete
-layer.delete_all
 layer.move
+layer.remove
+layer.rename
 layer.reorder
-layer.set_visibility
 layer.set_opacity
-layer.set_properties
-layer.remove_property
-layer.assign_tileset
-layer.clear_content
-layer.lock
-layer.unlock
-layer.copy_between_maps
-layer.merge_plan
-layer.merge_apply
-layer.get_usage
-layer.validate
-layer.batch_apply
+layer.set_visibility
 ```
+
+`layer.add` accepte `layerKind`, `layerId`, `name` et `insertIndex`. Le champ
+historique `tilesetId` est refusé. Les terrains, chemins et surfaces sont créés
+avec `smart_tile.layer.create`, jamais avec un type de couche historique.
 
 ### 12.2 Primitives de cellules
 
-Ces familles s’appliquent à `tile`, `terrain`, `path`, `surface` et
-`collision` lorsque la sémantique le permet :
+Ces primitives de `map.apply_operations` s’appliquent aux couches `tile`,
+`smart_tile` et `collision` lorsque la sémantique le permet :
 
 ```text
-cell.get
-cell.sample
-cell.paint
-cell.erase
-cell.replace
-
-region.get
-region.paint_pattern
-region.stamp
-region.fill_layer
-region.fill_rect
-region.fill_polygon
-region.draw_line
-region.draw_polyline
-region.flood_fill
-region.replace
-region.clear
-region.invert
 region.copy
 region.cut
-region.paste
+region.erase
+region.fill
+region.flip
+region.flood_fill
 region.move
+region.paint
+region.paste
+region.replace
 region.rotate
-region.flip_horizontal
-region.flip_vertical
-region.crop
-region.histogram
-region.find_usages
-region.stamp_template
+region.stamp
+shape.line
+shape.polygon
+shape.polyline
+shape.rectangle
 ```
+
+Pour une couche `tile`, la valeur vide est `null` et une tuile est un objet
+`tile_palette_entry_v1` (`tilesetId`, `localTileId`, transformation D4
+optionnelle). Les lectures bornées utilisent `pokemap_query` sur une map en
+`get/detail` avec l’extension `region`; elles répondent avec l’encodage
+`tile_palette_v1`, la palette et les lignes d’indices.
 
 Commande essentielle pour les agents :
 

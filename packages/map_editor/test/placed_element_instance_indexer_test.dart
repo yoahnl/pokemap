@@ -212,7 +212,7 @@ void main() {
       final movedLayer = movedMap.layers.whereType<TileLayer>().single;
       final repaintedMap = movedMap.copyWith(
         layers: <MapLayer>[
-          movedLayer.copyWith(tiles: const [1, 1]),
+          movedLayer.copyWith(cells: const [1, 1]),
         ],
       );
 
@@ -309,8 +309,15 @@ MapData _map({
     MapLayer.tile(
       id: 'decor',
       name: 'Decor',
-      tilesetId: tilesetId,
-      tiles: tiles,
+      palette: tilesetId == null
+          ? const <TileLayerPaletteEntry>[]
+          : <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(
+                tilesetId: tilesetId,
+                localTileId: 0,
+              ),
+            ],
+      cells: tiles,
     ),
   ];
   return MapData(

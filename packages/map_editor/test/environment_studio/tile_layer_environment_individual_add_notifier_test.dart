@@ -202,8 +202,7 @@ MapData _map() {
       const TileLayer(
         id: 'tiles',
         name: 'Ground',
-        tilesetId: 'nature',
-        tiles: [
+        cells: [
           0,
           0,
           0,

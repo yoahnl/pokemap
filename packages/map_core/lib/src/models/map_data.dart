@@ -44,16 +44,17 @@ class MapData with _$MapData {
   }) = _MapData;
 
   factory MapData.fromJson(Map<String, dynamic> json) {
-    _preflightSmartTileMapJson(json);
-    if (json.containsKey('visualStack')) {
-      final visualStack = json['visualStack'];
+    final canonical = _migrateLegacyTileLayers(json);
+    _preflightSmartTileMapJson(canonical);
+    if (canonical.containsKey('visualStack')) {
+      final visualStack = canonical['visualStack'];
       if (visualStack is! Map<String, dynamic>) {
         throw const FormatException(
           r'$.visualStack: expected an object',
         );
       }
     }
-    final map = _$MapDataFromJson(json);
+    final map = _$MapDataFromJson(canonical);
     if (map.visualStack != null && map.version != ProjectVersion.v6) {
       throw const FormatException(
         r'$.version: visualStack requires ProjectVersion.v6',
@@ -72,6 +73,30 @@ class MapData with _$MapData {
     }
     return map;
   }
+}
+
+Map<String, dynamic> _migrateLegacyTileLayers(Map<String, dynamic> json) {
+  final rawLayers = json['layers'];
+  if (rawLayers is! List) return json;
+  final fallback = json['tilesetId'];
+  if (fallback != null && fallback is! String) return json;
+  var changed = false;
+  final layers = <Object?>[];
+  for (final rawLayer in rawLayers) {
+    if (rawLayer is! Map || rawLayer.keys.any((key) => key is! String)) {
+      layers.add(rawLayer);
+      continue;
+    }
+    final source = Map<String, dynamic>.from(rawLayer);
+    final migrated = migrateLegacyTileLayerJson(
+      source,
+      fallbackTilesetId: fallback as String?,
+    );
+    changed = changed || !identical(migrated, source);
+    layers.add(migrated);
+  }
+  if (!changed) return json;
+  return <String, dynamic>{...json, 'layers': layers};
 }
 
 void _preflightSmartTileMapJson(Map<String, dynamic> json) {

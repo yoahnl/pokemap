@@ -114,8 +114,7 @@ MapData _map() {
       TileLayer(
         id: 'tiles',
         name: 'Ground',
-        tilesetId: 'nature',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ],
   );

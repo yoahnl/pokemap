@@ -333,7 +333,7 @@ MapData _mapWithEvent(MapEventPage page) {
       MapLayer.tile(
         id: 'l_base',
         name: 'Base',
-        tiles: List<int>.filled(64, 0),
+        cells: List<int>.filled(64, 0),
       ),
     ],
     events: [

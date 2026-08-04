@@ -1222,7 +1222,7 @@ MapData _legacyMap() => MapData(
         MapLayer.tile(
           id: 'tiles',
           name: 'Tiles',
-          tiles: List<int>.generate(9, (index) => index + 1),
+          cells: List<int>.generate(9, (index) => index + 1),
         ),
         MapLayer.collision(
           id: 'collision',
@@ -1257,7 +1257,7 @@ MapData _mapWithCollisionLayersAndBorder() => MapData(
         MapLayer.tile(
           id: 'tiles',
           name: 'Tiles',
-          tiles: List<int>.generate(9, (index) => index + 1),
+          cells: List<int>.generate(9, (index) => index + 1),
         ),
         MapLayer.collision(
           id: 'collision-before',

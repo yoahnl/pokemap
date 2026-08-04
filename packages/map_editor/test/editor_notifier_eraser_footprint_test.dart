@@ -20,8 +20,10 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'world',
-            tiles: <int>[7, 7, 7, 7, 7, 7, 7, 7, 7],
+            palette: <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(tilesetId: 'world', localTileId: 6),
+            ],
+            cells: <int>[1, 1, 1, 1, 1, 1, 1, 1, 1],
           ),
         ],
       );
@@ -46,7 +48,7 @@ void main() {
 
       final state = container.read(editorNotifierProvider);
       final layer = state.activeMap!.layers.single as TileLayer;
-      expect(layer.tiles, const <int>[7, 7, 7, 7, 0, 7, 7, 7, 7]);
+      expect(layer.cells, const <int>[1, 1, 1, 1, 0, 1, 1, 1, 1]);
       expect(state.mapUndoStack, hasLength(1));
       expect(state.isDirty, isTrue);
     });
@@ -62,24 +64,26 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'world',
-            tiles: <int>[
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
-              7,
+            palette: <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(tilesetId: 'world', localTileId: 6),
+            ],
+            cells: <int>[
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
             ],
           ),
           CollisionLayer(
@@ -399,7 +403,7 @@ void main() {
       expect(notifier.state.mapUndoStack, hasLength(1));
       expect(notifier.state.isDirty, isTrue);
       expect(
-        (notifier.state.activeMap!.layers.single as TileLayer).tiles.take(4),
+        (notifier.state.activeMap!.layers.single as TileLayer).cells.take(4),
         everyElement(0),
       );
 
@@ -471,8 +475,7 @@ void main() {
           TileLayer(
             id: 'empty',
             name: 'Empty',
-            tilesetId: 'world',
-            tiles: <int>[
+            cells: <int>[
               0,
               0,
               0,
@@ -560,22 +563,22 @@ enum _LayerKind { tile, collision, smartTerrain, smartPath, smartSurface }
 
 MapData _mapFor(_LayerKind kind) {
   const filledTiles = <int>[
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
-    7,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
   ];
   const filledFlags = <bool>[
     true,
@@ -599,8 +602,10 @@ MapData _mapFor(_LayerKind kind) {
     _LayerKind.tile => const MapLayer.tile(
         id: 'layer',
         name: 'Tiles',
-        tilesetId: 'world',
-        tiles: filledTiles,
+        palette: <TileLayerPaletteEntry>[
+          TileLayerPaletteEntry(tilesetId: 'world', localTileId: 6),
+        ],
+        cells: filledTiles,
       ),
     _LayerKind.collision => const MapLayer.collision(
         id: 'layer',
@@ -647,8 +652,7 @@ MapData _emptyTileMap() {
       MapLayer.tile(
         id: 'layer',
         name: 'Tiles',
-        tilesetId: 'world',
-        tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ],
   );
@@ -667,7 +671,7 @@ MapData _mapWithLayers(List<MapLayer> layers) {
 bool _isFilled(MapLayer layer, {required int x, required int y}) {
   final index = y * 4 + x;
   return switch (layer) {
-    TileLayer(:final tiles) => tiles[index] != 0,
+    TileLayer(:final cells) => cells[index] != 0,
     CollisionLayer(:final collisions) => collisions[index],
     final SmartTileLayer smart => smartTileSemanticCells(smart)[index] != 0,
     _ => throw StateError('Unsupported layer: ${layer.runtimeType}'),

@@ -41,7 +41,7 @@ void main() {
         name: 'Map 1',
         size: const GridSize(width: 10, height: 10),
         layers: const [
-          MapLayer.tile(id: 'l_base', name: 'Base', tiles: []),
+          MapLayer.tile(id: 'l_base', name: 'Base', cells: []),
         ],
       );
       final created = addMapEventToMap(
@@ -89,7 +89,7 @@ void main() {
           MapLayer.tile(
             id: 'l_base',
             name: 'Base',
-            tiles: List<int>.filled(64, 0),
+            cells: List<int>.filled(64, 0),
           ),
         ],
       );
@@ -199,7 +199,7 @@ void main() {
           MapLayer.tile(
             id: 'l_base',
             name: 'Base',
-            tiles: List<int>.filled(64, 0),
+            cells: List<int>.filled(64, 0),
           ),
         ],
         events: const [
@@ -237,7 +237,7 @@ void main() {
           MapLayer.tile(
             id: 'l_base',
             name: 'Base',
-            tiles: List<int>.filled(64, 0),
+            cells: List<int>.filled(64, 0),
           ),
         ],
         events: [
@@ -292,7 +292,7 @@ MapData _mapWithEvent(MapEventPage page) {
       MapLayer.tile(
         id: 'l_base',
         name: 'Base',
-        tiles: List<int>.filled(64, 0),
+        cells: List<int>.filled(64, 0),
       ),
     ],
     events: [

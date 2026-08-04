@@ -240,17 +240,11 @@ class DeleteProjectTilesetUseCase {
     for (final mapEntry in project.maps) {
       final mapPath = workspace.resolveMapPath(mapEntry.relativePath);
       final map = await _mapRepo.loadMap(mapPath);
-      final hasLayerTilesetAssignments = map.layers.whereType<TileLayer>().any(
-        (layer) {
-          final layerTilesetId = layer.tilesetId?.trim();
-          return layerTilesetId != null && layerTilesetId.isNotEmpty;
-        },
-      );
       final isUsedByLayer = map.layers.whereType<TileLayer>().any(
-            (layer) => layer.tilesetId == tilesetId,
+            (layer) =>
+                layer.palette.any((entry) => entry.tilesetId == tilesetId),
           );
-      final isUsedByLegacyMapField =
-          !hasLayerTilesetAssignments && map.tilesetId.trim() == tilesetId;
+      final isUsedByLegacyMapField = map.tilesetId.trim() == tilesetId;
       if (isUsedByLayer || isUsedByLegacyMapField) {
         throw EditorConflictException(
           'Tileset "$tilesetId" is still used by map "${map.id}"',
@@ -462,10 +456,7 @@ class AssignTilesetToMapUseCase {
       );
     }
 
-    final updatedLayers = List<MapLayer>.from(map.layers, growable: false);
-    updatedLayers[layerIndex] = layer.copyWith(tilesetId: tilesetId);
     final updatedMap = map.copyWith(
-      layers: updatedLayers,
       tilesetId: map.tilesetId.trim().isEmpty ? tilesetId : map.tilesetId,
     );
     MapValidator.validate(updatedMap);

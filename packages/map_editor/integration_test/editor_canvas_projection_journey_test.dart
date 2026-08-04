@@ -256,8 +256,10 @@ final class _CanvasProfileFixture {
         TileLayer(
           id: 'base',
           name: 'Base',
-          tilesetId: 'tiles',
-          tiles: List<int>.filled(
+          palette: const <TileLayerPaletteEntry>[
+            TileLayerPaletteEntry(tilesetId: 'tiles', localTileId: 0),
+          ],
+          cells: List<int>.filled(
             cellCount,
             mode.includesStandard ? 1 : 0,
             growable: false,

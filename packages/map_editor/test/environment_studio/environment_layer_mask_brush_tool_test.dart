@@ -53,7 +53,7 @@ MapData _mapWithEnv(EnvironmentLayer env) {
       TileLayer(
         id: 'tiles_main',
         name: 'Sol',
-        tiles: List<int>.filled(cellCount, 0),
+        cells: List<int>.filled(cellCount, 0),
       ),
     ],
     placedElements: [
@@ -208,7 +208,7 @@ void main() {
           TileLayer(
             id: 'env1',
             name: 'T',
-            tiles: List<int>.filled(12, 0),
+            cells: List<int>.filled(12, 0),
           ),
         ],
       );
@@ -261,7 +261,7 @@ void main() {
           TileLayer(
             id: 'tiles_main',
             name: 'Sol',
-            tiles: List<int>.filled(12, 0),
+            cells: List<int>.filled(12, 0),
           ),
         ],
       );
@@ -362,7 +362,7 @@ void main() {
       final tile = TileLayer(
         id: 't1',
         name: 'T',
-        tiles: List<int>.filled(12, 0),
+        cells: List<int>.filled(12, 0),
       );
       final env = MapLayer.environment(
         id: 'env1',
@@ -684,7 +684,7 @@ void main() {
         size: const GridSize(width: 4, height: 4),
         layers: <MapLayer>[
           env,
-          TileLayer(id: 'tiles', name: 'T', tiles: List<int>.filled(16, 0)),
+          TileLayer(id: 'tiles', name: 'T', cells: List<int>.filled(16, 0)),
         ],
         placedElements: const [
           MapPlacedElement(
@@ -778,7 +778,7 @@ void main() {
         size: const GridSize(width: 4, height: 4),
         layers: <MapLayer>[
           env,
-          TileLayer(id: 'tiles', name: 'T', tiles: List<int>.filled(16, 0)),
+          TileLayer(id: 'tiles', name: 'T', cells: List<int>.filled(16, 0)),
         ],
         placedElements: const [
           MapPlacedElement(

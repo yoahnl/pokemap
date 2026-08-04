@@ -206,28 +206,9 @@ class LoadMapUseCase {
     }
     final loaded = await _loadMapDocument(_repo, path);
     return (
-      map: _migrateLegacyLayerTilesets(loaded.map),
+      map: loaded.map,
       revision: loaded.revision,
     );
-  }
-
-  MapData _migrateLegacyLayerTilesets(MapData map) {
-    final legacyTilesetId = map.tilesetId.trim();
-    if (legacyTilesetId.isEmpty) return map;
-
-    var changed = false;
-    final updatedLayers = map.layers.map((layer) {
-      if (layer is! TileLayer) return layer;
-      final layerTilesetId = layer.tilesetId?.trim();
-      if (layerTilesetId == null || layerTilesetId.isEmpty) {
-        changed = true;
-        return layer.copyWith(tilesetId: legacyTilesetId);
-      }
-      return layer;
-    }).toList(growable: false);
-
-    if (!changed) return map;
-    return map.copyWith(layers: updatedLayers);
   }
 }
 

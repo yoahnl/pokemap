@@ -23,8 +23,7 @@ void main() {
         const MapLayer.tile(
           id: 'tile',
           name: 'Tile',
-          tilesetId: 'tiles',
-          tiles: <int>[1],
+          cells: <int>[1],
         ),
         MapLayer.border(
           id: 'border',

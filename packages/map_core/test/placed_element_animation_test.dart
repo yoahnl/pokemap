@@ -104,8 +104,7 @@ MapData _buildMapWithAnimation(MapPlacedElementAnimation? animation) {
       MapLayer.tile(
         id: 'layer',
         name: 'Layer',
-        tilesetId: 'ts',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ],
     placedElements: [

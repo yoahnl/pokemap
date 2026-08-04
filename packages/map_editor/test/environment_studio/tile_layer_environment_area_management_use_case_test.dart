@@ -227,7 +227,7 @@ MapData _map({
       TileLayer(
         id: 'tile_layer',
         name: 'Décor',
-        tiles: [
+        cells: [
           for (var index = 0; index < 64; index++) 0,
         ],
       ),

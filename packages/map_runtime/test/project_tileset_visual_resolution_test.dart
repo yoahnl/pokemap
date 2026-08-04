@@ -61,8 +61,10 @@ void main() {
             TileLayer(
               id: 'ground',
               name: 'Ground',
-              tilesetId: 'base',
-              tiles: <int>[2],
+              palette: <TileLayerPaletteEntry>[
+                TileLayerPaletteEntry(tilesetId: 'base', localTileId: 1),
+              ],
+              cells: <int>[1],
             ),
           ],
         ),
@@ -107,8 +109,10 @@ void main() {
             TileLayer(
               id: 'ground',
               name: 'Ground',
-              tilesetId: 'base',
-              tiles: <int>[1, 0, 0, 0, 0],
+              palette: <TileLayerPaletteEntry>[
+                TileLayerPaletteEntry(tilesetId: 'base', localTileId: 0),
+              ],
+              cells: <int>[1, 0, 0, 0, 0],
             ),
           ],
         ),
@@ -145,6 +149,109 @@ void main() {
     expect(
         await pixelAt(rendered, tileSize * 4 + 16, 16), rgba(20, 80, 220, 255));
   });
+
+  test('tile layers render multiple tilesets and D4 transforms per cell',
+      () async {
+    const source = ProjectRegularAtlasTilesetSource(
+      assetId: 'tile',
+      pixelWidth: 2,
+      pixelHeight: 2,
+      tileWidth: 2,
+      tileHeight: 2,
+    );
+    final component = MapLayersComponent(
+      bundle: surfaceTestBundle(
+        map: const MapData(
+          id: 'multi-tileset-d4',
+          name: 'Multi tileset D4',
+          size: GridSize(width: 3, height: 1),
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'ground',
+              name: 'Ground',
+              palette: <TileLayerPaletteEntry>[
+                TileLayerPaletteEntry(tilesetId: 'base', localTileId: 0),
+                TileLayerPaletteEntry(
+                  tilesetId: 'detail',
+                  localTileId: 0,
+                  transform: SmartTileSpriteTransform(quarterTurns: 1),
+                ),
+                TileLayerPaletteEntry(
+                  tilesetId: 'detail',
+                  localTileId: 0,
+                  transform: SmartTileSpriteTransform(
+                    quarterTurns: 1,
+                    flipX: true,
+                  ),
+                ),
+              ],
+              cells: <int>[1, 2, 3],
+            ),
+          ],
+        ),
+        tilesets: const <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'base',
+            name: 'Base',
+            relativePath: 'tilesets/base.png',
+            source: source,
+          ),
+          ProjectTilesetEntry(
+            id: 'detail',
+            name: 'Detail',
+            relativePath: 'tilesets/detail.png',
+            source: source,
+          ),
+        ],
+      ),
+      tileImagesByTilesetId: <String, RuntimeTilesetImage>{
+        'base': await _quadrantImage(const <Color>[
+          Color(0xFFCC1010),
+          Color(0xFFCC1010),
+          Color(0xFFCC1010),
+          Color(0xFFCC1010),
+        ]),
+        'detail': await _quadrantImage(const <Color>[
+          Color(0xFF10CC10),
+          Color(0xFF1010CC),
+          Color(0xFFCCCC10),
+          Color(0xFFFFFFFF),
+        ]),
+      },
+    );
+
+    final recorder = ui.PictureRecorder();
+    component.render(Canvas(recorder));
+    final rendered = await recorder.endRecording().toImage(
+          surfaceTestTileSize * 3,
+          surfaceTestTileSize,
+        );
+
+    expect(await pixelAt(rendered, 4, 4), rgba(204, 16, 16, 255));
+    expect(await pixelAt(rendered, 36, 4), rgba(204, 204, 16, 255));
+    expect(await pixelAt(rendered, 68, 4), rgba(255, 255, 255, 255));
+  });
+}
+
+Future<RuntimeTilesetImage> _quadrantImage(List<Color> colors) async {
+  assert(colors.length == 4);
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  for (var index = 0; index < colors.length; index++) {
+    canvas.drawRect(
+      Rect.fromLTWH((index % 2).toDouble(), (index ~/ 2).toDouble(), 1, 1),
+      Paint()..color = colors[index],
+    );
+  }
+  final image = await recorder.endRecording().toImage(2, 2);
+  return RuntimeTilesetImage(
+    images: <ui.Image>[image],
+    chunks: const <RuntimeTilesetChunk>[
+      RuntimeTilesetChunk(top: 0, height: 2, width: 2),
+    ],
+    width: 2,
+    height: 2,
+  );
 }
 
 Future<RuntimeTilesetImage> _spacedAtlasImage() async {

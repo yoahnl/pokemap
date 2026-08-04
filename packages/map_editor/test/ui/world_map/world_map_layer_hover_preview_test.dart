@@ -17,7 +17,10 @@ void main() {
       layer: TileLayer(
         id: 'tiles',
         name: 'Tiles',
-        tiles: <int>[1, 0],
+        palette: <TileLayerPaletteEntry>[
+          TileLayerPaletteEntry(tilesetId: 'tiles', localTileId: 0),
+        ],
+        cells: <int>[1, 0],
       ),
       mapSize: GridSize(width: 2, height: 1),
       zoom: 1,
@@ -50,7 +53,10 @@ void main() {
         TileLayer(
           id: 'tiles',
           name: 'Tiles',
-          tiles: <int>[1, 0, 0, 1],
+          palette: <TileLayerPaletteEntry>[
+            TileLayerPaletteEntry(tilesetId: 'tiles', localTileId: 0),
+          ],
+          cells: <int>[1, 0, 0, 1],
         ),
         CollisionLayer(
           id: 'collision',

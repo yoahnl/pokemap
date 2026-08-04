@@ -111,7 +111,6 @@ void main() {
             MapLayer.tile(
               id: 'tiles',
               name: 'Tiles',
-              tilesetId: 'tileset',
             ),
           ],
         ),

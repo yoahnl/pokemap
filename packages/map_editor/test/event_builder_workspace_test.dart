@@ -4279,7 +4279,7 @@ void main() {
           MapLayer.tile(
             id: 'ground',
             name: 'Sol',
-            tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
           MapLayer.object(id: 'objects', name: 'Objets'),
         ],
@@ -6657,14 +6657,17 @@ Future<void> _tapEventBuilderMapPlacementCanvas(
   required int x,
   required int y,
 }) async {
-  final canvasFinder =
-      find.byKey(const ValueKey('event-builder-map-placement-canvas'));
+  final canvasFinder = find.descendant(
+    of: find.byKey(const ValueKey('event-builder-map-placement-canvas')),
+    matching: find.byKey(
+      const ValueKey<String>('map-canvas-gesture-detector'),
+    ),
+  );
   await tester.ensureVisible(canvasFinder);
   await tester.pumpAndSettle();
   final canvasRect = tester.getRect(canvasFinder);
-  await tester.tapAt(
-    canvasRect.topLeft + Offset(x * 32.0 + 16.0, y * 32.0 + 16.0),
-  );
+  final target = canvasRect.topLeft + Offset(x * 32.0 + 16.0, y * 32.0 + 16.0);
+  await tester.tapAt(target);
   await tester.pumpAndSettle();
 }
 
@@ -6751,7 +6754,7 @@ MapData _workspaceMap(
     MapLayer.tile(
       id: 'ground',
       name: 'Sol',
-      tiles: List<int>.filled(width * height, 0),
+      cells: List<int>.filled(width * height, 0),
     ),
     if (gate.layerValid || gate.layerId == null)
       MapLayer.object(id: layerId, name: layerLabel),
@@ -7409,7 +7412,7 @@ MapData _mapWithObjectLayer() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],
@@ -7439,7 +7442,7 @@ MapData _mapWithObjectLayerFirst() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ],
     events: [],
@@ -7455,7 +7458,7 @@ MapData _mapWithoutObjectLayer() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ],
     events: [],
@@ -7471,7 +7474,7 @@ MapData _mapWithMultipleObjectLayers() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'gameplay_objects', name: 'Objets gameplay'),
       MapLayer.object(id: 'decoration_objects', name: 'Objets décor'),
@@ -7489,7 +7492,7 @@ MapData _mapWithEventConditionTargets() {
       MapLayer.tile(
         id: 'ground',
         name: 'Sol',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.object(id: 'objects', name: 'Objets'),
     ],

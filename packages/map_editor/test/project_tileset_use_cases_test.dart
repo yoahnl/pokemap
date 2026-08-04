@@ -168,7 +168,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tiles: <int>[0],
+            cells: <int>[0],
           ),
         ],
       );
@@ -182,9 +182,12 @@ void main() {
 
       expect(mapRepository.saveCalls, 0);
       expect(map.tilesetId, isEmpty);
-      expect((map.layers.single as TileLayer).tilesetId, isNull);
+      expect(tileLayerSingleTilesetId(map.layers.single as TileLayer), isNull);
       expect(candidate.tilesetId, 'details');
-      expect((candidate.layers.single as TileLayer).tilesetId, 'details');
+      expect(
+        tileLayerSingleTilesetId(candidate.layers.single as TileLayer),
+        isNull,
+      );
     });
 
     test('prepare rejects a tileset outside the map assignability scope', () {
@@ -197,8 +200,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'world',
-            tiles: <int>[0],
+            cells: <int>[0],
           ),
         ],
       );

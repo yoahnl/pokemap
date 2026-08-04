@@ -513,8 +513,7 @@ const _map = MapData(
     TileLayer(
       id: 'tile',
       name: 'Tile',
-      tilesetId: 'world',
-      tiles: <int>[],
+      cells: <int>[],
     ),
   ],
   entities: <MapEntity>[

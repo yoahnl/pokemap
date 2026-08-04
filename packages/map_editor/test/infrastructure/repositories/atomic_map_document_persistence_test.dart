@@ -722,7 +722,7 @@ MapData _map({required String name}) => MapData(
         TileLayer(
           id: 'base',
           name: 'Base',
-          tiles: <int>[0],
+          cells: <int>[0],
         ),
         SmartTileLayer(
           id: 'terrain',

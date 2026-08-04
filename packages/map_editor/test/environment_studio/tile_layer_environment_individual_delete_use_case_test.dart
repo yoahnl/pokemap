@@ -158,8 +158,7 @@ MapData _map() {
       const TileLayer(
         id: 'tiles',
         name: 'Ground',
-        tilesetId: 'nature',
-        tiles: [
+        cells: [
           0,
           0,
           0,
@@ -265,8 +264,7 @@ MapData _mapWithoutEnvironmentAttachment() {
       TileLayer(
         id: 'tiles',
         name: 'Ground',
-        tilesetId: 'nature',
-        tiles: [0, 0, 0, 0],
+        cells: [0, 0, 0, 0],
       ),
     ],
   );

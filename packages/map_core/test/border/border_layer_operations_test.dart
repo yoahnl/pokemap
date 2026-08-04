@@ -371,7 +371,7 @@ MapData _mapWithBorder(List<BorderFeature> features) => _map(
 MapLayer _tileLayer() => const MapLayer.tile(
       id: 'ground',
       name: 'Ground',
-      tiles: <int>[0, 0, 0, 0],
+      cells: <int>[0, 0, 0, 0],
     );
 
 BorderFeature _feature(

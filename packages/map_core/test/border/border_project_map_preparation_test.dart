@@ -140,7 +140,7 @@ void main() {
           MapLayer.tile(
             id: 'ground',
             name: 'Ground',
-            tiles: <int>[0],
+            cells: <int>[0],
           ),
         ],
       );

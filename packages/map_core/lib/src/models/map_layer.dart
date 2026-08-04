@@ -29,18 +29,37 @@ BorderLayerContent _borderLayerContentFromJson(Object? json) {
 Map<String, Object?> _borderLayerContentToJson(BorderLayerContent content) =>
     encodeBorderLayerContentJson(content, path: r'$.content');
 
+/// One canonical visual reference interned by a [TileLayer].
+///
+/// [localTileId] is the exact zero-based/sparse identity owned by the
+/// tileset. [transform] spans the eight D4 symmetries through quarter turns
+/// and one reflection, matching Tiled without retaining Tiled flags.
+@freezed
+class TileLayerPaletteEntry with _$TileLayerPaletteEntry {
+  @JsonSerializable(explicitToJson: true)
+  const factory TileLayerPaletteEntry({
+    required String tilesetId,
+    required int localTileId,
+    @Default(SmartTileSpriteTransform()) SmartTileSpriteTransform transform,
+  }) = _TileLayerPaletteEntry;
+
+  factory TileLayerPaletteEntry.fromJson(Map<String, dynamic> json) =>
+      _$TileLayerPaletteEntryFromJson(json);
+}
+
 @freezed
 sealed class MapLayer with _$MapLayer {
   const MapLayer._();
 
   @FreezedUnionValue('tile')
+  @JsonSerializable(explicitToJson: true)
   const factory MapLayer.tile({
     required String id,
     required String name,
-    String? tilesetId,
     @Default(true) bool isVisible,
     @Default(1.0) double opacity,
-    @Default([]) List<int> tiles,
+    @Default(<TileLayerPaletteEntry>[]) List<TileLayerPaletteEntry> palette,
+    @Default(<int>[]) List<int> cells,
   }) = TileLayer;
 
   @FreezedUnionValue('collision')
@@ -115,12 +134,88 @@ sealed class MapLayer with _$MapLayer {
 }
 
 MapLayer _mapLayerFromJson(Map<String, dynamic> json) {
-  if (json['runtimeType'] == 'smart_tile' &&
-      json.containsKey('layerSeed') &&
-      json['layerSeed'] is! int) {
+  final canonical = migrateLegacyTileLayerJson(json);
+  if (canonical['runtimeType'] == 'smart_tile' &&
+      canonical.containsKey('layerSeed') &&
+      canonical['layerSeed'] is! int) {
     throw const FormatException(
       'smart_tile_integer_invalid: layerSeed must be an exact JSON integer',
     );
   }
-  return _$MapLayerFromJson(json);
+  return _$MapLayerFromJson(canonical);
+}
+
+/// One-way compatibility bridge for the historical `tilesetId` + `tiles`
+/// payload. Every successful decode returns the palette form and serializers
+/// never emit the historical keys again.
+Map<String, dynamic> migrateLegacyTileLayerJson(
+  Map<String, dynamic> json, {
+  String? fallbackTilesetId,
+}) {
+  if (json['runtimeType'] != 'tile') return json;
+  final hasLegacy = json.containsKey('tiles') || json.containsKey('tilesetId');
+  final hasCanonical = json.containsKey('palette') || json.containsKey('cells');
+  if (!hasLegacy) return json;
+  if (hasCanonical) {
+    throw const FormatException(
+      'tile_layer_mixed_encoding: legacy and palette fields cannot coexist',
+    );
+  }
+  final rawTiles = json['tiles'] ?? const <Object?>[];
+  if (rawTiles is! List ||
+      rawTiles.any((value) => value is! int || value < 0)) {
+    throw const FormatException(
+      'tile_layer_legacy_tiles_invalid: tiles must be non-negative integers',
+    );
+  }
+  final rawTilesetId = json['tilesetId'] ?? fallbackTilesetId;
+  if (rawTilesetId != null && rawTilesetId is! String) {
+    throw const FormatException(
+      'tile_layer_legacy_tileset_invalid: tilesetId must be a string',
+    );
+  }
+  final tilesetId = (rawTilesetId as String?)?.trim() ?? '';
+  if (rawTiles.any((value) => value != 0) && tilesetId.isEmpty) {
+    throw const FormatException(
+      'tile_layer_legacy_tileset_required: non-empty cells need a tileset',
+    );
+  }
+  final palette = <Map<String, Object?>>[];
+  final paletteIndexByLocalTileId = <int, int>{};
+  final cells = <int>[];
+  for (final rawTile in rawTiles.cast<int>()) {
+    if (rawTile == 0) {
+      cells.add(0);
+      continue;
+    }
+    final localTileId = rawTile - 1;
+    final paletteIndex = paletteIndexByLocalTileId.putIfAbsent(localTileId, () {
+      palette.add(<String, Object?>{
+        'tilesetId': tilesetId,
+        'localTileId': localTileId,
+        'transform': const SmartTileSpriteTransform().toJson(),
+      });
+      return palette.length;
+    });
+    cells.add(paletteIndex);
+  }
+  return <String, dynamic>{
+    for (final entry in json.entries)
+      if (entry.key != 'tiles' && entry.key != 'tilesetId')
+        entry.key: entry.value,
+    'palette': palette,
+    'cells': cells,
+  };
+}
+
+TileLayerPaletteEntry? resolveTileLayerCell(TileLayer layer, int cellIndex) {
+  if (cellIndex < 0 || cellIndex >= layer.cells.length) return null;
+  final paletteCell = layer.cells[cellIndex];
+  if (paletteCell <= 0 || paletteCell > layer.palette.length) return null;
+  return layer.palette[paletteCell - 1];
+}
+
+String? tileLayerSingleTilesetId(TileLayer layer) {
+  final ids = layer.palette.map((entry) => entry.tilesetId).toSet();
+  return ids.length == 1 ? ids.single : null;
 }

@@ -109,7 +109,7 @@ class MapToolPreview {
   final GridPos origin;
   final GridSize size;
   final String? tilesetId;
-  final List<int>? tiles;
+  final List<TileLayerPaletteEntry?>? tiles;
   final TerrainType? terrain;
   final List<GridPos>? cells;
   final MapToolPreviewValidity validity;

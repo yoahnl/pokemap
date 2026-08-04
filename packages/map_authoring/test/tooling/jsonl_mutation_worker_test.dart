@@ -16,7 +16,32 @@ void main() {
       name: 'JSONL Mutation Fixture',
       version: ProjectVersion.v6,
       maps: const [],
-      tilesets: const [],
+      tilesets: const <ProjectTilesetEntry>[
+        ProjectTilesetEntry(
+          id: 'atlas_a',
+          name: 'Atlas A',
+          relativePath: 'assets/atlas_a.png',
+          source: ProjectTilesetSource.regularAtlas(
+            assetId: 'atlas-a-image',
+            pixelWidth: 1,
+            pixelHeight: 1,
+            tileWidth: 1,
+            tileHeight: 1,
+          ),
+        ),
+        ProjectTilesetEntry(
+          id: 'atlas_b',
+          name: 'Atlas B',
+          relativePath: 'assets/atlas_b.png',
+          source: ProjectTilesetSource.regularAtlas(
+            assetId: 'atlas-b-image',
+            pixelWidth: 1,
+            pixelHeight: 1,
+            tileWidth: 1,
+            tileHeight: 1,
+          ),
+        ),
+      ],
     );
     await File('${root.path}/project.json').writeAsString(
       const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
@@ -46,6 +71,13 @@ void main() {
     final described = await _request(worker, 'describe');
     expect(described.status, AuthoringResultStatus.success);
     expect(described.data['readOnly'], isFalse);
+    final mapAction = (described.data['mutationActions']! as List)
+        .cast<Map<String, Object?>>()
+        .singleWhere((action) => action['id'] == 'map.apply_operations');
+    expect(
+      (mapAction['extensions']! as Map)['tileLayerEncoding'],
+      'tile_palette_v1',
+    );
     expect(
       (described.data['commands']! as List)
           .cast<Map<String, Object?>>()
@@ -134,12 +166,113 @@ void main() {
     );
     expect(history.data, directHistory);
 
+    final beforePalette = await snapshots.load(ProjectHandle(projectHandle));
+    final paletteRequest = AuthoringRequest(
+      requestId: 'jsonl-map-palette',
+      actionId: 'map.apply_operations',
+      actionVersion: 1,
+      workspaceHandle: workspaceHandle,
+      parameters: const <String, Object?>{
+        'mapId': 'jsonl_map',
+        'operations': <Object?>[
+          <String, Object?>{
+            'kind': 'layer.add',
+            'layerKind': 'tile',
+            'layerId': 'mixed',
+            'name': 'Mixed sources',
+          },
+          <String, Object?>{
+            'kind': 'region.paint',
+            'layerId': 'mixed',
+            'x': 0,
+            'y': 0,
+            'value': <String, Object?>{
+              'tilesetId': 'atlas_a',
+              'localTileId': 0,
+            },
+          },
+          <String, Object?>{
+            'kind': 'region.paint',
+            'layerId': 'mixed',
+            'x': 1,
+            'y': 0,
+            'value': <String, Object?>{
+              'tilesetId': 'atlas_b',
+              'localTileId': 0,
+            },
+          },
+        ],
+      },
+      expectedRevision: beforePalette.revision,
+      idempotencyKey: 'idem_jsonl_map_palette',
+      dryRun: false,
+    );
+    final palettePlanned = await _request(
+      worker,
+      'plan',
+      args: <String, Object?>{
+        'projectHandle': projectHandle,
+        'request': paletteRequest.toJson(),
+      },
+    );
+    expect(palettePlanned.status, AuthoringResultStatus.success);
+    final paletteApplied = await _request(
+      worker,
+      'apply',
+      args: <String, Object?>{
+        'projectHandle': projectHandle,
+        'planId': palettePlanned.data['planId'],
+        'operationId': 'operation_jsonl_map_palette',
+      },
+    );
+    expect(paletteApplied.status, AuthoringResultStatus.success);
+
+    final region = await _request(
+      worker,
+      'query',
+      args: <String, Object?>{
+        'projectHandle': projectHandle,
+        'request': AuthoringQueryRequest(
+          resourceKind: 'map',
+          operation: AuthoringQueryOperation.get,
+          ids: const <String>['jsonl_map'],
+          view: AuthoringQueryView.detail,
+          extensions: const <String, Object?>{
+            'region': <String, Object?>{
+              'x': 0,
+              'y': 0,
+              'width': 2,
+              'height': 1,
+            },
+          },
+        ).toJson(),
+      },
+    );
+    expect(region.status, AuthoringResultStatus.success);
+    final regionItem = (region.data['items']! as List).single as Map;
+    final mixedLayer = (regionItem['layers']! as List)
+        .cast<Map>()
+        .singleWhere((layer) => layer['id'] == 'mixed');
+    expect(mixedLayer['encoding'], 'tile_palette_v1');
+    expect(
+      (mixedLayer['palette']! as List)
+          .cast<Map>()
+          .map((entry) => entry['tilesetId']),
+      <String>['atlas_a', 'atlas_b'],
+    );
+    expect(mixedLayer['rows'], <Object?>[
+      <Object?>[1, 2],
+    ]);
+
     final transcript = jsonEncode({
       'describe': described.toJson(),
       'open': opened.toJson(),
       'plan': planned.toJson(),
       'apply': applied.toJson(),
       'history': history.toJson(),
+      'palettePlan': palettePlanned.toJson(),
+      'paletteApply': paletteApplied.toJson(),
+      'region': region.toJson(),
     });
     expect(transcript, isNot(contains(root.path)));
     expect(transcript, isNot(contains('/private/')));
@@ -194,7 +327,7 @@ void main() {
       version: ProjectVersion.v6,
       size: GridSize(width: 2, height: 2),
       layers: [
-        MapLayer.tile(id: 'base', name: 'Base', tiles: [0, 0, 0, 0]),
+        MapLayer.tile(id: 'base', name: 'Base', cells: [0, 0, 0, 0]),
         SmartTileLayer(
           id: 'smart',
           name: 'Smart',

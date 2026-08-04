@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import 'cinematic_map_backdrop_tile_render_plan.dart';
 import 'cinematic_tileset_asset_registry.dart';
@@ -27,12 +28,31 @@ final class CinematicMapBackdropTilePlanLoader {
     final resolvedTilesets = <String, CinematicResolvedTilesetAsset>{};
     for (final tilesetId in tilesetIds) {
       final tileset = _tilesetById(manifest, tilesetId);
-      resolvedTilesets[tilesetId] = await _registry.resolve(
-        tileset: tileset,
-        absolutePath: tileset == null ? null : resolveTilesetPath(tilesetId),
-        tileWidth: manifest.settings.tileWidth,
-        tileHeight: manifest.settings.tileHeight,
-      );
+      final source = tileset?.source;
+      final absolutePath =
+          tileset == null ? null : resolveTilesetPath(tilesetId);
+      if (source is ProjectImageCollectionTilesetSource &&
+          absolutePath != null) {
+        for (final page in source.pages) {
+          resolvedTilesets[page.assetId] = await _registry.resolve(
+            tileset: ProjectTilesetEntry(
+              id: page.assetId,
+              name: page.id,
+              relativePath: '${page.id}.png',
+            ),
+            absolutePath: p.join(absolutePath, '${page.id}.png'),
+            tileWidth: manifest.settings.tileWidth,
+            tileHeight: manifest.settings.tileHeight,
+          );
+        }
+      } else {
+        resolvedTilesets[tilesetId] = await _registry.resolve(
+          tileset: tileset,
+          absolutePath: absolutePath,
+          tileWidth: manifest.settings.tileWidth,
+          tileHeight: manifest.settings.tileHeight,
+        );
+      }
     }
     return buildCinematicMapBackdropTileRenderPlan(
       mapData: mapData,
@@ -56,13 +76,10 @@ Set<String> collectCinematicMapBackdropTileLayerTilesetIds(MapData mapData) {
     if (layer is! TileLayer || !layer.isVisible || layer.opacity <= 0) {
       continue;
     }
-    if (!layer.tiles.any((tileId) => tileId > 0)) {
+    if (!layer.cells.any((cell) => cell > 0)) {
       continue;
     }
-    final tilesetId = (layer.tilesetId ?? mapData.tilesetId).trim();
-    if (tilesetId.isNotEmpty) {
-      ids.add(tilesetId);
-    }
+    ids.addAll(layer.palette.map((entry) => entry.tilesetId));
   }
   return ids;
 }

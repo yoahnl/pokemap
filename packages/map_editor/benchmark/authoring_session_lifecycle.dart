@@ -152,7 +152,7 @@ const _map = MapData(
   version: ProjectVersion.v6,
   visualStack: MapVisualStackConfig.canonicalV1,
   layers: [
-    MapLayer.tile(id: 'l_base', name: 'Base', tiles: [0, 0, 0, 0]),
+    MapLayer.tile(id: 'l_base', name: 'Base', cells: [0, 0, 0, 0]),
     MapLayer.smartTile(
       id: 'l_terrain',
       name: 'Terrain',

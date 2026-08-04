@@ -526,8 +526,7 @@ Future<int> _renderRotatedEdgePixelAlpha() async {
       TileLayer(
         id: 'objects',
         name: 'Objects',
-        tilesetId: 'tiles',
-        tiles: tiles,
+        cells: tiles,
       ),
     ],
     placedElements: const <MapPlacedElement>[
@@ -632,8 +631,7 @@ MapData _cullingMap() {
       TileLayer(
         id: 'objects',
         name: 'Objects',
-        tilesetId: 'tiles',
-        tiles: List<int>.filled(cells, 1),
+        cells: List<int>.filled(cells, 1),
       ),
       CollisionLayer(
         id: 'collision',
@@ -769,7 +767,7 @@ MapData _largeMap() {
       TileLayer(
         id: 'objects',
         name: 'Objects',
-        tiles: List<int>.filled(cells, 0, growable: false),
+        cells: List<int>.filled(cells, 0, growable: false),
       ),
       CollisionLayer(
         id: 'collision',

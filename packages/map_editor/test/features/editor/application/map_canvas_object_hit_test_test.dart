@@ -608,14 +608,19 @@ const _baseMap = MapData(
   visualStack: MapVisualStackConfig.canonicalV1,
   size: GridSize(width: 8, height: 8),
   layers: <MapLayer>[
-    TileLayer(id: 'top', name: 'Top', tilesetId: 'tiles'),
+    TileLayer(
+      id: 'top',
+      name: 'Top',
+    ),
     TileLayer(
       id: 'hidden',
       name: 'Hidden',
-      tilesetId: 'tiles',
       isVisible: false,
     ),
-    TileLayer(id: 'bottom', name: 'Bottom', tilesetId: 'tiles'),
+    TileLayer(
+      id: 'bottom',
+      name: 'Bottom',
+    ),
   ],
 );
 

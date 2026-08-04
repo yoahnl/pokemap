@@ -100,7 +100,7 @@ void main() {
     expect(notifier.state.mapUndoStack, isEmpty);
   });
 
-  test('browsing another tileset never arms an incompatible paint brush', () {
+  test('browsing another tileset arms a brush without assigning the layer', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier)
@@ -116,13 +116,16 @@ void main() {
 
     notifier.selectPaletteTile(3);
 
-    expect(notifier.state.activeBrush, const EditorBrush.none());
-    expect(notifier.state.errorMessage, contains('Assignez'));
+    expect(
+      notifier.state.activeBrush,
+      const EditorBrush.tile(tileId: 3, tilesetId: 'details'),
+    );
+    expect(notifier.state.errorMessage, isNull);
     expect(notifier.state.isDirty, isFalse);
     expect(notifier.state.mapUndoStack, isEmpty);
   });
 
-  test('painting never assigns a mismatched brush tileset implicitly', () {
+  test('painting interns a second tileset directly in the layer palette', () {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier)
@@ -138,15 +141,24 @@ void main() {
       const GridPos(x: 0, y: 0),
       tilesetColumnsById: const <String, int>{},
     );
+    notifier.endMapStroke();
 
-    expect(notifier.state.activeMap, _map);
+    final layer = notifier.state.activeMap!.layers.first as TileLayer;
     expect(
-      (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
-      'world',
-    );
-    expect(notifier.state.mapUndoStack, isEmpty);
-    expect(notifier.state.isDirty, isFalse);
-    expect(notifier.state.errorMessage, contains('Assignez-lui'));
+        resolveTileLayerCell(layer, 0),
+        const TileLayerPaletteEntry(
+          tilesetId: 'details',
+          localTileId: 2,
+        ));
+    expect(
+        layer.palette.map((entry) => entry.tilesetId),
+        containsAll(<String>[
+          'world',
+          'details',
+        ]));
+    expect(notifier.state.mapUndoStack, hasLength(1));
+    expect(notifier.state.isDirty, isTrue);
+    expect(notifier.state.errorMessage, isNull);
   });
 
   test('invalid browser filters are rejected without map mutations', () {
@@ -221,14 +233,18 @@ const _map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tilesetId: 'world',
-      tiles: [],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+      ],
+      cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ),
     TileLayer(
       id: 'details',
       name: 'Details',
-      tilesetId: 'details',
-      tiles: [],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'details', localTileId: 0),
+      ],
+      cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ),
   ],
 );

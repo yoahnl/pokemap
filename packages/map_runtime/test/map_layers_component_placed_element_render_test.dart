@@ -23,8 +23,7 @@ void main() {
               MapLayer.tile(
                 id: 'decor',
                 name: 'Decor',
-                tilesetId: 'base',
-                tiles: [0],
+                cells: [0],
               ),
             ],
             placedElements: [
@@ -73,8 +72,10 @@ void main() {
               MapLayer.tile(
                 id: 'decor',
                 name: 'Decor',
-                tilesetId: 'base',
-                tiles: [1],
+                palette: <TileLayerPaletteEntry>[
+                  TileLayerPaletteEntry(tilesetId: 'base', localTileId: 0),
+                ],
+                cells: [1],
               ),
             ],
             placedElements: [

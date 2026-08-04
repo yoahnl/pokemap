@@ -16,7 +16,7 @@ void main() {
           name: 'Map',
           size: GridSize(width: 2, height: 2),
           layers: [
-            TileLayer(id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0]),
+            TileLayer(id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0]),
           ],
         ),
         activeLayerId: 'tiles',

@@ -180,7 +180,7 @@ void main() {
           MapLayer.tile(
             id: 'l_base',
             name: 'Base',
-            tiles: const [0, 0, 7, 0, 0, 0],
+            cells: const [0, 0, 7, 0, 0, 0],
           ),
           MapLayer.collision(
             id: 'l_collisions',
@@ -346,7 +346,7 @@ MapData _map(String id, {int width = 2, int height = 2}) {
       MapLayer.tile(
         id: 'l_base',
         name: 'Base',
-        tiles: List<int>.filled(count, 0),
+        cells: List<int>.filled(count, 0),
       ),
       MapLayer.collision(
         id: 'l_collisions',

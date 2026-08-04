@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
@@ -399,12 +397,7 @@ class _MapPaletteAssetBrowserState
               ),
             ),
             const SizedBox(height: 10),
-            _AssignmentFooter(
-              projection: projection,
-              onAssign: (tilesetId) => unawaited(
-                notifier.assignTilesetToActiveLayer(tilesetId),
-              ),
-            ),
+            _SourceReadyFooter(projection: projection),
           ],
         ),
       ),
@@ -599,14 +592,10 @@ class _AssetBrowserResults extends StatelessWidget {
   }
 }
 
-class _AssignmentFooter extends StatelessWidget {
-  const _AssignmentFooter({
-    required this.projection,
-    required this.onAssign,
-  });
+class _SourceReadyFooter extends StatelessWidget {
+  const _SourceReadyFooter({required this.projection});
 
   final MapPaletteAssetBrowserProjection projection;
-  final ValueChanged<String> onAssign;
 
   @override
   Widget build(BuildContext context) {
@@ -621,35 +610,24 @@ class _AssignmentFooter extends StatelessWidget {
     if (selectedItem == null) {
       return const PokeMapDiagnosticCallout(
         severity: PokeMapDiagnosticSeverity.info,
-        title: 'Parcourir sans modifier',
-        message: 'Sélectionnez une source disponible. La carte ne changera que '
-            'lorsque vous utiliserez explicitement le bouton Assigner.',
+        title: 'Choisir une source',
+        message: 'Sélectionnez une source disponible pour peindre ce calque.',
       );
     }
-    if (selectedItem.isAssigned) {
-      return PokeMapDiagnosticCallout(
-        severity: PokeMapDiagnosticSeverity.info,
-        title: 'Source assignée',
-        message:
-            '« ${selectedItem.tileset.name} » est déjà la source de ce calque.',
-      );
-    }
-    if (!selectedItem.canAssign) {
+    if (!selectedItem.isCompatible) {
       return PokeMapDiagnosticCallout(
         severity: PokeMapDiagnosticSeverity.warning,
-        title: 'Assignation indisponible',
+        title: 'Source indisponible',
         message: selectedItem.disabledReason ??
-            'Cette source ne peut pas être assignée au calque actif.',
+            'Cette source ne peut pas être utilisée sur le calque actif.',
       );
     }
-    return PokeMapButton(
-      key: MapPaletteAssetBrowserKeys.assignButton(selectedItem.tileset.id),
-      onPressed: () => onAssign(selectedItem.tileset.id),
-      variant: PokeMapButtonVariant.primary,
-      leading: const Icon(Icons.link_rounded),
-      child: Text(
-        'Assigner à « ${projection.activeLayerName ?? 'ce calque'} »',
-      ),
+    return PokeMapDiagnosticCallout(
+      severity: PokeMapDiagnosticSeverity.info,
+      title: 'Source prête',
+      message:
+          '« ${selectedItem.tileset.name} » peut être utilisée directement '
+          'sur « ${projection.activeLayerName ?? 'ce calque'} ».',
     );
   }
 }

@@ -33,8 +33,7 @@ void main() {
           TileLayer(
             id: 'decor',
             name: 'Decor',
-            tilesetId: 'nature',
-            tiles: <int>[0, 0],
+            cells: <int>[0, 0],
           ),
         ],
         placedElements: <MapPlacedElement>[placement],
@@ -418,8 +417,7 @@ MapData _mapWithPlacementCount(int count) => MapData(
         MapLayer.tile(
           id: 'decor',
           name: 'Decor',
-          tilesetId: 'nature',
-          tiles: List<int>.filled(count, 0),
+          cells: List<int>.filled(count, 0),
         ),
       ],
       placedElements: [

@@ -413,9 +413,9 @@ List<CinematicMapBackdropVisualPrimitive> _projectVisualPrimitives(
     final layer = mapData.layers[layerIndex];
     if (layer is TileLayer) {
       var localOrder = 0;
-      for (var index = 0; index < layer.tiles.length; index++) {
-        final tileId = layer.tiles[index];
-        if (tileId <= 0) {
+      for (var index = 0; index < layer.cells.length; index++) {
+        final tile = resolveTileLayerCell(layer, index);
+        if (tile == null) {
           continue;
         }
         final x = index % mapData.size.width;
@@ -431,9 +431,9 @@ List<CinematicMapBackdropVisualPrimitive> _projectVisualPrimitives(
             kind: CinematicMapBackdropVisualPrimitiveKind.tileCell,
             x: x,
             y: y,
-            label: 'Tuile $tileId',
+            label: 'Tuile ${tile.localTileId}',
             summary: 'Tuile positionnee depuis MapData.',
-            source: 'tile:$tileId',
+            source: 'tile:${tile.tilesetId}:${tile.localTileId}',
           ),
         );
       }
@@ -639,8 +639,11 @@ List<CinematicMapBackdropLayerPreview> _projectVisualLayers(
 
   for (final layer in mapData.layers) {
     if (layer is TileLayer) {
-      final tilesetId =
-          layer.tilesetId?._trimmedOrNull ?? mapData.tilesetId._trimmedOrNull;
+      final tilesetIds = layer.palette
+          .map((entry) => entry.tilesetId)
+          .toSet()
+          .toList()
+        ..sort();
       layers.add(
         CinematicMapBackdropLayerPreview(
           id: layer.id,
@@ -648,10 +651,10 @@ List<CinematicMapBackdropLayerPreview> _projectVisualLayers(
           kind: CinematicMapBackdropLayerKind.tile,
           visible: layer.isVisible,
           opacity: layer.opacity,
-          summary: '${layer.tiles.length} tuile(s)',
+          summary: '${layer.cells.length} cellule(s)',
           renderRefs: [
-            'tileCells:${layer.tiles.length}',
-            if (tilesetId != null) 'tileset:$tilesetId',
+            'tileCells:${layer.cells.length}',
+            for (final tilesetId in tilesetIds) 'tileset:$tilesetId',
           ],
         ),
       );
@@ -726,10 +729,7 @@ List<String> _missingTilesetIds({
 
   for (final layer in mapData.layers) {
     if (layer is TileLayer) {
-      final tilesetId = layer.tilesetId?._trimmedOrNull ?? mapTilesetId;
-      if (tilesetId != null) {
-        required.add(tilesetId);
-      }
+      required.addAll(layer.palette.map((entry) => entry.tilesetId));
     } else if (layer is SmartTileLayer) {
       for (final pass in SmartTileVisualPass.values) {
         for (final visual in resolveSmartTileLayerVisuals(

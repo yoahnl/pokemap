@@ -1190,9 +1190,8 @@ MapData _map() {
       const MapLayer.tile(
         id: 'tile',
         name: 'Sol',
-        tilesetId: 'tileset-main',
         opacity: 0.8,
-        tiles: <int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        cells: <int>[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
       ),
       MapLayer.border(
         id: 'borders',

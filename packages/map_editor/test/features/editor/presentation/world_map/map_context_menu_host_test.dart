@@ -430,8 +430,7 @@ final _map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tilesetId: 'tiles',
-      tiles: List<int>.filled(16, 0),
+      cells: List<int>.filled(16, 0),
     ),
   ],
 );

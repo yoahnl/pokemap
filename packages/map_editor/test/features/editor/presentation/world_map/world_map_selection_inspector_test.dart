@@ -323,8 +323,7 @@ void main() {
         TileLayer(
           id: 'ground',
           name: 'Ground',
-          tilesetId: 'world',
-          tiles: <int>[0, 0],
+          cells: <int>[0, 0],
         ),
       ],
       placedElements: const <MapPlacedElement>[
@@ -519,8 +518,7 @@ const _map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tilesetId: 'world',
-      tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ),
   ],
   placedElements: <MapPlacedElement>[

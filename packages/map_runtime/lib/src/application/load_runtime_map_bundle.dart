@@ -29,7 +29,16 @@ Map<String, String> resolveTilesetAbsolutePaths({
     if (rel.isEmpty) {
       throw AssetNotFoundException('Tileset $id has empty relativePath');
     }
-    out[id] = p.normalize(p.join(projectRoot, rel));
+    final source = entry.source;
+    if (source is ProjectImageCollectionTilesetSource) {
+      for (final page in source.pages) {
+        out[page.assetId] = p.normalize(
+          p.join(projectRoot, rel, '${page.id}.png'),
+        );
+      }
+    } else {
+      out[id] = p.normalize(p.join(projectRoot, rel));
+    }
   }
   return out;
 }

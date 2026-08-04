@@ -378,8 +378,7 @@ MapLayersComponent _component({
       TileLayer(
         id: 'decor',
         name: 'Decor',
-        tilesetId: 'element',
-        tiles: tiles,
+        cells: tiles,
       ),
     ],
     placedElements: <MapPlacedElement>[
@@ -429,8 +428,7 @@ Future<ui.Image> _renderCollisionOverlay(
       TileLayer(
         id: 'decor',
         name: 'Decor',
-        tilesetId: 'element',
-        tiles: List<int>.filled(
+        cells: List<int>.filled(
           mapSize.width * mapSize.height,
           0,
           growable: false,

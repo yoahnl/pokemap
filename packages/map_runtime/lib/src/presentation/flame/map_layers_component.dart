@@ -93,12 +93,6 @@ class MapLayersComponent extends PositionComponent {
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
   };
-  late final Map<String, ProjectRegularAtlasTilesetSource>
-      _regularAtlasByTilesetId = <String, ProjectRegularAtlasTilesetSource>{
-    for (final tileset in bundle.manifest.tilesets)
-      if (tileset.source is ProjectRegularAtlasTilesetSource)
-        tileset.id: tileset.source! as ProjectRegularAtlasTilesetSource,
-  };
   late final Map<String, ProjectTilesetSource?> _tilesetSourceById =
       <String, ProjectTilesetSource?>{
     for (final tileset in bundle.manifest.tilesets) tileset.id: tileset.source,
@@ -125,57 +119,59 @@ class MapLayersComponent extends PositionComponent {
     _visibleLocalRect = rect;
   }
 
-  /// Retourne la plage de cellules visibles `(startX, startY, endX, endY)`
-  /// en tenant compte du viewport. Si aucun viewport n'est connu, retourne
-  /// la carte entière.
-  ///
-  /// La marge de 3 cellules compense les éléments multi-cellules (arbres,
-  /// bâtiments) dont l'ancre est hors viewport mais dont le sprite dépasse
-  /// dans la zone visible.
-  ({int startX, int startY, int endX, int endY}) _visibleCellRange() {
-    final w = bundle.map.size.width;
-    final h = bundle.map.size.height;
+  /// Returns the owner-cell range whose resolved tile visuals can intersect
+  /// the viewport. Tileset offsets and oversized image-collection pages may
+  /// move pixels several cells away from their logical owner, so the generic
+  /// three-cell component margin is not sufficient for tile layers.
+  ({int startX, int startY, int endX, int endY}) _visibleTileCellRange(
+    TileLayer layer,
+  ) {
     final rect = _visibleLocalRect;
-    if (rect == null) {
-      return (startX: 0, startY: 0, endX: w, endY: h);
+    final width = bundle.map.size.width;
+    final height = bundle.map.size.height;
+    final cellWidth = bundle.cellWidth;
+    final cellHeight = bundle.cellHeight;
+    if (rect == null || cellWidth <= 0 || cellHeight <= 0) {
+      return (startX: 0, startY: 0, endX: width, endY: height);
     }
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
-    if (cw <= 0 || ch <= 0) {
-      return (startX: 0, startY: 0, endX: w, endY: h);
-    }
-    const margin = 3;
-    return (
-      startX: math.max(0, (rect.left / cw).floor() - margin),
-      startY: math.max(0, (rect.top / ch).floor() - margin),
-      endX: math.min(w, (rect.right / cw).ceil() + margin),
-      endY: math.min(h, (rect.bottom / ch).ceil() + margin),
-    );
-  }
 
-  ({int startX, int startY, int endX, int endY})
-      _visibleCellRangeForVisualBounds(
-    ProjectTilesetPixelRect bounds, {
-    required double scaleX,
-    required double scaleY,
-  }) {
-    final rect = _visibleLocalRect;
-    final w = bundle.map.size.width;
-    final h = bundle.map.size.height;
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
-    if (rect == null || cw <= 0 || ch <= 0 || scaleX <= 0 || scaleY <= 0) {
-      return (startX: 0, startY: 0, endX: w, endY: h);
+    final sourceTileWidth = bundle.manifest.settings.tileWidth;
+    final sourceTileHeight = bundle.manifest.settings.tileHeight;
+    var minimumX = 0.0;
+    var minimumY = 0.0;
+    var maximumX = cellWidth;
+    var maximumY = cellHeight;
+    final scaleX = cellWidth / sourceTileWidth;
+    final scaleY = cellHeight / sourceTileHeight;
+
+    for (final entry in layer.palette) {
+      final source = _tilesetSourceById[entry.tilesetId];
+      if (source == null) continue;
+      final visual = _resolveTileLayerVisual(
+        entry: entry,
+        source: source,
+        tileWidth: sourceTileWidth,
+        tileHeight: sourceTileHeight,
+      );
+      if (visual == null) continue;
+      final bounds = visual.animationBounds;
+      minimumX = math.min(minimumX, bounds.x * scaleX);
+      minimumY = math.min(minimumY, bounds.y * scaleY);
+      maximumX = math.max(maximumX, (bounds.x + bounds.width) * scaleX);
+      maximumY = math.max(maximumY, (bounds.y + bounds.height) * scaleY);
     }
-    final visualLeft = bounds.x * scaleX;
-    final visualTop = bounds.y * scaleY;
-    final visualRight = (bounds.x + bounds.width) * scaleX;
-    final visualBottom = (bounds.y + bounds.height) * scaleY;
+
     return (
-      startX: math.max(0, ((rect.left - visualRight) / cw).floor()),
-      startY: math.max(0, ((rect.top - visualBottom) / ch).floor()),
-      endX: math.min(w, ((rect.right - visualLeft) / cw).ceil()),
-      endY: math.min(h, ((rect.bottom - visualTop) / ch).ceil()),
+      startX: math.max(0, ((rect.left - maximumX) / cellWidth).floor()),
+      startY: math.max(0, ((rect.top - maximumY) / cellHeight).floor()),
+      endX: math.min(
+        width,
+        ((rect.right - minimumX) / cellWidth).ceil(),
+      ),
+      endY: math.min(
+        height,
+        ((rect.bottom - minimumY) / cellHeight).ceil(),
+      ),
     );
   }
 
@@ -233,14 +229,7 @@ class MapLayersComponent extends PositionComponent {
       case MapVisualCompositionStepKind.tileBackgroundLayer:
         if (renderPass == MapLayerRenderPass.background) {
           final layer = step.layer! as TileLayer;
-          _paintTileLayer(
-            canvas,
-            layerId: layer.id,
-            layerName: layer.name,
-            tilesetId: layer.tilesetId,
-            tiles: layer.tiles,
-            opacity: layer.opacity,
-          );
+          _paintTileLayer(canvas, layer);
         }
       case MapVisualCompositionStepKind.borderLayer:
         if (renderPass == MapLayerRenderPass.background) {
@@ -316,14 +305,7 @@ class MapLayersComponent extends PositionComponent {
   }
 
   void _paintTileLayerAndElements(Canvas canvas, TileLayer layer) {
-    _paintTileLayer(
-      canvas,
-      layerId: layer.id,
-      layerName: layer.name,
-      tilesetId: layer.tilesetId,
-      tiles: layer.tiles,
-      opacity: layer.opacity,
-    );
+    _paintTileLayer(canvas, layer);
     _paintPlacedElementsForLayer(
       canvas,
       layerId: layer.id,
@@ -587,14 +569,10 @@ class MapLayersComponent extends PositionComponent {
     return frames.last;
   }
 
-  void _paintTileLayer(
-    Canvas canvas, {
-    required String layerId,
-    required String layerName,
-    required String? tilesetId,
-    required List<int> tiles,
-    required double opacity,
-  }) {
+  void _paintTileLayer(Canvas canvas, TileLayer layer) {
+    final layerId = layer.id;
+    final layerName = layer.name;
+    final opacity = layer.opacity;
     final explicitForeground = _isExplicitForegroundTileLayer(
       layerId: layerId,
       layerName: layerName,
@@ -615,24 +593,7 @@ class MapLayersComponent extends PositionComponent {
     final tw = bundle.manifest.settings.tileWidth;
     final th = bundle.manifest.settings.tileHeight;
     final w = map.size.width;
-    final resolvedId = _resolveTilesetId(map, tilesetId);
-    if (resolvedId == null) {
-      return;
-    }
-    final image = tileImagesByTilesetId[resolvedId];
-    if (image == null || tw <= 0 || th <= 0) {
-      return;
-    }
-    final atlas = _regularAtlasByTilesetId[resolvedId];
-    final manifestSource = _tilesetSourceById[resolvedId];
-    if (manifestSource is ProjectImageCollectionTilesetSource) {
-      // TileLayer keeps its historical 1-based atlas encoding until STN-10.1.
-      // Rendering a sparse local collection ID as an atlas index would be
-      // silently wrong, so this path intentionally fails closed.
-      return;
-    }
-    final cols = atlas?.columns ?? image.width ~/ tw;
-    if (cols <= 0) {
+    if (tw <= 0 || th <= 0 || layer.palette.isEmpty) {
       return;
     }
     final paint = Paint()..isAntiAlias = false;
@@ -643,30 +604,13 @@ class MapLayersComponent extends PositionComponent {
     final animatedCells = _animatedPlacedCellsByLayerId[layerId];
     final scaleX = cw / tw;
     final scaleY = ch / th;
-    final firstAtlasVisual = atlas == null
-        ? null
-        : _resolveRegularTileVisual(
-            tilesetId: resolvedId,
-            tileId: 1,
-            atlas: atlas,
-            tileWidth: tw,
-            tileHeight: th,
-          );
-    final (:startX, :startY, :endX, :endY) = firstAtlasVisual == null
-        ? _visibleCellRange()
-        : _visibleCellRangeForVisualBounds(
-            firstAtlasVisual.animationBounds,
-            scaleX: scaleX,
-            scaleY: scaleY,
-          );
+    final (:startX, :startY, :endX, :endY) = _visibleTileCellRange(layer);
+    final elapsedMs = (_animElapsed * 1000).toInt();
     for (var y = startY; y < endY; y++) {
       for (var x = startX; x < endX; x++) {
         final idx = y * w + x;
-        if (idx >= tiles.length) {
-          continue;
-        }
-        final tileId = tiles[idx];
-        if (tileId <= 0) {
+        final entry = resolveTileLayerCell(layer, idx);
+        if (entry == null) {
           continue;
         }
         final isForegroundCell = foregroundCells?.contains(idx) ?? false;
@@ -696,16 +640,19 @@ class MapLayersComponent extends PositionComponent {
             }
           }
         }
-        if (atlas != null) {
-          final visual = _resolveRegularTileVisual(
-            tilesetId: resolvedId,
-            tileId: tileId,
-            atlas: atlas,
+        final source = _tilesetSourceById[entry.tilesetId];
+        if (source != null) {
+          final visual = _resolveTileLayerVisual(
+            entry: entry,
+            source: source,
             tileWidth: tw,
             tileHeight: th,
           );
           if (visual == null) continue;
-          for (final slice in visual.frames.single.slices) {
+          for (final slice in visual.frameAt(elapsedMs).slices) {
+            final image = tileImagesByTilesetId[slice.assetId] ??
+                tileImagesByTilesetId[entry.tilesetId];
+            if (image == null) continue;
             final source = slice.sourceRect;
             final destination = slice.destinationRect;
             final src = Rect.fromLTWH(
@@ -721,11 +668,22 @@ class MapLayersComponent extends PositionComponent {
               destination.width * scaleX,
               destination.height * scaleY,
             );
-            image.drawImageRect(canvas, src, dst, paint);
+            _drawTileLayerImage(
+              canvas: canvas,
+              image: image,
+              sourceRect: src,
+              destinationRect: dst,
+              transform: entry.transform,
+              paint: paint,
+            );
           }
           continue;
         }
-        final sourceIndex = tileId - 1;
+        final image = tileImagesByTilesetId[entry.tilesetId];
+        if (image == null) continue;
+        final cols = image.width ~/ tw;
+        if (cols <= 0) continue;
+        final sourceIndex = entry.localTileId;
         final col = sourceIndex % cols;
         final row = sourceIndex ~/ cols;
         final src = Rect.fromLTWH(
@@ -736,34 +694,88 @@ class MapLayersComponent extends PositionComponent {
         );
         if (!image.containsSourceRect(src)) continue;
         final dst = Rect.fromLTWH(x * cw, y * ch, cw, ch);
-        image.drawImageRect(canvas, src, dst, paint);
+        _drawTileLayerImage(
+          canvas: canvas,
+          image: image,
+          sourceRect: src,
+          destinationRect: dst,
+          transform: entry.transform,
+          paint: paint,
+        );
       }
     }
   }
 
-  ProjectTilesetVisualResolution? _resolveRegularTileVisual({
-    required String tilesetId,
-    required int tileId,
-    required ProjectRegularAtlasTilesetSource atlas,
+  ProjectTilesetVisualResolution? _resolveTileLayerVisual({
+    required TileLayerPaletteEntry entry,
+    required ProjectTilesetSource source,
     required int tileWidth,
     required int tileHeight,
   }) {
-    final sourceIndex = tileId - 1;
-    if (sourceIndex < 0 || sourceIndex >= atlas.tileCount) return null;
-    return _regularTileVisualCache.putIfAbsent(
-      (tilesetId, tileId),
-      () => resolveRuntimeProjectTilesetVisual(
-        source: atlas,
-        selection: ProjectTilesetVisualSelection.regularAtlas(
-          source: TilesetSourceRect(
-            x: sourceIndex % atlas.columns,
-            y: sourceIndex ~/ atlas.columns,
-          ),
+    final selection = switch (source) {
+      ProjectRegularAtlasTilesetSource atlas =>
+        entry.localTileId < atlas.tileCount
+            ? ProjectTilesetVisualSelection.regularAtlas(
+                source: TilesetSourceRect(
+                  x: entry.localTileId % atlas.columns,
+                  y: entry.localTileId ~/ atlas.columns,
+                ),
+              )
+            : null,
+      ProjectImageCollectionTilesetSource() =>
+        ProjectTilesetVisualSelection.imageCollection(
+          tileId: entry.localTileId,
         ),
+    };
+    if (selection == null) return null;
+    return _regularTileVisualCache.putIfAbsent(
+      (entry.tilesetId, entry.localTileId),
+      () => resolveRuntimeProjectTilesetVisual(
+        source: source,
+        selection: selection,
         cellWidth: tileWidth,
         cellHeight: tileHeight,
       ),
     );
+  }
+
+  void _drawTileLayerImage({
+    required Canvas canvas,
+    required RuntimeTilesetImage image,
+    required Rect sourceRect,
+    required Rect destinationRect,
+    required SmartTileSpriteTransform transform,
+    required Paint paint,
+  }) {
+    canvas.save();
+    try {
+      canvas.translate(destinationRect.left, destinationRect.top);
+      switch (transform.quarterTurns) {
+        case 0:
+          break;
+        case 1:
+          canvas.translate(destinationRect.height, 0);
+          canvas.rotate(math.pi / 2);
+        case 2:
+          canvas.translate(destinationRect.width, destinationRect.height);
+          canvas.rotate(math.pi);
+        case 3:
+          canvas.translate(0, destinationRect.width);
+          canvas.rotate(3 * math.pi / 2);
+      }
+      if (transform.flipX) {
+        canvas.translate(destinationRect.width, 0);
+        canvas.scale(-1, 1);
+      }
+      image.drawImageRect(
+        canvas,
+        sourceRect,
+        Rect.fromLTWH(0, 0, destinationRect.width, destinationRect.height),
+        paint,
+      );
+    } finally {
+      canvas.restore();
+    }
   }
 
   void _paintPlacedElementsForLayer(
@@ -999,8 +1011,7 @@ class MapLayersComponent extends PositionComponent {
             continue;
           }
           final globalIndex = y * mapW + x;
-          if (globalIndex >= layer.tiles.length ||
-              layer.tiles[globalIndex] <= 0) {
+          if (resolveTileLayerCell(layer, globalIndex) == null) {
             continue;
           }
           layerMask.add(globalIndex);
@@ -1085,7 +1096,7 @@ class MapLayersComponent extends PositionComponent {
             continue;
           }
           final index = y * mapW + x;
-          if (index >= layer.tiles.length || layer.tiles[index] <= 0) {
+          if (resolveTileLayerCell(layer, index) == null) {
             continue;
           }
           layerCells[index] = _AnimatedPlacedCell(
@@ -1379,13 +1390,4 @@ class _ActiveOneShotAnimation {
   final double startedAtMs;
   final List<int> frameDurationsMs;
   final double speed;
-}
-
-String? _resolveTilesetId(MapData map, String? layerTilesetId) {
-  final fromLayer = layerTilesetId?.trim() ?? '';
-  if (fromLayer.isNotEmpty) {
-    return fromLayer;
-  }
-  final fallback = map.tilesetId.trim();
-  return fallback.isNotEmpty ? fallback : null;
 }

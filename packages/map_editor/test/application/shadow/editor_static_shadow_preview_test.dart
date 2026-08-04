@@ -1171,8 +1171,7 @@ MapData _map({
         id: 'layer',
         name: 'Layer',
         isVisible: layerVisible,
-        tilesetId: 'tiles',
-        tiles: List<int>.filled(64, 0),
+        cells: List<int>.filled(64, 0),
       ),
     ],
     placedElements: placedElements ??

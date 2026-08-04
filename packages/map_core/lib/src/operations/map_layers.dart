@@ -9,7 +9,6 @@ MapData addMapLayer(
   required MapLayerKind kind,
   required String id,
   required String name,
-  String? tileTilesetId,
   int? insertIndex,
 }) {
   final normalizedId = id.trim();
@@ -23,18 +22,12 @@ MapData addMapLayer(
   if (map.layers.any((layer) => layer.id == normalizedId)) {
     throw ValidationException('Layer ID already exists: $normalizedId');
   }
-  final normalizedTileTilesetId = tileTilesetId?.trim();
-  if (normalizedTileTilesetId != null && normalizedTileTilesetId.isEmpty) {
-    throw const ValidationException('Tile layer tilesetId cannot be empty');
-  }
-
   final cellCount = map.size.width * map.size.height;
   final newLayer = switch (kind) {
     MapLayerKind.tile => MapLayer.tile(
         id: normalizedId,
         name: normalizedName,
-        tilesetId: normalizedTileTilesetId,
-        tiles: List<int>.filled(cellCount, 0, growable: false),
+        cells: List<int>.filled(cellCount, 0, growable: false),
       ),
     MapLayerKind.collision => MapLayer.collision(
         id: normalizedId,

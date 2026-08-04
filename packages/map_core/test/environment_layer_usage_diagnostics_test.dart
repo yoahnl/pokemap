@@ -63,7 +63,7 @@ TileLayer _decorLayer() {
   return MapLayer.tile(
     id: 'decor',
     name: 'Decor',
-    tiles: List<int>.filled(4 * 3, 0),
+    cells: List<int>.filled(4 * 3, 0),
   ) as TileLayer;
 }
 

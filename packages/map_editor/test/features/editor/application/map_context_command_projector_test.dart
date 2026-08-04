@@ -491,14 +491,12 @@ final _objectMap = MapData(
     TileLayer(
       id: 'top',
       name: 'Top',
-      tilesetId: 'tiles',
-      tiles: List<int>.filled(64, 0, growable: false),
+      cells: List<int>.filled(64, 0, growable: false),
     ),
     TileLayer(
       id: 'bottom',
       name: 'Bottom',
-      tilesetId: 'tiles',
-      tiles: List<int>.filled(64, 0, growable: false),
+      cells: List<int>.filled(64, 0, growable: false),
     ),
   ],
   placedElements: <MapPlacedElement>[

@@ -190,8 +190,7 @@ void main() {
       MapLayer.tile(
         id: 'ground',
         name: 'Ground',
-        tilesetId: 'nature',
-        tiles: List<int>.filled(24, 0),
+        cells: List<int>.filled(24, 0),
       ),
     ],
   );

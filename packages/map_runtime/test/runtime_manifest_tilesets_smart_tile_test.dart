@@ -286,8 +286,13 @@ void main() {
           MapLayer.tile(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'ground-tiles',
-            tiles: <int>[0, 0, 0, 0],
+            palette: <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(
+                tilesetId: 'ground-tiles',
+                localTileId: 0,
+              ),
+            ],
+            cells: <int>[0, 0, 0, 0],
           ),
         ],
       );

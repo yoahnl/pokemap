@@ -767,8 +767,7 @@ RuntimeMapBundle _bundle({
         MapLayer.tile(
           id: 'decor',
           name: 'Decor',
-          tilesetId: 'props',
-          tiles: List<int>.filled(16, 0),
+          cells: List<int>.filled(16, 0),
         ),
       ],
       placedElements: [

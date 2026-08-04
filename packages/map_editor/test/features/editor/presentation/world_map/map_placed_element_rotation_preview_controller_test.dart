@@ -189,8 +189,7 @@ const _map = MapData(
     TileLayer(
       id: 'decor',
       name: 'Decor',
-      tilesetId: 'tiles',
-      tiles: <int>[
+      cells: <int>[
         0,
         0,
         0,

@@ -84,8 +84,7 @@ void main() {
       TileLayer(
         id: 'objects',
         name: 'Objects',
-        tilesetId: 'diagnostic-atlas',
-        tiles: List<int>.filled(80, 0, growable: false),
+        cells: List<int>.filled(80, 0, growable: false),
       ),
     ],
     placedElements: placed,

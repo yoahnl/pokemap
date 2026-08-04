@@ -96,8 +96,7 @@ Map<String, Set<int>> buildEditorForegroundTileCellIndicesByLayerId({
         }
 
         final globalIndex = y * mapWidth + x;
-        if (globalIndex >= layer.tiles.length ||
-            layer.tiles[globalIndex] <= 0) {
+        if (resolveTileLayerCell(layer, globalIndex) == null) {
           continue;
         }
 
@@ -1618,18 +1617,17 @@ class MapGridPainter extends CustomPainter {
 
   void _paintPaintPreview(Canvas canvas, MapToolPreview preview) {
     final tiles = preview.tiles;
-    final tilesetId = preview.tilesetId;
-    if (tiles == null || tilesetId == null) return;
-    final tilesetImage = tilesetImagesById[tilesetId];
-    final tilesPerRow = tilesPerRowById[tilesetId] ?? 0;
-    if (tilesetImage != null &&
-        tilesPerRow > 0 &&
-        sourceTileWidth > 0 &&
-        sourceTileHeight > 0) {
+    if (tiles == null) return;
+    if (sourceTileWidth > 0 && sourceTileHeight > 0) {
       final alpha =
           preview.validity == MapToolPreviewValidity.valid ? 0.6 : 0.3;
       final tilePaint = Paint()
         ..color = PokeMapLegacyColors.white.withValues(alpha: alpha);
+      final sources = <String, ProjectTilesetSource?>{
+        for (final tileset
+            in project?.tilesets ?? const <ProjectTilesetEntry>[])
+          tileset.id: tileset.source,
+      };
       for (var y = 0; y < preview.size.height; y++) {
         for (var x = 0; x < preview.size.width; x++) {
           final mapX = preview.origin.x + x;
@@ -1642,30 +1640,68 @@ class MapGridPainter extends CustomPainter {
           }
           final patternIndex = y * preview.size.width + x;
           if (patternIndex < 0 || patternIndex >= tiles.length) continue;
-          final tileId = tiles[patternIndex];
-          if (tileId <= 0) continue;
-          final sourceIndex = tileId - 1;
-          final sourceX = (sourceIndex % tilesPerRow) * sourceTileWidth;
-          final sourceY = (sourceIndex ~/ tilesPerRow) * sourceTileHeight;
-          if (sourceX < 0 ||
-              sourceY < 0 ||
-              sourceX + sourceTileWidth > tilesetImage.width ||
-              sourceY + sourceTileHeight > tilesetImage.height) {
+          final entry = tiles[patternIndex];
+          if (entry == null) continue;
+          final source = sources[entry.tilesetId];
+          if (source == null) {
+            final image = tilesetImagesById[entry.tilesetId];
+            final tilesPerRow = tilesPerRowById[entry.tilesetId] ?? 0;
+            if (image == null || tilesPerRow <= 0) continue;
+            final sourceX = (entry.localTileId % tilesPerRow) * sourceTileWidth;
+            final sourceY =
+                (entry.localTileId ~/ tilesPerRow) * sourceTileHeight;
+            final sourceRect = Rect.fromLTWH(
+              sourceX.toDouble(),
+              sourceY.toDouble(),
+              sourceTileWidth.toDouble(),
+              sourceTileHeight.toDouble(),
+            );
+            if (!_editorImageContainsRect(image, sourceRect)) continue;
+            _drawTileLayerImage(
+              canvas: canvas,
+              image: image,
+              sourceRect: sourceRect,
+              destinationRect: Rect.fromLTWH(
+                mapX * tileWidth,
+                mapY * tileHeight,
+                tileWidth,
+                tileHeight,
+              ),
+              transform: entry.transform,
+              paint: tilePaint,
+            );
             continue;
           }
-          final srcRect = Rect.fromLTWH(
-            sourceX.toDouble(),
-            sourceY.toDouble(),
-            sourceTileWidth.toDouble(),
-            sourceTileHeight.toDouble(),
-          );
-          final dstRect = Rect.fromLTWH(
-            mapX * tileWidth,
-            mapY * tileHeight,
-            tileWidth,
-            tileHeight,
-          );
-          canvas.drawImageRect(tilesetImage, srcRect, dstRect, tilePaint);
+          final visual = _resolveTileLayerVisual(entry, source);
+          if (visual == null) continue;
+          final scaleX = tileWidth / sourceTileWidth;
+          final scaleY = tileHeight / sourceTileHeight;
+          for (final slice in visual.frameAt(effectiveAnimationMs).slices) {
+            final image = tilesetImagesById[slice.assetId] ??
+                tilesetImagesById[entry.tilesetId];
+            if (image == null) continue;
+            final sourceRect = Rect.fromLTWH(
+              slice.sourceRect.x.toDouble(),
+              slice.sourceRect.y.toDouble(),
+              slice.sourceRect.width.toDouble(),
+              slice.sourceRect.height.toDouble(),
+            );
+            if (!_editorImageContainsRect(image, sourceRect)) continue;
+            final destination = slice.destinationRect;
+            _drawTileLayerImage(
+              canvas: canvas,
+              image: image,
+              sourceRect: sourceRect,
+              destinationRect: Rect.fromLTWH(
+                mapX * tileWidth + destination.x * scaleX,
+                mapY * tileHeight + destination.y * scaleY,
+                destination.width * scaleX,
+                destination.height * scaleY,
+              ),
+              transform: entry.transform,
+              paint: tilePaint,
+            );
+          }
         }
       }
     }
@@ -1876,21 +1912,16 @@ class MapGridPainter extends CustomPainter {
     if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
       return;
     }
-    final layerTilesetId = layer.tilesetId?.trim();
-    if (layerTilesetId == null || layerTilesetId.isEmpty) {
-      return;
-    }
-    final tilesetImage = tilesetImagesById[layerTilesetId];
-    final tilesPerRow = tilesPerRowById[layerTilesetId] ?? 0;
-    if (tilesetImage == null || tilesPerRow <= 0) {
-      return;
-    }
     final placedElementTileMask = _matchingPlacedElementTileIndicesForLayer(
       layer: layer,
-      layerTilesetId: layerTilesetId,
-      tilesPerRow: tilesPerRow,
       placedElements: visiblePlacedElements,
     );
+    final sources = <String, ProjectTilesetSource?>{
+      for (final tileset in project?.tilesets ?? const <ProjectTilesetEntry>[])
+        tileset.id: tileset.source,
+    };
+    final visualByEntry =
+        <TileLayerPaletteEntry, ProjectTilesetVisualResolution?>{};
 
     final explicitForeground = _isExplicitForegroundTileLayerForEditor(
       layerId: layer.id,
@@ -1921,9 +1952,8 @@ class MapGridPainter extends CustomPainter {
       final rowStart = y * map.size.width;
       for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final tileIndex = rowStart + x;
-        if (tileIndex < 0 || tileIndex >= layer.tiles.length) continue;
-        final tileId = layer.tiles[tileIndex];
-        if (tileId <= 0) continue;
+        final entry = resolveTileLayerCell(layer, tileIndex);
+        if (entry == null) continue;
         if (placedElementTileMask.contains(tileIndex)) continue;
         final shouldDrawCell = shouldPaintEditorTileCellInRenderPass(
           explicitForeground: explicitForeground,
@@ -1934,38 +1964,153 @@ class MapGridPainter extends CustomPainter {
           continue;
         }
 
-        final sourceIndex = tileId - 1;
-        final sourceX = (sourceIndex % tilesPerRow) * sourceTileWidth;
-        final sourceY = (sourceIndex ~/ tilesPerRow) * sourceTileHeight;
-
-        if (sourceX < 0 ||
-            sourceY < 0 ||
-            sourceX + sourceTileWidth > tilesetImage.width ||
-            sourceY + sourceTileHeight > tilesetImage.height) {
+        final source = sources[entry.tilesetId];
+        if (source == null) {
+          final image = tilesetImagesById[entry.tilesetId];
+          final tilesPerRow = tilesPerRowById[entry.tilesetId] ?? 0;
+          if (image == null || tilesPerRow <= 0) continue;
+          final sourceX = (entry.localTileId % tilesPerRow) * sourceTileWidth;
+          final sourceY = (entry.localTileId ~/ tilesPerRow) * sourceTileHeight;
+          final srcRect = Rect.fromLTWH(
+            sourceX.toDouble(),
+            sourceY.toDouble(),
+            sourceTileWidth.toDouble(),
+            sourceTileHeight.toDouble(),
+          );
+          if (!_editorImageContainsRect(image, srcRect)) continue;
+          _drawTileLayerImage(
+            canvas: canvas,
+            image: image,
+            sourceRect: srcRect,
+            destinationRect: Rect.fromLTWH(
+              x * tileWidth,
+              y * tileHeight,
+              tileWidth,
+              tileHeight,
+            ),
+            transform: entry.transform,
+            paint: layerPaint,
+          );
           continue;
         }
-
-        final srcRect = Rect.fromLTWH(
-          sourceX.toDouble(),
-          sourceY.toDouble(),
-          sourceTileWidth.toDouble(),
-          sourceTileHeight.toDouble(),
+        final visual = visualByEntry.putIfAbsent(
+          entry,
+          () => _resolveTileLayerVisual(entry, source),
         );
-        final dstRect = Rect.fromLTWH(
-          x * tileWidth,
-          y * tileHeight,
-          tileWidth,
-          tileHeight,
-        );
-        canvas.drawImageRect(tilesetImage, srcRect, dstRect, layerPaint);
+        if (visual == null) continue;
+        final scaleX = tileWidth / sourceTileWidth;
+        final scaleY = tileHeight / sourceTileHeight;
+        for (final slice in visual.frameAt(effectiveAnimationMs).slices) {
+          final image = tilesetImagesById[slice.assetId] ??
+              tilesetImagesById[entry.tilesetId];
+          if (image == null) continue;
+          final sourceRect = Rect.fromLTWH(
+            slice.sourceRect.x.toDouble(),
+            slice.sourceRect.y.toDouble(),
+            slice.sourceRect.width.toDouble(),
+            slice.sourceRect.height.toDouble(),
+          );
+          if (!_editorImageContainsRect(image, sourceRect)) continue;
+          final destination = slice.destinationRect;
+          _drawTileLayerImage(
+            canvas: canvas,
+            image: image,
+            sourceRect: sourceRect,
+            destinationRect: Rect.fromLTWH(
+              x * tileWidth + destination.x * scaleX,
+              y * tileHeight + destination.y * scaleY,
+              destination.width * scaleX,
+              destination.height * scaleY,
+            ),
+            transform: entry.transform,
+            paint: layerPaint,
+          );
+        }
       }
+    }
+  }
+
+  ProjectTilesetVisualResolution? _resolveTileLayerVisual(
+    TileLayerPaletteEntry entry,
+    ProjectTilesetSource source,
+  ) {
+    final selection = switch (source) {
+      ProjectRegularAtlasTilesetSource atlas =>
+        entry.localTileId < atlas.tileCount
+            ? ProjectTilesetVisualSelection.regularAtlas(
+                source: TilesetSourceRect(
+                  x: entry.localTileId % atlas.columns,
+                  y: entry.localTileId ~/ atlas.columns,
+                ),
+              )
+            : null,
+      ProjectImageCollectionTilesetSource() =>
+        ProjectTilesetVisualSelection.imageCollection(
+          tileId: entry.localTileId,
+        ),
+    };
+    if (selection == null) return null;
+    try {
+      return const ProjectTilesetVisualResolver().resolve(
+        source: source,
+        selection: selection,
+        cellWidth: sourceTileWidth,
+        cellHeight: sourceTileHeight,
+      );
+    } on ProjectTilesetVisualResolutionException {
+      return null;
+    }
+  }
+
+  bool _editorImageContainsRect(ui.Image image, Rect rect) =>
+      rect.left >= 0 &&
+      rect.top >= 0 &&
+      rect.width > 0 &&
+      rect.height > 0 &&
+      rect.right <= image.width &&
+      rect.bottom <= image.height;
+
+  void _drawTileLayerImage({
+    required Canvas canvas,
+    required ui.Image image,
+    required Rect sourceRect,
+    required Rect destinationRect,
+    required SmartTileSpriteTransform transform,
+    required Paint paint,
+  }) {
+    canvas.save();
+    try {
+      canvas.translate(destinationRect.left, destinationRect.top);
+      switch (transform.quarterTurns) {
+        case 0:
+          break;
+        case 1:
+          canvas.translate(destinationRect.height, 0);
+          canvas.rotate(math.pi / 2);
+        case 2:
+          canvas.translate(destinationRect.width, destinationRect.height);
+          canvas.rotate(math.pi);
+        case 3:
+          canvas.translate(0, destinationRect.width);
+          canvas.rotate(3 * math.pi / 2);
+      }
+      if (transform.flipX) {
+        canvas.translate(destinationRect.width, 0);
+        canvas.scale(-1, 1);
+      }
+      canvas.drawImageRect(
+        image,
+        sourceRect,
+        Rect.fromLTWH(0, 0, destinationRect.width, destinationRect.height),
+        paint,
+      );
+    } finally {
+      canvas.restore();
     }
   }
 
   Set<int> _matchingPlacedElementTileIndicesForLayer({
     required TileLayer layer,
-    required String layerTilesetId,
-    required int tilesPerRow,
     required List<MapPlacedElement> placedElements,
   }) {
     final projectContext = project;
@@ -1995,9 +2140,8 @@ class MapGridPainter extends CustomPainter {
       final tilesetId = frame.tilesetId.trim().isNotEmpty
           ? frame.tilesetId.trim()
           : entry.tilesetId.trim();
-      if (tilesetId != layerTilesetId) {
-        continue;
-      }
+      final tilesPerRow = tilesPerRowById[tilesetId] ?? 0;
+      if (tilesPerRow <= 0) continue;
       final source = frame.source;
       final width = source.width <= 0 ? 1 : source.width;
       final height = source.height <= 0 ? 1 : source.height;
@@ -2016,12 +2160,11 @@ class MapGridPainter extends CustomPainter {
             continue;
           }
           final tileIndex = y * map.size.width + x;
-          if (tileIndex < 0 || tileIndex >= layer.tiles.length) {
-            continue;
-          }
+          final tile = resolveTileLayerCell(layer, tileIndex);
+          if (tile == null || tile.tilesetId != tilesetId) continue;
           final sourceTileId =
-              (source.y + localY) * tilesPerRow + source.x + localX + 1;
-          if (layer.tiles[tileIndex] == sourceTileId) {
+              (source.y + localY) * tilesPerRow + source.x + localX;
+          if (tile.localTileId == sourceTileId) {
             out.add(tileIndex);
           }
         }

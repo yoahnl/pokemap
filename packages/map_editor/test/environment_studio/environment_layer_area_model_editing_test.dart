@@ -40,7 +40,7 @@ void main() {
         final tile = TileLayer(
           id: 'tiles_main',
           name: 'Sol',
-          tiles: List<int>.filled(12, 0, growable: false),
+          cells: List<int>.filled(12, 0, growable: false),
         );
         final env = MapLayer.environment(
           id: 'env1',
@@ -140,7 +140,7 @@ void main() {
         final tile = TileLayer(
           id: 't1',
           name: 'T',
-          tiles: const <int>[0],
+          cells: const <int>[0],
         );
         final map = MapData(
           id: 'm',
@@ -232,7 +232,7 @@ void main() {
         final tile = TileLayer(
           id: 't1',
           name: 'T',
-          tiles: const <int>[0, 0, 0, 0],
+          cells: const <int>[0, 0, 0, 0],
         );
         final map = MapData(
           id: 'm',
@@ -329,7 +329,7 @@ void main() {
         final tile = TileLayer(
           id: 't1',
           name: 'T',
-          tiles: const <int>[0],
+          cells: const <int>[0],
         );
         final env = MapLayer.environment(
           id: 'env1',

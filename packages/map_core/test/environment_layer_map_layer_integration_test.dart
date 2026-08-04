@@ -106,7 +106,7 @@ void main() {
         MapLayer.tile(
           id: 't1',
           name: 'T',
-          tiles: List<int>.filled(80, 0),
+          cells: List<int>.filled(80, 0),
         ),
       ]);
       final updated = addMapLayer(
@@ -170,7 +170,7 @@ void main() {
         MapLayer.tile(
           id: 't',
           name: 'T',
-          tiles: List<int>.filled(80, 0),
+          cells: List<int>.filled(80, 0),
         ),
       ]);
       expect(
@@ -196,7 +196,7 @@ void main() {
           MapLayer.tile(
             id: 't',
             name: 'T',
-            tiles: List<int>.filled(80, 0),
+            cells: List<int>.filled(80, 0),
           ),
         ],
         placedElements: [placed],
@@ -223,7 +223,7 @@ void main() {
         MapLayer.tile(
           id: 'decor',
           name: 'D',
-          tiles: List<int>.filled(80, 0),
+          cells: List<int>.filled(80, 0),
         ),
         MapLayer.environment(
           id: 'e',
@@ -261,7 +261,7 @@ void main() {
         MapLayer.tile(
           id: 'decor',
           name: 'D',
-          tiles: List<int>.filled(80, 0),
+          cells: List<int>.filled(80, 0),
         ),
         MapLayer.environment(
           id: 'e',

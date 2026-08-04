@@ -12,6 +12,7 @@ void main() {
         manifest: ctx.manifest,
         activeLayerId: 'env',
         selectedAreaId: 'area one',
+        selectedElementId: 'tree_large',
         pos: const GridPos(x: 2, y: 1),
       );
 
@@ -33,6 +34,7 @@ void main() {
         manifest: ctx.manifest,
         activeLayerId: 'env',
         selectedAreaId: 'area one',
+        selectedElementId: 'tree_large',
         pos: const GridPos(x: 4, y: 4),
       );
 
@@ -144,8 +146,7 @@ void main() {
   const tile = TileLayer(
     id: 'tiles',
     name: 'Tiles',
-    tilesetId: 'nature',
-    tiles: [
+    cells: [
       0,
       0,
       0,

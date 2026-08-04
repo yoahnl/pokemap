@@ -1157,8 +1157,7 @@ final _map = MapData(
     const TileLayer(
       id: 'tile',
       name: 'Tile',
-      tilesetId: 'world',
-      tiles: <int>[
+      cells: <int>[
         0,
         0,
         0,

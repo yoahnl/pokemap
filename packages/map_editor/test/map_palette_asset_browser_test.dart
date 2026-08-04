@@ -336,10 +336,7 @@ void main() {
       expect(notifier.getSelectedTilesetEntry()?.id, 'details');
       expect(notifier.state.isDirty, isFalse);
       expect(notifier.state.mapUndoStack, isEmpty);
-      expect(
-        find.byKey(MapPaletteAssetBrowserKeys.assignButton('details')),
-        findsOneWidget,
-      );
+      expect(find.text('Source prête'), findsOneWidget);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
@@ -386,7 +383,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('missing assigned source stays visible as a recovery warning',
+  testWidgets('missing legacy map default does not block the source browser',
       (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -398,8 +395,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Sol',
-            tilesetId: 'deleted_source',
-            tiles: <int>[0],
+            cells: <int>[0],
           ),
         ],
       ),
@@ -420,16 +416,15 @@ void main() {
       ),
     );
 
-    expect(find.text('Source introuvable : deleted_source'), findsOneWidget);
+    expect(find.text('Choisir une source'), findsOneWidget);
     await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.openButton));
     await tester.pumpAndSettle();
 
+    expect(find.textContaining('deleted_source'), findsNothing);
     expect(
-      find.text('Assignée introuvable : deleted_source'),
+      find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('world')),
       findsOneWidget,
     );
-    expect(find.textContaining('deleted_source'), findsWidgets);
-    expect(find.textContaining('n’existe plus dans le projet'), findsOneWidget);
   });
 
   testWidgets('keyboard and semantics expose browser item states',
@@ -475,10 +470,10 @@ void main() {
     await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.openButton));
     await tester.pumpAndSettle();
 
-    final assigned = tester.getSemantics(
+    final available = tester.getSemantics(
       find.byKey(MapPaletteAssetBrowserKeys.tilesetSemantics('world')),
     );
-    expect(assigned.label, contains('Assignée au calque actif'));
+    expect(available.label, contains('Toutes les cartes'));
 
     final selectedFavorite = tester.getSemantics(
       find.byKey(MapPaletteAssetBrowserKeys.tilesetSemantics('details')),
@@ -536,7 +531,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Sol',
-            tiles: <int>[0],
+            cells: <int>[0],
           ),
         ],
       ),
@@ -585,18 +580,18 @@ void main() {
         ),
       ],
     );
-    container.listen(editorNotifierProvider, (_, __) {});
-    container.read(editorNotifierProvider.notifier).state = EditorState(
-      projectRootPath: p.join(
-        Directory.systemTemp.path,
-        'pokemap_asset_browser_missing_project',
-      ),
-      project: project,
-      workspaceMode: EditorWorkspaceMode.map,
-      activeMap: map,
-      activeLayerId: 'ground',
-    );
-
+    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+    final notifier = container.read(editorNotifierProvider.notifier)
+      ..state = EditorState(
+        projectRootPath: p.join(
+          Directory.systemTemp.path,
+          'pokemap_asset_browser_missing_project',
+        ),
+        project: project,
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: map,
+        activeLayerId: 'ground',
+      );
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -612,6 +607,7 @@ void main() {
         ),
       ),
     );
+    notifier.selectTilesetEditorContext('world');
     await tester.pump();
     await tester.pump();
 
@@ -623,11 +619,12 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await tester.pumpWidget(const SizedBox.shrink());
+    keepAlive.close();
     container.dispose();
     await tester.pump();
   });
 
-  testWidgets('explicit browser assignment is one local undoable mutation',
+  testWidgets('browser source selection does not mutate the map',
       (tester) async {
     final root = await tester.runAsync(() async {
       final directory = await Directory.systemTemp.createTemp(
@@ -689,28 +686,13 @@ void main() {
     );
     await tester.pump();
     expect(notifier.getSelectedTilesetEntry()?.id, 'details');
-    await tester.tap(
-      find.byKey(MapPaletteAssetBrowserKeys.assignButton('details')),
-    );
-    await tester.pump();
 
-    expect(notifier.state.isDirty, isTrue);
-    expect(notifier.state.mapUndoStack, hasLength(1));
+    expect(notifier.state.isDirty, isFalse);
+    expect(notifier.state.mapUndoStack, isEmpty);
+    expect(notifier.state.activeMap, map);
     expect(
-      (notifier.state.activeMap!.layers.first as TileLayer).tilesetId,
-      'details',
-    );
-    expect(
-      (await tester.runAsync(
-        () => FileMapRepository().loadMap(mapPath),
-      ))!
-          .layers
-          .first,
-      isA<TileLayer>().having(
-        (layer) => layer.tilesetId,
-        'tilesetId',
-        'world',
-      ),
+      await tester.runAsync(() => FileMapRepository().loadMap(mapPath)),
+      map,
     );
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
@@ -780,8 +762,7 @@ const map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Sol',
-      tilesetId: 'world',
-      tiles: <int>[0],
+      cells: <int>[0],
     ),
   ],
 );

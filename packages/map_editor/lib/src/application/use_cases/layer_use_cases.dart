@@ -15,7 +15,6 @@ class AddMapLayerUseCase {
     MapData map, {
     required MapLayerKind kind,
     required String name,
-    String? tileTilesetId,
     int? insertIndex,
   }) {
     final normalizedName = name.trim();
@@ -34,7 +33,6 @@ class AddMapLayerUseCase {
       kind: kind,
       id: layerId,
       name: normalizedName,
-      tileTilesetId: tileTilesetId,
       insertIndex: insertIndex,
     );
     MapValidator.validate(updated);

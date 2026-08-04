@@ -140,7 +140,8 @@ class EditorMapSessionCoordinator {
     if (preferredLayerId != null) {
       final preferredLayer = _findLayerById(map, preferredLayerId);
       if (preferredLayer is TileLayer) {
-        final preferredTilesetId = preferredLayer.tilesetId?.trim();
+        final preferredTilesetId =
+            tileLayerSingleTilesetId(preferredLayer)?.trim();
         if (preferredTilesetId != null && preferredTilesetId.isNotEmpty) {
           return preferredTilesetId;
         }
@@ -149,7 +150,7 @@ class EditorMapSessionCoordinator {
 
     for (final layer in map.layers) {
       if (layer is TileLayer) {
-        final tilesetId = layer.tilesetId?.trim();
+        final tilesetId = tileLayerSingleTilesetId(layer)?.trim();
         if (tilesetId != null && tilesetId.isNotEmpty) {
           return tilesetId;
         }

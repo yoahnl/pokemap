@@ -29,11 +29,11 @@ void main() {
           MapLayer.tile(
               id: 'a',
               name: 'A',
-              tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+              cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
           MapLayer.tile(
               id: 'b',
               name: 'B',
-              tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+              cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
         ],
         placedElements: const [
           MapPlacedElement(
@@ -66,7 +66,7 @@ void main() {
           MapLayer.tile(
               id: 'a',
               name: 'A',
-              tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
+              cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
         ],
         placedElements: const [
           MapPlacedElement(
@@ -90,7 +90,7 @@ void main() {
   });
 
   group('placedElements validation', () {
-    test('MapValidator rejects mismatch between layer tileset and element', () {
+    test('MapValidator accepts elements from another palette source', () {
       final project = _projectWithElement(
         elementId: 'house',
         elementTilesetId: 'ts_house',
@@ -104,8 +104,13 @@ void main() {
           MapLayer.tile(
             id: 'layer',
             name: 'Layer',
-            tilesetId: 'ts_tree',
-            tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            palette: [
+              TileLayerPaletteEntry(
+                tilesetId: 'ts_tree',
+                localTileId: 0,
+              ),
+            ],
+            cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
         ],
         placedElements: const [
@@ -120,7 +125,7 @@ void main() {
 
       expect(
         () => MapValidator.validate(map, projectDialogueContext: project),
-        throwsA(isA<ValidationException>()),
+        returnsNormally,
       );
     });
 
@@ -138,8 +143,7 @@ void main() {
           MapLayer.tile(
             id: 'layer',
             name: 'Layer',
-            tilesetId: 'ts_house',
-            tiles: [0, 0, 0, 0],
+            cells: [0, 0, 0, 0],
           ),
         ],
         placedElements: const [
@@ -173,11 +177,25 @@ ProjectManifest _projectWithElement({
         id: elementTilesetId,
         name: elementTilesetId,
         relativePath: '$elementTilesetId.png',
+        source: ProjectRegularAtlasTilesetSource(
+          assetId: '$elementTilesetId.png',
+          pixelWidth: 32,
+          pixelHeight: 32,
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
       ),
       const ProjectTilesetEntry(
         id: 'ts_tree',
         name: 'ts_tree',
         relativePath: 'ts_tree.png',
+        source: ProjectRegularAtlasTilesetSource(
+          assetId: 'ts_tree.png',
+          pixelWidth: 32,
+          pixelHeight: 32,
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
       ),
     ],
     elementCategories: const [

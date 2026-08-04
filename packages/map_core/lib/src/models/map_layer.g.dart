@@ -6,17 +6,40 @@ part of 'map_layer.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_$TileLayerPaletteEntryImpl _$$TileLayerPaletteEntryImplFromJson(
+        Map<String, dynamic> json) =>
+    _$TileLayerPaletteEntryImpl(
+      tilesetId: json['tilesetId'] as String,
+      localTileId: (json['localTileId'] as num).toInt(),
+      transform: json['transform'] == null
+          ? const SmartTileSpriteTransform()
+          : SmartTileSpriteTransform.fromJson(
+              json['transform'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$TileLayerPaletteEntryImplToJson(
+        _$TileLayerPaletteEntryImpl instance) =>
+    <String, dynamic>{
+      'tilesetId': instance.tilesetId,
+      'localTileId': instance.localTileId,
+      'transform': instance.transform.toJson(),
+    };
+
 _$TileLayerImpl _$$TileLayerImplFromJson(Map<String, dynamic> json) =>
     _$TileLayerImpl(
       id: json['id'] as String,
       name: json['name'] as String,
-      tilesetId: json['tilesetId'] as String?,
       isVisible: json['isVisible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
-      tiles: (json['tiles'] as List<dynamic>?)
+      palette: (json['palette'] as List<dynamic>?)
+              ?.map((e) =>
+                  TileLayerPaletteEntry.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <TileLayerPaletteEntry>[],
+      cells: (json['cells'] as List<dynamic>?)
               ?.map((e) => (e as num).toInt())
               .toList() ??
-          const [],
+          const <int>[],
       $type: json['runtimeType'] as String?,
     );
 
@@ -24,10 +47,10 @@ Map<String, dynamic> _$$TileLayerImplToJson(_$TileLayerImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
-      'tilesetId': instance.tilesetId,
       'isVisible': instance.isVisible,
       'opacity': instance.opacity,
-      'tiles': instance.tiles,
+      'palette': instance.palette.map((e) => e.toJson()).toList(),
+      'cells': instance.cells,
       'runtimeType': instance.$type,
     };
 

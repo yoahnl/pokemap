@@ -1171,14 +1171,18 @@ const _mapA = MapData(
     TileLayer(
       id: 'tile',
       name: 'Tile',
-      tilesetId: 'world',
-      tiles: <int>[],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+      ],
+      cells: <int>[],
     ),
     TileLayer(
       id: 'tile-b',
       name: 'Tile B',
-      tilesetId: 'details',
-      tiles: <int>[],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'details', localTileId: 0),
+      ],
+      cells: <int>[],
     ),
     SmartTileLayer(
       id: 'terrain-a',
@@ -1216,8 +1220,10 @@ const _mapB = MapData(
     TileLayer(
       id: 'tile',
       name: 'Tile',
-      tilesetId: 'world',
-      tiles: <int>[],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+      ],
+      cells: <int>[],
     ),
   ],
 );

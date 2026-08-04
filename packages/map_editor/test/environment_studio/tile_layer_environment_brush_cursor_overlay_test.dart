@@ -96,7 +96,7 @@ MapGridPainter _painter(EnvironmentMaskBrushCursorOverlay? overlay) {
         TileLayer(
           id: 'tiles',
           name: 'Sol',
-          tiles: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+          cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ),
       ],
     ),

@@ -410,7 +410,15 @@ void main() {
       final map = sourceMap.copyWith(
         layers: <MapLayer>[
           sourceLayer.copyWith(
-            tiles: List<int>.filled(64, 7, growable: false),
+            palette: List<TileLayerPaletteEntry>.generate(
+              7,
+              (index) => TileLayerPaletteEntry(
+                tilesetId: 'tiles',
+                localTileId: index,
+              ),
+              growable: false,
+            ),
+            cells: List<int>.filled(64, 7, growable: false),
           ),
         ],
       );
@@ -430,9 +438,9 @@ void main() {
 
       final result = container.read(editorNotifierProvider);
       final resultLayer = result.activeMap!.layers.single as TileLayer;
-      expect(resultLayer.tiles[26], 0);
+      expect(resultLayer.cells[26], 0);
       expect(
-        resultLayer.tiles.where((tile) => tile == 7),
+        resultLayer.cells.where((tile) => tile == 7),
         hasLength(63),
       );
       expect(result.mapStrokeStart, isNull);
@@ -535,7 +543,7 @@ void main() {
       final map = editor.activeMap!.copyWith(
         layers: <MapLayer>[
           sourceLayer.copyWith(
-            tiles: List<int>.filled(64, 0, growable: false),
+            cells: List<int>.filled(64, 0, growable: false),
           ),
         ],
         entities: const <MapEntity>[
@@ -1047,8 +1055,7 @@ EditorState _rotationEditorState() {
       TileLayer(
         id: 'ground',
         name: 'Ground',
-        tilesetId: 'tiles',
-        tiles: List<int>.filled(64, 0, growable: false),
+        cells: List<int>.filled(64, 0, growable: false),
       ),
     ],
     placedElements: const <MapPlacedElement>[
@@ -1180,7 +1187,7 @@ EditorState _editorState() {
       TileLayer(
         id: 'ground',
         name: 'Ground',
-        tiles: <int>[],
+        cells: <int>[],
       ),
     ],
   );
@@ -1192,6 +1199,13 @@ EditorState _editorState() {
           id: 'workspace_map',
           name: 'Workspace Map',
           relativePath: 'maps/workspace_map.json',
+        ),
+      ],
+      tilesets: const <ProjectTilesetEntry>[
+        ProjectTilesetEntry(
+          id: 'tiles',
+          name: 'Tiles',
+          relativePath: 'tilesets/tiles.png',
         ),
       ],
     ),

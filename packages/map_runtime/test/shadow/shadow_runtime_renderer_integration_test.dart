@@ -72,8 +72,10 @@ void main() {
               const MapLayer.tile(
                 id: 'tile',
                 name: 'Tile',
-                tilesetId: 'base',
-                tiles: [1],
+                palette: <TileLayerPaletteEntry>[
+                  TileLayerPaletteEntry(tilesetId: 'base', localTileId: 0),
+                ],
+                cells: [1],
               ),
             ],
           ),

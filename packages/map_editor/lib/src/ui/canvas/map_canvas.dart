@@ -2276,7 +2276,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                   ),
                 ),
               ),
-              if (state.project != null)
+              if (state.project != null &&
+                  widget.onEventBuilderPositionChosen == null)
                 Positioned(
                   right: 12,
                   top: 12,
@@ -2377,8 +2378,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         ),
         Padding(
           padding: const EdgeInsets.all(6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          child: Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               IgnorePointer(
                 child: Padding(
@@ -2394,14 +2397,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                   ),
                 ),
               ),
-              const SizedBox(width: 4),
-              for (final preset in presets) ...[
+              for (final preset in presets)
                 _shadowLightPreviewPresetButton(
                   preset: preset,
                   selected: preset.id == selectedPreset.id,
                 ),
-                if (preset.id != presets.last.id) const SizedBox(width: 4),
-              ],
             ],
           ),
         ),
@@ -3434,11 +3434,35 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       );
       for (final layer in map.layers) {
         if (layer is! TileLayer) continue;
-        final tilesetId = layer.tilesetId?.trim();
-        if (tilesetId == null || tilesetId.isEmpty) continue;
-        final path = notifier.getTilesetAbsolutePathById(tilesetId);
-        if (path == null || path.isEmpty) continue;
-        result[tilesetId] = path;
+        for (final tilesetId
+            in layer.palette.map((entry) => entry.tilesetId).toSet()) {
+          ProjectTilesetEntry? tileset;
+          for (final candidate
+              in project?.tilesets ?? const <ProjectTilesetEntry>[]) {
+            if (candidate.id == tilesetId) {
+              tileset = candidate;
+              break;
+            }
+          }
+          final source = tileset?.source;
+          if (source is ProjectImageCollectionTilesetSource &&
+              projectRootPath != null &&
+              projectRootPath.trim().isNotEmpty) {
+            for (final page in source.pages) {
+              result[page.assetId] = p.normalize(
+                p.join(
+                  projectRootPath,
+                  tileset!.relativePath,
+                  '${page.id}.png',
+                ),
+              );
+            }
+            continue;
+          }
+          final path = notifier.getTilesetAbsolutePathById(tilesetId);
+          if (path == null || path.isEmpty) continue;
+          result[tilesetId] = path;
+        }
       }
       for (final atlas in project?.smartTileCatalog.atlases ??
           const <ProjectSmartTileAtlas>[]) {

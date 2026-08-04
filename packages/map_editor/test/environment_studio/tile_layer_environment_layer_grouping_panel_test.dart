@@ -480,7 +480,7 @@ MapData _mapWithAttachedEnvironment({bool includeCollision = false}) {
       const TileLayer(
         id: 'decor',
         name: 'Décor',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       _environmentLayer(
         id: 'env_decor',
@@ -501,7 +501,7 @@ MapData _mapWithInvalidEnvironment() {
       const TileLayer(
         id: 'decor',
         name: 'Décor',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       _environmentLayer(
         id: 'env_missing',
@@ -521,7 +521,7 @@ MapData _mapWithTwoInvalidEnvironments() {
       const TileLayer(
         id: 'decor',
         name: 'Décor',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       _environmentLayer(
         id: 'env_a',
@@ -547,7 +547,7 @@ MapData _mapWithReorderableEnvironment() {
       const TileLayer(
         id: 'decor',
         name: 'Décor',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       _environmentLayer(
         id: 'env_decor',

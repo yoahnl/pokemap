@@ -583,7 +583,7 @@ final _map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Sol',
-      tiles: List<int>.filled(64, 0, growable: false),
+      cells: List<int>.filled(64, 0, growable: false),
     ),
   ],
 );

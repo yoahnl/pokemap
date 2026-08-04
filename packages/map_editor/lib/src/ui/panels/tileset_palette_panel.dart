@@ -1182,17 +1182,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       );
     }
     final tileLayer = layer;
-    final layerTilesetId = (tileLayer.tilesetId ?? map.tilesetId).trim();
-    if (layerTilesetId.isEmpty) {
-      return _PlacedElementInstancesScope(
-        layerId: tileLayer.id,
-        layerName: tileLayer.name,
-        instances: const [],
-        emptyTitle: 'Tileset manquant',
-        emptyMessage:
-            'Le calque actif n’a pas de tileset associé pour détecter les éléments.',
-      );
-    }
     final elementById = <String, ProjectElementEntry>{
       for (final entry in project.elements) entry.id: entry,
     };

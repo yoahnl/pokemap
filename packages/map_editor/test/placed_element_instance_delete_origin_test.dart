@@ -25,7 +25,7 @@ void main() {
 
         expect(notifier.state.activeMap!.placedElements, isEmpty);
         expect(
-          (notifier.state.activeMap!.layers.single as TileLayer).tiles,
+          (notifier.state.activeMap!.layers.single as TileLayer).cells,
           const [1],
         );
         expect(notifier.state.errorMessage, isNull);
@@ -48,7 +48,7 @@ void main() {
 
       expect(notifier.state.activeMap!.placedElements, isEmpty);
       expect(
-        (notifier.state.activeMap!.layers.single as TileLayer).tiles,
+        (notifier.state.activeMap!.layers.single as TileLayer).cells,
         const [0],
       );
     });
@@ -92,8 +92,10 @@ MapData _map({required Map<String, String> properties}) => MapData(
         TileLayer(
           id: 'decor',
           name: 'Decor',
-          tilesetId: 'nature',
-          tiles: [1],
+          palette: [
+            TileLayerPaletteEntry(tilesetId: 'nature', localTileId: 0),
+          ],
+          cells: [1],
         ),
       ],
       placedElements: [
@@ -115,6 +117,13 @@ const _manifest = ProjectManifest(
       id: 'nature',
       name: 'Nature',
       relativePath: 'tilesets/nature.png',
+      source: ProjectRegularAtlasTilesetSource(
+        assetId: 'tilesets/nature.png',
+        pixelWidth: 32,
+        pixelHeight: 32,
+        tileWidth: 32,
+        tileHeight: 32,
+      ),
     ),
   ],
   elements: [

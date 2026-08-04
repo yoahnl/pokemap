@@ -111,7 +111,7 @@ void main() {
         kDefaultEnvironmentMaskBrushSize,
       );
 
-      expect(_tileLayer(reloadedMap).tiles, _tileLayer(initialMap).tiles);
+      expect(_tileLayer(reloadedMap).cells, _tileLayer(initialMap).cells);
       expect(_environmentLayer(reloadedMap).content.targetTileLayerId, 'tiles');
       expect(reloadedArea.mask, _areaById(initialMap, 'area').mask);
       expect(reloadedArea.seed, 17);
@@ -221,6 +221,13 @@ ProjectManifest _manifest() {
         id: 'nature',
         name: 'Nature',
         relativePath: 'tilesets/nature.png',
+        source: ProjectRegularAtlasTilesetSource(
+          assetId: 'nature',
+          pixelWidth: 32,
+          pixelHeight: 32,
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
       ),
     ],
     elementCategories: const [
@@ -289,8 +296,10 @@ MapData _map() {
       const TileLayer(
         id: 'tiles',
         name: 'Décor',
-        tilesetId: 'nature',
-        tiles: [
+        palette: [
+          TileLayerPaletteEntry(tilesetId: 'nature', localTileId: 0),
+        ],
+        cells: [
           1,
           0,
           0,

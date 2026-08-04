@@ -219,8 +219,7 @@ MapData _map({
       MapLayer.tile(
         id: 'decor',
         name: 'Decor',
-        tilesetId: 'tiles',
-        tiles: List<int>.filled(
+        cells: List<int>.filled(
           size.width * size.height,
           0,
           growable: false,

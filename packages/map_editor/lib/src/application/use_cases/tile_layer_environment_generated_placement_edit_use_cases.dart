@@ -80,19 +80,6 @@ class AddTileLayerEnvironmentGeneratedPlacementAtUseCase {
     if (element == null) {
       throw EditorValidationException('Project element not found: $eid');
     }
-    final targetTilesetId = _effectiveTileLayerTilesetId(
-      target.tileLayer,
-      map,
-    );
-    final elementTilesetId = _elementPrimaryTilesetId(element);
-    if (targetTilesetId.isNotEmpty &&
-        elementTilesetId.isNotEmpty &&
-        targetTilesetId != elementTilesetId) {
-      throw EditorValidationException(
-        'Element tileset $elementTilesetId does not match TileLayer tileset $targetTilesetId',
-      );
-    }
-
     final footprint = environmentGeneratedPlacementElementFootprint(element);
     if (!isEnvironmentGeneratedPlacementFootprintInBounds(
       pos: pos,
@@ -376,16 +363,6 @@ ProjectElementEntry? _projectElementById(
     if (element.id == normalizedId) return element;
   }
   return null;
-}
-
-String _effectiveTileLayerTilesetId(TileLayer layer, MapData map) {
-  return (layer.tilesetId ?? map.tilesetId).trim();
-}
-
-String _elementPrimaryTilesetId(ProjectElementEntry element) {
-  final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
-  if (frameTilesetId.isNotEmpty) return frameTilesetId;
-  return element.tilesetId.trim();
 }
 
 bool _applyCollisionFromEnvironmentMode(EnvironmentCollisionMode mode) {

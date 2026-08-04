@@ -389,7 +389,7 @@ void main() {
       },
     );
 
-    test('place object retains only a current compatible project element', () {
+    test('place object retains any current project element', () {
       final container = _createContainer();
       final notifier = container.read(editorNotifierProvider.notifier);
 
@@ -412,7 +412,10 @@ void main() {
         const ActivateWorldMapPlacement(WorldMapPlacementSubtool.object),
       );
       expect(result.accepted, isTrue);
-      expect(notifier.state.activeBrush, const EditorBrush.none());
+      expect(
+        notifier.state.activeBrush,
+        const EditorBrush.projectElement(elementId: 'lamp'),
+      );
 
       notifier.state = _stateForLayer('tile').copyWith(
         activeBrush:
@@ -444,8 +447,7 @@ void main() {
       );
     });
 
-    test('paint tile rejects project elements from another or missing source',
-        () {
+    test('paint tile accepts another source and rejects a missing element', () {
       final container = _createContainer();
       final notifier = container.read(editorNotifierProvider.notifier);
 
@@ -462,13 +464,15 @@ void main() {
         expect(notifier.state.activeTool, EditorToolType.tilePaint);
         expect(
           notifier.state.activeBrush,
-          const EditorBrush.none(),
+          elementId == 'lamp'
+              ? const EditorBrush.projectElement(elementId: 'lamp')
+              : const EditorBrush.none(),
           reason: elementId,
         );
       }
     });
 
-    test('paint tile retains only a compatible current tile source', () {
+    test('paint tile retains a current tile brush from any source', () {
       final container = _createContainer();
       final notifier = container.read(editorNotifierProvider.notifier);
 
@@ -491,7 +495,10 @@ void main() {
         const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
       );
       expect(result.accepted, isTrue);
-      expect(notifier.state.activeBrush, const EditorBrush.none());
+      expect(
+        notifier.state.activeBrush,
+        const EditorBrush.tile(tileId: 4, tilesetId: 'details'),
+      );
     });
 
     for (final testCase in <({
@@ -909,8 +916,7 @@ final _map = MapData(
     const TileLayer(
       id: 'tile',
       name: 'Tile',
-      tilesetId: 'world',
-      tiles: <int>[],
+      cells: <int>[],
     ),
     const ObjectLayer(id: 'terrain', name: 'Non-paint layer'),
     const SmartTileLayer(

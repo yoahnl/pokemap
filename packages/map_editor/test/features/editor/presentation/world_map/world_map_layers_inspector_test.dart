@@ -102,7 +102,7 @@ void main() {
           version: ProjectVersion.v6,
           size: GridSize(width: 1, height: 1),
           layers: <MapLayer>[
-            TileLayer(id: 'tiles', name: 'Tuiles', tiles: <int>[0]),
+            TileLayer(id: 'tiles', name: 'Tuiles', cells: <int>[0]),
             SmartTileLayer(
               id: 'terrain',
               name: 'Terrain',
@@ -332,7 +332,7 @@ void main() {
         version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
-          TileLayer(id: 'tiles', name: 'Sol', tiles: <int>[0]),
+          TileLayer(id: 'tiles', name: 'Sol', cells: <int>[0]),
           SmartTileLayer(
             id: 'terrain',
             name: 'Herbe',
@@ -419,7 +419,7 @@ void main() {
         version: ProjectVersion.v6,
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
-          TileLayer(id: 'tiles', name: 'Sol principal', tiles: <int>[0]),
+          TileLayer(id: 'tiles', name: 'Sol principal', cells: <int>[0]),
           SmartTileLayer(
             id: 'terrain',
             name: 'Herbe sombre',
@@ -594,8 +594,7 @@ void main() {
             TileLayer(
               id: 'tile',
               name: 'Éléments',
-              tilesetId: 'world',
-              tiles: <int>[0],
+              cells: <int>[0],
             ),
             SmartTileLayer(
               id: 'path-a',
@@ -1678,7 +1677,7 @@ TileLayer _tile(String id, String name) {
   return TileLayer(
     id: id,
     name: name,
-    tiles: const [0],
+    cells: const [0],
   );
 }
 

@@ -542,7 +542,7 @@ String? _resolveAssignedTilesetId(MapData? map, String? activeLayerId) {
   if (map == null || activeLayerId == null) return null;
   for (final layer in map.layers) {
     if (layer.id != activeLayerId || layer is! TileLayer) continue;
-    final layerTilesetId = layer.tilesetId?.trim();
+    final layerTilesetId = tileLayerSingleTilesetId(layer)?.trim();
     if (layerTilesetId != null && layerTilesetId.isNotEmpty) {
       return layerTilesetId;
     }
@@ -602,7 +602,8 @@ ProjectTilesetEntry? _resolveSelectedTilesetEntryFromState(EditorState state) {
 
   final activeLayer = _resolveActiveLayerFromState(state);
   if (activeLayer is TileLayer) {
-    final explicitLayerTilesetId = activeLayer.tilesetId?.trim();
+    final explicitLayerTilesetId =
+        tileLayerSingleTilesetId(activeLayer)?.trim();
     final mapTilesetId = activeMap?.tilesetId.trim();
     final layerTilesetId =
         explicitLayerTilesetId != null && explicitLayerTilesetId.isNotEmpty

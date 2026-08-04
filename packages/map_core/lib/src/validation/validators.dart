@@ -2085,15 +2085,6 @@ class MapValidator {
             'Placed element instance $instanceId references unknown element: $elementId',
           );
         }
-        final layerTilesetId = (layer.tilesetId ?? map.tilesetId).trim();
-        final elementTilesetId = _resolveElementPrimaryTilesetId(element);
-        if (layerTilesetId.isNotEmpty &&
-            elementTilesetId.isNotEmpty &&
-            layerTilesetId != elementTilesetId) {
-          throw ValidationException(
-            'Placed element instance $instanceId references element $elementId from tileset $elementTilesetId, but layer $layerId uses tileset $layerTilesetId',
-          );
-        }
         final footprint = resolveMapPlacedElementFootprint(
           instance: instance,
           element: element,
@@ -2616,20 +2607,46 @@ class MapValidator {
 
     layer.map<void>(
       tile: (tileLayer) {
-        final layerTilesetId = tileLayer.tilesetId?.trim();
-        if (layerTilesetId != null && layerTilesetId.isEmpty) {
+        if (tileLayer.cells.length != expectedCellCount) {
           throw ValidationException(
-              'Tile layer $layerId has an empty tilesetId');
-        }
-        if (tileLayer.tiles.length != expectedCellCount) {
-          throw ValidationException(
-            'Tile layer $layerId has invalid tile count: expected $expectedCellCount, got ${tileLayer.tiles.length}',
+            'Tile layer $layerId has invalid cell count: expected $expectedCellCount, got ${tileLayer.cells.length}',
           );
         }
-        for (var i = 0; i < tileLayer.tiles.length; i++) {
-          if (tileLayer.tiles[i] < 0) {
+        final paletteEntries = <TileLayerPaletteEntry>{};
+        for (var i = 0; i < tileLayer.palette.length; i++) {
+          final entry = tileLayer.palette[i];
+          if (entry.tilesetId.trim().isEmpty ||
+              entry.tilesetId != entry.tilesetId.trim() ||
+              entry.localTileId < 0 ||
+              entry.transform.quarterTurns < 0 ||
+              entry.transform.quarterTurns > 3 ||
+              !paletteEntries.add(entry)) {
             throw ValidationException(
-              'Tile layer $layerId has negative tile ID at index $i: ${tileLayer.tiles[i]}',
+              'Tile layer $layerId has invalid palette entry at index $i',
+            );
+          }
+          final project = projectContext;
+          if (project != null) {
+            ProjectTilesetEntry? tileset;
+            for (final candidate in project.tilesets) {
+              if (candidate.id == entry.tilesetId) {
+                tileset = candidate;
+                break;
+              }
+            }
+            if (tileset == null ||
+                !_tilesetContainsLocalTileId(tileset, entry.localTileId)) {
+              throw ValidationException(
+                'Tile layer $layerId palette entry $i references an unknown tile',
+              );
+            }
+          }
+        }
+        for (var i = 0; i < tileLayer.cells.length; i++) {
+          final cell = tileLayer.cells[i];
+          if (cell < 0 || cell > tileLayer.palette.length) {
+            throw ValidationException(
+              'Tile layer $layerId has invalid palette cell at index $i: $cell',
             );
           }
         }
@@ -2955,12 +2972,20 @@ class MapValidator {
     );
   }
 
-  static String _resolveElementPrimaryTilesetId(ProjectElementEntry element) {
-    final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
-    if (frameTilesetId.isNotEmpty) {
-      return frameTilesetId;
+  static bool _tilesetContainsLocalTileId(
+    ProjectTilesetEntry tileset,
+    int localTileId,
+  ) {
+    final source = tileset.source;
+    if (source is ProjectRegularAtlasTilesetSource) {
+      return localTileId >= 0 && localTileId < source.tileCount;
     }
-    return element.tilesetId.trim();
+    if (source is ProjectImageCollectionTilesetSource) {
+      return source.tileDefinitions.any(
+        (definition) => definition.tileId == localTileId,
+      );
+    }
+    return false;
   }
 
   static String _requireNonBlank(String value, String message) {

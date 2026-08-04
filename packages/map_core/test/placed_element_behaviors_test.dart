@@ -381,8 +381,7 @@ MapData _baseMap({
       MapLayer.tile(
         id: 'layer',
         name: 'Layer',
-        tilesetId: 'ts',
-        tiles: [
+        cells: [
           0,
           0,
           0,

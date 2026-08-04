@@ -15,7 +15,6 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/theme/theme.dart';
-import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/assets/editor_image_cache.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 
@@ -155,14 +154,35 @@ void main() {
         await tester.pump();
         expect(editor.state.selectedPlacedElementInstanceId, 'manual-tree');
 
+        final selectedManualCell =
+            _cellCenter(tester, const GridPos(x: 4, y: 2));
         final drag = await tester.startGesture(
-          manualCell,
+          selectedManualCell,
           kind: ui.PointerDeviceKind.mouse,
         );
-        await drag.moveBy(const Offset(32, 0));
+        await drag.moveBy(const Offset(20, 0));
         await tester.pump();
+        await drag.moveBy(const Offset(12, 0));
+        await tester.pump();
+        final movePreview = find.byKey(
+          const ValueKey<String>('map-canvas-object-move-preview'),
+        );
+        printOnFailure(
+          'drag preview=${movePreview.evaluate().length} '
+          'semantics=${tester.getSemantics(movePreview).label} '
+          'selected=${editor.state.selectedPlacedElementInstanceId} '
+          'status=${editor.state.statusMessage} '
+          'error=${editor.state.errorMessage}',
+        );
+        expect(movePreview, findsOneWidget);
         await drag.up();
         await tester.pump();
+        printOnFailure(
+          'drag result=${_manualTree(editor.state).pos} '
+          'undo=${editor.state.mapUndoStack.length} '
+          'status=${editor.state.statusMessage} '
+          'error=${editor.state.errorMessage}',
+        );
         expect(
           _manualTree(editor.state).pos,
           const GridPos(x: 5, y: 2),
@@ -338,7 +358,9 @@ Future<void> _activateFamily(
 }
 
 Offset _cellCenter(WidgetTester tester, GridPos cell) {
-  final origin = tester.getTopLeft(find.byType(MapCanvas));
+  final origin = tester.getTopLeft(
+    find.byKey(const ValueKey<String>('map-canvas-gesture-detector')),
+  );
   return origin + Offset(cell.x * 32 + 16, cell.y * 32 + 16);
 }
 
@@ -531,14 +553,18 @@ final _map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Sol',
-      tilesetId: 'village',
-      tiles: List<int>.filled(64, 0, growable: false),
+      palette: <TileLayerPaletteEntry>[
+        const TileLayerPaletteEntry(tilesetId: 'village', localTileId: 0),
+      ],
+      cells: List<int>.filled(64, 0, growable: false),
     ),
     TileLayer(
       id: 'objects',
       name: 'Éléments',
-      tilesetId: 'village',
-      tiles: List<int>.filled(64, 0, growable: false),
+      palette: <TileLayerPaletteEntry>[
+        const TileLayerPaletteEntry(tilesetId: 'village', localTileId: 0),
+      ],
+      cells: List<int>.filled(64, 0, growable: false),
     ),
     CollisionLayer(
       id: 'collision',
@@ -576,6 +602,13 @@ final _initialState = EditorState(
         id: 'village',
         name: 'Village',
         relativePath: 'assets/village.png',
+        source: ProjectTilesetSource.regularAtlas(
+          assetId: 'village',
+          pixelWidth: 64,
+          pixelHeight: 32,
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
       ),
     ],
     elements: <ProjectElementEntry>[

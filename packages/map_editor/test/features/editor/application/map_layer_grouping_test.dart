@@ -383,7 +383,7 @@ MapData _mapWithInvalidEnvironments() {
 }
 
 TileLayer _tile(String id) {
-  return TileLayer(id: id, name: id, tiles: const <int>[0]);
+  return TileLayer(id: id, name: id, cells: const <int>[0]);
 }
 
 EnvironmentLayer _environment(String id, String? targetLayerId) {

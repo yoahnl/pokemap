@@ -1451,9 +1451,9 @@ void main() {
       expect(mapViewportSize.aspectRatio, closeTo(12 / 10, 0.08));
       expect(legendSize.height, lessThan(mapViewportSize.height * 0.35));
       expect(find.text('Fallback structurel'), findsOneWidget);
-      expect(find.text('6 primitive(s) spatiale(s)'), findsOneWidget);
+      expect(find.text('4 primitive(s) spatiale(s)'), findsOneWidget);
       expect(find.text('Ground · 4 · tile'), findsOneWidget);
-      expect(find.text('Main path · 2 · path'), findsOneWidget);
+      expect(find.text('Main path · 2 · path'), findsNothing);
       expect(find.text('Collision'), findsNothing);
       expect(find.text('Couche collision'), findsNothing);
       expect(find.text('Professor Oak'), findsNothing);
@@ -1535,8 +1535,8 @@ void main() {
         findsOneWidget,
       );
       expect(tileRenderPlan.instructions, hasLength(2));
-      expect(tileRenderPlan.instructions.first.tileId, 1);
-      expect(tileRenderPlan.instructions.last.tileId, 2);
+      expect(tileRenderPlan.instructions.first.tileId, 0);
+      expect(tileRenderPlan.instructions.last.tileId, 1);
       expect(tileRenderPlan.instructions.first.sourceRect.left, 0);
       expect(tileRenderPlan.instructions.last.sourceRect.left, 8);
       expect(find.text('Aperçu spatial structurel'), findsNothing);
@@ -1828,39 +1828,39 @@ void main() {
       ],
       settings: const ProjectSettings(tileWidth: 8, tileHeight: 8),
     );
-    const mapData = MapData(
+    final mapData = MapData(
       id: 'map_lab',
       name: 'Lab map',
-      size: GridSize(width: 3, height: 1),
+      size: const GridSize(width: 3, height: 1),
       layers: [
         MapLayer.tile(
           id: 'visible',
           name: 'Visible tiles',
-          tilesetId: 'lab_tiles',
-          tiles: [1, 0, 2],
+          palette: _tilePalette('lab_tiles', 2),
+          cells: const [1, 0, 2],
         ),
         MapLayer.tile(
           id: 'hidden',
           name: 'Hidden tiles',
-          tilesetId: 'lab_tiles',
+          palette: _tilePalette('lab_tiles', 1),
           isVisible: false,
-          tiles: [1, 1, 1],
+          cells: const [1, 1, 1],
         ),
         MapLayer.tile(
           id: 'semi',
           name: 'Semi transparent tiles',
-          tilesetId: 'lab_tiles',
+          palette: _tilePalette('lab_tiles', 2),
           opacity: 0.5,
-          tiles: [0, 2, 0],
+          cells: const [0, 2, 0],
         ),
         MapLayer.tile(
           id: 'transparent',
           name: 'Transparent tiles',
-          tilesetId: 'lab_tiles',
+          palette: _tilePalette('lab_tiles', 1),
           opacity: 0,
-          tiles: [1, 1, 1],
+          cells: const [1, 1, 1],
         ),
-        MapLayer.collision(
+        const MapLayer.collision(
           id: 'collision',
           name: 'Collision',
           collisions: [true, true, true],
@@ -1868,20 +1868,20 @@ void main() {
         MapLayer.tile(
           id: 'missing',
           name: 'Missing tileset',
-          tilesetId: 'missing_tiles',
-          tiles: [1, 1, 1],
+          palette: _tilePalette('missing_tiles', 1),
+          cells: const [1, 1, 1],
         ),
         MapLayer.tile(
           id: 'out_of_bounds',
           name: 'Out of bounds tile',
-          tilesetId: 'lab_tiles',
-          tiles: [3, 0, 0],
+          palette: _tilePalette('lab_tiles', 3),
+          cells: const [3, 0, 0],
         ),
         MapLayer.tile(
           id: 'wide_metrics',
           name: 'Wide metrics tile',
-          tilesetId: 'wide_tiles',
-          tiles: [1, 0, 0],
+          palette: _tilePalette('wide_tiles', 1),
+          cells: const [1, 0, 0],
         ),
       ],
     );
@@ -1912,9 +1912,9 @@ void main() {
       'semi',
     ]);
     expect(plan.instructions.map((instruction) => instruction.tileId), [
+      0,
       1,
-      2,
-      2,
+      1,
     ]);
     expect(plan.instructions.map((instruction) => instruction.opacity), [
       1.0,
@@ -1946,24 +1946,24 @@ void main() {
     (tester) async {
       final tilesetImage = await _makeExtendedBackdropTilesetImage();
       final manifest = _extendedBackdropProject();
-      const mapData = MapData(
+      final mapData = MapData(
         id: 'test_map',
         name: 'Test Map',
-        size: GridSize(width: 2, height: 2),
+        size: const GridSize(width: 2, height: 2),
         layers: [
           MapLayer.tile(
             id: 'layer_roof',
             name: 'Roof layer',
-            tilesetId: 'neutral_tiles',
-            tiles: [1, 0, 0, 0],
+            palette: _tilePalette('neutral_tiles', 1),
+            cells: const [1, 0, 0, 0],
           ),
           MapLayer.tile(
             id: 'layer_wall',
             name: 'Wall layer',
-            tilesetId: 'neutral_tiles',
-            tiles: [2, 0, 0, 0],
+            palette: _tilePalette('neutral_tiles', 2),
+            cells: const [2, 0, 0, 0],
           ),
-          MapLayer.smartTile(
+          const MapLayer.smartTile(
             id: 'layer_water',
             name: 'Water path',
             presetId: 'neutral_path',
@@ -1976,8 +1976,8 @@ void main() {
           MapLayer.tile(
             id: 'layer_ponton',
             name: 'Ponton layer',
-            tilesetId: 'neutral_tiles',
-            tiles: [3, 0, 0, 0],
+            palette: _tilePalette('neutral_tiles', 3),
+            cells: const [3, 0, 0, 0],
           ),
         ],
       );
@@ -20877,6 +20877,87 @@ ProjectManifest _extendedBackdropProject({List<CinematicAsset>? cinematics}) {
         collisionProfile: ElementCollisionProfile(cells: [GridPos(x: 0, y: 1)]),
       ),
     ],
+    smartTileCatalog: ProjectSmartTileCatalog(
+      atlases: const [
+        ProjectSmartTileAtlas(
+          id: 'neutral_atlas',
+          name: 'Neutral atlas',
+          tilesetId: 'neutral_tiles',
+          cellWidth: 8,
+          cellHeight: 8,
+          columns: 8,
+          rows: 2,
+        ),
+      ],
+      materials: const [
+        ProjectSmartTileMaterial(
+          id: 'neutral',
+          name: 'Neutral',
+          connectionGroupId: 'neutral',
+        ),
+      ],
+      presets: [
+        _uniformBackdropPreset(
+          id: 'neutral_terrain',
+          usage: SmartTileUsage.terrain,
+          column: 0,
+        ),
+        _uniformBackdropPreset(
+          id: 'neutral_path',
+          usage: SmartTileUsage.path,
+          column: 1,
+        ),
+        _uniformBackdropPreset(
+          id: 'neutral_surface',
+          usage: SmartTileUsage.forestSurface,
+          column: 2,
+        ),
+      ],
+    ),
+  );
+}
+
+ProjectSmartTilePreset _uniformBackdropPreset({
+  required String id,
+  required SmartTileUsage usage,
+  required int column,
+}) {
+  return ProjectSmartTilePreset(
+    id: id,
+    name: id,
+    usage: usage,
+    topology: SmartTileTopology.uniform,
+    templateHint: SmartTileTemplateHint.simple,
+    status: SmartTilePresetStatus.published,
+    coveragePolicy: SmartTileCoveragePolicy.complete,
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.template,
+    ),
+    transformPolicy: const SmartTileTransformPolicy(),
+    defaultMaterialId: 'neutral',
+    allowedMaterialIds: const ['neutral'],
+    rules: [
+      SmartTileRule(
+        id: '${id}_rule',
+        centerMatch: const SmartTileSlotMatch.material('neutral'),
+        candidates: [
+          SmartTileCandidate(
+            id: '${id}_candidate',
+            parts: [
+              SmartTileVisualPart(
+                source: SmartTileVisualSource.frame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'neutral_atlas',
+                    column: column,
+                    row: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
   );
 }
 
@@ -20995,14 +21076,14 @@ MapData _stageMapData({
 
 MapData _stageMapDataWithVisualLayers() {
   return _stageMapData().copyWith(
-    layers: const [
+    layers: [
       MapLayer.tile(
         id: 'ground',
         name: 'Ground',
-        tilesetId: 'lab_tiles',
-        tiles: [1, 2, 3, 4],
+        palette: _tilePalette('lab_tiles', 4),
+        cells: const [1, 2, 3, 4],
       ),
-      MapLayer.smartTile(
+      const MapLayer.smartTile(
         id: 'path_main',
         name: 'Main path',
         presetId: 'stone_path',
@@ -21010,7 +21091,7 @@ MapData _stageMapDataWithVisualLayers() {
         materialPalette: <String>['', 'stone'],
         field: SmartTileField.cell(semanticCells: <int>[1, 0, 1]),
       ),
-      MapLayer.collision(
+      const MapLayer.collision(
         id: 'collision',
         name: 'Collision',
         collisions: [true],
@@ -21025,14 +21106,14 @@ MapData _stageMapDataWithBitmapTileLayer() {
     events: const <MapEventDefinition>[],
   ).copyWith(
     size: const GridSize(width: 2, height: 1),
-    layers: const [
+    layers: [
       MapLayer.tile(
         id: 'ground',
         name: 'Ground',
-        tilesetId: 'lab_tiles',
-        tiles: [1, 2],
+        palette: _tilePalette('lab_tiles', 2),
+        cells: const [1, 2],
       ),
-      MapLayer.collision(
+      const MapLayer.collision(
         id: 'collision',
         name: 'Collision',
         collisions: [true, false],
@@ -21084,11 +21165,28 @@ MapData _stageMapDataWithExtendedBackdrop() {
           semanticCells: <int>[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ),
       ),
-      const MapLayer.tile(
+      MapLayer.tile(
         id: 'neutral_ground',
         name: 'Neutral ground',
-        tilesetId: 'neutral_tiles',
-        tiles: [0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        palette: _tilePalette('neutral_tiles', 3),
+        cells: const [
+          0,
+          0,
+          3,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
       ),
       const MapLayer.smartTile(
         id: 'neutral_surface_layer',
@@ -21139,11 +21237,28 @@ MapData _stageMapDataWithExtendedBackdrop() {
           ],
         ),
       ),
-      const MapLayer.tile(
+      MapLayer.tile(
         id: 'neutral_foreground',
         name: 'Neutral foreground',
-        tilesetId: 'neutral_tiles',
-        tiles: [0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        palette: _tilePalette('neutral_tiles', 4),
+        cells: const [
+          0,
+          0,
+          0,
+          0,
+          0,
+          4,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
       ),
       const MapLayer.collision(
         id: 'neutral_collision',
@@ -21209,8 +21324,8 @@ MapData _stageMapDataWithLargeSmartTileWaterBackdrop() {
       MapLayer.tile(
         id: 'large_ground',
         name: 'Large ground',
-        tilesetId: 'neutral_tiles',
-        tiles: List<int>.filled(55 * 55, 5),
+        palette: _tilePalette('neutral_tiles', 5),
+        cells: List<int>.filled(55 * 55, 5),
       ),
       MapLayer.smartTile(
         id: 'large_water_path_layer',
@@ -21234,8 +21349,8 @@ MapData _stageMapDataWithLargeBackdrop() {
       MapLayer.tile(
         id: 'large_ground',
         name: 'Large ground',
-        tilesetId: 'neutral_tiles',
-        tiles: List<int>.filled(55 * 55, 1),
+        palette: _tilePalette('neutral_tiles', 1),
+        cells: List<int>.filled(55 * 55, 1),
       ),
     ],
   );
@@ -21278,8 +21393,8 @@ MapData _stageMapDataWithActorDisplayFixtures() {
       MapLayer.tile(
         id: 'ground',
         name: 'Ground',
-        tilesetId: 'lab_tiles',
-        tiles: tiles,
+        palette: _tilePalette('lab_tiles', 2),
+        cells: tiles,
       ),
     ],
   );
@@ -21309,8 +21424,8 @@ MapData _stageMapDataWithReferenceBitmapLayer() {
       MapLayer.tile(
         id: 'ground',
         name: 'Ground',
-        tilesetId: 'lab_tiles',
-        tiles: tiles,
+        palette: _tilePalette('lab_tiles', 2),
+        cells: tiles,
       ),
       const MapLayer.collision(
         id: 'collision',
@@ -22013,6 +22128,19 @@ PokeMapButton _transportButton(WidgetTester tester, String action) {
   return tester.widget<PokeMapButton>(
     find.byKey(ValueKey('cinematic-builder-transport-$action-button')),
   );
+}
+
+List<TileLayerPaletteEntry> _tilePalette(
+  String tilesetId,
+  int maxLocalTileId,
+) {
+  return <TileLayerPaletteEntry>[
+    for (var paletteIndex = 1; paletteIndex <= maxLocalTileId; paletteIndex++)
+      TileLayerPaletteEntry(
+        tilesetId: tilesetId,
+        localTileId: paletteIndex - 1,
+      ),
+  ];
 }
 
 Future<void> _tapVisible(WidgetTester tester, Finder finder) async {

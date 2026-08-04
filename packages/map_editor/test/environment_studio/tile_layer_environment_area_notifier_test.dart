@@ -61,7 +61,7 @@ MapData _mapWithAttachment() {
     name: 'Map',
     size: const GridSize(width: 2, height: 2),
     layers: [
-      const TileLayer(id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0]),
+      const TileLayer(id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0]),
       MapLayer.environment(
         id: 'env',
         name: 'Environment',

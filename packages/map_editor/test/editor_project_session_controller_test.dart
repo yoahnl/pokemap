@@ -85,8 +85,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tilesetId: 'tileset_world',
-            tiles: [],
+            cells: [],
           ),
         ],
       );

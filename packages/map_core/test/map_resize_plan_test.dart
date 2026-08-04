@@ -12,7 +12,7 @@ void main() {
           MapLayer.tile(
             id: 'ground',
             name: 'Ground',
-            tiles: List<int>.filled(9, 0),
+            cells: List<int>.filled(9, 0),
           ),
         ],
       );
@@ -165,7 +165,7 @@ void main() {
           MapLayer.tile(
             id: 'ground',
             name: 'Ground',
-            tiles: List<int>.filled(20, 1),
+            cells: List<int>.filled(20, 1),
           ),
         ],
       );
@@ -293,7 +293,7 @@ MapData _compositeMap() => MapData(
         MapLayer.tile(
           id: 'ground',
           name: 'Ground',
-          tiles: _cells<int>(0, const <GridPos>[GridPos(x: 3, y: 3)], 7),
+          cells: _cells<int>(0, const <GridPos>[GridPos(x: 3, y: 3)], 7),
         ),
         MapLayer.collision(
           id: 'collision',
@@ -484,8 +484,7 @@ MapData _rotatedPlacedElementsMap() => MapData(
         MapLayer.tile(
           id: 'ground',
           name: 'Ground',
-          tilesetId: 'buildings',
-          tiles: List<int>.filled(30, 0),
+          cells: List<int>.filled(30, 0),
         ),
       ],
       placedElements: const <MapPlacedElement>[

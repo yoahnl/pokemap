@@ -78,7 +78,6 @@ enum EnvironmentGenerationIssueKind {
   layerIsNotEnvironmentLayer,
   targetTileLayerMissing,
   targetTileLayerInvalid,
-  targetTileLayerTilesetMismatch,
   areaNotFound,
   presetMissing,
   emptyPresetPalette,
@@ -335,26 +334,6 @@ int _elementFootprintWidth(ProjectElementEntry element) {
 int _elementFootprintHeight(ProjectElementEntry element) {
   final height = element.frames.primarySource.height;
   return height <= 0 ? 1 : height;
-}
-
-String _effectiveTileLayerTilesetId(TileLayer layer, MapData map) {
-  return (layer.tilesetId ?? map.tilesetId).trim();
-}
-
-String _elementPrimaryTilesetId(ProjectElementEntry element) {
-  final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
-  if (frameTilesetId.isNotEmpty) return frameTilesetId;
-  return element.tilesetId.trim();
-}
-
-bool _elementMatchesTargetTileset({
-  required ProjectElementEntry element,
-  required String targetTilesetId,
-}) {
-  final elementTilesetId = _elementPrimaryTilesetId(element);
-  return targetTilesetId.isEmpty ||
-      elementTilesetId.isEmpty ||
-      targetTilesetId == elementTilesetId;
 }
 
 String _sanitizeIdPart(String s) {
@@ -662,32 +641,6 @@ class GenerateEnvironmentAreaPlacementsUseCase {
         ),
       );
       return EnvironmentGenerationResult(placements: const [], issues: issues);
-    }
-
-    final targetTilesetId = _effectiveTileLayerTilesetId(tileLayer, map);
-    for (final item in preset.palette) {
-      final element = elementById[item.elementId]!;
-      if (!_elementMatchesTargetTileset(
-        element: element,
-        targetTilesetId: targetTilesetId,
-      )) {
-        issues.add(
-          EnvironmentGenerationIssue(
-            severity: EnvironmentGenerationIssueSeverity.error,
-            kind: EnvironmentGenerationIssueKind.targetTileLayerTilesetMismatch,
-            message: 'Target tile layer $targetId uses tileset '
-                '$targetTilesetId, but palette element ${item.elementId} '
-                'uses tileset ${_elementPrimaryTilesetId(element)}.',
-            environmentLayerId: envId,
-            areaId: aid,
-            presetId: preset.id,
-            targetLayerId: targetId,
-            elementId: item.elementId,
-          ),
-        );
-        return EnvironmentGenerationResult(
-            placements: const [], issues: issues);
-      }
     }
 
     final placements = <EnvironmentGeneratedPlacementCandidate>[];

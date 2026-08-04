@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart';
+import 'package:map_editor/src/app/providers/editor/map_use_case_providers.dart';
+import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_controller.dart';
 import 'package:map_editor/src/features/border_map_editing/application/border_preview_transaction.dart';
 import 'package:map_editor/src/features/border_map_editing/application/pending_border_save_guard.dart';
@@ -234,6 +236,8 @@ void main() {
     final container = ProviderContainer(
       overrides: <Override>[
         mapRepositoryProvider.overrideWith((ref) => repository),
+        saveMapUseCaseProvider
+            .overrideWith((ref) => SaveMapUseCase(repository)),
         borderPreviewControllerProvider.overrideWith((ref) => preview),
         pendingBorderSaveGuardProvider.overrideWithValue(
           PendingBorderSaveGuard(
@@ -400,6 +404,7 @@ _NotifierFixture _fixture({
   final container = ProviderContainer(
     overrides: <Override>[
       mapRepositoryProvider.overrideWith((ref) => repository),
+      saveMapUseCaseProvider.overrideWith((ref) => SaveMapUseCase(repository)),
       borderPreviewControllerProvider.overrideWith((ref) => preview),
       pendingBorderSaveGuardProvider.overrideWithValue(guard),
     ],
@@ -531,8 +536,7 @@ MapData _baseMap() => MapData(
         MapLayer.tile(
           id: 'objects',
           name: 'Objets',
-          tilesetId: 'tiles',
-          tiles: List<int>.filled(16, 0),
+          cells: List<int>.filled(16, 0),
         ),
       ],
       placedElements: <MapPlacedElement>[

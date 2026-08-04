@@ -26,8 +26,8 @@ void main() {
       final result = _useCase.execute(
         _map(
           layers: const [
-            TileLayer(id: 'base', name: 'Base', tiles: [0, 0, 0, 0]),
-            TileLayer(id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0]),
+            TileLayer(id: 'base', name: 'Base', cells: [0, 0, 0, 0]),
+            TileLayer(id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0]),
             ObjectLayer(id: 'objects', name: 'Objects'),
           ],
         ),
@@ -43,7 +43,7 @@ void main() {
     test('ne recrée rien si un EnvironmentLayer cible déjà le TileLayer', () {
       final map = _map(
         layers: [
-          const TileLayer(id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0]),
+          const TileLayer(id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0]),
           MapLayer.environment(
             id: 'env_existing',
             name: 'Environment',
@@ -93,7 +93,7 @@ void main() {
       );
       final map = _map(
         layers: const [
-          TileLayer(id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0]),
+          TileLayer(id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0]),
           ObjectLayer(id: 'objects', name: 'Objects'),
         ],
         placedElements: [placed],
@@ -116,7 +116,7 @@ void main() {
       final result = _useCase.execute(
         _map(
           layers: [
-            const TileLayer(id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0]),
+            const TileLayer(id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0]),
             const EnvironmentLayer(
               id: 'l_environment_ground',
               name: 'Legacy',
@@ -143,7 +143,7 @@ MapData _map({
     size: const GridSize(width: 2, height: 2),
     layers: layers ??
         const [
-          TileLayer(id: 'tiles', name: 'Ground', tiles: [0, 0, 0, 0]),
+          TileLayer(id: 'tiles', name: 'Ground', cells: [0, 0, 0, 0]),
           ObjectLayer(id: 'objects', name: 'Objects'),
         ],
     placedElements: placedElements,

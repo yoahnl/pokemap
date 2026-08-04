@@ -26,8 +26,7 @@ void main() {
         TileLayer(
           id: 'ground',
           name: 'Ground',
-          tilesetId: 'tiles',
-          tiles: <int>[0, 0, 0, 0],
+          cells: <int>[0, 0, 0, 0],
         ),
       ],
     );
@@ -64,7 +63,10 @@ void main() {
         map,
         layerId: 'ground',
         pos: const GridPos(x: 1, y: 1),
-        tileId: 7,
+        tile: const TileLayerPaletteEntry(
+          tilesetId: 'world',
+          localTileId: 6,
+        ),
       ),
     );
     await container.pump();
@@ -273,6 +275,9 @@ void main() {
         debugOnPaletteBuild: () => paletteGridRebuilds += 1,
       ),
     );
+    // Let the canonical multi-source image batch publish its initial empty
+    // result before measuring palette-only rebuild isolation.
+    await tester.pump();
     canvasRebuilds = 0;
     toolbeltRebuilds = 0;
     inspectorRebuilds = 0;
@@ -307,7 +312,11 @@ void main() {
     expect(toolbeltRebuilds, 0);
     expect(inspectorRebuilds, 0);
     expect(inspectorBodyRebuilds, 0);
-    expect(paletteGridRebuilds, 0);
+    expect(
+      paletteGridRebuilds,
+      1,
+      reason: 'Changing the palette query must rebuild only the palette grid.',
+    );
 
     notifier.state = notifier.state.copyWith(
       zoom: 1.25,
@@ -320,7 +329,11 @@ void main() {
     expect(toolbeltRebuilds, 0);
     expect(inspectorRebuilds, 0);
     expect(inspectorBodyRebuilds, 0);
-    expect(paletteGridRebuilds, 0);
+    expect(
+      paletteGridRebuilds,
+      1,
+      reason: 'Pan and zoom must not rebuild the palette grid again.',
+    );
   });
 
   testWidgets(
@@ -535,7 +548,7 @@ Future<void> _pumpWorkspace(
                 Expanded(
                   child: Row(
                     children: [
-                      Expanded(child: canvas),
+                      Expanded(child: RepaintBoundary(child: canvas)),
                       SizedBox(width: 300, child: inspector),
                     ],
                   ),
@@ -583,7 +596,7 @@ const _animatedMap = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tiles: <int>[
+      cells: <int>[
         0,
         0,
         0,
@@ -761,7 +774,7 @@ const _staticPathMap = MapData(
     TileLayer(
       id: 'ground',
       name: 'Ground',
-      tiles: <int>[0, 0, 0, 0],
+      cells: <int>[0, 0, 0, 0],
     ),
   ],
 );

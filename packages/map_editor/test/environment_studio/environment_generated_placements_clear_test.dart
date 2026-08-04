@@ -58,7 +58,7 @@ void main() {
         name: 'M',
         size: const GridSize(width: 1, height: 1),
         layers: [
-          TileLayer(id: 't', name: 'T', tiles: const [0]),
+          TileLayer(id: 't', name: 'T', cells: const [0]),
         ],
       );
       final rawCleared = <EnvironmentClearedGeneratedPlacement>[
@@ -145,7 +145,10 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 5),
+        palette: const [
+          TileLayerPaletteEntry(tilesetId: 'ts', localTileId: 4),
+        ],
+        cells: List<int>.filled(4, 1),
       );
       final map = MapData(
         id: 'm',
@@ -188,8 +191,8 @@ void main() {
       expect(outArea.presetId, 'p1');
       expect(outArea.mask, area.mask);
       expect(
-        (r.map.layers[1] as TileLayer).tiles,
-        (map.layers[1] as TileLayer).tiles,
+        (r.map.layers[1] as TileLayer).cells,
+        (map.layers[1] as TileLayer).cells,
       );
     });
 
@@ -215,7 +218,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -270,7 +273,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -321,7 +324,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -369,7 +372,7 @@ void main() {
         name: 'M',
         size: const GridSize(width: 2, height: 2),
         layers: [
-          const MapLayer.tile(id: 'env', name: 'E', tiles: [0, 0, 0, 0]),
+          const MapLayer.tile(id: 'env', name: 'E', cells: [0, 0, 0, 0]),
         ],
       );
       final r2 = uc.execute(tileMap, environmentLayerId: 'env', areaId: 'a1');
@@ -402,7 +405,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -464,7 +467,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -543,7 +546,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(16, 0),
+        cells: List<int>.filled(16, 0),
       );
       final map = MapData(
         id: 'm',
@@ -630,8 +633,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tilesetId: 'ts',
-        tiles: List<int>.filled(16, 0),
+        cells: List<int>.filled(16, 0),
       );
       final map = MapData(
         id: 'm',
@@ -724,7 +726,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -773,7 +775,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -835,7 +837,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',

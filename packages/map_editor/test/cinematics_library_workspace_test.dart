@@ -690,9 +690,9 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Fallback structurel'), findsOneWidget);
-    expect(find.text('3 primitive(s) spatiale(s)'), findsOneWidget);
+    expect(find.text('2 primitive(s) spatiale(s)'), findsOneWidget);
     expect(find.text('Library ground · 2 · tile'), findsOneWidget);
-    expect(find.text('Library path · 1 · path'), findsOneWidget);
+    expect(find.text('Library path · 1 · path'), findsNothing);
     expect(find.text('Aperçu sandbox'), findsNothing);
   });
 
@@ -950,7 +950,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Fallback structurel'), findsOneWidget);
-    expect(find.text('3 primitive(s) spatiale(s)'), findsOneWidget);
+    expect(find.text('2 primitive(s) spatiale(s)'), findsOneWidget);
     expect(find.text('Image de tileset introuvable pour lab_tiles.'),
         findsOneWidget);
     expect(find.text('Tiles réelles affichées'), findsNothing);
@@ -1018,42 +1018,42 @@ void main() {
   });
 
   test('collects visible tile layer tilesets from layer and map defaults', () {
-    const mapData = MapData(
+    final mapData = MapData(
       id: 'map_lab',
       name: 'Lab map',
       tilesetId: 'default_tiles',
-      size: GridSize(width: 3, height: 1),
+      size: const GridSize(width: 3, height: 1),
       layers: [
         MapLayer.tile(
           id: 'inherits_default',
           name: 'Inherits default',
-          tiles: [1, 0, 0],
+          palette: _tilePalette('default_tiles', 1),
+          cells: const [1, 0, 0],
         ),
         MapLayer.tile(
           id: 'explicit',
           name: 'Explicit tileset',
-          tilesetId: 'explicit_tiles',
-          tiles: [0, 2, 0],
+          palette: _tilePalette('explicit_tiles', 2),
+          cells: const [0, 2, 0],
         ),
-        MapLayer.tile(
+        const MapLayer.tile(
           id: 'empty',
           name: 'Empty layer',
-          tilesetId: 'empty_tiles',
-          tiles: [0, 0, 0],
+          cells: [0, 0, 0],
         ),
         MapLayer.tile(
           id: 'hidden',
           name: 'Hidden layer',
-          tilesetId: 'hidden_tiles',
+          palette: _tilePalette('hidden_tiles', 1),
           isVisible: false,
-          tiles: [1, 1, 1],
+          cells: const [1, 1, 1],
         ),
         MapLayer.tile(
           id: 'transparent',
           name: 'Transparent layer',
-          tilesetId: 'transparent_tiles',
+          palette: _tilePalette('transparent_tiles', 1),
           opacity: 0,
-          tiles: [1, 1, 1],
+          cells: const [1, 1, 1],
         ),
       ],
     );
@@ -1956,19 +1956,19 @@ Future<String> _writeTestTilesetImage() async {
 }
 
 MapData _stageMapData() {
-  return const MapData(
+  return MapData(
     id: 'map_lab',
     name: 'Lab map',
     version: ProjectVersion.v6,
-    size: GridSize(width: 12, height: 10),
+    size: const GridSize(width: 12, height: 10),
     layers: [
       MapLayer.tile(
         id: 'library_ground',
         name: 'Library ground',
-        tilesetId: 'lab_tiles',
-        tiles: [1, 0, 2],
+        palette: _tilePalette('lab_tiles', 2),
+        cells: const [1, 0, 2],
       ),
-      MapLayer.smartTile(
+      const MapLayer.smartTile(
         id: 'library_path',
         name: 'Library path',
         presetId: 'library_path_preset',
@@ -1978,7 +1978,7 @@ MapData _stageMapData() {
       ),
     ],
     entities: [
-      MapEntity(
+      const MapEntity(
         id: 'entity_professor',
         name: 'Professor entity',
         kind: MapEntityKind.npc,
@@ -1987,7 +1987,7 @@ MapData _stageMapData() {
       ),
     ],
     events: [
-      MapEventDefinition(
+      const MapEventDefinition(
         id: 'event_gate_bell',
         title: 'Gate bell',
         position: EventPosition(layerId: 'ground', x: 8, y: 3),
@@ -2103,6 +2103,19 @@ SceneAsset _sceneReferencing({
       ],
     ),
   );
+}
+
+List<TileLayerPaletteEntry> _tilePalette(
+  String tilesetId,
+  int maxLocalTileId,
+) {
+  return <TileLayerPaletteEntry>[
+    for (var paletteIndex = 1; paletteIndex <= maxLocalTileId; paletteIndex++)
+      TileLayerPaletteEntry(
+        tilesetId: tilesetId,
+        localTileId: paletteIndex - 1,
+      ),
+  ];
 }
 
 void _setLargeSurface(

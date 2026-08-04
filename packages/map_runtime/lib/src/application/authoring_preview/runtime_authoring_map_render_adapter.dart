@@ -98,7 +98,7 @@ void _paintLayer(
 int _layerCellValue(MapData map, MapLayer layer, int x, int y) {
   final index = y * map.size.width + x;
   return switch (layer) {
-    TileLayer value => _intCell(value.tiles, index),
+    TileLayer value => _intCell(value.cells, index),
     CollisionLayer value => _boolCell(value.collisions, index) ? 1 : 0,
     SmartTileLayer value => _intCell(smartTileSemanticCells(value), index),
     ObjectLayer _ => 0,

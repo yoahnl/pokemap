@@ -154,8 +154,7 @@ RuntimeMapBundle _bundle({
         MapLayer.tile(
           id: 'objects',
           name: 'Objects',
-          tilesetId: 'props',
-          tiles: <int>[],
+          cells: <int>[],
         ),
       ],
       placedElements: [

@@ -42,7 +42,7 @@ void main() {
         final tile = TileLayer(
           id: 'tiles_main',
           name: 'Sol',
-          tiles: const <int>[0, 0, 0, 0],
+          cells: const <int>[0, 0, 0, 0],
         );
         final map = MapData(
           id: 'm',
@@ -72,7 +72,7 @@ void main() {
         final tile = TileLayer(
           id: 't1',
           name: 'T',
-          tiles: const <int>[0, 0],
+          cells: const <int>[0, 0],
         );
         final map = MapData(
           id: 'm',
@@ -114,7 +114,7 @@ void main() {
         final tile = TileLayer(
           id: 't1',
           name: 'T',
-          tiles: const <int>[0],
+          cells: const <int>[0],
         );
         final map = MapData(
           id: 'm',
@@ -140,7 +140,7 @@ void main() {
           size: const GridSize(width: 1, height: 1),
           layers: [
             MapLayer.environment(id: 'env', name: 'E'),
-            TileLayer(id: 't1', name: 'T', tiles: const <int>[0]),
+            TileLayer(id: 't1', name: 'T', cells: const <int>[0]),
           ],
         );
         final uc = SetEnvironmentLayerTargetTileLayerUseCase();
@@ -159,7 +159,7 @@ void main() {
         final tile = TileLayer(
           id: 't1',
           name: 'T',
-          tiles: const <int>[0],
+          cells: const <int>[0],
         );
         final map = MapData(
           id: 'm',
@@ -189,7 +189,7 @@ void main() {
         final tile = TileLayer(
           id: 't1',
           name: 'Sol',
-          tiles: const <int>[0, 0, 0, 0],
+          cells: const <int>[0, 0, 0, 0],
         );
         const root = '/tmp/lot20';
         const mapPath = 'maps/x.json';
@@ -269,7 +269,7 @@ void main() {
       final tile = TileLayer(
         id: 'tdecor',
         name: 'Décor',
-        tiles: const <int>[0, 0, 0, 0],
+        cells: const <int>[0, 0, 0, 0],
       );
       final map = MapData(
         id: 'mx',
@@ -318,7 +318,7 @@ void main() {
       final tile = TileLayer(
         id: 'tuniq',
         name: 'Tuiles sol',
-        tiles: const <int>[0, 0, 0, 0],
+        cells: const <int>[0, 0, 0, 0],
       );
       final map = MapData(
         id: 'mx',
@@ -383,7 +383,7 @@ void main() {
       final tile = TileLayer(
         id: 'only_tile',
         name: 'Couche tuiles',
-        tiles: const <int>[0, 0, 0, 0],
+        cells: const <int>[0, 0, 0, 0],
       );
       final obj = MapLayer.object(id: 'obj', name: 'Objets');
       final map = MapData(
@@ -454,7 +454,7 @@ void main() {
       final tile = TileLayer(
         id: 't1',
         name: 'T',
-        tiles: const <int>[0, 0, 0, 0],
+        cells: const <int>[0, 0, 0, 0],
       );
       final env = MapLayer.environment(
         id: 'env',
@@ -519,7 +519,7 @@ void main() {
       final tile = TileLayer(
         id: 't1',
         name: 'T',
-        tiles: const <int>[0, 0, 0, 0],
+        cells: const <int>[0, 0, 0, 0],
       );
       final env = MapLayer.environment(
         id: 'env',

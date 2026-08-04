@@ -157,8 +157,10 @@ Future<ui.Image> _renderTileLayerPass({
           TileLayer(
             id: layerId,
             name: layerId,
-            tilesetId: 'base',
-            tiles: const <int>[1],
+            palette: const <TileLayerPaletteEntry>[
+              TileLayerPaletteEntry(tilesetId: 'base', localTileId: 0),
+            ],
+            cells: const <int>[1],
           ),
         ],
       ),

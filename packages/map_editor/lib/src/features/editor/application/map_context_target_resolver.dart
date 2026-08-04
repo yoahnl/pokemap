@@ -99,7 +99,7 @@ bool _isPaintedAt(MapLayer layer, GridSize mapSize, GridPos position) {
   }
   final index = position.y * mapSize.width + position.x;
   return switch (layer) {
-    TileLayer(:final tiles) => index < tiles.length && tiles[index] != 0,
+    TileLayer(:final cells) => index < cells.length && cells[index] != 0,
     CollisionLayer(:final collisions) =>
       index < collisions.length && collisions[index],
     SmartTileLayer smartTileLayer => smartTileCellHasAuthoredValue(

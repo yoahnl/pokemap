@@ -8,47 +8,49 @@ void main() {
       var map = _map(width: 6, height: 5);
       const operations = MapRegionOperations();
 
-      map = operations.apply(map, const {
+      map = operations.apply(map, {
         'kind': 'region.fill',
         'layerId': 'tiles',
         'x': 0,
         'y': 0,
         'width': 6,
         'height': 5,
-        'value': 1,
+        'value': _tileValue(1),
       }).map;
-      map = operations.apply(map, const {
+      map = operations.apply(map, {
         'kind': 'shape.rectangle',
         'layerId': 'tiles',
         'x': 1,
         'y': 1,
         'width': 4,
         'height': 3,
-        'value': 2,
+        'value': _tileValue(2),
         'filled': false,
       }).map;
-      map = operations.apply(map, const {
+      map = operations.apply(map, {
         'kind': 'region.flood_fill',
         'layerId': 'tiles',
         'x': 2,
         'y': 2,
-        'value': 3,
+        'value': _tileValue(3),
       }).map;
-      map = operations.apply(map, const {
+      map = operations.apply(map, {
         'kind': 'shape.line',
         'layerId': 'tiles',
         'from': {'x': 0, 'y': 4},
         'to': {'x': 5, 'y': 4},
-        'value': 4,
+        'value': _tileValue(4),
       }).map;
-      final result = operations.apply(map, const {
+      final result = operations.apply(map, {
         'kind': 'region.replace',
         'layerId': 'tiles',
-        'from': 2,
-        'to': 5,
+        'from': _tileValue(2),
+        'to': _tileValue(5),
       });
 
-      final tiles = (result.map.layers.single as TileLayer).tiles;
+      final tiles = _resolvedLocalIds(
+        result.map.layers.single as TileLayer,
+      );
       expect(tiles[2 * 6 + 2], 3);
       expect(tiles.sublist(4 * 6), everyElement(4));
       expect(tiles.where((tile) => tile == 5), hasLength(10));
@@ -58,16 +60,21 @@ void main() {
     test('supports polyline, polygon, and exact stamps', () {
       var map = _map(width: 5, height: 5);
       const operations = MapRegionOperations();
-      map = operations.apply(map, const {
+      map = operations.apply(map, {
         'kind': 'region.stamp',
         'layerId': 'tiles',
         'x': 0,
         'y': 0,
         'width': 2,
         'height': 2,
-        'values': [1, 2, 3, 4],
+        'values': [
+          _tileValue(1),
+          _tileValue(2),
+          _tileValue(3),
+          _tileValue(4),
+        ],
       }).map;
-      map = operations.apply(map, const {
+      map = operations.apply(map, {
         'kind': 'shape.polyline',
         'layerId': 'tiles',
         'points': [
@@ -75,9 +82,9 @@ void main() {
           {'x': 2, 'y': 2},
           {'x': 4, 'y': 4},
         ],
-        'value': 8,
+        'value': _tileValue(8),
       }).map;
-      map = operations.apply(map, const {
+      map = operations.apply(map, {
         'kind': 'shape.polygon',
         'layerId': 'tiles',
         'points': [
@@ -85,11 +92,11 @@ void main() {
           {'x': 3, 'y': 1},
           {'x': 2, 'y': 3},
         ],
-        'value': 9,
+        'value': _tileValue(9),
         'filled': true,
       }).map;
 
-      final tiles = (map.layers.single as TileLayer).tiles;
+      final tiles = _resolvedLocalIds(map.layers.single as TileLayer);
       expect(tiles[0], 1);
       expect(tiles[1], 2);
       expect(tiles[5], 3);
@@ -106,7 +113,13 @@ void main() {
           MapLayer.tile(
             id: 'tiles',
             name: 'Tiles',
-            tiles: const [
+            palette: const [
+              TileLayerPaletteEntry(tilesetId: 'tileset', localTileId: 1),
+              TileLayerPaletteEntry(tilesetId: 'tileset', localTileId: 2),
+              TileLayerPaletteEntry(tilesetId: 'tileset', localTileId: 3),
+              TileLayerPaletteEntry(tilesetId: 'tileset', localTileId: 4),
+            ],
+            cells: const [
               1,
               2,
               0,
@@ -218,7 +231,7 @@ void main() {
               clipboard: clipboard)
           .map;
 
-      final tiles = (map.layers.single as TileLayer).tiles;
+      final tiles = _resolvedLocalIds(map.layers.single as TileLayer);
       expect(tiles.sublist(0, 8), everyElement(0));
       expect(tiles.sublist(8, 10), [3, 1]);
       expect(tiles.sublist(12, 14), [4, 2]);
@@ -233,7 +246,7 @@ void main() {
     test('normalizes values for tile and collision layers', () {
       var map = _map(width: 2, height: 2).copyWith(
         layers: [
-          MapLayer.tile(id: 'tile', name: 'Tile', tiles: List.filled(4, 0)),
+          MapLayer.tile(id: 'tile', name: 'Tile', cells: List.filled(4, 0)),
           MapLayer.collision(
             id: 'collision',
             name: 'Collision',
@@ -243,7 +256,7 @@ void main() {
       );
       const operations = MapRegionOperations();
       for (final entry in <String, Object?>{
-        'tile': 7,
+        'tile': _tileValue(7),
         'collision': true,
       }.entries) {
         map = operations.apply(map, {
@@ -255,7 +268,8 @@ void main() {
         }).map;
       }
 
-      expect((map.layers[0] as TileLayer).tiles.last, 7);
+      expect(
+          resolveTileLayerCell(map.layers[0] as TileLayer, 3)?.localTileId, 7);
       expect((map.layers[1] as CollisionLayer).collisions.last, isTrue);
     });
 
@@ -264,12 +278,12 @@ void main() {
       final map = _map(width: 4, height: 3);
 
       for (final operation in [
-        const {
+        {
           'kind': 'region.paint',
           'layerId': 'tiles',
           'x': 4,
           'y': 0,
-          'value': 1,
+          'value': _tileValue(1),
         },
         const {
           'kind': 'region.rotate',
@@ -553,7 +567,17 @@ MapData _map({required int width, required int height}) => MapData(
         MapLayer.tile(
           id: 'tiles',
           name: 'Tiles',
-          tiles: List<int>.filled(width * height, 0),
+          cells: List<int>.filled(width * height, 0),
         ),
       ],
     );
+
+Map<String, Object?> _tileValue(int localTileId) => <String, Object?>{
+      'tilesetId': 'tileset',
+      'localTileId': localTileId,
+    };
+
+List<int> _resolvedLocalIds(TileLayer layer) => <int>[
+      for (var index = 0; index < layer.cells.length; index++)
+        resolveTileLayerCell(layer, index)?.localTileId ?? 0,
+    ];

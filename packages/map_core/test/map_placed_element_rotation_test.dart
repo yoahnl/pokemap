@@ -755,8 +755,7 @@ MapData _validationMap({
         MapLayer.tile(
           id: 'ground',
           name: 'Ground',
-          tilesetId: 'tiles',
-          tiles: List<int>.filled(12, 0),
+          cells: List<int>.filled(12, 0),
         ),
       ],
       placedElements: <MapPlacedElement>[

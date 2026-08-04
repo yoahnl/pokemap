@@ -143,7 +143,10 @@ void main() {
         name: 'Map',
         size: GridSize(width: 3, height: 3),
         layers: <MapLayer>[
-          TileLayer(id: 'decor', name: 'Decor', tilesetId: 'tiles'),
+          TileLayer(
+            id: 'decor',
+            name: 'Decor',
+          ),
         ],
         placedElements: <MapPlacedElement>[
           MapPlacedElement(

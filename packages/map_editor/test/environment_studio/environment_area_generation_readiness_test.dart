@@ -45,7 +45,7 @@ void main() {
         resolvedTargetTileLayer: TileLayer(
           id: 'tiles',
           name: 'T',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
       );
       expect(r.canGenerate, isTrue);
@@ -65,7 +65,7 @@ void main() {
         resolvedTargetTileLayer: TileLayer(
           id: 'tiles',
           name: 'T',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
       );
       expect(r.canGenerate, isFalse);
@@ -108,30 +108,6 @@ void main() {
       expect(r.stateSummaryLine, 'État : cible invalide');
     });
 
-    test('Generate désactivé : tileset cible incompatible', () {
-      final r = EnvironmentAreaGenerationReadiness.evaluate(
-        area: _area(),
-        preset: _preset(),
-        hasTargetTileLayerId: true,
-        targetTileLayerInvalid: false,
-        targetTileLayerTilesetMismatch: true,
-        resolvedTargetTileLayer: TileLayer(
-          id: 'tiles',
-          name: 'T',
-          tilesetId: 'cliff',
-          tiles: List<int>.filled(4, 0),
-        ),
-      );
-      expect(r.canGenerate, isFalse);
-      expect(r.canRegenerate, isFalse);
-      expect(r.canShuffle, isFalse);
-      expect(
-        r.generateDisabledMessage,
-        'Le TileLayer cible utilise un tileset incompatible avec ce preset.',
-      );
-      expect(r.stateSummaryLine, 'État : tileset cible incompatible');
-    });
-
     test('Generate désactivé : masque vide', () {
       final r = EnvironmentAreaGenerationReadiness.evaluate(
         area: _area(cells: List<bool>.filled(4, false)),
@@ -141,7 +117,7 @@ void main() {
         resolvedTargetTileLayer: TileLayer(
           id: 'tiles',
           name: 'T',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
       );
       expect(r.canGenerate, isFalse);
@@ -161,7 +137,7 @@ void main() {
         resolvedTargetTileLayer: TileLayer(
           id: 'tiles',
           name: 'T',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
       );
       expect(r.canGenerate, isFalse);
@@ -184,7 +160,7 @@ void main() {
         resolvedTargetTileLayer: TileLayer(
           id: 'tiles',
           name: 'T',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
       );
       expect(r.canClear, isFalse);
@@ -203,7 +179,7 @@ void main() {
         resolvedTargetTileLayer: TileLayer(
           id: 'tiles',
           name: 'T',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
       );
       expect(r.canRegenerate, isFalse);
@@ -221,7 +197,7 @@ void main() {
         resolvedTargetTileLayer: TileLayer(
           id: 'tiles',
           name: 'T',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
       );
       expect(r.canShuffle, isTrue);
@@ -237,7 +213,7 @@ void main() {
         resolvedTargetTileLayer: TileLayer(
           id: 'tiles',
           name: 'T',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
       );
       expect(r.canShuffle, isFalse);
@@ -256,7 +232,7 @@ void main() {
         resolvedTargetTileLayer: TileLayer(
           id: 'tiles',
           name: 'T',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
       );
       expect(r.canShuffle, isFalse);

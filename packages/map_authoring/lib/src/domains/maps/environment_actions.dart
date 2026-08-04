@@ -804,23 +804,6 @@ List<EnvironmentGeneratedPlacement> _generate({
       )) {
         continue;
       }
-      final elementTileset = element.frames.primaryFrame.tilesetId.isNotEmpty
-          ? element.frames.primaryFrame.tilesetId
-          : element.tilesetId;
-      final targetTileset = target.tileLayer.tilesetId ?? map.tilesetId;
-      if (elementTileset.isNotEmpty &&
-          targetTileset.isNotEmpty &&
-          elementTileset != targetTileset) {
-        throw semanticFailure(
-          'environment.tileset_mismatch',
-          'An Environment palette element does not match the target Tile layer.',
-          details: {
-            'elementId': element.id,
-            'elementTilesetId': elementTileset,
-            'targetTilesetId': targetTileset,
-          },
-        );
-      }
       final pos = GridPos(x: x, y: y);
       accepted.add(pos);
       placements.add(

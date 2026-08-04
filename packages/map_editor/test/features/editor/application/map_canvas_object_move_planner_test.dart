@@ -874,8 +874,7 @@ const _emptyMap = MapData(
     TileLayer(
       id: 'decor',
       name: 'Decor',
-      tilesetId: 'tiles',
-      tiles: <int>[],
+      cells: <int>[],
     ),
   ],
 );
@@ -915,8 +914,15 @@ MapData _tileIndexedMap({
       TileLayer(
         id: 'decor',
         name: 'Decor',
-        tilesetId: 'tiles',
-        tiles: tiles,
+        palette: List<TileLayerPaletteEntry>.generate(
+          9,
+          (index) => TileLayerPaletteEntry(
+            tilesetId: 'tiles',
+            localTileId: index,
+          ),
+          growable: false,
+        ),
+        cells: tiles,
       ),
     ],
     placedElements: <MapPlacedElement>[
@@ -951,5 +957,5 @@ MapData _tileIndexedMap({
 
 int _tileAt(MapData map, int x, int y) {
   final layer = map.layers.whereType<TileLayer>().single;
-  return layer.tiles[y * map.size.width + x];
+  return layer.cells[y * map.size.width + x];
 }

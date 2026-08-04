@@ -41,7 +41,7 @@ void main() {
       const tile = MapLayer.tile(
         id: 'tile',
         name: 'Décor',
-        tiles: <int>[0, 0, 0, 0],
+        cells: <int>[0, 0, 0, 0],
       );
       const collision = MapLayer.collision(
         id: 'collision',
@@ -92,7 +92,7 @@ void main() {
           MapLayer.tile(
             id: 'tile',
             name: 'Décor',
-            tiles: <int>[0, 0, 0, 0],
+            cells: <int>[0, 0, 0, 0],
           ),
           MapLayer.border(id: 'border', name: 'Bordures'),
         ],
@@ -134,7 +134,7 @@ void main() {
           MapLayer.tile(
             id: 'tile',
             name: 'Décor',
-            tiles: <int>[0, 0, 0, 0],
+            cells: <int>[0, 0, 0, 0],
           ),
         ],
       );

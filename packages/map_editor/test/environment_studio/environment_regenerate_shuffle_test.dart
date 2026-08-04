@@ -95,7 +95,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -149,7 +149,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -168,7 +168,7 @@ void main() {
         name: 'M',
         size: const GridSize(width: 2, height: 2),
         layers: [
-          TileLayer(id: 'env', name: 'T', tiles: List<int>.filled(4, 0)),
+          TileLayer(id: 'env', name: 'T', cells: List<int>.filled(4, 0)),
         ],
       );
       expect(
@@ -211,7 +211,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -277,7 +277,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -337,7 +337,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -384,7 +384,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -432,7 +432,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -492,7 +492,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -573,7 +573,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map = MapData(
         id: 'm',
@@ -647,7 +647,7 @@ void main() {
       final tile = TileLayer(
         id: 'tiles',
         name: 'T',
-        tiles: List<int>.filled(4, 0),
+        cells: List<int>.filled(4, 0),
       );
       final map1 = MapData(
         id: 'm',

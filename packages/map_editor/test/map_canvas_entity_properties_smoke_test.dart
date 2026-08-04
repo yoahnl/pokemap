@@ -65,7 +65,7 @@ void main() {
           TileLayer(
             id: 'ground',
             name: 'Ground',
-            tiles: <int>[
+            cells: <int>[
               0,
               0,
               0,

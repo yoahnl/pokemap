@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -328,6 +329,44 @@ void main() {
       expect(encoded, isNot(contains('mistralApiKey')));
       expect(encoded, isNot(contains('super-secret')));
     });
+
+    test('projects one bounded canonical tile-palette region', () {
+      final page = const ProjectQueryService().query(
+        _snapshot(),
+        AuthoringQueryRequest(
+          resourceKind: 'map',
+          operation: AuthoringQueryOperation.get,
+          ids: const <String>['a-map'],
+          view: AuthoringQueryView.detail,
+          extensions: const <String, Object?>{
+            'region': <String, Object?>{
+              'x': 0,
+              'y': 0,
+              'width': 2,
+              'height': 1,
+            },
+          },
+        ),
+      );
+
+      final region = page.items.single;
+      final layer =
+          (region['layers']! as List).cast<Map<String, Object?>>().single;
+      expect(region['mapId'], 'a-map');
+      expect(layer['encoding'], 'tile_palette_v1');
+      expect(layer['rows'], <Object?>[
+        <Object?>[1, 2],
+      ]);
+      expect(
+        (layer['palette']! as List)
+            .cast<Map<String, Object?>>()
+            .take(2)
+            .map((entry) => entry['localTileId']),
+        <int>[0, 1],
+      );
+      expect(page.totalAvailable, 1);
+      expect(page.nextCursor, isNull);
+    });
   });
 
   group('AuthoringQueryPage', () {
@@ -446,7 +485,14 @@ MapData _map({
       MapLayer.tile(
         id: '$id-ground',
         name: 'Ground',
-        tiles: tiles,
+        palette: [
+          for (var tileId = 1; tileId <= tiles.reduce(math.max); tileId++)
+            TileLayerPaletteEntry(
+              tilesetId: 'tileset',
+              localTileId: tileId - 1,
+            ),
+        ],
+        cells: tiles,
       ),
     ],
     properties: {

@@ -44,9 +44,7 @@ final class TileLayerHoverHighlightPainter extends CustomPainter {
       final rowStart = y * mapSize.width;
       for (var x = visibleBounds.left; x < visibleBounds.right; x++) {
         final tileIndex = rowStart + x;
-        if (tileIndex < 0 ||
-            tileIndex >= layer.tiles.length ||
-            layer.tiles[tileIndex] <= 0) {
+        if (resolveTileLayerCell(layer, tileIndex) == null) {
           continue;
         }
         final rect = Rect.fromLTWH(

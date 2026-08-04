@@ -185,7 +185,7 @@ MapData _mapWithAreas({
       const TileLayer(
         id: 'tiles',
         name: 'Ground',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
       MapLayer.environment(
         id: 'env',
@@ -222,7 +222,7 @@ MapData _mapWithoutAttachment() {
       TileLayer(
         id: 'tiles',
         name: 'Ground',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ],
   );

@@ -6,6 +6,7 @@ import '../contracts/json_contract_support.dart';
 import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_store.dart';
+import '../domains/maps/map_region_query.dart';
 import '../domains/narrative/dialogue_authoring_service.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../domains/narrative/script_authoring_service.dart';
@@ -31,6 +32,8 @@ final class ProjectQueryService {
     ProjectSnapshot snapshot,
     AuthoringQueryRequest request,
   ) {
+    final regionPage = _queryMapRegion(snapshot, request);
+    if (regionPage != null) return regionPage;
     var records = _records(snapshot, request.resourceKind);
     records = _applyOperation(records, request);
     records = records
@@ -69,6 +72,63 @@ final class ProjectQueryService {
       nextCursor: nextCursor,
     );
   }
+}
+
+AuthoringQueryPage? _queryMapRegion(
+  ProjectSnapshot snapshot,
+  AuthoringQueryRequest request,
+) {
+  final rawRegion = request.extensions['region'];
+  if (rawRegion == null) return null;
+  if (request.resourceKind != 'map' ||
+      request.operation != AuthoringQueryOperation.get ||
+      request.view != AuthoringQueryView.detail ||
+      request.filters.isNotEmpty ||
+      request.sort.isNotEmpty ||
+      request.cursor != null) {
+    throw const AuthoringQueryException(
+      'query.map_region_contract_invalid',
+      'A bounded map region requires one detail map get without filters, '
+          'sorting, or cursor.',
+    );
+  }
+  if (rawRegion is! Map || rawRegion.keys.any((key) => key is! String)) {
+    throw const AuthoringQueryException(
+      'query.map_region_invalid',
+      'The map region extension must be a coordinate object.',
+    );
+  }
+  final mapId = request.ids.single;
+  MapData? map;
+  for (final candidate in snapshot.maps) {
+    if (candidate.id == mapId) {
+      map = candidate;
+      break;
+    }
+  }
+  if (map == null) {
+    throw const AuthoringQueryException(
+      'query.resource_not_found',
+      'The requested resource was not found.',
+    );
+  }
+  late final MapRegionQuery region;
+  try {
+    region = MapRegionQuery.fromJson(Map<String, dynamic>.from(rawRegion));
+  } on FormatException {
+    throw const AuthoringQueryException(
+      'query.map_region_invalid',
+      'The map region extension contains invalid coordinates.',
+    );
+  }
+  final item = queryMapRegion(map, region).toJson();
+  return AuthoringQueryPage(
+    snapshotRevision: snapshot.revision,
+    items: <Map<String, Object?>>[
+      _applyFieldMask(item, request.fieldMask),
+    ],
+    totalAvailable: 1,
+  );
 }
 
 List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {

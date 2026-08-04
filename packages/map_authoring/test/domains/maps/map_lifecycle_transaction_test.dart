@@ -368,7 +368,7 @@ MapData _map(String id) => MapData(
         MapLayer.tile(
           id: 'l_base',
           name: 'Base',
-          tiles: List<int>.filled(4, 0),
+          cells: List<int>.filled(4, 0),
         ),
         MapLayer.collision(
           id: 'l_collisions',

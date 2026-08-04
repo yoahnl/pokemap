@@ -37,6 +37,7 @@ void main() {
       container.read(editorNotifierProvider.notifier).state = EditorState(
         projectRootPath: projectRoot!.path,
         project: _project(),
+        workspaceMode: EditorWorkspaceMode.map,
         activeMap: _map(),
         activeLayerId: 'l_tile_floor',
         selectedTilesetEditorId: 'ts_interior',
@@ -80,7 +81,11 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Table du gardien'), findsOneWidget);
-      await tester.tap(find.text('Table du gardien'));
+      await tester.tap(
+        find.byKey(
+          MapLayerAssetPaletteKeys.elementCard('guardian_table'),
+        ),
+      );
       await tester.pump();
 
       final state = container.read(editorNotifierProvider);
@@ -102,7 +107,13 @@ const _onePixelPngBase64 =
 ProjectManifest _project() {
   return const ProjectManifest(
     name: 'Project',
-    maps: <ProjectMapEntry>[],
+    maps: <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'interior',
+        name: 'Intérieur',
+        relativePath: 'maps/interior.json',
+      ),
+    ],
     tilesets: <ProjectTilesetEntry>[
       ProjectTilesetEntry(
         id: 'ts_interior',
@@ -140,14 +151,18 @@ MapData _map() {
       TileLayer(
         id: 'l_tile_floor',
         name: 'Sol',
-        tilesetId: 'ts_interior',
-        tiles: <int>[0, 0, 0, 0],
+        palette: <TileLayerPaletteEntry>[
+          TileLayerPaletteEntry(tilesetId: 'ts_interior', localTileId: 0),
+        ],
+        cells: <int>[0, 0, 0, 0],
       ),
       TileLayer(
         id: 'l_tile_furniture',
         name: 'Mobilier',
-        tilesetId: 'ts_interior',
-        tiles: <int>[0, 0, 0, 0],
+        palette: <TileLayerPaletteEntry>[
+          TileLayerPaletteEntry(tilesetId: 'ts_interior', localTileId: 0),
+        ],
+        cells: <int>[0, 0, 0, 0],
       ),
     ],
   );

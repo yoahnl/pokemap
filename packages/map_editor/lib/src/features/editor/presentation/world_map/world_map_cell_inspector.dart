@@ -211,11 +211,9 @@ String _cellValue({
     return 'Hors de la carte';
   }
   return switch (layer) {
-    TileLayer(:final tiles, :final tilesetId) => _tileValue(
+    final TileLayer tileLayer => _tileValue(
         project: project,
-        map: map,
-        tiles: tiles,
-        tilesetId: tilesetId,
+        layer: tileLayer,
         index: index,
       ),
     CollisionLayer(:final collisions) => index >= collisions.length
@@ -240,31 +238,20 @@ String _cellValue({
 
 String _tileValue({
   required ProjectManifest? project,
-  required MapData map,
-  required List<int> tiles,
-  required String? tilesetId,
+  required TileLayer layer,
   required int index,
 }) {
-  if (index >= tiles.length) {
+  if (index >= layer.cells.length) {
     return 'Donnée indisponible';
   }
-  final tileId = tiles[index];
-  if (tileId <= 0) {
+  final tile = resolveTileLayerCell(layer, index);
+  if (tile == null) {
     return 'Vide';
   }
-  final effectiveTilesetId = _nonEmpty(tilesetId) ?? _nonEmpty(map.tilesetId);
-  if (effectiveTilesetId == null) {
-    return 'Tuile $tileId · Tileset non assigné';
-  }
-  final tilesetName = _tilesetName(project, effectiveTilesetId);
+  final tilesetName = _tilesetName(project, tile.tilesetId);
   return tilesetName == null
-      ? 'Tuile $tileId · Tileset $effectiveTilesetId'
-      : 'Tuile $tileId · Tileset $tilesetName ($effectiveTilesetId)';
-}
-
-String? _nonEmpty(String? value) {
-  final normalized = value?.trim();
-  return normalized == null || normalized.isEmpty ? null : normalized;
+      ? 'Tuile ${tile.localTileId} · Tileset ${tile.tilesetId}'
+      : 'Tuile ${tile.localTileId} · Tileset $tilesetName (${tile.tilesetId})';
 }
 
 String? _tilesetName(ProjectManifest? project, String tilesetId) {

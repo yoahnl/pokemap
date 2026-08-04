@@ -194,7 +194,7 @@ MapResizePlan planMapResize(
         kind: MapResizeImpactKind.tileLayer,
         layerId: layer.id,
         layerName: layer.name,
-        values: layer.tiles,
+        values: layer.cells,
         sourceSize: sourceSize,
         targetSize: targetSize,
         isMeaningful: (value) => value != 0,
@@ -686,8 +686,8 @@ MapData _resizeMapDataLayers(
       .map(
         (layer) => layer.map(
           tile: (l) => l.copyWith(
-            tiles: _resizeFlattened<int>(
-              src: l.tiles,
+            cells: _resizeFlattened<int>(
+              src: l.cells,
               srcSize: oldSize,
               dstSize: GridSize(width: width, height: height),
               defaultValue: 0,

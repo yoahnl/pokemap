@@ -4073,83 +4073,6 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  Future<void> assignTilesetToActiveLayer(String tilesetId) async {
-    final project = state.project;
-    final map = state.activeMap;
-    final mapPath = state.activeMapPath;
-    final layerId = state.activeLayerId;
-    if (project == null || map == null || mapPath == null || layerId == null) {
-      return;
-    }
-    if (_rejectNonCanonicalActiveMapAuthoring(revalidateManifest: true) ||
-        _rejectPendingBorderPreviewDirectMapWrite() ||
-        _rejectMapDiskMutationLease()) {
-      return;
-    }
-    if (_rejectNarrativeEventSourceCleanupMapMutation()) return;
-    final layer = _findLayerById(map, layerId);
-    if (layer is! TileLayer) {
-      state = state.copyWith(
-        errorMessage: 'Active layer must be a tile layer to assign a tileset',
-      );
-      return;
-    }
-
-    final currentTilesetId = _assignedTilesetIdForLayer(map, layer);
-    if (currentTilesetId == tilesetId) {
-      state = state.copyWith(
-        workspaceMode: EditorWorkspaceMode.map,
-        statusMessage: 'Le tileset « $tilesetId » est déjà assigné à '
-            '« ${layer.name} ».',
-        errorMessage: null,
-      );
-      _setActivePaletteSelectedTileset(tilesetId);
-      return;
-    }
-    if (!_isTileLayerEmpty(layer)) {
-      state = state.copyWith(
-        errorMessage: 'La couche « ${layer.name} » contient déjà des tuiles. '
-            'Videz-la avant de changer de tileset afin de ne pas réinterpréter '
-            'ses identifiants de tuiles.',
-      );
-      return;
-    }
-
-    try {
-      final useCase = ref.read(assignTilesetToMapUseCaseProvider);
-      final updatedMap = useCase.prepare(
-        project,
-        map,
-        layerId,
-        tilesetId,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: updatedMap,
-        preferredActiveLayerId: state.activeLayerId,
-        statusMessage:
-            'Tileset « $tilesetId » assigné à la couche « ${layer.name} »',
-      );
-      state = state.copyWith(
-        workspaceMode: EditorWorkspaceMode.map,
-        activeBrush: const EditorBrush.none(),
-        selectedTilesetElementGroupId: null,
-        paletteCategoryFilter: null,
-        errorMessage: null,
-      );
-      _setActivePaletteSelectedTileset(tilesetId);
-    } catch (e) {
-      debugPrint('EditorNotifier: Error assigning layer tileset: $e');
-      state = state.copyWith(
-        errorMessage: 'Impossible d’assigner le tileset à la couche : $e',
-      );
-    }
-  }
-
-  Future<void> assignTilesetToActiveMap(String tilesetId) async {
-    await assignTilesetToActiveLayer(tilesetId);
-  }
-
   ProjectTilesetEntry? getActiveTilesetEntry() {
     return getSelectedTilesetEntry();
   }
@@ -4332,10 +4255,9 @@ class EditorNotifier extends _$EditorNotifier
         return;
       }
       final selectedTilesetId = tilesetId ?? _assignedTilesetIdForState(state);
-      final assignedTilesetId = _assignedTilesetIdForState(state);
       final brushTilesetId = getActiveBrushTilesetId();
-      final keepBrush = selectedTilesetId == assignedTilesetId &&
-          (brushTilesetId == null || brushTilesetId == assignedTilesetId);
+      final keepBrush =
+          brushTilesetId == null || brushTilesetId == selectedTilesetId;
       state = state.copyWith(
         activeBrush: keepBrush ? state.activeBrush : const EditorBrush.none(),
         selectedTilesetElementGroupId: null,
@@ -4462,7 +4384,7 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   String? _assignedTilesetIdForLayer(MapData map, TileLayer layer) {
-    final layerTilesetId = layer.tilesetId?.trim();
+    final layerTilesetId = tileLayerSingleTilesetId(layer)?.trim();
     if (layerTilesetId != null && layerTilesetId.isNotEmpty) {
       return layerTilesetId;
     }
@@ -4705,17 +4627,8 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   bool _canUsePaletteTileset(String tilesetId) {
-    final assignedTilesetId = _assignedTilesetIdForState(state);
-    if (assignedTilesetId == tilesetId) return true;
-    state = state.copyWith(
-      activeBrush: const EditorBrush.none(),
-      errorMessage: assignedTilesetId == null
-          ? 'Assignez « $tilesetId » à cette couche avant de peindre.'
-          : 'Cette couche utilise « $assignedTilesetId ». Assignez-lui '
-              '« $tilesetId » avant de peindre.',
-    );
-    _syncActivePaletteContext();
-    return false;
+    return state.project?.tilesets.any((entry) => entry.id == tilesetId) ??
+        false;
   }
 
   List<TilesetElementGroup> getSelectedTilesetElementGroups() {
@@ -5455,14 +5368,8 @@ class EditorNotifier extends _$EditorNotifier
       emitErrors: true,
     );
     if (resolvedBrush == null) return;
-    final preparedMap = _prepareMapForBrushTileset(
-      map: layerContext.map,
-      activeLayer: layerContext.layer,
-      brushTilesetId: resolvedBrush.tilesetId,
-    );
-    if (preparedMap == null) return;
     _paintPattern(
-      map: preparedMap,
+      map: layerContext.map,
       layerId: layerContext.layerId,
       pos: pos,
       pattern: resolvedBrush.pattern,
@@ -8060,16 +7967,12 @@ class EditorNotifier extends _$EditorNotifier
         emitErrors: false,
       );
       if (resolvedBrush == null) return null;
-      final assignedTilesetId = _assignedTilesetIdForLayer(map, activeLayer);
-      final validity = assignedTilesetId != resolvedBrush.tilesetId
-          ? MapToolPreviewValidity.invalid
-          : MapToolPreviewValidity.valid;
       return MapToolPreview.paint(
         origin: hoveredTile,
         size: resolvedBrush.pattern.size,
         tilesetId: resolvedBrush.tilesetId,
         tiles: resolvedBrush.pattern.tiles,
-        validity: validity,
+        validity: MapToolPreviewValidity.valid,
       );
     }
 
@@ -8834,18 +8737,22 @@ class EditorNotifier extends _$EditorNotifier
 
   _PaintPattern _buildPatternFromSource(
     TilesetSourceRect source, {
+    required String tilesetId,
     required int tilesetColumns,
   }) {
-    final tiles = List<int>.filled(
+    final tiles = List<TileLayerPaletteEntry?>.filled(
       source.width * source.height,
-      0,
+      null,
       growable: false,
     );
     for (var y = 0; y < source.height; y++) {
       for (var x = 0; x < source.width; x++) {
         final sourceX = source.x + x;
         final sourceY = source.y + y;
-        tiles[y * source.width + x] = sourceY * tilesetColumns + sourceX + 1;
+        tiles[y * source.width + x] = TileLayerPaletteEntry(
+          tilesetId: tilesetId,
+          localTileId: sourceY * tilesetColumns + sourceX,
+        );
       }
     }
     return _PaintPattern(
@@ -8880,7 +8787,12 @@ class EditorNotifier extends _$EditorNotifier
         failureLabel: 'tile',
         pattern: _PaintPattern(
           size: const GridSize(width: 1, height: 1),
-          tiles: <int>[brush.tileId],
+          tiles: <TileLayerPaletteEntry>[
+            TileLayerPaletteEntry(
+              tilesetId: tilesetId,
+              localTileId: brush.tileId - 1,
+            ),
+          ],
         ),
       );
     }
@@ -8917,6 +8829,7 @@ class EditorNotifier extends _$EditorNotifier
         failureLabel: 'palette entry',
         pattern: _buildPatternFromSource(
           entry.frames.primarySource,
+          tilesetId: tilesetId,
           tilesetColumns: tilesetColumns,
         ),
       );
@@ -8949,6 +8862,7 @@ class EditorNotifier extends _$EditorNotifier
         failureLabel: 'element',
         pattern: _buildPatternFromSource(
           element.frames.primarySource,
+          tilesetId: tilesetId,
           tilesetColumns: tilesetColumns,
         ),
       );
@@ -9341,37 +9255,9 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  MapData? _prepareMapForBrushTileset({
-    required MapData map,
-    required TileLayer activeLayer,
-    required String brushTilesetId,
-  }) {
-    final assignedTilesetId = _assignedTilesetIdForLayer(map, activeLayer);
-    if (assignedTilesetId == brushTilesetId) {
-      return map;
-    }
-    _setPaintError(
-      assignedTilesetId == null
-          ? 'Assignez « $brushTilesetId » à la couche '
-              '« ${activeLayer.name} » avant de peindre.'
-          : 'La couche « ${activeLayer.name} » utilise '
-              '« $assignedTilesetId ». Assignez-lui « $brushTilesetId » '
-              'avant de peindre.',
-    );
-    return null;
-  }
-
-  bool _isTileLayerEmpty(TileLayer layer) {
-    for (final tile in layer.tiles) {
-      if (tile != 0) return false;
-    }
-    return true;
-  }
-
   void addMapLayer({
     required MapLayerKind kind,
     required String name,
-    String? tileTilesetId,
   }) {
     final map = state.activeMap;
     if (map == null) return;
@@ -9392,7 +9278,6 @@ class EditorNotifier extends _$EditorNotifier
         map,
         kind: kind,
         name: name,
-        tileTilesetId: tileTilesetId,
         insertIndex: insertIndex,
       );
       _applyMapMutation(
@@ -13340,19 +13225,12 @@ class EditorNotifier extends _$EditorNotifier
 
     EnvironmentPaletteItem? item;
     ProjectElementEntry? element;
-    final targetTilesetId = _effectiveTileLayerTilesetId(targetLayer, map);
     for (final candidate in preset.palette) {
       final candidateElement = _projectElementById(
         project,
         candidate.elementId,
       );
       if (candidateElement == null) continue;
-      final elementTilesetId = _elementPrimaryTilesetId(candidateElement);
-      if (targetTilesetId.isNotEmpty &&
-          elementTilesetId.isNotEmpty &&
-          targetTilesetId != elementTilesetId) {
-        continue;
-      }
       item = candidate;
       element = candidateElement;
       break;
@@ -13737,16 +13615,9 @@ class EditorNotifier extends _$EditorNotifier
 
     final available =
         <({EnvironmentPaletteItem item, ProjectElementEntry element})>[];
-    final targetTilesetId = _effectiveTileLayerTilesetId(activeLayer, map);
     for (final item in preset.palette) {
       final element = _projectElementById(project, item.elementId);
       if (element == null) continue;
-      final elementTilesetId = _elementPrimaryTilesetId(element);
-      if (targetTilesetId.isNotEmpty &&
-          elementTilesetId.isNotEmpty &&
-          targetTilesetId != elementTilesetId) {
-        continue;
-      }
       available.add((item: item, element: element));
     }
     if (available.length != 1) {
@@ -13808,16 +13679,6 @@ class EditorNotifier extends _$EditorNotifier
         pos.y >= 0 &&
         pos.x + footprint.width <= mapSize.width &&
         pos.y + footprint.height <= mapSize.height;
-  }
-
-  String _effectiveTileLayerTilesetId(TileLayer layer, MapData map) {
-    return (layer.tilesetId ?? map.tilesetId).trim();
-  }
-
-  String _elementPrimaryTilesetId(ProjectElementEntry element) {
-    final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
-    if (frameTilesetId.isNotEmpty) return frameTilesetId;
-    return element.tilesetId.trim();
   }
 
   bool _applyCollisionFromEnvironmentMode(EnvironmentCollisionMode mode) {
@@ -14548,7 +14409,7 @@ class _PaintPattern {
   });
 
   final GridSize size;
-  final List<int> tiles;
+  final List<TileLayerPaletteEntry?> tiles;
 }
 
 class _ResolvedBrushPattern {

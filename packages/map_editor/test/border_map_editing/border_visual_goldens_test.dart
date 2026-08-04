@@ -268,14 +268,12 @@ final class _CanonicalCoastFixture {
           TileLayer(
             id: 'water',
             name: 'Water',
-            tilesetId: _waterTilesetId,
-            tiles: List<int>.filled(_mapWidth * _mapHeight, 1),
+            cells: List<int>.filled(_mapWidth * _mapHeight, 1),
           ),
           TileLayer(
             id: 'land',
             name: 'Land',
-            tilesetId: _landTilesetId,
-            tiles: <int>[
+            cells: <int>[
               for (final cell in geometry.cells)
                 if (cell) 1 else 0
             ],

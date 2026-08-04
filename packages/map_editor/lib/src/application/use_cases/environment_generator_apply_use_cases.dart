@@ -58,7 +58,6 @@ enum EnvironmentApplyIssueKind {
   candidateWrongTargetLayer,
   candidateElementMissing,
   candidateOutOfBounds,
-  candidateTargetLayerTilesetMismatch,
   candidateDuplicateId,
   placedElementIdConflict,
   candidatePositionDuplicate,
@@ -217,16 +216,6 @@ bool _footprintInBounds({
   final right = pos.x + width;
   final bottom = pos.y + height;
   return right <= mapSize.width && bottom <= mapSize.height;
-}
-
-String _effectiveTileLayerTilesetId(TileLayer layer, MapData map) {
-  return (layer.tilesetId ?? map.tilesetId).trim();
-}
-
-String _elementPrimaryTilesetId(ProjectElementEntry element) {
-  final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
-  if (frameTilesetId.isNotEmpty) return frameTilesetId;
-  return element.tilesetId.trim();
 }
 
 bool _applyCollisionFromCandidate(EnvironmentCollisionMode mode) {
@@ -497,29 +486,6 @@ class ApplyEnvironmentGeneratedPlacementsUseCase {
             environmentLayerId: envId,
             areaId: aid,
             candidateId: c.id,
-            elementId: c.elementId,
-          ),
-        );
-        return _failure(map, issues: issues);
-      }
-
-      final targetTilesetId =
-          _effectiveTileLayerTilesetId(targetTileLayer, map);
-      final elementTilesetId = _elementPrimaryTilesetId(entry);
-      if (targetTilesetId.isNotEmpty &&
-          elementTilesetId.isNotEmpty &&
-          targetTilesetId != elementTilesetId) {
-        issues.add(
-          EnvironmentApplyIssue(
-            severity: EnvironmentApplyIssueSeverity.error,
-            kind: EnvironmentApplyIssueKind.candidateTargetLayerTilesetMismatch,
-            message: 'Candidate ${c.id} uses element ${c.elementId} from '
-                'tileset $elementTilesetId, but target layer $targetId '
-                'uses tileset $targetTilesetId.',
-            environmentLayerId: envId,
-            areaId: aid,
-            candidateId: c.id,
-            targetLayerId: targetId,
             elementId: c.elementId,
           ),
         );

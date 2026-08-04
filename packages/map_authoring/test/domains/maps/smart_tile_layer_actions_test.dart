@@ -898,7 +898,7 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
       MapLayer.tile(
         id: 'l_base',
         name: 'Base',
-        tiles: List<int>.filled(9, 0),
+        cells: List<int>.filled(9, 0),
       ),
       MapLayer.smartTile(
         id: 'l_qc02_terrain',

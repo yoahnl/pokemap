@@ -91,7 +91,7 @@ void main() {
   );
 
   testWidgets(
-    'compatible but unassigned assets expose a reason and cannot mutate through pointer Enter or Space',
+    'compatible cross-source assets remain directly selectable',
     (tester) async {
       final harness = await _PaletteHarness.create(
         selectedTilesetId: 'details',
@@ -99,34 +99,25 @@ void main() {
         activeTool: EditorToolType.tilePaint,
       );
       addTearDown(harness.dispose);
-      final before = harness.notifier.state;
-
       await harness.pump(tester);
 
       final cardFinder = find.byKey(
         MapLayerAssetPaletteKeys.elementCard('lamp'),
       );
       final card = tester.widget<PokeMapAssetCard>(cardFinder);
-      expect(card.onPressed, isNull);
-      expect(card.disabledReason, contains('Assignez'));
-      expect(
-        tester
-            .widget<Tooltip>(
-              find.descendant(
-                of: cardFinder,
-                matching: find.byType(Tooltip),
-              ),
-            )
-            .message,
-        contains('Assignez'),
-      );
+      expect(card.onPressed, isNotNull);
+      expect(card.disabledReason, isNull);
 
       await tester.tap(cardFinder);
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.sendKeyEvent(LogicalKeyboardKey.space);
       await tester.pump();
 
-      _expectNoEditorMutation(harness.notifier.state, before);
+      expect(
+        harness.notifier.state.activeBrush,
+        const EditorBrush.projectElement(elementId: 'lamp'),
+      );
+      expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
+      expect(harness.notifier.state.activeMap, same(_map));
+      expect(harness.notifier.state.mapUndoStack, isEmpty);
     },
   );
 
@@ -519,14 +510,18 @@ const _map = MapData(
     TileLayer(
       id: 'ground',
       name: 'Sol',
-      tilesetId: 'world',
-      tiles: <int>[0, 0],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+      ],
+      cells: <int>[0, 0],
     ),
     TileLayer(
       id: 'details',
       name: 'Détails',
-      tilesetId: 'details',
-      tiles: <int>[0, 0],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'details', localTileId: 0),
+      ],
+      cells: <int>[0, 0],
     ),
   ],
 );

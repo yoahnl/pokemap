@@ -16,7 +16,7 @@ import 'package:map_editor/src/ui/panels/tileset_palette/widgets/palette/map_lay
 
 void main() {
   testWidgets(
-    'compatible unassigned asset is inert then activates after assignment',
+    'compatible cross-source asset is immediately available',
     (tester) async {
       final semantics = tester.ensureSemantics();
       final harness = await _AssetHarness.create(selectedSourceId: 'details');
@@ -24,17 +24,10 @@ void main() {
       await harness.pump(tester);
       final cardFinder =
           find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp'));
-      final before = harness.notifier.state;
-      final disabledCard = tester.widget<PokeMapAssetCard>(cardFinder);
+      final enabledCard = tester.widget<PokeMapAssetCard>(cardFinder);
 
-      expect(disabledCard.onPressed, isNull);
-      expect(disabledCard.disabledReason, contains('Assignez'));
-      expect(
-        find.semantics.byLabel(
-          RegExp(r'^Lampe\..*Assignez cette source'),
-        ),
-        findsOneWidget,
-      );
+      expect(enabledCard.onPressed, isNotNull);
+      expect(enabledCard.disabledReason, isNull);
       expect(
         tester
             .widgetList<FocusableActionDetector>(
@@ -45,19 +38,8 @@ void main() {
             )
             .single
             .enabled,
-        isFalse,
+        isTrue,
       );
-
-      await tester.tap(cardFinder);
-      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await tester.sendKeyEvent(LogicalKeyboardKey.space);
-      expect(harness.notifier.state.activeBrush, before.activeBrush);
-      expect(harness.notifier.state.activeTool, before.activeTool);
-
-      await harness.notifier.assignTilesetToActiveLayer('details');
-      await tester.pump();
-      final enabledCard = tester.widget<PokeMapAssetCard>(cardFinder);
-      expect(enabledCard.onPressed, isNotNull);
 
       await tester.tap(cardFinder);
       await tester.pump();
@@ -83,7 +65,6 @@ void main() {
 
       expect(card.onPressed, isNull);
       expect(card.disabledReason, contains('autre groupe'));
-      await harness.notifier.assignTilesetToActiveLayer('private');
       await tester.pump();
       await tester.tap(cardFinder);
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
@@ -92,11 +73,7 @@ void main() {
       expect(harness.notifier.state.activeBrush, before.activeBrush);
       expect(harness.notifier.state.activeTool, before.activeTool);
       expect(harness.notifier.state.mapUndoStack, before.mapUndoStack);
-      expect(
-        (harness.notifier.state.activeMap!.layers.single as TileLayer)
-            .tilesetId,
-        'world',
-      );
+      expect(harness.notifier.state.activeMap, before.activeMap);
       expect(
         harness
             .notifier
@@ -294,8 +271,10 @@ MapData _mapFor(String sourceId) {
       TileLayer(
         id: 'ground',
         name: 'Sol',
-        tilesetId: sourceId,
-        tiles: const <int>[0, 0],
+        palette: <TileLayerPaletteEntry>[
+          TileLayerPaletteEntry(tilesetId: sourceId, localTileId: 0),
+        ],
+        cells: const <int>[0, 0],
       ),
     ],
   );

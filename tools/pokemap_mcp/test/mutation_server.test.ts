@@ -687,6 +687,54 @@ async function applyMutation(
 test("MCP preserves CLI plan/apply parity for one complete map batch", async () => {
   const fixture = await mutationFixture();
   try {
+    const projectPath = join(fixture.root, "project.json");
+    const project = JSON.parse(await readFile(projectPath, "utf8")) as JsonRecord;
+    const tilesets = Array.isArray(project.tilesets) ? project.tilesets : [];
+    project.tilesets = [
+      ...tilesets,
+      {
+        id: "mcp_palette_a",
+        name: "MCP palette A",
+        relativePath: "assets/mcp_palette_a.png",
+        source: {
+          kind: "regular_atlas",
+          assetId: "mcp-palette-a-image",
+          pixelWidth: 1,
+          pixelHeight: 1,
+          tileWidth: 1,
+          tileHeight: 1,
+          tileProperties: [],
+        },
+      },
+      {
+        id: "mcp_palette_b",
+        name: "MCP palette B",
+        relativePath: "assets/mcp_palette_b.png",
+        source: {
+          kind: "regular_atlas",
+          assetId: "mcp-palette-b-image",
+          pixelWidth: 1,
+          pixelHeight: 1,
+          tileWidth: 1,
+          tileHeight: 1,
+          tileProperties: [],
+        },
+      },
+    ];
+    await writeFile(projectPath, JSON.stringify(project));
+
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const mapAction = (described.mutationActions as JsonRecord[]).find(
+      (action) => action.id === "map.apply_operations",
+    );
+    assert.ok(mapAction);
+    assert.equal(record(mapAction.extensions).tileLayerEncoding, "tile_palette_v1");
+    assert.equal(
+      (record(mapAction.extensions).tileLayerAddParameters as unknown[]).includes(
+        "tilesetId",
+      ),
+      false,
+    );
     const opened = await toolData(fixture.client, "pokemap_workspace", {
       operation: "open",
       projectRoot: fixture.root,
@@ -772,7 +820,20 @@ test("MCP preserves CLI plan/apply parity for one complete map batch", async () 
               y: 0,
               width: 3,
               height: 2,
-              value: 7,
+              value: {
+                tilesetId: "mcp_palette_a",
+                localTileId: 0,
+              },
+            },
+            {
+              kind: "region.paint",
+              layerId: "ground",
+              x: 1,
+              y: 0,
+              value: {
+                tilesetId: "mcp_palette_b",
+                localTileId: 0,
+              },
             },
           ],
         },
@@ -789,6 +850,28 @@ test("MCP preserves CLI plan/apply parity for one complete map batch", async () 
       operationId: "operation-mcp-map-batch",
     });
     assert.equal(record(batchApplied.receipt).actionId, "map.apply_operations");
+
+    const region = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "map",
+      operation: "get",
+      view: "detail",
+      ids: ["mcp_batch_map"],
+      extensions: {
+        region: { x: 0, y: 0, width: 3, height: 1 },
+      },
+    });
+    const regionItem = record((region.items as unknown[])[0]);
+    const ground = (regionItem.layers as JsonRecord[]).find(
+      (layer) => layer.id === "ground",
+    );
+    assert.ok(ground);
+    assert.equal(ground.encoding, "tile_palette_v1");
+    assert.deepEqual(
+      (ground.palette as JsonRecord[]).map((entry) => entry.tilesetId),
+      ["mcp_palette_a", "mcp_palette_b"],
+    );
+    assert.deepEqual(ground.rows, [[1, 2, 1]]);
 
     const batchHistory = await toolData(fixture.client, "pokemap_history", {
       operation: "list",

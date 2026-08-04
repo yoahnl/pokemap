@@ -138,7 +138,6 @@ class EnvironmentLayerInspectorPanel extends ConsumerWidget {
                     layerId: layer.id,
                     labelColor: label,
                     subtleColor: subtle,
-                    mapTilesetId: map.tilesetId,
                     resolvedTargetTileLayer: target,
                     targetTileLayerInvalid: invalidTarget,
                     hasTargetTileLayerId: tid != null,
@@ -340,7 +339,6 @@ class _EnvironmentAreaCard extends ConsumerWidget {
     required this.layerId,
     required this.labelColor,
     required this.subtleColor,
-    required this.mapTilesetId,
     required this.resolvedTargetTileLayer,
     required this.targetTileLayerInvalid,
     required this.hasTargetTileLayerId,
@@ -351,7 +349,6 @@ class _EnvironmentAreaCard extends ConsumerWidget {
   final String layerId;
   final Color labelColor;
   final Color subtleColor;
-  final String? mapTilesetId;
 
   /// `null` si pas de cible ou cible non résolue.
   final TileLayer? resolvedTargetTileLayer;
@@ -367,32 +364,6 @@ class _EnvironmentAreaCard extends ConsumerWidget {
     return null;
   }
 
-  bool _targetTilesetMismatch(EnvironmentPreset? preset) {
-    final m = manifest;
-    final target = resolvedTargetTileLayer;
-    if (m == null || preset == null || target == null) return false;
-    final targetTilesetId = (target.tilesetId ?? mapTilesetId ?? '').trim();
-    if (targetTilesetId.isEmpty) return false;
-    final elementsById = <String, ProjectElementEntry>{
-      for (final e in m.elements) e.id: e,
-    };
-    for (final item in preset.palette) {
-      final element = elementsById[item.elementId];
-      if (element == null) continue;
-      final elementTilesetId = _elementPrimaryTilesetId(element);
-      if (elementTilesetId.isNotEmpty && elementTilesetId != targetTilesetId) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  String _elementPrimaryTilesetId(ProjectElementEntry element) {
-    final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
-    if (frameTilesetId.isNotEmpty) return frameTilesetId;
-    return element.tilesetId.trim();
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifier = ref.read(editorNotifierProvider.notifier);
@@ -400,14 +371,12 @@ class _EnvironmentAreaCard extends ConsumerWidget {
     final manifestPresets =
         manifest?.environmentPresets ?? const <EnvironmentPreset>[];
     final preset = _presetForArea();
-    final targetTilesetMismatch = _targetTilesetMismatch(preset);
     final readiness = EnvironmentAreaGenerationReadiness.evaluate(
       area: area,
       preset: preset,
       hasTargetTileLayerId: hasTargetTileLayerId,
       targetTileLayerInvalid: targetTileLayerInvalid,
       resolvedTargetTileLayer: resolvedTargetTileLayer,
-      targetTileLayerTilesetMismatch: targetTilesetMismatch,
     );
     final regenerateEnabled = readiness.canRegenerate;
     final shuffleEnabled = readiness.canShuffle;

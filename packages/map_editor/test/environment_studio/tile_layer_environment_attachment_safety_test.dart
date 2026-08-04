@@ -227,7 +227,7 @@ TileLayer _tileLayer(String id) {
   return TileLayer(
     id: id,
     name: id,
-    tiles: const [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    cells: const [0, 0, 0, 0, 0, 0, 0, 0, 0],
   );
 }
 

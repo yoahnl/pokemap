@@ -132,8 +132,10 @@ MapData _legacyMap() => MapData(
         const TileLayer(
           id: 'decor',
           name: 'Decor',
-          tilesetId: 'nature',
-          tiles: [1, 0, 1],
+          palette: [
+            TileLayerPaletteEntry(tilesetId: 'nature', localTileId: 0),
+          ],
+          cells: [1, 0, 1],
         ),
       ],
       placedElements: const [

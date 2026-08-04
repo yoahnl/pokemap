@@ -398,7 +398,6 @@ MapLayer _layer({
   return MapLayer.tile(
     id: id,
     name: 'Objects',
-    tilesetId: 'tileset',
     isVisible: isVisible,
     opacity: opacity,
   );

@@ -208,7 +208,7 @@ EditorState _editorState() {
       TileLayer(
         id: 'ground',
         name: 'Ground',
-        tiles: <int>[],
+        cells: <int>[],
       ),
     ],
   );

@@ -5,6 +5,39 @@ import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
+const _tile6 = <String, Object?>{
+  'tilesetId': 'tileset',
+  'localTileId': 6,
+};
+const _tile7 = <String, Object?>{
+  'tilesetId': 'tileset',
+  'localTileId': 7,
+};
+const _tile8 = <String, Object?>{
+  'tilesetId': 'tileset',
+  'localTileId': 8,
+};
+const _tile9 = <String, Object?>{
+  'tilesetId': 'tileset',
+  'localTileId': 9,
+};
+const _tile11 = <String, Object?>{
+  'tilesetId': 'tileset',
+  'localTileId': 11,
+};
+const _testTileset = ProjectTilesetEntry(
+  id: 'tileset',
+  name: 'Tileset',
+  relativePath: 'assets/tileset.png',
+  source: ProjectRegularAtlasTilesetSource(
+    assetId: 'tileset-image',
+    pixelWidth: 16,
+    pixelHeight: 1,
+    tileWidth: 1,
+    tileHeight: 1,
+  ),
+);
+
 void main() {
   group('MapOperationsActions', () {
     test('advertises one bounded atomic mutation action', () {
@@ -14,6 +47,22 @@ void main() {
       expect(descriptor.guarantees, contains(AuthoringGuarantee.dryRun));
       expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
       expect(descriptor.extensions['batchAtomicity'], 'all_or_nothing');
+      expect(descriptor.extensions['tileLayerEncoding'], 'tile_palette_v1');
+      expect(
+        descriptor.extensions['tileLayerAddParameters'],
+        isNot(contains('tilesetId')),
+      );
+      expect(
+        descriptor.extensions['tileCellValue'],
+        const <String, Object?>{
+          'empty': null,
+          'entrySchema': 'tile_palette_entry_v1',
+        },
+      );
+      expect(
+        descriptor.extensions['boundedRegionQuery'],
+        containsPair('requestExtension', 'region'),
+      );
     });
 
     test('builds a complete map fixture as one compact map change', () {
@@ -51,7 +100,7 @@ void main() {
           'y': 0,
           'width': 4,
           'height': 3,
-          'value': 11,
+          'value': _tile11,
         },
         {
           'kind': 'shape.line',
@@ -76,7 +125,10 @@ void main() {
       );
       expect(updated.layers, hasLength(5));
       expect(updated.version, ProjectVersion.v6);
-      expect((updated.layers.first as TileLayer).tiles, everyElement(11));
+      expect(
+        _resolvedLocalIds(updated.layers.first as TileLayer),
+        everyElement(11),
+      );
       expect(draft.preview['operationCount'], 6);
       expect(draft.preview['changedCellCount'], lessThanOrEqualTo(24));
       expect(
@@ -95,14 +147,14 @@ void main() {
           'layerId': 'tiles',
           'x': 1,
           'y': 1,
-          'value': 6,
+          'value': _tile6,
         },
         {
           'kind': 'region.paint',
           'layerId': 'tiles',
           'x': 2,
           'y': 1,
-          'value': 6,
+          'value': _tile6,
         },
         {
           'kind': 'region.erase',
@@ -119,9 +171,13 @@ void main() {
       final updated = MapData.fromJson(
         jsonDecode(utf8.decode(change.afterBytes!)) as Map<String, dynamic>,
       );
-      final tiles = (updated.layers.single as TileLayer).tiles;
+      final tiles = (updated.layers.single as TileLayer).cells;
 
-      expect(tiles[5], 6);
+      expect(
+        resolveTileLayerCell(updated.layers.single as TileLayer, 5)
+            ?.localTileId,
+        6,
+      );
       expect(tiles[6], 0);
       expect(tiles.where((cell) => cell != 0), hasLength(1));
     });
@@ -135,14 +191,14 @@ void main() {
           'layerId': 'tiles',
           'x': 0,
           'y': 0,
-          'value': 9,
+          'value': _tile9,
         },
         {
           'kind': 'region.paint',
           'layerId': 'tiles',
           'x': 99,
           'y': 0,
-          'value': 8,
+          'value': _tile8,
         },
       ]);
 
@@ -154,7 +210,7 @@ void main() {
               .having((error) => error.details['operationIndex'], 'index', 1),
         ),
       );
-      expect((map.layers.single as TileLayer).tiles, everyElement(0));
+      expect((map.layers.single as TileLayer).cells, everyElement(0));
       expect(
         snapshot.resourceBytes('map:fixture'),
         _encode(map.toJson()),
@@ -390,7 +446,7 @@ void main() {
               'y': 0,
               'width': 4,
               'height': 3,
-              'value': 6,
+              'value': _tile6,
             },
             {
               'kind': 'region.erase',
@@ -418,8 +474,12 @@ void main() {
       final updated = MapData.fromJson(
         jsonDecode(await setup.mapFile.readAsString()) as Map<String, dynamic>,
       );
-      expect((updated.layers.single as TileLayer).tiles[0], 6);
-      expect((updated.layers.single as TileLayer).tiles[5], 0);
+      expect(
+        resolveTileLayerCell(updated.layers.single as TileLayer, 0)
+            ?.localTileId,
+        6,
+      );
+      expect((updated.layers.single as TileLayer).cells[5], 0);
 
       final undone = await setup.mutations.undo(
         setup.projectHandle,
@@ -451,14 +511,14 @@ void main() {
               'layerId': 'tiles',
               'x': 0,
               'y': 0,
-              'value': 6,
+              'value': _tile6,
             },
             {
               'kind': 'region.paint',
               'layerId': 'tiles',
               'x': -1,
               'y': 0,
-              'value': 7,
+              'value': _tile7,
             },
           ],
         },
@@ -505,7 +565,7 @@ final class _TransactionSetup {
           relativePath: 'maps/fixture.json',
         ),
       ],
-      tilesets: const [],
+      tilesets: const [_testTileset],
     );
     await File('${root.path}/project.json').writeAsBytes(
       _encode(manifest.toJson()),
@@ -606,7 +666,7 @@ ProjectSnapshot _snapshot(MapData map) {
         relativePath: 'maps/fixture.json',
       ),
     ],
-    tilesets: const [],
+    tilesets: const [_testTileset],
     smartTileCatalog: isNativeSmartTileProject
         ? ProjectSmartTileCatalog(
             materials: const [
@@ -704,7 +764,7 @@ MapData _map() => MapData(
         MapLayer.tile(
           id: 'tiles',
           name: 'Tiles',
-          tiles: List<int>.filled(12, 0),
+          cells: List<int>.filled(12, 0),
         ),
       ],
     );
@@ -719,7 +779,7 @@ MapData _nativeSmartTileV5Map(SmartTileField field) => MapData(
         const MapLayer.tile(
           id: 'base',
           name: 'Base',
-          tiles: [0, 0, 0, 0],
+          cells: [0, 0, 0, 0],
         ),
         SmartTileLayer(
           id: 'smart',
@@ -742,7 +802,7 @@ MapData _legacyPaletteMap() => MapData(
         MapLayer.tile(
           id: 'tiles',
           name: 'Tiles',
-          tiles: List<int>.filled(12, 0),
+          cells: List<int>.filled(12, 0),
         ),
         MapLayer.smartTile(
           id: 'smart_path',
@@ -759,3 +819,8 @@ MapData _legacyPaletteMap() => MapData(
 
 List<int> _encode(Object? value) =>
     utf8.encode(const JsonEncoder.withIndent('  ').convert(value));
+
+List<int> _resolvedLocalIds(TileLayer layer) => <int>[
+      for (var index = 0; index < layer.cells.length; index++)
+        resolveTileLayerCell(layer, index)?.localTileId ?? 0,
+    ];

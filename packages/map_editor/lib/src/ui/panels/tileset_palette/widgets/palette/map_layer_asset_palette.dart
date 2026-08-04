@@ -308,13 +308,6 @@ _MapLayerAssetAvailability _availabilityFor({
           'Cette source n’est pas compatible avec le calque actif.',
     );
   }
-  if (!sourceProjection.isAssigned) {
-    return const _MapLayerAssetAvailability(
-      enabled: false,
-      disabledReason:
-          'Assignez cette source au calque actif avant d’utiliser ses assets.',
-    );
-  }
   return const _MapLayerAssetAvailability(
     enabled: true,
     disabledReason: null,

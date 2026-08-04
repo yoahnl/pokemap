@@ -128,6 +128,8 @@ final class CinematicMapBackdropBitmapInstruction {
     required this.destinationRect,
     required this.opacity,
     required this.tileId,
+    this.quarterTurns = 0,
+    this.flipX = false,
   });
 
   final String id;
@@ -140,6 +142,8 @@ final class CinematicMapBackdropBitmapInstruction {
   final ui.Rect destinationRect;
   final double opacity;
   final int tileId;
+  final int quarterTurns;
+  final bool flipX;
 }
 
 final class CinematicMapBackdropTileRenderPlan {
@@ -174,10 +178,19 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
   final tileWidth = manifest.settings.tileWidth;
   final tileHeight = manifest.settings.tileHeight;
   final diagnostics = <CinematicMapBackdropTileDiagnostic>[];
+  final diagnosticKeys = <String>{};
   final instructions = <CinematicMapBackdropBitmapInstruction>[];
   final manifestTilesetIds = {
     for (final tileset in manifest.tilesets) tileset.id.trim(),
   }..remove('');
+
+  void addDiagnostic(CinematicMapBackdropTileDiagnostic diagnostic) {
+    final key = '${diagnostic.code}|${diagnostic.layerId ?? ''}|'
+        '${diagnostic.tilesetId ?? ''}|${diagnostic.message}';
+    if (diagnosticKeys.add(key)) {
+      diagnostics.add(diagnostic);
+    }
+  }
 
   if (tileWidth <= 0 || tileHeight <= 0) {
     diagnostics.add(
@@ -207,114 +220,223 @@ CinematicMapBackdropTileRenderPlan buildCinematicMapBackdropTileRenderPlan({
       continue;
     }
 
-    final tilesetId = (layer.tilesetId ?? mapData.tilesetId).trim();
-    if (tilesetId.isEmpty) {
-      diagnostics.add(
-        CinematicMapBackdropTileDiagnostic(
-          code: 'missingTilesetId',
-          message: 'Le calque ${layer.name} n’a pas de tileset.',
-          severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
-          layerId: layer.id,
-        ),
-      );
-      continue;
-    }
-
-    if (!manifestTilesetIds.contains(tilesetId)) {
-      diagnostics.add(
-        CinematicMapBackdropTileDiagnostic(
-          code: 'missingTilesetEntry',
-          message: 'Tileset $tilesetId absent du manifeste.',
-          severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
-          layerId: layer.id,
-          tilesetId: tilesetId,
-        ),
-      );
-      continue;
-    }
-
-    final tileset = tilesets[tilesetId];
-    if (tileset == null || !tileset.isAvailable) {
-      diagnostics.add(
-        CinematicMapBackdropTileDiagnostic(
-          code: tileset?.status.name ?? 'missingResolvedTileset',
-          message: tileset?.diagnosticMessage ??
-              'Image de tileset indisponible pour $tilesetId.',
-          severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
-          layerId: layer.id,
-          tilesetId: tilesetId,
-        ),
-      );
-      continue;
-    }
-    if (tileset.tileWidth != tileWidth || tileset.tileHeight != tileHeight) {
-      diagnostics.add(
-        CinematicMapBackdropTileDiagnostic(
-          code: 'tileMetricMismatch',
-          message: 'Métriques de tileset incompatibles pour $tilesetId.',
-          severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
-          layerId: layer.id,
-          tilesetId: tilesetId,
-        ),
-      );
-      continue;
-    }
-
-    final image = tileset.image!;
     for (var y = 0; y < mapData.size.height; y += 1) {
       final rowStart = y * mapData.size.width;
       for (var x = 0; x < mapData.size.width; x += 1) {
         final tileIndex = rowStart + x;
-        if (tileIndex >= layer.tiles.length) {
-          continue;
-        }
-        final tileId = layer.tiles[tileIndex];
-        if (tileId <= 0) {
-          continue;
-        }
-
-        final sourceIndex = tileId - 1;
-        final sourceX = (sourceIndex % tileset.columns) * tileWidth;
-        final sourceY = (sourceIndex ~/ tileset.columns) * tileHeight;
-        if (sourceX + tileWidth > image.width ||
-            sourceY + tileHeight > image.height) {
-          diagnostics.add(
+        final entry = resolveTileLayerCell(layer, tileIndex);
+        if (entry == null) continue;
+        if (!manifestTilesetIds.contains(entry.tilesetId)) {
+          addDiagnostic(
             CinematicMapBackdropTileDiagnostic(
-              code: 'sourceRectOutOfBounds',
-              message: 'Tuile $tileId hors atlas pour $tilesetId.',
+              code: 'missingTilesetEntry',
+              message: 'Tileset ${entry.tilesetId} absent du manifeste.',
               severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
               layerId: layer.id,
-              tilesetId: tilesetId,
+              tilesetId: entry.tilesetId,
             ),
           );
           continue;
         }
-
-        instructions.add(
-          CinematicMapBackdropBitmapInstruction(
-            id: '${layer.id}:$tileIndex',
-            layerId: layer.id,
-            layerLabel: layer.name,
-            layerKind: CinematicMapBackdropLayerKind.tile,
-            zOrder: zOrder,
-            tilesetId: tilesetId,
-            sourceRect: ui.Rect.fromLTWH(
-              sourceX.toDouble(),
-              sourceY.toDouble(),
-              tileWidth.toDouble(),
-              tileHeight.toDouble(),
+        final manifestTileset = manifest.tilesets
+            .where((candidate) => candidate.id == entry.tilesetId)
+            .first;
+        final source = manifestTileset.source;
+        if (source == null) {
+          final asset = tilesets[entry.tilesetId];
+          if (asset == null || !asset.isAvailable) {
+            addDiagnostic(
+              CinematicMapBackdropTileDiagnostic(
+                code: asset?.status.name ?? 'missingResolvedTileset',
+                message: asset?.diagnosticMessage ??
+                    'Image de tileset indisponible pour ${entry.tilesetId}.',
+                severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
+                layerId: layer.id,
+                tilesetId: entry.tilesetId,
+              ),
+            );
+            continue;
+          }
+          if (asset.tileWidth != tileWidth || asset.tileHeight != tileHeight) {
+            addDiagnostic(
+              CinematicMapBackdropTileDiagnostic(
+                code: 'tileMetricMismatch',
+                message:
+                    'Métriques de tileset incompatibles pour ${entry.tilesetId}.',
+                severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
+                layerId: layer.id,
+                tilesetId: entry.tilesetId,
+              ),
+            );
+            continue;
+          }
+          final sourceX = (entry.localTileId % asset.columns) * tileWidth;
+          final sourceY = (entry.localTileId ~/ asset.columns) * tileHeight;
+          final image = asset.image!;
+          if (sourceX + tileWidth > image.width ||
+              sourceY + tileHeight > image.height) {
+            addDiagnostic(
+              CinematicMapBackdropTileDiagnostic(
+                code: 'sourceRectOutOfBounds',
+                message: 'Tuile ${entry.localTileId} hors atlas pour '
+                    '${entry.tilesetId}.',
+                severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
+                layerId: layer.id,
+                tilesetId: entry.tilesetId,
+              ),
+            );
+            continue;
+          }
+          instructions.add(
+            CinematicMapBackdropBitmapInstruction(
+              id: '${layer.id}:$tileIndex',
+              layerId: layer.id,
+              layerLabel: layer.name,
+              layerKind: CinematicMapBackdropLayerKind.tile,
+              zOrder: zOrder++,
+              tilesetId: entry.tilesetId,
+              sourceRect: ui.Rect.fromLTWH(
+                sourceX.toDouble(),
+                sourceY.toDouble(),
+                tileWidth.toDouble(),
+                tileHeight.toDouble(),
+              ),
+              destinationRect: ui.Rect.fromLTWH(
+                x * tileWidth.toDouble(),
+                y * tileHeight.toDouble(),
+                tileWidth.toDouble(),
+                tileHeight.toDouble(),
+              ),
+              opacity: layer.opacity.clamp(0.0, 1.0).toDouble(),
+              tileId: entry.localTileId,
+              quarterTurns: entry.transform.quarterTurns,
+              flipX: entry.transform.flipX,
             ),
-            destinationRect: ui.Rect.fromLTWH(
-              x * tileWidth.toDouble(),
-              y * tileHeight.toDouble(),
-              tileWidth.toDouble(),
-              tileHeight.toDouble(),
+          );
+          continue;
+        }
+        final selection = switch (source) {
+          ProjectRegularAtlasTilesetSource atlas =>
+            entry.localTileId < atlas.tileCount
+                ? ProjectTilesetVisualSelection.regularAtlas(
+                    source: TilesetSourceRect(
+                      x: entry.localTileId % atlas.columns,
+                      y: entry.localTileId ~/ atlas.columns,
+                    ),
+                  )
+                : null,
+          ProjectImageCollectionTilesetSource() =>
+            ProjectTilesetVisualSelection.imageCollection(
+              tileId: entry.localTileId,
             ),
-            opacity: layer.opacity.clamp(0.0, 1.0).toDouble(),
-            tileId: tileId,
-          ),
-        );
-        zOrder += 1;
+        };
+        if (selection == null) {
+          addDiagnostic(
+            CinematicMapBackdropTileDiagnostic(
+              code: 'sourceRectOutOfBounds',
+              message: 'Tuile ${entry.localTileId} hors atlas pour '
+                  '${entry.tilesetId}.',
+              severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
+              layerId: layer.id,
+              tilesetId: entry.tilesetId,
+            ),
+          );
+          continue;
+        }
+        ProjectTilesetVisualResolution visual;
+        try {
+          visual = const ProjectTilesetVisualResolver().resolve(
+            source: source,
+            selection: selection,
+            cellWidth: tileWidth,
+            cellHeight: tileHeight,
+          );
+        } on ProjectTilesetVisualResolutionException {
+          addDiagnostic(
+            CinematicMapBackdropTileDiagnostic(
+              code: 'sourceRectOutOfBounds',
+              message: 'Tuile ${entry.localTileId} non résolue pour '
+                  '${entry.tilesetId}.',
+              severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
+              layerId: layer.id,
+              tilesetId: entry.tilesetId,
+            ),
+          );
+          continue;
+        }
+        for (final slice in visual.frames.first.slices) {
+          final asset = tilesets[slice.assetId] ?? tilesets[entry.tilesetId];
+          if (asset == null || !asset.isAvailable) {
+            addDiagnostic(
+              CinematicMapBackdropTileDiagnostic(
+                code: asset?.status.name ?? 'missingResolvedTileset',
+                message: asset?.diagnosticMessage ??
+                    'Image de tileset indisponible pour ${slice.assetId}.',
+                severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
+                layerId: layer.id,
+                tilesetId: entry.tilesetId,
+              ),
+            );
+            continue;
+          }
+          if (asset.tileWidth != tileWidth || asset.tileHeight != tileHeight) {
+            addDiagnostic(
+              CinematicMapBackdropTileDiagnostic(
+                code: 'tileMetricMismatch',
+                message:
+                    'Métriques de tileset incompatibles pour ${entry.tilesetId}.',
+                severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
+                layerId: layer.id,
+                tilesetId: entry.tilesetId,
+              ),
+            );
+            continue;
+          }
+          final image = asset.image!;
+          final sourceRect = slice.sourceRect;
+          if (sourceRect.x < 0 ||
+              sourceRect.y < 0 ||
+              sourceRect.x + sourceRect.width > image.width ||
+              sourceRect.y + sourceRect.height > image.height) {
+            addDiagnostic(
+              CinematicMapBackdropTileDiagnostic(
+                code: 'sourceRectOutOfBounds',
+                message: 'Tuile ${entry.localTileId} hors atlas pour '
+                    '${entry.tilesetId}.',
+                severity: CinematicMapBackdropTileDiagnosticSeverity.warning,
+                layerId: layer.id,
+                tilesetId: entry.tilesetId,
+              ),
+            );
+            continue;
+          }
+          instructions.add(
+            CinematicMapBackdropBitmapInstruction(
+              id: '${layer.id}:$tileIndex:${slice.assetId}',
+              layerId: layer.id,
+              layerLabel: layer.name,
+              layerKind: CinematicMapBackdropLayerKind.tile,
+              zOrder: zOrder++,
+              tilesetId: slice.assetId,
+              sourceRect: ui.Rect.fromLTWH(
+                slice.sourceRect.x.toDouble(),
+                slice.sourceRect.y.toDouble(),
+                slice.sourceRect.width.toDouble(),
+                slice.sourceRect.height.toDouble(),
+              ),
+              destinationRect: ui.Rect.fromLTWH(
+                x * tileWidth + slice.destinationRect.x.toDouble(),
+                y * tileHeight + slice.destinationRect.y.toDouble(),
+                slice.destinationRect.width.toDouble(),
+                slice.destinationRect.height.toDouble(),
+              ),
+              opacity: layer.opacity.clamp(0.0, 1.0).toDouble(),
+              tileId: entry.localTileId,
+              quarterTurns: entry.transform.quarterTurns,
+              flipX: entry.transform.flipX,
+            ),
+          );
+        }
       }
     }
   }

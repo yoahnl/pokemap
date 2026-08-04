@@ -115,7 +115,7 @@ void main() {
       expect(env.content.areas.single.generatedPlacementIds,
           ['env_gen_area1_0_0_e1', 'env_gen_area1_1_0_e1']);
       final tile = r.map.layers[1] as TileLayer;
-      expect(tile.tiles, ctx.tilesSnapshot);
+      expect(tile.cells, ctx.tilesSnapshot);
       expect(r.map.placedElements.length, 2);
       expect(r.map.placedElements.map((e) => e.id).toList(),
           ['env_gen_area1_0_0_e1', 'env_gen_area1_1_0_e1']);
@@ -249,8 +249,8 @@ void main() {
         name: 'M',
         size: GridSize(width: 2, height: 1),
         layers: [
-          MapLayer.tile(id: 'env', name: 'E', tiles: [0, 0]),
-          TileLayer(id: 'tiles', name: 'T', tiles: [0, 0]),
+          MapLayer.tile(id: 'env', name: 'E', cells: [0, 0]),
+          TileLayer(id: 'tiles', name: 'T', cells: [0, 0]),
         ],
       );
       final r2 = uc.execute(
@@ -545,7 +545,7 @@ void main() {
     test('ProjectManifest et TileLayer.tiles inchangés après succès', () {
       final ctx = _happyContext();
       final manifestBefore = ctx.manifest;
-      final tilesBefore = (ctx.map.layers[1] as TileLayer).tiles;
+      final tilesBefore = (ctx.map.layers[1] as TileLayer).cells;
       final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
       final r = uc.execute(
         ctx.map,
@@ -558,7 +558,7 @@ void main() {
       expect(identical(r.map, ctx.map), isFalse);
       expect(
           manifestBefore.environmentPresets, ctx.manifest.environmentPresets);
-      final tilesAfter = (r.map.layers[1] as TileLayer).tiles;
+      final tilesAfter = (r.map.layers[1] as TileLayer).cells;
       expect(tilesAfter, tilesBefore);
     });
 
@@ -594,13 +594,16 @@ void main() {
       expect(area.generatedPlacementIds, ids);
     });
 
-    test('candidateTargetLayerTilesetMismatch : layer vs element incompatible',
+    test('un placement peut utiliser une autre source que la palette du layer',
         () {
       final ctx = _happyContext(layerTilesetId: 'tsA');
       final manifestBad = ProjectManifest(
         name: 'p',
         maps: const [],
-        tilesets: const [],
+        tilesets: [
+          _regularTileset('tsA'),
+          _regularTileset('tsB'),
+        ],
         elements: [
           const ProjectElementEntry(
             id: 'e1',
@@ -634,13 +637,9 @@ void main() {
         areaId: 'area1',
         candidates: [cand],
       );
-      expect(
-        r.issuesForKind(
-          EnvironmentApplyIssueKind.candidateTargetLayerTilesetMismatch,
-        ),
-        isNotEmpty,
-      );
-      expect(identical(r.map, ctx.map), isTrue);
+      expect(r.hasErrors, isFalse);
+      expect(r.appliedPlacementCount, 1);
+      expect(r.map.placedElements.single.elementId, 'e1');
     });
   });
 }
@@ -721,12 +720,17 @@ _HappyContext _happyContext({
       areas: [area],
     ),
   );
-  final tiles = List<int>.filled(n, 7);
+  final tileCells = List<int>.filled(n, 1);
   final tile = MapLayer.tile(
     id: 'tiles',
     name: 'T',
-    tilesetId: layerTilesetId,
-    tiles: tiles,
+    palette: [
+      TileLayerPaletteEntry(
+        tilesetId: layerTilesetId ?? 'tsA',
+        localTileId: 6,
+      ),
+    ],
+    cells: tileCells,
   );
   final map = MapData(
     id: 'map1',
@@ -738,7 +742,7 @@ _HappyContext _happyContext({
   final manifest = ProjectManifest(
     name: 'proj',
     maps: const [],
-    tilesets: const [],
+    tilesets: [_regularTileset(layerTilesetId ?? 'tsA')],
     elements: [
       ProjectElementEntry(
         id: 'e1',
@@ -768,7 +772,22 @@ _HappyContext _happyContext({
       ),
     ],
   );
-  return _HappyContext(map: map, manifest: manifest, tilesSnapshot: tiles);
+  return _HappyContext(map: map, manifest: manifest, tilesSnapshot: tileCells);
+}
+
+ProjectTilesetEntry _regularTileset(String id) {
+  return ProjectTilesetEntry(
+    id: id,
+    name: id,
+    relativePath: 'tilesets/$id.png',
+    source: ProjectRegularAtlasTilesetSource(
+      assetId: id,
+      pixelWidth: 256,
+      pixelHeight: 32,
+      tileWidth: 32,
+      tileHeight: 32,
+    ),
+  );
 }
 
 MapData _minimalMap() {
@@ -777,7 +796,7 @@ MapData _minimalMap() {
     name: 'M',
     size: GridSize(width: 1, height: 1),
     layers: [
-      TileLayer(id: 't', name: 'T', tiles: [0]),
+      TileLayer(id: 't', name: 'T', cells: [0]),
     ],
   );
 }
@@ -809,7 +828,7 @@ MapData _minimalMap() {
     size: const GridSize(width: 2, height: 1),
     layers: [
       env,
-      const TileLayer(id: 'tiles', name: 'T', tiles: [0, 0]),
+      const TileLayer(id: 'tiles', name: 'T', cells: [0, 0]),
     ],
   );
   return (map: map);

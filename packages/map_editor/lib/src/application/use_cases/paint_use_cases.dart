@@ -5,13 +5,13 @@ class PaintTileOnMapUseCase {
     MapData map, {
     required String layerId,
     required GridPos pos,
-    required int tileId,
+    required TileLayerPaletteEntry tile,
   }) {
     final painted = paintTileOnLayer(
       map,
       layerId: layerId,
       pos: pos,
-      tileId: tileId,
+      tile: tile,
     );
     MapValidator.validate(painted);
     return painted;
@@ -24,7 +24,7 @@ class PaintTilePatternOnMapUseCase {
     required String layerId,
     required GridPos pos,
     required GridSize patternSize,
-    required List<int> tiles,
+    required List<TileLayerPaletteEntry?> tiles,
     bool clipToMapBounds = true,
   }) {
     final painted = paintTilePatternOnLayer(

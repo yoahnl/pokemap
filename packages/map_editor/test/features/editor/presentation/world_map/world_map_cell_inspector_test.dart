@@ -22,7 +22,7 @@ void main() {
         layerId: 'tile',
         layerLabel: 'Tuiles (tile)',
         typeLabel: 'Tuiles',
-        value: 'Tuile 7 · Tileset Monde (world)',
+        value: 'Tuile 6 · Tileset Monde (world)',
       ),
       (
         layerId: 'collision',
@@ -92,8 +92,7 @@ void main() {
           TileLayer(
             id: 'tile',
             name: 'Tuiles',
-            tilesetId: 'world',
-            tiles: <int>[],
+            cells: <int>[],
           ),
         ],
       ),
@@ -190,8 +189,16 @@ const _map = MapData(
     TileLayer(
       id: 'tile',
       name: 'Tuiles',
-      tilesetId: 'world',
-      tiles: <int>[0, 7, 0, 0],
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 0),
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 1),
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 2),
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 3),
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 4),
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 5),
+        TileLayerPaletteEntry(tilesetId: 'world', localTileId: 6),
+      ],
+      cells: <int>[0, 7, 0, 0],
     ),
     CollisionLayer(
       id: 'collision',
