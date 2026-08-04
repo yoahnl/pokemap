@@ -65,6 +65,13 @@ final class TiledPoint {
 
   final double x;
   final double y;
+
+  @override
+  bool operator ==(Object other) =>
+      other is TiledPoint && other.x == x && other.y == y;
+
+  @override
+  int get hashCode => Object.hash(x, y);
 }
 
 @immutable
