@@ -107,13 +107,17 @@ final class SmartTilePatternAuthoringService {
     required ProjectSmartTilePattern pattern,
   }) async {
     final initial = await _gateway.load(projectRootPath: projectRootPath);
-    final identity = 'smart-tile-pattern-${computeAuthoringJsonFingerprint(
+    final fingerprint = computeAuthoringJsonFingerprint(
       <String, Object?>{
         'revision': initial.revision,
         'pattern': pattern.toJson(),
       },
       logicalName: 'smart-tile-pattern-identity.json',
-    )}';
+    );
+    // Fingerprints are wire values (`sha256:<hex>`), while durable operation
+    // identifiers are filesystem-safe opaque tokens. Keep the digest but not
+    // its protocol prefix so the real canonical gateway can persist it.
+    final identity = 'smart-tile-pattern-${fingerprint.substring(7)}';
     final appliedRevision = await _gateway.apply(
       projectRootPath: projectRootPath,
       actionId: 'smart_tile.pattern.upsert',

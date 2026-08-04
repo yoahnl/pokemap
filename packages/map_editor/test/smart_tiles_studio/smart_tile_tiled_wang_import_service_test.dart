@@ -11,6 +11,52 @@ import 'package:map_editor/src/features/smart_tiles_studio/application/smart_til
 import 'package:path/path.dart' as p;
 
 void main() {
+  final licensedErwTsx = Platform.environment['POKEMAP_STN07_ERW_TSX'];
+
+  test(
+    'accepts a user-owned ERW Wang atlas without copying licensed assets',
+    () async {
+      final source = await loadSmartTileTiledWangSource(licensedErwTsx!);
+      final selections = <TiledWangSetSelection>[
+        for (var index = 0; index < source.document.wangSets.length; index++)
+          TiledWangSetSelection(
+            wangSetIndex: index,
+            usage: SmartTileUsage.forestSurface,
+          ),
+      ];
+      final bundle = compileTiledWangImport(
+        document: source.document,
+        importId: source.importId,
+        tilesetId: 'licensed-erw-atlas',
+        selections: selections,
+      );
+      final diagnostics = validateProjectSmartTileCatalog(
+        catalog: ProjectSmartTileCatalog(
+          atlases: <ProjectSmartTileAtlas>[bundle.atlas],
+          materials: bundle.materials,
+          animations: bundle.animations,
+          presets: bundle.presets,
+        ),
+        projectTilesetIds: const <String>['licensed-erw-atlas'],
+      );
+
+      expect(source.imagePath, isNot(equals(licensedErwTsx)));
+      expect(source.document.wangSets, isNotEmpty);
+      expect(bundle.presets, hasLength(source.document.wangSets.length));
+      expect(
+        bundle.presets.map((preset) => preset.usage),
+        everyElement(SmartTileUsage.forestSurface),
+      );
+      expect(
+        diagnostics.where((diagnostic) => diagnostic.isError),
+        isEmpty,
+      );
+    },
+    skip: licensedErwTsx == null
+        ? 'Set POKEMAP_STN07_ERW_TSX to a locally licensed ERW TSX.'
+        : false,
+  );
+
   test('loads a TSX preview and resolves its relative atlas image', () async {
     final root = await Directory.systemTemp.createTemp('pokemap_tsx_preview_');
     addTearDown(() async => root.delete(recursive: true));

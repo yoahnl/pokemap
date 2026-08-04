@@ -49,6 +49,12 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
   int? _anchorRow;
   _PatternAtlasInputMode _inputMode = _PatternAtlasInputMode.selection;
   bool _awaitingOppositeCorner = false;
+  late Map<GridPos, SmartTilePatternCellProfile> _cellProfiles;
+  SmartTileRenderChannel _profileChannel = SmartTileRenderChannel.canopy;
+  SmartTilePatternCollision _profileCollision =
+      SmartTilePatternCollision.inherit;
+  bool _profileEraseMaterial = false;
+  late final bool _canEditInitialPattern;
   SmartTileAtlasImageLoadResult? _imageResult;
   int _loadRevision = 0;
   String? _localError;
@@ -59,6 +65,7 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
     final initial = widget.initialPattern;
     final projection =
         initial == null ? null : projectSmartTilePatternAtlasSelection(initial);
+    _canEditInitialPattern = initial == null || projection != null;
     _nameController = TextEditingController(text: initial?.name ?? '');
     _usage = initial?.usage ?? SmartTileUsage.terrain;
     _repeatMode = initial?.repeatMode ?? SmartTilePatternRepeatMode.stamp;
@@ -78,6 +85,10 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
               ));
     _anchorColumn = projection?.anchorColumn ?? (_atlasId == null ? null : 0);
     _anchorRow = projection?.anchorRow ?? (_atlasId == null ? null : 0);
+    _cellProfiles = Map<GridPos, SmartTilePatternCellProfile>.of(
+      projection?.cellProfiles ??
+          const <GridPos, SmartTilePatternCellProfile>{},
+    );
     unawaited(_loadAtlasImage());
   }
 
@@ -104,6 +115,7 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
     final selection = _selection;
     final error = _localError ?? widget.externalError;
     final canSave = !widget.isSaving &&
+        _canEditInitialPattern &&
         atlas != null &&
         selection != null &&
         _anchorColumn != null &&
@@ -163,6 +175,16 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
           ],
         ),
         const SizedBox(height: 16),
+        if (!_canEditInitialPattern) ...[
+          const PokeMapDiagnosticCallout(
+            key: Key('smart-tiles-pattern-advanced-readonly'),
+            severity: PokeMapDiagnosticSeverity.warning,
+            title: 'Motif avancé protégé',
+            message:
+                'Ce motif combine plusieurs images ou une géométrie avancée par cellule. Il reste utilisable, mais cet éditeur simplifié ne le réécrit pas afin de ne perdre aucune donnée.',
+          ),
+          const SizedBox(height: 16),
+        ],
         if (widget.manifest.smartTileCatalog.atlases.isEmpty)
           const PokeMapEmptyState(
             key: Key('smart-tiles-pattern-missing-atlas'),
@@ -236,6 +258,10 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
             enabled: !widget.isSaving,
             onCellSelected: _selectAtlasCell,
           ),
+          if (_usage == SmartTileUsage.forestSurface && selection != null) ...[
+            const SizedBox(height: 16),
+            _buildOrganicCompositionEditor(selection),
+          ],
           if (_imageResult != null && !_imageResult!.isLoaded) ...[
             const SizedBox(height: 8),
             PokeMapBadge(
@@ -323,6 +349,7 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
       _anchorRow = 0;
       _inputMode = _PatternAtlasInputMode.selection;
       _awaitingOppositeCorner = false;
+      _cellProfiles = <GridPos, SmartTilePatternCellProfile>{};
       _imageResult = null;
       _localError = null;
     });
@@ -355,6 +382,7 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
         );
         _anchorColumn = cell.column;
         _anchorRow = cell.row;
+        _cellProfiles = <GridPos, SmartTilePatternCellProfile>{};
         _awaitingOppositeCorner = true;
       } else {
         final start = _selection!;
@@ -366,6 +394,7 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
         );
         _anchorColumn = _selection!.left;
         _anchorRow = _selection!.top;
+        _cellProfiles = <GridPos, SmartTilePatternCellProfile>{};
         _awaitingOppositeCorner = false;
       }
       _localError = null;
@@ -410,12 +439,132 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
         drawOrder: initial?.drawOrder ?? 0,
         tags: initial?.tags ?? const <String>[],
         sortOrder: initial?.sortOrder ?? 0,
+        cellProfiles: _cellProfiles,
       );
       setState(() => _localError = null);
       await widget.onSave(pattern);
     } on SmartTilePatternAuthoringException catch (error) {
       if (mounted) setState(() => _localError = error.message);
     }
+  }
+
+  Widget _buildOrganicCompositionEditor(
+    SmartTilePatternAtlasSelection selection,
+  ) {
+    return PokeMapPanel(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          const PokeMapSectionHeader(
+            title: 'Composition organique',
+            description:
+                'Choisissez un canal et une collision, puis peignez les cellules du motif. La canopée passe devant le joueur ; le sous-bois reste derrière.',
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              for (final channel in SmartTileRenderChannel.values)
+                PokeMapButton(
+                  key: Key(
+                    'smart-tiles-pattern-profile-channel-${channel.name}',
+                  ),
+                  onPressed: widget.isSaving
+                      ? null
+                      : () => setState(() => _profileChannel = channel),
+                  variant: PokeMapButtonVariant.ghost,
+                  size: PokeMapButtonSize.small,
+                  isSelected: _profileChannel == channel,
+                  child: Text(_renderChannelLabel(channel)),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: <Widget>[
+              for (final collision in SmartTilePatternCollision.values)
+                PokeMapButton(
+                  key: Key(
+                    'smart-tiles-pattern-profile-collision-${collision.name}',
+                  ),
+                  onPressed: widget.isSaving
+                      ? null
+                      : () => setState(() => _profileCollision = collision),
+                  variant: PokeMapButtonVariant.ghost,
+                  size: PokeMapButtonSize.small,
+                  isSelected: _profileCollision == collision,
+                  child: Text(_collisionLabel(collision)),
+                ),
+              PokeMapButton(
+                key: const Key('smart-tiles-pattern-profile-erase-material'),
+                onPressed: widget.isSaving
+                    ? null
+                    : () => setState(
+                          () => _profileEraseMaterial = !_profileEraseMaterial,
+                        ),
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                isSelected: _profileEraseMaterial,
+                child: Text(
+                  _profileEraseMaterial ? 'Effacer le sol' : 'Conserver le sol',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          for (var row = 0; row < selection.height; row++) ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (var column = 0; column < selection.width; column++)
+                  SizedBox(
+                    width: 116,
+                    child: _organicCellButton(column: column, row: row),
+                  ),
+              ],
+            ),
+            if (row + 1 < selection.height) const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _organicCellButton({required int column, required int row}) {
+    final cell = GridPos(x: column, y: row);
+    final profile = _cellProfiles[cell] ?? const SmartTilePatternCellProfile();
+    return PokeMapButton(
+      key: Key('smart-tiles-pattern-profile-cell-$column-$row'),
+      onPressed: widget.isSaving
+          ? null
+          : () {
+              final next = SmartTilePatternCellProfile(
+                channel: _profileChannel,
+                collision: _profileCollision,
+                eraseMaterial: _profileEraseMaterial,
+              );
+              setState(() {
+                if (next.isDefault) {
+                  _cellProfiles.remove(cell);
+                } else {
+                  _cellProfiles[cell] = next;
+                }
+              });
+            },
+      variant: PokeMapButtonVariant.secondary,
+      size: PokeMapButtonSize.small,
+      isSelected: !profile.isDefault,
+      child: Text(
+        '${column + 1},${row + 1} · ${_renderChannelShortLabel(profile.channel)}\n'
+        '${_collisionShortLabel(profile.collision)}',
+        textAlign: TextAlign.center,
+      ),
+    );
   }
 }
 
@@ -654,6 +803,37 @@ String _usageLabel(SmartTileUsage usage) => switch (usage) {
       SmartTileUsage.terrain => 'Terrain',
       SmartTileUsage.path => 'Chemin',
       SmartTileUsage.forestSurface => 'Surface forestière',
+    };
+
+String _renderChannelLabel(SmartTileRenderChannel channel) => switch (channel) {
+      SmartTileRenderChannel.ground => 'Sol',
+      SmartTileRenderChannel.understory => 'Sous-bois',
+      SmartTileRenderChannel.canopy => 'Canopée',
+      SmartTileRenderChannel.foreground => 'Premier plan',
+      SmartTileRenderChannel.shadow => 'Ombre',
+    };
+
+String _renderChannelShortLabel(SmartTileRenderChannel channel) =>
+    switch (channel) {
+      SmartTileRenderChannel.ground => 'Sol',
+      SmartTileRenderChannel.understory => 'Sous-bois',
+      SmartTileRenderChannel.canopy => 'Canopée',
+      SmartTileRenderChannel.foreground => 'Avant',
+      SmartTileRenderChannel.shadow => 'Ombre',
+    };
+
+String _collisionLabel(SmartTilePatternCollision collision) =>
+    switch (collision) {
+      SmartTilePatternCollision.inherit => 'Collision héritée',
+      SmartTilePatternCollision.passable => 'Traversable',
+      SmartTilePatternCollision.blocked => 'Bloquée',
+    };
+
+String _collisionShortLabel(SmartTilePatternCollision collision) =>
+    switch (collision) {
+      SmartTilePatternCollision.inherit => 'Héritée',
+      SmartTilePatternCollision.passable => 'Libre',
+      SmartTilePatternCollision.blocked => 'Bloquée',
     };
 
 extension<T> on Iterable<T> {

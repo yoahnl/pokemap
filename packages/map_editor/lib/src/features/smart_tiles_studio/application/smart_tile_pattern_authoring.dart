@@ -42,12 +42,47 @@ final class SmartTilePatternAtlasProjection {
     required this.selection,
     required this.anchorColumn,
     required this.anchorRow,
+    required this.cellProfiles,
   });
 
   final String atlasId;
   final SmartTilePatternAtlasSelection selection;
   final int anchorColumn;
   final int anchorRow;
+  final Map<GridPos, SmartTilePatternCellProfile> cellProfiles;
+}
+
+/// No-code semantics attached to one cell of an atlas-backed pattern.
+///
+/// The persisted source of truth remains [SmartTilePatternCell]. This compact
+/// editor projection exists so organic surfaces can be authored without
+/// exposing render-channel or collision JSON to the user.
+final class SmartTilePatternCellProfile {
+  const SmartTilePatternCellProfile({
+    this.channel = SmartTileRenderChannel.ground,
+    this.collision = SmartTilePatternCollision.inherit,
+    this.eraseMaterial = false,
+  });
+
+  final SmartTileRenderChannel channel;
+  final SmartTilePatternCollision collision;
+  final bool eraseMaterial;
+
+  bool get isDefault =>
+      channel == SmartTileRenderChannel.ground &&
+      collision == SmartTilePatternCollision.inherit &&
+      !eraseMaterial;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SmartTilePatternCellProfile &&
+          other.channel == channel &&
+          other.collision == collision &&
+          other.eraseMaterial == eraseMaterial;
+
+  @override
+  int get hashCode => Object.hash(channel, collision, eraseMaterial);
 }
 
 ProjectSmartTilePattern compileSmartTileAtlasPattern({
@@ -63,6 +98,8 @@ ProjectSmartTilePattern compileSmartTileAtlasPattern({
   int drawOrder = 0,
   List<String> tags = const <String>[],
   int sortOrder = 0,
+  Map<GridPos, SmartTilePatternCellProfile> cellProfiles =
+      const <GridPos, SmartTilePatternCellProfile>{},
 }) {
   final normalizedId = id.trim();
   final normalizedName = name.trim();
@@ -99,6 +136,17 @@ ProjectSmartTilePattern compileSmartTileAtlasPattern({
       'L’ancrage doit se trouver dans la zone sélectionnée.',
     );
   }
+  for (final cell in cellProfiles.keys) {
+    if (cell.x < 0 ||
+        cell.y < 0 ||
+        cell.x >= selection.width ||
+        cell.y >= selection.height) {
+      throw const SmartTilePatternAuthoringException(
+        'smart_tile.pattern.profile_outside_selection',
+        'Un masque organique dépasse la zone sélectionnée.',
+      );
+    }
+  }
 
   return ProjectSmartTilePattern(
     id: normalizedId,
@@ -116,21 +164,32 @@ ProjectSmartTilePattern compileSmartTileAtlasPattern({
     cells: <SmartTilePatternCell>[
       for (var row = selection.top; row <= selection.bottom; row++)
         for (var column = selection.left; column <= selection.right; column++)
-          SmartTilePatternCell(
-            x: column - selection.left,
-            y: row - selection.top,
-            parts: <SmartTileVisualPart>[
-              SmartTileVisualPart(
-                source: SmartTileVisualSource.frame(
-                  frame: SmartTileFrameRef(
-                    atlasId: atlas.id,
-                    column: column,
-                    row: row,
+          () {
+            final localCell = GridPos(
+              x: column - selection.left,
+              y: row - selection.top,
+            );
+            final profile =
+                cellProfiles[localCell] ?? const SmartTilePatternCellProfile();
+            return SmartTilePatternCell(
+              x: localCell.x,
+              y: localCell.y,
+              eraseMaterial: profile.eraseMaterial,
+              collision: profile.collision,
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: atlas.id,
+                      column: column,
+                      row: row,
+                    ),
                   ),
+                  channel: profile.channel,
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          }(),
     ],
   );
 }
@@ -142,15 +201,15 @@ SmartTilePatternAtlasProjection? projectSmartTilePatternAtlasSelection(
   String? atlasId;
   int? left;
   int? top;
+  final cellProfiles = <GridPos, SmartTilePatternCellProfile>{};
   for (final cell in pattern.cells) {
-    if (cell.eraseMaterial ||
-        cell.collision != SmartTilePatternCollision.inherit ||
-        cell.parts.length != 1) {
+    if (cell.parts.length != 1) {
       return null;
     }
     final part = cell.parts.single;
-    if (part.channel != SmartTileRenderChannel.ground ||
-        part.transform != const SmartTileSpriteTransform() ||
+    if (part.transform != const SmartTileSpriteTransform() ||
+        part.frameSampling != SmartTileFrameSampling.fullFrame ||
+        part.offsetUnit != SmartTileOffsetUnit.pixel ||
         part.offsetX != 0 ||
         part.offsetY != 0 ||
         part.footprintWidth != 1 ||
@@ -170,6 +229,14 @@ SmartTilePatternAtlasProjection? projectSmartTilePatternAtlasSelection(
     if (frame.column != left + cell.x || frame.row != top + cell.y) {
       return null;
     }
+    final profile = SmartTilePatternCellProfile(
+      channel: part.channel,
+      collision: cell.collision,
+      eraseMaterial: cell.eraseMaterial,
+    );
+    if (!profile.isDefault) {
+      cellProfiles[GridPos(x: cell.x, y: cell.y)] = profile;
+    }
   }
   if (atlasId == null || left == null || top == null) return null;
   return SmartTilePatternAtlasProjection(
@@ -182,5 +249,8 @@ SmartTilePatternAtlasProjection? projectSmartTilePatternAtlasSelection(
     ),
     anchorColumn: left + pattern.anchorX,
     anchorRow: top + pattern.anchorY,
+    cellProfiles: Map<GridPos, SmartTilePatternCellProfile>.unmodifiable(
+      cellProfiles,
+    ),
   );
 }

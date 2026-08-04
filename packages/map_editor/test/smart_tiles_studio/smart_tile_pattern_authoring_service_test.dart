@@ -18,7 +18,13 @@ void main() {
       'pattern': _pattern.toJson(),
     });
     expect(gateway.expectedRevision, 'revision-1');
-    expect(gateway.idempotencyKey, isNotEmpty);
+    expect(
+      gateway.idempotencyKey,
+      matches(RegExp(r'^smart-tile-pattern-[0-9a-f]{64}$')),
+      reason:
+          'The canonical gateway also derives a durable filesystem operation '
+          'id from this value, so the sha256: wire prefix must not leak here.',
+    );
     expect(result.pattern, _pattern);
     expect(result.manifest.smartTileCatalog.patterns, <Object>[_pattern]);
   });
