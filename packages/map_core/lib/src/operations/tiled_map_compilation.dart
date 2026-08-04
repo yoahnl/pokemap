@@ -94,6 +94,7 @@ final class TiledMapCompilationReport {
     required this.tileLayerCount,
     required this.sourceTilesetCount,
     required Iterable<String> referencedTilesetIds,
+    required this.compiledTileObjectCount,
     required this.deferredObjectCount,
     required this.deferredTileObjectCount,
     required this.hasVisualLoss,
@@ -107,6 +108,7 @@ final class TiledMapCompilationReport {
   final int tileLayerCount;
   final int sourceTilesetCount;
   final List<String> referencedTilesetIds;
+  final int compiledTileObjectCount;
   final int deferredObjectCount;
   final int deferredTileObjectCount;
   final bool hasVisualLoss;
@@ -140,11 +142,12 @@ final class TiledMapCompilationException implements Exception {
   String toString() => 'TiledMapCompilationException($code): $message';
 }
 
-/// Compiles parsed TMX tile layers into native literal [TileLayer] values.
+/// Compiles parsed TMX visual layers into native literal [MapLayer] values.
 ///
 /// This operation deliberately does not read files, create project resources,
-/// infer Smart Tile semantics, or invent gameplay collisions. Object contents
-/// remain deferred to STN-10.4 and are made explicit in [TiledMapCompilationReport].
+/// infer Smart Tile semantics, or invent gameplay collisions. Literal tile
+/// objects become visual-only [MapPlacedTile] values; every other object stays
+/// explicit in [TiledMapCompilationReport].
 TiledMapCompilationResult compileTiledMapDocument(
   TiledMapDocument document, {
   required String mapId,
@@ -159,7 +162,7 @@ TiledMapCompilationResult compileTiledMapDocument(
   final compiler = _TiledMapCompiler(document, bindings);
   compiler.compileLayers();
   final metadata = compiler.buildMetadata();
-  final nativeLayers = compiler.tileLayers.reversed.toList(growable: false);
+  final nativeLayers = compiler.layers.reversed.toList(growable: false);
   final map = MapData(
     id: normalizedMapId,
     name: normalizedMapName,
@@ -194,6 +197,7 @@ TiledMapCompilationResult compileTiledMapDocument(
       tileLayerCount: compiler.tileLayers.length,
       sourceTilesetCount: document.tilesets.length,
       referencedTilesetIds: referencedTilesetIds,
+      compiledTileObjectCount: compiler.compiledTileObjectCount,
       deferredObjectCount: compiler.deferredObjectCount,
       deferredTileObjectCount: compiler.deferredTileObjectCount,
       hasVisualLoss: compiler.hasVisualLoss,
@@ -311,10 +315,12 @@ final class _TiledMapCompiler {
 
   final TiledMapDocument document;
   final Map<String, String> bindings;
+  final List<MapLayer> layers = <MapLayer>[];
   final List<TileLayer> tileLayers = <TileLayer>[];
   final List<TiledMapFidelityDiagnostic> diagnostics =
       <TiledMapFidelityDiagnostic>[];
   final List<Map<String, Object?>> layerMetadata = <Map<String, Object?>>[];
+  var compiledTileObjectCount = 0;
   var deferredObjectCount = 0;
   var deferredTileObjectCount = 0;
   var hasVisualLoss = false;
@@ -355,7 +361,7 @@ final class _TiledMapCompiler {
       case TiledMapTileLayer():
         _compileTileLayer(layer, parent);
       case TiledMapObjectLayer():
-        _deferObjectLayer(layer, parent);
+        _compileObjectLayer(layer, parent);
       case TiledMapGroupLayer():
         final name = _layerName(layer);
         final context = parent.inherit(layer, name);
@@ -439,16 +445,16 @@ final class _TiledMapCompiler {
       );
     }
     _diagnoseMetadataOnlyEffects(layer, context);
-    tileLayers.add(
-      TileLayer(
-        id: nativeLayerId,
-        name: context.path.join(' / '),
-        isVisible: context.visible,
-        opacity: context.opacity,
-        palette: palette,
-        cells: cells,
-      ),
+    final nativeLayer = TileLayer(
+      id: nativeLayerId,
+      name: context.path.join(' / '),
+      isVisible: context.visible,
+      opacity: context.opacity,
+      palette: palette,
+      cells: cells,
     );
+    tileLayers.add(nativeLayer);
+    layers.add(nativeLayer);
     layerMetadata.add(
       _layerMetadata(
         layer,
@@ -459,36 +465,210 @@ final class _TiledMapCompiler {
     );
   }
 
-  void _deferObjectLayer(TiledMapObjectLayer layer, _LayerContext parent) {
+  void _compileObjectLayer(TiledMapObjectLayer layer, _LayerContext parent) {
     final context = parent.inherit(layer, _layerName(layer));
-    final tileObjectCount =
-        layer.objects.where((object) => object.tile != null).length;
-    deferredObjectCount += layer.objects.length;
-    deferredTileObjectCount += tileObjectCount;
-    if (layer.objects.isNotEmpty) {
+    final nativeLayerId = 'tiled-layer-${layer.id}';
+    final compiled = <({int index, MapPlacedTile tile})>[];
+    final deferredObjects = <Map<String, Object?>>[];
+    var shapeObjectCount = 0;
+    var missingSizeTileObjectCount = 0;
+    var unsupportedTileObjectCount = 0;
+    var hexagonalFlagCount = 0;
+    for (var index = 0; index < layer.objects.length; index++) {
+      final object = layer.objects[index];
+      final tile = object.tile;
+      if (tile == null) {
+        shapeObjectCount += 1;
+        deferredObjects.add(_objectMetadata(object));
+        continue;
+      }
+      if (object.width <= 0 || object.height <= 0) {
+        missingSizeTileObjectCount += 1;
+        deferredObjects.add(_objectMetadata(object));
+        continue;
+      }
+      final exactQuarterTurns = object.rotation / 90;
+      final roundedQuarterTurns = exactQuarterTurns.round();
+      if ((exactQuarterTurns - roundedQuarterTurns).abs() > 1e-9) {
+        unsupportedTileObjectCount += 1;
+        deferredObjects.add(_objectMetadata(object));
+        continue;
+      }
+      if (tile.hexagonal120Flag) hexagonalFlagCount += 1;
+      compiled.add((
+        index: index,
+        tile: MapPlacedTile(
+          id: 'tiled-object-${object.id}',
+          name: object.name,
+          className: object.className,
+          tile: TileLayerPaletteEntry(
+            tilesetId: bindings[tile.tileset.source]!,
+            localTileId: tile.localTileId,
+            transform: _tiledOrthogonalTransform(tile),
+          ),
+          anchorX:
+              context.tileX + (object.x + context.offsetX) / document.tileWidth,
+          anchorY: context.tileY +
+              (object.y + context.offsetY) / document.tileHeight,
+          width: object.width / document.tileWidth,
+          height: object.height / document.tileHeight,
+          quarterTurns: ((roundedQuarterTurns % 4) + 4) % 4,
+          isVisible: object.visible,
+          opacity: object.opacity,
+          importMetadata: <String, Object?>{
+            'sourceObjectId': object.id,
+            'sourceShape': object.shape.name,
+            'sourceX': object.x,
+            'sourceY': object.y,
+            'sourceWidth': object.width,
+            'sourceHeight': object.height,
+            'sourceRotation': object.rotation,
+            'properties': _propertiesJson(object.properties),
+          },
+        ),
+      ));
+    }
+    if (layer.drawOrder == TiledMapObjectDrawOrder.topDown) {
+      compiled.sort((left, right) {
+        final byAnchor = left.tile.anchorY.compareTo(right.tile.anchorY);
+        return byAnchor != 0 ? byAnchor : left.index.compareTo(right.index);
+      });
+    }
+    final nativeLayer = ObjectLayer(
+      id: nativeLayerId,
+      name: context.path.join(' / '),
+      isVisible: context.visible,
+      opacity: context.opacity,
+      tileObjects: <MapPlacedTile>[
+        for (final entry in compiled) entry.tile,
+      ],
+    );
+    layers.add(nativeLayer);
+    compiledTileObjectCount += compiled.length;
+    deferredObjectCount += shapeObjectCount +
+        missingSizeTileObjectCount +
+        unsupportedTileObjectCount;
+    deferredTileObjectCount +=
+        missingSizeTileObjectCount + unsupportedTileObjectCount;
+    if (compiled.isNotEmpty) {
       diagnostics.add(
         TiledMapFidelityDiagnostic(
-          code: 'map.tiled.object_layer_deferred',
-          severity: TiledMapFidelityDiagnosticSeverity.warning,
-          message: 'Le contenu du calque objet est différé à STN-10.4.',
+          code: 'map.tiled.tile_objects_compiled',
+          severity: TiledMapFidelityDiagnosticSeverity.info,
+          message:
+              'Les objets-tuile TMX ont été importés comme visuels sans collision.',
           sourceLayerId: layer.id,
-          details: <String, Object?>{
-            'objectCount': layer.objects.length,
-            'tileObjectCount': tileObjectCount,
-          },
+          details: <String, Object?>{'count': compiled.length},
         ),
       );
     }
-    _diagnoseMetadataOnlyEffects(layer, context);
-    layerMetadata.add(_layerMetadata(layer, context, kind: 'object'));
+    if (shapeObjectCount > 0) {
+      diagnostics.add(
+        TiledMapFidelityDiagnostic(
+          code: 'map.tiled.object_shapes_deferred',
+          severity: TiledMapFidelityDiagnosticSeverity.warning,
+          message:
+              'Les formes TMX restent des métadonnées et ne créent aucune collision.',
+          sourceLayerId: layer.id,
+          details: <String, Object?>{'count': shapeObjectCount},
+        ),
+      );
+    }
+    if (unsupportedTileObjectCount > 0) {
+      diagnostics.add(
+        TiledMapFidelityDiagnostic(
+          code: 'map.tiled.tile_object_rotation_deferred',
+          severity: TiledMapFidelityDiagnosticSeverity.warning,
+          message:
+              'Les objets-tuile dont la rotation n’est pas un multiple de 90° restent différés.',
+          sourceLayerId: layer.id,
+          details: <String, Object?>{'count': unsupportedTileObjectCount},
+        ),
+      );
+    }
+    if (missingSizeTileObjectCount > 0) {
+      diagnostics.add(
+        TiledMapFidelityDiagnostic(
+          code: 'map.tiled.tile_object_size_deferred',
+          severity: TiledMapFidelityDiagnosticSeverity.warning,
+          message:
+              'Les objets-tuile sans dimensions explicites restent différés plutôt que d’inventer leur taille.',
+          sourceLayerId: layer.id,
+          details: <String, Object?>{'count': missingSizeTileObjectCount},
+        ),
+      );
+    }
+    if (hexagonalFlagCount > 0) {
+      diagnostics.add(
+        TiledMapFidelityDiagnostic(
+          code: 'map.tiled.hexagonal_flag_ignored',
+          severity: TiledMapFidelityDiagnosticSeverity.info,
+          message:
+              'Le flag 120° hexagonal est sans effet sur une carte orthogonale.',
+          sourceLayerId: layer.id,
+          details: <String, Object?>{'count': hexagonalFlagCount},
+        ),
+      );
+    }
+    _diagnoseMetadataOnlyEffects(
+      layer,
+      context,
+      pixelOffsetApplied: true,
+    );
+    layerMetadata.add(
+      <String, Object?>{
+        ..._layerMetadata(
+          layer,
+          context,
+          kind: 'object',
+          nativeLayerId: nativeLayerId,
+        ),
+        'drawOrder': switch (layer.drawOrder) {
+          TiledMapObjectDrawOrder.indexOrder => 'index',
+          TiledMapObjectDrawOrder.topDown => 'topdown',
+        },
+        if (layer.color != null) 'color': layer.color,
+        if (deferredObjects.isNotEmpty) 'deferredObjects': deferredObjects,
+      },
+    );
   }
+
+  Map<String, Object?> _objectMetadata(TiledMapObject object) =>
+      <String, Object?>{
+        'sourceObjectId': object.id,
+        if (object.name.isNotEmpty) 'name': object.name,
+        if (object.className.isNotEmpty) 'class': object.className,
+        'x': object.x,
+        'y': object.y,
+        'width': object.width,
+        'height': object.height,
+        'rotation': object.rotation,
+        'opacity': object.opacity,
+        'visible': object.visible,
+        'shape': object.shape.name,
+        if (object.tile case final tile?)
+          'tile': <String, Object?>{
+            'tilesetId': bindings[tile.tileset.source]!,
+            'localTileId': tile.localTileId,
+            'transform': _tiledOrthogonalTransform(tile).toJson(),
+            if (tile.hexagonal120Flag) 'hexagonal120Flag': true,
+          },
+        if (object.points.isNotEmpty)
+          'points': <Map<String, Object?>>[
+            for (final point in object.points)
+              <String, Object?>{'x': point.x, 'y': point.y},
+          ],
+        if (object.text != null) 'text': object.text,
+        'properties': _propertiesJson(object.properties),
+      };
 
   void _diagnoseMetadataOnlyEffects(
     TiledMapLayer layer,
-    _LayerContext context,
-  ) {
-    if (context.offsetX == 0 &&
-        context.offsetY == 0 &&
+    _LayerContext context, {
+    bool pixelOffsetApplied = false,
+  }) {
+    if ((pixelOffsetApplied || context.offsetX == 0) &&
+        (pixelOffsetApplied || context.offsetY == 0) &&
         context.parallaxX == 1 &&
         context.parallaxY == 1 &&
         context.tintColors.isEmpty &&
@@ -503,8 +683,8 @@ final class _TiledMapCompiler {
             'Des effets de calque TMX sont conservés en métadonnées seulement.',
         sourceLayerId: layer.id,
         details: <String, Object?>{
-          'offsetX': context.offsetX,
-          'offsetY': context.offsetY,
+          if (!pixelOffsetApplied) 'offsetX': context.offsetX,
+          if (!pixelOffsetApplied) 'offsetY': context.offsetY,
           'parallaxX': context.parallaxX,
           'parallaxY': context.parallaxY,
           'tintColors': context.tintColors,

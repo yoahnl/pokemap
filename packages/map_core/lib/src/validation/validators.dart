@@ -2924,7 +2924,61 @@ class MapValidator {
           }
         }
       },
-      object: (_) {},
+      object: (objectLayer) {
+        final objectIds = <String>{};
+        for (var index = 0; index < objectLayer.tileObjects.length; index++) {
+          final object = objectLayer.tileObjects[index];
+          final objectId = object.id.trim();
+          final tile = object.tile;
+          if (objectId.isEmpty ||
+              objectId != object.id ||
+              !objectIds.add(objectId)) {
+            throw ValidationException(
+              'Object layer $layerId has an invalid tile object ID at index $index',
+            );
+          }
+          if (!object.anchorX.isFinite ||
+              !object.anchorY.isFinite ||
+              !object.width.isFinite ||
+              !object.height.isFinite ||
+              object.width <= 0 ||
+              object.height <= 0 ||
+              object.quarterTurns < 0 ||
+              object.quarterTurns > 3 ||
+              !object.opacity.isFinite ||
+              object.opacity < 0 ||
+              object.opacity > 1) {
+            throw ValidationException(
+              'Object layer $layerId has invalid visual geometry for $objectId',
+            );
+          }
+          if (tile.tilesetId.trim().isEmpty ||
+              tile.tilesetId != tile.tilesetId.trim() ||
+              tile.localTileId < 0 ||
+              tile.transform.quarterTurns < 0 ||
+              tile.transform.quarterTurns > 3) {
+            throw ValidationException(
+              'Object layer $layerId has an invalid tile reference for $objectId',
+            );
+          }
+          final project = projectContext;
+          if (project != null) {
+            ProjectTilesetEntry? tileset;
+            for (final candidate in project.tilesets) {
+              if (candidate.id == tile.tilesetId) {
+                tileset = candidate;
+                break;
+              }
+            }
+            if (tileset == null ||
+                !_tilesetContainsLocalTileId(tileset, tile.localTileId)) {
+              throw ValidationException(
+                'Object layer $layerId tile object $objectId references an unknown tile',
+              );
+            }
+          }
+        }
+      },
       environment: (environmentLayer) {
         for (final key in environmentLayer.properties.keys) {
           if (key.trim().isEmpty) {

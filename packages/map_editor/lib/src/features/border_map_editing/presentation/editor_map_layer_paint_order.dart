@@ -5,7 +5,7 @@ enum EditorMapAuthoredLayerPaintKind {
   smartTile,
   tileBackground,
   border,
-  objectNoop,
+  objectLayer,
   environmentNoop,
 }
 
@@ -77,8 +77,8 @@ EditorMapLayerPaintOrderBuildResult buildEditorMapLayerPaintOrderResult(
                 EditorMapAuthoredLayerPaintKind.tileBackground,
               MapVisualCompositionStepKind.borderLayer =>
                 EditorMapAuthoredLayerPaintKind.border,
-              MapVisualCompositionStepKind.objectNoop =>
-                EditorMapAuthoredLayerPaintKind.objectNoop,
+              MapVisualCompositionStepKind.objectLayer =>
+                EditorMapAuthoredLayerPaintKind.objectLayer,
               MapVisualCompositionStepKind.environmentNoop =>
                 EditorMapAuthoredLayerPaintKind.environmentNoop,
               _ => throw StateError(

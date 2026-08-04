@@ -9,7 +9,7 @@
       "tile",
       "path",
       "border",
-      "objectNoop",
+      "objectLayer",
       "environmentNoop"
     ],
     "deferredContent": [
@@ -109,7 +109,7 @@
     "surfaceLayer:surface",
     "borderLayer:border",
     "environmentNoop:environment-top",
-    "objectNoop:objects-top",
+    "objectLayer:objects-top",
     "shadows",
     "placedElements:ground",
     "backgroundEntities",

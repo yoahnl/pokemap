@@ -47,6 +47,34 @@ class TileLayerPaletteEntry with _$TileLayerPaletteEntry {
       _$TileLayerPaletteEntryFromJson(json);
 }
 
+/// One visual-only tile object positioned in fractional map-cell space.
+///
+/// The anchor follows the bottom-left convention used by tile objects. This
+/// model deliberately owns no collision or gameplay fields: importing a
+/// visual object can never make a cell impassable without a separate explicit
+/// authoring action.
+@freezed
+class MapPlacedTile with _$MapPlacedTile {
+  @JsonSerializable(explicitToJson: true)
+  const factory MapPlacedTile({
+    required String id,
+    @Default('') String name,
+    @Default('') String className,
+    required TileLayerPaletteEntry tile,
+    required double anchorX,
+    required double anchorY,
+    required double width,
+    required double height,
+    @Default(0) int quarterTurns,
+    @Default(true) bool isVisible,
+    @Default(1.0) double opacity,
+    @Default(<String, Object?>{}) Map<String, Object?> importMetadata,
+  }) = _MapPlacedTile;
+
+  factory MapPlacedTile.fromJson(Map<String, dynamic> json) =>
+      _$MapPlacedTileFromJson(json);
+}
+
 @freezed
 sealed class MapLayer with _$MapLayer {
   const MapLayer._();
@@ -89,11 +117,13 @@ sealed class MapLayer with _$MapLayer {
   }) = SmartTileLayer;
 
   @FreezedUnionValue('object')
+  @JsonSerializable(explicitToJson: true)
   const factory MapLayer.object({
     required String id,
     required String name,
     @Default(true) bool isVisible,
     @Default(1.0) double opacity,
+    @Default(<MapPlacedTile>[]) List<MapPlacedTile> tileObjects,
   }) = ObjectLayer;
 
   @FreezedUnionValue('environment')

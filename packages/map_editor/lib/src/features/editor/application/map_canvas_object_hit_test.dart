@@ -185,7 +185,7 @@ final class MapCanvasObjectHitTest {
         case MapVisualCompositionStepKind.borderLayer:
         case MapVisualCompositionStepKind.shadows:
         case MapVisualCompositionStepKind.collisionOverlay:
-        case MapVisualCompositionStepKind.objectNoop:
+        case MapVisualCompositionStepKind.objectLayer:
         case MapVisualCompositionStepKind.environmentNoop:
           break;
       }

@@ -22,7 +22,7 @@ enum MapVisualCompositionStepKind {
   smartTileLayer,
   tileBackgroundLayer,
   borderLayer,
-  objectNoop,
+  objectLayer,
   environmentNoop,
   shadows,
   placedElements,
@@ -90,7 +90,7 @@ final class MapVisualCompositionPlan {
           MapVisualCompositionStepKind.smartTileLayer ||
           MapVisualCompositionStepKind.tileBackgroundLayer ||
           MapVisualCompositionStepKind.borderLayer ||
-          MapVisualCompositionStepKind.objectNoop ||
+          MapVisualCompositionStepKind.objectLayer ||
           MapVisualCompositionStepKind.environmentNoop =>
             true,
           _ => false,
@@ -280,7 +280,7 @@ MapVisualCompositionStep _authoredLayerStep(MapLayer layer) {
     SmartTileLayer() => MapVisualCompositionStepKind.smartTileLayer,
     TileLayer() => MapVisualCompositionStepKind.tileBackgroundLayer,
     BorderLayer() => MapVisualCompositionStepKind.borderLayer,
-    ObjectLayer() => MapVisualCompositionStepKind.objectNoop,
+    ObjectLayer() => MapVisualCompositionStepKind.objectLayer,
     EnvironmentLayer() => MapVisualCompositionStepKind.environmentNoop,
     CollisionLayer() => throw ArgumentError.value(
         layer,

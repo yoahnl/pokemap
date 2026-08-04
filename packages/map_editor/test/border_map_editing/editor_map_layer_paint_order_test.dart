@@ -149,7 +149,7 @@ void main() {
           'border:coast-low',
           'smartTile:surface',
           'tileBackground:tiles',
-          'objectNoop:objects',
+          'objectLayer:objects',
           'environmentNoop:environment',
           'border:coast-high',
         ],

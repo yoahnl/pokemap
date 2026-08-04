@@ -25,6 +25,40 @@ Map<String, dynamic> _$$TileLayerPaletteEntryImplToJson(
       'transform': instance.transform.toJson(),
     };
 
+_$MapPlacedTileImpl _$$MapPlacedTileImplFromJson(Map<String, dynamic> json) =>
+    _$MapPlacedTileImpl(
+      id: json['id'] as String,
+      name: json['name'] as String? ?? '',
+      className: json['className'] as String? ?? '',
+      tile:
+          TileLayerPaletteEntry.fromJson(json['tile'] as Map<String, dynamic>),
+      anchorX: (json['anchorX'] as num).toDouble(),
+      anchorY: (json['anchorY'] as num).toDouble(),
+      width: (json['width'] as num).toDouble(),
+      height: (json['height'] as num).toDouble(),
+      quarterTurns: (json['quarterTurns'] as num?)?.toInt() ?? 0,
+      isVisible: json['isVisible'] as bool? ?? true,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      importMetadata: json['importMetadata'] as Map<String, dynamic>? ??
+          const <String, Object?>{},
+    );
+
+Map<String, dynamic> _$$MapPlacedTileImplToJson(_$MapPlacedTileImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'className': instance.className,
+      'tile': instance.tile.toJson(),
+      'anchorX': instance.anchorX,
+      'anchorY': instance.anchorY,
+      'width': instance.width,
+      'height': instance.height,
+      'quarterTurns': instance.quarterTurns,
+      'isVisible': instance.isVisible,
+      'opacity': instance.opacity,
+      'importMetadata': instance.importMetadata,
+    };
+
 _$TileLayerImpl _$$TileLayerImplFromJson(Map<String, dynamic> json) =>
     _$TileLayerImpl(
       id: json['id'] as String,
@@ -133,6 +167,10 @@ _$ObjectLayerImpl _$$ObjectLayerImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       isVisible: json['isVisible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      tileObjects: (json['tileObjects'] as List<dynamic>?)
+              ?.map((e) => MapPlacedTile.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <MapPlacedTile>[],
       $type: json['runtimeType'] as String?,
     );
 
@@ -142,6 +180,7 @@ Map<String, dynamic> _$$ObjectLayerImplToJson(_$ObjectLayerImpl instance) =>
       'name': instance.name,
       'isVisible': instance.isVisible,
       'opacity': instance.opacity,
+      'tileObjects': instance.tileObjects.map((e) => e.toJson()).toList(),
       'runtimeType': instance.$type,
     };
 

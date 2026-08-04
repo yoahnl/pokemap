@@ -229,6 +229,424 @@ abstract class _TileLayerPaletteEntry implements TileLayerPaletteEntry {
       get copyWith => throw _privateConstructorUsedError;
 }
 
+MapPlacedTile _$MapPlacedTileFromJson(Map<String, dynamic> json) {
+  return _MapPlacedTile.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MapPlacedTile {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  String get className => throw _privateConstructorUsedError;
+  TileLayerPaletteEntry get tile => throw _privateConstructorUsedError;
+  double get anchorX => throw _privateConstructorUsedError;
+  double get anchorY => throw _privateConstructorUsedError;
+  double get width => throw _privateConstructorUsedError;
+  double get height => throw _privateConstructorUsedError;
+  int get quarterTurns => throw _privateConstructorUsedError;
+  bool get isVisible => throw _privateConstructorUsedError;
+  double get opacity => throw _privateConstructorUsedError;
+  Map<String, Object?> get importMetadata => throw _privateConstructorUsedError;
+
+  /// Serializes this MapPlacedTile to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MapPlacedTile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MapPlacedTileCopyWith<MapPlacedTile> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MapPlacedTileCopyWith<$Res> {
+  factory $MapPlacedTileCopyWith(
+          MapPlacedTile value, $Res Function(MapPlacedTile) then) =
+      _$MapPlacedTileCopyWithImpl<$Res, MapPlacedTile>;
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String className,
+      TileLayerPaletteEntry tile,
+      double anchorX,
+      double anchorY,
+      double width,
+      double height,
+      int quarterTurns,
+      bool isVisible,
+      double opacity,
+      Map<String, Object?> importMetadata});
+
+  $TileLayerPaletteEntryCopyWith<$Res> get tile;
+}
+
+/// @nodoc
+class _$MapPlacedTileCopyWithImpl<$Res, $Val extends MapPlacedTile>
+    implements $MapPlacedTileCopyWith<$Res> {
+  _$MapPlacedTileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MapPlacedTile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? className = null,
+    Object? tile = null,
+    Object? anchorX = null,
+    Object? anchorY = null,
+    Object? width = null,
+    Object? height = null,
+    Object? quarterTurns = null,
+    Object? isVisible = null,
+    Object? opacity = null,
+    Object? importMetadata = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      className: null == className
+          ? _value.className
+          : className // ignore: cast_nullable_to_non_nullable
+              as String,
+      tile: null == tile
+          ? _value.tile
+          : tile // ignore: cast_nullable_to_non_nullable
+              as TileLayerPaletteEntry,
+      anchorX: null == anchorX
+          ? _value.anchorX
+          : anchorX // ignore: cast_nullable_to_non_nullable
+              as double,
+      anchorY: null == anchorY
+          ? _value.anchorY
+          : anchorY // ignore: cast_nullable_to_non_nullable
+              as double,
+      width: null == width
+          ? _value.width
+          : width // ignore: cast_nullable_to_non_nullable
+              as double,
+      height: null == height
+          ? _value.height
+          : height // ignore: cast_nullable_to_non_nullable
+              as double,
+      quarterTurns: null == quarterTurns
+          ? _value.quarterTurns
+          : quarterTurns // ignore: cast_nullable_to_non_nullable
+              as int,
+      isVisible: null == isVisible
+          ? _value.isVisible
+          : isVisible // ignore: cast_nullable_to_non_nullable
+              as bool,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      importMetadata: null == importMetadata
+          ? _value.importMetadata
+          : importMetadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, Object?>,
+    ) as $Val);
+  }
+
+  /// Create a copy of MapPlacedTile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $TileLayerPaletteEntryCopyWith<$Res> get tile {
+    return $TileLayerPaletteEntryCopyWith<$Res>(_value.tile, (value) {
+      return _then(_value.copyWith(tile: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$MapPlacedTileImplCopyWith<$Res>
+    implements $MapPlacedTileCopyWith<$Res> {
+  factory _$$MapPlacedTileImplCopyWith(
+          _$MapPlacedTileImpl value, $Res Function(_$MapPlacedTileImpl) then) =
+      __$$MapPlacedTileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String className,
+      TileLayerPaletteEntry tile,
+      double anchorX,
+      double anchorY,
+      double width,
+      double height,
+      int quarterTurns,
+      bool isVisible,
+      double opacity,
+      Map<String, Object?> importMetadata});
+
+  @override
+  $TileLayerPaletteEntryCopyWith<$Res> get tile;
+}
+
+/// @nodoc
+class __$$MapPlacedTileImplCopyWithImpl<$Res>
+    extends _$MapPlacedTileCopyWithImpl<$Res, _$MapPlacedTileImpl>
+    implements _$$MapPlacedTileImplCopyWith<$Res> {
+  __$$MapPlacedTileImplCopyWithImpl(
+      _$MapPlacedTileImpl _value, $Res Function(_$MapPlacedTileImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapPlacedTile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? className = null,
+    Object? tile = null,
+    Object? anchorX = null,
+    Object? anchorY = null,
+    Object? width = null,
+    Object? height = null,
+    Object? quarterTurns = null,
+    Object? isVisible = null,
+    Object? opacity = null,
+    Object? importMetadata = null,
+  }) {
+    return _then(_$MapPlacedTileImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      className: null == className
+          ? _value.className
+          : className // ignore: cast_nullable_to_non_nullable
+              as String,
+      tile: null == tile
+          ? _value.tile
+          : tile // ignore: cast_nullable_to_non_nullable
+              as TileLayerPaletteEntry,
+      anchorX: null == anchorX
+          ? _value.anchorX
+          : anchorX // ignore: cast_nullable_to_non_nullable
+              as double,
+      anchorY: null == anchorY
+          ? _value.anchorY
+          : anchorY // ignore: cast_nullable_to_non_nullable
+              as double,
+      width: null == width
+          ? _value.width
+          : width // ignore: cast_nullable_to_non_nullable
+              as double,
+      height: null == height
+          ? _value.height
+          : height // ignore: cast_nullable_to_non_nullable
+              as double,
+      quarterTurns: null == quarterTurns
+          ? _value.quarterTurns
+          : quarterTurns // ignore: cast_nullable_to_non_nullable
+              as int,
+      isVisible: null == isVisible
+          ? _value.isVisible
+          : isVisible // ignore: cast_nullable_to_non_nullable
+              as bool,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      importMetadata: null == importMetadata
+          ? _value._importMetadata
+          : importMetadata // ignore: cast_nullable_to_non_nullable
+              as Map<String, Object?>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MapPlacedTileImpl implements _MapPlacedTile {
+  const _$MapPlacedTileImpl(
+      {required this.id,
+      this.name = '',
+      this.className = '',
+      required this.tile,
+      required this.anchorX,
+      required this.anchorY,
+      required this.width,
+      required this.height,
+      this.quarterTurns = 0,
+      this.isVisible = true,
+      this.opacity = 1.0,
+      final Map<String, Object?> importMetadata = const <String, Object?>{}})
+      : _importMetadata = importMetadata;
+
+  factory _$MapPlacedTileImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MapPlacedTileImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  @JsonKey()
+  final String name;
+  @override
+  @JsonKey()
+  final String className;
+  @override
+  final TileLayerPaletteEntry tile;
+  @override
+  final double anchorX;
+  @override
+  final double anchorY;
+  @override
+  final double width;
+  @override
+  final double height;
+  @override
+  @JsonKey()
+  final int quarterTurns;
+  @override
+  @JsonKey()
+  final bool isVisible;
+  @override
+  @JsonKey()
+  final double opacity;
+  final Map<String, Object?> _importMetadata;
+  @override
+  @JsonKey()
+  Map<String, Object?> get importMetadata {
+    if (_importMetadata is EqualUnmodifiableMapView) return _importMetadata;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_importMetadata);
+  }
+
+  @override
+  String toString() {
+    return 'MapPlacedTile(id: $id, name: $name, className: $className, tile: $tile, anchorX: $anchorX, anchorY: $anchorY, width: $width, height: $height, quarterTurns: $quarterTurns, isVisible: $isVisible, opacity: $opacity, importMetadata: $importMetadata)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MapPlacedTileImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.className, className) ||
+                other.className == className) &&
+            (identical(other.tile, tile) || other.tile == tile) &&
+            (identical(other.anchorX, anchorX) || other.anchorX == anchorX) &&
+            (identical(other.anchorY, anchorY) || other.anchorY == anchorY) &&
+            (identical(other.width, width) || other.width == width) &&
+            (identical(other.height, height) || other.height == height) &&
+            (identical(other.quarterTurns, quarterTurns) ||
+                other.quarterTurns == quarterTurns) &&
+            (identical(other.isVisible, isVisible) ||
+                other.isVisible == isVisible) &&
+            (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            const DeepCollectionEquality()
+                .equals(other._importMetadata, _importMetadata));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      className,
+      tile,
+      anchorX,
+      anchorY,
+      width,
+      height,
+      quarterTurns,
+      isVisible,
+      opacity,
+      const DeepCollectionEquality().hash(_importMetadata));
+
+  /// Create a copy of MapPlacedTile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MapPlacedTileImplCopyWith<_$MapPlacedTileImpl> get copyWith =>
+      __$$MapPlacedTileImplCopyWithImpl<_$MapPlacedTileImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MapPlacedTileImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MapPlacedTile implements MapPlacedTile {
+  const factory _MapPlacedTile(
+      {required final String id,
+      final String name,
+      final String className,
+      required final TileLayerPaletteEntry tile,
+      required final double anchorX,
+      required final double anchorY,
+      required final double width,
+      required final double height,
+      final int quarterTurns,
+      final bool isVisible,
+      final double opacity,
+      final Map<String, Object?> importMetadata}) = _$MapPlacedTileImpl;
+
+  factory _MapPlacedTile.fromJson(Map<String, dynamic> json) =
+      _$MapPlacedTileImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  String get className;
+  @override
+  TileLayerPaletteEntry get tile;
+  @override
+  double get anchorX;
+  @override
+  double get anchorY;
+  @override
+  double get width;
+  @override
+  double get height;
+  @override
+  int get quarterTurns;
+  @override
+  bool get isVisible;
+  @override
+  double get opacity;
+  @override
+  Map<String, Object?> get importMetadata;
+
+  /// Create a copy of MapPlacedTile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MapPlacedTileImplCopyWith<_$MapPlacedTileImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
 MapLayer _$MapLayerFromJson(Map<String, dynamic> json) {
   switch (json['runtimeType']) {
     case 'tile':
@@ -282,8 +700,8 @@ mixin _$MapLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(
-            String id, String name, bool isVisible, double opacity)
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -331,7 +749,8 @@ mixin _$MapLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -379,7 +798,8 @@ mixin _$MapLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -681,8 +1101,8 @@ class _$TileLayerImpl extends TileLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(
-            String id, String name, bool isVisible, double opacity)
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -733,7 +1153,8 @@ class _$TileLayerImpl extends TileLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -784,7 +1205,8 @@ class _$TileLayerImpl extends TileLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -1059,8 +1481,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(
-            String id, String name, bool isVisible, double opacity)
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -1111,7 +1533,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -1162,7 +1585,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -1541,8 +1965,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(
-            String id, String name, bool isVisible, double opacity)
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -1594,7 +2018,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -1646,7 +2071,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -1781,7 +2207,12 @@ abstract class _$$ObjectLayerImplCopyWith<$Res>
       __$$ObjectLayerImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String id, String name, bool isVisible, double opacity});
+  $Res call(
+      {String id,
+      String name,
+      bool isVisible,
+      double opacity,
+      List<MapPlacedTile> tileObjects});
 }
 
 /// @nodoc
@@ -1801,6 +2232,7 @@ class __$$ObjectLayerImplCopyWithImpl<$Res>
     Object? name = null,
     Object? isVisible = null,
     Object? opacity = null,
+    Object? tileObjects = null,
   }) {
     return _then(_$ObjectLayerImpl(
       id: null == id
@@ -1819,20 +2251,27 @@ class __$$ObjectLayerImplCopyWithImpl<$Res>
           ? _value.opacity
           : opacity // ignore: cast_nullable_to_non_nullable
               as double,
+      tileObjects: null == tileObjects
+          ? _value._tileObjects
+          : tileObjects // ignore: cast_nullable_to_non_nullable
+              as List<MapPlacedTile>,
     ));
   }
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$ObjectLayerImpl extends ObjectLayer {
   const _$ObjectLayerImpl(
       {required this.id,
       required this.name,
       this.isVisible = true,
       this.opacity = 1.0,
+      final List<MapPlacedTile> tileObjects = const <MapPlacedTile>[],
       final String? $type})
-      : $type = $type ?? 'object',
+      : _tileObjects = tileObjects,
+        $type = $type ?? 'object',
         super._();
 
   factory _$ObjectLayerImpl.fromJson(Map<String, dynamic> json) =>
@@ -1848,13 +2287,21 @@ class _$ObjectLayerImpl extends ObjectLayer {
   @override
   @JsonKey()
   final double opacity;
+  final List<MapPlacedTile> _tileObjects;
+  @override
+  @JsonKey()
+  List<MapPlacedTile> get tileObjects {
+    if (_tileObjects is EqualUnmodifiableListView) return _tileObjects;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tileObjects);
+  }
 
   @JsonKey(name: 'runtimeType')
   final String $type;
 
   @override
   String toString() {
-    return 'MapLayer.object(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity)';
+    return 'MapLayer.object(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, tileObjects: $tileObjects)';
   }
 
   @override
@@ -1866,12 +2313,15 @@ class _$ObjectLayerImpl extends ObjectLayer {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.isVisible, isVisible) ||
                 other.isVisible == isVisible) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity));
+            (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            const DeepCollectionEquality()
+                .equals(other._tileObjects, _tileObjects));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, id, name, isVisible, opacity);
+  int get hashCode => Object.hash(runtimeType, id, name, isVisible, opacity,
+      const DeepCollectionEquality().hash(_tileObjects));
 
   /// Create a copy of MapLayer
   /// with the given fields replaced by the non-null parameter values.
@@ -1908,8 +2358,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(
-            String id, String name, bool isVisible, double opacity)
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -1935,7 +2385,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             Map<String, String> properties)
         border,
   }) {
-    return object(id, name, isVisible, opacity);
+    return object(id, name, isVisible, opacity, tileObjects);
   }
 
   @override
@@ -1960,7 +2410,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -1986,7 +2437,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             Map<String, String> properties)?
         border,
   }) {
-    return object?.call(id, name, isVisible, opacity);
+    return object?.call(id, name, isVisible, opacity, tileObjects);
   }
 
   @override
@@ -2011,7 +2462,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -2039,7 +2491,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     required TResult orElse(),
   }) {
     if (object != null) {
-      return object(id, name, isVisible, opacity);
+      return object(id, name, isVisible, opacity, tileObjects);
     }
     return orElse();
   }
@@ -2100,7 +2552,8 @@ abstract class ObjectLayer extends MapLayer {
       {required final String id,
       required final String name,
       final bool isVisible,
-      final double opacity}) = _$ObjectLayerImpl;
+      final double opacity,
+      final List<MapPlacedTile> tileObjects}) = _$ObjectLayerImpl;
   const ObjectLayer._() : super._();
 
   factory ObjectLayer.fromJson(Map<String, dynamic> json) =
@@ -2114,6 +2567,7 @@ abstract class ObjectLayer extends MapLayer {
   bool get isVisible;
   @override
   double get opacity;
+  List<MapPlacedTile> get tileObjects;
 
   /// Create a copy of MapLayer
   /// with the given fields replaced by the non-null parameter values.
@@ -2302,8 +2756,8 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(
-            String id, String name, bool isVisible, double opacity)
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -2354,7 +2808,8 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -2405,7 +2860,8 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -2708,8 +3164,8 @@ class _$BorderLayerImpl extends BorderLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(
-            String id, String name, bool isVisible, double opacity)
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -2760,7 +3216,8 @@ class _$BorderLayerImpl extends BorderLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity)?
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -2811,7 +3268,8 @@ class _$BorderLayerImpl extends BorderLayer {
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity)?
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,

@@ -15,6 +15,9 @@ bool editorCanvasNeedsAnimation({
   if (_visiblePlacedElementsNeedAnimation(map, project)) {
     return true;
   }
+  if (_visiblePlacedTilesNeedAnimation(map, project)) {
+    return true;
+  }
 
   if (project != null &&
       project.smartTileCatalog.animations.isNotEmpty &&
@@ -33,6 +36,32 @@ bool editorCanvasNeedsAnimation({
           project.borderCatalog.visualSnapshotById(entry.snapshotId);
       if (snapshot != null && snapshot.frames.length > 1) {
         return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool _visiblePlacedTilesNeedAnimation(
+  MapData map,
+  ProjectManifest? project,
+) {
+  if (project == null) return false;
+  final sourceByTilesetId = <String, ProjectTilesetSource>{
+    for (final tileset in project.tilesets)
+      if (tileset.source case final source?) tileset.id: source,
+  };
+  for (final layer in map.layers.whereType<ObjectLayer>()) {
+    if (!layer.isVisible || layer.opacity <= 0) continue;
+    for (final object in layer.tileObjects) {
+      if (!object.isVisible || object.opacity <= 0) continue;
+      final source = sourceByTilesetId[object.tile.tilesetId];
+      if (source is! ProjectImageCollectionTilesetSource) continue;
+      for (final definition in source.tileDefinitions) {
+        if (definition.tileId == object.tile.localTileId &&
+            definition.animation.length > 1) {
+          return true;
+        }
       }
     }
   }

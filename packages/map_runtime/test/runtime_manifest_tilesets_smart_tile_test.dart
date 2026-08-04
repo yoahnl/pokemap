@@ -4,6 +4,36 @@ import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
 
 void main() {
   group('runtime manifest tileset collection', () {
+    test('collects visual-only object layer tilesets', () {
+      const map = MapData(
+        id: 'object-tilesets',
+        name: 'Object tilesets',
+        version: ProjectVersion.v6,
+        size: GridSize(width: 1, height: 1),
+        layers: <MapLayer>[
+          ObjectLayer(
+            id: 'objects',
+            name: 'Objects',
+            tileObjects: <MapPlacedTile>[
+              MapPlacedTile(
+                id: 'prop',
+                tile: TileLayerPaletteEntry(
+                  tilesetId: 'object-props',
+                  localTileId: 0,
+                ),
+                anchorX: 0,
+                anchorY: 1,
+                width: 1,
+                height: 1,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(collectTilesetIdsReferencedOnMap(map), <String>{'object-props'});
+    });
+
     test('collects every multipart and animated Smart Tile atlas tileset', () {
       const map = MapData(
         id: 'route-1',

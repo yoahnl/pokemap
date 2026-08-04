@@ -230,8 +230,7 @@ void main() {
       );
     });
 
-    test('flattens groups, applies tile offsets and reports deferred objects',
-        () {
+    test('flattens groups, compiles tile objects and defers only shapes', () {
       final document = parseTiledMap(
         _mapXml(
           width: 3,
@@ -246,7 +245,11 @@ void main() {
     <data encoding="csv">1,0,0</data>
   </layer>
   <objectgroup id="3" name="Props">
-    <object id="1" gid="1" x="12" y="24"/>
+    <object id="1" name="Bench" class="Decoration" gid="1"
+        x="12" y="24" width="24" height="16" rotation="90"
+        opacity="0.75">
+      <properties><property name="note" value="visual only"/></properties>
+    </object>
     <object id="2" x="4" y="8" width="10" height="12"/>
   </objectgroup>
 </group>
@@ -268,21 +271,119 @@ void main() {
         ],
       );
 
-      final layer = result.map.layers.single as TileLayer;
-      expect(layer.name, 'Village / Ground');
-      expect(layer.opacity, 0.5);
-      expect(layer.cells, <int>[0, 1, 0]);
+      expect(
+        result.map.layers.map((layer) => layer.id),
+        <String>['tiled-layer-3', 'tiled-layer-2'],
+      );
+      final tileLayer = result.map.layers.last as TileLayer;
+      expect(tileLayer.name, 'Village / Ground');
+      expect(tileLayer.opacity, 0.5);
+      expect(tileLayer.cells, <int>[0, 1, 0]);
+      final objectLayer = result.map.layers.first as ObjectLayer;
+      expect(objectLayer.name, 'Village / Props');
+      expect(objectLayer.opacity, 0.5);
+      final object = objectLayer.tileObjects.single;
+      expect(object.id, 'tiled-object-1');
+      expect(object.name, 'Bench');
+      expect(object.className, 'Decoration');
+      expect(object.tile.tilesetId, 'terrain');
+      expect(object.tile.localTileId, 0);
+      expect(object.anchorX, 1.375);
+      expect(object.anchorY, 0.75);
+      expect(object.width, 0.75);
+      expect(object.height, 0.5);
+      expect(object.quarterTurns, 1);
+      expect(object.opacity, 0.75);
+      expect(object.importMetadata['sourceObjectId'], 1);
+      expect(object.importMetadata['properties'], isA<List<Object?>>());
+      expect(object.toJson(), isNot(contains('collisions')));
+      final importMetadata =
+          result.map.properties[tiledMapImportMetadataKey]! as Map;
+      final sourceLayers = importMetadata['layers']! as List;
+      final objectLayerMetadata = sourceLayers.cast<Map>().firstWhere(
+            (metadata) => metadata['sourceLayerId'] == 3,
+          );
+      expect(objectLayerMetadata['drawOrder'], 'topdown');
+      expect(objectLayerMetadata['deferredObjects'], hasLength(1));
+      expect(
+        (objectLayerMetadata['deferredObjects']! as List).single,
+        containsPair('sourceObjectId', 2),
+      );
       expect(
         result.report.diagnostics.map((diagnostic) => diagnostic.code),
         containsAll(<String>[
           'map.tiled.group_flattened',
-          'map.tiled.object_layer_deferred',
+          'map.tiled.tile_objects_compiled',
+          'map.tiled.object_shapes_deferred',
         ]),
       );
-      expect(result.report.deferredObjectCount, 2);
-      expect(result.report.deferredTileObjectCount, 1);
+      expect(result.report.compiledTileObjectCount, 1);
+      expect(result.report.deferredObjectCount, 1);
+      expect(result.report.deferredTileObjectCount, 0);
       expect(result.report.hasVisualLoss, isFalse);
       expect(result.report.fidelity, TiledMapFidelity.deferredContent);
+    });
+
+    test('preserves object draw order and defers arbitrary rotations', () {
+      final document = parseTiledMap(
+        _mapXml(
+          width: 1,
+          height: 1,
+          tilesets: const <({int firstGid, String source})>[
+            (firstGid: 1, source: 'terrain.tsx'),
+          ],
+          layers: const <String>[
+            '''
+<objectgroup id="1" name="Index" draworder="index">
+  <object id="1" gid="1" x="0" y="20" width="32" height="32"/>
+  <object id="2" gid="1" x="0" y="10" width="32" height="32"/>
+</objectgroup>
+<objectgroup id="2" name="Top down" draworder="topdown">
+  <object id="3" gid="1" x="0" y="20" width="32" height="32"/>
+  <object id="4" gid="1" x="0" y="10" width="32" height="32"/>
+  <object id="5" gid="1" x="0" y="0" width="32" height="32" rotation="45"/>
+  <object id="6" gid="1" x="0" y="0"/>
+</objectgroup>
+''',
+          ],
+        ),
+      );
+
+      final result = compileTiledMapDocument(
+        document,
+        mapId: 'object-order',
+        mapName: 'Object order',
+        gridPolicy: const TiledMapGridPolicy.adoptSource(),
+        tilesets: const <TiledMapTilesetBinding>[
+          TiledMapTilesetBinding(
+            source: 'terrain.tsx',
+            tilesetId: 'terrain',
+          ),
+        ],
+      );
+
+      final topDown = result.map.layers.first as ObjectLayer;
+      final index = result.map.layers.last as ObjectLayer;
+      expect(
+        index.tileObjects.map((object) => object.id),
+        <String>['tiled-object-1', 'tiled-object-2'],
+      );
+      expect(
+        topDown.tileObjects.map((object) => object.id),
+        <String>['tiled-object-4', 'tiled-object-3'],
+      );
+      expect(index.tileObjects.first.width, 1);
+      expect(index.tileObjects.first.height, 1);
+      expect(result.report.compiledTileObjectCount, 4);
+      expect(result.report.deferredObjectCount, 2);
+      expect(result.report.deferredTileObjectCount, 2);
+      expect(
+        result.report.diagnostics.map((diagnostic) => diagnostic.code),
+        containsAll(<String>[
+          'map.tiled.tile_object_rotation_deferred',
+          'map.tiled.tile_object_size_deferred',
+        ]),
+      );
     });
 
     test('marks clipped shifted tiles as visual loss', () {

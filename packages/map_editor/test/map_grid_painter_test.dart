@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/application/map_placed_element_rotation_planner.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_animation_need_resolver.dart';
 
 void main() {
   group('MapGridPainter foreground split helpers', () {
@@ -50,6 +51,152 @@ void main() {
         returnsNormally,
       );
       recorder.endRecording().dispose();
+    });
+
+    test('renders fractional visual-only tile objects', () async {
+      final objectImage = await _solidColorImage(
+        width: 32,
+        height: 32,
+        color: const ui.Color(0xFF1450DC),
+      );
+      const source = ProjectRegularAtlasTilesetSource(
+        assetId: 'object-asset',
+        pixelWidth: 32,
+        pixelHeight: 32,
+        tileWidth: 32,
+        tileHeight: 32,
+      );
+      const map = MapData(
+        id: 'fractional-object-editor',
+        name: 'Fractional object editor',
+        version: ProjectVersion.v6,
+        visualStack: MapVisualStackConfig.canonicalV1,
+        size: GridSize(width: 1, height: 1),
+        layers: <MapLayer>[
+          ObjectLayer(
+            id: 'objects',
+            name: 'Objects',
+            tileObjects: <MapPlacedTile>[
+              MapPlacedTile(
+                id: 'fractional-prop',
+                tile: TileLayerPaletteEntry(
+                  tilesetId: 'props',
+                  localTileId: 0,
+                ),
+                anchorX: 0.25,
+                anchorY: 0.75,
+                width: 0.5,
+                height: 0.5,
+              ),
+            ],
+          ),
+        ],
+      );
+      const project = ProjectManifest(
+        name: 'Object layer editor test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'props',
+            name: 'Props',
+            relativePath: 'tilesets/props.png',
+            source: source,
+          ),
+        ],
+        settings: ProjectSettings(tileWidth: 32, tileHeight: 32),
+      );
+      final recorder = ui.PictureRecorder();
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: <String, ui.Image?>{
+          'object-asset': objectImage,
+        },
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        project: project,
+        showGrid: false,
+        showEntityEditorChrome: false,
+        showEditorOverlays: false,
+      ).paint(ui.Canvas(recorder), const ui.Size(32, 32));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(32, 32);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+
+      expect(_rgbaAt(pixels!, 32, 10, 10), <int>[20, 80, 220, 255]);
+      expect(_rgbaAt(pixels, 32, 4, 4), <int>[0, 0, 0, 0]);
+
+      expect(
+        editorCanvasNeedsAnimation(
+          map: map,
+          project: const ProjectManifest(
+            name: 'Animated object layer editor test',
+            maps: <ProjectMapEntry>[],
+            tilesets: <ProjectTilesetEntry>[
+              ProjectTilesetEntry(
+                id: 'props',
+                name: 'Props',
+                relativePath: 'tilesets/props',
+                source: ProjectImageCollectionTilesetSource(
+                  pages: <ProjectImageCollectionPage>[
+                    ProjectImageCollectionPage(
+                      id: 'page',
+                      assetId: 'object-page',
+                      pixelWidth: 32,
+                      pixelHeight: 32,
+                    ),
+                  ],
+                  tileDefinitions: <ProjectImageCollectionTileDefinition>[
+                    ProjectImageCollectionTileDefinition(
+                      tileId: 0,
+                      pageId: 'page',
+                      sourceRect: ProjectTilesetPixelRect(
+                        x: 0,
+                        y: 0,
+                        width: 16,
+                        height: 16,
+                      ),
+                      animation: <ProjectImageCollectionAnimationFrame>[
+                        ProjectImageCollectionAnimationFrame(
+                          tileId: 0,
+                          durationMs: 100,
+                        ),
+                        ProjectImageCollectionAnimationFrame(
+                          tileId: 1,
+                          durationMs: 100,
+                        ),
+                      ],
+                    ),
+                    ProjectImageCollectionTileDefinition(
+                      tileId: 1,
+                      pageId: 'page',
+                      sourceRect: ProjectTilesetPixelRect(
+                        x: 16,
+                        y: 0,
+                        width: 16,
+                        height: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          borderPreview: null,
+        ),
+        isTrue,
+      );
+
+      picture.dispose();
+      image.dispose();
+      objectImage.dispose();
     });
 
     test('can hide the editor grid for clean visual QA captures', () async {

@@ -290,6 +290,7 @@ export 'src/operations/map_placed_elements.dart';
 export 'src/operations/map_placed_element_footprint.dart';
 export 'src/operations/map_placed_element_animation.dart';
 export 'src/operations/map_placed_element_shadow_override_json_codec.dart';
+export 'src/operations/map_placed_tile_visual_resolver.dart';
 export 'src/operations/map_entity_collision_footprint.dart';
 export 'src/operations/map_triggers.dart';
 export 'src/operations/map_warps.dart';

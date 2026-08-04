@@ -93,9 +93,10 @@ class MapLayersComponent extends PositionComponent {
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
   };
-  late final Map<String, ProjectTilesetSource?> _tilesetSourceById =
-      <String, ProjectTilesetSource?>{
-    for (final tileset in bundle.manifest.tilesets) tileset.id: tileset.source,
+  late final Map<String, ProjectTilesetSource> _tilesetSourceById =
+      <String, ProjectTilesetSource>{
+    for (final tileset in bundle.manifest.tilesets)
+      if (tileset.source case final source?) tileset.id: source,
   };
   final Map<(String, int), ProjectTilesetVisualResolution>
       _regularTileVisualCache =
@@ -235,7 +236,10 @@ class MapLayersComponent extends PositionComponent {
         if (renderPass == MapLayerRenderPass.background) {
           _paintBorderLayer(canvas, step.layer! as BorderLayer);
         }
-      case MapVisualCompositionStepKind.objectNoop:
+      case MapVisualCompositionStepKind.objectLayer:
+        if (renderPass == MapLayerRenderPass.background) {
+          _paintObjectLayer(canvas, step.layer! as ObjectLayer);
+        }
       case MapVisualCompositionStepKind.environmentNoop:
         break;
       case MapVisualCompositionStepKind.shadows:
@@ -703,6 +707,64 @@ class MapLayersComponent extends PositionComponent {
           paint: paint,
         );
       }
+    }
+  }
+
+  void _paintObjectLayer(Canvas canvas, ObjectLayer layer) {
+    final sourceTileWidth = bundle.manifest.settings.tileWidth;
+    final sourceTileHeight = bundle.manifest.settings.tileHeight;
+    final visibleRect = _visibleLocalRect;
+    final List<MapPlacedTileVisualInstruction> visuals;
+    try {
+      visuals = resolveMapPlacedTileVisuals(
+        layer: layer,
+        tilesetsById: _tilesetSourceById,
+        sourceCellWidth: sourceTileWidth,
+        sourceCellHeight: sourceTileHeight,
+        destinationCellWidth: bundle.cellWidth,
+        destinationCellHeight: bundle.cellHeight,
+        elapsedMs: (_animElapsed * 1000).toInt(),
+        viewport: visibleRect == null
+            ? null
+            : SmartTileGeometryRect(
+                left: visibleRect.left,
+                top: visibleRect.top,
+                width: visibleRect.width,
+                height: visibleRect.height,
+              ),
+      );
+    } on MapPlacedTileVisualResolutionException {
+      return;
+    }
+    for (final visual in visuals) {
+      final image = tileImagesByTilesetId[visual.assetId] ??
+          tileImagesByTilesetId[visual.tilesetId];
+      if (image == null) continue;
+      final source = visual.sourceRect;
+      final sourceRect = Rect.fromLTWH(
+        source.x.toDouble(),
+        source.y.toDouble(),
+        source.width.toDouble(),
+        source.height.toDouble(),
+      );
+      if (!image.containsSourceRect(sourceRect)) continue;
+      final destination = visual.destinationRect;
+      _drawTileLayerImage(
+        canvas: canvas,
+        image: image,
+        sourceRect: sourceRect,
+        destinationRect: Rect.fromLTWH(
+          destination.left,
+          destination.top,
+          destination.width,
+          destination.height,
+        ),
+        transform: visual.transform,
+        paint: Paint()
+          ..isAntiAlias = false
+          ..filterQuality = FilterQuality.none
+          ..color = Colors.white.withValues(alpha: visual.opacity),
+      );
     }
   }
 

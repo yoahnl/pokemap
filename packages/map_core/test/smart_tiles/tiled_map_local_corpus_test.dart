@@ -11,6 +11,9 @@ void main() {
   final expectedTilesetCount = int.tryParse(
     Platform.environment['POKEMAP_TMX_EXPECT_TILESETS'] ?? '',
   );
+  final expectedTileObjectCount = int.tryParse(
+    Platform.environment['POKEMAP_TMX_EXPECT_TILE_OBJECTS'] ?? '',
+  );
 
   test(
     'parses every supported finite map in a local generic TMX corpus',
@@ -26,6 +29,7 @@ void main() {
       var parsed = 0;
       var rejectedNonPlayable = 0;
       var matchedExpectedShape = false;
+      var compiledTileObjectCount = 0;
       for (final file in files) {
         try {
           final document = parseTiledMap(file.readAsStringSync());
@@ -44,7 +48,18 @@ void main() {
           );
           MapValidator.validate(result.map);
           expect(MapData.fromJson(result.map.toJson()), result.map);
-          expect(result.report.tileLayerCount, result.map.layers.length);
+          expect(
+            result.report.tileLayerCount,
+            result.map.layers.whereType<TileLayer>().length,
+          );
+          expect(
+            result.report.compiledTileObjectCount,
+            result.map.layers.whereType<ObjectLayer>().fold<int>(
+                  0,
+                  (count, layer) => count + layer.tileObjects.length,
+                ),
+          );
+          compiledTileObjectCount += result.report.compiledTileObjectCount;
           expect(result.report.sourceTilesetCount, document.tilesets.length);
           expect(
             result.report.referencedTilesetIds.length,
@@ -79,6 +94,9 @@ void main() {
       // A mixed corpus may contain automapping inputs. They remain explicit
       // rejections instead of being silently interpreted as playable maps.
       expect(parsed + rejectedNonPlayable, files.length);
+      if (expectedTileObjectCount != null) {
+        expect(compiledTileObjectCount, expectedTileObjectCount);
+      }
       if (expectedTileLayerCount != null || expectedTilesetCount != null) {
         expect(
           matchedExpectedShape,

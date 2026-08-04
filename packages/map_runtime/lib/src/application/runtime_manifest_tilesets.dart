@@ -17,6 +17,11 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
       add(entry.tilesetId);
     }
   }
+  for (final layer in map.layers.whereType<ObjectLayer>()) {
+    for (final object in layer.tileObjects) {
+      add(object.tile.tilesetId);
+    }
+  }
   return ids;
 }
 

@@ -231,6 +231,64 @@ void main() {
     expect(await pixelAt(rendered, 36, 4), rgba(204, 204, 16, 255));
     expect(await pixelAt(rendered, 68, 4), rgba(255, 255, 255, 255));
   });
+
+  test('object layers render fractional visual-only tile objects', () async {
+    const source = ProjectRegularAtlasTilesetSource(
+      assetId: 'object-asset',
+      pixelWidth: surfaceTestTileSize,
+      pixelHeight: surfaceTestTileSize,
+      tileWidth: surfaceTestTileSize,
+      tileHeight: surfaceTestTileSize,
+    );
+    final component = MapLayersComponent(
+      bundle: surfaceTestBundle(
+        map: const MapData(
+          id: 'fractional-object-runtime',
+          name: 'Fractional object runtime',
+          version: ProjectVersion.v6,
+          visualStack: MapVisualStackConfig.canonicalV1,
+          size: GridSize(width: 1, height: 1),
+          layers: <MapLayer>[
+            ObjectLayer(
+              id: 'objects',
+              name: 'Objects',
+              tileObjects: <MapPlacedTile>[
+                MapPlacedTile(
+                  id: 'fractional-prop',
+                  tile: TileLayerPaletteEntry(
+                    tilesetId: 'props',
+                    localTileId: 0,
+                  ),
+                  anchorX: 0.25,
+                  anchorY: 0.75,
+                  width: 0.5,
+                  height: 0.5,
+                ),
+              ],
+            ),
+          ],
+        ),
+        tilesets: const <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'props',
+            name: 'Props',
+            relativePath: 'tilesets/props.png',
+            source: source,
+          ),
+        ],
+      ),
+      tileImagesByTilesetId: <String, RuntimeTilesetImage>{
+        'object-asset': await runtimeTilesetImage(
+          const <Color>[Color(0xFF1450DC)],
+        ),
+      },
+    );
+
+    final rendered = await renderSurfaceTestComponent(component);
+
+    expect(await pixelAt(rendered, 10, 10), rgba(20, 80, 220, 255));
+    expect(await pixelAt(rendered, 4, 4), rgba(0, 0, 0, 0));
+  });
 }
 
 Future<RuntimeTilesetImage> _quadrantImage(List<Color> colors) async {

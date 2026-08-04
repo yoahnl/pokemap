@@ -607,7 +607,12 @@ class MapGridPainter extends CustomPainter {
               cullingCounter: cullingCounter,
             );
           }
-        case MapVisualCompositionStepKind.objectNoop:
+        case MapVisualCompositionStepKind.objectLayer:
+          _paintObjectLayer(
+            canvas,
+            step.layer! as ObjectLayer,
+            visibleBounds: visibleBounds,
+          );
         case MapVisualCompositionStepKind.environmentNoop:
           break;
       }
@@ -2027,6 +2032,67 @@ class MapGridPainter extends CustomPainter {
           );
         }
       }
+    }
+  }
+
+  void _paintObjectLayer(
+    Canvas canvas,
+    ObjectLayer layer, {
+    required EditorMapVisibleCellBounds visibleBounds,
+  }) {
+    final sources = <String, ProjectTilesetSource>{
+      for (final tileset in project?.tilesets ?? const <ProjectTilesetEntry>[])
+        if (tileset.source case final source?) tileset.id: source,
+    };
+    final List<MapPlacedTileVisualInstruction> visuals;
+    try {
+      visuals = resolveMapPlacedTileVisuals(
+        layer: layer,
+        tilesetsById: sources,
+        sourceCellWidth: sourceTileWidth,
+        sourceCellHeight: sourceTileHeight,
+        destinationCellWidth: tileWidth,
+        destinationCellHeight: tileHeight,
+        elapsedMs: effectiveAnimationMs,
+        viewport: SmartTileGeometryRect(
+          left: visibleBounds.left * tileWidth,
+          top: visibleBounds.top * tileHeight,
+          width: visibleBounds.width * tileWidth,
+          height: visibleBounds.height * tileHeight,
+        ),
+      );
+    } on MapPlacedTileVisualResolutionException {
+      return;
+    }
+    for (final visual in visuals) {
+      final image = tilesetImagesById[visual.assetId] ??
+          tilesetImagesById[visual.tilesetId];
+      if (image == null) continue;
+      final source = visual.sourceRect;
+      final sourceRect = Rect.fromLTWH(
+        source.x.toDouble(),
+        source.y.toDouble(),
+        source.width.toDouble(),
+        source.height.toDouble(),
+      );
+      if (!_editorImageContainsRect(image, sourceRect)) continue;
+      final destination = visual.destinationRect;
+      _drawTileLayerImage(
+        canvas: canvas,
+        image: image,
+        sourceRect: sourceRect,
+        destinationRect: Rect.fromLTWH(
+          destination.left,
+          destination.top,
+          destination.width,
+          destination.height,
+        ),
+        transform: visual.transform,
+        paint: Paint()
+          ..isAntiAlias = false
+          ..filterQuality = FilterQuality.none
+          ..color = PokeMapLegacyColors.white.withValues(alpha: visual.opacity),
+      );
     }
   }
 

@@ -3432,37 +3432,39 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
           }
         },
       );
-      for (final layer in map.layers) {
-        if (layer is! TileLayer) continue;
-        for (final tilesetId
-            in layer.palette.map((entry) => entry.tilesetId).toSet()) {
-          ProjectTilesetEntry? tileset;
-          for (final candidate
-              in project?.tilesets ?? const <ProjectTilesetEntry>[]) {
-            if (candidate.id == tilesetId) {
-              tileset = candidate;
-              break;
-            }
+      final literalVisualTilesetIds = <String>{
+        for (final layer in map.layers.whereType<TileLayer>())
+          for (final entry in layer.palette) entry.tilesetId,
+        for (final layer in map.layers.whereType<ObjectLayer>())
+          for (final object in layer.tileObjects) object.tile.tilesetId,
+      };
+      for (final tilesetId in literalVisualTilesetIds) {
+        ProjectTilesetEntry? tileset;
+        for (final candidate
+            in project?.tilesets ?? const <ProjectTilesetEntry>[]) {
+          if (candidate.id == tilesetId) {
+            tileset = candidate;
+            break;
           }
-          final source = tileset?.source;
-          if (source is ProjectImageCollectionTilesetSource &&
-              projectRootPath != null &&
-              projectRootPath.trim().isNotEmpty) {
-            for (final page in source.pages) {
-              result[page.assetId] = p.normalize(
-                p.join(
-                  projectRootPath,
-                  tileset!.relativePath,
-                  '${page.id}.png',
-                ),
-              );
-            }
-            continue;
-          }
-          final path = notifier.getTilesetAbsolutePathById(tilesetId);
-          if (path == null || path.isEmpty) continue;
-          result[tilesetId] = path;
         }
+        final source = tileset?.source;
+        if (source is ProjectImageCollectionTilesetSource &&
+            projectRootPath != null &&
+            projectRootPath.trim().isNotEmpty) {
+          for (final page in source.pages) {
+            result[page.assetId] = p.normalize(
+              p.join(
+                projectRootPath,
+                tileset!.relativePath,
+                '${page.id}.png',
+              ),
+            );
+          }
+          continue;
+        }
+        final path = notifier.getTilesetAbsolutePathById(tilesetId);
+        if (path == null || path.isEmpty) continue;
+        result[tilesetId] = path;
       }
       for (final atlas in project?.smartTileCatalog.atlases ??
           const <ProjectSmartTileAtlas>[]) {
