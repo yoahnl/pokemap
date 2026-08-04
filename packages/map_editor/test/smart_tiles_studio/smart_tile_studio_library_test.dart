@@ -85,4 +85,32 @@ void main() {
     expect(
         items.single.canonicalDraft?.lastStage, SmartTileAuthoringStage.grid);
   });
+
+  test('lists reusable patterns as native no-code records', () {
+    final manifest = ProjectManifest(
+      name: 'pattern library',
+      version: ProjectVersion.v6,
+      maps: <ProjectMapEntry>[],
+      tilesets: <ProjectTilesetEntry>[],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        patterns: const <ProjectSmartTilePattern>[
+          ProjectSmartTilePattern(
+            id: 'stone_patch',
+            name: 'Pierre claire',
+            usage: SmartTileUsage.path,
+            width: 1,
+            height: 1,
+          ),
+        ],
+      ),
+    );
+
+    final items = buildSmartTileStudioLibrary(manifest);
+
+    expect(items, hasLength(1));
+    expect(items.single.key, 'pattern:stone_patch');
+    expect(items.single.pattern, manifest.smartTileCatalog.patterns.single);
+    expect(items.single.isPattern, isTrue);
+    expect(items.single.statusLabel, 'Motif réutilisable');
+  });
 }

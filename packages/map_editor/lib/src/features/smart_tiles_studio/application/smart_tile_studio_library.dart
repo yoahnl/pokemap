@@ -11,6 +11,7 @@ final class SmartTileLibraryItem {
     this.categoryId,
     this.nativePreset,
     this.canonicalDraft,
+    this.pattern,
   });
 
   final String key;
@@ -22,8 +23,10 @@ final class SmartTileLibraryItem {
   final int sortOrder;
   final ProjectSmartTilePreset? nativePreset;
   final ProjectSmartTileAuthoringDraft? canonicalDraft;
+  final ProjectSmartTilePattern? pattern;
 
   bool get isResumableDraft => canonicalDraft != null;
+  bool get isPattern => pattern != null;
 
   String get usageLabel => switch (usage) {
         SmartTileUsage.terrain => 'Terrain',
@@ -61,6 +64,17 @@ List<SmartTileLibraryItem> buildSmartTileStudioLibrary(
         },
         sortOrder: preset.sortOrder,
         nativePreset: preset,
+      ),
+    for (final pattern in manifest.smartTileCatalog.patterns)
+      SmartTileLibraryItem(
+        key: 'pattern:${pattern.id}',
+        id: pattern.id,
+        name: pattern.name,
+        usage: pattern.usage,
+        categoryId: pattern.categoryId.isEmpty ? null : pattern.categoryId,
+        statusLabel: 'Motif réutilisable',
+        sortOrder: pattern.sortOrder,
+        pattern: pattern,
       ),
   ];
   items.sort((left, right) {

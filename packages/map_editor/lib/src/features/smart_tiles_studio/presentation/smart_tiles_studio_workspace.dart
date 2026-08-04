@@ -12,6 +12,7 @@ import '../application/smart_tile_draft_persistence_coordinator.dart';
 import '../application/smart_tile_draft_persistence_state.dart';
 import '../application/smart_tile_atlas_image_loader.dart';
 import '../application/smart_tile_publication_service.dart';
+import '../application/smart_tile_pattern_authoring_service.dart';
 import '../application/smart_tile_source_asset_import_service.dart';
 import '../application/smart_tile_source_image_picker.dart';
 import 'smart_tiles_studio_panel.dart';
@@ -108,6 +109,9 @@ class _SmartTilesStudioWorkspaceState
           : (preset) => ref
               .read(editorNotifierProvider.notifier)
               .createCanonicalSmartTileLayer(preset: preset),
+      onUpsertPattern: projectRootPath == null
+          ? null
+          : (pattern) => _upsertPattern(projectRootPath, pattern),
     );
   }
 
@@ -255,5 +259,36 @@ class _SmartTilesStudioWorkspaceState
           statusMessage: 'Image Smart Tile importée.',
         );
     return result;
+  }
+
+  Future<void> _upsertPattern(
+    String projectRootPath,
+    ProjectSmartTilePattern pattern,
+  ) async {
+    await _flushDraft();
+    await _coordinator?.close();
+    _coordinator = null;
+    _attachedRoot = null;
+    _pendingDraft = null;
+    _pendingRootPath = null;
+    final service = SmartTilePatternAuthoringService(
+      gateway: CanonicalSmartTilePatternAuthoringGateway(
+        mutations: ref.read(authoringMutationAdapterProvider),
+        queries: ref.read(authoringQueryAdapterProvider),
+      ),
+    );
+    final result = await service.upsert(
+      projectRootPath: projectRootPath,
+      pattern: pattern,
+    );
+    if (!mounted) return;
+    ref.read(editorNotifierProvider.notifier).acceptCanonicalProjectManifest(
+          result.manifest,
+          statusMessage: 'Motif Smart Tile enregistré.',
+        );
+    setState(() {
+      _canonicalDraft = null;
+      _persistenceState = null;
+    });
   }
 }

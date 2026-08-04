@@ -18,6 +18,7 @@ import '../application/smart_tile_form_projection.dart';
 import '../application/smart_tile_grid_detector.dart';
 import '../application/smart_tile_guide.dart';
 import '../application/smart_tile_guide_placement.dart';
+import '../application/smart_tile_pattern_authoring.dart';
 import '../application/smart_tile_publication_service.dart';
 import '../application/smart_tile_studio_library.dart';
 import '../application/smart_tile_studio_launch_context.dart';
@@ -26,6 +27,7 @@ import '../application/smart_tile_source_asset_import_service.dart';
 import '../application/smart_tile_test_layer_controller.dart';
 import 'smart_tile_guide_diagram.dart';
 import 'smart_tile_guide_overlay_painter.dart';
+import 'smart_tile_pattern_editor.dart';
 import 'smart_tiles_studio_shell.dart';
 import 'smart_tiles_studio_stage_header.dart';
 import 'stages/smart_tile_grid_stage.dart';
@@ -60,6 +62,7 @@ class SmartTilesStudioPanel extends StatefulWidget {
     this.publicationService,
     this.onPublicationApplied,
     this.onAddPresetToCapturedMap,
+    this.onUpsertPattern,
   });
 
   final ProjectManifest manifest;
@@ -78,6 +81,7 @@ class SmartTilesStudioPanel extends StatefulWidget {
       onPublicationApplied;
   final Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap;
+  final Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern;
 
   @override
   State<SmartTilesStudioPanel> createState() => _SmartTilesStudioPanelState();
@@ -146,6 +150,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   bool _addingSelectedPreset = false;
   String? _publicationErrorCode;
   String? _publicationErrorMessage;
+  ProjectSmartTilePattern? _editingPattern;
+  String? _newPatternId;
+  bool _patternSaving = false;
+  String? _patternError;
 
   @override
   void initState() {
@@ -235,12 +243,28 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         child: PokeMapSectionHeader(
           title: 'Bibliothèque',
           description: 'Terrain, chemins et surfaces forestières',
-          trailing: PokeMapButton(
-            key: const Key('smart-tiles-new-preset'),
-            onPressed: _startDraft,
-            size: PokeMapButtonSize.small,
-            leading: const Icon(CupertinoIcons.add, size: 14),
-            child: const Text('Nouveau'),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 6,
+            children: <Widget>[
+              PokeMapIconButton(
+                key: const Key('smart-tiles-new-pattern'),
+                onPressed:
+                    widget.onUpsertPattern == null ? null : _startNewPattern,
+                tooltip: 'Nouveau motif réutilisable',
+                semanticLabel: 'Nouveau motif réutilisable',
+                variant: PokeMapIconButtonVariant.soft,
+                icon: const Icon(CupertinoIcons.square_grid_2x2, size: 15),
+              ),
+              PokeMapIconButton(
+                key: const Key('smart-tiles-new-preset'),
+                onPressed: _startDraft,
+                tooltip: 'Nouveau Smart Tile',
+                semanticLabel: 'Nouveau Smart Tile',
+                variant: PokeMapIconButtonVariant.soft,
+                icon: const Icon(CupertinoIcons.add, size: 15),
+              ),
+            ],
           ),
         ),
       ),
@@ -285,8 +309,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                       final item = items[index];
                       return PokeMapAssetCard(
                         key: Key('smart-tiles-library-item-${item.key}'),
-                        thumbnail: const Icon(
-                          CupertinoIcons.square_grid_3x2,
+                        thumbnail: Icon(
+                          item.isPattern
+                              ? CupertinoIcons.square_grid_2x2
+                              : CupertinoIcons.square_grid_3x2,
                           size: 20,
                         ),
                         label: item.name,
@@ -296,6 +322,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                                 unawaited(_resumeDraft(item.canonicalDraft!))
                             : () => setState(() {
                                   _session.cancelDraft();
+                                  _editingPattern = null;
+                                  _newPatternId = null;
+                                  _patternError = null;
                                   _selectedItemKey = item.key;
                                   _focusedRuleId = null;
                                   _focusedMask = null;
@@ -314,6 +343,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   }
 
   Widget _buildWorkbench(SmartTileLibraryItem? selectedItem) {
+    final isEditingPattern = _editingPattern != null || _newPatternId != null;
     return PokeMapPanel(
       expandChild: true,
       padding: EdgeInsets.zero,
@@ -328,20 +358,37 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                 launchContext: widget.launchContext,
                 persistenceState: widget.persistenceState,
               )
-            else
+            else if (!isEditingPattern)
               PokeMapSectionHeader(
                 title: 'Smart Tiles Studio',
                 description: selectedItem?.name ??
                     'Sélectionnez un preset dans la bibliothèque.',
               ),
-            const SizedBox(height: 8),
-            if (!_session.state.isCreating) _buildTabs(),
+            if (!_session.state.isCreating && !isEditingPattern) ...[
+              const SizedBox(height: 8),
+              if (selectedItem?.isPattern != true) _buildTabs(),
+            ],
           ],
         ),
       ),
       child: _session.state.isCreating
           ? _buildWizard()
-          : _buildSelectedTab(selectedItem),
+          : isEditingPattern
+              ? SmartTilePatternEditor(
+                  key: ValueKey<String>(
+                    'smart-tile-pattern-editor-${_editingPattern?.id ?? _newPatternId}',
+                  ),
+                  manifest: widget.manifest,
+                  projectRootPath: widget.projectRootPath,
+                  patternId: _editingPattern?.id ?? _newPatternId!,
+                  imageLoader: widget.imageLoader,
+                  initialPattern: _editingPattern,
+                  isSaving: _patternSaving,
+                  externalError: _patternError,
+                  onCancel: _cancelPatternEditing,
+                  onSave: _savePattern,
+                )
+              : _buildSelectedTab(selectedItem),
     );
   }
 
@@ -374,6 +421,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         icon: Icon(CupertinoIcons.square_grid_3x2),
       );
     }
+    if (selectedItem.pattern case final pattern?) {
+      return _buildPatternOverview(pattern);
+    }
     return switch (_tab) {
       SmartTilesStudioTab.atlas => _buildAtlasTab(selectedItem),
       SmartTilesStudioTab.rules => _buildRulesTab(selectedItem),
@@ -381,6 +431,92 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       SmartTilesStudioTab.testBench => _buildTestBenchTab(selectedItem),
       SmartTilesStudioTab.validation => _buildValidationTab(selectedItem),
     };
+  }
+
+  Widget _buildPatternOverview(ProjectSmartTilePattern pattern) {
+    final projection = projectSmartTilePatternAtlasSelection(pattern);
+    final atlas = projection == null
+        ? null
+        : widget.manifest.smartTileCatalog.atlases
+            .where((candidate) => candidate.id == projection.atlasId)
+            .firstOrNull;
+    final canEdit = projection != null &&
+        atlas != null &&
+        widget.onUpsertPattern != null &&
+        !_patternSaving;
+    return ListView(
+      key: const Key('smart-tiles-pattern-overview'),
+      padding: const EdgeInsets.all(18),
+      children: <Widget>[
+        PokeMapSectionHeader(
+          title: pattern.name,
+          description:
+              'Motif prêt à être sélectionné dans la palette de peinture Monde.',
+          trailing: PokeMapBadge(
+            label: pattern.repeatMode == SmartTilePatternRepeatMode.stamp
+                ? 'Tampon'
+                : 'Répétable',
+            variant: PokeMapBadgeVariant.info,
+          ),
+        ),
+        const SizedBox(height: 14),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: <Widget>[
+            PokeMapBadge(
+              label: '${pattern.width} × ${pattern.height} cellules',
+              variant: PokeMapBadgeVariant.neutral,
+            ),
+            PokeMapBadge(
+              label: 'Ancrage ${pattern.anchorX + 1},${pattern.anchorY + 1}',
+              variant: PokeMapBadgeVariant.neutral,
+            ),
+            if (atlas != null)
+              PokeMapBadge(
+                label: atlas.name,
+                variant: PokeMapBadgeVariant.neutral,
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (projection == null)
+          const PokeMapEmptyState(
+            title: 'Motif avancé en lecture seule',
+            description:
+                'Ce motif contient plusieurs couches, animations ou collisions. Le Studio le conserve sans l’aplatir.',
+            icon: Icon(CupertinoIcons.layers_alt),
+            compact: true,
+          )
+        else
+          PokeMapAssetCard(
+            thumbnail: const Icon(CupertinoIcons.photo, size: 20),
+            label: atlas?.name ?? 'Atlas indisponible',
+            description: 'Zone ${projection.selection.left + 1},'
+                '${projection.selection.top + 1} → '
+                '${projection.selection.right + 1},'
+                '${projection.selection.bottom + 1}',
+            onPressed: null,
+          ),
+        const SizedBox(height: 18),
+        Align(
+          alignment: Alignment.centerRight,
+          child: PokeMapButton(
+            key: const Key('smart-tiles-edit-pattern'),
+            onPressed: canEdit ? () => _startPatternEditing(pattern) : null,
+            disabledReason: projection == null
+                ? 'L’éditeur simple ne doit pas aplatir ce motif avancé.'
+                : atlas == null
+                    ? 'L’atlas source de ce motif est indisponible.'
+                    : widget.onUpsertPattern == null
+                        ? 'La session canonique du projet est indisponible.'
+                        : null,
+            leading: const Icon(CupertinoIcons.pencil, size: 15),
+            child: const Text('Modifier le motif'),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildInspector(SmartTileLibraryItem? selectedItem) {
@@ -420,17 +556,20 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           ] else if (selectedItem != null) ...[
             PokeMapBadge(
               label: selectedItem.statusLabel,
-              variant: selectedItem.statusLabel == 'Publié'
-                  ? PokeMapBadgeVariant.success
-                  : PokeMapBadgeVariant.warning,
+              variant: selectedItem.isPattern
+                  ? PokeMapBadgeVariant.info
+                  : selectedItem.statusLabel == 'Publié'
+                      ? PokeMapBadgeVariant.success
+                      : PokeMapBadgeVariant.warning,
             ),
             const SizedBox(height: 12),
             _InspectorValue(label: 'Nom', value: selectedItem.name),
-            _InspectorValue(label: 'Identifiant', value: selectedItem.id),
+            if (!selectedItem.isPattern)
+              _InspectorValue(label: 'Identifiant', value: selectedItem.id),
             _InspectorValue(label: 'Usage', value: selectedItem.usageLabel),
-            const _InspectorValue(
+            _InspectorValue(
               label: 'Origine',
-              value: 'Natif v6',
+              value: selectedItem.isPattern ? 'Motif natif' : 'Natif v6',
             ),
             if (selectedItem.nativePreset != null) ...[
               const SizedBox(height: 12),
@@ -1557,8 +1696,65 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
+  void _startNewPattern() {
+    setState(() {
+      _session.cancelDraft();
+      _editingPattern = null;
+      _newPatternId = _nextPatternId();
+      _patternSaving = false;
+      _patternError = null;
+    });
+  }
+
+  void _startPatternEditing(ProjectSmartTilePattern pattern) {
+    setState(() {
+      _session.cancelDraft();
+      _editingPattern = pattern;
+      _newPatternId = null;
+      _patternSaving = false;
+      _patternError = null;
+    });
+  }
+
+  void _cancelPatternEditing() {
+    setState(() {
+      _editingPattern = null;
+      _newPatternId = null;
+      _patternSaving = false;
+      _patternError = null;
+    });
+  }
+
+  Future<void> _savePattern(ProjectSmartTilePattern pattern) async {
+    final callback = widget.onUpsertPattern;
+    if (callback == null || _patternSaving) return;
+    setState(() {
+      _patternSaving = true;
+      _patternError = null;
+    });
+    try {
+      await callback(pattern);
+      if (!mounted) return;
+      setState(() {
+        _selectedItemKey = 'pattern:${pattern.id}';
+        _editingPattern = null;
+        _newPatternId = null;
+        _draftMessage = 'Motif « ${pattern.name} » enregistré.';
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      final failure = EditorAuthoringMutationFailure.capture(error);
+      setState(() => _patternError = failure.message);
+    } finally {
+      if (mounted) setState(() => _patternSaving = false);
+    }
+  }
+
   void _startDraft() {
     setState(() {
+      _editingPattern = null;
+      _newPatternId = null;
+      _patternError = null;
       _session.startDraft();
       _resumedDraftId = null;
       final id = _nextDraftId();
@@ -1610,6 +1806,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         .where((candidate) => candidate.id == tilesetId)
         .firstOrNull;
     setState(() {
+      _editingPattern = null;
+      _newPatternId = null;
+      _patternError = null;
       _authoring = authoring;
       _resumedDraftId = draft.id;
       _session.resumeDraft(
@@ -3093,6 +3292,19 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     if (!occupied.contains(base)) {
       return base;
     }
+    var suffix = 2;
+    while (occupied.contains('$base-$suffix')) {
+      suffix += 1;
+    }
+    return '$base-$suffix';
+  }
+
+  String _nextPatternId() {
+    const base = 'motif';
+    final occupied = widget.manifest.smartTileCatalog.patterns
+        .map((pattern) => pattern.id)
+        .toSet();
+    if (!occupied.contains(base)) return base;
     var suffix = 2;
     while (occupied.contains('$base-$suffix')) {
       suffix += 1;

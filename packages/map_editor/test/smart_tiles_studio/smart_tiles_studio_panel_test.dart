@@ -242,6 +242,81 @@ void main() {
       expect(find.text('0x00'), findsNothing);
     });
 
+    testWidgets('authors a reusable pattern through the no-code workbench', (
+      tester,
+    ) async {
+      ProjectSmartTilePattern? savedPattern;
+      await _pumpPanel(
+        tester,
+        _manifest(
+          presets: const <ProjectSmartTilePreset>[],
+          tilesets: const <ProjectTilesetEntry>[
+            ProjectTilesetEntry(
+              id: 'tileset',
+              name: 'Tileset',
+              relativePath: 'assets/tileset.png',
+            ),
+          ],
+          atlases: const <ProjectSmartTileAtlas>[
+            ProjectSmartTileAtlas(
+              id: 'atlas',
+              name: 'Atlas',
+              tilesetId: 'tileset',
+              columns: 2,
+              rows: 2,
+            ),
+          ],
+        ),
+        projectRootPath: '/virtual/project',
+        imageLoader: _FakeSmartTileAtlasImageLoader(width: 64, height: 64),
+        onUpsertPattern: (pattern) async => savedPattern = pattern,
+      );
+
+      await tester.tap(find.byKey(const Key('smart-tiles-new-pattern')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('smart-tiles-pattern-editor')),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const Key('smart-tiles-pattern-name')),
+        'Détail de sol',
+      );
+      final tiled = find.byKey(const Key('smart-tiles-pattern-repeat-tiled'));
+      final workbenchScrollable = find
+          .descendant(
+            of: find.byKey(const Key('smart-tiles-workbench-column')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        tiled,
+        300,
+        scrollable: workbenchScrollable,
+      );
+      await tester.drag(workbenchScrollable, const Offset(0, -120));
+      await tester.pump();
+      await tester.tap(tiled);
+      await tester.pump();
+      final save = find.byKey(const Key('smart-tiles-pattern-save'));
+      await tester.scrollUntilVisible(
+        save,
+        300,
+        scrollable: workbenchScrollable,
+      );
+      await tester.drag(workbenchScrollable, const Offset(0, -80));
+      await tester.pump();
+      await tester.tap(save);
+      await tester.pumpAndSettle();
+
+      expect(savedPattern, isNotNull);
+      expect(savedPattern!.id, 'motif');
+      expect(savedPattern!.name, 'Détail de sol');
+      expect(savedPattern!.repeatMode, SmartTilePatternRepeatMode.tiled);
+      expect(savedPattern!.cells, hasLength(1));
+    });
+
     testWidgets('offers the recognizable ERW guide after source setup', (
       tester,
     ) async {
@@ -1588,6 +1663,7 @@ Future<void> _pumpPanel(
   bool isCapturedMapAvailable = false,
   Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap,
+  Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern,
   Size surfaceSize = const Size(1440, 900),
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
@@ -1603,6 +1679,7 @@ Future<void> _pumpPanel(
           onDraftChanged: onDraftChanged,
           isCapturedMapAvailable: isCapturedMapAvailable,
           onAddPresetToCapturedMap: onAddPresetToCapturedMap,
+          onUpsertPattern: onUpsertPattern,
         ),
       ),
     ),
@@ -1706,6 +1783,8 @@ ProjectManifest _manifest({
   List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[],
   List<ProjectSmartTileAuthoringDraft> drafts =
       const <ProjectSmartTileAuthoringDraft>[],
+  List<ProjectSmartTileAtlas> atlases = const <ProjectSmartTileAtlas>[],
+  List<ProjectSmartTilePattern> patterns = const <ProjectSmartTilePattern>[],
 }) {
   return ProjectManifest(
     name: 'Smart Tiles test',
@@ -1732,6 +1811,8 @@ ProjectManifest _manifest({
       ],
       presets: presets,
       drafts: drafts,
+      atlases: atlases,
+      patterns: patterns,
     ),
   );
 }
