@@ -68,6 +68,9 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
     final selectedMaterialId = ref.watch(worldMapSmartTileMaterialIdProvider);
     final materialController =
         ref.read(worldMapSmartTileMaterialIdProvider.notifier);
+    final selectedPatternId = ref.watch(worldMapSmartTilePatternIdProvider);
+    final patternController =
+        ref.read(worldMapSmartTilePatternIdProvider.notifier);
     final paintMaterials = activePreset == null || snapshot.project == null
         ? const <ProjectSmartTileMaterial>[]
         : _paintMaterials(snapshot.project!, activePreset);
@@ -76,6 +79,12 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
         : activePreset.allowedMaterialIds.contains(selectedMaterialId)
             ? selectedMaterialId
             : activePreset.defaultMaterialId;
+    final paintPatterns = snapshot.project == null
+        ? const <ProjectSmartTilePattern>[]
+        : _paintPatterns(snapshot.project!, _usage);
+    final activePattern = paintPatterns
+        .where((pattern) => pattern.id == selectedPatternId)
+        .firstOrNull;
     final noun = switch (subtool) {
       WorldMapPaintSubtool.terrain => 'terrain',
       WorldMapPaintSubtool.path => 'chemin',
@@ -115,6 +124,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
       if (existing == null) return;
       notifier.setActiveLayer(existing.id);
       materialController.select(preset.defaultMaterialId);
+      patternController.clear();
       activate(ActivateWorldMapPaint(subtool));
     }
 
@@ -228,7 +238,8 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                       key: ValueKey<String>(
                         'world-map-smart-tile-gesture-${mode.name}',
                       ),
-                      onPressed: canEdit
+                      onPressed: canEdit &&
+                              _patternSupportsGesture(activePattern, mode)
                           ? () => gestureModeController.select(mode)
                           : null,
                       variant: gestureMode == mode
@@ -260,6 +271,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                         onPressed: canEdit
                             ? () {
                                 materialController.select(material.id);
+                                patternController.clear();
                                 activate(ActivateWorldMapPaint(subtool));
                               }
                             : null,
@@ -273,10 +285,72 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                   ],
                 ),
               ],
+              if (activeLayer != null && snapshot.project != null) ...[
+                const SizedBox(height: 10),
+                PokeMapSectionHeader(
+                  title: 'Motifs réutilisables',
+                  description: paintPatterns.isEmpty
+                      ? 'Aucun motif compatible. Créez-en un dans Smart '
+                          'Tiles Studio.'
+                      : 'Tamponnez une forme complète ou répétez-la sur une '
+                          'ligne ou une zone.',
+                ),
+                if (paintPatterns.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      for (final pattern in paintPatterns)
+                        PokeMapButton(
+                          key: ValueKey<String>(
+                            'world-map-smart-tile-pattern-${pattern.id}',
+                          ),
+                          onPressed: () {
+                            patternController.select(pattern.id);
+                            materialController.clear();
+                            if (!_patternSupportsGesture(
+                              pattern,
+                              gestureMode,
+                            )) {
+                              gestureModeController
+                                  .select(WorldMapSmartTileGestureMode.brush);
+                            }
+                            activate(ActivateWorldMapPaint(subtool));
+                          },
+                          variant: activePattern?.id == pattern.id
+                              ? PokeMapButtonVariant.primary
+                              : PokeMapButtonVariant.secondary,
+                          size: PokeMapButtonSize.compact,
+                          leading: Icon(
+                            pattern.repeatMode ==
+                                    SmartTilePatternRepeatMode.stamp
+                                ? Icons.control_point_duplicate_outlined
+                                : Icons.grid_view_outlined,
+                          ),
+                          child: Text(pattern.name),
+                        ),
+                    ],
+                  ),
+                  if (activePattern != null) ...[
+                    const SizedBox(height: 6),
+                    PokeMapBadge(
+                      label: activePattern.repeatMode ==
+                              SmartTilePatternRepeatMode.stamp
+                          ? 'Tampon ${activePattern.width} × '
+                              '${activePattern.height}'
+                          : 'Répétition ${activePattern.width} × '
+                              '${activePattern.height}',
+                      variant: PokeMapBadgeVariant.info,
+                    ),
+                  ],
+                ],
+              ],
               if (snapshot.project != null &&
                   activeLayer != null &&
                   activePreset != null &&
-                  activeMaterialId != null) ...[
+                  activeMaterialId != null &&
+                  activePattern == null) ...[
                 const SizedBox(height: 8),
                 Align(
                   alignment: AlignmentDirectional.centerStart,
@@ -371,6 +445,31 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
       ),
     );
   }
+}
+
+List<ProjectSmartTilePattern> _paintPatterns(
+  ProjectManifest project,
+  SmartTileUsage usage,
+) {
+  final patterns = project.smartTileCatalog.patterns
+      .where((pattern) => pattern.usage == usage)
+      .toList(growable: false);
+  patterns.sort((left, right) {
+    final order = left.sortOrder.compareTo(right.sortOrder);
+    return order != 0 ? order : left.name.compareTo(right.name);
+  });
+  return patterns;
+}
+
+bool _patternSupportsGesture(
+  ProjectSmartTilePattern? pattern,
+  WorldMapSmartTileGestureMode mode,
+) {
+  if (pattern == null) return true;
+  if (pattern.repeatMode == SmartTilePatternRepeatMode.stamp) {
+    return mode == WorldMapSmartTileGestureMode.brush;
+  }
+  return mode != WorldMapSmartTileGestureMode.floodFill;
 }
 
 List<ProjectSmartTileMaterial> _paintMaterials(

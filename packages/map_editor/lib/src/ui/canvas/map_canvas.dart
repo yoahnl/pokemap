@@ -118,6 +118,41 @@ SmartTileGestureSelection _smartTileGestureSelection(
         throw StateError('Brush gestures are sampled as normal strokes.'),
     };
 
+SmartTilePatternSelection _smartTilePatternSelection(
+  WorldMapSmartTileGestureMode mode, {
+  required GridPos start,
+  required GridPos end,
+}) =>
+    switch (mode) {
+      WorldMapSmartTileGestureMode.brush =>
+        SmartTilePatternSelection.stamp(anchor: start),
+      WorldMapSmartTileGestureMode.line =>
+        SmartTilePatternSelection.line(start: start, end: end),
+      WorldMapSmartTileGestureMode.rectangle =>
+        SmartTilePatternSelection.rectangle(start: start, end: end),
+      WorldMapSmartTileGestureMode.floodFill =>
+        throw StateError('Reusable patterns do not support flood fill.'),
+    };
+
+SmartTileGestureSelection _smartTilePatternEraseSelection(
+  WorldMapSmartTileGestureMode mode, {
+  required GridPos start,
+  required GridPos end,
+}) =>
+    mode == WorldMapSmartTileGestureMode.brush
+        ? SmartTileGestureSelection.line(start: start, end: end)
+        : _smartTileGestureSelection(mode, start: start, end: end);
+
+bool _smartTilePatternSupportsGesture(
+  ProjectSmartTilePattern pattern,
+  WorldMapSmartTileGestureMode mode,
+) {
+  if (pattern.repeatMode == SmartTilePatternRepeatMode.stamp) {
+    return mode == WorldMapSmartTileGestureMode.brush;
+  }
+  return mode != WorldMapSmartTileGestureMode.floodFill;
+}
+
 ({GridPos origin, GridSize size}) _smartTileGestureBounds(
   List<GridPos> cells,
 ) {
@@ -912,6 +947,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             ref.watch(worldMapSmartTileGestureModeProvider);
         final selectedSmartTileMaterialId =
             ref.watch(worldMapSmartTileMaterialIdProvider);
+        final selectedSmartTilePatternId =
+            ref.watch(worldMapSmartTilePatternIdProvider);
         SmartTileLayer? activeSmartTileLayer;
         for (final layer in activeMap.layers) {
           if (layer.id == state.activeLayerId && layer is SmartTileLayer) {
@@ -929,6 +966,27 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             }
           }
         }
+        ProjectSmartTilePattern? activeSmartTilePattern;
+        if (activeSmartTileLayer != null) {
+          for (final pattern in state.project?.smartTileCatalog.patterns ??
+              const <ProjectSmartTilePattern>[]) {
+            if (pattern.id == selectedSmartTilePatternId &&
+                pattern.usage == activeSmartTileLayer.usage) {
+              activeSmartTilePattern = pattern;
+              break;
+            }
+          }
+        }
+        final smartTileCollisionLayerId = activeSmartTilePattern == null
+            ? null
+            : activeMap.layers.whereType<CollisionLayer>().firstOrNull?.id;
+        final isActiveSmartTilePatternGestureSupported =
+            activeSmartTilePattern == null ||
+                state.activeTool == EditorToolType.eraser ||
+                _smartTilePatternSupportsGesture(
+                  activeSmartTilePattern,
+                  smartTileGestureMode,
+                );
         final activeSmartTileMaterialId = activeSmartTilePreset == null
             ? null
             : activeSmartTilePreset.allowedMaterialIds
@@ -936,9 +994,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                 ? selectedSmartTileMaterialId
                 : activeSmartTilePreset.defaultMaterialId;
         final isSmartTileShapeEditing = activeSmartTileLayer != null &&
-            smartTileGestureMode != WorldMapSmartTileGestureMode.brush &&
             (state.activeTool == EditorToolType.terrainPaint ||
-                state.activeTool == EditorToolType.eraser);
+                state.activeTool == EditorToolType.eraser) &&
+            (activeSmartTilePattern != null ||
+                smartTileGestureMode != WorldMapSmartTileGestureMode.brush);
         var toolPreview = notifier.resolveMapToolPreview(
           hoveredTile: hoveredTile,
           tilesetColumnsById: tilesPerRowById,
@@ -947,15 +1006,34 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
           final start = _smartTileShapeStart ?? hoveredTile;
           final end = _smartTileShapeEnd ?? hoveredTile;
           try {
-            final cells = compileSmartTileGestureSelection(
-              activeSmartTileLayer,
-              mapSize: activeMap.size,
-              selection: _smartTileGestureSelection(
-                smartTileGestureMode,
-                start: start,
-                end: end,
-              ),
-            );
+            final cells = activeSmartTilePattern != null &&
+                    state.activeTool == EditorToolType.terrainPaint
+                ? applySmartTilePatternGesture(
+                    activeSmartTileLayer,
+                    pattern: activeSmartTilePattern,
+                    mapSize: activeMap.size,
+                    selection: _smartTilePatternSelection(
+                      smartTileGestureMode,
+                      start: start,
+                      end: end,
+                    ),
+                    strokeId: 'preview',
+                  ).affectedCells
+                : compileSmartTileGestureSelection(
+                    activeSmartTileLayer,
+                    mapSize: activeMap.size,
+                    selection: activeSmartTilePattern == null
+                        ? _smartTileGestureSelection(
+                            smartTileGestureMode,
+                            start: start,
+                            end: end,
+                          )
+                        : _smartTilePatternEraseSelection(
+                            smartTileGestureMode,
+                            start: start,
+                            end: end,
+                          ),
+                  );
             final bounds = _smartTileGestureBounds(cells);
             toolPreview = state.activeTool == EditorToolType.eraser
                 ? MapToolPreview.pathErase(
@@ -983,6 +1061,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                     size: const GridSize(width: 1, height: 1),
                     validity: MapToolPreviewValidity.invalid,
                     reason: 'Maximum ${error.maximumCellCount} cellules',
+                  );
+          } on Object catch (error) {
+            if (error is! ValidationException && error is! StateError) {
+              rethrow;
+            }
+            toolPreview = state.activeTool == EditorToolType.eraser
+                ? MapToolPreview.pathErase(
+                    origin: hoveredTile,
+                    size: const GridSize(width: 1, height: 1),
+                    validity: MapToolPreviewValidity.invalid,
+                    reason: 'Geste incompatible avec ce motif',
+                  )
+                : MapToolPreview.pathPaint(
+                    origin: hoveredTile,
+                    size: const GridSize(width: 1, height: 1),
+                    validity: MapToolPreviewValidity.invalid,
+                    reason: 'Geste incompatible avec ce motif',
                   );
           }
         }
@@ -1224,14 +1319,37 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             return;
           }
           if (isSmartTileShapeTool) {
-            notifier.applyActiveSmartTileSelection(
-              _smartTileGestureSelection(
-                smartTileGestureMode,
-                start: gridPos,
-                end: gridPos,
-              ),
-              materialId: activeSmartTileMaterialId,
-            );
+            if (activeSmartTilePattern != null) {
+              if (!isActiveSmartTilePatternGestureSupported) return;
+              if (state.activeTool == EditorToolType.eraser) {
+                notifier.eraseActiveSmartTilePattern(
+                  _smartTilePatternEraseSelection(
+                    smartTileGestureMode,
+                    start: gridPos,
+                    end: gridPos,
+                  ),
+                );
+              } else {
+                notifier.paintActiveSmartTilePattern(
+                  _smartTilePatternSelection(
+                    smartTileGestureMode,
+                    start: gridPos,
+                    end: gridPos,
+                  ),
+                  patternId: activeSmartTilePattern.id,
+                  collisionLayerId: smartTileCollisionLayerId,
+                );
+              }
+            } else {
+              notifier.applyActiveSmartTileSelection(
+                _smartTileGestureSelection(
+                  smartTileGestureMode,
+                  start: gridPos,
+                  end: gridPos,
+                ),
+                materialId: activeSmartTileMaterialId,
+              );
+            }
             return;
           }
           if (state.activeTool == EditorToolType.tilePaint) {
@@ -1739,14 +1857,40 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                     _smartTileShapeEnd = null;
                   });
                   if (start != null && end != null) {
-                    notifier.applyActiveSmartTileSelection(
-                      _smartTileGestureSelection(
-                        smartTileGestureMode,
-                        start: start,
-                        end: end,
-                      ),
-                      materialId: activeSmartTileMaterialId,
-                    );
+                    if (activeSmartTilePattern != null) {
+                      if (!isActiveSmartTilePatternGestureSupported) {
+                        // A stale session can retain a gesture that the newly
+                        // selected pattern cannot represent. The palette resets
+                        // it, while this guard keeps canvas input fail-closed.
+                      } else if (state.activeTool == EditorToolType.eraser) {
+                        notifier.eraseActiveSmartTilePattern(
+                          _smartTilePatternEraseSelection(
+                            smartTileGestureMode,
+                            start: start,
+                            end: end,
+                          ),
+                        );
+                      } else {
+                        notifier.paintActiveSmartTilePattern(
+                          _smartTilePatternSelection(
+                            smartTileGestureMode,
+                            start: start,
+                            end: end,
+                          ),
+                          patternId: activeSmartTilePattern.id,
+                          collisionLayerId: smartTileCollisionLayerId,
+                        );
+                      }
+                    } else {
+                      notifier.applyActiveSmartTileSelection(
+                        _smartTileGestureSelection(
+                          smartTileGestureMode,
+                          start: start,
+                          end: end,
+                        ),
+                        materialId: activeSmartTileMaterialId,
+                      );
+                    }
                   }
                 } else {
                   notifier.endMapStroke();

@@ -751,6 +751,70 @@ void main() {
   });
 
   testWidgets(
+    'terrain palette selects a reusable pattern and constrains its gestures',
+    (tester) async {
+      final harness = _PaintHarness(
+        'smart-terrain',
+        map: _mapWithWangTerrain,
+        initialSession: const WorldMapWorkspaceSession(
+          activeFamily: WorldMapToolFamily.paint,
+          lastPaintSubtool: WorldMapPaintSubtool.terrain,
+        ),
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      final rectangle = find.byKey(
+        const ValueKey<String>('world-map-smart-tile-gesture-rectangle'),
+      );
+      await tester.ensureVisible(rectangle);
+      await tester.tap(rectangle);
+      await tester.pump();
+      expect(
+        harness.container.read(worldMapSmartTileGestureModeProvider),
+        WorldMapSmartTileGestureMode.rectangle,
+      );
+
+      final pattern = find.byKey(
+        const ValueKey<String>('world-map-smart-tile-pattern-grass-patch'),
+      );
+      await tester.ensureVisible(pattern);
+      await tester.tap(pattern);
+      await tester.pump();
+
+      expect(
+        harness.container.read(worldMapSmartTilePatternIdProvider),
+        'grass-patch',
+      );
+      expect(
+        harness.container.read(worldMapSmartTileMaterialIdProvider),
+        isNull,
+      );
+      expect(
+        harness.container.read(worldMapSmartTileGestureModeProvider),
+        WorldMapSmartTileGestureMode.brush,
+      );
+      expect(tester.widget<PokeMapButton>(rectangle).onPressed, isNull);
+
+      final water = find.byKey(
+        const ValueKey<String>('world-map-smart-tile-material-water'),
+      );
+      await tester.ensureVisible(water);
+      await tester.tap(water);
+      await tester.pump();
+
+      expect(
+        harness.container.read(worldMapSmartTilePatternIdProvider),
+        isNull,
+      );
+      expect(
+        harness.container.read(worldMapSmartTileMaterialIdProvider),
+        'water',
+      );
+    },
+  );
+
+  testWidgets(
     'ignores viewport and status rebuilds but reacts to paint input changes',
     (tester) async {
       var rebuilds = 0;
@@ -1027,6 +1091,20 @@ final _project = ProjectManifest(
         status: SmartTilePresetStatus.published,
         defaultMaterialId: 'grass',
         allowedMaterialIds: <String>['grass'],
+      ),
+    ],
+    patterns: const <ProjectSmartTilePattern>[
+      ProjectSmartTilePattern(
+        id: 'grass-patch',
+        name: "Touffe d'herbe",
+        usage: SmartTileUsage.terrain,
+        width: 2,
+        height: 1,
+        repeatMode: SmartTilePatternRepeatMode.stamp,
+        cells: <SmartTilePatternCell>[
+          SmartTilePatternCell(x: 0, y: 0),
+          SmartTilePatternCell(x: 1, y: 0),
+        ],
       ),
     ],
   ),

@@ -191,16 +191,16 @@ final class _CanonicalSmartTileHistoryEntry {
     required this.receiptId,
     required this.mapId,
     required this.layerId,
-    required this.materialId,
-    required this.cells,
+    required this.redoActionId,
+    required this.redoParameters,
   });
 
   final String projectRootPath;
   final String receiptId;
   final String mapId;
   final String layerId;
-  final String? materialId;
-  final List<GridPos> cells;
+  final String redoActionId;
+  final Map<String, Object?> redoParameters;
 
   _CanonicalSmartTileHistoryEntry withReceipt(String nextReceiptId) =>
       _CanonicalSmartTileHistoryEntry(
@@ -208,8 +208,8 @@ final class _CanonicalSmartTileHistoryEntry {
         receiptId: nextReceiptId,
         mapId: mapId,
         layerId: layerId,
-        materialId: materialId,
-        cells: cells,
+        redoActionId: redoActionId,
+        redoParameters: redoParameters,
       );
 }
 
@@ -8231,6 +8231,13 @@ class EditorNotifier extends _$EditorNotifier
     final actionId = gesture.materialId == null
         ? 'smart_tile.cell.erase'
         : 'smart_tile.cell.paint';
+    final parameters = _smartTileGestureParameters(
+      mapId: gesture.mapId,
+      layerId: gesture.layerId,
+      materialId: gesture.materialId,
+      cells: cells,
+      selection: gesture.selection,
+    );
     final sequence = ++_smartTileGestureSequence;
     final identity = _smartTileEditorMutationIdentity(
       purpose: 'smart-tile-cell-gesture',
@@ -8246,13 +8253,7 @@ class EditorNotifier extends _$EditorNotifier
       final plan = await mutations.plan(
         projectRootPath,
         actionId: actionId,
-        parameters: _smartTileGestureParameters(
-          mapId: gesture.mapId,
-          layerId: gesture.layerId,
-          materialId: gesture.materialId,
-          cells: cells,
-          selection: gesture.selection,
-        ),
+        parameters: parameters,
         idempotencyKey: identity,
         requestId: identity,
       );
@@ -8265,8 +8266,8 @@ class EditorNotifier extends _$EditorNotifier
         receiptId: applied.receipt.receiptId,
         mapId: gesture.mapId,
         layerId: gesture.layerId,
-        materialId: gesture.materialId,
-        cells: List<GridPos>.unmodifiable(cells),
+        redoActionId: actionId,
+        redoParameters: Map<String, Object?>.unmodifiable(parameters),
       );
       final adopted = await _adoptCanonicalSmartTileSnapshot(
         projectRootPath: projectRootPath,
@@ -8335,6 +8336,174 @@ class EditorNotifier extends _$EditorNotifier
 
   Map<String, int> _smartTileGestureCoordinate(GridPos cell) =>
       <String, int>{'x': cell.x, 'y': cell.y};
+
+  void paintActiveSmartTilePattern(
+    SmartTilePatternSelection selection, {
+    required String patternId,
+    String? collisionLayerId,
+  }) {
+    unawaited(
+      _commitCanonicalSmartTilePattern(
+        patternId: patternId,
+        paintSelection: selection,
+        collisionLayerId: collisionLayerId,
+      ),
+    );
+  }
+
+  void eraseActiveSmartTilePattern(
+    SmartTileGestureSelection selection,
+  ) {
+    unawaited(
+      _commitCanonicalSmartTilePattern(eraseSelection: selection),
+    );
+  }
+
+  Future<void> _commitCanonicalSmartTilePattern({
+    String? patternId,
+    SmartTilePatternSelection? paintSelection,
+    SmartTileGestureSelection? eraseSelection,
+    String? collisionLayerId,
+  }) async {
+    final erase = eraseSelection != null;
+    if (erase == (paintSelection != null) || erase == (patternId != null)) {
+      state =
+          state.copyWith(errorMessage: 'smart_tile.pattern.request_invalid');
+      return;
+    }
+    if (_rejectNonCanonicalActiveMapAuthoring() ||
+        _rejectNarrativeEventSourceCleanupMapMutation() ||
+        _rejectMapDiskMutationLease()) {
+      return;
+    }
+    if (state.isDirty ||
+        _smartTileGestureCommitInProgress ||
+        _smartTileCanonicalRecoveryRequired) {
+      state = state.copyWith(
+        errorMessage: _smartTileCanonicalRecoveryRequired
+            ? 'smart_tile.pattern.reload_required'
+            : _smartTileGestureCommitInProgress
+                ? 'smart_tile.pattern.commit_in_progress'
+                : 'smart_tile.pattern.save_map_first',
+      );
+      return;
+    }
+    final projectRootPath = state.projectRootPath;
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    final project = state.project;
+    if (projectRootPath == null ||
+        map == null ||
+        layerId == null ||
+        project == null) {
+      state =
+          state.copyWith(errorMessage: 'smart_tile.pattern.context_missing');
+      return;
+    }
+    final layer = _findLayerById(map, layerId);
+    if (layer is! SmartTileLayer) {
+      state = state.copyWith(errorMessage: 'smart_tile.layer_invalid');
+      return;
+    }
+    if (!erase) {
+      final pattern = project.smartTileCatalog.patterns
+          .where((candidate) => candidate.id == patternId)
+          .firstOrNull;
+      if (pattern == null || pattern.usage != layer.usage) {
+        state = state.copyWith(errorMessage: 'smart_tile.pattern.unknown');
+        return;
+      }
+    }
+
+    _smartTileGestureCommitInProgress = true;
+    final sequence = ++_smartTileGestureSequence;
+    final actionId =
+        erase ? 'smart_tile.pattern.erase' : 'smart_tile.pattern.paint';
+    final identity = _smartTileEditorMutationIdentity(
+      purpose: erase ? 'smart-tile-pattern-erase' : 'smart-tile-pattern-paint',
+      values: <String, Object?>{
+        'mapId': map.id,
+        'layerId': layer.id,
+        'patternId': patternId,
+        'sequence': sequence,
+      },
+    );
+    final parameters = <String, Object?>{
+      'mapId': map.id,
+      'layerId': layer.id,
+      if (erase)
+        'selection': _smartTileGestureSelectionParameters(eraseSelection)
+      else ...<String, Object?>{
+        'patternId': patternId!,
+        'strokeId': identity,
+        'selection': _smartTilePatternSelectionParameters(paintSelection!),
+        if (collisionLayerId != null) 'collisionLayerId': collisionLayerId,
+      },
+    };
+    EditorAuthoringMutationResult? applied;
+    try {
+      final mutations = ref.read(authoringMutationAdapterProvider);
+      final plan = await mutations.plan(
+        projectRootPath,
+        actionId: actionId,
+        parameters: parameters,
+        idempotencyKey: identity,
+        requestId: identity,
+      );
+      applied = await mutations.apply(plan, operationId: '$identity-apply');
+      final historyEntry = _CanonicalSmartTileHistoryEntry(
+        projectRootPath: projectRootPath,
+        receiptId: applied.receipt.receiptId,
+        mapId: map.id,
+        layerId: layer.id,
+        redoActionId: actionId,
+        redoParameters: Map<String, Object?>.unmodifiable(parameters),
+      );
+      final adopted = await _adoptCanonicalSmartTileSnapshot(
+        projectRootPath: projectRootPath,
+        expectedSnapshotRevision: applied.snapshotRevision,
+        mapId: map.id,
+        layerId: layer.id,
+        statusMessage:
+            erase ? 'Motif Smart Tile effacé.' : 'Motif Smart Tile appliqué.',
+      );
+      _canonicalSmartTileUndoStack.add(historyEntry);
+      _canonicalSmartTileRedoStack.clear();
+      _smartTileCanonicalRecoveryRequired = false;
+      if (adopted) _syncCanonicalSmartTileHistoryFlags();
+    } on Object catch (error) {
+      final failure = EditorAuthoringMutationFailure.capture(error);
+      if (applied != null) _smartTileCanonicalRecoveryRequired = true;
+      state = state.copyWith(
+        errorMessage: applied == null
+            ? failure.code
+            : 'smart_tile.pattern.reload_required',
+      );
+    } finally {
+      _smartTileGestureCommitInProgress = false;
+      _syncCanonicalSmartTileHistoryFlags();
+    }
+  }
+
+  Map<String, Object?> _smartTilePatternSelectionParameters(
+    SmartTilePatternSelection selection,
+  ) =>
+      switch (selection.kind) {
+        SmartTilePatternSelectionKind.stamp => <String, Object?>{
+            'kind': 'stamp',
+            'anchor': _smartTileGestureCoordinate(selection.start),
+          },
+        SmartTilePatternSelectionKind.line => <String, Object?>{
+            'kind': 'line',
+            'start': _smartTileGestureCoordinate(selection.start),
+            'end': _smartTileGestureCoordinate(selection.end!),
+          },
+        SmartTilePatternSelectionKind.rectangle => <String, Object?>{
+            'kind': 'rectangle',
+            'start': _smartTileGestureCoordinate(selection.start),
+            'end': _smartTileGestureCoordinate(selection.end!),
+          },
+      };
 
   Future<bool> _adoptCanonicalSmartTileSnapshot({
     required String projectRootPath,
@@ -8604,21 +8773,13 @@ class EditorNotifier extends _$EditorNotifier
         'sequence': sequence,
       },
     );
-    final actionId = entry.materialId == null
-        ? 'smart_tile.cell.erase'
-        : 'smart_tile.cell.paint';
     EditorAuthoringMutationResult? applied;
     try {
       final mutations = ref.read(authoringMutationAdapterProvider);
       final plan = await mutations.plan(
         entry.projectRootPath,
-        actionId: actionId,
-        parameters: _smartTileGestureParameters(
-          mapId: entry.mapId,
-          layerId: entry.layerId,
-          materialId: entry.materialId,
-          cells: entry.cells,
-        ),
+        actionId: entry.redoActionId,
+        parameters: entry.redoParameters,
         idempotencyKey: identity,
         requestId: identity,
       );

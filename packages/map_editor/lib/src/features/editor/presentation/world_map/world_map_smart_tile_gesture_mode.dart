@@ -41,4 +41,30 @@ final class WorldMapSmartTileMaterialIdController extends Notifier<String?> {
     if (state == materialId) return;
     state = materialId;
   }
+
+  void clear() {
+    if (state == null) return;
+    state = null;
+  }
+}
+
+/// Session-only reusable pattern selected for Smart Tile painting.
+final worldMapSmartTilePatternIdProvider =
+    NotifierProvider<WorldMapSmartTilePatternIdController, String?>(
+  WorldMapSmartTilePatternIdController.new,
+);
+
+final class WorldMapSmartTilePatternIdController extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void select(String patternId) {
+    if (state == patternId) return;
+    state = patternId;
+  }
+
+  void clear() {
+    if (state == null) return;
+    state = null;
+  }
 }

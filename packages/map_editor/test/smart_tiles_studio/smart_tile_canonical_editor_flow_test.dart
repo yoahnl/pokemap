@@ -150,6 +150,117 @@ void main() {
     );
   });
 
+  test('editor commits reusable pattern paint, history, and semantic erase',
+      () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap_smart_tile_pattern_editor_flow_',
+    );
+    final container = ProviderContainer();
+    addTearDown(() async {
+      container.dispose();
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+
+    final manifest = _manifest();
+    const map = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v6,
+      size: GridSize(width: 3, height: 2),
+      visualStack: MapVisualStackConfig.canonicalV1,
+    );
+    final mapPath = p.join(root.path, 'maps', 'map.json');
+    await Directory(p.dirname(mapPath)).create(recursive: true);
+    await FileProjectRepository().saveProject(
+      manifest,
+      p.join(root.path, 'project.json'),
+    );
+    await FileMapRepository().saveMap(
+      map,
+      mapPath,
+      projectDialogueContext: manifest,
+    );
+
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      projectRootPath: root.path,
+      project: manifest,
+      workspaceMode: EditorWorkspaceMode.map,
+    );
+    await notifier.loadMap('maps/map.json');
+    expect(
+      await notifier.createCanonicalSmartTileLayer(
+        preset: manifest.smartTileCatalog.presets.single,
+      ),
+      isTrue,
+    );
+
+    final mutations = container.read(authoringMutationAdapterProvider);
+    notifier.paintActiveSmartTilePattern(
+      const SmartTilePatternSelection.stamp(
+        anchor: GridPos(x: 1, y: 0),
+      ),
+      patternId: 'grass_patch',
+    );
+    await _waitUntil(
+      () =>
+          mutations.lastAppliedReceipt?.actionId ==
+              'smart_tile.pattern.paint' &&
+          (notifier.state.activeMap!.layers.single as SmartTileLayer)
+                  .patternStrokes
+                  .length ==
+              1,
+      failure: () => notifier.state.errorMessage,
+    );
+    expect(notifier.state.isDirty, isFalse);
+    expect(notifier.state.canUndoMap, isTrue);
+
+    notifier.undoMap();
+    await _waitUntil(
+      () =>
+          mutations.lastAppliedReceipt?.actionId == 'history.undo' &&
+          (notifier.state.activeMap!.layers.single as SmartTileLayer)
+              .patternStrokes
+              .isEmpty,
+      failure: () => notifier.state.errorMessage,
+    );
+    expect(notifier.state.canRedoMap, isTrue);
+
+    notifier.redoMap();
+    await _waitUntil(
+      () =>
+          mutations.lastAppliedReceipt?.actionId ==
+              'smart_tile.pattern.paint' &&
+          (notifier.state.activeMap!.layers.single as SmartTileLayer)
+                  .patternStrokes
+                  .length ==
+              1,
+      failure: () => notifier.state.errorMessage,
+    );
+    expect(notifier.state.canRedoMap, isFalse);
+
+    notifier.eraseActiveSmartTilePattern(
+      const SmartTileGestureSelection.line(
+        start: GridPos(x: 1, y: 0),
+        end: GridPos(x: 1, y: 0),
+      ),
+    );
+    await _waitUntil(
+      () =>
+          mutations.lastAppliedReceipt?.actionId ==
+              'smart_tile.pattern.erase' &&
+          (notifier.state.activeMap!.layers.single as SmartTileLayer)
+              .patternStrokes
+              .isEmpty,
+      failure: () => notifier.state.errorMessage,
+    );
+
+    final diskLayer = (await FileMapRepository().loadMap(mapPath)).layers.single
+        as SmartTileLayer;
+    expect(diskLayer.patternStrokes, isEmpty);
+    expect(notifier.state.errorMessage, isNull);
+  });
+
   test('a rejected canonical gesture rolls back its optimistic map exactly',
       () async {
     final root = await Directory.systemTemp.createTemp(
@@ -289,6 +400,33 @@ ProjectManifest _manifest() => ProjectManifest(
             id: 'grass',
             name: 'Herbe',
             connectionGroupId: 'ground',
+          ),
+        ],
+        patterns: const <ProjectSmartTilePattern>[
+          ProjectSmartTilePattern(
+            id: 'grass_patch',
+            name: "Touffe d'herbe",
+            usage: SmartTileUsage.terrain,
+            width: 1,
+            height: 1,
+            repeatMode: SmartTilePatternRepeatMode.stamp,
+            cells: <SmartTilePatternCell>[
+              SmartTilePatternCell(
+                x: 0,
+                y: 0,
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                        atlasId: 'atlas',
+                        column: 0,
+                        row: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ],
         presets: const <ProjectSmartTilePreset>[
