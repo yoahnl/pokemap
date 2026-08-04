@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
@@ -15,7 +16,7 @@ void main() {
     addTearDown(() async => root.delete(recursive: true));
     final image = File(p.join(root.path, 'images', 'road.png'));
     await image.parent.create(recursive: true);
-    await image.writeAsBytes(const <int>[1, 2, 3]);
+    await image.writeAsBytes(img.encodePng(img.Image(width: 1, height: 1)));
     final tsx = File(p.join(root.path, 'tsx', 'road.tsx'));
     await tsx.parent.create(recursive: true);
     await tsx.writeAsString(
@@ -29,6 +30,27 @@ void main() {
     expect(source.imagePath, p.normalize(image.path));
     expect(source.importId, startsWith('road-'));
     expect(source.importId, hasLength('road-'.length + 12));
+  });
+
+  test('rejects mismatched image dimensions before any import mutation',
+      () async {
+    final root = await Directory.systemTemp.createTemp('pokemap_tsx_size_');
+    addTearDown(() async => root.delete(recursive: true));
+    final image = File(p.join(root.path, 'road.png'));
+    await image.writeAsBytes(img.encodePng(img.Image(width: 2, height: 1)));
+    final tsx = File(p.join(root.path, 'road.tsx'));
+    await tsx.writeAsString(_tsx);
+
+    await expectLater(
+      loadSmartTileTiledWangSource(tsx.path),
+      throwsA(
+        isA<SmartTileTiledWangImportServiceException>().having(
+          (error) => error.code,
+          'code',
+          'smart_tile.tiled_wang.image_dimensions_mismatch',
+        ),
+      ),
+    );
   });
 
   test('imports the image then applies one canonical Wang action', () async {

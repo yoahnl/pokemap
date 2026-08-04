@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -94,6 +95,32 @@ Future<SmartTileTiledWangSource> loadSmartTileTiledWangSource(
       'smart_tile.tiled_wang.image_missing',
       'L’image atlas référencée par le TSX est introuvable : '
           '${document.imageSource}',
+    );
+  }
+  late final img.Image decodedImage;
+  try {
+    final imageBytes = await File(imagePath).readAsBytes();
+    final decoded = img.decodeImage(imageBytes);
+    if (decoded == null) {
+      throw const FormatException('Unsupported image');
+    }
+    decodedImage = decoded;
+  } on FileSystemException {
+    throw const SmartTileTiledWangImportServiceException(
+      'smart_tile.tiled_wang.image_unreadable',
+      'L’image atlas référencée par le TSX ne peut pas être lue.',
+    );
+  } on FormatException {
+    throw const SmartTileTiledWangImportServiceException(
+      'smart_tile.tiled_wang.image_unreadable',
+      'L’image atlas référencée par le TSX n’est pas décodable.',
+    );
+  }
+  if (decodedImage.width != document.imageWidth ||
+      decodedImage.height != document.imageHeight) {
+    throw const SmartTileTiledWangImportServiceException(
+      'smart_tile.tiled_wang.image_dimensions_mismatch',
+      'Les dimensions réelles de l’image ne correspondent pas au TSX.',
     );
   }
   final digest = sha256.convert(utf8.encode(tsx)).toString().substring(0, 12);
