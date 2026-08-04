@@ -657,13 +657,15 @@ class ProjectValidator {
         source.spacingY < 0 ||
         source.columns <= 0 ||
         source.rows <= 0 ||
+        // Complete cells are authoritative. Tiled permits a final raster band
+        // smaller than one stride; it is inert and never enters the grid.
         source.marginX * 2 +
                 source.columns * source.tileWidth +
-                (source.columns - 1) * source.spacingX !=
+                (source.columns - 1) * source.spacingX >
             source.pixelWidth ||
         source.marginY * 2 +
                 source.rows * source.tileHeight +
-                (source.rows - 1) * source.spacingY !=
+                (source.rows - 1) * source.spacingY >
             source.pixelHeight) {
       throw ValidationException(
         'Tileset ${tileset.id} has an invalid regular atlas source',

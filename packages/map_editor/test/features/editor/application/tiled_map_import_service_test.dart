@@ -109,6 +109,60 @@ void main() {
       ),
     );
   });
+
+  test('explicit source root rejects a dependency escape before staging',
+      () async {
+    final root = await Directory.systemTemp.createTemp(
+      'editor-tmx-source-root-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final projectRoot = Directory('${root.path}/project')..createSync();
+    final sourceRoot = Directory('${root.path}/source')..createSync();
+    final outsideRoot = Directory('${root.path}/outside')..createSync();
+    await File('${projectRoot.path}/project.json').writeAsString(
+      '${const JsonEncoder.withIndent('  ').convert(
+        const ProjectManifest(
+          name: 'TMX source-root fixture',
+          version: ProjectVersion.v6,
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+        ).toJson(),
+      )}\n',
+    );
+    await File('${outsideRoot.path}/road.png').writeAsBytes(_pngBytes);
+    await File('${outsideRoot.path}/road.tsx').writeAsString(_tsx);
+    final tmxPath = '${sourceRoot.path}/escape.tmx';
+    await File(tmxPath).writeAsString(
+      _tmx.replaceFirst('road.tsx', '../outside/road.tsx'),
+    );
+    const reader = EditorProjectFileReader();
+    final queries = AuthoringQueryAdapter(fileReader: reader);
+    final mutations = AuthoringMutationAdapter(
+      fileReader: reader,
+      queries: queries,
+      projectRoots: reader,
+    );
+    addTearDown(mutations.closeAll);
+    addTearDown(queries.closeAll);
+
+    await expectLater(
+      () => TiledMapImportService(
+        mutations: mutations,
+        queries: queries,
+      ).inspect(
+        projectRootPath: projectRoot.path,
+        tmxPath: tmxPath,
+        sourceRootPath: sourceRoot.path,
+      ),
+      throwsA(
+        isA<TiledMapImportServiceException>().having(
+          (error) => error.code,
+          'code',
+          'map.tiled.dependency_outside_source_root',
+        ),
+      ),
+    );
+  });
 }
 
 final List<int> _pngBytes = base64Decode(

@@ -706,17 +706,21 @@ void _validateRegularAtlas(
       atlas.spacingY < 0 ||
       atlas.columns <= 0 ||
       atlas.rows <= 0 ||
+      // Tiled derives columns/rows from complete cells and permits unused
+      // trailing pixels. Requiring exact divisibility rejects valid atlases
+      // such as a 32px grid stored in a 929px-high source image. The footprint
+      // must fit, while frame validation below still rejects the partial band.
       atlas.marginX * 2 +
               atlas.columns * atlas.tileWidth +
-              (atlas.columns - 1) * atlas.spacingX !=
+              (atlas.columns - 1) * atlas.spacingX >
           atlas.pixelWidth ||
       atlas.marginY * 2 +
               atlas.rows * atlas.tileHeight +
-              (atlas.rows - 1) * atlas.spacingY !=
+              (atlas.rows - 1) * atlas.spacingY >
           atlas.pixelHeight) {
     throw VisualLibraryException(
       'tileset.grid_invalid',
-      'Atlas dimensions must exactly match its margins, spacing and tile grid.',
+      'The atlas tile grid must fit inside its pixel dimensions.',
       details: atlas.toJson(),
     );
   }

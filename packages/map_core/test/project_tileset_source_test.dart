@@ -189,7 +189,7 @@ void main() {
             relativePath: 'assets/world.png',
             source: ProjectTilesetSource.regularAtlas(
               assetId: 'asset-world',
-              pixelWidth: 63,
+              pixelWidth: 15,
               pixelHeight: 48,
               tileWidth: 16,
               tileHeight: 16,
@@ -210,7 +210,8 @@ void main() {
       );
     });
 
-    test('project validation rejects inconsistent spaced atlas geometry', () {
+    test('project validation rejects a spaced atlas without a complete cell',
+        () {
       const manifest = ProjectManifest(
         name: 'Invalid spaced atlas project',
         maps: <ProjectMapEntry>[],
@@ -221,7 +222,7 @@ void main() {
             relativePath: 'assets/world.png',
             source: ProjectTilesetSource.regularAtlas(
               assetId: 'asset-world',
-              pixelWidth: 69,
+              pixelWidth: 32,
               pixelHeight: 68,
               tileWidth: 32,
               tileHeight: 32,

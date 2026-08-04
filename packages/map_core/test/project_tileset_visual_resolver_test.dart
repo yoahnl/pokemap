@@ -154,7 +154,7 @@ void main() {
         () => resolver.resolve(
           source: const ProjectRegularAtlasTilesetSource(
             assetId: 'broken-atlas',
-            pixelWidth: 69,
+            pixelWidth: 32,
             pixelHeight: 68,
             tileWidth: 32,
             tileHeight: 32,

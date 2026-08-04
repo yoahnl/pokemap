@@ -180,6 +180,58 @@ void main() {
           const TilesetSourceRect(x: 0, y: 0, width: 2, height: 2));
     });
 
+    test('accepts Tiled atlases with unused trailing raster pixels', () {
+      const trailingPixels = ProjectRegularAtlasTilesetSource(
+        assetId: 'tiled-atlas',
+        pixelWidth: 960,
+        pixelHeight: 929,
+        tileWidth: 32,
+        tileHeight: 32,
+      );
+      final base = _manifest();
+      final imported = base.copyWith(
+        tilesets: <ProjectTilesetEntry>[
+          base.tilesets.single.copyWith(source: trailingPixels),
+        ],
+      );
+
+      expect(trailingPixels.columns, 30);
+      expect(trailingPixels.rows, 29);
+      expect(
+        () => const TilesetActions().upsert(
+          base,
+          tileset: imported.tilesets.single,
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => const TilesetActions().validateFrame(
+          TilesetVisualFrame(source: TilesetSourceRect(x: 29, y: 28)),
+          owningTilesetId: 'world',
+          atlases: const <String, ProjectRegularAtlasTilesetSource>{
+            'world': trailingPixels,
+          },
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => const TilesetActions().validateFrame(
+          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 29)),
+          owningTilesetId: 'world',
+          atlases: const <String, ProjectRegularAtlasTilesetSource>{
+            'world': trailingPixels,
+          },
+        ),
+        throwsA(
+          isA<VisualLibraryException>().having(
+            (error) => error.code,
+            'code',
+            'tileset.source_out_of_bounds',
+          ),
+        ),
+      );
+    });
+
     test('element deletion scans every loaded map', () {
       final town = const MapData(
         id: 'town',

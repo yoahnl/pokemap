@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -17,8 +18,13 @@ Map<String, String> resolveTilesetAbsolutePaths({
   required ProjectManifest manifest,
   required String projectRoot,
   required Set<String> tilesetIds,
+  AssetCatalog? assetCatalog,
 }) {
   final byId = {for (final t in manifest.tilesets) t.id: t};
+  final assetsById = <String, AssetRecord>{
+    for (final asset in assetCatalog?.records ?? const <AssetRecord>[])
+      asset.id: asset,
+  };
   final out = <String, String>{};
   for (final id in tilesetIds) {
     final entry = byId[id];
@@ -32,15 +38,51 @@ Map<String, String> resolveTilesetAbsolutePaths({
     final source = entry.source;
     if (source is ProjectImageCollectionTilesetSource) {
       for (final page in source.pages) {
-        out[page.assetId] = p.normalize(
-          p.join(projectRoot, rel, '${page.id}.png'),
+        out[page.assetId] = _runtimeAssetPath(
+          projectRoot: projectRoot,
+          asset: assetsById[page.assetId],
+          legacyRelativePath: p.join(rel, '${page.id}.png'),
         );
       }
     } else {
-      out[id] = p.normalize(p.join(projectRoot, rel));
+      final assetId = switch (source) {
+        ProjectRegularAtlasTilesetSource value => value.assetId,
+        _ => id,
+      };
+      out[id] = _runtimeAssetPath(
+        projectRoot: projectRoot,
+        asset: assetsById[assetId],
+        legacyRelativePath: rel,
+      );
     }
   }
   return out;
+}
+
+String _runtimeAssetPath({
+  required String projectRoot,
+  required AssetRecord? asset,
+  required String legacyRelativePath,
+}) {
+  // Canonical authoring imports own bytes through the content-addressed store.
+  // The logical path remains presentation metadata and may intentionally have
+  // no duplicate file. Projects without a matching catalog record retain the
+  // historical physical-path behavior for backwards compatibility.
+  final relativePath =
+      asset == null ? legacyRelativePath : assetBlobStorageKey(asset.artifact);
+  return p.normalize(p.join(projectRoot, relativePath));
+}
+
+Future<AssetCatalog?> _loadRuntimeAssetCatalog(String projectRoot) async {
+  final file = File(p.join(projectRoot, assetCatalogStorageKey));
+  if (!await file.exists()) return null;
+  try {
+    final decoded = jsonDecode(await file.readAsString());
+    if (decoded is! Map) throw const FormatException('Expected JSON object.');
+    return AssetCatalog.fromJson(Map<String, dynamic>.from(decoded));
+  } on Object catch (error) {
+    throw ProjectLoadException('Failed to load asset catalog: $error');
+  }
 }
 
 Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
@@ -165,12 +207,14 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     mapPath,
     projectDialogueContext: manifest,
   );
+  final assetCatalog = await _loadRuntimeAssetCatalog(projectRoot);
   final tilesetIds = collectAllRuntimeTilesetIds(map, manifest);
   _runtimeLoaderLog('bundle tilesets collected ids=${tilesetIds.join(',')}');
   final paths = resolveTilesetAbsolutePaths(
     manifest: manifest,
     projectRoot: projectRoot,
     tilesetIds: tilesetIds,
+    assetCatalog: assetCatalog,
   );
   for (final entry in paths.entries) {
     _runtimeLoaderLog(

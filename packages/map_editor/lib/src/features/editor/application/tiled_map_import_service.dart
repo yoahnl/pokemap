@@ -140,8 +140,12 @@ final class TiledMapImportService {
   Future<TiledMapImportInspection> inspect({
     required String projectRootPath,
     required String tmxPath,
+    String? sourceRootPath,
   }) async {
-    final source = await loadTiledMapImportSource(tmxPath);
+    final source = await loadTiledMapImportSource(
+      tmxPath,
+      sourceRootPath: sourceRootPath,
+    );
     final tilesetParameters = <Object?>[];
     final stagedDigests = <String>[];
     for (final tileset in source.tilesets) {
@@ -248,13 +252,23 @@ final class TiledMapImportService {
   }
 }
 
-Future<TiledMapImportSource> loadTiledMapImportSource(String tmxPath) async {
-  final canonicalPath = p.normalize(p.absolute(tmxPath));
+Future<TiledMapImportSource> loadTiledMapImportSource(
+  String tmxPath, {
+  String? sourceRootPath,
+}) async {
+  var canonicalPath = p.normalize(p.absolute(tmxPath));
   final tmxFile = File(canonicalPath);
   if (!await tmxFile.exists()) {
     throw const TiledMapImportServiceException(
       'map.tiled.tmx_missing',
       'Le fichier TMX sélectionné est introuvable.',
+    );
+  }
+  final canonicalSourceRoot = await _canonicalSourceRoot(sourceRootPath);
+  if (canonicalSourceRoot != null) {
+    canonicalPath = await _requireFileWithinSourceRoot(
+      tmxFile,
+      canonicalSourceRoot,
     );
   }
   late final String tmx;
@@ -273,12 +287,18 @@ Future<TiledMapImportSource> loadTiledMapImportSource(String tmxPath) async {
 
   final tilesets = <TiledMapImportTilesetSource>[];
   for (final reference in document.dependencyClosure.tilesets) {
-    final tsxPath = _resolveDependency(canonicalPath, reference.source);
+    var tsxPath = _resolveDependency(canonicalPath, reference.source);
     final tsxFile = File(tsxPath);
     if (!await tsxFile.exists()) {
       throw TiledMapImportServiceException(
         'map.tiled.tsx_missing',
         'Le tileset ${reference.source} référencé par le TMX est introuvable.',
+      );
+    }
+    if (canonicalSourceRoot != null) {
+      tsxPath = await _requireFileWithinSourceRoot(
+        tsxFile,
+        canonicalSourceRoot,
       );
     }
     late final String tsx;
@@ -296,12 +316,19 @@ Future<TiledMapImportSource> loadTiledMapImportSource(String tmxPath) async {
     }
     final imagePaths = <String, String>{};
     for (final dependency in tilesetDocument.dependencyClosure.images) {
-      final imagePath = _resolveDependency(tsxPath, dependency.source);
-      if (!await File(imagePath).exists()) {
+      var imagePath = _resolveDependency(tsxPath, dependency.source);
+      final imageFile = File(imagePath);
+      if (!await imageFile.exists()) {
         throw TiledMapImportServiceException(
           'map.tiled.image_missing',
           'L’image ${dependency.source} référencée par '
               '${reference.source} est introuvable.',
+        );
+      }
+      if (canonicalSourceRoot != null) {
+        imagePath = await _requireFileWithinSourceRoot(
+          imageFile,
+          canonicalSourceRoot,
         );
       }
       imagePaths[dependency.source] = imagePath;
@@ -336,6 +363,52 @@ Future<TiledMapImportSource> loadTiledMapImportSource(String tmxPath) async {
     displayName: mapName.isEmpty ? 'Carte Tiled importée' : mapName,
     tilesets: tilesets,
   );
+}
+
+Future<String?> _canonicalSourceRoot(String? sourceRootPath) async {
+  final normalized = sourceRootPath?.trim();
+  if (normalized == null || normalized.isEmpty) return null;
+  final directory = Directory(p.normalize(p.absolute(normalized)));
+  if (!await directory.exists()) {
+    throw const TiledMapImportServiceException(
+      'map.tiled.source_root_invalid',
+      'La racine source Tiled sélectionnée est introuvable.',
+    );
+  }
+  try {
+    return p.normalize(await directory.resolveSymbolicLinks());
+  } on FileSystemException {
+    throw const TiledMapImportServiceException(
+      'map.tiled.source_root_invalid',
+      'La racine source Tiled sélectionnée ne peut pas être résolue.',
+    );
+  }
+}
+
+Future<String> _requireFileWithinSourceRoot(
+  File file,
+  String canonicalSourceRoot,
+) async {
+  late final String canonicalFile;
+  try {
+    canonicalFile = p.normalize(await file.resolveSymbolicLinks());
+  } on FileSystemException {
+    throw const TiledMapImportServiceException(
+      'map.tiled.dependency_unreadable',
+      'Une dépendance Tiled ne peut pas être résolue.',
+    );
+  }
+  // A selected corpus root is a narrow capability. Canonical paths are checked
+  // after symlink resolution so `..` segments and link escapes cannot broaden
+  // the dependency closure staged by the editor transport.
+  if (canonicalFile != canonicalSourceRoot &&
+      !p.isWithin(canonicalSourceRoot, canonicalFile)) {
+    throw const TiledMapImportServiceException(
+      'map.tiled.dependency_outside_source_root',
+      'Une dépendance Tiled sort de la racine source sélectionnée.',
+    );
+  }
+  return canonicalFile;
 }
 
 String _resolveDependency(String ownerPath, String source) => p.normalize(

@@ -261,13 +261,15 @@ ProjectTilesetVisualResolution _resolveRegularAtlas(
       atlas.spacingY < 0 ||
       atlas.columns <= 0 ||
       atlas.rows <= 0 ||
+      // Ignore Tiled-compatible trailing pixels while still proving that
+      // every addressable complete cell fits inside the decoded raster.
       atlas.marginX * 2 +
               atlas.columns * atlas.tileWidth +
-              (atlas.columns - 1) * atlas.spacingX !=
+              (atlas.columns - 1) * atlas.spacingX >
           atlas.pixelWidth ||
       atlas.marginY * 2 +
               atlas.rows * atlas.tileHeight +
-              (atlas.rows - 1) * atlas.spacingY !=
+              (atlas.rows - 1) * atlas.spacingY >
           atlas.pixelHeight) {
     throw const ProjectTilesetVisualResolutionException(
       'tileset.visual.atlas_invalid',
