@@ -315,7 +315,7 @@ BorderMaterialization _materialization() => BorderMaterialization(
           x: 0,
           y: 0,
           visualSnapshotId: _snapshotId('a'),
-          resolvedRole: SurfaceVariantRole.isolated,
+          resolvedRole: BorderGroundVariantRole.isolated,
         ),
       ],
       placements: const <BorderResolvedPlacement>[],

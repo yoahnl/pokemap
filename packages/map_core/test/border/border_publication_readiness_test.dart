@@ -2357,8 +2357,8 @@ BorderPublishedGround _ground({
     BorderPublishedGround(
       sourceSmartTilePresetId: presetId,
       edgeBandCells: 2,
-      visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-        for (final role in standardSurfaceVariantRoleOrder) role: snapshotId,
+      visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
+        for (final role in standardBorderGroundVariantRoleOrder) role: snapshotId,
       },
     );
 

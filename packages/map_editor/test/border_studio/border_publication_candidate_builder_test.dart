@@ -547,7 +547,7 @@ void main() {
           draftRecord: target,
           primitiveSnapshotsByPrimitiveId: const <String,
               BorderAssetSnapshotPreparation>{},
-          groundSnapshotsByRole: const <SurfaceVariantRole,
+          groundSnapshotsByRole: const <BorderGroundVariantRole,
               BorderAssetSnapshotPreparation>{},
         ),
         throwsA(
@@ -568,8 +568,9 @@ void main() {
           edgeBandCells: 2,
         ),
       );
-      final onlyIsolated = <SurfaceVariantRole, BorderAssetSnapshotPreparation>{
-        SurfaceVariantRole.isolated:
+      final onlyIsolated =
+          <BorderGroundVariantRole, BorderAssetSnapshotPreparation>{
+        BorderGroundVariantRole.isolated:
             _preparation('a', sourceElementId: 'shore'),
       };
 
@@ -592,9 +593,9 @@ void main() {
                 BorderPublicationCandidateErrorCode.groundSnapshotRoleMissing,
               )
               .having(
-                (error) => error.surfaceRole,
-                'surfaceRole',
-                SurfaceVariantRole.endNorth,
+                (error) => error.groundRole,
+                'groundRole',
+                BorderGroundVariantRole.endNorth,
               ),
         ),
       );
@@ -603,8 +604,8 @@ void main() {
     test('publishes complete ground snapshots in stable Smart Tile role order',
         () {
       final shared = _preparation('d', sourceElementId: 'shore');
-      final byRole = <SurfaceVariantRole, BorderAssetSnapshotPreparation>{
-        for (final role in standardSurfaceVariantRoleOrder) role: shared,
+      final byRole = <BorderGroundVariantRole, BorderAssetSnapshotPreparation>{
+        for (final role in standardBorderGroundVariantRoleOrder) role: shared,
       };
       final target = _record(
         id: 'coast',
@@ -631,14 +632,14 @@ void main() {
       expect(ground.edgeBandCells, 3);
       expect(
         ground.visualSnapshotIdsByRole.keys,
-        standardSurfaceVariantRoleOrder,
+        standardBorderGroundVariantRoleOrder,
       );
       expect(
         ground.visualSnapshotIdsByRole.values.toSet(),
         <String>{shared.snapshot.id},
       );
-      expect(
-          result.groundSnapshotIdsByRole.keys, standardSurfaceVariantRoleOrder);
+      expect(result.groundSnapshotIdsByRole.keys,
+          standardBorderGroundVariantRoleOrder);
       expect(result.files, shared.files);
       expect(
         result.nextManifest.borderCatalog.visualSnapshots,
@@ -669,9 +670,9 @@ void main() {
           draftRecord: target,
           primitiveSnapshotsByPrimitiveId: const <String,
               BorderAssetSnapshotPreparation>{},
-          groundSnapshotsByRole: <SurfaceVariantRole,
+          groundSnapshotsByRole: <BorderGroundVariantRole,
               BorderAssetSnapshotPreparation>{
-            for (final role in standardSurfaceVariantRoleOrder)
+            for (final role in standardBorderGroundVariantRoleOrder)
               role: wrongSource,
           },
         ),
@@ -684,9 +685,9 @@ void main() {
                     .groundSnapshotSourceMismatch,
               )
               .having(
-                (error) => error.surfaceRole,
-                'surfaceRole',
-                SurfaceVariantRole.isolated,
+                (error) => error.groundRole,
+                'groundRole',
+                BorderGroundVariantRole.isolated,
               )
               .having(
                 (error) => error.sourceSmartTilePresetId,
@@ -711,9 +712,9 @@ void main() {
           draftRecord: target,
           primitiveSnapshotsByPrimitiveId: const <String,
               BorderAssetSnapshotPreparation>{},
-          groundSnapshotsByRole: <SurfaceVariantRole,
+          groundSnapshotsByRole: <BorderGroundVariantRole,
               BorderAssetSnapshotPreparation>{
-            SurfaceVariantRole.isolated: _preparation('a'),
+            BorderGroundVariantRole.isolated: _preparation('a'),
           },
         ),
         throwsA(

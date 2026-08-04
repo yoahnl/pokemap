@@ -15,7 +15,7 @@ sealed class BorderRuntimeDrawInstruction {
   BorderPixelRect get cullingBoundsPx;
 }
 
-/// One already-resolved cell of Surface-like ground.
+/// One already-resolved cell of Border ground.
 @immutable
 final class BorderRuntimeGroundInstruction
     extends BorderRuntimeDrawInstruction {

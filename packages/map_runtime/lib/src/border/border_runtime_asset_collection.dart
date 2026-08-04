@@ -75,7 +75,7 @@ final class BorderRuntimeAssetCollection {
 /// Collects only immutable snapshots referenced by saved materialization.
 ///
 /// Visibility is intentionally ignored: readiness must assess hidden layers
-/// too. No blueprint, source element, Surface preset, or Border solver is
+/// too. No blueprint, source element, historical ground preset, or Border solver is
 /// consulted. First-reference order is retained and repeated ids are stable-
 /// deduplicated.
 BorderRuntimeAssetCollection collectBorderRuntimeAssetRequests({

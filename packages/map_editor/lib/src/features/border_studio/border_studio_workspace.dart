@@ -767,7 +767,7 @@ class _BorderStudioWorkspaceState extends ConsumerState<BorderStudioWorkspace> {
     try {
       final ground = record.draft.definition.ground;
       final groundSnapshots = ground == null
-          ? const <SurfaceVariantRole, BorderAssetSnapshotPreparation>{}
+          ? const <BorderGroundVariantRole, BorderAssetSnapshotPreparation>{}
           : await _groundSnapshotService.prepareAllRoles(
               manifest: manifest,
               projectRootPath: projectRootPath,

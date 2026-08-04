@@ -1257,7 +1257,7 @@ BorderResolutionResult _successfulLinePreview(BorderResolutionRequest _) =>
             x: 0,
             y: 0,
             visualSnapshotId: 'border-snapshot-${_hash('a')}',
-            resolvedRole: SurfaceVariantRole.isolated,
+            resolvedRole: BorderGroundVariantRole.isolated,
           ),
         ],
         placements: const <BorderResolvedPlacement>[],

@@ -43,8 +43,8 @@ final class OrganicEdgeReferenceCoastFixture {
       ground: BorderPublishedGround(
         sourceSmartTilePresetId: 'reference-grass',
         edgeBandCells: 2,
-        visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-          for (final role in standardSurfaceVariantRoleOrder)
+        visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
+          for (final role in standardBorderGroundVariantRoleOrder)
             role: _groundSnapshotId,
         },
       ),

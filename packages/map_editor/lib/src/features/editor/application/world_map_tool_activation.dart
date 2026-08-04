@@ -133,8 +133,8 @@ WorldMapPaintLayerRouting resolveWorldMapPaintLayerRouting({
   required WorldMapPaintSubtool subtool,
   String? rememberedLayerId,
 }) {
-  // Compatibility is deliberately type-only here. Surface presets and border
-  // features are setup prerequisites handled by the canonical activation
+  // Compatibility is deliberately type-only here. Smart Tile presets and
+  // Border features are setup prerequisites handled by the canonical activation
   // preflight after a destination layer has been resolved.
   final compatibleLayerIds = map.layers
       .where((layer) => isWorldMapPaintLayerCompatible(subtool, layer))

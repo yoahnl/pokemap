@@ -719,7 +719,7 @@ Future<developer.ServiceExtensionResponse>
     }
     final ground = savedRecord.draft.definition.ground;
     final groundSnapshots = ground == null
-        ? const <SurfaceVariantRole, BorderAssetSnapshotPreparation>{}
+        ? const <BorderGroundVariantRole, BorderAssetSnapshotPreparation>{}
         : await groundSnapshotService.prepareAllRoles(
             manifest: savedDraftManifest,
             projectRootPath: projectRootPath,

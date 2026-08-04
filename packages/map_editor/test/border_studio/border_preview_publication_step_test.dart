@@ -522,7 +522,7 @@ BorderStudioPublicationPreview _preview({
     primitiveSnapshotIdsByPrimitiveId: const <String, String>{
       'rock': _snapshotId,
     },
-    groundSnapshotIdsByRole: const <SurfaceVariantRole, String>{},
+    groundSnapshotIdsByRole: const <BorderGroundVariantRole, String>{},
   );
   final samples = <BorderPublicationGallerySample>[
     for (final galleryCase in galleryCases)

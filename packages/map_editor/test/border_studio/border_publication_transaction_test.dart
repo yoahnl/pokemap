@@ -577,8 +577,9 @@ BorderPublicationRequest _masonryGroundRequest() {
     ground: BorderPublishedGround(
       sourceSmartTilePresetId: 'ground-preset',
       edgeBandCells: 1,
-      visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-        for (final role in standardSurfaceVariantRoleOrder) role: snapshotId,
+      visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
+        for (final role in standardBorderGroundVariantRoleOrder)
+          role: snapshotId,
       },
     ),
     sortOrder: revision.definition.sortOrder,

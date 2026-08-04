@@ -634,7 +634,7 @@ BorderMaterialization _materialization() => BorderMaterialization(
           x: 1,
           y: 1,
           visualSnapshotId: _snapshotId,
-          resolvedRole: SurfaceVariantRole.innerCornerSE,
+          resolvedRole: BorderGroundVariantRole.innerCornerSE,
         ),
       ],
       placements: <BorderResolvedPlacement>[_placement()],

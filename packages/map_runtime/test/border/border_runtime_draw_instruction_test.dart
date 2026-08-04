@@ -187,7 +187,7 @@ BorderFeature _featureWithPlacements({
           x: 1,
           y: 1,
           visualSnapshotId: groundSnapshotId,
-          resolvedRole: SurfaceVariantRole.isolated,
+          resolvedRole: BorderGroundVariantRole.isolated,
         ),
       ],
       placements: placements,

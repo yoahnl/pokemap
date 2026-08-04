@@ -29,7 +29,7 @@ final class BorderSmartTileGroundSnapshotException implements Exception {
     required this.code,
     required this.userMessage,
     this.sourceSmartTilePresetId,
-    this.surfaceRole,
+    this.groundRole,
     this.animationId,
     this.atlasId,
     this.tilesetId,
@@ -40,7 +40,7 @@ final class BorderSmartTileGroundSnapshotException implements Exception {
   final BorderSmartTileGroundSnapshotErrorCode code;
   final String userMessage;
   final String? sourceSmartTilePresetId;
-  final SurfaceVariantRole? surfaceRole;
+  final BorderGroundVariantRole? groundRole;
   final String? animationId;
   final String? atlasId;
   final String? tilesetId;
@@ -68,7 +68,7 @@ final class BorderSmartTileGroundSnapshotService {
 
   final BorderAssetSnapshotService snapshotService;
 
-  Future<Map<SurfaceVariantRole, BorderAssetSnapshotPreparation>>
+  Future<Map<BorderGroundVariantRole, BorderAssetSnapshotPreparation>>
       prepareAllRoles({
     required ProjectManifest manifest,
     required String projectRootPath,
@@ -118,9 +118,9 @@ final class BorderSmartTileGroundSnapshotService {
       for (final tileset in manifest.tilesets) tileset.id: tileset,
     };
     final imageByTilesetId = <String, img.Image>{};
-    final result = <SurfaceVariantRole, BorderAssetSnapshotPreparation>{};
+    final result = <BorderGroundVariantRole, BorderAssetSnapshotPreparation>{};
 
-    for (final role in standardSurfaceVariantRoleOrder) {
+    for (final role in standardBorderGroundVariantRoleOrder) {
       final resolution = resolveSmartTile(
         preset: preset,
         materials: catalog.materials,
@@ -145,7 +145,7 @@ final class BorderSmartTileGroundSnapshotService {
           userMessage: 'Le preset Smart Tile ne résout pas la variante de sol '
               '« ${role.name} ».',
           sourceSmartTilePresetId: presetId,
-          surfaceRole: role,
+          groundRole: role,
         );
       }
 
@@ -177,7 +177,7 @@ final class BorderSmartTileGroundSnapshotService {
               userMessage: 'L’atlas Smart Tile de la variante '
                   '« ${role.name} » est introuvable.',
               sourceSmartTilePresetId: presetId,
-              surfaceRole: role,
+              groundRole: role,
               atlasId: frame.atlasId,
             );
           }
@@ -195,7 +195,7 @@ final class BorderSmartTileGroundSnapshotService {
                   BorderSmartTileGroundSnapshotErrorCode.atlasFrameOutOfBounds,
               userMessage: 'Une frame Smart Tile dépasse son atlas.',
               sourceSmartTilePresetId: presetId,
-              surfaceRole: role,
+              groundRole: role,
               atlasId: atlas.id,
               cause: error,
             );
@@ -207,7 +207,7 @@ final class BorderSmartTileGroundSnapshotService {
               userMessage: 'Le tileset Smart Tile de la variante '
                   '« ${role.name} » est introuvable.',
               sourceSmartTilePresetId: presetId,
-              surfaceRole: role,
+              groundRole: role,
               atlasId: atlas.id,
               tilesetId: atlas.tilesetId,
             );
@@ -223,7 +223,7 @@ final class BorderSmartTileGroundSnapshotService {
                   BorderSmartTileGroundSnapshotErrorCode.atlasFrameOutOfBounds,
               userMessage: 'Une frame Smart Tile dépasse l’image du tileset.',
               sourceSmartTilePresetId: presetId,
-              surfaceRole: role,
+              groundRole: role,
               atlasId: atlas.id,
               tilesetId: tileset.id,
             );
@@ -284,7 +284,7 @@ final class BorderSmartTileGroundSnapshotService {
           userMessage: 'La variante Smart Tile « ${role.name} » ne peut pas '
               'être préparée : ${error.userMessage}',
           sourceSmartTilePresetId: presetId,
-          surfaceRole: role,
+          groundRole: role,
           cause: error,
         );
       } on BorderAssetAlphaAnalysisException catch (error) {
@@ -293,12 +293,13 @@ final class BorderSmartTileGroundSnapshotService {
           userMessage: 'La variante Smart Tile « ${role.name} » ne peut pas '
               'être préparée : ${error.userMessage}',
           sourceSmartTilePresetId: presetId,
-          surfaceRole: role,
+          groundRole: role,
           cause: error,
         );
       }
     }
-    return Map<SurfaceVariantRole, BorderAssetSnapshotPreparation>.unmodifiable(
+    return Map<BorderGroundVariantRole,
+        BorderAssetSnapshotPreparation>.unmodifiable(
       result,
     );
   }
@@ -326,7 +327,7 @@ bool _belongsToGroundSnapshot(SmartTileRenderChannel channel) =>
     };
 
 SmartTileCellContext _contextForRole(
-  SurfaceVariantRole role, {
+  BorderGroundVariantRole role, {
   required SmartTileTopology topology,
   required String materialId,
 }) {
@@ -350,30 +351,30 @@ SmartTileCellContext _contextForRole(
 }
 
 int _smartTileMaskForSurfaceRole(
-  SurfaceVariantRole role, {
+  BorderGroundVariantRole role, {
   required SmartTileTopology topology,
 }) {
   final cardinal = switch (role) {
-    SurfaceVariantRole.isolated => 0,
-    SurfaceVariantRole.endNorth => 1,
-    SurfaceVariantRole.endEast => 2,
-    SurfaceVariantRole.cornerNE => 3,
-    SurfaceVariantRole.endSouth => 4,
-    SurfaceVariantRole.vertical => 5,
-    SurfaceVariantRole.cornerSE => 6,
-    SurfaceVariantRole.teeEast => 7,
-    SurfaceVariantRole.endWest => 8,
-    SurfaceVariantRole.cornerNW => 9,
-    SurfaceVariantRole.horizontal => 10,
-    SurfaceVariantRole.teeNorth => 11,
-    SurfaceVariantRole.cornerSW => 12,
-    SurfaceVariantRole.teeWest => 13,
-    SurfaceVariantRole.teeSouth => 14,
-    SurfaceVariantRole.innerCornerNE ||
-    SurfaceVariantRole.innerCornerSE ||
-    SurfaceVariantRole.innerCornerSW ||
-    SurfaceVariantRole.innerCornerNW ||
-    SurfaceVariantRole.cross =>
+    BorderGroundVariantRole.isolated => 0,
+    BorderGroundVariantRole.endNorth => 1,
+    BorderGroundVariantRole.endEast => 2,
+    BorderGroundVariantRole.cornerNE => 3,
+    BorderGroundVariantRole.endSouth => 4,
+    BorderGroundVariantRole.vertical => 5,
+    BorderGroundVariantRole.cornerSE => 6,
+    BorderGroundVariantRole.teeEast => 7,
+    BorderGroundVariantRole.endWest => 8,
+    BorderGroundVariantRole.cornerNW => 9,
+    BorderGroundVariantRole.horizontal => 10,
+    BorderGroundVariantRole.teeNorth => 11,
+    BorderGroundVariantRole.cornerSW => 12,
+    BorderGroundVariantRole.teeWest => 13,
+    BorderGroundVariantRole.teeSouth => 14,
+    BorderGroundVariantRole.innerCornerNE ||
+    BorderGroundVariantRole.innerCornerSE ||
+    BorderGroundVariantRole.innerCornerSW ||
+    BorderGroundVariantRole.innerCornerNW ||
+    BorderGroundVariantRole.cross =>
       15,
   };
   if (topology != SmartTileTopology.blob8 &&
@@ -387,10 +388,10 @@ int _smartTileMaskForSurfaceRole(
   if (cardinal & 4 != 0 && cardinal & 2 != 0) mask |= smartTileSouthEastBit;
   if (cardinal & 4 != 0 && cardinal & 8 != 0) mask |= smartTileSouthWestBit;
   return switch (role) {
-    SurfaceVariantRole.innerCornerNE => mask & ~smartTileNorthEastBit,
-    SurfaceVariantRole.innerCornerSE => mask & ~smartTileSouthEastBit,
-    SurfaceVariantRole.innerCornerSW => mask & ~smartTileSouthWestBit,
-    SurfaceVariantRole.innerCornerNW => mask & ~smartTileNorthWestBit,
+    BorderGroundVariantRole.innerCornerNE => mask & ~smartTileNorthEastBit,
+    BorderGroundVariantRole.innerCornerSE => mask & ~smartTileSouthEastBit,
+    BorderGroundVariantRole.innerCornerSW => mask & ~smartTileSouthWestBit,
+    BorderGroundVariantRole.innerCornerNW => mask & ~smartTileNorthWestBit,
     _ => mask,
   };
 }
@@ -409,7 +410,7 @@ _CompositeTimeline _timelineForParts(
   List<SmartTileVisualPart> parts, {
   required Map<String, ProjectSmartTileAnimation> animationById,
   required String presetId,
-  required SurfaceVariantRole role,
+  required BorderGroundVariantRole role,
 }) {
   List<int>? expected;
   for (final part in parts) {
@@ -421,7 +422,7 @@ _CompositeTimeline _timelineForParts(
         code: BorderSmartTileGroundSnapshotErrorCode.missingAnimation,
         userMessage: 'Une animation Smart Tile est introuvable.',
         sourceSmartTilePresetId: presetId,
-        surfaceRole: role,
+        groundRole: role,
         animationId: source.animationId,
       );
     }
@@ -432,7 +433,7 @@ _CompositeTimeline _timelineForParts(
         userMessage: 'Une animation non bouclée ne peut pas être figée dans '
             'un sol Border bouclé.',
         sourceSmartTilePresetId: presetId,
-        surfaceRole: role,
+        groundRole: role,
         animationId: source.animationId,
       );
     }
@@ -446,7 +447,7 @@ _CompositeTimeline _timelineForParts(
         userMessage: 'Les parties animées du Smart Tile doivent partager la '
             'même timeline pour être figées ensemble.',
         sourceSmartTilePresetId: presetId,
-        surfaceRole: role,
+        groundRole: role,
         animationId: source.animationId,
       );
     }

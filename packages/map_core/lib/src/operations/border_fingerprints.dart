@@ -6,7 +6,7 @@ import '../models/border_materialization.dart';
 import '../models/border_resolution.dart';
 import '../models/border_value_objects.dart';
 import '../models/border_visual_snapshot.dart';
-import '../models/surface.dart';
+import '../models/border_ground_variant_role.dart';
 import 'border_rle_codec.dart';
 import 'narrative_event_canonical_json.dart';
 
@@ -203,8 +203,8 @@ Object _blueprintProjection({
       final ground? => <String, Object?>{
           'edgeBandCells': _jsonInteger(ground.edgeBandCells),
           'visualSnapshotIdsByRole': <String, Object?>{
-            for (final role in standardSurfaceVariantRoleOrder)
-              _surfaceRoleV1WireName(role):
+            for (final role in standardBorderGroundVariantRoleOrder)
+              _borderGroundRoleV1WireName(role):
                   ground.visualSnapshotIdsByRole[role]!,
           },
         },
@@ -382,7 +382,7 @@ Object _groundCellProjection(BorderResolvedGroundCell cell) =>
       'x': _jsonInteger(cell.x),
       'y': _jsonInteger(cell.y),
       'visualSnapshotId': cell.visualSnapshotId,
-      'resolvedRole': _surfaceRoleV1WireName(cell.resolvedRole),
+      'resolvedRole': _borderGroundRoleV1WireName(cell.resolvedRole),
     };
 
 Object _placementProjection(BorderResolvedPlacement placement) =>
@@ -453,25 +453,25 @@ String _drawBandV1WireName(BorderDrawBand band) => switch (band) {
       BorderDrawBand.accent => 'accent',
     };
 
-String _surfaceRoleV1WireName(SurfaceVariantRole role) => switch (role) {
-      SurfaceVariantRole.isolated => 'isolated',
-      SurfaceVariantRole.endNorth => 'endNorth',
-      SurfaceVariantRole.endEast => 'endEast',
-      SurfaceVariantRole.endSouth => 'endSouth',
-      SurfaceVariantRole.endWest => 'endWest',
-      SurfaceVariantRole.horizontal => 'horizontal',
-      SurfaceVariantRole.vertical => 'vertical',
-      SurfaceVariantRole.cornerNE => 'cornerNE',
-      SurfaceVariantRole.cornerSE => 'cornerSE',
-      SurfaceVariantRole.cornerSW => 'cornerSW',
-      SurfaceVariantRole.cornerNW => 'cornerNW',
-      SurfaceVariantRole.innerCornerNE => 'innerCornerNE',
-      SurfaceVariantRole.innerCornerSE => 'innerCornerSE',
-      SurfaceVariantRole.innerCornerSW => 'innerCornerSW',
-      SurfaceVariantRole.innerCornerNW => 'innerCornerNW',
-      SurfaceVariantRole.teeNorth => 'teeNorth',
-      SurfaceVariantRole.teeEast => 'teeEast',
-      SurfaceVariantRole.teeSouth => 'teeSouth',
-      SurfaceVariantRole.teeWest => 'teeWest',
-      SurfaceVariantRole.cross => 'cross',
+String _borderGroundRoleV1WireName(BorderGroundVariantRole role) => switch (role) {
+      BorderGroundVariantRole.isolated => 'isolated',
+      BorderGroundVariantRole.endNorth => 'endNorth',
+      BorderGroundVariantRole.endEast => 'endEast',
+      BorderGroundVariantRole.endSouth => 'endSouth',
+      BorderGroundVariantRole.endWest => 'endWest',
+      BorderGroundVariantRole.horizontal => 'horizontal',
+      BorderGroundVariantRole.vertical => 'vertical',
+      BorderGroundVariantRole.cornerNE => 'cornerNE',
+      BorderGroundVariantRole.cornerSE => 'cornerSE',
+      BorderGroundVariantRole.cornerSW => 'cornerSW',
+      BorderGroundVariantRole.cornerNW => 'cornerNW',
+      BorderGroundVariantRole.innerCornerNE => 'innerCornerNE',
+      BorderGroundVariantRole.innerCornerSE => 'innerCornerSE',
+      BorderGroundVariantRole.innerCornerSW => 'innerCornerSW',
+      BorderGroundVariantRole.innerCornerNW => 'innerCornerNW',
+      BorderGroundVariantRole.teeNorth => 'teeNorth',
+      BorderGroundVariantRole.teeEast => 'teeEast',
+      BorderGroundVariantRole.teeSouth => 'teeSouth',
+      BorderGroundVariantRole.teeWest => 'teeWest',
+      BorderGroundVariantRole.cross => 'cross',
     };

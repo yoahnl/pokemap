@@ -717,7 +717,7 @@ MapData _mapWithSnapshotReferences({
       x: 0,
       y: 0,
       visualSnapshotId: groundSnapshotId,
-      resolvedRole: SurfaceVariantRole.isolated,
+      resolvedRole: BorderGroundVariantRole.isolated,
     ),
   ];
   final materialization = BorderMaterialization(

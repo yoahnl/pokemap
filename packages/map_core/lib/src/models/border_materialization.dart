@@ -3,7 +3,7 @@ import 'package:meta/meta.dart' show immutable;
 import '../exceptions/map_exceptions.dart';
 import 'border_value_objects.dart';
 import 'geometry.dart';
-import 'surface.dart';
+import 'border_ground_variant_role.dart';
 
 final RegExp _snapshotIdPattern = RegExp(
   r'border-snapshot-sha256:[0-9a-f]{64}',
@@ -209,7 +209,7 @@ final class BorderResolvedPlacement {
       );
 }
 
-/// One final Surface cell consumed from persisted Border materialization.
+/// One final ground cell consumed from persisted Border materialization.
 @immutable
 final class BorderResolvedGroundCell {
   BorderResolvedGroundCell({
@@ -227,7 +227,7 @@ final class BorderResolvedGroundCell {
   final int x;
   final int y;
   final String visualSnapshotId;
-  final SurfaceVariantRole resolvedRole;
+  final BorderGroundVariantRole resolvedRole;
 
   @override
   bool operator ==(Object other) =>

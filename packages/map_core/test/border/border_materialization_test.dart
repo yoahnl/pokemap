@@ -381,7 +381,7 @@ void main() {
       expect(ground.x, -9223372036854775808);
       expect(ground.y, 9223372036854775807);
       expect(ground.visualSnapshotId, _snapshotId);
-      expect(ground.resolvedRole, SurfaceVariantRole.innerCornerNE);
+      expect(ground.resolvedRole, BorderGroundVariantRole.innerCornerNE);
       expect(ground, equal);
       expect(ground.hashCode, equal.hashCode);
       expect(
@@ -396,7 +396,7 @@ void main() {
           _ground(
             x: -9223372036854775808,
             y: 9223372036854775807,
-            resolvedRole: SurfaceVariantRole.cross,
+            resolvedRole: BorderGroundVariantRole.cross,
           ),
         ],
         everyElement(isNot(ground)),
@@ -617,7 +617,7 @@ void main() {
           receipt: _receipt(),
           ground: <BorderResolvedGroundCell>[
             _ground(x: 2, y: 3),
-            _ground(x: 2, y: 3, resolvedRole: SurfaceVariantRole.cross),
+            _ground(x: 2, y: 3, resolvedRole: BorderGroundVariantRole.cross),
           ],
           placements: const <BorderResolvedPlacement>[],
         ),
@@ -1198,7 +1198,7 @@ BorderResolvedGroundCell _ground({
   int x = 0,
   int y = 0,
   String visualSnapshotId = _snapshotId,
-  SurfaceVariantRole resolvedRole = SurfaceVariantRole.innerCornerNE,
+  BorderGroundVariantRole resolvedRole = BorderGroundVariantRole.innerCornerNE,
 }) {
   return BorderResolvedGroundCell(
     x: x,

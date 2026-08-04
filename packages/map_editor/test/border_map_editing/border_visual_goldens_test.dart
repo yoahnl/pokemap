@@ -167,8 +167,8 @@ final class _CanonicalCoastFixture {
         ground: BorderPublishedGround(
           sourceSmartTilePresetId: 'synthetic-coast-ground',
           edgeBandCells: 2,
-          visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-            for (final role in standardSurfaceVariantRoleOrder)
+          visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
+            for (final role in standardBorderGroundVariantRoleOrder)
               role: _groundSnapshotId,
           },
         ),

@@ -817,9 +817,9 @@ BorderResolutionRequest _request({
                   : BorderPublishedGround(
                       sourceSmartTilePresetId: 'surface',
                       edgeBandCells: 1,
-                      visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-                        for (final role in standardSurfaceVariantRoleOrder)
-                          role: role == SurfaceVariantRole.cross
+                      visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
+                        for (final role in standardBorderGroundVariantRoleOrder)
+                          role: role == BorderGroundVariantRole.cross
                               ? groundSnapshotId
                               : _snapshotA,
                       },
@@ -969,7 +969,7 @@ BorderResolvedGroundCell _ground({int x = 0, String snapshotId = _snapshotA}) =>
       x: x,
       y: 0,
       visualSnapshotId: snapshotId,
-      resolvedRole: SurfaceVariantRole.isolated,
+      resolvedRole: BorderGroundVariantRole.isolated,
     );
 
 BorderResolvedPlacement _placement({

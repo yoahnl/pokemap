@@ -1191,7 +1191,7 @@ BorderResolvedGroundCell _ground({
       x: x,
       y: 0,
       visualSnapshotId: snapshotId,
-      resolvedRole: SurfaceVariantRole.isolated,
+      resolvedRole: BorderGroundVariantRole.isolated,
     );
 
 BorderResolvedPlacement _placement({

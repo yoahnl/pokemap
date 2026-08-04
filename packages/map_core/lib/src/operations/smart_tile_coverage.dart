@@ -105,16 +105,6 @@ SmartTileCoverageReport analyzeSmartTileCoverage({
   };
   final diagnostics = <SmartTileCoverageDiagnostic>[];
 
-  if (preset.templateHint == SmartTileTemplateHint.legacy20) {
-    diagnostics.add(
-      const SmartTileCoverageDiagnostic(
-        code: 'smart_tiles.coverage.legacy20_unsupported',
-        message: 'Legacy 20 is not a native Smart Tile coverage template.',
-      ),
-    );
-    return _report(diagnostics: diagnostics);
-  }
-
   final explicit = _explicitCoverageInputs(
     preset.coverageProfile.requiredScenarios,
     diagnostics: diagnostics,

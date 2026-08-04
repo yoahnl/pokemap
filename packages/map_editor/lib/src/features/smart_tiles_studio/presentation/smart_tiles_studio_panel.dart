@@ -3939,7 +3939,6 @@ String _usageFilterLabel(_LibraryUsageFilter filter) => switch (filter) {
 
 String _templateLabel(SmartTileTemplateHint template) => switch (template) {
       SmartTileTemplateHint.simple => 'Simple',
-      SmartTileTemplateHint.legacy20 => 'Legacy 20',
       SmartTileTemplateHint.edge16 => 'Edge 16',
       SmartTileTemplateHint.corner16 => 'Corner 16',
       SmartTileTemplateHint.corner12 => 'Corner 12',

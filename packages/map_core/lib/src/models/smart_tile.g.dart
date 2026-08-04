@@ -680,7 +680,6 @@ const _$SmartTileTopologyEnumMap = {
 
 const _$SmartTileTemplateHintEnumMap = {
   SmartTileTemplateHint.simple: 'simple',
-  SmartTileTemplateHint.legacy20: 'legacy_20',
   SmartTileTemplateHint.edge16: 'edge_16',
   SmartTileTemplateHint.corner16: 'corner_16',
   SmartTileTemplateHint.corner12: 'corner_12',

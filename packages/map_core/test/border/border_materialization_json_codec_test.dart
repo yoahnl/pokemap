@@ -299,27 +299,27 @@ void main() {
     });
 
     test('maps all 20 Surface roles through stable explicit wire names', () {
-      const cases = <(SurfaceVariantRole, String)>[
-        (SurfaceVariantRole.isolated, 'isolated'),
-        (SurfaceVariantRole.endNorth, 'endNorth'),
-        (SurfaceVariantRole.endEast, 'endEast'),
-        (SurfaceVariantRole.endSouth, 'endSouth'),
-        (SurfaceVariantRole.endWest, 'endWest'),
-        (SurfaceVariantRole.horizontal, 'horizontal'),
-        (SurfaceVariantRole.vertical, 'vertical'),
-        (SurfaceVariantRole.cornerNE, 'cornerNE'),
-        (SurfaceVariantRole.cornerSE, 'cornerSE'),
-        (SurfaceVariantRole.cornerSW, 'cornerSW'),
-        (SurfaceVariantRole.cornerNW, 'cornerNW'),
-        (SurfaceVariantRole.innerCornerNE, 'innerCornerNE'),
-        (SurfaceVariantRole.innerCornerSE, 'innerCornerSE'),
-        (SurfaceVariantRole.innerCornerSW, 'innerCornerSW'),
-        (SurfaceVariantRole.innerCornerNW, 'innerCornerNW'),
-        (SurfaceVariantRole.teeNorth, 'teeNorth'),
-        (SurfaceVariantRole.teeEast, 'teeEast'),
-        (SurfaceVariantRole.teeSouth, 'teeSouth'),
-        (SurfaceVariantRole.teeWest, 'teeWest'),
-        (SurfaceVariantRole.cross, 'cross'),
+      const cases = <(BorderGroundVariantRole, String)>[
+        (BorderGroundVariantRole.isolated, 'isolated'),
+        (BorderGroundVariantRole.endNorth, 'endNorth'),
+        (BorderGroundVariantRole.endEast, 'endEast'),
+        (BorderGroundVariantRole.endSouth, 'endSouth'),
+        (BorderGroundVariantRole.endWest, 'endWest'),
+        (BorderGroundVariantRole.horizontal, 'horizontal'),
+        (BorderGroundVariantRole.vertical, 'vertical'),
+        (BorderGroundVariantRole.cornerNE, 'cornerNE'),
+        (BorderGroundVariantRole.cornerSE, 'cornerSE'),
+        (BorderGroundVariantRole.cornerSW, 'cornerSW'),
+        (BorderGroundVariantRole.cornerNW, 'cornerNW'),
+        (BorderGroundVariantRole.innerCornerNE, 'innerCornerNE'),
+        (BorderGroundVariantRole.innerCornerSE, 'innerCornerSE'),
+        (BorderGroundVariantRole.innerCornerSW, 'innerCornerSW'),
+        (BorderGroundVariantRole.innerCornerNW, 'innerCornerNW'),
+        (BorderGroundVariantRole.teeNorth, 'teeNorth'),
+        (BorderGroundVariantRole.teeEast, 'teeEast'),
+        (BorderGroundVariantRole.teeSouth, 'teeSouth'),
+        (BorderGroundVariantRole.teeWest, 'teeWest'),
+        (BorderGroundVariantRole.cross, 'cross'),
       ];
 
       for (final (role, wireName) in cases) {
@@ -341,9 +341,9 @@ void main() {
     test('preserves authored runtime list order and never sorts', () {
       final materialization = _materialization(
         ground: <BorderResolvedGroundCell>[
-          _ground(x: -2, y: 0, resolvedRole: SurfaceVariantRole.endWest),
-          _ground(x: 5, y: 0, resolvedRole: SurfaceVariantRole.endEast),
-          _ground(x: -4, y: 2, resolvedRole: SurfaceVariantRole.endSouth),
+          _ground(x: -2, y: 0, resolvedRole: BorderGroundVariantRole.endWest),
+          _ground(x: 5, y: 0, resolvedRole: BorderGroundVariantRole.endEast),
+          _ground(x: -4, y: 2, resolvedRole: BorderGroundVariantRole.endSouth),
         ],
         placements: <BorderResolvedPlacement>[
           _placement(
@@ -633,7 +633,7 @@ BorderResolvedGroundCell _ground({
   int x = 0,
   int y = 0,
   String visualSnapshotId = _snapshotA,
-  SurfaceVariantRole resolvedRole = SurfaceVariantRole.innerCornerNE,
+  BorderGroundVariantRole resolvedRole = BorderGroundVariantRole.innerCornerNE,
 }) =>
     BorderResolvedGroundCell(
       x: x,

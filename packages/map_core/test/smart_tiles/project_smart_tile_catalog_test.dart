@@ -360,6 +360,29 @@ void main() {
       expect(decoded.transformPolicy.allowHFlip, isTrue);
     });
 
+    test('historical legacy_20 template is rejected during JSON decoding', () {
+      final json = const ProjectSmartTilePreset(
+        id: 'native-only',
+        name: 'Native only',
+        usage: SmartTileUsage.terrain,
+        topology: SmartTileTopology.cardinal4,
+        templateHint: SmartTileTemplateHint.edge16,
+        coveragePolicy: SmartTileCoveragePolicy.complete,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.template,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
+        defaultMaterialId: 'grass',
+        allowedMaterialIds: <String>['grass'],
+      ).toJson()
+        ..['templateHint'] = 'legacy_20';
+
+      expect(
+        () => ProjectSmartTilePreset.fromJson(json),
+        throwsArgumentError,
+      );
+    });
+
     test('malformed slot matches fail closed during JSON decoding', () {
       for (final invalid in <Map<String, dynamic>>[
         <String, dynamic>{'kind': 'material'},

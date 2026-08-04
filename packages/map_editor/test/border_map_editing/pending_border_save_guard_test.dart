@@ -366,7 +366,7 @@ BorderResolutionResult _result() => BorderResolutionResult(
             x: 0,
             y: 0,
             visualSnapshotId: 'border-snapshot-sha256:${'a' * 64}',
-            resolvedRole: SurfaceVariantRole.isolated,
+            resolvedRole: BorderGroundVariantRole.isolated,
           ),
         ],
         placements: const <BorderResolvedPlacement>[],

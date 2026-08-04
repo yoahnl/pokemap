@@ -525,12 +525,6 @@ final class SmartTileAuthoringController {
   }
 
   void selectTemplate(SmartTileTemplateHint template) {
-    if (template == SmartTileTemplateHint.legacy20) {
-      throw ArgumentError(
-        'Legacy 20 is read through its historical adapter and is not a '
-        'native authoring template.',
-      );
-    }
     final topology = _state.usage == SmartTileUsage.terrain &&
             template == SmartTileTemplateHint.edge16
         ? SmartTileTopology.cardinal4

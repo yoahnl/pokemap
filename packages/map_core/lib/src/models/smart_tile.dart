@@ -35,8 +35,6 @@ enum SmartTileTopology {
 enum SmartTileTemplateHint {
   @JsonValue('simple')
   simple,
-  @JsonValue('legacy_20')
-  legacy20,
   @JsonValue('edge_16')
   edge16,
   @JsonValue('corner_16')
@@ -154,8 +152,8 @@ enum SmartTileOffsetUnit {
 /// Controls how a visual part samples a frame larger than one atlas cell.
 ///
 /// [fullFrame] preserves the native Smart Tile behavior: the complete frame is
-/// drawn for the resolved cell. The other modes exist so legacy terrain
-/// textures can migrate without being squashed into one map cell.
+/// drawn for the resolved cell. The other modes support authored textures
+/// larger than one map cell without squashing them.
 enum SmartTileFrameSampling {
   @JsonValue('full_frame')
   fullFrame,

@@ -48,8 +48,8 @@ void main() {
         sourceSmartTilePresetId: 'shore',
       );
 
-      expect(result.keys, orderedEquals(standardSurfaceVariantRoleOrder));
-      expect(result, hasLength(standardSurfaceVariantRoleOrder.length));
+      expect(result.keys, orderedEquals(standardBorderGroundVariantRoleOrder));
+      expect(result, hasLength(standardBorderGroundVariantRoleOrder.length));
       for (final preparation in result.values) {
         expect(preparation.sourceElementId, 'shore');
         expect(
@@ -63,7 +63,7 @@ void main() {
         expect(pixels.getPixel(0, 0).r.toInt(), 10);
       }
       expect(
-        () => result.remove(SurfaceVariantRole.isolated),
+        () => result.remove(BorderGroundVariantRole.isolated),
         throwsUnsupportedError,
       );
     });
@@ -105,7 +105,7 @@ void main() {
       );
 
       final pixels = img.decodePng(
-        result[SurfaceVariantRole.isolated]!.files.single.bytes,
+        result[BorderGroundVariantRole.isolated]!.files.single.bytes,
       )!;
       expect(pixels.getPixel(0, 0).r.toInt(), 10);
       expect(pixels.getPixel(1, 0).b.toInt(), 220);
@@ -151,7 +151,7 @@ void main() {
         sourceSmartTilePresetId: 'shore',
       );
 
-      final prepared = result[SurfaceVariantRole.cornerSE]!;
+      final prepared = result[BorderGroundVariantRole.cornerSE]!;
       expect(
         prepared.snapshot.frames.map((frame) => frame.durationMs),
         orderedEquals(<int>[65, 95]),
@@ -254,9 +254,9 @@ void main() {
                 BorderSmartTileGroundSnapshotErrorCode.unresolvedSmartTileRole,
               )
               .having(
-                (error) => error.surfaceRole,
-                'surfaceRole',
-                SurfaceVariantRole.isolated,
+                (error) => error.groundRole,
+                'groundRole',
+                BorderGroundVariantRole.isolated,
               ),
         ),
       );
@@ -487,7 +487,7 @@ void main() {
       );
 
       expect(first.keys, orderedEquals(second.keys));
-      for (final role in standardSurfaceVariantRoleOrder) {
+      for (final role in standardBorderGroundVariantRoleOrder) {
         expect(first[role]!.snapshot, second[role]!.snapshot);
         expect(first[role]!.metrics, second[role]!.metrics);
         expect(first[role]!.files, orderedEquals(second[role]!.files));

@@ -547,7 +547,7 @@ void main() {
         _request(ground: _ground(edgeBandCells: 3)),
         _request(
           ground: _ground(
-            snapshotOverrideRole: SurfaceVariantRole.cross,
+            snapshotOverrideRole: BorderGroundVariantRole.cross,
             snapshotOverrideId: _snapshotA,
           ),
         ),
@@ -777,7 +777,7 @@ void main() {
         _snapshot(_hexB),
       ];
       final groundWithC = _ground(
-        snapshotOverrideRole: SurfaceVariantRole.cross,
+        snapshotOverrideRole: BorderGroundVariantRole.cross,
         snapshotOverrideId: _snapshotC,
       );
       final lockedWithC = BorderSlotOverride(
@@ -900,8 +900,8 @@ void main() {
 
     test('output excludes receipts, preserves both list orders, and is exact',
         () {
-      final groundA = _resolvedGround(x: 0, role: SurfaceVariantRole.endEast);
-      final groundB = _resolvedGround(x: 1, role: SurfaceVariantRole.endWest);
+      final groundA = _resolvedGround(x: 0, role: BorderGroundVariantRole.endEast);
+      final groundB = _resolvedGround(x: 1, role: BorderGroundVariantRole.endWest);
       final placementA = _placement(slotKey: 'slot-a', id: 'placement-a');
       final placementB = _placement(
         slotKey: 'slot-b',
@@ -951,7 +951,7 @@ void main() {
               x: 0,
               y: 3,
               visualSnapshotId: _snapshotA,
-              resolvedRole: SurfaceVariantRole.endEast,
+              resolvedRole: BorderGroundVariantRole.endEast,
             ),
           ],
           placements: const <BorderResolvedPlacement>[],
@@ -962,7 +962,7 @@ void main() {
               x: 0,
               y: 2,
               visualSnapshotId: _snapshotB,
-              resolvedRole: SurfaceVariantRole.endEast,
+              resolvedRole: BorderGroundVariantRole.endEast,
             ),
           ],
           placements: const <BorderResolvedPlacement>[],
@@ -973,7 +973,7 @@ void main() {
               x: 0,
               y: 2,
               visualSnapshotId: _snapshotA,
-              resolvedRole: SurfaceVariantRole.cross,
+              resolvedRole: BorderGroundVariantRole.cross,
             ),
           ],
           placements: const <BorderResolvedPlacement>[],
@@ -1212,20 +1212,20 @@ BorderPublishedGround _ground({
   bool reverseInsertion = false,
   String sourceSmartTilePresetId = 'current-surface',
   int edgeBandCells = 2,
-  SurfaceVariantRole? snapshotOverrideRole,
+  BorderGroundVariantRole? snapshotOverrideRole,
   String? snapshotOverrideId,
 }) {
   final roles = reverseInsertion
-      ? standardSurfaceVariantRoleOrder.reversed
-      : standardSurfaceVariantRoleOrder;
+      ? standardBorderGroundVariantRoleOrder.reversed
+      : standardBorderGroundVariantRoleOrder;
   return BorderPublishedGround(
     sourceSmartTilePresetId: sourceSmartTilePresetId,
     edgeBandCells: edgeBandCells,
-    visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
+    visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
       for (final role in roles)
         role: role == snapshotOverrideRole
             ? snapshotOverrideId!
-            : standardSurfaceVariantRoleOrder.indexOf(role).isEven
+            : standardBorderGroundVariantRoleOrder.indexOf(role).isEven
                 ? _snapshotA
                 : _snapshotB,
     },
@@ -1283,7 +1283,7 @@ BorderVisualFrameSnapshot _frame(
 
 BorderResolvedGroundCell _resolvedGround({
   required int x,
-  required SurfaceVariantRole role,
+  required BorderGroundVariantRole role,
 }) =>
     BorderResolvedGroundCell(
       x: x,

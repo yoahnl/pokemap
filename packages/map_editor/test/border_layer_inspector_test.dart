@@ -1336,7 +1336,7 @@ BorderMaterialization _materialization() => BorderMaterialization(
           y: 0,
           visualSnapshotId:
               'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-          resolvedRole: SurfaceVariantRole.isolated,
+          resolvedRole: BorderGroundVariantRole.isolated,
         ),
       ],
       placements: <BorderResolvedPlacement>[

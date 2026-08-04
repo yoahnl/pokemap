@@ -37,7 +37,7 @@ void main() {
   group('Border ground definitions', () {
     test('V1 Surface role completeness has an explicit stable order', () {
       expect(
-        standardSurfaceVariantRoleOrder.map((role) => role.name),
+        standardBorderGroundVariantRoleOrder.map((role) => role.name),
         const <String>[
           'isolated',
           'endNorth',
@@ -88,10 +88,10 @@ void main() {
         visualSnapshotIdsByRole: snapshots,
       );
 
-      snapshots[SurfaceVariantRole.isolated] = 'changed';
+      snapshots[BorderGroundVariantRole.isolated] = 'changed';
 
       expect(
-        ground.visualSnapshotIdsByRole[SurfaceVariantRole.isolated],
+        ground.visualSnapshotIdsByRole[BorderGroundVariantRole.isolated],
         _snapshotId,
       );
       expect(
@@ -110,7 +110,7 @@ void main() {
 
     test('published ground rejects missing V1 roles and non-positive bands',
         () {
-      final incomplete = _surfaceSnapshots()..remove(SurfaceVariantRole.cross);
+      final incomplete = _surfaceSnapshots()..remove(BorderGroundVariantRole.cross);
 
       expect(
         () => BorderPublishedGround(
@@ -155,7 +155,7 @@ void main() {
       expect(publishedPrimitive.visualSnapshotId, 'missing-snapshot');
       expect(draftGround.sourceSmartTilePresetId, 'missing-surface');
       expect(
-        publishedGround.visualSnapshotIdsByRole[SurfaceVariantRole.isolated],
+        publishedGround.visualSnapshotIdsByRole[BorderGroundVariantRole.isolated],
         'missing-snapshot',
       );
     });
@@ -180,7 +180,7 @@ void main() {
               sourceSmartTilePresetId: 'surface',
               edgeBandCells: 1,
               visualSnapshotIdsByRole: _surfaceSnapshots()
-                ..[SurfaceVariantRole.isolated] = '',
+                ..[BorderGroundVariantRole.isolated] = '',
             ),
         () =>
             BorderBlueprintDefinition<BorderPrimitiveDraft, BorderGroundDraft>(
@@ -466,10 +466,10 @@ BorderSignedInt64 _signedInt64(Object value) => switch (value) {
       _ => throw ArgumentError.value(value, 'value'),
     };
 
-Map<SurfaceVariantRole, String> _surfaceSnapshots({
+Map<BorderGroundVariantRole, String> _surfaceSnapshots({
   String snapshotId = _snapshotId,
 }) {
-  return <SurfaceVariantRole, String>{
-    for (final role in standardSurfaceVariantRoleOrder) role: snapshotId,
+  return <BorderGroundVariantRole, String>{
+    for (final role in standardBorderGroundVariantRoleOrder) role: snapshotId,
   };
 }

@@ -701,21 +701,6 @@ void main() {
       );
     });
 
-    test('legacy20 is rejected by native v2 coverage', () {
-      final report = _analyze(
-        _templatePreset(
-          template: SmartTileTemplateHint.legacy20,
-          topology: SmartTileTopology.cardinal4,
-        ),
-      );
-
-      expect(report.cases, isEmpty);
-      expect(
-        report.diagnostics.map((item) => item.code),
-        contains('smart_tiles.coverage.legacy20_unsupported'),
-      );
-    });
-
     test('fallback diagnostics follow allowFallback', () {
       ProjectSmartTilePreset preset(bool allowFallback) => _simplePreset(
             rules: <SmartTileRule>[

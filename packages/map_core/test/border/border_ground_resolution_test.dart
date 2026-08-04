@@ -34,10 +34,10 @@ void main() {
         (cell) => cell.x == 2 && cell.y == 0,
       );
 
-      expect(topMiddle.resolvedRole, SurfaceVariantRole.teeSouth);
+      expect(topMiddle.resolvedRole, BorderGroundVariantRole.teeSouth);
       expect(
         topMiddle.visualSnapshotId,
-        _snapshotFor(SurfaceVariantRole.teeSouth),
+        _snapshotFor(BorderGroundVariantRole.teeSouth),
       );
     });
 
@@ -99,11 +99,11 @@ BorderPublishedGround _ground({required int edgeBandCells}) =>
     BorderPublishedGround(
       sourceSmartTilePresetId: 'ground',
       edgeBandCells: edgeBandCells,
-      visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-        for (final role in standardSurfaceVariantRoleOrder)
+      visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
+        for (final role in standardBorderGroundVariantRoleOrder)
           role: _snapshotFor(role),
       },
     );
 
-String _snapshotFor(SurfaceVariantRole role) => 'border-snapshot-sha256:'
-    '${(standardSurfaceVariantRoleOrder.indexOf(role) + 1).toRadixString(16).padLeft(64, '0')}';
+String _snapshotFor(BorderGroundVariantRole role) => 'border-snapshot-sha256:'
+    '${(standardBorderGroundVariantRoleOrder.indexOf(role) + 1).toRadixString(16).padLeft(64, '0')}';

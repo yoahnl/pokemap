@@ -67,7 +67,7 @@ export 'src/models/shadow_catalog.dart';
 export 'src/models/smart_tile.dart';
 export 'src/models/smart_tile_field.dart';
 export 'src/models/projected_building_shadow.dart';
-export 'src/models/surface.dart';
+export 'src/models/border_ground_variant_role.dart';
 export 'src/models/border_value_objects.dart';
 export 'src/models/border_signed_int64.dart';
 export 'src/models/border_visual_snapshot.dart';
@@ -126,7 +126,7 @@ export 'src/operations/border_locality.dart';
 export 'src/operations/border_local_resolution_scope.dart'
     show BorderLocalResolutionState;
 export 'src/operations/border_ground_resolution.dart';
-export 'src/operations/surface_variant_role_resolver.dart';
+export 'src/operations/border_ground_variant_role_resolver.dart';
 export 'src/operations/border_coverage.dart';
 export 'src/operations/border_sprite_geometry.dart';
 export 'src/operations/organic_edge_border_resolver.dart';

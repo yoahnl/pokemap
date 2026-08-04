@@ -173,7 +173,7 @@ void main() {
             x: 1,
             y: 0,
             visualSnapshotId: fixture.snapshot.id,
-            resolvedRole: SurfaceVariantRole.isolated,
+            resolvedRole: BorderGroundVariantRole.isolated,
           ),
         ],
         placements: original.placements,
@@ -549,7 +549,7 @@ final class _Fixture {
         x: 0,
         y: 0,
         visualSnapshotId: snapshot.id,
-        resolvedRole: SurfaceVariantRole.isolated,
+        resolvedRole: BorderGroundVariantRole.isolated,
       ),
     ];
     final components = computeBorderInputFingerprints(request);

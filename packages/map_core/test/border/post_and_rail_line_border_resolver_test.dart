@@ -1041,7 +1041,7 @@ String _diagnostics(BorderResolutionResult result) => result.diagnostics
 BorderPublishedGround _unusedGround() => BorderPublishedGround(
       sourceSmartTilePresetId: 'unused-ground',
       edgeBandCells: 1,
-      visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-        for (final role in standardSurfaceVariantRoleOrder) role: 'unused',
+      visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
+        for (final role in standardBorderGroundVariantRoleOrder) role: 'unused',
       },
     );

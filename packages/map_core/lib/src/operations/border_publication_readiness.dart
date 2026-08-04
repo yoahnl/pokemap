@@ -8,7 +8,7 @@ import '../models/border_value_objects.dart';
 import '../models/border_visual_snapshot.dart';
 import '../models/project_manifest.dart';
 import '../models/smart_tile.dart';
-import '../models/surface.dart';
+import '../models/border_ground_variant_role.dart';
 import 'border_coverage.dart';
 import 'border_rle_codec.dart';
 import 'border_template_capabilities.dart';
@@ -1304,9 +1304,9 @@ void _diagnoseGroundCompleteness(
   final ground = definition.ground;
   if (ground == null) return;
   final missing = <String>[
-    for (final role in standardSurfaceVariantRoleOrder)
+    for (final role in standardBorderGroundVariantRoleOrder)
       if (ground.visualSnapshotIdsByRole[role]?.isNotEmpty != true)
-        _surfaceRoleV1WireName(role),
+        _borderGroundRoleV1WireName(role),
   ];
   if (missing.isNotEmpty) {
     diagnostics.add(_diagnostic(
@@ -1990,8 +1990,8 @@ Object _publicationCandidateProjection(
             'sourceSmartTilePresetId': ground.sourceSmartTilePresetId,
             'edgeBandCells': ground.edgeBandCells.toString(),
             'visualSnapshotIdsByRole': <String, Object?>{
-              for (final role in standardSurfaceVariantRoleOrder)
-                _surfaceRoleV1WireName(role):
+              for (final role in standardBorderGroundVariantRoleOrder)
+                _borderGroundRoleV1WireName(role):
                     ground.visualSnapshotIdsByRole[role],
             },
           },
@@ -2050,27 +2050,27 @@ String _templateV1WireName(BorderBlueprintTemplate template) =>
       BorderBlueprintTemplate.stoneChainLine => 'stoneChainLine',
     };
 
-String _surfaceRoleV1WireName(SurfaceVariantRole role) => switch (role) {
-      SurfaceVariantRole.isolated => 'isolated',
-      SurfaceVariantRole.endNorth => 'endNorth',
-      SurfaceVariantRole.endEast => 'endEast',
-      SurfaceVariantRole.endSouth => 'endSouth',
-      SurfaceVariantRole.endWest => 'endWest',
-      SurfaceVariantRole.horizontal => 'horizontal',
-      SurfaceVariantRole.vertical => 'vertical',
-      SurfaceVariantRole.cornerNE => 'cornerNE',
-      SurfaceVariantRole.cornerSE => 'cornerSE',
-      SurfaceVariantRole.cornerSW => 'cornerSW',
-      SurfaceVariantRole.cornerNW => 'cornerNW',
-      SurfaceVariantRole.innerCornerNE => 'innerCornerNE',
-      SurfaceVariantRole.innerCornerSE => 'innerCornerSE',
-      SurfaceVariantRole.innerCornerSW => 'innerCornerSW',
-      SurfaceVariantRole.innerCornerNW => 'innerCornerNW',
-      SurfaceVariantRole.teeNorth => 'teeNorth',
-      SurfaceVariantRole.teeEast => 'teeEast',
-      SurfaceVariantRole.teeSouth => 'teeSouth',
-      SurfaceVariantRole.teeWest => 'teeWest',
-      SurfaceVariantRole.cross => 'cross',
+String _borderGroundRoleV1WireName(BorderGroundVariantRole role) => switch (role) {
+      BorderGroundVariantRole.isolated => 'isolated',
+      BorderGroundVariantRole.endNorth => 'endNorth',
+      BorderGroundVariantRole.endEast => 'endEast',
+      BorderGroundVariantRole.endSouth => 'endSouth',
+      BorderGroundVariantRole.endWest => 'endWest',
+      BorderGroundVariantRole.horizontal => 'horizontal',
+      BorderGroundVariantRole.vertical => 'vertical',
+      BorderGroundVariantRole.cornerNE => 'cornerNE',
+      BorderGroundVariantRole.cornerSE => 'cornerSE',
+      BorderGroundVariantRole.cornerSW => 'cornerSW',
+      BorderGroundVariantRole.cornerNW => 'cornerNW',
+      BorderGroundVariantRole.innerCornerNE => 'innerCornerNE',
+      BorderGroundVariantRole.innerCornerSE => 'innerCornerSE',
+      BorderGroundVariantRole.innerCornerSW => 'innerCornerSW',
+      BorderGroundVariantRole.innerCornerNW => 'innerCornerNW',
+      BorderGroundVariantRole.teeNorth => 'teeNorth',
+      BorderGroundVariantRole.teeEast => 'teeEast',
+      BorderGroundVariantRole.teeSouth => 'teeSouth',
+      BorderGroundVariantRole.teeWest => 'teeWest',
+      BorderGroundVariantRole.cross => 'cross',
     };
 
 BorderDiagnostic _diagnostic({

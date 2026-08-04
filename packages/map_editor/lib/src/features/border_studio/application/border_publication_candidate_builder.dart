@@ -26,7 +26,7 @@ final class BorderPublicationCandidateException implements Exception {
     this.primitiveId,
     this.sourceElementId,
     this.sourceSmartTilePresetId,
-    this.surfaceRole,
+    this.groundRole,
     this.snapshotId,
     this.relativePath,
   });
@@ -36,7 +36,7 @@ final class BorderPublicationCandidateException implements Exception {
   final String? primitiveId;
   final String? sourceElementId;
   final String? sourceSmartTilePresetId;
-  final SurfaceVariantRole? surfaceRole;
+  final BorderGroundVariantRole? groundRole;
   final String? snapshotId;
   final String? relativePath;
 
@@ -57,7 +57,7 @@ final class BorderPublicationCandidate {
     required List<BorderSnapshotFilePayload> files,
     required Map<String, BorderVisualSnapshotIntegrity> snapshotIntegrity,
     required Map<String, String> primitiveSnapshotIdsByPrimitiveId,
-    required Map<SurfaceVariantRole, String> groundSnapshotIdsByRole,
+    required Map<BorderGroundVariantRole, String> groundSnapshotIdsByRole,
   })  : files = List<BorderSnapshotFilePayload>.unmodifiable(files),
         snapshotIntegrity = UnmodifiableMapView(
           Map<String, BorderVisualSnapshotIntegrity>.from(snapshotIntegrity),
@@ -66,7 +66,7 @@ final class BorderPublicationCandidate {
           Map<String, String>.from(primitiveSnapshotIdsByPrimitiveId),
         ),
         groundSnapshotIdsByRole = UnmodifiableMapView(
-          Map<SurfaceVariantRole, String>.from(groundSnapshotIdsByRole),
+          Map<BorderGroundVariantRole, String>.from(groundSnapshotIdsByRole),
         );
 
   final ProjectManifest nextManifest;
@@ -74,14 +74,14 @@ final class BorderPublicationCandidate {
   final List<BorderSnapshotFilePayload> files;
   final Map<String, BorderVisualSnapshotIntegrity> snapshotIntegrity;
   final Map<String, String> primitiveSnapshotIdsByPrimitiveId;
-  final Map<SurfaceVariantRole, String> groundSnapshotIdsByRole;
+  final Map<BorderGroundVariantRole, String> groundSnapshotIdsByRole;
 }
 
 /// Builds the immutable published Border revision without performing I/O.
 ///
 /// Primitive and Smart Tile snapshot inputs must already have been prepared by
 /// [BorderAssetSnapshotService]. Ground inputs are deliberately supplied by
-/// logical [SurfaceVariantRole]; this builder never reads a Smart Tile atlas or
+/// logical [BorderGroundVariantRole]; this builder never reads a Smart Tile atlas or
 /// invents filesystem state.
 final class BorderPublicationCandidateBuilder {
   const BorderPublicationCandidateBuilder();
@@ -91,8 +91,8 @@ final class BorderPublicationCandidateBuilder {
     required BorderBlueprintRecord draftRecord,
     required Map<String, BorderAssetSnapshotPreparation>
         primitiveSnapshotsByPrimitiveId,
-    Map<SurfaceVariantRole, BorderAssetSnapshotPreparation> groundSnapshotsByRole =
-        const <SurfaceVariantRole, BorderAssetSnapshotPreparation>{},
+    Map<BorderGroundVariantRole, BorderAssetSnapshotPreparation> groundSnapshotsByRole =
+        const <BorderGroundVariantRole, BorderAssetSnapshotPreparation>{},
   }) {
     final recordIndex = manifest.borderCatalog.records.indexWhere(
       (record) => record.id == draftRecord.id,
@@ -235,7 +235,7 @@ final class BorderPublicationCandidateBuilder {
 
     final draftGround = draftRecord.draft.definition.ground;
     BorderPublishedGround? publishedGround;
-    final groundBindings = <SurfaceVariantRole, String>{};
+    final groundBindings = <BorderGroundVariantRole, String>{};
     if (draftGround == null) {
       if (groundSnapshotsByRole.isNotEmpty) {
         throw const BorderPublicationCandidateException(
@@ -260,14 +260,14 @@ final class BorderPublicationCandidateBuilder {
           sourceSmartTilePresetId: draftGround.sourceSmartTilePresetId,
         );
       }
-      for (final role in standardSurfaceVariantRoleOrder) {
+      for (final role in standardBorderGroundVariantRoleOrder) {
         final preparation = groundSnapshotsByRole[role];
         if (preparation == null) {
           throw BorderPublicationCandidateException(
             code: BorderPublicationCandidateErrorCode.groundSnapshotRoleMissing,
             userMessage:
                 'Préparez la variante Smart Tile « ${role.name} » avant de publier.',
-            surfaceRole: role,
+            groundRole: role,
           );
         }
         if (preparation.sourceElementId !=
@@ -279,7 +279,7 @@ final class BorderPublicationCandidateBuilder {
                 'Réanalysez la variante Smart Tile « ${role.name} » depuis le preset « ${draftGround.sourceSmartTilePresetId} ».',
             sourceElementId: preparation.sourceElementId,
             sourceSmartTilePresetId: draftGround.sourceSmartTilePresetId,
-            surfaceRole: role,
+            groundRole: role,
           );
         }
         groundBindings[role] = registerSnapshot(preparation);

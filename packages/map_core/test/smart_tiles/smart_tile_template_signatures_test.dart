@@ -382,9 +382,8 @@ void main() {
       }
     });
 
-    test('Free and Legacy 20 do not invent canonical native mappings', () {
+    test('Free does not invent canonical native mappings', () {
       expect(smartTileCanonicalMasks(SmartTileTemplateHint.free), isEmpty);
-      expect(smartTileCanonicalMasks(SmartTileTemplateHint.legacy20), isEmpty);
     });
   });
 }

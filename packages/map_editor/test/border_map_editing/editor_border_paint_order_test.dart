@@ -78,7 +78,7 @@ BorderFeature _feature(
       x: groundX,
       y: 0,
       visualSnapshotId: _snapshot,
-      resolvedRole: SurfaceVariantRole.isolated,
+      resolvedRole: BorderGroundVariantRole.isolated,
     ),
   ];
   final placement = BorderResolvedPlacement(

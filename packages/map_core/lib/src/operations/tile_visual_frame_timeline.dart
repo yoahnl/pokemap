@@ -6,14 +6,14 @@ import 'map_placed_element_animation.dart';
 /// Playback modes for resolving a visual tile frame from a timeline.
 ///
 /// This is intentionally smaller than [MapPlacedElementAnimationMode]. Tile
-/// timelines are a neutral primitive for paths, terrain previews, and future
-/// Surface Engine work. Ping-pong, random starts, authored start offsets, and
+/// timelines are a neutral primitive for Smart Tiles and placed-element
+/// previews. Ping-pong, random starts, authored start offsets, and
 /// trigger orchestration stay outside this V1 API until a concrete surface use
 /// case needs them.
 enum TileVisualFrameTimelinePlaybackMode {
   /// Always resolve the first frame.
   ///
-  /// This mode is useful for static previews and legacy code paths that only
+  /// This mode is useful for static previews and consumers that only
   /// want the primary sprite, even when additional frames are present.
   staticFrame,
 
@@ -56,9 +56,9 @@ class TileVisualFrameTimelineResolution {
 }
 
 /// Resolves a visual tile frame from [frames] using the existing animation
-/// timing semantics shared by placed elements and legacy path autotiles.
+/// timing semantics shared by placed elements and Smart Tiles.
 ///
-/// V1 deliberately does not own persistence, rendering, surface rules, or
+/// V1 deliberately does not own persistence, rendering, Smart Tile rules, or
 /// trigger state. It is a pure map_core helper whose job is only:
 ///
 /// - normalize frame durations with the current engine fallback;

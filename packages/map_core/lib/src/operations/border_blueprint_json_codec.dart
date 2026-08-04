@@ -1,7 +1,7 @@
 import '../models/border_blueprint.dart';
 import '../models/border_signed_int64.dart';
 import '../models/border_value_objects.dart';
-import '../models/surface.dart';
+import '../models/border_ground_variant_role.dart';
 import 'border_json_codec_helpers.dart';
 import 'border_visual_snapshot_json_codec.dart';
 
@@ -71,7 +71,7 @@ const Set<String> _generationParamKeys = <String>{
 const Set<String> _generationParamOptionalKeysV2 = <String>{
   'allowAutoRotation',
 };
-const Set<String> _surfaceRoleKeys = <String>{
+const Set<String> _borderGroundRoleKeys = <String>{
   'isolated',
   'endNorth',
   'endEast',
@@ -1090,8 +1090,9 @@ Map<String, Object?> _encodePublishedGround(
     snapshotsPath,
   );
   final snapshots = <String, Object?>{};
-  for (final role in standardSurfaceVariantRoleOrder) {
-    snapshots[_encodeSurfaceRole(role)] = value.visualSnapshotIdsByRole[role]!;
+  for (final role in standardBorderGroundVariantRoleOrder) {
+    snapshots[_encodeBorderGroundRole(role)] =
+        value.visualSnapshotIdsByRole[role]!;
   }
   return <String, Object?>{
     'sourceSmartTilePresetId': value.sourceSmartTilePresetId,
@@ -1116,14 +1117,14 @@ BorderPublishedGround _decodePublishedGround(Object? json, String path) {
   borderJsonRequireExactKeys(
     snapshotValues,
     path: snapshotsPath,
-    requiredKeys: _surfaceRoleKeys,
+    requiredKeys: _borderGroundRoleKeys,
   );
-  final snapshots = <SurfaceVariantRole, String>{};
+  final snapshots = <BorderGroundVariantRole, String>{};
   for (final entry in snapshotValues.entries) {
     final entryPath = borderJsonPropertyPath(snapshotsPath, entry.key);
     final snapshotId = borderJsonRequireString(entry.value, entryPath);
     _requireNonEmpty(snapshotId, entryPath);
-    snapshots[_decodeSurfaceRole(entry.key, entryPath)] = snapshotId;
+    snapshots[_decodeBorderGroundRole(entry.key, entryPath)] = snapshotId;
   }
   _validatePublishedGroundRoleMap(snapshots, snapshotsPath);
   return borderJsonConstructAtPath(
@@ -1174,14 +1175,16 @@ void _validateGroundFields(
 }
 
 void _validatePublishedGroundRoleMap(
-  Map<SurfaceVariantRole, String> values,
+  Map<BorderGroundVariantRole, String> values,
   String path,
 ) {
-  if (values.length != _surfaceRoleKeys.length) {
-    throw FormatException('$path: must contain exactly all 20 Surface roles');
+  if (values.length != _borderGroundRoleKeys.length) {
+    throw FormatException(
+      '$path: must contain exactly all 20 Border ground roles',
+    );
   }
-  for (final role in standardSurfaceVariantRoleOrder) {
-    final roleName = _encodeSurfaceRole(role);
+  for (final role in standardBorderGroundVariantRoleOrder) {
+    final roleName = _encodeBorderGroundRole(role);
     final snapshotId = values[role];
     if (snapshotId == null) {
       throw FormatException(
@@ -1329,50 +1332,51 @@ void _requireBlueprintFormatVersion(int value, String path) {
   }
 }
 
-String _encodeSurfaceRole(SurfaceVariantRole value) => switch (value) {
-      SurfaceVariantRole.isolated => 'isolated',
-      SurfaceVariantRole.endNorth => 'endNorth',
-      SurfaceVariantRole.endEast => 'endEast',
-      SurfaceVariantRole.endSouth => 'endSouth',
-      SurfaceVariantRole.endWest => 'endWest',
-      SurfaceVariantRole.horizontal => 'horizontal',
-      SurfaceVariantRole.vertical => 'vertical',
-      SurfaceVariantRole.cornerNE => 'cornerNE',
-      SurfaceVariantRole.cornerSE => 'cornerSE',
-      SurfaceVariantRole.cornerSW => 'cornerSW',
-      SurfaceVariantRole.cornerNW => 'cornerNW',
-      SurfaceVariantRole.innerCornerNE => 'innerCornerNE',
-      SurfaceVariantRole.innerCornerSE => 'innerCornerSE',
-      SurfaceVariantRole.innerCornerSW => 'innerCornerSW',
-      SurfaceVariantRole.innerCornerNW => 'innerCornerNW',
-      SurfaceVariantRole.teeNorth => 'teeNorth',
-      SurfaceVariantRole.teeEast => 'teeEast',
-      SurfaceVariantRole.teeSouth => 'teeSouth',
-      SurfaceVariantRole.teeWest => 'teeWest',
-      SurfaceVariantRole.cross => 'cross',
+String _encodeBorderGroundRole(BorderGroundVariantRole value) =>
+    switch (value) {
+      BorderGroundVariantRole.isolated => 'isolated',
+      BorderGroundVariantRole.endNorth => 'endNorth',
+      BorderGroundVariantRole.endEast => 'endEast',
+      BorderGroundVariantRole.endSouth => 'endSouth',
+      BorderGroundVariantRole.endWest => 'endWest',
+      BorderGroundVariantRole.horizontal => 'horizontal',
+      BorderGroundVariantRole.vertical => 'vertical',
+      BorderGroundVariantRole.cornerNE => 'cornerNE',
+      BorderGroundVariantRole.cornerSE => 'cornerSE',
+      BorderGroundVariantRole.cornerSW => 'cornerSW',
+      BorderGroundVariantRole.cornerNW => 'cornerNW',
+      BorderGroundVariantRole.innerCornerNE => 'innerCornerNE',
+      BorderGroundVariantRole.innerCornerSE => 'innerCornerSE',
+      BorderGroundVariantRole.innerCornerSW => 'innerCornerSW',
+      BorderGroundVariantRole.innerCornerNW => 'innerCornerNW',
+      BorderGroundVariantRole.teeNorth => 'teeNorth',
+      BorderGroundVariantRole.teeEast => 'teeEast',
+      BorderGroundVariantRole.teeSouth => 'teeSouth',
+      BorderGroundVariantRole.teeWest => 'teeWest',
+      BorderGroundVariantRole.cross => 'cross',
     };
 
-SurfaceVariantRole _decodeSurfaceRole(String value, String path) =>
+BorderGroundVariantRole _decodeBorderGroundRole(String value, String path) =>
     switch (value) {
-      'isolated' => SurfaceVariantRole.isolated,
-      'endNorth' => SurfaceVariantRole.endNorth,
-      'endEast' => SurfaceVariantRole.endEast,
-      'endSouth' => SurfaceVariantRole.endSouth,
-      'endWest' => SurfaceVariantRole.endWest,
-      'horizontal' => SurfaceVariantRole.horizontal,
-      'vertical' => SurfaceVariantRole.vertical,
-      'cornerNE' => SurfaceVariantRole.cornerNE,
-      'cornerSE' => SurfaceVariantRole.cornerSE,
-      'cornerSW' => SurfaceVariantRole.cornerSW,
-      'cornerNW' => SurfaceVariantRole.cornerNW,
-      'innerCornerNE' => SurfaceVariantRole.innerCornerNE,
-      'innerCornerSE' => SurfaceVariantRole.innerCornerSE,
-      'innerCornerSW' => SurfaceVariantRole.innerCornerSW,
-      'innerCornerNW' => SurfaceVariantRole.innerCornerNW,
-      'teeNorth' => SurfaceVariantRole.teeNorth,
-      'teeEast' => SurfaceVariantRole.teeEast,
-      'teeSouth' => SurfaceVariantRole.teeSouth,
-      'teeWest' => SurfaceVariantRole.teeWest,
-      'cross' => SurfaceVariantRole.cross,
-      _ => throw FormatException('$path: unknown Surface variant role'),
+      'isolated' => BorderGroundVariantRole.isolated,
+      'endNorth' => BorderGroundVariantRole.endNorth,
+      'endEast' => BorderGroundVariantRole.endEast,
+      'endSouth' => BorderGroundVariantRole.endSouth,
+      'endWest' => BorderGroundVariantRole.endWest,
+      'horizontal' => BorderGroundVariantRole.horizontal,
+      'vertical' => BorderGroundVariantRole.vertical,
+      'cornerNE' => BorderGroundVariantRole.cornerNE,
+      'cornerSE' => BorderGroundVariantRole.cornerSE,
+      'cornerSW' => BorderGroundVariantRole.cornerSW,
+      'cornerNW' => BorderGroundVariantRole.cornerNW,
+      'innerCornerNE' => BorderGroundVariantRole.innerCornerNE,
+      'innerCornerSE' => BorderGroundVariantRole.innerCornerSE,
+      'innerCornerSW' => BorderGroundVariantRole.innerCornerSW,
+      'innerCornerNW' => BorderGroundVariantRole.innerCornerNW,
+      'teeNorth' => BorderGroundVariantRole.teeNorth,
+      'teeEast' => BorderGroundVariantRole.teeEast,
+      'teeSouth' => BorderGroundVariantRole.teeSouth,
+      'teeWest' => BorderGroundVariantRole.teeWest,
+      'cross' => BorderGroundVariantRole.cross,
+      _ => throw FormatException('$path: unknown Border ground role'),
     };

@@ -7,15 +7,15 @@ import '../models/border_value_objects.dart';
 import '../models/geometry.dart';
 import 'border_local_resolution_scope.dart';
 import 'border_rle_codec.dart';
-import 'surface_variant_role_resolver.dart';
+import 'border_ground_variant_role_resolver.dart';
 
-/// Resolves the optional Surface ground strictly inside a region's
+/// Resolves the optional Border ground strictly inside a region's
 /// morphological edge band.
 ///
-/// Surface roles are evaluated against the complete region mask. Filtering to
+/// Ground roles are evaluated against the complete region mask. Filtering to
 /// [BorderPublishedGround.edgeBandCells] happens only afterwards, so a band
 /// cell keeps the same role it would have had if the whole region were
-/// materialized as one Surface.
+/// materialized as one Border ground.
 List<BorderResolvedGroundCell> resolveBorderGroundBand({
   required BorderRegionGeometry region,
   required BorderPublishedGround ground,
@@ -32,7 +32,7 @@ List<BorderResolvedGroundCell> resolveBorderGroundBand({
       if (distance == 0 || distance > ground.edgeBandCells) {
         continue;
       }
-      final role = resolveSurfaceVariantRoleAt(
+      final role = resolveBorderGroundVariantRoleAt(
         x: x,
         y: y,
         matchesAt: matchesAt,
@@ -84,7 +84,7 @@ List<BorderResolvedGroundCell> resolveBorderGroundBandLocally({
         )) {
       continue;
     }
-    final role = resolveSurfaceVariantRoleAt(
+    final role = resolveBorderGroundVariantRoleAt(
       x: cell.x,
       y: cell.y,
       matchesAt: matchesAt,

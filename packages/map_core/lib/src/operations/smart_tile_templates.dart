@@ -16,9 +16,7 @@ const int smartTileEightNeighborMask = 0xff;
 
 /// Returns the native canonical connectivity masks for a known template.
 ///
-/// Legacy 20 is deliberately excluded: it remains on its historical resolver
-/// until an explicit conversion proves how each source cell maps to a native
-/// signature. Free mappings are authored directly and have no generated set.
+/// Free mappings are authored directly and have no generated set.
 List<int> smartTileCanonicalMasks(SmartTileTemplateHint template) {
   return switch (template) {
     SmartTileTemplateHint.simple => const <int>[0],
@@ -51,9 +49,7 @@ List<int> smartTileCanonicalMasks(SmartTileTemplateHint template) {
     SmartTileTemplateHint.mixed256 => List<int>.unmodifiable(
         <int>[for (var mask = 0; mask < 256; mask++) mask],
       ),
-    SmartTileTemplateHint.legacy20 ||
-    SmartTileTemplateHint.free =>
-      const <int>[],
+    SmartTileTemplateHint.free => const <int>[],
   };
 }
 
@@ -95,7 +91,6 @@ SmartTileTopology smartTileTopologyForTemplate(
       SmartTileTopology.wangCorner4,
     SmartTileTemplateHint.blob47 => SmartTileTopology.blob8,
     SmartTileTemplateHint.mixed256 => SmartTileTopology.wang8,
-    SmartTileTemplateHint.legacy20 => SmartTileTopology.cardinal4,
     SmartTileTemplateHint.free => SmartTileTopology.wang8,
   };
 }

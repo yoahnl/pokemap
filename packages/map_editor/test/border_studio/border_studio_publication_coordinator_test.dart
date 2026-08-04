@@ -400,15 +400,15 @@ void main() {
         record: target,
         smartTilePreset: _smartTilePreset('shore'),
       );
-      final ground = <SurfaceVariantRole, BorderAssetSnapshotPreparation>{
-        for (final role in standardSurfaceVariantRoleOrder)
+      final ground = <BorderGroundVariantRole, BorderAssetSnapshotPreparation>{
+        for (final role in standardBorderGroundVariantRoleOrder)
           role: _preparation(
             digit: 'b',
             sourceElementId: 'shore',
             assetFingerprint: 'surface-${role.name}',
           ),
       };
-      Map<SurfaceVariantRole, BorderAssetSnapshotPreparation>? forwarded;
+      Map<BorderGroundVariantRole, BorderAssetSnapshotPreparation>? forwarded;
       final coordinator = BorderStudioPublicationCoordinator(
         prepareProjectElementAsset: _unexpectedPreparation,
         buildCandidate: ({
@@ -437,7 +437,7 @@ void main() {
       );
 
       expect(forwarded, ground);
-      expect(forwarded!.keys, standardSurfaceVariantRoleOrder);
+      expect(forwarded!.keys, standardBorderGroundVariantRoleOrder);
     });
 
     test('rejects every current-source fingerprint divergence before build',

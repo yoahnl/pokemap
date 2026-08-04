@@ -62,7 +62,8 @@ typedef BorderStudioBuildPublicationCandidate = BorderPublicationCandidate
   required BorderBlueprintRecord draftRecord,
   required Map<String, BorderAssetSnapshotPreparation>
       primitiveSnapshotsByPrimitiveId,
-  Map<SurfaceVariantRole, BorderAssetSnapshotPreparation> groundSnapshotsByRole,
+  Map<BorderGroundVariantRole, BorderAssetSnapshotPreparation>
+      groundSnapshotsByRole,
 });
 
 typedef BorderStudioResolveCanonicalGallery
@@ -202,8 +203,8 @@ final class BorderStudioPublicationCoordinator {
     required ProjectManifest manifest,
     required String projectRootPath,
     required BorderBlueprintRecord draftRecord,
-    Map<SurfaceVariantRole, BorderAssetSnapshotPreparation> groundSnapshotsByRole =
-        const <SurfaceVariantRole, BorderAssetSnapshotPreparation>{},
+    Map<BorderGroundVariantRole, BorderAssetSnapshotPreparation> groundSnapshotsByRole =
+        const <BorderGroundVariantRole, BorderAssetSnapshotPreparation>{},
   }) async {
     final preparations = <String, BorderAssetSnapshotPreparation>{};
     final divergenceDiagnostics = <BorderDiagnostic>[];

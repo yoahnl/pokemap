@@ -462,6 +462,7 @@ elementCategory
 element
 smartTileAtlas
 smartTileMaterial
+smartTilePattern
 smartTileAnimation
 smartTileDraft
 smartTilePreset
@@ -1044,10 +1045,15 @@ smart_tile.layer.delete
 smart_tile.layer.merge
 smart_tile.layer.normalize
 smart_tile.material.upsert
+smart_tile.pattern.delete
+smart_tile.pattern.erase
+smart_tile.pattern.paint
+smart_tile.pattern.upsert
 smart_tile.preset.delete
 smart_tile.preset.draft.delete
 smart_tile.preset.draft.upsert
 smart_tile.preset.publish
+smart_tile.tiled_wang.import
 ```
 
 Les champs `cell`, `edge`, `corner` et `mixed` sont peignables par geste
@@ -1062,6 +1068,14 @@ Chaque action reçoit exactement une source de cellules : soit `cells`, soit une
 (`start`/`end`), `rectangle` rempli (`start`/`end`) et `floodFill` sémantique à
 quatre voisins (`seed`). Leur projection est déterministe, bornée à 4 096
 cellules et conserve une seule transaction/annulation pour tout le geste.
+
+Les motifs multi-cellules sont des ressources `smartTilePattern` natives. Ils
+sont créés/supprimés avec `smart_tile.pattern.upsert`/`delete` et peints ou
+effacés atomiquement avec `smart_tile.pattern.paint`/`erase`.
+
+`smart_tile.tiled_wang.import` convertit un TSX/Wang fourni en texte vers le
+catalogue Smart Tiles natif. Tiled n'est ni lancé ni requis au runtime ; les
+usages PokeMap des Wang Sets restent des choix explicites de l'auteur.
 
 ### 13.2 Environnements
 

@@ -955,8 +955,8 @@ BorderResolutionRequest _request({
         ? BorderPublishedGround(
             sourceSmartTilePresetId: 'surface-grass',
             edgeBandCells: 1,
-            visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-              for (final role in standardSurfaceVariantRoleOrder)
+            visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
+              for (final role in standardBorderGroundVariantRoleOrder)
                 role: groundSnapshotId,
             },
           )

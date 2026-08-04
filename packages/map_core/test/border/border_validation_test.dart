@@ -215,8 +215,8 @@ void main() {
       final sharedGround = BorderPublishedGround(
         sourceSmartTilePresetId: 'surface',
         edgeBandCells: 1,
-        visualSnapshotIdsByRole: <SurfaceVariantRole, String>{
-          for (final role in standardSurfaceVariantRoleOrder) role: _snapshotB,
+        visualSnapshotIdsByRole: <BorderGroundVariantRole, String>{
+          for (final role in standardBorderGroundVariantRoleOrder) role: _snapshotB,
         },
       );
       final report = diagnoseBorderBlueprint(
@@ -941,7 +941,7 @@ BorderResolvedGroundCell _ground({
       x: x,
       y: 0,
       visualSnapshotId: snapshotId,
-      resolvedRole: SurfaceVariantRole.isolated,
+      resolvedRole: BorderGroundVariantRole.isolated,
     );
 
 BorderResolvedPlacement _placement({

@@ -9,7 +9,7 @@ import 'border_runtime_draw_instruction.dart';
 /// Paints only persisted Border materialization using immutable snapshots.
 ///
 /// This renderer contains no contour, neighbor, seed, blueprint, source
-/// element, or Surface-preset resolution.
+/// element, or historical ground-preset resolution.
 final class BorderRuntimeRenderer {
   const BorderRuntimeRenderer();
 

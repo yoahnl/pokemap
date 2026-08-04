@@ -4,7 +4,7 @@ import '../exceptions/map_exceptions.dart';
 import 'border_signed_int64.dart';
 import 'border_value_objects.dart';
 import 'border_visual_snapshot.dart';
-import 'surface.dart';
+import 'border_ground_variant_role.dart';
 
 /// Editable primitive referencing a current project element.
 @immutable
@@ -168,7 +168,7 @@ final class BorderPublishedGround {
   BorderPublishedGround({
     required this.sourceSmartTilePresetId,
     required this.edgeBandCells,
-    required Map<SurfaceVariantRole, String> visualSnapshotIdsByRole,
+    required Map<BorderGroundVariantRole, String> visualSnapshotIdsByRole,
   }) : _visualSnapshotIdsByRole = _copyPublishedGroundSnapshots(
           visualSnapshotIdsByRole,
         ) {
@@ -181,9 +181,9 @@ final class BorderPublishedGround {
 
   final String sourceSmartTilePresetId;
   final int edgeBandCells;
-  final Map<SurfaceVariantRole, String> _visualSnapshotIdsByRole;
+  final Map<BorderGroundVariantRole, String> _visualSnapshotIdsByRole;
 
-  Map<SurfaceVariantRole, String> get visualSnapshotIdsByRole =>
+  Map<BorderGroundVariantRole, String> get visualSnapshotIdsByRole =>
       _visualSnapshotIdsByRole;
 
   @override
@@ -359,11 +359,11 @@ final class BorderBlueprintRecord {
   int get hashCode => Object.hash(id, draft, latestPublished, isDeprecated);
 }
 
-Map<SurfaceVariantRole, String> _copyPublishedGroundSnapshots(
-  Map<SurfaceVariantRole, String> snapshots,
+Map<BorderGroundVariantRole, String> _copyPublishedGroundSnapshots(
+  Map<BorderGroundVariantRole, String> snapshots,
 ) {
-  final result = Map<SurfaceVariantRole, String>.from(snapshots);
-  for (final role in standardSurfaceVariantRoleOrder) {
+  final result = Map<BorderGroundVariantRole, String>.from(snapshots);
+  for (final role in standardBorderGroundVariantRoleOrder) {
     final snapshotId = result[role];
     if (snapshotId == null || snapshotId.isEmpty) {
       throw ValidationException(
@@ -372,7 +372,7 @@ Map<SurfaceVariantRole, String> _copyPublishedGroundSnapshots(
       );
     }
   }
-  return Map<SurfaceVariantRole, String>.unmodifiable(result);
+  return Map<BorderGroundVariantRole, String>.unmodifiable(result);
 }
 
 void _requireNonEmpty(String value, String field) {

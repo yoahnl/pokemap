@@ -983,7 +983,6 @@ final class _SmartTileCatalogValidator {
       'smart_tiles.coverage.too_many_scenarios',
       'smart_tiles.coverage.duplicate_scenario_id',
       'smart_tiles.coverage.scenario_id_collision',
-      'smart_tiles.coverage.legacy20_unsupported',
     };
     for (final diagnostic in report.diagnostics) {
       if (!structuralCodes.contains(diagnostic.code)) continue;
@@ -1335,8 +1334,7 @@ bool _templateMatchesTopologyValues({
   required SmartTileTopology topology,
   required SmartTileTemplateHint template,
 }) {
-  if (template == SmartTileTemplateHint.free ||
-      template == SmartTileTemplateHint.legacy20) {
+  if (template == SmartTileTemplateHint.free) {
     return true;
   }
   if (template == SmartTileTemplateHint.edge16) {
