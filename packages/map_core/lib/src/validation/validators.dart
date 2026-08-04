@@ -628,11 +628,23 @@ class ProjectValidator {
   static void _validateTilesetSource(ProjectTilesetEntry tileset) {
     final source = tileset.source;
     if (source == null) return;
-    if (source is! ProjectRegularAtlasTilesetSource) {
-      throw ValidationException(
-        'Tileset ${tileset.id} has an unsupported canonical source',
-      );
+    if (source is ProjectRegularAtlasTilesetSource) {
+      _validateRegularAtlasTilesetSource(tileset, source);
+      return;
     }
+    if (source is ProjectImageCollectionTilesetSource) {
+      _validateImageCollectionTilesetSource(tileset, source);
+      return;
+    }
+    throw ValidationException(
+      'Tileset ${tileset.id} has an unsupported canonical source',
+    );
+  }
+
+  static void _validateRegularAtlasTilesetSource(
+    ProjectTilesetEntry tileset,
+    ProjectRegularAtlasTilesetSource source,
+  ) {
     final stableId = RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$');
     if (!stableId.hasMatch(source.assetId) ||
         source.pixelWidth <= 0 ||
@@ -656,6 +668,175 @@ class ProjectValidator {
         );
       }
     }
+  }
+
+  static void _validateImageCollectionTilesetSource(
+    ProjectTilesetEntry tileset,
+    ProjectImageCollectionTilesetSource source,
+  ) {
+    final stableId = RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$');
+    final pagesById = <String, ProjectImageCollectionPage>{};
+    final assetIds = <String>{};
+    if (source.pages.isEmpty) {
+      throw ValidationException(
+        'Tileset ${tileset.id} has an invalid image collection source: '
+        'at least one page is required',
+      );
+    }
+    for (final page in source.pages) {
+      if (!stableId.hasMatch(page.id) ||
+          !stableId.hasMatch(page.assetId) ||
+          page.pixelWidth <= 0 ||
+          page.pixelHeight <= 0 ||
+          pagesById.containsKey(page.id) ||
+          !assetIds.add(page.assetId)) {
+        throw ValidationException(
+          'Tileset ${tileset.id} has an invalid image collection source '
+          'page: ${page.id}',
+        );
+      }
+      pagesById[page.id] = page;
+    }
+
+    _validateProjectTilesetProperties(
+      tileset,
+      source.properties,
+      context: 'source',
+    );
+
+    final tileIds = <int>{};
+    for (final tile in source.tileDefinitions) {
+      if (tile.tileId < 0 || !tileIds.add(tile.tileId)) {
+        throw ValidationException(
+          'Tileset ${tileset.id} has an invalid image collection source '
+          'tile ID: ${tile.tileId}',
+        );
+      }
+    }
+    if (tileIds.isEmpty) {
+      throw ValidationException(
+        'Tileset ${tileset.id} has an invalid image collection source: '
+        'at least one tile definition is required',
+      );
+    }
+
+    for (final tile in source.tileDefinitions) {
+      final page = pagesById[tile.pageId];
+      final rect = tile.sourceRect;
+      if (page == null ||
+          rect.x < 0 ||
+          rect.y < 0 ||
+          rect.width <= 0 ||
+          rect.height <= 0 ||
+          rect.x + rect.width > page.pixelWidth ||
+          rect.y + rect.height > page.pixelHeight) {
+        throw ValidationException(
+          'Tileset ${tileset.id} has an invalid image collection source '
+          'rectangle for tile ${tile.tileId}',
+        );
+      }
+      _validateProjectTilesetProperties(
+        tileset,
+        tile.properties,
+        context: 'tile ${tile.tileId}',
+      );
+      for (final frame in tile.animation) {
+        if (frame.durationMs <= 0 || !tileIds.contains(frame.tileId)) {
+          throw ValidationException(
+            'Tileset ${tileset.id} has an invalid image collection source '
+            'animation frame for tile ${tile.tileId}',
+          );
+        }
+      }
+      _validateProjectTilesetCollisionObjects(tileset, tile);
+    }
+  }
+
+  static void _validateProjectTilesetCollisionObjects(
+    ProjectTilesetEntry tileset,
+    ProjectImageCollectionTileDefinition tile,
+  ) {
+    final objectIds = <int>{};
+    for (final object in tile.collisionObjects) {
+      final dimensionsAreValid = switch (object.shape) {
+        ProjectTilesetCollisionShape.rectangle ||
+        ProjectTilesetCollisionShape.ellipse =>
+          object.width > 0 && object.height > 0 && object.points.isEmpty,
+        ProjectTilesetCollisionShape.polygon =>
+          object.width >= 0 && object.height >= 0 && object.points.length >= 3,
+        ProjectTilesetCollisionShape.polyline =>
+          object.width >= 0 && object.height >= 0 && object.points.length >= 2,
+        ProjectTilesetCollisionShape.point =>
+          object.width == 0 && object.height == 0 && object.points.isEmpty,
+      };
+      if (object.id < 0 ||
+          !objectIds.add(object.id) ||
+          !object.x.isFinite ||
+          !object.y.isFinite ||
+          !object.width.isFinite ||
+          !object.height.isFinite ||
+          !object.rotation.isFinite ||
+          !dimensionsAreValid ||
+          object.points
+              .any((point) => !point.x.isFinite || !point.y.isFinite)) {
+        throw ValidationException(
+          'Tileset ${tileset.id} has an invalid image collection source '
+          'collision object ${object.id} for tile ${tile.tileId}',
+        );
+      }
+      _validateProjectTilesetProperties(
+        tileset,
+        object.properties,
+        context: 'collision object ${object.id} of tile ${tile.tileId}',
+      );
+    }
+  }
+
+  static void _validateProjectTilesetProperties(
+    ProjectTilesetEntry tileset,
+    List<ProjectTilesetProperty> properties, {
+    required String context,
+  }) {
+    final names = <String>{};
+    for (final property in properties) {
+      final value = property.value;
+      final valueIsValid = switch (property.type) {
+        ProjectTilesetPropertyType.string => value is String,
+        ProjectTilesetPropertyType.integer => value is int,
+        ProjectTilesetPropertyType.decimal => value is num && value.isFinite,
+        ProjectTilesetPropertyType.boolean => value is bool,
+        ProjectTilesetPropertyType.color => value is String &&
+            RegExp(r'^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$').hasMatch(value),
+        ProjectTilesetPropertyType.assetReference =>
+          value is String && value.trim().isNotEmpty,
+        ProjectTilesetPropertyType.objectReference => value is int,
+        ProjectTilesetPropertyType.structured => value is Map &&
+            property.customType != null &&
+            property.customType!.trim().isNotEmpty &&
+            _isJsonCompatible(value),
+      };
+      if (property.name.trim().isEmpty ||
+          !names.add(property.name) ||
+          !valueIsValid) {
+        throw ValidationException(
+          'Tileset ${tileset.id} has an invalid image collection source '
+          'property ${property.name} on $context',
+        );
+      }
+    }
+  }
+
+  static bool _isJsonCompatible(Object? value) {
+    if (value == null || value is String || value is bool || value is int) {
+      return true;
+    }
+    if (value is double) return value.isFinite;
+    if (value is List) return value.every(_isJsonCompatible);
+    if (value is Map) {
+      return value.keys.every((key) => key is String) &&
+          value.values.every(_isJsonCompatible);
+    }
+    return false;
   }
 
   static void _validateElementCategories(ProjectManifest manifest) {
