@@ -1050,6 +1050,57 @@ void main() {
       _expectNoTechnicalMaskText(tester);
     });
 
+    testWidgets('selects and edits a rectangular multi-cell atlas frame', (
+      tester,
+    ) async {
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _openFormsWithoutGuide(
+        tester,
+        loader: _FakeSmartTileAtlasImageLoader(width: 1760, height: 2304),
+        onDraftChanged: (draft) => latestDraft = draft,
+      );
+
+      final form = find.byKey(const Key('smart-tiles-form-0'));
+      await tester.ensureVisible(form);
+      await tester.tap(form);
+      await tester.pump();
+      final rectangle = find.byKey(
+        const Key('smart-tiles-atlas-selection-rectangle'),
+      );
+      await tester.ensureVisible(rectangle);
+      await tester.tap(rectangle);
+      await tester.pump();
+
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await tester.pumpAndSettle();
+      await _tapAtlasDisplay(tester, viewport, const Offset(2, 2));
+      expect(
+        find.byKey(const Key('smart-tiles-atlas-selection-size')),
+        findsOneWidget,
+      );
+      await _tapAtlasDisplay(tester, viewport, const Offset(40, 40));
+
+      var part = latestDraft!.rules.single.candidates.single.parts.single;
+      final frame = (part.source as SmartTileFrameSource).frame;
+      expect(frame.columnSpan, greaterThan(1));
+      expect(frame.rowSpan, greaterThan(1));
+      expect(part.footprintWidth, frame.columnSpan);
+      expect(part.footprintHeight, frame.rowSpan);
+
+      final candidateId = latestDraft!.rules.single.candidates.single.id;
+      final anchorY = find.byKey(
+        Key('smart-tiles-geometry-$candidateId-0-anchorY'),
+      );
+      await tester.ensureVisible(anchorY);
+      await tester.enterText(anchorY, '24');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+
+      part = latestDraft!.rules.single.candidates.single.parts.single;
+      expect(part.anchorY, 24);
+    });
+
     testWidgets('authors an exact multi-material transition without Wang ids', (
       tester,
     ) async {

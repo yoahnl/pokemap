@@ -10,6 +10,7 @@ import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../application/smart_tile_atlas_image_loader.dart';
+import '../application/smart_tile_atlas_selection.dart';
 import '../application/smart_tile_authoring_controller.dart';
 import '../application/smart_tile_connection_profile.dart';
 import '../application/smart_tile_draft_persistence_state.dart';
@@ -110,6 +111,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   String? _selectedTransitionCaseId;
   SmartTileFrameRef? _lastMappedFrame;
   SmartTileFrameRef? _pendingAtlasFrame;
+  SmartTileAtlasSelectionMode _atlasSelectionMode =
+      SmartTileAtlasSelectionMode.singleCell;
+  GridPos? _atlasSelectionStart;
   List<SmartTileFrameRef> _animationFrames = const <SmartTileFrameRef>[];
   String? _lastCandidateId;
   SmartTileRenderChannel _selectedRenderChannel = SmartTileRenderChannel.ground;
@@ -817,6 +821,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       selectedMask: _selectedMask,
       selectedTransitionCaseId: _selectedTransitionCaseId,
       pendingAtlasFrame: _pendingAtlasFrame,
+      atlasSelectionMode: _atlasSelectionMode,
       selectedChannel: _selectedRenderChannel,
       animations: catalog.animations,
       guideWorkbench: guide == null ? null : _buildGuideFormsWorkbench(guide),
@@ -847,6 +852,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       onTransitionCaseCenterChanged: _setTransitionCaseCenter,
       onTransitionCaseSlotChanged: _setTransitionCaseSlot,
       onClearPendingFrame: _clearPendingAtlasFrame,
+      onAtlasSelectionModeChanged: _changeAtlasSelectionMode,
       onChannelSelected: (channel) {
         setState(() => _selectedRenderChannel = channel);
       },
@@ -854,6 +860,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       onTransitionCaseAnimationSelected: _mapAnimationToTransitionCase,
       onWeightChanged: _updateVariantWeight,
       onTransitionCaseWeightChanged: _updateTransitionCaseVariantWeight,
+      onVisualPartChanged: _updateVariantVisualPart,
+      onTransitionCaseVisualPartChanged: _updateTransitionCaseVariantVisualPart,
       onMoveVariant: _moveVariant,
       onMoveTransitionCaseVariant: _moveTransitionCaseVariant,
       onRemoveVariant: _removeVariant,
@@ -1147,9 +1155,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           image: _sourceImageResult?.image,
           selectedFrame: _lastMappedFrame,
           enabled: _selectedMask != null,
-          onCellSelected: (cell) => _mapAtlasCell(
-            column: cell.column,
-            row: cell.row,
+          onCellSelected: (cell) => _mapAtlasFrame(
+            frame: SmartTileFrameRef(
+              atlasId: _authoring.state.atlasId,
+              column: cell.column,
+              row: cell.row,
+            ),
           ),
         ),
         if (_session.state.usage == SmartTileUsage.forestSurface &&
@@ -2392,18 +2403,15 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   }
 
   void _selectFormsAtlasCell({required int column, required int row}) {
-    final transitionCaseId = _selectedTransitionCaseId;
-    if (transitionCaseId != null) {
-      _mapTransitionAtlasCell(
-        caseId: transitionCaseId,
-        column: column,
-        row: row,
-        addVariant: HardwareKeyboard.instance.isShiftPressed,
-      );
-      return;
-    }
-    if (_selectedMask == null) {
+    final cell = GridPos(x: column, y: row);
+    final selectionStart =
+        _atlasSelectionMode == SmartTileAtlasSelectionMode.rectangle
+            ? _atlasSelectionStart
+            : null;
+    if (_atlasSelectionMode == SmartTileAtlasSelectionMode.rectangle &&
+        selectionStart == null) {
       setState(() {
+        _atlasSelectionStart = cell;
         _pendingAtlasFrame = SmartTileFrameRef(
           atlasId: _authoring.state.atlasId,
           column: column,
@@ -2412,9 +2420,38 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       });
       return;
     }
-    _mapAtlasCell(
-      column: column,
-      row: row,
+    final geometry = _session.state.gridGeometry!;
+    final frame = selectSmartTileAtlasFrame(
+      atlasId: _authoring.state.atlasId,
+      start: selectionStart ?? cell,
+      end: cell,
+      columns: geometry.columns,
+      rows: geometry.rows,
+    );
+    if (selectionStart != null) {
+      setState(() => _atlasSelectionStart = null);
+    }
+    _selectFormsAtlasFrame(frame);
+  }
+
+  void _selectFormsAtlasFrame(SmartTileFrameRef frame) {
+    final transitionCaseId = _selectedTransitionCaseId;
+    if (transitionCaseId != null) {
+      _mapTransitionAtlasFrame(
+        caseId: transitionCaseId,
+        frame: frame,
+        addVariant: HardwareKeyboard.instance.isShiftPressed,
+      );
+      return;
+    }
+    if (_selectedMask == null) {
+      setState(() {
+        _pendingAtlasFrame = frame;
+      });
+      return;
+    }
+    _mapAtlasFrame(
+      frame: frame,
       addVariant: HardwareKeyboard.instance.isShiftPressed,
     );
   }
@@ -2426,16 +2463,27 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _selectedTransitionCaseId = null;
     });
     if (pending == null) return;
-    _mapAtlasCell(
-      column: pending.column,
-      row: pending.row,
+    _mapAtlasFrame(
+      frame: pending,
       explicitMask: mask,
       addVariant: HardwareKeyboard.instance.isShiftPressed,
     );
   }
 
   void _clearPendingAtlasFrame() {
-    setState(() => _pendingAtlasFrame = null);
+    setState(() {
+      _pendingAtlasFrame = null;
+      _atlasSelectionStart = null;
+    });
+  }
+
+  void _changeAtlasSelectionMode(SmartTileAtlasSelectionMode mode) {
+    if (_atlasSelectionMode == mode) return;
+    setState(() {
+      _atlasSelectionMode = mode;
+      _atlasSelectionStart = null;
+      _pendingAtlasFrame = null;
+    });
   }
 
   void _createTransitionCase() {
@@ -2489,21 +2537,17 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     _notifyDraftChanged();
   }
 
-  void _mapTransitionAtlasCell({
+  void _mapTransitionAtlasFrame({
     required String caseId,
-    required int column,
-    required int row,
+    required SmartTileFrameRef frame,
     bool addVariant = false,
   }) {
     final rule = _authoring.state.transitionCases
         .where((candidate) => candidate.id == caseId)
         .first;
     final candidates = rule.candidates;
-    final frame = SmartTileFrameRef(
-      atlasId: _authoring.state.atlasId,
-      column: column,
-      row: row,
-    );
+    final column = frame.column;
+    final row = frame.row;
     String candidateId;
     if (candidates.isNotEmpty && !addVariant) {
       candidateId = candidates.first.id;
@@ -2513,6 +2557,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         row: row,
         candidateId: candidateId,
         channel: _selectedRenderChannel,
+        columnSpan: frame.columnSpan,
+        rowSpan: frame.rowSpan,
       );
     } else {
       var sequence = candidates.length + 1;
@@ -2528,6 +2574,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         row: row,
         candidateId: candidateId,
         channel: _selectedRenderChannel,
+        columnSpan: frame.columnSpan,
+        rowSpan: frame.rowSpan,
       );
     }
     setState(() {
@@ -2538,9 +2586,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     _notifyDraftChanged();
   }
 
-  void _mapAtlasCell({
-    required int column,
-    required int row,
+  void _mapAtlasFrame({
+    required SmartTileFrameRef frame,
     int? explicitMask,
     bool addVariant = false,
   }) {
@@ -2550,11 +2597,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     }
     final candidates =
         _authoring.state.mappings[mask] ?? const <SmartTileCandidate>[];
-    final frame = SmartTileFrameRef(
-      atlasId: _authoring.state.atlasId,
-      column: column,
-      row: row,
-    );
+    final column = frame.column;
+    final row = frame.row;
     String candidateId;
     if (_session.state.usage == SmartTileUsage.forestSurface &&
         _selectedRenderChannel != SmartTileRenderChannel.ground &&
@@ -2566,6 +2610,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         part: SmartTileVisualPart(
           source: SmartTileVisualSource.frame(frame: frame),
           channel: _selectedRenderChannel,
+          footprintWidth: frame.columnSpan,
+          footprintHeight: frame.rowSpan,
           drawOrder:
               _selectedRenderChannel == SmartTileRenderChannel.canopy ? 10 : 0,
         ),
@@ -2578,6 +2624,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         row: row,
         candidateId: candidateId,
         channel: _selectedRenderChannel,
+        columnSpan: frame.columnSpan,
+        rowSpan: frame.rowSpan,
       );
     } else {
       var sequence = candidates.length + 1;
@@ -2593,6 +2641,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         row: row,
         candidateId: candidateId,
         channel: _selectedRenderChannel,
+        columnSpan: frame.columnSpan,
+        rowSpan: frame.rowSpan,
       );
     }
     setState(() {
@@ -2663,6 +2713,40 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         caseId: caseId,
         candidateId: candidateId,
         weight: weight,
+      );
+    });
+    _notifyDraftChanged();
+  }
+
+  void _updateVariantVisualPart(
+    int mask,
+    String candidateId,
+    int partIndex,
+    SmartTileVisualPart part,
+  ) {
+    setState(() {
+      _authoring.updateCandidateVisualPart(
+        mask: mask,
+        candidateId: candidateId,
+        partIndex: partIndex,
+        part: part,
+      );
+    });
+    _notifyDraftChanged();
+  }
+
+  void _updateTransitionCaseVariantVisualPart(
+    String caseId,
+    String candidateId,
+    int partIndex,
+    SmartTileVisualPart part,
+  ) {
+    setState(() {
+      _authoring.updateTransitionCaseCandidateVisualPart(
+        caseId: caseId,
+        candidateId: candidateId,
+        partIndex: partIndex,
+        part: part,
       );
     });
     _notifyDraftChanged();

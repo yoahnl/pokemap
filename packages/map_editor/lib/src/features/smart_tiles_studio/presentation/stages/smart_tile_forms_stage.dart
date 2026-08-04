@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
+import '../../application/smart_tile_atlas_selection.dart';
 import '../../application/smart_tile_authoring_controller.dart';
 import '../../application/smart_tile_form_projection.dart';
 import '../workbench/smart_tile_coverage_gallery.dart';
@@ -18,6 +19,7 @@ class SmartTileFormsStage extends StatelessWidget {
     required this.selectedMask,
     required this.selectedTransitionCaseId,
     required this.pendingAtlasFrame,
+    required this.atlasSelectionMode,
     required this.selectedChannel,
     required this.animations,
     required this.atlasWorkbench,
@@ -28,11 +30,14 @@ class SmartTileFormsStage extends StatelessWidget {
     required this.onTransitionCaseCenterChanged,
     required this.onTransitionCaseSlotChanged,
     required this.onClearPendingFrame,
+    required this.onAtlasSelectionModeChanged,
     required this.onChannelSelected,
     required this.onAnimationSelected,
     required this.onTransitionCaseAnimationSelected,
     required this.onWeightChanged,
     required this.onTransitionCaseWeightChanged,
+    required this.onVisualPartChanged,
+    required this.onTransitionCaseVisualPartChanged,
     required this.onMoveVariant,
     required this.onMoveTransitionCaseVariant,
     required this.onRemoveVariant,
@@ -49,6 +54,7 @@ class SmartTileFormsStage extends StatelessWidget {
   final int? selectedMask;
   final String? selectedTransitionCaseId;
   final SmartTileFrameRef? pendingAtlasFrame;
+  final SmartTileAtlasSelectionMode atlasSelectionMode;
   final SmartTileRenderChannel selectedChannel;
   final List<ProjectSmartTileAnimation> animations;
   final Widget atlasWorkbench;
@@ -64,6 +70,7 @@ class SmartTileFormsStage extends StatelessWidget {
     SmartTileSlotMatch match,
   ) onTransitionCaseSlotChanged;
   final VoidCallback onClearPendingFrame;
+  final ValueChanged<SmartTileAtlasSelectionMode> onAtlasSelectionModeChanged;
   final ValueChanged<SmartTileRenderChannel> onChannelSelected;
   final void Function(int mask, String animationId) onAnimationSelected;
   final void Function(String caseId, String animationId)
@@ -71,6 +78,18 @@ class SmartTileFormsStage extends StatelessWidget {
   final void Function(int mask, String candidateId, int weight) onWeightChanged;
   final void Function(String caseId, String candidateId, int weight)
       onTransitionCaseWeightChanged;
+  final void Function(
+    int mask,
+    String candidateId,
+    int partIndex,
+    SmartTileVisualPart part,
+  ) onVisualPartChanged;
+  final void Function(
+    String caseId,
+    String candidateId,
+    int partIndex,
+    SmartTileVisualPart part,
+  ) onTransitionCaseVisualPartChanged;
   final void Function(int mask, String candidateId, int newIndex) onMoveVariant;
   final void Function(String caseId, String candidateId, int newIndex)
       onMoveTransitionCaseVariant;
@@ -129,6 +148,53 @@ class SmartTileFormsStage extends StatelessWidget {
             ],
           ),
         ),
+        if (guideWorkbench == null) ...[
+          const SizedBox(height: 12),
+          PokeMapPanel(
+            padding: const EdgeInsets.all(10),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                const SizedBox(
+                  width: 220,
+                  child: Text(
+                    'Découpe de l’atlas : une cellule, ou un rectangle défini '
+                    'par deux clics.',
+                  ),
+                ),
+                for (final mode in SmartTileAtlasSelectionMode.values)
+                  PokeMapButton(
+                    key: Key('smart-tiles-atlas-selection-${mode.name}'),
+                    onPressed: () => onAtlasSelectionModeChanged(mode),
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    isSelected: atlasSelectionMode == mode,
+                    leading: Icon(
+                      mode == SmartTileAtlasSelectionMode.singleCell
+                          ? CupertinoIcons.square
+                          : CupertinoIcons.rectangle_grid_2x2,
+                      size: 14,
+                    ),
+                    child: Text(
+                      mode == SmartTileAtlasSelectionMode.singleCell
+                          ? 'Une cellule'
+                          : 'Rectangle',
+                    ),
+                  ),
+                if (pendingAtlasFrame case final frame?)
+                  PokeMapBadge(
+                    key: const Key('smart-tiles-atlas-selection-size'),
+                    label: '${frame.columnSpan} × ${frame.rowSpan} cellule(s)',
+                    variant: frame.columnSpan > 1 || frame.rowSpan > 1
+                        ? PokeMapBadgeVariant.info
+                        : PokeMapBadgeVariant.neutral,
+                  ),
+              ],
+            ),
+          ),
+        ],
         if (materials.length > 1 || transitionCases.isNotEmpty) ...[
           const SizedBox(height: 14),
           _TransitionCasesEditor(
@@ -284,6 +350,13 @@ class SmartTileFormsStage extends StatelessWidget {
                 selectedTransition.candidates[index].id,
                 weight,
               ),
+              onVisualPartChanged: (partIndex, part) =>
+                  onTransitionCaseVisualPartChanged(
+                selectedTransition.id,
+                selectedTransition.candidates[index].id,
+                partIndex,
+                part,
+              ),
               onMoveUp: () => onMoveTransitionCaseVariant(
                 selectedTransition.id,
                 selectedTransition.candidates[index].id,
@@ -329,6 +402,12 @@ class SmartTileFormsStage extends StatelessWidget {
                 selected.mask,
                 selected.candidates[index].id,
                 weight,
+              ),
+              onVisualPartChanged: (partIndex, part) => onVisualPartChanged(
+                selected.mask,
+                selected.candidates[index].id,
+                partIndex,
+                part,
               ),
               onMoveUp: () => onMoveVariant(
                 selected.mask,
@@ -631,6 +710,7 @@ class _SmartTileVariantEditor extends StatefulWidget {
     required this.canMoveUp,
     required this.canMoveDown,
     required this.onWeightChanged,
+    required this.onVisualPartChanged,
     required this.onMoveUp,
     required this.onMoveDown,
     required this.onRemove,
@@ -642,6 +722,8 @@ class _SmartTileVariantEditor extends StatefulWidget {
   final bool canMoveUp;
   final bool canMoveDown;
   final ValueChanged<int> onWeightChanged;
+  final void Function(int partIndex, SmartTileVisualPart part)
+      onVisualPartChanged;
   final VoidCallback onMoveUp;
   final VoidCallback onMoveDown;
   final VoidCallback onRemove;
@@ -682,54 +764,77 @@ class _SmartTileVariantEditorState extends State<_SmartTileVariantEditor> {
   Widget build(BuildContext context) {
     return PokeMapPanel(
       padding: const EdgeInsets.all(10),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        crossAxisAlignment: WrapCrossAlignment.center,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          SizedBox(
-            width: 230,
-            child: Text(_candidateSourceLabel(widget.candidate)),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: <Widget>[
+              SizedBox(
+                width: 230,
+                child: Text(_candidateSourceLabel(widget.candidate)),
+              ),
+              PokeMapBadge(
+                label: widget.percentage,
+                variant: PokeMapBadgeVariant.info,
+              ),
+              SizedBox(
+                width: 120,
+                child: PokeMapTextField(
+                  label: 'Poids (1–1000)',
+                  fieldKey: Key('smart-tiles-weight-${widget.candidate.id}'),
+                  controller: _weightController,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: <TextInputFormatter>[
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(4),
+                  ],
+                  onSubmitted: _submitWeight,
+                ),
+              ),
+              PokeMapButton(
+                key: Key('smart-tiles-variant-up-${widget.candidate.id}'),
+                onPressed: widget.canMoveUp ? widget.onMoveUp : null,
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                child: const Text('Monter'),
+              ),
+              PokeMapButton(
+                key: Key('smart-tiles-variant-down-${widget.candidate.id}'),
+                onPressed: widget.canMoveDown ? widget.onMoveDown : null,
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                child: const Text('Descendre'),
+              ),
+              PokeMapButton(
+                key: Key('smart-tiles-variant-remove-${widget.candidate.id}'),
+                onPressed: widget.onRemove,
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                child: const Text('Retirer'),
+              ),
+            ],
           ),
-          PokeMapBadge(
-            label: widget.percentage,
-            variant: PokeMapBadgeVariant.info,
-          ),
-          SizedBox(
-            width: 120,
-            child: PokeMapTextField(
-              label: 'Poids (1–1000)',
-              fieldKey: Key('smart-tiles-weight-${widget.candidate.id}'),
-              controller: _weightController,
-              keyboardType: TextInputType.number,
-              inputFormatters: <TextInputFormatter>[
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(4),
-              ],
-              onSubmitted: _submitWeight,
-            ),
-          ),
-          PokeMapButton(
-            key: Key('smart-tiles-variant-up-${widget.candidate.id}'),
-            onPressed: widget.canMoveUp ? widget.onMoveUp : null,
-            variant: PokeMapButtonVariant.ghost,
-            size: PokeMapButtonSize.small,
-            child: const Text('Monter'),
-          ),
-          PokeMapButton(
-            key: Key('smart-tiles-variant-down-${widget.candidate.id}'),
-            onPressed: widget.canMoveDown ? widget.onMoveDown : null,
-            variant: PokeMapButtonVariant.ghost,
-            size: PokeMapButtonSize.small,
-            child: const Text('Descendre'),
-          ),
-          PokeMapButton(
-            key: Key('smart-tiles-variant-remove-${widget.candidate.id}'),
-            onPressed: widget.onRemove,
-            variant: PokeMapButtonVariant.ghost,
-            size: PokeMapButtonSize.small,
-            child: const Text('Retirer'),
-          ),
+          if (widget.candidate.parts.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            for (var index = 0;
+                index < widget.candidate.parts.length;
+                index += 1) ...[
+              _SmartTileVisualPartEditor(
+                key: ValueKey<String>(
+                  '${widget.candidate.id}-visual-part-$index',
+                ),
+                candidateId: widget.candidate.id,
+                partIndex: index,
+                part: widget.candidate.parts[index],
+                onChanged: (part) => widget.onVisualPartChanged(index, part),
+              ),
+              if (index + 1 < widget.candidate.parts.length)
+                const SizedBox(height: 8),
+            ],
+          ],
         ],
       ),
     );
@@ -754,6 +859,237 @@ class _SmartTileVariantEditorState extends State<_SmartTileVariantEditor> {
     };
   }
 }
+
+enum _VisualGeometryField {
+  offsetX,
+  offsetY,
+  footprintWidth,
+  footprintHeight,
+  anchorX,
+  anchorY,
+  drawOrder,
+}
+
+class _SmartTileVisualPartEditor extends StatefulWidget {
+  const _SmartTileVisualPartEditor({
+    super.key,
+    required this.candidateId,
+    required this.partIndex,
+    required this.part,
+    required this.onChanged,
+  });
+
+  final String candidateId;
+  final int partIndex;
+  final SmartTileVisualPart part;
+  final ValueChanged<SmartTileVisualPart> onChanged;
+
+  @override
+  State<_SmartTileVisualPartEditor> createState() =>
+      _SmartTileVisualPartEditorState();
+}
+
+class _SmartTileVisualPartEditorState
+    extends State<_SmartTileVisualPartEditor> {
+  late final Map<_VisualGeometryField, TextEditingController> _controllers;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = <_VisualGeometryField, TextEditingController>{
+      for (final field in _VisualGeometryField.values)
+        field: TextEditingController(text: _value(field).toString()),
+    };
+  }
+
+  @override
+  void didUpdateWidget(covariant _SmartTileVisualPartEditor oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.part == widget.part) return;
+    for (final field in _VisualGeometryField.values) {
+      final value = _value(field).toString();
+      if (_controllers[field]!.text != value) {
+        _controllers[field]!.text = value;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    for (final controller in _controllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final frame = switch (widget.part.source) {
+      SmartTileFrameSource(:final frame) => frame,
+      SmartTileAnimationSource() => null,
+    };
+    return PokeMapPanel(
+      padding: const EdgeInsets.all(10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          PokeMapSectionHeader(
+            title: 'Géométrie visuelle ${widget.partIndex + 1}',
+            description: frame == null
+                ? 'Animation : la géométrie s’applique à toutes ses frames.'
+                : 'Découpe atlas ${frame.columnSpan} × ${frame.rowSpan} · '
+                    'colonne ${frame.column + 1}, ligne ${frame.row + 1}.',
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: <Widget>[
+              SizedBox(
+                width: 210,
+                child: PokeMapDropdownField<SmartTileRenderChannel>(
+                  key: _key('channel'),
+                  label: 'Canal de rendu',
+                  value: widget.part.channel,
+                  items: <PokeMapDropdownItem<SmartTileRenderChannel>>[
+                    for (final channel in SmartTileRenderChannel.values)
+                      PokeMapDropdownItem<SmartTileRenderChannel>(
+                        value: channel,
+                        label: _channelLabel(channel),
+                      ),
+                  ],
+                  onChanged: (channel) =>
+                      widget.onChanged(widget.part.copyWith(channel: channel)),
+                ),
+              ),
+              SizedBox(
+                width: 210,
+                child: PokeMapDropdownField<SmartTileFrameSampling>(
+                  key: _key('sampling'),
+                  label: 'Échantillonnage',
+                  value: widget.part.frameSampling,
+                  items: <PokeMapDropdownItem<SmartTileFrameSampling>>[
+                    for (final sampling in SmartTileFrameSampling.values)
+                      PokeMapDropdownItem<SmartTileFrameSampling>(
+                        value: sampling,
+                        label: _samplingLabel(sampling),
+                      ),
+                  ],
+                  onChanged: (sampling) => widget.onChanged(
+                    widget.part.copyWith(frameSampling: sampling),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: 180,
+                child: PokeMapDropdownField<SmartTileOffsetUnit>(
+                  key: _key('offset-unit'),
+                  label: 'Unité des décalages',
+                  value: widget.part.offsetUnit,
+                  items: const <PokeMapDropdownItem<SmartTileOffsetUnit>>[
+                    PokeMapDropdownItem<SmartTileOffsetUnit>(
+                      value: SmartTileOffsetUnit.pixel,
+                      label: 'Pixels source',
+                    ),
+                    PokeMapDropdownItem<SmartTileOffsetUnit>(
+                      value: SmartTileOffsetUnit.cell,
+                      label: 'Cellules',
+                    ),
+                  ],
+                  onChanged: (unit) => widget.onChanged(
+                    widget.part.copyWith(offsetUnit: unit),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: <Widget>[
+              for (final field in _VisualGeometryField.values)
+                SizedBox(
+                  width: 142,
+                  child: PokeMapTextField(
+                    label: _fieldLabel(field),
+                    fieldKey: _key(field.name),
+                    controller: _controllers[field],
+                    keyboardType: const TextInputType.numberWithOptions(
+                      signed: true,
+                    ),
+                    inputFormatters: <TextInputFormatter>[
+                      FilteringTextInputFormatter.allow(RegExp(r'-?\d*')),
+                      LengthLimitingTextInputFormatter(5),
+                    ],
+                    onSubmitted: (value) => _submit(field, value),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Key _key(String suffix) => Key(
+        'smart-tiles-geometry-${widget.candidateId}-${widget.partIndex}-$suffix',
+      );
+
+  int _value(_VisualGeometryField field) => switch (field) {
+        _VisualGeometryField.offsetX => widget.part.offsetX,
+        _VisualGeometryField.offsetY => widget.part.offsetY,
+        _VisualGeometryField.footprintWidth => widget.part.footprintWidth,
+        _VisualGeometryField.footprintHeight => widget.part.footprintHeight,
+        _VisualGeometryField.anchorX => widget.part.anchorX,
+        _VisualGeometryField.anchorY => widget.part.anchorY,
+        _VisualGeometryField.drawOrder => widget.part.drawOrder,
+      };
+
+  void _submit(_VisualGeometryField field, String raw) {
+    final value = int.tryParse(raw);
+    final valid = value != null &&
+        switch (field) {
+          _VisualGeometryField.footprintWidth ||
+          _VisualGeometryField.footprintHeight =>
+            value >= 1 && value <= 64,
+          _VisualGeometryField.drawOrder => value.abs() <= 1000,
+          _ => value.abs() <= 4096,
+        };
+    if (!valid) {
+      _controllers[field]!.text = _value(field).toString();
+      return;
+    }
+    final part = switch (field) {
+      _VisualGeometryField.offsetX => widget.part.copyWith(offsetX: value),
+      _VisualGeometryField.offsetY => widget.part.copyWith(offsetY: value),
+      _VisualGeometryField.footprintWidth =>
+        widget.part.copyWith(footprintWidth: value),
+      _VisualGeometryField.footprintHeight =>
+        widget.part.copyWith(footprintHeight: value),
+      _VisualGeometryField.anchorX => widget.part.copyWith(anchorX: value),
+      _VisualGeometryField.anchorY => widget.part.copyWith(anchorY: value),
+      _VisualGeometryField.drawOrder => widget.part.copyWith(drawOrder: value),
+    };
+    widget.onChanged(part);
+  }
+}
+
+String _fieldLabel(_VisualGeometryField field) => switch (field) {
+      _VisualGeometryField.offsetX => 'Décalage X',
+      _VisualGeometryField.offsetY => 'Décalage Y',
+      _VisualGeometryField.footprintWidth => 'Largeur grille',
+      _VisualGeometryField.footprintHeight => 'Hauteur grille',
+      _VisualGeometryField.anchorX => 'Ancre X',
+      _VisualGeometryField.anchorY => 'Ancre Y',
+      _VisualGeometryField.drawOrder => 'Ordre de dessin',
+    };
+
+String _samplingLabel(SmartTileFrameSampling sampling) => switch (sampling) {
+      SmartTileFrameSampling.fullFrame => 'Image complète',
+      SmartTileFrameSampling.tessellated => 'Mosaïque stable',
+      SmartTileFrameSampling.stableRandom => 'Cellule variée stable',
+    };
 
 String _normalizedPercentage(
   SmartTileCandidate candidate,

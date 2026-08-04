@@ -616,12 +616,14 @@ final class SmartTileAuthoringController {
     required int row,
     required String candidateId,
     SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
+    int columnSpan = 1,
+    int rowSpan = 1,
   }) {
     _ensureAtlasCell(
       column: column,
       row: row,
-      columnSpan: 1,
-      rowSpan: 1,
+      columnSpan: columnSpan,
+      rowSpan: rowSpan,
     );
     final normalized = _normalizeMask(mask);
     final candidates = List<SmartTileCandidate>.from(
@@ -639,9 +641,13 @@ final class SmartTileAuthoringController {
           atlasId: _state.atlasId,
           column: column,
           row: row,
+          columnSpan: columnSpan,
+          rowSpan: rowSpan,
         ),
       ),
       channel: channel,
+      footprintWidth: columnSpan,
+      footprintHeight: rowSpan,
     );
     final parts = List<SmartTileVisualPart>.from(current.parts);
     final partIndex = parts.indexWhere((part) => part.channel == channel);
@@ -649,14 +655,23 @@ final class SmartTileAuthoringController {
       parts.add(replacement);
     } else {
       final previous = parts[partIndex];
+      final previousFrame = switch (previous.source) {
+        SmartTileFrameSource(:final frame) => frame,
+        SmartTileAnimationSource() => null,
+      };
+      final followsPreviousCrop = previousFrame != null &&
+          previous.footprintWidth == previousFrame.columnSpan &&
+          previous.footprintHeight == previousFrame.rowSpan;
       parts[partIndex] = replacement.copyWith(
         transform: previous.transform,
         frameSampling: previous.frameSampling,
         offsetUnit: previous.offsetUnit,
         offsetX: previous.offsetX,
         offsetY: previous.offsetY,
-        footprintWidth: previous.footprintWidth,
-        footprintHeight: previous.footprintHeight,
+        footprintWidth:
+            followsPreviousCrop ? columnSpan : previous.footprintWidth,
+        footprintHeight:
+            followsPreviousCrop ? rowSpan : previous.footprintHeight,
         anchorX: previous.anchorX,
         anchorY: previous.anchorY,
         drawOrder: previous.drawOrder,
@@ -844,6 +859,8 @@ final class SmartTileAuthoringController {
             ),
           ),
           channel: channel,
+          footprintWidth: columnSpan,
+          footprintHeight: rowSpan,
         ),
       ],
     );
@@ -865,12 +882,14 @@ final class SmartTileAuthoringController {
     required int row,
     required String candidateId,
     SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
+    int columnSpan = 1,
+    int rowSpan = 1,
   }) {
     _ensureAtlasCell(
       column: column,
       row: row,
-      columnSpan: 1,
-      rowSpan: 1,
+      columnSpan: columnSpan,
+      rowSpan: rowSpan,
     );
     final rule = _requireTransitionCase(caseId);
     final candidates = List<SmartTileCandidate>.from(rule.candidates);
@@ -886,9 +905,13 @@ final class SmartTileAuthoringController {
           atlasId: _state.atlasId,
           column: column,
           row: row,
+          columnSpan: columnSpan,
+          rowSpan: rowSpan,
         ),
       ),
       channel: channel,
+      footprintWidth: columnSpan,
+      footprintHeight: rowSpan,
     );
     final parts = List<SmartTileVisualPart>.from(current.parts);
     final partIndex = parts.indexWhere((part) => part.channel == channel);
@@ -896,14 +919,23 @@ final class SmartTileAuthoringController {
       parts.add(replacement);
     } else {
       final previous = parts[partIndex];
+      final previousFrame = switch (previous.source) {
+        SmartTileFrameSource(:final frame) => frame,
+        SmartTileAnimationSource() => null,
+      };
+      final followsPreviousCrop = previousFrame != null &&
+          previous.footprintWidth == previousFrame.columnSpan &&
+          previous.footprintHeight == previousFrame.rowSpan;
       parts[partIndex] = replacement.copyWith(
         transform: previous.transform,
         frameSampling: previous.frameSampling,
         offsetUnit: previous.offsetUnit,
         offsetX: previous.offsetX,
         offsetY: previous.offsetY,
-        footprintWidth: previous.footprintWidth,
-        footprintHeight: previous.footprintHeight,
+        footprintWidth:
+            followsPreviousCrop ? columnSpan : previous.footprintWidth,
+        footprintHeight:
+            followsPreviousCrop ? rowSpan : previous.footprintHeight,
         anchorX: previous.anchorX,
         anchorY: previous.anchorY,
         drawOrder: previous.drawOrder,
@@ -1044,6 +1076,8 @@ final class SmartTileAuthoringController {
               ),
             ),
             channel: channel,
+            footprintWidth: columnSpan,
+            footprintHeight: rowSpan,
           ),
         ],
       ),
@@ -1202,6 +1236,93 @@ final class SmartTileAuthoringController {
       ],
     );
     _replaceMapping(normalized, candidates);
+  }
+
+  void updateCandidateVisualPart({
+    required int mask,
+    required String candidateId,
+    required int partIndex,
+    required SmartTileVisualPart part,
+  }) {
+    final normalized = _normalizeMask(mask);
+    final candidates = List<SmartTileCandidate>.from(
+      _state.mappings[normalized] ?? const <SmartTileCandidate>[],
+    );
+    final candidateIndex =
+        candidates.indexWhere((candidate) => candidate.id == candidateId);
+    if (candidateIndex < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    candidates[candidateIndex] = _replaceCandidateVisualPart(
+      candidates[candidateIndex],
+      partIndex: partIndex,
+      part: part,
+    );
+    _replaceMapping(normalized, candidates);
+  }
+
+  void updateTransitionCaseCandidateVisualPart({
+    required String caseId,
+    required String candidateId,
+    required int partIndex,
+    required SmartTileVisualPart part,
+  }) {
+    final rule = _requireTransitionCase(caseId);
+    final candidates = List<SmartTileCandidate>.from(rule.candidates);
+    final candidateIndex =
+        candidates.indexWhere((candidate) => candidate.id == candidateId);
+    if (candidateIndex < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    candidates[candidateIndex] = _replaceCandidateVisualPart(
+      candidates[candidateIndex],
+      partIndex: partIndex,
+      part: part,
+    );
+    _replaceTransitionCase(
+      caseId,
+      rule.copyWith(candidates: candidates),
+    );
+  }
+
+  SmartTileCandidate _replaceCandidateVisualPart(
+    SmartTileCandidate candidate, {
+    required int partIndex,
+    required SmartTileVisualPart part,
+  }) {
+    if (partIndex < 0 || partIndex >= candidate.parts.length) {
+      throw RangeError.index(partIndex, candidate.parts, 'partIndex');
+    }
+    final frame = switch (part.source) {
+      SmartTileFrameSource(:final frame) => frame,
+      SmartTileAnimationSource() => null,
+    };
+    if (frame != null) {
+      if (frame.atlasId != _state.atlasId) {
+        throw ArgumentError('Visual parts must use the active atlas.');
+      }
+      _ensureAtlasCell(
+        column: frame.column,
+        row: frame.row,
+        columnSpan: frame.columnSpan,
+        rowSpan: frame.rowSpan,
+      );
+    }
+    if (part.footprintWidth > 64 || part.footprintHeight > 64) {
+      throw RangeError('Visual footprint must not exceed 64 by 64 cells.');
+    }
+    if (part.offsetX.abs() > 4096 ||
+        part.offsetY.abs() > 4096 ||
+        part.anchorX.abs() > 4096 ||
+        part.anchorY.abs() > 4096) {
+      throw RangeError('Visual offsets and anchors must stay within ±4096.');
+    }
+    if (part.drawOrder.abs() > 1000) {
+      throw RangeError('Visual draw order must stay within ±1000.');
+    }
+    final parts = List<SmartTileVisualPart>.from(candidate.parts);
+    parts[partIndex] = part;
+    return candidate.copyWith(parts: parts);
   }
 
   void addAnimation(ProjectSmartTileAnimation animation) {

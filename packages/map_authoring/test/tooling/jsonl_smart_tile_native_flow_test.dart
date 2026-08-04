@@ -119,6 +119,16 @@ void main() {
       expect(transitionRule.centerMatch.materialId, 'grass');
       expect(transitionRule.signature.northEdge.materialId, 'water');
       expect(transitionRule.signature.eastEdge.materialId, 'stone');
+      final visual = transitionRule.candidates.single.parts.single;
+      expect(visual.offsetUnit, SmartTileOffsetUnit.pixel);
+      expect(visual.offsetX, 2);
+      expect(visual.offsetY, -1);
+      expect(visual.footprintWidth, 2);
+      expect(visual.footprintHeight, 3);
+      expect(visual.anchorX, 4);
+      expect(visual.anchorY, 5);
+      expect(visual.drawOrder, 6);
+      expect(visual.channel, SmartTileRenderChannel.foreground);
       final map = MapData.fromJson(
         jsonDecode(utf8.decode(await direct.mapBytes()))
             as Map<String, dynamic>,
@@ -1048,6 +1058,15 @@ ProjectSmartTileAuthoringDraft _draft() => ProjectSmartTileAuthoringDraft(
                       row: 0,
                     ),
                   ),
+                  channel: SmartTileRenderChannel.foreground,
+                  offsetUnit: SmartTileOffsetUnit.pixel,
+                  offsetX: 2,
+                  offsetY: -1,
+                  footprintWidth: 2,
+                  footprintHeight: 3,
+                  anchorX: 4,
+                  anchorY: 5,
+                  drawOrder: 6,
                 ),
               ],
             ),

@@ -651,6 +651,66 @@ void main() {
       expect(parts.last.anchorY, 96);
     });
 
+    test('rectangular crops default to their full grid footprint', () {
+      final controller = _configuredController()
+        ..selectUsage(SmartTileUsage.path)
+        ..addAtlasVariant(
+          mask: 0,
+          column: 1,
+          row: 2,
+          columnSpan: 2,
+          rowSpan: 3,
+          candidateId: 'wide',
+        );
+
+      var part = controller
+          .compilePreset()
+          .rules
+          .single
+          .candidates
+          .single
+          .parts
+          .single;
+      final frame = (part.source as SmartTileFrameSource).frame;
+      expect(frame.columnSpan, 2);
+      expect(frame.rowSpan, 3);
+      expect(part.footprintWidth, 2);
+      expect(part.footprintHeight, 3);
+
+      controller.updateCandidateVisualPart(
+        mask: 0,
+        candidateId: 'wide',
+        partIndex: 0,
+        part: part.copyWith(
+          offsetX: -4,
+          offsetY: 8,
+          footprintWidth: 3,
+          footprintHeight: 4,
+          anchorX: 16,
+          anchorY: 64,
+          channel: SmartTileRenderChannel.foreground,
+          drawOrder: 12,
+        ),
+      );
+
+      part = controller
+          .compilePreset()
+          .rules
+          .single
+          .candidates
+          .single
+          .parts
+          .single;
+      expect(part.offsetX, -4);
+      expect(part.offsetY, 8);
+      expect(part.footprintWidth, 3);
+      expect(part.footprintHeight, 4);
+      expect(part.anchorX, 16);
+      expect(part.anchorY, 64);
+      expect(part.channel, SmartTileRenderChannel.foreground);
+      expect(part.drawOrder, 12);
+    });
+
     test('animations remain catalog records separate from variant weights', () {
       final controller = _configuredController();
       controller

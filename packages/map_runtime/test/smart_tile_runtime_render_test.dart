@@ -130,12 +130,125 @@ void main() {
     expect(await pixelAt(rendered, 24, 24), rgba(255, 0, 0, 255));
     rendered.dispose();
   });
+
+  test('runtime renders 2x1, 2x2, and tall multi-cell atlas frames', () async {
+    final scenarios = <({
+      String label,
+      SmartTileFrameRef frame,
+      int footprintWidth,
+      int footprintHeight,
+      Color color,
+      List<Offset> painted,
+      List<Offset> transparent,
+    })>[
+      (
+        label: '2x1',
+        frame: const SmartTileFrameRef(
+          atlasId: 'atlas',
+          column: 0,
+          row: 0,
+          columnSpan: 2,
+        ),
+        footprintWidth: 2,
+        footprintHeight: 1,
+        color: const Color(0xFFFF0000),
+        painted: const <Offset>[Offset(8, 8), Offset(56, 24)],
+        transparent: const <Offset>[Offset(8, 48)],
+      ),
+      (
+        label: '2x2',
+        frame: const SmartTileFrameRef(
+          atlasId: 'atlas',
+          column: 0,
+          row: 0,
+          columnSpan: 2,
+          rowSpan: 2,
+        ),
+        footprintWidth: 2,
+        footprintHeight: 2,
+        color: const Color(0xFF00FF00),
+        painted: const <Offset>[Offset(8, 8), Offset(56, 56)],
+        transparent: const <Offset>[],
+      ),
+      (
+        label: 'tall',
+        frame: const SmartTileFrameRef(
+          atlasId: 'atlas',
+          column: 0,
+          row: 0,
+          rowSpan: 2,
+        ),
+        footprintWidth: 1,
+        footprintHeight: 2,
+        color: const Color(0xFF0000FF),
+        painted: const <Offset>[Offset(8, 8), Offset(24, 56)],
+        transparent: const <Offset>[Offset(48, 8)],
+      ),
+    ];
+
+    for (final scenario in scenarios) {
+      final fixture = _geometryFixture(
+        frame: scenario.frame,
+        footprintWidth: scenario.footprintWidth,
+        footprintHeight: scenario.footprintHeight,
+      );
+      final image = await _solidRuntimeImage(
+        width: scenario.frame.columnSpan * 32,
+        height: scenario.frame.rowSpan * 32,
+        color: scenario.color,
+      );
+      addTearDown(image.dispose);
+      final rendered = await _renderSized(
+        MapLayersComponent(
+          bundle: RuntimeMapBundle(
+            manifest: fixture.manifest,
+            map: fixture.map,
+            projectRootDirectory: '/tmp/smart-runtime-geometry',
+            tilesetAbsolutePathsById: const <String, String>{},
+          ),
+          tileImagesByTilesetId: <String, RuntimeTilesetImage>{
+            'smart': image,
+          },
+        ),
+        const Size(64, 64),
+      );
+      addTearDown(rendered.dispose);
+      final argb = scenario.color.toARGB32();
+
+      for (final point in scenario.painted) {
+        expect(
+          await pixelAt(rendered, point.dx.toInt(), point.dy.toInt()),
+          rgba(
+            (argb >> 16) & 0xff,
+            (argb >> 8) & 0xff,
+            argb & 0xff,
+            255,
+          ),
+          reason: '${scenario.label} paints $point',
+        );
+      }
+      for (final point in scenario.transparent) {
+        expect(
+          await pixelAt(rendered, point.dx.toInt(), point.dy.toInt()),
+          rgba(0, 0, 0, 0),
+          reason: '${scenario.label} leaves $point transparent',
+        );
+      }
+    }
+  });
 }
 
 Future<ui.Image> _render(MapLayersComponent component) {
+  return _renderSized(component, const Size(32, 32));
+}
+
+Future<ui.Image> _renderSized(MapLayersComponent component, Size size) {
   final recorder = ui.PictureRecorder();
   component.render(Canvas(recorder));
-  return recorder.endRecording().toImage(32, 32);
+  return recorder.endRecording().toImage(
+        size.width.toInt(),
+        size.height.toInt(),
+      );
 }
 
 Future<List<int>> _rgbaBytes(ui.Image image) async {
@@ -175,6 +288,118 @@ Future<RuntimeTilesetImage> _asymmetricRuntimeImage() async {
     width: 64,
     height: 32,
   );
+}
+
+Future<RuntimeTilesetImage> _solidRuntimeImage({
+  required int width,
+  required int height,
+  required Color color,
+}) async {
+  final recorder = ui.PictureRecorder();
+  Canvas(recorder).drawRect(
+    Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
+    Paint()..color = color,
+  );
+  final image = await recorder.endRecording().toImage(width, height);
+  return RuntimeTilesetImage(
+    images: <ui.Image>[image],
+    chunks: <RuntimeTilesetChunk>[
+      RuntimeTilesetChunk(top: 0, height: height, width: width),
+    ],
+    width: width,
+    height: height,
+  );
+}
+
+({ProjectManifest manifest, MapData map}) _geometryFixture({
+  required SmartTileFrameRef frame,
+  required int footprintWidth,
+  required int footprintHeight,
+}) {
+  const layer = SmartTileLayer(
+    id: 'geometry',
+    name: 'Geometry',
+    presetId: 'geometry',
+    usage: SmartTileUsage.terrain,
+    materialPalette: <String>['', 'material'],
+    field: SmartTileField.cell(semanticCells: <int>[1]),
+  );
+  const map = MapData(
+    id: 'geometry-map',
+    name: 'Geometry map',
+    version: ProjectVersion.v6,
+    size: GridSize(width: 1, height: 1),
+    layers: <MapLayer>[layer],
+  );
+  final manifest = ProjectManifest(
+    name: 'Geometry runtime',
+    version: ProjectVersion.v6,
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'smart',
+        name: 'Smart',
+        relativePath: 'tilesets/smart.png',
+      ),
+    ],
+    settings: const ProjectSettings(
+      tileWidth: 32,
+      tileHeight: 32,
+      displayScale: 1,
+    ),
+    smartTileCatalog: ProjectSmartTileCatalog(
+      atlases: <ProjectSmartTileAtlas>[
+        ProjectSmartTileAtlas(
+          id: 'atlas',
+          name: 'Atlas',
+          tilesetId: 'smart',
+          columns: frame.columnSpan,
+          rows: frame.rowSpan,
+        ),
+      ],
+      materials: const <ProjectSmartTileMaterial>[
+        ProjectSmartTileMaterial(
+          id: 'material',
+          name: 'Material',
+          connectionGroupId: 'material',
+        ),
+      ],
+      presets: <ProjectSmartTilePreset>[
+        ProjectSmartTilePreset(
+          id: 'geometry',
+          name: 'Geometry',
+          usage: SmartTileUsage.terrain,
+          topology: SmartTileTopology.uniform,
+          coveragePolicy: SmartTileCoveragePolicy.sparse,
+          coverageProfile: const SmartTileCoverageProfile(
+            mode: SmartTileCoverageMode.explicit,
+          ),
+          transformPolicy: const SmartTileTransformPolicy(),
+          defaultMaterialId: 'material',
+          allowedMaterialIds: const <String>['material'],
+          rules: <SmartTileRule>[
+            SmartTileRule(
+              id: 'material',
+              centerMatch: const SmartTileSlotMatch.material('material'),
+              candidates: <SmartTileCandidate>[
+                SmartTileCandidate(
+                  id: 'frame',
+                  parts: <SmartTileVisualPart>[
+                    SmartTileVisualPart(
+                      source: SmartTileVisualSource.frame(frame: frame),
+                      footprintWidth: footprintWidth,
+                      footprintHeight: footprintHeight,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+  return (manifest: manifest, map: map);
 }
 
 const _map = MapData(

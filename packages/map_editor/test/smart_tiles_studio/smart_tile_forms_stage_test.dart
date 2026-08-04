@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_selection.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_form_projection.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/stages/smart_tile_forms_stage.dart';
 import 'package:map_editor/src/theme/theme.dart';
@@ -38,6 +39,7 @@ void main() {
                 selectedMask: selectedMask,
                 selectedTransitionCaseId: null,
                 pendingAtlasFrame: null,
+                atlasSelectionMode: SmartTileAtlasSelectionMode.singleCell,
                 selectedChannel: SmartTileRenderChannel.ground,
                 animations: const <ProjectSmartTileAnimation>[],
                 atlasWorkbench: const SizedBox(
@@ -51,11 +53,14 @@ void main() {
                 onTransitionCaseCenterChanged: (_, __) {},
                 onTransitionCaseSlotChanged: (_, __, ___) {},
                 onClearPendingFrame: () {},
+                onAtlasSelectionModeChanged: (_) {},
                 onChannelSelected: (_) {},
                 onAnimationSelected: (_, __) {},
                 onTransitionCaseAnimationSelected: (_, __) {},
                 onWeightChanged: (_, __, ___) {},
                 onTransitionCaseWeightChanged: (_, __, ___) {},
+                onVisualPartChanged: (_, __, ___, ____) {},
+                onTransitionCaseVisualPartChanged: (_, __, ___, ____) {},
                 onMoveVariant: (_, __, ___) {},
                 onMoveTransitionCaseVariant: (_, __, ___) {},
                 onRemoveVariant: (_, __) {},

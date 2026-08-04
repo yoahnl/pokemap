@@ -618,6 +618,15 @@ function completeMultiMaterialSmartTileDraft(input: {
                   kind: "frame",
                   frame: { atlasId, column: 0, row: 0 },
                 },
+                channel: "foreground",
+                offsetUnit: "pixel",
+                offsetX: 2,
+                offsetY: -1,
+                footprintWidth: 2,
+                footprintHeight: 3,
+                anchorX: 4,
+                anchorY: 5,
+                drawOrder: 6,
               },
             ],
           },
@@ -1265,6 +1274,12 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       (queriedMultiDraft.rules as unknown[])[0],
     );
     const queriedMultiSignature = record(queriedMultiRule.signature);
+    const queriedMultiCandidate = record(
+      (queriedMultiRule.candidates as unknown[])[0],
+    );
+    const queriedMultiPart = record(
+      (queriedMultiCandidate.parts as unknown[])[0],
+    );
     assert.equal(
       record(queriedMultiSignature.northEdge).materialId,
       "mcp-library-draft-water",
@@ -1273,6 +1288,15 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       record(queriedMultiSignature.eastEdge).materialId,
       "mcp-library-draft-stone",
     );
+    assert.equal(queriedMultiPart.channel, "foreground");
+    assert.equal(queriedMultiPart.offsetUnit, "pixel");
+    assert.equal(queriedMultiPart.offsetX, 2);
+    assert.equal(queriedMultiPart.offsetY, -1);
+    assert.equal(queriedMultiPart.footprintWidth, 2);
+    assert.equal(queriedMultiPart.footprintHeight, 3);
+    assert.equal(queriedMultiPart.anchorX, 4);
+    assert.equal(queriedMultiPart.anchorY, 5);
+    assert.equal(queriedMultiPart.drawOrder, 6);
 
     await applyAction(
       "smart_tile.preset.publish",
