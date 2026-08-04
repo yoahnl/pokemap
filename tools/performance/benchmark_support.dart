@@ -100,6 +100,7 @@ Map<String, Object?> percentileFields(List<int> samples) {
     'p50Us': nearestRankPercentile(sorted, 0.50),
     'p95Us': nearestRankPercentile(sorted, 0.95),
     'p99Us': nearestRankPercentile(sorted, 0.99),
+    'maxUs': sorted.last,
   };
 }
 
