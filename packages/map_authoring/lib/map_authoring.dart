@@ -40,6 +40,7 @@ export 'src/domains/maps/semantic_map_action_support.dart';
 export 'src/domains/maps/smart_tile_catalog_actions.dart';
 export 'src/domains/maps/smart_tile_cell_actions.dart';
 export 'src/domains/maps/smart_tile_layer_actions.dart';
+export 'src/domains/maps/smart_tile_pattern_actions.dart';
 export 'src/domains/maps/smart_tile_native_transition_guard.dart';
 export 'src/domains/maps/smart_tile_transition_guards.dart';
 export 'src/domains/maps/trigger_zone_actions.dart';

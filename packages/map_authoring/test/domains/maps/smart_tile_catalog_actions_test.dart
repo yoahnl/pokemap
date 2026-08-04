@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('SmartTileCatalogActions', () {
-    test('advertises the eight canonical catalog mutations', () {
+    test('advertises the ten canonical catalog mutations', () {
       expect(
         SmartTileCatalogActions.descriptors.map((item) => item.id),
         <String>[
@@ -14,6 +14,8 @@ void main() {
           'smart_tile.animation.upsert',
           'smart_tile.atlas.upsert',
           'smart_tile.material.upsert',
+          'smart_tile.pattern.delete',
+          'smart_tile.pattern.upsert',
           'smart_tile.preset.delete',
           'smart_tile.preset.draft.delete',
           'smart_tile.preset.draft.upsert',
@@ -178,6 +180,36 @@ void main() {
       );
     });
 
+    test('upserts a reusable visual pattern without losing drafts', () {
+      final fixture = _fixture(
+        drafts: const <ProjectSmartTileAuthoringDraft>[_draft],
+      );
+      final draft = const SmartTileCatalogActions().build(
+        _context(
+          fixture,
+          actionId: 'smart_tile.pattern.upsert',
+          parameters: <String, Object?>{'pattern': _pattern.toJson()},
+        ),
+      );
+      final projected = ProjectManifest.fromJson(
+        jsonDecode(
+          utf8.decode(draft.changeSet.changes.single.afterBytes!),
+        ) as Map<String, dynamic>,
+      );
+
+      expect(projected.smartTileCatalog.patterns, <ProjectSmartTilePattern>[
+        _pattern,
+      ]);
+      expect(
+          projected.smartTileCatalog.drafts, <ProjectSmartTileAuthoringDraft>[
+        _draft,
+      ]);
+      expect(
+        draft.changeSet.diff.entries.single.path,
+        '/smartTileCatalog/patterns/rock-stamp',
+      );
+    });
+
     test('refuses to delete an animation referenced by a preset', () {
       final preset = _preset().copyWith(
         rules: const <SmartTileRule>[
@@ -218,6 +250,59 @@ void main() {
             ],
           ),
         ],
+      );
+
+      expect(
+        () => const SmartTileCatalogActions().build(
+          _context(
+            fixture,
+            actionId: 'smart_tile.animation.delete',
+            parameters: const <String, Object?>{'animationId': 'wind'},
+          ),
+        ),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile.animation.references_blocking',
+          ),
+        ),
+      );
+    });
+
+    test('refuses to delete an animation referenced by a pattern', () {
+      const animation = ProjectSmartTileAnimation(
+        id: 'wind',
+        name: 'Wind',
+        frames: <ProjectSmartTileAnimationFrame>[
+          ProjectSmartTileAnimationFrame(
+            frame: SmartTileFrameRef(
+              atlasId: 'atlas',
+              column: 0,
+              row: 0,
+            ),
+            durationMs: 120,
+          ),
+        ],
+      );
+      final pattern = _pattern.copyWith(
+        cells: const <SmartTilePatternCell>[
+          SmartTilePatternCell(
+            x: 0,
+            y: 0,
+            parts: <SmartTileVisualPart>[
+              SmartTileVisualPart(
+                source: SmartTileVisualSource.animation(
+                  animationId: 'wind',
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+      final fixture = _fixture(
+        animations: const <ProjectSmartTileAnimation>[animation],
+        patterns: <ProjectSmartTilePattern>[pattern],
       );
 
       expect(
@@ -291,6 +376,7 @@ void main() {
   ),
   ProjectSmartTilePreset? preset,
   List<ProjectSmartTileAnimation> animations = const [],
+  List<ProjectSmartTilePattern> patterns = const [],
   List<ProjectSmartTileAuthoringDraft> drafts = const [],
 }) {
   final artifact = ContentArtifactRef.fromBytes(
@@ -327,6 +413,7 @@ void main() {
       atlases: <ProjectSmartTileAtlas>[_atlas()],
       materials: <ProjectSmartTileMaterial>[_material()],
       animations: animations,
+      patterns: patterns,
       presets: <ProjectSmartTilePreset>[
         if (preset != null) preset,
       ],
@@ -379,6 +466,32 @@ const _draft = ProjectSmartTileAuthoringDraft(
   name: 'Future grass',
   usage: SmartTileUsage.terrain,
   lastStage: SmartTileAuthoringStage.image,
+);
+
+const _pattern = ProjectSmartTilePattern(
+  id: 'rock-stamp',
+  name: 'Rock stamp',
+  usage: SmartTileUsage.terrain,
+  width: 1,
+  height: 1,
+  repeatMode: SmartTilePatternRepeatMode.stamp,
+  cells: <SmartTilePatternCell>[
+    SmartTilePatternCell(
+      x: 0,
+      y: 0,
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.frame(
+            frame: SmartTileFrameRef(
+              atlasId: 'atlas',
+              column: 0,
+              row: 0,
+            ),
+          ),
+        ),
+      ],
+    ),
+  ],
 );
 
 AuthoringPlanningContext _context(

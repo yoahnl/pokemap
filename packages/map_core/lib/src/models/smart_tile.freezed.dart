@@ -2788,6 +2788,958 @@ abstract class _SmartTileVisualPart implements SmartTileVisualPart {
       throw _privateConstructorUsedError;
 }
 
+SmartTilePatternCell _$SmartTilePatternCellFromJson(Map<String, dynamic> json) {
+  return _SmartTilePatternCell.fromJson(json);
+}
+
+/// @nodoc
+mixin _$SmartTilePatternCell {
+  int get x => throw _privateConstructorUsedError;
+  int get y => throw _privateConstructorUsedError;
+  List<SmartTileVisualPart> get parts => throw _privateConstructorUsedError;
+  bool get eraseMaterial => throw _privateConstructorUsedError;
+  SmartTilePatternCollision get collision => throw _privateConstructorUsedError;
+
+  /// Serializes this SmartTilePatternCell to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of SmartTilePatternCell
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SmartTilePatternCellCopyWith<SmartTilePatternCell> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SmartTilePatternCellCopyWith<$Res> {
+  factory $SmartTilePatternCellCopyWith(SmartTilePatternCell value,
+          $Res Function(SmartTilePatternCell) then) =
+      _$SmartTilePatternCellCopyWithImpl<$Res, SmartTilePatternCell>;
+  @useResult
+  $Res call(
+      {int x,
+      int y,
+      List<SmartTileVisualPart> parts,
+      bool eraseMaterial,
+      SmartTilePatternCollision collision});
+}
+
+/// @nodoc
+class _$SmartTilePatternCellCopyWithImpl<$Res,
+        $Val extends SmartTilePatternCell>
+    implements $SmartTilePatternCellCopyWith<$Res> {
+  _$SmartTilePatternCellCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SmartTilePatternCell
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? x = null,
+    Object? y = null,
+    Object? parts = null,
+    Object? eraseMaterial = null,
+    Object? collision = null,
+  }) {
+    return _then(_value.copyWith(
+      x: null == x
+          ? _value.x
+          : x // ignore: cast_nullable_to_non_nullable
+              as int,
+      y: null == y
+          ? _value.y
+          : y // ignore: cast_nullable_to_non_nullable
+              as int,
+      parts: null == parts
+          ? _value.parts
+          : parts // ignore: cast_nullable_to_non_nullable
+              as List<SmartTileVisualPart>,
+      eraseMaterial: null == eraseMaterial
+          ? _value.eraseMaterial
+          : eraseMaterial // ignore: cast_nullable_to_non_nullable
+              as bool,
+      collision: null == collision
+          ? _value.collision
+          : collision // ignore: cast_nullable_to_non_nullable
+              as SmartTilePatternCollision,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$SmartTilePatternCellImplCopyWith<$Res>
+    implements $SmartTilePatternCellCopyWith<$Res> {
+  factory _$$SmartTilePatternCellImplCopyWith(_$SmartTilePatternCellImpl value,
+          $Res Function(_$SmartTilePatternCellImpl) then) =
+      __$$SmartTilePatternCellImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {int x,
+      int y,
+      List<SmartTileVisualPart> parts,
+      bool eraseMaterial,
+      SmartTilePatternCollision collision});
+}
+
+/// @nodoc
+class __$$SmartTilePatternCellImplCopyWithImpl<$Res>
+    extends _$SmartTilePatternCellCopyWithImpl<$Res, _$SmartTilePatternCellImpl>
+    implements _$$SmartTilePatternCellImplCopyWith<$Res> {
+  __$$SmartTilePatternCellImplCopyWithImpl(_$SmartTilePatternCellImpl _value,
+      $Res Function(_$SmartTilePatternCellImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SmartTilePatternCell
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? x = null,
+    Object? y = null,
+    Object? parts = null,
+    Object? eraseMaterial = null,
+    Object? collision = null,
+  }) {
+    return _then(_$SmartTilePatternCellImpl(
+      x: null == x
+          ? _value.x
+          : x // ignore: cast_nullable_to_non_nullable
+              as int,
+      y: null == y
+          ? _value.y
+          : y // ignore: cast_nullable_to_non_nullable
+              as int,
+      parts: null == parts
+          ? _value._parts
+          : parts // ignore: cast_nullable_to_non_nullable
+              as List<SmartTileVisualPart>,
+      eraseMaterial: null == eraseMaterial
+          ? _value.eraseMaterial
+          : eraseMaterial // ignore: cast_nullable_to_non_nullable
+              as bool,
+      collision: null == collision
+          ? _value.collision
+          : collision // ignore: cast_nullable_to_non_nullable
+              as SmartTilePatternCollision,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$SmartTilePatternCellImpl implements _SmartTilePatternCell {
+  const _$SmartTilePatternCellImpl(
+      {required this.x,
+      required this.y,
+      final List<SmartTileVisualPart> parts = const <SmartTileVisualPart>[],
+      this.eraseMaterial = false,
+      this.collision = SmartTilePatternCollision.inherit})
+      : assert(x >= 0, 'x must not be negative'),
+        assert(y >= 0, 'y must not be negative'),
+        _parts = parts;
+
+  factory _$SmartTilePatternCellImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SmartTilePatternCellImplFromJson(json);
+
+  @override
+  final int x;
+  @override
+  final int y;
+  final List<SmartTileVisualPart> _parts;
+  @override
+  @JsonKey()
+  List<SmartTileVisualPart> get parts {
+    if (_parts is EqualUnmodifiableListView) return _parts;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_parts);
+  }
+
+  @override
+  @JsonKey()
+  final bool eraseMaterial;
+  @override
+  @JsonKey()
+  final SmartTilePatternCollision collision;
+
+  @override
+  String toString() {
+    return 'SmartTilePatternCell(x: $x, y: $y, parts: $parts, eraseMaterial: $eraseMaterial, collision: $collision)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SmartTilePatternCellImpl &&
+            (identical(other.x, x) || other.x == x) &&
+            (identical(other.y, y) || other.y == y) &&
+            const DeepCollectionEquality().equals(other._parts, _parts) &&
+            (identical(other.eraseMaterial, eraseMaterial) ||
+                other.eraseMaterial == eraseMaterial) &&
+            (identical(other.collision, collision) ||
+                other.collision == collision));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, x, y,
+      const DeepCollectionEquality().hash(_parts), eraseMaterial, collision);
+
+  /// Create a copy of SmartTilePatternCell
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SmartTilePatternCellImplCopyWith<_$SmartTilePatternCellImpl>
+      get copyWith =>
+          __$$SmartTilePatternCellImplCopyWithImpl<_$SmartTilePatternCellImpl>(
+              this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SmartTilePatternCellImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _SmartTilePatternCell implements SmartTilePatternCell {
+  const factory _SmartTilePatternCell(
+      {required final int x,
+      required final int y,
+      final List<SmartTileVisualPart> parts,
+      final bool eraseMaterial,
+      final SmartTilePatternCollision collision}) = _$SmartTilePatternCellImpl;
+
+  factory _SmartTilePatternCell.fromJson(Map<String, dynamic> json) =
+      _$SmartTilePatternCellImpl.fromJson;
+
+  @override
+  int get x;
+  @override
+  int get y;
+  @override
+  List<SmartTileVisualPart> get parts;
+  @override
+  bool get eraseMaterial;
+  @override
+  SmartTilePatternCollision get collision;
+
+  /// Create a copy of SmartTilePatternCell
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SmartTilePatternCellImplCopyWith<_$SmartTilePatternCellImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectSmartTilePattern _$ProjectSmartTilePatternFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectSmartTilePattern.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectSmartTilePattern {
+  String get id => throw _privateConstructorUsedError;
+  String get name => throw _privateConstructorUsedError;
+  String get categoryId => throw _privateConstructorUsedError;
+  SmartTileUsage get usage => throw _privateConstructorUsedError;
+  int get width => throw _privateConstructorUsedError;
+  int get height => throw _privateConstructorUsedError;
+  int get anchorX => throw _privateConstructorUsedError;
+  int get anchorY => throw _privateConstructorUsedError;
+  SmartTilePatternRepeatMode get repeatMode =>
+      throw _privateConstructorUsedError;
+  List<SmartTilePatternCell> get cells => throw _privateConstructorUsedError;
+  int get drawOrder => throw _privateConstructorUsedError;
+  List<String> get tags => throw _privateConstructorUsedError;
+  int get sortOrder => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectSmartTilePattern to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectSmartTilePattern
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectSmartTilePatternCopyWith<ProjectSmartTilePattern> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectSmartTilePatternCopyWith<$Res> {
+  factory $ProjectSmartTilePatternCopyWith(ProjectSmartTilePattern value,
+          $Res Function(ProjectSmartTilePattern) then) =
+      _$ProjectSmartTilePatternCopyWithImpl<$Res, ProjectSmartTilePattern>;
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String categoryId,
+      SmartTileUsage usage,
+      int width,
+      int height,
+      int anchorX,
+      int anchorY,
+      SmartTilePatternRepeatMode repeatMode,
+      List<SmartTilePatternCell> cells,
+      int drawOrder,
+      List<String> tags,
+      int sortOrder});
+}
+
+/// @nodoc
+class _$ProjectSmartTilePatternCopyWithImpl<$Res,
+        $Val extends ProjectSmartTilePattern>
+    implements $ProjectSmartTilePatternCopyWith<$Res> {
+  _$ProjectSmartTilePatternCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectSmartTilePattern
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? categoryId = null,
+    Object? usage = null,
+    Object? width = null,
+    Object? height = null,
+    Object? anchorX = null,
+    Object? anchorY = null,
+    Object? repeatMode = null,
+    Object? cells = null,
+    Object? drawOrder = null,
+    Object? tags = null,
+    Object? sortOrder = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
+      usage: null == usage
+          ? _value.usage
+          : usage // ignore: cast_nullable_to_non_nullable
+              as SmartTileUsage,
+      width: null == width
+          ? _value.width
+          : width // ignore: cast_nullable_to_non_nullable
+              as int,
+      height: null == height
+          ? _value.height
+          : height // ignore: cast_nullable_to_non_nullable
+              as int,
+      anchorX: null == anchorX
+          ? _value.anchorX
+          : anchorX // ignore: cast_nullable_to_non_nullable
+              as int,
+      anchorY: null == anchorY
+          ? _value.anchorY
+          : anchorY // ignore: cast_nullable_to_non_nullable
+              as int,
+      repeatMode: null == repeatMode
+          ? _value.repeatMode
+          : repeatMode // ignore: cast_nullable_to_non_nullable
+              as SmartTilePatternRepeatMode,
+      cells: null == cells
+          ? _value.cells
+          : cells // ignore: cast_nullable_to_non_nullable
+              as List<SmartTilePatternCell>,
+      drawOrder: null == drawOrder
+          ? _value.drawOrder
+          : drawOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      tags: null == tags
+          ? _value.tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectSmartTilePatternImplCopyWith<$Res>
+    implements $ProjectSmartTilePatternCopyWith<$Res> {
+  factory _$$ProjectSmartTilePatternImplCopyWith(
+          _$ProjectSmartTilePatternImpl value,
+          $Res Function(_$ProjectSmartTilePatternImpl) then) =
+      __$$ProjectSmartTilePatternImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      String categoryId,
+      SmartTileUsage usage,
+      int width,
+      int height,
+      int anchorX,
+      int anchorY,
+      SmartTilePatternRepeatMode repeatMode,
+      List<SmartTilePatternCell> cells,
+      int drawOrder,
+      List<String> tags,
+      int sortOrder});
+}
+
+/// @nodoc
+class __$$ProjectSmartTilePatternImplCopyWithImpl<$Res>
+    extends _$ProjectSmartTilePatternCopyWithImpl<$Res,
+        _$ProjectSmartTilePatternImpl>
+    implements _$$ProjectSmartTilePatternImplCopyWith<$Res> {
+  __$$ProjectSmartTilePatternImplCopyWithImpl(
+      _$ProjectSmartTilePatternImpl _value,
+      $Res Function(_$ProjectSmartTilePatternImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectSmartTilePattern
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? categoryId = null,
+    Object? usage = null,
+    Object? width = null,
+    Object? height = null,
+    Object? anchorX = null,
+    Object? anchorY = null,
+    Object? repeatMode = null,
+    Object? cells = null,
+    Object? drawOrder = null,
+    Object? tags = null,
+    Object? sortOrder = null,
+  }) {
+    return _then(_$ProjectSmartTilePatternImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      categoryId: null == categoryId
+          ? _value.categoryId
+          : categoryId // ignore: cast_nullable_to_non_nullable
+              as String,
+      usage: null == usage
+          ? _value.usage
+          : usage // ignore: cast_nullable_to_non_nullable
+              as SmartTileUsage,
+      width: null == width
+          ? _value.width
+          : width // ignore: cast_nullable_to_non_nullable
+              as int,
+      height: null == height
+          ? _value.height
+          : height // ignore: cast_nullable_to_non_nullable
+              as int,
+      anchorX: null == anchorX
+          ? _value.anchorX
+          : anchorX // ignore: cast_nullable_to_non_nullable
+              as int,
+      anchorY: null == anchorY
+          ? _value.anchorY
+          : anchorY // ignore: cast_nullable_to_non_nullable
+              as int,
+      repeatMode: null == repeatMode
+          ? _value.repeatMode
+          : repeatMode // ignore: cast_nullable_to_non_nullable
+              as SmartTilePatternRepeatMode,
+      cells: null == cells
+          ? _value._cells
+          : cells // ignore: cast_nullable_to_non_nullable
+              as List<SmartTilePatternCell>,
+      drawOrder: null == drawOrder
+          ? _value.drawOrder
+          : drawOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+      tags: null == tags
+          ? _value._tags
+          : tags // ignore: cast_nullable_to_non_nullable
+              as List<String>,
+      sortOrder: null == sortOrder
+          ? _value.sortOrder
+          : sortOrder // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectSmartTilePatternImpl implements _ProjectSmartTilePattern {
+  const _$ProjectSmartTilePatternImpl(
+      {required this.id,
+      required this.name,
+      this.categoryId = '',
+      required this.usage,
+      required this.width,
+      required this.height,
+      this.anchorX = 0,
+      this.anchorY = 0,
+      this.repeatMode = SmartTilePatternRepeatMode.tiled,
+      final List<SmartTilePatternCell> cells = const <SmartTilePatternCell>[],
+      this.drawOrder = 0,
+      final List<String> tags = const <String>[],
+      this.sortOrder = 0})
+      : assert(id != "", 'id must not be blank'),
+        assert(name != "", 'name must not be blank'),
+        assert(width > 0 && width <= 64, 'width must be between 1 and 64'),
+        assert(height > 0 && height <= 64, 'height must be between 1 and 64'),
+        assert(anchorX >= 0 && anchorX < width, 'anchorX must be in bounds'),
+        assert(anchorY >= 0 && anchorY < height, 'anchorY must be in bounds'),
+        _cells = cells,
+        _tags = tags;
+
+  factory _$ProjectSmartTilePatternImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectSmartTilePatternImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  @JsonKey()
+  final String categoryId;
+  @override
+  final SmartTileUsage usage;
+  @override
+  final int width;
+  @override
+  final int height;
+  @override
+  @JsonKey()
+  final int anchorX;
+  @override
+  @JsonKey()
+  final int anchorY;
+  @override
+  @JsonKey()
+  final SmartTilePatternRepeatMode repeatMode;
+  final List<SmartTilePatternCell> _cells;
+  @override
+  @JsonKey()
+  List<SmartTilePatternCell> get cells {
+    if (_cells is EqualUnmodifiableListView) return _cells;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_cells);
+  }
+
+  @override
+  @JsonKey()
+  final int drawOrder;
+  final List<String> _tags;
+  @override
+  @JsonKey()
+  List<String> get tags {
+    if (_tags is EqualUnmodifiableListView) return _tags;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_tags);
+  }
+
+  @override
+  @JsonKey()
+  final int sortOrder;
+
+  @override
+  String toString() {
+    return 'ProjectSmartTilePattern(id: $id, name: $name, categoryId: $categoryId, usage: $usage, width: $width, height: $height, anchorX: $anchorX, anchorY: $anchorY, repeatMode: $repeatMode, cells: $cells, drawOrder: $drawOrder, tags: $tags, sortOrder: $sortOrder)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectSmartTilePatternImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.categoryId, categoryId) ||
+                other.categoryId == categoryId) &&
+            (identical(other.usage, usage) || other.usage == usage) &&
+            (identical(other.width, width) || other.width == width) &&
+            (identical(other.height, height) || other.height == height) &&
+            (identical(other.anchorX, anchorX) || other.anchorX == anchorX) &&
+            (identical(other.anchorY, anchorY) || other.anchorY == anchorY) &&
+            (identical(other.repeatMode, repeatMode) ||
+                other.repeatMode == repeatMode) &&
+            const DeepCollectionEquality().equals(other._cells, _cells) &&
+            (identical(other.drawOrder, drawOrder) ||
+                other.drawOrder == drawOrder) &&
+            const DeepCollectionEquality().equals(other._tags, _tags) &&
+            (identical(other.sortOrder, sortOrder) ||
+                other.sortOrder == sortOrder));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      categoryId,
+      usage,
+      width,
+      height,
+      anchorX,
+      anchorY,
+      repeatMode,
+      const DeepCollectionEquality().hash(_cells),
+      drawOrder,
+      const DeepCollectionEquality().hash(_tags),
+      sortOrder);
+
+  /// Create a copy of ProjectSmartTilePattern
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectSmartTilePatternImplCopyWith<_$ProjectSmartTilePatternImpl>
+      get copyWith => __$$ProjectSmartTilePatternImplCopyWithImpl<
+          _$ProjectSmartTilePatternImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectSmartTilePatternImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectSmartTilePattern implements ProjectSmartTilePattern {
+  const factory _ProjectSmartTilePattern(
+      {required final String id,
+      required final String name,
+      final String categoryId,
+      required final SmartTileUsage usage,
+      required final int width,
+      required final int height,
+      final int anchorX,
+      final int anchorY,
+      final SmartTilePatternRepeatMode repeatMode,
+      final List<SmartTilePatternCell> cells,
+      final int drawOrder,
+      final List<String> tags,
+      final int sortOrder}) = _$ProjectSmartTilePatternImpl;
+
+  factory _ProjectSmartTilePattern.fromJson(Map<String, dynamic> json) =
+      _$ProjectSmartTilePatternImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  String get categoryId;
+  @override
+  SmartTileUsage get usage;
+  @override
+  int get width;
+  @override
+  int get height;
+  @override
+  int get anchorX;
+  @override
+  int get anchorY;
+  @override
+  SmartTilePatternRepeatMode get repeatMode;
+  @override
+  List<SmartTilePatternCell> get cells;
+  @override
+  int get drawOrder;
+  @override
+  List<String> get tags;
+  @override
+  int get sortOrder;
+
+  /// Create a copy of ProjectSmartTilePattern
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectSmartTilePatternImplCopyWith<_$ProjectSmartTilePatternImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+SmartTilePatternStroke _$SmartTilePatternStrokeFromJson(
+    Map<String, dynamic> json) {
+  return _SmartTilePatternStroke.fromJson(json);
+}
+
+/// @nodoc
+mixin _$SmartTilePatternStroke {
+  String get id => throw _privateConstructorUsedError;
+  String get patternId => throw _privateConstructorUsedError;
+  List<GridPos> get cells => throw _privateConstructorUsedError;
+  int get phaseX => throw _privateConstructorUsedError;
+  int get phaseY => throw _privateConstructorUsedError;
+
+  /// Serializes this SmartTilePatternStroke to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of SmartTilePatternStroke
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SmartTilePatternStrokeCopyWith<SmartTilePatternStroke> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SmartTilePatternStrokeCopyWith<$Res> {
+  factory $SmartTilePatternStrokeCopyWith(SmartTilePatternStroke value,
+          $Res Function(SmartTilePatternStroke) then) =
+      _$SmartTilePatternStrokeCopyWithImpl<$Res, SmartTilePatternStroke>;
+  @useResult
+  $Res call(
+      {String id,
+      String patternId,
+      List<GridPos> cells,
+      int phaseX,
+      int phaseY});
+}
+
+/// @nodoc
+class _$SmartTilePatternStrokeCopyWithImpl<$Res,
+        $Val extends SmartTilePatternStroke>
+    implements $SmartTilePatternStrokeCopyWith<$Res> {
+  _$SmartTilePatternStrokeCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SmartTilePatternStroke
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? patternId = null,
+    Object? cells = null,
+    Object? phaseX = null,
+    Object? phaseY = null,
+  }) {
+    return _then(_value.copyWith(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      patternId: null == patternId
+          ? _value.patternId
+          : patternId // ignore: cast_nullable_to_non_nullable
+              as String,
+      cells: null == cells
+          ? _value.cells
+          : cells // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
+      phaseX: null == phaseX
+          ? _value.phaseX
+          : phaseX // ignore: cast_nullable_to_non_nullable
+              as int,
+      phaseY: null == phaseY
+          ? _value.phaseY
+          : phaseY // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$SmartTilePatternStrokeImplCopyWith<$Res>
+    implements $SmartTilePatternStrokeCopyWith<$Res> {
+  factory _$$SmartTilePatternStrokeImplCopyWith(
+          _$SmartTilePatternStrokeImpl value,
+          $Res Function(_$SmartTilePatternStrokeImpl) then) =
+      __$$SmartTilePatternStrokeImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String patternId,
+      List<GridPos> cells,
+      int phaseX,
+      int phaseY});
+}
+
+/// @nodoc
+class __$$SmartTilePatternStrokeImplCopyWithImpl<$Res>
+    extends _$SmartTilePatternStrokeCopyWithImpl<$Res,
+        _$SmartTilePatternStrokeImpl>
+    implements _$$SmartTilePatternStrokeImplCopyWith<$Res> {
+  __$$SmartTilePatternStrokeImplCopyWithImpl(
+      _$SmartTilePatternStrokeImpl _value,
+      $Res Function(_$SmartTilePatternStrokeImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SmartTilePatternStroke
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? patternId = null,
+    Object? cells = null,
+    Object? phaseX = null,
+    Object? phaseY = null,
+  }) {
+    return _then(_$SmartTilePatternStrokeImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      patternId: null == patternId
+          ? _value.patternId
+          : patternId // ignore: cast_nullable_to_non_nullable
+              as String,
+      cells: null == cells
+          ? _value._cells
+          : cells // ignore: cast_nullable_to_non_nullable
+              as List<GridPos>,
+      phaseX: null == phaseX
+          ? _value.phaseX
+          : phaseX // ignore: cast_nullable_to_non_nullable
+              as int,
+      phaseY: null == phaseY
+          ? _value.phaseY
+          : phaseY // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$SmartTilePatternStrokeImpl implements _SmartTilePatternStroke {
+  const _$SmartTilePatternStrokeImpl(
+      {required this.id,
+      required this.patternId,
+      required final List<GridPos> cells,
+      this.phaseX = 0,
+      this.phaseY = 0})
+      : assert(id != "", 'id must not be blank'),
+        assert(patternId != "", 'patternId must not be blank'),
+        _cells = cells;
+
+  factory _$SmartTilePatternStrokeImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SmartTilePatternStrokeImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String patternId;
+  final List<GridPos> _cells;
+  @override
+  List<GridPos> get cells {
+    if (_cells is EqualUnmodifiableListView) return _cells;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_cells);
+  }
+
+  @override
+  @JsonKey()
+  final int phaseX;
+  @override
+  @JsonKey()
+  final int phaseY;
+
+  @override
+  String toString() {
+    return 'SmartTilePatternStroke(id: $id, patternId: $patternId, cells: $cells, phaseX: $phaseX, phaseY: $phaseY)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SmartTilePatternStrokeImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.patternId, patternId) ||
+                other.patternId == patternId) &&
+            const DeepCollectionEquality().equals(other._cells, _cells) &&
+            (identical(other.phaseX, phaseX) || other.phaseX == phaseX) &&
+            (identical(other.phaseY, phaseY) || other.phaseY == phaseY));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, id, patternId,
+      const DeepCollectionEquality().hash(_cells), phaseX, phaseY);
+
+  /// Create a copy of SmartTilePatternStroke
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SmartTilePatternStrokeImplCopyWith<_$SmartTilePatternStrokeImpl>
+      get copyWith => __$$SmartTilePatternStrokeImplCopyWithImpl<
+          _$SmartTilePatternStrokeImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SmartTilePatternStrokeImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _SmartTilePatternStroke implements SmartTilePatternStroke {
+  const factory _SmartTilePatternStroke(
+      {required final String id,
+      required final String patternId,
+      required final List<GridPos> cells,
+      final int phaseX,
+      final int phaseY}) = _$SmartTilePatternStrokeImpl;
+
+  factory _SmartTilePatternStroke.fromJson(Map<String, dynamic> json) =
+      _$SmartTilePatternStrokeImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get patternId;
+  @override
+  List<GridPos> get cells;
+  @override
+  int get phaseX;
+  @override
+  int get phaseY;
+
+  /// Create a copy of SmartTilePatternStroke
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SmartTilePatternStrokeImplCopyWith<_$SmartTilePatternStrokeImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 SmartTileCandidate _$SmartTileCandidateFromJson(Map<String, dynamic> json) {
   return _SmartTileCandidate.fromJson(json);
 }

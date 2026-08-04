@@ -1013,6 +1013,115 @@ test("MCP applies Smart Tile cell edits through the canonical transport", async 
   }
 });
 
+test("MCP upserts and paints a reusable Smart Tile pattern", async () => {
+  const fixture = await mutationFixture({ withNativeSmartTileV5: true });
+  try {
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    let revision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    async function apply(
+      actionId: string,
+      parameters: JsonRecord,
+      sequence: string,
+    ): Promise<void> {
+      const planned = await toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `pattern-${sequence}`,
+          actionId,
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle,
+          parameters,
+          expectedRevision: revision,
+          idempotencyKey: `idem-pattern-${sequence}`,
+          dryRun: false,
+        },
+      });
+      const applied = await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: `operation-pattern-${sequence}`,
+      });
+      assert.equal(record(applied.receipt).actionId, actionId);
+      revision = String(
+        (
+          await toolData(fixture.client, "pokemap_validate", {
+            projectHandle,
+          })
+        ).snapshotRevision,
+      );
+    }
+
+    await apply(
+      "smart_tile.pattern.upsert",
+      {
+        pattern: {
+          id: "road-cutout",
+          name: "Road cutout",
+          usage: "path",
+          width: 1,
+          height: 1,
+          repeatMode: "stamp",
+          cells: [{ x: 0, y: 0, eraseMaterial: true }],
+        },
+      },
+      "upsert",
+    );
+    await apply(
+      "smart_tile.pattern.paint",
+      {
+        mapId: "native_v5",
+        layerId: "smart",
+        patternId: "road-cutout",
+        strokeId: "cutout-1",
+        selection: { kind: "stamp", anchor: { x: 0, y: 0 } },
+      },
+      "paint",
+    );
+
+    const query = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "smartTilePattern",
+      operation: "list",
+      view: "detail",
+    });
+    assert.equal(query.totalAvailable, 1);
+    const persisted = record(
+      JSON.parse(
+        await readFile(join(fixture.root, "maps/native_v5.json"), "utf8"),
+      ),
+    );
+    const smartLayer = record(
+      (persisted.layers as unknown[]).find(
+        (layer) => record(layer).id === "smart",
+      ),
+    );
+    assert.equal(
+      (record(smartLayer.field).semanticCells as unknown[])[0],
+      0,
+    );
+    assert.equal(
+      record((smartLayer.patternStrokes as unknown[])[0]).patternId,
+      "road-cutout",
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP marks dry-run plans non-applicable before confirmation or apply", async () => {
   const fixture = await mutationFixture();
   try {

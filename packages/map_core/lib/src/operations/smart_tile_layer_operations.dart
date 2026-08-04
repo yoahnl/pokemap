@@ -866,9 +866,37 @@ SmartTileLayerUnionResult unionSmartTileLayers({
     layer: normalizedTarget.copyWith(
       materialPalette: List.unmodifiable(palette),
       field: _fieldFromLattices(normalizedTarget.field, encoded),
+      patternStrokes: _unionSmartTilePatternStrokes(
+        normalizedTarget,
+        normalizedSources,
+      ),
     ),
     mergedEntryCounts: mergedEntryCounts,
   );
+}
+
+List<SmartTilePatternStroke> _unionSmartTilePatternStrokes(
+  SmartTileLayer target,
+  List<SmartTileLayer> sources,
+) {
+  final result = <SmartTilePatternStroke>[...target.patternStrokes];
+  final usedIds = <String>{for (final stroke in result) stroke.id};
+  for (final source in sources) {
+    for (final stroke in source.patternStrokes) {
+      var id = stroke.id;
+      if (!usedIds.add(id)) {
+        final base = '${source.id}__${stroke.id}';
+        id = base;
+        var suffix = 2;
+        while (!usedIds.add(id)) {
+          id = '${base}__$suffix';
+          suffix += 1;
+        }
+      }
+      result.add(id == stroke.id ? stroke : stroke.copyWith(id: id));
+    }
+  }
+  return List<SmartTilePatternStroke>.unmodifiable(result);
 }
 
 Map<String, List<int>> _activeLattices(SmartTileLayer layer) =>

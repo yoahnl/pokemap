@@ -5,11 +5,12 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('queries all six native Smart Tile resource kinds', () {
+  test('queries all seven native Smart Tile resource kinds', () {
     final snapshot = _snapshot();
     final expected = <String, int>{
       'smartTileAtlas': 1,
       'smartTileMaterial': 1,
+      'smartTilePattern': 1,
       'smartTileAnimation': 1,
       'smartTilePreset': 1,
       'smartTileLayer': 1,
@@ -126,6 +127,30 @@ ProjectSnapshot _snapshot() {
       ),
     ],
   );
+  const pattern = ProjectSmartTilePattern(
+    id: 'grass-detail',
+    name: 'Grass detail',
+    usage: SmartTileUsage.terrain,
+    width: 1,
+    height: 1,
+    cells: <SmartTilePatternCell>[
+      SmartTilePatternCell(
+        x: 0,
+        y: 0,
+        parts: <SmartTileVisualPart>[
+          SmartTileVisualPart(
+            source: SmartTileVisualSource.frame(
+              frame: SmartTileFrameRef(
+                atlasId: 'atlas',
+                column: 0,
+                row: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
   const map = MapData(
     id: 'map',
     name: 'Map',
@@ -164,6 +189,7 @@ ProjectSnapshot _snapshot() {
       materials: const <ProjectSmartTileMaterial>[material],
       animations: const <ProjectSmartTileAnimation>[animation],
       presets: const <ProjectSmartTilePreset>[preset],
+      patterns: const <ProjectSmartTilePattern>[pattern],
       drafts: const <ProjectSmartTileAuthoringDraft>[_draft],
     ),
   );

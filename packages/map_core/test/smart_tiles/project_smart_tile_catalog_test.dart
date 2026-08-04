@@ -149,7 +149,7 @@ void main() {
         ),
       );
       expect(decoded.isNotEmpty, isTrue);
-      expect(decoded.formatVersion, 3);
+      expect(decoded.formatVersion, 4);
       expect(
         decoded.materials
             .singleWhere((item) => item.id == 'dirt')
@@ -289,7 +289,7 @@ void main() {
       }
       expect(
         () => ProjectSmartTileCatalog.fromJson(<String, dynamic>{
-          'formatVersion': 4,
+          'formatVersion': 5,
         }),
         throwsA(
           isA<FormatException>().having(
@@ -299,7 +299,7 @@ void main() {
           ),
         ),
       );
-      for (final invalid in <int>[1, 2, 4]) {
+      for (final invalid in <int>[1, 2, 3]) {
         expect(
           () => ProjectSmartTileCatalog(formatVersion: invalid),
           throwsArgumentError,

@@ -30,10 +30,10 @@ void main() {
         ],
       });
 
-      expect(catalog.formatVersion, 3);
+      expect(catalog.formatVersion, 4);
       expect(catalog.materials.single.id, 'grass');
       expect(catalog.drafts, isEmpty);
-      expect(catalog.toJson()['formatVersion'], 3);
+      expect(catalog.toJson()['formatVersion'], 4);
     });
 
     test('v3 preserves an incomplete draft and keeps lists immutable', () {

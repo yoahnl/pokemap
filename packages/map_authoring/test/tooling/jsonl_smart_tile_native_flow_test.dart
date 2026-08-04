@@ -170,6 +170,41 @@ void main() {
       expect(field.corners, <int>[1, 1, 1, 1]);
     });
 
+    test('upserts and paints patterns byte-identically through JSONL',
+        () async {
+      final direct = await _Harness.create('patterns_direct');
+      final jsonl = await _Harness.create('patterns_jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+
+      await direct.applyDirectFlow();
+      await jsonl.applyJsonlFlow();
+      final directResult = await direct.applyDirectPatternFlow();
+      final jsonlResult = await jsonl.applyJsonlPatternFlow();
+
+      expect(
+        _stableReceipt(directResult.upsertReceipt),
+        _stableReceipt(jsonlResult.upsertReceipt),
+      );
+      expect(
+        _stableReceipt(directResult.paintReceipt),
+        _stableReceipt(jsonlResult.paintReceipt),
+      );
+      expect(directResult.patternQuery['totalAvailable'], 1);
+      expect(jsonlResult.patternQuery['totalAvailable'], 1);
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      expect(await direct.mapBytes(), await jsonl.mapBytes());
+      final map = MapData.fromJson(
+        jsonDecode(utf8.decode(await direct.mapBytes()))
+            as Map<String, dynamic>,
+      );
+      final layer = map.layers.single as SmartTileLayer;
+      expect(layer.patternStrokes.single.patternId, 'grass-detail');
+      expect(layer.patternStrokes.single.cells, const <GridPos>[
+        GridPos(x: 0, y: 0),
+      ]);
+    });
+
     test('rejects stale planning and replays one operation exactly once',
         () async {
       final harness = await _Harness.create('cas');
@@ -575,6 +610,65 @@ final class _Harness {
     );
   }
 
+  Future<_PatternFlowResult> applyDirectPatternFlow() async {
+    final opened = await openDirect();
+
+    Future<Map<String, Object?>> apply(
+      String actionId,
+      Map<String, Object?> parameters,
+      String sequence,
+    ) async {
+      final snapshot = await snapshots.load(opened.project);
+      final plan = await mutations.plan(
+        opened.project,
+        _request(
+          workspaceHandle: opened.workspace.value,
+          revision: snapshot.revision,
+          actionId: actionId,
+          parameters: parameters,
+          sequence: sequence,
+        ),
+      );
+      return mutations.apply(
+        opened.project,
+        planId: plan['planId']! as String,
+        operationId: 'operation-$sequence',
+      );
+    }
+
+    final upsert = await apply(
+      'smart_tile.pattern.upsert',
+      <String, Object?>{'pattern': _pattern().toJson()},
+      'pattern-upsert',
+    );
+    final paint = await apply(
+      'smart_tile.pattern.paint',
+      const <String, Object?>{
+        'mapId': 'map',
+        'layerId': 'terrain',
+        'patternId': 'grass-detail',
+        'strokeId': 'detail-1',
+        'selection': <String, Object?>{
+          'kind': 'stamp',
+          'anchor': <String, int>{'x': 0, 'y': 0},
+        },
+      },
+      'pattern-paint',
+    );
+    final query = await readApi.query(
+      opened.project,
+      AuthoringQueryRequest(
+        resourceKind: 'smartTilePattern',
+        operation: AuthoringQueryOperation.list,
+      ),
+    );
+    return _PatternFlowResult(
+      upsertReceipt: _receipt(upsert),
+      paintReceipt: _receipt(paint),
+      patternQuery: query,
+    );
+  }
+
   Future<AuthoringResult> planJsonlFailure({
     required String actionId,
     required Map<String, Object?> parameters,
@@ -819,6 +913,71 @@ final class _Harness {
     );
   }
 
+  Future<_PatternFlowResult> applyJsonlPatternFlow() async {
+    final opened = await _jsonl('open', <String, Object?>{
+      'projectRoot': root.path,
+    });
+    final project = opened['projectHandle']! as String;
+    final workspace = opened['workspaceHandle']! as String;
+
+    Future<Map<String, Object?>> apply(
+      String actionId,
+      Map<String, Object?> parameters,
+      String sequence,
+    ) async {
+      final validation = await _jsonl('validate', <String, Object?>{
+        'projectHandle': project,
+      });
+      final plan = await _jsonl('plan', <String, Object?>{
+        'projectHandle': project,
+        'request': _request(
+          workspaceHandle: workspace,
+          revision: validation['snapshotRevision']! as String,
+          actionId: actionId,
+          parameters: parameters,
+          sequence: sequence,
+        ).toJson(),
+      });
+      return _jsonl('apply', <String, Object?>{
+        'projectHandle': project,
+        'planId': plan['planId'],
+        'operationId': 'operation-$sequence',
+      });
+    }
+
+    final upsert = await apply(
+      'smart_tile.pattern.upsert',
+      <String, Object?>{'pattern': _pattern().toJson()},
+      'pattern-upsert',
+    );
+    final paint = await apply(
+      'smart_tile.pattern.paint',
+      const <String, Object?>{
+        'mapId': 'map',
+        'layerId': 'terrain',
+        'patternId': 'grass-detail',
+        'strokeId': 'detail-1',
+        'selection': <String, Object?>{
+          'kind': 'stamp',
+          'anchor': <String, int>{'x': 0, 'y': 0},
+        },
+      },
+      'pattern-paint',
+    );
+    final query = await _jsonl('query', <String, Object?>{
+      'projectHandle': project,
+      'request': AuthoringQueryRequest(
+        resourceKind: 'smartTilePattern',
+        operation: AuthoringQueryOperation.list,
+      ).toJson(),
+    });
+    return _PatternFlowResult(
+      upsertReceipt: _receipt(upsert),
+      paintReceipt: _receipt(paint),
+      patternQuery: query,
+    );
+  }
+
   Future<Map<String, Object?>> _jsonl(
     String command,
     Map<String, Object?> args,
@@ -897,6 +1056,18 @@ final class _CellFlowResult {
   final Map<String, Object?> paintReceipt;
 }
 
+final class _PatternFlowResult {
+  const _PatternFlowResult({
+    required this.upsertReceipt,
+    required this.paintReceipt,
+    required this.patternQuery,
+  });
+
+  final Map<String, Object?> upsertReceipt;
+  final Map<String, Object?> paintReceipt;
+  final Map<String, Object?> patternQuery;
+}
+
 AuthoringRequest _request({
   required String workspaceHandle,
   required String revision,
@@ -950,6 +1121,32 @@ ProjectSmartTileAnimation _animation() => const ProjectSmartTileAnimation(
             row: 0,
           ),
           durationMs: 120,
+        ),
+      ],
+    );
+
+ProjectSmartTilePattern _pattern() => const ProjectSmartTilePattern(
+      id: 'grass-detail',
+      name: 'Grass detail',
+      usage: SmartTileUsage.terrain,
+      width: 1,
+      height: 1,
+      repeatMode: SmartTilePatternRepeatMode.stamp,
+      cells: <SmartTilePatternCell>[
+        SmartTilePatternCell(
+          x: 0,
+          y: 0,
+          parts: <SmartTileVisualPart>[
+            SmartTileVisualPart(
+              source: SmartTileVisualSource.frame(
+                frame: SmartTileFrameRef(
+                  atlasId: 'atlas',
+                  column: 0,
+                  row: 0,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

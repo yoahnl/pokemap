@@ -289,6 +289,115 @@ const _$SmartTileOffsetUnitEnumMap = {
   SmartTileOffsetUnit.cell: 'cell',
 };
 
+_$SmartTilePatternCellImpl _$$SmartTilePatternCellImplFromJson(
+        Map<String, dynamic> json) =>
+    _$SmartTilePatternCellImpl(
+      x: (json['x'] as num).toInt(),
+      y: (json['y'] as num).toInt(),
+      parts: (json['parts'] as List<dynamic>?)
+              ?.map((e) =>
+                  SmartTileVisualPart.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <SmartTileVisualPart>[],
+      eraseMaterial: json['eraseMaterial'] as bool? ?? false,
+      collision: $enumDecodeNullable(
+              _$SmartTilePatternCollisionEnumMap, json['collision']) ??
+          SmartTilePatternCollision.inherit,
+    );
+
+Map<String, dynamic> _$$SmartTilePatternCellImplToJson(
+        _$SmartTilePatternCellImpl instance) =>
+    <String, dynamic>{
+      'x': instance.x,
+      'y': instance.y,
+      'parts': instance.parts.map((e) => e.toJson()).toList(),
+      'eraseMaterial': instance.eraseMaterial,
+      'collision': _$SmartTilePatternCollisionEnumMap[instance.collision]!,
+    };
+
+const _$SmartTilePatternCollisionEnumMap = {
+  SmartTilePatternCollision.inherit: 'inherit',
+  SmartTilePatternCollision.passable: 'passable',
+  SmartTilePatternCollision.blocked: 'blocked',
+};
+
+_$ProjectSmartTilePatternImpl _$$ProjectSmartTilePatternImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectSmartTilePatternImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      categoryId: json['categoryId'] as String? ?? '',
+      usage: $enumDecode(_$SmartTileUsageEnumMap, json['usage']),
+      width: (json['width'] as num).toInt(),
+      height: (json['height'] as num).toInt(),
+      anchorX: (json['anchorX'] as num?)?.toInt() ?? 0,
+      anchorY: (json['anchorY'] as num?)?.toInt() ?? 0,
+      repeatMode: $enumDecodeNullable(
+              _$SmartTilePatternRepeatModeEnumMap, json['repeatMode']) ??
+          SmartTilePatternRepeatMode.tiled,
+      cells: (json['cells'] as List<dynamic>?)
+              ?.map((e) =>
+                  SmartTilePatternCell.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <SmartTilePatternCell>[],
+      drawOrder: (json['drawOrder'] as num?)?.toInt() ?? 0,
+      tags:
+          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+              const <String>[],
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$ProjectSmartTilePatternImplToJson(
+        _$ProjectSmartTilePatternImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'categoryId': instance.categoryId,
+      'usage': _$SmartTileUsageEnumMap[instance.usage]!,
+      'width': instance.width,
+      'height': instance.height,
+      'anchorX': instance.anchorX,
+      'anchorY': instance.anchorY,
+      'repeatMode': _$SmartTilePatternRepeatModeEnumMap[instance.repeatMode]!,
+      'cells': instance.cells.map((e) => e.toJson()).toList(),
+      'drawOrder': instance.drawOrder,
+      'tags': instance.tags,
+      'sortOrder': instance.sortOrder,
+    };
+
+const _$SmartTileUsageEnumMap = {
+  SmartTileUsage.terrain: 'terrain',
+  SmartTileUsage.path: 'path',
+  SmartTileUsage.forestSurface: 'forest_surface',
+};
+
+const _$SmartTilePatternRepeatModeEnumMap = {
+  SmartTilePatternRepeatMode.tiled: 'tiled',
+  SmartTilePatternRepeatMode.stamp: 'stamp',
+};
+
+_$SmartTilePatternStrokeImpl _$$SmartTilePatternStrokeImplFromJson(
+        Map<String, dynamic> json) =>
+    _$SmartTilePatternStrokeImpl(
+      id: json['id'] as String,
+      patternId: json['patternId'] as String,
+      cells: (json['cells'] as List<dynamic>)
+          .map((e) => GridPos.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      phaseX: (json['phaseX'] as num?)?.toInt() ?? 0,
+      phaseY: (json['phaseY'] as num?)?.toInt() ?? 0,
+    );
+
+Map<String, dynamic> _$$SmartTilePatternStrokeImplToJson(
+        _$SmartTilePatternStrokeImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'patternId': instance.patternId,
+      'cells': instance.cells.map((e) => e.toJson()).toList(),
+      'phaseX': instance.phaseX,
+      'phaseY': instance.phaseY,
+    };
+
 _$SmartTileCandidateImpl _$$SmartTileCandidateImplFromJson(
         Map<String, dynamic> json) =>
     _$SmartTileCandidateImpl(
@@ -559,12 +668,6 @@ Map<String, dynamic> _$$ProjectSmartTilePresetImplToJson(
       'seedSalt': instance.seedSalt,
       'fallbackRuleId': instance.fallbackRuleId,
     };
-
-const _$SmartTileUsageEnumMap = {
-  SmartTileUsage.terrain: 'terrain',
-  SmartTileUsage.path: 'path',
-  SmartTileUsage.forestSurface: 'forest_surface',
-};
 
 const _$SmartTileTopologyEnumMap = {
   SmartTileTopology.uniform: 'uniform',

@@ -16,6 +16,7 @@ import '../operations/map_entities.dart';
 import '../operations/map_placed_element_footprint.dart';
 import '../operations/narrative_fact_runtime.dart';
 import '../operations/smart_tile_catalog_validation.dart';
+import '../operations/smart_tile_layer_operations.dart';
 import 'dialogue_validation.dart';
 import 'entity_editor_visual_validation.dart';
 
@@ -2545,6 +2546,60 @@ class MapValidator {
           }
         }
 
+        final strokeIds = <String>{};
+        for (final stroke in smartTileLayer.patternStrokes) {
+          final strokeId = stroke.id.trim();
+          final patternId = stroke.patternId.trim();
+          if (strokeId.isEmpty || strokeId != stroke.id) {
+            throw ValidationException(
+              'Smart Tile layer $layerId has a non-canonical pattern stroke '
+              'id.',
+              code: 'smart_tile_pattern_stroke_identifier_not_canonical',
+            );
+          }
+          if (!strokeIds.add(strokeId)) {
+            throw ValidationException(
+              'Smart Tile layer $layerId has duplicate pattern stroke id: '
+              '$strokeId',
+              code: 'smart_tile_pattern_stroke_duplicate',
+            );
+          }
+          if (patternId.isEmpty || patternId != stroke.patternId) {
+            throw ValidationException(
+              'Smart Tile layer $layerId has a non-canonical patternId.',
+              code: 'smart_tile_pattern_identifier_not_canonical',
+            );
+          }
+          if (stroke.cells.isEmpty ||
+              stroke.cells.length > smartTileMaximumCellsPerGesture) {
+            throw ValidationException(
+              'Smart Tile pattern stroke $strokeId must contain between 1 '
+              'and $smartTileMaximumCellsPerGesture cells.',
+              code: 'smart_tile_pattern_stroke_cell_count_invalid',
+            );
+          }
+          final strokeCells = <GridPos>{};
+          for (final cell in stroke.cells) {
+            if (!strokeCells.add(cell)) {
+              throw ValidationException(
+                'Smart Tile pattern stroke $strokeId contains duplicate '
+                'cell (${cell.x}, ${cell.y}).',
+                code: 'smart_tile_pattern_stroke_cell_duplicate',
+              );
+            }
+            if (cell.x < 0 ||
+                cell.y < 0 ||
+                cell.x >= mapWidth ||
+                cell.y >= mapHeight) {
+              throw ValidationException(
+                'Smart Tile pattern stroke $strokeId contains an out-of-map '
+                'cell (${cell.x}, ${cell.y}).',
+                code: 'smart_tile_pattern_stroke_cell_out_of_bounds',
+              );
+            }
+          }
+        }
+
         final catalog = projectContext?.smartTileCatalog;
         if (catalog != null) {
           ProjectSmartTilePreset? preset;
@@ -2574,6 +2629,27 @@ class MapValidator {
               '$presetId topology ${preset.topology.name}',
               code: 'smart_tile_topology_field_incompatible',
             );
+          }
+          final patternsById = <String, ProjectSmartTilePattern>{
+            for (final pattern in catalog.patterns) pattern.id: pattern,
+          };
+          for (final stroke in smartTileLayer.patternStrokes) {
+            final pattern = patternsById[stroke.patternId];
+            if (pattern == null) {
+              throw ValidationException(
+                'Smart Tile layer $layerId references unknown pattern: '
+                '${stroke.patternId}',
+                code: 'smart_tile_pattern_missing',
+              );
+            }
+            if (pattern.usage != smartTileLayer.usage) {
+              throw ValidationException(
+                'Smart Tile layer $layerId usage '
+                '${smartTileLayer.usage.name} does not match pattern '
+                '${pattern.id} usage ${pattern.usage.name}.',
+                code: 'smart_tile_pattern_usage_mismatch',
+              );
+            }
           }
           final knownMaterialIds =
               catalog.materials.map((material) => material.id).toSet();

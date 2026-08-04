@@ -334,6 +334,14 @@ final class _ContractEvidenceRule {
 
 const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
+    ['smart_tile.pattern.upsert', 'smart_tile.pattern.delete'],
+    'test/domains/maps/smart_tile_catalog_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['smart_tile.pattern.paint', 'smart_tile.pattern.erase'],
+    'test/domains/maps/smart_tile_cell_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['smart_tile.preset.draft.'],
     'test/domains/maps/smart_tile_draft_actions_test.dart',
   ),
@@ -466,6 +474,7 @@ const _semanticOwners = <String, String>{
   'element': 'project',
   'smartTileAtlas': 'project',
   'smartTileMaterial': 'project',
+  'smartTilePattern': 'project',
   'smartTileAnimation': 'project',
   'smartTileDraft': 'project',
   'smartTilePreset': 'project',
@@ -518,6 +527,7 @@ const _visualResources = <String>{
   'tilesetPaletteEntry',
   'element',
   'smartTileAtlas',
+  'smartTilePattern',
   'smartTilePreset',
   'smartTileLayer',
   'environmentPreset',

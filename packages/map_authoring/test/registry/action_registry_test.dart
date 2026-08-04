@@ -106,6 +106,7 @@ void main() {
           'smartTileDraft',
           'smartTileLayer',
           'smartTileMaterial',
+          'smartTilePattern',
           'smartTilePreset',
           'storyline',
           'tilesetFolder',

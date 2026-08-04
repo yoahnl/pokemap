@@ -173,6 +173,7 @@ final Set<String> _approvedResourceKinds = {
   'element',
   'smartTileAtlas',
   'smartTileMaterial',
+  'smartTilePattern',
   'smartTileAnimation',
   'smartTilePreset',
   'smartTileDraft',

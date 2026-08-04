@@ -58,6 +58,7 @@ mixin _$MapLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -106,6 +107,7 @@ mixin _$MapLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -153,6 +155,7 @@ mixin _$MapLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -434,6 +437,7 @@ class _$TileLayerImpl extends TileLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -485,6 +489,7 @@ class _$TileLayerImpl extends TileLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -535,6 +540,7 @@ class _$TileLayerImpl extends TileLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -804,6 +810,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -855,6 +862,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -905,6 +913,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -1039,6 +1048,7 @@ abstract class _$$SmartTileLayerImplCopyWith<$Res>
       SmartTileUsage usage,
       List<String> materialPalette,
       SmartTileField field,
+      List<SmartTilePatternStroke> patternStrokes,
       int layerSeed,
       Map<String, String> properties});
 
@@ -1066,6 +1076,7 @@ class __$$SmartTileLayerImplCopyWithImpl<$Res>
     Object? usage = null,
     Object? materialPalette = null,
     Object? field = null,
+    Object? patternStrokes = null,
     Object? layerSeed = null,
     Object? properties = null,
   }) {
@@ -1102,6 +1113,10 @@ class __$$SmartTileLayerImplCopyWithImpl<$Res>
           ? _value.field
           : field // ignore: cast_nullable_to_non_nullable
               as SmartTileField,
+      patternStrokes: null == patternStrokes
+          ? _value._patternStrokes
+          : patternStrokes // ignore: cast_nullable_to_non_nullable
+              as List<SmartTilePatternStroke>,
       layerSeed: null == layerSeed
           ? _value.layerSeed
           : layerSeed // ignore: cast_nullable_to_non_nullable
@@ -1137,10 +1152,13 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
       required this.usage,
       final List<String> materialPalette = const <String>[''],
       required this.field,
+      final List<SmartTilePatternStroke> patternStrokes =
+          const <SmartTilePatternStroke>[],
       this.layerSeed = 0,
       final Map<String, String> properties = const <String, String>{},
       final String? $type})
       : _materialPalette = materialPalette,
+        _patternStrokes = patternStrokes,
         _properties = properties,
         $type = $type ?? 'smart_tile',
         super._();
@@ -1173,6 +1191,15 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
 
   @override
   final SmartTileField field;
+  final List<SmartTilePatternStroke> _patternStrokes;
+  @override
+  @JsonKey()
+  List<SmartTilePatternStroke> get patternStrokes {
+    if (_patternStrokes is EqualUnmodifiableListView) return _patternStrokes;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_patternStrokes);
+  }
+
   @override
   @JsonKey()
   final int layerSeed;
@@ -1190,7 +1217,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
 
   @override
   String toString() {
-    return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, field: $field, layerSeed: $layerSeed, properties: $properties)';
+    return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, field: $field, patternStrokes: $patternStrokes, layerSeed: $layerSeed, properties: $properties)';
   }
 
   @override
@@ -1209,6 +1236,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             const DeepCollectionEquality()
                 .equals(other._materialPalette, _materialPalette) &&
             (identical(other.field, field) || other.field == field) &&
+            const DeepCollectionEquality()
+                .equals(other._patternStrokes, _patternStrokes) &&
             (identical(other.layerSeed, layerSeed) ||
                 other.layerSeed == layerSeed) &&
             const DeepCollectionEquality()
@@ -1227,6 +1256,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
       usage,
       const DeepCollectionEquality().hash(_materialPalette),
       field,
+      const DeepCollectionEquality().hash(_patternStrokes),
       layerSeed,
       const DeepCollectionEquality().hash(_properties));
 
@@ -1257,6 +1287,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -1288,7 +1319,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
         border,
   }) {
     return smartTile(id, name, isVisible, opacity, presetId, usage,
-        materialPalette, field, layerSeed, properties);
+        materialPalette, field, patternStrokes, layerSeed, properties);
   }
 
   @override
@@ -1309,6 +1340,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -1339,7 +1371,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
         border,
   }) {
     return smartTile?.call(id, name, isVisible, opacity, presetId, usage,
-        materialPalette, field, layerSeed, properties);
+        materialPalette, field, patternStrokes, layerSeed, properties);
   }
 
   @override
@@ -1360,6 +1392,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -1392,7 +1425,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
   }) {
     if (smartTile != null) {
       return smartTile(id, name, isVisible, opacity, presetId, usage,
-          materialPalette, field, layerSeed, properties);
+          materialPalette, field, patternStrokes, layerSeed, properties);
     }
     return orElse();
   }
@@ -1458,6 +1491,7 @@ abstract class SmartTileLayer extends MapLayer {
       required final SmartTileUsage usage,
       final List<String> materialPalette,
       required final SmartTileField field,
+      final List<SmartTilePatternStroke> patternStrokes,
       final int layerSeed,
       final Map<String, String> properties}) = _$SmartTileLayerImpl;
   const SmartTileLayer._() : super._();
@@ -1477,6 +1511,7 @@ abstract class SmartTileLayer extends MapLayer {
   SmartTileUsage get usage;
   List<String> get materialPalette;
   SmartTileField get field;
+  List<SmartTilePatternStroke> get patternStrokes;
   int get layerSeed;
   Map<String, String> get properties;
 
@@ -1614,6 +1649,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -1665,6 +1701,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -1715,6 +1752,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -2000,6 +2038,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -2051,6 +2090,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -2101,6 +2141,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -2398,6 +2439,7 @@ class _$BorderLayerImpl extends BorderLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)
         smartTile,
@@ -2449,6 +2491,7 @@ class _$BorderLayerImpl extends BorderLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,
@@ -2499,6 +2542,7 @@ class _$BorderLayerImpl extends BorderLayer {
             SmartTileUsage usage,
             List<String> materialPalette,
             SmartTileField field,
+            List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
             Map<String, String> properties)?
         smartTile,

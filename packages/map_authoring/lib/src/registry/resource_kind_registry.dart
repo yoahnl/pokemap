@@ -170,6 +170,13 @@ final class AuthoringResourceKindRegistry {
         summary: 'Semantic terrain, path, or surface material',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'smartTilePattern',
+        version: 1,
+        displayName: 'Smart Tile pattern',
+        summary:
+            'Reusable anchored visual pattern painted on Smart Tile layers',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'smartTileAnimation',
         version: 1,
         displayName: 'Smart Tile animation',

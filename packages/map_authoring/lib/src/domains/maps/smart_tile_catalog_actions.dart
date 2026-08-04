@@ -58,6 +58,27 @@ final class SmartTileCatalogActions {
         ],
       ),
       _descriptor(
+        'smart_tile.pattern.delete',
+        'Delete one unreferenced reusable Smart Tile pattern',
+        resourceKinds: const <String>[
+          'project',
+          'map',
+          'smartTilePattern',
+          'smartTileLayer',
+        ],
+        risk: AuthoringRiskLevel.high,
+      ),
+      _descriptor(
+        'smart_tile.pattern.upsert',
+        'Create or replace a reusable Smart Tile visual pattern',
+        resourceKinds: const <String>[
+          'project',
+          'smartTilePattern',
+          'smartTileAtlas',
+          'smartTileAnimation',
+        ],
+      ),
+      _descriptor(
         'smart_tile.preset.delete',
         'Delete one unreferenced Smart Tile preset',
         resourceKinds: const <String>[
@@ -117,6 +138,8 @@ final class SmartTileCatalogActions {
       'smart_tile.material.upsert' => _upsertMaterial(planning),
       'smart_tile.animation.upsert' => _upsertAnimation(planning),
       'smart_tile.animation.delete' => _deleteAnimation(planning),
+      'smart_tile.pattern.upsert' => _upsertPattern(planning),
+      'smart_tile.pattern.delete' => _deletePattern(planning),
       'smart_tile.preset.draft.upsert' => _upsertDraft(planning),
       'smart_tile.preset.draft.delete' => _deleteDraft(planning),
       'smart_tile.preset.publish' => _publishPreset(planning),
@@ -273,6 +296,84 @@ final class SmartTileCatalogActions {
       manifest: _nativeManifest(planning.snapshot.manifest, projected),
       operation: 'smart_tile.animation.delete',
       path: '/smartTileCatalog/animations/$animationId',
+      before: existing.toJson(),
+    );
+  }
+
+  AuthoringMutationDraft _upsertPattern(AuthoringPlanningContext planning) {
+    final parameters = SemanticParameters(
+      planning.request.parameters,
+      allowed: const <String>{'pattern'},
+    );
+    final pattern = _decode(
+      parameters.object('pattern'),
+      field: 'pattern',
+      decode: ProjectSmartTilePattern.fromJson,
+    );
+    final catalog = planning.snapshot.manifest.smartTileCatalog;
+    final before = _findById(catalog.patterns, pattern.id, (item) => item.id);
+    final projected = _catalogWith(
+      catalog,
+      patterns: _upsertById(catalog.patterns, pattern, (item) => item.id),
+    );
+    return _manifestDraft(
+      planning,
+      manifest: _nativeManifest(planning.snapshot.manifest, projected),
+      operation: 'smart_tile.pattern.upsert',
+      path: '/smartTileCatalog/patterns/${pattern.id}',
+      before: before?.toJson(),
+      after: pattern.toJson(),
+    );
+  }
+
+  AuthoringMutationDraft _deletePattern(AuthoringPlanningContext planning) {
+    final parameters = SemanticParameters(
+      planning.request.parameters,
+      allowed: const <String>{'patternId'},
+    );
+    final patternId = parameters.string('patternId');
+    final catalog = planning.snapshot.manifest.smartTileCatalog;
+    final existing = _findById(catalog.patterns, patternId, (item) => item.id);
+    if (existing == null) {
+      throw semanticFailure(
+        'smart_tile.pattern.unknown',
+        'The requested Smart Tile pattern does not exist.',
+        details: <String, Object?>{'patternId': patternId},
+      );
+    }
+    final references = <Map<String, Object?>>[
+      for (final map in planning.snapshot.maps)
+        for (final layer in map.layers.whereType<SmartTileLayer>())
+          for (final stroke in layer.patternStrokes)
+            if (stroke.patternId == patternId)
+              <String, Object?>{
+                'mapId': map.id,
+                'layerId': layer.id,
+                'strokeId': stroke.id,
+              },
+    ];
+    if (references.isNotEmpty) {
+      throw semanticFailure(
+        'smart_tile.pattern.references_blocking',
+        'The Smart Tile pattern is still painted on map layers.',
+        details: <String, Object?>{
+          'patternId': patternId,
+          'references': references,
+        },
+      );
+    }
+    final projected = _catalogWith(
+      catalog,
+      patterns: <ProjectSmartTilePattern>[
+        for (final pattern in catalog.patterns)
+          if (pattern.id != patternId) pattern,
+      ],
+    );
+    return _manifestDraft(
+      planning,
+      manifest: _nativeManifest(planning.snapshot.manifest, projected),
+      operation: 'smart_tile.pattern.delete',
+      path: '/smartTileCatalog/patterns/$patternId',
       before: existing.toJson(),
     );
   }
@@ -608,6 +709,7 @@ ProjectSmartTileCatalog _catalogWith(
   List<ProjectSmartTileMaterial>? materials,
   List<ProjectSmartTileAnimation>? animations,
   List<ProjectSmartTilePreset>? presets,
+  List<ProjectSmartTilePattern>? patterns,
   List<ProjectSmartTileAuthoringDraft>? drafts,
 }) =>
     ProjectSmartTileCatalog(
@@ -616,6 +718,7 @@ ProjectSmartTileCatalog _catalogWith(
       materials: materials ?? catalog.materials,
       animations: animations ?? catalog.animations,
       presets: presets ?? catalog.presets,
+      patterns: patterns ?? catalog.patterns,
       drafts: drafts ?? catalog.drafts,
     );
 
@@ -703,11 +806,17 @@ void _validateSharedDraftDependencies(
         .where((preset) => _presetReferencesAtlas(catalog, preset, incoming.id))
         .map((preset) => preset.id)
         .toList(growable: false);
-    if (presetIds.isNotEmpty) {
+    final patternIds = catalog.patterns
+        .where(
+            (pattern) => _patternReferencesAtlas(catalog, pattern, incoming.id))
+        .map((pattern) => pattern.id)
+        .toList(growable: false);
+    if (presetIds.isNotEmpty || patternIds.isNotEmpty) {
       conflicts.add(<String, Object?>{
         'resourceKind': 'smartTileAtlas',
         'resourceId': incoming.id,
         'presetIds': presetIds,
+        'patternIds': patternIds,
       });
     }
   }
@@ -735,11 +844,16 @@ void _validateSharedDraftDependencies(
         .where((preset) => _presetReferencesAnimation(preset, incoming.id))
         .map((preset) => preset.id)
         .toList(growable: false);
-    if (presetIds.isNotEmpty) {
+    final patternIds = catalog.patterns
+        .where((pattern) => _patternReferencesAnimation(pattern, incoming.id))
+        .map((pattern) => pattern.id)
+        .toList(growable: false);
+    if (presetIds.isNotEmpty || patternIds.isNotEmpty) {
       conflicts.add(<String, Object?>{
         'resourceKind': 'smartTileAnimation',
         'resourceId': incoming.id,
         'presetIds': presetIds,
+        'patternIds': patternIds,
       });
     }
   }
@@ -790,6 +904,37 @@ bool _presetReferencesAnimation(
           source.animationId == animationId,
     );
 
+bool _patternReferencesAtlas(
+  ProjectSmartTileCatalog catalog,
+  ProjectSmartTilePattern pattern,
+  String atlasId,
+) {
+  for (final source in _patternVisualSources(pattern)) {
+    if (source case SmartTileFrameSource(:final frame)) {
+      if (frame.atlasId == atlasId) return true;
+    }
+    if (source case SmartTileAnimationSource(:final animationId)) {
+      final animation =
+          _findById(catalog.animations, animationId, (item) => item.id);
+      if (animation?.frames.any((frame) => frame.frame.atlasId == atlasId) ??
+          false) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool _patternReferencesAnimation(
+  ProjectSmartTilePattern pattern,
+  String animationId,
+) =>
+    _patternVisualSources(pattern).any(
+      (source) =>
+          source is SmartTileAnimationSource &&
+          source.animationId == animationId,
+    );
+
 Iterable<SmartTileVisualSource> _presetVisualSources(
   ProjectSmartTilePreset preset,
 ) sync* {
@@ -798,6 +943,16 @@ Iterable<SmartTileVisualSource> _presetVisualSources(
       for (final part in candidate.parts) {
         yield part.source;
       }
+    }
+  }
+}
+
+Iterable<SmartTileVisualSource> _patternVisualSources(
+  ProjectSmartTilePattern pattern,
+) sync* {
+  for (final cell in pattern.cells) {
+    for (final part in cell.parts) {
+      yield part.source;
     }
   }
 }
@@ -1096,6 +1251,22 @@ List<Map<String, Object?>> _animationReferences(
               'partIndex': index,
             });
           }
+        }
+      }
+    }
+  }
+  for (final pattern in catalog.patterns) {
+    for (var cellIndex = 0; cellIndex < pattern.cells.length; cellIndex += 1) {
+      final cell = pattern.cells[cellIndex];
+      for (var partIndex = 0; partIndex < cell.parts.length; partIndex += 1) {
+        final source = cell.parts[partIndex].source;
+        if (source is SmartTileAnimationSource &&
+            source.animationId == animationId) {
+          references.add(<String, Object?>{
+            'patternId': pattern.id,
+            'cellIndex': cellIndex,
+            'partIndex': partIndex,
+          });
         }
       }
     }

@@ -198,6 +198,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreation({
     materials: catalog.materials,
     animations: catalog.animations,
     drafts: catalog.drafts,
+    patterns: catalog.patterns,
     presets: <ProjectSmartTilePreset>[
       ...catalog.presets,
       if (existingPreset == null) preset,

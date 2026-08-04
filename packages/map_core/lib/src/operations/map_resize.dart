@@ -8,6 +8,7 @@ import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/project_manifest.dart';
+import '../models/smart_tile.dart';
 import '../models/smart_tile_field.dart';
 import 'border_resize.dart';
 import 'map_placed_element_footprint.dart';
@@ -706,6 +707,10 @@ MapData _resizeMapDataLayers(
               oldSize: oldSize,
               newSize: GridSize(width: width, height: height),
             ),
+            patternStrokes: _resizeSmartTilePatternStrokes(
+              l.patternStrokes,
+              newSize: GridSize(width: width, height: height),
+            ),
           ),
           object: (l) => l,
           environment: (l) => l.copyWith(
@@ -875,6 +880,26 @@ void _addClippedSmartTileLayerImpact({
       collectCorners(cornerValues);
   }
 
+  final clippedPatternCells = <GridPos>[];
+  var clippedPatternCellCount = 0;
+  for (final stroke in layer.patternStrokes) {
+    for (final cell in stroke.cells) {
+      if (cell.x < targetSize.width && cell.y < targetSize.height) continue;
+      clippedPatternCellCount += 1;
+      if (clippedPatternCells.length < _maximumResizeImpactPositionSamples) {
+        clippedPatternCells.add(cell);
+      }
+    }
+  }
+  if (clippedPatternCellCount > 0) {
+    clippedLattices.add(
+      _ResizePositionSummary(
+        count: clippedPatternCellCount,
+        positions: clippedPatternCells,
+      ),
+    );
+  }
+
   if (clippedLattices.isEmpty) return;
   final positions = <GridPos>[];
   var affectedCount = 0;
@@ -897,6 +922,31 @@ void _addClippedSmartTileLayerImpact({
     ),
   );
 }
+
+List<SmartTilePatternStroke> _resizeSmartTilePatternStrokes(
+  List<SmartTilePatternStroke> strokes, {
+  required GridSize newSize,
+}) =>
+    <SmartTilePatternStroke>[
+      for (final stroke in strokes)
+        if (stroke.cells.any(
+          (cell) =>
+              cell.x >= 0 &&
+              cell.y >= 0 &&
+              cell.x < newSize.width &&
+              cell.y < newSize.height,
+        ))
+          stroke.copyWith(
+            cells: <GridPos>[
+              for (final cell in stroke.cells)
+                if (cell.x >= 0 &&
+                    cell.y >= 0 &&
+                    cell.x < newSize.width &&
+                    cell.y < newSize.height)
+                  cell,
+            ],
+          ),
+    ];
 
 _ResizePositionSummary _clippedMeaningfulPositions<T>({
   required List<T> values,

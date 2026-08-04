@@ -1,9 +1,12 @@
 import 'package:meta/meta.dart' show immutable;
 
+import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 import '../models/smart_tile.dart';
+import 'map_placed_element_animation.dart';
 import 'smart_tile_layer_context.dart';
+import 'smart_tile_pattern_operations.dart';
 import 'smart_tile_resolver.dart';
 import 'smart_tile_sprite_geometry.dart';
 
@@ -95,6 +98,27 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   final animations = <String, ProjectSmartTileAnimation>{
     for (final animation in catalog.animations) animation.id: animation,
   };
+  final patterns = <String, ProjectSmartTilePattern>{
+    for (final pattern in catalog.patterns) pattern.id: pattern,
+  };
+  final patternOwners = <int,
+      ({SmartTilePatternStroke stroke, ProjectSmartTilePattern pattern})>{};
+  for (final stroke in layer.patternStrokes) {
+    final pattern = patterns[stroke.patternId];
+    if (pattern == null || pattern.usage != layer.usage) continue;
+    for (final cell in stroke.cells) {
+      if (cell.x < 0 ||
+          cell.y < 0 ||
+          cell.x >= map.size.width ||
+          cell.y >= map.size.height) {
+        continue;
+      }
+      patternOwners[cell.y * map.size.width + cell.x] = (
+        stroke: stroke,
+        pattern: pattern,
+      );
+    }
+  }
   final visuals = <SmartTileLayerVisual>[];
   final requestedStartX = startX.clamp(0, map.size.width);
   final requestedStartY = startY.clamp(0, map.size.height);
@@ -124,6 +148,7 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     mapWidth: map.size.width,
     mapHeight: map.size.height,
     preset: preset,
+    patterns: patternOwners.values.map((owner) => owner.pattern),
     pass: pass,
     atlases: atlases,
     animations: animations,
@@ -154,14 +179,104 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
         layerSeed: layer.layerSeed,
       );
       final candidate = resolution.candidate;
-      if (candidate == null || resolution.ruleId == null) continue;
-      for (final part in candidate.parts) {
+      if (candidate != null && resolution.ruleId != null) {
+        for (final part in candidate.parts) {
+          if (!_channelBelongsToPass(part.channel, pass)) continue;
+          final frame = _resolveVisualFrame(
+            source: part.source,
+            animations: animations,
+            elapsedMs: elapsedMs,
+            deterministicHash: resolution.deterministicHash ?? 0,
+          );
+          if (frame == null) continue;
+          final atlas = atlases[frame.atlasId];
+          if (atlas == null) continue;
+          final sampledFrame = _sampleVisualFrame(
+            frame: frame,
+            sampling: part.frameSampling,
+            cellX: x,
+            cellY: y,
+            deterministicHash: resolution.deterministicHash ?? 0,
+          );
+          SmartTileSourceRect sourceRect;
+          try {
+            sourceRect = atlas.sourceRectFor(
+              column: sampledFrame.column,
+              row: sampledFrame.row,
+              columnSpan: sampledFrame.columnSpan,
+              rowSpan: sampledFrame.rowSpan,
+            );
+          } on RangeError {
+            continue;
+          }
+          final transform = composeSmartTileSpriteTransforms(
+            first: part.transform,
+            second: resolution.transform,
+          );
+          final geometry = resolveSmartTileSpriteGeometry(
+            cellX: x,
+            cellY: y,
+            destinationCellWidth: destinationCellWidth,
+            destinationCellHeight: destinationCellHeight,
+            sourceCellWidth: sourceCellWidth,
+            sourceCellHeight: sourceCellHeight,
+            offsetUnit: part.offsetUnit,
+            offsetX: part.offsetX,
+            offsetY: part.offsetY,
+            atlasPixelOffsetX: atlas.pixelOffsetX,
+            atlasPixelOffsetY: atlas.pixelOffsetY,
+            footprintWidth: part.footprintWidth,
+            footprintHeight: part.footprintHeight,
+            anchorX: part.anchorX,
+            anchorY: part.anchorY,
+            transform: transform,
+          );
+          if (requestedViewport != null &&
+              !geometry.visualBounds.intersects(requestedViewport)) {
+            continue;
+          }
+          visuals.add(
+            SmartTileLayerVisual(
+              cellX: x,
+              cellY: y,
+              ruleId: resolution.ruleId!,
+              candidateId: candidate.id,
+              channel: part.channel,
+              tilesetId: atlas.tilesetId,
+              sourceRect: sourceRect,
+              transform: transform,
+              geometry: geometry,
+              offsetUnit: part.offsetUnit,
+              offsetX: part.offsetX,
+              offsetY: part.offsetY,
+              footprintWidth: part.footprintWidth,
+              footprintHeight: part.footprintHeight,
+              anchorX: part.anchorX,
+              anchorY: part.anchorY,
+              drawOrder: part.drawOrder,
+            ),
+          );
+        }
+      }
+      final patternOwner = patternOwners[y * map.size.width + x];
+      if (patternOwner == null) continue;
+      final patternCell = smartTilePatternCellAt(
+        pattern: patternOwner.pattern,
+        stroke: patternOwner.stroke,
+        cell: GridPos(x: x, y: y),
+      );
+      if (patternCell == null) continue;
+      final deterministicHash = stableHash32(
+        '${map.id}|${layer.id}|${patternOwner.pattern.id}|$x|$y|'
+        '$projectSeed|${layer.layerSeed}',
+      );
+      for (final part in patternCell.parts) {
         if (!_channelBelongsToPass(part.channel, pass)) continue;
         final frame = _resolveVisualFrame(
           source: part.source,
           animations: animations,
           elapsedMs: elapsedMs,
-          deterministicHash: resolution.deterministicHash ?? 0,
+          deterministicHash: deterministicHash,
         );
         if (frame == null) continue;
         final atlas = atlases[frame.atlasId];
@@ -171,7 +286,7 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
           sampling: part.frameSampling,
           cellX: x,
           cellY: y,
-          deterministicHash: resolution.deterministicHash ?? 0,
+          deterministicHash: deterministicHash,
         );
         SmartTileSourceRect sourceRect;
         try {
@@ -184,10 +299,6 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
         } on RangeError {
           continue;
         }
-        final transform = composeSmartTileSpriteTransforms(
-          first: part.transform,
-          second: resolution.transform,
-        );
         final geometry = resolveSmartTileSpriteGeometry(
           cellX: x,
           cellY: y,
@@ -204,7 +315,7 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
           footprintHeight: part.footprintHeight,
           anchorX: part.anchorX,
           anchorY: part.anchorY,
-          transform: transform,
+          transform: part.transform,
         );
         if (requestedViewport != null &&
             !geometry.visualBounds.intersects(requestedViewport)) {
@@ -214,12 +325,12 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
           SmartTileLayerVisual(
             cellX: x,
             cellY: y,
-            ruleId: resolution.ruleId!,
-            candidateId: candidate.id,
+            ruleId: 'pattern:${patternOwner.pattern.id}',
+            candidateId: 'pattern-cell-${patternCell.x}-${patternCell.y}',
             channel: part.channel,
             tilesetId: atlas.tilesetId,
             sourceRect: sourceRect,
-            transform: transform,
+            transform: part.transform,
             geometry: geometry,
             offsetUnit: part.offsetUnit,
             offsetX: part.offsetX,
@@ -228,7 +339,7 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
             footprintHeight: part.footprintHeight,
             anchorX: part.anchorX,
             anchorY: part.anchorY,
-            drawOrder: part.drawOrder,
+            drawOrder: patternOwner.pattern.drawOrder + part.drawOrder,
           ),
         );
       }
@@ -252,6 +363,7 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   required int mapWidth,
   required int mapHeight,
   required ProjectSmartTilePreset preset,
+  required Iterable<ProjectSmartTilePattern> patterns,
   required SmartTileVisualPass pass,
   required Map<String, ProjectSmartTileAtlas> atlases,
   required Map<String, ProjectSmartTileAnimation> animations,
@@ -264,7 +376,7 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   if (viewport == null) {
     return (startX: 0, startY: 0, endX: mapWidth, endY: mapHeight);
   }
-  final envelope = _presetVisualEnvelope(
+  var envelope = _presetVisualEnvelope(
     preset: preset,
     pass: pass,
     atlases: atlases,
@@ -274,6 +386,19 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     sourceCellWidth: sourceCellWidth,
     sourceCellHeight: sourceCellHeight,
   );
+  for (final pattern in patterns) {
+    final patternEnvelope = _patternVisualEnvelope(
+      pattern: pattern,
+      pass: pass,
+      atlases: atlases,
+      animations: animations,
+      destinationCellWidth: destinationCellWidth,
+      destinationCellHeight: destinationCellHeight,
+      sourceCellWidth: sourceCellWidth,
+      sourceCellHeight: sourceCellHeight,
+    );
+    envelope = _unionGeometryRects(envelope, patternEnvelope);
+  }
   return (
     startX: ((viewport.left - envelope.right) / destinationCellWidth)
         .floor()
@@ -287,6 +412,79 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     endY: ((viewport.bottom - envelope.top) / destinationCellHeight)
         .ceil()
         .clamp(0, mapHeight),
+  );
+}
+
+SmartTileGeometryRect _patternVisualEnvelope({
+  required ProjectSmartTilePattern pattern,
+  required SmartTileVisualPass pass,
+  required Map<String, ProjectSmartTileAtlas> atlases,
+  required Map<String, ProjectSmartTileAnimation> animations,
+  required double destinationCellWidth,
+  required double destinationCellHeight,
+  required double sourceCellWidth,
+  required double sourceCellHeight,
+}) {
+  SmartTileGeometryRect? envelope;
+  for (final cell in pattern.cells) {
+    for (final part in cell.parts) {
+      if (!_channelBelongsToPass(part.channel, pass)) continue;
+      final atlasIds = part.source.when(
+        frame: (frame) => <String>{frame.atlasId},
+        animation: (animationId) => <String>{
+          for (final frame in animations[animationId]?.frames ??
+              const <ProjectSmartTileAnimationFrame>[])
+            frame.frame.atlasId,
+        },
+      );
+      for (final atlasId in atlasIds) {
+        final atlas = atlases[atlasId];
+        if (atlas == null) continue;
+        final bounds = resolveSmartTileSpriteGeometry(
+          cellX: 0,
+          cellY: 0,
+          destinationCellWidth: destinationCellWidth,
+          destinationCellHeight: destinationCellHeight,
+          sourceCellWidth: sourceCellWidth,
+          sourceCellHeight: sourceCellHeight,
+          offsetUnit: part.offsetUnit,
+          offsetX: part.offsetX,
+          offsetY: part.offsetY,
+          atlasPixelOffsetX: atlas.pixelOffsetX,
+          atlasPixelOffsetY: atlas.pixelOffsetY,
+          footprintWidth: part.footprintWidth,
+          footprintHeight: part.footprintHeight,
+          anchorX: part.anchorX,
+          anchorY: part.anchorY,
+          transform: part.transform,
+        ).visualBounds;
+        envelope =
+            envelope == null ? bounds : _unionGeometryRects(envelope, bounds);
+      }
+    }
+  }
+  return envelope ??
+      SmartTileGeometryRect(
+        left: 0,
+        top: 0,
+        width: destinationCellWidth,
+        height: destinationCellHeight,
+      );
+}
+
+SmartTileGeometryRect _unionGeometryRects(
+  SmartTileGeometryRect first,
+  SmartTileGeometryRect second,
+) {
+  final left = first.left < second.left ? first.left : second.left;
+  final top = first.top < second.top ? first.top : second.top;
+  final right = first.right > second.right ? first.right : second.right;
+  final bottom = first.bottom > second.bottom ? first.bottom : second.bottom;
+  return SmartTileGeometryRect(
+    left: left,
+    top: top,
+    width: right - left,
+    height: bottom - top,
   );
 }
 

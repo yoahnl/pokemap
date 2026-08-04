@@ -63,6 +63,8 @@ sealed class MapLayer with _$MapLayer {
     required SmartTileUsage usage,
     @Default(<String>['']) List<String> materialPalette,
     required SmartTileField field,
+    @Default(<SmartTilePatternStroke>[])
+    List<SmartTilePatternStroke> patternStrokes,
     @Default(0) int layerSeed,
     @Default(<String, String>{}) Map<String, String> properties,
   }) = SmartTileLayer;

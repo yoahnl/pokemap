@@ -59,7 +59,7 @@ final class SmartTileCellActions {
     );
     final layer = _layer(context.map, layerId);
 
-    final gesture = _gestureCells(
+    final gesture = smartTileGestureCells(
       context.parameters,
       layer: layer,
       mapSize: context.map.size,
@@ -219,7 +219,7 @@ void _requireAllowedMaterial({
   );
 }
 
-({List<({int x, int y})> cells, String selectionKind}) _gestureCells(
+({List<({int x, int y})> cells, String selectionKind}) smartTileGestureCells(
   SemanticParameters parameters, {
   required SmartTileLayer layer,
   required GridSize mapSize,

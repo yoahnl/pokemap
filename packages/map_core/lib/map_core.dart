@@ -115,6 +115,7 @@ export 'src/operations/smart_tile_resolver.dart';
 export 'src/operations/smart_tile_templates.dart';
 export 'src/operations/smart_tile_test_bench.dart';
 export 'src/operations/smart_tile_layer_operations.dart';
+export 'src/operations/smart_tile_pattern_operations.dart';
 export 'src/operations/smart_tile_layer_creation.dart';
 export 'src/operations/smart_tile_layer_readiness.dart';
 export 'src/operations/smart_tile_layer_visual_resolver.dart';

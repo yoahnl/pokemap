@@ -71,6 +71,7 @@ final class _SmartTileCatalogValidator {
     _validateDuplicateIds();
     _validateAtlases();
     _validateAnimations();
+    _validatePatterns();
     _validatePresets();
     _validateDrafts();
     return List<SmartTileDiagnostic>.unmodifiable(_diagnostics);
@@ -134,6 +135,23 @@ final class _SmartTileCatalogValidator {
       _validateCanonicalId(animation.id, '$path.id');
       _validateCanonicalName(animation.name, '$path.name');
     }
+    for (var index = 0; index < catalog.patterns.length; index += 1) {
+      final pattern = catalog.patterns[index];
+      final path = r'$.smartTileCatalog.patterns[' '$index]';
+      _validateCanonicalId(pattern.id, '$path.id');
+      _validateCanonicalName(pattern.name, '$path.name');
+      if (pattern.categoryId.isNotEmpty) {
+        _validateCanonicalId(pattern.categoryId, '$path.categoryId');
+        if (!_categoryIds.contains(pattern.categoryId)) {
+          _error(
+            code: 'smart_tiles.reference.category_missing',
+            path: '$path.categoryId',
+            message: 'Pattern "${pattern.id}" references missing category '
+                '"${pattern.categoryId}".',
+          );
+        }
+      }
+    }
   }
 
   void _validateFormatVersion() {
@@ -173,6 +191,11 @@ final class _SmartTileCatalogValidator {
       catalog.presets,
       (item) => item.id,
       r'$.smartTileCatalog.presets',
+    );
+    _duplicates(
+      catalog.patterns,
+      (item) => item.id,
+      r'$.smartTileCatalog.patterns',
     );
     _duplicates(
       catalog.drafts,
@@ -531,6 +554,85 @@ final class _SmartTileCatalogValidator {
           );
         }
         _validateFrameRef(frame.frame, path: '$framePath.frame');
+      }
+    }
+  }
+
+  void _validatePatterns() {
+    for (var patternIndex = 0;
+        patternIndex < catalog.patterns.length;
+        patternIndex += 1) {
+      final pattern = catalog.patterns[patternIndex];
+      final patternPath = r'$.smartTileCatalog.patterns[' '$patternIndex]';
+      if (pattern.cells.isEmpty) {
+        _error(
+          code: 'smart_tiles.pattern.cells_missing',
+          path: '$patternPath.cells',
+          message: 'Pattern "${pattern.id}" must contain at least one cell.',
+        );
+      }
+      final coordinates = <(int, int)>{};
+      for (var cellIndex = 0;
+          cellIndex < pattern.cells.length;
+          cellIndex += 1) {
+        final cell = pattern.cells[cellIndex];
+        final cellPath = '$patternPath.cells[$cellIndex]';
+        if (cell.x < 0 ||
+            cell.y < 0 ||
+            cell.x >= pattern.width ||
+            cell.y >= pattern.height) {
+          _error(
+            code: 'smart_tiles.pattern.cell_out_of_bounds',
+            path: cellPath,
+            message: 'Pattern cell (${cell.x}, ${cell.y}) is outside the '
+                '${pattern.width}×${pattern.height} pattern.',
+          );
+        }
+        if (!coordinates.add((cell.x, cell.y))) {
+          _error(
+            code: 'smart_tiles.pattern.cell_duplicate',
+            path: cellPath,
+            message: 'Pattern cell (${cell.x}, ${cell.y}) is duplicated.',
+          );
+        }
+        if (cell.parts.isEmpty &&
+            !cell.eraseMaterial &&
+            cell.collision == SmartTilePatternCollision.inherit) {
+          _error(
+            code: 'smart_tiles.pattern.cell_empty',
+            path: cellPath,
+            message: 'A pattern cell must draw, erase a material, or set '
+                'collision.',
+          );
+        }
+        for (var partIndex = 0; partIndex < cell.parts.length; partIndex += 1) {
+          final part = cell.parts[partIndex];
+          final partPath = '$cellPath.parts[$partIndex]';
+          if (part.footprintWidth <= 0 || part.footprintHeight <= 0) {
+            _error(
+              code: 'smart_tiles.visual.footprint_invalid',
+              path: partPath,
+              message: 'Visual part footprints must be positive.',
+            );
+          }
+          final sourcePath = '$partPath.source';
+          part.source.when(
+            frame: (frame) => _validateFrameRef(
+              frame,
+              path: '$sourcePath.frame',
+            ),
+            animation: (animationId) {
+              _validateCanonicalId(animationId, '$sourcePath.animationId');
+              if (!_animationsById.containsKey(animationId)) {
+                _error(
+                  code: 'smart_tiles.reference.animation_missing',
+                  path: '$sourcePath.animationId',
+                  message: 'Missing Smart Tile animation "$animationId".',
+                );
+              }
+            },
+          );
+        }
       }
     }
   }

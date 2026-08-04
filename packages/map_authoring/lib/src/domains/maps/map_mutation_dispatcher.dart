@@ -31,6 +31,7 @@ import 'placed_element_actions.dart';
 import 'smart_tile_catalog_actions.dart';
 import 'smart_tile_cell_actions.dart';
 import 'smart_tile_layer_actions.dart';
+import 'smart_tile_pattern_actions.dart';
 import 'trigger_zone_actions.dart';
 import 'warp_connection_actions.dart';
 
@@ -59,6 +60,7 @@ final class MapMutationDispatcher {
     const smartTileCatalog = SmartTileCatalogActions();
     const smartTileCells = SmartTileCellActions();
     const smartTileLayers = SmartTileLayerActions();
+    const smartTilePatterns = SmartTilePatternActions();
     const border = BorderActions();
     const collision = CollisionActions();
     const entity = EntityActions();
@@ -110,6 +112,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: smartTileCells.build,
+        ),
+      for (final descriptor in SmartTilePatternActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: smartTilePatterns.build,
         ),
       for (final descriptor in BorderActions.descriptors)
         MapMutationActionRegistration(

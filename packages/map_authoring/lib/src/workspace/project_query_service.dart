@@ -137,6 +137,17 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
             },
           ),
       ];
+    case 'smartTilePattern':
+      return <_QueryRecord>[
+        for (final pattern in snapshot.manifest.smartTileCatalog.patterns)
+          _QueryRecord(
+            summary: _smartTilePatternSummary(pattern),
+            detail: <String, Object?>{
+              ...pattern.toJson(),
+              'resourceKind': 'smartTilePattern',
+            },
+          ),
+      ];
     case 'smartTileAnimation':
       return <_QueryRecord>[
         for (final animation in snapshot.manifest.smartTileCatalog.animations)
@@ -423,6 +434,20 @@ Map<String, Object?> _smartTileMaterialSummary(
       'resourceKind': 'smartTileMaterial',
       'connectionGroupId': material.connectionGroupId,
       'isEmpty': material.isEmpty,
+    };
+
+Map<String, Object?> _smartTilePatternSummary(
+  ProjectSmartTilePattern pattern,
+) =>
+    <String, Object?>{
+      'id': pattern.id,
+      'name': pattern.name,
+      'resourceKind': 'smartTilePattern',
+      'usage': pattern.usage.name,
+      'width': pattern.width,
+      'height': pattern.height,
+      'repeatMode': pattern.repeatMode.name,
+      'cellCount': pattern.cells.length,
     };
 
 Map<String, Object?> _smartTileAnimationSummary(

@@ -3,6 +3,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import 'enums.dart';
+import 'geometry.dart';
 
 part 'smart_tile.freezed.dart';
 part 'smart_tile.g.dart';
@@ -162,6 +163,22 @@ enum SmartTileFrameSampling {
   tessellated,
   @JsonValue('stable_random')
   stableRandom,
+}
+
+enum SmartTilePatternRepeatMode {
+  @JsonValue('tiled')
+  tiled,
+  @JsonValue('stamp')
+  stamp,
+}
+
+enum SmartTilePatternCollision {
+  @JsonValue('inherit')
+  inherit,
+  @JsonValue('passable')
+  passable,
+  @JsonValue('blocked')
+  blocked,
 }
 
 void _requireStrictJsonIntegers(
@@ -503,6 +520,97 @@ SmartTileVisualPart _smartTileVisualPartFromJson(
 }
 
 @freezed
+class SmartTilePatternCell with _$SmartTilePatternCell {
+  @Assert('x >= 0', 'x must not be negative')
+  @Assert('y >= 0', 'y must not be negative')
+  @JsonSerializable(explicitToJson: true)
+  const factory SmartTilePatternCell({
+    required int x,
+    required int y,
+    @Default(<SmartTileVisualPart>[]) List<SmartTileVisualPart> parts,
+    @Default(false) bool eraseMaterial,
+    @Default(SmartTilePatternCollision.inherit)
+    SmartTilePatternCollision collision,
+  }) = _SmartTilePatternCell;
+
+  factory SmartTilePatternCell.fromJson(Map<String, dynamic> json) =>
+      _smartTilePatternCellFromJson(json);
+}
+
+SmartTilePatternCell _smartTilePatternCellFromJson(Map<String, dynamic> json) {
+  _requireStrictJsonIntegers(json, const <String>['x', 'y']);
+  return _$SmartTilePatternCellFromJson(json);
+}
+
+@freezed
+class ProjectSmartTilePattern with _$ProjectSmartTilePattern {
+  @Assert('id != ""', 'id must not be blank')
+  @Assert('name != ""', 'name must not be blank')
+  @Assert('width > 0 && width <= 64', 'width must be between 1 and 64')
+  @Assert('height > 0 && height <= 64', 'height must be between 1 and 64')
+  @Assert('anchorX >= 0 && anchorX < width', 'anchorX must be in bounds')
+  @Assert('anchorY >= 0 && anchorY < height', 'anchorY must be in bounds')
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectSmartTilePattern({
+    required String id,
+    required String name,
+    @Default('') String categoryId,
+    required SmartTileUsage usage,
+    required int width,
+    required int height,
+    @Default(0) int anchorX,
+    @Default(0) int anchorY,
+    @Default(SmartTilePatternRepeatMode.tiled)
+    SmartTilePatternRepeatMode repeatMode,
+    @Default(<SmartTilePatternCell>[]) List<SmartTilePatternCell> cells,
+    @Default(0) int drawOrder,
+    @Default(<String>[]) List<String> tags,
+    @Default(0) int sortOrder,
+  }) = _ProjectSmartTilePattern;
+
+  factory ProjectSmartTilePattern.fromJson(Map<String, dynamic> json) =>
+      _projectSmartTilePatternFromJson(json);
+}
+
+ProjectSmartTilePattern _projectSmartTilePatternFromJson(
+  Map<String, dynamic> json,
+) {
+  _requireStrictJsonIntegers(json, const <String>[
+    'width',
+    'height',
+    'anchorX',
+    'anchorY',
+    'drawOrder',
+    'sortOrder',
+  ]);
+  return _$ProjectSmartTilePatternFromJson(json);
+}
+
+@freezed
+class SmartTilePatternStroke with _$SmartTilePatternStroke {
+  @Assert('id != ""', 'id must not be blank')
+  @Assert('patternId != ""', 'patternId must not be blank')
+  @JsonSerializable(explicitToJson: true)
+  const factory SmartTilePatternStroke({
+    required String id,
+    required String patternId,
+    required List<GridPos> cells,
+    @Default(0) int phaseX,
+    @Default(0) int phaseY,
+  }) = _SmartTilePatternStroke;
+
+  factory SmartTilePatternStroke.fromJson(Map<String, dynamic> json) =>
+      _smartTilePatternStrokeFromJson(json);
+}
+
+SmartTilePatternStroke _smartTilePatternStrokeFromJson(
+  Map<String, dynamic> json,
+) {
+  _requireStrictJsonIntegers(json, const <String>['phaseX', 'phaseY']);
+  return _$SmartTilePatternStrokeFromJson(json);
+}
+
+@freezed
 class SmartTileCandidate with _$SmartTileCandidate {
   @Assert('id != ""', 'id must not be blank')
   @JsonSerializable(explicitToJson: true)
@@ -811,7 +919,7 @@ ProjectSmartTileAuthoringDraft _projectSmartTileAuthoringDraftFromJson(
 
 @immutable
 final class ProjectSmartTileCatalog {
-  static const int currentFormatVersion = 3;
+  static const int currentFormatVersion = 4;
 
   const ProjectSmartTileCatalog.empty()
       : formatVersion = currentFormatVersion,
@@ -820,6 +928,7 @@ final class ProjectSmartTileCatalog {
         _materials = const <ProjectSmartTileMaterial>[],
         _animations = const <ProjectSmartTileAnimation>[],
         _presets = const <ProjectSmartTilePreset>[],
+        _patterns = const <ProjectSmartTilePattern>[],
         _drafts = const <ProjectSmartTileAuthoringDraft>[];
 
   factory ProjectSmartTileCatalog({
@@ -832,6 +941,7 @@ final class ProjectSmartTileCatalog {
     List<ProjectSmartTileAnimation> animations =
         const <ProjectSmartTileAnimation>[],
     List<ProjectSmartTilePreset> presets = const <ProjectSmartTilePreset>[],
+    List<ProjectSmartTilePattern> patterns = const <ProjectSmartTilePattern>[],
     List<ProjectSmartTileAuthoringDraft> drafts =
         const <ProjectSmartTileAuthoringDraft>[],
   }) {
@@ -850,6 +960,7 @@ final class ProjectSmartTileCatalog {
       materials: materials,
       animations: animations,
       presets: presets,
+      patterns: patterns,
       drafts: drafts,
     );
   }
@@ -861,12 +972,14 @@ final class ProjectSmartTileCatalog {
     required List<ProjectSmartTileMaterial> materials,
     required List<ProjectSmartTileAnimation> animations,
     required List<ProjectSmartTilePreset> presets,
+    required List<ProjectSmartTilePattern> patterns,
     required List<ProjectSmartTileAuthoringDraft> drafts,
   })  : _categories = List<ProjectSmartTileCategory>.unmodifiable(categories),
         _atlases = List<ProjectSmartTileAtlas>.unmodifiable(atlases),
         _materials = List<ProjectSmartTileMaterial>.unmodifiable(materials),
         _animations = List<ProjectSmartTileAnimation>.unmodifiable(animations),
         _presets = List<ProjectSmartTilePreset>.unmodifiable(presets),
+        _patterns = List<ProjectSmartTilePattern>.unmodifiable(patterns),
         _drafts = List<ProjectSmartTileAuthoringDraft>.unmodifiable(drafts);
 
   factory ProjectSmartTileCatalog.fromJson(Map<String, dynamic> json) {
@@ -905,6 +1018,9 @@ final class ProjectSmartTileCatalog {
       animations:
           _decodeList(json['animations'], ProjectSmartTileAnimation.fromJson),
       presets: _decodeList(json['presets'], ProjectSmartTilePreset.fromJson),
+      patterns: version >= 4
+          ? _decodeList(json['patterns'], ProjectSmartTilePattern.fromJson)
+          : const <ProjectSmartTilePattern>[],
       drafts: version >= 3
           ? _decodeList(
               json['drafts'],
@@ -920,6 +1036,7 @@ final class ProjectSmartTileCatalog {
   final List<ProjectSmartTileMaterial> _materials;
   final List<ProjectSmartTileAnimation> _animations;
   final List<ProjectSmartTilePreset> _presets;
+  final List<ProjectSmartTilePattern> _patterns;
   final List<ProjectSmartTileAuthoringDraft> _drafts;
 
   List<ProjectSmartTileCategory> get categories => _categories;
@@ -927,6 +1044,7 @@ final class ProjectSmartTileCatalog {
   List<ProjectSmartTileMaterial> get materials => _materials;
   List<ProjectSmartTileAnimation> get animations => _animations;
   List<ProjectSmartTilePreset> get presets => _presets;
+  List<ProjectSmartTilePattern> get patterns => _patterns;
   List<ProjectSmartTileAuthoringDraft> get drafts => _drafts;
 
   bool get isEmpty =>
@@ -935,6 +1053,7 @@ final class ProjectSmartTileCatalog {
       materials.isEmpty &&
       animations.isEmpty &&
       presets.isEmpty &&
+      patterns.isEmpty &&
       drafts.isEmpty;
 
   bool get isNotEmpty => !isEmpty;
@@ -946,6 +1065,7 @@ final class ProjectSmartTileCatalog {
         'materials': materials.map((item) => item.toJson()).toList(),
         'animations': animations.map((item) => item.toJson()).toList(),
         'presets': presets.map((item) => item.toJson()).toList(),
+        'patterns': patterns.map((item) => item.toJson()).toList(),
         'drafts': drafts.map((item) => item.toJson()).toList(),
       };
 
@@ -959,6 +1079,7 @@ final class ProjectSmartTileCatalog {
           _listsEqual(other.materials, materials) &&
           _listsEqual(other.animations, animations) &&
           _listsEqual(other.presets, presets) &&
+          _listsEqual(other.patterns, patterns) &&
           _listsEqual(other.drafts, drafts);
 
   @override
@@ -969,6 +1090,7 @@ final class ProjectSmartTileCatalog {
         Object.hashAll(materials),
         Object.hashAll(animations),
         Object.hashAll(presets),
+        Object.hashAll(patterns),
         Object.hashAll(drafts),
       );
 }
@@ -981,6 +1103,7 @@ bool _catalogJsonIsStrictlyEmpty(Map<String, dynamic> json) {
     'materials',
     'animations',
     'presets',
+    'patterns',
     'drafts',
   };
   // Unknown v1 keys may carry semantics from another catalog dialect. Treat

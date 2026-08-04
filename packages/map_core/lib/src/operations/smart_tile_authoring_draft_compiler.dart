@@ -60,6 +60,7 @@ SmartTileDraftCompilationResult compileSmartTileAuthoringDraft({
         materials: catalog.materials,
         animations: catalog.animations,
         presets: catalog.presets,
+        patterns: catalog.patterns,
         drafts: <ProjectSmartTileAuthoringDraft>[draft],
       ),
       projectTilesetIds: projectTilesetIds,
@@ -158,6 +159,7 @@ SmartTileDraftCompilationResult compileSmartTileAuthoringDraft({
     materials: materials,
     animations: animations,
     presets: presets,
+    patterns: catalog.patterns,
   );
   diagnostics.addAll(
     validateProjectSmartTileCatalog(

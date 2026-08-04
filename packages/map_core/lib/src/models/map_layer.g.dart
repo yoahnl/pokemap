@@ -68,6 +68,11 @@ _$SmartTileLayerImpl _$$SmartTileLayerImplFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const <String>[''],
       field: SmartTileField.fromJson(json['field'] as Map<String, dynamic>),
+      patternStrokes: (json['patternStrokes'] as List<dynamic>?)
+              ?.map((e) =>
+                  SmartTilePatternStroke.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const <SmartTilePatternStroke>[],
       layerSeed: (json['layerSeed'] as num?)?.toInt() ?? 0,
       properties: (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
@@ -87,6 +92,7 @@ Map<String, dynamic> _$$SmartTileLayerImplToJson(
       'usage': _$SmartTileUsageEnumMap[instance.usage]!,
       'materialPalette': instance.materialPalette,
       'field': instance.field.toJson(),
+      'patternStrokes': instance.patternStrokes.map((e) => e.toJson()).toList(),
       'layerSeed': instance.layerSeed,
       'properties': instance.properties,
       'runtimeType': instance.$type,

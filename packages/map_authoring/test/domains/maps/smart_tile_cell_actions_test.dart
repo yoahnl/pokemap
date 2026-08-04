@@ -27,6 +27,41 @@ void main() {
       }
     });
 
+    test('pattern action stamps visuals and collision in one undo boundary',
+        () {
+      final fixture = _fixture(
+        field: const SmartTileField.cell(
+          semanticCells: <int>[1, 0, 0, 0],
+        ),
+        includePattern: true,
+        includeCollision: true,
+      );
+      final draft = _buildPattern(
+        fixture.snapshot,
+        actionId: 'smart_tile.pattern.paint',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'patternId': 'rock-stamp',
+          'strokeId': 'stroke-1',
+          'collisionLayerId': 'collision',
+          'selection': <String, Object?>{
+            'kind': 'stamp',
+            'anchor': <String, int>{'x': 0, 'y': 0},
+          },
+        },
+      );
+      final projected = _map(draft);
+      final layer = projected.layers.whereType<SmartTileLayer>().single;
+      final collision = projected.layers.whereType<CollisionLayer>().single;
+
+      expect(layer.patternStrokes.single.patternId, 'rock-stamp');
+      expect(smartTileSemanticCells(layer).first, 0);
+      expect(collision.collisions.first, isTrue);
+      expect(draft.preview['collisionApplied'], isTrue);
+      expect(draft.preview['undoBoundary'], 'gesture');
+    });
+
     test('paints one whole gesture independent of coordinate order', () {
       final fixture = _fixture();
       final forward = _build(
@@ -381,6 +416,8 @@ AuthoringMutationDraft _build(
   SmartTileField field = const SmartTileField.cell(
     semanticCells: <int>[0, 0, 0, 0],
   ),
+  bool includePattern = false,
+  bool includeCollision = false,
 }) {
   final map = MapData(
     id: 'map',
@@ -396,6 +433,12 @@ AuthoringMutationDraft _build(
         materialPalette: const <String>['', 'grass'],
         field: field,
       ),
+      if (includeCollision)
+        const MapLayer.collision(
+          id: 'collision',
+          name: 'Collision',
+          collisions: <bool>[false, false, false, false],
+        ),
     ],
   );
   final (topology, templateHint) = switch (field) {
@@ -490,6 +533,9 @@ AuthoringMutationDraft _build(
           ],
         ),
       ],
+      patterns: <ProjectSmartTilePattern>[
+        if (includePattern) _rockPattern,
+      ],
     ),
   );
   final projectBytes = _encode(manifest.toJson());
@@ -526,6 +572,56 @@ AuthoringMutationDraft _build(
     ),
   );
 }
+
+AuthoringMutationDraft _buildPattern(
+  ProjectSnapshot snapshot, {
+  required String actionId,
+  required Map<String, Object?> parameters,
+}) =>
+    const SmartTilePatternActions().build(
+      AuthoringPlanningContext(
+        snapshot: snapshot,
+        request: AuthoringRequest(
+          requestId: 'request-pattern',
+          actionId: actionId,
+          actionVersion: 1,
+          workspaceHandle: 'workspace:patterns',
+          parameters: parameters,
+          expectedRevision: snapshot.revision,
+          idempotencyKey: 'idempotency-$actionId',
+        ),
+        planId: 'plan-patterns',
+        seed: 19,
+      ),
+    );
+
+const _rockPattern = ProjectSmartTilePattern(
+  id: 'rock-stamp',
+  name: 'Rock stamp',
+  usage: SmartTileUsage.terrain,
+  width: 1,
+  height: 1,
+  repeatMode: SmartTilePatternRepeatMode.stamp,
+  cells: <SmartTilePatternCell>[
+    SmartTilePatternCell(
+      x: 0,
+      y: 0,
+      eraseMaterial: true,
+      collision: SmartTilePatternCollision.blocked,
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.frame(
+            frame: SmartTileFrameRef(
+              atlasId: 'atlas',
+              column: 0,
+              row: 0,
+            ),
+          ),
+        ),
+      ],
+    ),
+  ],
+);
 
 MapData _map(AuthoringMutationDraft draft) => MapData.fromJson(
       jsonDecode(utf8.decode(_mapBytes(draft))) as Map<String, dynamic>,
