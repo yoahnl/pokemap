@@ -39,8 +39,12 @@ void main() {
       assetBlobStorageKey(_pngReference),
     );
     expect(
-      gateway.actions.last.parameters['atlas'],
+      (gateway.actions.last.parameters['tileset']! as Map)['source'],
       containsPair('pixelWidth', 96),
+    );
+    expect(
+      gateway.actions.last.parameters,
+      isNot(contains('atlas')),
     );
     expect(result.tileset.name, 'ERW Grass');
     expect(result.tileset.relativePath, assetBlobStorageKey(_pngReference));

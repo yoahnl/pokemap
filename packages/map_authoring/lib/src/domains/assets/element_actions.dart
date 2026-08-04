@@ -67,7 +67,7 @@ final class ElementActions {
   ProjectManifest upsert(
     ProjectManifest manifest, {
     required ProjectElementEntry element,
-    required Map<String, TilesetAtlasSpec> atlases,
+    required Map<String, ProjectRegularAtlasTilesetSource> atlases,
   }) {
     if (!manifest.elementCategories.any(
       (category) => category.id == element.categoryId,

@@ -10,6 +10,7 @@ import 'project_trainer.dart';
 import 'shop_definition.dart';
 import 'project_new_game_config.dart';
 import 'project_presentation_profile.dart';
+import 'project_tileset_source.dart';
 import 'cinematic_asset.dart';
 import 'cinematic_media_asset.dart';
 import 'narrative_event_registry.dart';
@@ -465,8 +466,9 @@ class ProjectManifest with _$ProjectManifest {
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) {
-    _preflightSmartTileManifestJson(json);
-    final decoded = _$ProjectManifestFromJson(json);
+    final migratedJson = _migrateLegacyTilesetSources(json);
+    _preflightSmartTileManifestJson(migratedJson);
+    final decoded = _$ProjectManifestFromJson(migratedJson);
     final shops =
         decoded.shops.map((shop) => shop.normalized()).toList(growable: false);
     final badges = decoded.badges
@@ -508,6 +510,82 @@ void _preflightSmartTileManifestJson(Map<String, dynamic> json) {
       );
     }
   }
+}
+
+const String _legacyVisualLibraryMetadataKey = 'pokemapAuthoringVisualLibrary';
+
+Map<String, dynamic> _migrateLegacyTilesetSources(
+  Map<String, dynamic> json,
+) {
+  final rawProperties = json['globalProperties'];
+  if (rawProperties is! Map ||
+      !rawProperties.containsKey(_legacyVisualLibraryMetadataKey)) {
+    return json;
+  }
+  final rawLibrary = rawProperties[_legacyVisualLibraryMetadataKey];
+  if (rawLibrary is! Map ||
+      rawLibrary['schemaVersion'] != 1 ||
+      rawLibrary['tilesets'] is! List) {
+    throw const FormatException(
+      r'$.globalProperties.pokemapAuthoringVisualLibrary: '
+      'legacy_tileset_source_metadata_invalid',
+    );
+  }
+  final rawTilesets = json['tilesets'];
+  if (rawTilesets is! List || rawTilesets.any((item) => item is! Map)) {
+    throw const FormatException(r'$.tilesets: expected an array of objects');
+  }
+  final tilesets = <Map<String, dynamic>>[
+    for (final raw in rawTilesets) Map<String, dynamic>.from(raw as Map),
+  ];
+  final byId = <String, Map<String, dynamic>>{};
+  for (final tileset in tilesets) {
+    final id = tileset['id'];
+    if (id is String && !byId.containsKey(id)) {
+      byId[id] = tileset;
+    }
+  }
+  final migratedIds = <String>{};
+  for (final raw in rawLibrary['tilesets']! as List) {
+    if (raw is! Map) {
+      throw const FormatException(
+        r'$.globalProperties.pokemapAuthoringVisualLibrary.tilesets: '
+        'legacy_tileset_source_entry_invalid',
+      );
+    }
+    final atlas = Map<String, dynamic>.from(raw);
+    final tilesetId = atlas.remove('tilesetId');
+    if (tilesetId is! String || !migratedIds.add(tilesetId)) {
+      throw const FormatException(
+        r'$.globalProperties.pokemapAuthoringVisualLibrary.tilesets: '
+        'legacy_tileset_source_identity_invalid',
+      );
+    }
+    final tileset = byId[tilesetId];
+    if (tileset == null) {
+      throw FormatException(
+        r'$.globalProperties.pokemapAuthoringVisualLibrary.tilesets: '
+        'legacy_tileset_source_owner_missing ($tilesetId)',
+      );
+    }
+    if (tileset.containsKey('source')) {
+      throw FormatException(
+        r'$.tilesets: duplicate_tileset_source_representation '
+        '($tilesetId)',
+      );
+    }
+    tileset['source'] = <String, dynamic>{
+      'kind': 'regular_atlas',
+      ...atlas,
+    };
+  }
+  final properties = Map<String, dynamic>.from(rawProperties)
+    ..remove(_legacyVisualLibraryMetadataKey);
+  return <String, dynamic>{
+    ...json,
+    'tilesets': tilesets,
+    'globalProperties': properties,
+  };
 }
 
 extension ProjectManifestPresentation on ProjectManifest {
@@ -666,10 +744,12 @@ class ProjectTilesetFolder with _$ProjectTilesetFolder {
 
 @freezed
 class ProjectTilesetEntry with _$ProjectTilesetEntry {
+  @JsonSerializable(explicitToJson: true)
   const factory ProjectTilesetEntry({
     required String id,
     required String name,
     required String relativePath,
+    @JsonKey(includeIfNull: false) ProjectTilesetSource? source,
     @Default(TilesetScope.global) TilesetScope scope,
     String? groupId,
 

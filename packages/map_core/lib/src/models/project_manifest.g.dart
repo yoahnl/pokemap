@@ -425,6 +425,10 @@ _$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
       id: json['id'] as String,
       name: json['name'] as String,
       relativePath: json['relativePath'] as String,
+      source: json['source'] == null
+          ? null
+          : ProjectTilesetSource.fromJson(
+              json['source'] as Map<String, dynamic>),
       scope: $enumDecodeNullable(_$TilesetScopeEnumMap, json['scope']) ??
           TilesetScope.global,
       groupId: json['groupId'] as String?,
@@ -451,6 +455,7 @@ Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
       'id': instance.id,
       'name': instance.name,
       'relativePath': instance.relativePath,
+      if (instance.source?.toJson() case final value?) 'source': value,
       'scope': _$TilesetScopeEnumMap[instance.scope]!,
       'groupId': instance.groupId,
       'folderId': instance.folderId,
@@ -459,8 +464,8 @@ Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
       if (_tilesetTransparentColorToJson(instance.transparentColor)
           case final value?)
         'transparentColor': value,
-      'elementGroups': instance.elementGroups,
-      'paletteEntries': instance.paletteEntries,
+      'elementGroups': instance.elementGroups.map((e) => e.toJson()).toList(),
+      'paletteEntries': instance.paletteEntries.map((e) => e.toJson()).toList(),
     };
 
 const _$TilesetScopeEnumMap = {

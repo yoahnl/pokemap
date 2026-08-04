@@ -3601,6 +3601,8 @@ mixin _$ProjectTilesetEntry {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get relativePath => throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  ProjectTilesetSource? get source => throw _privateConstructorUsedError;
   TilesetScope get scope => throw _privateConstructorUsedError;
   String? get groupId => throw _privateConstructorUsedError;
 
@@ -3639,6 +3641,7 @@ abstract class $ProjectTilesetEntryCopyWith<$Res> {
       {String id,
       String name,
       String relativePath,
+      @JsonKey(includeIfNull: false) ProjectTilesetSource? source,
       TilesetScope scope,
       String? groupId,
       String? folderId,
@@ -3671,6 +3674,7 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
     Object? id = null,
     Object? name = null,
     Object? relativePath = null,
+    Object? source = freezed,
     Object? scope = null,
     Object? groupId = freezed,
     Object? folderId = freezed,
@@ -3693,6 +3697,10 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
           ? _value.relativePath
           : relativePath // ignore: cast_nullable_to_non_nullable
               as String,
+      source: freezed == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as ProjectTilesetSource?,
       scope: null == scope
           ? _value.scope
           : scope // ignore: cast_nullable_to_non_nullable
@@ -3741,6 +3749,7 @@ abstract class _$$ProjectTilesetEntryImplCopyWith<$Res>
       {String id,
       String name,
       String relativePath,
+      @JsonKey(includeIfNull: false) ProjectTilesetSource? source,
       TilesetScope scope,
       String? groupId,
       String? folderId,
@@ -3771,6 +3780,7 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? relativePath = null,
+    Object? source = freezed,
     Object? scope = null,
     Object? groupId = freezed,
     Object? folderId = freezed,
@@ -3793,6 +3803,10 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
           ? _value.relativePath
           : relativePath // ignore: cast_nullable_to_non_nullable
               as String,
+      source: freezed == source
+          ? _value.source
+          : source // ignore: cast_nullable_to_non_nullable
+              as ProjectTilesetSource?,
       scope: null == scope
           ? _value.scope
           : scope // ignore: cast_nullable_to_non_nullable
@@ -3830,12 +3844,14 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
 }
 
 /// @nodoc
-@JsonSerializable()
+
+@JsonSerializable(explicitToJson: true)
 class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
   const _$ProjectTilesetEntryImpl(
       {required this.id,
       required this.name,
       required this.relativePath,
+      @JsonKey(includeIfNull: false) this.source,
       this.scope = TilesetScope.global,
       this.groupId,
       this.folderId,
@@ -3860,6 +3876,9 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
   final String name;
   @override
   final String relativePath;
+  @override
+  @JsonKey(includeIfNull: false)
+  final ProjectTilesetSource? source;
   @override
   @JsonKey()
   final TilesetScope scope;
@@ -3901,7 +3920,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
 
   @override
   String toString() {
-    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, folderId: $folderId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, transparentColor: $transparentColor, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
+    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, source: $source, scope: $scope, groupId: $groupId, folderId: $folderId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, transparentColor: $transparentColor, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
   }
 
   @override
@@ -3913,6 +3932,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.relativePath, relativePath) ||
                 other.relativePath == relativePath) &&
+            (identical(other.source, source) || other.source == source) &&
             (identical(other.scope, scope) || other.scope == scope) &&
             (identical(other.groupId, groupId) || other.groupId == groupId) &&
             (identical(other.folderId, folderId) ||
@@ -3936,6 +3956,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
       id,
       name,
       relativePath,
+      source,
       scope,
       groupId,
       folderId,
@@ -3967,6 +3988,7 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
           {required final String id,
           required final String name,
           required final String relativePath,
+          @JsonKey(includeIfNull: false) final ProjectTilesetSource? source,
           final TilesetScope scope,
           final String? groupId,
           final String? folderId,
@@ -3990,6 +4012,9 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
   String get name;
   @override
   String get relativePath;
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectTilesetSource? get source;
   @override
   TilesetScope get scope;
   @override

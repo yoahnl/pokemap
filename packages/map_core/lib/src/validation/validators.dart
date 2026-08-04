@@ -7,6 +7,7 @@ import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
+import '../models/project_tileset_source.dart';
 import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
 import '../models/script_conditions.dart';
@@ -526,6 +527,7 @@ class ProjectValidator {
 
     for (final tileset in manifest.tilesets) {
       _validateRelativePath(tileset.relativePath, 'Tileset ${tileset.id}');
+      _validateTilesetSource(tileset);
 
       if (tileset.scope == TilesetScope.global) {
         if (tileset.groupId != null) {
@@ -620,6 +622,39 @@ class ProjectValidator {
 
     if (worldTilesetCount > 1) {
       throw const ValidationException('Only one world tileset can be defined');
+    }
+  }
+
+  static void _validateTilesetSource(ProjectTilesetEntry tileset) {
+    final source = tileset.source;
+    if (source == null) return;
+    if (source is! ProjectRegularAtlasTilesetSource) {
+      throw ValidationException(
+        'Tileset ${tileset.id} has an unsupported canonical source',
+      );
+    }
+    final stableId = RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9_.-]*$');
+    if (!stableId.hasMatch(source.assetId) ||
+        source.pixelWidth <= 0 ||
+        source.pixelHeight <= 0 ||
+        source.tileWidth <= 0 ||
+        source.tileHeight <= 0 ||
+        source.pixelWidth % source.tileWidth != 0 ||
+        source.pixelHeight % source.tileHeight != 0) {
+      throw ValidationException(
+        'Tileset ${tileset.id} has an invalid regular atlas source',
+      );
+    }
+    final tileIds = <int>{};
+    for (final property in source.tileProperties) {
+      if (property.tileId < 0 ||
+          property.tileId >= source.tileCount ||
+          !tileIds.add(property.tileId)) {
+        throw ValidationException(
+          'Tileset ${tileset.id} has an invalid regular atlas source '
+          'tile property: ${property.tileId}',
+        );
+      }
     }
   }
 

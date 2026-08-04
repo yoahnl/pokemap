@@ -70,7 +70,7 @@ final class PaletteActions {
     ProjectManifest manifest, {
     required String tilesetId,
     required TilesetPaletteEntry entry,
-    required Map<String, TilesetAtlasSpec> atlases,
+    required Map<String, ProjectRegularAtlasTilesetSource> atlases,
   }) {
     if (entry.frames.isEmpty) {
       throw VisualLibraryException(

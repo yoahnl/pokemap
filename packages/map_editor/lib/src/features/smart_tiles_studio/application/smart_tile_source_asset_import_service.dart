@@ -179,19 +179,20 @@ final class SmartTileSourceAssetImportService {
         loaded.message,
       );
     }
+    final canonicalTilesetDraft = tileset.copyWith(
+      source: ProjectTilesetSource.regularAtlas(
+        assetId: assetId,
+        pixelWidth: image.width,
+        pixelHeight: image.height,
+        tileWidth: 1,
+        tileHeight: 1,
+      ),
+    );
     final tilesetRevision = await _gateway.apply(
       projectRootPath: projectRootPath,
       actionId: 'tileset.upsert',
       parameters: <String, Object?>{
-        'tileset': tileset.toJson(),
-        'atlas': TilesetAtlasSpec(
-          tilesetId: tileset.id,
-          assetId: assetId,
-          pixelWidth: image.width,
-          pixelHeight: image.height,
-          tileWidth: 1,
-          tileHeight: 1,
-        ).toJson(),
+        'tileset': canonicalTilesetDraft.toJson(),
       },
       expectedRevision: assetRevision,
       idempotencyKey: 'smart-tile-source-tileset-${staged.hexDigest}',

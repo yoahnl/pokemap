@@ -13,8 +13,6 @@ import '../../workspace/project_snapshot.dart';
 import '../maps/map_lifecycle_adapter.dart';
 import 'asset_store.dart';
 
-const String visualLibraryMetadataKey = 'pokemapAuthoringVisualLibrary';
-
 final class VisualLibraryException implements Exception {
   VisualLibraryException(
     this.code,
@@ -28,160 +26,6 @@ final class VisualLibraryException implements Exception {
 
   @override
   String toString() => 'VisualLibraryException($code): $message';
-}
-
-final class VisualTileProperty {
-  const VisualTileProperty({
-    required this.tileId,
-    this.passable = true,
-    this.tags = const [],
-  });
-
-  factory VisualTileProperty.fromJson(Map<String, dynamic> json) {
-    if (json.keys.any(
-          (key) => !const {'tileId', 'passable', 'tags'}.contains(key),
-        ) ||
-        json['tileId'] is! int ||
-        json['passable'] is! bool ||
-        json['tags'] is! List ||
-        (json['tags']! as List).any((tag) => tag is! String)) {
-      throw const FormatException('Invalid visual tile property');
-    }
-    return VisualTileProperty(
-      tileId: json['tileId']! as int,
-      passable: json['passable']! as bool,
-      tags: List<String>.unmodifiable((json['tags']! as List).cast<String>()),
-    );
-  }
-
-  final int tileId;
-  final bool passable;
-  final List<String> tags;
-
-  Map<String, Object?> toJson() => {
-        'tileId': tileId,
-        'passable': passable,
-        'tags': tags,
-      };
-}
-
-/// Pixel/grid facts that the legacy manifest did not persist on a tileset.
-///
-/// Keeping these facts in a typed `globalProperties` namespace preserves old
-/// project readers while making atlas-bound validation and regrid impact honest.
-final class TilesetAtlasSpec {
-  const TilesetAtlasSpec({
-    required this.tilesetId,
-    required this.assetId,
-    required this.pixelWidth,
-    required this.pixelHeight,
-    required this.tileWidth,
-    required this.tileHeight,
-    this.tileProperties = const [],
-  });
-
-  factory TilesetAtlasSpec.fromJson(Map<String, dynamic> json) {
-    const keys = {
-      'tilesetId',
-      'assetId',
-      'pixelWidth',
-      'pixelHeight',
-      'tileWidth',
-      'tileHeight',
-      'tileProperties',
-    };
-    if (json.keys.any((key) => !keys.contains(key)) ||
-        json['tilesetId'] is! String ||
-        json['assetId'] is! String ||
-        json['pixelWidth'] is! int ||
-        json['pixelHeight'] is! int ||
-        json['tileWidth'] is! int ||
-        json['tileHeight'] is! int ||
-        json['tileProperties'] is! List) {
-      throw const FormatException('Invalid tileset atlas metadata');
-    }
-    return TilesetAtlasSpec(
-      tilesetId: json['tilesetId']! as String,
-      assetId: json['assetId']! as String,
-      pixelWidth: json['pixelWidth']! as int,
-      pixelHeight: json['pixelHeight']! as int,
-      tileWidth: json['tileWidth']! as int,
-      tileHeight: json['tileHeight']! as int,
-      tileProperties: (json['tileProperties']! as List).map((raw) {
-        if (raw is! Map) throw const FormatException();
-        return VisualTileProperty.fromJson(Map<String, dynamic>.from(raw));
-      }).toList(growable: false),
-    )..validate();
-  }
-
-  final String tilesetId;
-  final String assetId;
-  final int pixelWidth;
-  final int pixelHeight;
-  final int tileWidth;
-  final int tileHeight;
-  final List<VisualTileProperty> tileProperties;
-
-  int get columns => pixelWidth ~/ tileWidth;
-  int get rows => pixelHeight ~/ tileHeight;
-  int get tileCount => columns * rows;
-
-  TilesetAtlasSpec validate() {
-    if (!_stableId(tilesetId) || !_stableId(assetId)) {
-      throw VisualLibraryException(
-        'tileset.atlas_identity_invalid',
-        'Atlas and asset identities must be stable.',
-      );
-    }
-    if (pixelWidth <= 0 ||
-        pixelHeight <= 0 ||
-        tileWidth <= 0 ||
-        tileHeight <= 0 ||
-        pixelWidth % tileWidth != 0 ||
-        pixelHeight % tileHeight != 0) {
-      throw VisualLibraryException(
-        'tileset.grid_invalid',
-        'Atlas dimensions must be positive multiples of the tile grid.',
-        details: toJson(),
-      );
-    }
-    final ids = <int>{};
-    for (final property in tileProperties) {
-      if (property.tileId < 0 ||
-          property.tileId >= tileCount ||
-          !ids.add(property.tileId)) {
-        throw VisualLibraryException(
-          'tileset.tile_property_invalid',
-          'Tile properties must target unique in-bounds tile identities.',
-          details: {'tileId': property.tileId, 'tileCount': tileCount},
-        );
-      }
-    }
-    return this;
-  }
-
-  TilesetAtlasSpec regrid({required int width, required int height}) =>
-      TilesetAtlasSpec(
-        tilesetId: tilesetId,
-        assetId: assetId,
-        pixelWidth: pixelWidth,
-        pixelHeight: pixelHeight,
-        tileWidth: width,
-        tileHeight: height,
-        tileProperties: const [],
-      )..validate();
-
-  Map<String, Object?> toJson() => {
-        'tilesetId': tilesetId,
-        'assetId': assetId,
-        'pixelWidth': pixelWidth,
-        'pixelHeight': pixelHeight,
-        'tileWidth': tileWidth,
-        'tileHeight': tileHeight,
-        'tileProperties': [
-          for (final property in tileProperties) property.toJson(),
-        ],
-      };
 }
 
 final class TilesetRegridImpact {
@@ -226,8 +70,8 @@ final class TilesetRegridPreview {
             }),
         );
 
-  final TilesetAtlasSpec before;
-  final TilesetAtlasSpec after;
+  final ProjectRegularAtlasTilesetSource before;
+  final ProjectRegularAtlasTilesetSource after;
   final List<TilesetRegridImpact> impacts;
 
   bool get canApply => impacts.every((impact) => !impact.blocking);
@@ -246,7 +90,7 @@ final class TilesetActions {
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     visualLibraryDescriptor(
       'tileset.upsert',
-      'Create or replace a validated tileset and atlas metadata',
+      'Create or replace a validated canonical tileset',
     ),
     visualLibraryDescriptor(
       'tileset.delete',
@@ -260,27 +104,19 @@ final class TilesetActions {
     final manifest = context.snapshot.manifest;
     switch (context.request.actionId) {
       case 'tileset.upsert':
-        parameters.allow(const {'tileset', 'atlas'});
+        parameters.allow(const {'tileset'});
         final tileset = ProjectTilesetEntry.fromJson(
           Map<String, dynamic>.from(parameters.object('tileset')),
         );
-        final atlas = TilesetAtlasSpec.fromJson(
-          Map<String, dynamic>.from(parameters.object('atlas')),
-        );
-        if (atlas.tilesetId != tileset.id) {
-          throw VisualLibraryException(
-            'tileset.atlas_identity_mismatch',
-            'Tileset and atlas metadata identities must match.',
-          );
-        }
+        final atlas = _requireRegularAtlas(tileset);
         _requireAssetPath(context.snapshot, atlas, tileset.relativePath);
-        final next = upsert(manifest, tileset: tileset, atlas: atlas);
+        final next = upsert(manifest, tileset: tileset);
         return buildVisualManifestDraft(
           context.snapshot,
           next,
           operation: 'tileset.upsert',
           path: '/tilesets/${tileset.id}',
-          after: {'tileset': tileset.toJson(), 'atlas': atlas.toJson()},
+          after: tileset.toJson(),
         );
       case 'tileset.delete':
         parameters.allow(const {'tilesetId'});
@@ -305,19 +141,16 @@ final class TilesetActions {
   ProjectManifest upsert(
     ProjectManifest manifest, {
     required ProjectTilesetEntry tileset,
-    required TilesetAtlasSpec atlas,
   }) {
-    atlas.validate();
-    final atlases = readTilesetAtlases(manifest)..[tileset.id] = atlas;
+    final atlas = _requireRegularAtlas(tileset);
+    _validateRegularAtlas(tileset.id, atlas);
     final tilesets = [
       for (final existing in manifest.tilesets)
         if (existing.id != tileset.id) existing,
       tileset,
     ]..sort((left, right) => left.id.compareTo(right.id));
-    final next = manifest.copyWith(
-      tilesets: tilesets,
-      globalProperties: writeTilesetAtlases(manifest.globalProperties, atlases),
-    );
+    final next = manifest.copyWith(tilesets: tilesets);
+    final atlases = readTilesetAtlases(next);
     _validateManifestFramesForTileset(next, atlases, tileset.id);
     return next;
   }
@@ -342,19 +175,17 @@ final class TilesetActions {
         details: {'tilesetId': tilesetId, 'references': references},
       );
     }
-    final atlases = readTilesetAtlases(manifest)..remove(tilesetId);
     return manifest.copyWith(
       tilesets: manifest.tilesets
           .where((tileset) => tileset.id != tilesetId)
           .toList(growable: false),
-      globalProperties: writeTilesetAtlases(manifest.globalProperties, atlases),
     );
   }
 
   void validateFrame(
     TilesetVisualFrame frame, {
     required String owningTilesetId,
-    required Map<String, TilesetAtlasSpec> atlases,
+    required Map<String, ProjectRegularAtlasTilesetSource> atlases,
   }) {
     final tilesetId =
         frame.tilesetId.isEmpty ? owningTilesetId : frame.tilesetId;
@@ -394,13 +225,26 @@ final class TilesetActions {
 
   TilesetRegridPreview previewRegrid(
     ProjectManifest manifest, {
-    required TilesetAtlasSpec current,
+    required String tilesetId,
     required int tileWidth,
     required int tileHeight,
   }) {
-    final after = current.regrid(width: tileWidth, height: tileHeight);
+    final current = readTilesetAtlases(manifest)[tilesetId];
+    if (current == null) {
+      throw VisualLibraryException(
+        'tileset.atlas_missing',
+        'The tileset does not have a regular atlas source.',
+        details: <String, Object?>{'tilesetId': tilesetId},
+      );
+    }
+    final after = _regridAtlas(
+      tilesetId,
+      current,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+    );
     final impacts = <TilesetRegridImpact>[];
-    for (final frame in _visualFramesForTileset(manifest, current.tilesetId)) {
+    for (final frame in _visualFramesForTileset(manifest, tilesetId)) {
       impacts.add(
         TilesetRegridImpact(
           ownerKind: frame.ownerKind,
@@ -491,58 +335,23 @@ AuthoringMutationDraft buildVisualManifestDraft(
   );
 }
 
-Map<String, TilesetAtlasSpec> readTilesetAtlases(ProjectManifest manifest) {
-  final rawLibrary = manifest.globalProperties[visualLibraryMetadataKey];
-  if (rawLibrary == null) return {};
-  if (rawLibrary is! Map || rawLibrary['tilesets'] is! List) {
-    throw VisualLibraryException(
-      'visual.metadata_invalid',
-      'The visual library metadata is invalid.',
-    );
-  }
-  final result = <String, TilesetAtlasSpec>{};
-  for (final raw in rawLibrary['tilesets']! as List) {
-    if (raw is! Map) {
-      throw VisualLibraryException(
-        'visual.metadata_invalid',
-        'A tileset atlas metadata entry is invalid.',
-      );
-    }
-    final spec = TilesetAtlasSpec.fromJson(Map<String, dynamic>.from(raw));
-    if (result.containsKey(spec.tilesetId)) {
-      throw VisualLibraryException(
-        'visual.metadata_duplicate',
-        'Tileset atlas metadata identities must be unique.',
-      );
-    }
-    result[spec.tilesetId] = spec;
-  }
-  return result;
-}
-
-Map<String, Object?> writeTilesetAtlases(
-  Map<String, dynamic> properties,
-  Map<String, TilesetAtlasSpec> atlases,
+Map<String, ProjectRegularAtlasTilesetSource> readTilesetAtlases(
+  ProjectManifest manifest,
 ) {
-  final result = Map<String, Object?>.from(properties);
-  final rawExisting = result[visualLibraryMetadataKey];
-  final library = rawExisting is Map
-      ? Map<String, Object?>.from(rawExisting)
-      : <String, Object?>{};
-  library['schemaVersion'] = 1;
-  library['tilesets'] = [
-    for (final entry
-        in (atlases.entries.toList()
-          ..sort((left, right) => left.key.compareTo(right.key))))
-      entry.value.toJson(),
-  ];
-  result[visualLibraryMetadataKey] = library;
+  final result = <String, ProjectRegularAtlasTilesetSource>{};
+  for (final tileset in manifest.tilesets) {
+    final source = tileset.source;
+    if (source is ProjectRegularAtlasTilesetSource) {
+      _validateRegularAtlas(tileset.id, source);
+      result[tileset.id] = source;
+    }
+  }
   return result;
 }
 
 void validateManifestFrames(
   ProjectManifest manifest,
-  Map<String, TilesetAtlasSpec> atlases,
+  Map<String, ProjectRegularAtlasTilesetSource> atlases,
 ) {
   const actions = TilesetActions();
   for (final tileset in manifest.tilesets) {
@@ -569,7 +378,7 @@ void validateManifestFrames(
 
 void _validateManifestFramesForTileset(
   ProjectManifest manifest,
-  Map<String, TilesetAtlasSpec> atlases,
+  Map<String, ProjectRegularAtlasTilesetSource> atlases,
   String tilesetId,
 ) {
   const actions = TilesetActions();
@@ -704,7 +513,7 @@ final class VisualLibraryParameters {
 
 void _requireAssetPath(
   ProjectSnapshot snapshot,
-  TilesetAtlasSpec atlas,
+  ProjectRegularAtlasTilesetSource atlas,
   String relativePath,
 ) {
   final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
@@ -734,8 +543,8 @@ void _requireAssetPath(
 
 TilesetSourceRect? _regridSource(
   TilesetSourceRect source,
-  TilesetAtlasSpec before,
-  TilesetAtlasSpec after,
+  ProjectRegularAtlasTilesetSource before,
+  ProjectRegularAtlasTilesetSource after,
 ) {
   final x = source.x * before.tileWidth;
   final y = source.y * before.tileHeight;
@@ -753,6 +562,77 @@ TilesetSourceRect? _regridSource(
     width: width ~/ after.tileWidth,
     height: height ~/ after.tileHeight,
   );
+}
+
+ProjectRegularAtlasTilesetSource _requireRegularAtlas(
+  ProjectTilesetEntry tileset,
+) {
+  final source = tileset.source;
+  if (source is! ProjectRegularAtlasTilesetSource) {
+    throw VisualLibraryException(
+      'tileset.atlas_required',
+      'Tileset authoring requires a canonical regular atlas source.',
+      details: <String, Object?>{'tilesetId': tileset.id},
+    );
+  }
+  return source;
+}
+
+void _validateRegularAtlas(
+  String tilesetId,
+  ProjectRegularAtlasTilesetSource atlas,
+) {
+  if (!_stableId(tilesetId) || !_stableId(atlas.assetId)) {
+    throw VisualLibraryException(
+      'tileset.atlas_identity_invalid',
+      'Tileset and asset identities must be stable.',
+    );
+  }
+  if (atlas.pixelWidth <= 0 ||
+      atlas.pixelHeight <= 0 ||
+      atlas.tileWidth <= 0 ||
+      atlas.tileHeight <= 0 ||
+      atlas.pixelWidth % atlas.tileWidth != 0 ||
+      atlas.pixelHeight % atlas.tileHeight != 0) {
+    throw VisualLibraryException(
+      'tileset.grid_invalid',
+      'Atlas dimensions must be positive multiples of the tile grid.',
+      details: atlas.toJson(),
+    );
+  }
+  final ids = <int>{};
+  for (final property in atlas.tileProperties) {
+    if (property.tileId < 0 ||
+        property.tileId >= atlas.tileCount ||
+        !ids.add(property.tileId)) {
+      throw VisualLibraryException(
+        'tileset.tile_property_invalid',
+        'Tile properties must target unique in-bounds tile identities.',
+        details: <String, Object?>{
+          'tilesetId': tilesetId,
+          'tileId': property.tileId,
+          'tileCount': atlas.tileCount,
+        },
+      );
+    }
+  }
+}
+
+ProjectRegularAtlasTilesetSource _regridAtlas(
+  String tilesetId,
+  ProjectRegularAtlasTilesetSource atlas, {
+  required int tileWidth,
+  required int tileHeight,
+}) {
+  final result = ProjectRegularAtlasTilesetSource(
+    assetId: atlas.assetId,
+    pixelWidth: atlas.pixelWidth,
+    pixelHeight: atlas.pixelHeight,
+    tileWidth: tileWidth,
+    tileHeight: tileHeight,
+  );
+  _validateRegularAtlas(tilesetId, result);
+  return result;
 }
 
 bool _frameTargets(TilesetVisualFrame frame, String owner, String target) =>

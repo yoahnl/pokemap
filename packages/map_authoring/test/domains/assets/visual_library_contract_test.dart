@@ -4,14 +4,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('visual library contracts', () {
-    const atlas = TilesetAtlasSpec(
-      tilesetId: 'world',
-      assetId: 'world-atlas',
-      pixelWidth: 64,
-      pixelHeight: 48,
-      tileWidth: 16,
-      tileHeight: 16,
-    );
+    const atlas = _worldAtlas;
 
     test('rejects a source rect outside the real atlas bounds', () {
       expect(
@@ -61,8 +54,7 @@ void main() {
           ),
         ],
       );
-      const m02Atlas = TilesetAtlasSpec(
-        tilesetId: 'm02',
+      const m02Atlas = ProjectRegularAtlasTilesetSource(
         assetId: 'm02-atlas',
         pixelWidth: 16,
         pixelHeight: 16,
@@ -73,6 +65,7 @@ void main() {
         id: 'm02',
         name: 'M02',
         relativePath: 'images/m02.png',
+        source: m02Atlas,
         paletteEntries: [
           TilesetPaletteEntry(
             id: 'm02-tile',
@@ -88,7 +81,6 @@ void main() {
       final migrated = const TilesetActions().upsert(
         legacy,
         tileset: m02,
-        atlas: m02Atlas,
       );
       final atlases = readTilesetAtlases(migrated);
 
@@ -113,6 +105,7 @@ void main() {
         () => const TilesetActions().upsert(
           legacy,
           tileset: m02.copyWith(
+            source: m02Atlas,
             paletteEntries: const [
               TilesetPaletteEntry(
                 id: 'invalid',
@@ -124,7 +117,6 @@ void main() {
               ),
             ],
           ),
-          atlas: m02Atlas,
         ),
         throwsA(
           isA<VisualLibraryException>().having(
@@ -139,7 +131,7 @@ void main() {
     test('regrid preview reports every affected visual before apply', () {
       final preview = const TilesetActions().previewRegrid(
         _manifest(),
-        current: atlas,
+        tilesetId: 'world',
         tileWidth: 8,
         tileHeight: 8,
       );
@@ -270,6 +262,7 @@ ProjectManifest _manifest() => ProjectManifest(
           id: 'world',
           name: 'World',
           relativePath: 'images/world.png',
+          source: _worldAtlas,
           paletteEntries: [
             TilesetPaletteEntry(
               id: 'grass-tile',
@@ -300,3 +293,11 @@ ProjectManifest _manifest() => ProjectManifest(
         ),
       ],
     );
+
+const _worldAtlas = ProjectRegularAtlasTilesetSource(
+  assetId: 'world-atlas',
+  pixelWidth: 64,
+  pixelHeight: 48,
+  tileWidth: 16,
+  tileHeight: 16,
+);
