@@ -120,6 +120,18 @@ final class SmartTileCatalogActions {
           'smartTileDraft',
         ],
       ),
+      _descriptor(
+        'smart_tile.tiled_wang.import',
+        'Import selected Tiled Wang sets into the native Smart Tile catalog',
+        resourceKinds: const <String>[
+          'project',
+          'asset',
+          'smartTileAtlas',
+          'smartTileMaterial',
+          'smartTileAnimation',
+          'smartTilePreset',
+        ],
+      ),
     ]..sort((left, right) => left.id.compareTo(right.id)),
   );
 
@@ -144,6 +156,7 @@ final class SmartTileCatalogActions {
       'smart_tile.preset.draft.delete' => _deleteDraft(planning),
       'smart_tile.preset.publish' => _publishPreset(planning),
       'smart_tile.preset.delete' => _deletePreset(planning),
+      'smart_tile.tiled_wang.import' => _importTiledWang(planning),
       _ => throw semanticFailure(
           'smart_tile.action_unsupported',
           'The requested Smart Tile catalog action is unsupported.',
@@ -152,6 +165,146 @@ final class SmartTileCatalogActions {
           },
         ),
     };
+  }
+
+  AuthoringMutationDraft _importTiledWang(
+    AuthoringPlanningContext planning,
+  ) {
+    final parameters = SemanticParameters(
+      planning.request.parameters,
+      allowed: const <String>{
+        'tsx',
+        'importId',
+        'tilesetId',
+        'selections',
+      },
+    );
+    final selections = <TiledWangSetSelection>[];
+    final rawSelections = parameters.list('selections');
+    for (var index = 0; index < rawSelections.length; index += 1) {
+      final raw = rawSelections[index];
+      if (raw is! Map || raw.keys.any((key) => key is! String)) {
+        throw semanticFailure(
+          'smart_tile.tiled_wang.selection_invalid',
+          'Every Wang Set selection must be a JSON object.',
+          details: <String, Object?>{'selectionIndex': index},
+        );
+      }
+      final selection = SemanticParameters(
+        Map<String, Object?>.from(raw),
+        allowed: const <String>{'wangSetIndex', 'usage'},
+      );
+      final usage = switch (selection.string('usage')) {
+        'terrain' => SmartTileUsage.terrain,
+        'path' => SmartTileUsage.path,
+        'forest_surface' => SmartTileUsage.forestSurface,
+        final unsupported => throw semanticFailure(
+            'smart_tile.tiled_wang.usage_invalid',
+            'The selected Wang Set usage is unsupported.',
+            details: <String, Object?>{
+              'selectionIndex': index,
+              'usage': unsupported,
+            },
+          ),
+      };
+      selections.add(
+        TiledWangSetSelection(
+          wangSetIndex: selection.integer('wangSetIndex'),
+          usage: usage,
+        ),
+      );
+    }
+
+    final rawTsx = parameters.value('tsx');
+    if (rawTsx is! String || rawTsx.trim().isEmpty) {
+      throw semanticFailure(
+        'smart_tile.tiled_wang.tsx_required',
+        'The Tiled Wang import requires a non-empty TSX document.',
+      );
+    }
+    final TiledWangImportBundle bundle;
+    try {
+      bundle = compileTiledWangImport(
+        document: parseTiledWangTileset(rawTsx),
+        importId: parameters.string('importId'),
+        tilesetId: parameters.string('tilesetId'),
+        selections: selections,
+      );
+    } on TiledWangImportException catch (error) {
+      throw semanticFailure(error.code, error.message);
+    }
+    _validateAtlasImageBounds(planning.snapshot, bundle.atlas);
+
+    final current = planning.snapshot.manifest.smartTileCatalog;
+    final conflicts = <String>[
+      if (current.atlases.any((item) => item.id == bundle.atlas.id))
+        'atlas:${bundle.atlas.id}',
+      ..._importConflicts(
+        current.materials,
+        bundle.materials,
+        (item) => item.id,
+        'material',
+      ),
+      ..._importConflicts(
+        current.animations,
+        bundle.animations,
+        (item) => item.id,
+        'animation',
+      ),
+      ..._importConflicts(
+        current.presets,
+        bundle.presets,
+        (item) => item.id,
+        'preset',
+      ),
+    ]..sort();
+    if (conflicts.isNotEmpty) {
+      throw semanticFailure(
+        'smart_tile.tiled_wang.id_conflict',
+        'The Tiled Wang import would replace existing Smart Tile resources.',
+        details: <String, Object?>{'conflicts': conflicts},
+        remediation: const <String>[
+          'Choose another import namespace or remove the previous import.',
+        ],
+      );
+    }
+
+    final catalog = _catalogWith(
+      current,
+      atlases: _appendAndSortById(
+        current.atlases,
+        <ProjectSmartTileAtlas>[bundle.atlas],
+        (item) => item.id,
+      ),
+      materials: _appendAndSortById(
+        current.materials,
+        bundle.materials,
+        (item) => item.id,
+      ),
+      animations: _appendAndSortById(
+        current.animations,
+        bundle.animations,
+        (item) => item.id,
+      ),
+      presets: _appendAndSortById(
+        current.presets,
+        bundle.presets,
+        (item) => item.id,
+      ),
+    );
+    return _manifestDraft(
+      planning,
+      manifest: _nativeManifest(planning.snapshot.manifest, catalog),
+      operation: 'smart_tile.tiled_wang.import',
+      path: '/smartTileCatalog/imports/${parameters.string('importId')}',
+      after: bundle.toJson(),
+      preview: <String, Object?>{
+        'atlasId': bundle.atlas.id,
+        'materialCount': bundle.materials.length,
+        'animationCount': bundle.animations.length,
+        'presetCount': bundle.presets.length,
+      },
+    );
   }
 
   AuthoringMutationDraft _upsertAtlas(AuthoringPlanningContext planning) {
@@ -735,6 +888,29 @@ List<T> _upsertById<T>(
   return List<T>.unmodifiable(result);
 }
 
+List<T> _appendAndSortById<T>(
+  Iterable<T> current,
+  Iterable<T> imported,
+  String Function(T) idOf,
+) {
+  final result = <T>[...current, ...imported]
+    ..sort((left, right) => idOf(left).compareTo(idOf(right)));
+  return List<T>.unmodifiable(result);
+}
+
+List<String> _importConflicts<T>(
+  Iterable<T> current,
+  Iterable<T> imported,
+  String Function(T) idOf,
+  String kind,
+) {
+  final existingIds = current.map(idOf).toSet();
+  return <String>[
+    for (final item in imported)
+      if (existingIds.contains(idOf(item))) '$kind:${idOf(item)}',
+  ];
+}
+
 T? _findById<T>(Iterable<T> values, String id, String Function(T) idOf) {
   for (final value in values) {
     if (idOf(value) == id) return value;
@@ -965,6 +1141,7 @@ AuthoringMutationDraft _manifestDraft(
   Object? before,
   Object? after,
   ProjectSmartTileAuthoringDraft? removedDraft,
+  Map<String, Object?> preview = const <String, Object?>{},
 }) {
   preflightNativeSmartTileMutation(
     snapshot: planning.snapshot,
@@ -1018,6 +1195,7 @@ AuthoringMutationDraft _manifestDraft(
       'path': path,
       if (removedDraft != null) 'draftId': removedDraft.id,
       'projectWidePreflight': 'passed',
+      ...preview,
     },
   );
 }

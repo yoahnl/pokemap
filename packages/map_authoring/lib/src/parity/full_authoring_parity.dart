@@ -342,6 +342,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/smart_tile_cell_actions_test.dart',
   ),
   _ContractEvidenceRule(
+    ['smart_tile.tiled_wang.'],
+    'test/domains/maps/smart_tile_catalog_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['smart_tile.preset.draft.'],
     'test/domains/maps/smart_tile_draft_actions_test.dart',
   ),

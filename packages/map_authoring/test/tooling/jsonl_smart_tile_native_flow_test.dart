@@ -205,6 +205,51 @@ void main() {
       ]);
     });
 
+    test('imports Tiled Wang semantics byte-identically through JSONL',
+        () async {
+      final direct = await _Harness.create('tiled_wang_direct');
+      final jsonl = await _Harness.create('tiled_wang_jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      const parameters = <String, Object?>{
+        'tsx': _tiledWangTsx,
+        'importId': 'road-import',
+        'tilesetId': 'tileset',
+        'selections': <Object?>[
+          <String, Object?>{'wangSetIndex': 0, 'usage': 'path'},
+        ],
+      };
+
+      final directApplied = await direct.applyDirectAction(
+        actionId: 'smart_tile.tiled_wang.import',
+        parameters: parameters,
+        sequence: 'tiled-wang',
+      );
+      final jsonlApplied = await jsonl.applyJsonlAction(
+        actionId: 'smart_tile.tiled_wang.import',
+        parameters: parameters,
+        sequence: 'tiled-wang',
+      );
+
+      expect(
+        _stableReceipt(_receipt(directApplied)),
+        _stableReceipt(_receipt(jsonlApplied)),
+      );
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      final manifest = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(await direct.projectBytes()))
+            as Map<String, dynamic>,
+      );
+      expect(
+        manifest.smartTileCatalog.presets.single.id,
+        'road-import-w0-preset',
+      );
+      expect(
+        manifest.smartTileCatalog.presets.single.status,
+        SmartTilePresetStatus.draft,
+      );
+    });
+
     test('rejects stale planning and replays one operation exactly once',
         () async {
       final harness = await _Harness.create('cas');
@@ -408,6 +453,30 @@ final class _Harness {
         parameters: parameters,
         sequence: sequence,
       ),
+    );
+  }
+
+  Future<Map<String, Object?>> applyDirectAction({
+    required String actionId,
+    required Map<String, Object?> parameters,
+    required String sequence,
+  }) async {
+    final opened = await openDirect();
+    final snapshot = await snapshots.load(opened.project);
+    final plan = await mutations.plan(
+      opened.project,
+      _request(
+        workspaceHandle: opened.workspace.value,
+        revision: snapshot.revision,
+        actionId: actionId,
+        parameters: parameters,
+        sequence: sequence,
+      ),
+    );
+    return mutations.apply(
+      opened.project,
+      planId: plan['planId']! as String,
+      operationId: 'operation-$sequence',
     );
   }
 
@@ -689,6 +758,34 @@ final class _Harness {
         parameters: parameters,
         sequence: sequence,
       ).toJson(),
+    });
+  }
+
+  Future<Map<String, Object?>> applyJsonlAction({
+    required String actionId,
+    required Map<String, Object?> parameters,
+    required String sequence,
+  }) async {
+    final opened = await _jsonl('open', <String, Object?>{
+      'projectRoot': root.path,
+    });
+    final validation = await _jsonl('validate', <String, Object?>{
+      'projectHandle': opened['projectHandle'],
+    });
+    final plan = await _jsonl('plan', <String, Object?>{
+      'projectHandle': opened['projectHandle'],
+      'request': _request(
+        workspaceHandle: opened['workspaceHandle']! as String,
+        revision: validation['snapshotRevision']! as String,
+        actionId: actionId,
+        parameters: parameters,
+        sequence: sequence,
+      ).toJson(),
+    });
+    return _jsonl('apply', <String, Object?>{
+      'projectHandle': opened['projectHandle'],
+      'planId': plan['planId'],
+      'operationId': 'operation-$sequence',
     });
   }
 
@@ -1279,3 +1376,15 @@ final List<int> _pngBytes = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+'
   'A8AAQUBAScY42YAAAAASUVORK5CYII=',
 );
+
+const _tiledWangTsx = '''
+<tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
+  <image source="road.png" width="1" height="1"/>
+  <wangsets>
+    <wangset name="Road" type="edge" tile="-1">
+      <wangcolor name="Road" color="#c8a162" tile="0" probability="1"/>
+      <wangtile tileid="0" wangid="1,0,1,0,1,0,1,0"/>
+    </wangset>
+  </wangsets>
+</tileset>
+''';

@@ -64,6 +64,7 @@ async function mutationFixture(
         nativeSmartTileV5Map(options.withNativeSmartTileV5 === "mixed"),
       ),
     );
+    await writeCanonicalSmartTileImage(root);
   } else if (options.withSmartTileM01) {
     await mkdir(join(root, "maps"), { recursive: true });
     await writeFile(
@@ -184,7 +185,13 @@ function nativeSmartTileV5Project(mixed = false): JsonRecord {
         relativePath: "maps/native_v5.json",
       },
     ],
-    tilesets: [],
+    tilesets: [
+      {
+        id: "smart_tileset",
+        name: "Smart Tileset",
+        relativePath: "assets/smart_tileset.png",
+      },
+    ],
     smartTileCatalog: {
       formatVersion: 2,
       categories: [],
@@ -1122,6 +1129,59 @@ test("MCP upserts and paints a reusable Smart Tile pattern", async () => {
   }
 });
 
+test("MCP imports Tiled Wang semantics through the canonical action", async () => {
+  const fixture = await mutationFixture({ withNativeSmartTileV5: true });
+  try {
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "tiled-wang-import",
+        actionId: "smart_tile.tiled_wang.import",
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: {
+          tsx: tiledWangTsx,
+          importId: "mcp-road",
+          tilesetId: "smart_tileset",
+          selections: [{ wangSetIndex: 0, usage: "path" }],
+        },
+        expectedRevision: validated.snapshotRevision,
+        idempotencyKey: "idem-tiled-wang-import",
+        dryRun: false,
+      },
+    });
+    const applied = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "operation-tiled-wang-import",
+    });
+    assert.equal(
+      record(applied.receipt).actionId,
+      "smart_tile.tiled_wang.import",
+    );
+    const persisted = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    const catalog = record(persisted.smartTileCatalog);
+    const presets = catalog.presets as JsonRecord[];
+    assert.ok(presets.some((preset) => preset.id === "mcp-road-w0-preset"));
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP marks dry-run plans non-applicable before confirmation or apply", async () => {
   const fixture = await mutationFixture();
   try {
@@ -1204,6 +1264,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "smart_tile.preset.draft.upsert",
       "smart_tile.preset.delete",
       "smart_tile.preset.publish",
+      "smart_tile.tiled_wang.import",
     ]) {
       assert.ok(actionIds.includes(actionId), actionId);
     }
@@ -1579,6 +1640,18 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     await rm(fixture.root, { recursive: true, force: true });
   }
 });
+
+const tiledWangTsx = `
+<tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
+  <image source="road.png" width="1" height="1"/>
+  <wangsets>
+    <wangset name="Road" type="edge" tile="-1">
+      <wangcolor name="Road" color="#c8a162" tile="0" probability="1"/>
+      <wangtile tileid="0" wangid="1,0,1,0,1,0,1,0"/>
+    </wangset>
+  </wangsets>
+</tileset>
+`;
 
 test("MCP completes a cold-start 34-element visual import", async () => {
   const fixture = await mutationFixture({ withLegacyAtlasGap: true });
