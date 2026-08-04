@@ -114,6 +114,11 @@ void main() {
       );
       expect(manifest.smartTileCatalog.drafts, isEmpty);
       expect(manifest.smartTileCatalog.presets.single.id, 'grass-draft');
+      final transitionRule = manifest.smartTileCatalog.presets.single.rules
+          .singleWhere((rule) => rule.id == 'grass-water-stone');
+      expect(transitionRule.centerMatch.materialId, 'grass');
+      expect(transitionRule.signature.northEdge.materialId, 'water');
+      expect(transitionRule.signature.eastEdge.materialId, 'stone');
       final map = MapData.fromJson(
         jsonDecode(utf8.decode(await direct.mapBytes()))
             as Map<String, dynamic>,
@@ -989,13 +994,63 @@ ProjectSmartTileAuthoringDraft _draft() => ProjectSmartTileAuthoringDraft(
           name: 'Grass',
           connectionGroupId: 'ground',
         ),
+        ProjectSmartTileMaterial(
+          id: 'water',
+          name: 'Water',
+          connectionGroupId: 'water',
+        ),
+        ProjectSmartTileMaterial(
+          id: 'stone',
+          name: 'Stone',
+          connectionGroupId: 'stone',
+        ),
       ],
       animations: <ProjectSmartTileAnimation>[_animation()],
       defaultMaterialId: 'grass',
-      allowedMaterialIds: const <String>['grass'],
+      allowedMaterialIds: const <String>['grass', 'water', 'stone'],
       topology: SmartTileTopology.wang8,
       templateHint: SmartTileTemplateHint.mixed256,
-      rules: _preset().rules,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: const SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
+        requiredScenarios: <SmartTileCoverageScenario>[
+          SmartTileCoverageScenario(
+            id: 'grass-water-stone',
+            centerMaterialId: 'grass',
+            signature: SmartTileExactSignature(
+              northEdge: 'water',
+              eastEdge: 'stone',
+            ),
+          ),
+        ],
+      ),
+      rules: <SmartTileRule>[
+        ..._preset().rules,
+        const SmartTileRule(
+          id: 'grass-water-stone',
+          centerMatch: SmartTileSlotMatch.material('grass'),
+          signature: SmartTileSignature(
+            northEdge: SmartTileSlotMatch.material('water'),
+            eastEdge: SmartTileSlotMatch.material('stone'),
+          ),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(
+              id: 'grass-water-stone-visual',
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: 'atlas',
+                      column: 0,
+                      row: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
     );
 
 List<int> _encode(Object? value) =>

@@ -13,6 +13,18 @@ enum SmartTileMaterialRemovalBlocker {
   mappedMaterial,
 }
 
+/// Human-editable positions of a native Wang signature.
+enum SmartTileAuthoringSlot {
+  northWestCorner,
+  northEdge,
+  northEastCorner,
+  eastEdge,
+  southEastCorner,
+  southEdge,
+  southWestCorner,
+  westEdge,
+}
+
 final class SmartTileMaterialInUseException implements Exception {
   const SmartTileMaterialInUseException(this.materialId, this.blocker);
 
@@ -79,6 +91,7 @@ final class SmartTileAuthoringDraft {
     this.status = SmartTilePresetStatus.draft,
     Map<int, List<SmartTileCandidate>> mappings =
         const <int, List<SmartTileCandidate>>{},
+    List<SmartTileRule> transitionCases = const <SmartTileRule>[],
     List<ProjectSmartTileAnimation> animations =
         const <ProjectSmartTileAnimation>[],
   })  : materials = List<ProjectSmartTileMaterial>.unmodifiable(materials),
@@ -88,6 +101,7 @@ final class SmartTileAuthoringDraft {
               entry.key: List<SmartTileCandidate>.unmodifiable(entry.value),
           },
         ),
+        transitionCases = List<SmartTileRule>.unmodifiable(transitionCases),
         animations = List<ProjectSmartTileAnimation>.unmodifiable(animations);
 
   final String id;
@@ -107,6 +121,7 @@ final class SmartTileAuthoringDraft {
   final SmartTileTransformPolicy transformPolicy;
   final SmartTilePresetStatus status;
   final Map<int, List<SmartTileCandidate>> mappings;
+  final List<SmartTileRule> transitionCases;
   final List<ProjectSmartTileAnimation> animations;
 
   SmartTileAuthoringDraft copyWith({
@@ -127,6 +142,7 @@ final class SmartTileAuthoringDraft {
     SmartTileTransformPolicy? transformPolicy,
     SmartTilePresetStatus? status,
     Map<int, List<SmartTileCandidate>>? mappings,
+    List<SmartTileRule>? transitionCases,
     List<ProjectSmartTileAnimation>? animations,
   }) {
     return SmartTileAuthoringDraft(
@@ -147,6 +163,7 @@ final class SmartTileAuthoringDraft {
       transformPolicy: transformPolicy ?? this.transformPolicy,
       status: status ?? this.status,
       mappings: mappings ?? this.mappings,
+      transitionCases: transitionCases ?? this.transitionCases,
       animations: animations ?? this.animations,
     );
   }
@@ -154,9 +171,8 @@ final class SmartTileAuthoringDraft {
 
 /// Pure in-memory authoring controller for one native Smart Tile preset.
 ///
-/// The controller never reads or writes disk. Draft compilation remains
-/// available in memory, but persistence is delegated to the canonical API and
-/// remains blocked here until the STN-04 no-code adapter is wired.
+/// The controller never reads or writes disk. It compiles the durable core
+/// draft consumed by the Studio's canonical authoring adapter.
 final class SmartTileAuthoringController {
   SmartTileAuthoringController({
     SmartTileAuthoringDraft? initialState,
@@ -204,12 +220,22 @@ final class SmartTileAuthoringController {
         if (materialsById[id] case final material?) material,
     ];
     final mappings = <int, List<SmartTileCandidate>>{};
+    final transitionCases = <SmartTileRule>[];
     for (final rule in draft.rules) {
       final mask = smartTileMaskForSignature(
         rule.signature,
         topology: draft.topology,
       );
-      if (mask != null) mappings[mask] = rule.candidates;
+      final isBinaryTemplateRule = mask != null &&
+          (rule.centerMatch.kind == SmartTileMatchKind.any ||
+              draft.templateHint == SmartTileTemplateHint.simple &&
+                  rule.centerMatch.kind == SmartTileMatchKind.material &&
+                  rule.centerMatch.materialId == draft.defaultMaterialId);
+      if (isBinaryTemplateRule) {
+        mappings[mask] = rule.candidates;
+      } else {
+        transitionCases.add(rule);
+      }
     }
     _canonicalBase = draft;
     _preservedCoverageProfile = draft.coverageProfile;
@@ -231,6 +257,7 @@ final class SmartTileAuthoringController {
       transformPolicy: draft.transformPolicy,
       status: SmartTilePresetStatus.draft,
       mappings: mappings,
+      transitionCases: transitionCases,
       animations: draft.animations,
     );
   }
@@ -391,6 +418,11 @@ final class SmartTileAuthoringController {
     if (_state.activeMaterialId == materialId) {
       return SmartTileMaterialRemovalBlocker.activeMaterial;
     }
+    if (_state.transitionCases.any(
+      (rule) => _ruleUsesMaterial(rule, materialId),
+    )) {
+      return SmartTileMaterialRemovalBlocker.mappedMaterial;
+    }
     final base = _canonicalBase;
     if (base != null &&
         base.rules.any((rule) => _ruleUsesMaterial(rule, materialId))) {
@@ -423,7 +455,9 @@ final class SmartTileAuthoringController {
     final changesCoverage = changesContract ||
         _state.boundaryPolicy != configuration.boundaryPolicy ||
         _state.coveragePolicy != nextCoveragePolicy;
-    if (changesContract && _state.mappings.isNotEmpty && !clearMappings) {
+    final hasAuthoredCases =
+        _state.mappings.isNotEmpty || _state.transitionCases.isNotEmpty;
+    if (changesContract && hasAuthoredCases && !clearMappings) {
       throw StateError(
         'Changing a Smart Tile connection contract requires mapping confirmation.',
       );
@@ -436,6 +470,9 @@ final class SmartTileAuthoringController {
       mappings: changesContract && clearMappings
           ? const <int, List<SmartTileCandidate>>{}
           : _state.mappings,
+      transitionCases: changesContract && clearMappings
+          ? const <SmartTileRule>[]
+          : _state.transitionCases,
     );
     if (changesCoverage) _preservedCoverageProfile = null;
   }
@@ -482,6 +519,7 @@ final class SmartTileAuthoringController {
           ? SmartTileCoveragePolicy.complete
           : SmartTileCoveragePolicy.sparse,
       mappings: const <int, List<SmartTileCandidate>>{},
+      transitionCases: const <SmartTileRule>[],
     );
     _preservedCoverageProfile = null;
   }
@@ -501,6 +539,7 @@ final class SmartTileAuthoringController {
       templateHint: template,
       topology: topology,
       mappings: const <int, List<SmartTileCandidate>>{},
+      transitionCases: const <SmartTileRule>[],
     );
     _preservedCoverageProfile = null;
   }
@@ -686,9 +725,288 @@ final class SmartTileAuthoringController {
   }
 
   void clearMappings() {
-    if (_state.mappings.isNotEmpty) _preservedCoverageProfile = null;
+    if (_state.mappings.isNotEmpty || _state.transitionCases.isNotEmpty) {
+      _preservedCoverageProfile = null;
+    }
     _state = _state.copyWith(
       mappings: const <int, List<SmartTileCandidate>>{},
+      transitionCases: const <SmartTileRule>[],
+    );
+  }
+
+  SmartTileRule createTransitionCase({
+    SmartTileSlotMatch? centerMatch,
+  }) {
+    final selectedCenter = centerMatch ??
+        SmartTileSlotMatch.material(
+          _state.activeMaterialId.isNotEmpty
+              ? _state.activeMaterialId
+              : _state.defaultMaterialId,
+        );
+    _validateCenterMatch(selectedCenter);
+    final occupied = _state.transitionCases.map((rule) => rule.id).toSet();
+    var sequence = _state.transitionCases.length + 1;
+    var id = 'transition_case_$sequence';
+    while (occupied.contains(id)) {
+      sequence += 1;
+      id = 'transition_case_$sequence';
+    }
+    final rule = SmartTileRule(
+      id: id,
+      centerMatch: selectedCenter,
+    );
+    _state = _state.copyWith(
+      transitionCases: <SmartTileRule>[..._state.transitionCases, rule],
+    );
+    _preservedCoverageProfile = null;
+    return rule;
+  }
+
+  void setTransitionCaseCenter({
+    required String caseId,
+    required SmartTileSlotMatch match,
+  }) {
+    _validateCenterMatch(match);
+    _replaceTransitionCase(
+      caseId,
+      _requireTransitionCase(caseId).copyWith(centerMatch: match),
+    );
+  }
+
+  void setTransitionCaseSlot({
+    required String caseId,
+    required SmartTileAuthoringSlot slot,
+    required SmartTileSlotMatch match,
+  }) {
+    _validateSlotMatch(match);
+    final rule = _requireTransitionCase(caseId);
+    final signature = switch (slot) {
+      SmartTileAuthoringSlot.northWestCorner =>
+        rule.signature.copyWith(northWestCorner: match),
+      SmartTileAuthoringSlot.northEdge =>
+        rule.signature.copyWith(northEdge: match),
+      SmartTileAuthoringSlot.northEastCorner =>
+        rule.signature.copyWith(northEastCorner: match),
+      SmartTileAuthoringSlot.eastEdge =>
+        rule.signature.copyWith(eastEdge: match),
+      SmartTileAuthoringSlot.southEastCorner =>
+        rule.signature.copyWith(southEastCorner: match),
+      SmartTileAuthoringSlot.southEdge =>
+        rule.signature.copyWith(southEdge: match),
+      SmartTileAuthoringSlot.southWestCorner =>
+        rule.signature.copyWith(southWestCorner: match),
+      SmartTileAuthoringSlot.westEdge =>
+        rule.signature.copyWith(westEdge: match),
+    };
+    _replaceTransitionCase(caseId, rule.copyWith(signature: signature));
+  }
+
+  void removeTransitionCase(String caseId) {
+    _requireTransitionCase(caseId);
+    _state = _state.copyWith(
+      transitionCases:
+          _state.transitionCases.where((rule) => rule.id != caseId).toList(),
+    );
+    _preservedCoverageProfile = null;
+  }
+
+  void addTransitionCaseAtlasVariant({
+    required String caseId,
+    required int column,
+    required int row,
+    required String candidateId,
+    int weight = 1,
+    SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
+    int columnSpan = 1,
+    int rowSpan = 1,
+  }) {
+    _requireCandidateWeight(weight);
+    _ensureAtlasCell(
+      column: column,
+      row: row,
+      columnSpan: columnSpan,
+      rowSpan: rowSpan,
+    );
+    final rule = _requireTransitionCase(caseId);
+    final candidates = List<SmartTileCandidate>.from(rule.candidates);
+    final candidate = SmartTileCandidate(
+      id: candidateId,
+      weight: weight,
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.frame(
+            frame: SmartTileFrameRef(
+              atlasId: _state.atlasId,
+              column: column,
+              row: row,
+              columnSpan: columnSpan,
+              rowSpan: rowSpan,
+            ),
+          ),
+          channel: channel,
+        ),
+      ],
+    );
+    final index = candidates.indexWhere((item) => item.id == candidateId);
+    if (index < 0) {
+      candidates.add(candidate);
+    } else {
+      candidates[index] = candidate;
+    }
+    _replaceTransitionCase(
+      caseId,
+      rule.copyWith(candidates: candidates),
+    );
+  }
+
+  void replaceTransitionCaseAtlasCandidate({
+    required String caseId,
+    required int column,
+    required int row,
+    required String candidateId,
+    SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
+  }) {
+    _ensureAtlasCell(
+      column: column,
+      row: row,
+      columnSpan: 1,
+      rowSpan: 1,
+    );
+    final rule = _requireTransitionCase(caseId);
+    final candidates = List<SmartTileCandidate>.from(rule.candidates);
+    final candidateIndex =
+        candidates.indexWhere((candidate) => candidate.id == candidateId);
+    if (candidateIndex < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    final current = candidates[candidateIndex];
+    final replacement = SmartTileVisualPart(
+      source: SmartTileVisualSource.frame(
+        frame: SmartTileFrameRef(
+          atlasId: _state.atlasId,
+          column: column,
+          row: row,
+        ),
+      ),
+      channel: channel,
+    );
+    final parts = List<SmartTileVisualPart>.from(current.parts);
+    final partIndex = parts.indexWhere((part) => part.channel == channel);
+    if (partIndex < 0) {
+      parts.add(replacement);
+    } else {
+      final previous = parts[partIndex];
+      parts[partIndex] = replacement.copyWith(
+        transform: previous.transform,
+        frameSampling: previous.frameSampling,
+        offsetUnit: previous.offsetUnit,
+        offsetX: previous.offsetX,
+        offsetY: previous.offsetY,
+        footprintWidth: previous.footprintWidth,
+        footprintHeight: previous.footprintHeight,
+        anchorX: previous.anchorX,
+        anchorY: previous.anchorY,
+        drawOrder: previous.drawOrder,
+      );
+    }
+    candidates[candidateIndex] = current.copyWith(parts: parts);
+    _replaceTransitionCase(
+      caseId,
+      rule.copyWith(candidates: candidates),
+    );
+  }
+
+  void addTransitionCaseAnimationVariant({
+    required String caseId,
+    required String animationId,
+    required String candidateId,
+    int weight = 1,
+    SmartTileRenderChannel channel = SmartTileRenderChannel.ground,
+  }) {
+    _requireCandidateWeight(weight);
+    if (!_state.animations.any((item) => item.id == animationId)) {
+      throw ArgumentError('Unknown Smart Tile animation "$animationId".');
+    }
+    final rule = _requireTransitionCase(caseId);
+    final candidates = List<SmartTileCandidate>.from(rule.candidates);
+    final candidate = SmartTileCandidate(
+      id: candidateId,
+      weight: weight,
+      parts: <SmartTileVisualPart>[
+        SmartTileVisualPart(
+          source: SmartTileVisualSource.animation(animationId: animationId),
+          channel: channel,
+        ),
+      ],
+    );
+    final index = candidates.indexWhere((item) => item.id == candidateId);
+    if (index < 0) {
+      candidates.add(candidate);
+    } else {
+      candidates[index] = candidate;
+    }
+    _replaceTransitionCase(
+      caseId,
+      rule.copyWith(candidates: candidates),
+    );
+  }
+
+  void updateTransitionCaseCandidateWeight({
+    required String caseId,
+    required String candidateId,
+    required int weight,
+  }) {
+    _requireCandidateWeight(weight);
+    final rule = _requireTransitionCase(caseId);
+    final candidates = List<SmartTileCandidate>.from(rule.candidates);
+    final index = candidates.indexWhere((item) => item.id == candidateId);
+    if (index < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    candidates[index] = candidates[index].copyWith(weight: weight);
+    _replaceTransitionCase(
+      caseId,
+      rule.copyWith(candidates: candidates),
+    );
+  }
+
+  void removeTransitionCaseCandidate({
+    required String caseId,
+    required String candidateId,
+  }) {
+    final rule = _requireTransitionCase(caseId);
+    final candidates = List<SmartTileCandidate>.from(rule.candidates);
+    final index = candidates.indexWhere((item) => item.id == candidateId);
+    if (index < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    candidates.removeAt(index);
+    _replaceTransitionCase(
+      caseId,
+      rule.copyWith(candidates: candidates),
+    );
+  }
+
+  void reorderTransitionCaseCandidate({
+    required String caseId,
+    required String candidateId,
+    required int newIndex,
+  }) {
+    final rule = _requireTransitionCase(caseId);
+    final candidates = List<SmartTileCandidate>.from(rule.candidates);
+    final currentIndex =
+        candidates.indexWhere((candidate) => candidate.id == candidateId);
+    if (currentIndex < 0) {
+      throw ArgumentError('Unknown Smart Tile candidate "$candidateId".');
+    }
+    if (newIndex < 0 || newIndex >= candidates.length) {
+      throw RangeError.range(newIndex, 0, candidates.length - 1, 'newIndex');
+    }
+    final candidate = candidates.removeAt(currentIndex);
+    candidates.insert(newIndex, candidate);
+    _replaceTransitionCase(
+      caseId,
+      rule.copyWith(candidates: candidates),
     );
   }
 
@@ -977,7 +1295,6 @@ final class SmartTileAuthoringController {
     if (usage == null || topology == null) {
       throw StateError('Choose a Smart Tile usage before compiling.');
     }
-    final masks = _state.mappings.keys.toList()..sort();
     return ProjectSmartTilePreset(
       id: _state.id,
       name: _state.name,
@@ -992,20 +1309,7 @@ final class SmartTileAuthoringController {
       defaultMaterialId: _state.defaultMaterialId,
       allowedMaterialIds:
           _state.materials.map((material) => material.id).toList(),
-      rules: <SmartTileRule>[
-        for (final mask in masks)
-          SmartTileRule(
-            id: smartTileCanonicalRuleId(mask),
-            // Simple owns a center texture, not a universal neighborhood rule.
-            // Keeping the material explicit prevents a future multi-material
-            // draft from resolving the same visual for every center.
-            centerMatch: _state.templateHint == SmartTileTemplateHint.simple
-                ? SmartTileSlotMatch.material(_state.defaultMaterialId)
-                : const SmartTileSlotMatch.any(),
-            signature: smartTileSignatureForMask(mask, topology: topology),
-            candidates: _state.mappings[mask]!,
-          ),
-      ],
+      rules: _compileRules(topology),
     );
   }
 
@@ -1044,6 +1348,7 @@ final class SmartTileAuthoringController {
           signature: smartTileSignatureForMask(mask, topology: topology),
           candidates: _state.mappings[mask]!,
         ),
+      ..._state.transitionCases,
     ];
   }
 
@@ -1052,9 +1357,15 @@ final class SmartTileAuthoringController {
   ) {
     final preserved = _preservedCoverageProfile;
     if (preserved != null) return preserved;
+    final transitionScenarios = <SmartTileCoverageScenario>[
+      for (final rule in _state.transitionCases) _coverageScenarioForRule(rule),
+    ];
     if (_state.coveragePolicy == SmartTileCoveragePolicy.complete) {
-      return const SmartTileCoverageProfile(
-        mode: SmartTileCoverageMode.template,
+      return SmartTileCoverageProfile(
+        mode: transitionScenarios.isEmpty
+            ? SmartTileCoverageMode.template
+            : SmartTileCoverageMode.templateAndExplicit,
+        requiredScenarios: transitionScenarios,
       );
     }
     final masks = _state.mappings.keys.toList()..sort();
@@ -1077,7 +1388,52 @@ final class SmartTileAuthoringController {
                 materialId: materialId,
               ),
             ),
+        ...transitionScenarios,
       ],
+    );
+  }
+
+  SmartTileCoverageScenario _coverageScenarioForRule(SmartTileRule rule) {
+    final centerMaterialId = switch (rule.centerMatch.kind) {
+      SmartTileMatchKind.material => rule.centerMatch.materialId,
+      SmartTileMatchKind.any || SmartTileMatchKind.empty => null,
+      SmartTileMatchKind.same || SmartTileMatchKind.different => null,
+    };
+    final centerGroup = centerMaterialId == null
+        ? null
+        : _state.materials
+            .where((material) => material.id == centerMaterialId)
+            .firstOrNull
+            ?.connectionGroupId;
+    final differentMaterialId = _state.materials
+        .where(
+          (material) =>
+              !material.isEmpty &&
+              (centerGroup == null ||
+                  material.connectionGroupId != centerGroup),
+        )
+        .map((material) => material.id)
+        .firstOrNull;
+    String? observed(SmartTileSlotMatch match) => switch (match.kind) {
+          SmartTileMatchKind.material => match.materialId,
+          SmartTileMatchKind.same => centerMaterialId,
+          SmartTileMatchKind.different => differentMaterialId,
+          SmartTileMatchKind.any || SmartTileMatchKind.empty => null,
+        };
+    final signature = rule.signature;
+    return SmartTileCoverageScenario(
+      id: 'transition:${rule.id}',
+      centerMaterialId: centerMaterialId,
+      signature: SmartTileExactSignature(
+        northWestCorner: observed(signature.northWestCorner),
+        northEdge: observed(signature.northEdge),
+        northEastCorner: observed(signature.northEastCorner),
+        eastEdge: observed(signature.eastEdge),
+        southEastCorner: observed(signature.southEastCorner),
+        southEdge: observed(signature.southEdge),
+        southWestCorner: observed(signature.southWestCorner),
+        westEdge: observed(signature.westEdge),
+      ),
     );
   }
 
@@ -1218,6 +1574,43 @@ final class SmartTileAuthoringController {
       return normalizeSmartTileBlobMask(mask);
     }
     return mask & smartTileEightNeighborMask;
+  }
+
+  SmartTileRule _requireTransitionCase(String caseId) {
+    final rule = _state.transitionCases
+        .where((candidate) => candidate.id == caseId)
+        .firstOrNull;
+    if (rule == null) {
+      throw ArgumentError('Unknown Smart Tile transition case "$caseId".');
+    }
+    return rule;
+  }
+
+  void _replaceTransitionCase(String caseId, SmartTileRule replacement) {
+    final index =
+        _state.transitionCases.indexWhere((rule) => rule.id == caseId);
+    if (index < 0) {
+      throw ArgumentError('Unknown Smart Tile transition case "$caseId".');
+    }
+    final cases = List<SmartTileRule>.from(_state.transitionCases);
+    cases[index] = replacement;
+    _state = _state.copyWith(transitionCases: cases);
+    _preservedCoverageProfile = null;
+  }
+
+  void _validateCenterMatch(SmartTileSlotMatch match) {
+    if (match.kind == SmartTileMatchKind.same ||
+        match.kind == SmartTileMatchKind.different) {
+      throw ArgumentError('A center cannot be relative to itself.');
+    }
+    _validateSlotMatch(match);
+  }
+
+  void _validateSlotMatch(SmartTileSlotMatch match) {
+    final materialId = match.materialId;
+    if (match.kind == SmartTileMatchKind.material && materialId != null) {
+      _requireMaterial(materialId);
+    }
   }
 
   ProjectSmartTileMaterial _requireMaterial(String materialId) {

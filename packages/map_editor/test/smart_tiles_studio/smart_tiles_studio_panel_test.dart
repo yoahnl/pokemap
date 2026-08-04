@@ -1050,6 +1050,117 @@ void main() {
       _expectNoTechnicalMaskText(tester);
     });
 
+    testWidgets('authors an exact multi-material transition without Wang ids', (
+      tester,
+    ) async {
+      const tileset = ProjectTilesetEntry(
+        id: 'multi-source',
+        name: 'Source multi-matières',
+        relativePath: 'assets/multi.png',
+      );
+      const draft = ProjectSmartTileAuthoringDraft(
+        id: 'multi-draft',
+        targetPresetId: 'multi-preset',
+        name: 'Raccord multi-matières',
+        usage: SmartTileUsage.path,
+        lastStage: SmartTileAuthoringStage.forms,
+        sourceTilesetIds: <String>['multi-source'],
+        atlases: <ProjectSmartTileAtlas>[
+          ProjectSmartTileAtlas(
+            id: 'multi-atlas',
+            name: 'Atlas multi-matières',
+            tilesetId: 'multi-source',
+            columns: 4,
+            rows: 4,
+          ),
+        ],
+        primaryAtlasId: 'multi-atlas',
+        materials: <ProjectSmartTileMaterial>[
+          ProjectSmartTileMaterial(
+            id: 'grass',
+            name: 'Herbe',
+            connectionGroupId: 'grass',
+          ),
+          ProjectSmartTileMaterial(
+            id: 'water',
+            name: 'Eau',
+            connectionGroupId: 'water',
+          ),
+          ProjectSmartTileMaterial(
+            id: 'stone',
+            name: 'Pierre',
+            connectionGroupId: 'stone',
+          ),
+        ],
+        defaultMaterialId: 'grass',
+        allowedMaterialIds: <String>['grass', 'water', 'stone'],
+        topology: SmartTileTopology.wangEdge4,
+        templateHint: SmartTileTemplateHint.edge16,
+        coveragePolicy: SmartTileCoveragePolicy.sparse,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.explicit,
+        ),
+      );
+      ProjectSmartTileAuthoringDraft? latestDraft;
+      await _pumpPanel(
+        tester,
+        _manifest(
+          tilesets: const <ProjectTilesetEntry>[tileset],
+          drafts: const <ProjectSmartTileAuthoringDraft>[draft],
+        ),
+        projectRootPath: '/tmp/multi-project',
+        imageLoader: _FakeSmartTileAtlasImageLoader(width: 128, height: 128),
+        onDraftChanged: (value) => latestDraft = value,
+      );
+      await tester.tap(
+        find.byKey(const Key('smart-tiles-library-item-draft:multi-draft')),
+      );
+      await tester.pumpAndSettle();
+      await _jumpWorkbenchToTop(tester);
+
+      final add = find.byKey(const Key('smart-tiles-transition-add'));
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+
+      final north = find.byKey(
+        const Key('smart-tiles-transition-transition_case_1-northEdge'),
+      );
+      await tester.ensureVisible(north);
+      await tester.tap(north);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Eau').last);
+      await tester.pumpAndSettle();
+
+      final east = find.byKey(
+        const Key('smart-tiles-transition-transition_case_1-eastEdge'),
+      );
+      await tester.ensureVisible(east);
+      await tester.tap(east);
+      await tester.pumpAndSettle();
+      final stoneOption = find.text('Pierre').last;
+      await tester.ensureVisible(stoneOption);
+      await tester.pumpAndSettle();
+      await tester.tap(stoneOption);
+      await tester.pumpAndSettle();
+
+      final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
+      await tester.ensureVisible(viewport);
+      await tester.pumpAndSettle();
+      await _tapAtlasDisplay(tester, viewport, const Offset(2, 2));
+
+      final rule = latestDraft!.rules.single;
+      expect(rule.centerMatch.materialId, 'grass');
+      expect(rule.signature.northEdge.materialId, 'water');
+      expect(rule.signature.eastEdge.materialId, 'stone');
+      expect(rule.candidates, hasLength(1));
+      expect(find.text('Herbe'), findsWidgets);
+      expect(find.text('Eau'), findsWidgets);
+      expect(find.text('Pierre'), findsWidgets);
+      expect(find.text('transition_case_1'), findsNothing);
+      _expectNoTechnicalMaskText(tester);
+    });
+
     testWidgets('maps an atlas cell back to the next human form', (
       tester,
     ) async {

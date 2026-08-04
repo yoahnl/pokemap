@@ -432,6 +432,181 @@ void main() {
       );
     });
 
+    test('authors and resumes exact multi-material transition cases', () {
+      final controller = _configuredController()
+        ..selectUsage(SmartTileUsage.path)
+        ..configureConnections(
+          const SmartTileConnectionConfiguration(
+            topology: SmartTileTopology.wangEdge4,
+            templateHint: SmartTileTemplateHint.edge16,
+          ),
+          clearMappings: false,
+        )
+        ..addMaterial(
+          const ProjectSmartTileMaterial(
+            id: 'water',
+            name: 'Eau',
+            connectionGroupId: 'water',
+          ),
+          makeActive: false,
+        )
+        ..addMaterial(
+          const ProjectSmartTileMaterial(
+            id: 'stone',
+            name: 'Pierre',
+            connectionGroupId: 'stone',
+          ),
+          makeActive: false,
+        );
+      final transition = controller.createTransitionCase(
+        centerMatch: const SmartTileSlotMatch.material('grass'),
+      );
+      controller
+        ..setTransitionCaseSlot(
+          caseId: transition.id,
+          slot: SmartTileAuthoringSlot.northEdge,
+          match: const SmartTileSlotMatch.material('water'),
+        )
+        ..setTransitionCaseSlot(
+          caseId: transition.id,
+          slot: SmartTileAuthoringSlot.eastEdge,
+          match: const SmartTileSlotMatch.material('stone'),
+        )
+        ..setTransitionCaseSlot(
+          caseId: transition.id,
+          slot: SmartTileAuthoringSlot.southEdge,
+          match: const SmartTileSlotMatch.empty(),
+        )
+        ..setTransitionCaseSlot(
+          caseId: transition.id,
+          slot: SmartTileAuthoringSlot.westEdge,
+          match: const SmartTileSlotMatch.same(),
+        )
+        ..addTransitionCaseAtlasVariant(
+          caseId: transition.id,
+          column: 3,
+          row: 2,
+          candidateId: 'grass-water-stone',
+        );
+
+      final preset = controller.compilePreset();
+      final rule = preset.rules.single;
+      expect(rule.centerMatch.materialId, 'grass');
+      expect(rule.signature.northEdge.materialId, 'water');
+      expect(rule.signature.eastEdge.materialId, 'stone');
+      expect(rule.signature.southEdge.kind, SmartTileMatchKind.empty);
+      expect(rule.signature.westEdge.kind, SmartTileMatchKind.same);
+      expect(rule.candidates.single.id, 'grass-water-stone');
+      expect(
+        preset.coverageProfile.mode,
+        SmartTileCoverageMode.explicit,
+      );
+      expect(
+        preset.coverageProfile.requiredScenarios.single.signature,
+        const SmartTileExactSignature(
+          northEdge: 'water',
+          eastEdge: 'stone',
+          westEdge: 'grass',
+        ),
+      );
+
+      final resolved = resolveSmartTile(
+        preset: preset,
+        materials: controller.state.materials,
+        context: const SmartTileCellContext(
+          centerMaterialId: 'grass',
+          observed: SmartTileObservedSignature(
+            northEdge: SmartTileObservedSlot.inside(materialId: 'water'),
+            eastEdge: SmartTileObservedSlot.inside(materialId: 'stone'),
+            southEdge: SmartTileObservedSlot.inside(),
+            westEdge: SmartTileObservedSlot.inside(materialId: 'grass'),
+          ),
+        ),
+        x: 0,
+        y: 0,
+        mapId: 'map',
+        layerId: 'layer',
+      );
+      expect(resolved.status, SmartTileResolutionStatus.resolved);
+      expect(resolved.candidate?.id, 'grass-water-stone');
+
+      final canonical = controller.compileAuthoringDraft(
+        lastStage: SmartTileAuthoringStage.forms,
+      );
+      final resumed =
+          SmartTileAuthoringController.fromCanonicalDraft(canonical);
+      expect(resumed.state.transitionCases, hasLength(1));
+      expect(resumed.compilePreset().rules.single, rule);
+    });
+
+    test('resolves different visuals per center material and flags overlaps',
+        () {
+      final controller = _configuredController()
+        ..selectUsage(SmartTileUsage.path)
+        ..addMaterial(
+          const ProjectSmartTileMaterial(
+            id: 'water',
+            name: 'Eau',
+            connectionGroupId: 'water',
+          ),
+          makeActive: false,
+        );
+      final grass = controller.createTransitionCase(
+        centerMatch: const SmartTileSlotMatch.material('grass'),
+      );
+      controller.addTransitionCaseAtlasVariant(
+        caseId: grass.id,
+        column: 0,
+        row: 0,
+        candidateId: 'grass-visual',
+      );
+      final water = controller.createTransitionCase(
+        centerMatch: const SmartTileSlotMatch.material('water'),
+      );
+      controller.addTransitionCaseAtlasVariant(
+        caseId: water.id,
+        column: 1,
+        row: 0,
+        candidateId: 'water-visual',
+      );
+      final preset = controller.compilePreset();
+
+      SmartTileResolution resolve(String materialId) => resolveSmartTile(
+            preset: preset,
+            materials: controller.state.materials,
+            context: SmartTileCellContext(centerMaterialId: materialId),
+            x: 0,
+            y: 0,
+            mapId: 'map',
+            layerId: 'layer',
+          );
+
+      expect(resolve('grass').candidate?.id, 'grass-visual');
+      expect(resolve('water').candidate?.id, 'water-visual');
+
+      final duplicate = controller.createTransitionCase(
+        centerMatch: const SmartTileSlotMatch.material('grass'),
+      );
+      controller.addTransitionCaseAtlasVariant(
+        caseId: duplicate.id,
+        column: 2,
+        row: 0,
+        candidateId: 'duplicate-grass',
+      );
+      final ambiguous = analyzeSmartTileCoverage(
+        preset: controller.compilePreset(),
+        materials: controller.state.materials,
+        atlases: <ProjectSmartTileAtlas>[controller.compileAtlas()],
+        animations: const <ProjectSmartTileAnimation>[],
+      );
+
+      expect(ambiguous.ambiguousCount, greaterThan(0));
+      expect(
+        ambiguous.diagnostics.map((item) => item.code),
+        contains('smart_tiles.rules.ambiguous'),
+      );
+    });
+
     test('forest visuals preserve independent multi-part render channels', () {
       final controller = _configuredController();
       controller

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
+import '../../application/smart_tile_authoring_controller.dart';
 import '../../application/smart_tile_form_projection.dart';
 import '../workbench/smart_tile_coverage_gallery.dart';
 
@@ -12,18 +13,30 @@ class SmartTileFormsStage extends StatelessWidget {
     required this.usage,
     required this.topology,
     required this.forms,
+    required this.materials,
+    required this.transitionCases,
     required this.selectedMask,
+    required this.selectedTransitionCaseId,
     required this.pendingAtlasFrame,
     required this.selectedChannel,
     required this.animations,
     required this.atlasWorkbench,
     required this.onFormSelected,
+    required this.onCreateTransitionCase,
+    required this.onTransitionCaseSelected,
+    required this.onTransitionCaseRemoved,
+    required this.onTransitionCaseCenterChanged,
+    required this.onTransitionCaseSlotChanged,
     required this.onClearPendingFrame,
     required this.onChannelSelected,
     required this.onAnimationSelected,
+    required this.onTransitionCaseAnimationSelected,
     required this.onWeightChanged,
+    required this.onTransitionCaseWeightChanged,
     required this.onMoveVariant,
+    required this.onMoveTransitionCaseVariant,
     required this.onRemoveVariant,
+    required this.onRemoveTransitionCaseVariant,
     required this.onContinue,
     this.guideWorkbench,
   });
@@ -31,18 +44,39 @@ class SmartTileFormsStage extends StatelessWidget {
   final SmartTileUsage usage;
   final SmartTileTopology topology;
   final List<SmartTileFormReadModel> forms;
+  final List<ProjectSmartTileMaterial> materials;
+  final List<SmartTileRule> transitionCases;
   final int? selectedMask;
+  final String? selectedTransitionCaseId;
   final SmartTileFrameRef? pendingAtlasFrame;
   final SmartTileRenderChannel selectedChannel;
   final List<ProjectSmartTileAnimation> animations;
   final Widget atlasWorkbench;
   final ValueChanged<int> onFormSelected;
+  final VoidCallback onCreateTransitionCase;
+  final ValueChanged<String> onTransitionCaseSelected;
+  final ValueChanged<String> onTransitionCaseRemoved;
+  final void Function(String caseId, SmartTileSlotMatch match)
+      onTransitionCaseCenterChanged;
+  final void Function(
+    String caseId,
+    SmartTileAuthoringSlot slot,
+    SmartTileSlotMatch match,
+  ) onTransitionCaseSlotChanged;
   final VoidCallback onClearPendingFrame;
   final ValueChanged<SmartTileRenderChannel> onChannelSelected;
   final void Function(int mask, String animationId) onAnimationSelected;
+  final void Function(String caseId, String animationId)
+      onTransitionCaseAnimationSelected;
   final void Function(int mask, String candidateId, int weight) onWeightChanged;
+  final void Function(String caseId, String candidateId, int weight)
+      onTransitionCaseWeightChanged;
   final void Function(int mask, String candidateId, int newIndex) onMoveVariant;
+  final void Function(String caseId, String candidateId, int newIndex)
+      onMoveTransitionCaseVariant;
   final void Function(int mask, String candidateId) onRemoveVariant;
+  final void Function(String caseId, String candidateId)
+      onRemoveTransitionCaseVariant;
   final VoidCallback? onContinue;
   final Widget? guideWorkbench;
 
@@ -50,6 +84,9 @@ class SmartTileFormsStage extends StatelessWidget {
   Widget build(BuildContext context) {
     final selected =
         forms.where((form) => form.mask == selectedMask).firstOrNull;
+    final selectedTransition = transitionCases
+        .where((rule) => rule.id == selectedTransitionCaseId)
+        .firstOrNull;
     final covered = forms.where((form) => !form.status.isBlocking).length;
     final ambiguous = forms
         .where((form) => form.status == SmartTileVisibleFormStatus.ambiguous)
@@ -57,6 +94,7 @@ class SmartTileFormsStage extends StatelessWidget {
     final missing = forms
         .where((form) => form.status == SmartTileVisibleFormStatus.missing)
         .length;
+    final hasRelativeMapping = forms.any((form) => form.candidates.isNotEmpty);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
@@ -72,12 +110,18 @@ class SmartTileFormsStage extends StatelessWidget {
                 label: '$covered couvertes ou générées',
                 variant: PokeMapBadgeVariant.success,
               ),
+              if (transitionCases.isNotEmpty)
+                PokeMapBadge(
+                  label: '${transitionCases.length} cas exact(s)',
+                  variant: PokeMapBadgeVariant.info,
+                ),
               if (ambiguous > 0)
                 PokeMapBadge(
                   label: '$ambiguous ambiguës',
                   variant: PokeMapBadgeVariant.error,
                 ),
-              if (missing > 0)
+              if (missing > 0 &&
+                  (hasRelativeMapping || transitionCases.isEmpty))
                 PokeMapBadge(
                   label: '$missing manquantes',
                   variant: PokeMapBadgeVariant.warning,
@@ -85,29 +129,57 @@ class SmartTileFormsStage extends StatelessWidget {
             ],
           ),
         ),
+        if (materials.length > 1 || transitionCases.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _TransitionCasesEditor(
+            topology: topology,
+            materials: materials,
+            cases: transitionCases,
+            selectedCase: selectedTransition,
+            onCreate: onCreateTransitionCase,
+            onSelected: onTransitionCaseSelected,
+            onRemoved: onTransitionCaseRemoved,
+            onCenterChanged: onTransitionCaseCenterChanged,
+            onSlotChanged: onTransitionCaseSlotChanged,
+          ),
+        ],
         if (guideWorkbench case final guide?) ...[
           const SizedBox(height: 14),
           guide,
         ],
         const SizedBox(height: 14),
-        SmartTileCoverageGallery(
-          forms: forms,
-          topology: topology,
-          selectedMask: selectedMask,
-          onSelected: onFormSelected,
-        ),
+        if (hasRelativeMapping || transitionCases.isEmpty)
+          SmartTileCoverageGallery(
+            forms: forms,
+            topology: topology,
+            selectedMask: selectedMask,
+            onSelected: onFormSelected,
+          )
+        else
+          const PokeMapPanel(
+            padding: EdgeInsets.all(12),
+            child: Text(
+              'Ce preset utilise uniquement des cas multi-matières. Ajoutez des formes relatives seulement si plusieurs matières doivent partager le même dessin.',
+            ),
+          ),
         const SizedBox(height: 18),
         PokeMapSectionHeader(
-          title: selected == null
-              ? 'Cellules de l’atlas'
-              : 'Source pour « ${selected.label} »',
-          description: pendingAtlasFrame == null
-              ? selected == null
-                  ? 'Cliquez une cellule pour découvrir ou choisir son rôle.'
-                  : 'Cliquez une cellule. Maintenez Maj pour ajouter une variante au lieu de remplacer la première.'
+          title: selectedTransition != null
+              ? 'Source du cas de transition'
               : selected == null
-                  ? 'Cellule mémorisée : choisissez maintenant une forme ci-dessus.'
-                  : 'La cellule mémorisée va être associée à cette forme.',
+                  ? 'Cellules de l’atlas'
+                  : 'Source pour « ${selected.label} »',
+          description: pendingAtlasFrame == null
+              ? selectedTransition != null
+                  ? 'Cliquez une cellule. Maintenez Maj pour ajouter une variante.'
+                  : selected == null
+                      ? 'Cliquez une cellule pour découvrir ou choisir son rôle.'
+                      : 'Cliquez une cellule. Maintenez Maj pour ajouter une variante au lieu de remplacer la première.'
+              : selectedTransition != null
+                  ? 'La cellule mémorisée va être associée au cas de transition.'
+                  : selected == null
+                      ? 'Cellule mémorisée : choisissez maintenant une forme ci-dessus.'
+                      : 'La cellule mémorisée va être associée à cette forme.',
           trailing: pendingAtlasFrame == null
               ? null
               : PokeMapButton(
@@ -144,7 +216,8 @@ class SmartTileFormsStage extends StatelessWidget {
           const SizedBox(height: 10),
         ],
         atlasWorkbench,
-        if (selected != null && animations.isNotEmpty) ...[
+        if ((selected != null || selectedTransition != null) &&
+            animations.isNotEmpty) ...[
           const SizedBox(height: 12),
           const PokeMapSectionHeader(
             title: 'Ou utiliser une animation',
@@ -161,8 +234,16 @@ class SmartTileFormsStage extends StatelessWidget {
                   key: Key(
                     'smart-tiles-form-animation-${animation.id}',
                   ),
-                  onPressed: () =>
-                      onAnimationSelected(selected.mask, animation.id),
+                  onPressed: () {
+                    if (selectedTransition != null) {
+                      onTransitionCaseAnimationSelected(
+                        selectedTransition.id,
+                        animation.id,
+                      );
+                    } else {
+                      onAnimationSelected(selected!.mask, animation.id);
+                    }
+                  },
                   variant: PokeMapButtonVariant.secondary,
                   size: PokeMapButtonSize.small,
                   leading: const Icon(CupertinoIcons.play_circle, size: 14),
@@ -171,7 +252,56 @@ class SmartTileFormsStage extends StatelessWidget {
             ],
           ),
         ],
-        if (selected != null && selected.candidates.isNotEmpty) ...[
+        if (selectedTransition != null &&
+            selectedTransition.candidates.isNotEmpty) ...[
+          const SizedBox(height: 18),
+          const PokeMapSectionHeader(
+            title: 'Variantes du cas de transition',
+            description:
+                'Les poids et l’ordre restent déterministes, comme pour les formes guidées.',
+          ),
+          const SizedBox(height: 8),
+          for (var index = 0;
+              index < selectedTransition.candidates.length;
+              index += 1) ...[
+            _SmartTileVariantEditor(
+              key: ValueKey<String>(
+                'transition-${selectedTransition.candidates[index].id}',
+              ),
+              candidate: selectedTransition.candidates[index],
+              animationNames: <String, String>{
+                for (final animation in animations)
+                  animation.id: animation.name,
+              },
+              percentage: _normalizedPercentage(
+                selectedTransition.candidates[index],
+                selectedTransition.candidates,
+              ),
+              canMoveUp: index > 0,
+              canMoveDown: index + 1 < selectedTransition.candidates.length,
+              onWeightChanged: (weight) => onTransitionCaseWeightChanged(
+                selectedTransition.id,
+                selectedTransition.candidates[index].id,
+                weight,
+              ),
+              onMoveUp: () => onMoveTransitionCaseVariant(
+                selectedTransition.id,
+                selectedTransition.candidates[index].id,
+                index - 1,
+              ),
+              onMoveDown: () => onMoveTransitionCaseVariant(
+                selectedTransition.id,
+                selectedTransition.candidates[index].id,
+                index + 1,
+              ),
+              onRemove: () => onRemoveTransitionCaseVariant(
+                selectedTransition.id,
+                selectedTransition.candidates[index].id,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ] else if (selected != null && selected.candidates.isNotEmpty) ...[
           const SizedBox(height: 18),
           PokeMapSectionHeader(
             title: 'Variantes de « ${selected.label} »',
@@ -232,6 +362,265 @@ class SmartTileFormsStage extends StatelessWidget {
     );
   }
 }
+
+class _TransitionCasesEditor extends StatelessWidget {
+  const _TransitionCasesEditor({
+    required this.topology,
+    required this.materials,
+    required this.cases,
+    required this.selectedCase,
+    required this.onCreate,
+    required this.onSelected,
+    required this.onRemoved,
+    required this.onCenterChanged,
+    required this.onSlotChanged,
+  });
+
+  final SmartTileTopology topology;
+  final List<ProjectSmartTileMaterial> materials;
+  final List<SmartTileRule> cases;
+  final SmartTileRule? selectedCase;
+  final VoidCallback onCreate;
+  final ValueChanged<String> onSelected;
+  final ValueChanged<String> onRemoved;
+  final void Function(String caseId, SmartTileSlotMatch match) onCenterChanged;
+  final void Function(
+    String caseId,
+    SmartTileAuthoringSlot slot,
+    SmartTileSlotMatch match,
+  ) onSlotChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = selectedCase;
+    return PokeMapPanel(
+      key: const Key('smart-tiles-transition-cases'),
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          PokeMapSectionHeader(
+            title: 'Cas de transition multi-matières',
+            description:
+                'Ajoutez un cas lorsque plusieurs matières doivent produire une image précise. Chaque bord et chaque coin peut être réglé sans identifiant Wang.',
+            trailing: PokeMapButton(
+              key: const Key('smart-tiles-transition-add'),
+              onPressed: onCreate,
+              size: PokeMapButtonSize.small,
+              leading: const Icon(CupertinoIcons.add, size: 14),
+              child: const Text('Nouveau cas'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (cases.isEmpty)
+            const Text(
+              'Aucun cas exact. Les formes guidées ci-dessous restent adaptées aux raccords simples.',
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: <Widget>[
+                for (var index = 0; index < cases.length; index += 1)
+                  PokeMapButton(
+                    key: Key('smart-tiles-transition-${cases[index].id}'),
+                    onPressed: () => onSelected(cases[index].id),
+                    variant: PokeMapButtonVariant.ghost,
+                    size: PokeMapButtonSize.small,
+                    isSelected: selected?.id == cases[index].id,
+                    trailing: PokeMapBadge(
+                      label: '${cases[index].candidates.length} image(s)',
+                    ),
+                    child: Text(
+                      'Cas ${index + 1} · ${_centerMatchLabel(cases[index].centerMatch, materials)}',
+                    ),
+                  ),
+              ],
+            ),
+          if (selected != null) ...[
+            const SizedBox(height: 12),
+            PokeMapPanel(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    crossAxisAlignment: WrapCrossAlignment.end,
+                    children: <Widget>[
+                      SizedBox(
+                        width: 260,
+                        child: PokeMapDropdownField<SmartTileSlotMatch>(
+                          key: Key(
+                            'smart-tiles-transition-center-${selected.id}',
+                          ),
+                          label: 'Matière au centre',
+                          value: selected.centerMatch,
+                          items: _centerItems(materials),
+                          onChanged: (match) =>
+                              onCenterChanged(selected.id, match),
+                        ),
+                      ),
+                      PokeMapButton(
+                        key: Key(
+                          'smart-tiles-transition-remove-${selected.id}',
+                        ),
+                        onPressed: () => onRemoved(selected.id),
+                        variant: PokeMapButtonVariant.ghost,
+                        size: PokeMapButtonSize.small,
+                        leading: const Icon(CupertinoIcons.trash, size: 14),
+                        child: const Text('Supprimer le cas'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const PokeMapSectionHeader(
+                    title: 'Matière attendue autour de la cellule',
+                    description:
+                        '« Même » et « différente » restent relatifs au centre ; une matière nommée crée un vrai raccord multi-couleurs.',
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: <Widget>[
+                      for (final slot in _activeSlots(topology))
+                        SizedBox(
+                          width: 250,
+                          child: PokeMapDropdownField<SmartTileSlotMatch>(
+                            key: Key(
+                              'smart-tiles-transition-${selected.id}-${slot.name}',
+                            ),
+                            label: _slotLabel(slot),
+                            value: _slotMatch(selected.signature, slot),
+                            items: _slotItems(materials),
+                            onChanged: (match) =>
+                                onSlotChanged(selected.id, slot, match),
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+List<PokeMapDropdownItem<SmartTileSlotMatch>> _centerItems(
+  List<ProjectSmartTileMaterial> materials,
+) =>
+    <PokeMapDropdownItem<SmartTileSlotMatch>>[
+      const PokeMapDropdownItem<SmartTileSlotMatch>(
+        value: SmartTileSlotMatch.any(),
+        label: 'N’importe quelle matière',
+      ),
+      const PokeMapDropdownItem<SmartTileSlotMatch>(
+        value: SmartTileSlotMatch.empty(),
+        label: 'Vide',
+      ),
+      for (final material in materials)
+        PokeMapDropdownItem<SmartTileSlotMatch>(
+          value: SmartTileSlotMatch.material(material.id),
+          label: material.name,
+        ),
+    ];
+
+List<PokeMapDropdownItem<SmartTileSlotMatch>> _slotItems(
+  List<ProjectSmartTileMaterial> materials,
+) =>
+    <PokeMapDropdownItem<SmartTileSlotMatch>>[
+      const PokeMapDropdownItem<SmartTileSlotMatch>(
+        value: SmartTileSlotMatch.any(),
+        label: 'Indifférent',
+      ),
+      const PokeMapDropdownItem<SmartTileSlotMatch>(
+        value: SmartTileSlotMatch.same(),
+        label: 'Même matière que le centre',
+      ),
+      const PokeMapDropdownItem<SmartTileSlotMatch>(
+        value: SmartTileSlotMatch.different(),
+        label: 'Matière différente',
+      ),
+      const PokeMapDropdownItem<SmartTileSlotMatch>(
+        value: SmartTileSlotMatch.empty(),
+        label: 'Vide',
+      ),
+      for (final material in materials)
+        PokeMapDropdownItem<SmartTileSlotMatch>(
+          value: SmartTileSlotMatch.material(material.id),
+          label: material.name,
+        ),
+    ];
+
+List<SmartTileAuthoringSlot> _activeSlots(SmartTileTopology topology) =>
+    switch (topology) {
+      SmartTileTopology.uniform => const <SmartTileAuthoringSlot>[],
+      SmartTileTopology.cardinal4 ||
+      SmartTileTopology.wangEdge4 =>
+        const <SmartTileAuthoringSlot>[
+          SmartTileAuthoringSlot.northEdge,
+          SmartTileAuthoringSlot.eastEdge,
+          SmartTileAuthoringSlot.southEdge,
+          SmartTileAuthoringSlot.westEdge,
+        ],
+      SmartTileTopology.wangCorner4 => const <SmartTileAuthoringSlot>[
+          SmartTileAuthoringSlot.northWestCorner,
+          SmartTileAuthoringSlot.northEastCorner,
+          SmartTileAuthoringSlot.southEastCorner,
+          SmartTileAuthoringSlot.southWestCorner,
+        ],
+      SmartTileTopology.blob8 ||
+      SmartTileTopology.wang8 =>
+        SmartTileAuthoringSlot.values,
+    };
+
+SmartTileSlotMatch _slotMatch(
+  SmartTileSignature signature,
+  SmartTileAuthoringSlot slot,
+) =>
+    switch (slot) {
+      SmartTileAuthoringSlot.northWestCorner => signature.northWestCorner,
+      SmartTileAuthoringSlot.northEdge => signature.northEdge,
+      SmartTileAuthoringSlot.northEastCorner => signature.northEastCorner,
+      SmartTileAuthoringSlot.eastEdge => signature.eastEdge,
+      SmartTileAuthoringSlot.southEastCorner => signature.southEastCorner,
+      SmartTileAuthoringSlot.southEdge => signature.southEdge,
+      SmartTileAuthoringSlot.southWestCorner => signature.southWestCorner,
+      SmartTileAuthoringSlot.westEdge => signature.westEdge,
+    };
+
+String _centerMatchLabel(
+  SmartTileSlotMatch match,
+  List<ProjectSmartTileMaterial> materials,
+) =>
+    switch (match.kind) {
+      SmartTileMatchKind.any => 'centre libre',
+      SmartTileMatchKind.empty => 'centre vide',
+      SmartTileMatchKind.material => materials
+              .where((material) => material.id == match.materialId)
+              .map((material) => material.name)
+              .firstOrNull ??
+          'matière supprimée',
+      SmartTileMatchKind.same ||
+      SmartTileMatchKind.different =>
+        'centre invalide',
+    };
+
+String _slotLabel(SmartTileAuthoringSlot slot) => switch (slot) {
+      SmartTileAuthoringSlot.northWestCorner => 'Coin nord-ouest',
+      SmartTileAuthoringSlot.northEdge => 'Bord nord',
+      SmartTileAuthoringSlot.northEastCorner => 'Coin nord-est',
+      SmartTileAuthoringSlot.eastEdge => 'Bord est',
+      SmartTileAuthoringSlot.southEastCorner => 'Coin sud-est',
+      SmartTileAuthoringSlot.southEdge => 'Bord sud',
+      SmartTileAuthoringSlot.southWestCorner => 'Coin sud-ouest',
+      SmartTileAuthoringSlot.westEdge => 'Bord ouest',
+    };
 
 class _SmartTileVariantEditor extends StatefulWidget {
   const _SmartTileVariantEditor({

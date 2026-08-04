@@ -547,6 +547,86 @@ function completeSimpleSmartTileDraft(input: {
   };
 }
 
+function completeMultiMaterialSmartTileDraft(input: {
+  id: string;
+  targetPresetId: string;
+}): JsonRecord {
+  const atlasId = `${input.id}-atlas`;
+  const grassId = `${input.id}-grass`;
+  const waterId = `${input.id}-water`;
+  const stoneId = `${input.id}-stone`;
+  return {
+    id: input.id,
+    targetPresetId: input.targetPresetId,
+    name: `Multi-material ${input.targetPresetId}`,
+    usage: "path",
+    lastStage: "publish",
+    sourceTilesetIds: ["smart_tileset"],
+    atlases: [
+      {
+        id: atlasId,
+        name: `Atlas ${input.targetPresetId}`,
+        tilesetId: "smart_tileset",
+        cellWidth: 1,
+        cellHeight: 1,
+        columns: 1,
+        rows: 1,
+      },
+    ],
+    primaryAtlasId: atlasId,
+    materials: [
+      { id: grassId, name: "Grass", connectionGroupId: grassId },
+      { id: waterId, name: "Water", connectionGroupId: waterId },
+      { id: stoneId, name: "Stone", connectionGroupId: stoneId },
+    ],
+    defaultMaterialId: grassId,
+    allowedMaterialIds: [grassId, waterId, stoneId],
+    topology: "wang_edge_4",
+    templateHint: "free",
+    coveragePolicy: "sparse",
+    coverageProfile: {
+      mode: "explicit",
+      requiredScenarios: [
+        {
+          id: "grass-water-stone",
+          centerMaterialId: grassId,
+          signature: { northEdge: waterId, eastEdge: stoneId },
+        },
+      ],
+      allowFallback: false,
+    },
+    transformPolicy: {
+      allowHFlip: false,
+      allowVFlip: false,
+      allowQuarterTurns: false,
+      preferUntransformed: true,
+    },
+    rules: [
+      {
+        id: "grass-water-stone",
+        centerMatch: { kind: "material", materialId: grassId },
+        signature: {
+          northEdge: { kind: "material", materialId: waterId },
+          eastEdge: { kind: "material", materialId: stoneId },
+        },
+        candidates: [
+          {
+            id: "multi-material-visual",
+            parts: [
+              {
+                source: {
+                  kind: "frame",
+                  frame: { atlasId, column: 0, row: 0 },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+}
+
 async function applyMutation(
   client: Client,
   input: {
@@ -1148,10 +1228,9 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     await applyAction(
       "smart_tile.preset.draft.upsert",
       {
-        draft: completeSimpleSmartTileDraft({
+        draft: completeMultiMaterialSmartTileDraft({
           id: "mcp-library-draft",
           targetPresetId: "mcp-library-preset",
-          usage: "terrain",
         }),
       },
       "draft-upsert-library",
@@ -1166,6 +1245,19 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     assert.equal(
       record((queriedDraft.items as unknown[])[0]).id,
       "mcp-library-draft",
+    );
+    const queriedMultiDraft = record((queriedDraft.items as unknown[])[0]);
+    const queriedMultiRule = record(
+      (queriedMultiDraft.rules as unknown[])[0],
+    );
+    const queriedMultiSignature = record(queriedMultiRule.signature);
+    assert.equal(
+      record(queriedMultiSignature.northEdge).materialId,
+      "mcp-library-draft-water",
+    );
+    assert.equal(
+      record(queriedMultiSignature.eastEdge).materialId,
+      "mcp-library-draft-stone",
     );
 
     await applyAction(
