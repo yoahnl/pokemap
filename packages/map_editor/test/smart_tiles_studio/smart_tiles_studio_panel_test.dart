@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_source_asset_import_service.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_tiled_wang_import_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_asset_card.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
@@ -68,6 +69,56 @@ void main() {
       expect(find.text('Chemin Hanazuki'), findsWidgets);
       expect(find.text('Publié'), findsWidgets);
       expect(find.text('Natif v6'), findsOneWidget);
+    });
+
+    testWidgets('opens and submits the guided TSX/Wang import flow',
+        (tester) async {
+      List<TiledWangSetSelection>? submitted;
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        onPickTiledWangSource: () async => _tiledWangSource,
+        onImportTiledWang: (source, selections) async {
+          submitted = selections;
+          return SmartTileTiledWangImportResult(
+            manifest: _manifest(),
+            presetIds: const <String>['road-import-w0-preset'],
+          );
+        },
+      );
+
+      await tester.tap(
+        find.byKey(const Key('smart-tiles-import-tiled-wang')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('smart-tiles-tiled-wang-import-editor')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const Key('smart-tiles-wang-set-0-usage')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Chemin').last);
+      await tester.pumpAndSettle();
+      final submit = find.byKey(
+        const Key('smart-tiles-tiled-wang-submit'),
+      );
+      await tester.scrollUntilVisible(
+        submit,
+        300,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const Key('smart-tiles-workbench-column')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tester.tap(submit);
+      await tester.pumpAndSettle();
+
+      expect(submitted, hasLength(1));
+      expect(submitted!.single.usage, SmartTileUsage.path);
     });
 
     testWidgets('adapts the studio shell without overflowing when narrow', (
@@ -1660,6 +1711,11 @@ Future<void> _pumpPanel(
   String? projectRootPath,
   SmartTileAtlasImageLoader imageLoader = const FileSmartTileAtlasImageLoader(),
   Future<SmartTileSourceImportResult?> Function()? onImportProjectImage,
+  Future<SmartTileTiledWangSource?> Function()? onPickTiledWangSource,
+  Future<SmartTileTiledWangImportResult> Function(
+    SmartTileTiledWangSource source,
+    List<TiledWangSetSelection> selections,
+  )? onImportTiledWang,
   bool isCapturedMapAvailable = false,
   Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap,
@@ -1676,6 +1732,8 @@ Future<void> _pumpPanel(
           projectRootPath: projectRootPath,
           imageLoader: imageLoader,
           onImportProjectImage: onImportProjectImage,
+          onPickTiledWangSource: onPickTiledWangSource,
+          onImportTiledWang: onImportTiledWang,
           onDraftChanged: onDraftChanged,
           isCapturedMapAvailable: isCapturedMapAvailable,
           onAddPresetToCapturedMap: onAddPresetToCapturedMap,
@@ -1686,6 +1744,27 @@ Future<void> _pumpPanel(
   );
   await tester.pumpAndSettle();
 }
+
+final _tiledWangSource = SmartTileTiledWangSource(
+  tsxPath: '/outside/road.tsx',
+  imagePath: '/outside/road.png',
+  displayName: 'road.tsx',
+  tsx: _tiledWangTsx,
+  importId: 'road-import',
+  document: parseTiledWangTileset(_tiledWangTsx),
+);
+
+const _tiledWangTsx = '''
+<tileset name="Road" tilewidth="16" tileheight="16" tilecount="1" columns="1">
+  <image source="road.png" width="16" height="16"/>
+  <wangsets>
+    <wangset name="Road" type="edge" tile="-1">
+      <wangcolor name="Road" color="#c8a162" tile="0" probability="1"/>
+      <wangtile tileid="0" wangid="1,0,1,0,1,0,1,0"/>
+    </wangset>
+  </wangsets>
+</tileset>
+''';
 
 ProjectManifest _completeManifest() {
   final preset = ProjectSmartTilePreset(

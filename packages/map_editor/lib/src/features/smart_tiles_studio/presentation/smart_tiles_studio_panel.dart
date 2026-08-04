@@ -24,10 +24,12 @@ import '../application/smart_tile_studio_library.dart';
 import '../application/smart_tile_studio_launch_context.dart';
 import '../application/smart_tile_studio_session.dart';
 import '../application/smart_tile_source_asset_import_service.dart';
+import '../application/smart_tile_tiled_wang_import_service.dart';
 import '../application/smart_tile_test_layer_controller.dart';
 import 'smart_tile_guide_diagram.dart';
 import 'smart_tile_guide_overlay_painter.dart';
 import 'smart_tile_pattern_editor.dart';
+import 'smart_tile_tiled_wang_import_editor.dart';
 import 'smart_tiles_studio_shell.dart';
 import 'smart_tiles_studio_stage_header.dart';
 import 'stages/smart_tile_grid_stage.dart';
@@ -59,6 +61,8 @@ class SmartTilesStudioPanel extends StatefulWidget {
     this.onDraftChanged,
     this.onDraftFlush,
     this.onImportProjectImage,
+    this.onPickTiledWangSource,
+    this.onImportTiledWang,
     this.publicationService,
     this.onPublicationApplied,
     this.onAddPresetToCapturedMap,
@@ -76,6 +80,11 @@ class SmartTilesStudioPanel extends StatefulWidget {
   final ValueChanged<ProjectSmartTileAuthoringDraft>? onDraftChanged;
   final Future<void> Function()? onDraftFlush;
   final Future<SmartTileSourceImportResult?> Function()? onImportProjectImage;
+  final Future<SmartTileTiledWangSource?> Function()? onPickTiledWangSource;
+  final Future<SmartTileTiledWangImportResult> Function(
+    SmartTileTiledWangSource source,
+    List<TiledWangSetSelection> selections,
+  )? onImportTiledWang;
   final SmartTilePublicationService? publicationService;
   final Future<void> Function(SmartTilePublicationResult result)?
       onPublicationApplied;
@@ -154,6 +163,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   String? _newPatternId;
   bool _patternSaving = false;
   String? _patternError;
+  SmartTileTiledWangSource? _tiledWangSource;
+  bool _tiledWangPicking = false;
+  bool _tiledWangImporting = false;
+  String? _tiledWangError;
 
   @override
   void initState() {
@@ -248,6 +261,19 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             spacing: 6,
             children: <Widget>[
               PokeMapIconButton(
+                key: const Key('smart-tiles-import-tiled-wang'),
+                onPressed: widget.onPickTiledWangSource == null ||
+                        widget.onImportTiledWang == null ||
+                        _tiledWangPicking ||
+                        _tiledWangImporting
+                    ? null
+                    : () => unawaited(_pickTiledWangSource()),
+                tooltip: 'Importer un TSX / Wang Set',
+                semanticLabel: 'Importer un TSX / Wang Set',
+                variant: PokeMapIconButtonVariant.soft,
+                icon: const Icon(CupertinoIcons.arrow_down_doc, size: 15),
+              ),
+              PokeMapIconButton(
                 key: const Key('smart-tiles-new-pattern'),
                 onPressed:
                     widget.onUpsertPattern == null ? null : _startNewPattern,
@@ -276,6 +302,14 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
             hintText: 'Rechercher un preset…',
             onChanged: (value) => setState(() => _query = value),
           ),
+          if (_tiledWangError != null && _tiledWangSource == null) ...[
+            const SizedBox(height: 10),
+            PokeMapDiagnosticCallout(
+              key: const Key('smart-tiles-tiled-wang-picker-error'),
+              severity: PokeMapDiagnosticSeverity.error,
+              message: _tiledWangError!,
+            ),
+          ],
           const SizedBox(height: 10),
           Wrap(
             spacing: 6,
@@ -325,6 +359,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                                   _editingPattern = null;
                                   _newPatternId = null;
                                   _patternError = null;
+                                  _tiledWangSource = null;
+                                  _tiledWangError = null;
                                   _selectedItemKey = item.key;
                                   _focusedRuleId = null;
                                   _focusedMask = null;
@@ -344,6 +380,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
 
   Widget _buildWorkbench(SmartTileLibraryItem? selectedItem) {
     final isEditingPattern = _editingPattern != null || _newPatternId != null;
+    final isImportingTiledWang = _tiledWangSource != null;
     return PokeMapPanel(
       expandChild: true,
       padding: EdgeInsets.zero,
@@ -358,37 +395,47 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                 launchContext: widget.launchContext,
                 persistenceState: widget.persistenceState,
               )
-            else if (!isEditingPattern)
+            else if (!isEditingPattern && !isImportingTiledWang)
               PokeMapSectionHeader(
                 title: 'Smart Tiles Studio',
                 description: selectedItem?.name ??
                     'Sélectionnez un preset dans la bibliothèque.',
               ),
-            if (!_session.state.isCreating && !isEditingPattern) ...[
+            if (!_session.state.isCreating &&
+                !isEditingPattern &&
+                !isImportingTiledWang) ...[
               const SizedBox(height: 8),
               if (selectedItem?.isPattern != true) _buildTabs(),
             ],
           ],
         ),
       ),
-      child: _session.state.isCreating
-          ? _buildWizard()
-          : isEditingPattern
-              ? SmartTilePatternEditor(
-                  key: ValueKey<String>(
-                    'smart-tile-pattern-editor-${_editingPattern?.id ?? _newPatternId}',
-                  ),
-                  manifest: widget.manifest,
-                  projectRootPath: widget.projectRootPath,
-                  patternId: _editingPattern?.id ?? _newPatternId!,
-                  imageLoader: widget.imageLoader,
-                  initialPattern: _editingPattern,
-                  isSaving: _patternSaving,
-                  externalError: _patternError,
-                  onCancel: _cancelPatternEditing,
-                  onSave: _savePattern,
-                )
-              : _buildSelectedTab(selectedItem),
+      child: isImportingTiledWang
+          ? SmartTileTiledWangImportEditor(
+              source: _tiledWangSource!,
+              isImporting: _tiledWangImporting,
+              externalError: _tiledWangError,
+              onCancel: _cancelTiledWangImport,
+              onImport: _importTiledWang,
+            )
+          : _session.state.isCreating
+              ? _buildWizard()
+              : isEditingPattern
+                  ? SmartTilePatternEditor(
+                      key: ValueKey<String>(
+                        'smart-tile-pattern-editor-${_editingPattern?.id ?? _newPatternId}',
+                      ),
+                      manifest: widget.manifest,
+                      projectRootPath: widget.projectRootPath,
+                      patternId: _editingPattern?.id ?? _newPatternId!,
+                      imageLoader: widget.imageLoader,
+                      initialPattern: _editingPattern,
+                      isSaving: _patternSaving,
+                      externalError: _patternError,
+                      onCancel: _cancelPatternEditing,
+                      onSave: _savePattern,
+                    )
+                  : _buildSelectedTab(selectedItem),
     );
   }
 
@@ -1696,9 +1743,77 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
+  Future<void> _pickTiledWangSource() async {
+    final callback = widget.onPickTiledWangSource;
+    if (callback == null || _tiledWangPicking || _tiledWangImporting) return;
+    setState(() {
+      _tiledWangPicking = true;
+      _tiledWangError = null;
+    });
+    try {
+      final source = await callback();
+      if (!mounted || source == null) return;
+      setState(() {
+        _session.cancelDraft();
+        _editingPattern = null;
+        _newPatternId = null;
+        _patternError = null;
+        _tiledWangSource = source;
+        _selectedItemKey = null;
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _tiledWangError = _tiledWangFailureMessage(error));
+    } finally {
+      if (mounted) setState(() => _tiledWangPicking = false);
+    }
+  }
+
+  void _cancelTiledWangImport() {
+    if (_tiledWangImporting) return;
+    setState(() {
+      _tiledWangSource = null;
+      _tiledWangError = null;
+      _selectedItemKey =
+          buildSmartTileStudioLibrary(widget.manifest).firstOrNull?.key;
+    });
+  }
+
+  Future<void> _importTiledWang(
+    List<TiledWangSetSelection> selections,
+  ) async {
+    final callback = widget.onImportTiledWang;
+    final source = _tiledWangSource;
+    if (callback == null || source == null || _tiledWangImporting) return;
+    setState(() {
+      _tiledWangImporting = true;
+      _tiledWangError = null;
+    });
+    try {
+      final result = await callback(source, selections);
+      if (!mounted) return;
+      setState(() {
+        _selectedItemKey = result.presetIds.isEmpty
+            ? null
+            : 'native:${result.presetIds.first}';
+        _tiledWangSource = null;
+        _draftMessage = result.presetIds.length == 1
+            ? 'Wang Set importé comme brouillon Smart Tile.'
+            : '${result.presetIds.length} Wang Sets importés comme brouillons Smart Tiles.';
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _tiledWangError = _tiledWangFailureMessage(error));
+    } finally {
+      if (mounted) setState(() => _tiledWangImporting = false);
+    }
+  }
+
   void _startNewPattern() {
     setState(() {
       _session.cancelDraft();
+      _tiledWangSource = null;
+      _tiledWangError = null;
       _editingPattern = null;
       _newPatternId = _nextPatternId();
       _patternSaving = false;
@@ -1709,6 +1824,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   void _startPatternEditing(ProjectSmartTilePattern pattern) {
     setState(() {
       _session.cancelDraft();
+      _tiledWangSource = null;
+      _tiledWangError = null;
       _editingPattern = pattern;
       _newPatternId = null;
       _patternSaving = false;
@@ -1752,6 +1869,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
 
   void _startDraft() {
     setState(() {
+      _tiledWangSource = null;
+      _tiledWangError = null;
       _editingPattern = null;
       _newPatternId = null;
       _patternError = null;
@@ -1806,6 +1925,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         .where((candidate) => candidate.id == tilesetId)
         .firstOrNull;
     setState(() {
+      _tiledWangSource = null;
+      _tiledWangError = null;
       _editingPattern = null;
       _newPatternId = null;
       _patternError = null;
@@ -3837,6 +3958,13 @@ String _sourceChoiceLabel(SmartTileStudioSourceChoice? choice) =>
       SmartTileStudioSourceChoice.emptyPreset => 'Preset vide',
       null => 'Non choisie',
     };
+
+String _tiledWangFailureMessage(Object error) {
+  if (error is SmartTileTiledWangImportServiceException) {
+    return error.message;
+  }
+  return EditorAuthoringMutationFailure.capture(error).message;
+}
 
 extension<T> on Iterable<T> {
   T? get firstOrNull {

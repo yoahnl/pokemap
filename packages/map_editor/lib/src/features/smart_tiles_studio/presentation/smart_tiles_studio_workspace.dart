@@ -15,6 +15,7 @@ import '../application/smart_tile_publication_service.dart';
 import '../application/smart_tile_pattern_authoring_service.dart';
 import '../application/smart_tile_source_asset_import_service.dart';
 import '../application/smart_tile_source_image_picker.dart';
+import '../application/smart_tile_tiled_wang_import_service.dart';
 import 'smart_tiles_studio_panel.dart';
 
 /// Riverpod orchestration boundary for the native Studio.
@@ -92,6 +93,16 @@ class _SmartTilesStudioWorkspaceState
       onImportProjectImage: projectRootPath == null
           ? null
           : () => _importProjectImage(projectRootPath),
+      onPickTiledWangSource: projectRootPath == null
+          ? null
+          : const FilePickerSmartTileTiledWangSourcePicker().pick,
+      onImportTiledWang: projectRootPath == null
+          ? null
+          : (source, selections) => _importTiledWang(
+                projectRootPath,
+                source,
+                selections,
+              ),
       publicationService: projectRootPath == null
           ? null
           : SmartTilePublicationService(
@@ -290,5 +301,47 @@ class _SmartTilesStudioWorkspaceState
       _canonicalDraft = null;
       _persistenceState = null;
     });
+  }
+
+  Future<SmartTileTiledWangImportResult> _importTiledWang(
+    String projectRootPath,
+    SmartTileTiledWangSource source,
+    List<TiledWangSetSelection> selections,
+  ) async {
+    await _flushDraft();
+    await _coordinator?.close();
+    _coordinator = null;
+    _attachedRoot = null;
+    _pendingDraft = null;
+    _pendingRootPath = null;
+    final gateway = CanonicalSmartTileSourceAssetGateway(
+      mutations: ref.read(authoringMutationAdapterProvider),
+      queries: ref.read(authoringQueryAdapterProvider),
+    );
+    final sourceImport = SmartTileSourceAssetImportService(
+      gateway: gateway,
+      imageLoader: const FileSmartTileAtlasImageLoader(),
+    );
+    final service = SmartTileTiledWangImportService(
+      gateway: gateway,
+      importImage: sourceImport.importImage,
+    );
+    final result = await service.import(
+      projectRootPath: projectRootPath,
+      source: source,
+      selections: selections,
+    );
+    if (!mounted) return result;
+    ref.read(editorNotifierProvider.notifier).acceptCanonicalProjectManifest(
+          result.manifest,
+          statusMessage: result.presetIds.length == 1
+              ? 'Wang Set importé dans Smart Tiles Studio.'
+              : '${result.presetIds.length} Wang Sets importés dans Smart Tiles Studio.',
+        );
+    setState(() {
+      _canonicalDraft = null;
+      _persistenceState = null;
+    });
+    return result;
   }
 }
