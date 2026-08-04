@@ -9,6 +9,7 @@ import '../../application/runtime_map_bundle.dart';
 import '../../border/border_runtime_asset_cache.dart';
 import '../../border/border_runtime_draw_instruction.dart';
 import '../../border/border_runtime_renderer.dart';
+import '../../infrastructure/project_tileset_visual_resolution.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_renderer.dart';
@@ -92,6 +93,19 @@ class MapLayersComponent extends PositionComponent {
   late final Map<String, ProjectElementEntry> _elementById = {
     for (final e in bundle.manifest.elements) e.id: e,
   };
+  late final Map<String, ProjectRegularAtlasTilesetSource>
+      _regularAtlasByTilesetId = <String, ProjectRegularAtlasTilesetSource>{
+    for (final tileset in bundle.manifest.tilesets)
+      if (tileset.source is ProjectRegularAtlasTilesetSource)
+        tileset.id: tileset.source! as ProjectRegularAtlasTilesetSource,
+  };
+  late final Map<String, ProjectTilesetSource?> _tilesetSourceById =
+      <String, ProjectTilesetSource?>{
+    for (final tileset in bundle.manifest.tilesets) tileset.id: tileset.source,
+  };
+  final Map<(String, int), ProjectTilesetVisualResolution>
+      _regularTileVisualCache =
+      <(String, int), ProjectTilesetVisualResolution>{};
 
   double _animElapsed = 0.0;
 
@@ -136,6 +150,32 @@ class MapLayersComponent extends PositionComponent {
       startY: math.max(0, (rect.top / ch).floor() - margin),
       endX: math.min(w, (rect.right / cw).ceil() + margin),
       endY: math.min(h, (rect.bottom / ch).ceil() + margin),
+    );
+  }
+
+  ({int startX, int startY, int endX, int endY})
+      _visibleCellRangeForVisualBounds(
+    ProjectTilesetPixelRect bounds, {
+    required double scaleX,
+    required double scaleY,
+  }) {
+    final rect = _visibleLocalRect;
+    final w = bundle.map.size.width;
+    final h = bundle.map.size.height;
+    final cw = bundle.cellWidth;
+    final ch = bundle.cellHeight;
+    if (rect == null || cw <= 0 || ch <= 0 || scaleX <= 0 || scaleY <= 0) {
+      return (startX: 0, startY: 0, endX: w, endY: h);
+    }
+    final visualLeft = bounds.x * scaleX;
+    final visualTop = bounds.y * scaleY;
+    final visualRight = (bounds.x + bounds.width) * scaleX;
+    final visualBottom = (bounds.y + bounds.height) * scaleY;
+    return (
+      startX: math.max(0, ((rect.left - visualRight) / cw).floor()),
+      startY: math.max(0, ((rect.top - visualBottom) / ch).floor()),
+      endX: math.min(w, ((rect.right - visualLeft) / cw).ceil()),
+      endY: math.min(h, ((rect.bottom - visualTop) / ch).ceil()),
     );
   }
 
@@ -583,7 +623,15 @@ class MapLayersComponent extends PositionComponent {
     if (image == null || tw <= 0 || th <= 0) {
       return;
     }
-    final cols = image.width ~/ tw;
+    final atlas = _regularAtlasByTilesetId[resolvedId];
+    final manifestSource = _tilesetSourceById[resolvedId];
+    if (manifestSource is ProjectImageCollectionTilesetSource) {
+      // TileLayer keeps its historical 1-based atlas encoding until STN-10.1.
+      // Rendering a sparse local collection ID as an atlas index would be
+      // silently wrong, so this path intentionally fails closed.
+      return;
+    }
+    final cols = atlas?.columns ?? image.width ~/ tw;
     if (cols <= 0) {
       return;
     }
@@ -593,7 +641,24 @@ class MapLayersComponent extends PositionComponent {
       paint.color = Color.fromRGBO(255, 255, 255, opacity);
     }
     final animatedCells = _animatedPlacedCellsByLayerId[layerId];
-    final (:startX, :startY, :endX, :endY) = _visibleCellRange();
+    final scaleX = cw / tw;
+    final scaleY = ch / th;
+    final firstAtlasVisual = atlas == null
+        ? null
+        : _resolveRegularTileVisual(
+            tilesetId: resolvedId,
+            tileId: 1,
+            atlas: atlas,
+            tileWidth: tw,
+            tileHeight: th,
+          );
+    final (:startX, :startY, :endX, :endY) = firstAtlasVisual == null
+        ? _visibleCellRange()
+        : _visibleCellRangeForVisualBounds(
+            firstAtlasVisual.animationBounds,
+            scaleX: scaleX,
+            scaleY: scaleY,
+          );
     for (var y = startY; y < endY; y++) {
       for (var x = startX; x < endX; x++) {
         final idx = y * w + x;
@@ -631,24 +696,74 @@ class MapLayersComponent extends PositionComponent {
             }
           }
         }
+        if (atlas != null) {
+          final visual = _resolveRegularTileVisual(
+            tilesetId: resolvedId,
+            tileId: tileId,
+            atlas: atlas,
+            tileWidth: tw,
+            tileHeight: th,
+          );
+          if (visual == null) continue;
+          for (final slice in visual.frames.single.slices) {
+            final source = slice.sourceRect;
+            final destination = slice.destinationRect;
+            final src = Rect.fromLTWH(
+              source.x.toDouble(),
+              source.y.toDouble(),
+              source.width.toDouble(),
+              source.height.toDouble(),
+            );
+            if (!image.containsSourceRect(src)) continue;
+            final dst = Rect.fromLTWH(
+              x * cw + destination.x * scaleX,
+              y * ch + destination.y * scaleY,
+              destination.width * scaleX,
+              destination.height * scaleY,
+            );
+            image.drawImageRect(canvas, src, dst, paint);
+          }
+          continue;
+        }
         final sourceIndex = tileId - 1;
         final col = sourceIndex % cols;
         final row = sourceIndex ~/ cols;
-        final sx = col * tw;
-        final sy = row * th;
         final src = Rect.fromLTWH(
-          sx.toDouble(),
-          sy.toDouble(),
+          (col * tw).toDouble(),
+          (row * th).toDouble(),
           tw.toDouble(),
           th.toDouble(),
         );
-        if (!image.containsSourceRect(src)) {
-          continue;
-        }
+        if (!image.containsSourceRect(src)) continue;
         final dst = Rect.fromLTWH(x * cw, y * ch, cw, ch);
         image.drawImageRect(canvas, src, dst, paint);
       }
     }
+  }
+
+  ProjectTilesetVisualResolution? _resolveRegularTileVisual({
+    required String tilesetId,
+    required int tileId,
+    required ProjectRegularAtlasTilesetSource atlas,
+    required int tileWidth,
+    required int tileHeight,
+  }) {
+    final sourceIndex = tileId - 1;
+    if (sourceIndex < 0 || sourceIndex >= atlas.tileCount) return null;
+    return _regularTileVisualCache.putIfAbsent(
+      (tilesetId, tileId),
+      () => resolveRuntimeProjectTilesetVisual(
+        source: atlas,
+        selection: ProjectTilesetVisualSelection.regularAtlas(
+          source: TilesetSourceRect(
+            x: sourceIndex % atlas.columns,
+            y: sourceIndex ~/ atlas.columns,
+          ),
+        ),
+        cellWidth: tileWidth,
+        cellHeight: tileHeight,
+      ),
+    );
   }
 
   void _paintPlacedElementsForLayer(
@@ -1208,7 +1323,6 @@ class MapLayersComponent extends PositionComponent {
       }
     }
   }
-
 }
 
 class _RuntimeAnimationFrame {

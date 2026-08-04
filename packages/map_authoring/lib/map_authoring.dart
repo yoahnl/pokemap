@@ -54,6 +54,7 @@ export 'src/domains/gameplay/progression_actions.dart';
 export 'src/domains/assets/asset_actions.dart';
 export 'src/domains/assets/asset_store.dart';
 export 'src/domains/assets/element_actions.dart';
+export 'src/domains/assets/image_collection_prop_preview.dart';
 export 'src/domains/assets/palette_actions.dart';
 export 'src/domains/assets/presentation_actions.dart';
 export 'src/domains/assets/tiled_image_collection_packer.dart';
