@@ -1299,6 +1299,95 @@ test("MCP imports a Tiled tileset through one canonical receipt", async () => {
   }
 });
 
+test("MCP imports one complete TMX bundle through one canonical receipt", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const sourcePath = join(fixture.root, "tmx-road.png");
+    await writeFile(
+      sourcePath,
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    );
+    const staged = await toolData(fixture.client, "pokemap_artifact_stage", {
+      sourcePath,
+      declaredMediaType: "image/png",
+    });
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "tiled-map-import",
+        actionId: "map.tiled.import",
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: {
+          mapId: "mcp-tiled-road",
+          displayName: "MCP Tiled Road",
+          role: "exterior",
+          tmx: tiledMapTmx,
+          tilesets: [
+            {
+              source: "road.tsx",
+              tsx: tiledWangTsx,
+              tilesetId: "mcp-tiled-road-tileset",
+              assetId: "mcp-tiled-road-image",
+              logicalPath: "assets/mcp-tiled-road.png",
+              imageArtifacts: [
+                {
+                  source: "road.png",
+                  artifactHandle: staged.artifactHandle,
+                },
+              ],
+            },
+          ],
+        },
+        expectedRevision: validated.snapshotRevision,
+        idempotencyKey: "idem-tiled-map-import",
+        dryRun: false,
+      },
+    });
+    assert.equal(record(planned.receipt).status, "planned");
+    const applied = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "operation-tiled-map-import",
+    });
+    assert.equal(record(applied.receipt).actionId, "map.tiled.import");
+    const persistedMap = record(
+      JSON.parse(
+        await readFile(join(fixture.root, "maps/mcp-tiled-road.json"), "utf8"),
+      ),
+    );
+    const layer = record((persistedMap.layers as unknown[])[0]);
+    assert.equal(layer.runtimeType, "tile");
+    assert.deepEqual(layer.cells, [1, 0]);
+    assert.equal(record((layer.palette as unknown[])[0]).tilesetId, "mcp-tiled-road-tileset");
+    const persistedProject = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    assert.ok(
+      (persistedProject.maps as JsonRecord[]).some(
+        (map) => map.id === "mcp-tiled-road",
+      ),
+    );
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP packs a Tiled image collection through one canonical receipt", async () => {
   const fixture = await mutationFixture();
   try {
@@ -1880,6 +1969,17 @@ const tiledCollectionTsx = `
     <animation><frame tileid="5" duration="120"/></animation>
   </tile>
 </tileset>
+`;
+
+const tiledMapTmx = `
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal"
+  renderorder="right-down" width="2" height="1" tilewidth="1" tileheight="1"
+  infinite="0" nextlayerid="2" nextobjectid="1">
+  <tileset firstgid="1" source="road.tsx"/>
+  <layer id="1" name="Ground" width="2" height="1">
+    <data encoding="csv">1,0</data>
+  </layer>
+</map>
 `;
 
 test("MCP completes a cold-start 34-element visual import", async () => {

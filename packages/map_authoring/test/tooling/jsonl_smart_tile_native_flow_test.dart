@@ -273,6 +273,65 @@ void main() {
       );
     });
 
+    test('imports one complete TMX bundle byte-identically through JSONL',
+        () async {
+      final direct = await _Harness.create('tiled_map_direct');
+      final jsonl = await _Harness.create('tiled_map_jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+      final directArtifact = await direct.mutations.artifacts.put(
+        _pngBytes,
+        declaredMediaType: 'image/png',
+      );
+      final jsonlArtifact = await jsonl.mutations.artifacts.put(
+        _pngBytes,
+        declaredMediaType: 'image/png',
+      );
+      Map<String, Object?> parameters(String artifactHandle) =>
+          <String, Object?>{
+            'mapId': 'imported-road',
+            'displayName': 'Imported road',
+            'role': 'exterior',
+            'tmx': _tiledMapTmx,
+            'tilesets': <Object?>[
+              <String, Object?>{
+                'source': 'road.tsx',
+                'tsx': _tiledMapTsx,
+                'tilesetId': 'imported-road-tileset',
+                'assetId': 'imported-road-image',
+                'logicalPath': 'assets/imported-road.png',
+                'imageArtifacts': <Object?>[
+                  <String, Object?>{
+                    'source': 'road.png',
+                    'artifactHandle': artifactHandle,
+                  },
+                ],
+              },
+            ],
+          };
+
+      final directApplied = await direct.applyDirectAction(
+        actionId: 'map.tiled.import',
+        parameters: parameters(directArtifact.reference.handle),
+        sequence: 'tiled-map',
+      );
+      final jsonlApplied = await jsonl.applyJsonlAction(
+        actionId: 'map.tiled.import',
+        parameters: parameters(jsonlArtifact.reference.handle),
+        sequence: 'tiled-map',
+      );
+
+      expect(
+        _stableReceipt(_receipt(directApplied)),
+        _stableReceipt(_receipt(jsonlApplied)),
+      );
+      expect(await direct.projectBytes(), await jsonl.projectBytes());
+      expect(
+        await direct.importedMapBytes(),
+        await jsonl.importedMapBytes(),
+      );
+    });
+
     test('rejects stale planning and replays one operation exactly once',
         () async {
       final harness = await _Harness.create('cas');
@@ -1133,6 +1192,9 @@ final class _Harness {
   Future<List<int>> mapBytes() =>
       File('${root.path}/maps/map.json').readAsBytes();
 
+  Future<List<int>> importedMapBytes() =>
+      File('${root.path}/maps/imported-road.json').readAsBytes();
+
   Future<void> dispose() async {
     if (await root.exists()) await root.delete(recursive: true);
   }
@@ -1410,4 +1472,21 @@ const _tiledWangTsx = '''
     </wangset>
   </wangsets>
 </tileset>
+''';
+
+const _tiledMapTsx = '''
+<tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
+  <image source="road.png" width="1" height="1"/>
+</tileset>
+''';
+
+const _tiledMapTmx = '''
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal"
+  renderorder="right-down" width="1" height="1" tilewidth="1" tileheight="1"
+  infinite="0" nextlayerid="2" nextobjectid="1">
+  <tileset firstgid="1" source="road.tsx"/>
+  <layer id="1" name="Ground" width="1" height="1">
+    <data encoding="csv">1</data>
+  </layer>
+</map>
 ''';

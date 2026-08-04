@@ -34,6 +34,32 @@ Future<bool> showPokeMapBinaryConfirmationDialog(
   return result ?? false;
 }
 
+/// Token-driven single-action notice for recoverable workflow failures.
+Future<void> showPokeMapNoticeDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String closeLabel = 'Fermer',
+  IconData? icon,
+}) async {
+  await showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (dialogContext) => _PokeMapDialogFrame(
+      title: title,
+      message: message,
+      icon: icon,
+      footer: Align(
+        alignment: Alignment.centerRight,
+        child: PokeMapButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: Text(closeLabel),
+        ),
+      ),
+    ),
+  );
+}
+
 /// Token-driven single-field prompt for editor workflows.
 Future<bool> showPokeMapPromptDialog(
   BuildContext context, {

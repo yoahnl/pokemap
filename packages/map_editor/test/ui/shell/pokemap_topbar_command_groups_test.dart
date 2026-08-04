@@ -351,6 +351,8 @@ const _worldMapCommandInventory =
         _WorldMapControlSignature.capsuleTooltip('Project Settings'),
     'game.export': _WorldMapControlSignature.capsuleTooltip('Export Game'),
     'map.new': _WorldMapControlSignature.capsuleTooltip('New Map'),
+    'map.tiled.import':
+        _WorldMapControlSignature.capsuleTooltip('Import Tiled Map (.tmx)'),
     'map.resize': _WorldMapControlSignature.capsuleTooltip('Resize Map'),
   },
   _WorldMapActionDestination.adaptiveInspector:

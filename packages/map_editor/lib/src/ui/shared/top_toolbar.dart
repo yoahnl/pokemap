@@ -4,12 +4,14 @@ import 'pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../l10n/l10n.dart';
+import '../../app/providers/core/repository_providers.dart';
 import '../../features/border_map_editing/application/border_tool_availability.dart';
 import '../../features/border_map_editing/presentation/pending_border_save_dialog.dart';
 import '../../features/border_map_editing/state/border_map_editing_providers.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/editor/presentation/tiled_map_import_flow.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../theme/theme.dart';
 import '../design_system/design_system.dart';
@@ -270,6 +272,28 @@ class TopToolbar extends ConsumerWidget {
                             defaultHeight: settings.defaultMapHeight,
                           )
                       : null,
+            ),
+            ToolbarCapsuleButton(
+              key: const ValueKey<String>('tiled-map-import-toolbar-button'),
+              icon: CupertinoIcons.square_grid_3x2_fill,
+              tooltip: 'Import Tiled Map (.tmx)',
+              onPressed: toolbar.project != null &&
+                      toolbar.projectRootPath != null
+                  ? () async {
+                      final result = await showTiledMapImportFlow(
+                        context,
+                        projectRootPath: toolbar.projectRootPath!,
+                        mutations: ref.read(authoringMutationAdapterProvider),
+                        queries: ref.read(authoringQueryAdapterProvider),
+                      );
+                      if (result == null) return;
+                      notifier.acceptCanonicalProjectManifest(
+                        result.manifest,
+                        statusMessage:
+                            'Carte « ${result.map.name} » importée depuis Tiled.',
+                      );
+                    }
+                  : null,
             ),
             ToolbarCapsuleButton(
               icon: CupertinoIcons.rectangle_arrow_up_right_arrow_down_left,

@@ -31,6 +31,7 @@ export 'src/domains/maps/entity_actions.dart';
 export 'src/domains/maps/environment_actions.dart';
 export 'src/domains/maps/map_lifecycle_actions.dart';
 export 'src/domains/maps/map_lifecycle_adapter.dart';
+export 'src/domains/maps/tiled_map_import_actions.dart';
 export 'src/domains/maps/layer_actions.dart';
 export 'src/domains/maps/map_mutation_dispatcher.dart';
 export 'src/domains/maps/map_operations_batch.dart';

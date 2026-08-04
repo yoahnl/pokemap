@@ -34,6 +34,7 @@ import 'smart_tile_catalog_actions.dart';
 import 'smart_tile_cell_actions.dart';
 import 'smart_tile_layer_actions.dart';
 import 'smart_tile_pattern_actions.dart';
+import 'tiled_map_import_actions.dart';
 import 'trigger_zone_actions.dart';
 import 'warp_connection_actions.dart';
 
@@ -77,6 +78,10 @@ final class MapMutationDispatcher {
         artifactStore ?? MemoryArtifactStore(maximumArtifactBytes: 64 << 20);
     final assets = AssetActions(artifactStore: artifacts);
     final tiledTilesets = TiledTilesetImportActions(
+      artifactStore: artifacts,
+      imageCollectionRasterCodec: tiledImageCollectionRasterCodec,
+    );
+    final tiledMaps = TiledMapImportActions(
       artifactStore: artifacts,
       imageCollectionRasterCodec: tiledImageCollectionRasterCodec,
     );
@@ -175,6 +180,11 @@ final class MapMutationDispatcher {
         MapMutationActionRegistration(
           descriptor: descriptor,
           build: tiledTilesets.build,
+        ),
+      for (final descriptor in TiledMapImportActions.descriptors)
+        MapMutationActionRegistration(
+          descriptor: descriptor,
+          build: tiledMaps.build,
         ),
       for (final descriptor in VisualOrganizationActions.descriptors)
         MapMutationActionRegistration(

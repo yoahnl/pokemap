@@ -1,0 +1,363 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:crypto/crypto.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
+
+import '../../../application/authoring_api/authoring_mutation_adapter.dart';
+import '../../../application/authoring_api/authoring_query_adapter.dart';
+import '../../../application/authoring_api/editor_receipt_presenter.dart';
+
+final class TiledMapImportServiceException implements Exception {
+  const TiledMapImportServiceException(this.code, this.message);
+
+  final String code;
+  final String message;
+
+  @override
+  String toString() => 'TiledMapImportServiceException($code): $message';
+}
+
+abstract interface class TiledMapSourcePicker {
+  Future<String?> pickTmxPath();
+}
+
+final class FilePickerTiledMapSourcePicker implements TiledMapSourcePicker {
+  const FilePickerTiledMapSourcePicker();
+
+  @override
+  Future<String?> pickTmxPath() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>['tmx'],
+      allowMultiple: false,
+      withData: false,
+    );
+    final path = result?.files.singleOrNull?.path;
+    if (path == null || path.trim().isEmpty) return null;
+    return p.normalize(p.absolute(path));
+  }
+}
+
+final class TiledMapImportTilesetSource {
+  TiledMapImportTilesetSource({
+    required this.source,
+    required this.tsxPath,
+    required this.tsx,
+    required this.document,
+    required this.tilesetId,
+    required this.assetId,
+    required this.logicalPath,
+    required Map<String, String> imagePaths,
+  }) : imagePaths = Map<String, String>.unmodifiable(imagePaths);
+
+  final String source;
+  final String tsxPath;
+  final String tsx;
+  final TiledTilesetDocument document;
+  final String tilesetId;
+  final String assetId;
+  final String logicalPath;
+  final Map<String, String> imagePaths;
+
+  bool get isImageCollection => document.layout is TiledImageCollectionLayout;
+}
+
+final class TiledMapImportSource {
+  TiledMapImportSource({
+    required this.tmxPath,
+    required this.tmx,
+    required this.document,
+    required this.mapId,
+    required this.displayName,
+    required Iterable<TiledMapImportTilesetSource> tilesets,
+  }) : tilesets = List<TiledMapImportTilesetSource>.unmodifiable(tilesets);
+
+  final String tmxPath;
+  final String tmx;
+  final TiledMapDocument document;
+  final String mapId;
+  final String displayName;
+  final List<TiledMapImportTilesetSource> tilesets;
+
+  int get width => document.width;
+  int get height => document.height;
+  int get tileLayerCount =>
+      _flattenLayers(document.layers).whereType<TiledMapTileLayer>().length;
+  int get objectLayerCount =>
+      _flattenLayers(document.layers).whereType<TiledMapObjectLayer>().length;
+  int get objectCount => _flattenLayers(document.layers)
+      .whereType<TiledMapObjectLayer>()
+      .fold(0, (count, layer) => count + layer.objects.length);
+}
+
+final class TiledMapImportInspection {
+  TiledMapImportInspection({
+    required this.source,
+    required this.plan,
+    required Map<String, Object?> preview,
+    required this.operationId,
+  }) : preview = Map<String, Object?>.unmodifiable(preview);
+
+  final TiledMapImportSource source;
+  final EditorAuthoringMutationPlan plan;
+  final Map<String, Object?> preview;
+  final String operationId;
+}
+
+final class TiledMapImportResult {
+  const TiledMapImportResult({
+    required this.manifest,
+    required this.map,
+    required this.receiptId,
+    required this.snapshotRevision,
+  });
+
+  final ProjectManifest manifest;
+  final MapData map;
+  final String receiptId;
+  final String snapshotRevision;
+}
+
+/// Resolves one generic TMX dependency closure and delegates the entire import
+/// to the canonical, recoverable `map.tiled.import` mutation.
+///
+/// Machine paths exist only while reading the user-selected dependency graph
+/// and staging exact files. Plans, receipts and project documents receive only
+/// TMX-relative sources and opaque artifact handles.
+final class TiledMapImportService {
+  const TiledMapImportService({
+    required AuthoringMutationAdapter mutations,
+    required AuthoringQueryAdapter queries,
+  })  : _mutations = mutations,
+        _queries = queries;
+
+  final AuthoringMutationAdapter _mutations;
+  final AuthoringQueryAdapter _queries;
+
+  Future<TiledMapImportInspection> inspect({
+    required String projectRootPath,
+    required String tmxPath,
+  }) async {
+    final source = await loadTiledMapImportSource(tmxPath);
+    final tilesetParameters = <Object?>[];
+    final stagedDigests = <String>[];
+    for (final tileset in source.tilesets) {
+      final imageArtifacts = <Object?>[];
+      for (final dependency in tileset.document.dependencyClosure.images) {
+        final imagePath = tileset.imagePaths[dependency.source];
+        if (imagePath == null) {
+          throw TiledMapImportServiceException(
+            'map.tiled.image_missing',
+            'La dépendance ${dependency.source} n’a pas été résolue.',
+          );
+        }
+        final staged = await _mutations.stageArtifact(
+          projectRootPath,
+          sourcePath: imagePath,
+        );
+        if (!staged.reference.mediaType.startsWith('image/')) {
+          throw TiledMapImportServiceException(
+            'map.tiled.image_media_type_invalid',
+            '${dependency.source} n’est pas une image raster reconnue.',
+          );
+        }
+        stagedDigests.add(staged.reference.digest);
+        imageArtifacts.add(<String, Object?>{
+          'source': dependency.source,
+          'artifactHandle': staged.reference.handle,
+        });
+      }
+      tilesetParameters.add(<String, Object?>{
+        'source': tileset.source,
+        'tsx': tileset.tsx,
+        'tilesetId': tileset.tilesetId,
+        'assetId': tileset.assetId,
+        'logicalPath': tileset.logicalPath,
+        'imageArtifacts': imageArtifacts,
+      });
+    }
+    stagedDigests.sort();
+    final fingerprint = sha256
+        .convert(
+          utf8.encode(
+            '${source.mapId}|${sha256.convert(utf8.encode(source.tmx))}|'
+            '${stagedDigests.join('|')}',
+          ),
+        )
+        .toString()
+        .substring(0, 24);
+    final idempotencyKey = 'editor-tmx-import-$fingerprint';
+    try {
+      final plan = await _mutations.plan(
+        projectRootPath,
+        actionId: 'map.tiled.import',
+        parameters: <String, Object?>{
+          'mapId': source.mapId,
+          'displayName': source.displayName,
+          'role': 'exterior',
+          'tmx': source.tmx,
+          'tilesets': tilesetParameters,
+        },
+        idempotencyKey: idempotencyKey,
+        requestId: idempotencyKey,
+      );
+      return TiledMapImportInspection(
+        source: source,
+        plan: plan,
+        preview: plan.preview,
+        operationId: '$idempotencyKey-apply',
+      );
+    } on EditorAuthoringMutationFailure catch (error) {
+      throw TiledMapImportServiceException(error.code, error.message);
+    }
+  }
+
+  Future<TiledMapImportResult> apply(
+      TiledMapImportInspection inspection) async {
+    try {
+      final applied = await _mutations.apply(
+        inspection.plan,
+        operationId: inspection.operationId,
+      );
+      final canonical = await _queries.open(inspection.plan.projectRootPath);
+      if (canonical.snapshotRevision != applied.snapshotRevision) {
+        throw const TiledMapImportServiceException(
+          'map.tiled.snapshot_stale',
+          'Le snapshot canonique après import TMX est obsolète.',
+        );
+      }
+      final map = canonical.mapById(inspection.source.mapId);
+      if (map == null) {
+        throw const TiledMapImportServiceException(
+          'map.tiled.snapshot_mismatch',
+          'La carte importée est absente du snapshot canonique.',
+        );
+      }
+      return TiledMapImportResult(
+        manifest: canonical.manifest,
+        map: map,
+        receiptId: applied.receipt.receiptId,
+        snapshotRevision: applied.snapshotRevision,
+      );
+    } on EditorAuthoringMutationFailure catch (error) {
+      throw TiledMapImportServiceException(error.code, error.message);
+    }
+  }
+}
+
+Future<TiledMapImportSource> loadTiledMapImportSource(String tmxPath) async {
+  final canonicalPath = p.normalize(p.absolute(tmxPath));
+  final tmxFile = File(canonicalPath);
+  if (!await tmxFile.exists()) {
+    throw const TiledMapImportServiceException(
+      'map.tiled.tmx_missing',
+      'Le fichier TMX sélectionné est introuvable.',
+    );
+  }
+  late final String tmx;
+  late final TiledMapDocument document;
+  try {
+    tmx = await tmxFile.readAsString();
+    document = parseTiledMap(tmx);
+  } on TiledMapImportException catch (error) {
+    throw TiledMapImportServiceException(error.code, error.message);
+  } on FileSystemException {
+    throw const TiledMapImportServiceException(
+      'map.tiled.tmx_unreadable',
+      'Le fichier TMX sélectionné ne peut pas être lu.',
+    );
+  }
+
+  final tilesets = <TiledMapImportTilesetSource>[];
+  for (final reference in document.dependencyClosure.tilesets) {
+    final tsxPath = _resolveDependency(canonicalPath, reference.source);
+    final tsxFile = File(tsxPath);
+    if (!await tsxFile.exists()) {
+      throw TiledMapImportServiceException(
+        'map.tiled.tsx_missing',
+        'Le tileset ${reference.source} référencé par le TMX est introuvable.',
+      );
+    }
+    late final String tsx;
+    late final TiledTilesetDocument tilesetDocument;
+    try {
+      tsx = await tsxFile.readAsString();
+      tilesetDocument = parseTiledTileset(tsx);
+    } on TiledTilesetImportException catch (error) {
+      throw TiledMapImportServiceException(error.code, error.message);
+    } on FileSystemException {
+      throw TiledMapImportServiceException(
+        'map.tiled.tsx_unreadable',
+        'Le tileset ${reference.source} ne peut pas être lu.',
+      );
+    }
+    final imagePaths = <String, String>{};
+    for (final dependency in tilesetDocument.dependencyClosure.images) {
+      final imagePath = _resolveDependency(tsxPath, dependency.source);
+      if (!await File(imagePath).exists()) {
+        throw TiledMapImportServiceException(
+          'map.tiled.image_missing',
+          'L’image ${dependency.source} référencée par '
+              '${reference.source} est introuvable.',
+        );
+      }
+      imagePaths[dependency.source] = imagePath;
+    }
+    final suffix = sha256
+        .convert(utf8.encode('${reference.source}\u0000$tsx'))
+        .toString()
+        .substring(0, 10);
+    final baseId = '${_slug(tilesetDocument.name)}-$suffix';
+    tilesets.add(
+      TiledMapImportTilesetSource(
+        source: reference.source,
+        tsxPath: tsxPath,
+        tsx: tsx,
+        document: tilesetDocument,
+        tilesetId: baseId,
+        assetId: '$baseId-image',
+        logicalPath: tilesetDocument.layout is TiledImageCollectionLayout
+            ? 'assets/tilesets/$baseId'
+            : 'assets/tilesets/$baseId.png',
+        imagePaths: imagePaths,
+      ),
+    );
+  }
+  final mapName = p.basenameWithoutExtension(canonicalPath).trim();
+  final mapSuffix = sha256.convert(utf8.encode(tmx)).toString().substring(0, 8);
+  return TiledMapImportSource(
+    tmxPath: canonicalPath,
+    tmx: tmx,
+    document: document,
+    mapId: '${_slug(mapName)}-$mapSuffix',
+    displayName: mapName.isEmpty ? 'Carte Tiled importée' : mapName,
+    tilesets: tilesets,
+  );
+}
+
+String _resolveDependency(String ownerPath, String source) => p.normalize(
+      p.join(
+        p.dirname(ownerPath),
+        source.replaceAll('/', p.separator),
+      ),
+    );
+
+Iterable<TiledMapLayer> _flattenLayers(Iterable<TiledMapLayer> layers) sync* {
+  for (final layer in layers) {
+    yield layer;
+    if (layer is TiledMapGroupLayer) yield* _flattenLayers(layer.layers);
+  }
+}
+
+String _slug(String value) {
+  final normalized = value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
+  final safe = normalized.isEmpty ? 'tiled' : normalized;
+  return safe.length <= 48 ? safe : safe.substring(0, 48);
+}

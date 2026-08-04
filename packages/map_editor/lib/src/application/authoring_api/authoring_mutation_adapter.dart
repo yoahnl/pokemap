@@ -20,12 +20,14 @@ final class EditorAuthoringMutationPlan {
     required this.planId,
     required this.snapshotRevision,
     required this.receipt,
+    required this.preview,
   });
 
   final String projectRootPath;
   final String planId;
   final String snapshotRevision;
   final AuthoringReceipt receipt;
+  final Map<String, Object?> preview;
 }
 
 final class EditorAuthoringMutationResult {
@@ -263,11 +265,24 @@ final class AuthoringMutationAdapter
         dryRun: false,
       ),
     );
+    final rawPlan = response['plan'];
+    if (rawPlan is! Map) {
+      throw const FormatException('Authoring response plan is missing.');
+    }
+    final rawPreview = rawPlan['preview'];
+    if (rawPreview != null && rawPreview is! Map) {
+      throw const FormatException('Authoring plan preview is invalid.');
+    }
     return EditorAuthoringMutationPlan._(
       projectRootPath: session.canonicalRoot,
       planId: response['planId']! as String,
       snapshotRevision: response['snapshotRevision']! as String,
       receipt: _receipt(response),
+      preview: Map<String, Object?>.unmodifiable(
+        rawPreview == null
+            ? const <String, Object?>{}
+            : Map<String, Object?>.from(rawPreview),
+      ),
     );
   }
 

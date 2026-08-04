@@ -64,6 +64,27 @@ void main() {
       expect(find.text('World Editor'), findsOneWidget);
     });
 
+    testWidgets('offers generic TMX import only when a project is open',
+        (tester) async {
+      final container = await pumpTopToolbarHarness(
+        tester,
+        initialState: const EditorState(),
+      );
+      const key = ValueKey<String>('tiled-map-import-toolbar-button');
+      var button = tester.widget<ToolbarCapsuleButton>(find.byKey(key));
+      expect(button.tooltip, 'Import Tiled Map (.tmx)');
+      expect(button.onPressed, isNull);
+
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp/top_toolbar_tmx_import',
+        project: buildShellChromeProject(),
+      );
+      await tester.pump();
+
+      button = tester.widget<ToolbarCapsuleButton>(find.byKey(key));
+      expect(button.onPressed, isNotNull);
+    });
+
     testWidgets(
       'keeps map zoom on the canvas and preserves tileset zoom controls',
       (tester) async {
