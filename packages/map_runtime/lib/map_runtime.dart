@@ -145,7 +145,11 @@ export 'src/application/runtime_player_pokemon_progression_hydrator.dart'
         runtimeSupportedPokemonGrowthRateIds,
         hydrateRuntimePlayerPokemonProgression,
         loadRuntimePlayerPokemonProgressionCatalogs;
-export 'src/application/load_runtime_map_bundle.dart' show loadRuntimeMapBundle;
+export 'src/application/load_runtime_map_bundle.dart'
+    show
+        RuntimeMapBundleLoadProfile,
+        RuntimeMapBundleLoadProfileSink,
+        loadRuntimeMapBundle;
 export 'src/application/authoring_preview/runtime_authoring_map_render_adapter.dart'
     show RuntimeAuthoringMapRenderAdapter;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;

@@ -35,6 +35,70 @@ bool shouldRenderProjectElementEntityInForegroundPass(
   };
 }
 
+@visibleForTesting
+@immutable
+final class MapLayersRenderProfile {
+  const MapLayersRenderProfile({
+    required this.frameNumber,
+    required this.isFirstFrame,
+    required this.renderMicroseconds,
+    required this.totalMapCellCount,
+    required this.visibleCellCount,
+    required this.tileCellVisits,
+    required this.collisionCellVisits,
+    required this.smartTileOwnerCellVisits,
+    required this.smartTilePatternStrokeCellVisits,
+    required this.smartTileVisualCount,
+    required this.objectTileCandidateVisits,
+    required this.objectTileVisualCount,
+    required this.placedElementCandidateVisits,
+    required this.entityCandidateVisits,
+    required this.regularTileVisualCacheSize,
+    required this.regularTileVisualCacheCapacity,
+    required this.objectVisualDefinitionCacheSize,
+    required this.objectVisualDefinitionCacheCapacity,
+    required this.spatialBucketCount,
+    required this.tilesetImageCount,
+  });
+
+  final int frameNumber;
+  final bool isFirstFrame;
+  final int renderMicroseconds;
+  final int totalMapCellCount;
+  final int visibleCellCount;
+  final int tileCellVisits;
+  final int collisionCellVisits;
+  final int smartTileOwnerCellVisits;
+  final int smartTilePatternStrokeCellVisits;
+  final int smartTileVisualCount;
+  final int objectTileCandidateVisits;
+  final int objectTileVisualCount;
+  final int placedElementCandidateVisits;
+  final int entityCandidateVisits;
+  final int regularTileVisualCacheSize;
+  final int regularTileVisualCacheCapacity;
+  final int objectVisualDefinitionCacheSize;
+  final int objectVisualDefinitionCacheCapacity;
+  final int spatialBucketCount;
+  final int tilesetImageCount;
+}
+
+typedef MapLayersRenderProfileObserver = void Function(
+  MapLayersRenderProfile profile,
+);
+
+final class _MapLayersRenderCounter {
+  int tileCellVisits = 0;
+  int collisionCellVisits = 0;
+  int smartTileOwnerCellVisits = 0;
+  int smartTilePatternStrokeCellVisits = 0;
+  int smartTileVisualCount = 0;
+  int objectTileCandidateVisits = 0;
+  int objectTileVisualCount = 0;
+  int placedElementCandidateVisits = 0;
+  int entityCandidateVisits = 0;
+}
+
 class MapLayersComponent extends PositionComponent {
   MapLayersComponent({
     required this.bundle,
@@ -47,6 +111,7 @@ class MapLayersComponent extends PositionComponent {
     this.shadowRenderer = const ShadowRuntimeRenderer(),
     this.borderAssets,
     this.borderRenderer = const BorderRuntimeRenderer(),
+    this.debugOnRenderProfile,
   })  : _runtimeLayerPaintOrder = buildRuntimeMapLayerPaintOrder(bundle.map),
         _foregroundTileCellIndicesByLayerId =
             _buildForegroundTileCellIndicesByLayerId(bundle),
@@ -63,6 +128,14 @@ class MapLayersComponent extends PositionComponent {
     _animatedInstanceById = _buildAnimatedPlacedInstanceById(
       _animatedPlacedCellsByLayerId,
     );
+    _objectVisualIndicesByLayerId = _buildObjectVisualIndices(bundle);
+    _patternOwnerIndicesByLayerId = _buildPatternOwnerIndices(bundle);
+    _placedElementSpatialIndex = _buildPlacedElementSpatialIndex(bundle);
+    _entitySpatialIndex = _buildEntitySpatialIndex(bundle);
+    _regularTileVisualCacheCapacity = <(String, int)>{
+      for (final layer in bundle.map.layers.whereType<TileLayer>())
+        for (final entry in layer.palette) (entry.tilesetId, entry.localTileId),
+    }.length;
   }
 
   final RuntimeMapBundle bundle;
@@ -81,6 +154,7 @@ class MapLayersComponent extends PositionComponent {
   final ShadowRuntimeRenderer shadowRenderer;
   final BorderRuntimeAssetBundle? borderAssets;
   final BorderRuntimeRenderer borderRenderer;
+  final MapLayersRenderProfileObserver? debugOnRenderProfile;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
   final Map<String, Map<int, _AnimatedPlacedCell>>
       _animatedPlacedCellsByLayerId;
@@ -101,6 +175,15 @@ class MapLayersComponent extends PositionComponent {
   final Map<(String, int), ProjectTilesetVisualResolution>
       _regularTileVisualCache =
       <(String, int), ProjectTilesetVisualResolution>{};
+  late final Map<String, MapPlacedTileVisualIndex>
+      _objectVisualIndicesByLayerId;
+  late final Map<String, SmartTilePatternOwnerIndex>
+      _patternOwnerIndicesByLayerId;
+  late final _RuntimeSpatialIndex<MapPlacedElement> _placedElementSpatialIndex;
+  late final _RuntimeSpatialIndex<MapEntity> _entitySpatialIndex;
+  late final int _regularTileVisualCacheCapacity;
+  _MapLayersRenderCounter? _activeRenderCounter;
+  int _renderedFrameCount = 0;
 
   double _animElapsed = 0.0;
 
@@ -118,6 +201,23 @@ class MapLayersComponent extends PositionComponent {
   /// de ce composant (soustraction de l'origine monde du composant).
   void setVisibleLocalRect(Rect? rect) {
     _visibleLocalRect = rect;
+  }
+
+  ({int startX, int startY, int endX, int endY}) _visibleCellRange() {
+    final rect = _visibleLocalRect;
+    final width = bundle.map.size.width;
+    final height = bundle.map.size.height;
+    final cellWidth = bundle.cellWidth;
+    final cellHeight = bundle.cellHeight;
+    if (rect == null || cellWidth <= 0 || cellHeight <= 0) {
+      return (startX: 0, startY: 0, endX: width, endY: height);
+    }
+    return (
+      startX: (rect.left / cellWidth).floor().clamp(0, width),
+      startY: (rect.top / cellHeight).floor().clamp(0, height),
+      endX: (rect.right / cellWidth).ceil().clamp(0, width),
+      endY: (rect.bottom / cellHeight).ceil().clamp(0, height),
+    );
   }
 
   /// Returns the owner-cell range whose resolved tile visuals can intersect
@@ -214,9 +314,62 @@ class MapLayersComponent extends PositionComponent {
 
   @override
   void render(Canvas canvas) {
-    super.render(canvas);
-    for (final step in _runtimeLayerPaintOrder.steps) {
-      _renderVisualCompositionStep(canvas, step);
+    final observer = debugOnRenderProfile;
+    final counter = observer == null ? null : _MapLayersRenderCounter();
+    final watch = observer == null ? null : (Stopwatch()..start());
+    _activeRenderCounter = counter;
+    try {
+      super.render(canvas);
+      for (final step in _runtimeLayerPaintOrder.steps) {
+        _renderVisualCompositionStep(canvas, step);
+      }
+    } finally {
+      _activeRenderCounter = null;
+      watch?.stop();
+    }
+    if (observer != null && counter != null && watch != null) {
+      final frameNumber = _renderedFrameCount;
+      _renderedFrameCount += 1;
+      final range = _visibleCellRange();
+      observer(
+        MapLayersRenderProfile(
+          frameNumber: frameNumber,
+          isFirstFrame: frameNumber == 0,
+          renderMicroseconds: watch.elapsedMicroseconds,
+          totalMapCellCount: bundle.map.size.width * bundle.map.size.height,
+          visibleCellCount:
+              (range.endX - range.startX) * (range.endY - range.startY),
+          tileCellVisits: counter.tileCellVisits,
+          collisionCellVisits: counter.collisionCellVisits,
+          smartTileOwnerCellVisits: counter.smartTileOwnerCellVisits,
+          smartTilePatternStrokeCellVisits:
+              counter.smartTilePatternStrokeCellVisits,
+          smartTileVisualCount: counter.smartTileVisualCount,
+          objectTileCandidateVisits: counter.objectTileCandidateVisits,
+          objectTileVisualCount: counter.objectTileVisualCount,
+          placedElementCandidateVisits: counter.placedElementCandidateVisits,
+          entityCandidateVisits: counter.entityCandidateVisits,
+          regularTileVisualCacheSize: _regularTileVisualCache.length,
+          regularTileVisualCacheCapacity: _regularTileVisualCacheCapacity,
+          objectVisualDefinitionCacheSize:
+              _objectVisualIndicesByLayerId.values.fold<int>(
+            0,
+            (total, index) => total + index.cachedVisualDefinitionCount,
+          ),
+          objectVisualDefinitionCacheCapacity:
+              _objectVisualIndicesByLayerId.values.fold<int>(
+            0,
+            (total, index) => total + index.sourceObjectCount,
+          ),
+          spatialBucketCount: _placedElementSpatialIndex.bucketCount +
+              _entitySpatialIndex.bucketCount +
+              _objectVisualIndicesByLayerId.values.fold<int>(
+                0,
+                (total, index) => total + index.spatialBucketCount,
+              ),
+          tilesetImageCount: tileImagesByTilesetId.length,
+        ),
+      );
     }
   }
 
@@ -353,7 +506,7 @@ class MapLayersComponent extends PositionComponent {
     final sourceTileWidth = bundle.manifest.settings.tileWidth;
     final sourceTileHeight = bundle.manifest.settings.tileHeight;
     final visibleRect = _visibleLocalRect;
-    final visuals = resolveSmartTileLayerVisuals(
+    final batch = resolveSmartTileLayerVisualBatch(
       map: bundle.map,
       layer: layer,
       catalog: catalog,
@@ -374,7 +527,13 @@ class MapLayersComponent extends PositionComponent {
               width: visibleRect.width,
               height: visibleRect.height,
             ),
+      patternOwnerIndex: _patternOwnerIndicesByLayerId[layer.id],
     );
+    final visuals = batch.visuals;
+    _activeRenderCounter
+      ?..smartTileOwnerCellVisits += batch.work.ownerCellVisits
+      ..smartTilePatternStrokeCellVisits += batch.work.patternStrokeCellVisits
+      ..smartTileVisualCount += visuals.length;
     if (visuals.isEmpty) return;
 
     final paint = Paint()
@@ -454,7 +613,9 @@ class MapLayersComponent extends PositionComponent {
     final th = bundle.manifest.settings.tileHeight;
     final elapsedMs = (_animElapsed * 1000).toInt();
     final visibleRect = _visibleLocalRect;
-    for (final entity in bundle.map.entities) {
+    final entityCandidates = _entitySpatialIndex.query(visibleRect);
+    _activeRenderCounter?.entityCandidateVisits += entityCandidates.length;
+    for (final entity in entityCandidates) {
       final entityPresence = mapEntityPresencePredicate;
       if (entityPresence != null && !entityPresence(bundle.map.id, entity)) {
         continue;
@@ -609,6 +770,7 @@ class MapLayersComponent extends PositionComponent {
     final scaleX = cw / tw;
     final scaleY = ch / th;
     final (:startX, :startY, :endX, :endY) = _visibleTileCellRange(layer);
+    _activeRenderCounter?.tileCellVisits += (endX - startX) * (endY - startY);
     final elapsedMs = (_animElapsed * 1000).toInt();
     for (var y = startY; y < endY; y++) {
       for (var x = startX; x < endX; x++) {
@@ -711,31 +873,24 @@ class MapLayersComponent extends PositionComponent {
   }
 
   void _paintObjectLayer(Canvas canvas, ObjectLayer layer) {
-    final sourceTileWidth = bundle.manifest.settings.tileWidth;
-    final sourceTileHeight = bundle.manifest.settings.tileHeight;
     final visibleRect = _visibleLocalRect;
-    final List<MapPlacedTileVisualInstruction> visuals;
-    try {
-      visuals = resolveMapPlacedTileVisuals(
-        layer: layer,
-        tilesetsById: _tilesetSourceById,
-        sourceCellWidth: sourceTileWidth,
-        sourceCellHeight: sourceTileHeight,
-        destinationCellWidth: bundle.cellWidth,
-        destinationCellHeight: bundle.cellHeight,
-        elapsedMs: (_animElapsed * 1000).toInt(),
-        viewport: visibleRect == null
-            ? null
-            : SmartTileGeometryRect(
-                left: visibleRect.left,
-                top: visibleRect.top,
-                width: visibleRect.width,
-                height: visibleRect.height,
-              ),
-      );
-    } on MapPlacedTileVisualResolutionException {
-      return;
-    }
+    final index = _objectVisualIndicesByLayerId[layer.id];
+    if (index == null) return;
+    final batch = index.resolve(
+      elapsedMs: (_animElapsed * 1000).toInt(),
+      viewport: visibleRect == null
+          ? null
+          : SmartTileGeometryRect(
+              left: visibleRect.left,
+              top: visibleRect.top,
+              width: visibleRect.width,
+              height: visibleRect.height,
+            ),
+    );
+    final visuals = batch.visuals;
+    _activeRenderCounter
+      ?..objectTileCandidateVisits += batch.work.candidateObjectVisits
+      ..objectTileVisualCount += visuals.length;
     for (final visual in visuals) {
       final image = tileImagesByTilesetId[visual.assetId] ??
           tileImagesByTilesetId[visual.tilesetId];
@@ -869,7 +1024,10 @@ class MapLayersComponent extends PositionComponent {
       ..filterQuality = FilterQuality.none;
     final visibleRect = _visibleLocalRect;
 
-    for (final instance in bundle.map.placedElements) {
+    final placedCandidates = _placedElementSpatialIndex.query(visibleRect);
+    _activeRenderCounter?.placedElementCandidateVisits +=
+        placedCandidates.length;
+    for (final instance in placedCandidates) {
       if (instance.layerId.trim() != layerId) {
         continue;
       }
@@ -1177,6 +1335,92 @@ class MapLayersComponent extends PositionComponent {
     return out;
   }
 
+  static Map<String, MapPlacedTileVisualIndex> _buildObjectVisualIndices(
+    RuntimeMapBundle bundle,
+  ) {
+    final sources = <String, ProjectTilesetSource>{
+      for (final tileset in bundle.manifest.tilesets)
+        if (tileset.source case final source?) tileset.id: source,
+    };
+    final indices = <String, MapPlacedTileVisualIndex>{};
+    for (final layer in bundle.map.layers.whereType<ObjectLayer>()) {
+      try {
+        indices[layer.id] = MapPlacedTileVisualIndex.build(
+          layer: layer,
+          tilesetsById: sources,
+          sourceCellWidth: bundle.manifest.settings.tileWidth,
+          sourceCellHeight: bundle.manifest.settings.tileHeight,
+          destinationCellWidth: bundle.cellWidth,
+          destinationCellHeight: bundle.cellHeight,
+        );
+      } on MapPlacedTileVisualResolutionException {
+        // Keep the historical fail-soft rendering behavior for malformed
+        // visual-only object layers. Project validation remains authoritative.
+      }
+    }
+    return Map<String, MapPlacedTileVisualIndex>.unmodifiable(indices);
+  }
+
+  static Map<String, SmartTilePatternOwnerIndex> _buildPatternOwnerIndices(
+    RuntimeMapBundle bundle,
+  ) =>
+      Map<String, SmartTilePatternOwnerIndex>.unmodifiable(
+        <String, SmartTilePatternOwnerIndex>{
+          for (final layer in bundle.map.layers.whereType<SmartTileLayer>())
+            layer.id: SmartTilePatternOwnerIndex.build(
+              map: bundle.map,
+              layer: layer,
+              catalog: bundle.manifest.smartTileCatalog,
+            ),
+        },
+      );
+
+  static _RuntimeSpatialIndex<MapPlacedElement> _buildPlacedElementSpatialIndex(
+      RuntimeMapBundle bundle) {
+    final elements = <String, ProjectElementEntry>{
+      for (final element in bundle.manifest.elements) element.id: element,
+    };
+    return _RuntimeSpatialIndex<MapPlacedElement>.build(
+      items: bundle.map.placedElements,
+      bucketWidth: bundle.cellWidth * 8,
+      bucketHeight: bundle.cellHeight * 8,
+      boundsOf: (instance) {
+        final element = elements[instance.elementId];
+        var width = 1;
+        var height = 1;
+        for (final frame in element?.frames ?? const <TilesetVisualFrame>[]) {
+          final sourceWidth = frame.source.width <= 0 ? 1 : frame.source.width;
+          final sourceHeight =
+              frame.source.height <= 0 ? 1 : frame.source.height;
+          final turns = instance.quarterTurns % 2;
+          width = math.max(width, turns == 0 ? sourceWidth : sourceHeight);
+          height = math.max(height, turns == 0 ? sourceHeight : sourceWidth);
+        }
+        return Rect.fromLTWH(
+          instance.pos.x * bundle.cellWidth,
+          instance.pos.y * bundle.cellHeight,
+          width * bundle.cellWidth,
+          height * bundle.cellHeight,
+        );
+      },
+    );
+  }
+
+  static _RuntimeSpatialIndex<MapEntity> _buildEntitySpatialIndex(
+    RuntimeMapBundle bundle,
+  ) =>
+      _RuntimeSpatialIndex<MapEntity>.build(
+        items: bundle.map.entities,
+        bucketWidth: bundle.cellWidth * 8,
+        bucketHeight: bundle.cellHeight * 8,
+        boundsOf: (entity) => Rect.fromLTWH(
+          entity.pos.x * bundle.cellWidth,
+          entity.pos.y * bundle.cellHeight,
+          entity.size.width * bundle.cellWidth,
+          entity.size.height * bundle.cellHeight,
+        ),
+      );
+
   static Map<String, _AnimatedPlacedInstanceSpec>
       _buildAnimatedPlacedInstanceById(
     Map<String, Map<int, _AnimatedPlacedCell>> cellsByLayerId,
@@ -1282,10 +1526,12 @@ class MapLayersComponent extends PositionComponent {
     final cw = bundle.cellWidth;
     final ch = bundle.cellHeight;
     final w = bundle.map.size.width;
-    final h = bundle.map.size.height;
     final paint = Paint()..color = Color.fromRGBO(255, 153, 0, 0.30 * opacity);
-    for (var y = 0; y < h; y++) {
-      for (var x = 0; x < w; x++) {
+    final (:startX, :startY, :endX, :endY) = _visibleCellRange();
+    _activeRenderCounter?.collisionCellVisits +=
+        (endX - startX) * (endY - startY);
+    for (var y = startY; y < endY; y++) {
+      for (var x = startX; x < endX; x++) {
         final idx = y * w + x;
         if (idx >= collisions.length || !collisions[idx]) {
           continue;
@@ -1311,7 +1557,11 @@ class MapLayersComponent extends PositionComponent {
     final pixelScaleY = tileHeight > 0 ? ch / tileHeight : 1.0;
     final mapWidthPx = w * cw;
     final mapHeightPx = h * ch;
-    for (final instance in bundle.map.placedElements) {
+    final placedCandidates =
+        _placedElementSpatialIndex.query(_visibleLocalRect);
+    _activeRenderCounter?.placedElementCandidateVisits +=
+        placedCandidates.length;
+    for (final instance in placedCandidates) {
       if (!instance.applyCollision) {
         continue;
       }
@@ -1397,6 +1647,97 @@ class MapLayersComponent extends PositionComponent {
     }
   }
 }
+
+final class _RuntimeSpatialIndex<T> {
+  _RuntimeSpatialIndex._({
+    required List<T> items,
+    required List<Rect> bounds,
+    required this.bucketWidth,
+    required this.bucketHeight,
+    required Map<(int, int), List<int>> buckets,
+    required List<int> globalIndices,
+  })  : _items = List<T>.unmodifiable(items),
+        _bounds = List<Rect>.unmodifiable(bounds),
+        _buckets = Map<(int, int), List<int>>.unmodifiable(
+          buckets.map(
+            (key, value) => MapEntry(key, List<int>.unmodifiable(value)),
+          ),
+        ),
+        _globalIndices = List<int>.unmodifiable(globalIndices);
+
+  factory _RuntimeSpatialIndex.build({
+    required Iterable<T> items,
+    required Rect Function(T item) boundsOf,
+    required double bucketWidth,
+    required double bucketHeight,
+  }) {
+    final values = items.toList(growable: false);
+    final bounds = <Rect>[for (final item in values) boundsOf(item)];
+    final buckets = <(int, int), List<int>>{};
+    final globalIndices = <int>[];
+    for (var index = 0; index < bounds.length; index += 1) {
+      final rect = bounds[index];
+      final left = (rect.left / bucketWidth).floor();
+      final top = (rect.top / bucketHeight).floor();
+      final right = (rect.right / bucketWidth).ceil() - 1;
+      final bottom = (rect.bottom / bucketHeight).ceil() - 1;
+      final count = (right - left + 1) * (bottom - top + 1);
+      if (count > 256) {
+        globalIndices.add(index);
+        continue;
+      }
+      for (var y = top; y <= bottom; y += 1) {
+        for (var x = left; x <= right; x += 1) {
+          buckets.putIfAbsent((x, y), () => <int>[]).add(index);
+        }
+      }
+    }
+    return _RuntimeSpatialIndex<T>._(
+      items: values,
+      bounds: bounds,
+      bucketWidth: bucketWidth,
+      bucketHeight: bucketHeight,
+      buckets: buckets,
+      globalIndices: globalIndices,
+    );
+  }
+
+  final List<T> _items;
+  final List<Rect> _bounds;
+  final double bucketWidth;
+  final double bucketHeight;
+  final Map<(int, int), List<int>> _buckets;
+  final List<int> _globalIndices;
+
+  int get bucketCount => _buckets.length;
+
+  List<T> query(Rect? viewport) {
+    if (viewport == null) return _items;
+    if (viewport.isEmpty) return List<T>.empty(growable: false);
+    final indices = <int>{..._globalIndices};
+    final left = (viewport.left / bucketWidth).floor();
+    final top = (viewport.top / bucketHeight).floor();
+    final right = (viewport.right / bucketWidth).ceil() - 1;
+    final bottom = (viewport.bottom / bucketHeight).ceil() - 1;
+    for (var y = top; y <= bottom; y += 1) {
+      for (var x = left; x <= right; x += 1) {
+        indices.addAll(_buckets[(x, y)] ?? const <int>[]);
+      }
+    }
+    final sorted = indices.toList()..sort();
+    return List<T>.unmodifiable(
+      sorted
+          .where((index) => _intersectsInclusive(_bounds[index], viewport))
+          .map((index) => _items[index]),
+    );
+  }
+}
+
+bool _intersectsInclusive(Rect left, Rect right) =>
+    left.right >= right.left &&
+    right.right >= left.left &&
+    left.bottom >= right.top &&
+    right.bottom >= left.top;
 
 class _RuntimeAnimationFrame {
   const _RuntimeAnimationFrame({

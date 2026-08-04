@@ -5,6 +5,43 @@ enum _EditorMapTileRenderPass {
   foreground,
 }
 
+final Expando<_EditorObjectVisualIndexCache> _editorObjectVisualIndexCache =
+    Expando<_EditorObjectVisualIndexCache>('editorObjectVisualIndex');
+final Expando<_EditorPatternOwnerIndexCache> _editorPatternOwnerIndexCache =
+    Expando<_EditorPatternOwnerIndexCache>('editorPatternOwnerIndex');
+
+final class _EditorObjectVisualIndexCache {
+  const _EditorObjectVisualIndexCache({
+    required this.project,
+    required this.sourceTileWidth,
+    required this.sourceTileHeight,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.index,
+  });
+
+  final ProjectManifest? project;
+  final int sourceTileWidth;
+  final int sourceTileHeight;
+  final double tileWidth;
+  final double tileHeight;
+  final MapPlacedTileVisualIndex index;
+}
+
+final class _EditorPatternOwnerIndexCache {
+  const _EditorPatternOwnerIndexCache({
+    required this.catalog,
+    required this.mapWidth,
+    required this.mapHeight,
+    required this.index,
+  });
+
+  final ProjectSmartTileCatalog catalog;
+  final int mapWidth;
+  final int mapHeight;
+  final SmartTilePatternOwnerIndex index;
+}
+
 /// Rejoue côté éditeur la même séparation "fond / avant-plan" que la runtime.
 ///
 /// Pourquoi cette logique existe :
@@ -280,6 +317,14 @@ final class MapGridCullingDebugSnapshot {
     required this.tileCellVisits,
     required this.collisionCellVisits,
     required this.smartTileVisualVisits,
+    required this.smartTileOwnerCellVisits,
+    required this.smartTilePatternStrokeCellVisits,
+    required this.smartTilePatternIndexEntries,
+    required this.objectTileCandidateVisits,
+    required this.objectTileSourceCount,
+    required this.objectVisualDefinitionCacheSize,
+    required this.objectSpatialBucketCount,
+    required this.gridLineVisits,
     required this.staticShadowInstructionVisits,
     required this.projectedBuildingShadowInstructionVisits,
     required Set<String> placedElementIds,
@@ -291,6 +336,14 @@ final class MapGridCullingDebugSnapshot {
   final int tileCellVisits;
   final int collisionCellVisits;
   final int smartTileVisualVisits;
+  final int smartTileOwnerCellVisits;
+  final int smartTilePatternStrokeCellVisits;
+  final int smartTilePatternIndexEntries;
+  final int objectTileCandidateVisits;
+  final int objectTileSourceCount;
+  final int objectVisualDefinitionCacheSize;
+  final int objectSpatialBucketCount;
+  final int gridLineVisits;
   final int staticShadowInstructionVisits;
   final int projectedBuildingShadowInstructionVisits;
   final Set<String> placedElementIds;
@@ -305,6 +358,12 @@ final class _MapGridCullingDebugCounter {
   int tileCellVisits = 0;
   int collisionCellVisits = 0;
   int smartTileVisualVisits = 0;
+  int smartTileOwnerCellVisits = 0;
+  int smartTilePatternStrokeCellVisits = 0;
+  int objectTileCandidateVisits = 0;
+  int gridLineVisits = 0;
+  final Set<SmartTilePatternOwnerIndex> patternIndices = {};
+  final Set<MapPlacedTileVisualIndex> objectIndices = {};
   int staticShadowInstructionVisits = 0;
   int projectedBuildingShadowInstructionVisits = 0;
   int placedElementPassVisits = 0;
@@ -612,6 +671,7 @@ class MapGridPainter extends CustomPainter {
             canvas,
             step.layer! as ObjectLayer,
             visibleBounds: visibleBounds,
+            cullingCounter: cullingCounter,
           );
         case MapVisualCompositionStepKind.environmentNoop:
           break;
@@ -624,17 +684,19 @@ class MapGridPainter extends CustomPainter {
         ..strokeWidth = 1.0 / zoom
         ..style = PaintingStyle.stroke;
 
-      for (int x = 0; x <= map.size.width; x++) {
+      for (var x = visibleBounds.left; x <= visibleBounds.right; x++) {
+        cullingCounter?.gridLineVisits += 1;
         canvas.drawLine(
-          Offset(x * tileWidth, 0),
-          Offset(x * tileWidth, gridHeight),
+          Offset(x * tileWidth, visibleBounds.top * tileHeight),
+          Offset(x * tileWidth, visibleBounds.bottom * tileHeight),
           gridPaint,
         );
       }
-      for (int y = 0; y <= map.size.height; y++) {
+      for (var y = visibleBounds.top; y <= visibleBounds.bottom; y++) {
+        cullingCounter?.gridLineVisits += 1;
         canvas.drawLine(
-          Offset(0, y * tileHeight),
-          Offset(gridWidth, y * tileHeight),
+          Offset(visibleBounds.left * tileWidth, y * tileHeight),
+          Offset(visibleBounds.right * tileWidth, y * tileHeight),
           gridPaint,
         );
       }
@@ -703,6 +765,28 @@ class MapGridPainter extends CustomPainter {
           tileCellVisits: cullingCounter.tileCellVisits,
           collisionCellVisits: cullingCounter.collisionCellVisits,
           smartTileVisualVisits: cullingCounter.smartTileVisualVisits,
+          smartTileOwnerCellVisits: cullingCounter.smartTileOwnerCellVisits,
+          smartTilePatternStrokeCellVisits:
+              cullingCounter.smartTilePatternStrokeCellVisits,
+          smartTilePatternIndexEntries: cullingCounter.patternIndices.fold<int>(
+            0,
+            (total, index) => total + index.entryCount,
+          ),
+          objectTileCandidateVisits: cullingCounter.objectTileCandidateVisits,
+          objectTileSourceCount: cullingCounter.objectIndices.fold<int>(
+            0,
+            (total, index) => total + index.sourceObjectCount,
+          ),
+          objectVisualDefinitionCacheSize:
+              cullingCounter.objectIndices.fold<int>(
+            0,
+            (total, index) => total + index.cachedVisualDefinitionCount,
+          ),
+          objectSpatialBucketCount: cullingCounter.objectIndices.fold<int>(
+            0,
+            (total, index) => total + index.spatialBucketCount,
+          ),
+          gridLineVisits: cullingCounter.gridLineVisits,
           staticShadowInstructionVisits:
               cullingCounter.staticShadowInstructionVisits,
           projectedBuildingShadowInstructionVisits:
@@ -2039,31 +2123,56 @@ class MapGridPainter extends CustomPainter {
     Canvas canvas,
     ObjectLayer layer, {
     required EditorMapVisibleCellBounds visibleBounds,
+    required _MapGridCullingDebugCounter? cullingCounter,
   }) {
     final sources = <String, ProjectTilesetSource>{
       for (final tileset in project?.tilesets ?? const <ProjectTilesetEntry>[])
         if (tileset.source case final source?) tileset.id: source,
     };
-    final List<MapPlacedTileVisualInstruction> visuals;
+    late final MapPlacedTileVisualIndex index;
     try {
-      visuals = resolveMapPlacedTileVisuals(
-        layer: layer,
-        tilesetsById: sources,
-        sourceCellWidth: sourceTileWidth,
-        sourceCellHeight: sourceTileHeight,
-        destinationCellWidth: tileWidth,
-        destinationCellHeight: tileHeight,
-        elapsedMs: effectiveAnimationMs,
-        viewport: SmartTileGeometryRect(
-          left: visibleBounds.left * tileWidth,
-          top: visibleBounds.top * tileHeight,
-          width: visibleBounds.width * tileWidth,
-          height: visibleBounds.height * tileHeight,
-        ),
-      );
+      final cached = _editorObjectVisualIndexCache[layer];
+      if (cached != null &&
+          identical(cached.project, project) &&
+          cached.sourceTileWidth == sourceTileWidth &&
+          cached.sourceTileHeight == sourceTileHeight &&
+          cached.tileWidth == tileWidth &&
+          cached.tileHeight == tileHeight) {
+        index = cached.index;
+      } else {
+        index = MapPlacedTileVisualIndex.build(
+          layer: layer,
+          tilesetsById: sources,
+          sourceCellWidth: sourceTileWidth,
+          sourceCellHeight: sourceTileHeight,
+          destinationCellWidth: tileWidth,
+          destinationCellHeight: tileHeight,
+        );
+        _editorObjectVisualIndexCache[layer] = _EditorObjectVisualIndexCache(
+          project: project,
+          sourceTileWidth: sourceTileWidth,
+          sourceTileHeight: sourceTileHeight,
+          tileWidth: tileWidth,
+          tileHeight: tileHeight,
+          index: index,
+        );
+      }
     } on MapPlacedTileVisualResolutionException {
       return;
     }
+    final batch = index.resolve(
+      elapsedMs: effectiveAnimationMs,
+      viewport: SmartTileGeometryRect(
+        left: visibleBounds.left * tileWidth,
+        top: visibleBounds.top * tileHeight,
+        width: visibleBounds.width * tileWidth,
+        height: visibleBounds.height * tileHeight,
+      ),
+    );
+    final visuals = batch.visuals;
+    cullingCounter
+      ?..objectTileCandidateVisits += batch.work.candidateObjectVisits
+      ..objectIndices.add(index);
     for (final visual in visuals) {
       final image = tilesetImagesById[visual.assetId] ??
           tilesetImagesById[visual.tilesetId];
@@ -2645,7 +2754,26 @@ class MapGridPainter extends CustomPainter {
   }) {
     final catalog = project?.smartTileCatalog;
     if (catalog == null || catalog.isEmpty) return;
-    final visuals = resolveSmartTileLayerVisuals(
+    final cachedIndex = _editorPatternOwnerIndexCache[layer];
+    final patternIndex = cachedIndex != null &&
+            identical(cachedIndex.catalog, catalog) &&
+            cachedIndex.mapWidth == map.size.width &&
+            cachedIndex.mapHeight == map.size.height
+        ? cachedIndex.index
+        : SmartTilePatternOwnerIndex.build(
+            map: map,
+            layer: layer,
+            catalog: catalog,
+          );
+    if (!identical(patternIndex, cachedIndex?.index)) {
+      _editorPatternOwnerIndexCache[layer] = _EditorPatternOwnerIndexCache(
+        catalog: catalog,
+        mapWidth: map.size.width,
+        mapHeight: map.size.height,
+        index: patternIndex,
+      );
+    }
+    final batch = resolveSmartTileLayerVisualBatch(
       map: map,
       layer: layer,
       catalog: catalog,
@@ -2661,8 +2789,14 @@ class MapGridPainter extends CustomPainter {
           sourceTileWidth > 0 ? sourceTileWidth.toDouble() : tileWidth,
       sourceCellHeight:
           sourceTileHeight > 0 ? sourceTileHeight.toDouble() : tileHeight,
+      patternOwnerIndex: patternIndex,
     );
+    final visuals = batch.visuals;
     cullingCounter?.smartTileVisualVisits += visuals.length;
+    cullingCounter?.smartTileOwnerCellVisits += batch.work.ownerCellVisits;
+    cullingCounter?.smartTilePatternStrokeCellVisits +=
+        batch.work.patternStrokeCellVisits;
+    cullingCounter?.patternIndices.add(patternIndex);
     final paint = Paint()
       ..filterQuality = FilterQuality.none
       ..color = PokeMapLegacyColors.white.withValues(

@@ -53,6 +53,123 @@ final class SmartTileLayerVisual {
   final int drawOrder;
 }
 
+/// Deterministic operation counts emitted by one Smart Tile visual pass.
+///
+/// These counters deliberately describe algorithmic work instead of wall
+/// clock time. They can therefore guard viewport culling in CI across hosts.
+@immutable
+final class SmartTileLayerVisualWorkCounts {
+  const SmartTileLayerVisualWorkCounts({
+    required this.requestedCellCount,
+    required this.ownerCellVisits,
+    required this.patternStrokeCellVisits,
+    required this.resolvedVisualCount,
+  });
+
+  const SmartTileLayerVisualWorkCounts.empty()
+      : requestedCellCount = 0,
+        ownerCellVisits = 0,
+        patternStrokeCellVisits = 0,
+        resolvedVisualCount = 0;
+
+  final int requestedCellCount;
+  final int ownerCellVisits;
+  final int patternStrokeCellVisits;
+  final int resolvedVisualCount;
+}
+
+@immutable
+final class SmartTileLayerVisualBatch {
+  SmartTileLayerVisualBatch({
+    required Iterable<SmartTileLayerVisual> visuals,
+    required this.work,
+  }) : visuals = List<SmartTileLayerVisual>.unmodifiable(visuals);
+
+  const SmartTileLayerVisualBatch.empty()
+      : visuals = const <SmartTileLayerVisual>[],
+        work = const SmartTileLayerVisualWorkCounts.empty();
+
+  final List<SmartTileLayerVisual> visuals;
+  final SmartTileLayerVisualWorkCounts work;
+}
+
+typedef _SmartTilePatternOwner = ({
+  SmartTilePatternStroke stroke,
+  ProjectSmartTilePattern pattern,
+});
+
+/// Sparse, reusable ownership projection for pattern strokes in one layer.
+///
+/// Building it is map-load work. Passing it to every visible-frame resolution
+/// prevents navigation from rescanning all persisted stroke cells.
+final class SmartTilePatternOwnerIndex {
+  SmartTilePatternOwnerIndex._({
+    required this.layer,
+    required this.catalog,
+    required this.mapWidth,
+    required this.mapHeight,
+    required Map<int, _SmartTilePatternOwner> owners,
+    required Iterable<ProjectSmartTilePattern> patterns,
+  })  : _owners = Map<int, _SmartTilePatternOwner>.unmodifiable(owners),
+        _patterns = List<ProjectSmartTilePattern>.unmodifiable(patterns);
+
+  factory SmartTilePatternOwnerIndex.build({
+    required MapData map,
+    required SmartTileLayer layer,
+    required ProjectSmartTileCatalog catalog,
+  }) {
+    final patternsById = <String, ProjectSmartTilePattern>{
+      for (final pattern in catalog.patterns) pattern.id: pattern,
+    };
+    final owners = <int, _SmartTilePatternOwner>{};
+    final usedPatterns = <String, ProjectSmartTilePattern>{};
+    for (final stroke in layer.patternStrokes) {
+      final pattern = patternsById[stroke.patternId];
+      if (pattern == null || pattern.usage != layer.usage) continue;
+      usedPatterns[pattern.id] = pattern;
+      for (final cell in stroke.cells) {
+        if (cell.x < 0 ||
+            cell.y < 0 ||
+            cell.x >= map.size.width ||
+            cell.y >= map.size.height) {
+          continue;
+        }
+        owners[cell.y * map.size.width + cell.x] = (
+          stroke: stroke,
+          pattern: pattern,
+        );
+      }
+    }
+    return SmartTilePatternOwnerIndex._(
+      layer: layer,
+      catalog: catalog,
+      mapWidth: map.size.width,
+      mapHeight: map.size.height,
+      owners: owners,
+      patterns: usedPatterns.values,
+    );
+  }
+
+  final SmartTileLayer layer;
+  final ProjectSmartTileCatalog catalog;
+  final int mapWidth;
+  final int mapHeight;
+  final Map<int, _SmartTilePatternOwner> _owners;
+  final List<ProjectSmartTilePattern> _patterns;
+
+  int get entryCount => _owners.length;
+
+  bool _supports({
+    required MapData map,
+    required SmartTileLayer layer,
+    required ProjectSmartTileCatalog catalog,
+  }) =>
+      identical(this.layer, layer) &&
+      identical(this.catalog, catalog) &&
+      mapWidth == map.size.width &&
+      mapHeight == map.size.height;
+}
+
 /// Resolves a native map layer into renderer-neutral visual instructions.
 ///
 /// Editor and runtime both consume this operation, which guarantees identical
@@ -74,6 +191,48 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   double sourceCellWidth = 32,
   double sourceCellHeight = 32,
   SmartTileGeometryRect? viewportBounds,
+  SmartTilePatternOwnerIndex? patternOwnerIndex,
+}) =>
+    resolveSmartTileLayerVisualBatch(
+      map: map,
+      layer: layer,
+      catalog: catalog,
+      pass: pass,
+      projectSeed: projectSeed,
+      elapsedMs: elapsedMs,
+      startX: startX,
+      startY: startY,
+      endX: endX,
+      endY: endY,
+      destinationCellWidth: destinationCellWidth,
+      destinationCellHeight: destinationCellHeight,
+      sourceCellWidth: sourceCellWidth,
+      sourceCellHeight: sourceCellHeight,
+      viewportBounds: viewportBounds,
+      patternOwnerIndex: patternOwnerIndex,
+    ).visuals;
+
+/// Profiled form of [resolveSmartTileLayerVisuals].
+///
+/// Rendering semantics and ordering are identical; only stable work counts
+/// are added for editor/runtime performance evidence.
+SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
+  required MapData map,
+  required SmartTileLayer layer,
+  required ProjectSmartTileCatalog catalog,
+  required SmartTileVisualPass pass,
+  int projectSeed = 0,
+  int elapsedMs = 0,
+  int startX = 0,
+  int startY = 0,
+  int? endX,
+  int? endY,
+  double destinationCellWidth = 1,
+  double destinationCellHeight = 1,
+  double sourceCellWidth = 32,
+  double sourceCellHeight = 32,
+  SmartTileGeometryRect? viewportBounds,
+  SmartTilePatternOwnerIndex? patternOwnerIndex,
 }) {
   ProjectSmartTilePreset? preset;
   for (final candidate in catalog.presets) {
@@ -83,13 +242,13 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     }
   }
   if (preset == null || preset.usage != layer.usage) {
-    return const <SmartTileLayerVisual>[];
+    return const SmartTileLayerVisualBatch.empty();
   }
   if (destinationCellWidth <= 0 ||
       destinationCellHeight <= 0 ||
       sourceCellWidth <= 0 ||
       sourceCellHeight <= 0) {
-    return const <SmartTileLayerVisual>[];
+    return const SmartTileLayerVisualBatch.empty();
   }
 
   final atlases = <String, ProjectSmartTileAtlas>{
@@ -101,22 +260,29 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
   final patterns = <String, ProjectSmartTilePattern>{
     for (final pattern in catalog.patterns) pattern.id: pattern,
   };
-  final patternOwners = <int,
-      ({SmartTilePatternStroke stroke, ProjectSmartTilePattern pattern})>{};
-  for (final stroke in layer.patternStrokes) {
-    final pattern = patterns[stroke.patternId];
-    if (pattern == null || pattern.usage != layer.usage) continue;
-    for (final cell in stroke.cells) {
-      if (cell.x < 0 ||
-          cell.y < 0 ||
-          cell.x >= map.size.width ||
-          cell.y >= map.size.height) {
-        continue;
+  final reusablePatternIndex = patternOwnerIndex != null &&
+      patternOwnerIndex._supports(map: map, layer: layer, catalog: catalog);
+  final patternOwners = reusablePatternIndex
+      ? patternOwnerIndex._owners
+      : <int, _SmartTilePatternOwner>{};
+  var patternStrokeCellVisits = 0;
+  if (!reusablePatternIndex) {
+    for (final stroke in layer.patternStrokes) {
+      final pattern = patterns[stroke.patternId];
+      if (pattern == null || pattern.usage != layer.usage) continue;
+      for (final cell in stroke.cells) {
+        patternStrokeCellVisits += 1;
+        if (cell.x < 0 ||
+            cell.y < 0 ||
+            cell.x >= map.size.width ||
+            cell.y >= map.size.height) {
+          continue;
+        }
+        patternOwners[cell.y * map.size.width + cell.x] = (
+          stroke: stroke,
+          pattern: pattern,
+        );
       }
-      patternOwners[cell.y * map.size.width + cell.x] = (
-        stroke: stroke,
-        pattern: pattern,
-      );
     }
   }
   final visuals = <SmartTileLayerVisual>[];
@@ -148,7 +314,9 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     mapWidth: map.size.width,
     mapHeight: map.size.height,
     preset: preset,
-    patterns: patternOwners.values.map((owner) => owner.pattern),
+    patterns: reusablePatternIndex
+        ? patternOwnerIndex._patterns
+        : patternOwners.values.map((owner) => owner.pattern),
     pass: pass,
     atlases: atlases,
     animations: animations,
@@ -158,8 +326,10 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     sourceCellHeight: sourceCellHeight,
     viewport: requestedViewport,
   );
+  var ownerCellVisits = 0;
   for (var y = scan.startY; y < scan.endY; y++) {
     for (var x = scan.startX; x < scan.endX; x++) {
+      ownerCellVisits += 1;
       final context = smartTileCellContextForLayerCell(
         layer: layer,
         map: map,
@@ -352,7 +522,16 @@ List<SmartTileLayerVisual> resolveSmartTileLayerVisuals({
     if (y != 0) return y;
     return a.cellX.compareTo(b.cellX);
   });
-  return List<SmartTileLayerVisual>.unmodifiable(visuals);
+  return SmartTileLayerVisualBatch(
+    visuals: visuals,
+    work: SmartTileLayerVisualWorkCounts(
+      requestedCellCount:
+          (requestedEndX - requestedStartX) * (requestedEndY - requestedStartY),
+      ownerCellVisits: ownerCellVisits,
+      patternStrokeCellVisits: patternStrokeCellVisits,
+      resolvedVisualCount: visuals.length,
+    ),
+  );
 }
 
 /// Expands a viewport to every owner cell whose visual could intersect it.

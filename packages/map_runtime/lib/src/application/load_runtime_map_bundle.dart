@@ -10,6 +10,37 @@ import 'runtime_manifest_tilesets.dart';
 import 'runtime_map_bundle.dart';
 import '../border/border_runtime_readiness.dart';
 
+@immutable
+final class RuntimeMapBundleLoadProfile {
+  const RuntimeMapBundleLoadProfile({
+    required this.usedPreloadedManifest,
+    required this.manifestLoadMicroseconds,
+    required this.mapLoadMicroseconds,
+    required this.assetCatalogLoadMicroseconds,
+    required this.tilesetResolutionMicroseconds,
+    required this.borderPreparationMicroseconds,
+    required this.totalMicroseconds,
+    required this.mapCellCount,
+    required this.mapLayerCount,
+    required this.resolvedTilesetPathCount,
+  });
+
+  final bool usedPreloadedManifest;
+  final int manifestLoadMicroseconds;
+  final int mapLoadMicroseconds;
+  final int assetCatalogLoadMicroseconds;
+  final int tilesetResolutionMicroseconds;
+  final int borderPreparationMicroseconds;
+  final int totalMicroseconds;
+  final int mapCellCount;
+  final int mapLayerCount;
+  final int resolvedTilesetPathCount;
+}
+
+typedef RuntimeMapBundleLoadProfileSink = void Function(
+  RuntimeMapBundleLoadProfile profile,
+);
+
 void _runtimeLoaderLog(String message) {
   debugPrint('[runtime_loader] $message');
 }
@@ -181,12 +212,22 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   required String projectFilePath,
   required String mapId,
   ProjectManifest? preloadedManifest,
+  RuntimeMapBundleLoadProfileSink? profileSink,
 }) async {
+  final totalWatch = Stopwatch()..start();
   _runtimeLoaderLog(
     'bundle load start projectFilePath=$projectFilePath mapId=$mapId',
   );
-  final manifest =
-      preloadedManifest ?? await loadProjectManifestFromFile(projectFilePath);
+  var manifestLoadMicroseconds = 0;
+  late final ProjectManifest manifest;
+  if (preloadedManifest == null) {
+    final watch = Stopwatch()..start();
+    manifest = await loadProjectManifestFromFile(projectFilePath);
+    watch.stop();
+    manifestLoadMicroseconds = watch.elapsedMicroseconds;
+  } else {
+    manifest = preloadedManifest;
+  }
   final entry = projectMapEntryForId(manifest, mapId);
   if (entry == null) {
     _runtimeLoaderLog(
@@ -203,11 +244,16 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   final mapPath = p.normalize(p.join(projectRoot, rel));
   _runtimeLoaderLog(
       'bundle map resolved mapId=$mapId relativePath=$rel mapPath=$mapPath');
+  final mapWatch = Stopwatch()..start();
   final map = await loadMapDataFromFile(
     mapPath,
     projectDialogueContext: manifest,
   );
+  mapWatch.stop();
+  final assetCatalogWatch = Stopwatch()..start();
   final assetCatalog = await _loadRuntimeAssetCatalog(projectRoot);
+  assetCatalogWatch.stop();
+  final tilesetWatch = Stopwatch()..start();
   final tilesetIds = collectAllRuntimeTilesetIds(map, manifest);
   _runtimeLoaderLog('bundle tilesets collected ids=${tilesetIds.join(',')}');
   final paths = resolveTilesetAbsolutePaths(
@@ -216,6 +262,7 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     tilesetIds: tilesetIds,
     assetCatalog: assetCatalog,
   );
+  tilesetWatch.stop();
   for (final entry in paths.entries) {
     _runtimeLoaderLog(
         'bundle tileset path id=${entry.key} path=${entry.value}');
@@ -223,7 +270,8 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   _runtimeLoaderLog(
     'bundle load ok mapId=${map.id} projectRoot=$projectRoot tilesets=${paths.length}',
   );
-  return prepareBorderRuntimeBundle(
+  final borderWatch = Stopwatch()..start();
+  final bundle = await prepareBorderRuntimeBundle(
     RuntimeMapBundle(
       manifest: manifest,
       map: map,
@@ -231,4 +279,21 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
       tilesetAbsolutePathsById: paths,
     ),
   );
+  borderWatch.stop();
+  totalWatch.stop();
+  profileSink?.call(
+    RuntimeMapBundleLoadProfile(
+      usedPreloadedManifest: preloadedManifest != null,
+      manifestLoadMicroseconds: manifestLoadMicroseconds,
+      mapLoadMicroseconds: mapWatch.elapsedMicroseconds,
+      assetCatalogLoadMicroseconds: assetCatalogWatch.elapsedMicroseconds,
+      tilesetResolutionMicroseconds: tilesetWatch.elapsedMicroseconds,
+      borderPreparationMicroseconds: borderWatch.elapsedMicroseconds,
+      totalMicroseconds: totalWatch.elapsedMicroseconds,
+      mapCellCount: map.size.width * map.size.height,
+      mapLayerCount: map.layers.length,
+      resolvedTilesetPathCount: paths.length,
+    ),
+  );
+  return bundle;
 }

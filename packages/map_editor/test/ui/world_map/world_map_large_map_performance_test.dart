@@ -17,6 +17,8 @@ import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
+import '../../../../../tools/performance/smart_tiles_rich_map_fixture.dart';
+
 void main() {
   group('resolveEditorMapVisibleCellBounds', () {
     test('uses half-open right and bottom edges with zero margin', () {
@@ -155,6 +157,8 @@ void main() {
           snapshot.visibleBounds.cellCount,
         );
         expect(snapshot.smartTileVisualVisits, isNonNegative);
+        expect(snapshot.smartTileOwnerCellVisits, isNonNegative);
+        expect(snapshot.smartTilePatternStrokeCellVisits, isNonNegative);
         expect(
           snapshot.placedElementPassVisits,
           lessThanOrEqualTo(snapshot.placedElementIds.length * 2),
@@ -388,8 +392,49 @@ void main() {
     expect(
         _boundsTuple(large.visibleBounds), _boundsTuple(small.visibleBounds));
     expect(large.smartTileVisualVisits, small.smartTileVisualVisits);
+    expect(
+      large.smartTileOwnerCellVisits,
+      small.smartTileOwnerCellVisits,
+    );
+    expect(large.smartTilePatternStrokeCellVisits, 0);
     expect(large.smartTileVisualVisits, large.visibleBounds.cellCount);
+    expect(
+      large.smartTileOwnerCellVisits,
+      lessThan(large.totalMapCellCount),
+    );
+    expect(
+      large.gridLineVisits,
+      lessThanOrEqualTo(
+        large.visibleBounds.width + large.visibleBounds.height + 2,
+      ),
+    );
     expect(large.smartTileVisualVisits, lessThan(large.totalMapCellCount));
+  });
+
+  test('rich object and pattern caches bound pan work at 1024²', () {
+    final small = _paintRichCullingFixture(mapExtent: 128);
+    final large = _paintRichCullingFixture(mapExtent: 1024);
+
+    expect(large.visibleBounds.cellCount, small.visibleBounds.cellCount);
+    expect(
+      large.smartTileOwnerCellVisits,
+      small.smartTileOwnerCellVisits,
+    );
+    expect(large.smartTilePatternStrokeCellVisits, 0);
+    expect(small.smartTilePatternStrokeCellVisits, 0);
+    expect(
+      large.objectTileCandidateVisits,
+      small.objectTileCandidateVisits,
+    );
+    expect(large.objectTileCandidateVisits, lessThanOrEqualTo(4));
+    expect(
+        large.objectTileSourceCount, greaterThan(small.objectTileSourceCount));
+    expect(large.objectVisualDefinitionCacheSize, lessThanOrEqualTo(4));
+    expect(large.objectSpatialBucketCount, greaterThan(0));
+    expect(
+      large.smartTilePatternIndexEntries,
+      lessThan(large.totalMapCellCount),
+    );
   });
 }
 
@@ -482,6 +527,35 @@ MapGridCullingDebugSnapshot _paintSmartTileCullingFixture({
     gameplayZones: const <MapGameplayZone>[],
     connectionLabelsByDirection: const <MapConnectionDirection, String>{},
     project: _smartTileProject,
+    showGrid: true,
+    showEditorOverlays: false,
+    debugOnCulling: (value) => snapshot = value,
+  ).paint(canvas, const Size(96, 96));
+  recorder.endRecording().dispose();
+  return snapshot!;
+}
+
+MapGridCullingDebugSnapshot _paintRichCullingFixture({
+  required int mapExtent,
+}) {
+  final fixture = generateSmartTilesRichMapFixture(extent: mapExtent);
+  MapGridCullingDebugSnapshot? snapshot;
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  MapGridPainter(
+    map: fixture.map,
+    zoom: 1,
+    offset: const Offset(-11 * 32, -11 * 32),
+    tileWidth: 32,
+    tileHeight: 32,
+    tilesetImagesById: const <String, ui.Image?>{},
+    sourceTileWidth: 32,
+    sourceTileHeight: 32,
+    tilesPerRowById: const <String, int>{},
+    warps: const <MapWarp>[],
+    gameplayZones: const <MapGameplayZone>[],
+    connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+    project: fixture.manifest,
     showGrid: false,
     showEditorOverlays: false,
     debugOnCulling: (value) => snapshot = value,
