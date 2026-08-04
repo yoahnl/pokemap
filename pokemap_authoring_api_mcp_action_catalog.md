@@ -1053,7 +1053,7 @@ smart_tile.preset.delete
 smart_tile.preset.draft.delete
 smart_tile.preset.draft.upsert
 smart_tile.preset.publish
-smart_tile.tiled_wang.import
+tileset.tiled.import
 ```
 
 Les champs `cell`, `edge`, `corner` et `mixed` sont peignables par geste
@@ -1073,8 +1073,10 @@ Les motifs multi-cellules sont des ressources `smartTilePattern` natives. Ils
 sont créés/supprimés avec `smart_tile.pattern.upsert`/`delete` et peints ou
 effacés atomiquement avec `smart_tile.pattern.paint`/`erase`.
 
-`smart_tile.tiled_wang.import` convertit un TSX/Wang fourni en texte vers le
-catalogue Smart Tiles natif. Tiled n'est ni lancé ni requis au runtime ; les
+`tileset.tiled.import` importe en une transaction l'image préalablement mise en
+scène, son tileset atlas régulier et les Wang Sets sélectionnés vers le catalogue
+Smart Tiles natif. Un clic, y compris depuis Smart Tiles Studio, produit un seul
+plan et un seul reçu récupérable. Tiled n'est ni lancé ni requis au runtime ; les
 usages PokeMap des Wang Sets restent des choix explicites de l'auteur.
 
 ### 13.2 Environnements

@@ -205,29 +205,46 @@ void main() {
       ]);
     });
 
-    test('imports Tiled Wang semantics byte-identically through JSONL',
+    test('imports Tiled tileset resources byte-identically through JSONL',
         () async {
       final direct = await _Harness.create('tiled_wang_direct');
       final jsonl = await _Harness.create('tiled_wang_jsonl');
       addTearDown(direct.dispose);
       addTearDown(jsonl.dispose);
-      const parameters = <String, Object?>{
+      final directArtifact = await direct.mutations.artifacts.put(
+        _pngBytes,
+        declaredMediaType: 'image/png',
+      );
+      final jsonlArtifact = await jsonl.mutations.artifacts.put(
+        _pngBytes,
+        declaredMediaType: 'image/png',
+      );
+      final parameters = <String, Object?>{
+        'artifactHandle': directArtifact.reference.handle,
+        'assetId': 'road-image',
+        'logicalPath': 'assets/road.png',
+        'tilesetId': 'road-tileset',
+        'displayName': 'Road',
         'tsx': _tiledWangTsx,
         'importId': 'road-import',
-        'tilesetId': 'tileset',
         'selections': <Object?>[
           <String, Object?>{'wangSetIndex': 0, 'usage': 'path'},
         ],
+        'tags': <String>['tiled'],
+        'usages': <String>['smart-tiles-studio'],
       };
 
       final directApplied = await direct.applyDirectAction(
-        actionId: 'smart_tile.tiled_wang.import',
+        actionId: 'tileset.tiled.import',
         parameters: parameters,
         sequence: 'tiled-wang',
       );
       final jsonlApplied = await jsonl.applyJsonlAction(
-        actionId: 'smart_tile.tiled_wang.import',
-        parameters: parameters,
+        actionId: 'tileset.tiled.import',
+        parameters: <String, Object?>{
+          ...parameters,
+          'artifactHandle': jsonlArtifact.reference.handle,
+        },
         sequence: 'tiled-wang',
       );
 
@@ -247,6 +264,12 @@ void main() {
       expect(
         manifest.smartTileCatalog.presets.single.status,
         SmartTilePresetStatus.draft,
+      );
+      expect(
+        manifest.tilesets
+            .singleWhere((item) => item.id == 'road-tileset')
+            .source,
+        isA<ProjectRegularAtlasTilesetSource>(),
       );
     });
 

@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image/image.dart' as img;
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -134,36 +135,25 @@ Future<SmartTileTiledWangSource> loadSmartTileTiledWangSource(
   );
 }
 
-typedef SmartTileTiledWangImageImport = Future<SmartTileSourceImportResult>
-    Function({
-  required String projectRootPath,
-  required String sourcePath,
-  required String displayName,
-});
-
 final class SmartTileTiledWangImportResult {
   SmartTileTiledWangImportResult({
     required this.manifest,
     required Iterable<String> presetIds,
+    required this.receiptId,
   }) : presetIds = List<String>.unmodifiable(presetIds);
 
   final ProjectManifest manifest;
   final List<String> presetIds;
+  final String receiptId;
 }
 
-/// Editor orchestration for the two canonical import boundaries.
-///
-/// The external image is first staged into the project asset store. The TSX
-/// semantics are then compiled and committed by `smart_tile.tiled_wang.import`.
+/// Editor orchestration for the single canonical Tiled import boundary.
 final class SmartTileTiledWangImportService {
   const SmartTileTiledWangImportService({
     required SmartTileSourceAssetGateway gateway,
-    required SmartTileTiledWangImageImport importImage,
-  })  : _gateway = gateway,
-        _importImage = importImage;
+  }) : _gateway = gateway;
 
   final SmartTileSourceAssetGateway _gateway;
-  final SmartTileTiledWangImageImport _importImage;
 
   Future<SmartTileTiledWangImportResult> import({
     required String projectRootPath,
@@ -185,22 +175,24 @@ final class SmartTileTiledWangImportService {
       );
     }
 
-    final imageImport = await _importImage(
+    final staged = await _gateway.stageExactFile(
       projectRootPath: projectRootPath,
       sourcePath: source.imagePath,
-      displayName: p.basename(source.imagePath),
     );
-    if (imageImport.image.width != source.document.imageWidth ||
-        imageImport.image.height != source.document.imageHeight) {
+    if (!staged.mediaType.startsWith('image/')) {
       throw const SmartTileTiledWangImportServiceException(
-        'smart_tile.tiled_wang.image_dimensions_mismatch',
-        'Les dimensions réelles de l’image ne correspondent pas au TSX.',
+        'smart_tile.tiled_wang.image_media_type_invalid',
+        'L’atlas référencé par le TSX doit être une image reconnue.',
       );
     }
+    final suffix = staged.hexDigest.substring(0, 16);
+    final assetId = 'smart-tile-image-$suffix';
+    final tilesetId = 'smart-tile-tileset-$suffix';
+    final logicalPath = assetBlobStorageKey(staged);
     final expected = compileTiledWangImport(
       document: source.document,
       importId: source.importId,
-      tilesetId: imageImport.tileset.id,
+      tilesetId: tilesetId,
       selections: selected,
     );
     final before = await _gateway.load(projectRootPath: projectRootPath);
@@ -214,26 +206,32 @@ final class SmartTileTiledWangImportService {
     final fingerprint = sha256
         .convert(
           utf8.encode(
-            '${source.importId}|${imageImport.tileset.id}|'
+            '${source.importId}|$tilesetId|${staged.digest}|'
             '${jsonEncode(selectionJson)}',
           ),
         )
         .toString()
         .substring(0, 20);
-    final appliedRevision = await _gateway.apply(
+    final applied = await _gateway.apply(
       projectRootPath: projectRootPath,
-      actionId: 'smart_tile.tiled_wang.import',
+      actionId: 'tileset.tiled.import',
       parameters: <String, Object?>{
+        'artifactHandle': staged.handle,
+        'assetId': assetId,
+        'logicalPath': logicalPath,
+        'tilesetId': tilesetId,
+        'displayName': source.document.name,
         'tsx': source.tsx,
         'importId': source.importId,
-        'tilesetId': imageImport.tileset.id,
         'selections': selectionJson,
+        'tags': const <String>['smart-tile-source', 'tiled'],
+        'usages': const <String>['smart-tiles-studio'],
       },
       expectedRevision: before.revision,
-      idempotencyKey: 'smart-tile-tiled-wang-$fingerprint',
+      idempotencyKey: 'smart-tile-tiled-import-$fingerprint',
     );
     final canonical = await _gateway.load(projectRootPath: projectRootPath);
-    if (canonical.revision != appliedRevision) {
+    if (canonical.revision != applied.revision) {
       throw const SmartTileTiledWangImportServiceException(
         'smart_tile.tiled_wang.snapshot_stale',
         'Le snapshot canonique après import TSX/Wang est obsolète.',
@@ -248,6 +246,7 @@ final class SmartTileTiledWangImportService {
     return SmartTileTiledWangImportResult(
       manifest: canonical.manifest,
       presetIds: expected.presets.map((preset) => preset.id),
+      receiptId: applied.receiptId,
     );
   }
 }

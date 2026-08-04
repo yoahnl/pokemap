@@ -1,13 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
+import 'package:map_editor/src/application/authoring_api/authoring_mutation_adapter.dart';
+import 'package:map_editor/src/application/authoring_api/authoring_query_adapter.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_source_asset_import_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_tiled_wang_import_service.dart';
+import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -99,7 +101,7 @@ void main() {
     );
   });
 
-  test('imports the image then applies one canonical Wang action', () async {
+  test('stages the image then applies one composite Tiled action', () async {
     final source = SmartTileTiledWangSource(
       tsxPath: '/outside/road.tsx',
       imagePath: '/outside/road.png',
@@ -111,19 +113,6 @@ void main() {
     final gateway = _Gateway();
     final service = SmartTileTiledWangImportService(
       gateway: gateway,
-      importImage: ({
-        required String projectRootPath,
-        required String sourcePath,
-        required String displayName,
-      }) async {
-        expect(sourcePath, source.imagePath);
-        return SmartTileSourceImportResult(
-          manifest: gateway.manifest,
-          tileset: _tileset,
-          image: _image,
-          assetId: 'asset',
-        );
-      },
     );
 
     final result = await service.import(
@@ -137,17 +126,102 @@ void main() {
       ],
     );
 
-    expect(gateway.actionId, 'smart_tile.tiled_wang.import');
+    expect(gateway.stagedPaths, <String>[source.imagePath]);
+    expect(gateway.actionId, 'tileset.tiled.import');
     expect(gateway.parameters?['tsx'], _tsx);
     expect(gateway.parameters?['importId'], source.importId);
-    expect(gateway.parameters?['tilesetId'], _tileset.id);
+    expect(
+      gateway.parameters?['tilesetId'],
+      'smart-tile-tileset-${_pngReference.hexDigest.substring(0, 16)}',
+    );
+    expect(gateway.parameters?['artifactHandle'], _pngReference.handle);
     expect(gateway.parameters?['selections'], <Object?>[
       <String, Object?>{'wangSetIndex': 0, 'usage': 'path'},
     ]);
     expect(gateway.expectedRevision, 'revision-1');
     expect(result.presetIds, <String>['road-123456789abc-w0-preset']);
+    expect(result.receiptId, 'receipt-composite-tiled');
     expect(result.manifest.smartTileCatalog.presets.single.usage,
         SmartTileUsage.path);
+  });
+
+  test('executes one composite receipt through the real editor adapters',
+      () async {
+    final sandbox = await Directory.systemTemp.createTemp(
+      'pokemap_tiled_tileset_editor_',
+    );
+    final projectRoot = await Directory(
+      p.join(sandbox.path, 'project'),
+    ).create();
+    final externalRoot = await Directory(
+      p.join(sandbox.path, 'external'),
+    ).create();
+    final image = File(p.join(externalRoot.path, 'road.png'));
+    await image.writeAsBytes(img.encodePng(img.Image(width: 1, height: 1)));
+    final tsx = File(p.join(externalRoot.path, 'road.tsx'));
+    await tsx.writeAsString(_tsx);
+    const manifest = ProjectManifest(
+      name: 'Tiled editor integration',
+      version: ProjectVersion.v6,
+      maps: <ProjectMapEntry>[],
+      tilesets: <ProjectTilesetEntry>[],
+    );
+    await File(p.join(projectRoot.path, 'project.json')).writeAsString(
+      jsonEncode(manifest.toJson()),
+      flush: true,
+    );
+    const reader = EditorProjectFileReader();
+    final queries = AuthoringQueryAdapter(fileReader: reader);
+    final mutations = AuthoringMutationAdapter(
+      fileReader: reader,
+      queries: queries,
+      projectRoots: reader,
+    );
+    addTearDown(() async {
+      await mutations.closeAll();
+      await queries.closeAll();
+      if (await sandbox.exists()) await sandbox.delete(recursive: true);
+    });
+    final service = SmartTileTiledWangImportService(
+      gateway: CanonicalSmartTileSourceAssetGateway(
+        mutations: mutations,
+        queries: queries,
+      ),
+    );
+
+    final result = await service.import(
+      projectRootPath: projectRoot.path,
+      source: await loadSmartTileTiledWangSource(tsx.path),
+      selections: const <TiledWangSetSelection>[
+        TiledWangSetSelection(
+          wangSetIndex: 0,
+          usage: SmartTileUsage.path,
+        ),
+      ],
+    );
+
+    final receipt = mutations.lastAppliedReceipt!;
+    expect(receipt.actionId, 'tileset.tiled.import');
+    expect(result.receiptId, receipt.receiptId);
+    expect(receipt.diff.entries, hasLength(3));
+    expect(result.manifest.tilesets, hasLength(1));
+    expect(result.manifest.tilesets.single.source,
+        isA<ProjectRegularAtlasTilesetSource>());
+    expect(result.manifest.smartTileCatalog.presets.single.usage,
+        SmartTileUsage.path);
+    expect(
+      await File(p.join(projectRoot.path, assetCatalogStorageKey)).exists(),
+      isTrue,
+    );
+    expect(
+      await File(
+        p.join(
+          projectRoot.path,
+          result.manifest.tilesets.single.relativePath,
+        ),
+      ).exists(),
+      isTrue,
+    );
   });
 
   test('rejects a stale snapshot after canonical Wang apply', () async {
@@ -162,17 +236,6 @@ void main() {
     final gateway = _Gateway(staleAfterApply: true);
     final service = SmartTileTiledWangImportService(
       gateway: gateway,
-      importImage: ({
-        required String projectRootPath,
-        required String sourcePath,
-        required String displayName,
-      }) async =>
-          SmartTileSourceImportResult(
-        manifest: gateway.manifest,
-        tileset: _tileset,
-        image: _image,
-        assetId: 'asset',
-      ),
     );
 
     expect(
@@ -205,15 +268,16 @@ final class _Gateway implements SmartTileSourceAssetGateway {
   String? actionId;
   Map<String, Object?>? parameters;
   String? expectedRevision;
+  final List<String> stagedPaths = <String>[];
   final ProjectManifest manifest = const ProjectManifest(
     name: 'Project',
     version: ProjectVersion.v6,
     maps: <ProjectMapEntry>[],
-    tilesets: <ProjectTilesetEntry>[_tileset],
+    tilesets: <ProjectTilesetEntry>[],
   );
 
   @override
-  Future<String> apply({
+  Future<SmartTileSourceApplyResult> apply({
     required String projectRootPath,
     required String actionId,
     required Map<String, Object?> parameters,
@@ -224,7 +288,10 @@ final class _Gateway implements SmartTileSourceAssetGateway {
     this.parameters = parameters;
     this.expectedRevision = expectedRevision;
     applied = true;
-    return 'revision-2';
+    return const SmartTileSourceApplyResult(
+      revision: 'revision-2',
+      receiptId: 'receipt-composite-tiled',
+    );
   }
 
   @override
@@ -251,9 +318,22 @@ final class _Gateway implements SmartTileSourceAssetGateway {
       tilesetId: parameters!['tilesetId']! as String,
       selections: selections,
     );
+    final tileset = ProjectTilesetEntry(
+      id: parameters!['tilesetId']! as String,
+      name: parameters!['displayName']! as String,
+      relativePath: parameters!['logicalPath']! as String,
+      source: ProjectRegularAtlasTilesetSource(
+        assetId: parameters!['assetId']! as String,
+        pixelWidth: 1,
+        pixelHeight: 1,
+        tileWidth: 1,
+        tileHeight: 1,
+      ),
+    );
     return SmartTileSourceCanonicalSnapshot(
       revision: 'revision-2',
       manifest: manifest.copyWith(
+        tilesets: <ProjectTilesetEntry>[tileset],
         smartTileCatalog: ProjectSmartTileCatalog(
           atlases: <ProjectSmartTileAtlas>[bundle.atlas],
           materials: bundle.materials,
@@ -268,23 +348,16 @@ final class _Gateway implements SmartTileSourceAssetGateway {
   Future<ContentArtifactRef> stageExactFile({
     required String projectRootPath,
     required String sourcePath,
-  }) =>
-      throw UnimplementedError();
+  }) async {
+    stagedPaths.add(sourcePath);
+    return _pngReference;
+  }
 }
 
-const _tileset = ProjectTilesetEntry(
-  id: 'tileset-road',
-  name: 'Road',
-  relativePath: 'assets/road.png',
-);
-
-final _image = SmartTileAtlasImage(
-  absolutePath: '/project/assets/road.png',
-  bytes: Uint8List(0),
-  width: 1,
-  height: 1,
-  columnAlphaCoverage: const <double>[1],
-  rowAlphaCoverage: const <double>[1],
+final _pngReference = ContentArtifactRef(
+  digest: 'sha256:${List<String>.filled(64, 'a').join()}',
+  mediaType: 'image/png',
+  byteLength: 128,
 );
 
 const _tsx = '''

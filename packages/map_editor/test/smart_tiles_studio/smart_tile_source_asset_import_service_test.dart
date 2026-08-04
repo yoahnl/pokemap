@@ -175,7 +175,7 @@ final class _FakeGateway implements SmartTileSourceAssetGateway {
   }
 
   @override
-  Future<String> apply({
+  Future<SmartTileSourceApplyResult> apply({
     required String projectRootPath,
     required String actionId,
     required Map<String, Object?> parameters,
@@ -191,7 +191,10 @@ final class _FakeGateway implements SmartTileSourceAssetGateway {
       );
       manifest = manifest.copyWith(tilesets: <ProjectTilesetEntry>[tileset]);
     }
-    return revision;
+    return SmartTileSourceApplyResult(
+      revision: revision,
+      receiptId: 'receipt-${actions.length}',
+    );
   }
 
   @override

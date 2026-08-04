@@ -15,13 +15,23 @@ final class SmartTileSourceCanonicalSnapshot {
   final ProjectManifest manifest;
 }
 
+final class SmartTileSourceApplyResult {
+  const SmartTileSourceApplyResult({
+    required this.revision,
+    required this.receiptId,
+  });
+
+  final String revision;
+  final String receiptId;
+}
+
 abstract interface class SmartTileSourceAssetGateway {
   Future<ContentArtifactRef> stageExactFile({
     required String projectRootPath,
     required String sourcePath,
   });
 
-  Future<String> apply({
+  Future<SmartTileSourceApplyResult> apply({
     required String projectRootPath,
     required String actionId,
     required Map<String, Object?> parameters,
@@ -58,7 +68,7 @@ final class CanonicalSmartTileSourceAssetGateway
   }
 
   @override
-  Future<String> apply({
+  Future<SmartTileSourceApplyResult> apply({
     required String projectRootPath,
     required String actionId,
     required Map<String, Object?> parameters,
@@ -77,7 +87,10 @@ final class CanonicalSmartTileSourceAssetGateway
       plan,
       operationId: '$idempotencyKey-apply',
     );
-    return applied.snapshotRevision;
+    return SmartTileSourceApplyResult(
+      revision: applied.snapshotRevision,
+      receiptId: applied.receipt.receiptId,
+    );
   }
 
   @override
@@ -150,7 +163,7 @@ final class SmartTileSourceAssetImportService {
     final tilesetId = 'smart-tile-tileset-$suffix';
     final logicalPath = assetBlobStorageKey(staged);
     final initial = await _gateway.load(projectRootPath: projectRootPath);
-    final assetRevision = await _gateway.apply(
+    final assetApply = await _gateway.apply(
       projectRootPath: projectRootPath,
       actionId: 'asset.import',
       parameters: <String, Object?>{
@@ -188,17 +201,17 @@ final class SmartTileSourceAssetImportService {
         tileHeight: 1,
       ),
     );
-    final tilesetRevision = await _gateway.apply(
+    final tilesetApply = await _gateway.apply(
       projectRootPath: projectRootPath,
       actionId: 'tileset.upsert',
       parameters: <String, Object?>{
         'tileset': canonicalTilesetDraft.toJson(),
       },
-      expectedRevision: assetRevision,
+      expectedRevision: assetApply.revision,
       idempotencyKey: 'smart-tile-source-tileset-${staged.hexDigest}',
     );
     final canonical = await _gateway.load(projectRootPath: projectRootPath);
-    if (canonical.revision != tilesetRevision) {
+    if (canonical.revision != tilesetApply.revision) {
       throw const SmartTileSourceImportException(
         'smart_tile.import_snapshot_stale',
         'Le snapshot canonique de l’image importée est obsolète.',

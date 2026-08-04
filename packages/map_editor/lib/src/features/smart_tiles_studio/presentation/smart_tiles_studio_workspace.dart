@@ -318,13 +318,8 @@ class _SmartTilesStudioWorkspaceState
       mutations: ref.read(authoringMutationAdapterProvider),
       queries: ref.read(authoringQueryAdapterProvider),
     );
-    final sourceImport = SmartTileSourceAssetImportService(
-      gateway: gateway,
-      imageLoader: const FileSmartTileAtlasImageLoader(),
-    );
     final service = SmartTileTiledWangImportService(
       gateway: gateway,
-      importImage: sourceImport.importImage,
     );
     final result = await service.import(
       projectRootPath: projectRootPath,

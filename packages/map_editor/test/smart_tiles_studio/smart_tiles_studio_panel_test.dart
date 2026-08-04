@@ -83,6 +83,7 @@ void main() {
           return SmartTileTiledWangImportResult(
             manifest: _manifest(),
             presetIds: const <String>['road-import-w0-preset'],
+            receiptId: 'receipt-tiled-import',
           );
         },
       );

@@ -120,18 +120,6 @@ final class SmartTileCatalogActions {
           'smartTileDraft',
         ],
       ),
-      _descriptor(
-        'smart_tile.tiled_wang.import',
-        'Import selected Tiled Wang sets into the native Smart Tile catalog',
-        resourceKinds: const <String>[
-          'project',
-          'asset',
-          'smartTileAtlas',
-          'smartTileMaterial',
-          'smartTileAnimation',
-          'smartTilePreset',
-        ],
-      ),
     ]..sort((left, right) => left.id.compareTo(right.id)),
   );
 
@@ -156,7 +144,6 @@ final class SmartTileCatalogActions {
       'smart_tile.preset.draft.delete' => _deleteDraft(planning),
       'smart_tile.preset.publish' => _publishPreset(planning),
       'smart_tile.preset.delete' => _deletePreset(planning),
-      'smart_tile.tiled_wang.import' => _importTiledWang(planning),
       _ => throw semanticFailure(
           'smart_tile.action_unsupported',
           'The requested Smart Tile catalog action is unsupported.',
@@ -165,94 +152,6 @@ final class SmartTileCatalogActions {
           },
         ),
     };
-  }
-
-  AuthoringMutationDraft _importTiledWang(
-    AuthoringPlanningContext planning,
-  ) {
-    final parameters = SemanticParameters(
-      planning.request.parameters,
-      allowed: const <String>{
-        'tsx',
-        'importId',
-        'tilesetId',
-        'selections',
-      },
-    );
-    final selections = <TiledWangSetSelection>[];
-    final rawSelections = parameters.list('selections');
-    for (var index = 0; index < rawSelections.length; index += 1) {
-      final raw = rawSelections[index];
-      if (raw is! Map || raw.keys.any((key) => key is! String)) {
-        throw semanticFailure(
-          'smart_tile.tiled_wang.selection_invalid',
-          'Every Wang Set selection must be a JSON object.',
-          details: <String, Object?>{'selectionIndex': index},
-        );
-      }
-      final selection = SemanticParameters(
-        Map<String, Object?>.from(raw),
-        allowed: const <String>{'wangSetIndex', 'usage'},
-      );
-      final usage = switch (selection.string('usage')) {
-        'terrain' => SmartTileUsage.terrain,
-        'path' => SmartTileUsage.path,
-        'forest_surface' => SmartTileUsage.forestSurface,
-        final unsupported => throw semanticFailure(
-            'smart_tile.tiled_wang.usage_invalid',
-            'The selected Wang Set usage is unsupported.',
-            details: <String, Object?>{
-              'selectionIndex': index,
-              'usage': unsupported,
-            },
-          ),
-      };
-      selections.add(
-        TiledWangSetSelection(
-          wangSetIndex: selection.integer('wangSetIndex'),
-          usage: usage,
-        ),
-      );
-    }
-
-    final rawTsx = parameters.value('tsx');
-    if (rawTsx is! String || rawTsx.trim().isEmpty) {
-      throw semanticFailure(
-        'smart_tile.tiled_wang.tsx_required',
-        'The Tiled Wang import requires a non-empty TSX document.',
-      );
-    }
-    final TiledWangImportBundle bundle;
-    try {
-      bundle = compileTiledWangImport(
-        document: parseTiledWangTileset(rawTsx),
-        importId: parameters.string('importId'),
-        tilesetId: parameters.string('tilesetId'),
-        selections: selections,
-      );
-    } on TiledWangImportException catch (error) {
-      throw semanticFailure(error.code, error.message);
-    }
-    final image = _atlasImageState(planning.snapshot, bundle.atlas);
-    final manifest = const TiledWangImportProjector().project(
-      planning.snapshot.manifest,
-      assets: image.assets,
-      imageBytes: image.bytes,
-      bundle: bundle,
-    );
-    return _manifestDraft(
-      planning,
-      manifest: manifest,
-      operation: 'smart_tile.tiled_wang.import',
-      path: '/smartTileCatalog/imports/${parameters.string('importId')}',
-      after: bundle.toJson(),
-      preview: <String, Object?>{
-        'atlasId': bundle.atlas.id,
-        'materialCount': bundle.materials.length,
-        'animationCount': bundle.animations.length,
-        'presetCount': bundle.presets.length,
-      },
-    );
   }
 
   AuthoringMutationDraft _upsertAtlas(AuthoringPlanningContext planning) {

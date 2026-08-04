@@ -1129,9 +1129,21 @@ test("MCP upserts and paints a reusable Smart Tile pattern", async () => {
   }
 });
 
-test("MCP imports Tiled Wang semantics through the canonical action", async () => {
-  const fixture = await mutationFixture({ withNativeSmartTileV5: true });
+test("MCP imports a Tiled tileset through one canonical receipt", async () => {
+  const fixture = await mutationFixture();
   try {
+    const sourcePath = join(fixture.root, "road.png");
+    await writeFile(
+      sourcePath,
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    );
+    const staged = await toolData(fixture.client, "pokemap_artifact_stage", {
+      sourcePath,
+      declaredMediaType: "image/png",
+    });
     const opened = await toolData(fixture.client, "pokemap_workspace", {
       operation: "open",
       projectRoot: fixture.root,
@@ -1143,18 +1155,24 @@ test("MCP imports Tiled Wang semantics through the canonical action", async () =
     const planned = await toolData(fixture.client, "pokemap_plan", {
       projectHandle,
       request: {
-        requestId: "tiled-wang-import",
-        actionId: "smart_tile.tiled_wang.import",
+        requestId: "tiled-tileset-import",
+        actionId: "tileset.tiled.import",
         actionVersion: 1,
         workspaceHandle: opened.workspaceHandle,
         parameters: {
+          artifactHandle: staged.artifactHandle,
+          assetId: "mcp-road-image",
+          logicalPath: "assets/mcp-road.png",
+          tilesetId: "mcp-road-tileset",
+          displayName: "MCP Road",
           tsx: tiledWangTsx,
           importId: "mcp-road",
-          tilesetId: "smart_tileset",
           selections: [{ wangSetIndex: 0, usage: "path" }],
+          tags: ["tiled"],
+          usages: ["smart-tiles-studio"],
         },
         expectedRevision: validated.snapshotRevision,
-        idempotencyKey: "idem-tiled-wang-import",
+        idempotencyKey: "idem-tiled-tileset-import",
         dryRun: false,
       },
     });
@@ -1162,18 +1180,34 @@ test("MCP imports Tiled Wang semantics through the canonical action", async () =
       operation: "apply",
       projectHandle,
       planId: planned.planId,
-      operationId: "operation-tiled-wang-import",
+      operationId: "operation-tiled-tileset-import",
     });
-    assert.equal(
-      record(applied.receipt).actionId,
-      "smart_tile.tiled_wang.import",
-    );
+    assert.equal(record(applied.receipt).actionId, "tileset.tiled.import");
     const persisted = record(
       JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
     );
+    const tilesets = persisted.tilesets as JsonRecord[];
+    const importedTileset = tilesets.find(
+      (tileset) => tileset.id === "mcp-road-tileset",
+    );
+    assert.ok(importedTileset);
+    assert.equal(record(importedTileset.source).kind, "regular_atlas");
     const catalog = record(persisted.smartTileCatalog);
     const presets = catalog.presets as JsonRecord[];
     assert.ok(presets.some((preset) => preset.id === "mcp-road-w0-preset"));
+    const assets = record(
+      JSON.parse(
+        await readFile(
+          join(fixture.root, "assets/.pokemap-assets.json"),
+          "utf8",
+        ),
+      ),
+    );
+    assert.ok(
+      (assets.records as JsonRecord[]).some(
+        (asset) => asset.id === "mcp-road-image",
+      ),
+    );
   } finally {
     await fixture.client.close();
     await fixture.server.close();
@@ -1268,10 +1302,11 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "smart_tile.preset.draft.upsert",
       "smart_tile.preset.delete",
       "smart_tile.preset.publish",
-      "smart_tile.tiled_wang.import",
+      "tileset.tiled.import",
     ]) {
       assert.ok(actionIds.includes(actionId), actionId);
     }
+    assert.equal(actionIds.includes("smart_tile.tiled_wang.import"), false);
     const paintAction = (described.mutationActions as JsonRecord[]).find(
       (action) => action.id === "smart_tile.cell.paint",
     );

@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('SmartTileCatalogActions', () {
-    test('advertises the eleven canonical catalog mutations', () {
+    test('advertises the ten canonical catalog mutations', () {
       expect(
         SmartTileCatalogActions.descriptors.map((item) => item.id),
         <String>[
@@ -20,7 +20,6 @@ void main() {
           'smart_tile.preset.draft.delete',
           'smart_tile.preset.draft.upsert',
           'smart_tile.preset.publish',
-          'smart_tile.tiled_wang.import',
         ],
       );
       for (final descriptor in SmartTileCatalogActions.descriptors) {
@@ -31,77 +30,6 @@ void main() {
         );
         expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
       }
-    });
-
-    test('imports a TSX Wang set as one atomic native catalog change', () {
-      final fixture = _fixture();
-
-      final draft = const SmartTileCatalogActions().build(
-        _context(
-          fixture,
-          actionId: 'smart_tile.tiled_wang.import',
-          parameters: const <String, Object?>{
-            'tsx': _importTsx,
-            'importId': 'tiled-road',
-            'tilesetId': 'tileset',
-            'selections': <Object?>[
-              <String, Object?>{'wangSetIndex': 0, 'usage': 'path'},
-            ],
-          },
-        ),
-      );
-
-      expect(draft.changeSet.changes, hasLength(1));
-      expect(draft.preview['operation'], 'smart_tile.tiled_wang.import');
-      expect(draft.preview['presetCount'], 1);
-      final projectedManifest = ProjectManifest.fromJson(
-        jsonDecode(
-          utf8.decode(draft.changeSet.changes.single.afterBytes!),
-        ) as Map<String, dynamic>,
-      );
-      final catalog = projectedManifest.smartTileCatalog;
-      expect(
-          catalog.atlases.map((item) => item.id), contains('tiled-road-atlas'));
-      expect(catalog.materials.map((item) => item.id),
-          contains('tiled-road-w0-material-1'));
-      expect(catalog.presets.map((item) => item.id),
-          contains('tiled-road-w0-preset'));
-      expect(
-        catalog.presets
-            .singleWhere((item) => item.id == 'tiled-road-w0-preset')
-            .status,
-        SmartTilePresetStatus.draft,
-      );
-    });
-
-    test('refuses an import that would silently replace catalog resources', () {
-      final fixture = _fixture(
-        preset: _preset().copyWith(id: 'tiled-road-w0-preset'),
-      );
-
-      expect(
-        () => const SmartTileCatalogActions().build(
-          _context(
-            fixture,
-            actionId: 'smart_tile.tiled_wang.import',
-            parameters: const <String, Object?>{
-              'tsx': _importTsx,
-              'importId': 'tiled-road',
-              'tilesetId': 'tileset',
-              'selections': <Object?>[
-                <String, Object?>{'wangSetIndex': 0, 'usage': 'terrain'},
-              ],
-            },
-          ),
-        ),
-        throwsA(
-          isA<MapAuthoringException>().having(
-            (error) => error.code,
-            'code',
-            'smart_tile.tiled_wang.id_conflict',
-          ),
-        ),
-      );
     });
 
     test('rejects atlas geometry outside the decoded source image', () {
@@ -648,15 +576,3 @@ final List<int> _pngBytes = base64Decode(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+'
   'A8AAQUBAScY42YAAAAASUVORK5CYII=',
 );
-
-const _importTsx = '''
-<tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
-  <image source="road.png" width="1" height="1"/>
-  <wangsets>
-    <wangset name="Road" type="edge" tile="-1">
-      <wangcolor name="Road" color="#c8a162" tile="0" probability="1"/>
-      <wangtile tileid="0" wangid="1,0,1,0,1,0,1,0"/>
-    </wangset>
-  </wangsets>
-</tileset>
-''';
