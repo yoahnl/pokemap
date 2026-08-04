@@ -853,7 +853,7 @@ test("MCP rejects generic operations for Smart Tile layer creation", async () =>
   }
 });
 
-test("MCP paints every lattice of a mixed Wang Smart Tile gesture", async () => {
+test("MCP paints every lattice from a geometric Wang selection", async () => {
   const fixture = await mutationFixture({ withNativeSmartTileV5: "mixed" });
   try {
     const opened = await toolData(fixture.client, "pokemap_workspace", {
@@ -875,7 +875,11 @@ test("MCP paints every lattice of a mixed Wang Smart Tile gesture", async () => 
           mapId: "native_v5",
           layerId: "smart",
           materialId: "road",
-          cells: [{ x: 0, y: 0 }],
+          selection: {
+            kind: "line",
+            start: { x: 0, y: 0 },
+            end: { x: 0, y: 0 },
+          },
         },
         expectedRevision: before.snapshotRevision,
         idempotencyKey: "idem-native-v5-mixed-paint",
@@ -1085,6 +1089,16 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     ]) {
       assert.ok(actionIds.includes(actionId), actionId);
     }
+    const paintAction = (described.mutationActions as JsonRecord[]).find(
+      (action) => action.id === "smart_tile.cell.paint",
+    );
+    assert.ok(paintAction);
+    assert.deepEqual(record(paintAction.extensions).supportedSelections, [
+      "cells",
+      "line",
+      "rectangle",
+      "floodFill",
+    ]);
     const resourceKindIds = (described.resourceKinds as JsonRecord[]).map(
       (resource) => resource.id,
     );

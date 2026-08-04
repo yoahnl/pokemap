@@ -11,6 +11,7 @@ import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_smart_tile_gesture_mode.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
@@ -212,6 +213,109 @@ void main() {
       final undone = container.read(editorNotifierProvider);
       expect(undone.activeMap, _activeMap);
       expect(undone.isDirty, isFalse);
+    });
+
+    testWidgets(
+        'Smart Tile rectangle previews without mutation then commits once',
+        (tester) async {
+      final project = ProjectManifest(
+        name: 'Smart Tile shape project',
+        version: ProjectVersion.v6,
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        smartTileCatalog: ProjectSmartTileCatalog(
+          materials: const <ProjectSmartTileMaterial>[
+            ProjectSmartTileMaterial(
+              id: 'grass',
+              name: 'Grass',
+              connectionGroupId: 'ground',
+            ),
+            ProjectSmartTileMaterial(
+              id: 'water',
+              name: 'Water',
+              connectionGroupId: 'water',
+            ),
+          ],
+          presets: const <ProjectSmartTilePreset>[
+            ProjectSmartTilePreset(
+              id: 'ground',
+              name: 'Ground',
+              usage: SmartTileUsage.terrain,
+              topology: SmartTileTopology.uniform,
+              status: SmartTilePresetStatus.published,
+              coveragePolicy: SmartTileCoveragePolicy.complete,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
+              defaultMaterialId: 'grass',
+              allowedMaterialIds: <String>['grass', 'water'],
+            ),
+          ],
+        ),
+      );
+      const layer = MapLayer.smartTile(
+        id: 'ground',
+        name: 'Ground',
+        presetId: 'ground',
+        usage: SmartTileUsage.terrain,
+        materialPalette: <String>['', 'grass', 'water'],
+        field: SmartTileField.cell(
+          semanticCells: <int>[0, 0, 0, 0, 0, 0, 0, 0],
+        ),
+      );
+      const map = MapData(
+        id: 'map',
+        name: 'Map',
+        version: ProjectVersion.v6,
+        size: GridSize(width: 4, height: 2),
+        layers: <MapLayer>[layer],
+      );
+      final container = _createContainer();
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: project,
+        activeMap: map,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.terrainPaint,
+        savedMapSnapshot: map,
+      );
+      container
+          .read(worldMapSmartTileGestureModeProvider.notifier)
+          .select(WorldMapSmartTileGestureMode.rectangle);
+      container
+          .read(worldMapSmartTileMaterialIdProvider.notifier)
+          .select('water');
+
+      await _pumpCanvas(tester, container);
+      final canvas = tester.getRect(find.byType(MapCanvas));
+      final gesture = await tester.startGesture(
+        canvas.topLeft + const Offset(16, 16),
+        kind: ui.PointerDeviceKind.mouse,
+      );
+      await gesture.moveBy(const Offset(68, 34));
+      await tester.pump();
+
+      expect(
+        smartTileSemanticCells(
+          container.read(editorNotifierProvider).activeMap!.layers.single
+              as SmartTileLayer,
+        ),
+        <int>[0, 0, 0, 0, 0, 0, 0, 0],
+        reason: 'Dragging only updates the preview.',
+      );
+
+      await gesture.up();
+      await tester.pump();
+
+      final committed = container.read(editorNotifierProvider);
+      expect(
+        smartTileSemanticCells(
+          committed.activeMap!.layers.single as SmartTileLayer,
+        ),
+        <int>[2, 2, 2, 0, 2, 2, 2, 0],
+      );
+      expect(committed.mapStrokeStart, isNull);
+      expect(committed.mapUndoStack, hasLength(1));
     });
 
     testWidgets(

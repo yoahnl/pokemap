@@ -13,7 +13,7 @@ import 'smart_tile_native_transition_guard.dart';
 final class SmartTileCellActions {
   const SmartTileCellActions();
 
-  static const int maximumCellsPerGesture = 4096;
+  static const int maximumCellsPerGesture = smartTileMaximumCellsPerGesture;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     _descriptor(
@@ -47,8 +47,8 @@ final class SmartTileCellActions {
     final context = SemanticMapActionContext.read(
       planning,
       allowedParameters: erase
-          ? const <String>{'layerId', 'cells'}
-          : const <String>{'layerId', 'materialId', 'cells'},
+          ? const <String>{'layerId', 'cells', 'selection'}
+          : const <String>{'layerId', 'materialId', 'cells', 'selection'},
     );
     final operation = erase ? 'smart_tile.cell.erase' : 'smart_tile.cell.paint';
     final layerId = context.parameters.string('layerId');
@@ -59,10 +59,12 @@ final class SmartTileCellActions {
     );
     final layer = _layer(context.map, layerId);
 
-    final cells = _cells(
-      context.parameters.list('cells'),
+    final gesture = _gestureCells(
+      context.parameters,
+      layer: layer,
       mapSize: context.map.size,
     );
+    final cells = gesture.cells;
     final materialId = erase ? null : context.parameters.string('materialId');
     final preset = _preset(context.manifest, layer.presetId);
     if (materialId != null) {
@@ -107,6 +109,7 @@ final class SmartTileCellActions {
           'topology': preset.topology.name,
           'fieldKind': _fieldKind(layer.field),
           'materialId': materialId,
+          'gestureSelection': gesture.selectionKind,
           'gestureCellCount': cells.length,
           'cells': <Map<String, int>>[
             for (final cell in cells) <String, int>{'x': cell.x, 'y': cell.y},
@@ -149,6 +152,12 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
         'rawTilesetRequired': false,
         'gestureAtomic': true,
         'cellFieldOnly': false,
+        'supportedSelections': <String>[
+          'cells',
+          'line',
+          'rectangle',
+          'floodFill',
+        ],
         'supportedFieldKinds': <String>['cell', 'edge', 'corner', 'mixed'],
       },
     );
@@ -208,6 +217,151 @@ void _requireAllowedMaterial({
       'Choose a material exposed by the published preset.',
     ],
   );
+}
+
+({List<({int x, int y})> cells, String selectionKind}) _gestureCells(
+  SemanticParameters parameters, {
+  required SmartTileLayer layer,
+  required GridSize mapSize,
+}) {
+  final hasCells = parameters.contains('cells');
+  final hasSelection = parameters.contains('selection');
+  if (hasCells == hasSelection) {
+    throw semanticFailure(
+      'smart_tile.cell.selection_invalid',
+      'Provide exactly one explicit cell list or geometric selection.',
+      details: <String, Object?>{
+        'hasCells': hasCells,
+        'hasSelection': hasSelection,
+      },
+    );
+  }
+  if (hasCells) {
+    return (
+      cells: _cells(parameters.list('cells'), mapSize: mapSize),
+      selectionKind: 'cells',
+    );
+  }
+
+  final raw = parameters.object('selection');
+  final kind = raw['kind'];
+  if (kind is! String || kind.trim() != kind || kind.isEmpty) {
+    throw invalidSemanticField('selection.kind', 'a supported shape');
+  }
+  final selection = switch (kind) {
+    'line' => () {
+        _requireSelectionKeys(raw, const <String>{'kind', 'start', 'end'});
+        return SmartTileGestureSelection.line(
+          start: _selectionCoordinate(
+            raw['start'],
+            field: 'selection.start',
+            mapSize: mapSize,
+          ),
+          end: _selectionCoordinate(
+            raw['end'],
+            field: 'selection.end',
+            mapSize: mapSize,
+          ),
+        );
+      }(),
+    'rectangle' => () {
+        _requireSelectionKeys(raw, const <String>{'kind', 'start', 'end'});
+        return SmartTileGestureSelection.rectangle(
+          start: _selectionCoordinate(
+            raw['start'],
+            field: 'selection.start',
+            mapSize: mapSize,
+          ),
+          end: _selectionCoordinate(
+            raw['end'],
+            field: 'selection.end',
+            mapSize: mapSize,
+          ),
+        );
+      }(),
+    'floodFill' => () {
+        _requireSelectionKeys(raw, const <String>{'kind', 'seed'});
+        return SmartTileGestureSelection.floodFill(
+          seed: _selectionCoordinate(
+            raw['seed'],
+            field: 'selection.seed',
+            mapSize: mapSize,
+          ),
+        );
+      }(),
+    _ => throw invalidSemanticField(
+        'selection.kind',
+        'line, rectangle, or floodFill',
+      ),
+  };
+  try {
+    final compiled = compileSmartTileGestureSelection(
+      layer,
+      mapSize: mapSize,
+      selection: selection,
+      maximumCellCount: SmartTileCellActions.maximumCellsPerGesture,
+    );
+    return (
+      cells: <({int x, int y})>[
+        for (final cell in compiled) (x: cell.x, y: cell.y),
+      ],
+      selectionKind: kind,
+    );
+  } on SmartTileGestureLimitException catch (error) {
+    throw semanticFailure(
+      'smart_tile.cell.gesture_too_large',
+      'The Smart Tile gesture exceeds the bounded cell limit.',
+      details: <String, Object?>{
+        'maximumCellCount': error.maximumCellCount,
+        'selectionKind': kind,
+      },
+    );
+  }
+}
+
+void _requireSelectionKeys(
+  Map<String, Object?> selection,
+  Set<String> expected,
+) {
+  final actual = selection.keys.toSet();
+  if (actual.length == expected.length && actual.containsAll(expected)) return;
+  throw invalidSemanticField(
+    'selection',
+    'exactly ${expected.toList()..sort()}',
+  );
+}
+
+GridPos _selectionCoordinate(
+  Object? raw, {
+  required String field,
+  required GridSize mapSize,
+}) {
+  if (raw is! Map || raw.keys.any((key) => key is! String)) {
+    throw invalidSemanticField(field, 'an {x, y} object');
+  }
+  final value = Map<String, Object?>.from(raw);
+  if (value.length != 2 || !value.containsKey('x') || !value.containsKey('y')) {
+    throw invalidSemanticField(field, 'exactly {x, y}');
+  }
+  final x = value['x'];
+  final y = value['y'];
+  if (x is! int || y is! int) {
+    throw invalidSemanticField(field, 'integer x and y values');
+  }
+  if (x < 0 || y < 0 || x >= mapSize.width || y >= mapSize.height) {
+    throw semanticFailure(
+      'smart_tile.cell.out_of_bounds',
+      'A Smart Tile gesture coordinate is outside the map.',
+      details: <String, Object?>{
+        'field': field,
+        'x': x,
+        'y': y,
+        'mapWidth': mapSize.width,
+        'mapHeight': mapSize.height,
+      },
+    );
+  }
+  return GridPos(x: x, y: y);
 }
 
 List<({int x, int y})> _cells(

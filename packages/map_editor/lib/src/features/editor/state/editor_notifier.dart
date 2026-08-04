@@ -174,12 +174,14 @@ final class _PendingSmartTileGesture {
     required this.layerId,
     required this.materialId,
     required this.rollbackState,
+    this.selection,
   });
 
   final String mapId;
   final String layerId;
   final String? materialId;
   final EditorState rollbackState;
+  final SmartTileGestureSelection? selection;
   final Set<GridPos> cells = <GridPos>{};
 }
 
@@ -5482,7 +5484,10 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  void paintActiveSmartTileAt(GridPos pos) {
+  void paintActiveSmartTileAt(
+    GridPos pos, {
+    String? materialId,
+  }) {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
     final project = state.project;
@@ -5506,12 +5511,99 @@ class EditorNotifier extends _$EditorNotifier
       _setPaintError('Smart Tile preset not found: ${layer.presetId}');
       return;
     }
-    paintSmartTileMaterialAt(pos, materialId: preset.defaultMaterialId);
+    final resolvedMaterialId = materialId ?? preset.defaultMaterialId;
+    if (!preset.allowedMaterialIds.contains(resolvedMaterialId)) {
+      _setPaintError(
+        'Smart Tile material is not allowed: $resolvedMaterialId',
+      );
+      return;
+    }
+    paintSmartTileMaterialAt(pos, materialId: resolvedMaterialId);
   }
 
   void paintSmartTileMaterialAt(
     GridPos pos, {
     required String? materialId,
+  }) {
+    _paintSmartTileMaterialCells(
+      <GridPos>[pos],
+      materialId: materialId,
+      partOfStroke: true,
+    );
+  }
+
+  /// Applies one previewed no-code shape as one canonical undo boundary.
+  void applyActiveSmartTileSelection(
+    SmartTileGestureSelection selection, {
+    String? materialId,
+  }) {
+    final map = state.activeMap;
+    final layerId = state.activeLayerId;
+    final project = state.project;
+    if (map == null || layerId == null || project == null) {
+      _setPaintError('No active Smart Tile layer selected');
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! SmartTileLayer) {
+      _setPaintError('Active layer is not a Smart Tile layer');
+      return;
+    }
+    ProjectSmartTilePreset? preset;
+    for (final candidate in project.smartTileCatalog.presets) {
+      if (candidate.id == activeLayer.presetId) {
+        preset = candidate;
+        break;
+      }
+    }
+    if (preset == null) {
+      _setPaintError('Smart Tile preset not found: ${activeLayer.presetId}');
+      return;
+    }
+    final resolvedMaterialId = switch (state.activeTool) {
+      EditorToolType.terrainPaint => materialId ?? preset.defaultMaterialId,
+      EditorToolType.eraser => null,
+      _ => null,
+    };
+    if (state.activeTool != EditorToolType.terrainPaint &&
+        state.activeTool != EditorToolType.eraser) {
+      _setPaintError(
+          'Choose Smart Tile paint or erase before applying a shape');
+      return;
+    }
+    if (resolvedMaterialId != null &&
+        !preset.allowedMaterialIds.contains(resolvedMaterialId)) {
+      _setPaintError(
+        'Smart Tile material is not allowed: $resolvedMaterialId',
+      );
+      return;
+    }
+    try {
+      final cells = compileSmartTileGestureSelection(
+        activeLayer,
+        mapSize: map.size,
+        selection: selection,
+      );
+      _paintSmartTileMaterialCells(
+        cells,
+        materialId: resolvedMaterialId,
+        partOfStroke: false,
+        selection: selection,
+      );
+    } on SmartTileGestureLimitException catch (error) {
+      _setPaintError(
+        'La forme dépasse la limite de ${error.maximumCellCount} cellules.',
+      );
+    } catch (error) {
+      _setPaintError('Impossible de préparer la forme Smart Tile : $error');
+    }
+  }
+
+  void _paintSmartTileMaterialCells(
+    Iterable<GridPos> cells, {
+    required String? materialId,
+    required bool partOfStroke,
+    SmartTileGestureSelection? selection,
   }) {
     final map = state.activeMap;
     final layerId = state.activeLayerId;
@@ -5524,6 +5616,8 @@ class EditorNotifier extends _$EditorNotifier
       _setPaintError('Active layer is not a Smart Tile layer');
       return;
     }
+    final selectedCells = cells.toSet().toList(growable: false);
+    if (selectedCells.isEmpty) return;
     if (state.projectRootPath != null &&
         (_smartTileGestureCommitInProgress ||
             _smartTileCanonicalRecoveryRequired ||
@@ -5541,7 +5635,7 @@ class EditorNotifier extends _$EditorNotifier
       final paintedLayer = applySmartTileMaterialGesture(
         activeLayer,
         mapSize: map.size,
-        cells: <GridPos>[pos],
+        cells: selectedCells,
         materialId: materialId,
       );
       if (paintedLayer == activeLayer) {
@@ -5558,16 +5652,17 @@ class EditorNotifier extends _$EditorNotifier
         updatedMap: updated,
         preferredActiveLayerId: layerId,
         statusMessage: materialId == null || materialId.trim().isEmpty
-            ? 'Smart Tile cell erased'
-            : 'Smart Tile material painted',
-        partOfStroke: true,
+            ? '${selectedCells.length} cellule(s) Smart Tile effacée(s)'
+            : '${selectedCells.length} cellule(s) Smart Tile peinte(s)',
+        partOfStroke: partOfStroke,
       );
       _recordSmartTileGesture(
         mapId: map.id,
         layerId: layerId,
         materialId: materialId,
-        cells: <GridPos>[pos],
-        commitImmediately: state.mapStrokeStart == null,
+        cells: selectedCells,
+        commitImmediately: !partOfStroke || state.mapStrokeStart == null,
+        selection: selection,
       );
     } catch (e) {
       _setPaintError('Failed to paint Smart Tile material: $e');
@@ -8079,6 +8174,7 @@ class EditorNotifier extends _$EditorNotifier
     required String? materialId,
     required Iterable<GridPos> cells,
     required bool commitImmediately,
+    SmartTileGestureSelection? selection,
   }) {
     final additions = cells.toList(growable: false);
     if (additions.isEmpty) return;
@@ -8101,11 +8197,13 @@ class EditorNotifier extends _$EditorNotifier
         layerId: layerId,
         materialId: materialId,
         rollbackState: rollbackState,
+        selection: selection,
       );
       _pendingSmartTileGesture = gesture;
     } else if (gesture.mapId != mapId ||
         gesture.layerId != layerId ||
-        gesture.materialId != materialId) {
+        gesture.materialId != materialId ||
+        gesture.selection != selection) {
       state = state.copyWith(
         errorMessage: 'Un geste Smart Tile ne peut viser qu’une seule couche '
             'et un seul matériau.',
@@ -8153,6 +8251,7 @@ class EditorNotifier extends _$EditorNotifier
           layerId: gesture.layerId,
           materialId: gesture.materialId,
           cells: cells,
+          selection: gesture.selection,
         ),
         idempotencyKey: identity,
         requestId: identity,
@@ -8200,15 +8299,42 @@ class EditorNotifier extends _$EditorNotifier
     required String layerId,
     required String? materialId,
     required Iterable<GridPos> cells,
+    SmartTileGestureSelection? selection,
   }) =>
       <String, Object?>{
         'mapId': mapId,
         'layerId': layerId,
         if (materialId case final value?) 'materialId': value,
-        'cells': <Map<String, int>>[
-          for (final cell in cells) <String, int>{'x': cell.x, 'y': cell.y},
-        ],
+        if (selection == null)
+          'cells': <Map<String, int>>[
+            for (final cell in cells) <String, int>{'x': cell.x, 'y': cell.y},
+          ]
+        else
+          'selection': _smartTileGestureSelectionParameters(selection),
       };
+
+  Map<String, Object?> _smartTileGestureSelectionParameters(
+    SmartTileGestureSelection selection,
+  ) =>
+      switch (selection.kind) {
+        SmartTileGestureSelectionKind.line => <String, Object?>{
+            'kind': 'line',
+            'start': _smartTileGestureCoordinate(selection.start),
+            'end': _smartTileGestureCoordinate(selection.end!),
+          },
+        SmartTileGestureSelectionKind.rectangle => <String, Object?>{
+            'kind': 'rectangle',
+            'start': _smartTileGestureCoordinate(selection.start),
+            'end': _smartTileGestureCoordinate(selection.end!),
+          },
+        SmartTileGestureSelectionKind.floodFill => <String, Object?>{
+            'kind': 'floodFill',
+            'seed': _smartTileGestureCoordinate(selection.start),
+          },
+      };
+
+  Map<String, int> _smartTileGestureCoordinate(GridPos cell) =>
+      <String, int>{'x': cell.x, 'y': cell.y};
 
   Future<bool> _adoptCanonicalSmartTileSnapshot({
     required String projectRootPath,

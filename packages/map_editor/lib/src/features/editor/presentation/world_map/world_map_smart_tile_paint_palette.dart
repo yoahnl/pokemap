@@ -11,6 +11,7 @@ import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import '../../tools/editor_tool.dart';
 import 'world_map_paint_inspection_intent.dart';
+import 'world_map_smart_tile_gesture_mode.dart';
 import 'world_map_workspace_session.dart';
 
 /// Direct, no-code access to the published Smart Tile presets used by Paint.
@@ -61,6 +62,20 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
     final intent = ref.read(worldMapPaintInspectionIntentProvider.notifier);
+    final gestureMode = ref.watch(worldMapSmartTileGestureModeProvider);
+    final gestureModeController =
+        ref.read(worldMapSmartTileGestureModeProvider.notifier);
+    final selectedMaterialId = ref.watch(worldMapSmartTileMaterialIdProvider);
+    final materialController =
+        ref.read(worldMapSmartTileMaterialIdProvider.notifier);
+    final paintMaterials = activePreset == null || snapshot.project == null
+        ? const <ProjectSmartTileMaterial>[]
+        : _paintMaterials(snapshot.project!, activePreset);
+    final activeMaterialId = activePreset == null
+        ? null
+        : activePreset.allowedMaterialIds.contains(selectedMaterialId)
+            ? selectedMaterialId
+            : activePreset.defaultMaterialId;
     final noun = switch (subtool) {
       WorldMapPaintSubtool.terrain => 'terrain',
       WorldMapPaintSubtool.path => 'chemin',
@@ -99,6 +114,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
       );
       if (existing == null) return;
       notifier.setActiveLayer(existing.id);
+      materialController.select(preset.defaultMaterialId);
       activate(ActivateWorldMapPaint(subtool));
     }
 
@@ -127,91 +143,156 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
       label: 'Presets de $noun publiés. ${presets.length} disponibles.',
       child: Padding(
         padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            PokeMapSectionHeader(
-              title: switch (subtool) {
-                WorldMapPaintSubtool.terrain => 'Peindre un terrain',
-                WorldMapPaintSubtool.path => 'Peindre un chemin',
-                WorldMapPaintSubtool.surface => 'Peindre une surface organique',
-                _ => throw StateError('Unsupported Smart Tile paint subtool.'),
-              },
-              description: activeLayer == null
-                  ? hasReusableLayer
-                      ? 'Choisissez un preset déjà présent sur cette carte.'
-                      : 'Aucun calque compatible. Ajoutez-en un depuis '
-                          'le panneau Calques.'
-                  : 'Actif : ${activeLayer.name}',
-            ),
-            if (blockedCode != null) ...[
-              const SizedBox(height: 8),
-              PokeMapBadge(
-                key: ValueKey<String>(
-                  'world-map-smart-tile-${_usage.name}-blocked',
-                ),
-                label: blockedCode,
-                variant: PokeMapBadgeVariant.warning,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              PokeMapSectionHeader(
+                title: switch (subtool) {
+                  WorldMapPaintSubtool.terrain => 'Peindre un terrain',
+                  WorldMapPaintSubtool.path => 'Peindre un chemin',
+                  WorldMapPaintSubtool.surface =>
+                    'Peindre une surface organique',
+                  _ =>
+                    throw StateError('Unsupported Smart Tile paint subtool.'),
+                },
+                description: activeLayer == null
+                    ? hasReusableLayer
+                        ? 'Choisissez un preset déjà présent sur cette carte.'
+                        : 'Aucun calque compatible. Ajoutez-en un depuis '
+                            'le panneau Calques.'
+                    : 'Actif : ${activeLayer.name}',
               ),
-            ],
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: PokeMapButton(
-                    key: ValueKey<String>(
-                      'world-map-smart-tile-${_usage.name}-paint',
-                    ),
-                    onPressed: canEdit
-                        ? () => activate(ActivateWorldMapPaint(subtool))
-                        : null,
-                    variant: isPainting
-                        ? PokeMapButtonVariant.primary
-                        : PokeMapButtonVariant.secondary,
-                    size: PokeMapButtonSize.compact,
-                    leading: const Icon(Icons.brush_outlined),
-                    child: const Text('Peindre'),
+              if (blockedCode != null) ...[
+                const SizedBox(height: 8),
+                PokeMapBadge(
+                  key: ValueKey<String>(
+                    'world-map-smart-tile-${_usage.name}-blocked',
                   ),
+                  label: blockedCode,
+                  variant: PokeMapBadgeVariant.warning,
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: PokeMapButton(
-                    key: ValueKey<String>(
-                      'world-map-smart-tile-${_usage.name}-erase',
+              ],
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: PokeMapButton(
+                      key: ValueKey<String>(
+                        'world-map-smart-tile-${_usage.name}-paint',
+                      ),
+                      onPressed: canEdit
+                          ? () => activate(ActivateWorldMapPaint(subtool))
+                          : null,
+                      variant: isPainting
+                          ? PokeMapButtonVariant.primary
+                          : PokeMapButtonVariant.secondary,
+                      size: PokeMapButtonSize.compact,
+                      leading: const Icon(Icons.brush_outlined),
+                      child: const Text('Peindre'),
                     ),
-                    onPressed: canEdit
-                        ? () => activate(const ActivateWorldMapErase())
-                        : null,
-                    variant: isErasing
-                        ? PokeMapButtonVariant.primary
-                        : PokeMapButtonVariant.secondary,
-                    size: PokeMapButtonSize.compact,
-                    leading: const Icon(Icons.auto_fix_off_outlined),
-                    child: const Text('Effacer'),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: PokeMapButton(
+                      key: ValueKey<String>(
+                        'world-map-smart-tile-${_usage.name}-erase',
+                      ),
+                      onPressed: canEdit
+                          ? () => activate(const ActivateWorldMapErase())
+                          : null,
+                      variant: isErasing
+                          ? PokeMapButtonVariant.primary
+                          : PokeMapButtonVariant.secondary,
+                      size: PokeMapButtonSize.compact,
+                      leading: const Icon(Icons.auto_fix_off_outlined),
+                      child: const Text('Effacer'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const PokeMapSectionHeader(
+                title: 'Forme du geste',
+                description: 'Les formes sont prévisualisées puis appliquées '
+                    'en une seule opération annulable.',
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final mode in WorldMapSmartTileGestureMode.values)
+                    PokeMapButton(
+                      key: ValueKey<String>(
+                        'world-map-smart-tile-gesture-${mode.name}',
+                      ),
+                      onPressed: canEdit
+                          ? () => gestureModeController.select(mode)
+                          : null,
+                      variant: gestureMode == mode
+                          ? PokeMapButtonVariant.primary
+                          : PokeMapButtonVariant.secondary,
+                      size: PokeMapButtonSize.compact,
+                      leading: Icon(_gestureModeIcon(mode)),
+                      child: Text(_gestureModeLabel(mode)),
+                    ),
+                ],
+              ),
+              if (activePreset != null && paintMaterials.isNotEmpty) ...[
+                const SizedBox(height: 10),
+                const PokeMapSectionHeader(
+                  title: 'Matière à peindre',
+                  description: 'Chaque matière conserve ses propres raccords '
+                      'et transitions automatiques.',
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    for (final material in paintMaterials)
+                      PokeMapButton(
+                        key: ValueKey<String>(
+                          'world-map-smart-tile-material-${material.id}',
+                        ),
+                        onPressed: canEdit
+                            ? () {
+                                materialController.select(material.id);
+                                activate(ActivateWorldMapPaint(subtool));
+                              }
+                            : null,
+                        variant: activeMaterialId == material.id
+                            ? PokeMapButtonVariant.primary
+                            : PokeMapButtonVariant.secondary,
+                        size: PokeMapButtonSize.compact,
+                        leading: const Icon(Icons.texture_outlined),
+                        child: Text(material.name),
+                      ),
+                  ],
+                ),
+              ],
+              if (snapshot.project != null &&
+                  activeLayer != null &&
+                  activePreset != null &&
+                  activeMaterialId != null) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: SmartTileBehaviorActionMenu(
+                    map: snapshot.map,
+                    smartTileLayer: activeLayer,
+                    smartTilePresetId: activePreset.id,
+                    materialId: activeMaterialId,
+                    catalog: snapshot.project!.smartTileCatalog,
+                    encounterTables: snapshot.project!.encounterTables,
+                    notifier: notifier,
                   ),
                 ),
               ],
-            ),
-            if (snapshot.project != null &&
-                activeLayer != null &&
-                activePreset != null) ...[
-              const SizedBox(height: 8),
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: SmartTileBehaviorActionMenu(
-                  map: snapshot.map,
-                  smartTileLayer: activeLayer,
-                  smartTilePresetId: activePreset.id,
-                  materialId: activePreset.defaultMaterialId,
-                  catalog: snapshot.project!.smartTileCatalog,
-                  encounterTables: snapshot.project!.encounterTables,
-                  notifier: notifier,
-                ),
-              ),
-            ],
-            const SizedBox(height: 12),
-            Expanded(
-              child: presets.isEmpty
+              const SizedBox(height: 12),
+              presets.isEmpty
                   ? PokeMapEmptyState(
                       key: ValueKey<String>(
                         'world-map-smart-tile-${_usage.name}-empty',
@@ -237,6 +318,9 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                             mainAxisExtent: 76,
                           ),
                           itemCount: presets.length,
+                          shrinkWrap: true,
+                          primary: false,
+                          physics: const NeverScrollableScrollPhysics(),
                           itemBuilder: (context, index) {
                             final preset = presets[index];
                             final selected = activeLayer?.presetId == preset.id;
@@ -281,13 +365,43 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                         );
                       },
                     ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+List<ProjectSmartTileMaterial> _paintMaterials(
+  ProjectManifest project,
+  ProjectSmartTilePreset preset,
+) {
+  final allowed = preset.allowedMaterialIds.toSet();
+  final materials = project.smartTileCatalog.materials
+      .where((material) => allowed.contains(material.id))
+      .toList(growable: false);
+  materials.sort((left, right) {
+    final order = left.sortOrder.compareTo(right.sortOrder);
+    return order != 0 ? order : left.name.compareTo(right.name);
+  });
+  return materials;
+}
+
+String _gestureModeLabel(WorldMapSmartTileGestureMode mode) => switch (mode) {
+      WorldMapSmartTileGestureMode.brush => 'Pinceau',
+      WorldMapSmartTileGestureMode.line => 'Ligne',
+      WorldMapSmartTileGestureMode.rectangle => 'Rectangle',
+      WorldMapSmartTileGestureMode.floodFill => 'Remplir',
+    };
+
+IconData _gestureModeIcon(WorldMapSmartTileGestureMode mode) => switch (mode) {
+      WorldMapSmartTileGestureMode.brush => Icons.brush_outlined,
+      WorldMapSmartTileGestureMode.line => Icons.show_chart,
+      WorldMapSmartTileGestureMode.rectangle => Icons.crop_square_outlined,
+      WorldMapSmartTileGestureMode.floodFill =>
+        Icons.format_color_fill_outlined,
+    };
 
 ProjectSmartTilePreset? _presetById(
   List<ProjectSmartTilePreset> presets,

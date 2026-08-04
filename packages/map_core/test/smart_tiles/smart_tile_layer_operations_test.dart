@@ -434,6 +434,179 @@ void main() {
       });
     }
   });
+
+  group('Smart Tile gesture selections', () {
+    const selectionMapSize = GridSize(width: 5, height: 4);
+    final selectionLayer = _layer(
+      const SmartTileField.cell(
+        semanticCells: <int>[
+          1,
+          1,
+          0,
+          0,
+          0,
+          1,
+          1,
+          0,
+          2,
+          2,
+          0,
+          0,
+          0,
+          2,
+          2,
+          0,
+          2,
+          2,
+          2,
+          0,
+        ],
+      ),
+      materialPalette: const <String>['', 'grass', 'water'],
+    );
+
+    test('rasterizes deterministic lines and inclusive filled rectangles', () {
+      expect(
+        compileSmartTileGestureSelection(
+          selectionLayer,
+          mapSize: selectionMapSize,
+          selection: const SmartTileGestureSelection.line(
+            start: GridPos(x: 0, y: 0),
+            end: GridPos(x: 4, y: 2),
+          ),
+        ),
+        const <GridPos>[
+          GridPos(x: 0, y: 0),
+          GridPos(x: 1, y: 0),
+          GridPos(x: 2, y: 1),
+          GridPos(x: 3, y: 1),
+          GridPos(x: 4, y: 2),
+        ],
+      );
+      expect(
+        compileSmartTileGestureSelection(
+          selectionLayer,
+          mapSize: selectionMapSize,
+          selection: const SmartTileGestureSelection.rectangle(
+            start: GridPos(x: 3, y: 2),
+            end: GridPos(x: 1, y: 1),
+          ),
+        ),
+        const <GridPos>[
+          GridPos(x: 1, y: 1),
+          GridPos(x: 2, y: 1),
+          GridPos(x: 3, y: 1),
+          GridPos(x: 1, y: 2),
+          GridPos(x: 2, y: 2),
+          GridPos(x: 3, y: 2),
+        ],
+      );
+    });
+
+    test('line rasterization covers every octant and is direction-stable', () {
+      const center = GridPos(x: 2, y: 2);
+      const endpoints = <GridPos>[
+        GridPos(x: 4, y: 2),
+        GridPos(x: 4, y: 3),
+        GridPos(x: 3, y: 3),
+        GridPos(x: 2, y: 3),
+        GridPos(x: 1, y: 3),
+        GridPos(x: 0, y: 3),
+        GridPos(x: 0, y: 2),
+        GridPos(x: 0, y: 1),
+        GridPos(x: 1, y: 1),
+        GridPos(x: 2, y: 0),
+        GridPos(x: 3, y: 1),
+        GridPos(x: 4, y: 1),
+      ];
+
+      for (final endpoint in endpoints) {
+        final forward = compileSmartTileGestureSelection(
+          selectionLayer,
+          mapSize: selectionMapSize,
+          selection: SmartTileGestureSelection.line(
+            start: center,
+            end: endpoint,
+          ),
+        );
+        final reverse = compileSmartTileGestureSelection(
+          selectionLayer,
+          mapSize: selectionMapSize,
+          selection: SmartTileGestureSelection.line(
+            start: endpoint,
+            end: center,
+          ),
+        );
+        expect(reverse, forward, reason: 'endpoint: $endpoint');
+        expect(forward, containsAll(<GridPos>[center, endpoint]));
+      }
+    });
+
+    test('gesture selections are semantic value objects', () {
+      const first = SmartTileGestureSelection.rectangle(
+        start: GridPos(x: 1, y: 1),
+        end: GridPos(x: 3, y: 2),
+      );
+      const same = SmartTileGestureSelection.rectangle(
+        start: GridPos(x: 1, y: 1),
+        end: GridPos(x: 3, y: 2),
+      );
+      const different = SmartTileGestureSelection.line(
+        start: GridPos(x: 1, y: 1),
+        end: GridPos(x: 3, y: 2),
+      );
+
+      expect(first, same);
+      expect(first.hashCode, same.hashCode);
+      expect(first, isNot(different));
+    });
+
+    test('flood fill is four-connected, semantic, and bounded', () {
+      expect(
+        compileSmartTileGestureSelection(
+          selectionLayer,
+          mapSize: selectionMapSize,
+          selection: const SmartTileGestureSelection.floodFill(
+            seed: GridPos(x: 3, y: 1),
+          ),
+        ),
+        const <GridPos>[
+          GridPos(x: 3, y: 1),
+          GridPos(x: 4, y: 1),
+          GridPos(x: 3, y: 2),
+          GridPos(x: 4, y: 2),
+          GridPos(x: 1, y: 3),
+          GridPos(x: 2, y: 3),
+          GridPos(x: 3, y: 3),
+        ],
+      );
+      expect(
+        () => compileSmartTileGestureSelection(
+          selectionLayer,
+          mapSize: selectionMapSize,
+          selection: const SmartTileGestureSelection.floodFill(
+            seed: GridPos(x: 3, y: 1),
+          ),
+          maximumCellCount: 6,
+        ),
+        throwsA(isA<SmartTileGestureLimitException>()),
+      );
+    });
+
+    test('rejects endpoints outside the map before rasterizing', () {
+      expect(
+        () => compileSmartTileGestureSelection(
+          selectionLayer,
+          mapSize: selectionMapSize,
+          selection: const SmartTileGestureSelection.line(
+            start: GridPos(x: -1, y: 0),
+            end: GridPos(x: 1, y: 0),
+          ),
+        ),
+        throwsA(isA<RangeError>()),
+      );
+    });
+  });
 }
 
 SmartTileLayer _layer(

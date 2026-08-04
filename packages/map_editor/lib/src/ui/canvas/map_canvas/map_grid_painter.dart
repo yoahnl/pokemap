@@ -1753,6 +1753,19 @@ class MapGridPainter extends CustomPainter {
   }
 
   void _paintPathPaintPreview(Canvas canvas, MapToolPreview preview) {
+    if (preview.cells case final cells? when cells.isNotEmpty) {
+      for (final cell in cells) {
+        _paintPathPaintPreview(
+          canvas,
+          MapToolPreview.pathPaint(
+            origin: cell,
+            size: const GridSize(width: 1, height: 1),
+            validity: preview.validity,
+          ),
+        );
+      }
+      return;
+    }
     final previewRect = _computePreviewRect(preview.origin, preview.size);
     if (previewRect == null) return;
     canvas.drawRect(
@@ -1789,6 +1802,19 @@ class MapGridPainter extends CustomPainter {
   }
 
   void _paintPathErasePreview(Canvas canvas, MapToolPreview preview) {
+    if (preview.cells case final cells? when cells.isNotEmpty) {
+      for (final cell in cells) {
+        _paintPathErasePreview(
+          canvas,
+          MapToolPreview.pathErase(
+            origin: cell,
+            size: const GridSize(width: 1, height: 1),
+            validity: preview.validity,
+          ),
+        );
+      }
+      return;
+    }
     final previewRect = _computePreviewRect(preview.origin, preview.size);
     if (previewRect == null) return;
     canvas.drawRect(

@@ -7,6 +7,7 @@ import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/features/border_map_editing/application/pending_border_save_guard.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
 import 'package:path/path.dart' as p;
 
@@ -62,16 +63,15 @@ void main() {
     expect(notifier.state.isProjectDirty, isFalse);
 
     final mutations = container.read(authoringMutationAdapterProvider);
-    notifier.beginMapStroke();
-    notifier.paintSmartTileMaterialAt(
-      const GridPos(x: 1, y: 0),
-      materialId: 'grass',
+    notifier.state = notifier.state.copyWith(
+      activeTool: EditorToolType.terrainPaint,
     );
-    notifier.paintSmartTileMaterialAt(
-      const GridPos(x: 0, y: 0),
-      materialId: 'grass',
+    notifier.applyActiveSmartTileSelection(
+      const SmartTileGestureSelection.line(
+        start: GridPos(x: 0, y: 0),
+        end: GridPos(x: 1, y: 0),
+      ),
     );
-    notifier.endMapStroke();
 
     expect(
       await notifier.saveActiveMap(),

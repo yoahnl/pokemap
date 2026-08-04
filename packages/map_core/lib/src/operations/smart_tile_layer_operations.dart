@@ -49,6 +49,254 @@ List<int> smartTileCorners(SmartTileLayer layer) => switch (layer.field) {
       SmartTileCellField() || SmartTileEdgeField() => const <int>[],
     };
 
+/// Shared safety boundary for one atomic Smart Tile authoring gesture.
+const int smartTileMaximumCellsPerGesture = 4096;
+
+enum SmartTileGestureSelectionKind {
+  line,
+  rectangle,
+  floodFill,
+}
+
+/// A no-code geometric selection compiled to canonical Smart Tile cells.
+final class SmartTileGestureSelection {
+  const SmartTileGestureSelection.line({
+    required this.start,
+    required GridPos end,
+  })  : kind = SmartTileGestureSelectionKind.line,
+        // Keep the public constructor non-nullable while floodFill owns null.
+        // ignore: prefer_initializing_formals
+        end = end;
+
+  const SmartTileGestureSelection.rectangle({
+    required this.start,
+    required GridPos end,
+  })  : kind = SmartTileGestureSelectionKind.rectangle,
+        // Keep the public constructor non-nullable while floodFill owns null.
+        // ignore: prefer_initializing_formals
+        end = end;
+
+  const SmartTileGestureSelection.floodFill({
+    required GridPos seed,
+  })  : kind = SmartTileGestureSelectionKind.floodFill,
+        start = seed,
+        end = null;
+
+  final SmartTileGestureSelectionKind kind;
+  final GridPos start;
+  final GridPos? end;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SmartTileGestureSelection &&
+          kind == other.kind &&
+          start == other.start &&
+          end == other.end;
+
+  @override
+  int get hashCode => Object.hash(kind, start, end);
+}
+
+/// Raised before a geometric gesture can exceed its atomic safety boundary.
+final class SmartTileGestureLimitException implements Exception {
+  const SmartTileGestureLimitException({
+    required this.maximumCellCount,
+  });
+
+  final int maximumCellCount;
+
+  @override
+  String toString() => 'Smart Tile gesture exceeds $maximumCellCount cells.';
+}
+
+/// Compiles a line, filled rectangle, or semantic flood fill to map cells.
+///
+/// Results are unique and sorted in row-major order so direct Dart, JSONL,
+/// editor, and MCP callers all submit the same deterministic gesture.
+List<GridPos> compileSmartTileGestureSelection(
+  SmartTileLayer layer, {
+  required GridSize mapSize,
+  required SmartTileGestureSelection selection,
+  int maximumCellCount = smartTileMaximumCellsPerGesture,
+}) {
+  if (maximumCellCount <= 0) {
+    throw const ValidationException(
+      'Smart Tile gesture maximumCellCount must be positive',
+    );
+  }
+  _checkCoordinate(
+    selection.start.x,
+    selection.start.y,
+    mapSize.width,
+    mapSize.height,
+    'gesture start',
+  );
+  final end = selection.end;
+  if (end != null) {
+    _checkCoordinate(
+      end.x,
+      end.y,
+      mapSize.width,
+      mapSize.height,
+      'gesture end',
+    );
+  }
+
+  final cells = switch (selection.kind) {
+    SmartTileGestureSelectionKind.line => _smartTileLineCells(
+        selection.start,
+        end!,
+        maximumCellCount: maximumCellCount,
+      ),
+    SmartTileGestureSelectionKind.rectangle => _smartTileRectangleCells(
+        selection.start,
+        end!,
+        maximumCellCount: maximumCellCount,
+      ),
+    SmartTileGestureSelectionKind.floodFill => _smartTileFloodFillCells(
+        layer,
+        mapSize: mapSize,
+        seed: selection.start,
+        maximumCellCount: maximumCellCount,
+      ),
+  };
+  cells.sort(_compareGridPositions);
+  return List<GridPos>.unmodifiable(cells);
+}
+
+List<GridPos> _smartTileLineCells(
+  GridPos start,
+  GridPos end, {
+  required int maximumCellCount,
+}) {
+  // Canonical endpoint ordering removes Bresenham tie ambiguity: dragging the
+  // same segment in the opposite direction must select the exact same cells.
+  final lineStart = _compareGridPositions(start, end) <= 0 ? start : end;
+  final lineEnd = identical(lineStart, start) ? end : start;
+  var x = lineStart.x;
+  var y = lineStart.y;
+  final dx = (lineEnd.x - lineStart.x).abs();
+  final dy = (lineEnd.y - lineStart.y).abs();
+  final stepX = lineStart.x < lineEnd.x ? 1 : -1;
+  final stepY = lineStart.y < lineEnd.y ? 1 : -1;
+  final cells = <GridPos>[];
+
+  if (dx >= dy) {
+    var error = dx ~/ 2;
+    while (true) {
+      _addBoundedGestureCell(
+        cells,
+        GridPos(x: x, y: y),
+        maximumCellCount,
+      );
+      if (x == lineEnd.x) break;
+      x += stepX;
+      error -= dy;
+      if (error < 0) {
+        y += stepY;
+        error += dx;
+      }
+    }
+  } else {
+    var error = dy ~/ 2;
+    while (true) {
+      _addBoundedGestureCell(
+        cells,
+        GridPos(x: x, y: y),
+        maximumCellCount,
+      );
+      if (y == lineEnd.y) break;
+      y += stepY;
+      error -= dx;
+      if (error < 0) {
+        x += stepX;
+        error += dy;
+      }
+    }
+  }
+  return cells;
+}
+
+List<GridPos> _smartTileRectangleCells(
+  GridPos start,
+  GridPos end, {
+  required int maximumCellCount,
+}) {
+  final left = start.x < end.x ? start.x : end.x;
+  final right = start.x > end.x ? start.x : end.x;
+  final top = start.y < end.y ? start.y : end.y;
+  final bottom = start.y > end.y ? start.y : end.y;
+  final cellCount = (right - left + 1) * (bottom - top + 1);
+  if (cellCount > maximumCellCount) {
+    throw SmartTileGestureLimitException(
+      maximumCellCount: maximumCellCount,
+    );
+  }
+  return <GridPos>[
+    for (var y = top; y <= bottom; y++)
+      for (var x = left; x <= right; x++) GridPos(x: x, y: y),
+  ];
+}
+
+List<GridPos> _smartTileFloodFillCells(
+  SmartTileLayer layer, {
+  required GridSize mapSize,
+  required GridPos seed,
+  required int maximumCellCount,
+}) {
+  final semanticCells = smartTileSemanticCells(layer);
+  final seedIndex = seed.y * mapSize.width + seed.x;
+  final targetMaterialIndex = semanticCells[seedIndex];
+  final visited = List<bool>.filled(semanticCells.length, false);
+  final queue = <int>[seedIndex];
+  visited[seedIndex] = true;
+  final cells = <GridPos>[];
+  var cursor = 0;
+
+  void enqueue(int x, int y) {
+    if (x < 0 || y < 0 || x >= mapSize.width || y >= mapSize.height) return;
+    final index = y * mapSize.width + x;
+    if (visited[index] || semanticCells[index] != targetMaterialIndex) return;
+    visited[index] = true;
+    queue.add(index);
+  }
+
+  while (cursor < queue.length) {
+    final index = queue[cursor++];
+    final x = index % mapSize.width;
+    final y = index ~/ mapSize.width;
+    _addBoundedGestureCell(
+      cells,
+      GridPos(x: x, y: y),
+      maximumCellCount,
+    );
+    enqueue(x, y - 1);
+    enqueue(x + 1, y);
+    enqueue(x, y + 1);
+    enqueue(x - 1, y);
+  }
+  return cells;
+}
+
+void _addBoundedGestureCell(
+  List<GridPos> cells,
+  GridPos cell,
+  int maximumCellCount,
+) {
+  if (cells.length >= maximumCellCount) {
+    throw SmartTileGestureLimitException(
+      maximumCellCount: maximumCellCount,
+    );
+  }
+  cells.add(cell);
+}
+
+int _compareGridPositions(GridPos left, GridPos right) {
+  final byY = left.y.compareTo(right.y);
+  return byY != 0 ? byY : left.x.compareTo(right.x);
+}
+
 /// Counts authored palette references across every active native lattice.
 int smartTileAuthoredValueCount(SmartTileLayer layer) => <List<int>>[
       smartTileSemanticCells(layer),

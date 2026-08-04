@@ -200,6 +200,93 @@ void main() {
     edited = notifier.state.activeMap!.layers.single as SmartTileLayer;
     expect(smartTileHorizontalEdges(edited), <int>[1, 1]);
   });
+
+  test('line, rectangle and flood fill each create one editor undo boundary',
+      () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    const layer = MapLayer.smartTile(
+      id: 'smart',
+      name: 'Smart',
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+      materialPalette: <String>['', 'grass'],
+      field: SmartTileField.cell(
+        semanticCells: <int>[
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+        ],
+      ),
+    );
+    const map = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v6,
+      size: GridSize(width: 4, height: 3),
+      layers: <MapLayer>[layer],
+    );
+    notifier.state = EditorState(
+      project: _project,
+      activeMap: map,
+      savedMapSnapshot: map,
+      activeLayerId: 'smart',
+      activeTool: EditorToolType.terrainPaint,
+    );
+
+    notifier.applyActiveSmartTileSelection(
+      const SmartTileGestureSelection.line(
+        start: GridPos(x: 0, y: 0),
+        end: GridPos(x: 1, y: 0),
+      ),
+    );
+    expect(
+      smartTileSemanticCells(
+        notifier.state.activeMap!.layers.single as SmartTileLayer,
+      ),
+      <int>[1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    );
+    expect(notifier.state.mapUndoStack, hasLength(1));
+
+    notifier.applyActiveSmartTileSelection(
+      const SmartTileGestureSelection.rectangle(
+        start: GridPos(x: 2, y: 1),
+        end: GridPos(x: 3, y: 2),
+      ),
+    );
+    expect(notifier.state.mapUndoStack, hasLength(2));
+
+    notifier.state = notifier.state.copyWith(activeTool: EditorToolType.eraser);
+    notifier.applyActiveSmartTileSelection(
+      const SmartTileGestureSelection.floodFill(
+        seed: GridPos(x: 0, y: 0),
+      ),
+    );
+    final edited = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(
+      smartTileSemanticCells(edited),
+      <int>[0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1],
+    );
+    expect(notifier.state.mapUndoStack, hasLength(3));
+
+    notifier.undoMap();
+    expect(
+      smartTileSemanticCells(
+        notifier.state.activeMap!.layers.single as SmartTileLayer,
+      ),
+      <int>[1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1],
+    );
+  });
 }
 
 final _project = ProjectManifest(

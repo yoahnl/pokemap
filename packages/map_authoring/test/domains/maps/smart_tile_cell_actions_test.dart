@@ -17,6 +17,10 @@ void main() {
         expect(descriptor.extensions['gestureAtomic'], isTrue);
         expect(descriptor.extensions['cellFieldOnly'], isFalse);
         expect(
+          descriptor.extensions['supportedSelections'],
+          <String>['cells', 'line', 'rectangle', 'floodFill'],
+        );
+        expect(
           descriptor.extensions['supportedFieldKinds'],
           <String>['cell', 'edge', 'corner', 'mixed'],
         );
@@ -90,6 +94,107 @@ void main() {
       expect(smartTileSemanticCells(layer), <int>[1, 1, 0, 0]);
       expect(draft.preview['materialId'], isNull);
       expect(draft.preview['changedCellCount'], 2);
+    });
+
+    test('compiles line and rectangle selections inside the atomic action', () {
+      final snapshot = _fixture().snapshot;
+      final line = _build(
+        snapshot,
+        actionId: 'smart_tile.cell.paint',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'materialId': 'grass',
+          'selection': <String, Object?>{
+            'kind': 'line',
+            'start': <String, int>{'x': 0, 'y': 0},
+            'end': <String, int>{'x': 1, 'y': 1},
+          },
+        },
+      );
+      expect(
+        smartTileSemanticCells(_map(line).layers.single as SmartTileLayer),
+        <int>[1, 0, 0, 1],
+      );
+      expect(line.preview['gestureSelection'], 'line');
+
+      final rectangle = _build(
+        snapshot,
+        actionId: 'smart_tile.cell.paint',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'materialId': 'grass',
+          'selection': <String, Object?>{
+            'kind': 'rectangle',
+            'start': <String, int>{'x': 1, 'y': 1},
+            'end': <String, int>{'x': 0, 'y': 0},
+          },
+        },
+      );
+      expect(
+        smartTileSemanticCells(
+          _map(rectangle).layers.single as SmartTileLayer,
+        ),
+        <int>[1, 1, 1, 1],
+      );
+      expect(rectangle.preview['gestureCellCount'], 4);
+    });
+
+    test('flood fill follows the source semantic region', () {
+      final draft = _build(
+        _fixture(
+          field: const SmartTileField.cell(
+            semanticCells: <int>[1, 1, 0, 1],
+          ),
+        ).snapshot,
+        actionId: 'smart_tile.cell.erase',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'selection': <String, Object?>{
+            'kind': 'floodFill',
+            'seed': <String, int>{'x': 0, 'y': 0},
+          },
+        },
+      );
+
+      final layer = _map(draft).layers.single as SmartTileLayer;
+      expect(smartTileSemanticCells(layer), <int>[0, 0, 0, 0]);
+      expect(draft.preview['gestureSelection'], 'floodFill');
+      expect(draft.preview['gestureCellCount'], 3);
+    });
+
+    test('requires exactly one cells or geometric selection input', () {
+      final snapshot = _fixture().snapshot;
+      for (final parameters in <Map<String, Object?>>[
+        const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'materialId': 'grass',
+        },
+        const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'materialId': 'grass',
+          'cells': <Map<String, int>>[
+            <String, int>{'x': 0, 'y': 0},
+          ],
+          'selection': <String, Object?>{
+            'kind': 'floodFill',
+            'seed': <String, int>{'x': 0, 'y': 0},
+          },
+        },
+      ]) {
+        expect(
+          () => _build(
+            snapshot,
+            actionId: 'smart_tile.cell.paint',
+            parameters: parameters,
+          ),
+          _failure('smart_tile.cell.selection_invalid'),
+        );
+      }
     });
 
     test('rejects duplicates, out-of-bounds cells, and unavailable materials',

@@ -25,7 +25,8 @@ class MapToolPreview {
     required this.validity,
     this.reason,
   })  : mode = MapToolPreviewMode.paint,
-        terrain = null;
+        terrain = null,
+        cells = null;
 
   const MapToolPreview.erase({
     required this.origin,
@@ -35,7 +36,8 @@ class MapToolPreview {
   })  : mode = MapToolPreviewMode.erase,
         tilesetId = null,
         tiles = null,
-        terrain = null;
+        terrain = null,
+        cells = null;
 
   const MapToolPreview.terrainPaint({
     required this.origin,
@@ -45,7 +47,8 @@ class MapToolPreview {
     this.reason,
   })  : mode = MapToolPreviewMode.terrainPaint,
         tilesetId = null,
-        tiles = null;
+        tiles = null,
+        cells = null;
 
   const MapToolPreview.terrainErase({
     required this.origin,
@@ -55,12 +58,14 @@ class MapToolPreview {
   })  : mode = MapToolPreviewMode.terrainErase,
         tilesetId = null,
         tiles = null,
-        terrain = null;
+        terrain = null,
+        cells = null;
 
   const MapToolPreview.pathPaint({
     required this.origin,
     required this.size,
     required this.validity,
+    this.cells,
     this.reason,
   })  : mode = MapToolPreviewMode.pathPaint,
         tilesetId = null,
@@ -71,6 +76,7 @@ class MapToolPreview {
     required this.origin,
     required this.size,
     required this.validity,
+    this.cells,
     this.reason,
   })  : mode = MapToolPreviewMode.pathErase,
         tilesetId = null,
@@ -85,7 +91,8 @@ class MapToolPreview {
   })  : mode = MapToolPreviewMode.collisionPaint,
         tilesetId = null,
         tiles = null,
-        terrain = null;
+        terrain = null,
+        cells = null;
 
   const MapToolPreview.collisionErase({
     required this.origin,
@@ -95,7 +102,8 @@ class MapToolPreview {
   })  : mode = MapToolPreviewMode.collisionErase,
         tilesetId = null,
         tiles = null,
-        terrain = null;
+        terrain = null,
+        cells = null;
 
   final MapToolPreviewMode mode;
   final GridPos origin;
@@ -103,6 +111,7 @@ class MapToolPreview {
   final String? tilesetId;
   final List<int>? tiles;
   final TerrainType? terrain;
+  final List<GridPos>? cells;
   final MapToolPreviewValidity validity;
   final String? reason;
 }

@@ -126,8 +126,7 @@ void main() {
       expect(map.layers.single, isA<SmartTileLayer>());
     });
 
-    test('paints and erases one gesture byte-identically through JSONL',
-        () async {
+    test('paints and erases shapes byte-identically through JSONL', () async {
       final direct = await _Harness.create('cells_direct');
       final jsonl = await _Harness.create('cells_jsonl');
       addTearDown(direct.dispose);
@@ -540,9 +539,10 @@ final class _Harness {
       const <String, Object?>{
         'mapId': 'map',
         'layerId': 'terrain',
-        'cells': <Map<String, int>>[
-          <String, int>{'x': 0, 'y': 0},
-        ],
+        'selection': <String, Object?>{
+          'kind': 'floodFill',
+          'seed': <String, int>{'x': 0, 'y': 0},
+        },
       },
       'cell-erase',
     );
@@ -552,9 +552,10 @@ final class _Harness {
         'mapId': 'map',
         'layerId': 'terrain',
         'materialId': 'grass',
-        'cells': <Map<String, int>>[
-          <String, int>{'x': 0, 'y': 0},
-        ],
+        'selection': <String, Object?>{
+          'kind': 'floodFill',
+          'seed': <String, int>{'x': 0, 'y': 0},
+        },
       },
       'cell-paint',
     );
@@ -782,9 +783,10 @@ final class _Harness {
       const <String, Object?>{
         'mapId': 'map',
         'layerId': 'terrain',
-        'cells': <Map<String, int>>[
-          <String, int>{'x': 0, 'y': 0},
-        ],
+        'selection': <String, Object?>{
+          'kind': 'floodFill',
+          'seed': <String, int>{'x': 0, 'y': 0},
+        },
       },
       'cell-erase',
     );
@@ -794,9 +796,10 @@ final class _Harness {
         'mapId': 'map',
         'layerId': 'terrain',
         'materialId': 'grass',
-        'cells': <Map<String, int>>[
-          <String, int>{'x': 0, 'y': 0},
-        ],
+        'selection': <String, Object?>{
+          'kind': 'floodFill',
+          'seed': <String, int>{'x': 0, 'y': 0},
+        },
       },
       'cell-paint',
     );

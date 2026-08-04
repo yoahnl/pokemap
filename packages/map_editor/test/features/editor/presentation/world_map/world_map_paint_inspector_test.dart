@@ -13,6 +13,7 @@ import 'package:map_editor/src/features/editor/presentation/world_map/world_map_
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_paint_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_smart_tile_paint_palette.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_smart_tile_gesture_mode.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -685,6 +686,70 @@ void main() {
     );
   });
 
+  testWidgets('Wang palette exposes the four no-code gesture modes',
+      (tester) async {
+    final harness = _PaintHarness(
+      'smart-terrain',
+      map: _mapWithWangTerrain,
+      initialSession: const WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.paint,
+        lastPaintSubtool: WorldMapPaintSubtool.terrain,
+      ),
+    );
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
+
+    for (final mode in WorldMapSmartTileGestureMode.values) {
+      expect(
+        find.byKey(
+          ValueKey<String>('world-map-smart-tile-gesture-${mode.name}'),
+        ),
+        findsOneWidget,
+      );
+    }
+    final rectangle = find.byKey(
+      const ValueKey<String>('world-map-smart-tile-gesture-rectangle'),
+    );
+    await tester.ensureVisible(rectangle);
+    await tester.tap(rectangle);
+    await tester.pump();
+
+    expect(
+      harness.container.read(worldMapSmartTileGestureModeProvider),
+      WorldMapSmartTileGestureMode.rectangle,
+    );
+  });
+
+  testWidgets('terrain palette selects an allowed material without mutation',
+      (tester) async {
+    final harness = _PaintHarness(
+      'smart-terrain',
+      map: _mapWithWangTerrain,
+      initialSession: const WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.paint,
+        lastPaintSubtool: WorldMapPaintSubtool.terrain,
+      ),
+    );
+    addTearDown(harness.dispose);
+    final before = harness.notifier.state.activeMap;
+    await harness.pump(tester);
+
+    final water = find.byKey(
+      const ValueKey<String>('world-map-smart-tile-material-water'),
+    );
+    await tester.ensureVisible(water);
+    await tester.tap(water);
+    await tester.pump();
+
+    expect(
+      harness.container.read(worldMapSmartTileMaterialIdProvider),
+      'water',
+    );
+    expect(harness.notifier.state.activeMap, same(before));
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+    expect(harness.notifier.state.isDirty, isFalse);
+  });
+
   testWidgets(
     'ignores viewport and status rebuilds but reacts to paint input changes',
     (tester) async {
@@ -900,6 +965,12 @@ final _project = ProjectManifest(
         name: 'Herbe',
         connectionGroupId: 'grass',
       ),
+      ProjectSmartTileMaterial(
+        id: 'water',
+        name: 'Eau',
+        connectionGroupId: 'water',
+        sortOrder: 1,
+      ),
     ],
     presets: const <ProjectSmartTilePreset>[
       ProjectSmartTilePreset(
@@ -914,7 +985,7 @@ final _project = ProjectManifest(
         transformPolicy: SmartTileTransformPolicy(),
         status: SmartTilePresetStatus.published,
         defaultMaterialId: 'grass',
-        allowedMaterialIds: <String>['grass'],
+        allowedMaterialIds: <String>['grass', 'water'],
       ),
       ProjectSmartTilePreset(
         id: 'draft-terrain',

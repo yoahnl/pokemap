@@ -1057,6 +1057,12 @@ les coins actifs de son empreinte. Les opérations de région génériques reste
 refusées sur Wang, car elles ne portent pas l'intention mono-matériau nécessaire
 pour résoudre sans ambiguïté les raccords partagés.
 
+Chaque action reçoit exactement une source de cellules : soit `cells`, soit une
+`selection` géométrique native. Les sélections supportées sont `line`
+(`start`/`end`), `rectangle` rempli (`start`/`end`) et `floodFill` sémantique à
+quatre voisins (`seed`). Leur projection est déterministe, bornée à 4 096
+cellules et conserve une seule transaction/annulation pour tout le geste.
+
 ### 13.2 Environnements
 
 ```text

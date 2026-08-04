@@ -50,6 +50,7 @@ import '../../features/editor/application/map_placed_element_rotation_planner.da
 import '../../features/editor/application/project_element_frame_resolver.dart';
 import '../../features/editor/presentation/world_map/map_placed_element_rotation_preview_controller.dart';
 import '../../features/editor/presentation/world_map/world_map_layer_hover_preview.dart';
+import '../../features/editor/presentation/world_map/world_map_smart_tile_gesture_mode.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/border_map_editing/application/border_feature_hit_test.dart';
@@ -99,6 +100,41 @@ bool _isEnvironmentMaskEditing(EditorState state, MapData map) {
         selectedAreaId: state.selectedEnvironmentAreaId,
       ) !=
       null;
+}
+
+SmartTileGestureSelection _smartTileGestureSelection(
+  WorldMapSmartTileGestureMode mode, {
+  required GridPos start,
+  required GridPos end,
+}) =>
+    switch (mode) {
+      WorldMapSmartTileGestureMode.line =>
+        SmartTileGestureSelection.line(start: start, end: end),
+      WorldMapSmartTileGestureMode.rectangle =>
+        SmartTileGestureSelection.rectangle(start: start, end: end),
+      WorldMapSmartTileGestureMode.floodFill =>
+        SmartTileGestureSelection.floodFill(seed: start),
+      WorldMapSmartTileGestureMode.brush =>
+        throw StateError('Brush gestures are sampled as normal strokes.'),
+    };
+
+({GridPos origin, GridSize size}) _smartTileGestureBounds(
+  List<GridPos> cells,
+) {
+  var left = cells.first.x;
+  var right = cells.first.x;
+  var top = cells.first.y;
+  var bottom = cells.first.y;
+  for (final cell in cells.skip(1)) {
+    left = math.min(left, cell.x);
+    right = math.max(right, cell.x);
+    top = math.min(top, cell.y);
+    bottom = math.max(bottom, cell.y);
+  }
+  return (
+    origin: GridPos(x: left, y: top),
+    size: GridSize(width: right - left + 1, height: bottom - top + 1),
+  );
 }
 
 String _mapCanvasImageFailureMessage(
@@ -501,6 +537,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   /// Lot Environment-22 : évite de repeindre la même cellule masque pendant un drag.
   GridPos? _lastEnvironmentMaskPaintCell;
 
+  /// Transient origin/current cell for one previewed Smart Tile shape.
+  GridPos? _smartTileShapeStart;
+  GridPos? _smartTileShapeEnd;
+
   /// Dedicated Border drag de-duplication; never enters map/collision strokes.
   GridPos? _lastBorderPaintCell;
 
@@ -868,10 +908,84 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         final keyboardCursor = _resolveKeyboardCursor(state, activeMap);
         final hoveredTile =
             _hoveredTile ?? (_mapFocusNode.hasFocus ? keyboardCursor : null);
-        final toolPreview = notifier.resolveMapToolPreview(
+        final smartTileGestureMode =
+            ref.watch(worldMapSmartTileGestureModeProvider);
+        final selectedSmartTileMaterialId =
+            ref.watch(worldMapSmartTileMaterialIdProvider);
+        SmartTileLayer? activeSmartTileLayer;
+        for (final layer in activeMap.layers) {
+          if (layer.id == state.activeLayerId && layer is SmartTileLayer) {
+            activeSmartTileLayer = layer;
+            break;
+          }
+        }
+        ProjectSmartTilePreset? activeSmartTilePreset;
+        if (activeSmartTileLayer != null) {
+          for (final preset in state.project?.smartTileCatalog.presets ??
+              const <ProjectSmartTilePreset>[]) {
+            if (preset.id == activeSmartTileLayer.presetId) {
+              activeSmartTilePreset = preset;
+              break;
+            }
+          }
+        }
+        final activeSmartTileMaterialId = activeSmartTilePreset == null
+            ? null
+            : activeSmartTilePreset.allowedMaterialIds
+                    .contains(selectedSmartTileMaterialId)
+                ? selectedSmartTileMaterialId
+                : activeSmartTilePreset.defaultMaterialId;
+        final isSmartTileShapeEditing = activeSmartTileLayer != null &&
+            smartTileGestureMode != WorldMapSmartTileGestureMode.brush &&
+            (state.activeTool == EditorToolType.terrainPaint ||
+                state.activeTool == EditorToolType.eraser);
+        var toolPreview = notifier.resolveMapToolPreview(
           hoveredTile: hoveredTile,
           tilesetColumnsById: tilesPerRowById,
         );
+        if (isSmartTileShapeEditing && hoveredTile != null) {
+          final start = _smartTileShapeStart ?? hoveredTile;
+          final end = _smartTileShapeEnd ?? hoveredTile;
+          try {
+            final cells = compileSmartTileGestureSelection(
+              activeSmartTileLayer,
+              mapSize: activeMap.size,
+              selection: _smartTileGestureSelection(
+                smartTileGestureMode,
+                start: start,
+                end: end,
+              ),
+            );
+            final bounds = _smartTileGestureBounds(cells);
+            toolPreview = state.activeTool == EditorToolType.eraser
+                ? MapToolPreview.pathErase(
+                    origin: bounds.origin,
+                    size: bounds.size,
+                    cells: cells,
+                    validity: MapToolPreviewValidity.valid,
+                  )
+                : MapToolPreview.pathPaint(
+                    origin: bounds.origin,
+                    size: bounds.size,
+                    cells: cells,
+                    validity: MapToolPreviewValidity.valid,
+                  );
+          } on SmartTileGestureLimitException catch (error) {
+            toolPreview = state.activeTool == EditorToolType.eraser
+                ? MapToolPreview.pathErase(
+                    origin: hoveredTile,
+                    size: const GridSize(width: 1, height: 1),
+                    validity: MapToolPreviewValidity.invalid,
+                    reason: 'Maximum ${error.maximumCellCount} cellules',
+                  )
+                : MapToolPreview.pathPaint(
+                    origin: hoveredTile,
+                    size: const GridSize(width: 1, height: 1),
+                    validity: MapToolPreviewValidity.invalid,
+                    reason: 'Maximum ${error.maximumCellCount} cellules',
+                  );
+          }
+        }
         final eraserPreview =
             state.activeTool == EditorToolType.eraser ? toolPreview : null;
         final shadowLightPreviewPreset =
@@ -966,15 +1080,20 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
 
         final isInertTilePaint = state.activeTool == EditorToolType.tilePaint &&
             state.activeBrush is NoEditorBrush;
+        final isSmartTileShapeTool = isSmartTileShapeEditing;
+        final isDirectSmartTileStroke =
+            (state.activeTool == EditorToolType.terrainPaint ||
+                    state.activeTool == EditorToolType.eraser) &&
+                !isSmartTileShapeTool;
         final isDirectStrokeEditingTool =
             (state.activeTool == EditorToolType.tilePaint &&
                     !isInertTilePaint) ||
-                state.activeTool == EditorToolType.terrainPaint ||
+                isDirectSmartTileStroke ||
                 state.activeTool == EditorToolType.collisionPaint ||
-                state.activeTool == EditorToolType.eraser ||
                 isEnvironmentMaskEditing;
-        final isStrokeEditingTool =
-            isDirectStrokeEditingTool || isBorderEditing;
+        final isStrokeEditingTool = isDirectStrokeEditingTool ||
+            isSmartTileShapeTool ||
+            isBorderEditing;
         final isNpcWaypointPlacementActive =
             (state.npcWaypointPlacementEntityId?.trim().isNotEmpty ?? false);
         final isTapEditingTool = isStrokeEditingTool ||
@@ -1104,6 +1223,17 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             );
             return;
           }
+          if (isSmartTileShapeTool) {
+            notifier.applyActiveSmartTileSelection(
+              _smartTileGestureSelection(
+                smartTileGestureMode,
+                start: gridPos,
+                end: gridPos,
+              ),
+              materialId: activeSmartTileMaterialId,
+            );
+            return;
+          }
           if (state.activeTool == EditorToolType.tilePaint) {
             notifier.paintSelectedBrushAt(
               gridPos,
@@ -1112,7 +1242,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             return;
           }
           if (state.activeTool == EditorToolType.terrainPaint) {
-            notifier.paintActiveSmartTileAt(gridPos);
+            notifier.paintActiveSmartTileAt(
+              gridPos,
+              materialId: activeSmartTileMaterialId,
+            );
             return;
           }
           if (state.activeTool == EditorToolType.collisionPaint) {
@@ -1341,13 +1474,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                 }
 
                 if (!isTapEditingTool) return;
-                if (isDirectStrokeEditingTool) {
+                if (isDirectStrokeEditingTool || isSmartTileShapeTool) {
                   final promoted = _interactionController.promotePending(
                     pointerId: interactionPointerId,
                     kind: MapCanvasInteractionKind.paintingStroke,
                   );
                   if (promoted == null) return;
-                  notifier.beginMapStroke();
+                  if (isDirectStrokeEditingTool) notifier.beginMapStroke();
                 } else if (isBorderEditing) {
                   final promoted = _interactionController.promotePending(
                     pointerId: interactionPointerId,
@@ -1482,6 +1615,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                 _cancelAndRollbackPointer(interactionPointerId);
                 return;
               }
+              if (isSmartTileShapeTool) {
+                setState(() {
+                  _smartTileShapeStart = gridPos;
+                  _smartTileShapeEnd = gridPos;
+                });
+                return;
+              }
               if (isEnvironmentMaskEditing) {
                 _lastEnvironmentMaskPaintCell = null;
               }
@@ -1535,6 +1675,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
               if (!isActiveStroke || !isStrokeEditingTool) return;
               final gridPos = screenToActiveToolGrid(details.localPosition);
               if (gridPos != null) {
+                if (isSmartTileShapeTool) {
+                  if (_smartTileShapeEnd != gridPos) {
+                    setState(() => _smartTileShapeEnd = gridPos);
+                  }
+                  return;
+                }
                 if (isEnvironmentMaskEditing &&
                     _lastEnvironmentMaskPaintCell == gridPos) {
                   return;
@@ -1585,6 +1731,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                     MapCanvasInteractionKind.borderGesture) {
                   _lastBorderPaintCell = null;
                   finishBorderPreview();
+                } else if (isSmartTileShapeTool) {
+                  final start = _smartTileShapeStart;
+                  final end = _smartTileShapeEnd;
+                  setState(() {
+                    _smartTileShapeStart = null;
+                    _smartTileShapeEnd = null;
+                  });
+                  if (start != null && end != null) {
+                    notifier.applyActiveSmartTileSelection(
+                      _smartTileGestureSelection(
+                        smartTileGestureMode,
+                        start: start,
+                        end: end,
+                      ),
+                      materialId: activeSmartTileMaterialId,
+                    );
+                  }
                 } else {
                   notifier.endMapStroke();
                 }
@@ -2936,6 +3099,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       _activeGestureInteractionId = null;
     }
     _lastEnvironmentMaskPaintCell = null;
+    _smartTileShapeStart = null;
+    _smartTileShapeEnd = null;
     _lastBorderPaintCell = null;
     _borderStrokeEditingDraft = null;
     _borderStrokeGestureRejected = false;
@@ -3002,6 +3167,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       _scheduledRollbackInteractionId = null;
     }
     _lastEnvironmentMaskPaintCell = null;
+    _smartTileShapeStart = null;
+    _smartTileShapeEnd = null;
     _lastBorderPaintCell = null;
     _borderStrokeEditingDraft = null;
     _borderStrokeGestureRejected = false;
