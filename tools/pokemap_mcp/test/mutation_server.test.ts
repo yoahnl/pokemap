@@ -684,6 +684,79 @@ async function applyMutation(
   return String(validation.snapshotRevision);
 }
 
+test("MCP exposes Event V2 activation and safe raw asset replacement", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const rawAssetPath = join(fixture.root, "assets/audio/pikachu.ogg");
+    const replacementPath = join(fixture.root, "replacement.ogg");
+    const beforeBytes = Buffer.from([0x4f, 0x67, 0x67, 0x53, 0x00, 0x01]);
+    const afterBytes = Buffer.from([0x4f, 0x67, 0x67, 0x53, 0x00, 0x02]);
+    await mkdir(join(fixture.root, "assets/audio"), { recursive: true });
+    await writeFile(rawAssetPath, beforeBytes);
+    await writeFile(replacementPath, afterBytes);
+
+    const expected = await toolData(fixture.client, "pokemap_artifact_stage", {
+      sourcePath: rawAssetPath,
+      declaredMediaType: "audio/ogg",
+    });
+    const replacement = await toolData(
+      fixture.client,
+      "pokemap_artifact_stage",
+      {
+        sourcePath: replacementPath,
+        declaredMediaType: "audio/ogg",
+      },
+    );
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => String(action.id),
+    );
+    assert.ok(actionIds.includes("event_v2.registry_mode.set"));
+    assert.ok(actionIds.includes("asset.raw.replace"));
+
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const eventRevision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: String(validated.snapshotRevision),
+      actionId: "event_v2.registry_mode.set",
+      parameters: { mode: "dualRead" },
+      sequence: "event-v2-mode",
+    });
+    const project = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    assert.equal(record(project.eventRegistry).mode, "dualRead");
+
+    await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: eventRevision,
+      actionId: "asset.raw.replace",
+      parameters: {
+        logicalPath: "assets/audio/pikachu.ogg",
+        expectedArtifactHandle: expected.artifactHandle,
+        replacementArtifactHandle: replacement.artifactHandle,
+      },
+      sequence: "raw-asset-replace",
+    });
+    assert.deepEqual(await readFile(rawAssetPath), afterBytes);
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP preserves CLI plan/apply parity for one complete map batch", async () => {
   const fixture = await mutationFixture();
   try {

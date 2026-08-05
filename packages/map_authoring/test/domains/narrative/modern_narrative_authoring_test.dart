@@ -111,6 +111,55 @@ void main() {
       );
     });
 
+    test('Event V2 registry mode is activated through the canonical action',
+        () {
+      final projected = const EventV2Actions().setRegistryMode(
+        _manifest(),
+        maps: const [],
+        mode: EventSystemMode.dualRead,
+      );
+
+      expect(projected.eventRegistry?.mode, EventSystemMode.dualRead);
+      expect(projected.eventRegistry?.records, isEmpty);
+      expect(projected.eventRegistry?.legacyClaims, isEmpty);
+    });
+
+    test('Event V2 only mode refuses owned migration state', () {
+      final project = _manifest(
+        eventRegistry: NarrativeEventRegistry(
+          schemaVersion: 1,
+          mode: EventSystemMode.legacyOnly,
+          records: [
+            NarrativeEventRecord.draft(
+              NarrativeEventDraft(
+                id: 'evt_018f0f8c-7b8a-7def-8000-000000000003',
+                name: 'Owned event',
+                conditions: const [],
+                priority: 0,
+                order: 0,
+              ),
+            ),
+          ],
+          legacyClaims: const [],
+        ),
+      );
+
+      expect(
+        () => const EventV2Actions().setRegistryMode(
+          project,
+          maps: const [],
+          mode: EventSystemMode.v2Only,
+        ),
+        throwsA(
+          isA<NarrativeAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'event_v2.registry_mode_unsafe',
+          ),
+        ),
+      );
+    });
+
     test('Fact type changes require a dependency-safe canonical preview', () {
       final fact = NarrativeFactDefinition(
         id: 'fact_gate',
@@ -193,6 +242,7 @@ void main() {
           'scene.upsert',
           'scene.delete',
           'event_v2.record_upsert',
+          'event_v2.registry_mode.set',
           'event_v2.publish',
           'event_v2.activate',
           'event_v2.deactivate',

@@ -14,6 +14,7 @@ final class EventV2Actions {
     for (final entry in const [
       ('event_v2.create_draft', 'Create an Event V2 draft'),
       ('event_v2.record_upsert', 'Create or replace an Event V2 record'),
+      ('event_v2.registry_mode.set', 'Activate an Event V2 registry mode'),
       ('event_v2.publish', 'Publish a complete Event V2 draft'),
       ('event_v2.unpublish', 'Return an Event V2 to draft state'),
       ('event_v2.activate', 'Activate a published Event V2'),
@@ -32,6 +33,28 @@ final class EventV2Actions {
 
   AuthoringMutationDraft build(AuthoringPlanningContext context) {
     final parameters = context.request.parameters;
+    if (context.request.actionId == 'event_v2.registry_mode.set') {
+      rejectUnknownNarrativeParameters(parameters, const {'mode'});
+      final before = context.snapshot.manifest.eventRegistry?.mode;
+      final projected = setRegistryMode(
+        context.snapshot.manifest,
+        maps: context.snapshot.maps,
+        mode: _decodeRegistryMode(
+          narrativeStringParameter(parameters, 'mode'),
+        ),
+      );
+      return narrativeProjectDraft(
+        context.snapshot,
+        projected,
+        operation: context.request.actionId,
+        path: '/eventRegistry/mode',
+        before: before?.name,
+        after: projected.eventRegistry!.mode.name,
+        preview: const ModernNarrativeInspector()
+            .inspect(project: projected, maps: context.snapshot.maps)
+            .toJson(),
+      );
+    }
     late final ProjectManifest projected;
     late final String eventId;
     NarrativeEventRecord? before;
@@ -201,6 +224,64 @@ final class EventV2Actions {
     return projected;
   }
 
+  ProjectManifest setRegistryMode(
+    ProjectManifest project, {
+    required List<MapData> maps,
+    required EventSystemMode mode,
+  }) {
+    if (mode == EventSystemMode.legacyOnly) {
+      throw NarrativeAuthoringException(
+        'event_v2.registry_mode_invalid',
+        'The canonical activation action accepts only dualRead or v2Only.',
+        details: {'mode': mode.name},
+      );
+    }
+    final current = project.eventRegistry;
+    final legacyMapEventCount = maps.fold<int>(
+      0,
+      (count, map) => count + map.events.length,
+    );
+    final legacyScenarioSourceCount = project.scenarios.fold<int>(
+      0,
+      (count, scenario) =>
+          count + scenario.nodes.where(isLegacyScenarioSourceNode).length,
+    );
+    if (current?.mode == mode) {
+      throw NarrativeAuthoringException(
+        'event_v2.no_change',
+        'The requested Event V2 registry mode is already active.',
+        details: {'mode': mode.name},
+      );
+    }
+    if (current?.mode == EventSystemMode.v2Only ||
+        (mode == EventSystemMode.v2Only &&
+            (current?.records.isNotEmpty == true ||
+                current?.legacyClaims.isNotEmpty == true ||
+                legacyMapEventCount > 0 ||
+                legacyScenarioSourceCount > 0))) {
+      throw NarrativeAuthoringException(
+        'event_v2.registry_mode_unsafe',
+        'The Event V2 registry cannot safely perform this mode transition.',
+        details: {
+          'currentMode': (current?.mode ?? EventSystemMode.legacyOnly).name,
+          'targetMode': mode.name,
+          'recordCount': current?.records.length ?? 0,
+          'legacyClaimCount': current?.legacyClaims.length ?? 0,
+          'legacyMapEventCount': legacyMapEventCount,
+          'legacyScenarioSourceCount': legacyScenarioSourceCount,
+        },
+      );
+    }
+    return project.copyWith(
+      eventRegistry: NarrativeEventRegistry(
+        schemaVersion: current?.schemaVersion ?? 1,
+        mode: mode,
+        records: current?.records ?? const <NarrativeEventRecord>[],
+        legacyClaims: current?.legacyClaims ?? const <LegacySourceClaim>[],
+      ),
+    );
+  }
+
   ProjectManifest publish(
     ProjectManifest project, {
     required List<MapData> maps,
@@ -352,6 +433,16 @@ NarrativeEventRecord _decodeRecord(Map<String, dynamic> json) {
     );
   }
 }
+
+EventSystemMode _decodeRegistryMode(String value) => switch (value) {
+      'dualRead' => EventSystemMode.dualRead,
+      'v2Only' => EventSystemMode.v2Only,
+      _ => throw NarrativeAuthoringException(
+          'event_v2.registry_mode_invalid',
+          'The Event V2 registry mode must be dualRead or v2Only.',
+          details: {'mode': value},
+        ),
+    };
 
 NarrativeEventRegistry _upsertNarrativeEventRecord(
   NarrativeEventRegistry registry,

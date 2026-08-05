@@ -50,6 +50,68 @@ void main() {
           'Edited through Authoring');
     });
 
+    test('applies Event V2 mode and raw asset repair canonically', () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+
+      final modePlan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'event_v2.registry_mode.set',
+        parameters: const {'mode': 'dualRead'},
+        idempotencyKey: 'editor_event_v2_mode',
+      );
+      await fixture.mutations.apply(
+        modePlan,
+        operationId: 'editor_event_v2_mode',
+      );
+      final persistedProject = await FileProjectRepository().loadProject(
+        p.join(fixture.root.path, 'project.json'),
+      );
+      expect(
+        persistedProject.eventRegistry?.mode,
+        EventSystemMode.dualRead,
+      );
+
+      final rawAsset = File(
+        p.join(fixture.root.path, 'assets', 'audio', 'pikachu.ogg'),
+      );
+      final replacementSource = File(
+        p.join(fixture.root.path, 'replacement.ogg'),
+      );
+      await rawAsset.parent.create(recursive: true);
+      final beforeBytes = <int>[0x4f, 0x67, 0x67, 0x53, 0x00, 0x01];
+      final afterBytes = <int>[0x4f, 0x67, 0x67, 0x53, 0x00, 0x02];
+      await rawAsset.writeAsBytes(beforeBytes);
+      await replacementSource.writeAsBytes(afterBytes);
+      final expected = await fixture.mutations.stageArtifact(
+        fixture.root.path,
+        sourcePath: rawAsset.path,
+        declaredMediaType: 'audio/ogg',
+      );
+      final replacement = await fixture.mutations.stageArtifact(
+        fixture.root.path,
+        sourcePath: replacementSource.path,
+        declaredMediaType: 'audio/ogg',
+      );
+      final rawPlan = await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'asset.raw.replace',
+        parameters: {
+          'logicalPath': 'assets/audio/pikachu.ogg',
+          'expectedArtifactHandle': expected.reference.handle,
+          'replacementArtifactHandle': replacement.reference.handle,
+        },
+        idempotencyKey: 'editor_raw_asset_replace',
+      );
+      final rawResult = await fixture.mutations.apply(
+        rawPlan,
+        operationId: 'editor_raw_asset_replace',
+      );
+
+      expect(rawResult.receipt.actionId, 'asset.raw.replace');
+      expect(await rawAsset.readAsBytes(), afterBytes);
+    });
+
     test('normalizes and merges Smart Tile layers through the canonical API',
         () async {
       final fixture = await _MutationFixture.createSmartTiles();

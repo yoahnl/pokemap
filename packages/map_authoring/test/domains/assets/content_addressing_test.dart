@@ -151,6 +151,90 @@ void main() {
           await blob.readAsBytes(), utf8.encode('transactional asset bytes'));
     });
 
+    test('canonical raw replacement is revision-safe and undoable', () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'pokemap_raw_asset_transaction_',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+      final manifest = ProjectManifest(
+        name: 'Raw asset transaction fixture',
+        maps: const [],
+        tilesets: const [],
+      );
+      await File('${directory.path}/project.json').writeAsString(
+        '${const JsonEncoder.withIndent('  ').convert(manifest.toJson())}\n',
+      );
+      final rawAsset = File('${directory.path}/assets/audio/pikachu.ogg');
+      await rawAsset.parent.create(recursive: true);
+      final beforeBytes = <int>[0x4f, 0x67, 0x67, 0x53, 0x00, 0x01];
+      final afterBytes = <int>[0x4f, 0x67, 0x67, 0x53, 0x00, 0x02];
+      await rawAsset.writeAsBytes(beforeBytes);
+
+      const reader = LocalProjectFileReader();
+      final policy = await WorkspacePolicy.create(
+        allowedRootPaths: [directory.path],
+        fileReader: reader,
+      );
+      final handles = WorkspaceHandleStore();
+      final snapshots = ProjectSnapshotLoader(handles: handles);
+      final opened = await ProjectOpenService(
+        policy: policy,
+        fileReader: reader,
+        handles: handles,
+      ).openProject(directory.path);
+      final artifacts = MemoryArtifactStore(maximumArtifactBytes: 1024);
+      final expected = await artifacts.put(
+        beforeBytes,
+        declaredMediaType: 'audio/ogg',
+      );
+      final replacement = await artifacts.put(
+        afterBytes,
+        declaredMediaType: 'audio/ogg',
+      );
+      final api = LocalMapAuthoringMutationApi(
+        policy: policy,
+        snapshotLoader: snapshots,
+        artifactStore: artifacts,
+        clock: () => DateTime.utc(2026, 8, 5, 12),
+      );
+      await api.attachProject(
+        projectRootPath: directory.path,
+        workspaceHandle: opened.workspaceHandle,
+        projectHandle: opened.projectHandle,
+      );
+
+      final plan = await api.plan(
+        opened.projectHandle,
+        AuthoringRequest(
+          requestId: 'req-raw-asset-replace',
+          actionId: 'asset.raw.replace',
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: {
+            'logicalPath': 'assets/audio/pikachu.ogg',
+            'expectedArtifactHandle': expected.reference.handle,
+            'replacementArtifactHandle': replacement.reference.handle,
+          },
+          expectedRevision: opened.fingerprint,
+          idempotencyKey: 'idem-raw-asset-replace',
+        ),
+      );
+      final applied = await api.apply(
+        opened.projectHandle,
+        planId: plan['planId']! as String,
+        operationId: 'op-raw-asset-replace',
+      );
+      expect(await rawAsset.readAsBytes(), afterBytes);
+
+      final receipt = Map<String, Object?>.from(applied['receipt']! as Map);
+      await api.undo(
+        opened.projectHandle,
+        entryId: receipt['receiptId']! as String,
+        idempotencyKey: 'idem-raw-asset-replace-undo',
+      );
+      expect(await rawAsset.readAsBytes(), beforeBytes);
+    });
+
     test('catalog search is deterministic and reports unused assets', () {
       final used = _record('used', 'images/used.png', usages: ['map:town']);
       final unused = _record('unused', 'images/unused.png');

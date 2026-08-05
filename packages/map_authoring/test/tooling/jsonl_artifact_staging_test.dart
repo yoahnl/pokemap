@@ -71,6 +71,72 @@ void main() {
     );
   });
 
+  test('JSONL replaces a staged unmanaged asset through the canonical action',
+      () async {
+    final fixture = await _Fixture.create();
+    addTearDown(fixture.dispose);
+    final rawAsset = File('${fixture.root.path}/assets/audio/pikachu.ogg');
+    await rawAsset.parent.create(recursive: true);
+    final beforeBytes = <int>[0x4f, 0x67, 0x67, 0x53, 0x00, 0x01];
+    final afterBytes = <int>[0x4f, 0x67, 0x67, 0x53, 0x00, 0x02];
+    await rawAsset.writeAsBytes(beforeBytes);
+    final expectedSource = File('${fixture.root.path}/expected.ogg');
+    final replacementSource = File('${fixture.root.path}/replacement.ogg');
+    await expectedSource.writeAsBytes(beforeBytes);
+    await replacementSource.writeAsBytes(afterBytes);
+
+    final expected = await fixture.request(
+      'stage_artifact',
+      requestId: 'stage-expected',
+      args: {
+        'sourcePath': expectedSource.path,
+        'declaredMediaType': 'audio/ogg',
+      },
+    );
+    final replacement = await fixture.request(
+      'stage_artifact',
+      requestId: 'stage-replacement',
+      args: {
+        'sourcePath': replacementSource.path,
+        'declaredMediaType': 'audio/ogg',
+      },
+    );
+    final opened = await fixture.open();
+    final snapshot = await fixture.snapshots.load(opened.projectHandle);
+
+    final planned = await fixture.request(
+      'plan',
+      args: {
+        'projectHandle': opened.projectHandle.value,
+        'request': AuthoringRequest(
+          requestId: 'jsonl-raw-replace',
+          actionId: 'asset.raw.replace',
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle.value,
+          parameters: {
+            'logicalPath': 'assets/audio/pikachu.ogg',
+            'expectedArtifactHandle': expected.data['artifactHandle'],
+            'replacementArtifactHandle': replacement.data['artifactHandle'],
+          },
+          expectedRevision: snapshot.revision,
+          idempotencyKey: 'jsonl-raw-replace-idempotency',
+        ).toJson(),
+      },
+    );
+    expect(planned.status, AuthoringResultStatus.success);
+
+    final applied = await fixture.request(
+      'apply',
+      args: {
+        'projectHandle': opened.projectHandle.value,
+        'planId': planned.data['planId'],
+        'operationId': 'jsonl-raw-replace-operation',
+      },
+    );
+    expect(applied.status, AuthoringResultStatus.success);
+    expect(await rawAsset.readAsBytes(), afterBytes);
+  });
+
   test('JSONL preserves an unknown artifact domain error', () async {
     final fixture = await _Fixture.create();
     addTearDown(fixture.dispose);
@@ -176,11 +242,12 @@ final class _Fixture {
   Future<AuthoringResult> request(
     String command, {
     Map<String, Object?> args = const {},
+    String? requestId,
   }) async {
     final decoded = jsonDecode(
       await worker.processLine(
         jsonEncode({
-          'id': 'request-$command',
+          'id': requestId ?? 'request-$command',
           'command': command,
           'args': args,
         }),

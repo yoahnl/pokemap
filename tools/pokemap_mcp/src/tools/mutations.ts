@@ -21,7 +21,7 @@ export function registerMutationTools(
     {
       title: "Stage a local PokeMap artifact",
       description:
-        "Securely stages a file from an allowed root and returns an opaque handle for asset.import.",
+        "Securely stages a file from an allowed root and returns an opaque handle for canonical asset mutations.",
       inputSchema: z
         .object({
           sourcePath: z.string().min(1),

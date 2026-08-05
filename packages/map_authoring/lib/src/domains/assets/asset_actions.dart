@@ -112,6 +112,12 @@ final class AssetActions {
     _descriptor(
         'asset.replace', 'Replace one asset blob', AuthoringRiskLevel.medium),
     _descriptor(
+      'asset.raw.replace',
+      'Replace one unmanaged project asset with an exact pre-image',
+      AuthoringRiskLevel.medium,
+      resourceKinds: const ['asset'],
+    ),
+    _descriptor(
         'asset.move', 'Move one logical asset path', AuthoringRiskLevel.low),
     _descriptor('asset.delete', 'Delete one unreferenced asset',
         AuthoringRiskLevel.high),
@@ -120,7 +126,7 @@ final class AssetActions {
   Future<AuthoringMutationDraft> build(AuthoringPlanningContext context) async {
     final store = artifactStore;
     if (store == null &&
-        const {'asset.import', 'asset.replace'}
+        const {'asset.import', 'asset.replace', 'asset.raw.replace'}
             .contains(context.request.actionId)) {
       throw AssetActionException(
         'artifact.store_required',
@@ -129,6 +135,26 @@ final class AssetActions {
     }
     final state = _catalogState(context.snapshot);
     final parameters = _AssetParameters(context.request.parameters);
+    if (context.request.actionId == 'asset.raw.replace') {
+      parameters.allow(const {
+        'logicalPath',
+        'expectedArtifactHandle',
+        'replacementArtifactHandle',
+      });
+      return _rawReplacementDraft(
+        state,
+        logicalPath: _rawAssetLogicalPath(parameters.string('logicalPath')),
+        expectedArtifact: _requireArtifact(
+          store!,
+          parameters.string('expectedArtifactHandle'),
+        ),
+        replacementArtifact: _requireArtifact(
+          store,
+          parameters.string('replacementArtifactHandle'),
+        ),
+        artifactStore: store,
+      );
+    }
     late final AssetActionResult result;
     ContentArtifactRef? addedArtifact;
     List<int>? addedBytes;
@@ -422,6 +448,89 @@ AuthoringMutationDraft _draft(
   );
 }
 
+Future<AuthoringMutationDraft> _rawReplacementDraft(
+  _AssetCatalogState state, {
+  required String logicalPath,
+  required ContentArtifactRef expectedArtifact,
+  required ContentArtifactRef replacementArtifact,
+  required ArtifactStore artifactStore,
+}) async {
+  final managed = state.catalog.records
+      .where((record) => record.logicalPath == logicalPath)
+      .firstOrNull;
+  if (managed != null) {
+    throw AssetActionException(
+      'asset.raw.managed_path',
+      'This path is catalog-managed and must be changed with asset.replace.',
+      details: {'logicalPath': logicalPath, 'assetId': managed.id},
+    );
+  }
+  if (expectedArtifact.digest == replacementArtifact.digest) {
+    throw AssetActionException(
+      'asset.no_change',
+      'The replacement bytes are identical to the expected current asset.',
+      details: {'logicalPath': logicalPath},
+    );
+  }
+  if (expectedArtifact.mediaType != replacementArtifact.mediaType) {
+    throw AssetActionException(
+      'asset.raw.media_type_mismatch',
+      'Raw replacement must preserve the inspected asset media type.',
+      details: {
+        'logicalPath': logicalPath,
+        'expectedMediaType': expectedArtifact.mediaType,
+        'replacementMediaType': replacementArtifact.mediaType,
+      },
+    );
+  }
+  final beforeBytes = await artifactStore.read(expectedArtifact.handle);
+  final afterBytes = await artifactStore.read(replacementArtifact.handle);
+  final resource = AuthoringResourceRef(
+    kind: 'asset',
+    id: 'raw:$logicalPath',
+  );
+  return AuthoringMutationDraft(
+    changeSet: AuthoringChangeSet(
+      changes: [
+        AuthoringResourceChange(
+          resource: resource,
+          storageKey: logicalPath,
+          beforeBytes: beforeBytes,
+          afterBytes: afterBytes,
+        ),
+      ],
+      diff: AuthoringDiff([
+        AuthoringDiffEntry(
+          operation: AuthoringDiffOperation.replace,
+          resource: resource,
+          path: '/',
+          before: expectedArtifact.toJson(),
+          after: replacementArtifact.toJson(),
+        ),
+      ]),
+    ),
+    preview: {
+      'operation': 'rawReplace',
+      'logicalPath': logicalPath,
+      'before': expectedArtifact.toJson(),
+      'after': replacementArtifact.toJson(),
+    },
+    referenceImpact: {
+      'logicalPath': logicalPath,
+      'catalogManaged': false,
+    },
+    artifacts: [
+      AuthoringArtifactRef(
+        id: replacementArtifact.digest,
+        mediaType: replacementArtifact.mediaType,
+        uri: replacementArtifact.handle,
+        byteLength: replacementArtifact.byteLength,
+        sha256: replacementArtifact.digest,
+      ),
+    ],
+  );
+}
+
 _AssetCatalogState _catalogState(ProjectSnapshot snapshot) {
   final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
   if (bytes == null) return _AssetCatalogState(AssetCatalog(), null);
@@ -460,8 +569,9 @@ ContentArtifactRef _requireArtifact(ArtifactStore store, String handle) {
 AuthoringActionDescriptor _descriptor(
   String id,
   String summary,
-  AuthoringRiskLevel riskLevel,
-) {
+  AuthoringRiskLevel riskLevel, {
+  List<String> resourceKinds = const ['assetCatalog', 'assetBlob'],
+}) {
   return AuthoringActionDescriptor(
     id: id,
     version: 1,
@@ -469,7 +579,7 @@ AuthoringActionDescriptor _descriptor(
     inputSchemaId: 'pokemap.authoring.$id.input.v1',
     outputSchemaId: 'pokemap.authoring.asset.mutation.v1',
     riskLevel: riskLevel,
-    resourceKinds: const ['assetCatalog', 'assetBlob'],
+    resourceKinds: resourceKinds,
     capabilityIds: const ['authoring.assets'],
     requiredPermissions: const [
       AuthoringPermission.assetWrite,
@@ -483,6 +593,31 @@ AuthoringActionDescriptor _descriptor(
       AuthoringGuarantee.undoable,
     ],
   );
+}
+
+String _rawAssetLogicalPath(String value) {
+  final segments = value.split('/');
+  final extension = segments.last.toLowerCase();
+  final isAssetRoot = segments.first == 'assets' || segments.first == 'data';
+  final invalid = segments.length < 2 ||
+      !isAssetRoot ||
+      segments.any(
+        (segment) =>
+            segment.isEmpty ||
+            segment == '.' ||
+            segment == '..' ||
+            segment.startsWith('.'),
+      ) ||
+      value.contains(r'\') ||
+      extension.endsWith('.json');
+  if (invalid) {
+    throw AssetActionException(
+      'asset.raw.path_forbidden',
+      'Raw replacement accepts only non-JSON files below assets/ or data/.',
+      details: {'logicalPath': value},
+    );
+  }
+  return value;
 }
 
 final class _AssetCatalogState {

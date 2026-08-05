@@ -414,6 +414,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
     'test/domains/maps/warp_connection_transaction_test.dart',
   ),
   _ContractEvidenceRule(
+    ['asset.raw.'],
+    'test/domains/assets/content_addressing_test.dart',
+  ),
+  _ContractEvidenceRule(
     ['asset.'],
     'test/domains/assets/asset_security_test.dart',
   ),
