@@ -87,12 +87,12 @@ void main() {
         expect(aspectRatio.aspectRatio, kAveluneCartridgeAspectRatio);
         for (final structureKey in <String>[
           'avelune-cartridge-shell',
-          'avelune-cartridge-material-texture',
-          'avelune-cartridge-wear-texture',
-          'avelune-cartridge-bevel',
+          'avelune-cartridge-shell-layer',
+          'avelune-cartridge-highlight-layer',
+          'avelune-cartridge-wear-layer',
           'avelune-cartridge-brand-band',
           'avelune-cartridge-cover',
-          'avelune-cartridge-cover-gloss',
+          'avelune-cartridge-label-glass-layer',
           'avelune-cartridge-connectors',
         ]) {
           expect(
@@ -103,33 +103,45 @@ void main() {
             findsOneWidget,
           );
         }
-        final texture = tester.widget<Image>(
+        final shell = tester.widget<Image>(
           find.descendant(
             of: finder,
             matching: find.byKey(
               const ValueKey<String>(
-                'avelune-cartridge-material-texture',
+                'avelune-cartridge-shell-layer',
               ),
             ),
           ),
         );
         expect(
-          (texture.image as AssetImage).assetName,
-          'assets/avelune/materials/matte_abs_grain.webp',
+          (shell.image as AssetImage).assetName,
+          'assets/avelune/objects/cartridge/shell.webp',
         );
         final wear = tester.widget<Image>(
           find.descendant(
             of: finder,
             matching: find.byKey(
               const ValueKey<String>(
-                'avelune-cartridge-wear-texture',
+                'avelune-cartridge-wear-layer',
               ),
             ),
           ),
         );
         expect(
           (wear.image as AssetImage).assetName,
-          'assets/avelune/materials/aged_abs_wear.webp',
+          'assets/avelune/objects/cartridge/wear.webp',
+        );
+        final connectors = tester.widget<Image>(
+          find.descendant(
+            of: finder,
+            matching: find.byKey(
+              const ValueKey<String>('avelune-cartridge-connectors'),
+            ),
+          ),
+        );
+        expect(
+          (connectors.image as AssetImage).assetName,
+          'assets/avelune/objects/cartridge/connectors.webp',
         );
       }
 
@@ -244,6 +256,69 @@ void main() {
       cartridges.map((cartridge) => cartridge.shellColor).toSet(),
       <Color?>{authoredShellColor},
     );
+  });
+
+  testWidgets('artwork decoding is bounded for hero and shelf displays',
+      (tester) async {
+    const artwork = AssetImage(
+      'assets/avelune/artwork/fallback_moonlit_path.webp',
+    );
+
+    await tester.pumpWidget(
+      _app(
+        const Row(
+          children: <Widget>[
+            SizedBox(
+              width: 126,
+              child: AveluneCartridge(
+                key: ValueKey<String>('hero-cache-cartridge'),
+                gameId: 'games.example.hero-cache',
+                title: 'Aube',
+                artwork: artwork,
+                displaySize: AveluneCartridgeDisplaySize.hero,
+              ),
+            ),
+            SizedBox(width: 12),
+            SizedBox(
+              width: 84,
+              child: AveluneCartridge(
+                key: ValueKey<String>('shelf-cache-cartridge'),
+                gameId: 'games.example.shelf-cache',
+                title: 'Aube',
+                artwork: artwork,
+                displaySize: AveluneCartridgeDisplaySize.shelf,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final heroImage = tester.widget<Image>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('hero-cache-cartridge')),
+        matching: find.byKey(
+          const ValueKey<String>('avelune-cartridge-artwork'),
+        ),
+      ),
+    );
+    final shelfImage = tester.widget<Image>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('shelf-cache-cartridge')),
+        matching: find.byKey(
+          const ValueKey<String>('avelune-cartridge-artwork'),
+        ),
+      ),
+    );
+    final heroProvider = heroImage.image as ResizeImage;
+    final shelfProvider = shelfImage.image as ResizeImage;
+
+    expect(heroProvider.width, kAveluneCartridgeHeroArtworkCacheWidth);
+    expect(heroProvider.height, kAveluneCartridgeHeroArtworkCacheHeight);
+    expect(shelfProvider.width, kAveluneCartridgeShelfArtworkCacheWidth);
+    expect(shelfProvider.height, kAveluneCartridgeShelfArtworkCacheHeight);
+    expect(heroProvider.width, greaterThan(shelfProvider.width!));
+    expect(heroProvider.height, greaterThan(shelfProvider.height!));
   });
 
   testWidgets('selected and invalid states are announced without color alone',

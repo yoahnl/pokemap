@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 
+import 'assets/avelune_material_catalog.dart';
 import 'avelune_game_presentation.dart';
 import 'avelune_theme.dart';
 
 const double kAveluneCartridgeAspectRatio = 0.7;
+const int kAveluneCartridgeHeroArtworkCacheWidth = 512;
+const int kAveluneCartridgeHeroArtworkCacheHeight = 640;
+const int kAveluneCartridgeShelfArtworkCacheWidth = 256;
+const int kAveluneCartridgeShelfArtworkCacheHeight = 320;
 
 enum AveluneCartridgeDisplaySize { hero, shelf }
 
@@ -67,199 +72,41 @@ class AveluneCartridge extends StatelessWidget {
             if (subtitle case final value? when value.trim().isNotEmpty) value,
             if (invalid) unavailable,
           ].join(', ');
-    final effectiveShell = shellColor ?? colors.shell;
-    final wearAlignment = _wearAlignmentFor(gameId);
 
     return Semantics(
       button: onPressed != null || onLongPress != null,
       selected: selected,
       label: semanticsLabel,
       hint: semanticsHint,
+      onTap: onPressed,
+      onLongPress: onLongPress,
+      excludeSemantics: true,
       child: Material(
         type: MaterialType.transparency,
         child: InkWell(
           onTap: onPressed,
           onLongPress: onLongPress,
-          borderRadius: BorderRadius.circular(12),
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: AspectRatio(
             key: const ValueKey<String>('avelune-cartridge-aspect'),
             aspectRatio: kAveluneCartridgeAspectRatio,
             child: RepaintBoundary(
-              child: DecoratedBox(
-                key: const ValueKey<String>('avelune-cartridge-shell'),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    width: selected ? 2 : 1,
-                    color: selected
-                        ? colors.primaryBright.withValues(alpha: 0.78)
-                        : colors.outline,
-                  ),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: <Color>[
-                      Color.lerp(
-                        effectiveShell,
-                        colors.textPrimary,
-                        0.16,
-                      )!,
-                      Color.lerp(
-                        effectiveShell,
-                        colors.shellHighlight,
-                        0.16,
-                      )!,
-                      effectiveShell,
-                      Color.lerp(effectiveShell, colors.background, 0.46)!,
-                    ],
-                    stops: const <double>[0, 0.16, 0.58, 1],
-                  ),
-                  boxShadow: <BoxShadow>[
-                    if (selected)
-                      BoxShadow(
-                        color: colors.glow.withValues(alpha: 0.34),
-                        blurRadius: 13,
-                      ),
-                    BoxShadow(
-                      color: colors.background.withValues(alpha: 0.72),
-                      blurRadius: 7,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(11),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final width = constraints.maxWidth;
-                      final density =
-                          displaySize == AveluneCartridgeDisplaySize.hero
-                              ? 1.0
-                              : 0.94;
-                      return Stack(
-                        fit: StackFit.expand,
-                        children: <Widget>[
-                          ExcludeSemantics(
-                            child: Opacity(
-                              opacity: kAvelunePlasticTextureOpacity,
-                              child: Image.asset(
-                                kAveluneMatteAbsTextureAssetPath,
-                                key: const ValueKey<String>(
-                                  'avelune-cartridge-material-texture',
-                                ),
-                                fit: BoxFit.cover,
-                                color: effectiveShell,
-                                colorBlendMode: BlendMode.modulate,
-                                excludeFromSemantics: true,
-                              ),
-                            ),
-                          ),
-                          _CartridgeRim(colors: colors),
-                          Positioned(
-                            left: width * 0.035,
-                            top: width * 0.035,
-                            width: width * 0.055,
-                            height: width * 0.23,
-                            child: _CartridgeMoldedRail(colors: colors),
-                          ),
-                          Positioned(
-                            right: width * 0.035,
-                            top: width * 0.035,
-                            width: width * 0.055,
-                            height: width * 0.23,
-                            child: _CartridgeMoldedRail(colors: colors),
-                          ),
-                          Positioned(
-                            left: width * 0.08,
-                            right: width * 0.08,
-                            top: width * 0.07,
-                            height: width * 0.17,
-                            child: _CartridgeBrandBand(
-                              fontSize: width * 0.085 * density,
-                              colors: colors,
-                            ),
-                          ),
-                          Positioned(
-                            left: width * 0.1,
-                            right: width * 0.1,
-                            top: width * 0.3,
-                            bottom: width * 0.34,
-                            child: _artworkLabel(
-                              title: addSlot ? addLabel : title,
-                              titleSize: width * 0.105 * density,
-                              colors: colors,
-                            ),
-                          ),
-                          Positioned(
-                            left: width * 0.12,
-                            right: width * 0.12,
-                            bottom: width * 0.17,
-                            height: width * 0.08,
-                            child: _CartridgeDetails(colors: colors),
-                          ),
-                          Positioned(
-                            left: width * 0.075,
-                            bottom: width * 0.205,
-                            child: _CartridgeScrew(
-                              colors: colors,
-                              size: width * 0.035,
-                            ),
-                          ),
-                          Positioned(
-                            right: width * 0.075,
-                            bottom: width * 0.205,
-                            child: _CartridgeScrew(
-                              colors: colors,
-                              size: width * 0.035,
-                            ),
-                          ),
-                          ExcludeSemantics(
-                            child: Opacity(
-                              opacity: kAveluneCartridgeWearOpacity,
-                              child: Image.asset(
-                                kAveluneAgedAbsWearAssetPath,
-                                key: const ValueKey<String>(
-                                  'avelune-cartridge-wear-texture',
-                                ),
-                                fit: BoxFit.cover,
-                                alignment: wearAlignment,
-                                excludeFromSemantics: true,
-                              ),
-                            ),
-                          ),
-                          Positioned(
-                            left: width * 0.08,
-                            right: width * 0.08,
-                            bottom: 0,
-                            height: width * 0.15,
-                            child: _CartridgeConnectors(colors: colors),
-                          ),
-                          if (invalid)
-                            Positioned(
-                              right: width * 0.08,
-                              top: width * 0.27,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: colors.background.withValues(
-                                    alpha: 0.86,
-                                  ),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Padding(
-                                  padding: EdgeInsets.all(width * 0.035),
-                                  child: Icon(
-                                    Icons.error_outline_rounded,
-                                    size: width * 0.17,
-                                    color: colors.invalid,
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
+              key: ValueKey<String>(
+                'avelune-cartridge-boundary-$gameId-${displaySize.name}',
+              ),
+              child: _AveluneCartridgeMold(
+                gameId: gameId,
+                title: addSlot ? addLabel : title,
+                subtitle: subtitle,
+                artwork: artwork,
+                artworkHeroTag: artworkHeroTag,
+                shellColor: shellColor ?? colors.shell,
+                displaySize: displaySize,
+                addSlot: addSlot,
+                selected: selected,
+                invalid: invalid,
               ),
             ),
           ),
@@ -267,20 +114,242 @@ class AveluneCartridge extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _artworkLabel({
-    required String title,
-    required double titleSize,
-    required AveluneColors colors,
-  }) {
-    return _CartridgeLabel(
-      title: title,
-      subtitle: subtitle,
-      artwork: artwork,
-      artworkHeroTag: artworkHeroTag,
-      addSlot: addSlot,
-      titleSize: titleSize,
-      colors: colors,
+class _AveluneCartridgeMold extends StatelessWidget {
+  const _AveluneCartridgeMold({
+    required this.gameId,
+    required this.title,
+    required this.subtitle,
+    required this.artwork,
+    required this.artworkHeroTag,
+    required this.shellColor,
+    required this.displaySize,
+    required this.addSlot,
+    required this.selected,
+    required this.invalid,
+  });
+
+  final String gameId;
+  final String title;
+  final String? subtitle;
+  final ImageProvider<Object>? artwork;
+  final Object? artworkHeroTag;
+  final Color shellColor;
+  final AveluneCartridgeDisplaySize displaySize;
+  final bool addSlot;
+  final bool selected;
+  final bool invalid;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.aveluneColors;
+    final materials = context.aveluneMaterials;
+    final cache = _ArtworkCacheSize.from(displaySize);
+
+    return DecoratedBox(
+      key: const ValueKey<String>('avelune-cartridge-shell'),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: <BoxShadow>[
+          if (selected)
+            BoxShadow(
+              color: colors.glow.withValues(alpha: 0.4),
+              blurRadius: 16,
+              spreadRadius: 1,
+            ),
+          BoxShadow(
+            color: colors.background.withValues(alpha: 0.78),
+            blurRadius: 9,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth;
+          final density =
+              displaySize == AveluneCartridgeDisplaySize.hero ? 1.0 : 0.94;
+
+          return Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: <Widget>[
+              Positioned(
+                left: width * 0.07,
+                right: width * 0.07,
+                bottom: width * 0.005,
+                height: width * 0.1,
+                child: ExcludeSemantics(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.all(
+                        Radius.elliptical(width, width * 0.08),
+                      ),
+                      gradient: RadialGradient(
+                        colors: <Color>[
+                          colors.background.withValues(alpha: 0.82),
+                          colors.background.withValues(alpha: 0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: ExcludeSemantics(
+                  child: ColorFiltered(
+                    colorFilter: ColorFilter.mode(
+                      shellColor,
+                      BlendMode.color,
+                    ),
+                    child: Image.asset(
+                      AveluneMaterialCatalog.cartridgeShell.path,
+                      key: const ValueKey<String>(
+                        'avelune-cartridge-shell-layer',
+                      ),
+                      fit: BoxFit.fill,
+                      filterQuality: FilterQuality.high,
+                      excludeFromSemantics: true,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: width * 0.125,
+                right: width * 0.125,
+                top: width * 0.25,
+                bottom: width * 0.286,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    _CartridgeLabel(
+                      title: title,
+                      subtitle: subtitle,
+                      artwork: artwork,
+                      artworkHeroTag: artworkHeroTag,
+                      addSlot: addSlot,
+                      titleSize: width * 0.095 * density,
+                      cache: cache,
+                      colors: colors,
+                    ),
+                    ExcludeSemantics(
+                      child: Opacity(
+                        opacity: materials.glassHighlightOpacity,
+                        child: Image.asset(
+                          AveluneMaterialCatalog.cartridgeLabelGlass.path,
+                          key: const ValueKey<String>(
+                            'avelune-cartridge-label-glass-layer',
+                          ),
+                          fit: BoxFit.fill,
+                          filterQuality: FilterQuality.high,
+                          excludeFromSemantics: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                left: width * 0.15,
+                right: width * 0.15,
+                top: width * 0.05,
+                height: width * 0.145,
+                child: _CartridgeBrandBand(
+                  fontSize: width * 0.082 * density,
+                  colors: colors,
+                ),
+              ),
+              Positioned.fill(
+                child: ExcludeSemantics(
+                  child: Image.asset(
+                    AveluneMaterialCatalog.cartridgeHighlight.path,
+                    key: const ValueKey<String>(
+                      'avelune-cartridge-highlight-layer',
+                    ),
+                    fit: BoxFit.fill,
+                    filterQuality: FilterQuality.high,
+                    excludeFromSemantics: true,
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: ExcludeSemantics(
+                  child: Opacity(
+                    opacity: materials.cartridgeWearOpacity,
+                    child: Image.asset(
+                      AveluneMaterialCatalog.cartridgeWear.path,
+                      key: const ValueKey<String>(
+                        'avelune-cartridge-wear-layer',
+                      ),
+                      fit: BoxFit.fill,
+                      alignment: _wearAlignmentFor(gameId),
+                      filterQuality: FilterQuality.high,
+                      excludeFromSemantics: true,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: width * 0.071,
+                right: width * 0.071,
+                bottom: 0,
+                height: width * 0.179,
+                child: ExcludeSemantics(
+                  child: Image.asset(
+                    AveluneMaterialCatalog.cartridgeConnectors.path,
+                    key: const ValueKey<String>(
+                      'avelune-cartridge-connectors',
+                    ),
+                    fit: BoxFit.fill,
+                    filterQuality: FilterQuality.high,
+                    excludeFromSemantics: true,
+                  ),
+                ),
+              ),
+              if (selected)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: DecoratedBox(
+                      key: const ValueKey<String>(
+                        'avelune-cartridge-selection-overlay',
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          width: 2,
+                          color: colors.primaryBright.withValues(alpha: 0.76),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              if (invalid)
+                Positioned(
+                  right: width * 0.08,
+                  top: width * 0.24,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.background.withValues(alpha: 0.9),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: colors.invalid.withValues(alpha: 0.64),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: EdgeInsets.all(width * 0.035),
+                      child: Icon(
+                        Icons.error_outline_rounded,
+                        size: width * 0.16,
+                        color: colors.invalid,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 }
@@ -295,96 +364,6 @@ Alignment _wearAlignmentFor(String gameId) {
   return Alignment(x, y);
 }
 
-class _CartridgeRim extends StatelessWidget {
-  const _CartridgeRim({required this.colors});
-
-  final AveluneColors colors;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.all(4),
-        child: DecoratedBox(
-          key: const ValueKey<String>('avelune-cartridge-bevel'),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(
-              color: colors.textPrimary.withValues(alpha: 0.15),
-            ),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: <Color>[
-                colors.textPrimary.withValues(alpha: 0.08),
-                colors.outline.withValues(alpha: 0.06),
-                colors.background.withValues(alpha: 0.24),
-              ],
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(2),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(7),
-                border: Border.all(
-                  color: colors.background.withValues(alpha: 0.48),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
-}
-
-class _CartridgeMoldedRail extends StatelessWidget {
-  const _CartridgeMoldedRail({required this.colors});
-
-  final AveluneColors colors;
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(3),
-          border: Border.all(
-            color: colors.background.withValues(alpha: 0.44),
-          ),
-          gradient: LinearGradient(
-            colors: <Color>[
-              colors.textPrimary.withValues(alpha: 0.12),
-              colors.outline.withValues(alpha: 0.24),
-              colors.background.withValues(alpha: 0.34),
-            ],
-          ),
-        ),
-      );
-}
-
-class _CartridgeScrew extends StatelessWidget {
-  const _CartridgeScrew({required this.colors, required this.size});
-
-  final AveluneColors colors;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: colors.background.withValues(alpha: 0.6),
-          border: Border.all(
-            color: colors.textPrimary.withValues(alpha: 0.18),
-          ),
-        ),
-        child: Center(
-          child: Container(
-            width: size * 0.5,
-            height: 1,
-            color: colors.outline,
-          ),
-        ),
-      );
-}
-
 class _CartridgeBrandBand extends StatelessWidget {
   const _CartridgeBrandBand({
     required this.fontSize,
@@ -395,32 +374,24 @@ class _CartridgeBrandBand extends StatelessWidget {
   final AveluneColors colors;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
+  Widget build(BuildContext context) => Center(
         key: const ValueKey<String>('avelune-cartridge-brand-band'),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[
-              colors.textPrimary.withValues(alpha: 0.1),
-              colors.background.withValues(alpha: 0.46),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(5),
-          border: Border.all(color: colors.outline.withValues(alpha: 0.7)),
-        ),
-        child: Center(
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              'AVELUNE',
-              maxLines: 1,
-              style: TextStyle(
-                color: colors.textPrimary.withValues(alpha: 0.72),
-                fontSize: fontSize,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.2,
-              ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'AVELUNE',
+            maxLines: 1,
+            style: TextStyle(
+              color: colors.textPrimary.withValues(alpha: 0.76),
+              fontSize: fontSize,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              shadows: <Shadow>[
+                Shadow(
+                  color: colors.background.withValues(alpha: 0.9),
+                  offset: const Offset(0, 1),
+                ),
+              ],
             ),
           ),
         ),
@@ -435,6 +406,7 @@ class _CartridgeLabel extends StatelessWidget {
     required this.artworkHeroTag,
     required this.addSlot,
     required this.titleSize,
+    required this.cache,
     required this.colors,
   });
 
@@ -444,6 +416,7 @@ class _CartridgeLabel extends StatelessWidget {
   final Object? artworkHeroTag;
   final bool addSlot;
   final double titleSize;
+  final _ArtworkCacheSize cache;
   final AveluneColors colors;
 
   @override
@@ -451,14 +424,25 @@ class _CartridgeLabel extends StatelessWidget {
     final image = artwork;
     final Widget artworkLayer;
     if (image == null) {
-      artworkLayer = _LabelFallback(addSlot: addSlot, colors: colors);
+      artworkLayer = _LabelFallback(
+        addSlot: addSlot,
+        cache: cache,
+        colors: colors,
+      );
     } else {
       artworkLayer = Image(
-        image: image,
+        key: const ValueKey<String>('avelune-cartridge-artwork'),
+        image: ResizeImage.resizeIfNeeded(
+          cache.width,
+          cache.height,
+          image,
+        ),
         fit: BoxFit.cover,
+        filterQuality: FilterQuality.high,
         excludeFromSemantics: true,
         errorBuilder: (_, __, ___) => _LabelFallback(
           addSlot: addSlot,
+          cache: cache,
           colors: colors,
         ),
       );
@@ -476,12 +460,12 @@ class _CartridgeLabel extends StatelessWidget {
               child: artworkLayer,
             ),
           );
+
     return DecoratedBox(
       key: const ValueKey<String>('avelune-cartridge-cover'),
       decoration: BoxDecoration(
         color: colors.surface,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: colors.outline),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(5),
@@ -489,25 +473,6 @@ class _CartridgeLabel extends StatelessWidget {
           fit: StackFit.expand,
           children: <Widget>[
             presentedArtwork,
-            IgnorePointer(
-              child: DecoratedBox(
-                key: const ValueKey<String>(
-                  'avelune-cartridge-cover-gloss',
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    stops: const <double>[0, 0.24, 0.5],
-                    colors: <Color>[
-                      colors.textPrimary.withValues(alpha: 0),
-                      colors.textPrimary.withValues(alpha: 0.12),
-                      colors.textPrimary.withValues(alpha: 0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
             Align(
               alignment: Alignment.bottomCenter,
               child: DecoratedBox(
@@ -516,16 +481,16 @@ class _CartridgeLabel extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: <Color>[
-                      colors.background.withValues(alpha: 0.08),
-                      colors.background.withValues(alpha: 0.86),
-                      colors.background.withValues(alpha: 0.96),
+                      colors.background.withValues(alpha: 0.04),
+                      colors.background.withValues(alpha: 0.9),
+                      colors.background.withValues(alpha: 0.97),
                     ],
                   ),
                 ),
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: titleSize * 0.35,
-                    vertical: titleSize * 0.25,
+                    vertical: titleSize * 0.28,
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -572,9 +537,14 @@ class _CartridgeLabel extends StatelessWidget {
 }
 
 class _LabelFallback extends StatelessWidget {
-  const _LabelFallback({required this.addSlot, required this.colors});
+  const _LabelFallback({
+    required this.addSlot,
+    required this.cache,
+    required this.colors,
+  });
 
   final bool addSlot;
+  final _ArtworkCacheSize cache;
   final AveluneColors colors;
 
   @override
@@ -584,6 +554,9 @@ class _LabelFallback extends StatelessWidget {
         kAveluneFallbackArtworkAssetPath,
         key: const ValueKey<String>('avelune-fallback-artwork'),
         fit: BoxFit.cover,
+        filterQuality: FilterQuality.high,
+        cacheWidth: cache.width,
+        cacheHeight: cache.height,
         excludeFromSemantics: true,
         errorBuilder: (_, __, ___) => _neutralFallback(),
       );
@@ -612,84 +585,21 @@ class _LabelFallback extends StatelessWidget {
       );
 }
 
-class _CartridgeDetails extends StatelessWidget {
-  const _CartridgeDetails({required this.colors});
+class _ArtworkCacheSize {
+  const _ArtworkCacheSize(this.width, this.height);
 
-  final AveluneColors colors;
-
-  @override
-  Widget build(BuildContext context) => Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          _detailLine(colors),
-          Icon(
-            Icons.change_history_rounded,
-            color: colors.outline,
-            size: 13,
+  factory _ArtworkCacheSize.from(AveluneCartridgeDisplaySize displaySize) =>
+      switch (displaySize) {
+        AveluneCartridgeDisplaySize.hero => const _ArtworkCacheSize(
+            kAveluneCartridgeHeroArtworkCacheWidth,
+            kAveluneCartridgeHeroArtworkCacheHeight,
           ),
-          _detailLine(colors),
-        ],
-      );
-
-  Widget _detailLine(AveluneColors colors) => Expanded(
-        child: Container(
-          height: 2,
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          color: colors.outline.withValues(alpha: 0.74),
-        ),
-      );
-}
-
-class _CartridgeConnectors extends StatelessWidget {
-  const _CartridgeConnectors({required this.colors});
-
-  final AveluneColors colors;
-
-  @override
-  Widget build(BuildContext context) => DecoratedBox(
-        key: const ValueKey<String>('avelune-cartridge-connectors'),
-        decoration: BoxDecoration(
-          color: colors.background.withValues(alpha: 0.8),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
-          border: Border(
-            top: BorderSide(
-              color: colors.textPrimary.withValues(alpha: 0.16),
-            ),
+        AveluneCartridgeDisplaySize.shelf => const _ArtworkCacheSize(
+            kAveluneCartridgeShelfArtworkCacheWidth,
+            kAveluneCartridgeShelfArtworkCacheHeight,
           ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(5, 3, 5, 0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: List<Widget>.generate(
-              11,
-              (index) => Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 1),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: <Color>[
-                        index.isEven
-                            ? colors.gold
-                            : colors.gold.withValues(alpha: 0.76),
-                        Color.lerp(colors.gold, colors.background, 0.34)!,
-                      ],
-                    ),
-                    image: const DecorationImage(
-                      image: AssetImage(kAveluneBrushedBrassTextureAssetPath),
-                      fit: BoxFit.cover,
-                      opacity: 0.2,
-                    ),
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(1),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      );
+      };
+
+  final int width;
+  final int height;
 }

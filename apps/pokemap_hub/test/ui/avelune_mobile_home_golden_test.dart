@@ -230,6 +230,9 @@ Future<void> _pumpGolden(
         const AssetImage(kAveluneFallbackArtworkAssetPath),
         context,
       ),
+      ...AveluneMaterialCatalog.cartridgeLayers.map(
+        (asset) => precacheImage(AssetImage(asset.path), context),
+      ),
     ]),
   );
   if (disableAnimations) {
@@ -257,21 +260,49 @@ Future<void> _primeGoldenFileImages(HubDashboardSnapshot snapshot) async {
   for (final coverPath in snapshot.games
       .map((game) => game.activity.coverPath)
       .whereType<String>()) {
-    final provider = FileImage(File(coverPath));
-    final cache = PaintingBinding.instance.imageCache;
-    if (cache.containsKey(provider)) continue;
+    final fileProvider = FileImage(File(coverPath));
     final bytes = await File(coverPath).readAsBytes();
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    final cachedImage = frame.image.clone();
-    frame.image.dispose();
-    codec.dispose();
-    cache.putIfAbsent(
-      provider,
-      () => OneFrameImageStreamCompleter(
-        Future<ImageInfo>.value(ImageInfo(image: cachedImage)),
+    final providers = <(ImageProvider<Object>, int?, int?)>[
+      (fileProvider, null, null),
+      (
+        ResizeImage.resizeIfNeeded(
+          kAveluneCartridgeHeroArtworkCacheWidth,
+          kAveluneCartridgeHeroArtworkCacheHeight,
+          fileProvider,
+        ),
+        kAveluneCartridgeHeroArtworkCacheWidth,
+        kAveluneCartridgeHeroArtworkCacheHeight,
       ),
-    );
+      (
+        ResizeImage.resizeIfNeeded(
+          kAveluneCartridgeShelfArtworkCacheWidth,
+          kAveluneCartridgeShelfArtworkCacheHeight,
+          fileProvider,
+        ),
+        kAveluneCartridgeShelfArtworkCacheWidth,
+        kAveluneCartridgeShelfArtworkCacheHeight,
+      ),
+    ];
+    for (final (provider, width, height) in providers) {
+      final cache = PaintingBinding.instance.imageCache;
+      final key = await provider.obtainKey(ImageConfiguration.empty);
+      if (cache.containsKey(key)) continue;
+      final codec = await ui.instantiateImageCodec(
+        bytes,
+        targetWidth: width,
+        targetHeight: height,
+      );
+      final frame = await codec.getNextFrame();
+      final cachedImage = frame.image.clone();
+      frame.image.dispose();
+      codec.dispose();
+      cache.putIfAbsent(
+        key,
+        () => OneFrameImageStreamCompleter(
+          Future<ImageInfo>.value(ImageInfo(image: cachedImage)),
+        ),
+      );
+    }
   }
 }
 

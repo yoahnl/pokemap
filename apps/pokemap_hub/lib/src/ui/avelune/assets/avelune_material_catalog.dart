@@ -140,43 +140,53 @@ abstract final class AveluneMaterialCatalog {
     ),
   ];
 
+  static const AveluneMaterialAsset cartridgeShell = AveluneMaterialAsset(
+    id: 'cartridge.shell',
+    path: 'assets/avelune/objects/cartridge/shell.webp',
+    role: AveluneMaterialAssetRole.cartridge,
+    minimumSize: Size(560, 800),
+    requiresTransparentCorners: true,
+  );
+
+  static const AveluneMaterialAsset cartridgeHighlight = AveluneMaterialAsset(
+    id: 'cartridge.highlight',
+    path: 'assets/avelune/objects/cartridge/highlight.webp',
+    role: AveluneMaterialAssetRole.cartridge,
+    minimumSize: Size(560, 800),
+    requiresTransparentCorners: true,
+  );
+
+  static const AveluneMaterialAsset cartridgeWear = AveluneMaterialAsset(
+    id: 'cartridge.wear',
+    path: 'assets/avelune/objects/cartridge/wear.webp',
+    role: AveluneMaterialAssetRole.cartridge,
+    minimumSize: Size(560, 800),
+    requiresTransparentCorners: true,
+  );
+
+  static const AveluneMaterialAsset cartridgeConnectors = AveluneMaterialAsset(
+    id: 'cartridge.connectors',
+    path: 'assets/avelune/objects/cartridge/connectors.webp',
+    role: AveluneMaterialAssetRole.cartridge,
+    minimumSize: Size(480, 100),
+    requiresTransparentCorners: true,
+  );
+
+  static const AveluneMaterialAsset cartridgeLabelGlass = AveluneMaterialAsset(
+    id: 'cartridge.labelGlass',
+    path: 'assets/avelune/objects/cartridge/label_glass.webp',
+    role: AveluneMaterialAssetRole.cartridge,
+    minimumSize: Size(440, 480),
+    requiresTransparentCorners: true,
+  );
+
   static const List<AveluneMaterialAsset> cartridgeLayers =
       <AveluneMaterialAsset>[
-    AveluneMaterialAsset(
-      id: 'cartridge.shell',
-      path: 'assets/avelune/objects/cartridge/shell.webp',
-      role: AveluneMaterialAssetRole.cartridge,
-      minimumSize: Size(560, 800),
-      requiresTransparentCorners: true,
-    ),
-    AveluneMaterialAsset(
-      id: 'cartridge.highlight',
-      path: 'assets/avelune/objects/cartridge/highlight.webp',
-      role: AveluneMaterialAssetRole.cartridge,
-      minimumSize: Size(560, 800),
-      requiresTransparentCorners: true,
-    ),
-    AveluneMaterialAsset(
-      id: 'cartridge.wear',
-      path: 'assets/avelune/objects/cartridge/wear.webp',
-      role: AveluneMaterialAssetRole.cartridge,
-      minimumSize: Size(560, 800),
-      requiresTransparentCorners: true,
-    ),
-    AveluneMaterialAsset(
-      id: 'cartridge.connectors',
-      path: 'assets/avelune/objects/cartridge/connectors.webp',
-      role: AveluneMaterialAssetRole.cartridge,
-      minimumSize: Size(480, 100),
-      requiresTransparentCorners: true,
-    ),
-    AveluneMaterialAsset(
-      id: 'cartridge.labelGlass',
-      path: 'assets/avelune/objects/cartridge/label_glass.webp',
-      role: AveluneMaterialAssetRole.cartridge,
-      minimumSize: Size(440, 480),
-      requiresTransparentCorners: true,
-    ),
+    cartridgeShell,
+    cartridgeHighlight,
+    cartridgeWear,
+    cartridgeConnectors,
+    cartridgeLabelGlass,
   ];
 
   static const AveluneMaterialAsset fallbackArtwork = AveluneMaterialAsset(

@@ -734,16 +734,16 @@ npm test
 
 **Tâches :**
 
-- [ ] Écrire les tests de ratio, orientation, structure et contraintes avant le nouveau rendu.
-- [ ] Conserver une seule classe `AveluneCartridge` et les tailles `hero`/`shelf` comme paramètres d’affichage.
-- [ ] Composer coque teintable, highlight, usure, label, cover et connecteurs à partir des couches du catalogue.
-- [ ] Employer la même carte de matière et la même géométrie interne à toutes les tailles.
-- [ ] Clip/fit les titres longs sur deux lignes maximum sans modifier le moule.
-- [ ] Construire `addGame` avec le même moule et les mêmes connecteurs.
-- [ ] Afficher invalidité et sélection par overlays sémantiques sans changer la taille.
-- [ ] Ajouter `RepaintBoundary` et `cacheWidth/cacheHeight` adaptés à la taille d’affichage.
-- [ ] Exclure les détails d’usure purement décoratifs de l’arbre sémantique.
-- [ ] Produire des goldens violet, bleu pétrole, graphite, fallback, titre long, invalide et ajouter.
+- [x] Écrire les tests de ratio, orientation, structure et contraintes avant le nouveau rendu.
+- [x] Conserver une seule classe `AveluneCartridge` et les tailles `hero`/`shelf` comme paramètres d’affichage.
+- [x] Composer coque teintable, highlight, usure, label, cover et connecteurs à partir des couches du catalogue.
+- [x] Employer la même carte de matière et la même géométrie interne à toutes les tailles.
+- [x] Clip/fit les titres longs sur deux lignes maximum sans modifier le moule.
+- [x] Construire `addGame` avec le même moule et les mêmes connecteurs.
+- [x] Afficher invalidité et sélection par overlays sémantiques sans changer la taille.
+- [x] Ajouter `RepaintBoundary` et `cacheWidth/cacheHeight` adaptés à la taille d’affichage.
+- [x] Exclure les détails d’usure purement décoratifs de l’arbre sémantique.
+- [x] Produire des goldens violet, bleu pétrole, graphite, fallback, titre long, invalide et ajouter.
 
 **Tests critiques :**
 
@@ -754,6 +754,14 @@ npm test
 - quatre titres différents donnent des tailles strictement identiques.
 
 **Visual Gate :** l’objet doit montrer volume, ombre de contact, micro-usure et connecteurs crédibles sans devenir photoréaliste au point de masquer la cover.
+
+**Exécution du 5 août 2026 :**
+
+- `AveluneCartridge` reste l’unique composant physique ; `hero`, `shelf` et `addGame` partagent le ratio `0.7`, la même géométrie et les cinq couches raster du catalogue.
+- La coque graphite est teintée par la couleur auteur sans perdre son relief. Le highlight, l’usure, le verre et les connecteurs restent des détails décoratifs exclus des sémantiques.
+- Les covers utilisent des décodages bornés distincts pour les tailles héros et étagère. Les titres restent limités à deux lignes et les états sélectionné/invalide sont ajoutés par overlays sans modifier les contraintes.
+- Huit goldens isolent les variantes héros violet, étagère violet/bleu pétrole/graphite, fallback, titre long, invalide et ajout. Les goldens existants de l’accueil ont été régénérés avec le nouveau moule.
+- Les tests widget ciblés, les tests de catalogue, les tests fonctionnels de l’accueil et les deux suites golden passent. L’analyse ciblée ne signale aucune issue.
 
 ### AVELUNE-310 — Console frontale réaliste
 
