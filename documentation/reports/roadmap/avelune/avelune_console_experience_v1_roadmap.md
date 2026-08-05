@@ -620,16 +620,25 @@ Chaque raster dispose de variantes `2.0x/` et `3.0x/` si la comparaison sur appa
 
 **Tâches :**
 
-- [ ] Écrire les tests du mapper pour 0, 1, 3, 10 jeux, titre long, assets absents, jeu invalide et sauvegarde absente.
-- [ ] Définir la sélection initiale : dernier jeu avec sauvegarde, sinon sélection Hub valide, sinon premier jeu, sinon aucune.
-- [ ] Définir l’action : `Continuer` si reprenable, `Jouer` sinon, disabled si invalide ou absent.
-- [ ] Résoudre artwork : cover, hero, icon, fallback, sans lecture synchrone dans `build()`.
-- [ ] Exposer la couleur de coque depuis `branding.accentColor`, puis fallback neutre.
-- [ ] Recalculer uniquement quand le snapshot ou la sélection change.
-- [ ] Ne pas créer de nouveau repository d’activité ; projeter les données réellement présentes.
-- [ ] Injecter `HubUiActions` dans le contrôleur sans contourner les flows existants.
+- [x] Écrire les tests du mapper pour 0, 1, 3, 10 jeux, titre long, assets absents, jeu invalide et sauvegarde absente.
+- [x] Définir la sélection initiale : dernier jeu avec sauvegarde, sinon sélection Hub valide, sinon premier jeu, sinon aucune.
+- [x] Définir l’action : `Continuer` si reprenable, `Jouer` sinon, disabled si invalide ou absent.
+- [x] Résoudre artwork : cover, hero, icon, fallback, sans lecture synchrone dans `build()`.
+- [x] Exposer la couleur de coque depuis `branding.accentColor`, puis fallback neutre.
+- [x] Recalculer uniquement quand le snapshot ou la sélection change.
+- [x] Ne pas créer de nouveau repository d’activité ; projeter les données réellement présentes.
+- [x] Injecter `HubUiActions` dans le contrôleur sans contourner les flows existants.
 
 **Sortie du lot :** les vues peuvent être testées avec des données immuables sans instancier le disque ou le runtime.
+
+**Exécution du 5 août 2026 :**
+
+- `AveluneHomeViewDataMapper` projette exclusivement `HubDashboardSnapshot` : aucun accès fichier, repository ou runtime n’entre dans la couche de vue.
+- La sélection initiale privilégie la sauvegarde la plus récente, puis la sélection Hub lorsqu’elle est saine, puis le premier jeu. Une sélection utilisateur explicite reste possible sur un jeu invalide afin d’afficher son diagnostic sans prétendre pouvoir le lancer.
+- Artwork et coque sont résolus par les chaînes existantes `cover → hero → icon → fallback` et `InstalledGameBranding.accentColor → AveluneColors.shellNeutral`.
+- `AveluneHomeController` mémorise seulement la sélection et route import, continuer, jouer et activité récente vers les callbacks `HubUiActions` réellement disponibles. Un callback absent ou une installation invalide produit une action désactivée.
+- L’activité récente reste une projection triée de `HubGameActivity.lastSaveAt` ; aucun historique fictif ni nouveau stockage n’a été créé.
+- TDD : le premier run a échoué sur les contrats absents, puis 12 tests mapper/contrôleur ont passé. Régression mapper + motion + accueil historique : 35 tests passés. Analyze ciblé : aucune issue.
 
 ### AVELUNE-210 — Préférences d’apparence et image personnelle
 
