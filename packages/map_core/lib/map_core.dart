@@ -113,6 +113,7 @@ export 'src/operations/smart_tile_cell_context.dart';
 export 'src/operations/smart_tile_coverage.dart';
 export 'src/operations/smart_tile_layer_context.dart';
 export 'src/operations/smart_tile_resolver.dart';
+export 'src/operations/smart_tile_reconstruction.dart';
 export 'src/operations/smart_tile_templates.dart';
 export 'src/operations/smart_tile_test_bench.dart';
 export 'src/operations/smart_tile_layer_operations.dart';

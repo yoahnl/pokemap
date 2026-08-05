@@ -45,6 +45,7 @@ async function mutationFixture(
   options: {
     withLegacyAtlasGap?: boolean;
     withSmartTileM01?: boolean;
+    withSmartTileReconstruction?: boolean;
     withNativeSmartTileV5?: boolean | "mixed";
   } = {},
 ) {
@@ -63,6 +64,17 @@ async function mutationFixture(
       JSON.stringify(
         nativeSmartTileV5Map(options.withNativeSmartTileV5 === "mixed"),
       ),
+    );
+    await writeCanonicalSmartTileImage(root);
+  } else if (options.withSmartTileReconstruction) {
+    await mkdir(join(root, "maps"), { recursive: true });
+    await writeFile(
+      join(root, "project.json"),
+      JSON.stringify(smartTileReconstructionProject()),
+    );
+    await writeFile(
+      join(root, "maps/reconstruction.json"),
+      JSON.stringify(smartTileReconstructionMap()),
     );
     await writeCanonicalSmartTileImage(root);
   } else if (options.withSmartTileM01) {
@@ -309,6 +321,136 @@ function nativeSmartTileV5Map(mixed = false): JsonRecord {
               semanticCells: [1, 0, 0, 0],
             },
         runtimeType: "smart_tile",
+      },
+    ],
+  };
+}
+
+function smartTileReconstructionProject(): JsonRecord {
+  return {
+    name: "Smart Tile reconstruction MCP fixture",
+    version: "v6",
+    maps: [
+      {
+        id: "reconstruction",
+        name: "Reconstruction",
+        relativePath: "maps/reconstruction.json",
+      },
+    ],
+    tilesets: [
+      {
+        id: "tiles",
+        name: "Tiles",
+        relativePath: "assets/smart_tileset.png",
+        source: {
+          kind: "regular_atlas",
+          assetId: "asset",
+          pixelWidth: 64,
+          pixelHeight: 32,
+          tileWidth: 32,
+          tileHeight: 32,
+          tileProperties: [],
+        },
+      },
+    ],
+    smartTileCatalog: {
+      formatVersion: 2,
+      categories: [],
+      atlases: [
+        {
+          id: "atlas",
+          name: "Atlas",
+          tilesetId: "tiles",
+          columns: 2,
+          rows: 1,
+        },
+      ],
+      animations: [],
+      materials: [
+        { id: "dirt", name: "Dirt", connectionGroupId: "ground" },
+        { id: "grass", name: "Grass", connectionGroupId: "ground" },
+      ],
+      presets: [
+        {
+          id: "edge",
+          name: "Edge",
+          usage: "path",
+          topology: "wang_edge_4",
+          templateHint: "free",
+          status: "published",
+          coveragePolicy: "sparse",
+          coverageProfile: {
+            mode: "explicit",
+            requiredScenarios: [
+              {
+                id: "north_grass",
+                centerMaterialId: "dirt",
+                signature: { northEdge: "grass" },
+              },
+            ],
+            allowFallback: false,
+          },
+          transformPolicy: {
+            allowHFlip: false,
+            allowVFlip: false,
+            allowQuarterTurns: false,
+            preferUntransformed: true,
+          },
+          defaultMaterialId: "dirt",
+          allowedMaterialIds: ["dirt", "grass"],
+          rules: [
+            {
+              id: "north_grass",
+              centerMatch: { kind: "any" },
+              signature: {
+                northWestCorner: { kind: "any" },
+                northEdge: { kind: "material", materialId: "grass" },
+                northEastCorner: { kind: "any" },
+                eastEdge: { kind: "any" },
+                southEastCorner: { kind: "any" },
+                southEdge: { kind: "any" },
+                southWestCorner: { kind: "any" },
+                westEdge: { kind: "any" },
+              },
+              candidates: [
+                {
+                  id: "north_grass_candidate",
+                  weight: 1,
+                  parts: [
+                    {
+                      source: {
+                        kind: "frame",
+                        frame: {
+                          atlasId: "atlas",
+                          column: 1,
+                          row: 0,
+                        },
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  };
+}
+
+function smartTileReconstructionMap(): JsonRecord {
+  return {
+    id: "reconstruction",
+    name: "Reconstruction",
+    size: { width: 1, height: 1 },
+    version: "v6",
+    layers: [
+      {
+        id: "literal",
+        name: "Literal",
+        palette: [{ tilesetId: "tiles", localTileId: 1 }],
+        cells: [1],
+        runtimeType: "tile",
       },
     ],
   };
@@ -1818,6 +1960,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "smart_tile.layer.delete",
       "smart_tile.layer.merge",
       "smart_tile.layer.normalize",
+      "smart_tile.layer.reconstruct",
       "smart_tile.material.upsert",
       "smart_tile.pattern.delete",
       "smart_tile.pattern.erase",
@@ -2198,6 +2341,104 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       operation: "close",
       workspaceHandle: String(reopened.workspaceHandle),
     });
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
+test("MCP previews and confirms literal Smart Tile reconstruction", async () => {
+  const fixture = await mutationFixture({ withSmartTileReconstruction: true });
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => action.id,
+    );
+    assert.ok(actionIds.includes("smart_tile.layer.reconstruct"));
+
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const validation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "mcp-reconstruct",
+        actionId: "smart_tile.layer.reconstruct",
+        actionVersion: 1,
+        workspaceHandle: opened.workspaceHandle,
+        parameters: {
+          mapId: "reconstruction",
+          sourceLayerId: "literal",
+          presetId: "edge",
+          targetLayerId: "native",
+          name: "Native path",
+        },
+        expectedRevision: validation.snapshotRevision,
+        idempotencyKey: "idem-mcp-reconstruct",
+        dryRun: false,
+      },
+    });
+    const preview = record(record(planned.plan).preview);
+    assert.equal(preview.coverage, 1);
+    assert.equal(preview.exactVisualMatchCount, 1);
+    assert.equal(preview.sourcePreserved, true);
+    assert.equal(preview.confirmationRequired, true);
+    assert.match(String(preview.assessmentChecksum), /^sha256:/);
+
+    const rejected = await fixture.client.callTool({
+      name: "pokemap_apply",
+      arguments: {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: "operation-mcp-reconstruct-without-confirmation",
+      },
+    });
+    assert.equal(rejected.isError, true);
+
+    const confirmation = await toolData(fixture.client, "pokemap_apply", {
+      operation: "confirm",
+      projectHandle,
+      planId: planned.planId,
+    });
+    const applied = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "operation-mcp-reconstruct",
+      confirmationToken: confirmation.confirmationToken,
+    });
+    assert.equal(
+      record(applied.receipt).actionId,
+      "smart_tile.layer.reconstruct",
+    );
+
+    const map = JSON.parse(
+      await readFile(join(fixture.root, "maps/reconstruction.json"), "utf8"),
+    ) as JsonRecord;
+    const layers = map.layers as JsonRecord[];
+    assert.equal(layers.length, 2);
+    const sourceLayer = layers[0];
+    const targetLayer = layers[1];
+    assert.ok(sourceLayer);
+    assert.ok(targetLayer);
+    assert.equal(sourceLayer.id, "literal");
+    assert.equal(sourceLayer.name, "Literal");
+    assert.deepEqual(sourceLayer.cells, [1]);
+    const sourcePalette = sourceLayer.palette as JsonRecord[];
+    assert.equal(sourcePalette.length, 1);
+    assert.equal(sourcePalette[0]?.tilesetId, "tiles");
+    assert.equal(sourcePalette[0]?.localTileId, 1);
+    assert.equal(targetLayer.runtimeType, "smart_tile");
+    assert.equal(targetLayer.id, "native");
+    assert.equal(targetLayer.isVisible, false);
   } finally {
     await fixture.client.close();
     await fixture.server.close();

@@ -20,6 +20,7 @@ import '../application/smart_tile_guide.dart';
 import '../application/smart_tile_guide_placement.dart';
 import '../application/smart_tile_pattern_authoring.dart';
 import '../application/smart_tile_publication_service.dart';
+import '../application/smart_tile_reconstruction_service.dart';
 import '../application/smart_tile_studio_library.dart';
 import '../application/smart_tile_studio_launch_context.dart';
 import '../application/smart_tile_studio_session.dart';
@@ -29,6 +30,7 @@ import '../application/smart_tile_test_layer_controller.dart';
 import 'smart_tile_guide_diagram.dart';
 import 'smart_tile_guide_overlay_painter.dart';
 import 'smart_tile_pattern_editor.dart';
+import 'smart_tile_reconstruction_editor.dart';
 import 'smart_tile_tiled_wang_import_editor.dart';
 import 'smart_tiles_studio_shell.dart';
 import 'smart_tiles_studio_stage_header.dart';
@@ -63,6 +65,8 @@ class SmartTilesStudioPanel extends StatefulWidget {
     this.onImportProjectImage,
     this.onPickTiledWangSource,
     this.onImportTiledWang,
+    this.reconstructionService,
+    this.onReconstructionApplied,
     this.publicationService,
     this.onPublicationApplied,
     this.onAddPresetToCapturedMap,
@@ -85,6 +89,9 @@ class SmartTilesStudioPanel extends StatefulWidget {
     SmartTileTiledWangSource source,
     List<TiledWangSetSelection> selections,
   )? onImportTiledWang;
+  final SmartTileReconstructionService? reconstructionService;
+  final Future<void> Function(SmartTileReconstructionResult result)?
+      onReconstructionApplied;
   final SmartTilePublicationService? publicationService;
   final Future<void> Function(SmartTilePublicationResult result)?
       onPublicationApplied;
@@ -167,6 +174,11 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   bool _tiledWangPicking = false;
   bool _tiledWangImporting = false;
   String? _tiledWangError;
+  bool _reconstructionOpen = false;
+  bool _reconstructionPlanning = false;
+  bool _reconstructionApplying = false;
+  SmartTileReconstructionPlan? _reconstructionPlan;
+  String? _reconstructionError;
 
   @override
   void initState() {
@@ -274,6 +286,15 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                 icon: const Icon(CupertinoIcons.arrow_down_doc, size: 15),
               ),
               PokeMapIconButton(
+                key: const Key('smart-tiles-reconstruct-literal-layer'),
+                onPressed:
+                    _canStartReconstruction ? _startReconstruction : null,
+                tooltip: 'Reconstruire une couche importée',
+                semanticLabel: 'Reconstruire une couche importée',
+                variant: PokeMapIconButtonVariant.soft,
+                icon: const Icon(CupertinoIcons.wand_stars, size: 15),
+              ),
+              PokeMapIconButton(
                 key: const Key('smart-tiles-new-pattern'),
                 onPressed:
                     widget.onUpsertPattern == null ? null : _startNewPattern,
@@ -361,6 +382,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                                   _patternError = null;
                                   _tiledWangSource = null;
                                   _tiledWangError = null;
+                                  _reconstructionOpen = false;
+                                  _reconstructionPlan = null;
+                                  _reconstructionError = null;
                                   _selectedItemKey = item.key;
                                   _focusedRuleId = null;
                                   _focusedMask = null;
@@ -381,6 +405,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   Widget _buildWorkbench(SmartTileLibraryItem? selectedItem) {
     final isEditingPattern = _editingPattern != null || _newPatternId != null;
     final isImportingTiledWang = _tiledWangSource != null;
+    final isReconstructing = _reconstructionOpen;
     return PokeMapPanel(
       expandChild: true,
       padding: EdgeInsets.zero,
@@ -395,7 +420,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                 launchContext: widget.launchContext,
                 persistenceState: widget.persistenceState,
               )
-            else if (!isEditingPattern && !isImportingTiledWang)
+            else if (!isEditingPattern &&
+                !isImportingTiledWang &&
+                !isReconstructing)
               PokeMapSectionHeader(
                 title: 'Smart Tiles Studio',
                 description: selectedItem?.name ??
@@ -403,39 +430,52 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
               ),
             if (!_session.state.isCreating &&
                 !isEditingPattern &&
-                !isImportingTiledWang) ...[
+                !isImportingTiledWang &&
+                !isReconstructing) ...[
               const SizedBox(height: 8),
               if (selectedItem?.isPattern != true) _buildTabs(),
             ],
           ],
         ),
       ),
-      child: isImportingTiledWang
-          ? SmartTileTiledWangImportEditor(
-              source: _tiledWangSource!,
-              isImporting: _tiledWangImporting,
-              externalError: _tiledWangError,
-              onCancel: _cancelTiledWangImport,
-              onImport: _importTiledWang,
+      child: isReconstructing
+          ? SmartTileReconstructionEditor(
+              manifest: widget.manifest,
+              map: widget.capturedMap!,
+              plan: _reconstructionPlan,
+              isPlanning: _reconstructionPlanning,
+              isApplying: _reconstructionApplying,
+              externalError: _reconstructionError,
+              onCancel: _cancelReconstruction,
+              onInspect: _inspectReconstruction,
+              onApply: _applyReconstruction,
             )
-          : _session.state.isCreating
-              ? _buildWizard()
-              : isEditingPattern
-                  ? SmartTilePatternEditor(
-                      key: ValueKey<String>(
-                        'smart-tile-pattern-editor-${_editingPattern?.id ?? _newPatternId}',
-                      ),
-                      manifest: widget.manifest,
-                      projectRootPath: widget.projectRootPath,
-                      patternId: _editingPattern?.id ?? _newPatternId!,
-                      imageLoader: widget.imageLoader,
-                      initialPattern: _editingPattern,
-                      isSaving: _patternSaving,
-                      externalError: _patternError,
-                      onCancel: _cancelPatternEditing,
-                      onSave: _savePattern,
-                    )
-                  : _buildSelectedTab(selectedItem),
+          : isImportingTiledWang
+              ? SmartTileTiledWangImportEditor(
+                  source: _tiledWangSource!,
+                  isImporting: _tiledWangImporting,
+                  externalError: _tiledWangError,
+                  onCancel: _cancelTiledWangImport,
+                  onImport: _importTiledWang,
+                )
+              : _session.state.isCreating
+                  ? _buildWizard()
+                  : isEditingPattern
+                      ? SmartTilePatternEditor(
+                          key: ValueKey<String>(
+                            'smart-tile-pattern-editor-${_editingPattern?.id ?? _newPatternId}',
+                          ),
+                          manifest: widget.manifest,
+                          projectRootPath: widget.projectRootPath,
+                          patternId: _editingPattern?.id ?? _newPatternId!,
+                          imageLoader: widget.imageLoader,
+                          initialPattern: _editingPattern,
+                          isSaving: _patternSaving,
+                          externalError: _patternError,
+                          onCancel: _cancelPatternEditing,
+                          onSave: _savePattern,
+                        )
+                      : _buildSelectedTab(selectedItem),
     );
   }
 
@@ -1743,6 +1783,133 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
+  bool get _canStartReconstruction {
+    final map = widget.capturedMap;
+    return widget.projectRootPath != null &&
+        widget.reconstructionService != null &&
+        widget.onReconstructionApplied != null &&
+        widget.isCapturedMapAvailable &&
+        map != null &&
+        map.layers.whereType<TileLayer>().any(
+              (layer) =>
+                  layer.purpose == MapLayerPurpose.visual &&
+                  layer.cells.any((cell) => cell > 0),
+            ) &&
+        widget.manifest.smartTileCatalog.presets.any(
+          (preset) => preset.status == SmartTilePresetStatus.published,
+        );
+  }
+
+  void _startReconstruction() {
+    if (!_canStartReconstruction) return;
+    setState(() {
+      _session.cancelDraft();
+      _editingPattern = null;
+      _newPatternId = null;
+      _patternError = null;
+      _tiledWangSource = null;
+      _tiledWangError = null;
+      _selectedItemKey = null;
+      _reconstructionOpen = true;
+      _reconstructionPlan = null;
+      _reconstructionError = null;
+    });
+  }
+
+  void _cancelReconstruction() {
+    if (_reconstructionPlanning || _reconstructionApplying) return;
+    setState(() {
+      _reconstructionOpen = false;
+      _reconstructionPlan = null;
+      _reconstructionError = null;
+      _selectedItemKey =
+          buildSmartTileStudioLibrary(widget.manifest).firstOrNull?.key;
+    });
+  }
+
+  Future<void> _inspectReconstruction(
+    SmartTileReconstructionRequest request,
+  ) async {
+    final service = widget.reconstructionService;
+    final projectRootPath = widget.projectRootPath;
+    if (service == null ||
+        projectRootPath == null ||
+        _reconstructionPlanning ||
+        _reconstructionApplying) {
+      return;
+    }
+    setState(() {
+      _reconstructionPlanning = true;
+      _reconstructionPlan = null;
+      _reconstructionError = null;
+    });
+    try {
+      final plan = await service.plan(
+        projectRootPath: projectRootPath,
+        request: request,
+      );
+      if (!mounted) return;
+      setState(() => _reconstructionPlan = plan);
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _reconstructionError = _reconstructionFailure(error));
+    } finally {
+      if (mounted) setState(() => _reconstructionPlanning = false);
+    }
+  }
+
+  Future<void> _applyReconstruction() async {
+    final plan = _reconstructionPlan;
+    final service = widget.reconstructionService;
+    final projectRootPath = widget.projectRootPath;
+    final onApplied = widget.onReconstructionApplied;
+    if (plan == null ||
+        service == null ||
+        projectRootPath == null ||
+        onApplied == null ||
+        _reconstructionPlanning ||
+        _reconstructionApplying) {
+      return;
+    }
+    final confirmed = await showPokeMapBinaryConfirmationDialog(
+      context,
+      title: 'Créer la couche Smart Tiles ?',
+      message:
+          '${plan.reconstructedCellCount} cellule(s) seront projetées dans '
+          '« ${plan.request.targetLayerName} ». La couche littérale '
+          '« ${plan.sourceLayer.name} » restera intacte et la nouvelle '
+          'couche sera masquée.',
+      secondaryLabel: 'Revenir à l’analyse',
+      primaryLabel: 'Créer la couche',
+      icon: CupertinoIcons.wand_stars,
+    );
+    if (!confirmed || !mounted) return;
+    setState(() {
+      _reconstructionApplying = true;
+      _reconstructionError = null;
+    });
+    try {
+      final result = await service.apply(
+        plan,
+        projectRootPath: projectRootPath,
+      );
+      await onApplied(result);
+      if (!mounted) return;
+      setState(() {
+        _reconstructionOpen = false;
+        _reconstructionPlan = null;
+        _selectedItemKey = 'native:${plan.request.presetId}';
+        _draftMessage =
+            'Couche Smart Tiles reconstruite et masquée. La source est conservée.';
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _reconstructionError = _reconstructionFailure(error));
+    } finally {
+      if (mounted) setState(() => _reconstructionApplying = false);
+    }
+  }
+
   Future<void> _pickTiledWangSource() async {
     final callback = widget.onPickTiledWangSource;
     if (callback == null || _tiledWangPicking || _tiledWangImporting) return;
@@ -1755,6 +1922,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       if (!mounted || source == null) return;
       setState(() {
         _session.cancelDraft();
+        _reconstructionOpen = false;
+        _reconstructionPlan = null;
+        _reconstructionError = null;
         _editingPattern = null;
         _newPatternId = null;
         _patternError = null;
@@ -1774,6 +1944,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     setState(() {
       _tiledWangSource = null;
       _tiledWangError = null;
+      _reconstructionOpen = false;
+      _reconstructionPlan = null;
+      _reconstructionError = null;
       _selectedItemKey =
           buildSmartTileStudioLibrary(widget.manifest).firstOrNull?.key;
     });
@@ -1816,6 +1989,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _session.cancelDraft();
       _tiledWangSource = null;
       _tiledWangError = null;
+      _reconstructionOpen = false;
+      _reconstructionPlan = null;
+      _reconstructionError = null;
       _editingPattern = null;
       _newPatternId = _nextPatternId();
       _patternSaving = false;
@@ -1828,6 +2004,9 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       _session.cancelDraft();
       _tiledWangSource = null;
       _tiledWangError = null;
+      _reconstructionOpen = false;
+      _reconstructionPlan = null;
+      _reconstructionError = null;
       _editingPattern = pattern;
       _newPatternId = null;
       _patternSaving = false;
@@ -3962,6 +4141,13 @@ String _sourceChoiceLabel(SmartTileStudioSourceChoice? choice) =>
 
 String _tiledWangFailureMessage(Object error) {
   if (error is SmartTileTiledWangImportServiceException) {
+    return error.message;
+  }
+  return EditorAuthoringMutationFailure.capture(error).message;
+}
+
+String _reconstructionFailure(Object error) {
+  if (error is SmartTileReconstructionServiceException) {
     return error.message;
   }
   return EditorAuthoringMutationFailure.capture(error).message;

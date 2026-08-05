@@ -12,6 +12,7 @@ import '../application/smart_tile_draft_persistence_coordinator.dart';
 import '../application/smart_tile_draft_persistence_state.dart';
 import '../application/smart_tile_atlas_image_loader.dart';
 import '../application/smart_tile_publication_service.dart';
+import '../application/smart_tile_reconstruction_service.dart';
 import '../application/smart_tile_pattern_authoring_service.dart';
 import '../application/smart_tile_source_asset_import_service.dart';
 import '../application/smart_tile_source_image_picker.dart';
@@ -103,6 +104,21 @@ class _SmartTilesStudioWorkspaceState
                 source,
                 selections,
               ),
+      reconstructionService: projectRootPath == null ||
+              !launch.context.isCapturedMapAvailable(launch.activeMap) ||
+              launch.mapIsDirty
+          ? null
+          : SmartTileReconstructionService(
+              gateway: CanonicalSmartTileReconstructionGateway(
+                mutations: ref.read(authoringMutationAdapterProvider),
+                queries: ref.read(authoringQueryAdapterProvider),
+              ),
+            ),
+      onReconstructionApplied: projectRootPath == null ||
+              !launch.context.isCapturedMapAvailable(launch.activeMap) ||
+              launch.mapIsDirty
+          ? null
+          : _acceptReconstructionResult,
       publicationService: projectRootPath == null
           ? null
           : SmartTilePublicationService(
@@ -157,6 +173,21 @@ class _SmartTilesStudioWorkspaceState
       _canonicalDraft = null;
       _persistenceState = null;
     });
+  }
+
+  Future<void> _acceptReconstructionResult(
+    SmartTileReconstructionResult result,
+  ) async {
+    ref
+        .read(editorNotifierProvider.notifier)
+        .acceptCanonicalSmartTilePublication(
+          manifest: result.manifest,
+          map: result.map,
+          mapRevision: result.mapRevision,
+          layerId: result.layerId,
+          statusMessage:
+              'Couche Smart Tiles reconstruite. La source littérale est conservée.',
+        );
   }
 
   Future<void> _queueDraft(

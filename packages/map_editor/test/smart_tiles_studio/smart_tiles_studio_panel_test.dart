@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_atlas_image_loader.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_source_asset_import_service.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_reconstruction_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_tiled_wang_import_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_asset_card.dart';
@@ -120,6 +121,35 @@ void main() {
 
       expect(submitted, hasLength(1));
       expect(submitted!.single.usage, SmartTileUsage.path);
+    });
+
+    testWidgets('opens the reconstruction assistant from a captured map',
+        (tester) async {
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        projectRootPath: '/project',
+        capturedMap: _literalCapturedMap,
+        isCapturedMapAvailable: true,
+        reconstructionService: SmartTileReconstructionService(
+          gateway: _UnusedReconstructionGateway(),
+        ),
+        onReconstructionApplied: (_) async {},
+      );
+
+      final trigger = find.byKey(
+        const Key('smart-tiles-reconstruct-literal-layer'),
+      );
+      expect(trigger, findsOneWidget);
+      await tester.tap(trigger);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('smart-tile-reconstruction-editor')),
+        findsOneWidget,
+      );
+      expect(find.text('Reconstruire une couche littérale'), findsOneWidget);
+      expect(find.text('Analyser la reconstruction'), findsOneWidget);
     });
 
     testWidgets('adapts the studio shell without overflowing when narrow', (
@@ -1718,6 +1748,10 @@ Future<void> _pumpPanel(
     List<TiledWangSetSelection> selections,
   )? onImportTiledWang,
   bool isCapturedMapAvailable = false,
+  MapData? capturedMap,
+  SmartTileReconstructionService? reconstructionService,
+  Future<void> Function(SmartTileReconstructionResult result)?
+      onReconstructionApplied,
   Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap,
   Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern,
@@ -1737,6 +1771,9 @@ Future<void> _pumpPanel(
           onImportTiledWang: onImportTiledWang,
           onDraftChanged: onDraftChanged,
           isCapturedMapAvailable: isCapturedMapAvailable,
+          capturedMap: capturedMap,
+          reconstructionService: reconstructionService,
+          onReconstructionApplied: onReconstructionApplied,
           onAddPresetToCapturedMap: onAddPresetToCapturedMap,
           onUpsertPattern: onUpsertPattern,
         ),
@@ -1745,6 +1782,48 @@ Future<void> _pumpPanel(
   );
   await tester.pumpAndSettle();
 }
+
+final class _UnusedReconstructionGateway
+    implements SmartTileReconstructionGateway {
+  @override
+  Future<SmartTileReconstructionCanonicalSnapshot> load({
+    required String projectRootPath,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<SmartTileReconstructionCanonicalPlan> plan({
+    required String projectRootPath,
+    required Map<String, Object?> parameters,
+    required String expectedRevision,
+    required String idempotencyKey,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<String> confirmAndApply({
+    required SmartTileReconstructionCanonicalPlan plan,
+    required String operationId,
+  }) =>
+      throw UnimplementedError();
+}
+
+const _literalCapturedMap = MapData(
+  id: 'captured',
+  name: 'Captured',
+  version: ProjectVersion.v6,
+  size: GridSize(width: 1, height: 1),
+  layers: <MapLayer>[
+    MapLayer.tile(
+      id: 'literal',
+      name: 'Literal',
+      palette: <TileLayerPaletteEntry>[
+        TileLayerPaletteEntry(tilesetId: 'tileset', localTileId: 0),
+      ],
+      cells: <int>[1],
+    ),
+  ],
+);
 
 final _tiledWangSource = SmartTileTiledWangSource(
   tsxPath: '/outside/road.tsx',

@@ -17,6 +17,7 @@ void main() {
           'smart_tile.layer.delete',
           'smart_tile.layer.merge',
           'smart_tile.layer.normalize',
+          'smart_tile.layer.reconstruct',
         ],
       );
       for (final descriptor in descriptors) {
@@ -28,6 +29,54 @@ void main() {
         );
         expect(descriptor.guarantees, contains(AuthoringGuarantee.undoable));
       }
+      expect(
+        descriptors
+            .singleWhere(
+              (descriptor) => descriptor.id == 'smart_tile.layer.reconstruct',
+            )
+            .riskLevel,
+        AuthoringRiskLevel.high,
+      );
+    });
+
+    test('previews a hidden native reconstruction without touching the source',
+        () {
+      final fixture = _reconstructionFixture();
+
+      final draft = const SmartTileLayerActions().build(
+        _context(
+          fixture.snapshot,
+          actionId: 'smart_tile.layer.reconstruct',
+          parameters: const <String, Object?>{
+            'mapId': 'map_hanazuki_village',
+            'sourceLayerId': 'literal',
+            'presetId': 'edge',
+            'targetLayerId': 'native',
+            'name': 'Native path',
+          },
+        ),
+      );
+      final projected = _projectedMap(draft);
+
+      expect(projected.layers.map((layer) => layer.id), <String>[
+        'literal',
+        'native',
+      ]);
+      expect(projected.layers.first, fixture.map.layers.first);
+      final native = projected.layers.last as SmartTileLayer;
+      expect(native.isVisible, isFalse);
+      expect(native.presetId, 'edge');
+      expect(draft.preview, containsPair('sourcePreserved', true));
+      expect(draft.preview, containsPair('coverage', 1.0));
+      expect(draft.preview, containsPair('exactVisualMatchCount', 1));
+      expect(
+        draft.preview['assessmentChecksum'],
+        isA<String>().having(
+          (value) => value,
+          'checksum',
+          startsWith('sha256:'),
+        ),
+      );
     });
 
     test('normalizes the M01 terrain without losing metadata or layer order',
@@ -444,6 +493,31 @@ void main() {
       expect(merged.name, 'Target path metadata');
       expect(merged.properties, {'role': 'main', 'keep': 'yes'});
     });
+
+    test('direct API and JSONL confirm the same reconstruction plan', () async {
+      final direct = await _M01TransportHarness.create(
+        'reconstruct_direct',
+        reconstruction: true,
+      );
+      final jsonl = await _M01TransportHarness.create(
+        'reconstruct_jsonl',
+        reconstruction: true,
+      );
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+
+      final directResult = await direct.applyDirectReconstruction();
+      final jsonlResult = await jsonl.applyJsonlReconstruction();
+
+      expect(jsonlResult.toJson(), directResult.toJson());
+      expect(directResult.layers.map((layer) => layer.id), <String>[
+        'literal',
+        'native',
+      ]);
+      expect(
+          directResult.layers.first, _reconstructionFixture().map.layers.first);
+      expect((directResult.layers.last as SmartTileLayer).isVisible, isFalse);
+    });
   });
 }
 
@@ -459,9 +533,12 @@ final class _M01TransportHarness {
   static Future<_M01TransportHarness> create(
     String label, {
     ProjectVersion version = ProjectVersion.v6,
+    bool reconstruction = false,
   }) async {
     final root = await Directory.systemTemp.createTemp('m01_$label');
-    final fixture = _m01Fixture(version: version);
+    final fixture = reconstruction
+        ? _reconstructionFixture()
+        : _m01Fixture(version: version);
     final persistedManifest = version == ProjectVersion.v6
         ? fixture.manifest
         : fixture.manifest.copyWith(
@@ -553,6 +630,69 @@ final class _M01TransportHarness {
       beforeMapBytes: beforeMapBytes,
       afterMapBytes: await mapFile.readAsBytes(),
     );
+  }
+
+  Future<MapData> applyDirectReconstruction() async {
+    final opened = await readApi.open(root.path);
+    final workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
+    final project = ProjectHandle(opened['projectHandle']! as String);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: workspace,
+      projectHandle: project,
+    );
+    final snapshot = await snapshots.load(project);
+    final planned = await mutations.plan(
+      project,
+      _transportRequest(
+        actionId: 'smart_tile.layer.reconstruct',
+        parameters: _reconstructionParameters,
+        sequence: 'reconstruct_direct',
+        workspaceHandle: workspace.value,
+        revision: snapshot.revision,
+      ),
+    );
+    final confirmation = await mutations.confirm(
+      project,
+      planId: planned['planId']! as String,
+    );
+    await mutations.apply(
+      project,
+      planId: planned['planId']! as String,
+      operationId: 'operation_reconstruct_direct',
+      confirmationToken: confirmation['confirmationToken']! as String,
+    );
+    return _readMap();
+  }
+
+  Future<MapData> applyJsonlReconstruction() async {
+    final opened = await _jsonl('open', {'projectRoot': root.path});
+    final projectHandle = opened['projectHandle']! as String;
+    final validation = await _jsonl(
+      'validate',
+      {'projectHandle': projectHandle},
+    );
+    final planned = await _jsonl('plan', <String, Object?>{
+      'projectHandle': projectHandle,
+      'request': _transportRequest(
+        actionId: 'smart_tile.layer.reconstruct',
+        parameters: _reconstructionParameters,
+        sequence: 'reconstruct_jsonl',
+        workspaceHandle: opened['workspaceHandle']! as String,
+        revision: validation['snapshotRevision']! as String,
+      ).toJson(),
+    });
+    final confirmation = await _jsonl('confirm', <String, Object?>{
+      'projectHandle': projectHandle,
+      'planId': planned['planId'],
+    });
+    await _jsonl('apply', <String, Object?>{
+      'projectHandle': projectHandle,
+      'planId': planned['planId'],
+      'operationId': 'operation_reconstruct_jsonl',
+      'confirmationToken': confirmation['confirmationToken'],
+    });
+    return _readMap();
   }
 
   Future<
@@ -727,6 +867,14 @@ const Map<String, Object?> _mergeParameters = {
   'mode': 'union',
   'removeSources': true,
   'conflictPolicy': 'reject',
+};
+
+const Map<String, Object?> _reconstructionParameters = <String, Object?>{
+  'mapId': 'map_hanazuki_village',
+  'sourceLayerId': 'literal',
+  'presetId': 'edge',
+  'targetLayerId': 'native',
+  'name': 'Native path',
 };
 
 AuthoringRequest _transportRequest({
@@ -959,6 +1107,124 @@ MapData _projectedMap(AuthoringMutationDraft draft) => MapData.fromJson(
     map: map,
     snapshot: _snapshot(manifest, map),
   );
+}
+
+({
+  ProjectManifest manifest,
+  MapData map,
+  ProjectSnapshot snapshot,
+}) _reconstructionFixture() {
+  const preset = ProjectSmartTilePreset(
+    id: 'edge',
+    name: 'Edge',
+    usage: SmartTileUsage.path,
+    topology: SmartTileTopology.wangEdge4,
+    status: SmartTilePresetStatus.published,
+    coveragePolicy: SmartTileCoveragePolicy.sparse,
+    coverageProfile: SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.explicit,
+      requiredScenarios: <SmartTileCoverageScenario>[
+        SmartTileCoverageScenario(
+          id: 'north_grass',
+          centerMaterialId: 'dirt',
+          signature: SmartTileExactSignature(northEdge: 'grass'),
+        ),
+      ],
+    ),
+    transformPolicy: SmartTileTransformPolicy(),
+    defaultMaterialId: 'dirt',
+    allowedMaterialIds: <String>['dirt', 'grass'],
+    rules: <SmartTileRule>[
+      SmartTileRule(
+        id: 'north_grass',
+        centerMatch: SmartTileSlotMatch.any(),
+        signature: SmartTileSignature(
+          northEdge: SmartTileSlotMatch.material('grass'),
+        ),
+        candidates: <SmartTileCandidate>[
+          SmartTileCandidate(
+            id: 'north_grass_candidate',
+            parts: <SmartTileVisualPart>[
+              SmartTileVisualPart(
+                source: SmartTileVisualSource.frame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'atlas',
+                    column: 1,
+                    row: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+  final manifest = ProjectManifest(
+    name: 'Reconstruction fixture',
+    maps: <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'map_hanazuki_village',
+        name: 'Map',
+        relativePath: 'maps/map_hanazuki_village.json',
+      ),
+    ],
+    tilesets: <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'tiles',
+        name: 'Tiles',
+        relativePath: 'tiles.png',
+        source: ProjectTilesetSource.regularAtlas(
+          assetId: 'asset',
+          pixelWidth: 64,
+          pixelHeight: 32,
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
+      ),
+    ],
+    smartTileCatalog: ProjectSmartTileCatalog(
+      atlases: <ProjectSmartTileAtlas>[
+        ProjectSmartTileAtlas(
+          id: 'atlas',
+          name: 'Atlas',
+          tilesetId: 'tiles',
+          columns: 2,
+          rows: 1,
+        ),
+      ],
+      materials: <ProjectSmartTileMaterial>[
+        ProjectSmartTileMaterial(
+          id: 'dirt',
+          name: 'Dirt',
+          connectionGroupId: 'ground',
+        ),
+        ProjectSmartTileMaterial(
+          id: 'grass',
+          name: 'Grass',
+          connectionGroupId: 'ground',
+        ),
+      ],
+      presets: <ProjectSmartTilePreset>[preset],
+    ),
+  );
+  const map = MapData(
+    id: 'map_hanazuki_village',
+    name: 'Map',
+    version: ProjectVersion.v6,
+    size: GridSize(width: 1, height: 1),
+    layers: <MapLayer>[
+      MapLayer.tile(
+        id: 'literal',
+        name: 'Literal',
+        palette: <TileLayerPaletteEntry>[
+          TileLayerPaletteEntry(tilesetId: 'tiles', localTileId: 1),
+        ],
+        cells: <int>[1],
+      ),
+    ],
+  );
+  return (manifest: manifest, map: map, snapshot: _snapshot(manifest, map));
 }
 
 ProjectSnapshot _snapshot(ProjectManifest manifest, MapData map) {

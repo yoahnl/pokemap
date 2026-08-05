@@ -1021,6 +1021,7 @@ smart_tile.layer.create
 smart_tile.layer.delete
 smart_tile.layer.merge
 smart_tile.layer.normalize
+smart_tile.layer.reconstruct
 smart_tile.material.upsert
 smart_tile.pattern.delete
 smart_tile.pattern.erase
@@ -1055,6 +1056,12 @@ scène, son tileset atlas régulier et les Wang Sets sélectionnés vers le cata
 Smart Tiles natif. Un clic, y compris depuis Smart Tiles Studio, produit un seul
 plan et un seul reçu récupérable. Tiled n'est ni lancé ni requis au runtime ; les
 usages PokeMap des Wang Sets restent des choix explicites de l'auteur.
+
+`smart_tile.layer.reconstruct` analyse une couche visuelle littérale à partir
+d'un preset publié, puis propose une couche Smart Tile native masquée sans
+modifier la source. L'application est à risque élevé et requiert la
+confirmation liée au plan ; la couverture, les ambiguïtés et les cellules non
+résolues restent visibles avant confirmation.
 
 ### 13.2 Environnements
 

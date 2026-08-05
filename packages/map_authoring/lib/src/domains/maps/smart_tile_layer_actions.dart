@@ -51,6 +51,17 @@ final class SmartTileLayerActions {
         'smartTileMaterial',
       ],
     ),
+    _smartTileLayerDescriptor(
+      'smart_tile.layer.reconstruct',
+      'Reconstruct hidden native Smart Tile intent from a literal tile layer',
+      resourceKinds: const <String>[
+        'map',
+        'tileLayer',
+        'smartTileLayer',
+        'smartTilePreset',
+      ],
+      risk: AuthoringRiskLevel.high,
+    ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
@@ -59,6 +70,7 @@ final class SmartTileLayerActions {
       'smart_tile.layer.delete' => _delete(planning),
       'smart_tile.layer.normalize' => _normalize(planning),
       'smart_tile.layer.merge' => _merge(planning),
+      'smart_tile.layer.reconstruct' => _reconstruct(planning),
       _ => throw semanticFailure(
           'map.action_unsupported',
           'The requested Smart Tile layer action is unsupported.',
@@ -309,6 +321,85 @@ final class SmartTileLayerActions {
         'paletteSizeAfter': union.layer.materialPalette.length,
         'targetMetadataPreserved': true,
         'batchAtomicity': 'all_or_nothing',
+      },
+    );
+  }
+
+  AuthoringMutationDraft _reconstruct(AuthoringPlanningContext planning) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const <String>{
+        'sourceLayerId',
+        'presetId',
+        'targetLayerId',
+        'name',
+      },
+    );
+    final presetId = context.parameters.string('presetId');
+    final preset = _smartTilePreset(context.manifest, presetId);
+    if (preset.status != SmartTilePresetStatus.published) {
+      throw semanticFailure(
+        'smart_tile.reconstruction_preset_not_published',
+        'A literal layer can only be reconstructed with a published preset.',
+        details: <String, Object?>{
+          'presetId': preset.id,
+          'status': preset.status.name,
+        },
+        remediation: const <String>[
+          'Validate and publish the preset in Smart Tiles Studio first.',
+        ],
+      );
+    }
+    late final SmartTileLayerReconstructionAssessment assessment;
+    try {
+      assessment = assessSmartTileLayerReconstruction(
+        map: context.map,
+        sourceLayerId: context.parameters.string('sourceLayerId'),
+        manifest: context.manifest,
+        presetId: preset.id,
+        targetLayerId: context.parameters.string('targetLayerId'),
+        targetLayerName: context.parameters.string('name'),
+      );
+    } on SmartTileReconstructionException catch (error) {
+      throw semanticFailure(error.code, error.message);
+    }
+    final proposal = assessment.proposedLayer;
+    if (proposal == null) {
+      throw semanticFailure(
+        'smart_tile.reconstruction_no_proposal',
+        'No literal cell could be reconstructed unambiguously.',
+        details: assessment.toPreviewJson(),
+        remediation: const <String>[
+          'Choose the preset whose atlas and Wang rules produced this layer.',
+          'Resolve unsupported or ambiguous visual mappings in Smart Tiles '
+              'Studio, then inspect again.',
+        ],
+      );
+    }
+    final layers = <MapLayer>[];
+    for (final layer in context.map.layers) {
+      layers.add(layer);
+      if (layer.id == assessment.sourceLayerId) layers.add(proposal);
+    }
+    final projected = context.map.copyWith(layers: layers);
+    preflightNativeSmartTileMutation(
+      snapshot: planning.snapshot,
+      projectedManifest: context.manifest,
+      projectedMaps: <String, MapData>{context.map.id: projected},
+    );
+    return context.draftMap(
+      after: projected,
+      operation: 'smart_tile.layer.reconstruct',
+      changedItems: assessment.reconstructedCellCount + 1,
+      layerId: proposal.id,
+      preview: <String, Object?>{
+        ...assessment.toPreviewJson(),
+        'targetLayerId': proposal.id,
+        'targetLayerName': proposal.name,
+        'confirmationRequired': true,
+        'confirmationScope': 'revision_bound_plan',
+        'batchAtomicity': 'all_or_nothing',
+        'projectWidePreflight': 'passed',
       },
     );
   }
