@@ -444,14 +444,14 @@ flutter test test/ui/avelune_mobile_home_golden_test.dart
 
 **Tâches :**
 
-- [ ] Écrire d’abord les tests des classes compact, regular et large.
-- [ ] Définir les zones header, scène, étagère, activité et navigation à partir de la Safe Area disponible.
-- [ ] Garantir que la somme des zones ne dépasse jamais la hauteur portrait aux six viewports de référence.
-- [ ] Définir la hauteur unique des cartouches d’étagère et la hauteur du héros par classe.
-- [ ] Définir les anchors du slot console, du héros, de la tablette et de la trajectoire d’insertion.
-- [ ] Définir le mode compact : activité condensée et absence de texte secondaire non essentiel.
-- [ ] Définir le mode text scale élevé : labels accessibles et détails dans une sheet, sans rendre l’accueil verticalement scrollable.
-- [ ] Ajouter un test qui échoue si un viewport retourne une géométrie négative ou superposée.
+- [x] Écrire d’abord les tests des classes compact, regular et large.
+- [x] Définir les zones header, scène, étagère, activité et navigation à partir de la Safe Area disponible.
+- [x] Garantir que la somme des zones ne dépasse jamais la hauteur portrait aux six viewports de référence.
+- [x] Définir la hauteur unique des cartouches d’étagère et la hauteur du héros par classe.
+- [x] Définir les anchors du slot console, du héros, de la tablette et de la trajectoire d’insertion.
+- [x] Définir le mode compact : activité condensée et absence de texte secondaire non essentiel.
+- [x] Définir le mode text scale élevé : labels accessibles et détails dans une sheet, sans rendre l’accueil verticalement scrollable.
+- [x] Ajouter un test qui échoue si un viewport retourne une géométrie négative ou superposée.
 
 **Validation :**
 
@@ -462,6 +462,16 @@ flutter analyze lib/src/ui/avelune/home/avelune_home_geometry.dart
 ```
 
 **Sortie du lot :** toutes les dimensions de référence sont résolues sans overflow ; aucune valeur de layout majeure n’est répétée dans les widgets.
+
+**Exécution du 5 août 2026 :**
+
+- Test écrit avant le solveur : premier run rouge sur l’import absent, puis second rouge ciblé prouvant que le héros compact ne pouvait pas être plus petit que les cartouches d’étagère.
+- Classes calculées après retrait de la Safe Area : `compact` par défaut, `regular` à partir de 350×700 dp utiles, `large` à partir de 410×820 dp utiles.
+- Répartition verticale `header / scène / étagère / activité / navigation` : 10/43/27/8/12 % en compact, 9/42/28/13/8 % en regular et 8,5/43/27/13,5/8 % en large.
+- Hauteurs canoniques `héros / étagère` : 116/104 dp en compact, 148/120 dp en regular et 172/128 dp en large. Les deux tailles utilisent `kAveluneCartridgeAspectRatio` ; seul l’affichage change.
+- Capacité d’activité : une ligne en compact, deux en regular, trois en large ; à partir d’un facteur de texte 1,4, une ligne demeure et les détails étendus sont routés vers une sheet.
+- Ancres produites : centre du héros, centre du slot, ligne de tablette, départ, alignement et verrouillage de l’insertion.
+- Six viewports couverts avec Safe Areas : 320×568, 375×667, 390×844, 430×932, 360×800 et 427×952. Tous restent sans scroll vertical selon le contrat du solveur.
 
 ### AVELUNE-100 — Fondations du design system exclusivement Avelune
 
