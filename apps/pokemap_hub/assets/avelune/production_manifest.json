@@ -1,0 +1,163 @@
+{
+  "schemaVersion": 1,
+  "catalogId": "avelune-production-materials-v1",
+  "approvedAt": "2026-08-05",
+  "productionUseApproved": true,
+  "license": "Project-owned generated output; use is restricted to PokeMap and Avelune product assets.",
+  "assets": [
+    {
+      "id": "background.amber",
+      "source": "OpenAI ImageGen output exec-9d5c411e-eee1-4b0c-b645-cef4dec1ac6c.png",
+      "tool": "OpenAI ImageGen, ffmpeg, cwebp",
+      "transformation": "Generated as an empty 9:16 plaster niche, resized to 768x1365, amber master grade, WebP q88.",
+      "sha256": "51d592642afc7a34c7d2f8c546d93988982c6059ab7ab0f3b4a10edd671ee5c9"
+    },
+    {
+      "id": "background.dawn",
+      "source": "OpenAI ImageGen output exec-9d5c411e-eee1-4b0c-b645-cef4dec1ac6c.png",
+      "tool": "OpenAI ImageGen, ffmpeg, cwebp",
+      "transformation": "Same room geometry as amber; warm dawn color grade, resized to 768x1365, WebP q88.",
+      "sha256": "18c488074ad2829572be201379196cdc0a3c82b3d3257d24246062e9a471d39e"
+    },
+    {
+      "id": "background.linen",
+      "source": "OpenAI ImageGen output exec-9d5c411e-eee1-4b0c-b645-cef4dec1ac6c.png",
+      "tool": "OpenAI ImageGen, ffmpeg, cwebp",
+      "transformation": "Same room geometry as amber; low-saturation linen grade, resized to 768x1365, WebP q88.",
+      "sha256": "f6e810358d0546b4c9e27361bb2e8b98a49206602be82f7b7ce6b30d383d13cd"
+    },
+    {
+      "id": "background.violet",
+      "source": "OpenAI ImageGen output exec-9d5c411e-eee1-4b0c-b645-cef4dec1ac6c.png",
+      "tool": "OpenAI ImageGen, ffmpeg, cwebp",
+      "transformation": "Same room geometry as amber; deep violet night grade, resized to 768x1365, WebP q88.",
+      "sha256": "bfde91b2681f6ebb6410057a26a1be23c78108df1a15cc70d454b31bda0d3236"
+    },
+    {
+      "id": "background.slate",
+      "source": "OpenAI ImageGen output exec-9d5c411e-eee1-4b0c-b645-cef4dec1ac6c.png",
+      "tool": "OpenAI ImageGen, ffmpeg, cwebp",
+      "transformation": "Same room geometry as amber; cool slate grade, resized to 768x1365, WebP q88.",
+      "sha256": "610a2bcf3a3b1f6614d2309e7f7e53862a3c7e027f9dec75bdefd7a9c5aaca3d"
+    },
+    {
+      "id": "furniture.walnut",
+      "source": "OpenAI ImageGen output exec-f7f709c8-4ad8-460e-806b-a6ff8f0a6a66.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Green-screen removal, geometry crop, normalized 768x700 transparent canvas, WebP q90 alpha lossless.",
+      "sha256": "99384b33ce11cebec509df7c68048b7808153b3ec06ce69c7243988cfd56fcb0"
+    },
+    {
+      "id": "furniture.ivory",
+      "source": "OpenAI ImageGen output exec-d72bd0db-c3dd-4137-90f0-b9000337ae1b.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Ivory painted generation normalized to the canonical walnut alpha silhouette on a 768x700 canvas, WebP q90.",
+      "sha256": "4f17cbb03e57fb5b5e1fad104a80680da903858864b61ebe9bbed181b53312fb"
+    },
+    {
+      "id": "furniture.oak",
+      "source": "Canonical generated walnut credenza",
+      "tool": "ffmpeg, cwebp",
+      "transformation": "Warm oak color grade preserving the exact canonical furniture geometry and alpha silhouette.",
+      "sha256": "2dcdbbd49562e2ff712bfcd27d3ffb6efe1a94bdb43a5d445e6a9b3223247df6"
+    },
+    {
+      "id": "furniture.ash",
+      "source": "Canonical generated walnut credenza",
+      "tool": "ffmpeg, cwebp",
+      "transformation": "Pale ash color grade preserving the exact canonical furniture geometry and alpha silhouette.",
+      "sha256": "6446539eef80386c5977d59e5fd8ea8cf14cfd0959cee88526c90b72a28aabf2"
+    },
+    {
+      "id": "furniture.mahogany",
+      "source": "Canonical generated walnut credenza",
+      "tool": "ffmpeg, cwebp",
+      "transformation": "Deep red mahogany color grade preserving the exact canonical furniture geometry and alpha silhouette.",
+      "sha256": "6dff2ccb545f6ab9c025275420d049e40b86d823d50491f8f1daad3119f16a1e"
+    },
+    {
+      "id": "furniture.ebony",
+      "source": "Canonical generated walnut credenza",
+      "tool": "ffmpeg, cwebp",
+      "transformation": "Dark neutral ebony color grade preserving the exact canonical furniture geometry and alpha silhouette.",
+      "sha256": "485247c950f8b6f2ebee7dfe541bd3a3e3e3caa9be4f44dfc7a3ecf1639db399"
+    },
+    {
+      "id": "console.body",
+      "source": "OpenAI ImageGen output exec-c6698a71-1fd8-4aa5-b20f-8031a75d5636.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Green-screen removal and geometry normalization to a front-facing 1200x360 transparent layer.",
+      "sha256": "23b95557795ddb9b643c1d79c065f1da409509c43110102453c731a709850bf6"
+    },
+    {
+      "id": "console.slot",
+      "source": "OpenAI ImageGen output exec-aec98750-91b6-465b-a093-6a08bff4dad9.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Green-screen removal, cropped and normalized to a front-facing 600x120 transparent slot layer.",
+      "sha256": "3826933314255eb0d3fa54bf0ba27458de7f06491d7d280a8549555b4adb6c1a"
+    },
+    {
+      "id": "console.wear",
+      "source": "OpenAI ImageGen output exec-0c68c91f-93de-46c2-84b4-4b707b6b4664.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Green-screen removal, aligned to the console body canvas and reduced to 58 percent alpha.",
+      "sha256": "5576577c508671f691c1fb9de15d673083df2f546f776b25809dd7810427e988"
+    },
+    {
+      "id": "console.contactShadow",
+      "source": "Canonical generated console body alpha silhouette",
+      "tool": "ffmpeg, cwebp",
+      "transformation": "Contact band extracted from the body alpha, softened and normalized to a 1200x120 transparent layer.",
+      "sha256": "02ecde28b5db54a260dce69681e472e82f9deb4004cc0d6cdcce87923d2d4083"
+    },
+    {
+      "id": "cartridge.shell",
+      "source": "OpenAI ImageGen output exec-765bf597-9406-4c3c-a43b-20d0a3b15b4e.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Green-screen removal and canonical front-facing normalization to a 560x800 layer (aspect ratio 0.7).",
+      "sha256": "efb4c24d2440a1580429744071a3434009fa824b7a4190221497a0e3c09e24d9"
+    },
+    {
+      "id": "cartridge.highlight",
+      "source": "OpenAI ImageGen output exec-ac11446b-f489-483a-8b6c-ac695d18b8d7.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Isolated reflections keyed, aligned to the canonical 560x800 cartridge canvas and reduced to 78 percent alpha.",
+      "sha256": "bd3b75704a4714b4b3649e538c24a4564d267e2745242865a45707520f0d034f"
+    },
+    {
+      "id": "cartridge.wear",
+      "source": "OpenAI ImageGen output exec-dfa87fcd-e30b-40a2-b065-41c1feb76ede.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Isolated wear keyed, aligned to the canonical 560x800 cartridge canvas and reduced to 38 percent alpha.",
+      "sha256": "8d4624d7c569368942450f2a70d890fd2a2398be17a37c915c06c73aa604198a"
+    },
+    {
+      "id": "cartridge.connectors",
+      "source": "OpenAI ImageGen output exec-6b0b11da-99a7-402e-9ce2-f3f0b4470d0a.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Gold contact strip keyed, cropped and normalized to a 480x100 transparent layer.",
+      "sha256": "d9e70ec93a27c0c6a6769003eeb762d92308839704e738d00d522087cec2d64a"
+    },
+    {
+      "id": "cartridge.labelGlass",
+      "source": "OpenAI ImageGen output exec-e8bf63a7-c3ed-4f28-adf5-bb813eda8d8d.png",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Smoked glass keyed, normalized to a 440x520 transparent layer and reduced to 88 percent alpha.",
+      "sha256": "efda3e259126d5745358f307a4a7e1b4e7f300834ed35225af44f4981075120a"
+    },
+    {
+      "id": "artwork.fallbackMoonlitPath",
+      "source": "Picsart flux-2-pro generation 6798f863-cd11-493f-ae23-9b65b30b52fa",
+      "tool": "Picsart MCP, flux-2-pro, cwebp",
+      "transformation": "Original generated portrait recoded as a 512x853 production WebP fallback.",
+      "sha256": "d0d048a67dfc9b514d39ec9133ac5c547f5e89c83bde27ba73aa10c75d3a4e10"
+    },
+    {
+      "id": "logo.mark",
+      "source": "OpenAI ImageGen output exec-1c9d9014-a4e2-455d-b3a9-8f3a973d16b1.png guided by the frozen Avelune logo reference",
+      "tool": "OpenAI ImageGen, chroma-key helper, ffmpeg, cwebp",
+      "transformation": "Standalone crescent, hidden A and star keyed and normalized to a transparent 512x512 icon canvas.",
+      "sha256": "efee629873068bc168b1dfce1f12c6cbbadb7e27ec8ed1f2eb63f01870b66fb8"
+    }
+  ]
+}

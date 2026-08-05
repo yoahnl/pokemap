@@ -529,20 +529,29 @@ Chaque raster dispose de variantes `2.0x/` et `3.0x/` si la comparaison sur appa
 
 **Tâches :**
 
-- [ ] Écrire le manifeste Dart `AveluneMaterialCatalog` avant de brancher les widgets.
-- [ ] Séparer réellement arrière-plan, commode, console et cartouche en couches alpha.
-- [ ] Produire une commode ivoire peinte et patinée comme asset distinct, pas comme simple filtre gris.
-- [ ] Produire six finitions de commode partageant exactement la même géométrie et les mêmes anchors.
-- [ ] Produire cinq fonds sans meuble intégré pour permettre toutes les combinaisons.
-- [ ] Produire une console frontale symétrique avec slot, LED et marques d’usure discrètes.
-- [ ] Produire un moule de cartouche neutre teintable avec highlights, usure et connecteurs séparés.
-- [ ] Produire ou fournir le logo Avelune autonome ; interdire l’extraction depuis la capture.
-- [ ] Compresser en WebP et vérifier les alpha, dimensions, poids et absence de bord blanc.
-- [ ] Déclarer les dossiers dans `apps/pokemap_hub/pubspec.yaml`.
-- [ ] Ajouter un test qui charge chaque asset du catalogue.
-- [ ] Comparer les assets seuls sur fond quadrillé puis dans la scène.
+- [x] Écrire le manifeste Dart `AveluneMaterialCatalog` avant de brancher les widgets.
+- [x] Séparer réellement arrière-plan, commode, console et cartouche en couches alpha.
+- [x] Produire une commode ivoire peinte et patinée comme asset distinct, pas comme simple filtre gris.
+- [x] Produire six finitions de commode partageant exactement la même géométrie et les mêmes anchors.
+- [x] Produire cinq fonds sans meuble intégré pour permettre toutes les combinaisons.
+- [x] Produire une console frontale symétrique avec slot, LED et marques d’usure discrètes.
+- [x] Produire un moule de cartouche neutre teintable avec highlights, usure et connecteurs séparés.
+- [x] Produire ou fournir le logo Avelune autonome ; interdire l’extraction depuis la capture.
+- [x] Compresser en WebP et vérifier les alpha, dimensions, poids et absence de bord blanc.
+- [x] Déclarer les dossiers dans `apps/pokemap_hub/pubspec.yaml`.
+- [x] Ajouter un test qui charge chaque asset du catalogue.
+- [x] Comparer les assets seuls sur fond quadrillé puis dans la scène.
 
 **Visual Gate :** montrer noyer, ivoire, console et cartouche à 1×/2×/3× ; refuser le lot si les marques d’usure ressemblent à un bruit uniforme ou si les objets paraissent dessinés à plat.
+
+**Exécution du 5 août 2026 :**
+
+- Catalogue de 22 ressources de production : cinq fonds sans meuble, six finitions de commode, quatre couches console, cinq couches cartouche, un fallback et un logo autonome.
+- Noyer et ivoire proviennent de deux générations distinctes ; les quatre autres finitions conservent exactement le masque alpha et les anchors du moule noyer. Le test décode les six WebP et compare leurs dimensions et bornes alpha.
+- Console, slot, usure, coque de cartouche, highlights, usure, connecteurs, verre et logo ont été générés comme objets isolés, détourés, normalisés puis compressés en WebP avec alpha sans perte.
+- `production_manifest.json` documente pour chaque ressource la source, l’outil, la transformation et le SHA-256 vérifié contre les octets réellement chargés par Flutter.
+- Visual Gates : `test/ui/goldens/avelune/material_catalog_1200x1400.png`, `test/ui/goldens/avelune/material_scale_gate_1200x1000.png` et comparaison avec la référence sous `documentation/avelune/visual_gates/phase1/avelune_110_reference_comparison.png`.
+- Le contrôle côte à côte confirme les volumes, le mobilier ivoire, la frontalité de la console, les micro-marques localisées et le moule vertical de cartouche. L’intégration dans la scène d’accueil reste volontairement réservée aux lots objets et room (`AVELUNE-300` à `AVELUNE-320`).
 
 ### AVELUNE-120 — Primitives de composant
 

@@ -11,6 +11,7 @@ export 'src/display/hub_display_preferences_store.dart';
 export 'src/ui/avelune/avelune_cartridge.dart';
 export 'src/ui/avelune/avelune_console.dart';
 export 'src/ui/avelune/design_system/avelune_design_system.dart';
+export 'src/ui/avelune/assets/avelune_material_catalog.dart';
 export 'src/ui/avelune/avelune_game_details.dart';
 export 'src/ui/avelune/avelune_game_presentation.dart';
 export 'src/ui/avelune/avelune_mobile_home.dart';

@@ -38,7 +38,13 @@ flutter:
   uses-material-design: true
   assets:
     - assets/avelune/artwork/
+    - assets/avelune/logo/
     - assets/avelune/materials/
+    - assets/avelune/objects/cartridge/
+    - assets/avelune/objects/console/
+    - assets/avelune/production_manifest.json
+    - assets/avelune/room/backgrounds/
+    - assets/avelune/room/furniture/
     - assets/certification/intro_landscape_h264_aac.mp4
     - assets/certification/intro_portrait_h264_aac.mp4
     - ios/Runner/Assets.xcassets/AppIcon.appiconset/180.png
