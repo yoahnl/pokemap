@@ -197,6 +197,55 @@ void main() {
     },
   );
 
+  testWidgets('hero and shelf use the same authored shell color',
+      (tester) async {
+    const authoredShellColor = Color(0xFF126E78);
+
+    await tester.pumpWidget(
+      _app(
+        const Row(
+          children: <Widget>[
+            SizedBox(
+              width: 126,
+              child: AveluneCartridge(
+                gameId: 'games.example.aube',
+                title: 'Aube',
+                displaySize: AveluneCartridgeDisplaySize.hero,
+                shellColor: authoredShellColor,
+              ),
+            ),
+            SizedBox(width: 12),
+            SizedBox(
+              width: 84,
+              child: AveluneCartridge(
+                gameId: 'games.example.aube',
+                title: 'Aube',
+                displaySize: AveluneCartridgeDisplaySize.shelf,
+                shellColor: authoredShellColor,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    final cartridges = tester
+        .widgetList<AveluneCartridge>(find.byType(AveluneCartridge))
+        .toList(growable: false);
+    expect(cartridges, hasLength(2));
+    expect(
+      cartridges.map((cartridge) => cartridge.displaySize).toSet(),
+      <AveluneCartridgeDisplaySize>{
+        AveluneCartridgeDisplaySize.hero,
+        AveluneCartridgeDisplaySize.shelf,
+      },
+    );
+    expect(
+      cartridges.map((cartridge) => cartridge.shellColor).toSet(),
+      <Color?>{authoredShellColor},
+    );
+  });
+
   testWidgets('selected and invalid states are announced without color alone',
       (tester) async {
     final semantics = tester.ensureSemantics();

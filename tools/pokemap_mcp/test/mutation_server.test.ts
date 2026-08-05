@@ -684,6 +684,69 @@ async function applyMutation(
   return String(validation.snapshotRevision);
 }
 
+test("MCP applies and rereads the authored Avelune cartridge color", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => String(action.id),
+    );
+    assert.ok(actionIds.includes("presentation.update"));
+
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const appliedRevision = await applyMutation(fixture.client, {
+      projectHandle,
+      workspaceHandle,
+      expectedRevision: String(validated.snapshotRevision),
+      actionId: "presentation.update",
+      parameters: {
+        profile: {
+          schemaVersion: 1,
+          branding: { accentColor: "#126E78" },
+        },
+      },
+      sequence: "avelune-cartridge-color",
+    });
+
+    const queried = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "project",
+      operation: "get",
+      view: "detail",
+      ids: ["project"],
+    });
+    const project = record((queried.items as unknown[])[0]);
+    assert.equal(
+      record(record(project.presentation).branding).accentColor,
+      "#126E78",
+    );
+    const persisted = record(
+      JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
+    );
+    assert.equal(
+      record(record(persisted.presentation).branding).accentColor,
+      "#126E78",
+    );
+    const finalValidation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    assert.equal(String(finalValidation.snapshotRevision), appliedRevision);
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP exposes Event V2 activation and safe raw asset replacement", async () => {
   const fixture = await mutationFixture();
   try {

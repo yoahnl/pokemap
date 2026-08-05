@@ -146,6 +146,19 @@ void main() {
       expect(await direct.applyDirect(), expected);
       expect(await cli.applyThroughJsonl(), expected);
     });
+
+    test('presentation.update has direct API and JSONL CLI parity', () async {
+      final direct = await _GoldenHarness.create('presentation-direct');
+      final cli = await _GoldenHarness.create('presentation-cli');
+      addTearDown(direct.dispose);
+      addTearDown(cli.dispose);
+
+      final directEvidence = await direct.applyPresentationDirect();
+      final cliEvidence = await cli.applyPresentationThroughJsonl();
+
+      expect(directEvidence, cliEvidence);
+      expect(directEvidence['accentColor'], '#126E78');
+    });
   });
 }
 
@@ -307,6 +320,48 @@ final class _GoldenHarness {
     return _stableReceipt(applied['receipt']);
   }
 
+  Future<Map<String, Object?>> applyPresentationDirect() async {
+    final opened = await readApi.open(root.path);
+    final workspace = WorkspaceHandle(opened['workspaceHandle']! as String);
+    final project = ProjectHandle(opened['projectHandle']! as String);
+    await mutations.attachProject(
+      projectRootPath: root.path,
+      workspaceHandle: workspace,
+      projectHandle: project,
+    );
+    final snapshot = await snapshots.load(project);
+    final planned = await mutations.plan(
+      project,
+      _presentationRequest(workspace.value, snapshot.revision),
+    );
+    final applied = await mutations.apply(
+      project,
+      planId: planned['planId']! as String,
+      operationId: 'pmcp085-presentation-direct-apply',
+    );
+    return _presentationEvidence(applied['receipt']);
+  }
+
+  Future<Map<String, Object?>> applyPresentationThroughJsonl() async {
+    final opened = await _jsonl('open', {'projectRoot': root.path});
+    final workspaceHandle = opened['workspaceHandle']! as String;
+    final projectHandle = opened['projectHandle']! as String;
+    final snapshot = await snapshots.load(ProjectHandle(projectHandle));
+    final planned = await _jsonl('plan', {
+      'projectHandle': projectHandle,
+      'request': _presentationRequest(
+        workspaceHandle,
+        snapshot.revision,
+      ).toJson(),
+    });
+    final applied = await _jsonl('apply', {
+      'projectHandle': projectHandle,
+      'planId': planned['planId'],
+      'operationId': 'pmcp085-presentation-cli-apply',
+    });
+    return _presentationEvidence(applied['receipt']);
+  }
+
   AuthoringRequest _request(String workspaceHandle, String revision) =>
       AuthoringRequest(
         requestId: 'pmcp085-golden-request',
@@ -322,6 +377,36 @@ final class _GoldenHarness {
         idempotencyKey: 'pmcp085-golden-idempotency',
         dryRun: false,
       );
+
+  AuthoringRequest _presentationRequest(
+    String workspaceHandle,
+    String revision,
+  ) =>
+      AuthoringRequest(
+        requestId: 'pmcp085-presentation-request',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: workspaceHandle,
+        parameters: {
+          'profile': const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(accentColor: '#126E78'),
+          ).toJson(),
+        },
+        expectedRevision: revision,
+        idempotencyKey: 'pmcp085-presentation-idempotency',
+        dryRun: false,
+      );
+
+  Future<Map<String, Object?>> _presentationEvidence(Object? receipt) async {
+    final manifest = ProjectManifest.fromJson(
+      jsonDecode(await File('${root.path}/project.json').readAsString())
+          as Map<String, dynamic>,
+    );
+    return <String, Object?>{
+      'receipt': _stableReceipt(receipt),
+      'accentColor': manifest.presentation?.branding.accentColor,
+    };
+  }
 
   Future<Map<String, Object?>> _jsonl(
     String command,

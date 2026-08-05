@@ -36,6 +36,16 @@ void main() {
       () async {
     final root = await createAuthorProject();
     addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    project['presentation'] = const ProjectPresentationProfile(
+      branding: ProjectBrandingProfile(
+        iconPath: 'assets/icon.png',
+        accentColor: '#126E78',
+      ),
+    ).toJson();
+    await projectFile.writeAsString(jsonEncode(project), flush: true);
     const service = GamePackageExportService();
     final profile = neutralExportProfile();
 
@@ -59,6 +69,7 @@ void main() {
     expect(first.manifest.presentation?.schemaVersion, 1);
     expect(first.manifest.usesLegacyBranding, isFalse);
     expect(first.manifest.branding?.icon, 'presentation/icon.png');
+    expect(first.manifest.branding?.accentColor, '#126E78');
     expect(
       first.manifest.compatibility.requiredCapabilities,
       contains('map@1'),

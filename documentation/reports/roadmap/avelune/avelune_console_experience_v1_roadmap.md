@@ -694,13 +694,13 @@ ProjectBrandingProfile.accentColor
 
 **Tâches :**
 
-- [ ] Ajouter un test `map_core` de validation `#RRGGBB` et `#RRGGBBAA` si la couverture actuelle est insuffisante.
-- [ ] Vérifier l’éditeur `project_branding_editor.dart` et conserver le libellé expliquant que la couleur teinte la coque Avelune et l’écran titre.
-- [ ] Prouver `presentation.update` via API directe et JSONL/CLI.
-- [ ] Prouver l’export et l’installation avec une couleur non violette.
-- [ ] Prouver le rendu de cette couleur sur héros et étagère via le même composant.
-- [ ] Vérifier `pokemap_describe`, le plan/apply MCP, la relecture et la validation du projet.
-- [ ] N’ajouter aucun champ `cartridgeShellColor` au V1.
+- [x] Ajouter un test `map_core` de validation `#RRGGBB` et `#RRGGBBAA` si la couverture actuelle est insuffisante.
+- [x] Vérifier l’éditeur `project_branding_editor.dart` et conserver le libellé expliquant que la couleur teinte la coque Avelune et l’écran titre.
+- [x] Prouver `presentation.update` via API directe et JSONL/CLI.
+- [x] Prouver l’export et l’installation avec une couleur non violette.
+- [x] Prouver le rendu de cette couleur sur héros et étagère via le même composant.
+- [x] Vérifier `pokemap_describe`, le plan/apply MCP, la relecture et la validation du projet.
+- [x] N’ajouter aucun champ `cartridgeShellColor` au V1.
 
 **Validation :**
 
@@ -717,6 +717,16 @@ npm test
 ```
 
 **Sortie du lot :** couleur auteur vérifiée sur transports direct, JSONL/CLI, éditeur, package, Hub et MCP.
+
+**Exécution du 5 août 2026 :**
+
+- La validation canonique accepte explicitement les couleurs `#RRGGBB` et `#RRGGBBAA`. Le libellé guidé de l’éditeur reste « Couleur de cartouche Avelune et accent » et son test widget passe sans modification du design system PokeMap.
+- `presentation.update` produit le même reçu stable via l’API Dart directe et le worker JSONL/CLI, puis persiste `#126E78` dans `ProjectPresentationProfile`.
+- L’export projette cette couleur dans `GamePackageBranding.accentColor`. Un vrai package est ensuite construit, installé et relu depuis `GameLibraryStore`, où `InstalledGameBranding.accentColor` conserve la valeur.
+- Le mapper Avelune traduit déjà ce branding en `AveluneGameViewData.shellColor`. Le test du composant canonique vérifie que ses variantes d’affichage `hero` et `shelf` reçoivent exactement la même couleur.
+- Le test MCP vérifie le catalogue `pokemap_describe`, puis `validate → plan → apply → query → validate` et la relecture physique de `project.json`. La suite MCP complète passe : 34 tests.
+- La conformance PMCP-085 annonce 62 ressources, 227 actions de mutation et 0 capacité bloquante ou manquante. Les analyzes complets de `map_core`, `map_authoring`, `map_editor` et `pokemap_hub` ne signalent aucune issue.
+- Aucun champ `cartridgeShellColor`, nouveau schéma persistant ou contournement des flows existants n’a été ajouté.
 
 ### AVELUNE-300 — Cartouche canonique réaliste
 

@@ -25,6 +25,20 @@ void main() {
       expect(validateProjectPresentationProfile(profile), isEmpty);
     });
 
+    test('accepts canonical RGB and RGBA hexadecimal accent colors', () {
+      for (final accentColor in <String>['#126E78', '#126E78CC']) {
+        final profile = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(accentColor: accentColor),
+        );
+
+        expect(
+          validateProjectPresentationProfile(profile),
+          isEmpty,
+          reason: accentColor,
+        );
+      }
+    });
+
     test('reports shared diagnostics for unsafe or unsupported values', () {
       const profile = ProjectPresentationProfile(
         schemaVersion: 99,
