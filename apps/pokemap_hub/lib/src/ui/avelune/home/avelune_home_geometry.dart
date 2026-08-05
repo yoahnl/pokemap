@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import '../avelune_cartridge.dart';
+import '../design_system/foundation/avelune_breakpoints.dart';
 
 enum AveluneHomeSizeClass { compact, regular, large }
 
@@ -73,13 +74,14 @@ final class AveluneHomeGeometry {
 
     final contentWidth = viewportSize.width - safeArea.horizontal;
     final contentHeight = viewportSize.height - safeArea.vertical;
-    if (contentWidth < _minimumContentWidth ||
-        contentHeight < _minimumContentHeight) {
+    if (contentWidth < AveluneBreakpoints.minimumContentWidth ||
+        contentHeight < AveluneBreakpoints.minimumContentHeight) {
       throw ArgumentError.value(
         viewportSize,
         'viewportSize',
         'The Safe Area must leave at least '
-            '${_minimumContentWidth}x$_minimumContentHeight logical pixels.',
+            '${AveluneBreakpoints.minimumContentWidth}x'
+            '${AveluneBreakpoints.minimumContentHeight} logical pixels.',
       );
     }
 
@@ -204,8 +206,6 @@ final class AveluneHomeGeometry {
     );
   }
 
-  static const double _minimumContentWidth = 280;
-  static const double _minimumContentHeight = 480;
   static const double _maximumConsoleWidth = 408;
   static const double _consoleAspectRatio = 3.08;
   static const double _consoleSlotCenterYFactor = 0.16;
@@ -280,13 +280,11 @@ final class AveluneHomeGeometry {
   }
 
   static AveluneHomeSizeClass _resolveSizeClass(Size contentSize) {
-    if (contentSize.width >= 410 && contentSize.height >= 820) {
-      return AveluneHomeSizeClass.large;
-    }
-    if (contentSize.width >= 350 && contentSize.height >= 700) {
-      return AveluneHomeSizeClass.regular;
-    }
-    return AveluneHomeSizeClass.compact;
+    return switch (AveluneBreakpoints.resolve(contentSize)) {
+      AveluneBreakpointClass.compact => AveluneHomeSizeClass.compact,
+      AveluneBreakpointClass.regular => AveluneHomeSizeClass.regular,
+      AveluneBreakpointClass.large => AveluneHomeSizeClass.large,
+    };
   }
 
   static _AveluneHomeRegions _resolveRegions(

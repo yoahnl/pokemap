@@ -481,15 +481,15 @@ flutter analyze lib/src/ui/avelune/home/avelune_home_geometry.dart
 
 **Tâches :**
 
-- [ ] Écrire des tests de présence et de cohérence pour chaque famille de tokens.
-- [ ] Déplacer les couleurs existantes vers des noms sémantiques ; conserver une façade de compatibilité dans `avelune_theme.dart`.
-- [ ] Créer les tokens typographiques à partir de la police projet/système, sans nouvelle licence.
-- [ ] Centraliser spacing, formes, profondeur, matériaux, motion et breakpoints.
-- [ ] Créer `AveluneThemeData.standard`, `highContrast` et la résolution via `BuildContext`.
-- [ ] Interdire dans les nouveaux widgets Avelune les `Color(0x...)`, `Colors.*`, durées et rayons ad hoc hors fichiers de tokens.
-- [ ] Définir des contrastes mesurés pour texte, focus, erreurs et navigation.
-- [ ] Définir les tokens reduced motion et high contrast.
-- [ ] Exporter uniquement le barrel `avelune_design_system.dart` vers les consommateurs.
+- [x] Écrire des tests de présence et de cohérence pour chaque famille de tokens.
+- [x] Déplacer les couleurs existantes vers des noms sémantiques ; conserver une façade de compatibilité dans `avelune_theme.dart`.
+- [x] Créer les tokens typographiques à partir de la police projet/système, sans nouvelle licence.
+- [x] Centraliser spacing, formes, profondeur, matériaux, motion et breakpoints.
+- [x] Créer `AveluneThemeData.standard`, `highContrast` et la résolution via `BuildContext`.
+- [x] Interdire dans les nouveaux widgets Avelune les `Color(0x...)`, `Colors.*`, durées et rayons ad hoc hors fichiers de tokens.
+- [x] Définir des contrastes mesurés pour texte, focus, erreurs et navigation.
+- [x] Définir les tokens reduced motion et high contrast.
+- [x] Exporter uniquement le barrel `avelune_design_system.dart` vers les consommateurs.
 
 **Tests :**
 
@@ -499,6 +499,15 @@ flutter analyze lib/src/ui/avelune/home/avelune_home_geometry.dart
 - résolution identique sur iOS et Android.
 
 **Sortie du lot :** aucun nouveau composant Avelune ne dépend de constantes visuelles dispersées.
+
+**Exécution du 5 août 2026 :**
+
+- Huit familles centralisées : couleurs sémantiques, typographie système, espacements, formes, profondeur, matériaux, motion et breakpoints.
+- `AveluneColors` reste la façade compatible des widgets historiques mais expose désormais 23 rôles sémantiques ; `avelune_theme.dart` ne porte plus la palette.
+- `AveluneThemeData.standard` et `highContrast` installent les extensions sans supprimer celles du thème hôte ; `BuildContext` bascule automatiquement vers `AveluneMotionTokens.reduced` lorsque le système désactive les animations.
+- Les breakpoints de `AveluneHomeGeometry` proviennent maintenant de `AveluneBreakpoints`, sans seuil dupliqué.
+- Un garde statique interdit les couleurs, durées et rayons bruts dans la couche `design_system/components`.
+- TDD : premier run rouge sur les types absents, puis 7 tests de fondation passés. Régression ciblée : 30 tests design system, géométrie, cartouche et accueil passés ensemble. Analyze ciblé : aucune issue.
 
 ### AVELUNE-110 — Catalogue de matières et pipeline d’assets
 
