@@ -27,6 +27,7 @@ class AveluneCartridge extends StatelessWidget {
     this.onLongPress,
     this.semanticsHint,
     this.artworkHeroTag,
+    this.connectorsOpacity = 1,
   }) : addSlot = false;
 
   const AveluneCartridge.addGame({
@@ -43,6 +44,7 @@ class AveluneCartridge extends StatelessWidget {
         onLongPress = null,
         semanticsHint = null,
         artworkHeroTag = null,
+        connectorsOpacity = 1,
         addSlot = true;
 
   final String gameId;
@@ -58,6 +60,7 @@ class AveluneCartridge extends StatelessWidget {
   final VoidCallback? onLongPress;
   final String? semanticsHint;
   final Object? artworkHeroTag;
+  final double connectorsOpacity;
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +110,7 @@ class AveluneCartridge extends StatelessWidget {
                 addSlot: addSlot,
                 selected: selected,
                 invalid: invalid,
+                connectorsOpacity: connectorsOpacity,
               ),
             ),
           ),
@@ -128,6 +132,7 @@ class _AveluneCartridgeMold extends StatelessWidget {
     required this.addSlot,
     required this.selected,
     required this.invalid,
+    required this.connectorsOpacity,
   });
 
   final String gameId;
@@ -140,6 +145,7 @@ class _AveluneCartridgeMold extends StatelessWidget {
   final bool addSlot;
   final bool selected;
   final bool invalid;
+  final double connectorsOpacity;
 
   @override
   Widget build(BuildContext context) {
@@ -296,15 +302,15 @@ class _AveluneCartridgeMold extends StatelessWidget {
                 bottom: 0,
                 height: width * 0.179,
                 child: ExcludeSemantics(
-                  child: Image.asset(
-                    AveluneMaterialCatalog.cartridgeConnectors.path,
-                    key: const ValueKey<String>(
-                      'avelune-cartridge-connectors',
-                    ),
-                    fit: BoxFit.fill,
-                    filterQuality: FilterQuality.high,
-                    excludeFromSemantics: true,
-                  ),
+                  child: connectorsOpacity >= 1
+                      ? _connectors()
+                      : Opacity(
+                          key: const ValueKey<String>(
+                            'avelune-cartridge-connectors-opacity',
+                          ),
+                          opacity: connectorsOpacity.clamp(0, 1),
+                          child: _connectors(),
+                        ),
                 ),
               ),
               if (selected)
@@ -352,6 +358,14 @@ class _AveluneCartridgeMold extends StatelessWidget {
       ),
     );
   }
+
+  Widget _connectors() => Image.asset(
+        AveluneMaterialCatalog.cartridgeConnectors.path,
+        key: const ValueKey<String>('avelune-cartridge-connectors'),
+        fit: BoxFit.fill,
+        filterQuality: FilterQuality.high,
+        excludeFromSemantics: true,
+      );
 }
 
 Alignment _wearAlignmentFor(String gameId) {

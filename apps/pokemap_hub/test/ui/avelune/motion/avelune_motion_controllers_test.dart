@@ -57,7 +57,7 @@ void main() {
   });
 
   group('AveluneExchangeController', () {
-    test('commits one exchange and emits feedback once', () async {
+    test('commits one exchange at the occluded midpoint', () async {
       final delay = _ControlledDelay();
       final feedback = _RecordingFeedback();
       final commits = <String>[];
@@ -71,15 +71,33 @@ void main() {
       final future = controller.select('train', onCommitted: commits.add);
       expect(controller.state, AveluneInteractionState.exchanging);
       expect(controller.currentGameId, 'selbrume');
-      expect(feedback.cues, <AveluneFeedbackCue>[AveluneFeedbackCue.selection]);
+      expect(controller.sourceGameId, 'selbrume');
+      expect(controller.targetGameId, 'train');
+      expect(controller.stage, AveluneExchangeStage.departing);
+      expect(feedback.cues, isEmpty);
       expect(
-          delay.durations, <Duration>[AveluneMotionTokens.standard.exchange]);
+        delay.durations,
+        <Duration>[const Duration(milliseconds: 220)],
+      );
+
+      delay.completeNext();
+      await _flushMicrotasks();
+      expect(controller.currentGameId, 'train');
+      expect(controller.stage, AveluneExchangeStage.settling);
+      expect(controller.state, AveluneInteractionState.exchanging);
+      expect(commits, <String>['train']);
+      expect(feedback.cues, <AveluneFeedbackCue>[AveluneFeedbackCue.selection]);
+      expect(delay.durations, <Duration>[
+        const Duration(milliseconds: 220),
+        const Duration(milliseconds: 220),
+      ]);
 
       delay.completeNext();
       await future;
-      expect(controller.currentGameId, 'train');
       expect(controller.state, AveluneInteractionState.idle);
-      expect(commits, <String>['train']);
+      expect(controller.stage, AveluneExchangeStage.idle);
+      expect(controller.sourceGameId, isNull);
+      expect(controller.targetGameId, isNull);
       expect(feedback.cues, <AveluneFeedbackCue>[AveluneFeedbackCue.selection]);
     });
 
@@ -100,15 +118,41 @@ void main() {
 
       delay.completeNext();
       await _flushMicrotasks();
-      expect(commits, <String>['train']);
-      expect(controller.state, AveluneInteractionState.exchanging);
+      expect(commits, <String>['aurora']);
+      expect(controller.currentGameId, 'aurora');
+      expect(controller.stage, AveluneExchangeStage.settling);
       expect(delay.pendingCount, 1);
 
       delay.completeNext();
       await exchange;
-      expect(commits, <String>['train', 'aurora']);
+      expect(commits, <String>['aurora']);
       expect(controller.currentGameId, 'aurora');
       expect(controller.state, AveluneInteractionState.idle);
+    });
+
+    test('keeps state coherent through 20 sequential exchanges', () async {
+      final commits = <String>[];
+      final feedback = _RecordingFeedback();
+      final controller = AveluneExchangeController(
+        initialGameId: 'game-0',
+        motion: AveluneMotionTokens.standard,
+        feedback: feedback,
+        delay: (_) async {},
+      );
+
+      for (var index = 1; index <= 20; index++) {
+        await controller.select('game-$index', onCommitted: commits.add);
+        expect(controller.currentGameId, 'game-$index');
+        expect(controller.state, AveluneInteractionState.idle);
+      }
+
+      expect(commits, <String>[
+        for (var index = 1; index <= 20; index++) 'game-$index',
+      ]);
+      expect(
+        feedback.cues.where((cue) => cue == AveluneFeedbackCue.selection),
+        hasLength(20),
+      );
     });
 
     test('does not commit after dispose', () async {
@@ -155,6 +199,8 @@ void main() {
       insertionDelay.completeNext();
       expect(await insertionFuture, isFalse);
       final exchangeFuture = exchange.select('train', onCommitted: commits.add);
+      exchangeDelay.completeNext();
+      await _flushMicrotasks();
       exchangeDelay.completeNext();
       await exchangeFuture;
       expect(commits, <String>['train']);

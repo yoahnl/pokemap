@@ -69,6 +69,11 @@ class AveluneRoomScene extends StatelessWidget {
     this.onAddGame,
     this.onHeroPressed,
     this.onHeroLongPress,
+    this.heroAnchorKey,
+    this.shelfCartridgeKeyFor,
+    this.hiddenShelfGameIds = const <String>{},
+    this.showHero = true,
+    this.foregroundOverlay,
   });
 
   final AveluneHomeGeometry geometry;
@@ -82,6 +87,11 @@ class AveluneRoomScene extends StatelessWidget {
   final VoidCallback? onAddGame;
   final VoidCallback? onHeroPressed;
   final VoidCallback? onHeroLongPress;
+  final GlobalKey? heroAnchorKey;
+  final GlobalKey Function(String gameId)? shelfCartridgeKeyFor;
+  final Set<String> hiddenShelfGameIds;
+  final bool showHero;
+  final Widget? foregroundOverlay;
 
   @override
   Widget build(BuildContext context) {
@@ -156,6 +166,8 @@ class AveluneRoomScene extends StatelessWidget {
               selectedGameId: selected?.id,
               onGameSelected: onGameSelected,
               onAddGame: onAddGame,
+              cartridgeKeyFor: shelfCartridgeKeyFor,
+              hiddenGameIds: hiddenShelfGameIds,
             ),
           ),
           Positioned.fromRect(
@@ -186,21 +198,34 @@ class AveluneRoomScene extends StatelessWidget {
             ),
             Positioned.fromRect(
               rect: geometry.heroCartridgeRect,
-              child: AveluneCartridge(
-                key: const ValueKey<String>('avelune-room-hero-cartridge'),
-                gameId: selected.id,
-                title: selected.title,
-                subtitle: selected.subtitle,
-                artwork: _artworkFor(selected.artwork),
-                shellColor: selected.shellColor,
-                selected: true,
-                invalid: !selected.isValid,
-                displaySize: AveluneCartridgeDisplaySize.hero,
-                onPressed: onHeroPressed,
-                onLongPress: onHeroLongPress,
+              child: KeyedSubtree(
+                key: heroAnchorKey,
+                child: Visibility(
+                  visible: showHero,
+                  maintainAnimation: true,
+                  maintainSize: true,
+                  maintainState: true,
+                  child: AveluneCartridge(
+                    key: const ValueKey<String>(
+                      'avelune-room-hero-cartridge',
+                    ),
+                    gameId: selected.id,
+                    title: selected.title,
+                    subtitle: selected.subtitle,
+                    artwork: _artworkFor(selected.artwork),
+                    shellColor: selected.shellColor,
+                    selected: true,
+                    invalid: !selected.isValid,
+                    displaySize: AveluneCartridgeDisplaySize.hero,
+                    onPressed: onHeroPressed,
+                    onLongPress: onHeroLongPress,
+                  ),
+                ),
               ),
             ),
           ],
+          if (foregroundOverlay != null)
+            Positioned.fill(child: foregroundOverlay!),
         ],
       ),
     );

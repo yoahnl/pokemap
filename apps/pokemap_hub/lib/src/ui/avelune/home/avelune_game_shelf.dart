@@ -19,6 +19,8 @@ class AveluneGameShelf extends StatefulWidget {
     required this.selectedGameId,
     this.onGameSelected,
     this.onAddGame,
+    this.cartridgeKeyFor,
+    this.hiddenGameIds = const <String>{},
   });
 
   final AveluneHomeGeometry geometry;
@@ -26,6 +28,8 @@ class AveluneGameShelf extends StatefulWidget {
   final String? selectedGameId;
   final ValueChanged<AveluneGameViewData>? onGameSelected;
   final VoidCallback? onAddGame;
+  final GlobalKey Function(String gameId)? cartridgeKeyFor;
+  final Set<String> hiddenGameIds;
 
   @override
   State<AveluneGameShelf> createState() => _AveluneGameShelfState();
@@ -116,20 +120,29 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
                 key: ValueKey<String>('avelune-game-shelf-item-${game.id}'),
                 child: KeyedSubtree(
                   key: const ValueKey<String>('avelune-game-shelf-game'),
-                  child: SizedBox.fromSize(
-                    size: geometry.shelfCartridgeSize,
-                    child: AveluneCartridge(
-                      gameId: game.id,
-                      title: game.title,
-                      subtitle: game.subtitle,
-                      artwork: _artworkFor(game.artwork),
-                      shellColor: game.shellColor,
-                      selected: game.id == widget.selectedGameId,
-                      invalid: !game.isValid,
-                      displaySize: AveluneCartridgeDisplaySize.shelf,
-                      onPressed: widget.onGameSelected == null
-                          ? null
-                          : () => widget.onGameSelected!(game),
+                  child: KeyedSubtree(
+                    key: widget.cartridgeKeyFor?.call(game.id),
+                    child: Visibility(
+                      visible: !widget.hiddenGameIds.contains(game.id),
+                      maintainAnimation: true,
+                      maintainSize: true,
+                      maintainState: true,
+                      child: SizedBox.fromSize(
+                        size: geometry.shelfCartridgeSize,
+                        child: AveluneCartridge(
+                          gameId: game.id,
+                          title: game.title,
+                          subtitle: game.subtitle,
+                          artwork: _artworkFor(game.artwork),
+                          shellColor: game.shellColor,
+                          selected: game.id == widget.selectedGameId,
+                          invalid: !game.isValid,
+                          displaySize: AveluneCartridgeDisplaySize.shelf,
+                          onPressed: widget.onGameSelected == null
+                              ? null
+                              : () => widget.onGameSelected!(game),
+                        ),
+                      ),
                     ),
                   ),
                 ),

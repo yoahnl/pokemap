@@ -4,6 +4,8 @@ import '../design_system/foundation/avelune_motion_tokens.dart';
 import 'avelune_feedback.dart';
 import 'avelune_interaction_state.dart';
 
+enum AveluneExchangeStage { idle, departing, settling }
+
 final class AveluneExchangeController extends ChangeNotifier {
   AveluneExchangeController({
     required String initialGameId,
@@ -23,7 +25,10 @@ final class AveluneExchangeController extends ChangeNotifier {
   final bool Function() _isSelectionBlocked;
 
   AveluneInteractionState _state = AveluneInteractionState.idle;
+  AveluneExchangeStage _stage = AveluneExchangeStage.idle;
   String _currentGameId;
+  String? _sourceGameId;
+  String? _targetGameId;
   _ExchangeRequest? _queued;
   Future<void>? _activeFuture;
   Object? _lastError;
@@ -31,7 +36,10 @@ final class AveluneExchangeController extends ChangeNotifier {
   int _generation = 0;
 
   AveluneInteractionState get state => _state;
+  AveluneExchangeStage get stage => _stage;
   String get currentGameId => _currentGameId;
+  String? get sourceGameId => _sourceGameId;
+  String? get targetGameId => _targetGameId;
   String? get queuedGameId => _queued?.gameId;
   Object? get lastError => _lastError;
   bool get isExchanging => _state == AveluneInteractionState.exchanging;
@@ -52,6 +60,10 @@ final class AveluneExchangeController extends ChangeNotifier {
     final activeFuture = _activeFuture;
     if (activeFuture != null) {
       _queued = request;
+      if (_stage == AveluneExchangeStage.departing) {
+        _targetGameId = gameId;
+        if (!_disposed) notifyListeners();
+      }
       return activeFuture;
     }
 
@@ -70,13 +82,36 @@ final class AveluneExchangeController extends ChangeNotifier {
     try {
       while (_isCurrent(generation)) {
         if (request.gameId != _currentGameId) {
+          _sourceGameId = _currentGameId;
+          _targetGameId = request.gameId;
+          _stage = AveluneExchangeStage.departing;
           _transition(AveluneInteractionState.exchanging);
-          await _delay(motion.exchange);
+          await _delay(_half(motion.exchange));
           if (!_isCurrent(generation)) return;
-          _currentGameId = request.gameId;
-          request.onCommitted(request.gameId);
+
+          final latestBeforeMidpoint = _queued;
+          if (latestBeforeMidpoint != null) {
+            request = latestBeforeMidpoint;
+            _queued = null;
+            _targetGameId = request.gameId;
+          }
+
+          if (request.gameId != _currentGameId) {
+            _currentGameId = request.gameId;
+            request.onCommitted(request.gameId);
+            _feedback.emit(AveluneFeedbackCue.selection);
+          }
+          if (!_isCurrent(generation)) return;
+          _stage = AveluneExchangeStage.settling;
+          if (!_disposed) notifyListeners();
+
+          await _delay(_remainingHalf(motion.exchange));
           if (!_isCurrent(generation)) return;
           _transition(AveluneInteractionState.idle);
+          _stage = AveluneExchangeStage.idle;
+          _sourceGameId = null;
+          _targetGameId = null;
+          if (!_disposed) notifyListeners();
         }
 
         final queued = _queued;
@@ -107,9 +142,7 @@ final class AveluneExchangeController extends ChangeNotifier {
   void _transition(AveluneInteractionState next) {
     AveluneInteractionTransitions.ensureAllowed(_state, next);
     _state = next;
-    if (next == AveluneInteractionState.exchanging) {
-      _feedback.emit(AveluneFeedbackCue.selection);
-    } else if (next == AveluneInteractionState.error) {
+    if (next == AveluneInteractionState.error) {
       _feedback.emit(AveluneFeedbackCue.error);
     }
     if (!_disposed) notifyListeners();
@@ -121,6 +154,9 @@ final class AveluneExchangeController extends ChangeNotifier {
     _generation++;
     _queued = null;
     _activeFuture = null;
+    _stage = AveluneExchangeStage.idle;
+    _sourceGameId = null;
+    _targetGameId = null;
     super.dispose();
   }
 }
@@ -135,3 +171,11 @@ final class _ExchangeRequest {
 Future<void> _defaultDelay(Duration duration) => Future<void>.delayed(duration);
 
 bool _selectionNeverBlocked() => false;
+
+Duration _half(Duration duration) => Duration(
+      microseconds: duration.inMicroseconds ~/ 2,
+    );
+
+Duration _remainingHalf(Duration duration) => Duration(
+      microseconds: duration.inMicroseconds - _half(duration).inMicroseconds,
+    );

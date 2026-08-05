@@ -835,17 +835,24 @@ idle
 
 **Tâches :**
 
-- [ ] Écrire les tests d’état avant le rendu.
-- [ ] Conserver les deux cartouches dans un overlay dédié pendant l’échange, pas dans deux layouts concurrents.
-- [ ] Calculer les anchors depuis `RenderBox.localToGlobal`, sans coordonnées fixes d’iPhone.
-- [ ] Masquer les connecteurs au midpoint si les objets se croisent.
-- [ ] Mettre à jour les métadonnées au midpoint, jamais avant que le nouvel objet soit identifiable.
-- [ ] Ne conserver que la dernière demande lors de taps rapides.
-- [ ] Revenir à un fondu de 120 ms en reduced motion.
-- [ ] Déclencher un seul `selectionClick` par changement final.
-- [ ] Tester 20 échanges successifs et un démontage en cours d’animation.
+- [x] Écrire les tests d’état avant le rendu.
+- [x] Conserver les deux cartouches dans un overlay dédié pendant l’échange, pas dans deux layouts concurrents.
+- [x] Calculer les anchors depuis `RenderBox.localToGlobal`, sans coordonnées fixes d’iPhone.
+- [x] Masquer les connecteurs au midpoint si les objets se croisent.
+- [x] Mettre à jour les métadonnées au midpoint, jamais avant que le nouvel objet soit identifiable.
+- [x] Ne conserver que la dernière demande lors de taps rapides.
+- [x] Revenir à un fondu de 120 ms en reduced motion.
+- [x] Déclencher un seul `selectionClick` par changement final.
+- [x] Tester 20 échanges successifs et un démontage en cours d’animation.
 
 **Sortie du lot :** aucun doublon, saut de layout, mauvaise cover ni sélection incohérente après taps rapides.
+
+**Exécution du 5 août 2026 :**
+
+- `AveluneExchangeController` sépare le mouvement en deux moitiés et ne publie la sélection qu’au midpoint ; toute demande arrivée avant ce point remplace la précédente.
+- `AveluneHomeScreen` mesure les rectangles du héros et des cartouches visibles avec `RenderBox.localToGlobal(..., ancestor: overlay)` puis masque les instances de layout pendant que deux instances canoniques sont peintes dans `AveluneCartridgeExchangeOverlay`.
+- Les connecteurs s’effacent autour du croisement ; en réduction des animations les deux cartouches restent sur l’ancre héros et effectuent un fondu de 120 ms.
+- Les tests couvrent le midpoint, les anchors mesurés, les taps rapides, vingt échanges séquentiels et le démontage en cours d’animation.
 
 ### AVELUNE-410 — Insertion physique et lancement réel
 
