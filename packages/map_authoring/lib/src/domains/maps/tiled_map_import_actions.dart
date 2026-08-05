@@ -88,15 +88,26 @@ final class TiledMapImportActions {
     final catalogBeforeBytes =
         context.snapshot.findResourceBytes(assetCatalogResourceIdentity);
     final catalogBefore = _decodeAssetCatalog(catalogBeforeBytes);
-    final resolved = <_PreparedTiledTileset>[
-      for (final item in prepared)
-        _reuseExistingTileset(
-          item,
-          manifest: context.snapshot.manifest,
-          catalog: catalogBefore,
-          snapshot: context.snapshot,
-        ),
-    ];
+    final resolved = <_PreparedTiledTileset>[];
+    final newTilesetByIdentity = <String, _PreparedTiledTileset>{};
+    for (final item in prepared) {
+      var selected = _reuseExistingTileset(
+        item,
+        manifest: context.snapshot.manifest,
+        catalog: catalogBefore,
+        snapshot: context.snapshot,
+      );
+      if (!selected.isReused) {
+        final identity = _preparedTilesetSemanticIdentity(selected);
+        final canonical = identity == null
+            ? null
+            : newTilesetByIdentity.putIfAbsent(identity, () => selected);
+        if (canonical != null && !identical(canonical, selected)) {
+          selected = selected.reuse(canonical.tileset);
+        }
+      }
+      resolved.add(selected);
+    }
 
     final TiledMapCompilationResult compilation;
     try {
@@ -445,6 +456,16 @@ _PreparedTiledTileset _reuseExistingTileset(
     }
   }
   return candidate;
+}
+
+String? _preparedTilesetSemanticIdentity(_PreparedTiledTileset prepared) {
+  final assets = <String, AssetRecord>{
+    for (final asset in prepared.assets) asset.id: asset,
+  };
+  return _tilesetSemanticIdentity(
+    prepared.tileset,
+    assetForId: (assetId) => assets[assetId],
+  );
 }
 
 String? _tilesetSemanticIdentity(

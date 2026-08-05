@@ -408,7 +408,7 @@ void main() {
       expect(layer.palette.single.localTileId, 5);
     });
 
-    test('deduplicates one image artifact shared by multiple TSX files',
+    test('deduplicates equivalent animated TSX files in one transaction',
         () async {
       final setup = await _TiledMapImportSetup.create();
       addTearDown(setup.dispose);
@@ -423,6 +423,61 @@ void main() {
       );
       expect(receipt.artifacts, hasLength(1));
       expect(receipt.artifacts.single.id, setup.artifact.digest);
+      final preview = Map<String, Object?>.from(
+        Map<String, Object?>.from(planned['plan']! as Map)['preview']! as Map,
+      );
+      expect(preview['tilesetCount'], 1);
+      expect(preview['assetCount'], 1);
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation-shared-map-artifact',
+      );
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      expect(snapshot.manifest.tilesets, hasLength(1));
+      final layer = snapshot.mapById('shared-road')!.layers.single as TileLayer;
+      expect(layer.palette, hasLength(1));
+      expect(layer.cells, const <int>[1, 1]);
+      final source = snapshot.manifest.tilesets.single.source!
+          as ProjectRegularAtlasTilesetSource;
+      expect(source.tileAnimations, hasLength(1));
+    });
+
+    test('keeps TSX files with different animation timing independent',
+        () async {
+      final setup = await _TiledMapImportSetup.create();
+      addTearDown(setup.dispose);
+
+      final planned = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.sharedArtifactRequest(
+          secondTsx: _tsx.replaceFirst('duration="120"', 'duration="240"'),
+        ),
+      );
+      final preview = Map<String, Object?>.from(
+        Map<String, Object?>.from(planned['plan']! as Map)['preview']! as Map,
+      );
+      expect(preview['tilesetCount'], 2);
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation-distinct-map-artifact',
+      );
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      expect(snapshot.manifest.tilesets, hasLength(2));
+      final durations = snapshot.manifest.tilesets
+          .map(
+            (tileset) => (tileset.source! as ProjectRegularAtlasTilesetSource)
+                .tileAnimations
+                .single
+                .frames
+                .single
+                .durationMs,
+          )
+          .toSet();
+      expect(durations, const <int>{120, 240});
     });
   });
 }
@@ -546,12 +601,17 @@ final class _TiledMapImportSetup {
     );
   }
 
-  Future<AuthoringRequest> sharedArtifactRequest() async {
+  Future<AuthoringRequest> sharedArtifactRequest(
+      {String secondTsx = _tsx}) async {
     final snapshot = await snapshots.load(projectHandle);
-    Map<String, Object?> tileset(String source, String suffix) =>
+    Map<String, Object?> tileset(
+      String source,
+      String suffix, {
+      String tsx = _tsx,
+    }) =>
         <String, Object?>{
           'source': source,
-          'tsx': _tsx,
+          'tsx': tsx,
           'tilesetId': 'road-$suffix',
           'assetId': 'road-image-$suffix',
           'logicalPath': 'assets/tilesets/road-$suffix.png',
@@ -576,7 +636,7 @@ final class _TiledMapImportSetup {
         'tmx': _sharedArtifactTmx,
         'tilesets': <Object?>[
           tileset('road-a.tsx', 'a'),
-          tileset('road-b.tsx', 'b'),
+          tileset('road-b.tsx', 'b', tsx: secondTsx),
         ],
       },
     );
