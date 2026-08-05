@@ -23,6 +23,25 @@ const _syntheticMapHeight = 80;
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test('STN-12.1 fixture covers technical layers and atlas animation',
+      () async {
+    final sandbox = await Directory.systemTemp.createTemp(
+      'pokemap-stn12-acceptance-fixture-',
+    );
+    addTearDown(() => _deleteIfPresent(sandbox));
+    final sourceRoot = Directory(p.join(sandbox.path, 'source'))
+      ..createSync(recursive: true);
+    final tmxPath = await _writeSyntheticTiledFixture(sourceRoot);
+
+    final source = await loadTiledMapImportSource(tmxPath);
+
+    expect(
+      source.layerChoices.map((choice) => choice.path),
+      contains('terrain_tag'),
+    );
+    expect(source.tilesets.first.document.tiles[0]?.animation, hasLength(2));
+  });
+
   test(
     'STN-10.6 synthetic import reopens, renders and starts playtest',
     () async {
@@ -38,14 +57,21 @@ void main() {
         sandbox: sandbox,
         tmxPath: tmxPath,
         sourceRootPath: sourceRoot.path,
+        layerModes: const <int, TiledMapLayerImportMode>{
+          7: TiledMapLayerImportMode.data,
+        },
       );
 
       expect(evidence.mapSize, const GridSize(width: 80, height: 80));
-      expect(evidence.tileLayerCount, 6);
+      expect(evidence.tileLayerCount, 7);
+      expect(evidence.dataLayerCount, 1);
       expect(evidence.tilesetCount, 2);
+      expect(evidence.atlasAnimationCount, 1);
       expect(evidence.compiledTileObjectCount, 1);
-      expect(evidence.editorRenderedOpaquePixel, isTrue);
-      expect(evidence.runtimeRenderedOpaquePixel, isTrue);
+      expect(evidence.editorFrameColors, const <int>[_greenRgba, _blueRgba]);
+      expect(evidence.runtimeFrameColors, const <int>[_greenRgba, _blueRgba]);
+      expect(evidence.editorFrameColors, isNot(contains(_technicalRgba)));
+      expect(evidence.runtimeFrameColors, isNot(contains(_technicalRgba)));
       expect(evidence.playtestPhase, 'overworld');
       expect(evidence.reopenedChecksum, evidence.importedChecksum);
     },
@@ -72,8 +98,8 @@ void main() {
       expect(evidence.mapSize, const GridSize(width: 80, height: 80));
       expect(evidence.tileLayerCount, 6);
       expect(evidence.tilesetCount, 19);
-      expect(evidence.editorRenderedOpaquePixel, isTrue);
-      expect(evidence.runtimeRenderedOpaquePixel, isTrue);
+      expect(evidence.editorFrameColors, everyElement(isNot(0)));
+      expect(evidence.runtimeFrameColors, everyElement(isNot(0)));
       expect(evidence.playtestPhase, 'overworld');
       expect(evidence.reopenedChecksum, evidence.importedChecksum);
       // The report is intentionally ephemeral: licensed filenames, source
@@ -100,10 +126,12 @@ final class _GoldenWorkflowEvidence {
   const _GoldenWorkflowEvidence({
     required this.mapSize,
     required this.tileLayerCount,
+    required this.dataLayerCount,
     required this.tilesetCount,
+    required this.atlasAnimationCount,
     required this.compiledTileObjectCount,
-    required this.editorRenderedOpaquePixel,
-    required this.runtimeRenderedOpaquePixel,
+    required this.editorFrameColors,
+    required this.runtimeFrameColors,
     required this.playtestPhase,
     required this.importedChecksum,
     required this.reopenedChecksum,
@@ -112,10 +140,12 @@ final class _GoldenWorkflowEvidence {
 
   final GridSize mapSize;
   final int tileLayerCount;
+  final int dataLayerCount;
   final int tilesetCount;
+  final int atlasAnimationCount;
   final int compiledTileObjectCount;
-  final bool editorRenderedOpaquePixel;
-  final bool runtimeRenderedOpaquePixel;
+  final List<int> editorFrameColors;
+  final List<int> runtimeFrameColors;
   final String playtestPhase;
   final String importedChecksum;
   final String reopenedChecksum;
@@ -126,6 +156,8 @@ Future<_GoldenWorkflowEvidence> _runGoldenWorkflow({
   required Directory sandbox,
   required String tmxPath,
   required String sourceRootPath,
+  Map<int, TiledMapLayerImportMode> layerModes =
+      const <int, TiledMapLayerImportMode>{},
 }) async {
   final stopwatch = Stopwatch()..start();
   final projectRoot = Directory(p.join(sandbox.path, 'project'))
@@ -150,10 +182,14 @@ Future<_GoldenWorkflowEvidence> _runGoldenWorkflow({
     mutations: first.mutations,
     queries: first.queries,
   );
-  final inspection = await service.inspect(
-    projectRootPath: projectRoot.path,
-    tmxPath: tmxPath,
+  final source = await loadTiledMapImportSource(
+    tmxPath,
     sourceRootPath: sourceRootPath,
+  );
+  final inspection = await service.inspectSource(
+    projectRootPath: projectRoot.path,
+    source: source,
+    layerModes: layerModes,
   );
   final imported = await service.apply(inspection);
   final importedChecksum = _structuralChecksum(
@@ -176,8 +212,8 @@ Future<_GoldenWorkflowEvidence> _runGoldenWorkflow({
     projectFilePath: projectFile.path,
     mapId: map.id,
   );
-  final editorRenderedOpaquePixel = await _renderEditorViewport(bundle);
-  final runtimeRenderedOpaquePixel = await _renderRuntimeViewport(bundle);
+  final editorFrameColors = await _renderEditorViewportFrames(bundle);
+  final runtimeFrameColors = await _renderRuntimeViewportFrames(bundle);
   final playtestPhase = await _startPlaytest(
     bundle: bundle,
     projectFilePath: projectFile.path,
@@ -187,12 +223,28 @@ Future<_GoldenWorkflowEvidence> _runGoldenWorkflow({
   return _GoldenWorkflowEvidence(
     mapSize: map.size,
     tileLayerCount: map.layers.whereType<TileLayer>().length,
+    dataLayerCount: map.layers
+            .whereType<TileLayer>()
+            .where((layer) => layer.purpose == MapLayerPurpose.data)
+            .length +
+        map.layers
+            .whereType<ObjectLayer>()
+            .where((layer) => layer.purpose == MapLayerPurpose.data)
+            .length,
     tilesetCount: reopenedManifest.tilesets.length,
+    atlasAnimationCount: reopenedManifest.tilesets.fold<int>(
+      0,
+      (count, tileset) => switch (tileset.source) {
+        final ProjectRegularAtlasTilesetSource source =>
+          count + source.tileAnimations.length,
+        _ => count,
+      },
+    ),
     compiledTileObjectCount: map.layers
         .whereType<ObjectLayer>()
         .fold<int>(0, (count, layer) => count + layer.tileObjects.length),
-    editorRenderedOpaquePixel: editorRenderedOpaquePixel,
-    runtimeRenderedOpaquePixel: runtimeRenderedOpaquePixel,
+    editorFrameColors: editorFrameColors,
+    runtimeFrameColors: runtimeFrameColors,
     playtestPhase: playtestPhase,
     importedChecksum: importedChecksum,
     reopenedChecksum: reopenedChecksum,
@@ -225,7 +277,7 @@ final class _EditorTransports {
   }
 }
 
-Future<bool> _renderEditorViewport(RuntimeMapBundle bundle) async {
+Future<List<int>> _renderEditorViewportFrames(RuntimeMapBundle bundle) async {
   final images = <String, ui.Image>{};
   try {
     for (final entry in bundle.tilesetAbsolutePathsById.entries) {
@@ -237,35 +289,40 @@ Future<bool> _renderEditorViewport(RuntimeMapBundle bundle) async {
         codec.dispose();
       }
     }
-    final recorder = ui.PictureRecorder();
-    MapGridPainter(
-      map: bundle.map,
-      project: bundle.manifest,
-      zoom: 1,
-      offset: ui.Offset.zero,
-      tileWidth: bundle.cellWidth,
-      tileHeight: bundle.cellHeight,
-      tilesetImagesById: images,
-      sourceTileWidth: bundle.manifest.settings.tileWidth,
-      sourceTileHeight: bundle.manifest.settings.tileHeight,
-      tilesPerRowById: <String, int>{
-        for (final tileset in bundle.manifest.tilesets)
-          if (tileset.source case ProjectRegularAtlasTilesetSource source)
-            tileset.id: source.columns,
-      },
-      warps: bundle.map.warps,
-      gameplayZones: bundle.map.gameplayZones,
-      connectionLabelsByDirection: const <MapConnectionDirection, String>{},
-      showGrid: false,
-      showEntityEditorChrome: false,
-      showEditorOverlays: false,
-    ).paint(ui.Canvas(recorder), const ui.Size(96, 96));
-    final rendered = await recorder.endRecording().toImage(96, 96);
-    try {
-      return await _containsOpaquePixel(rendered);
-    } finally {
-      rendered.dispose();
+    final colors = <int>[];
+    for (final elapsedMs in const <int>[0, 100]) {
+      final recorder = ui.PictureRecorder();
+      MapGridPainter(
+        map: bundle.map,
+        project: bundle.manifest,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: bundle.cellWidth,
+        tileHeight: bundle.cellHeight,
+        tilesetImagesById: images,
+        sourceTileWidth: bundle.manifest.settings.tileWidth,
+        sourceTileHeight: bundle.manifest.settings.tileHeight,
+        tilesPerRowById: <String, int>{
+          for (final tileset in bundle.manifest.tilesets)
+            if (tileset.source case ProjectRegularAtlasTilesetSource source)
+              tileset.id: source.columns,
+        },
+        warps: bundle.map.warps,
+        gameplayZones: bundle.map.gameplayZones,
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        editorEntityAnimationMs: elapsedMs,
+        showGrid: false,
+        showEntityEditorChrome: false,
+        showEditorOverlays: false,
+      ).paint(ui.Canvas(recorder), const ui.Size(96, 96));
+      final rendered = await recorder.endRecording().toImage(96, 96);
+      try {
+        colors.add(await _pixelRgba(rendered, 16, 16));
+      } finally {
+        rendered.dispose();
+      }
     }
+    return colors;
   } finally {
     for (final image in images.values) {
       image.dispose();
@@ -273,7 +330,7 @@ Future<bool> _renderEditorViewport(RuntimeMapBundle bundle) async {
   }
 }
 
-Future<bool> _renderRuntimeViewport(RuntimeMapBundle bundle) async {
+Future<List<int>> _renderRuntimeViewportFrames(RuntimeMapBundle bundle) async {
   final images = await loadTilesetImagesById(
     bundle.tilesetAbsolutePathsById,
   );
@@ -282,14 +339,19 @@ Future<bool> _renderRuntimeViewport(RuntimeMapBundle bundle) async {
       bundle: bundle,
       tileImagesByTilesetId: images,
     )..setVisibleLocalRect(const ui.Rect.fromLTWH(0, 0, 96, 96));
-    final recorder = ui.PictureRecorder();
-    component.render(ui.Canvas(recorder));
-    final rendered = await recorder.endRecording().toImage(96, 96);
-    try {
-      return await _containsOpaquePixel(rendered);
-    } finally {
-      rendered.dispose();
+    final colors = <int>[];
+    for (final elapsedSeconds in const <double>[0, 0.1]) {
+      component.update(elapsedSeconds);
+      final recorder = ui.PictureRecorder();
+      component.render(ui.Canvas(recorder));
+      final rendered = await recorder.endRecording().toImage(96, 96);
+      try {
+        colors.add(await _pixelRgba(rendered, 16, 16));
+      } finally {
+        rendered.dispose();
+      }
     }
+    return colors;
   } finally {
     for (final image in images.values.toSet()) {
       image.dispose();
@@ -297,13 +359,14 @@ Future<bool> _renderRuntimeViewport(RuntimeMapBundle bundle) async {
   }
 }
 
-Future<bool> _containsOpaquePixel(ui.Image image) async {
+Future<int> _pixelRgba(ui.Image image, int x, int y) async {
   final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-  if (data == null) return false;
-  for (var offset = 3; offset < data.lengthInBytes; offset += 4) {
-    if (data.getUint8(offset) != 0) return true;
-  }
-  return false;
+  if (data == null) return 0;
+  final offset = ((y * image.width) + x) * 4;
+  return data.getUint8(offset) << 24 |
+      data.getUint8(offset + 1) << 16 |
+      data.getUint8(offset + 2) << 8 |
+      data.getUint8(offset + 3);
 }
 
 Future<String> _startPlaytest({
@@ -375,7 +438,7 @@ String _structuralChecksum({
 Future<String> _writeSyntheticTiledFixture(Directory root) async {
   final atlas = File(p.join(root.path, 'atlas.png'));
   final prop = File(p.join(root.path, 'prop.png'));
-  await atlas.writeAsBytes(_onePixelPng, flush: true);
+  await atlas.writeAsBytes(await _animatedAtlasPng(), flush: true);
   await prop.writeAsBytes(_onePixelPng, flush: true);
   await File(p.join(root.path, 'atlas.tsx')).writeAsString(
     _syntheticAtlasTsx,
@@ -414,22 +477,23 @@ String _syntheticTmx() {
     csvWith(<int, int>{80: 1}),
     csvWith(<int, int>{81: 1}),
     csvWith(<int, int>{82: 1}),
+    csvWith(<int, int>{0: 3}),
   ];
   final xmlLayers = <String>[
     for (var index = 0; index < layers.length; index += 1)
       '''
-  <layer id="${index + 1}" name="Layer ${index + 1}" width="80" height="80">
+  <layer id="${index + 1}" name="${index == 6 ? 'terrain_tag' : 'Layer ${index + 1}'}" width="80" height="80">
     <data encoding="csv">${layers[index]}</data>
   </layer>''',
   ].join();
   return '''
 <map version="1.10" tiledversion="1.11.2" orientation="orthogonal"
   renderorder="right-down" width="80" height="80" tilewidth="1"
-  tileheight="1" infinite="0" nextlayerid="8" nextobjectid="3">
+  tileheight="1" infinite="0" nextlayerid="9" nextobjectid="3">
   <tileset firstgid="1" source="atlas.tsx"/>
   <tileset firstgid="100" source="props.tsx"/>
 $xmlLayers
-  <objectgroup id="7" name="Objects">
+  <objectgroup id="8" name="Objects">
     <object id="1" name="Fractional prop" gid="105" x="1.25" y="1.75"
       width="0.5" height="0.5"/>
     <object id="2" name="Deferred shape" x="4" y="4" width="1" height="1"/>
@@ -485,10 +549,45 @@ final List<int> _onePixelPng = base64Decode(
   'A8AAQUBAScY42YAAAAASUVORK5CYII=',
 );
 
+Future<List<int>> _animatedAtlasPng() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(0, 0, 1, 1),
+    ui.Paint()..color = const ui.Color(0xFF14C814),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(1, 0, 1, 1),
+    ui.Paint()..color = const ui.Color(0xFF1414C8),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(2, 0, 1, 1),
+    ui.Paint()..color = const ui.Color(0xFFF000F0),
+  );
+  final image = await recorder.endRecording().toImage(3, 1);
+  try {
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (bytes == null) throw StateError('Unable to encode acceptance atlas.');
+    return bytes.buffer.asUint8List();
+  } finally {
+    image.dispose();
+  }
+}
+
+const _greenRgba = 0x14C814FF;
+const _blueRgba = 0x1414C8FF;
+const _technicalRgba = 0xF000F0FF;
+
 const _syntheticAtlasTsx = '''
-<tileset name="Golden atlas" tilewidth="1" tileheight="1" tilecount="1"
-  columns="1">
-  <image source="atlas.png" width="1" height="1"/>
+<tileset name="Golden atlas" tilewidth="1" tileheight="1" tilecount="3"
+  columns="3">
+  <image source="atlas.png" width="3" height="1"/>
+  <tile id="0">
+    <animation>
+      <frame tileid="0" duration="100"/>
+      <frame tileid="1" duration="100"/>
+    </animation>
+  </tile>
   <wangsets>
     <wangset name="Ground" type="mixed" tile="0">
       <wangcolor name="Ground" color="#5a9f68" tile="0" probability="1"/>
