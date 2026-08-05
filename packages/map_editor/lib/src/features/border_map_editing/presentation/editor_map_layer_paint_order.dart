@@ -56,7 +56,10 @@ final class EditorMapLayerPaintOrderBuildResult {
 EditorMapLayerPaintOrderBuildResult buildEditorMapLayerPaintOrderResult(
   MapData map,
 ) {
-  final coreResult = buildMapVisualCompositionPlan(map);
+  final coreResult = buildMapVisualCompositionPlan(
+    map,
+    includeDataLayers: true,
+  );
   final plan = coreResult.plan;
   if (plan == null) {
     return EditorMapLayerPaintOrderBuildResult(

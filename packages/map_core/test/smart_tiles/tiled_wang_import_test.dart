@@ -77,6 +77,66 @@ void main() {
       expect(document.wangSets, isEmpty);
     });
 
+    test('preserves atlas and image-collection transparent colors', () {
+      final atlas = parseTiledTileset(
+        _tsx.replaceFirst(
+          'source="../images/terrain.png"',
+          'source="../images/terrain.png" trans="F05BA1"',
+        ),
+      );
+      final atlasLayout = atlas.layout as TiledRegularAtlasLayout;
+
+      expect(atlasLayout.image.transparentColor?.toHexRgb(), 'f05ba1');
+      expect(
+        atlas.dependencyClosure.images.single.transparentColor?.toHexRgb(),
+        'f05ba1',
+      );
+
+      final collection = parseTiledTileset(
+        _imageCollectionTsx
+            .replaceFirst(
+              'source="./images/small.png"',
+              'source="./images/small.png" trans="ff00ff"',
+            )
+            .replaceFirst(
+              'source="images/tree.png"',
+              'source="images/tree.png" trans="#F05BA1"',
+            ),
+      );
+
+      expect(
+        collection.tiles[2]!.image!.transparentColor?.toHexRgb(),
+        'ff00ff',
+      );
+      expect(
+        collection.tiles[9]!.image!.transparentColor?.toHexRgb(),
+        'f05ba1',
+      );
+      expect(
+        collection.dependencyClosure.images
+            .map((image) => image.transparentColor?.toHexRgb()),
+        <String?>['ff00ff', 'f05ba1'],
+      );
+    });
+
+    test('rejects malformed transparent colors at the TSX boundary', () {
+      expect(
+        () => parseTiledTileset(
+          _tsx.replaceFirst(
+            'source="../images/terrain.png"',
+            'source="../images/terrain.png" trans="pink"',
+          ),
+        ),
+        throwsA(
+          isA<TiledTilesetImportException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile.tiled.image_transparent_color_invalid',
+          ),
+        ),
+      );
+    });
+
     test('keeps the Wang-only compiler regular-atlas specific', () {
       expect(
         () => parseTiledWangTileset(_imageCollectionTsx),

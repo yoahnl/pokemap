@@ -70,7 +70,10 @@ final class MapContextTargetResolver {
 }
 
 Iterable<MapLayer> _paintableLayersTopFirst(MapData map) sync* {
-  final plan = buildMapVisualCompositionPlan(map).plan;
+  final plan = buildMapVisualCompositionPlan(
+    map,
+    includeDataLayers: true,
+  ).plan;
   if (plan == null) {
     return;
   }

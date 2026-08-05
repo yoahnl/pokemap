@@ -32,6 +32,7 @@ final class MapLayerOperations {
     'layer.rename',
     'layer.reorder',
     'layer.set_opacity',
+    'layer.set_purpose',
     'layer.set_visibility',
   };
 
@@ -56,6 +57,7 @@ final class MapLayerOperations {
         'layer.rename' => _rename(map, operation),
         'layer.reorder' => _reorder(map, operation),
         'layer.set_opacity' => _setOpacity(map, operation),
+        'layer.set_purpose' => _setPurpose(map, operation),
         'layer.set_visibility' => _setVisibility(map, operation),
         _ => throw StateError('unreachable layer operation'),
       };
@@ -216,6 +218,25 @@ final class MapLayerOperations {
       changedCells: 0,
       touchedLayerIds: [layerId],
       metadata: const {'effect': 'opacity_changed'},
+    );
+  }
+
+  MapOperationStepResult _setPurpose(
+    MapData map,
+    Map<String, Object?> operation,
+  ) {
+    _only(operation, const {'kind', 'layerId', 'purpose'});
+    final layerId = _string(operation, 'layerId');
+    final purpose = switch (_string(operation, 'purpose')) {
+      'visual' => MapLayerPurpose.visual,
+      'data' => MapLayerPurpose.data,
+      _ => throw _invalid('purpose', 'visual or data'),
+    };
+    return MapOperationStepResult(
+      map: setMapLayerPurpose(map, layerId: layerId, purpose: purpose),
+      changedCells: 0,
+      touchedLayerIds: [layerId],
+      metadata: const {'effect': 'purpose_changed'},
     );
   }
 

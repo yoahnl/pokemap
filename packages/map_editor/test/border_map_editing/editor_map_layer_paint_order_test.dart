@@ -98,6 +98,27 @@ void main() {
       expect(result.diagnostics, isNotEmpty);
     });
 
+    test('can inspect an explicitly visible data layer in the editor', () {
+      final plan = buildEditorMapLayerPaintOrder(
+        const MapData(
+          id: 'data-layer-inspection',
+          name: 'Data layer inspection',
+          size: GridSize(width: 1, height: 1),
+          version: ProjectVersion.v6,
+          visualStack: MapVisualStackConfig.canonicalV1,
+          layers: <MapLayer>[
+            TileLayer(
+              id: 'technical',
+              name: 'Technical',
+              purpose: MapLayerPurpose.data,
+            ),
+          ],
+        ),
+      );
+
+      expect(plan.authoredLayers.single.layer.id, 'technical');
+    });
+
     test('uses authored bottom-to-top order for every visual layer kind', () {
       final plan = buildEditorMapLayerPaintOrder(
         const MapData(

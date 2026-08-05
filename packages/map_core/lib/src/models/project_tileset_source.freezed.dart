@@ -1624,6 +1624,199 @@ abstract class _ProjectImageCollectionAnimationFrame
       get copyWith => throw _privateConstructorUsedError;
 }
 
+ProjectRegularAtlasTileAnimation _$ProjectRegularAtlasTileAnimationFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectRegularAtlasTileAnimation.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectRegularAtlasTileAnimation {
+  int get tileId => throw _privateConstructorUsedError;
+  List<ProjectImageCollectionAnimationFrame> get frames =>
+      throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectRegularAtlasTileAnimation to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectRegularAtlasTileAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectRegularAtlasTileAnimationCopyWith<ProjectRegularAtlasTileAnimation>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectRegularAtlasTileAnimationCopyWith<$Res> {
+  factory $ProjectRegularAtlasTileAnimationCopyWith(
+          ProjectRegularAtlasTileAnimation value,
+          $Res Function(ProjectRegularAtlasTileAnimation) then) =
+      _$ProjectRegularAtlasTileAnimationCopyWithImpl<$Res,
+          ProjectRegularAtlasTileAnimation>;
+  @useResult
+  $Res call({int tileId, List<ProjectImageCollectionAnimationFrame> frames});
+}
+
+/// @nodoc
+class _$ProjectRegularAtlasTileAnimationCopyWithImpl<$Res,
+        $Val extends ProjectRegularAtlasTileAnimation>
+    implements $ProjectRegularAtlasTileAnimationCopyWith<$Res> {
+  _$ProjectRegularAtlasTileAnimationCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectRegularAtlasTileAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? tileId = null,
+    Object? frames = null,
+  }) {
+    return _then(_value.copyWith(
+      tileId: null == tileId
+          ? _value.tileId
+          : tileId // ignore: cast_nullable_to_non_nullable
+              as int,
+      frames: null == frames
+          ? _value.frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<ProjectImageCollectionAnimationFrame>,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectRegularAtlasTileAnimationImplCopyWith<$Res>
+    implements $ProjectRegularAtlasTileAnimationCopyWith<$Res> {
+  factory _$$ProjectRegularAtlasTileAnimationImplCopyWith(
+          _$ProjectRegularAtlasTileAnimationImpl value,
+          $Res Function(_$ProjectRegularAtlasTileAnimationImpl) then) =
+      __$$ProjectRegularAtlasTileAnimationImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({int tileId, List<ProjectImageCollectionAnimationFrame> frames});
+}
+
+/// @nodoc
+class __$$ProjectRegularAtlasTileAnimationImplCopyWithImpl<$Res>
+    extends _$ProjectRegularAtlasTileAnimationCopyWithImpl<$Res,
+        _$ProjectRegularAtlasTileAnimationImpl>
+    implements _$$ProjectRegularAtlasTileAnimationImplCopyWith<$Res> {
+  __$$ProjectRegularAtlasTileAnimationImplCopyWithImpl(
+      _$ProjectRegularAtlasTileAnimationImpl _value,
+      $Res Function(_$ProjectRegularAtlasTileAnimationImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectRegularAtlasTileAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? tileId = null,
+    Object? frames = null,
+  }) {
+    return _then(_$ProjectRegularAtlasTileAnimationImpl(
+      tileId: null == tileId
+          ? _value.tileId
+          : tileId // ignore: cast_nullable_to_non_nullable
+              as int,
+      frames: null == frames
+          ? _value._frames
+          : frames // ignore: cast_nullable_to_non_nullable
+              as List<ProjectImageCollectionAnimationFrame>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectRegularAtlasTileAnimationImpl
+    implements _ProjectRegularAtlasTileAnimation {
+  const _$ProjectRegularAtlasTileAnimationImpl(
+      {required this.tileId,
+      required final List<ProjectImageCollectionAnimationFrame> frames})
+      : _frames = frames;
+
+  factory _$ProjectRegularAtlasTileAnimationImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$ProjectRegularAtlasTileAnimationImplFromJson(json);
+
+  @override
+  final int tileId;
+  final List<ProjectImageCollectionAnimationFrame> _frames;
+  @override
+  List<ProjectImageCollectionAnimationFrame> get frames {
+    if (_frames is EqualUnmodifiableListView) return _frames;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_frames);
+  }
+
+  @override
+  String toString() {
+    return 'ProjectRegularAtlasTileAnimation(tileId: $tileId, frames: $frames)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectRegularAtlasTileAnimationImpl &&
+            (identical(other.tileId, tileId) || other.tileId == tileId) &&
+            const DeepCollectionEquality().equals(other._frames, _frames));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType, tileId, const DeepCollectionEquality().hash(_frames));
+
+  /// Create a copy of ProjectRegularAtlasTileAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectRegularAtlasTileAnimationImplCopyWith<
+          _$ProjectRegularAtlasTileAnimationImpl>
+      get copyWith => __$$ProjectRegularAtlasTileAnimationImplCopyWithImpl<
+          _$ProjectRegularAtlasTileAnimationImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectRegularAtlasTileAnimationImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectRegularAtlasTileAnimation
+    implements ProjectRegularAtlasTileAnimation {
+  const factory _ProjectRegularAtlasTileAnimation(
+          {required final int tileId,
+          required final List<ProjectImageCollectionAnimationFrame> frames}) =
+      _$ProjectRegularAtlasTileAnimationImpl;
+
+  factory _ProjectRegularAtlasTileAnimation.fromJson(
+          Map<String, dynamic> json) =
+      _$ProjectRegularAtlasTileAnimationImpl.fromJson;
+
+  @override
+  int get tileId;
+  @override
+  List<ProjectImageCollectionAnimationFrame> get frames;
+
+  /// Create a copy of ProjectRegularAtlasTileAnimation
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectRegularAtlasTileAnimationImplCopyWith<
+          _$ProjectRegularAtlasTileAnimationImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 ProjectImageCollectionTileDefinition
     _$ProjectImageCollectionTileDefinitionFromJson(Map<String, dynamic> json) {
   return _ProjectImageCollectionTileDefinition.fromJson(json);

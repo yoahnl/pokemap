@@ -16,6 +16,9 @@ const String tiledMapImportMetadataKey = 'pokemap.tiled.import.v1';
 
 enum TiledMapGridPolicyKind { adoptSource, requireExact }
 
+/// Explicit, format-neutral treatment of one imported TMX leaf layer.
+enum TiledMapLayerImportMode { render, data, hidden, ignore }
+
 /// Explicit decision for reconciling the TMX cell size with the target project.
 @immutable
 final class TiledMapGridPolicy {
@@ -97,6 +100,9 @@ final class TiledMapCompilationReport {
     required this.compiledTileObjectCount,
     required this.deferredObjectCount,
     required this.deferredTileObjectCount,
+    required this.dataLayerCount,
+    required this.hiddenLayerCount,
+    required this.ignoredLayerCount,
     required this.hasVisualLoss,
     required Iterable<TiledMapFidelityDiagnostic> diagnostics,
   })  : referencedTilesetIds = List<String>.unmodifiable(referencedTilesetIds),
@@ -111,6 +117,9 @@ final class TiledMapCompilationReport {
   final int compiledTileObjectCount;
   final int deferredObjectCount;
   final int deferredTileObjectCount;
+  final int dataLayerCount;
+  final int hiddenLayerCount;
+  final int ignoredLayerCount;
   final bool hasVisualLoss;
   final List<TiledMapFidelityDiagnostic> diagnostics;
 }
@@ -154,12 +163,26 @@ TiledMapCompilationResult compileTiledMapDocument(
   required String mapName,
   required TiledMapGridPolicy gridPolicy,
   required Iterable<TiledMapTilesetBinding> tilesets,
+  Map<int, TiledMapLayerImportMode> layerModes =
+      const <int, TiledMapLayerImportMode>{},
 }) {
   final normalizedMapId = _requireCanonicalIdentity(mapId, 'mapId');
   final normalizedMapName = _requireCanonicalIdentity(mapName, 'mapName');
   final gridDecision = _resolveGrid(document, gridPolicy);
   final bindings = _resolveBindings(document, tilesets);
-  final compiler = _TiledMapCompiler(document, bindings);
+  final leafLayerIds = _tiledLeafLayerIds(document.layers);
+  final unknownLayerIds = layerModes.keys
+      .where((layerId) => !leafLayerIds.contains(layerId))
+      .toList(growable: false)
+    ..sort();
+  if (unknownLayerIds.isNotEmpty) {
+    throw TiledMapCompilationException(
+      'map.tiled.layer_mode_unknown',
+      'Un mode cible un calque TMX feuille inconnu.',
+      details: <String, Object?>{'sourceLayerIds': unknownLayerIds},
+    );
+  }
+  final compiler = _TiledMapCompiler(document, bindings, layerModes);
   compiler.compileLayers();
   final metadata = compiler.buildMetadata();
   final nativeLayers = compiler.layers.reversed.toList(growable: false);
@@ -200,10 +223,32 @@ TiledMapCompilationResult compileTiledMapDocument(
       compiledTileObjectCount: compiler.compiledTileObjectCount,
       deferredObjectCount: compiler.deferredObjectCount,
       deferredTileObjectCount: compiler.deferredTileObjectCount,
+      dataLayerCount: compiler.dataLayerCount,
+      hiddenLayerCount: compiler.hiddenLayerCount,
+      ignoredLayerCount: compiler.ignoredLayerCount,
       hasVisualLoss: compiler.hasVisualLoss,
       diagnostics: compiler.diagnostics,
     ),
   );
+}
+
+Set<int> _tiledLeafLayerIds(Iterable<TiledMapLayer> layers) {
+  final output = <int>{};
+  void visit(TiledMapLayer layer) {
+    switch (layer) {
+      case TiledMapTileLayer() || TiledMapObjectLayer():
+        output.add(layer.id);
+      case TiledMapGroupLayer():
+        for (final child in layer.layers) {
+          visit(child);
+        }
+    }
+  }
+
+  for (final layer in layers) {
+    visit(layer);
+  }
+  return output;
 }
 
 String _requireCanonicalIdentity(String value, String field) {
@@ -311,10 +356,11 @@ Map<String, String> _resolveBindings(
 }
 
 final class _TiledMapCompiler {
-  _TiledMapCompiler(this.document, this.bindings);
+  _TiledMapCompiler(this.document, this.bindings, this.layerModes);
 
   final TiledMapDocument document;
   final Map<String, String> bindings;
+  final Map<int, TiledMapLayerImportMode> layerModes;
   final List<MapLayer> layers = <MapLayer>[];
   final List<TileLayer> tileLayers = <TileLayer>[];
   final List<TiledMapFidelityDiagnostic> diagnostics =
@@ -323,6 +369,9 @@ final class _TiledMapCompiler {
   var compiledTileObjectCount = 0;
   var deferredObjectCount = 0;
   var deferredTileObjectCount = 0;
+  var dataLayerCount = 0;
+  var hiddenLayerCount = 0;
+  var ignoredLayerCount = 0;
   var hasVisualLoss = false;
 
   void compileLayers() {
@@ -359,9 +408,23 @@ final class _TiledMapCompiler {
   void _compileLayer(TiledMapLayer layer, _LayerContext parent) {
     switch (layer) {
       case TiledMapTileLayer():
-        _compileTileLayer(layer, parent);
+        final isExplicitMode = layerModes.containsKey(layer.id);
+        final mode = layerModes[layer.id] ?? TiledMapLayerImportMode.render;
+        if (mode == TiledMapLayerImportMode.ignore) {
+          ignoredLayerCount += 1;
+          return;
+        }
+        _countLayerMode(mode);
+        _compileTileLayer(layer, parent, mode, isExplicitMode);
       case TiledMapObjectLayer():
-        _compileObjectLayer(layer, parent);
+        final isExplicitMode = layerModes.containsKey(layer.id);
+        final mode = layerModes[layer.id] ?? TiledMapLayerImportMode.render;
+        if (mode == TiledMapLayerImportMode.ignore) {
+          ignoredLayerCount += 1;
+          return;
+        }
+        _countLayerMode(mode);
+        _compileObjectLayer(layer, parent, mode, isExplicitMode);
       case TiledMapGroupLayer():
         final name = _layerName(layer);
         final context = parent.inherit(layer, name);
@@ -382,7 +445,23 @@ final class _TiledMapCompiler {
     }
   }
 
-  void _compileTileLayer(TiledMapTileLayer layer, _LayerContext parent) {
+  void _countLayerMode(TiledMapLayerImportMode mode) {
+    switch (mode) {
+      case TiledMapLayerImportMode.data:
+        dataLayerCount += 1;
+      case TiledMapLayerImportMode.hidden:
+        hiddenLayerCount += 1;
+      case TiledMapLayerImportMode.render || TiledMapLayerImportMode.ignore:
+        break;
+    }
+  }
+
+  void _compileTileLayer(
+    TiledMapTileLayer layer,
+    _LayerContext parent,
+    TiledMapLayerImportMode mode,
+    bool isExplicitMode,
+  ) {
     final context = parent.inherit(layer, _layerName(layer));
     final nativeLayerId = 'tiled-layer-${layer.id}';
     final palette = <TileLayerPaletteEntry>[];
@@ -448,8 +527,12 @@ final class _TiledMapCompiler {
     final nativeLayer = TileLayer(
       id: nativeLayerId,
       name: context.path.join(' / '),
-      isVisible: context.visible,
+      isVisible: mode == TiledMapLayerImportMode.render &&
+          (isExplicitMode || context.visible),
       opacity: context.opacity,
+      purpose: mode == TiledMapLayerImportMode.data
+          ? MapLayerPurpose.data
+          : MapLayerPurpose.visual,
       palette: palette,
       cells: cells,
     );
@@ -465,7 +548,12 @@ final class _TiledMapCompiler {
     );
   }
 
-  void _compileObjectLayer(TiledMapObjectLayer layer, _LayerContext parent) {
+  void _compileObjectLayer(
+    TiledMapObjectLayer layer,
+    _LayerContext parent,
+    TiledMapLayerImportMode mode,
+    bool isExplicitMode,
+  ) {
     final context = parent.inherit(layer, _layerName(layer));
     final nativeLayerId = 'tiled-layer-${layer.id}';
     final compiled = <({int index, MapPlacedTile tile})>[];
@@ -537,8 +625,12 @@ final class _TiledMapCompiler {
     final nativeLayer = ObjectLayer(
       id: nativeLayerId,
       name: context.path.join(' / '),
-      isVisible: context.visible,
+      isVisible: mode == TiledMapLayerImportMode.render &&
+          (isExplicitMode || context.visible),
       opacity: context.opacity,
+      purpose: mode == TiledMapLayerImportMode.data
+          ? MapLayerPurpose.data
+          : MapLayerPurpose.visual,
       tileObjects: <MapPlacedTile>[
         for (final entry in compiled) entry.tile,
       ],

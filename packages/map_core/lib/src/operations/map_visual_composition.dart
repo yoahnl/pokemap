@@ -117,9 +117,8 @@ final class MapVisualCompositionPlanBuildResult {
 /// An absent visual-stack config preserves the historical runtime dispatcher
 /// exactly. Canonical v1 treats the serialized layer list as top-first and
 /// paints it bottom-to-top, independently from Border presence.
-MapVisualCompositionPlanBuildResult buildMapVisualCompositionPlan(
-  MapData map,
-) {
+MapVisualCompositionPlanBuildResult buildMapVisualCompositionPlan(MapData map,
+    {bool includeDataLayers = false}) {
   final config = map.visualStack;
   if (config != null &&
       config.semanticsVersion !=
@@ -138,8 +137,13 @@ MapVisualCompositionPlanBuildResult buildMapVisualCompositionPlan(
     );
   }
 
-  final visible =
-      map.layers.where((layer) => layer.isVisible).toList(growable: false);
+  final visible = map.layers
+      .where((layer) => layer.isVisible)
+      .where(
+        (layer) =>
+            includeDataLayers || mapLayerParticipatesInVisualComposition(layer),
+      )
+      .toList(growable: false);
   final collisionLayers = map.layers.reversed
       .where((layer) => layer.isVisible)
       .whereType<CollisionLayer>()

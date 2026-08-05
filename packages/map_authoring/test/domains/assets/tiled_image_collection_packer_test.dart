@@ -1,4 +1,5 @@
 import 'package:map_authoring/map_authoring.dart';
+import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -110,6 +111,42 @@ void main() {
       expect(_pixelAt(page, 1, 1), const _Rgba(12, 34, 56, 78));
       expect(_pixelAt(page, 2, 1), const _Rgba(90, 87, 65, 43));
       expect(_pixelAt(page, 3, 2), const _Rgba(0, 0, 0, 0));
+    });
+
+    test('turns each TSX transparent color into alpha before packing', () {
+      final result = packer.pack(
+        <TiledImageCollectionPackingInput>[
+          TiledImageCollectionPackingInput(
+            source: 'pixels.png',
+            bytes: codec.encodePng(
+              TiledImageCollectionRgbaImage(
+                pixelWidth: 2,
+                pixelHeight: 1,
+                rgbaBytes: const <int>[
+                  12,
+                  34,
+                  56,
+                  255,
+                  90,
+                  87,
+                  65,
+                  255,
+                ],
+              ),
+            ),
+            declaredPixelWidth: 2,
+            declaredPixelHeight: 1,
+            transparentColor: TilesetTransparentColor.fromHexRgb('0c2238'),
+          ),
+        ],
+        maximumPageWidth: 2,
+        maximumPageHeight: 1,
+        padding: 0,
+      );
+
+      final page = codec.decode(result.pages.single.bytes);
+      expect(_pixelAt(page, 0, 0), const _Rgba(12, 34, 56, 0));
+      expect(_pixelAt(page, 1, 0), const _Rgba(90, 87, 65, 255));
     });
 
     test('rejects duplicate sources and mismatched declared dimensions', () {

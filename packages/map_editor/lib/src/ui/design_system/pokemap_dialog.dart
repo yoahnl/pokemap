@@ -18,7 +18,7 @@ Future<bool> showPokeMapBinaryConfirmationDialog(
   final result = await showDialog<bool>(
     context: context,
     barrierDismissible: false,
-    builder: (dialogContext) => _PokeMapDialogFrame(
+    builder: (dialogContext) => PokeMapDialog(
       title: title,
       message: message,
       icon: icon,
@@ -45,7 +45,7 @@ Future<void> showPokeMapNoticeDialog(
   await showDialog<void>(
     context: context,
     barrierDismissible: false,
-    builder: (dialogContext) => _PokeMapDialogFrame(
+    builder: (dialogContext) => PokeMapDialog(
       title: title,
       message: message,
       icon: icon,
@@ -77,7 +77,7 @@ Future<bool> showPokeMapPromptDialog(
       from: context,
       to: navigator.context,
     ),
-    builder: (dialogContext) => _PokeMapDialogFrame(
+    builder: (dialogContext) => PokeMapDialog(
       title: title,
       footer: _PokeMapDialogActions(
         secondaryLabel: cancelLabel,
@@ -99,13 +99,16 @@ Future<bool> showPokeMapPromptDialog(
   return result ?? false;
 }
 
-class _PokeMapDialogFrame extends StatelessWidget {
-  const _PokeMapDialogFrame({
+/// Public token-driven frame for workflow dialogs with custom no-code content.
+class PokeMapDialog extends StatelessWidget {
+  const PokeMapDialog({
+    super.key,
     required this.title,
     required this.footer,
     this.message,
     this.icon,
     this.child,
+    this.maxWidth = 440,
   });
 
   final String title;
@@ -113,13 +116,14 @@ class _PokeMapDialogFrame extends StatelessWidget {
   final IconData? icon;
   final Widget? child;
   final Widget footer;
+  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     return Dialog(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 440),
+        constraints: BoxConstraints(maxWidth: maxWidth),
         child: PokeMapPanel(
           header: Padding(
             padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),

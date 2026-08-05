@@ -293,6 +293,7 @@ void main() {
             'displayName': 'Imported road',
             'role': 'exterior',
             'tmx': _tiledMapTmx,
+            'layerModes': const <String, Object?>{'1': 'data'},
             'tilesets': <Object?>[
               <String, Object?>{
                 'source': 'road.tsx',
@@ -330,6 +331,27 @@ void main() {
         await direct.importedMapBytes(),
         await jsonl.importedMapBytes(),
       );
+      final manifest = ProjectManifest.fromJson(
+        jsonDecode(utf8.decode(await direct.projectBytes()))
+            as Map<String, dynamic>,
+      );
+      expect(
+        manifest.tilesets
+            .singleWhere((tileset) => tileset.id == 'imported-road-tileset')
+            .transparentColor
+            ?.toHexRgb(),
+        'f05ba1',
+      );
+      final importedSource = manifest.tilesets
+          .singleWhere((tileset) => tileset.id == 'imported-road-tileset')
+          .source! as ProjectRegularAtlasTilesetSource;
+      expect(importedSource.tileAnimations, hasLength(1));
+      final importedMap = MapData.fromJson(
+        jsonDecode(utf8.decode(await direct.importedMapBytes()))
+            as Map<String, dynamic>,
+      );
+      expect((importedMap.layers.single as TileLayer).purpose,
+          MapLayerPurpose.data);
     });
 
     test('rejects stale planning and replays one operation exactly once',
@@ -1476,7 +1498,8 @@ const _tiledWangTsx = '''
 
 const _tiledMapTsx = '''
 <tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
-  <image source="road.png" width="1" height="1"/>
+  <image source="road.png" trans="f05ba1" width="1" height="1"/>
+  <tile id="0"><animation><frame tileid="0" duration="120"/></animation></tile>
 </tileset>
 ''';
 

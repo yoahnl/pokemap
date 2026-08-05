@@ -567,5 +567,55 @@ void main() {
         );
       }
     });
+
+    test('round-trips regular atlas tile animations canonically', () {
+      const source = ProjectTilesetSource.regularAtlas(
+        assetId: 'animated-atlas',
+        pixelWidth: 64,
+        pixelHeight: 32,
+        tileWidth: 16,
+        tileHeight: 16,
+        tileAnimations: <ProjectRegularAtlasTileAnimation>[
+          ProjectRegularAtlasTileAnimation(
+            tileId: 1,
+            frames: <ProjectImageCollectionAnimationFrame>[
+              ProjectImageCollectionAnimationFrame(
+                tileId: 1,
+                durationMs: 100,
+              ),
+              ProjectImageCollectionAnimationFrame(
+                tileId: 2,
+                durationMs: 300,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(source.toJson()['tileAnimations'], <Object?>[
+        <String, Object?>{
+          'tileId': 1,
+          'frames': <Object?>[
+            <String, Object?>{'tileId': 1, 'durationMs': 100},
+            <String, Object?>{'tileId': 2, 'durationMs': 300},
+          ],
+        },
+      ]);
+      expect(ProjectTilesetSource.fromJson(source.toJson()), source);
+    });
+
+    test('keeps legacy regular atlases animation-free by default', () {
+      final source = ProjectTilesetSource.fromJson(<String, Object?>{
+        'kind': 'regular_atlas',
+        'assetId': 'legacy-atlas',
+        'pixelWidth': 32,
+        'pixelHeight': 32,
+        'tileWidth': 16,
+        'tileHeight': 16,
+        'tileProperties': <Object?>[],
+      }) as ProjectRegularAtlasTilesetSource;
+
+      expect(source.tileAnimations, isEmpty);
+    });
   });
 }

@@ -40,6 +40,48 @@ void main() {
     );
   });
 
+  test('runtime consumes regular-atlas animation timelines', () {
+    const source = ProjectRegularAtlasTilesetSource(
+      assetId: 'animated-atlas',
+      pixelWidth: 2,
+      pixelHeight: 1,
+      tileWidth: 1,
+      tileHeight: 1,
+      tileAnimations: <ProjectRegularAtlasTileAnimation>[
+        ProjectRegularAtlasTileAnimation(
+          tileId: 0,
+          frames: <ProjectImageCollectionAnimationFrame>[
+            ProjectImageCollectionAnimationFrame(
+              tileId: 0,
+              durationMs: 100,
+            ),
+            ProjectImageCollectionAnimationFrame(
+              tileId: 1,
+              durationMs: 200,
+            ),
+          ],
+        ),
+      ],
+    );
+
+    final visual = resolveRuntimeProjectTilesetVisual(
+      source: source,
+      selection: const ProjectTilesetVisualSelection.regularAtlas(
+        source: TilesetSourceRect(x: 0, y: 0),
+      ),
+      cellWidth: 16,
+      cellHeight: 16,
+    );
+
+    expect(visual.totalDurationMs, 300);
+    expect(visual.frameAt(99).tileId, 0);
+    expect(visual.frameAt(100).tileId, 1);
+    expect(
+      visual.frameAt(100).slices.single.sourceRect,
+      const ProjectTilesetPixelRect(x: 1, y: 0, width: 1, height: 1),
+    );
+  });
+
   test('tile layers render typed atlas margins and spacing exactly', () async {
     const atlas = ProjectRegularAtlasTilesetSource(
       assetId: 'base-asset',

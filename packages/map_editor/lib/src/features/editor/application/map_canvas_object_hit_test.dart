@@ -130,7 +130,10 @@ final class MapCanvasObjectHitTest {
       return const <MapCanvasObjectTarget>[];
     }
 
-    final plan = buildMapVisualCompositionPlan(map).plan;
+    final plan = buildMapVisualCompositionPlan(
+      map,
+      includeDataLayers: true,
+    ).plan;
     if (plan == null) {
       return const <MapCanvasObjectTarget>[];
     }

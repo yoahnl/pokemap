@@ -205,6 +205,28 @@ MapData setMapLayerOpacity(
   return map.copyWith(layers: updatedLayers);
 }
 
+MapData setMapLayerPurpose(
+  MapData map, {
+  required String layerId,
+  required MapLayerPurpose purpose,
+}) {
+  final layerIndex = map.layers.indexWhere((layer) => layer.id == layerId);
+  if (layerIndex < 0) {
+    throw ValidationException('Layer not found: $layerId');
+  }
+  final layer = map.layers[layerIndex];
+  final updated = switch (layer) {
+    TileLayer value => value.copyWith(purpose: purpose),
+    ObjectLayer value => value.copyWith(purpose: purpose),
+    _ => throw ValidationException(
+        'Only literal tile and object layers can declare a data purpose: $layerId',
+      ),
+  };
+  final updatedLayers = List<MapLayer>.from(map.layers, growable: false)
+    ..[layerIndex] = updated;
+  return map.copyWith(layers: updatedLayers);
+}
+
 MapLayer _copyLayer(
   MapLayer layer, {
   String? name,

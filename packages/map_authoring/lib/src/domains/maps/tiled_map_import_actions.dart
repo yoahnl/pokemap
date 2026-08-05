@@ -60,6 +60,7 @@ final class TiledMapImportActions {
         'role',
         'tmx',
         'tilesets',
+        'layerModes',
       });
     final mapId = _mapId(parameters.string('mapId'));
     final displayName = _mapName(parameters.string('displayName'));
@@ -67,6 +68,7 @@ final class TiledMapImportActions {
     final role = _mapRole(parameters.optionalString('role') ?? 'exterior');
     final source = _parseMap(parameters.text('tmx'));
     final specs = _parseTilesetSpecs(parameters.list('tilesets'));
+    final layerModes = _parseLayerModes(parameters.optionalMap('layerModes'));
     _requireExactTilesetClosure(source, specs);
     _requireAvailableMapTarget(
       context.snapshot.manifest,
@@ -83,6 +85,19 @@ final class TiledMapImportActions {
     }
     _validateReferencedTileIds(source, prepared);
 
+    final catalogBeforeBytes =
+        context.snapshot.findResourceBytes(assetCatalogResourceIdentity);
+    final catalogBefore = _decodeAssetCatalog(catalogBeforeBytes);
+    final resolved = <_PreparedTiledTileset>[
+      for (final item in prepared)
+        _reuseExistingTileset(
+          item,
+          manifest: context.snapshot.manifest,
+          catalog: catalogBefore,
+          snapshot: context.snapshot,
+        ),
+    ];
+
     final TiledMapCompilationResult compilation;
     try {
       compilation = compileTiledMapDocument(
@@ -91,24 +106,22 @@ final class TiledMapImportActions {
         mapName: displayName,
         gridPolicy: const TiledMapGridPolicy.adoptSource(),
         tilesets: <TiledMapTilesetBinding>[
-          for (final item in prepared)
+          for (final item in resolved)
             TiledMapTilesetBinding(
               source: item.source,
               tilesetId: item.tileset.id,
             ),
         ],
+        layerModes: layerModes,
       );
     } on TiledMapCompilationException catch (error) {
       throw semanticFailure(error.code, error.message, details: error.details);
     }
 
-    final catalogBeforeBytes =
-        context.snapshot.findResourceBytes(assetCatalogResourceIdentity);
-    final catalogBefore = _decodeAssetCatalog(catalogBeforeBytes);
     var catalogAfter = catalogBefore;
     final assets = <AssetRecord>[];
     final bytesByAssetId = <String, List<int>>{};
-    for (final item in prepared) {
+    for (final item in resolved.where((item) => !item.isReused)) {
       for (final asset in item.assets) {
         final bytes = item.bytesByAssetId[asset.id]!;
         catalogAfter = const AssetImportProjector()
@@ -120,7 +133,7 @@ final class TiledMapImportActions {
     }
 
     var projectedManifest = context.snapshot.manifest;
-    for (final item in prepared) {
+    for (final item in resolved.where((item) => !item.isReused)) {
       projectedManifest = const TilesetImportProjector().project(
         projectedManifest,
         assets: catalogAfter,
@@ -144,6 +157,24 @@ final class TiledMapImportActions {
       manifest: projectedManifest,
       map: compilation.map,
     );
+    final referencedTilesetIds = resolved
+        .map((item) => item.tileset.id)
+        .toSet()
+        .toList(growable: false)
+      ..sort();
+    final referencedAssetIds = <String>{};
+    for (final item in resolved) {
+      switch (item.tileset.source) {
+        case ProjectRegularAtlasTilesetSource source:
+          referencedAssetIds.add(source.assetId);
+        case ProjectImageCollectionTilesetSource source:
+          referencedAssetIds.addAll(source.pages.map((page) => page.assetId));
+        case null:
+          break;
+      }
+    }
+    final sortedReferencedAssetIds = referencedAssetIds.toList(growable: false)
+      ..sort();
 
     return _projectTransaction(
       snapshot: context.snapshot,
@@ -155,8 +186,11 @@ final class TiledMapImportActions {
       importedAssets: assets,
       bytesByAssetId: bytesByAssetId,
       tilesets: <ProjectTilesetEntry>[
-        for (final item in prepared) item.tileset,
+        for (final item in resolved)
+          if (!item.isReused) item.tileset,
       ],
+      referencedTilesetIds: referencedTilesetIds,
+      referencedAssetIds: sortedReferencedAssetIds,
       report: compilation.report,
     );
   }
@@ -291,6 +325,7 @@ final class TiledMapImportActions {
       id: spec.tilesetId,
       name: document.name,
       relativePath: asset.logicalPath,
+      transparentColor: layout.image.transparentColor,
       source: ProjectRegularAtlasTilesetSource(
         assetId: asset.id,
         pixelWidth: layout.image.pixelWidth,
@@ -303,6 +338,7 @@ final class TiledMapImportActions {
         spacingY: layout.spacing,
         pixelOffsetX: document.tileOffsetX,
         pixelOffsetY: document.tileOffsetY,
+        tileAnimations: _regularAtlasAnimations(document),
       ),
     );
     return _PreparedTiledTileset(
@@ -337,6 +373,7 @@ final class TiledMapImportActions {
               bytes: staged[dependency.source]!.bytes,
               declaredPixelWidth: dependency.pixelWidth,
               declaredPixelHeight: dependency.pixelHeight,
+              transparentColor: dependency.transparentColor,
             ),
         ],
       );
@@ -382,6 +419,110 @@ final class TiledMapImportActions {
   }
 }
 
+_PreparedTiledTileset _reuseExistingTileset(
+  _PreparedTiledTileset candidate, {
+  required ProjectManifest manifest,
+  required AssetCatalog catalog,
+  required ProjectSnapshot snapshot,
+}) {
+  final candidateAssets = <String, AssetRecord>{
+    for (final asset in candidate.assets) asset.id: asset,
+  };
+  final candidateIdentity = _tilesetSemanticIdentity(
+    candidate.tileset,
+    assetForId: (assetId) => candidateAssets[assetId],
+  );
+  if (candidateIdentity == null) return candidate;
+
+  for (final existing in manifest.tilesets) {
+    final existingIdentity = _tilesetSemanticIdentity(
+      existing,
+      assetForId: catalog.find,
+    );
+    if (existingIdentity == candidateIdentity &&
+        _hasExactStoredAssets(existing, catalog, snapshot)) {
+      return candidate.reuse(existing);
+    }
+  }
+  return candidate;
+}
+
+String? _tilesetSemanticIdentity(
+  ProjectTilesetEntry tileset, {
+  required AssetRecord? Function(String assetId) assetForId,
+}) {
+  final source = tileset.source;
+  if (source == null) return null;
+  final sourceJson = Map<String, Object?>.from(source.toJson());
+
+  switch (source) {
+    case ProjectRegularAtlasTilesetSource():
+      final asset = assetForId(source.assetId);
+      if (asset == null) return null;
+      sourceJson
+        ..remove('assetId')
+        ..['artifact'] = _artifactIdentity(asset);
+    case ProjectImageCollectionTilesetSource():
+      final pages = <Object?>[];
+      for (final page in source.pages) {
+        final asset = assetForId(page.assetId);
+        if (asset == null) return null;
+        pages.add(<String, Object?>{
+          ...page.toJson(),
+          'artifact': _artifactIdentity(asset),
+        }..remove('assetId'));
+      }
+      sourceJson['pages'] = pages;
+  }
+
+  final tilesetJson = tileset.toJson();
+  return jsonEncode(<String, Object?>{
+    'source': sourceJson,
+    'scope': tilesetJson['scope'],
+    'groupId': tilesetJson['groupId'],
+    'isWorldTileset': tilesetJson['isWorldTileset'],
+    'transparentColor': tilesetJson['transparentColor'],
+  });
+}
+
+Map<String, Object?> _artifactIdentity(AssetRecord asset) => <String, Object?>{
+      'digest': asset.artifact.digest,
+      'mediaType': asset.artifact.mediaType,
+      'byteLength': asset.artifact.byteLength,
+    };
+
+bool _hasExactStoredAssets(
+  ProjectTilesetEntry tileset,
+  AssetCatalog catalog,
+  ProjectSnapshot snapshot,
+) {
+  final source = tileset.source;
+  if (source == null) return false;
+  final assetIds = switch (source) {
+    ProjectRegularAtlasTilesetSource() => <String>[source.assetId],
+    ProjectImageCollectionTilesetSource() => <String>[
+        for (final page in source.pages) page.assetId,
+      ],
+  };
+  for (final assetId in assetIds) {
+    final asset = catalog.find(assetId);
+    if (asset == null) return false;
+    final bytes = snapshot.findResourceBytes(
+      assetBlobResourceIdentity(asset.artifact.digest),
+    );
+    if (bytes == null) return false;
+    final exact = ContentArtifactRef.fromBytes(
+      bytes,
+      mediaType: asset.artifact.mediaType,
+    );
+    if (exact.digest != asset.artifact.digest ||
+        exact.byteLength != asset.artifact.byteLength) {
+      return false;
+    }
+  }
+  return true;
+}
+
 AuthoringMutationDraft _projectTransaction({
   required ProjectSnapshot snapshot,
   required ProjectManifest manifest,
@@ -392,6 +533,8 @@ AuthoringMutationDraft _projectTransaction({
   required List<AssetRecord> importedAssets,
   required Map<String, List<int>> bytesByAssetId,
   required List<ProjectTilesetEntry> tilesets,
+  required List<String> referencedTilesetIds,
+  required List<String> referencedAssetIds,
   required TiledMapCompilationReport report,
 }) {
   final changes = <AuthoringResourceChange>[];
@@ -540,6 +683,9 @@ AuthoringMutationDraft _projectTransaction({
       'tileLayerCount': report.tileLayerCount,
       'compiledTileObjectCount': report.compiledTileObjectCount,
       'deferredObjectCount': report.deferredObjectCount,
+      'dataLayerCount': report.dataLayerCount,
+      'hiddenLayerCount': report.hiddenLayerCount,
+      'ignoredLayerCount': report.ignoredLayerCount,
       'tilesetCount': tilesets.length,
       'assetCount': importedAssets.length,
       'fidelity': report.fidelity.name,
@@ -560,8 +706,8 @@ AuthoringMutationDraft _projectTransaction({
     },
     referenceImpact: <String, Object?>{
       'mapId': map.id,
-      'tilesetIds': <String>[for (final tileset in tilesets) tileset.id],
-      'assetIds': <String>[for (final asset in importedAssets) asset.id],
+      'tilesetIds': referencedTilesetIds,
+      'assetIds': referencedAssetIds,
     },
     artifacts: <AuthoringArtifactRef>[
       for (final asset in artifactAssetsByDigest.values)
@@ -932,6 +1078,7 @@ final class _PreparedTiledTileset {
     required this.tileset,
     required this.assets,
     required this.bytesByAssetId,
+    this.isReused = false,
   });
 
   final String source;
@@ -939,6 +1086,17 @@ final class _PreparedTiledTileset {
   final ProjectTilesetEntry tileset;
   final List<AssetRecord> assets;
   final Map<String, List<int>> bytesByAssetId;
+  final bool isReused;
+
+  _PreparedTiledTileset reuse(ProjectTilesetEntry existing) =>
+      _PreparedTiledTileset(
+        source: source,
+        document: document,
+        tileset: existing,
+        assets: const <AssetRecord>[],
+        bytesByAssetId: const <String, List<int>>{},
+        isReused: true,
+      );
 }
 
 final class _StagedTiledImage {
@@ -1099,7 +1257,73 @@ final class _TiledMapImportParameters {
     }
     return List<Object?>.unmodifiable(value);
   }
+
+  Map<String, Object?>? optionalMap(String key) {
+    final value = _values[key];
+    if (value == null) return null;
+    if (value is! Map) {
+      throw semanticFailure(
+        'map.tiled.parameter_invalid',
+        'An optional TMX import object is invalid.',
+        details: <String, Object?>{'parameter': key},
+      );
+    }
+    return Map<String, Object?>.unmodifiable(
+      value.map((key, value) => MapEntry(key.toString(), value)),
+    );
+  }
 }
+
+Map<int, TiledMapLayerImportMode> _parseLayerModes(
+  Map<String, Object?>? raw,
+) {
+  if (raw == null) return const <int, TiledMapLayerImportMode>{};
+  final modes = <int, TiledMapLayerImportMode>{};
+  for (final entry in raw.entries) {
+    final layerId = int.tryParse(entry.key);
+    final value = entry.value;
+    final mode = switch (value) {
+      'render' => TiledMapLayerImportMode.render,
+      'data' => TiledMapLayerImportMode.data,
+      'hidden' => TiledMapLayerImportMode.hidden,
+      'ignore' => TiledMapLayerImportMode.ignore,
+      _ => null,
+    };
+    if (layerId == null ||
+        layerId < 0 ||
+        '$layerId' != entry.key ||
+        mode == null) {
+      throw semanticFailure(
+        'map.tiled.layer_mode_invalid',
+        'Every TMX layer mode must use a canonical source layer ID and a supported value.',
+        details: <String, Object?>{
+          'sourceLayerId': entry.key,
+          'mode': value,
+        },
+      );
+    }
+    modes[layerId] = mode;
+  }
+  return Map<int, TiledMapLayerImportMode>.unmodifiable(modes);
+}
+
+List<ProjectRegularAtlasTileAnimation> _regularAtlasAnimations(
+  TiledTilesetDocument document,
+) =>
+    <ProjectRegularAtlasTileAnimation>[
+      for (final tile in document.tiles.values)
+        if (tile.animation.isNotEmpty)
+          ProjectRegularAtlasTileAnimation(
+            tileId: tile.tileId,
+            frames: <ProjectImageCollectionAnimationFrame>[
+              for (final frame in tile.animation)
+                ProjectImageCollectionAnimationFrame(
+                  tileId: frame.tileId,
+                  durationMs: frame.durationMs,
+                ),
+            ],
+          ),
+    ];
 
 bool _sameBytes(List<int> left, List<int> right) {
   if (left.length != right.length) return false;

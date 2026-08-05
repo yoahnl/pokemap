@@ -550,6 +550,14 @@ final class _TiledImportSetup {
       ) as Map<String, dynamic>,
     );
     expect(manifest.tilesets.single.id, 'road');
+    expect(
+      manifest.tilesets.single.transparentColor?.toHexRgb(),
+      'f05ba1',
+    );
+    final source =
+        manifest.tilesets.single.source! as ProjectRegularAtlasTilesetSource;
+    expect(source.tileAnimations, hasLength(1));
+    expect(source.tileAnimations.single.frames.single.durationMs, 120);
     expect(manifest.smartTileCatalog.atlases.single.id, 'road-atlas');
     expect(manifest.smartTileCatalog.presets.single.id, 'road-w0-preset');
 
@@ -598,7 +606,8 @@ final List<int> _pngBytes = base64Decode(
 
 const _tsx = '''
 <tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
-  <image source="road.png" width="1" height="1"/>
+  <image source="road.png" trans="f05ba1" width="1" height="1"/>
+  <tile id="0"><animation><frame tileid="0" duration="120"/></animation></tile>
   <wangsets>
     <wangset name="Road" type="edge" tile="-1">
       <wangcolor name="Road" color="#c8a162" tile="0" probability="1"/>

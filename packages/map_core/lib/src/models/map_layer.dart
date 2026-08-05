@@ -29,6 +29,18 @@ BorderLayerContent _borderLayerContentFromJson(Object? json) {
 Map<String, Object?> _borderLayerContentToJson(BorderLayerContent content) =>
     encodeBorderLayerContentJson(content, path: r'$.content');
 
+/// Declares whether a literal layer participates in the playable visual stack.
+///
+/// Data layers remain fully authored and inspectable, but runtime composition
+/// excludes them even when an editor temporarily makes them visible.
+@JsonEnum(alwaysCreate: true)
+enum MapLayerPurpose {
+  @JsonValue('visual')
+  visual,
+  @JsonValue('data')
+  data,
+}
+
 /// One canonical visual reference interned by a [TileLayer].
 ///
 /// [localTileId] is the exact zero-based/sparse identity owned by the
@@ -86,6 +98,7 @@ sealed class MapLayer with _$MapLayer {
     required String name,
     @Default(true) bool isVisible,
     @Default(1.0) double opacity,
+    @Default(MapLayerPurpose.visual) MapLayerPurpose purpose,
     @Default(<TileLayerPaletteEntry>[]) List<TileLayerPaletteEntry> palette,
     @Default(<int>[]) List<int> cells,
   }) = TileLayer;
@@ -123,6 +136,7 @@ sealed class MapLayer with _$MapLayer {
     required String name,
     @Default(true) bool isVisible,
     @Default(1.0) double opacity,
+    @Default(MapLayerPurpose.visual) MapLayerPurpose purpose,
     @Default(<MapPlacedTile>[]) List<MapPlacedTile> tileObjects,
   }) = ObjectLayer;
 
@@ -162,6 +176,15 @@ sealed class MapLayer with _$MapLayer {
   factory MapLayer.fromJson(Map<String, dynamic> json) =>
       _mapLayerFromJson(json);
 }
+
+MapLayerPurpose mapLayerPurpose(MapLayer layer) => switch (layer) {
+      TileLayer value => value.purpose,
+      ObjectLayer value => value.purpose,
+      _ => MapLayerPurpose.visual,
+    };
+
+bool mapLayerParticipatesInVisualComposition(MapLayer layer) =>
+    mapLayerPurpose(layer) == MapLayerPurpose.visual;
 
 MapLayer _mapLayerFromJson(Map<String, dynamic> json) {
   final canonical = migrateLegacyTileLayerJson(json);

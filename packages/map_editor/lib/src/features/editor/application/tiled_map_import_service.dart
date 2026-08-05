@@ -91,6 +91,31 @@ final class TiledMapImportSource {
   int get objectCount => _flattenLayers(document.layers)
       .whereType<TiledMapObjectLayer>()
       .fold(0, (count, layer) => count + layer.objects.length);
+
+  List<TiledMapImportLayerChoice> get layerChoices =>
+      List<TiledMapImportLayerChoice>.unmodifiable(
+        _layerChoices(document.layers),
+      );
+}
+
+enum TiledMapImportLayerKind { tile, object }
+
+final class TiledMapImportLayerChoice {
+  const TiledMapImportLayerChoice({
+    required this.sourceLayerId,
+    required this.path,
+    required this.kind,
+    required this.sourceVisible,
+  });
+
+  final int sourceLayerId;
+  final String path;
+  final TiledMapImportLayerKind kind;
+  final bool sourceVisible;
+
+  TiledMapLayerImportMode get defaultMode => sourceVisible
+      ? TiledMapLayerImportMode.render
+      : TiledMapLayerImportMode.hidden;
 }
 
 final class TiledMapImportInspection {
@@ -146,6 +171,18 @@ final class TiledMapImportService {
       tmxPath,
       sourceRootPath: sourceRootPath,
     );
+    return inspectSource(
+      projectRootPath: projectRootPath,
+      source: source,
+    );
+  }
+
+  Future<TiledMapImportInspection> inspectSource({
+    required String projectRootPath,
+    required TiledMapImportSource source,
+    Map<int, TiledMapLayerImportMode> layerModes =
+        const <int, TiledMapLayerImportMode>{},
+  }) async {
     final tilesetParameters = <Object?>[];
     final stagedDigests = <String>[];
     for (final tileset in source.tilesets) {
@@ -184,11 +221,16 @@ final class TiledMapImportService {
       });
     }
     stagedDigests.sort();
+    final sortedLayerModes = layerModes.entries.toList(growable: false)
+      ..sort((left, right) => left.key.compareTo(right.key));
+    final layerModeFingerprint = sortedLayerModes
+        .map((entry) => '${entry.key}:${entry.value.name}')
+        .join('|');
     final fingerprint = sha256
         .convert(
           utf8.encode(
             '${source.mapId}|${sha256.convert(utf8.encode(source.tmx))}|'
-            '${stagedDigests.join('|')}',
+            '${stagedDigests.join('|')}|$layerModeFingerprint',
           ),
         )
         .toString()
@@ -204,6 +246,11 @@ final class TiledMapImportService {
           'role': 'exterior',
           'tmx': source.tmx,
           'tilesets': tilesetParameters,
+          if (sortedLayerModes.isNotEmpty)
+            'layerModes': <String, Object?>{
+              for (final entry in sortedLayerModes)
+                '${entry.key}': entry.value.name,
+            },
         },
         idempotencyKey: idempotencyKey,
         requestId: idempotencyKey,
@@ -422,6 +469,41 @@ Iterable<TiledMapLayer> _flattenLayers(Iterable<TiledMapLayer> layers) sync* {
   for (final layer in layers) {
     yield layer;
     if (layer is TiledMapGroupLayer) yield* _flattenLayers(layer.layers);
+  }
+}
+
+Iterable<TiledMapImportLayerChoice> _layerChoices(
+  Iterable<TiledMapLayer> layers, {
+  List<String> parentPath = const <String>[],
+  bool parentVisible = true,
+}) sync* {
+  for (final layer in layers) {
+    final name =
+        layer.name.trim().isEmpty ? 'Calque ${layer.id}' : layer.name.trim();
+    final path = <String>[...parentPath, name];
+    final sourceVisible = parentVisible && layer.visible;
+    switch (layer) {
+      case TiledMapTileLayer():
+        yield TiledMapImportLayerChoice(
+          sourceLayerId: layer.id,
+          path: path.join(' / '),
+          kind: TiledMapImportLayerKind.tile,
+          sourceVisible: sourceVisible,
+        );
+      case TiledMapObjectLayer():
+        yield TiledMapImportLayerChoice(
+          sourceLayerId: layer.id,
+          path: path.join(' / '),
+          kind: TiledMapImportLayerKind.object,
+          sourceVisible: sourceVisible,
+        );
+      case TiledMapGroupLayer():
+        yield* _layerChoices(
+          layer.layers,
+          parentPath: path,
+          parentVisible: sourceVisible,
+        );
+    }
   }
 }
 

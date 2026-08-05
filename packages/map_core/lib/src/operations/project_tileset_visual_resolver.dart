@@ -287,6 +287,25 @@ ProjectTilesetVisualResolution _resolveRegularAtlas(
       'The regular-atlas visual source leaves the canonical tile grid.',
     );
   }
+  final animations = <int, ProjectRegularAtlasTileAnimation>{};
+  for (final animation in atlas.tileAnimations) {
+    if (animation.tileId < 0 ||
+        animation.tileId >= atlas.tileCount ||
+        animation.frames.isEmpty ||
+        animations.containsKey(animation.tileId) ||
+        animation.frames.any(
+          (frame) =>
+              frame.tileId < 0 ||
+              frame.tileId >= atlas.tileCount ||
+              frame.durationMs <= 0,
+        )) {
+      throw const ProjectTilesetVisualResolutionException(
+        'tileset.visual.animation_invalid',
+        'Regular-atlas animations must reference valid unique tiles and use positive durations.',
+      );
+    }
+    animations[animation.tileId] = animation;
+  }
   final effectiveAnchor = anchor == ProjectTilesetVisualAnchor.automatic
       ? ProjectTilesetVisualAnchor.topLeft
       : anchor;
@@ -294,6 +313,34 @@ ProjectTilesetVisualResolution _resolveRegularAtlas(
   final anchorTop = effectiveAnchor == ProjectTilesetVisualAnchor.bottomLeft
       ? cellHeight - visualHeight
       : 0;
+
+  if (source.width == 1 && source.height == 1) {
+    final rootTileId = source.y * atlas.columns + source.x;
+    final animation = animations[rootTileId];
+    if (animation != null) {
+      return ProjectTilesetVisualResolution(
+        frames: <ProjectTilesetVisualFrameResolution>[
+          for (final frame in animation.frames)
+            ProjectTilesetVisualFrameResolution(
+              tileId: frame.tileId,
+              durationMs: frame.durationMs,
+              slices: <ProjectTilesetVisualSlice>[
+                ProjectTilesetVisualSlice(
+                  assetId: atlas.assetId,
+                  sourceRect: _regularAtlasTileRect(atlas, frame.tileId),
+                  destinationRect: ProjectTilesetPixelRect(
+                    x: atlas.pixelOffsetX,
+                    y: atlas.pixelOffsetY + anchorTop,
+                    width: cellWidth,
+                    height: cellHeight,
+                  ),
+                ),
+              ],
+            ),
+        ],
+      );
+    }
+  }
   final slices = <ProjectTilesetVisualSlice>[];
   for (var row = 0; row < source.height; row += 1) {
     for (var column = 0; column < source.width; column += 1) {
@@ -326,6 +373,20 @@ ProjectTilesetVisualResolution _resolveRegularAtlas(
         slices: slices,
       ),
     ],
+  );
+}
+
+ProjectTilesetPixelRect _regularAtlasTileRect(
+  ProjectRegularAtlasTilesetSource atlas,
+  int tileId,
+) {
+  final x = tileId % atlas.columns;
+  final y = tileId ~/ atlas.columns;
+  return ProjectTilesetPixelRect(
+    x: atlas.marginX + x * (atlas.tileWidth + atlas.spacingX),
+    y: atlas.marginY + y * (atlas.tileHeight + atlas.spacingY),
+    width: atlas.tileWidth,
+    height: atlas.tileHeight,
   );
 }
 

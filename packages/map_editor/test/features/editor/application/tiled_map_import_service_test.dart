@@ -44,9 +44,18 @@ void main() {
       queries: queries,
     );
 
-    final inspection = await service.inspect(
+    final source = await loadTiledMapImportSource(tmxPath);
+    expect(source.layerChoices, hasLength(2));
+    expect(
+      source.layerChoices.map((layer) => layer.defaultMode),
+      everyElement(TiledMapLayerImportMode.render),
+    );
+    final inspection = await service.inspectSource(
       projectRootPath: projectRoot.path,
-      tmxPath: tmxPath,
+      source: source,
+      layerModes: const <int, TiledMapLayerImportMode>{
+        2: TiledMapLayerImportMode.data,
+      },
     );
 
     expect(inspection.source.mapId, startsWith('route-one-'));
@@ -57,12 +66,20 @@ void main() {
     expect(inspection.source.tilesets, hasLength(1));
     expect(inspection.preview['operation'], 'map.tiled.import');
     expect(inspection.preview['tilesetCount'], 1);
+    expect(inspection.preview['dataLayerCount'], 1);
 
     final imported = await service.apply(inspection);
 
     expect(imported.map.id, inspection.source.mapId);
     expect(imported.manifest.maps.single.id, inspection.source.mapId);
     expect(imported.manifest.tilesets, hasLength(1));
+    final dataLayer = imported.map.layers.whereType<ObjectLayer>().single;
+    expect(dataLayer.purpose, MapLayerPurpose.data);
+    expect(dataLayer.isVisible, isFalse);
+    expect(
+      imported.manifest.tilesets.single.transparentColor?.toHexRgb(),
+      'f05ba1',
+    );
     expect(imported.receiptId, isNotEmpty);
     final canonical = await queries.open(projectRoot.path);
     expect(canonical.mapById(inspection.source.mapId), isNotNull);
@@ -172,7 +189,7 @@ final List<int> _pngBytes = base64Decode(
 
 const _tsx = '''
 <tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
-  <image source="road.png" width="1" height="1"/>
+  <image source="road.png" trans="f05ba1" width="1" height="1"/>
 </tileset>
 ''';
 

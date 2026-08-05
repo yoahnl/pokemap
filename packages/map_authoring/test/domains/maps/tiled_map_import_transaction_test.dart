@@ -49,6 +49,300 @@ void main() {
       await setup.expectComplete();
     });
 
+    test('applies explicit no-code layer modes transactionally', () async {
+      final setup = await _TiledMapImportSetup.create();
+      addTearDown(setup.dispose);
+
+      final planned = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(
+          idempotencyKey: 'map-tiled-layer-mode',
+          layerModes: const <String, String>{'1': 'data'},
+        ),
+      );
+      final preview = Map<String, Object?>.from(
+        Map<String, Object?>.from(planned['plan']! as Map)['preview']! as Map,
+      );
+      expect(preview['dataLayerCount'], 1);
+      expect(preview['hiddenLayerCount'], 0);
+      expect(preview['ignoredLayerCount'], 0);
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation-map-tiled-layer-mode',
+      );
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      final layer =
+          snapshot.mapById('imported-road')!.layers.single as TileLayer;
+      expect(layer.purpose, MapLayerPurpose.data);
+      expect(layer.isVisible, isFalse);
+    });
+
+    test('propagates the TSX atlas transparent color to the project tileset',
+        () async {
+      final setup = await _TiledMapImportSetup.create();
+      addTearDown(setup.dispose);
+      final planned = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(idempotencyKey: 'map-tiled-transparent-color'),
+      );
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation-map-tiled-transparent-color',
+      );
+
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      expect(
+        snapshot.manifest.tilesets.single.transparentColor?.toHexRgb(),
+        'f05ba1',
+      );
+    });
+
+    test('reuses one canonical tileset when another map imports the same TSX',
+        () async {
+      final setup = await _TiledMapImportSetup.create();
+      addTearDown(setup.dispose);
+
+      final first = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(idempotencyKey: 'map-tiled-reuse-first'),
+      );
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: first['planId']! as String,
+        operationId: 'operation-map-tiled-reuse-first',
+      );
+
+      final second = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(
+          idempotencyKey: 'map-tiled-reuse-second',
+          mapId: 'imported-road-2',
+          tilesetId: 'road-2',
+          assetId: 'road-image-2',
+          logicalPath: 'assets/tilesets/road-2.png',
+        ),
+      );
+      final secondPlan = Map<String, Object?>.from(second['plan']! as Map);
+      final preview = Map<String, Object?>.from(secondPlan['preview']! as Map);
+      expect(preview['tilesetCount'], 0);
+      expect(preview['assetCount'], 0);
+      final impact = Map<String, Object?>.from(
+        secondPlan['referenceImpact']! as Map,
+      );
+      expect(impact['tilesetIds'], <String>['road']);
+      expect(impact['assetIds'], <String>['road-image']);
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: second['planId']! as String,
+        operationId: 'operation-map-tiled-reuse-second',
+      );
+
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      expect(snapshot.manifest.maps, hasLength(2));
+      expect(snapshot.manifest.tilesets, hasLength(1));
+      final secondMap = snapshot.mapById('imported-road-2')!;
+      final secondLayer = secondMap.layers.single as TileLayer;
+      expect(secondLayer.palette.single.tilesetId, 'road');
+      final catalog = AssetCatalog.fromJson(
+        Map<String, dynamic>.from(
+          jsonDecode(
+            utf8.decode(
+              snapshot.resourceBytes(assetCatalogResourceIdentity),
+            ),
+          ) as Map,
+        ),
+      );
+      expect(catalog.records, hasLength(1));
+    });
+
+    test('reuses one packed image collection across sequential map imports',
+        () async {
+      final setup = await _TiledMapImportSetup.create(imageCollection: true);
+      addTearDown(setup.dispose);
+
+      final first = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(idempotencyKey: 'collection-reuse-first'),
+      );
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: first['planId']! as String,
+        operationId: 'operation-collection-reuse-first',
+      );
+
+      final second = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(
+          idempotencyKey: 'collection-reuse-second',
+          mapId: 'imported-road-2',
+          tilesetId: 'road-2',
+          assetId: 'road-image-2',
+          logicalPath: 'assets/tilesets/road-2',
+        ),
+      );
+      final secondPlan = Map<String, Object?>.from(second['plan']! as Map);
+      final preview = Map<String, Object?>.from(secondPlan['preview']! as Map);
+      expect(preview['tilesetCount'], 0);
+      expect(preview['assetCount'], 0);
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: second['planId']! as String,
+        operationId: 'operation-collection-reuse-second',
+      );
+
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      expect(snapshot.manifest.tilesets, hasLength(1));
+      final secondMap = snapshot.mapById('imported-road-2')!;
+      final secondLayer = secondMap.layers.single as TileLayer;
+      expect(secondLayer.palette.single.tilesetId, 'road');
+      final catalog = AssetCatalog.fromJson(
+        Map<String, dynamic>.from(
+          jsonDecode(
+            utf8.decode(
+              snapshot.resourceBytes(assetCatalogResourceIdentity),
+            ),
+          ) as Map,
+        ),
+      );
+      expect(catalog.records, hasLength(1));
+    });
+
+    test('reuses an imported tileset after presentation metadata changes',
+        () async {
+      final setup = await _TiledMapImportSetup.create();
+      addTearDown(setup.dispose);
+
+      final first = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(idempotencyKey: 'metadata-reuse-first'),
+      );
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: first['planId']! as String,
+        operationId: 'operation-metadata-reuse-first',
+      );
+
+      final afterFirst = await setup.snapshots.load(setup.projectHandle);
+      final organized = afterFirst.manifest.tilesets.single.copyWith(
+        name: 'My organized road',
+        sortOrder: 42,
+      );
+      final organizePlan = await setup.mutations.plan(
+        setup.projectHandle,
+        AuthoringRequest(
+          requestId: 'request-organize-road',
+          actionId: 'tileset.upsert',
+          actionVersion: 1,
+          workspaceHandle: setup.workspaceHandle.value,
+          expectedRevision: afterFirst.revision,
+          idempotencyKey: 'organize-road',
+          parameters: <String, Object?>{'tileset': organized.toJson()},
+        ),
+      );
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: organizePlan['planId']! as String,
+        operationId: 'operation-organize-road',
+      );
+
+      final second = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(
+          idempotencyKey: 'metadata-reuse-second',
+          mapId: 'imported-road-2',
+          tilesetId: 'road-2',
+          assetId: 'road-image-2',
+          logicalPath: 'assets/tilesets/road-2.png',
+        ),
+      );
+      final secondPlan = Map<String, Object?>.from(second['plan']! as Map);
+      final preview = Map<String, Object?>.from(secondPlan['preview']! as Map);
+      expect(preview['tilesetCount'], 0);
+      expect(preview['assetCount'], 0);
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: second['planId']! as String,
+        operationId: 'operation-metadata-reuse-second',
+      );
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      expect(snapshot.manifest.tilesets, hasLength(1));
+      expect(snapshot.manifest.tilesets.single.name, 'My organized road');
+      expect(snapshot.manifest.tilesets.single.sortOrder, 42);
+      final secondMap = snapshot.mapById('imported-road-2')!;
+      expect(
+        (secondMap.layers.single as TileLayer).palette.single.tilesetId,
+        'road',
+      );
+    });
+
+    test('reuses a canonical tileset imported standalone from the same TSX',
+        () async {
+      final setup = await _TiledMapImportSetup.create();
+      addTearDown(setup.dispose);
+      final before = await setup.snapshots.load(setup.projectHandle);
+      final standalone = await setup.mutations.plan(
+        setup.projectHandle,
+        AuthoringRequest(
+          requestId: 'request-standalone-road',
+          actionId: 'tileset.tiled.import',
+          actionVersion: 1,
+          workspaceHandle: setup.workspaceHandle.value,
+          expectedRevision: before.revision,
+          idempotencyKey: 'standalone-road',
+          parameters: <String, Object?>{
+            'artifactHandle': setup.artifact.handle,
+            'assetId': 'road-image',
+            'logicalPath': 'assets/tilesets/road.png',
+            'tilesetId': 'road',
+            'displayName': 'Road',
+            'importId': 'road',
+            'tsx': _wangTsx,
+            'selections': const <Object?>[
+              <String, Object?>{'wangSetIndex': 0, 'usage': 'terrain'},
+            ],
+            'tags': const <String>['tiled'],
+            'usages': const <String>['smart-tiles-studio'],
+          },
+        ),
+      );
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: standalone['planId']! as String,
+        operationId: 'operation-standalone-road',
+      );
+
+      final mapImport = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(
+          idempotencyKey: 'standalone-road-map',
+          tilesetId: 'road-2',
+          assetId: 'road-image-2',
+          logicalPath: 'assets/tilesets/road-2.png',
+        ),
+      );
+      final mapPlan = Map<String, Object?>.from(mapImport['plan']! as Map);
+      final preview = Map<String, Object?>.from(mapPlan['preview']! as Map);
+      expect(preview['tilesetCount'], 0);
+      expect(preview['assetCount'], 0);
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: mapImport['planId']! as String,
+        operationId: 'operation-standalone-road-map',
+      );
+      final snapshot = await setup.snapshots.load(setup.projectHandle);
+      expect(snapshot.manifest.tilesets, hasLength(1));
+      final map = snapshot.mapById('imported-road')!;
+      expect((map.layers.single as TileLayer).palette.single.tilesetId, 'road');
+    });
+
     test('recovers a partial promotion without orphaned resources', () async {
       var crashed = false;
       final setup = await _TiledMapImportSetup.create(
@@ -212,6 +506,11 @@ final class _TiledMapImportSetup {
 
   Future<AuthoringRequest> request({
     String idempotencyKey = 'map-tiled-import',
+    String mapId = 'imported-road',
+    String tilesetId = 'road',
+    String assetId = 'road-image',
+    String logicalPath = 'assets/tilesets/road.png',
+    Map<String, String>? layerModes,
   }) async {
     final snapshot = await snapshots.load(projectHandle);
     return AuthoringRequest(
@@ -222,17 +521,19 @@ final class _TiledMapImportSetup {
       expectedRevision: snapshot.revision,
       idempotencyKey: idempotencyKey,
       parameters: <String, Object?>{
-        'mapId': 'imported-road',
-        'displayName': 'Imported road',
+        'mapId': mapId,
+        'displayName':
+            mapId == 'imported-road' ? 'Imported road' : 'Imported road 2',
         'role': 'exterior',
         'tmx': imageCollection ? _imageCollectionTmx : _tmx,
+        if (layerModes != null) 'layerModes': layerModes,
         'tilesets': <Object?>[
           <String, Object?>{
             'source': 'road.tsx',
             'tsx': imageCollection ? _imageCollectionTsx : _tsx,
-            'tilesetId': 'road',
-            'assetId': 'road-image',
-            'logicalPath': 'assets/tilesets/road.png',
+            'tilesetId': tilesetId,
+            'assetId': assetId,
+            'logicalPath': logicalPath,
             'imageArtifacts': <Object?>[
               <String, Object?>{
                 'source': imageCollection ? 'road-sparse.png' : 'road.png',
@@ -310,6 +611,10 @@ final class _TiledMapImportSetup {
         isNotNull,
       );
     } else {
+      final source = snapshot.manifest.tilesets.single.source!
+          as ProjectRegularAtlasTilesetSource;
+      expect(source.tileAnimations, hasLength(1));
+      expect(source.tileAnimations.single.frames.single.durationMs, 120);
       expect(
         catalog.require('road-image').logicalPath,
         'assets/tilesets/road.png',
@@ -374,7 +679,21 @@ final List<int> _pngBytes = base64Decode(
 
 const _tsx = '''
 <tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
-  <image source="road.png" width="1" height="1"/>
+  <image source="road.png" trans="f05ba1" width="1" height="1"/>
+  <tile id="0"><animation><frame tileid="0" duration="120"/></animation></tile>
+</tileset>
+''';
+
+const _wangTsx = '''
+<tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
+  <image source="road.png" trans="f05ba1" width="1" height="1"/>
+  <tile id="0"><animation><frame tileid="0" duration="120"/></animation></tile>
+  <wangsets>
+    <wangset name="Road" type="corner" tile="-1">
+      <wangcolor name="Road" color="#c8a162" tile="0" probability="1"/>
+      <wangtile tileid="0" wangid="1,0,1,0,1,0,1,0"/>
+    </wangset>
+  </wangsets>
 </tileset>
 ''';
 
@@ -392,7 +711,7 @@ const _tmx = '''
 const _imageCollectionTsx = '''
 <tileset name="Sparse road" tilewidth="1" tileheight="1" tilecount="1" columns="0">
   <tile id="5">
-    <image source="road-sparse.png" width="1" height="1"/>
+    <image source="road-sparse.png" trans="0c2238" width="1" height="1"/>
   </tile>
 </tileset>
 ''';

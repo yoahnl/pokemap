@@ -682,6 +682,24 @@ class ProjectValidator {
         );
       }
     }
+    final animationTileIds = <int>{};
+    for (final animation in source.tileAnimations) {
+      if (animation.tileId < 0 ||
+          animation.tileId >= source.tileCount ||
+          !animationTileIds.add(animation.tileId) ||
+          animation.frames.isEmpty ||
+          animation.frames.any(
+            (frame) =>
+                frame.tileId < 0 ||
+                frame.tileId >= source.tileCount ||
+                frame.durationMs <= 0,
+          )) {
+        throw ValidationException(
+          'Tileset ${tileset.id} has an invalid regular atlas source '
+          'animation for tile ${animation.tileId}',
+        );
+      }
+    }
   }
 
   static void _validateImageCollectionTilesetSource(

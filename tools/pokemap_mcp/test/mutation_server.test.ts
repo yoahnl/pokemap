@@ -1334,6 +1334,7 @@ test("MCP imports one complete TMX bundle through one canonical receipt", async 
           displayName: "MCP Tiled Road",
           role: "exterior",
           tmx: tiledMapTmx,
+          layerModes: { "1": "data" },
           tilesets: [
             {
               source: "road.tsx",
@@ -1370,6 +1371,8 @@ test("MCP imports one complete TMX bundle through one canonical receipt", async 
     );
     const layer = record((persistedMap.layers as unknown[])[0]);
     assert.equal(layer.runtimeType, "tile");
+    assert.equal(layer.purpose, "data");
+    assert.equal(layer.isVisible, false);
     assert.deepEqual(layer.cells, [1, 0]);
     assert.equal(record((layer.palette as unknown[])[0]).tilesetId, "mcp-tiled-road-tileset");
     const persistedProject = record(
@@ -1380,6 +1383,14 @@ test("MCP imports one complete TMX bundle through one canonical receipt", async 
         (map) => map.id === "mcp-tiled-road",
       ),
     );
+    const importedTileset = (persistedProject.tilesets as JsonRecord[]).find(
+      (tileset) => tileset.id === "mcp-tiled-road-tileset",
+    );
+    assert.equal(importedTileset?.transparentColor, "f05ba1");
+    const importedSource = record(importedTileset?.source);
+    const tileAnimations = importedSource.tileAnimations as unknown[];
+    assert.equal(tileAnimations.length, 1);
+    assert.equal(record(tileAnimations[0]).tileId, 0);
   } finally {
     await fixture.client.close();
     await fixture.server.close();
@@ -1950,7 +1961,8 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
 
 const tiledWangTsx = `
 <tileset name="Road" tilewidth="1" tileheight="1" tilecount="1" columns="1">
-  <image source="road.png" width="1" height="1"/>
+  <image source="road.png" trans="f05ba1" width="1" height="1"/>
+  <tile id="0"><animation><frame tileid="0" duration="120"/></animation></tile>
   <wangsets>
     <wangset name="Road" type="edge" tile="-1">
       <wangcolor name="Road" color="#c8a162" tile="0" probability="1"/>

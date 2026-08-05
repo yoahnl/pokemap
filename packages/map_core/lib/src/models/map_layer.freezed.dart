@@ -681,6 +681,7 @@ mixin _$MapLayer {
             String name,
             bool isVisible,
             double opacity,
+            MapLayerPurpose purpose,
             List<TileLayerPaletteEntry> palette,
             List<int> cells)
         tile,
@@ -700,8 +701,13 @@ mixin _$MapLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<MapPlacedTile> tileObjects)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -730,8 +736,14 @@ mixin _$MapLayer {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -750,7 +762,7 @@ mixin _$MapLayer {
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -779,8 +791,14 @@ mixin _$MapLayer {
       throw _privateConstructorUsedError;
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -799,7 +817,7 @@ mixin _$MapLayer {
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -931,6 +949,7 @@ abstract class _$$TileLayerImplCopyWith<$Res>
       String name,
       bool isVisible,
       double opacity,
+      MapLayerPurpose purpose,
       List<TileLayerPaletteEntry> palette,
       List<int> cells});
 }
@@ -952,6 +971,7 @@ class __$$TileLayerImplCopyWithImpl<$Res>
     Object? name = null,
     Object? isVisible = null,
     Object? opacity = null,
+    Object? purpose = null,
     Object? palette = null,
     Object? cells = null,
   }) {
@@ -972,6 +992,10 @@ class __$$TileLayerImplCopyWithImpl<$Res>
           ? _value.opacity
           : opacity // ignore: cast_nullable_to_non_nullable
               as double,
+      purpose: null == purpose
+          ? _value.purpose
+          : purpose // ignore: cast_nullable_to_non_nullable
+              as MapLayerPurpose,
       palette: null == palette
           ? _value._palette
           : palette // ignore: cast_nullable_to_non_nullable
@@ -993,6 +1017,7 @@ class _$TileLayerImpl extends TileLayer {
       required this.name,
       this.isVisible = true,
       this.opacity = 1.0,
+      this.purpose = MapLayerPurpose.visual,
       final List<TileLayerPaletteEntry> palette =
           const <TileLayerPaletteEntry>[],
       final List<int> cells = const <int>[],
@@ -1015,6 +1040,9 @@ class _$TileLayerImpl extends TileLayer {
   @override
   @JsonKey()
   final double opacity;
+  @override
+  @JsonKey()
+  final MapLayerPurpose purpose;
   final List<TileLayerPaletteEntry> _palette;
   @override
   @JsonKey()
@@ -1038,7 +1066,7 @@ class _$TileLayerImpl extends TileLayer {
 
   @override
   String toString() {
-    return 'MapLayer.tile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, palette: $palette, cells: $cells)';
+    return 'MapLayer.tile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, purpose: $purpose, palette: $palette, cells: $cells)';
   }
 
   @override
@@ -1051,6 +1079,7 @@ class _$TileLayerImpl extends TileLayer {
             (identical(other.isVisible, isVisible) ||
                 other.isVisible == isVisible) &&
             (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            (identical(other.purpose, purpose) || other.purpose == purpose) &&
             const DeepCollectionEquality().equals(other._palette, _palette) &&
             const DeepCollectionEquality().equals(other._cells, _cells));
   }
@@ -1063,6 +1092,7 @@ class _$TileLayerImpl extends TileLayer {
       name,
       isVisible,
       opacity,
+      purpose,
       const DeepCollectionEquality().hash(_palette),
       const DeepCollectionEquality().hash(_cells));
 
@@ -1082,6 +1112,7 @@ class _$TileLayerImpl extends TileLayer {
             String name,
             bool isVisible,
             double opacity,
+            MapLayerPurpose purpose,
             List<TileLayerPaletteEntry> palette,
             List<int> cells)
         tile,
@@ -1101,8 +1132,13 @@ class _$TileLayerImpl extends TileLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<MapPlacedTile> tileObjects)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -1128,14 +1164,20 @@ class _$TileLayerImpl extends TileLayer {
             Map<String, String> properties)
         border,
   }) {
-    return tile(id, name, isVisible, opacity, palette, cells);
+    return tile(id, name, isVisible, opacity, purpose, palette, cells);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -1154,7 +1196,7 @@ class _$TileLayerImpl extends TileLayer {
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -1180,14 +1222,20 @@ class _$TileLayerImpl extends TileLayer {
             Map<String, String> properties)?
         border,
   }) {
-    return tile?.call(id, name, isVisible, opacity, palette, cells);
+    return tile?.call(id, name, isVisible, opacity, purpose, palette, cells);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -1206,7 +1254,7 @@ class _$TileLayerImpl extends TileLayer {
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -1234,7 +1282,7 @@ class _$TileLayerImpl extends TileLayer {
     required TResult orElse(),
   }) {
     if (tile != null) {
-      return tile(id, name, isVisible, opacity, palette, cells);
+      return tile(id, name, isVisible, opacity, purpose, palette, cells);
     }
     return orElse();
   }
@@ -1296,6 +1344,7 @@ abstract class TileLayer extends MapLayer {
       required final String name,
       final bool isVisible,
       final double opacity,
+      final MapLayerPurpose purpose,
       final List<TileLayerPaletteEntry> palette,
       final List<int> cells}) = _$TileLayerImpl;
   const TileLayer._() : super._();
@@ -1311,6 +1360,7 @@ abstract class TileLayer extends MapLayer {
   bool get isVisible;
   @override
   double get opacity;
+  MapLayerPurpose get purpose;
   List<TileLayerPaletteEntry> get palette;
   List<int> get cells;
 
@@ -1462,6 +1512,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             String name,
             bool isVisible,
             double opacity,
+            MapLayerPurpose purpose,
             List<TileLayerPaletteEntry> palette,
             List<int> cells)
         tile,
@@ -1481,8 +1532,13 @@ class _$CollisionLayerImpl extends CollisionLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<MapPlacedTile> tileObjects)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -1514,8 +1570,14 @@ class _$CollisionLayerImpl extends CollisionLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -1534,7 +1596,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -1566,8 +1628,14 @@ class _$CollisionLayerImpl extends CollisionLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -1586,7 +1654,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -1946,6 +2014,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             String name,
             bool isVisible,
             double opacity,
+            MapLayerPurpose purpose,
             List<TileLayerPaletteEntry> palette,
             List<int> cells)
         tile,
@@ -1965,8 +2034,13 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<MapPlacedTile> tileObjects)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -1999,8 +2073,14 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2019,7 +2099,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -2052,8 +2132,14 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2072,7 +2158,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -2212,6 +2298,7 @@ abstract class _$$ObjectLayerImplCopyWith<$Res>
       String name,
       bool isVisible,
       double opacity,
+      MapLayerPurpose purpose,
       List<MapPlacedTile> tileObjects});
 }
 
@@ -2232,6 +2319,7 @@ class __$$ObjectLayerImplCopyWithImpl<$Res>
     Object? name = null,
     Object? isVisible = null,
     Object? opacity = null,
+    Object? purpose = null,
     Object? tileObjects = null,
   }) {
     return _then(_$ObjectLayerImpl(
@@ -2251,6 +2339,10 @@ class __$$ObjectLayerImplCopyWithImpl<$Res>
           ? _value.opacity
           : opacity // ignore: cast_nullable_to_non_nullable
               as double,
+      purpose: null == purpose
+          ? _value.purpose
+          : purpose // ignore: cast_nullable_to_non_nullable
+              as MapLayerPurpose,
       tileObjects: null == tileObjects
           ? _value._tileObjects
           : tileObjects // ignore: cast_nullable_to_non_nullable
@@ -2268,6 +2360,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
       required this.name,
       this.isVisible = true,
       this.opacity = 1.0,
+      this.purpose = MapLayerPurpose.visual,
       final List<MapPlacedTile> tileObjects = const <MapPlacedTile>[],
       final String? $type})
       : _tileObjects = tileObjects,
@@ -2287,6 +2380,9 @@ class _$ObjectLayerImpl extends ObjectLayer {
   @override
   @JsonKey()
   final double opacity;
+  @override
+  @JsonKey()
+  final MapLayerPurpose purpose;
   final List<MapPlacedTile> _tileObjects;
   @override
   @JsonKey()
@@ -2301,7 +2397,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
 
   @override
   String toString() {
-    return 'MapLayer.object(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, tileObjects: $tileObjects)';
+    return 'MapLayer.object(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, purpose: $purpose, tileObjects: $tileObjects)';
   }
 
   @override
@@ -2314,6 +2410,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             (identical(other.isVisible, isVisible) ||
                 other.isVisible == isVisible) &&
             (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            (identical(other.purpose, purpose) || other.purpose == purpose) &&
             const DeepCollectionEquality()
                 .equals(other._tileObjects, _tileObjects));
   }
@@ -2321,7 +2418,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, name, isVisible, opacity,
-      const DeepCollectionEquality().hash(_tileObjects));
+      purpose, const DeepCollectionEquality().hash(_tileObjects));
 
   /// Create a copy of MapLayer
   /// with the given fields replaced by the non-null parameter values.
@@ -2339,6 +2436,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             String name,
             bool isVisible,
             double opacity,
+            MapLayerPurpose purpose,
             List<TileLayerPaletteEntry> palette,
             List<int> cells)
         tile,
@@ -2358,8 +2456,13 @@ class _$ObjectLayerImpl extends ObjectLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<MapPlacedTile> tileObjects)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -2385,14 +2488,20 @@ class _$ObjectLayerImpl extends ObjectLayer {
             Map<String, String> properties)
         border,
   }) {
-    return object(id, name, isVisible, opacity, tileObjects);
+    return object(id, name, isVisible, opacity, purpose, tileObjects);
   }
 
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2411,7 +2520,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -2437,14 +2546,20 @@ class _$ObjectLayerImpl extends ObjectLayer {
             Map<String, String> properties)?
         border,
   }) {
-    return object?.call(id, name, isVisible, opacity, tileObjects);
+    return object?.call(id, name, isVisible, opacity, purpose, tileObjects);
   }
 
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2463,7 +2578,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -2491,7 +2606,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     required TResult orElse(),
   }) {
     if (object != null) {
-      return object(id, name, isVisible, opacity, tileObjects);
+      return object(id, name, isVisible, opacity, purpose, tileObjects);
     }
     return orElse();
   }
@@ -2553,6 +2668,7 @@ abstract class ObjectLayer extends MapLayer {
       required final String name,
       final bool isVisible,
       final double opacity,
+      final MapLayerPurpose purpose,
       final List<MapPlacedTile> tileObjects}) = _$ObjectLayerImpl;
   const ObjectLayer._() : super._();
 
@@ -2567,6 +2683,7 @@ abstract class ObjectLayer extends MapLayer {
   bool get isVisible;
   @override
   double get opacity;
+  MapLayerPurpose get purpose;
   List<MapPlacedTile> get tileObjects;
 
   /// Create a copy of MapLayer
@@ -2737,6 +2854,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             String name,
             bool isVisible,
             double opacity,
+            MapLayerPurpose purpose,
             List<TileLayerPaletteEntry> palette,
             List<int> cells)
         tile,
@@ -2756,8 +2874,13 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<MapPlacedTile> tileObjects)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -2789,8 +2912,14 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2809,7 +2938,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -2841,8 +2970,14 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -2861,7 +2996,7 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,
@@ -3145,6 +3280,7 @@ class _$BorderLayerImpl extends BorderLayer {
             String name,
             bool isVisible,
             double opacity,
+            MapLayerPurpose purpose,
             List<TileLayerPaletteEntry> palette,
             List<int> cells)
         tile,
@@ -3164,8 +3300,13 @@ class _$BorderLayerImpl extends BorderLayer {
             int layerSeed,
             Map<String, String> properties)
         smartTile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<MapPlacedTile> tileObjects)
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<MapPlacedTile> tileObjects)
         object,
     required TResult Function(
             String id,
@@ -3197,8 +3338,14 @@ class _$BorderLayerImpl extends BorderLayer {
   @override
   @optionalTypeArgs
   TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -3217,7 +3364,7 @@ class _$BorderLayerImpl extends BorderLayer {
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult? Function(
             String id,
@@ -3249,8 +3396,14 @@ class _$BorderLayerImpl extends BorderLayer {
   @override
   @optionalTypeArgs
   TResult maybeWhen<TResult extends Object?>({
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<TileLayerPaletteEntry> palette, List<int> cells)?
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            MapLayerPurpose purpose,
+            List<TileLayerPaletteEntry> palette,
+            List<int> cells)?
         tile,
     TResult Function(String id, String name, bool isVisible, double opacity,
             List<bool> collisions)?
@@ -3269,7 +3422,7 @@ class _$BorderLayerImpl extends BorderLayer {
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
-            List<MapPlacedTile> tileObjects)?
+            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
         object,
     TResult Function(
             String id,

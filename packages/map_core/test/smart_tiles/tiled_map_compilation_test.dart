@@ -495,6 +495,78 @@ void main() {
         const SmartTileSpriteTransform(),
       );
     });
+
+    test('classifies, hides and ignores source layers explicitly', () {
+      final document = parseTiledMap(
+        _mapXml(
+          width: 1,
+          height: 1,
+          tilesets: const <({int firstGid, String source})>[
+            (firstGid: 1, source: 'terrain.tsx'),
+          ],
+          layers: <String>[
+            _csvLayer(id: 1, name: 'Ground', width: 1, height: 1, gids: [1]),
+            _csvLayer(id: 2, name: 'Metadata', width: 1, height: 1, gids: [1]),
+            _csvLayer(id: 3, name: 'Draft', width: 1, height: 1, gids: [1]),
+            _csvLayer(id: 4, name: 'Discarded', width: 1, height: 1, gids: [1]),
+          ],
+        ),
+      );
+
+      final result = compileTiledMapDocument(
+        document,
+        mapId: 'classified',
+        mapName: 'Classified',
+        gridPolicy: const TiledMapGridPolicy.adoptSource(),
+        tilesets: const <TiledMapTilesetBinding>[
+          TiledMapTilesetBinding(
+            source: 'terrain.tsx',
+            tilesetId: 'terrain',
+          ),
+        ],
+        layerModes: const <int, TiledMapLayerImportMode>{
+          2: TiledMapLayerImportMode.data,
+          3: TiledMapLayerImportMode.hidden,
+          4: TiledMapLayerImportMode.ignore,
+        },
+      );
+
+      expect(
+        result.map.layers.map((layer) => layer.name),
+        <String>['Draft', 'Metadata', 'Ground'],
+      );
+      final metadata = result.map.layers[1] as TileLayer;
+      expect(metadata.purpose, MapLayerPurpose.data);
+      expect(metadata.isVisible, isFalse);
+      expect((result.map.layers.first as TileLayer).isVisible, isFalse);
+      expect(result.report.dataLayerCount, 1);
+      expect(result.report.hiddenLayerCount, 1);
+      expect(result.report.ignoredLayerCount, 1);
+
+      final inspectable = result.map.copyWith(
+        layers: <MapLayer>[
+          for (final layer in result.map.layers)
+            if (layer.id == metadata.id)
+              metadata.copyWith(isVisible: true)
+            else
+              layer,
+        ],
+      );
+      expect(
+        buildMapVisualCompositionPlan(inspectable)
+            .plan!
+            .steps
+            .where((step) => step.layer?.id == metadata.id),
+        isEmpty,
+      );
+      expect(
+        buildMapVisualCompositionPlan(
+          inspectable,
+          includeDataLayers: true,
+        ).plan!.steps.where((step) => step.layer?.id == metadata.id),
+        isNotEmpty,
+      );
+    });
   });
 }
 

@@ -80,12 +80,14 @@ final class TiledImageCollectionPackingInput {
     required this.bytes,
     required this.declaredPixelWidth,
     required this.declaredPixelHeight,
+    this.transparentColor,
   });
 
   final String source;
   final List<int> bytes;
   final int declaredPixelWidth;
   final int declaredPixelHeight;
+  final TilesetTransparentColor? transparentColor;
 }
 
 final class TiledImageCollectionPackedPage {
@@ -168,8 +170,9 @@ final class TiledImageCollectionPackingResult {
 /// Deterministically packs variable-size collection images into owned PNGs.
 ///
 /// Packing uses stable first-fit shelves over a dimension/source-sorted input.
-/// Pixels are copied exactly as RGBA values. Page PNGs are exposed through
-/// content-addressed artifact references and can be staged transactionally.
+/// Pixels are copied as RGBA values after applying any per-image TSX chroma
+/// key. Page PNGs are exposed through content-addressed artifact references
+/// and can be staged transactionally.
 final class TiledImageCollectionPacker {
   const TiledImageCollectionPacker({required this.codec});
 
@@ -350,7 +353,10 @@ final class TiledImageCollectionPacker {
         source: input.source,
       );
     }
-    return _PreparedImage(source: input.source, image: decoded);
+    return _PreparedImage(
+      source: input.source,
+      image: _applyTransparentColor(decoded, input.transparentColor),
+    );
   }
 
   List<int> _encodePage(TiledImageCollectionRgbaImage page) {
@@ -394,6 +400,28 @@ final class TiledImageCollectionPacker {
       throw encoding ? _encodeFailure() : _decodeFailure(source!);
     }
   }
+}
+
+TiledImageCollectionRgbaImage _applyTransparentColor(
+  TiledImageCollectionRgbaImage image,
+  TilesetTransparentColor? transparentColor,
+) {
+  if (transparentColor == null) return image;
+  final rgbaBytes = List<int>.of(image.rgbaBytes);
+  for (var index = 0; index < rgbaBytes.length; index += 4) {
+    if (transparentColor.matchesRgb(
+      red: rgbaBytes[index],
+      green: rgbaBytes[index + 1],
+      blue: rgbaBytes[index + 2],
+    )) {
+      rgbaBytes[index + 3] = 0;
+    }
+  }
+  return TiledImageCollectionRgbaImage(
+    pixelWidth: image.pixelWidth,
+    pixelHeight: image.pixelHeight,
+    rgbaBytes: rgbaBytes,
+  );
 }
 
 void _validateInput(

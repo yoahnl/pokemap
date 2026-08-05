@@ -144,6 +144,21 @@ class ProjectImageCollectionAnimationFrame
       _$ProjectImageCollectionAnimationFrameFromJson(json);
 }
 
+/// One animation timeline rooted at a regular-atlas local tile identity.
+@freezed
+class ProjectRegularAtlasTileAnimation with _$ProjectRegularAtlasTileAnimation {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectRegularAtlasTileAnimation({
+    required int tileId,
+    required List<ProjectImageCollectionAnimationFrame> frames,
+  }) = _ProjectRegularAtlasTileAnimation;
+
+  factory ProjectRegularAtlasTileAnimation.fromJson(
+    Map<String, dynamic> json,
+  ) =>
+      _$ProjectRegularAtlasTileAnimationFromJson(json);
+}
+
 @freezed
 class ProjectImageCollectionTileDefinition
     with _$ProjectImageCollectionTileDefinition {
@@ -189,6 +204,8 @@ sealed class ProjectTilesetSource {
     @Default(0) int pixelOffsetX,
     @Default(0) int pixelOffsetY,
     @Default(<VisualTileProperty>[]) List<VisualTileProperty> tileProperties,
+    @Default(<ProjectRegularAtlasTileAnimation>[])
+    List<ProjectRegularAtlasTileAnimation> tileAnimations,
   }) = ProjectRegularAtlasTilesetSource;
 
   const factory ProjectTilesetSource.imageCollection({
@@ -301,6 +318,7 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
     this.pixelOffsetX = 0,
     this.pixelOffsetY = 0,
     this.tileProperties = const <VisualTileProperty>[],
+    this.tileAnimations = const <ProjectRegularAtlasTileAnimation>[],
   });
 
   factory ProjectRegularAtlasTilesetSource.fromJson(
@@ -320,6 +338,7 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
       'pixelOffsetX',
       'pixelOffsetY',
       'tileProperties',
+      'tileAnimations',
     };
     if (json.keys.any((key) => !allowed.contains(key)) ||
         json['assetId'] is! String ||
@@ -327,7 +346,8 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
         json['pixelHeight'] is! int ||
         json['tileWidth'] is! int ||
         json['tileHeight'] is! int ||
-        json['tileProperties'] is! List) {
+        json['tileProperties'] is! List ||
+        (json['tileAnimations'] != null && json['tileAnimations'] is! List)) {
       throw const FormatException(
         r'$.source: regular_atlas_tileset_source_invalid',
       );
@@ -353,6 +373,11 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
               r'$.source.tileProperties: expected objects',
             ),
       ],
+      tileAnimations: _parseObjectList(
+        (json['tileAnimations'] as List?) ?? const <Object?>[],
+        path: r'$.source.tileAnimations',
+        parse: ProjectRegularAtlasTileAnimation.fromJson,
+      ),
     );
   }
 
@@ -368,6 +393,7 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
   final int pixelOffsetX;
   final int pixelOffsetY;
   final List<VisualTileProperty> tileProperties;
+  final List<ProjectRegularAtlasTileAnimation> tileAnimations;
 
   int get columns => _regularAtlasAxisCount(
         pixelExtent: pixelWidth,
@@ -400,6 +426,10 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
         'tileProperties': <Object?>[
           for (final property in tileProperties) property.toJson(),
         ],
+        if (tileAnimations.isNotEmpty)
+          'tileAnimations': <Object?>[
+            for (final animation in tileAnimations) animation.toJson(),
+          ],
       };
 
   @override
@@ -417,7 +447,8 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
           other.spacingY == spacingY &&
           other.pixelOffsetX == pixelOffsetX &&
           other.pixelOffsetY == pixelOffsetY &&
-          _listEquals(other.tileProperties, tileProperties);
+          _listEquals(other.tileProperties, tileProperties) &&
+          _listEquals(other.tileAnimations, tileAnimations);
 
   @override
   int get hashCode => Object.hash(
@@ -433,6 +464,7 @@ final class ProjectRegularAtlasTilesetSource extends ProjectTilesetSource {
         pixelOffsetX,
         pixelOffsetY,
         Object.hashAll(tileProperties),
+        Object.hashAll(tileAnimations),
       );
 }
 

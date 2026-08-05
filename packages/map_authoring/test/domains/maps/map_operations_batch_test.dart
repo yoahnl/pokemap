@@ -411,6 +411,11 @@ void main() {
         'opacity': 0.5,
       }).map;
       map = operations.apply(map, const {
+        'kind': 'layer.set_purpose',
+        'layerId': 'objects',
+        'purpose': 'data',
+      }).map;
+      map = operations.apply(map, const {
         'kind': 'layer.reorder',
         'oldIndex': 4,
         'newIndex': 1,
@@ -422,6 +427,10 @@ void main() {
       expect(collision.name, 'Walls');
       expect(collision.isVisible, isFalse);
       expect(collision.opacity, 0.5);
+      expect(
+        map.layers.whereType<ObjectLayer>().single.purpose,
+        MapLayerPurpose.data,
+      );
       expect(map.version, ProjectVersion.v6);
     });
 

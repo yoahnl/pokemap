@@ -65,6 +65,7 @@ final class TiledTilesetImportActions {
       TiledRegularAtlasLayout() => _buildRegular(
           context,
           parameters,
+          document,
         ),
       TiledImageCollectionLayout() => _buildImageCollection(
           context,
@@ -77,6 +78,7 @@ final class TiledTilesetImportActions {
   Future<AuthoringMutationDraft> _buildRegular(
     AuthoringPlanningContext context,
     _TiledTilesetImportParameters parameters,
+    TiledTilesetDocument parsedDocument,
   ) async {
     if (parameters.contains('imageArtifacts')) {
       throw semanticFailure(
@@ -120,6 +122,9 @@ final class TiledTilesetImportActions {
       id: tilesetId,
       name: parameters.string('displayName'),
       relativePath: asset.logicalPath,
+      transparentColor: (parsedDocument.layout as TiledRegularAtlasLayout)
+          .image
+          .transparentColor,
       source: ProjectRegularAtlasTilesetSource(
         assetId: asset.id,
         pixelWidth: document.imageWidth,
@@ -132,6 +137,7 @@ final class TiledTilesetImportActions {
         spacingY: document.spacing,
         pixelOffsetX: document.tileOffsetX,
         pixelOffsetY: document.tileOffsetY,
+        tileAnimations: _regularAtlasAnimations(parsedDocument),
       ),
     );
     return const TiledTilesetImportProjector().project(
@@ -295,6 +301,7 @@ final class TiledTilesetImportActions {
           bytes: await artifactStore.read(handle),
           declaredPixelWidth: dependency.pixelWidth,
           declaredPixelHeight: dependency.pixelHeight,
+          transparentColor: dependency.transparentColor,
         ),
       );
     }
@@ -393,6 +400,24 @@ ProjectImageCollectionTileDefinition _imageCollectionTile(
     ],
   );
 }
+
+List<ProjectRegularAtlasTileAnimation> _regularAtlasAnimations(
+  TiledTilesetDocument document,
+) =>
+    <ProjectRegularAtlasTileAnimation>[
+      for (final tile in document.tiles.values)
+        if (tile.animation.isNotEmpty)
+          ProjectRegularAtlasTileAnimation(
+            tileId: tile.tileId,
+            frames: <ProjectImageCollectionAnimationFrame>[
+              for (final frame in tile.animation)
+                ProjectImageCollectionAnimationFrame(
+                  tileId: frame.tileId,
+                  durationMs: frame.durationMs,
+                ),
+            ],
+          ),
+    ];
 
 List<ProjectTilesetProperty> _projectProperties(
   Iterable<TiledProperty> properties,

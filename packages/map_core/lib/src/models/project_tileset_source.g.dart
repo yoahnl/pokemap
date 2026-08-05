@@ -168,6 +168,24 @@ Map<String, dynamic> _$$ProjectImageCollectionAnimationFrameImplToJson(
       'durationMs': instance.durationMs,
     };
 
+_$ProjectRegularAtlasTileAnimationImpl
+    _$$ProjectRegularAtlasTileAnimationImplFromJson(
+            Map<String, dynamic> json) =>
+        _$ProjectRegularAtlasTileAnimationImpl(
+          tileId: (json['tileId'] as num).toInt(),
+          frames: (json['frames'] as List<dynamic>)
+              .map((e) => ProjectImageCollectionAnimationFrame.fromJson(
+                  e as Map<String, dynamic>))
+              .toList(),
+        );
+
+Map<String, dynamic> _$$ProjectRegularAtlasTileAnimationImplToJson(
+        _$ProjectRegularAtlasTileAnimationImpl instance) =>
+    <String, dynamic>{
+      'tileId': instance.tileId,
+      'frames': instance.frames.map((e) => e.toJson()).toList(),
+    };
+
 _$ProjectImageCollectionTileDefinitionImpl
     _$$ProjectImageCollectionTileDefinitionImplFromJson(
             Map<String, dynamic> json) =>

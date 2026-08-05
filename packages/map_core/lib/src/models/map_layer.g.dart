@@ -65,6 +65,8 @@ _$TileLayerImpl _$$TileLayerImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       isVisible: json['isVisible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      purpose: $enumDecodeNullable(_$MapLayerPurposeEnumMap, json['purpose']) ??
+          MapLayerPurpose.visual,
       palette: (json['palette'] as List<dynamic>?)
               ?.map((e) =>
                   TileLayerPaletteEntry.fromJson(e as Map<String, dynamic>))
@@ -83,10 +85,16 @@ Map<String, dynamic> _$$TileLayerImplToJson(_$TileLayerImpl instance) =>
       'name': instance.name,
       'isVisible': instance.isVisible,
       'opacity': instance.opacity,
+      'purpose': _$MapLayerPurposeEnumMap[instance.purpose]!,
       'palette': instance.palette.map((e) => e.toJson()).toList(),
       'cells': instance.cells,
       'runtimeType': instance.$type,
     };
+
+const _$MapLayerPurposeEnumMap = {
+  MapLayerPurpose.visual: 'visual',
+  MapLayerPurpose.data: 'data',
+};
 
 _$CollisionLayerImpl _$$CollisionLayerImplFromJson(Map<String, dynamic> json) =>
     _$CollisionLayerImpl(
@@ -167,6 +175,8 @@ _$ObjectLayerImpl _$$ObjectLayerImplFromJson(Map<String, dynamic> json) =>
       name: json['name'] as String,
       isVisible: json['isVisible'] as bool? ?? true,
       opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      purpose: $enumDecodeNullable(_$MapLayerPurposeEnumMap, json['purpose']) ??
+          MapLayerPurpose.visual,
       tileObjects: (json['tileObjects'] as List<dynamic>?)
               ?.map((e) => MapPlacedTile.fromJson(e as Map<String, dynamic>))
               .toList() ??
@@ -180,6 +190,7 @@ Map<String, dynamic> _$$ObjectLayerImplToJson(_$ObjectLayerImpl instance) =>
       'name': instance.name,
       'isVisible': instance.isVisible,
       'opacity': instance.opacity,
+      'purpose': _$MapLayerPurposeEnumMap[instance.purpose]!,
       'tileObjects': instance.tileObjects.map((e) => e.toJson()).toList(),
       'runtimeType': instance.$type,
     };

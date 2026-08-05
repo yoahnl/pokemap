@@ -4,6 +4,7 @@ import 'package:meta/meta.dart' show immutable;
 import 'package:xml/xml.dart';
 
 import '../models/smart_tile.dart';
+import '../models/tileset_transparent_color.dart';
 
 enum TiledWangSetType { corner, edge, mixed }
 
@@ -171,11 +172,13 @@ final class TiledTilesetImageReference {
     required this.source,
     required this.pixelWidth,
     required this.pixelHeight,
+    this.transparentColor,
   });
 
   final String source;
   final int pixelWidth;
   final int pixelHeight;
+  final TilesetTransparentColor? transparentColor;
 }
 
 /// One unique external image required by a parsed TSX document.
@@ -189,12 +192,14 @@ final class TiledTilesetImageDependency {
     required this.source,
     required this.pixelWidth,
     required this.pixelHeight,
+    this.transparentColor,
     Iterable<int> tileIds = const <int>[],
   }) : tileIds = List<int>.unmodifiable(tileIds);
 
   final String source;
   final int pixelWidth;
   final int pixelHeight;
+  final TilesetTransparentColor? transparentColor;
   final List<int> tileIds;
 }
 
@@ -622,10 +627,12 @@ TiledTilesetDocument parseTiledTileset(String source) {
         dependenciesBySource[image.source] = (image, <int>[tile.tileId]);
       } else {
         if (existing.$1.pixelWidth != image.pixelWidth ||
-            existing.$1.pixelHeight != image.pixelHeight) {
+            existing.$1.pixelHeight != image.pixelHeight ||
+            existing.$1.transparentColor != image.transparentColor) {
           throw TiledWangImportException(
             'smart_tile.tiled.image_dimensions_conflict',
-            'L’image ${image.source} possède plusieurs dimensions déclarées.',
+            'L’image ${image.source} possède plusieurs dimensions ou couleurs '
+                'transparentes déclarées.',
           );
         }
         existing.$2.add(tile.tileId);
@@ -641,6 +648,7 @@ TiledTilesetDocument parseTiledTileset(String source) {
             source: entry.$1.source,
             pixelWidth: entry.$1.pixelWidth,
             pixelHeight: entry.$1.pixelHeight,
+            transparentColor: entry.$1.transparentColor,
             tileIds: entry.$2,
           ),
       ],
@@ -661,6 +669,7 @@ TiledTilesetDocument parseTiledTileset(String source) {
           source: image.source,
           pixelWidth: image.pixelWidth,
           pixelHeight: image.pixelHeight,
+          transparentColor: image.transparentColor,
         ),
       ],
     );
@@ -1276,7 +1285,22 @@ TiledTilesetImageReference _parseTilesetImage(
     source: source,
     pixelWidth: width,
     pixelHeight: height,
+    transparentColor: _parseImageTransparentColor(image),
   );
+}
+
+TilesetTransparentColor? _parseImageTransparentColor(XmlElement image) {
+  final raw = image.getAttribute('trans');
+  if (raw == null) return null;
+  try {
+    return TilesetTransparentColor.fromHexRgb(raw.trim());
+  } on ArgumentError {
+    throw const TiledWangImportException(
+      'smart_tile.tiled.image_transparent_color_invalid',
+      'La couleur transparente d’une image TSX doit contenir exactement six '
+          'caractères hexadécimaux RGB.',
+    );
+  }
 }
 
 String _normalizeImageReference(String? raw) {

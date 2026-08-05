@@ -94,6 +94,49 @@ void main() {
       expect(visual.frameAt(-1).tileId, 42);
     });
 
+    test('resolves regular atlas tile animation timelines', () {
+      const source = ProjectRegularAtlasTilesetSource(
+        assetId: 'animated-atlas',
+        pixelWidth: 64,
+        pixelHeight: 32,
+        tileWidth: 16,
+        tileHeight: 16,
+        tileAnimations: <ProjectRegularAtlasTileAnimation>[
+          ProjectRegularAtlasTileAnimation(
+            tileId: 1,
+            frames: <ProjectImageCollectionAnimationFrame>[
+              ProjectImageCollectionAnimationFrame(
+                tileId: 1,
+                durationMs: 100,
+              ),
+              ProjectImageCollectionAnimationFrame(
+                tileId: 6,
+                durationMs: 300,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final visual = resolver.resolve(
+        source: source,
+        selection: const ProjectTilesetVisualSelection.regularAtlas(
+          source: TilesetSourceRect(x: 1, y: 0),
+        ),
+        cellWidth: 16,
+        cellHeight: 16,
+      );
+
+      expect(visual.isAnimated, isTrue);
+      expect(visual.totalDurationMs, 400);
+      expect(visual.frameAt(0).tileId, 1);
+      expect(visual.frameAt(100).tileId, 6);
+      expect(
+        visual.frameAt(100).slices.single.sourceRect,
+        const ProjectTilesetPixelRect(x: 32, y: 16, width: 16, height: 16),
+      );
+    });
+
     test('uses the same resolved bounds for exact and conservative culling',
         () {
       final visual = resolver.resolve(
