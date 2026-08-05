@@ -559,16 +559,25 @@ Chaque raster dispose de variantes `2.0x/` et `3.0x/` si la comparaison sur appa
 
 **Tâches :**
 
-- [ ] Implémenter `AvelunePressable` avec press scale, focus, disabled et reduced motion.
-- [ ] Implémenter `AveluneInsetPanel` pour l’activité et les sheets, avec matériaux du thème.
-- [ ] Implémenter `AveluneIconControl` avec cible minimale 48 dp.
-- [ ] Implémenter `AveluneSectionLabel`, `AveluneStateMessage` et `AveluneSheet`.
-- [ ] Migrer la navigation minimale vers `design_system/components/avelune_bottom_navigation.dart`.
-- [ ] Ajouter Semantics, focus clavier de test et états selected/disabled/invalid.
-- [ ] Ajouter des widget tests pour chaque état et des goldens standard/high contrast.
-- [ ] Vérifier que ces primitives ne sont importées ni par `map_editor` ni par les packages runtime.
+- [x] Implémenter `AvelunePressable` avec press scale, focus, disabled et reduced motion.
+- [x] Implémenter `AveluneInsetPanel` pour l’activité et les sheets, avec matériaux du thème.
+- [x] Implémenter `AveluneIconControl` avec cible minimale 48 dp.
+- [x] Implémenter `AveluneSectionLabel`, `AveluneStateMessage` et `AveluneSheet`.
+- [x] Migrer la navigation minimale vers `design_system/components/avelune_bottom_navigation.dart`.
+- [x] Ajouter Semantics, focus clavier de test et états selected/disabled/invalid.
+- [x] Ajouter des widget tests pour chaque état et des goldens standard/high contrast.
+- [x] Vérifier que ces primitives ne sont importées ni par `map_editor` ni par les packages runtime.
 
 **Sortie du lot :** toutes les interactions futures utilisent les mêmes règles tactiles, visuelles et accessibles.
+
+**Exécution du 5 août 2026 :**
+
+- Sept primitives exportées par le barrel Avelune : pressable physique, panneau inset, contrôle icône 48 dp, label de section, message d’état, sheet et navigation Accueil/Paramètres.
+- `AvelunePressable` annonce button/selected/enabled, traite focus, invalidité, tap, appui long et applique les tokens standard ou reduced motion selon `MediaQuery.disableAnimations`.
+- L’ancienne entrée `avelune_navigation.dart` est devenue une façade d’export ; `HubShell` adapte explicitement `HubSection` vers les deux destinations du design system sans modifier le routeur.
+- Tests : 7 scénarios composants, dont text scaling 1,4, et garde statique interdisant couleurs/durées/rayons bruts ainsi que toute dépendance `map_editor` ou `map_runtime`.
+- Goldens : `components_standard_800x900.png` et `components_high_contrast_800x900.png`. Les sept goldens historiques de l’accueil ont été recalibrés uniquement pour la navigation migrée.
+- Régression ciblée design system + accueil : 36 tests passés ; analyze ciblé : aucune issue.
 
 ### AVELUNE-130 — Motion, feedback et politique reduced motion
 

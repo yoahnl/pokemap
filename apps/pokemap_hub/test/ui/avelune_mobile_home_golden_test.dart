@@ -196,8 +196,8 @@ Future<void> _pumpGolden(
                   ),
                 ),
                 AveluneBottomNavigation(
-                  selectedSection: HubSection.home,
-                  onSectionSelected: (_) {},
+                  selectedItem: AveluneNavigationItem.home,
+                  onItemSelected: (_) {},
                 ),
               ],
             ),

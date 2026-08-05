@@ -5,7 +5,6 @@ import 'package:map_player_ui/map_player_ui.dart';
 import '../display/hub_display_preferences.dart';
 import '../display/hub_display_preferences_controller.dart';
 import 'avelune/avelune_mobile_home.dart';
-import 'avelune/avelune_navigation.dart';
 import 'avelune/avelune_theme.dart';
 import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
@@ -59,8 +58,15 @@ class HubShell extends StatelessWidget {
                       children: <Widget>[
                         Expanded(child: content),
                         AveluneBottomNavigation(
-                          selectedSection: snapshot.section,
-                          onSectionSelected: onSectionSelected,
+                          selectedItem:
+                              snapshot.section == HubSection.preferences
+                                  ? AveluneNavigationItem.settings
+                                  : AveluneNavigationItem.home,
+                          onItemSelected: (item) => onSectionSelected(
+                            item == AveluneNavigationItem.settings
+                                ? HubSection.preferences
+                                : HubSection.home,
+                          ),
                         ),
                       ],
                     ),

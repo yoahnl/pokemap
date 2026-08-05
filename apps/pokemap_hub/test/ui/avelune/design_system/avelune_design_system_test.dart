@@ -79,6 +79,8 @@ void main() {
             reason: '${file.path} contains ${pattern.pattern}',
           );
         }
+        expect(source, isNot(contains('package:map_editor/')));
+        expect(source, isNot(contains('package:map_runtime/')));
       }
     });
 

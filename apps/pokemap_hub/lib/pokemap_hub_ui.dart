@@ -16,6 +16,7 @@ export 'src/ui/avelune/avelune_game_details.dart';
 export 'src/ui/avelune/avelune_game_presentation.dart';
 export 'src/ui/avelune/avelune_mobile_home.dart';
 export 'src/ui/avelune/avelune_navigation.dart';
+export 'src/ui/avelune/avelune_theme.dart';
 export 'src/ui/hub_app.dart';
 export 'src/ui/hub_dashboard_controller.dart';
 export 'src/ui/hub_game_views.dart';
