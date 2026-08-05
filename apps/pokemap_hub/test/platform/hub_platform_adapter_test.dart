@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pokemap_hub/src/platform/hub_composition.dart';
 import 'package:pokemap_hub/src/platform/hub_platform_adapter.dart';
 import 'package:pokemap_hub/src/platform/ios_hub_platform_adapter.dart';
@@ -74,6 +75,10 @@ void main() {
 
     expect(adapter.openHandler, isNotNull);
     expect(adapter.disposed, isFalse);
+    expect(
+      composition.appearanceController.state.status,
+      AveluneAppearanceControllerStatus.ready,
+    );
 
     composition.dispose();
 

@@ -32,6 +32,7 @@ final class HubComposition implements HubAppComposition {
     required this.actions,
     required this.launchResolver,
     required this.displayPreferencesController,
+    required this.appearanceController,
     required HubPlatformAdapter platformAdapter,
   }) : _platformAdapter = platformAdapter;
 
@@ -40,6 +41,7 @@ final class HubComposition implements HubAppComposition {
   final HubUiActions actions;
   final InstalledGameLaunchResolver launchResolver;
   final HubDisplayPreferencesController displayPreferencesController;
+  final AveluneAppearanceController appearanceController;
   final HubPlatformAdapter _platformAdapter;
 
   static Future<HubComposition> create({
@@ -108,12 +110,26 @@ final class HubComposition implements HubAppComposition {
         driver: WindowManagerHubDisplayDriver(),
       );
       await displayPreferencesController.initialize();
+      final backgroundProcessor = AveluneIsolateBackgroundImageProcessor();
+      final appearanceController = AveluneAppearanceController(
+        store: AveluneAppearanceStore(supportRoot: root),
+        customBackground: AveluneCustomBackgroundImporter(
+          picker: const AveluneFilePickerBackgroundPicker(),
+          processor: backgroundProcessor,
+          storage: AveluneLocalCustomBackgroundStorage(
+            supportRoot: root,
+            processor: backgroundProcessor,
+          ),
+        ),
+      );
+      await appearanceController.initialize();
       initializedComposition = HubComposition._(
         supportRoot: root,
         controller: controller,
         actions: actions,
         launchResolver: launchResolver,
         displayPreferencesController: displayPreferencesController,
+        appearanceController: appearanceController,
         platformAdapter: adapter,
       );
       composition = initializedComposition;
@@ -207,6 +223,7 @@ final class HubComposition implements HubAppComposition {
   @override
   void dispose() {
     _platformAdapter.dispose();
+    appearanceController.dispose();
     displayPreferencesController.dispose();
     controller.dispose();
   }

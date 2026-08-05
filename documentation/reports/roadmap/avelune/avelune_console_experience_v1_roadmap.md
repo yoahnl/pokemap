@@ -653,19 +653,29 @@ image: ^4.2.0
 
 **Tâches :**
 
-- [ ] Écrire les tests du modèle JSON exact décrit en section 8.
-- [ ] Implémenter `AveluneAppearanceCatalog` avec les onze presets et identifiants stables.
-- [ ] Implémenter `AveluneAppearanceStore` avec current/backup/temp et protections anti-symlink.
-- [ ] Implémenter le fallback `amber`/`walnut` sur document absent ou corrompu.
-- [ ] Implémenter une abstraction de picker injectable pour les tests.
-- [ ] Importer, décoder, réorienter, redimensionner et réencoder hors thread UI.
-- [ ] Écrire image et miniature atomiquement ; valider en les redécodant.
-- [ ] Implémenter remplacer, supprimer et restaurer après erreur.
-- [ ] Exposer `idle`, `loading`, `ready`, `saving`, `error` dans `AveluneAppearanceController`.
-- [ ] Brancher le contrôleur dans `HubComposition` à partir du support root existant.
-- [ ] Tester fermeture/réouverture, fichier absent, fichier corrompu, mauvais MIME, >12 Mo et échec d’écriture.
+- [x] Écrire les tests du modèle JSON exact décrit en section 8.
+- [x] Implémenter `AveluneAppearanceCatalog` avec les onze presets et identifiants stables.
+- [x] Implémenter `AveluneAppearanceStore` avec current/backup/temp et protections anti-symlink.
+- [x] Implémenter le fallback `amber`/`walnut` sur document absent ou corrompu.
+- [x] Implémenter une abstraction de picker injectable pour les tests.
+- [x] Importer, décoder, réorienter, redimensionner et réencoder hors thread UI.
+- [x] Écrire image et miniature atomiquement ; valider en les redécodant.
+- [x] Implémenter remplacer, supprimer et restaurer après erreur.
+- [x] Exposer `idle`, `loading`, `ready`, `saving`, `error` dans `AveluneAppearanceController`.
+- [x] Brancher le contrôleur dans `HubComposition` à partir du support root existant.
+- [x] Tester fermeture/réouverture, fichier absent, fichier corrompu, mauvais MIME, >12 Mo et échec d’écriture.
 
 **Sortie du lot :** la préférence survit à un redémarrage ; un fichier invalide ne bloque jamais l’accueil.
+
+**Exécution du 5 août 2026 :**
+
+- Le catalogue expose cinq fonds intégrés, l’entrée `custom` et six finitions de commode avec les identifiants et labels français V1. Les onze presets intégrés réutilisent directement les assets du catalogue de matières.
+- `AveluneAppearanceStore` persiste le schéma JSON strict dans `avelune/appearance`, maintient current/backup/temp et refuse tout dossier ou fichier symbolique. Aucun chemin absolu ne figure dans le document.
+- Le picker `file_picker` est masqué derrière `AveluneBackgroundPicker`. La signature binaire, et non l’extension, limite les entrées à JPEG/PNG/WebP et la taille à 12 Mo.
+- `AveluneIsolateBackgroundImageProcessor` décode, applique l’orientation EXIF, borne le grand côté à 1 800 px, aplatit sur `#171218`, puis écrit un JPEG qualité 84 et une miniature 480 px hors isolate UI. Les deux sorties sont redécodées avant et après promotion.
+- Le remplacement garde les fichiers précédents jusqu’à validation complète et les restaure même si la confirmation de la seconde sortie échoue. Suppression, annulation et échec de persistance conservent un état contrôleur cohérent et un message exploitable.
+- `HubComposition` construit et initialise le contrôleur depuis son support root, puis le libère avec les autres contrôleurs ; l’UI Paramètres reste volontairement réservée à `AVELUNE-510`.
+- TDD : runs rouges sur les contrats absents, le raccord composition et deux chemins de récupération, puis 41 tests ciblés passés. Analyze ciblé : aucune issue.
 
 ### AVELUNE-220 — Preuve de couleur de coque issue de PokeMap
 
