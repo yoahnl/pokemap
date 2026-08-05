@@ -967,3 +967,848 @@ Résultat : échec non masqué. Le prompt autorise exactement le présent rappor
 ### 29.8 Règles Git
 
 Aucune commande Git d’écriture n’a été exécutée. Aucun commit n’a été créé. Toutes les opérations Git du lot sont des lectures autorisées.
+
+## 30. Addendum V0.2 — passe skeuomorphique Picsart
+
+### 30.1 Résumé exécutif de la reprise
+
+Cette reprise répond au retour explicite demandant davantage de skeuomorphisme,
+des matériaux réalistes, puis une nouvelle composition de la console et de
+l’étagère. Elle conserve intégralement les contrats métier et le moule unique de
+cartouche de la V0.1.
+
+Résultat livré :
+
+- quatre matières/illustrations originales Picsart sont intégrées comme petites
+  ressources de surface, jamais comme capture d’écran ou objet complet ;
+- les jaquettes de démonstration Picsart restent exclusivement dans les fixtures
+  de tests golden ;
+- la cartouche canonique reçoit grain ABS, biseau, reflet d’étiquette et
+  connecteurs en laiton ;
+- la console est désormais frontale, symétrique, biseautée et composée d’une
+  coque supérieure, d’une façade en retrait, d’un puits d’insertion profond et
+  d’une lèvre d’occlusion ;
+- l’étagère est une niche continue en noyer avec rail, montants, fond sombre et
+  plinthe épaisse ;
+- l’activité récente repose dans un cadre de noyer cohérent ;
+- les animations d’insertion, d’échange et de Hero sont conservées, testées et
+  compatibles avec la réduction des animations ;
+- le flottement de la cartouche ne reconstruit plus la console texturée à chaque
+  frame ;
+- sept goldens ont été régénérés, inspectés et comparés dans une même image avec
+  la référence.
+
+### 30.2 Gate de reprise et concurrence
+
+État exact observé avant la première modification de cette reprise :
+
+```text
+?? documentation/reports/editor/smart_tiles_tiled_imports_and_performance_audit_2026-08-04.md
+?? packages/map_core/test/benchmark/smart_tiles_rich_map_fixture_test.dart
+?? packages/map_core/test/benchmark/smart_tiles_rich_map_scaling_cli_test.dart
+?? tools/performance/smart_tiles_rich_map_fixture.dart
+```
+
+Ces fichiers appartenaient à un travail Smart Tiles/performance concurrent. Ils
+n’ont jamais été modifiés par AVELUNE-UI-01 V0.2. Pendant la reprise, ce travail
+concurrent a ajouté/modifié d’autres fichiers sous `map_core`, `map_editor` et
+`map_runtime`. Une compilation Avelune a momentanément observé le fichier
+`map_layers_component.dart` pendant son écriture concurrente ; aucun fichier de
+ce lot externe n’a été corrigé, restauré ou nettoyé par la passe Avelune.
+
+### 30.3 Provenance Picsart
+
+Le MCP Picsart a été utilisé avec `flux-2-pro`. Les ressources acceptées sont :
+
+| Usage | Generation ID Picsart | Fichier final | Dimensions |
+|---|---|---|---|
+| grain ABS mat neutre et teintable | `62f117ba-016b-48e6-812d-f986bb26c61a` | `assets/avelune/materials/matte_abs_grain.webp` | 512 × 512 |
+| noyer sombre satiné horizontal | `1a0e0043-0422-44fc-8837-ae960f337e6b` | `assets/avelune/materials/dark_walnut_satin.webp` | 1024 × 614 |
+| laiton brossé | `2d963abf-4cb8-4745-a01d-526daa4959d3` | `assets/avelune/materials/brushed_brass.webp` | 640 × 384 |
+| fallback générique Avelune, sentier lunaire | `6798f863-cd11-493f-ae23-9b65b30b52fa` | `assets/avelune/artwork/fallback_moonlit_path.webp` | 512 × 853 |
+| fixture Selbrume, phare côtier | `e6d3f268-a7eb-49d0-8d11-3283335c0c8c` | `test/fixtures/avelune/covers/selbrume.webp` | 512 × 853 |
+| fixture Train, crépuscule | `118c61f0-b410-4dbc-8247-5c8aa890d6b0` | `test/fixtures/avelune/covers/train.webp` | 512 × 853 |
+| fixture Démo, manette filaire violette | `1c1ff56d-5ba9-4965-a235-dcd96435013b` | `test/fixtures/avelune/covers/demo.webp` | 512 × 853 |
+
+Une première proposition de bois trop rustique a été rejetée et n’a pas été
+ajoutée au dépôt. Aucun logo, écran complet, cartouche complète ni console
+complète n’a été généré. Les couleurs de coque restent calculées depuis
+`branding.accentColor`.
+
+Poids total des quatre ressources de production : 235 504 octets. Les trois
+jaquettes de tests totalisent 158 434 octets et ne sont pas déclarées comme
+assets de production.
+
+### 30.4 Contrat visuel et composants repris
+
+Le contrat canonique reste inchangé :
+
+```dart
+const double kAveluneCartridgeAspectRatio = 0.7;
+```
+
+`AveluneCartridge` reste l’unique widget utilisé pour :
+
+- la cartouche héro ;
+- chaque cartouche de bibliothèque ;
+- la cartouche « Ajouter un jeu ».
+
+La nouvelle console utilise une silhouette propriétaire
+`_AveluneConsoleSilhouetteClipper`, parfaitement frontale et symétrique. Elle ne
+contient ni rotation de cartouche, ni perspective latérale, ni contrôle de
+Game Boy. Les clés structurelles testées sont :
+
+```text
+avelune-console-silhouette
+avelune-console-material-texture
+avelune-console-faceplate
+avelune-console-insertion-well
+avelune-console-slot-lip
+```
+
+La niche de bibliothèque est contrôlée par :
+
+```text
+avelune-game-cabinet
+avelune-shelf-cavity
+avelune-shelf-top-rail
+avelune-shelf-wood-texture
+avelune-shelf-plinth
+```
+
+Les cartouches ont toujours les mêmes contraintes. Leur bas rejoint la face
+supérieure de la plinthe ; la couverture et les titres ne changent jamais la
+géométrie de la coque.
+
+### 30.5 Interactions, animation et performances
+
+- toucher la cartouche héro déclenche la descente amortie, l’occlusion par la
+  lèvre, le clic système, le retour haptique, le bloom de LED puis le flow réel ;
+- appuyer longtemps déclenche le Hero de la seule illustration/fallback vers la
+  page de détails ;
+- sélectionner une cartouche de la niche anime une cartouche sortante vers le
+  bas/gauche et la nouvelle vers le haut/centre, sans rotation ;
+- les durées de route, l’insertion et l’échange deviennent nulles si
+  `MediaQuery.disableAnimationsOf(context)` le demande ;
+- le `AnimatedBuilder` du flottement ne reconstruit plus la console : la
+  console n’écoute que la progression d’insertion ;
+- les images sont packagées, compressées et mises en cache ;
+- le harness golden consulte le cache avant décodage, clone l’image conservée
+  puis libère le codec et l’image de frame intermédiaire.
+
+### 30.6 Fichiers de la reprise
+
+Fichiers de production modifiés :
+
+```text
+apps/pokemap_hub/lib/src/ui/avelune/avelune_cartridge.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_console.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_game_details.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_game_presentation.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_mobile_home.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_theme.dart
+apps/pokemap_hub/pubspec.yaml
+```
+
+Ressources de production créées :
+
+```text
+apps/pokemap_hub/assets/avelune/artwork/fallback_moonlit_path.webp
+apps/pokemap_hub/assets/avelune/materials/brushed_brass.webp
+apps/pokemap_hub/assets/avelune/materials/dark_walnut_satin.webp
+apps/pokemap_hub/assets/avelune/materials/matte_abs_grain.webp
+```
+
+Tests et preuves modifiés/créés :
+
+```text
+apps/pokemap_hub/test/fixtures/avelune/covers/demo.webp
+apps/pokemap_hub/test/fixtures/avelune/covers/selbrume.webp
+apps/pokemap_hub/test/fixtures/avelune/covers/train.webp
+apps/pokemap_hub/test/ui/avelune_cartridge_test.dart
+apps/pokemap_hub/test/ui/avelune_mobile_home_golden_test.dart
+apps/pokemap_hub/test/ui/avelune_mobile_home_test.dart
+apps/pokemap_hub/test/ui/goldens/avelune/details_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/empty_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/exchange_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/home_320x568.png
+apps/pokemap_hub/test/ui/goldens/avelune/home_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/inserting_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/no_save_430x932.png
+documentation/reports/avelune/avelune_ui_01_mobile_console_home_experience.md
+```
+
+### 30.7 TDD et validation exacte
+
+RED initial ciblé :
+
+```text
+flutter test --no-pub -r expanded \
+  test/ui/avelune_cartridge_test.dart \
+  test/ui/avelune_mobile_home_test.dart
+```
+
+Résultat : trois échecs attendus, portant sur l’absence de texture de cartouche,
+des couches structurelles de console/niche et du fallback illustré.
+
+GREEN intermédiaire :
+
+```text
++17: All tests passed!
+```
+
+Validation finale après la reprise demandée de la console et de l’étagère :
+
+```text
+flutter test --no-pub -r expanded \
+  test/ui/avelune_cartridge_test.dart \
+  test/ui/avelune_mobile_home_test.dart \
+  test/ui/avelune_mobile_home_golden_test.dart
+```
+
+Résultat exact :
+
+```text
+00:02 +24: All tests passed!
+```
+
+Analyse ciblée :
+
+```text
+flutter analyze --no-pub \
+  lib/src/ui/avelune \
+  test/ui/avelune_cartridge_test.dart \
+  test/ui/avelune_mobile_home_test.dart \
+  test/ui/avelune_mobile_home_golden_test.dart
+```
+
+Résultat exact :
+
+```text
+Analyzing 4 items...
+No issues found! (ran in 3.0s)
+```
+
+Build Android :
+
+```text
+flutter build apk --debug --no-pub
+Running Gradle task 'assembleDebug'... 11.6s
+✓ Built build/app/outputs/flutter-apk/app-debug.apk
+```
+
+Build iOS Simulator :
+
+```text
+flutter build ios --simulator --no-codesign --no-pub
+Building com.yoahnl.avelune.player for simulator (ios)...
+Xcode build done. 13.3s
+✓ Built build/ios/iphonesimulator/Runner.app
+```
+
+### 30.8 Visual Gate V0.2
+
+Captures versionnées :
+
+| État | Dimensions | SHA-256 |
+|---|---:|---|
+| accueil standard | 390 × 844 | `6f3021b0d1b9c32f130baf65c04c8cd70511e7b574144b94a9e2aae3db2b223d` |
+| petit écran | 320 × 568 | `800ea3be87e084119ef469378d31a594cd324a603024c3f8f7a06d67d1cfcb24` |
+| aucun jeu | 390 × 844 | `201f5607587d032dcac20d064ca4fbe2ffb7e559df84ed070f26cfd4ed20de61` |
+| jeu sans sauvegarde | 430 × 932 | `0e6fd81dcee0f708439b0a88a804396247703a557f857ca37b65cc4cc84fe860` |
+| insertion | 390 × 844 | `5f0eed068f618f049920d953d88f389294ba04cb2a45d321248da1b831007f66` |
+| échange | 390 × 844 | `ced63b9c77fbaf795576622a55b14d59b81ece98e24f9017c9f8a2f69bb023fe` |
+| détails Hero | 390 × 844 | `eb8c96bac9bf34e159876620bb2185618991861d8d62a42217f75f2827969741` |
+
+Comparaisons hors dépôt :
+
+```text
+/Users/karim/.codex/visualizations/2026/08/04/019fce80-6edd-7ae1-8cb2-5243868c7a82/avelune_v02_reference_comparison.png
+865 × 844
+SHA-256 b0234c6a5ce67a5a55bb85e27bf538459028a628dce1af936de7c355c216151b
+
+/Users/karim/.codex/visualizations/2026/08/04/019fce80-6edd-7ae1-8cb2-5243868c7a82/avelune_v02_capture_sheet.png
+780 × 1126
+SHA-256 6ee5e3b04dce92e98ae18b2bc40434b8bceeee8f3601f049518b4c0522c012a5
+```
+
+Contrôles visuels passés :
+
+- cartouche héro droite, verticale et issue du même composant ;
+- ratio unique et cartouches de niche strictement uniformes ;
+- console frontale, symétrique et non assimilable à une manette ;
+- puits et lèvre masquant correctement la cartouche pendant l’insertion ;
+- meuble continu en noyer, fond de niche sombre et plinthe visible ;
+- scène entière stable pendant insertion et échange ;
+- fond supérieur sans décor ;
+- navigation Accueil/Paramètres seulement ;
+- aucun bouton Game Boy, aucun onglet boutique/découverte/succès ;
+- pas d’overflow à 320 × 568, 390 × 844 ou 430 × 932.
+
+Différences assumées avec la référence :
+
+- l’ancien gros bouton Continuer est volontairement remplacé par le geste
+  physique d’insertion demandé par l’utilisateur ;
+- le header conserve l’action d’import réelle à la place d’un faux profil ;
+- la console reste une géométrie propriétaire stylisée, non une copie de
+  console existante ;
+- à mi-échange, les connecteurs des deux cartouches restent visibles ;
+- l’état vide conserve provisoirement un CTA d’import explicite en plus de la
+  cartouche d’ajout, afin de ne pas rendre le premier usage ambigu.
+
+### 30.9 Verdict des passes V0.2
+
+- **Audit / Architecture** : faisable uniquement dans `apps/pokemap_hub`, sans
+  modèle persistant ni runtime à modifier ; verdict favorable.
+- **Tests** : baseline verte, tests RED minimaux définis puis validation finale
+  `+24` ; verdict GREEN.
+- **Implémentation Review** : aucun P1 ; ratio, flows, personnalisation, Hero et
+  réduction des animations préservés. Le P2 de reconstruction permanente de la
+  console a été corrigé avant clôture.
+- **Critique visuelle contradictoire** : une première lecture d’un golden
+  périmé signalait à tort une scène d’insertion manquante. La relecture des
+  fichiers courants a retiré ce P1. Après la nouvelle console et la nouvelle
+  niche demandées par l’utilisateur, verdict final : passe acceptée, écarts
+  résiduels non bloquants.
+
+### 30.10 Auto-review V0.2
+
+- même composant cartouche partout : **oui** ;
+- ratio central unique : **oui, 0.7** ;
+- cartouches de niche uniformes : **oui** ;
+- ajout au même format : **oui** ;
+- cartouche héro droite et frontale : **oui** ;
+- console frontale et symétrique : **oui** ;
+- aucune variante horizontale : **oui** ;
+- fausses données en production : **non** ;
+- flows import/lancement contournés : **non** ;
+- état vide et sans sauvegarde : **oui** ;
+- petit téléphone : **oui, test et golden 320 × 568** ;
+- festival de cartes : **non** ;
+- effets permanents coûteux : **non** ;
+- boutique, succès ou Découvrir : **non** ;
+- modèle persistant modifié : **non** ;
+- fichiers temporaires golden conservés : **non** ;
+- commentaires de code ajoutés : **non**.
+
+Limites restantes non bloquantes : superposition des connecteurs à mi-échange,
+CTA d’import vide encore Material, `+` du header redondant et console encore un
+peu plus graphique que la référence photographique.
+
+### 30.11 Evidence Pack final V0.2
+
+#### Diff stat final
+
+<!-- V02_FINAL_DIFF_STAT_START -->
+```text
+ .../lib/src/ui/avelune/avelune_cartridge.dart      |  60 +-
+ .../lib/src/ui/avelune/avelune_console.dart        | 606 ++++++++++++++-------
+ .../lib/src/ui/avelune/avelune_game_details.dart   |  71 ++-
+ .../src/ui/avelune/avelune_game_presentation.dart  |  25 +
+ .../lib/src/ui/avelune/avelune_mobile_home.dart    | 458 +++++++++++-----
+ .../lib/src/ui/avelune/avelune_theme.dart          |  12 +
+ apps/pokemap_hub/pubspec.yaml                      |   2 +
+ .../test/ui/avelune_cartridge_test.dart            |  17 +
+ .../test/ui/avelune_mobile_home_golden_test.dart   |  60 +-
+ .../test/ui/avelune_mobile_home_test.dart          | 145 ++++-
+ .../test/ui/goldens/avelune/details_390x844.png    | Bin 79387 -> 214937 bytes
+ .../test/ui/goldens/avelune/empty_390x844.png      | Bin 80562 -> 167578 bytes
+ .../test/ui/goldens/avelune/exchange_390x844.png   | Bin 121611 -> 232604 bytes
+ .../test/ui/goldens/avelune/home_320x568.png       | Bin 61622 -> 114331 bytes
+ .../test/ui/goldens/avelune/home_390x844.png       | Bin 113331 -> 229568 bytes
+ .../test/ui/goldens/avelune/inserting_390x844.png  | Bin 109872 -> 224998 bytes
+ .../test/ui/goldens/avelune/no_save_430x932.png    | Bin 132210 -> 271277 bytes
+ ...avelune_ui_01_mobile_console_home_experience.md | 461 ++++++++++++++++
+ .../world_map_large_map_performance_test.dart      |  17 +
+ ..._layers_component_performance_profile_test.dart |  19 +
+ 20 files changed, 1598 insertions(+), 355 deletions(-)
+```
+<!-- V02_FINAL_DIFF_STAT_END -->
+
+#### Diff name-only final
+
+<!-- V02_FINAL_DIFF_NAMES_START -->
+```text
+apps/pokemap_hub/lib/src/ui/avelune/avelune_cartridge.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_console.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_game_details.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_game_presentation.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_mobile_home.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_theme.dart
+apps/pokemap_hub/pubspec.yaml
+apps/pokemap_hub/test/ui/avelune_cartridge_test.dart
+apps/pokemap_hub/test/ui/avelune_mobile_home_golden_test.dart
+apps/pokemap_hub/test/ui/avelune_mobile_home_test.dart
+apps/pokemap_hub/test/ui/goldens/avelune/details_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/empty_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/exchange_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/home_320x568.png
+apps/pokemap_hub/test/ui/goldens/avelune/home_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/inserting_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/no_save_430x932.png
+documentation/reports/avelune/avelune_ui_01_mobile_console_home_experience.md
+packages/map_editor/test/ui/world_map/world_map_large_map_performance_test.dart
+packages/map_runtime/test/map_layers_component_performance_profile_test.dart
+```
+<!-- V02_FINAL_DIFF_NAMES_END -->
+
+#### Git status final exact
+
+<!-- V02_FINAL_STATUS_START -->
+```text
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_cartridge.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_console.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_game_details.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_game_presentation.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_mobile_home.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_theme.dart
+ M apps/pokemap_hub/pubspec.yaml
+ M apps/pokemap_hub/test/ui/avelune_cartridge_test.dart
+ M apps/pokemap_hub/test/ui/avelune_mobile_home_golden_test.dart
+ M apps/pokemap_hub/test/ui/avelune_mobile_home_test.dart
+ M apps/pokemap_hub/test/ui/goldens/avelune/details_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/empty_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/exchange_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/home_320x568.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/home_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/inserting_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/no_save_430x932.png
+ M documentation/reports/avelune/avelune_ui_01_mobile_console_home_experience.md
+ M packages/map_editor/test/ui/world_map/world_map_large_map_performance_test.dart
+ M packages/map_runtime/test/map_layers_component_performance_profile_test.dart
+?? apps/pokemap_hub/assets/avelune/artwork/fallback_moonlit_path.webp
+?? apps/pokemap_hub/assets/avelune/materials/brushed_brass.webp
+?? apps/pokemap_hub/assets/avelune/materials/dark_walnut_satin.webp
+?? apps/pokemap_hub/assets/avelune/materials/matte_abs_grain.webp
+?? apps/pokemap_hub/test/fixtures/avelune/covers/demo.webp
+?? apps/pokemap_hub/test/fixtures/avelune/covers/selbrume.webp
+?? apps/pokemap_hub/test/fixtures/avelune/covers/train.webp
+?? documentation/reports/editor/smart_tiles_tiled_imports_and_performance_audit_2026-08-04.md
+?? packages/map_core/test/benchmark/smart_tiles_performance_baseline_test.dart
+?? packages/map_core/test/benchmark/smart_tiles_performance_policy_test.dart
+?? packages/map_core/test/benchmark/verify_smart_tiles_performance_cli_test.dart
+?? packages/map_editor/tool/performance/smart_tiles_rich_editor_scaling_test.dart
+?? packages/map_runtime/tool/performance/smart_tiles_rich_runtime_scaling_test.dart
+?? tools/performance/smart_tiles_performance_baseline.dart
+?? tools/performance/smart_tiles_performance_policy.dart
+?? tools/performance/verify_smart_tiles_performance.dart
+```
+<!-- V02_FINAL_STATUS_END -->
+
+#### Git diff --check final
+
+<!-- V02_FINAL_DIFF_CHECK_START -->
+```text
+Sortie : <vide>
+```
+<!-- V02_FINAL_DIFF_CHECK_END -->
+
+#### Fichiers temporaires
+
+<!-- V02_FINAL_TEMP_START -->
+```text
+Sortie : <vide>
+```
+<!-- V02_FINAL_TEMP_END -->
+
+#### Hygiène Markdown
+
+<!-- V02_FINAL_MARKDOWN_START -->
+```text
+Markdown hygiene: 1 new Markdown files exceed the default limit of 0.
+Use POKEMAP_MARKDOWN_MAX_NEW only when the user explicitly approved a bounded bulk documentation task.
+```
+<!-- V02_FINAL_MARKDOWN_END -->
+
+Résultat d’hygiène : échec préexistant/concurrent non masqué. La reprise met à
+jour le rapport Avelune déjà suivi et ne crée aucun nouveau Markdown. L’unique
+nouveau Markdown compté est le rapport Smart Tiles non suivi, hors périmètre.
+
+### 30.12 Git
+
+Aucune commande Git d’écriture n’a été exécutée pendant V0.2. Aucun commit et
+aucun push n’ont été réalisés par cette reprise.
+
+## 31. Addendum V0.3 — usure réaliste et commode continue
+
+### 31.1 Résumé exécutif
+
+Cette dernière passe répond au retour demandant une console et des cartouches
+plus réalistes, avec de petites marques d’usage, ainsi qu’un véritable meuble
+sur lequel la console et les jeux paraissent physiquement rangés.
+
+Le résultat conserve les widgets et les données réelles de la V0.2, mais ajoute :
+
+- un masque d’usure ABS transparent issu d’une matière Picsart, sans voile gris
+  ni grain « pierre » sur les composants ;
+- des micro-rayures et abrasions rares sur la coque canonique et la façade de
+  la console ;
+- un noyer vieilli plus riche, avec veinage horizontal, patine et fines rayures ;
+- une commode continue composée de la tablette de console, de deux montants,
+  d’une niche, d’une plinthe et de deux façades de tiroirs avec petites poignées ;
+- deux vis de moulage discrètes sur le dessus de la console ;
+- une stabilisation du golden d’insertion : état animé exécuté en premier,
+  reconstruction propre du décor et repaint complet avant capture.
+
+Ni modèle persistant, ni moteur, ni format de package, ni flow d’import ou de
+lancement n’a été modifié.
+
+### 31.2 Provenance Picsart complémentaire
+
+Deux nouvelles générations Picsart `flux-2-pro` ont été retenues :
+
+| Usage | Generation ID | Fichier final |
+|---|---|---|
+| ABS vieilli et micro-rayé | `eb4d4a93-ff01-4817-9978-2e37d37e7593` | `assets/avelune/materials/aged_abs_wear.webp` |
+| noyer ancien satiné | `6e06007f-ce84-406b-86b8-943a3864b39e` | `assets/avelune/materials/dark_walnut_satin.webp` |
+
+Prompt ABS exact :
+
+```text
+Seamless tileable grayscale material texture, realistic matte black ABS plastic micro-grain with subtle handling polish, sparse hairline scuffs, tiny abrasion flecks and faint rubbed marks from years of careful use, evenly lit orthographic material scan, premium vintage consumer electronics, near-black background with light gray wear details, no object, no text, no logo, no borders, no dramatic shadow.
+```
+
+Prompt noyer exact :
+
+```text
+Seamless tileable horizontal dark walnut veneer material scan for premium 1970s hi-fi console furniture, rich deep brown grain, satin hand-rubbed varnish, subtle age patina, rare fine scratches and gently rubbed finish, warm understated realism, evenly lit orthographic surface, no furniture object, no handles, no text, no borders, no dramatic shadow.
+```
+
+La matière ABS brute n’est pas affichée directement. Sa luminance a été
+seuillée pour isoler seulement les marques claires, puis convertie en canal
+alpha blanc et compressée en WebP lossless 512 × 512. Cette dérivation évite le
+défaut observé lors de la première tentative : un relief uniforme trop rugueux
+qui faisait ressembler la console à de la pierre ou du feutre.
+
+Le noyer V0.2 a été remplacé au même chemin par la génération plus patinée. Le
+composant de console, la cartouche et la commode restent de vrais widgets ;
+aucun objet complet généré n’est utilisé pour simuler l’interface.
+
+### 31.3 Contrat du moule canonique inchangé
+
+Le contrat reste :
+
+```dart
+const double kAveluneCartridgeAspectRatio = 0.7;
+```
+
+`AveluneCartridge` reste la seule implémentation physique pour le héros, les
+jeux de la niche et « Ajouter un jeu ». L’usure est une couche de surface
+commune, dont l’alignement varie de manière déterministe selon `gameId` ; elle
+ne modifie ni silhouette, ni ratio, ni contraintes.
+
+Constantes de matière ajoutées ou ajustées :
+
+```dart
+const String kAveluneAgedAbsWearAssetPath =
+    'assets/avelune/materials/aged_abs_wear.webp';
+const double kAveluneCartridgeWearOpacity = 0.86;
+const double kAveluneConsoleWearOpacity = 0.72;
+```
+
+### 31.4 Architecture de la commode
+
+La composition reste responsive. Elle ne dépend d’aucune hauteur d’iPhone
+figée :
+
+- `AveluneConsoleDock` dessine la tablette supérieure en noyer ;
+- `_AveluneFurnitureBridge` prolonge cette tablette par deux montants de 18 dp ;
+- `AveluneGameShelf` forme la niche sombre et garde sa liste horizontale lazy ;
+- la plinthe de 36 dp reçoit `_AveluneFurnitureDrawers` ;
+- les deux tiroirs sont décoratifs et exclus de l’arbre sémantique ;
+- la cartouche et l’instruction d’insertion restent interactives et lisibles
+  dans l’espace central du meuble.
+
+Clés structurelles contrôlées :
+
+```text
+avelune-console-shelf
+avelune-furniture-bridge
+avelune-game-cabinet
+avelune-shelf-cavity
+avelune-shelf-plinth
+avelune-furniture-drawers
+```
+
+### 31.5 Réalisme et performances
+
+- le grain ABS de base reste modulé par la couleur de coque ;
+- le masque d’usure transparent ne conserve que de rares rayures ;
+- le masque de cartouche est placé au-dessus du label et des moulures, afin que
+  l’objet complet porte des traces d’usage cohérentes ;
+- le masque de console couvre le dessus et la façade, mais reste sous le slot,
+  la marque, les ports et la LED ;
+- les textures sont des assets packagés et mis en cache par Flutter ;
+- chaque objet coûteux reste sous `RepaintBoundary` ;
+- le flottement ne reconstruit toujours pas la console ;
+- aucun blur plein écran, shader ou painter animé permanent n’a été ajouté.
+
+Poids des cinq ressources de production : 265 356 octets.
+
+```text
+ 33866 assets/avelune/materials/aged_abs_wear.webp
+ 27934 assets/avelune/materials/brushed_brass.webp
+ 70800 assets/avelune/materials/dark_walnut_satin.webp
+ 77702 assets/avelune/materials/matte_abs_grain.webp
+ 55054 assets/avelune/artwork/fallback_moonlit_path.webp
+```
+
+### 31.6 Tests et validation finale
+
+Tests ciblés, goldens inclus :
+
+```text
+flutter test --no-pub -r expanded \
+  test/ui/avelune_cartridge_test.dart \
+  test/ui/avelune_mobile_home_test.dart \
+  test/ui/avelune_mobile_home_golden_test.dart
+```
+
+Résultat exact :
+
+```text
+00:02 +24: All tests passed!
+```
+
+Analyse ciblée :
+
+```text
+flutter analyze --no-pub \
+  lib/src/ui/avelune \
+  test/ui/avelune_cartridge_test.dart \
+  test/ui/avelune_mobile_home_test.dart \
+  test/ui/avelune_mobile_home_golden_test.dart
+```
+
+Résultat exact après retrait d’un import redondant détecté pendant la passe :
+
+```text
+Analyzing 4 items...
+No issues found! (ran in 2.0s)
+```
+
+Build Android :
+
+```text
+flutter build apk --debug --no-pub
+Running Gradle task 'assembleDebug'... 12.3s
+✓ Built build/app/outputs/flutter-apk/app-debug.apk
+```
+
+Build iOS Simulator :
+
+```text
+flutter build ios --simulator --no-codesign --no-pub
+Building com.yoahnl.avelune.player for simulator (ios)...
+Xcode build done. 12.6s
+✓ Built build/ios/iphonesimulator/Runner.app
+```
+
+Suite complète `apps/pokemap_hub` :
+
+```text
+flutter test --no-pub -r compact
+00:44 +200 -26: Some tests failed.
+```
+
+Les 26 échecs sont signalés sans être masqués. Ils proviennent de la validation
+Smart Tiles V6 introduite hors de ce lot alors que plusieurs fixtures Hub sont
+encore en manifeste V1. Exemple exact :
+
+```text
+FormatException: $.version: smart_tile_v6_project_required (expected=v6, actual=v1)
+```
+
+Les trois suites Avelune isolées passent avant et après cette exécution globale.
+Aucun fichier `map_core`, Smart Tiles ou fixture de package externe n’a été
+modifié pour contourner cette régression concurrente.
+
+### 31.7 Visual Gate V0.3
+
+Captures versionnées :
+
+| État | Dimensions | SHA-256 |
+|---|---:|---|
+| accueil standard | 390 × 844 | `ae04fe210df8a4175fb0b907c55590299b63a5471b151bf0296a54b73caebcfe` |
+| petit écran | 320 × 568 | `05f2f7b56d31ccd8bc52562fad92100316886a2da2c469a18012a9ace21e3a69` |
+| aucun jeu | 390 × 844 | `1704dd64742f85bd9eb126a12b9dc8dc7f925b62aee1275fee7ade836186ddef` |
+| jeu sans sauvegarde | 430 × 932 | `caa7a1b9c45d4d94342a6cbf1623942afb804ebdad21f355d70cedc2d7226b74` |
+| insertion à 300 ms | 390 × 844 | `21ac68cd88cc2efc95cf01db8687a4f28bda604295b1e56d23225ac297c71bee` |
+| échange | 390 × 844 | `9eba753e667be7142cd9f96182324ab17db57e1f169d6acd5182e8338a8fa59d` |
+| détails Hero | 390 × 844 | `eb8c96bac9bf34e159876620bb2185618991861d8d62a42217f75f2827969741` |
+
+Comparaisons hors dépôt :
+
+```text
+/Users/karim/.codex/visualizations/2026/08/04/019fce80-6edd-7ae1-8cb2-5243868c7a82/avelune_v03_reference_comparison.png
+865 × 844
+SHA-256 618d02e80c64efe0233c47442379c7b08ee0e42bc6e2dadf09f35d1a7c15b968
+
+/Users/karim/.codex/visualizations/2026/08/04/019fce80-6edd-7ae1-8cb2-5243868c7a82/avelune_v03_capture_sheet.png
+780 × 1126
+SHA-256 b7aab1b742aeb067c4745ff4220e42accfe1549ee0742fec06c96d4f7eb608db
+```
+
+Le comparatif met la référence et l’implémentation dans une même image, au même
+état d’accueil et à la même hauteur. Il confirme : cartouche verticale,
+console frontale, meuble en bois continu, hiérarchie héro → jeux → activité et
+navigation minimale.
+
+### 31.8 Verdict des passes finales
+
+- **Visual Review** : accepté, non bloquant. Usure crédible et discrète,
+  console plus réaliste, commode convaincante et moule canonique intact.
+- **Architecture Review** : accepté sans P1 ni P2. Deux P3 documentés : le
+  flottement reconstruit encore le sous-arbre de la cartouche héroïque, isolé
+  par `RepaintBoundary`, et l’activité récente `shrinkWrap` reste linéaire pour
+  une bibliothèque exceptionnellement grande.
+- **Tests Review** : verdict ciblé GREEN, `+24`, analyze sans problème et diff
+  check vide. La suite Hub globale reste explicitement rouge à `+200 -26` pour
+  les fixtures Smart Tiles V1 devenues incompatibles avec la précondition V6.
+
+Écarts visuels restants, non bloquants :
+
+- à mi-échange, les connecteurs des cartouches entrante et sortante se
+  chevauchent légèrement ;
+- l’état vide conserve un CTA explicite et sépare donc davantage la tablette de
+  la niche ;
+- le golden d’insertion capture l’état intermédiaire à 300 ms, pas le point
+  exact `1.0` juste avant lancement ;
+- sur 320 × 568, il faut défiler pour voir la totalité des cartouches, ce qui
+  est le comportement responsive prévu.
+
+### 31.9 Auto-review finale
+
+- cartouche principale et niche : **même `AveluneCartridge`** ;
+- ratio : **une constante `0.7`** ;
+- ajout : **même composant et même ratio** ;
+- orientation : **verticale, frontale, sans rotation** ;
+- console : **frontale, symétrique, matière et usure localisée** ;
+- commode : **tablette, montants, niche, plinthe et tiroirs continus** ;
+- données fictives de production : **aucune** ;
+- flow import/lancement contourné : **non** ;
+- modèle persistant : **inchangé** ;
+- état vide, sans sauvegarde et invalide : **préservés** ;
+- animations réduites : **respectées** ;
+- boutique, succès, Découvrir : **absents** ;
+- fichier temporaire dans le dépôt : **aucun** ;
+- commentaire de code ajouté : **aucun**.
+
+### 31.10 Evidence Pack final V0.3
+
+#### Git diff --stat
+
+<!-- V03_DIFF_STAT_START -->
+```text
+ .../lib/src/ui/avelune/avelune_cartridge.dart      |  85 ++-
+ .../lib/src/ui/avelune/avelune_console.dart        | 697 ++++++++++++-----
+ .../lib/src/ui/avelune/avelune_game_details.dart   |  71 +-
+ .../src/ui/avelune/avelune_game_presentation.dart  |  25 +
+ .../lib/src/ui/avelune/avelune_mobile_home.dart    | 650 ++++++++++++----
+ .../lib/src/ui/avelune/avelune_theme.dart          |  16 +
+ apps/pokemap_hub/pubspec.yaml                      |   2 +
+ .../test/ui/avelune_cartridge_test.dart            |  32 +
+ .../test/ui/avelune_mobile_home_golden_test.dart   | 124 ++-
+ .../test/ui/avelune_mobile_home_test.dart          | 149 +++-
+ .../test/ui/goldens/avelune/details_390x844.png    | Bin 79387 -> 214937 bytes
+ .../test/ui/goldens/avelune/empty_390x844.png      | Bin 80562 -> 191707 bytes
+ .../test/ui/goldens/avelune/exchange_390x844.png   | Bin 121611 -> 254458 bytes
+ .../test/ui/goldens/avelune/home_320x568.png       | Bin 61622 -> 126046 bytes
+ .../test/ui/goldens/avelune/home_390x844.png       | Bin 113331 -> 252098 bytes
+ .../test/ui/goldens/avelune/inserting_390x844.png  | Bin 109872 -> 247238 bytes
+ .../test/ui/goldens/avelune/no_save_430x932.png    | Bin 132210 -> 298501 bytes
+ ...avelune_ui_01_mobile_console_home_experience.md | 845 +++++++++++++++++++++
+ 18 files changed, 2305 insertions(+), 391 deletions(-)
+```
+<!-- V03_DIFF_STAT_END -->
+
+#### Git diff --name-only
+
+<!-- V03_DIFF_NAMES_START -->
+```text
+apps/pokemap_hub/lib/src/ui/avelune/avelune_cartridge.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_console.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_game_details.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_game_presentation.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_mobile_home.dart
+apps/pokemap_hub/lib/src/ui/avelune/avelune_theme.dart
+apps/pokemap_hub/pubspec.yaml
+apps/pokemap_hub/test/ui/avelune_cartridge_test.dart
+apps/pokemap_hub/test/ui/avelune_mobile_home_golden_test.dart
+apps/pokemap_hub/test/ui/avelune_mobile_home_test.dart
+apps/pokemap_hub/test/ui/goldens/avelune/details_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/empty_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/exchange_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/home_320x568.png
+apps/pokemap_hub/test/ui/goldens/avelune/home_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/inserting_390x844.png
+apps/pokemap_hub/test/ui/goldens/avelune/no_save_430x932.png
+documentation/reports/avelune/avelune_ui_01_mobile_console_home_experience.md
+```
+<!-- V03_DIFF_NAMES_END -->
+
+#### Git status avant commit
+
+<!-- V03_STATUS_START -->
+```text
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_cartridge.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_console.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_game_details.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_game_presentation.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_mobile_home.dart
+ M apps/pokemap_hub/lib/src/ui/avelune/avelune_theme.dart
+ M apps/pokemap_hub/pubspec.yaml
+ M apps/pokemap_hub/test/ui/avelune_cartridge_test.dart
+ M apps/pokemap_hub/test/ui/avelune_mobile_home_golden_test.dart
+ M apps/pokemap_hub/test/ui/avelune_mobile_home_test.dart
+ M apps/pokemap_hub/test/ui/goldens/avelune/details_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/empty_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/exchange_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/home_320x568.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/home_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/inserting_390x844.png
+ M apps/pokemap_hub/test/ui/goldens/avelune/no_save_430x932.png
+ M documentation/reports/avelune/avelune_ui_01_mobile_console_home_experience.md
+?? apps/pokemap_hub/assets/avelune/artwork/fallback_moonlit_path.webp
+?? apps/pokemap_hub/assets/avelune/materials/aged_abs_wear.webp
+?? apps/pokemap_hub/assets/avelune/materials/brushed_brass.webp
+?? apps/pokemap_hub/assets/avelune/materials/dark_walnut_satin.webp
+?? apps/pokemap_hub/assets/avelune/materials/matte_abs_grain.webp
+?? apps/pokemap_hub/test/fixtures/avelune/covers/demo.webp
+?? apps/pokemap_hub/test/fixtures/avelune/covers/selbrume.webp
+?? apps/pokemap_hub/test/fixtures/avelune/covers/train.webp
+?? documentation/reports/editor/smart_tiles_tiled_imports_and_performance_audit_2026-08-04.md
+```
+<!-- V03_STATUS_END -->
+
+#### Git diff --check
+
+```text
+Sortie : <vide>
+```
+
+#### Fichiers temporaires
+
+```text
+Sortie : <vide>
+```
+
+#### Hygiène Markdown
+
+```text
+Markdown hygiene: 1 new Markdown files exceed the default limit of 0.
+Use POKEMAP_MARKDOWN_MAX_NEW only when the user explicitly approved a bounded bulk documentation task.
+```
+
+Cet échec est extérieur au lot : le seul nouveau Markdown est
+`documentation/reports/editor/smart_tiles_tiled_imports_and_performance_audit_2026-08-04.md`, non suivi et jamais modifié par AVELUNE-UI-01. Le présent rapport
+existait déjà et est seulement mis à jour.
+
+### 31.11 Git et publication
+
+Le Gate final ci-dessus est capturé avant commit. L’utilisateur a explicitement
+autorisé le commit et le push après cette reprise. Le staging doit être limité
+aux chemins Avelune et au présent rapport ; le rapport Smart Tiles non suivi ne
+doit pas être ajouté. Le hash de commit et le résultat du push seront fournis
+dans le compte rendu final de la conversation, car un commit ne peut pas
+contenir son propre hash.

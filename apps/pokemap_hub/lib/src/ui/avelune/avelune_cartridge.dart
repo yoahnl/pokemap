@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'avelune_game_presentation.dart';
 import 'avelune_theme.dart';
 
 const double kAveluneCartridgeAspectRatio = 0.7;
@@ -67,6 +68,7 @@ class AveluneCartridge extends StatelessWidget {
             if (invalid) unavailable,
           ].join(', ');
     final effectiveShell = shellColor ?? colors.shell;
+    final wearAlignment = _wearAlignmentFor(gameId);
 
     return Semantics(
       button: onPressed != null || onLongPress != null,
@@ -89,7 +91,9 @@ class AveluneCartridge extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     width: selected ? 2 : 1,
-                    color: selected ? colors.primaryBright : colors.outline,
+                    color: selected
+                        ? colors.primaryBright.withValues(alpha: 0.78)
+                        : colors.outline,
                   ),
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -113,9 +117,8 @@ class AveluneCartridge extends StatelessWidget {
                   boxShadow: <BoxShadow>[
                     if (selected)
                       BoxShadow(
-                        color: colors.glow.withValues(alpha: 0.48),
-                        blurRadius: 16,
-                        spreadRadius: 1,
+                        color: colors.glow.withValues(alpha: 0.34),
+                        blurRadius: 13,
                       ),
                     BoxShadow(
                       color: colors.background.withValues(alpha: 0.72),
@@ -136,6 +139,21 @@ class AveluneCartridge extends StatelessWidget {
                       return Stack(
                         fit: StackFit.expand,
                         children: <Widget>[
+                          ExcludeSemantics(
+                            child: Opacity(
+                              opacity: kAvelunePlasticTextureOpacity,
+                              child: Image.asset(
+                                kAveluneMatteAbsTextureAssetPath,
+                                key: const ValueKey<String>(
+                                  'avelune-cartridge-material-texture',
+                                ),
+                                fit: BoxFit.cover,
+                                color: effectiveShell,
+                                colorBlendMode: BlendMode.modulate,
+                                excludeFromSemantics: true,
+                              ),
+                            ),
+                          ),
                           _CartridgeRim(colors: colors),
                           Positioned(
                             left: width * 0.035,
@@ -193,6 +211,20 @@ class AveluneCartridge extends StatelessWidget {
                             child: _CartridgeScrew(
                               colors: colors,
                               size: width * 0.035,
+                            ),
+                          ),
+                          ExcludeSemantics(
+                            child: Opacity(
+                              opacity: kAveluneCartridgeWearOpacity,
+                              child: Image.asset(
+                                kAveluneAgedAbsWearAssetPath,
+                                key: const ValueKey<String>(
+                                  'avelune-cartridge-wear-texture',
+                                ),
+                                fit: BoxFit.cover,
+                                alignment: wearAlignment,
+                                excludeFromSemantics: true,
+                              ),
                             ),
                           ),
                           Positioned(
@@ -253,6 +285,16 @@ class AveluneCartridge extends StatelessWidget {
   }
 }
 
+Alignment _wearAlignmentFor(String gameId) {
+  final signature = gameId.codeUnits.fold<int>(
+    0,
+    (value, codeUnit) => (value * 31 + codeUnit) & 0x7fffffff,
+  );
+  final x = ((signature % 5) - 2) / 2;
+  final y = (((signature ~/ 5) % 5) - 2) / 2;
+  return Alignment(x, y);
+}
+
 class _CartridgeRim extends StatelessWidget {
   const _CartridgeRim({required this.colors});
 
@@ -262,6 +304,7 @@ class _CartridgeRim extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.all(4),
         child: DecoratedBox(
+          key: const ValueKey<String>('avelune-cartridge-bevel'),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(9),
             border: Border.all(
@@ -427,6 +470,7 @@ class _CartridgeLabel extends StatelessWidget {
             key: const ValueKey<String>('avelune-hero-artwork'),
             tag: tag,
             transitionOnUserGestures: true,
+            flightShuttleBuilder: aveluneArtworkFlightShuttleBuilder,
             child: Material(
               type: MaterialType.transparency,
               child: artworkLayer,
@@ -447,6 +491,9 @@ class _CartridgeLabel extends StatelessWidget {
             presentedArtwork,
             IgnorePointer(
               child: DecoratedBox(
+                key: const ValueKey<String>(
+                  'avelune-cartridge-cover-gloss',
+                ),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -465,7 +512,15 @@ class _CartridgeLabel extends StatelessWidget {
               alignment: Alignment.bottomCenter,
               child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: colors.background.withValues(alpha: 0.8),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      colors.background.withValues(alpha: 0.08),
+                      colors.background.withValues(alpha: 0.86),
+                      colors.background.withValues(alpha: 0.96),
+                    ],
+                  ),
                 ),
                 child: Padding(
                   padding: EdgeInsets.symmetric(
@@ -523,7 +578,20 @@ class _LabelFallback extends StatelessWidget {
   final AveluneColors colors;
 
   @override
-  Widget build(BuildContext context) => DecoratedBox(
+  Widget build(BuildContext context) {
+    if (!addSlot) {
+      return Image.asset(
+        kAveluneFallbackArtworkAssetPath,
+        key: const ValueKey<String>('avelune-fallback-artwork'),
+        fit: BoxFit.cover,
+        excludeFromSemantics: true,
+        errorBuilder: (_, __, ___) => _neutralFallback(),
+      );
+    }
+    return _neutralFallback();
+  }
+
+  Widget _neutralFallback() => DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -608,6 +676,11 @@ class _CartridgeConnectors extends StatelessWidget {
                             : colors.gold.withValues(alpha: 0.76),
                         Color.lerp(colors.gold, colors.background, 0.34)!,
                       ],
+                    ),
+                    image: const DecorationImage(
+                      image: AssetImage(kAveluneBrushedBrassTextureAssetPath),
+                      fit: BoxFit.cover,
+                      opacity: 0.2,
                     ),
                     borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(1),

@@ -8,6 +8,31 @@ import 'avelune_theme.dart';
 
 String aveluneArtworkHeroTag(String gameId) => 'avelune-artwork-$gameId';
 
+Widget aveluneArtworkFlightShuttleBuilder(
+  BuildContext flightContext,
+  Animation<double> animation,
+  HeroFlightDirection direction,
+  BuildContext fromHeroContext,
+  BuildContext toHeroContext,
+) {
+  final targetContext =
+      direction == HeroFlightDirection.push ? toHeroContext : fromHeroContext;
+  final hero = targetContext.widget as Hero;
+  return KeyedSubtree(
+    key: const ValueKey<String>('avelune-details-hero-flight'),
+    child: FadeTransition(
+      opacity: CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: hero.child,
+      ),
+    ),
+  );
+}
+
 ImageProvider<Object>? aveluneArtworkFor(HubGameView game) {
   final path = game.activity.coverPath ??
       game.activity.heroPath ??

@@ -87,8 +87,12 @@ void main() {
         expect(aspectRatio.aspectRatio, kAveluneCartridgeAspectRatio);
         for (final structureKey in <String>[
           'avelune-cartridge-shell',
+          'avelune-cartridge-material-texture',
+          'avelune-cartridge-wear-texture',
+          'avelune-cartridge-bevel',
           'avelune-cartridge-brand-band',
           'avelune-cartridge-cover',
+          'avelune-cartridge-cover-gloss',
           'avelune-cartridge-connectors',
         ]) {
           expect(
@@ -99,6 +103,34 @@ void main() {
             findsOneWidget,
           );
         }
+        final texture = tester.widget<Image>(
+          find.descendant(
+            of: finder,
+            matching: find.byKey(
+              const ValueKey<String>(
+                'avelune-cartridge-material-texture',
+              ),
+            ),
+          ),
+        );
+        expect(
+          (texture.image as AssetImage).assetName,
+          'assets/avelune/materials/matte_abs_grain.webp',
+        );
+        final wear = tester.widget<Image>(
+          find.descendant(
+            of: finder,
+            matching: find.byKey(
+              const ValueKey<String>(
+                'avelune-cartridge-wear-texture',
+              ),
+            ),
+          ),
+        );
+        expect(
+          (wear.image as AssetImage).assetName,
+          'assets/avelune/materials/aged_abs_wear.webp',
+        );
       }
 
       expect(find.byType(AveluneCartridge), findsNWidgets(3));

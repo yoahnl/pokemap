@@ -85,17 +85,21 @@ class _AveluneMobileHomeState extends State<AveluneMobileHome> {
       unawaited(HapticFeedback.mediumImpact());
     }
     final now = widget.referenceTime ?? DateTime.now();
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
     unawaited(
       Navigator.of(context).push<void>(
         PageRouteBuilder<void>(
           settings: const RouteSettings(name: 'avelune-game-details'),
-          transitionDuration: const Duration(milliseconds: 420),
-          reverseTransitionDuration: const Duration(milliseconds: 300),
+          transitionDuration:
+              reducedMotion ? Duration.zero : const Duration(milliseconds: 420),
+          reverseTransitionDuration:
+              reducedMotion ? Duration.zero : const Duration(milliseconds: 300),
           pageBuilder: (_, __, ___) => AveluneGameDetailsScreen(
             game: game,
             referenceTime: now,
           ),
           transitionsBuilder: (_, animation, __, child) {
+            if (reducedMotion) return child;
             final curved = CurvedAnimation(
               parent: animation,
               curve: Curves.easeOutCubic,
@@ -129,8 +133,20 @@ class _AveluneMobileHomeState extends State<AveluneMobileHome> {
     final colors = context.aveluneColors;
     final selected = _selectedGame;
     final now = widget.referenceTime ?? DateTime.now();
-    return ColoredBox(
-      color: colors.background,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.background,
+        gradient: RadialGradient(
+          center: const Alignment(0, -0.72),
+          radius: 1.15,
+          colors: <Color>[
+            Color.lerp(colors.background, colors.woodHighlight, 0.11)!,
+            colors.background,
+            Color.lerp(colors.background, Colors.black, 0.24)!,
+          ],
+          stops: const <double>[0, 0.48, 1],
+        ),
+      ),
       child: CustomScrollView(
         key: const ValueKey<String>('avelune-home-scroll'),
         slivers: <Widget>[
@@ -413,38 +429,41 @@ class _AveluneHeroConsoleSectionState extends State<AveluneHeroConsoleSection>
           final cartridgeWidth = (available * 0.36).clamp(112.0, 148.0);
           final consoleWidth = (available * 0.88).clamp(260.0, 356.0);
           final reducedMotion = MediaQuery.disableAnimationsOf(context);
-          return AnimatedBuilder(
-            animation: Listenable.merge(<Listenable>[
-              _floatController,
-              _insertionController,
-            ]),
-            builder: (context, _) => Column(
-              children: <Widget>[
-                SizedBox(
-                  width: cartridgeWidth,
-                  child: _heroCartridge(
+          return Column(
+            children: <Widget>[
+              SizedBox(
+                width: cartridgeWidth,
+                child: AnimatedBuilder(
+                  animation: Listenable.merge(<Listenable>[
+                    _floatController,
+                    _insertionController,
+                  ]),
+                  builder: (context, _) => _heroCartridge(
                     context,
                     reducedMotion: reducedMotion,
                   ),
                 ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: available,
-                  child: AveluneConsoleDock(
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: available,
+                child: AnimatedBuilder(
+                  animation: _insertionController,
+                  builder: (context, _) => AveluneConsoleDock(
                     consoleWidth: consoleWidth,
                     insertionProgress: _insertionController.value,
                   ),
                 ),
-                if (widget.game case final game?) ...<Widget>[
-                  const SizedBox(height: 10),
-                  _AveluneInsertionHint(
-                    game: game,
-                    referenceTime: widget.referenceTime,
-                    launchAvailable: widget.onInsert != null,
-                  ),
-                ],
+              ),
+              if (widget.game case final game?) ...<Widget>[
+                const SizedBox(height: 10),
+                _AveluneInsertionHint(
+                  game: game,
+                  referenceTime: widget.referenceTime,
+                  launchAvailable: widget.onInsert != null,
+                ),
               ],
-            ),
+            ],
           );
         },
       );
@@ -848,104 +867,423 @@ class AveluneGameShelf extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
     final french = Localizations.localeOf(context).languageCode == 'fr';
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    return Stack(
+      clipBehavior: Clip.none,
       children: <Widget>[
-        _SectionTitle(
-          icon: Icons.sports_esports_rounded,
-          label: french ? 'MES JEUX' : 'MY GAMES',
+        Positioned(
+          key: const ValueKey<String>('avelune-furniture-bridge'),
+          left: 0,
+          right: 0,
+          top: -93,
+          height: 138,
+          child: _AveluneFurnitureBridge(colors: colors),
         ),
-        const SizedBox(height: 10),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final itemWidth = (constraints.maxWidth * 0.245).clamp(82.0, 98.0);
-            final itemHeight = itemWidth / kAveluneCartridgeAspectRatio;
-            return DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.surface,
-                borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: colors.outline),
-                boxShadow: <BoxShadow>[
-                  BoxShadow(
-                    color: colors.wood.withValues(alpha: 0.7),
-                    blurRadius: 14,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              child: _SectionTitle(
+                icon: Icons.sports_esports_rounded,
+                label: french ? 'MES JEUX' : 'MY GAMES',
               ),
-              child: Stack(
-                children: <Widget>[
-                  Positioned(
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    height: 15,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(14),
+            ),
+            const SizedBox(height: 10),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final itemWidth =
+                    (constraints.maxWidth * 0.245).clamp(82.0, 98.0);
+                final itemHeight = itemWidth / kAveluneCartridgeAspectRatio;
+                return SizedBox(
+                  height: itemHeight + 51,
+                  child: DecoratedBox(
+                    key: const ValueKey<String>('avelune-game-cabinet'),
+                    decoration: BoxDecoration(
+                      color: colors.wood,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: colors.woodHighlight.withValues(alpha: 0.84),
+                        width: 1.5,
+                      ),
+                      image: const DecorationImage(
+                        image: AssetImage(kAveluneWalnutTextureAssetPath),
+                        fit: BoxFit.cover,
+                        opacity: 0.9,
+                      ),
+                      boxShadow: <BoxShadow>[
+                        BoxShadow(
+                          color: colors.background.withValues(alpha: 0.96),
+                          blurRadius: 20,
+                          offset: const Offset(0, 11),
                         ),
+                        BoxShadow(
+                          color: colors.woodHighlight.withValues(alpha: 0.22),
+                          blurRadius: 5,
+                          offset: const Offset(0, -1),
+                        ),
+                      ],
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Stack(
+                        children: <Widget>[
+                          Positioned(
+                            key: const ValueKey<String>(
+                              'avelune-shelf-cavity',
+                            ),
+                            left: 10,
+                            right: 10,
+                            top: 11,
+                            bottom: 31,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: colors.background,
+                                  width: 2,
+                                ),
+                                gradient: RadialGradient(
+                                  center: const Alignment(0, -0.7),
+                                  radius: 1.25,
+                                  colors: <Color>[
+                                    colors.surface.withValues(alpha: 0.72),
+                                    colors.background,
+                                  ],
+                                ),
+                                boxShadow: <BoxShadow>[
+                                  BoxShadow(
+                                    color: colors.background
+                                        .withValues(alpha: 0.98),
+                                    blurRadius: 13,
+                                    spreadRadius: 3,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            key: const ValueKey<String>(
+                              'avelune-shelf-top-rail',
+                            ),
+                            left: 0,
+                            right: 0,
+                            top: 0,
+                            height: 12,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: <Color>[
+                                    colors.textPrimary.withValues(alpha: 0.12),
+                                    colors.woodHighlight.withValues(alpha: 0.3),
+                                    colors.background.withValues(alpha: 0.34),
+                                  ],
+                                ),
+                                border: Border(
+                                  bottom: BorderSide(
+                                    color: colors.background
+                                        .withValues(alpha: 0.78),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            top: 10,
+                            bottom: 28,
+                            width: 11,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: <Color>[
+                                    colors.textPrimary.withValues(alpha: 0.09),
+                                    colors.background.withValues(alpha: 0.48),
+                                  ],
+                                ),
+                                boxShadow: <BoxShadow>[
+                                  BoxShadow(
+                                    color: colors.background
+                                        .withValues(alpha: 0.88),
+                                    blurRadius: 9,
+                                    offset: const Offset(5, 0),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            right: 0,
+                            top: 10,
+                            bottom: 28,
+                            width: 11,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: <Color>[
+                                    colors.background.withValues(alpha: 0.55),
+                                    colors.textPrimary.withValues(alpha: 0.07),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            height: 36,
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: <Widget>[
+                                Image.asset(
+                                  kAveluneWalnutTextureAssetPath,
+                                  key: const ValueKey<String>(
+                                    'avelune-shelf-wood-texture',
+                                  ),
+                                  fit: BoxFit.cover,
+                                  alignment: Alignment.bottomCenter,
+                                  excludeFromSemantics: true,
+                                ),
+                                DecoratedBox(
+                                  key: const ValueKey<String>(
+                                    'avelune-shelf-plinth',
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                      colors: <Color>[
+                                        colors.textPrimary
+                                            .withValues(alpha: 0.2),
+                                        colors.woodHighlight
+                                            .withValues(alpha: 0.14),
+                                        colors.background
+                                            .withValues(alpha: 0.52),
+                                      ],
+                                      stops: const <double>[0, 0.18, 1],
+                                    ),
+                                    border: Border(
+                                      top: BorderSide(
+                                        color: colors.woodHighlight,
+                                        width: 1.4,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: 28,
+                                  right: 28,
+                                  bottom: 5,
+                                  height: 15,
+                                  child: _AveluneFurnitureDrawers(
+                                    colors: colors,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 13,
+                            bottom: 36,
+                            child: ListView.separated(
+                              key: const ValueKey<String>(
+                                'avelune-game-shelf-list',
+                              ),
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.fromLTRB(14, 2, 14, 0),
+                              itemCount: games.length + 1,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                if (index == games.length) {
+                                  return SizedBox(
+                                    width: itemWidth,
+                                    child: AveluneCartridge.addGame(
+                                      key: const ValueKey<String>(
+                                        'avelune-add-game-cartridge',
+                                      ),
+                                      displaySize:
+                                          AveluneCartridgeDisplaySize.shelf,
+                                      onPressed: onAddGame,
+                                    ),
+                                  );
+                                }
+                                final game = games[index];
+                                return SizedBox(
+                                  width: itemWidth,
+                                  child: AveluneCartridge(
+                                    key: ValueKey<String>(
+                                      'avelune-shelf-${game.game.gameId}',
+                                    ),
+                                    gameId: game.game.gameId,
+                                    title: game.game.title,
+                                    subtitle: game.game.authorName,
+                                    artwork: aveluneArtworkFor(game),
+                                    shellColor:
+                                        aveluneShellColorFor(context, game),
+                                    selected:
+                                        game.game.gameId == selectedGameId,
+                                    invalid: !game.activity.installationHealthy,
+                                    displaySize:
+                                        AveluneCartridgeDisplaySize.shelf,
+                                    onPressed: () => onGameSelected(game),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AveluneFurnitureBridge extends StatelessWidget {
+  const _AveluneFurnitureBridge({required this.colors});
+
+  final AveluneColors colors;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: Stack(
+          children: <Widget>[
+            for (final alignment in <Alignment>[
+              Alignment.centerLeft,
+              Alignment.centerRight,
+            ])
+              Align(
+                alignment: alignment,
+                child: SizedBox(
+                  width: 18,
+                  height: double.infinity,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      image: const DecorationImage(
+                        image: AssetImage(kAveluneWalnutTextureAssetPath),
+                        fit: BoxFit.cover,
+                        opacity: 0.96,
+                      ),
+                      gradient: LinearGradient(
+                        colors: <Color>[
+                          colors.textPrimary.withValues(alpha: 0.12),
+                          colors.background.withValues(alpha: 0.48),
+                          colors.woodHighlight.withValues(alpha: 0.2),
+                        ],
+                      ),
+                      border: Border.all(
+                        color: colors.woodHighlight.withValues(alpha: 0.42),
+                      ),
+                      boxShadow: <BoxShadow>[
+                        BoxShadow(
+                          color: colors.background.withValues(alpha: 0.92),
+                          blurRadius: 10,
+                          offset: alignment == Alignment.centerLeft
+                              ? const Offset(5, 0)
+                              : const Offset(-5, 0),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 12,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  image: const DecorationImage(
+                    image: AssetImage(kAveluneWalnutTextureAssetPath),
+                    fit: BoxFit.cover,
+                    opacity: 0.92,
+                  ),
+                  border: Border(
+                    top: BorderSide(
+                      color: colors.woodHighlight.withValues(alpha: 0.72),
+                    ),
+                    bottom: BorderSide(
+                      color: colors.background.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+}
+
+class _AveluneFurnitureDrawers extends StatelessWidget {
+  const _AveluneFurnitureDrawers({required this.colors});
+
+  final AveluneColors colors;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        key: const ValueKey<String>('avelune-furniture-drawers'),
+        child: Row(
+          children: <Widget>[
+            for (var index = 0; index < 2; index++) ...<Widget>[
+              if (index > 0) const SizedBox(width: 8),
+              Expanded(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(3),
+                    border: Border.all(
+                      color: colors.background.withValues(alpha: 0.7),
+                    ),
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: <Color>[
+                        colors.woodHighlight.withValues(alpha: 0.18),
+                        colors.background.withValues(alpha: 0.25),
+                      ],
+                    ),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: colors.textPrimary.withValues(alpha: 0.06),
+                        blurRadius: 1,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Container(
+                      width: 18,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(2),
                         gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
                           colors: <Color>[
-                            colors.woodHighlight,
-                            colors.wood,
+                            colors.gold.withValues(alpha: 0.4),
+                            colors.background.withValues(alpha: 0.7),
+                            colors.gold.withValues(alpha: 0.52),
                           ],
                         ),
                       ),
                     ),
                   ),
-                  SizedBox(
-                    height: itemHeight + 28,
-                    child: ListView.separated(
-                      key: const ValueKey<String>('avelune-game-shelf-list'),
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 18),
-                      itemCount: games.length + 1,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
-                      itemBuilder: (context, index) {
-                        if (index == games.length) {
-                          return SizedBox(
-                            width: itemWidth,
-                            child: AveluneCartridge.addGame(
-                              key: const ValueKey<String>(
-                                'avelune-add-game-cartridge',
-                              ),
-                              displaySize: AveluneCartridgeDisplaySize.shelf,
-                              onPressed: onAddGame,
-                            ),
-                          );
-                        }
-                        final game = games[index];
-                        return SizedBox(
-                          width: itemWidth,
-                          child: AveluneCartridge(
-                            key: ValueKey<String>(
-                              'avelune-shelf-${game.game.gameId}',
-                            ),
-                            gameId: game.game.gameId,
-                            title: game.game.title,
-                            subtitle: game.game.authorName,
-                            artwork: aveluneArtworkFor(game),
-                            shellColor: aveluneShellColorFor(context, game),
-                            selected: game.game.gameId == selectedGameId,
-                            invalid: !game.activity.installationHealthy,
-                            displaySize: AveluneCartridgeDisplaySize.shelf,
-                            onPressed: () => onGameSelected(game),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                ),
               ),
-            );
-          },
+            ],
+          ],
         ),
-      ],
-    );
-  }
+      );
 }
 
 class AveluneRecentActivitySection extends StatelessWidget {
@@ -979,35 +1317,73 @@ class AveluneRecentActivitySection extends StatelessWidget {
           label: french ? 'ACTIVITÉ RÉCENTE' : 'RECENT ACTIVITY',
         ),
         const SizedBox(height: 10),
-        if (recent.isEmpty)
-          _RecentEmptyState(french: french)
-        else
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: context.aveluneColors.surface,
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: context.aveluneColors.outline),
-            ),
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(7),
-              itemCount: recent.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 5),
-              itemBuilder: (context, index) {
-                final game = recent[index];
-                return _RecentActivityTile(
-                  key: ValueKey<String>(
-                    'avelune-activity-${game.game.gameId}',
+        _RecentCabinet(
+          child: recent.isEmpty
+              ? _RecentEmptyState(french: french)
+              : DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: context.aveluneColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: context.aveluneColors.outline,
+                    ),
                   ),
-                  game: game,
-                  referenceTime: referenceTime,
-                  onPressed: () => onActivitySelected(game),
-                );
-              },
-            ),
-          ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(7),
+                    itemCount: recent.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 5),
+                    itemBuilder: (context, index) {
+                      final game = recent[index];
+                      return _RecentActivityTile(
+                        key: ValueKey<String>(
+                          'avelune-activity-${game.game.gameId}',
+                        ),
+                        game: game,
+                        referenceTime: referenceTime,
+                        onPressed: () => onActivitySelected(game),
+                      );
+                    },
+                  ),
+                ),
+        ),
       ],
+    );
+  }
+}
+
+class _RecentCabinet extends StatelessWidget {
+  const _RecentCabinet({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.aveluneColors;
+    return Container(
+      key: const ValueKey<String>('avelune-recent-wood-frame'),
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: colors.wood,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colors.woodHighlight.withValues(alpha: 0.72),
+        ),
+        image: const DecorationImage(
+          image: AssetImage(kAveluneWalnutTextureAssetPath),
+          fit: BoxFit.cover,
+          opacity: 0.62,
+        ),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: colors.background.withValues(alpha: 0.9),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }
@@ -1021,7 +1397,7 @@ class _RecentEmptyState extends StatelessWidget {
   Widget build(BuildContext context) => DecoratedBox(
         decoration: BoxDecoration(
           color: context.aveluneColors.surface,
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: context.aveluneColors.outline),
         ),
         child: Padding(

@@ -28,7 +28,7 @@ class AveluneGameDetailsScreen extends StatelessWidget {
           slivers: <Widget>[
             SliverAppBar(
               pinned: true,
-              expandedHeight: 280,
+              expandedHeight: 318,
               backgroundColor: colors.background,
               foregroundColor: colors.textPrimary,
               surfaceTintColor: colors.background,
@@ -38,6 +38,7 @@ class AveluneGameDetailsScreen extends StatelessWidget {
                   key: const ValueKey<String>('avelune-details-artwork'),
                   tag: aveluneArtworkHeroTag(installation.gameId),
                   transitionOnUserGestures: true,
+                  flightShuttleBuilder: aveluneArtworkFlightShuttleBuilder,
                   child: _AveluneDetailsArtwork(game: game),
                 ),
               ),
@@ -143,35 +144,53 @@ class _AveluneDetailsArtwork extends StatelessWidget {
   Widget build(BuildContext context) {
     final image = aveluneArtworkFor(game);
     final colors = context.aveluneColors;
-    final fallback = DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: <Color>[
-            aveluneShellColorFor(context, game),
-            colors.surfaceElevated,
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.landscape_rounded,
-          color: colors.textPrimary,
-          size: 72,
-        ),
-      ),
+    final fallback = Image.asset(
+      kAveluneFallbackArtworkAssetPath,
+      key: const ValueKey<String>('avelune-fallback-artwork'),
+      fit: BoxFit.cover,
+      alignment: Alignment.center,
+      excludeFromSemantics: true,
     );
     return Material(
       color: colors.surface,
-      child: image == null
-          ? fallback
-          : Image(
-              image: image,
-              fit: BoxFit.cover,
-              excludeFromSemantics: true,
-              errorBuilder: (_, __, ___) => fallback,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          image == null
+              ? fallback
+              : Image(
+                  image: image,
+                  fit: BoxFit.cover,
+                  excludeFromSemantics: true,
+                  errorBuilder: (_, __, ___) => fallback,
+                ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  Colors.transparent,
+                  colors.background.withValues(alpha: 0.06),
+                  colors.background.withValues(alpha: 0.94),
+                ],
+                stops: const <double>[0, 0.58, 1],
+              ),
             ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                radius: 0.92,
+                colors: <Color>[
+                  Colors.transparent,
+                  colors.background.withValues(alpha: 0.34),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -61,6 +62,93 @@ void main() {
       find.byKey(const ValueKey<String>('avelune-empty-import')),
     );
     expect(imports, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('packaged materials create physical console and shelf depth',
+      (tester) async {
+    _setViewport(tester, const Size(390, 844));
+    final game = _view(
+      id: 'aube',
+      title: 'Aube',
+      installedAt: DateTime.utc(2026, 8),
+    );
+
+    await tester.pumpWidget(
+      _app(
+        AveluneMobileHome(
+          productName: 'Avelune',
+          snapshot: _snapshot(<HubGameView>[game]),
+          actions: HubUiActions(onNewGame: (_) {}),
+        ),
+      ),
+    );
+
+    for (final key in <String>[
+      'avelune-console-material-texture',
+      'avelune-console-wear-texture',
+      'avelune-console-silhouette',
+      'avelune-console-insertion-well',
+      'avelune-console-slot-lip',
+      'avelune-console-faceplate',
+      'avelune-hero-wood-dock',
+      'avelune-furniture-bridge',
+      'avelune-furniture-drawers',
+      'avelune-game-cabinet',
+      'avelune-shelf-cavity',
+      'avelune-shelf-top-rail',
+      'avelune-shelf-wood-texture',
+      'avelune-shelf-plinth',
+      'avelune-recent-wood-frame',
+    ]) {
+      expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+    }
+
+    final materialImages = tester
+        .widgetList<Image>(find.byType(Image))
+        .map((image) => image.image)
+        .whereType<AssetImage>()
+        .map((image) => image.assetName)
+        .toSet();
+    expect(
+      materialImages,
+      containsAll(<String>{
+        'assets/avelune/materials/matte_abs_grain.webp',
+        'assets/avelune/materials/aged_abs_wear.webp',
+        'assets/avelune/materials/dark_walnut_satin.webp',
+      }),
+    );
+
+    final well = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('avelune-console-insertion-well'),
+      ),
+    );
+    final lip = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-console-slot-lip')),
+    );
+    final console = tester.getRect(find.byType(AveluneConsole));
+    expect(well.center.dx, closeTo(console.center.dx, 1));
+    expect(lip.top, lessThan(well.bottom));
+    expect(lip.bottom, greaterThan(well.top));
+    final cabinet = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-game-cabinet')),
+    );
+    final cavity = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-shelf-cavity')),
+    );
+    final plinth = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-shelf-plinth')),
+    );
+    final shelfCartridge = tester.getRect(
+      find.byKey(
+        const ValueKey<String>('avelune-shelf-games.example.aube'),
+      ),
+    );
+    expect(cavity.left, greaterThan(cabinet.left));
+    expect(cavity.right, lessThan(cabinet.right));
+    expect(plinth.bottom, closeTo(cabinet.bottom, 1));
+    expect(shelfCartridge.bottom, closeTo(plinth.top, 2));
     expect(tester.takeException(), isNull);
   });
 
@@ -149,6 +237,15 @@ void main() {
     );
     expect(incomingExchange.translation.dx, greaterThan(0));
     expect(outgoingExchange.translation.dx, lessThan(0));
+    final homeScrollable = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey<String>('avelune-home-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(homeScrollable.position.pixels, 0);
     await tester.pump(const Duration(milliseconds: 520));
 
     final hero = tester.widget<AveluneCartridge>(
@@ -172,6 +269,15 @@ void main() {
       find.byKey(const ValueKey<String>('avelune-inserting-cartridge')),
     );
     expect(insertion.transform.storage[13], greaterThan(0));
+    final firstInsertionProgress = tester
+        .widget<AveluneConsole>(find.byType(AveluneConsole))
+        .insertionProgress;
+    expect(firstInsertionProgress, greaterThan(0));
+    await tester.pump(const Duration(milliseconds: 80));
+    final secondInsertionProgress = tester
+        .widget<AveluneConsole>(find.byType(AveluneConsole))
+        .insertionProgress;
+    expect(secondInsertionProgress, greaterThan(firstInsertionProgress));
     await _finishCartridgeInsertion(tester);
     expect(launched, 'games.example.aube');
 
@@ -384,6 +490,17 @@ void main() {
     expect(tester.getSize(action).height, greaterThanOrEqualTo(48));
     expect(tester.binding.hasScheduledFrame, isFalse);
     expect(tester.takeException(), isNull);
+
+    final gesture = await tester.startGesture(tester.getCenter(action));
+    await tester.pump(kLongPressTimeout);
+    await gesture.up();
+    await tester.pump();
+    expect(find.byType(AveluneGameDetailsScreen), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('avelune-details-hero-flight')),
+      findsNothing,
+    );
+    expect(tester.binding.hasScheduledFrame, isFalse);
     semantics.dispose();
   });
 
@@ -413,8 +530,18 @@ void main() {
       find.byKey(const ValueKey<String>('avelune-hero-artwork')),
       findsOneWidget,
     );
-    await tester.longPress(
-      find.byKey(const ValueKey<String>('avelune-hero-cartridge')),
+    final gesture = await tester.startGesture(
+      tester.getCenter(
+        find.byKey(const ValueKey<String>('avelune-hero-cartridge')),
+      ),
+    );
+    await tester.pump(kLongPressTimeout);
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(
+      find.byKey(const ValueKey<String>('avelune-details-hero-flight')),
+      findsOneWidget,
     );
     await tester.pumpAndSettle();
 
@@ -424,6 +551,24 @@ void main() {
     expect(
       find.byKey(const ValueKey<String>('avelune-details-artwork')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-details-hero-flight')),
+      findsNothing,
+    );
+    final fallback = tester.widget<Image>(
+      find.descendant(
+        of: find.byKey(
+          const ValueKey<String>('avelune-details-artwork'),
+        ),
+        matching: find.byKey(
+          const ValueKey<String>('avelune-fallback-artwork'),
+        ),
+      ),
+    );
+    expect(
+      (fallback.image as AssetImage).assetName,
+      'assets/avelune/artwork/fallback_moonlit_path.webp',
     );
   });
 

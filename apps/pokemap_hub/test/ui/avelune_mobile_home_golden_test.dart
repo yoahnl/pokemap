@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -13,6 +14,28 @@ void main() {
   final referenceTime = DateTime.utc(2026, 8, 4, 12);
 
   setUpAll(_loadGoldenFonts);
+
+  testWidgets('Avelune cartridge insertion visual gate', (tester) async {
+    await _pumpGolden(
+      tester,
+      size: const Size(390, 844),
+      snapshot: _snapshot(_games(withSaves: true)),
+      referenceTime: referenceTime,
+      disableAnimations: false,
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-hero-cartridge')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await _forceFullGoldenRepaint(tester);
+
+    await expectLater(
+      find.byKey(const ValueKey<String>('avelune-golden-root')),
+      matchesGoldenFile('goldens/avelune/inserting_390x844.png'),
+    );
+  });
 
   testWidgets('Avelune standard mobile visual gate', (tester) async {
     await _pumpGolden(
@@ -73,27 +96,6 @@ void main() {
     );
   });
 
-  testWidgets('Avelune cartridge insertion visual gate', (tester) async {
-    await _pumpGolden(
-      tester,
-      size: const Size(390, 844),
-      snapshot: _snapshot(_games(withSaves: true)),
-      referenceTime: referenceTime,
-      disableAnimations: false,
-    );
-
-    await tester.tap(
-      find.byKey(const ValueKey<String>('avelune-hero-cartridge')),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    await expectLater(
-      find.byKey(const ValueKey<String>('avelune-golden-root')),
-      matchesGoldenFile('goldens/avelune/inserting_390x844.png'),
-    );
-  });
-
   testWidgets('Avelune cartridge exchange visual gate', (tester) async {
     await _pumpGolden(
       tester,
@@ -110,6 +112,16 @@ void main() {
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 160));
+    await _forceFullGoldenRepaint(tester);
+    final homeScrollable = tester.state<ScrollableState>(
+      find
+          .descendant(
+            of: find.byKey(const ValueKey<String>('avelune-home-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    expect(homeScrollable.position.pixels, 0);
 
     await expectLater(
       find.byKey(const ValueKey<String>('avelune-golden-root')),
@@ -144,12 +156,15 @@ Future<void> _pumpGolden(
   required DateTime referenceTime,
   bool disableAnimations = true,
 }) async {
+  await tester.pumpWidget(const SizedBox.shrink());
+  await tester.pump();
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
   final theme = applyAveluneTheme(
     PokeMapPlayerTheme.dark(reducedMotion: true),
   );
+  await tester.runAsync(() => _primeGoldenFileImages(snapshot));
   await tester.pumpWidget(
     MaterialApp(
       locale: const Locale('fr'),
@@ -191,16 +206,72 @@ Future<void> _pumpGolden(
       ),
     ),
   );
+  final context = tester.element(find.byType(AveluneMobileHome));
   await tester.runAsync(
-    () => precacheImage(
-      const AssetImage(kAveluneLogoAssetPath),
-      tester.element(find.byType(AveluneMobileHome)),
-    ),
+    () => Future.wait<void>(<Future<void>>[
+      precacheImage(const AssetImage(kAveluneLogoAssetPath), context),
+      precacheImage(
+        const AssetImage(kAveluneMatteAbsTextureAssetPath),
+        context,
+      ),
+      precacheImage(
+        const AssetImage(kAveluneAgedAbsWearAssetPath),
+        context,
+      ),
+      precacheImage(
+        const AssetImage(kAveluneWalnutTextureAssetPath),
+        context,
+      ),
+      precacheImage(
+        const AssetImage(kAveluneBrushedBrassTextureAssetPath),
+        context,
+      ),
+      precacheImage(
+        const AssetImage(kAveluneFallbackArtworkAssetPath),
+        context,
+      ),
+    ]),
   );
   if (disableAnimations) {
     await tester.pumpAndSettle();
   } else {
     await tester.pump();
+  }
+}
+
+Future<void> _forceFullGoldenRepaint(WidgetTester tester) async {
+  _markSubtreeNeedsPaint(
+    tester.renderObject(
+      find.byKey(const ValueKey<String>('avelune-golden-root')),
+    ),
+  );
+  await tester.pump();
+}
+
+void _markSubtreeNeedsPaint(RenderObject object) {
+  object.markNeedsPaint();
+  object.visitChildren(_markSubtreeNeedsPaint);
+}
+
+Future<void> _primeGoldenFileImages(HubDashboardSnapshot snapshot) async {
+  for (final coverPath in snapshot.games
+      .map((game) => game.activity.coverPath)
+      .whereType<String>()) {
+    final provider = FileImage(File(coverPath));
+    final cache = PaintingBinding.instance.imageCache;
+    if (cache.containsKey(provider)) continue;
+    final bytes = await File(coverPath).readAsBytes();
+    final codec = await ui.instantiateImageCodec(bytes);
+    final frame = await codec.getNextFrame();
+    final cachedImage = frame.image.clone();
+    frame.image.dispose();
+    codec.dispose();
+    cache.putIfAbsent(
+      provider,
+      () => OneFrameImageStreamCompleter(
+        Future<ImageInfo>.value(ImageInfo(image: cachedImage)),
+      ),
+    );
   }
 }
 
@@ -280,6 +351,9 @@ HubGameView _view({
     ),
     activity: HubGameActivity(
       canContinue: lastSaveAt != null,
+      coverPath: File(
+        'test/fixtures/avelune/covers/$id.webp',
+      ).absolute.path,
       lastSaveAt: lastSaveAt,
       playTimeSeconds: lastSaveAt == null ? 0 : 3720,
     ),

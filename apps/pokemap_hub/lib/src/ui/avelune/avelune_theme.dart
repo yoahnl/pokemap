@@ -1,5 +1,21 @@
 import 'package:flutter/material.dart';
 
+const String kAveluneMatteAbsTextureAssetPath =
+    'assets/avelune/materials/matte_abs_grain.webp';
+const String kAveluneAgedAbsWearAssetPath =
+    'assets/avelune/materials/aged_abs_wear.webp';
+const String kAveluneWalnutTextureAssetPath =
+    'assets/avelune/materials/dark_walnut_satin.webp';
+const String kAveluneBrushedBrassTextureAssetPath =
+    'assets/avelune/materials/brushed_brass.webp';
+const String kAveluneFallbackArtworkAssetPath =
+    'assets/avelune/artwork/fallback_moonlit_path.webp';
+
+const double kAvelunePlasticTextureOpacity = 0.18;
+const double kAveluneConsoleTextureOpacity = 0.28;
+const double kAveluneCartridgeWearOpacity = 0.86;
+const double kAveluneConsoleWearOpacity = 0.72;
+
 final class AveluneColors extends ThemeExtension<AveluneColors> {
   const AveluneColors({
     required this.background,
