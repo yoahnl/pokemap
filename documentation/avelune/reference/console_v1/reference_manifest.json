@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "referenceId": "avelune-console-v1",
+  "approvedAt": "2026-08-05",
+  "prototype": {
+    "name": "Avelune Console Home Concept V3",
+    "url": "http://127.0.0.1:4173/",
+    "sourceKind": "external-codex-visualization",
+    "sourceRevision": "avelune-console-v3",
+    "nativeDevicePresets": [
+      {
+        "id": "iphone",
+        "logicalWidth": 393,
+        "logicalHeight": 852
+      },
+      {
+        "id": "pixel-10",
+        "logicalWidth": 427,
+        "logicalHeight": 952
+      }
+    ]
+  },
+  "contract": {
+    "portraitHomeVerticalScroll": false,
+    "libraryScrollAxis": "horizontal",
+    "canonicalCartridgeAspectRatio": 0.7,
+    "heroCartridgeOrientation": "front-facing-vertical",
+    "primaryAction": "tap-hero-cartridge",
+    "detailsAction": "long-press-hero-transition",
+    "appearanceBackgroundIds": [
+      "amber",
+      "dawn",
+      "linen",
+      "violet",
+      "slate",
+      "custom"
+    ],
+    "appearanceFurnitureIds": [
+      "walnut",
+      "ivory",
+      "oak",
+      "ash",
+      "mahogany",
+      "ebony"
+    ]
+  },
+  "captureNotes": [
+    "The iPhone and Pixel home captures are the verified prototype artifacts for its two native device presets.",
+    "The linen and ivory capture was taken live from the approved prototype in the Codex in-app browser on 2026-08-05.",
+    "The 320x568, 375x667 and 430x932 targets are Flutter layout targets, not native prototype presets. AVELUNE-010 proves them through deterministic geometry tests instead of fabricating resized prototype states.",
+    "The functionalBaseline files freeze the pre-Phase-0 Flutter behavior for compact, empty, no-save, exchange, insertion and details states. They are regression evidence, not visual targets.",
+    "Reference screenshots and source assets are documentation evidence only. They are not approved as production assets until the AVELUNE-110 provenance and licensing gate passes."
+  ],
+  "screenshots": [
+    {
+      "path": "screenshots/design_comparison_home.png",
+      "width": 786,
+      "height": 852,
+      "sha256": "438ba030c0255092122c4a04b68aebdf323789502ad44f9172d7c36312b21276",
+      "role": "approved-direction-versus-prototype-comparison"
+    },
+    {
+      "path": "screenshots/approved_direction_option_3_393x852.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "69362df844122ed10766f4457df0106f56e1dc8cbbe023e86a80ddb30e04b12c",
+      "role": "approved-generated-direction"
+    },
+    {
+      "path": "screenshots/home_iphone_393x852.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "2943d715db6c1aacf8b9c7a82d2c149e325081335f23c594ca21a50e23b285fe",
+      "role": "home-iphone"
+    },
+    {
+      "path": "screenshots/home_pixel10_427x952.png",
+      "width": 427,
+      "height": 952,
+      "sha256": "07e160898b07ea1a31f80a4e88d6a66597cdd4ce602c69e89e68d42c36614767",
+      "role": "home-pixel-10"
+    },
+    {
+      "path": "screenshots/details_iphone_393x852.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "aa9132092954df1464786ca06bb2c62259da83a040aa9491ba500caee3d01b4a",
+      "role": "game-details"
+    },
+    {
+      "path": "screenshots/appearance_home_linen_ivory_393x852.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "7046defbfda3d6946ce53c5e74dd610e7a18b4741f26c5122476dbc498b29927",
+      "role": "live-linen-ivory-home"
+    },
+    {
+      "path": "screenshots/appearance_settings_iphone.jpg",
+      "width": 243,
+      "height": 286,
+      "sha256": "971e8df9055230bbc01b7ca99b3b3c8e0c91a07743fd95c913376c52b74b9391",
+      "role": "appearance-settings-crop"
+    },
+    {
+      "path": "screenshots/appearance_home_amber_walnut.jpg",
+      "width": 243,
+      "height": 286,
+      "sha256": "e11b0193341fc123a000dc5cc642abc61a5bccba360220a4f1a3483ce9e7290e",
+      "role": "amber-walnut-crop"
+    },
+    {
+      "path": "screenshots/appearance_home_twilight_ebony.jpg",
+      "width": 243,
+      "height": 286,
+      "sha256": "763a2aee4ff4e179d7de9f157546458b41eedd4357913d0aa98983f8bad907a2",
+      "role": "twilight-ebony-crop"
+    }
+  ],
+  "motionEvidence": [
+    {
+      "path": "motion/insertion_latched_393x852.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "e30b5cf5f0d43da2a567c50005be8b10d3c1f7332ee76e39a506ce1259ba9104",
+      "role": "insertion-latched"
+    },
+    {
+      "path": "motion/shelf_end_393x852.png",
+      "width": 393,
+      "height": 852,
+      "sha256": "cb58383296ed923db22e909cf3b09163f72764aaaf1c8f8a37fa2c00df3ee181",
+      "role": "horizontal-shelf-end"
+    }
+  ],
+  "functionalBaseline": [
+    {
+      "path": "functional_baseline/home_320x568.png",
+      "width": 320,
+      "height": 568,
+      "sha256": "05f2f7b56d31ccd8bc52562fad92100316886a2da2c469a18012a9ace21e3a69",
+      "role": "pre-phase-0-compact-home"
+    },
+    {
+      "path": "functional_baseline/empty_390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "1704dd64742f85bd9eb126a12b9dc8dc7f925b62aee1275fee7ade836186ddef",
+      "role": "pre-phase-0-empty-library"
+    },
+    {
+      "path": "functional_baseline/no_save_430x932.png",
+      "width": 430,
+      "height": 932,
+      "sha256": "caa7a1b9c45d4d94342a6cbf1623942afb804ebdad21f355d70cedc2d7226b74",
+      "role": "pre-phase-0-no-save"
+    },
+    {
+      "path": "functional_baseline/exchange_390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "9eba753e667be7142cd9f96182324ab17db57e1f169d6acd5182e8338a8fa59d",
+      "role": "pre-phase-0-exchange"
+    },
+    {
+      "path": "functional_baseline/inserting_390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "21ac68cd88cc2efc95cf01db8687a4f28bda604295b1e56d23225ac297c71bee",
+      "role": "pre-phase-0-insertion"
+    },
+    {
+      "path": "functional_baseline/details_390x844.png",
+      "width": 390,
+      "height": 844,
+      "sha256": "eb8c96bac9bf34e159876620bb2185618991861d8d62a42217f75f2827969741",
+      "role": "pre-phase-0-details"
+    }
+  ],
+  "sourceAssets": [
+    {
+      "path": "source_assets/avelune_logo.png",
+      "width": 180,
+      "height": 180,
+      "sha256": "003ef907ef1114fcd9f170d92415a4530485819f5385634a82aa2a337f95ba25",
+      "role": "prototype-logo"
+    },
+    {
+      "path": "source_assets/cartridge_shell_alpha.png",
+      "width": 771,
+      "height": 1076,
+      "sha256": "b93324f7d66ee7ba65ae2700fd2acd9c55959c15b631d28e0c64788e229aee99",
+      "role": "canonical-cartridge-reference"
+    },
+    {
+      "path": "source_assets/console_alpha.png",
+      "width": 1509,
+      "height": 426,
+      "sha256": "74f695eb543b168163c0e1c50d4b0fd8571da9d8960689254f49e66fb08828d7",
+      "role": "front-console-reference"
+    },
+    {
+      "path": "source_assets/credenza_room_walnut.png",
+      "width": 853,
+      "height": 1844,
+      "sha256": "8cc045d0b11cab2a622ef2b6ca208207ae3eada7da9f259d0412e872269e4760",
+      "role": "walnut-room-reference"
+    },
+    {
+      "path": "source_assets/credenza_room_ivory.png",
+      "width": 853,
+      "height": 1844,
+      "sha256": "26533a69954197486ad1ebb53447cfa3fd82af2bbfb8bee6c325a7acc44c9118",
+      "role": "ivory-room-reference"
+    }
+  ],
+  "provenance": {
+    "status": "reference-only",
+    "productionUseApproved": false,
+    "requiredNextGate": "AVELUNE-110",
+    "statement": "These files freeze the user-approved prototype. AVELUNE-110 must establish individual source, tool, license, transformation and production-use evidence before any source asset ships in the Flutter bundle."
+  }
+}
