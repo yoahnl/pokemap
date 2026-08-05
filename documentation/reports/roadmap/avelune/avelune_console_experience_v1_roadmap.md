@@ -794,19 +794,28 @@ npm test
 
 **Tâches :**
 
-- [ ] Créer `AveluneRoomScene` avec couches : fond, lumière, commode, console, ombres, héros.
-- [ ] Afficher chaque fond indépendamment de chaque finition de commode.
-- [ ] Aligner les six commodes sur les mêmes anchors et dimensions.
-- [ ] Poser visuellement la console sur le plateau avec une ombre de contact commune.
-- [ ] Créer une tablette lisible et des séparateurs qui ne changent pas la largeur des cartouches.
-- [ ] Implémenter `AveluneGameShelf` avec `ListView.builder` horizontal lazy et cacheExtent borné.
-- [ ] Conserver `addGame` en dernier item, y compris avec 0 jeu.
-- [ ] Positionner chaque cartouche sur la tablette ; aucun flottement permanent dans l’étagère.
-- [ ] Garder la sélection visible via `Scrollable.ensureVisible` horizontal seulement.
-- [ ] Vérifier 0, 1, 3, 10 et 100 jeux.
-- [ ] Vérifier l’absence de `Scrollable` vertical dans l’accueil aux six viewports.
+- [x] Créer `AveluneRoomScene` avec couches : fond, lumière, commode, console, ombres, héros.
+- [x] Afficher chaque fond indépendamment de chaque finition de commode.
+- [x] Aligner les six commodes sur les mêmes anchors et dimensions.
+- [x] Poser visuellement la console sur le plateau avec une ombre de contact commune.
+- [x] Créer une tablette lisible et des séparateurs qui ne changent pas la largeur des cartouches.
+- [x] Implémenter `AveluneGameShelf` avec `ListView.builder` horizontal lazy et cacheExtent borné.
+- [x] Conserver `addGame` en dernier item, y compris avec 0 jeu.
+- [x] Positionner chaque cartouche sur la tablette ; aucun flottement permanent dans l’étagère.
+- [x] Garder la sélection visible via `Scrollable.ensureVisible` horizontal seulement.
+- [x] Vérifier 0, 1, 3, 10 et 100 jeux.
+- [x] Vérifier l’absence de `Scrollable` vertical dans l’accueil aux six viewports.
 
 **Visual Gate :** comparer noyer et ivoire côte à côte ; la commode doit paraître continue, porter la console et ranger physiquement les jeux.
+
+**Exécution du 5 août 2026 :**
+
+- `AveluneRoomScene` superpose les assets réels de fond, lumière, commode, console, étagère et héros. La géométrie source de la commode est conservée sans étirement et ses six finitions partagent exactement le même rectangle, le même plateau et la même tablette.
+- `AveluneHomeScreen` est un shell portrait sans scroll vertical. Il consomme exclusivement `AveluneHomeViewData` et `AveluneAppearancePreferences` ; le raccordement de cette façade au contrôleur et aux flows du Hub reste volontairement réservé à `AVELUNE-500`.
+- `AveluneGameShelf` utilise un `ListView.builder` horizontal, un `ScrollCacheExtent` borné et des items à largeur fixe. La cartouche d’ajout reste en dernière position, la sélection est recentrée horizontalement et chaque cartouche repose sur le même baseline physique.
+- Les tests couvrent 0, 1, 3, 10 et 100 jeux, les six finitions de meuble, six viewports portrait, l’absence de scroll vertical, les interactions de sélection/ajout et la scène vide.
+- Le Visual Gate `phase3_room_walnut_ivory_796x844.png` compare noyer et ivoire côte à côte avec trois covers de fixtures. Il confirme la continuité du meuble, le contact console/plateau et l’uniformité des quatre emplacements visibles.
+- La passe visuelle a révélé un débordement du mode de fusion de la coque sur les pixels transparents. Le passage à `BlendMode.modulate` préserve la texture, la teinte auteur et l’alpha ; les goldens cartouche, console et accueil historique ont été régénérés pour verrouiller la correction.
 
 ### AVELUNE-400 — Échange naturel des cartouches
 

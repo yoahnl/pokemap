@@ -181,7 +181,7 @@ class _AveluneMobileHomeState extends State<AveluneMobileHome> {
                       ),
                     ),
                   const SizedBox(height: 26),
-                  AveluneGameShelf(
+                  _LegacyAveluneGameShelf(
                     games: widget.snapshot.games,
                     selectedGameId: selected?.game.gameId,
                     onGameSelected: _selectGame,
@@ -849,9 +849,8 @@ class _AveluneActionSurface extends StatelessWidget {
   }
 }
 
-class AveluneGameShelf extends StatelessWidget {
-  const AveluneGameShelf({
-    super.key,
+class _LegacyAveluneGameShelf extends StatelessWidget {
+  const _LegacyAveluneGameShelf({
     required this.games,
     required this.selectedGameId,
     required this.onGameSelected,

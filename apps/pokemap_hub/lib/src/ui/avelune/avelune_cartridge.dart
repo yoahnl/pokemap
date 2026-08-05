@@ -200,8 +200,8 @@ class _AveluneCartridgeMold extends StatelessWidget {
                 child: ExcludeSemantics(
                   child: ColorFiltered(
                     colorFilter: ColorFilter.mode(
-                      shellColor,
-                      BlendMode.color,
+                      Color.lerp(shellColor, colors.textPrimary, 0.16)!,
+                      BlendMode.modulate,
                     ),
                     child: Image.asset(
                       AveluneMaterialCatalog.cartridgeShell.path,

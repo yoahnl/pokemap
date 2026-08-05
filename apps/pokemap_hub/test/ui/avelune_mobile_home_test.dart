@@ -620,7 +620,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       expect(find.byType(CustomScrollView), findsOneWidget);
-      expect(find.byType(AveluneGameShelf), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('avelune-game-shelf-list')),
+        findsOneWidget,
+      );
       final shelfCartridges = find.byWidgetPredicate(
         (widget) =>
             widget is AveluneCartridge &&

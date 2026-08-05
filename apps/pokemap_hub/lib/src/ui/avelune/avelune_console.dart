@@ -125,7 +125,8 @@ class AveluneConsole extends StatelessWidget {
                         child: Text(
                           'AVELUNE',
                           maxLines: 1,
-                          style: TextStyle(
+                          style:
+                              Theme.of(context).textTheme.labelLarge?.copyWith(
                             color: colors.textPrimary.withValues(alpha: 0.68),
                             fontSize: height * 0.105,
                             fontWeight: FontWeight.w800,
