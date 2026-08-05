@@ -1535,6 +1535,117 @@ test("MCP imports one complete TMX bundle through one canonical receipt", async 
   }
 });
 
+test("MCP imports a TMX larger than its request budget through an artifact handle", async () => {
+  const fixture = await mutationFixture();
+  try {
+    const imagePath = join(fixture.root, "large-tmx-road.png");
+    await writeFile(
+      imagePath,
+      Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        "base64",
+      ),
+    );
+    const largeTmx = tiledMapTmx.replace(
+      "<map",
+      `<!--${" ".repeat(1_100_000)}--><map`,
+    );
+    const tmxPath = join(fixture.root, "large-road.tmx");
+    await writeFile(tmxPath, largeTmx);
+    const stagedImage = await toolData(
+      fixture.client,
+      "pokemap_artifact_stage",
+      { sourcePath: imagePath, declaredMediaType: "image/png" },
+    );
+    const stagedTmx = await toolData(
+      fixture.client,
+      "pokemap_artifact_stage",
+      { sourcePath: tmxPath },
+    );
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const validated = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    const baseRequest = {
+      requestId: "large-tiled-map-import",
+      actionId: "map.tiled.import",
+      actionVersion: 1,
+      workspaceHandle: opened.workspaceHandle,
+      parameters: {
+        mapId: "mcp-large-tiled-road",
+        displayName: "MCP Large Tiled Road",
+        role: "exterior",
+        tilesets: [
+          {
+            source: "road.tsx",
+            tsx: tiledWangTsx,
+            tilesetId: "mcp-large-tiled-road-tileset",
+            assetId: "mcp-large-tiled-road-image",
+            logicalPath: "assets/mcp-large-tiled-road.png",
+            imageArtifacts: [
+              {
+                source: "road.png",
+                artifactHandle: stagedImage.artifactHandle,
+              },
+            ],
+          },
+        ],
+      },
+      expectedRevision: validated.snapshotRevision,
+      idempotencyKey: "idem-large-tiled-map-import",
+      dryRun: false,
+    };
+    const rejectedInline = await fixture.client.callTool({
+      name: "pokemap_plan",
+      arguments: {
+        projectHandle,
+        request: {
+          ...baseRequest,
+          parameters: { ...baseRequest.parameters, tmx: largeTmx },
+        },
+      },
+    });
+    assert.equal(rejectedInline.isError, true);
+    assert.equal(
+      record(record(rejectedInline.structuredContent).error).code,
+      "resource_limit",
+    );
+
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        ...baseRequest,
+        parameters: {
+          ...baseRequest.parameters,
+          tmxArtifactHandle: stagedTmx.artifactHandle,
+        },
+      },
+    });
+    await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "operation-large-tiled-map-import",
+    });
+    const persisted = JSON.parse(
+      await readFile(
+        join(fixture.root, "maps/mcp-large-tiled-road.json"),
+        "utf8",
+      ),
+    ) as JsonRecord;
+    assert.equal(persisted.id, "mcp-large-tiled-road");
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP packs a Tiled image collection through one canonical receipt", async () => {
   const fixture = await mutationFixture();
   try {

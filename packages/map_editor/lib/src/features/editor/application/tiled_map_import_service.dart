@@ -185,6 +185,11 @@ final class TiledMapImportService {
   }) async {
     final tilesetParameters = <Object?>[];
     final stagedDigests = <String>[];
+    final stagedTmx = await _mutations.stageArtifact(
+      projectRootPath,
+      sourcePath: source.tmxPath,
+    );
+    stagedDigests.add(stagedTmx.reference.digest);
     for (final tileset in source.tilesets) {
       final imageArtifacts = <Object?>[];
       for (final dependency in tileset.document.dependencyClosure.images) {
@@ -244,7 +249,7 @@ final class TiledMapImportService {
           'mapId': source.mapId,
           'displayName': source.displayName,
           'role': 'exterior',
-          'tmx': source.tmx,
+          'tmxArtifactHandle': stagedTmx.reference.handle,
           'tilesets': tilesetParameters,
           if (sortedLayerModes.isNotEmpty)
             'layerModes': <String, Object?>{

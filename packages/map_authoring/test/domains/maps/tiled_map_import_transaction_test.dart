@@ -79,6 +79,55 @@ void main() {
       expect(layer.isVisible, isFalse);
     });
 
+    test('plans and applies from a staged TMX artifact handle', () async {
+      final setup = await _TiledMapImportSetup.create();
+      addTearDown(setup.dispose);
+
+      final planned = await setup.mutations.plan(
+        setup.projectHandle,
+        await setup.request(
+          idempotencyKey: 'map-tiled-staged-tmx',
+          stageTmx: true,
+          includeInlineTmx: false,
+        ),
+      );
+      expect(jsonEncode(planned), isNot(contains('<map')));
+
+      await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation-map-tiled-staged-tmx',
+      );
+      await setup.expectComplete();
+    });
+
+    test('rejects missing or ambiguous TMX source parameters', () async {
+      final setup = await _TiledMapImportSetup.create();
+      addTearDown(setup.dispose);
+
+      for (final request in <AuthoringRequest>[
+        await setup.request(
+          idempotencyKey: 'map-tiled-missing-tmx',
+          includeInlineTmx: false,
+        ),
+        await setup.request(
+          idempotencyKey: 'map-tiled-ambiguous-tmx',
+          stageTmx: true,
+        ),
+      ]) {
+        await expectLater(
+          () => setup.mutations.plan(setup.projectHandle, request),
+          throwsA(
+            isA<MapAuthoringException>().having(
+              (error) => error.code,
+              'code',
+              'map.tiled.source_invalid',
+            ),
+          ),
+        );
+      }
+    });
+
     test('propagates the TSX atlas transparent color to the project tileset',
         () async {
       final setup = await _TiledMapImportSetup.create();
@@ -490,6 +539,7 @@ final class _TiledMapImportSetup {
     required this.projectHandle,
     required this.snapshots,
     required this.artifact,
+    required this.tmxArtifact,
     required this.imageCollection,
   });
 
@@ -527,6 +577,10 @@ final class _TiledMapImportSetup {
       _pngBytes,
       declaredMediaType: 'image/png',
     );
+    final storedTmx = await artifacts.put(
+      utf8.encode(imageCollection ? _imageCollectionTmx : _tmx),
+      declaredMediaType: 'text/plain',
+    );
     final mutations = LocalMapAuthoringMutationApi(
       policy: policy,
       snapshotLoader: snapshots,
@@ -547,6 +601,7 @@ final class _TiledMapImportSetup {
       projectHandle: opened.projectHandle,
       snapshots: snapshots,
       artifact: stored.reference,
+      tmxArtifact: storedTmx.reference,
       imageCollection: imageCollection,
     );
   }
@@ -557,6 +612,7 @@ final class _TiledMapImportSetup {
   final ProjectHandle projectHandle;
   final ProjectSnapshotLoader snapshots;
   final ContentArtifactRef artifact;
+  final ContentArtifactRef tmxArtifact;
   final bool imageCollection;
 
   Future<AuthoringRequest> request({
@@ -566,6 +622,8 @@ final class _TiledMapImportSetup {
     String assetId = 'road-image',
     String logicalPath = 'assets/tilesets/road.png',
     Map<String, String>? layerModes,
+    bool stageTmx = false,
+    bool includeInlineTmx = true,
   }) async {
     final snapshot = await snapshots.load(projectHandle);
     return AuthoringRequest(
@@ -580,7 +638,9 @@ final class _TiledMapImportSetup {
         'displayName':
             mapId == 'imported-road' ? 'Imported road' : 'Imported road 2',
         'role': 'exterior',
-        'tmx': imageCollection ? _imageCollectionTmx : _tmx,
+        if (stageTmx) 'tmxArtifactHandle': tmxArtifact.handle,
+        if (includeInlineTmx)
+          'tmx': imageCollection ? _imageCollectionTmx : _tmx,
         if (layerModes != null) 'layerModes': layerModes,
         'tilesets': <Object?>[
           <String, Object?>{

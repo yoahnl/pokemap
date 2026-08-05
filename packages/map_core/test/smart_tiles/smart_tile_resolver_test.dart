@@ -8,43 +8,7 @@ void main() {
     });
 
     test('resolves all 16 cardinal masks', () {
-      final preset = ProjectSmartTilePreset(
-        id: 'cardinal-path',
-        name: 'Cardinal path',
-        usage: SmartTileUsage.path,
-        topology: SmartTileTopology.cardinal4,
-        coveragePolicy: SmartTileCoveragePolicy.complete,
-        coverageProfile: const SmartTileCoverageProfile(
-          mode: SmartTileCoverageMode.template,
-        ),
-        transformPolicy: const SmartTileTransformPolicy(),
-        defaultMaterialId: 'dirt',
-        allowedMaterialIds: const <String>['dirt'],
-        rules: <SmartTileRule>[
-          for (var mask = 0; mask < 16; mask += 1)
-            SmartTileRule(
-              id: 'mask-$mask',
-              centerMatch: const SmartTileSlotMatch.any(),
-              signature: _cardinalSignature(mask),
-              candidates: <SmartTileCandidate>[
-                SmartTileCandidate(
-                  id: 'candidate-$mask',
-                  parts: <SmartTileVisualPart>[
-                    SmartTileVisualPart(
-                      source: SmartTileVisualSource.frame(
-                        frame: SmartTileFrameRef(
-                          atlasId: 'atlas',
-                          column: mask,
-                          row: 0,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-        ],
-      );
+      final preset = _cardinalPreset();
 
       for (var mask = 0; mask < 16; mask += 1) {
         final result = resolveSmartTile(
@@ -60,6 +24,39 @@ void main() {
         expect(result.status, SmartTileResolutionStatus.resolved);
         expect(result.ruleId, 'mask-$mask', reason: 'mask $mask');
         expect(result.candidate?.id, 'candidate-$mask', reason: 'mask $mask');
+      }
+    });
+
+    test('prepared resolver preserves every observable resolution field', () {
+      final preset = _cardinalPreset();
+      final prepared = PreparedSmartTileResolver(
+        preset: preset,
+        materials: _materials,
+        mapId: 'large-map',
+        layerId: 'path',
+        projectSeed: 1742,
+        layerSeed: 7,
+      );
+
+      for (var mask = 0; mask < 16; mask += 1) {
+        final expected = resolveSmartTile(
+          preset: preset,
+          materials: _materials,
+          context: _cardinalContext(mask),
+          mapId: 'large-map',
+          layerId: 'path',
+          x: mask * 3,
+          y: 31 - mask,
+          projectSeed: 1742,
+          layerSeed: 7,
+        );
+        final actual = prepared.resolve(
+          context: _cardinalContext(mask),
+          x: mask * 3,
+          y: 31 - mask,
+        );
+
+        _expectEquivalentResolution(actual, expected, reason: 'mask $mask');
       }
     });
 
@@ -307,6 +304,61 @@ const List<ProjectSmartTileMaterial> _materials = <ProjectSmartTileMaterial>[
     connectionGroupId: 'water',
   ),
 ];
+
+ProjectSmartTilePreset _cardinalPreset() {
+  return ProjectSmartTilePreset(
+    id: 'cardinal-path',
+    name: 'Cardinal path',
+    usage: SmartTileUsage.path,
+    topology: SmartTileTopology.cardinal4,
+    coveragePolicy: SmartTileCoveragePolicy.complete,
+    coverageProfile: const SmartTileCoverageProfile(
+      mode: SmartTileCoverageMode.template,
+    ),
+    transformPolicy: const SmartTileTransformPolicy(),
+    defaultMaterialId: 'dirt',
+    allowedMaterialIds: const <String>['dirt'],
+    rules: <SmartTileRule>[
+      for (var mask = 0; mask < 16; mask += 1)
+        SmartTileRule(
+          id: 'mask-$mask',
+          centerMatch: const SmartTileSlotMatch.any(),
+          signature: _cardinalSignature(mask),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(
+              id: 'candidate-$mask',
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: 'atlas',
+                      column: mask,
+                      row: 0,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+    ],
+  );
+}
+
+void _expectEquivalentResolution(
+  SmartTileResolution actual,
+  SmartTileResolution expected, {
+  required String reason,
+}) {
+  expect(actual.status, expected.status, reason: reason);
+  expect(actual.ruleId, expected.ruleId, reason: reason);
+  expect(actual.candidate, expected.candidate, reason: reason);
+  expect(actual.deterministicHash, expected.deterministicHash, reason: reason);
+  expect(actual.matchingRuleIds, expected.matchingRuleIds, reason: reason);
+  expect(actual.usedFallback, expected.usedFallback, reason: reason);
+  expect(actual.transform, expected.transform, reason: reason);
+  expect(actual.message, expected.message, reason: reason);
+}
 
 ProjectSmartTilePreset _preset({
   required SmartTileTopology topology,

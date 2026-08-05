@@ -59,6 +59,7 @@ final class TiledMapImportActions {
         'groupId',
         'role',
         'tmx',
+        'tmxArtifactHandle',
         'tilesets',
         'layerModes',
       });
@@ -66,7 +67,7 @@ final class TiledMapImportActions {
     final displayName = _mapName(parameters.string('displayName'));
     final groupId = parameters.optionalString('groupId');
     final role = _mapRole(parameters.optionalString('role') ?? 'exterior');
-    final source = _parseMap(parameters.text('tmx'));
+    final source = _parseMap(await _readTmxDocument(parameters));
     final specs = _parseTilesetSpecs(parameters.list('tilesets'));
     final layerModes = _parseLayerModes(parameters.optionalMap('layerModes'));
     _requireExactTilesetClosure(source, specs);
@@ -204,6 +205,49 @@ final class TiledMapImportActions {
       referencedAssetIds: sortedReferencedAssetIds,
       report: compilation.report,
     );
+  }
+
+  Future<String> _readTmxDocument(_TiledMapImportParameters parameters) async {
+    final hasInlineDocument = parameters.contains('tmx');
+    final hasArtifactHandle = parameters.contains('tmxArtifactHandle');
+    if (hasInlineDocument == hasArtifactHandle) {
+      throw semanticFailure(
+        'map.tiled.source_invalid',
+        'Provide exactly one inline TMX document or staged TMX artifact.',
+      );
+    }
+    if (hasInlineDocument) return parameters.text('tmx');
+
+    final handle = parameters.string('tmxArtifactHandle');
+    final artifact = artifactStore.inspect(handle);
+    if (artifact == null) {
+      throw const ArtifactStoreException(
+        'artifact.unknown',
+        'The staged TMX artifact handle is unknown or has expired.',
+      );
+    }
+    final bytes = await artifactStore.read(handle);
+    final exact = ContentArtifactRef.fromBytes(
+      bytes,
+      mediaType: artifact.mediaType,
+    );
+    if (exact.digest != artifact.digest ||
+        exact.byteLength != artifact.byteLength) {
+      throw semanticFailure(
+        'map.tiled.tmx_artifact_mismatch',
+        'The staged TMX document changed after inspection.',
+      );
+    }
+    try {
+      final document = utf8.decode(bytes);
+      if (document.trim().isEmpty) throw const FormatException();
+      return document;
+    } on FormatException {
+      throw semanticFailure(
+        'map.tiled.tmx_artifact_encoding_invalid',
+        'The staged TMX document must be non-empty UTF-8 XML.',
+      );
+    }
   }
 
   Future<_PreparedTiledTileset> _prepareTileset(
@@ -1225,6 +1269,8 @@ final class _TiledMapImportParameters {
       : _values = Map<String, Object?>.unmodifiable(values);
 
   final Map<String, Object?> _values;
+
+  bool contains(String key) => _values.containsKey(key);
 
   void allow(Set<String> allowed) {
     final unknown = _values.keys.where((key) => !allowed.contains(key)).toList()

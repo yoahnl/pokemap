@@ -326,6 +326,14 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
     sourceCellHeight: sourceCellHeight,
     viewport: requestedViewport,
   );
+  final resolver = PreparedSmartTileResolver(
+    preset: preset,
+    materials: catalog.materials,
+    mapId: map.id,
+    layerId: layer.id,
+    projectSeed: projectSeed,
+    layerSeed: layer.layerSeed,
+  );
   var ownerCellVisits = 0;
   for (var y = scan.startY; y < scan.endY; y++) {
     for (var x = scan.startX; x < scan.endX; x++) {
@@ -337,16 +345,10 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
         x: x,
         y: y,
       );
-      final resolution = resolveSmartTile(
-        preset: preset,
-        materials: catalog.materials,
+      final resolution = resolver.resolve(
         context: context,
         x: x,
         y: y,
-        mapId: map.id,
-        layerId: layer.id,
-        projectSeed: projectSeed,
-        layerSeed: layer.layerSeed,
       );
       final candidate = resolution.candidate;
       if (candidate != null && resolution.ruleId != null) {

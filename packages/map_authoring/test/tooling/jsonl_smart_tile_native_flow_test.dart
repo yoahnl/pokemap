@@ -287,12 +287,23 @@ void main() {
         _pngBytes,
         declaredMediaType: 'image/png',
       );
-      Map<String, Object?> parameters(String artifactHandle) =>
+      final directTmxArtifact = await direct.mutations.artifacts.put(
+        utf8.encode(_tiledMapTmx),
+        declaredMediaType: 'text/plain',
+      );
+      final jsonlTmxArtifact = await jsonl.mutations.artifacts.put(
+        utf8.encode(_tiledMapTmx),
+        declaredMediaType: 'text/plain',
+      );
+      Map<String, Object?> parameters(
+        String artifactHandle,
+        String tmxArtifactHandle,
+      ) =>
           <String, Object?>{
             'mapId': 'imported-road',
             'displayName': 'Imported road',
             'role': 'exterior',
-            'tmx': _tiledMapTmx,
+            'tmxArtifactHandle': tmxArtifactHandle,
             'layerModes': const <String, Object?>{'1': 'data'},
             'tilesets': <Object?>[
               <String, Object?>{
@@ -313,12 +324,18 @@ void main() {
 
       final directApplied = await direct.applyDirectAction(
         actionId: 'map.tiled.import',
-        parameters: parameters(directArtifact.reference.handle),
+        parameters: parameters(
+          directArtifact.reference.handle,
+          directTmxArtifact.reference.handle,
+        ),
         sequence: 'tiled-map',
       );
       final jsonlApplied = await jsonl.applyJsonlAction(
         actionId: 'map.tiled.import',
-        parameters: parameters(jsonlArtifact.reference.handle),
+        parameters: parameters(
+          jsonlArtifact.reference.handle,
+          jsonlTmxArtifact.reference.handle,
+        ),
         sequence: 'tiled-map',
       );
 
