@@ -587,15 +587,24 @@ Chaque raster dispose de variantes `2.0x/` et `3.0x/` si la comparaison sur appa
 
 **Tâches :**
 
-- [ ] Définir les états `idle`, `exchanging`, `aligning`, `descending`, `latched`, `launching`, `openingDetails`, `recovering`, `error`.
-- [ ] Interdire les transitions impossibles avec assertions et tests de table.
-- [ ] Définir `AveluneFeedback` comme port injectable ; l’implémentation plateforme encapsule haptique et clic système.
-- [ ] Déclencher feedback une fois par transition, jamais depuis `build()`.
-- [ ] Définir la réduction des animations à partir de `MediaQuery.disableAnimations`.
-- [ ] Tester le nettoyage des contrôleurs, l’annulation au `dispose` et l’absence de callback de lancement après démontage.
-- [ ] Tester les taps rapides : pendant l’échange, seule la dernière sélection demandée peut être mise en attente ; pendant l’insertion, toute nouvelle sélection est ignorée jusqu’au résultat.
+- [x] Définir les états `idle`, `exchanging`, `aligning`, `descending`, `latched`, `launching`, `openingDetails`, `recovering`, `error`.
+- [x] Interdire les transitions impossibles avec assertions et tests de table.
+- [x] Définir `AveluneFeedback` comme port injectable ; l’implémentation plateforme encapsule haptique et clic système.
+- [x] Déclencher feedback une fois par transition, jamais depuis `build()`.
+- [x] Définir la réduction des animations à partir de `MediaQuery.disableAnimations`.
+- [x] Tester le nettoyage des contrôleurs, l’annulation au `dispose` et l’absence de callback de lancement après démontage.
+- [x] Tester les taps rapides : pendant l’échange, seule la dernière sélection demandée peut être mise en attente ; pendant l’insertion, toute nouvelle sélection est ignorée jusqu’au résultat.
 
 **Sortie du lot :** les widgets restent déclaratifs ; les transitions et effets secondaires sont testables sans rendu.
+
+**Exécution du 5 août 2026 :**
+
+- Graphe explicite des neuf états avec validation centralisée ; les sauts impossibles tels que `idle → latched` ou `descending → launching` lèvent une erreur immédiatement.
+- `AveluneExchangeController` sérialise les échanges : la cartouche en cours termine, seule la dernière demande reçue reste en file et la sélection est refusée tant que le contrôleur d’insertion possède la scène.
+- `AveluneInsertionController` orchestre alignement, descente, verrouillage, lancement et récupération avec les durées injectées depuis `context.aveluneMotion`, donc déjà résolues par `MediaQuery.disableAnimations`.
+- `AveluneFeedback` est un port synchrone injectable. `AveluneSystemFeedback` encapsule les haptics Flutter, le clic de verrouillage et l’alerte ; les tests emploient un recorder sans plateforme.
+- Les contrôleurs invalident leur génération à l’annulation ou au `dispose` : aucun commit de sélection ni callback de lancement ne peut arriver après démontage.
+- 10 tests couvrent transitions, feedback unique, dernière sélection en attente, blocage pendant insertion, taps d’insertion coalescés, cancel/dispose, erreur/récupération et reduced motion. Analyze ciblé : aucune issue.
 
 ### AVELUNE-200 — Read model et contrôleur d’accueil
 
