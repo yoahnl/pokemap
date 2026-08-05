@@ -233,6 +233,9 @@ Future<void> _pumpGolden(
       ...AveluneMaterialCatalog.cartridgeLayers.map(
         (asset) => precacheImage(AssetImage(asset.path), context),
       ),
+      ...AveluneMaterialCatalog.consoleLayers.map(
+        (asset) => precacheImage(AssetImage(asset.path), context),
+      ),
     ]),
   );
   if (disableAnimations) {

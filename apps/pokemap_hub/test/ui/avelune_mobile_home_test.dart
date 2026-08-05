@@ -85,8 +85,10 @@ void main() {
     );
 
     for (final key in <String>[
-      'avelune-console-material-texture',
-      'avelune-console-wear-texture',
+      'avelune-console-body-layer',
+      'avelune-console-slot-layer',
+      'avelune-console-wear-layer',
+      'avelune-console-contact-shadow-layer',
       'avelune-console-silhouette',
       'avelune-console-insertion-well',
       'avelune-console-slot-lip',
@@ -113,8 +115,10 @@ void main() {
     expect(
       materialImages,
       containsAll(<String>{
-        'assets/avelune/materials/matte_abs_grain.webp',
-        'assets/avelune/materials/aged_abs_wear.webp',
+        'assets/avelune/objects/console/body.webp',
+        'assets/avelune/objects/console/slot.webp',
+        'assets/avelune/objects/console/wear.webp',
+        'assets/avelune/objects/console/contact_shadow.webp',
         'assets/avelune/materials/dark_walnut_satin.webp',
       }),
     );

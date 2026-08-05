@@ -769,16 +769,24 @@ npm test
 
 **Tâches :**
 
-- [ ] Écrire des tests de ratio, symétrie, slot et anchors.
-- [ ] Composer body, wear, façade, ports, slot, LED et ombre de contact en couches.
-- [ ] Conserver une vue strictement frontale sans silhouette Nintendo exacte.
-- [ ] Définir la profondeur visuelle du slot et l’occlusion de la cartouche pendant la descente.
-- [ ] Relier la LED aux états idle, inserting, latched, launching et error via tokens.
-- [ ] Ne rendre interactif aucun port ou bouton décoratif.
-- [ ] Isoler le painter et les assets dans un `RepaintBoundary`.
-- [ ] Produire goldens idle, insertion 50 %, latched, error et high contrast.
+- [x] Écrire des tests de ratio, symétrie, slot et anchors.
+- [x] Composer body, wear, façade, ports, slot, LED et ombre de contact en couches.
+- [x] Conserver une vue strictement frontale sans silhouette Nintendo exacte.
+- [x] Définir la profondeur visuelle du slot et l’occlusion de la cartouche pendant la descente.
+- [x] Relier la LED aux états idle, inserting, latched, launching et error via tokens.
+- [x] Ne rendre interactif aucun port ou bouton décoratif.
+- [x] Isoler le painter et les assets dans un `RepaintBoundary`.
+- [x] Produire goldens idle, insertion 50 %, latched, error et high contrast.
 
 **Visual Gate :** console posée, matière ABS, usure discrète aux arêtes, slot lisible et ombre cohérente avec la commode.
+
+**Exécution du 5 août 2026 :**
+
+- La console code-dessinée a été remplacée par quatre couches de production nommées dans le catalogue : body, slot, wear et contact shadow. Son ratio et ses anchors restent stables pour le layout responsive déjà validé.
+- Le slot raster et sa lèvre frontale fournissent la profondeur et l’occlusion nécessaires à la descente. La façade reste strictement frontale et symétrique, sans contrôle décoratif interactif.
+- `AveluneConsoleState` centralise les états `idle`, `inserting`, `latched`, `launching` et `error`. La couleur et l’intensité de la LED proviennent exclusivement des tokens Avelune ; l’ancien `insertionProgress` reste compatible et se projette vers `inserting` puis `latched`.
+- Le composant complet est isolé dans un `RepaintBoundary`. Cinq goldens couvrent veille, insertion à 50 %, verrouillage, erreur et contraste élevé.
+- Les tests structurels vérifient ratio, centrage du slot et de la LED, chemins des assets, absence de rotation/perspective et absence de contrôle tactile fictif.
 
 ### AVELUNE-320 — Pièce, commode et étagère horizontale
 

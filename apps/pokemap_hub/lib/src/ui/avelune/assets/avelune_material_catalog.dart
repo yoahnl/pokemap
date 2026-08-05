@@ -108,36 +108,44 @@ abstract final class AveluneMaterialCatalog {
     ),
   ];
 
+  static const AveluneMaterialAsset consoleBody = AveluneMaterialAsset(
+    id: 'console.body',
+    path: 'assets/avelune/objects/console/body.webp',
+    role: AveluneMaterialAssetRole.console,
+    minimumSize: Size(1200, 300),
+    requiresTransparentCorners: true,
+  );
+
+  static const AveluneMaterialAsset consoleSlot = AveluneMaterialAsset(
+    id: 'console.slot',
+    path: 'assets/avelune/objects/console/slot.webp',
+    role: AveluneMaterialAssetRole.console,
+    minimumSize: Size(600, 80),
+    requiresTransparentCorners: true,
+  );
+
+  static const AveluneMaterialAsset consoleWear = AveluneMaterialAsset(
+    id: 'console.wear',
+    path: 'assets/avelune/objects/console/wear.webp',
+    role: AveluneMaterialAssetRole.console,
+    minimumSize: Size(1024, 300),
+    requiresTransparentCorners: true,
+  );
+
+  static const AveluneMaterialAsset consoleContactShadow = AveluneMaterialAsset(
+    id: 'console.contactShadow',
+    path: 'assets/avelune/objects/console/contact_shadow.webp',
+    role: AveluneMaterialAssetRole.console,
+    minimumSize: Size(1200, 100),
+    requiresTransparentCorners: true,
+  );
+
   static const List<AveluneMaterialAsset> consoleLayers =
       <AveluneMaterialAsset>[
-    AveluneMaterialAsset(
-      id: 'console.body',
-      path: 'assets/avelune/objects/console/body.webp',
-      role: AveluneMaterialAssetRole.console,
-      minimumSize: Size(1200, 300),
-      requiresTransparentCorners: true,
-    ),
-    AveluneMaterialAsset(
-      id: 'console.slot',
-      path: 'assets/avelune/objects/console/slot.webp',
-      role: AveluneMaterialAssetRole.console,
-      minimumSize: Size(600, 80),
-      requiresTransparentCorners: true,
-    ),
-    AveluneMaterialAsset(
-      id: 'console.wear',
-      path: 'assets/avelune/objects/console/wear.webp',
-      role: AveluneMaterialAssetRole.console,
-      minimumSize: Size(1024, 300),
-      requiresTransparentCorners: true,
-    ),
-    AveluneMaterialAsset(
-      id: 'console.contactShadow',
-      path: 'assets/avelune/objects/console/contact_shadow.webp',
-      role: AveluneMaterialAssetRole.console,
-      minimumSize: Size(1200, 100),
-      requiresTransparentCorners: true,
-    ),
+    consoleBody,
+    consoleSlot,
+    consoleWear,
+    consoleContactShadow,
   ];
 
   static const AveluneMaterialAsset cartridgeShell = AveluneMaterialAsset(
