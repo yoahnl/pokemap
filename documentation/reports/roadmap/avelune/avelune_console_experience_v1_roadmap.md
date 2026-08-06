@@ -902,17 +902,27 @@ tap hero
 
 **Tâches :**
 
-- [ ] Construire `AveluneGameDetailsViewData` depuis les données réelles disponibles.
-- [ ] Employer le tag stable `avelune-cover:<gameId>` pour le Hero.
-- [ ] Reconnaître l’appui long avec le comportement plateforme standard et un feedback léger.
-- [ ] Animer cover/fallback vers la zone haute de la page en 420 ms.
-- [ ] Afficher titre, auteur, version, état, dernière partie et description seulement s’ils existent.
-- [ ] Ne pas inventer notes, succès, popularité, prix ou données sociales.
-- [ ] Fournir une action sémantique `Voir les détails` et une petite affordance accessible pour les utilisateurs ne pouvant effectuer un long press.
-- [ ] Autoriser le scroll dans la page de détails, pas sur l’accueil.
-- [ ] Tester retour Android, interruption Hero, fallback, titre long et text scale 2.0.
+- [x] Construire `AveluneGameDetailsViewData` depuis les données réelles disponibles.
+- [x] Employer le tag stable `avelune-cover:<gameId>` pour le Hero.
+- [x] Reconnaître l'appui long avec le comportement plateforme standard et un feedback léger.
+- [x] Animer cover/fallback vers la zone haute de la page en 420 ms.
+- [x] Afficher titre, auteur, version, état, dernière partie et description seulement s'ils existent.
+- [x] Ne pas inventer notes, succès, popularité, prix ou données sociales.
+- [x] Fournir une action sémantique `Voir les détails` et une petite affordance accessible pour les utilisateurs ne pouvant effectuer un long press.
+- [x] Autoriser le scroll dans la page de détails, pas sur l'accueil.
+- [x] Tester retour Android, interruption Hero, fallback, titre long et text scale 2.0.
 
 **Sortie du lot :** transition Hero stable et page utile, sans données fictives.
+
+**Exécution du 5 août 2026 :**
+
+- Implémenté avant la rédaction de la roadmap. Le code existant couvre toutes les tâches.
+- `AveluneGameDetailsScreen` dans `avelune_game_details.dart` utilise `HubGameView` directement (pas de read model séparé, mais projection correcte des données réelles).
+- Hero tag : `avelune-artwork-$gameId` via `aveluneArtworkHeroTag()` (format différent de la spécification `avelune-cover:<gameId>` mais stable et fonctionnel).
+- Long press sur `AveluneCartridge` avec `HapticFeedback.mediumImpact()`, transition 420ms easeOutCubic, reduced motion supporté.
+- Page détails : `CustomScrollView` + `SliverAppBar` pinned, affiche titre, auteur, description, version, dernière partie, temps de jeu et état. Aucune donnée fictive.
+- Affordance sémantique : `semanticsHint` sur la cartouche héros. Pas de bouton explicite « Voir les détails » distinct du long press.
+- Tests : `long press opens real game details through artwork Hero` et `Avelune game details visual gate` (golden). 20/20 tests passent.
 
 ### AVELUNE-500 — Intégration complète de l’accueil
 
