@@ -5,6 +5,7 @@ import '../foundation/avelune_spacing_tokens.dart';
 import '../theme/avelune_theme_extensions.dart';
 import 'avelune_inset_panel.dart';
 import 'avelune_pressable.dart';
+import '../foundation/avelune_icon_tokens.dart';
 
 enum AveluneStateMessageKind { empty, info, error, loading }
 
@@ -28,10 +29,10 @@ class AveluneStateMessage extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
     final icon = switch (kind) {
-      AveluneStateMessageKind.empty => Icons.inventory_2_outlined,
-      AveluneStateMessageKind.info => Icons.info_outline_rounded,
-      AveluneStateMessageKind.error => Icons.error_outline_rounded,
-      AveluneStateMessageKind.loading => Icons.hourglass_top_rounded,
+      AveluneStateMessageKind.empty => AveluneIcons.storage,
+      AveluneStateMessageKind.info => AveluneIcons.details,
+      AveluneStateMessageKind.error => AveluneIcons.error,
+      AveluneStateMessageKind.loading => AveluneIcons.pending,
     };
     final foreground = switch (kind) {
       AveluneStateMessageKind.error => colors.error,

@@ -58,7 +58,7 @@ class AveluneHeroDetailsPanel extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(AveluneSpacing.xxs),
                 child: Icon(
-                  Icons.info_outline_rounded,
+                  AveluneIcons.details,
                   size: 15,
                   color: colors.textSecondary,
                 ),

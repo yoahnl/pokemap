@@ -27,8 +27,8 @@ class AveluneMotionPanel extends StatelessWidget {
           children: <Widget>[
             Icon(
               reducedMotion
-                  ? Icons.motion_photos_off_rounded
-                  : Icons.auto_awesome_motion_rounded,
+                  ? AveluneIcons.motionReduced
+                  : AveluneIcons.motionOn,
               size: 20,
               color: colors.accentBright,
             ),

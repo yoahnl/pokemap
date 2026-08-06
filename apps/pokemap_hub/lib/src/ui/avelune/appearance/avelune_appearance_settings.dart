@@ -37,7 +37,7 @@ class AveluneAppearanceSettings extends StatelessWidget {
       ),
       children: <Widget>[
         AveluneSectionLabel(
-          icon: Icons.landscape_rounded,
+          icon: AveluneIcons.background,
           label: french ? 'Fond' : 'Background',
         ),
         const SizedBox(height: AveluneSpacing.md),
@@ -61,7 +61,7 @@ class AveluneAppearanceSettings extends StatelessWidget {
           ),
         const SizedBox(height: AveluneSpacing.xl),
         AveluneSectionLabel(
-          icon: Icons.table_restaurant_rounded,
+          icon: AveluneIcons.furniture,
           label: french ? 'Commode' : 'Furniture',
         ),
         const SizedBox(height: AveluneSpacing.md),
@@ -73,7 +73,7 @@ class AveluneAppearanceSettings extends StatelessWidget {
         ),
         const SizedBox(height: AveluneSpacing.xl),
         AveluneSectionLabel(
-          icon: Icons.image_rounded,
+          icon: AveluneIcons.background,
           label: french ? 'Mon image' : 'My image',
         ),
         const SizedBox(height: AveluneSpacing.md),
@@ -246,7 +246,7 @@ class _PresetCard extends StatelessWidget {
                                 child: const Padding(
                                   padding: EdgeInsets.all(3),
                                   child: Icon(
-                                    Icons.check_rounded,
+                                    AveluneIcons.selected,
                                     size: 14,
                                     color: Colors.white,
                                   ),
@@ -262,7 +262,7 @@ class _PresetCard extends StatelessWidget {
                         ),
                         child: Center(
                           child: Icon(
-                            Icons.add_photo_alternate_rounded,
+                            AveluneIcons.ownImage,
                             color: colors.textSecondary,
                           ),
                         ),
@@ -329,7 +329,7 @@ class _CustomBackgroundSection extends StatelessWidget {
                       ),
                       child: Center(
                         child: Icon(
-                          Icons.broken_image_rounded,
+                          AveluneIcons.missingImage,
                           color: colors.error,
                         ),
                       ),
@@ -353,8 +353,8 @@ class _CustomBackgroundSection extends StatelessWidget {
                   onPressed: saving ? null : onImport,
                   icon: Icon(
                     hasCustom
-                        ? Icons.swap_horiz_rounded
-                        : Icons.add_photo_alternate_rounded,
+                        ? AveluneIcons.exchange
+                        : AveluneIcons.ownImage,
                   ),
                   label: Text(
                     hasCustom
@@ -367,7 +367,7 @@ class _CustomBackgroundSection extends StatelessWidget {
                 const SizedBox(width: AveluneSpacing.sm),
                 OutlinedButton.icon(
                   onPressed: saving ? null : onRemove,
-                  icon: const Icon(Icons.delete_outline_rounded),
+                  icon: const Icon(AveluneIcons.remove),
                   label: Text(french ? 'Supprimer' : 'Remove'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: colors.error,

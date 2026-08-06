@@ -9,6 +9,7 @@ export 'components/avelune_state_message.dart';
 export 'foundation/avelune_breakpoints.dart';
 export 'foundation/avelune_color_tokens.dart';
 export 'foundation/avelune_glass_tokens.dart';
+export 'foundation/avelune_icon_tokens.dart';
 export 'foundation/avelune_depth_tokens.dart';
 export 'foundation/avelune_material_tokens.dart';
 export 'foundation/avelune_motion_tokens.dart';

@@ -7,6 +7,7 @@ import '../foundation/avelune_spacing_tokens.dart';
 import '../theme/avelune_theme_extensions.dart';
 import 'avelune_icon_control.dart';
 import 'avelune_inset_panel.dart';
+import '../foundation/avelune_icon_tokens.dart';
 
 class AveluneSheet extends StatelessWidget {
   const AveluneSheet({
@@ -84,7 +85,7 @@ class AveluneSheet extends StatelessWidget {
                         const SizedBox(width: AveluneSpacing.sm),
                         AveluneIconControl(
                           semanticLabel: french ? 'Fermer' : 'Close',
-                          icon: Icons.close_rounded,
+                          icon: AveluneIcons.close,
                           onPressed: onDismiss,
                         ),
                       ],

@@ -347,7 +347,7 @@ void main() {
     expect(node.label, contains('Aube'));
     expect(node.label, contains('indisponible'));
     expect(node.flagsCollection.isSelected, Tristate.isTrue);
-    expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+    expect(find.byIcon(AveluneIcons.error), findsOneWidget);
     semantics.dispose();
   });
 }

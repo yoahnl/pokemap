@@ -22,27 +22,32 @@ class AveluneGameDetailsScreen extends StatelessWidget {
     final installation = game.game;
     return RepaintBoundary(
       key: const ValueKey<String>('avelune-details-root'),
-      child: Scaffold(
-        backgroundColor: colors.background,
-        body: CustomScrollView(
-          slivers: <Widget>[
-            SliverAppBar(
-              pinned: true,
-              expandedHeight: 318,
-              backgroundColor: colors.background,
-              foregroundColor: colors.textPrimary,
-              surfaceTintColor: colors.background,
-              title: Text(installation.title),
-              flexibleSpace: FlexibleSpaceBar(
-                background: Hero(
-                  key: const ValueKey<String>('avelune-details-artwork'),
-                  tag: aveluneArtworkHeroTag(installation.gameId),
-                  transitionOnUserGestures: true,
-                  flightShuttleBuilder: aveluneArtworkFlightShuttleBuilder,
-                  child: _AveluneDetailsArtwork(game: game),
-                ),
-              ),
-            ),
+      // No Scaffold and no SliverAppBar: the artwork runs full bleed under a
+      // floating glass back control, the way the room's own chrome behaves.
+      // A Material app bar would reintroduce its elevation, its tint overlay
+      // and its title crossfade on top of a photograph.
+      child: ColoredBox(
+        color: colors.background,
+        child: DefaultTextStyle(
+          style: Theme.of(context).textTheme.bodyMedium ??
+              TextStyle(color: colors.textPrimary),
+          child: Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: CustomScrollView(
+                slivers: <Widget>[
+                  SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 318,
+                      child: Hero(
+                        key: const ValueKey<String>('avelune-details-artwork'),
+                        tag: aveluneArtworkHeroTag(installation.gameId),
+                        transitionOnUserGestures: true,
+                        flightShuttleBuilder: aveluneArtworkFlightShuttleBuilder,
+                        child: _AveluneDetailsArtwork(game: game),
+                      ),
+                    ),
+                  ),
             SliverSafeArea(
               top: false,
               sliver: SliverPadding(
@@ -128,7 +133,25 @@ class AveluneGameDetailsScreen extends StatelessWidget {
                 ),
               ),
             ),
+                ],
+              ),
+            ),
+            // The back control floats over the artwork instead of riding an
+            // app bar, so nothing is stacked on top of the photograph.
+            Positioned(
+              left: AveluneSpacing.lg,
+              top: AveluneSpacing.lg,
+              child: SafeArea(
+                bottom: false,
+                child: AveluneIconControl(
+                  semanticLabel: french ? 'Retour' : 'Back',
+                  icon: AveluneIcons.back,
+                  onPressed: () => Navigator.of(context).maybePop(),
+                ),
+              ),
+            ),
           ],
+          ),
         ),
       ),
     );
@@ -151,7 +174,7 @@ class _AveluneDetailsArtwork extends StatelessWidget {
       alignment: Alignment.center,
       excludeFromSemantics: true,
     );
-    return Material(
+    return ColoredBox(
       color: colors.surface,
       child: Stack(
         fit: StackFit.expand,

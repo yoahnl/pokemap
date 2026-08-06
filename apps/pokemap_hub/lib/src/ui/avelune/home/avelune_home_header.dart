@@ -47,7 +47,7 @@ class AveluneHomeHeader extends StatelessWidget {
                 filterQuality: FilterQuality.high,
                 excludeFromSemantics: true,
                 errorBuilder: (_, __, ___) => Icon(
-                  Icons.nightlight_round,
+                  AveluneIcons.brand,
                   color: colors.primaryBright,
                   size: markSize * 0.78,
                 ),
@@ -83,7 +83,7 @@ class AveluneHomeHeader extends StatelessWidget {
                 ),
               ),
               child: Icon(
-                Icons.person_outline_rounded,
+                AveluneIcons.profile,
                 size: markSize * 0.52,
                 color: colors.textSecondary,
               ),

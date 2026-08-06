@@ -63,7 +63,18 @@ Future<void> _loadGoldenFont() async {
     ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)));
   final materialLoader = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
-  await Future.wait(<Future<void>>[loader.load(), materialLoader.load()]);
+  // The Avelune surfaces draw Cupertino glyphs; without its font every icon
+  // records as an empty box in the goldens.
+  // The family name has to carry the package prefix: CupertinoIcons
+  // declares a fontPackage, so Flutter resolves it as
+  // `packages/cupertino_icons/CupertinoIcons`.
+  final cupertinoLoader = FontLoader('packages/cupertino_icons/CupertinoIcons')
+    ..addFont(
+      rootBundle.load('packages/cupertino_icons/assets/CupertinoIcons.ttf'),
+    );
+  await Future.wait<void>(<Future<void>>[loader.load(), materialLoader.load(),
+    cupertinoLoader.load(),
+  ]);
 }
 
 class _ComponentGallery extends StatelessWidget {

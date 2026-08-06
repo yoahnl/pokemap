@@ -30,20 +30,20 @@ class AveluneStoragePanel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         _StorageRow(
-          icon: Icons.videogame_asset_rounded,
+          icon: AveluneIcons.game,
           label: french ? 'Jeux installés' : 'Installed games',
           value: '$gameCount',
         ),
         const SizedBox(height: AveluneSpacing.sm),
         _StorageRow(
-          icon: Icons.save_rounded,
+          icon: AveluneIcons.storageUsed,
           label: french ? 'Espace utilisé' : 'Space used',
           value: usedLabel,
         ),
         if (availableLabel case final available?) ...<Widget>[
           const SizedBox(height: AveluneSpacing.sm),
           _StorageRow(
-            icon: Icons.sd_storage_rounded,
+            icon: AveluneIcons.storageFree,
             label: french ? 'Espace disponible' : 'Space available',
             value: available,
           ),

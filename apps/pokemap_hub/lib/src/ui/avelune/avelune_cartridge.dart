@@ -354,7 +354,7 @@ class _AveluneCartridgeMold extends StatelessWidget {
                     child: Padding(
                       padding: EdgeInsets.all(width * 0.035),
                       child: Icon(
-                        Icons.error_outline_rounded,
+                        AveluneIcons.error,
                         size: width * 0.16,
                         color: colors.invalid,
                       ),
@@ -600,7 +600,7 @@ class _LabelFallback extends StatelessWidget {
         ),
         child: Center(
           child: Icon(
-            addSlot ? Icons.add_rounded : Icons.landscape_rounded,
+            addSlot ? AveluneIcons.addGame : AveluneIcons.background,
             color: addSlot ? colors.textSecondary : colors.primaryBright,
             size: addSlot ? 38 : 32,
           ),

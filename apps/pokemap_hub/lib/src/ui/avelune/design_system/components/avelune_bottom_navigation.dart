@@ -6,6 +6,7 @@ import '../foundation/avelune_spacing_tokens.dart';
 import '../theme/avelune_theme_extensions.dart';
 import 'avelune_glass_surface.dart';
 import 'avelune_pressable.dart';
+import '../foundation/avelune_icon_tokens.dart';
 
 enum AveluneNavigationItem { home, settings }
 
@@ -53,7 +54,7 @@ class AveluneBottomNavigation extends StatelessWidget {
                   child: _AveluneDestination(
                     key: const ValueKey<String>('avelune-nav-home'),
                     label: french ? 'Accueil' : 'Home',
-                    icon: Icons.home_rounded,
+                    icon: AveluneIcons.home,
                     selected: selectedItem == AveluneNavigationItem.home,
                     onPressed: () => onItemSelected(AveluneNavigationItem.home),
                   ),
@@ -62,7 +63,7 @@ class AveluneBottomNavigation extends StatelessWidget {
                   child: _AveluneDestination(
                     key: const ValueKey<String>('avelune-nav-settings'),
                     label: french ? 'Paramètres' : 'Settings',
-                    icon: Icons.settings_rounded,
+                    icon: AveluneIcons.settings,
                     selected: selectedItem == AveluneNavigationItem.settings,
                     onPressed: () =>
                         onItemSelected(AveluneNavigationItem.settings),

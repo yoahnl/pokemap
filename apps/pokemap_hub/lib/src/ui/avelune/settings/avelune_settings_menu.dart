@@ -124,7 +124,7 @@ class _AveluneSettingsRow extends StatelessWidget {
               ),
               const SizedBox(width: AveluneSpacing.sm),
               Icon(
-                Icons.chevron_right_rounded,
+                AveluneIcons.forward,
                 size: 20,
                 color: colors.textSecondary,
               ),

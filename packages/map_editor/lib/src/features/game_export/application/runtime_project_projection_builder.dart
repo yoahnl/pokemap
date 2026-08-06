@@ -754,8 +754,16 @@ final class RuntimeProjectProjectionBuilder {
       PackagePathPolicy.normalizeNfc(value);
 
   static bool _isRuntimeProjectFile(String path, String extension) {
-    if (extension == '.json') return true;
     final firstSegment = path.split('/').first;
+    if (extension == '.json') {
+      // `assets/` is the media tree. The runtime only ever resolves it through
+      // media paths declared in project.json and the maps, so JSON found there
+      // is art-pipeline metadata: atlas provenance sidecars, import manifests
+      // and deferred specs. Those carry author-workspace relative paths that
+      // legitimately escape the package, so shipping them made the project
+      // unexportable for a reason no author could act on.
+      return firstSegment != 'assets';
+    }
     return (firstSegment == 'assets' || firstSegment == 'data') &&
         _projectMediaExtensions.contains(extension);
   }

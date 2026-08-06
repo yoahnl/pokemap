@@ -55,9 +55,18 @@ class HubShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
-    return Scaffold(
-      backgroundColor: colors.canvas,
-      body: AnnotatedRegion<SystemUiOverlayStyle>(
+    // No Scaffold: the console owns the whole window, and a Scaffold only adds
+    // Material's background, its safe-area handling and its snackbar host —
+    // none of which this shell uses.
+    return ColoredBox(
+      color: colors.canvas,
+      // Scaffold's Material was also supplying the inherited text style. Text
+      // with no explicit style fell back to the platform default the moment it
+      // went away, so the shell states it itself.
+      child: DefaultTextStyle(
+        style: Theme.of(context).textTheme.bodyMedium ??
+            TextStyle(color: colors.textPrimary),
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
         value: SystemUiOverlayStyle.light.copyWith(
           statusBarColor: colors.background,
           systemNavigationBarColor: colors.background,
@@ -131,6 +140,7 @@ class HubShell extends StatelessWidget {
               ],
             );
           },
+        ),
         ),
       ),
     );
@@ -210,14 +220,14 @@ class HubShell extends StatelessWidget {
           if (appearance != null)
             AveluneSettingsEntry(
               id: 'appearance',
-              icon: Icons.brightness_6_rounded,
+              icon: AveluneIcons.appearance,
               title: french ? 'Apparence' : 'Appearance',
               subtitle: _appearanceSummary(appearance),
               onSelected: () => _openAppearance(sheetContext, appearance),
             ),
           AveluneSettingsEntry(
             id: 'storage',
-            icon: Icons.inventory_2_rounded,
+            icon: AveluneIcons.storage,
             title: french ? 'Stockage' : 'Storage',
             subtitle: french
                 ? '$games ${games == 1 ? 'jeu' : 'jeux'} · '
@@ -237,7 +247,7 @@ class HubShell extends StatelessWidget {
           ),
           AveluneSettingsEntry(
             id: 'motion',
-            icon: Icons.animation_rounded,
+            icon: AveluneIcons.motion,
             title: french ? 'Mouvement' : 'Motion',
             subtitle: aveluneMotionSummary(reducedMotion, french: french),
             onSelected: () => AveluneSheet.show<void>(
@@ -249,7 +259,7 @@ class HubShell extends StatelessWidget {
           ),
           AveluneSettingsEntry(
             id: 'diagnostics',
-            icon: Icons.monitor_heart_rounded,
+            icon: AveluneIcons.diagnostics,
             title: french ? 'Diagnostics' : 'Diagnostics',
             subtitle: errors == 0
                 ? (french ? 'Aucun incident signalé' : 'No incident reported')
@@ -445,7 +455,7 @@ class _HubViewportTooSmall extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Icon(
-                Icons.aspect_ratio_rounded,
+                AveluneIcons.viewport,
                 color: colors.textSecondary,
                 size: 32,
               ),
@@ -657,7 +667,7 @@ class _HubStatusBanner extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Icon(
-                  Icons.error_outline_rounded,
+                  AveluneIcons.error,
                   color: context.playerColors.danger,
                 ),
                 const SizedBox(width: PlayerSpacing.sm),
@@ -704,7 +714,7 @@ class _HubDiagnostics extends StatelessWidget {
                   Row(
                     children: <Widget>[
                       Icon(
-                        Icons.storage_rounded,
+                        AveluneIcons.storage,
                         color: context.playerColors.primary,
                       ),
                       const SizedBox(width: PlayerSpacing.md),
@@ -731,7 +741,7 @@ class _HubDiagnostics extends StatelessWidget {
             const SizedBox(height: PlayerSpacing.md),
             if (snapshot.diagnostics.isEmpty)
               PlayerEmptyState(
-                icon: Icons.verified_user_rounded,
+                icon: AveluneIcons.integrity,
                 title: context.playerL10n.noDiagnostics,
                 message: context.playerL10n.diagnosticsReady,
               )
@@ -758,9 +768,9 @@ class _DiagnosticCard extends StatelessWidget {
           children: <Widget>[
             Icon(
               switch (diagnostic.severity) {
-                HubDiagnosticSeverity.information => Icons.info_outline_rounded,
-                HubDiagnosticSeverity.warning => Icons.warning_amber_rounded,
-                HubDiagnosticSeverity.error => Icons.error_outline_rounded,
+                HubDiagnosticSeverity.information => AveluneIcons.details,
+                HubDiagnosticSeverity.warning => AveluneIcons.warning,
+                HubDiagnosticSeverity.error => AveluneIcons.error,
               },
               color: switch (diagnostic.severity) {
                 HubDiagnosticSeverity.information =>
@@ -813,7 +823,7 @@ class _DiagnosticCard extends StatelessWidget {
                             ].join('\n'),
                           ),
                         ),
-                        icon: const Icon(Icons.copy_rounded),
+                        icon: const Icon(AveluneIcons.copy),
                         label: const Text('Copier le diagnostic'),
                       ),
                     ),

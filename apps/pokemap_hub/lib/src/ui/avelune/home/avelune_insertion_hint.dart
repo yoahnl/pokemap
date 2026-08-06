@@ -34,7 +34,7 @@ class AveluneInsertionHint extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             Icon(
-              Icons.arrow_downward_rounded,
+              AveluneIcons.insert,
               size: 15,
               color: colors.primaryBright.withValues(alpha: 0.9),
             ),
