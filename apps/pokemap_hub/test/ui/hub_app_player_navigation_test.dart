@@ -113,10 +113,7 @@ void main() {
       await tester.tap(
         find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
       );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 120));
-      await tester.pump(const Duration(milliseconds: 300));
-      await tester.pump(const Duration(milliseconds: 120));
+      await _settleInsertion(tester);
       await tester.pump(const Duration(milliseconds: 80));
       await tester.pump();
       await tester.pump();
@@ -280,9 +277,23 @@ class _FakeCustomBackground implements AveluneCustomBackgroundGateway {
   String get thumbnailPath => '';
 }
 
-/// Drives the insertion sequence the hero cartridge starts before it launches.
+/// Walks the insertion sequence the hero cartridge starts before it launches.
+///
+/// Driven off the tokens rather than a fixed number of pumps: the sequence was
+/// re-paced to let the console run its LED colours, and `pumpAndSettle` cannot
+/// be used because the controller waits on timers that schedule no frame.
 Future<void> _settleInsertion(WidgetTester tester) async {
-  for (var i = 0; i < 12; i++) {
-    await tester.pump(const Duration(milliseconds: 120));
+  const motion = AveluneMotionTokens.standard;
+  await tester.pump();
+  await tester.pump();
+  for (final phase in <Duration>[
+    motion.insertionAlign,
+    motion.insertionDescend,
+    motion.insertionLatch,
+    motion.insertionLaunchDelay,
+  ]) {
+    await tester.pump(phase);
+    await tester.pump();
   }
+  await tester.pump();
 }

@@ -63,6 +63,32 @@ void main() {
             'sinking into the furniture.',
       );
     });
+
+    test('the shelf board carries the cartridges at '
+        '${preset.width.toInt()}x${preset.height.toInt()}', () {
+      final geometry = AveluneHomeGeometry.resolve(
+        viewportSize: preset,
+        safeArea: const EdgeInsets.only(top: 24, bottom: 16),
+      );
+      final layout = AveluneRoomSceneLayout.resolve(geometry);
+
+      // Where the artwork's board actually lands, not the value the layout
+      // echoes back from the geometry.
+      final board = layout.furnitureRect.top +
+          (layout.furnitureRect.height * kAveluneCredenzaShelfBoardFraction);
+      expect(
+        board,
+        closeTo(geometry.anchors.shelfBaseline.dy, 1),
+        reason: 'The furniture was scaled by an arbitrary width multiple that '
+            'overrode this anchor, so the cartridges stood off the board and '
+            'the credenza ran past the bottom of the screen.',
+      );
+      expect(
+        layout.furnitureRect.width,
+        greaterThanOrEqualTo(geometry.contentRect.width),
+        reason: 'It still has to reach both edges of the room.',
+      );
+    });
   }
 }
 

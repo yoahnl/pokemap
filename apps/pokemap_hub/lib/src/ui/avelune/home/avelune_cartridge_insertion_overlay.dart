@@ -134,14 +134,16 @@ Curve _curveFor(
         ? motion.descentCurve
         : motion.movementCurve;
 
+/// Connectors stay visible on the way down and fade as they enter the slot,
+/// rather than blinking out the moment the descent starts.
 double _connectorOpacityFor(AveluneInteractionState state) => switch (state) {
-      AveluneInteractionState.descending => 0,
       AveluneInteractionState.latched || AveluneInteractionState.launching => 0,
       _ => 1,
     };
 
 double _opacityFor(AveluneInteractionState state, bool reducedMotion) {
-  if (state == AveluneInteractionState.launching) return 0;
+  // The cartridge used to fade out while launching, which read as the game
+  // eating it. It stays seated in the slot until the player screen takes over.
   if (reducedMotion && state == AveluneInteractionState.descending) return 0.4;
   return 1;
 }

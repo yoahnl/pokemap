@@ -22,10 +22,13 @@ final class AveluneMotionTokens extends ThemeExtension<AveluneMotionTokens> {
     press: Duration(milliseconds: 100),
     selection: Duration(milliseconds: 180),
     exchange: Duration(milliseconds: 440),
-    insertionAlign: Duration(milliseconds: 120),
-    insertionDescend: Duration(milliseconds: 300),
-    insertionLatch: Duration(milliseconds: 120),
-    insertionLaunchDelay: Duration(milliseconds: 80),
+    // The console changes LED colour at every step — violet at rest, amber
+    // while inserting, green once latched, bright violet while booting. The old
+    // 620 ms total ran the whole sequence faster than it could be read.
+    insertionAlign: Duration(milliseconds: 280),
+    insertionDescend: Duration(milliseconds: 640),
+    insertionLatch: Duration(milliseconds: 460),
+    insertionLaunchDelay: Duration(milliseconds: 720),
     detailsHero: Duration(milliseconds: 420),
     ambientFloat: Duration(milliseconds: 2800),
     movementCurve: Cubic(0.2, 0.8, 0.2, 1),

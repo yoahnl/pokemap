@@ -10,6 +10,12 @@ import 'package:pokemap_hub/src/ui/avelune/home/avelune_home_screen.dart';
 import 'package:pokemap_hub/src/ui/avelune/home/avelune_home_view_data.dart';
 import 'package:pokemap_hub/src/ui/avelune/motion/avelune_feedback.dart';
 
+// Phase lengths come from the tokens rather than being copied here: the
+// insertion was re-paced to let the console's LED sequence read, and hardcoded
+// durations silently rotted when it changed.
+const _standard = AveluneMotionTokens.standard;
+const _reduced = AveluneMotionTokens.reduced;
+
 void main() {
   testWidgets('continue launches only after physical latch', (tester) async {
     final feedback = _RecordingFeedback();
@@ -32,10 +38,10 @@ void main() {
     expect(_insertionOverlay, findsOneWidget);
     expect(continueCalls, 0);
 
-    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(_standard.insertionAlign);
     await tester.pump();
     expect(continueCalls, 0);
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(_standard.insertionDescend);
     await tester.pump();
     expect(continueCalls, 0);
     expect(feedback.cues, contains(AveluneFeedbackCue.latch));
@@ -43,6 +49,10 @@ void main() {
       tester.widget<AveluneConsole>(find.byType(AveluneConsole)).state,
       AveluneConsoleState.latched,
     );
+
+    await tester.pump(_standard.insertionLatch);
+    await tester.pump();
+    // Swallowed by the slot only once the cartridge is seated.
     expect(
       tester
           .widget<AveluneCartridge>(
@@ -54,12 +64,15 @@ void main() {
           .connectorsOpacity,
       0,
     );
+    expect(continueCalls, 0);
 
-    await tester.pump(const Duration(milliseconds: 120));
-    expect(continueCalls, 0);
-    await tester.pump(const Duration(milliseconds: 79));
-    expect(continueCalls, 0);
-    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump(_standard.insertionLaunchDelay - _oneFrame);
+    expect(
+      continueCalls,
+      0,
+      reason: 'The console still has to finish booting before the game starts.',
+    );
+    await tester.pump(_oneFrame);
     await tester.pump();
     expect(continueCalls, 1);
     expect(newGameCalls, 0);
@@ -86,7 +99,7 @@ void main() {
 
     await tester.tap(_hero);
     await tester.tap(_hero);
-    await tester.pumpAndSettle();
+    await _completeInsertion(tester);
 
     expect(continueCalls, 0);
     expect(newGameCalls, 1);
@@ -151,7 +164,11 @@ void main() {
     );
 
     await tester.tap(_hero);
-    await tester.pumpAndSettle();
+    await _completeInsertion(tester);
+    // A failed launch recovers after one selection beat before the hero is
+    // pressable again.
+    await tester.pump(_standard.selection);
+    await tester.pump();
     expect(attempts, 1);
     expect(errors.single, isA<StateError>());
     expect(
@@ -161,7 +178,7 @@ void main() {
     expect(_heroWidget(tester).gameId, 'games.insertion.test');
 
     await tester.tap(_hero);
-    await tester.pumpAndSettle();
+    await _completeInsertion(tester);
     expect(attempts, 2);
     expect(errors, hasLength(1));
     expect(
@@ -184,9 +201,9 @@ void main() {
     await tester.tap(_hero);
     await tester.pump();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 119));
+    await tester.pump(_reduced.insertionDescend - _oneFrame);
     expect(launches, 0);
-    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump(_oneFrame);
     await tester.pump();
     expect(launches, 1);
   });
@@ -213,7 +230,7 @@ void main() {
     );
 
     await tester.tap(_hero);
-    await tester.pumpAndSettle();
+    await _completeInsertion(tester);
     expect(launches, 1);
     expect(find.byKey(const ValueKey<String>('runtime-route')), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -225,7 +242,7 @@ void main() {
       onNewGame: (_) => launches++,
     );
     await tester.tap(_hero);
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(_standard.insertionAlign);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
     expect(launches, 1);
@@ -337,4 +354,31 @@ final class _RecordingFeedback implements AveluneFeedback {
 
   @override
   void emit(AveluneFeedbackCue cue) => cues.add(cue);
+}
+
+const _oneFrame = Duration(milliseconds: 1);
+
+/// Walks the whole insertion sequence.
+///
+/// `pumpAndSettle` cannot be used for this: the controller waits on
+/// `Future.delayed` between phases, and a pending timer schedules no frame, so
+/// settling returns in the middle of the sequence and the launch never happens.
+Future<void> _completeInsertion(
+  WidgetTester tester, {
+  AveluneMotionTokens motion = _standard,
+}) async {
+  // The screen awaits `endOfFrame` before starting the controller, so the
+  // sequence only begins once a frame has been produced.
+  await tester.pump();
+  await tester.pump();
+  for (final phase in <Duration>[
+    motion.insertionAlign,
+    motion.insertionDescend,
+    motion.insertionLatch,
+    motion.insertionLaunchDelay,
+  ]) {
+    await tester.pump(phase);
+    await tester.pump();
+  }
+  await tester.pump();
 }

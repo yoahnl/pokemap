@@ -176,8 +176,13 @@ void main() {
         expect(insertion.startCenter, anchors.heroCenter);
         expect(insertion.alignedCenter.dx, anchors.consoleSlotCenter.dx);
         expect(insertion.latchedCenter.dx, anchors.consoleSlotCenter.dx);
+        // Aligning is an anticipation beat: a small lift off the resting place
+        // before the descent, not a move toward the slot.
         expect(insertion.alignedCenter.dy,
-            greaterThanOrEqualTo(insertion.startCenter.dy));
+            lessThanOrEqualTo(insertion.startCenter.dy));
+        expect(
+            insertion.startCenter.dy - insertion.alignedCenter.dy,
+            lessThanOrEqualTo(8));
         expect(insertion.latchedCenter.dy,
             greaterThan(insertion.alignedCenter.dy));
         expect(geometry.contentRect.contains(insertion.latchedCenter), isTrue);

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_hub/src/ui/avelune/appearance/avelune_appearance_preferences.dart';
+import 'package:pokemap_hub/src/ui/avelune/avelune_console.dart';
 import 'package:pokemap_hub/src/ui/avelune/assets/avelune_material_catalog.dart';
 import 'package:pokemap_hub/src/ui/avelune/avelune_cartridge.dart';
 import 'package:pokemap_hub/src/ui/avelune/avelune_theme.dart';
@@ -147,11 +148,17 @@ void main() {
     );
     await tester.pump();
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 120));
+    // Driven off the tokens: the sequence was re-paced so the console's LED
+    // colours can be read, and fixed pumps stopped short of the latch, which
+    // silently captured the resting pose instead.
+    const motion = AveluneMotionTokens.standard;
+    await tester.pump(motion.insertionAlign);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump(motion.insertionDescend);
     await tester.pump();
-    await tester.pump(const Duration(milliseconds: 60));
+    // Far enough into the latch for the connectors to disappear, but short of
+    // the launch so the console still shows its latched colour.
+    await tester.pump(motion.insertionLatch - const Duration(milliseconds: 1));
     _markSubtreeNeedsPaint(
       tester.renderObject(
         find.byKey(const ValueKey<String>('avelune-insertion-golden-root')),
@@ -160,12 +167,28 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull);
+    // Guard the moment being captured: this gate silently recorded the resting
+    // pose once the pacing changed.
+    expect(
+      tester.widget<AveluneConsole>(find.byType(AveluneConsole)).state,
+      AveluneConsoleState.latched,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-cartridge-insertion-overlay')),
+      findsOneWidget,
+    );
     await expectLater(
       find.byKey(const ValueKey<String>('avelune-insertion-golden-root')),
       matchesGoldenFile(
         '../../goldens/avelune/phase4_insertion_latched_390x844.png',
       ),
     );
+
+    // Let the sequence finish: leaving it mid-flight trips the pending-timer
+    // invariant when the tree is torn down.
+    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump(motion.insertionLaunchDelay);
+    await tester.pump();
   });
 }
 
@@ -225,7 +248,9 @@ AveluneHomeViewData _viewData() {
     recentActivity: const <AveluneRecentActivityViewData>[],
     import: const AveluneImportViewData.idle(canStart: true),
     safeErrorMessage: null,
-    reducedMotion: true,
+    // Standard motion: this gate exists to capture the real latched pose, and
+    // under reduced motion the sequence collapses to a single frame.
+    reducedMotion: false,
   );
 }
 

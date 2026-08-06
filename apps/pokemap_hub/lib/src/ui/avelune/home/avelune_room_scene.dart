@@ -13,6 +13,10 @@ import 'avelune_home_geometry.dart';
 import 'avelune_home_view_data.dart';
 import 'avelune_relative_time.dart';
 
+/// Fraction of the credenza canvas at which its shelf board sits — the surface
+/// the shelf cartridges stand on.
+const double kAveluneCredenzaShelfBoardFraction = 0.68;
+
 /// Fraction of the credenza canvas at which its art starts.
 ///
 /// `room/furniture/credenza_*.webp` are 768x700 with the back edge of the top
@@ -34,14 +38,17 @@ final class AveluneRoomSceneLayout {
     final supportY = geometry.consoleRect.top +
         (geometry.consoleRect.height * kAveluneConsoleFootlineFraction);
     final shelfBaselineY = geometry.anchors.shelfBaseline.dy;
-    final height = math.max(
-      math.max(
-        geometry.shelfCartridgeSize.height * 2.1,
-        (shelfBaselineY - supportY) /
-            (_sourceShelfBaseline - kAveluneCredenzaVisibleTopFraction),
-      ),
-      geometry.contentRect.width * 1.62 / _sourceAspectRatio,
-    );
+    // Scale so both anchors land: the top surface on the console's feet and the
+    // shelf board under the cartridges. A `contentWidth * 1.62` candidate used
+    // to win this comparison, overriding the shelf anchor and running the
+    // credenza past the bottom of the screen.
+    final anchoredHeight = (shelfBaselineY - supportY) /
+        (kAveluneCredenzaShelfBoardFraction -
+            kAveluneCredenzaVisibleTopFraction);
+    // On very small screens the anchored piece would not reach the side walls,
+    // so covering the room wins and the board drifts instead.
+    final coveringHeight = geometry.contentRect.width / _sourceAspectRatio;
+    final height = math.max(anchoredHeight, coveringHeight);
     final width = height * _sourceAspectRatio;
     final rect = Rect.fromLTWH(
       geometry.contentRect.center.dx - (width / 2),
@@ -58,7 +65,6 @@ final class AveluneRoomSceneLayout {
   }
 
   static const double _sourceAspectRatio = 768 / 700;
-  static const double _sourceShelfBaseline = 0.68;
 
   final Rect furnitureRect;
   final double furnitureSupportY;

@@ -154,16 +154,20 @@ final class AveluneHomeGeometry {
       );
     }
 
+    // Aligning lifts the cartridge off its resting place and squares it over
+    // the slot; the descent then covers the whole distance to the hardware.
     final insertionAlignedCenter = Offset(
       consoleSlotRect.center.dx,
-      consoleSlotRect.top -
-          (heroCartridgeSize.height / 2) -
-          metrics.insertionClearance,
+      heroCartridgeRect.center.dy - metrics.insertionClearance,
     );
+    // Latched means the connectors are swallowed and the shell stands proud of
+    // the console, as the approved latched reference shows. Driving the centre
+    // below the slot instead pushed the cartridge out under the hardware.
     final insertionLatchedCenter = Offset(
       consoleSlotRect.center.dx,
       consoleSlotRect.center.dy +
-          (heroCartridgeSize.height * _latchedHeroCenterFactor),
+          (heroCartridgeSize.height * _latchedInsertionDepthFactor) -
+          (heroCartridgeSize.height / 2),
     );
     final highTextScale = textScaleFactor >= _sheetTextScaleThreshold;
     final compactContent = sizeClass == AveluneHomeSizeClass.compact;
@@ -210,7 +214,9 @@ final class AveluneHomeGeometry {
   static const double _maximumConsoleWidth = 408;
   static const double _consoleSlotCenterYFactor = 0.16;
   static const double _consoleSlotWidthFactor = 0.34;
-  static const double _latchedHeroCenterFactor = 0.3;
+  /// How far past the slot line the cartridge sinks once latched, as a
+  /// fraction of its height. Just enough to bury the connectors.
+  static const double _latchedInsertionDepthFactor = 0.05;
   static const double _sheetTextScaleThreshold = 1.4;
 
   final AveluneHomeSizeClass sizeClass;
