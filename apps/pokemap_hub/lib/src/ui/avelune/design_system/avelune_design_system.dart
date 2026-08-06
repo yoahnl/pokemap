@@ -1,4 +1,5 @@
 export 'components/avelune_bottom_navigation.dart';
+export 'components/avelune_glass_surface.dart';
 export 'components/avelune_icon_control.dart';
 export 'components/avelune_inset_panel.dart';
 export 'components/avelune_pressable.dart';
@@ -7,6 +8,7 @@ export 'components/avelune_sheet.dart';
 export 'components/avelune_state_message.dart';
 export 'foundation/avelune_breakpoints.dart';
 export 'foundation/avelune_color_tokens.dart';
+export 'foundation/avelune_glass_tokens.dart';
 export 'foundation/avelune_depth_tokens.dart';
 export 'foundation/avelune_material_tokens.dart';
 export 'foundation/avelune_motion_tokens.dart';

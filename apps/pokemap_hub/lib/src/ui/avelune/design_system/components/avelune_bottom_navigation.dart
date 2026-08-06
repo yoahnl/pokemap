@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../foundation/avelune_glass_tokens.dart';
 import '../foundation/avelune_shape_tokens.dart';
 import '../foundation/avelune_spacing_tokens.dart';
 import '../theme/avelune_theme_extensions.dart';
+import 'avelune_glass_surface.dart';
 import 'avelune_pressable.dart';
 
 enum AveluneNavigationItem { home, settings }
@@ -19,11 +21,11 @@ class AveluneBottomNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.aveluneColors;
     final french = Localizations.localeOf(context).languageCode == 'fr';
     // The approved prototype floats an inset capsule over the room instead of
     // capping it with an opaque bar, so the credenza keeps reading all the way
-    // to the bottom edge of the screen.
+    // to the bottom edge of the screen. The capsule is glass: it has the room
+    // behind it, which is what gives a lens something to refract.
     return SafeArea(
       top: false,
       child: Padding(
@@ -31,20 +33,16 @@ class AveluneBottomNavigation extends StatelessWidget {
           AveluneSpacing.xxl,
           0,
           AveluneSpacing.xxl,
-          AveluneSpacing.sm,
+          AveluneSpacing.xxs,
         ),
-        child: Material(
+        child: AveluneGlassSurface(
           key: const ValueKey<String>('avelune-nav-pill'),
-          color: colors.canvas.withValues(alpha: 0.92),
-          shape: RoundedRectangleBorder(
-            borderRadius: AveluneShapes.pill,
-            side: BorderSide(color: colors.outline.withValues(alpha: 0.6)),
-          ),
-          clipBehavior: Clip.antiAlias,
+          cornerRadius: AveluneGlass.capsuleRadius,
           child: SizedBox(
-            // The capsule has to stay inside the 8 percent band that
+            // Taller than the 48 minimum touch target so the capsule reads as
+            // a deliberate surface, but still inside the band
             // AveluneHomeGeometry reserves for it above the recent activity.
-            height: AveluneShapes.minimumTouchTarget,
+            height: 56,
             child: Row(
               children: <Widget>[
                 Expanded(
@@ -62,9 +60,7 @@ class AveluneBottomNavigation extends StatelessWidget {
                   ),
                   child: SizedBox(
                     width: 1,
-                    child: ColoredBox(
-                      color: colors.outline.withValues(alpha: 0.6),
-                    ),
+                    child: ColoredBox(color: AveluneGlass.border),
                   ),
                 ),
                 Expanded(

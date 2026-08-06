@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../foundation/avelune_shape_tokens.dart';
 import '../foundation/avelune_spacing_tokens.dart';
-import '../theme/avelune_theme_extensions.dart';
+import 'avelune_glass_surface.dart';
 
 class AveluneInsetPanel extends StatelessWidget {
   const AveluneInsetPanel({
@@ -22,23 +22,14 @@ class AveluneInsetPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.aveluneColors;
-    return Semantics(
-      container: true,
-      label: semanticLabel,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceInset,
-          borderRadius: borderRadius,
-          border: Border.all(color: colors.outline),
-          boxShadow: context.aveluneDepth.inset,
-        ),
-        child: ClipRRect(
-          borderRadius: borderRadius,
-          clipBehavior: clipBehavior,
-          child: Padding(padding: padding, child: child),
-        ),
-      ),
+    // Glass rather than a filled panel: sheets sit over the room, so the
+    // surface has something worth refracting behind it.
+    return AveluneGlassSurface(
+      cornerRadius: borderRadius.topLeft.x,
+      padding: padding,
+      readable: true,
+      semanticLabel: semanticLabel,
+      child: child,
     );
   }
 }
