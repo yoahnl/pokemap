@@ -8,6 +8,7 @@ import 'package:pokemap_hub/src/ui/avelune/avelune_console.dart';
 import 'package:pokemap_hub/src/ui/avelune/avelune_theme.dart';
 import 'package:pokemap_hub/src/ui/avelune/home/avelune_home_screen.dart';
 import 'package:pokemap_hub/src/ui/avelune/home/avelune_home_view_data.dart';
+import 'package:pokemap_hub/src/ui/avelune/home/avelune_room_scene.dart';
 import 'package:pokemap_hub/src/ui/avelune/motion/avelune_feedback.dart';
 
 // Phase lengths come from the tokens rather than being copied here: the
@@ -186,6 +187,54 @@ void main() {
       findsNothing,
     );
     expect(_heroWidget(tester).gameId, 'games.insertion.test');
+  });
+
+  testWidgets('the descending cartridge is swallowed by the slot mouth',
+      (tester) async {
+    await _pumpHome(
+      tester,
+      game: _game(action: AvelunePrimaryAction.play),
+      feedback: _RecordingFeedback(),
+      onNewGame: (_) {},
+    );
+
+    await tester.tap(_hero);
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(_standard.insertionAlign);
+    await tester.pump();
+
+    final scene = tester.widget<AveluneRoomScene>(
+      find.byType(AveluneRoomScene),
+    );
+    final clip = tester.widget<ClipRect>(
+      find.byKey(const ValueKey<String>('avelune-slot-mouth-clip')),
+    );
+    final overlay = find.descendant(
+      of: find.byKey(const ValueKey<String>('avelune-slot-mouth-clip')),
+      matching: _insertionOverlay,
+    );
+
+    expect(
+      overlay,
+      findsOneWidget,
+      reason: 'The cartridge has to be painted over the console and clipped, '
+          'not tucked behind the whole hardware where it vanishes at the top '
+          'silhouette instead of at the opening.',
+    );
+    final mouth = clip.clipper!.getClip(const Size(390, 844)).bottom;
+    expect(mouth, closeTo(scene.geometry.consoleSlotMouthY, 0.01));
+    expect(
+      mouth,
+      greaterThan(scene.geometry.consoleRect.top),
+      reason: 'The mouth sits inside the console, on its top deck.',
+    );
+
+    // Drain the sequence so no timer outlives the tree.
+    await tester.pump(_standard.insertionDescend);
+    await tester.pump(_standard.insertionLatch);
+    await tester.pump(_standard.insertionLaunchDelay);
+    await tester.pump();
   });
 
   testWidgets('reduced motion latches and launches in 120 ms', (tester) async {

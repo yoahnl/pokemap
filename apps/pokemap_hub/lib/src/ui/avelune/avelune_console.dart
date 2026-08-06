@@ -18,6 +18,22 @@ const double kAveluneConsoleAspectRatio = 1200 / 360;
 /// not `Rect.bottom`, or the console floats.
 const double kAveluneConsoleFootlineFraction = 324 / 360;
 
+/// Centre of the slot opening, as a fraction of the console box height.
+///
+/// The dark cavity in `console/body.webp` runs from y=87 to y=108 on its 360 px
+/// canvas. The geometry used to place the slot at 0.16, which is up on the deck
+/// well above the opening.
+const double kAveluneConsoleSlotCenterFraction = 97.5 / 360;
+
+/// The near lip of the slot opening: the line at which a descending cartridge
+/// is swallowed.
+///
+/// Cartridges are drawn over the console and clipped here, so they disappear
+/// into the cavity. Drawing them behind the whole console instead hid them at
+/// its top silhouette — above the opening — which read as sliding behind the
+/// hardware rather than into it.
+const double kAveluneConsoleSlotMouthFraction = 108 / 360;
+
 enum AveluneConsoleState { idle, inserting, latched, launching, error }
 
 class AveluneConsole extends StatelessWidget {

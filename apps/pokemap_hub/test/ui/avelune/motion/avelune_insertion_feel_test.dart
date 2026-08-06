@@ -37,13 +37,13 @@ void main() {
         );
         expect(
           latchedBottom,
-          greaterThan(geometry.consoleSlotRect.center.dy),
-          reason: 'It still has to reach into the slot rather than hover.',
+          greaterThan(geometry.consoleSlotMouthY),
+          reason: 'It still has to reach into the cavity rather than hover.',
         );
         expect(
-          latchedBottom - geometry.consoleSlotRect.center.dy,
-          lessThan(height * 0.12),
-          reason: 'Only the connectors are swallowed; the shell stays proud of '
+          latchedBottom - geometry.consoleSlotMouthY,
+          closeTo(height * kAveluneCartridgeConnectorHeightFraction, 0.5),
+          reason: 'Exactly the contact strip goes in: the shell stays proud of '
               'the hardware as the approved reference shows.',
         );
       });

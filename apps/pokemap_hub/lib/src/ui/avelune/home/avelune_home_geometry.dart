@@ -53,6 +53,7 @@ final class AveluneHomeGeometry {
     required this.heroCartridgeRect,
     required this.consoleRect,
     required this.consoleSlotRect,
+    required this.consoleSlotMouthY,
     required this.shelfFirstCartridgeRect,
     required this.anchors,
     required this.shelfGap,
@@ -130,10 +131,13 @@ final class AveluneHomeGeometry {
       );
     }
 
+    final consoleSlotMouthY = consoleRect.top +
+        (consoleRect.height * kAveluneConsoleSlotMouthFraction);
     final consoleSlotRect = Rect.fromCenter(
       center: Offset(
         consoleRect.center.dx,
-        consoleRect.top + (consoleRect.height * _consoleSlotCenterYFactor),
+        consoleRect.top +
+            (consoleRect.height * kAveluneConsoleSlotCenterFraction),
       ),
       width: consoleRect.width * _consoleSlotWidthFactor,
       height: metrics.consoleSlotHeight,
@@ -163,10 +167,14 @@ final class AveluneHomeGeometry {
     // Latched means the connectors are swallowed and the shell stands proud of
     // the console, as the approved latched reference shows. Driving the centre
     // below the slot instead pushed the cartridge out under the hardware.
+    // Latched buries exactly the contact strip below the slot's near lip, which
+    // is where the cartridge is clipped, so the shell reads as seated in the
+    // cavity with its connectors inside.
     final insertionLatchedCenter = Offset(
       consoleSlotRect.center.dx,
-      consoleSlotRect.center.dy +
-          (heroCartridgeSize.height * _latchedInsertionDepthFactor) -
+      consoleSlotMouthY +
+          (heroCartridgeSize.height *
+              kAveluneCartridgeConnectorHeightFraction) -
           (heroCartridgeSize.height / 2),
     );
     final highTextScale = textScaleFactor >= _sheetTextScaleThreshold;
@@ -201,6 +209,7 @@ final class AveluneHomeGeometry {
       heroCartridgeRect: heroCartridgeRect,
       consoleRect: consoleRect,
       consoleSlotRect: consoleSlotRect,
+      consoleSlotMouthY: consoleSlotMouthY,
       shelfFirstCartridgeRect: shelfFirstCartridgeRect,
       anchors: anchors,
       shelfGap: metrics.shelfGap,
@@ -212,11 +221,7 @@ final class AveluneHomeGeometry {
   }
 
   static const double _maximumConsoleWidth = 408;
-  static const double _consoleSlotCenterYFactor = 0.16;
   static const double _consoleSlotWidthFactor = 0.34;
-  /// How far past the slot line the cartridge sinks once latched, as a
-  /// fraction of its height. Just enough to bury the connectors.
-  static const double _latchedInsertionDepthFactor = 0.05;
   static const double _sheetTextScaleThreshold = 1.4;
 
   final AveluneHomeSizeClass sizeClass;
@@ -233,6 +238,9 @@ final class AveluneHomeGeometry {
   final Rect heroCartridgeRect;
   final Rect consoleRect;
   final Rect consoleSlotRect;
+
+  /// Screen y at which a descending cartridge enters the slot and is clipped.
+  final double consoleSlotMouthY;
   final Rect shelfFirstCartridgeRect;
   final AveluneHomeAnchors anchors;
   final double shelfGap;

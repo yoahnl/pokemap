@@ -195,7 +195,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
                 showHero: !_isExchanging && !_isInserting,
                 heroSemanticsLabel:
                     canLaunch ? _heroActionLabel(selectedGame) : null,
-                behindConsoleOverlay: _buildInsertionOverlay(geometry),
+                insertionOverlay: _buildInsertionOverlay(geometry),
                 foregroundOverlay: SizedBox.expand(
                   key: _exchangeOverlayAnchorKey,
                   child: _buildExchangeOverlay(),

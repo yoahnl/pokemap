@@ -91,7 +91,7 @@ class AveluneRoomScene extends StatelessWidget {
     this.shelfCartridgeKeyFor,
     this.hiddenShelfGameIds = const <String>{},
     this.showHero = true,
-    this.behindConsoleOverlay,
+    this.insertionOverlay,
     this.foregroundOverlay,
     this.heroSemanticsLabel,
     this.referenceTime,
@@ -114,7 +114,9 @@ class AveluneRoomScene extends StatelessWidget {
   final GlobalKey Function(String gameId)? shelfCartridgeKeyFor;
   final Set<String> hiddenShelfGameIds;
   final bool showHero;
-  final Widget? behindConsoleOverlay;
+  /// Cartridge being inserted. Painted over the console and clipped at the slot
+  /// mouth so it disappears into the cavity instead of behind the hardware.
+  final Widget? insertionOverlay;
   final Widget? foregroundOverlay;
   final String? heroSemanticsLabel;
 
@@ -209,8 +211,6 @@ class AveluneRoomScene extends StatelessWidget {
                 onActivitySelected: onActivitySelected,
               ),
             ),
-          if (behindConsoleOverlay != null)
-            Positioned.fill(child: behindConsoleOverlay!),
           Positioned.fromRect(
             rect: geometry.consoleRect,
             child: AveluneConsole(
@@ -218,6 +218,14 @@ class AveluneRoomScene extends StatelessWidget {
               insertionProgress: insertionProgress,
             ),
           ),
+          if (insertionOverlay != null)
+            Positioned.fill(
+              child: ClipRect(
+                key: const ValueKey<String>('avelune-slot-mouth-clip'),
+                clipper: _AveluneSlotMouthClipper(geometry.consoleSlotMouthY),
+                child: insertionOverlay!,
+              ),
+            ),
           if (selected != null) ...<Widget>[
             Positioned.fromRect(
               rect: geometry.heroCartridgeRect.inflate(
@@ -278,6 +286,21 @@ class AveluneRoomScene extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Cuts everything below the slot's near lip, so a descending cartridge is
+/// swallowed by the opening rather than hidden by the console silhouette.
+class _AveluneSlotMouthClipper extends CustomClipper<Rect> {
+  const _AveluneSlotMouthClipper(this.mouthY);
+
+  final double mouthY;
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTRB(0, 0, size.width, mouthY);
+
+  @override
+  bool shouldReclip(_AveluneSlotMouthClipper oldClipper) =>
+      oldClipper.mouthY != mouthY;
 }
 
 ImageProvider<Object> _backgroundFor(

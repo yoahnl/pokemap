@@ -5,6 +5,13 @@ import 'avelune_game_presentation.dart';
 import 'avelune_theme.dart';
 
 const double kAveluneCartridgeAspectRatio = 0.7;
+
+/// Height of the gold contact strip as a fraction of the cartridge height.
+///
+/// The strip is laid out as `width * 0.179` at the bottom of the shell, so this
+/// is what a slot has to swallow for the cartridge to read as seated.
+const double kAveluneCartridgeConnectorHeightFraction =
+    0.179 * kAveluneCartridgeAspectRatio;
 const int kAveluneCartridgeHeroArtworkCacheWidth = 512;
 const int kAveluneCartridgeHeroArtworkCacheHeight = 640;
 const int kAveluneCartridgeShelfArtworkCacheWidth = 256;
