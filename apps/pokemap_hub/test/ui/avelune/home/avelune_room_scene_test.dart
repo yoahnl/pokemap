@@ -73,7 +73,11 @@ void main() {
     final support = tester.getRect(
       find.byKey(const ValueKey<String>('avelune-furniture-support-anchor')),
     );
-    expect(console.bottom, closeTo(support.center.dy, 2));
+    // The support line is the console's foot line, not the bottom of its layout
+    // box: the art keeps transparent padding below the feet.
+    final footline =
+        console.top + (console.height * kAveluneConsoleFootlineFraction);
+    expect(support.center.dy, closeTo(footline, 2));
 
     final shelfBaseline = tester
         .getRect(
@@ -152,7 +156,16 @@ void main() {
     );
     final room = AveluneRoomSceneLayout.resolve(geometry);
 
-    expect(room.furnitureSupportY, closeTo(geometry.consoleRect.bottom, 0.01));
+    expect(
+      room.furnitureSupportY,
+      closeTo(
+        geometry.consoleRect.top +
+            (geometry.consoleRect.height * kAveluneConsoleFootlineFraction),
+        0.01,
+      ),
+      reason: 'Seating the credenza on consoleRect.bottom left the console '
+          'hovering by a tenth of its height.',
+    );
     expect(
       room.furnitureShelfBaselineY,
       closeTo(geometry.anchors.shelfBaseline.dy, 0.01),

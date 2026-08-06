@@ -6,7 +6,11 @@ import 'package:map_player_ui/map_player_ui.dart';
 
 import 'avelune/appearance/avelune_appearance_controller.dart';
 import 'avelune/appearance/avelune_appearance_preferences.dart';
+import 'avelune/appearance/avelune_appearance_catalog.dart';
 import 'avelune/appearance/avelune_appearance_settings.dart';
+import 'avelune/settings/avelune_motion_panel.dart';
+import 'avelune/settings/avelune_settings_menu.dart';
+import 'avelune/settings/avelune_storage_panel.dart';
 import 'avelune/avelune_game_details.dart';
 import 'avelune/avelune_theme.dart';
 import 'avelune/home/avelune_home_controller.dart';
@@ -148,19 +152,134 @@ class HubShell extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 0,
-            child: AveluneBottomNavigation(
-              selectedItem: snapshot.section == HubSection.preferences
-                  ? AveluneNavigationItem.settings
-                  : AveluneNavigationItem.home,
-              onItemSelected: (item) => onSectionSelected(
-                item == AveluneNavigationItem.settings
-                    ? HubSection.preferences
-                    : HubSection.home,
+            child: Builder(
+              // The approved sheet floats over the room, so opening settings is
+              // not a navigation change: the Home tab stays selected and the
+              // scene stays mounted behind the barrier.
+              builder: (navContext) => AveluneBottomNavigation(
+                selectedItem: AveluneNavigationItem.home,
+                onItemSelected: (item) {
+                  if (item == AveluneNavigationItem.settings) {
+                    _openSettings(navContext);
+                  }
+                },
               ),
             ),
           ),
         ],
       );
+
+  /// Opens the approved settings sheet over the room.
+  void _openSettings(BuildContext context) {
+    final french = Localizations.maybeLocaleOf(context)?.languageCode == 'fr';
+    final storage = snapshot.storage;
+    final available = storage.availableBytes;
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    final appearance = appearanceController;
+    final games = snapshot.games.length;
+    final errors = snapshot.diagnostics
+        .where((diagnostic) => diagnostic.severity != HubDiagnosticSeverity.information)
+        .length;
+
+    AveluneSheet.show<void>(
+      context: context,
+      title: french ? 'Paramètres Avelune' : 'Avelune settings',
+      builder: (sheetContext) => AveluneSettingsMenu(
+        caption: french
+            ? 'Réglages locaux de votre console.'
+            : 'Local settings for your console.',
+        entries: <AveluneSettingsEntry>[
+          // Omitted outright when no controller is wired: a row that could only
+          // open an unresolvable spinner is worse than no row.
+          if (appearance != null)
+            AveluneSettingsEntry(
+              id: 'appearance',
+              icon: Icons.brightness_6_rounded,
+              title: french ? 'Apparence' : 'Appearance',
+              subtitle: _appearanceSummary(appearance),
+              onSelected: () => _openAppearance(sheetContext, appearance),
+            ),
+          AveluneSettingsEntry(
+            id: 'storage',
+            icon: Icons.inventory_2_rounded,
+            title: french ? 'Stockage' : 'Storage',
+            subtitle: french
+                ? '$games ${games == 1 ? 'jeu' : 'jeux'} · '
+                    '${_formatBytes(sheetContext, storage.usedBytes)} utilisé'
+                : '$games ${games == 1 ? 'game' : 'games'} · '
+                    '${_formatBytes(sheetContext, storage.usedBytes)} used',
+            onSelected: () => AveluneSheet.show<void>(
+              context: sheetContext,
+              title: french ? 'Stockage' : 'Storage',
+              builder: (context) => AveluneStoragePanel(
+                gameCount: games,
+                usedLabel: _formatBytes(context, storage.usedBytes),
+                availableLabel:
+                    available == null ? null : _formatBytes(context, available),
+              ),
+            ),
+          ),
+          AveluneSettingsEntry(
+            id: 'motion',
+            icon: Icons.animation_rounded,
+            title: french ? 'Mouvement' : 'Motion',
+            subtitle: aveluneMotionSummary(reducedMotion, french: french),
+            onSelected: () => AveluneSheet.show<void>(
+              context: sheetContext,
+              title: french ? 'Mouvement' : 'Motion',
+              builder: (context) =>
+                  AveluneMotionPanel(reducedMotion: reducedMotion),
+            ),
+          ),
+          AveluneSettingsEntry(
+            id: 'diagnostics',
+            icon: Icons.monitor_heart_rounded,
+            title: french ? 'Diagnostics' : 'Diagnostics',
+            subtitle: errors == 0
+                ? (french ? 'Aucun incident signalé' : 'No incident reported')
+                : (french
+                    ? '$errors ${errors == 1 ? 'alerte' : 'alertes'}'
+                    : '$errors ${errors == 1 ? 'alert' : 'alerts'}'),
+            onSelected: () => AveluneSheet.show<void>(
+              context: sheetContext,
+              title: french ? 'Diagnostics' : 'Diagnostics',
+              builder: (context) => _HubDiagnostics(snapshot: snapshot),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _appearanceSummary(AveluneAppearanceController controller) {
+    final preferences = controller.state.preferences;
+    final background =
+        AveluneAppearanceCatalog.background(preferences.backgroundId).label;
+    final furniture =
+        AveluneAppearanceCatalog.furnitureFinish(preferences.furnitureId).label;
+    return '$background · $furniture';
+  }
+
+  void _openAppearance(
+    BuildContext context,
+    AveluneAppearanceController controller,
+  ) {
+    final french = Localizations.maybeLocaleOf(context)?.languageCode == 'fr';
+    AveluneSheet.show<void>(
+      context: context,
+      title: french ? 'Apparence' : 'Appearance',
+      builder: (sheetContext) => ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) => AveluneAppearanceSettings(
+          state: controller.state,
+          onBackgroundSelected: controller.selectBackground,
+          onFurnitureSelected: controller.selectFurniture,
+          onImportCustomBackground: controller.importCustomBackground,
+          onRemoveCustomBackground: controller.removeCustomBackground,
+        ),
+      ),
+    );
+  }
 
   Widget _content(BuildContext context) {
     if (snapshot.status == HubDashboardStatus.loading ||

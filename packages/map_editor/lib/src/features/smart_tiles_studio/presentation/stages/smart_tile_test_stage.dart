@@ -1,10 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../../ui/assets/editor_image_cache.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/smart_tile_form_projection.dart';
 import '../../application/smart_tile_test_layer_controller.dart';
-import '../workbench/smart_tile_compact_lab.dart';
+import '../workbench/smart_tile_lab_surface.dart';
 
 class SmartTileTestStage extends StatelessWidget {
   const SmartTileTestStage({
@@ -21,7 +22,14 @@ class SmartTileTestStage extends StatelessWidget {
     this.onContinue,
     this.variantCount = 0,
     this.guideSummaryLabels = const <String>[],
+    this.tilesetPathsById = const <String, String>{},
+    this.showStructure = true,
+    this.onShowStructureChanged,
+    this.projectRootPath,
+    this.imageCache,
   });
+
+  static const double labCellExtent = 44;
 
   final SmartTileTestLayerController controller;
   final SmartTileLabTool tool;
@@ -35,6 +43,13 @@ class SmartTileTestStage extends StatelessWidget {
   final VoidCallback? onContinue;
   final int variantCount;
   final List<String> guideSummaryLabels;
+
+  /// Absolute path of every tileset this preset samples, by tileset id.
+  final Map<String, String> tilesetPathsById;
+  final bool showStructure;
+  final ValueChanged<bool>? onShowStructureChanged;
+  final String? projectRootPath;
+  final EditorImageCache? imageCache;
 
   @override
   Widget build(BuildContext context) {
@@ -107,6 +122,17 @@ class SmartTileTestStage extends StatelessWidget {
                 child: const Text('Gomme'),
               ),
               PokeMapButton(
+                key: const Key('smart-tiles-lab-structure'),
+                onPressed: onShowStructureChanged == null
+                    ? null
+                    : () => onShowStructureChanged!(!showStructure),
+                variant: PokeMapButtonVariant.ghost,
+                size: PokeMapButtonSize.small,
+                isSelected: showStructure,
+                leading: const Icon(CupertinoIcons.grid, size: 14),
+                child: const Text('Structure'),
+              ),
+              PokeMapButton(
                 key: const Key('smart-tiles-lab-reset'),
                 onPressed: onReset,
                 variant: PokeMapButtonVariant.secondary,
@@ -121,10 +147,19 @@ class SmartTileTestStage extends StatelessWidget {
           padding: const EdgeInsets.all(10),
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            child: SmartTileCompactLab(
+            child: SmartTileLabSurface(
               layer: controller.layer,
               mapSize: controller.size,
               topology: controller.preset.topology,
+              visuals: controller.resolveVisuals(
+                destinationCellWidth: labCellExtent,
+                destinationCellHeight: labCellExtent,
+              ),
+              tilesetPathsById: tilesetPathsById,
+              showStructure: showStructure,
+              cellExtent: labCellExtent,
+              projectRootPath: projectRootPath,
+              imageCache: imageCache,
               selectedX: inspection?.x,
               selectedY: inspection?.y,
               onTargetPressed: onTargetPressed,

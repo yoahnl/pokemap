@@ -79,7 +79,17 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
     );
-    expect(selectedSection, HubSection.preferences);
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
+
+    // Settings is a sheet over the room, so it is not a section change: the
+    // Home tab stays selected and the scene stays mounted behind it.
+    expect(selectedSection, isNull);
+    expect(
+      find.byKey(const ValueKey<String>('avelune-settings-menu')),
+      findsOneWidget,
+    );
     expect(find.byType(NavigationBar), findsNothing);
     expect(find.byType(NavigationRail), findsNothing);
   });

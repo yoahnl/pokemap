@@ -33,7 +33,7 @@ void main() {
       const ui.Rect.fromLTWH(64, 32, 32, 32),
     );
 
-    cache.complete(EditorImageLoadResult.success(image!.clone()));
+    cache.complete(EditorImageLoadResult.success(image.clone()));
     await tester.pump();
 
     expect(find.byKey(const Key('preview')), findsOneWidget);
@@ -103,12 +103,12 @@ void main() {
     );
 
     expect(cache.requests.length, 2);
-    cache.completeAt(1, EditorImageLoadResult.success(freshImage!.clone()));
+    cache.completeAt(1, EditorImageLoadResult.success(freshImage.clone()));
     await tester.pump();
     await tester.pump();
     expect(tester.widget<RawImage>(find.byType(RawImage)).image?.width, 16);
 
-    final stale = EditorImageLoadResult.success(staleImage!.clone());
+    final stale = EditorImageLoadResult.success(staleImage.clone());
     cache.completeAt(0, stale);
     await tester.pump();
     await tester.pump();

@@ -27,7 +27,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Impossible d’ouvrir PokeMap Hub'), findsOneWidget);
+    expect(find.text('Impossible d’ouvrir Avelune'), findsOneWidget);
     expect(find.text('Réessayer'), findsOneWidget);
     expect(find.textContaining('hub.bootstrap.failed'), findsOneWidget);
     expect(
@@ -76,7 +76,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Impossible d’ouvrir PokeMap Hub'), findsOneWidget);
+    expect(find.text('Impossible d’ouvrir Avelune'), findsOneWidget);
     expect(find.text('Réessayer'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../theme/theme.dart';
+import '../../../ui/assets/editor_image_cache.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../application/smart_tile_atlas_image_loader.dart';
@@ -25,12 +26,14 @@ import '../application/smart_tile_studio_library.dart';
 import '../application/smart_tile_studio_launch_context.dart';
 import '../application/smart_tile_studio_session.dart';
 import '../application/smart_tile_source_asset_import_service.dart';
+import '../application/smart_tile_sprite_source.dart';
 import '../application/smart_tile_tiled_wang_import_service.dart';
 import '../application/smart_tile_test_layer_controller.dart';
 import 'smart_tile_guide_diagram.dart';
 import 'smart_tile_guide_overlay_painter.dart';
 import 'smart_tile_pattern_editor.dart';
 import 'smart_tile_reconstruction_editor.dart';
+import 'smart_tile_sprite_preview.dart';
 import 'smart_tile_tiled_wang_import_editor.dart';
 import 'smart_tiles_studio_shell.dart';
 import 'smart_tiles_studio_stage_header.dart';
@@ -55,6 +58,7 @@ class SmartTilesStudioPanel extends StatefulWidget {
     required this.manifest,
     this.projectRootPath,
     this.imageLoader = const FileSmartTileAtlasImageLoader(),
+    this.imageCache,
     this.launchContext = const SmartTilesStudioLaunchContext.library(),
     this.isCapturedMapAvailable = false,
     this.capturedMap,
@@ -76,6 +80,10 @@ class SmartTilesStudioPanel extends StatefulWidget {
   final ProjectManifest manifest;
   final String? projectRootPath;
   final SmartTileAtlasImageLoader imageLoader;
+
+  /// Decoded-image cache used to render real sprites. Left null in production
+  /// so the Riverpod-scoped cache is picked up; injected in tests.
+  final EditorImageCache? imageCache;
   final SmartTilesStudioLaunchContext launchContext;
   final bool isCapturedMapAvailable;
   final MapData? capturedMap;
@@ -145,6 +153,10 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   int? _focusedMask;
   String? _selectedSourceTilesetId;
   String? _selectedRegisteredAtlasId;
+  String? _selectedAtlasTabId;
+  SmartTileAtlasImageLoadResult? _atlasTabImageResult;
+  bool _atlasTabLoading = false;
+  int _atlasTabRevision = 0;
   SmartTileAtlasImageLoadResult? _sourceImageResult;
   bool _isLoadingSourceImage = false;
   bool _isImportingSourceImage = false;
@@ -157,6 +169,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   SmartTileTopology? _customConnectionTopology;
   SmartTileTestLayerController? _testLabController;
   SmartTileLabTool _testLabTool = SmartTileLabTool.pencil;
+  bool _labShowStructure = true;
   SmartTileTransformProposal? _transformProposal;
   SmartTilePublicationTargetKind _publicationTargetKind =
       SmartTilePublicationTargetKind.library;
@@ -650,6 +663,18 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                       : PokeMapBadgeVariant.warning,
             ),
             const SizedBox(height: 12),
+            if (_inspectorFrameFor(selectedItem) case final frame?) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _spritePreview(
+                  frame,
+                  size: 72,
+                  key: const Key('smart-tiles-inspector-sprite'),
+                  semanticLabel: 'Aperçu de ${selectedItem.name}',
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
             _InspectorValue(label: 'Nom', value: selectedItem.name),
             if (!selectedItem.isPattern)
               _InspectorValue(label: 'Identifiant', value: selectedItem.id),
@@ -1457,7 +1482,53 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       onReset: _resetLab,
       onScenarioSelected: _loadLabScenario,
       onContinue: _moveToPublish,
+      tilesetPathsById: _labTilesetPaths(controller.preset),
+      showStructure: _labShowStructure,
+      onShowStructureChanged: (value) =>
+          setState(() => _labShowStructure = value),
+      projectRootPath: widget.projectRootPath,
+      imageCache: widget.imageCache,
     );
+  }
+
+  /// Absolute path of every tileset [preset] samples, keyed by tileset id, so
+  /// the laboratory can decode exactly the images its sprites need.
+  Map<String, String> _labTilesetPaths(ProjectSmartTilePreset preset) {
+    final catalog = widget.manifest.smartTileCatalog;
+    final paths = <String, String>{};
+    for (final rule in preset.rules) {
+      for (final candidate in rule.candidates) {
+        for (final part in candidate.parts) {
+          final frames = switch (part.source) {
+            SmartTileFrameSource(frame: final frame) => <SmartTileFrameRef>[
+                frame,
+              ],
+            SmartTileAnimationSource(animationId: final id) => catalog
+                    .animations
+                    .where((animation) => animation.id == id)
+                    .firstOrNull
+                    ?.frames
+                    .map((frame) => frame.frame)
+                    .toList(growable: false) ??
+                const <SmartTileFrameRef>[],
+          };
+          for (final frame in frames) {
+            final atlas = catalog.atlases
+                .where((entry) => entry.id == frame.atlasId)
+                .firstOrNull;
+            if (atlas == null || paths.containsKey(atlas.tilesetId)) continue;
+            final source = resolveSmartTileSpriteSource(
+              frame: frame,
+              atlases: catalog.atlases,
+              tilesets: widget.manifest.tilesets,
+              projectRootPath: widget.projectRootPath,
+            );
+            if (source != null) paths[atlas.tilesetId] = source.absolutePath;
+          }
+        }
+      }
+    }
+    return paths;
   }
 
   Widget _buildPublishStep() {
@@ -1507,6 +1578,65 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
+  /// Renders the real pixels of [frame], or a typed placeholder when the
+  /// catalog, the tileset registry or the project root cannot back it.
+  Widget _spritePreview(
+    SmartTileFrameRef frame, {
+    double size = 34,
+    Key? key,
+    String? semanticLabel,
+  }) {
+    return SmartTileSpritePreview(
+      // Keyed on the widget itself rather than on its preview/fallback child,
+      // so callers can find it while it is still loading.
+      key: key,
+      frame: frame,
+      atlases: widget.manifest.smartTileCatalog.atlases,
+      tilesets: widget.manifest.tilesets,
+      projectRootPath: widget.projectRootPath,
+      imageCache: widget.imageCache,
+      size: size,
+      semanticLabel: semanticLabel,
+    );
+  }
+
+  /// The sprite that best describes [item] in the inspector: the focused rule's
+  /// variant when the author drilled into one, the preset's own otherwise.
+  SmartTileFrameRef? _inspectorFrameFor(SmartTileLibraryItem item) {
+    final preset = item.nativePreset;
+    if (preset == null) return null;
+    final focusedRule =
+        preset.rules.where((rule) => rule.id == _focusedRuleId).firstOrNull;
+    if (focusedRule != null) {
+      final frame =
+          focusedRule.candidates.map(_firstFrameOf).nonNulls.firstOrNull;
+      if (frame != null) return frame;
+    }
+    return _representativeFrameOf(preset);
+  }
+
+  /// First frame-backed part of [candidate], ignoring animation sources whose
+  /// timeline is resolved elsewhere.
+  SmartTileFrameRef? _firstFrameOf(SmartTileCandidate candidate) {
+    for (final part in candidate.parts) {
+      if (part.source case SmartTileFrameSource(frame: final frame)) {
+        return frame;
+      }
+    }
+    return null;
+  }
+
+  /// A sprite that stands for the whole preset in compact surfaces.
+  SmartTileFrameRef? _representativeFrameOf(ProjectSmartTilePreset preset) {
+    for (final rule in preset.rules) {
+      for (final candidate in rule.candidates) {
+        final frame = _firstFrameOf(candidate);
+        if (frame != null) return frame;
+      }
+    }
+    return null;
+  }
+
   Widget _buildAtlasTab(SmartTileLibraryItem selectedItem) {
     final atlases = widget.manifest.smartTileCatalog.atlases;
     if (atlases.isEmpty) {
@@ -1516,23 +1646,129 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         icon: Icon(CupertinoIcons.photo),
       );
     }
-    return ListView.separated(
+    final selectedAtlas =
+        atlases.where((atlas) => atlas.id == _selectedAtlasTabId).firstOrNull;
+    return ListView(
       padding: const EdgeInsets.all(18),
-      itemCount: atlases.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        final atlas = atlases[index];
-        return PokeMapAssetCard(
-          thumbnail: const Icon(CupertinoIcons.photo, size: 20),
-          label: atlas.name,
-          description: '${atlas.columns} × ${atlas.rows} cellules • '
-              '${atlas.cellWidth} × ${atlas.cellHeight} px • '
-              'origine ${atlas.originX},${atlas.originY} • '
-              'espacement ${atlas.spacingX},${atlas.spacingY}',
-          onPressed: null,
-        );
-      },
+      children: <Widget>[
+        if (selectedAtlas != null) ...[
+          _buildAtlasTabViewport(selectedAtlas),
+          const SizedBox(height: 14),
+        ],
+        for (final atlas in atlases) ...[
+          PokeMapAssetCard(
+            key: Key('smart-tiles-atlas-card-${atlas.id}'),
+            thumbnail: _spritePreview(
+              SmartTileFrameRef(atlasId: atlas.id, column: 0, row: 0),
+              size: 30,
+              semanticLabel: 'Première cellule de ${atlas.name}',
+            ),
+            label: atlas.name,
+            description: '${atlas.columns} × ${atlas.rows} cellules • '
+                '${atlas.cellWidth} × ${atlas.cellHeight} px • '
+                'origine ${atlas.originX},${atlas.originY} • '
+                'espacement ${atlas.spacingX},${atlas.spacingY}',
+            selected: atlas.id == _selectedAtlasTabId,
+            onPressed: () => unawaited(_selectAtlasTab(atlas)),
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
     );
+  }
+
+  Widget _buildAtlasTabViewport(ProjectSmartTileAtlas atlas) {
+    if (_atlasTabLoading) {
+      return const PokeMapPanel(
+        key: Key('smart-tiles-atlas-tab-loading'),
+        padding: EdgeInsets.all(24),
+        child: Center(child: CupertinoActivityIndicator(radius: 9)),
+      );
+    }
+    final result = _atlasTabImageResult;
+    final image = result?.image;
+    if (image == null) {
+      return PokeMapEmptyState(
+        key: const Key('smart-tiles-atlas-tab-error'),
+        title: 'Atlas illisible',
+        description:
+            result?.message ?? 'L’image de cet atlas n’a pas pu être chargée.',
+        icon: const Icon(CupertinoIcons.exclamationmark_triangle),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        PokeMapSectionHeader(
+          title: atlas.name,
+          description:
+              'Découpe telle qu’enregistrée dans le catalogue. Molette pour zoomer.',
+        ),
+        const SizedBox(height: 10),
+        _SmartTileAtlasMappingViewport(
+          key: const Key('smart-tiles-atlas-tab-viewport'),
+          geometry: SmartTileGridGeometry(
+            imageWidth: image.width,
+            imageHeight: image.height,
+            cellWidth: atlas.cellWidth,
+            cellHeight: atlas.cellHeight,
+            originX: atlas.originX,
+            originY: atlas.originY,
+            marginX: atlas.marginX,
+            marginY: atlas.marginY,
+            spacingX: atlas.spacingX,
+            spacingY: atlas.spacingY,
+            explicitColumns: atlas.columns,
+            explicitRows: atlas.rows,
+          ),
+          image: image,
+          selectedFrame: null,
+          enabled: false,
+          onCellSelected: (_) {},
+        ),
+      ],
+    );
+  }
+
+  Future<void> _selectAtlasTab(ProjectSmartTileAtlas atlas) async {
+    if (_selectedAtlasTabId == atlas.id) {
+      setState(() {
+        _selectedAtlasTabId = null;
+        _atlasTabImageResult = null;
+        _atlasTabLoading = false;
+        _atlasTabRevision += 1;
+      });
+      return;
+    }
+    final tileset = widget.manifest.tilesets
+        .where((entry) => entry.id == atlas.tilesetId)
+        .firstOrNull;
+    if (tileset == null) {
+      setState(() {
+        _selectedAtlasTabId = atlas.id;
+        _atlasTabLoading = false;
+        _atlasTabImageResult = const SmartTileAtlasImageLoadResult(
+          status: SmartTileAtlasImageLoadStatus.missingFile,
+          message: 'Le tileset de cet atlas est absent du projet.',
+        );
+      });
+      return;
+    }
+    final revision = ++_atlasTabRevision;
+    setState(() {
+      _selectedAtlasTabId = atlas.id;
+      _atlasTabImageResult = null;
+      _atlasTabLoading = true;
+    });
+    final result = await widget.imageLoader.load(
+      projectRootPath: widget.projectRootPath,
+      tileset: tileset,
+    );
+    if (!mounted || revision != _atlasTabRevision) return;
+    setState(() {
+      _atlasTabImageResult = result;
+      _atlasTabLoading = false;
+    });
   }
 
   Widget _buildRulesTab(SmartTileLibraryItem selectedItem) {
@@ -1574,7 +1810,15 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         final form = mask == null ? null : formsByMask[mask];
         return PokeMapAssetCard(
           key: Key('smart-tiles-rule-${rule.id}'),
-          thumbnail: const Icon(CupertinoIcons.arrow_branch, size: 20),
+          thumbnail: switch (
+              rule.candidates.map(_firstFrameOf).nonNulls.firstOrNull) {
+            final SmartTileFrameRef frame => _spritePreview(
+                frame,
+                size: 30,
+                semanticLabel: 'Sprite de ${form?.label ?? 'la règle'}',
+              ),
+            null => const Icon(CupertinoIcons.arrow_branch, size: 20),
+          },
           label: form?.label ?? 'Forme personnalisée',
           description: form?.description ??
               'Cette règle avancée ne correspond pas à une forme standard.',
@@ -1638,6 +1882,12 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           onTargetPressed: _applyLabTarget,
           onReset: _resetLab,
           onScenarioSelected: _loadLabScenario,
+          tilesetPathsById: _labTilesetPaths(preset),
+          showStructure: _labShowStructure,
+          onShowStructureChanged: (value) =>
+              setState(() => _labShowStructure = value),
+          projectRootPath: widget.projectRootPath,
+          imageCache: widget.imageCache,
         ),
       ],
     );
@@ -3802,6 +4052,7 @@ typedef _SmartTileAtlasCell = ({int column, int row});
 
 class _SmartTileAtlasMappingViewport extends StatelessWidget {
   const _SmartTileAtlasMappingViewport({
+    super.key,
     required this.geometry,
     required this.image,
     required this.selectedFrame,

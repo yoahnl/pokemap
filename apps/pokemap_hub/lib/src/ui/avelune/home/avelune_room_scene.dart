@@ -13,6 +13,13 @@ import 'avelune_home_geometry.dart';
 import 'avelune_home_view_data.dart';
 import 'avelune_relative_time.dart';
 
+/// Fraction of the credenza canvas at which its art starts.
+///
+/// `room/furniture/credenza_*.webp` are 768x700 with the back edge of the top
+/// surface as their first opaque row (y=199). The console is seated on that
+/// edge, so the two fractions have to be read together.
+const double kAveluneCredenzaVisibleTopFraction = 199 / 700;
+
 @immutable
 final class AveluneRoomSceneLayout {
   const AveluneRoomSceneLayout._({
@@ -22,20 +29,23 @@ final class AveluneRoomSceneLayout {
   });
 
   factory AveluneRoomSceneLayout.resolve(AveluneHomeGeometry geometry) {
-    final supportY = geometry.consoleRect.bottom;
+    // The console art keeps transparent padding below its feet, so the surface
+    // has to meet the foot line rather than the bottom of the layout box.
+    final supportY = geometry.consoleRect.top +
+        (geometry.consoleRect.height * kAveluneConsoleFootlineFraction);
     final shelfBaselineY = geometry.anchors.shelfBaseline.dy;
     final height = math.max(
       math.max(
         geometry.shelfCartridgeSize.height * 2.1,
         (shelfBaselineY - supportY) /
-            (_sourceShelfBaseline - _sourceVisibleTop),
+            (_sourceShelfBaseline - kAveluneCredenzaVisibleTopFraction),
       ),
       geometry.contentRect.width * 1.62 / _sourceAspectRatio,
     );
     final width = height * _sourceAspectRatio;
     final rect = Rect.fromLTWH(
       geometry.contentRect.center.dx - (width / 2),
-      supportY - (height * _sourceVisibleTop),
+      supportY - (height * kAveluneCredenzaVisibleTopFraction),
       width,
       height,
     );
@@ -48,7 +58,6 @@ final class AveluneRoomSceneLayout {
   }
 
   static const double _sourceAspectRatio = 768 / 700;
-  static const double _sourceVisibleTop = 0.286;
   static const double _sourceShelfBaseline = 0.68;
 
   final Rect furnitureRect;

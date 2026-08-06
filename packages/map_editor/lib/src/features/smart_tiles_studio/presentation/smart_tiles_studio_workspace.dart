@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../app/providers/core/repository_providers.dart';
+import '../../../app/providers/editor/editor_asset_cache_providers.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../../editor/state/editor_notifier.dart';
 import '../../editor/state/editor_selectors.dart';
@@ -76,6 +77,9 @@ class _SmartTilesStudioWorkspaceState
     return SmartTilesStudioPanel(
       manifest: manifest,
       projectRootPath: projectRootPath,
+      imageCache: projectRootPath == null
+          ? null
+          : ref.watch(editorImageCacheProvider(projectRootPath)),
       launchContext: launch.context,
       isCapturedMapAvailable:
           launch.context.isCapturedMapAvailable(launch.activeMap) &&

@@ -190,6 +190,57 @@ final class SmartTileTestLayerController {
     return _inspection!;
   }
 
+  /// Resolved visuals for the whole layer, in map paint order.
+  ///
+  /// The lab renders these through the same batch resolver and the same
+  /// destination geometry as the map canvas, so a sprite that shows here is
+  /// the sprite the map and the runtime will draw.
+  List<SmartTileLayerVisual> resolveVisuals({
+    required double destinationCellWidth,
+    required double destinationCellHeight,
+    int elapsedMs = 0,
+  }) {
+    final currentLayer = layer;
+    return List<SmartTileLayerVisual>.unmodifiable(<SmartTileLayerVisual>[
+      for (final pass in SmartTileVisualPass.values)
+        ...resolveSmartTileLayerVisualBatch(
+          map: _map,
+          layer: currentLayer,
+          catalog: catalog,
+          pass: pass,
+          elapsedMs: elapsedMs,
+          endX: width,
+          endY: height,
+          destinationCellWidth: destinationCellWidth,
+          destinationCellHeight: destinationCellHeight,
+          sourceCellWidth: _sourceCellWidth,
+          sourceCellHeight: _sourceCellHeight,
+        ).visuals,
+    ]);
+  }
+
+  /// Source cell size of the atlas this preset actually samples, so pixel-unit
+  /// offsets scale correctly for atlases that are not 32×32.
+  ProjectSmartTileAtlas? get _samplingAtlas {
+    for (final rule in preset.rules) {
+      for (final candidate in rule.candidates) {
+        for (final part in candidate.parts) {
+          if (part.source case SmartTileFrameSource(frame: final frame)) {
+            final atlas = catalog.atlases
+                .where((entry) => entry.id == frame.atlasId)
+                .firstOrNull;
+            if (atlas != null) return atlas;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  double get _sourceCellWidth => (_samplingAtlas?.cellWidth ?? 32).toDouble();
+
+  double get _sourceCellHeight => (_samplingAtlas?.cellHeight ?? 32).toDouble();
+
   SmartTileLabInspection loadCanonicalScenario(int mask) {
     reset();
     final centerX = width ~/ 2;

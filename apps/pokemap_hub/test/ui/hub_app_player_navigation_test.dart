@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
-import 'package:pokemap_hub/src/ui/avelune/appearance/avelune_appearance_settings.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 void main() {
@@ -161,10 +160,35 @@ void main() {
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
     );
-    await tester.pump();
-    await tester.pumpAndSettle();
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
 
-    expect(controller.snapshot.section, HubSection.preferences);
+    // The approved settings sheet floats over the room rather than replacing
+    // it, so the section does not change.
+    // The approved settings sheet floats over the room rather than replacing
+    // it, so the section does not change. Rows are matched by key: this app is
+    // pumped without a forced locale, so their labels are localised.
+    expect(controller.snapshot.section, HubSection.home);
+    for (final id in <String>[
+      'appearance',
+      'storage',
+      'motion',
+      'diagnostics',
+    ]) {
+      expect(
+        find.byKey(ValueKey<String>('avelune-settings-row-$id')),
+        findsOneWidget,
+        reason: 'Row $id is missing from the settings sheet.',
+      );
+    }
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-settings-row-appearance')),
+    );
+    for (var i = 0; i < 6; i++) {
+      await tester.pump(const Duration(milliseconds: 120));
+    }
     expect(find.byType(AveluneAppearanceSettings), findsOneWidget);
   });
 

@@ -10,6 +10,14 @@ import 'avelune_theme.dart';
 /// 3.08, stretching the hardware vertically by 8 percent.
 const double kAveluneConsoleAspectRatio = 1200 / 360;
 
+/// Fraction of the console box height at which the feet actually rest.
+///
+/// `console/body.webp` carries 36 px of transparent padding below the feet on
+/// its 360 px canvas, so the box bottom sits a tenth of the console height below
+/// the hardware. Anything that seats the console on a surface has to use this,
+/// not `Rect.bottom`, or the console floats.
+const double kAveluneConsoleFootlineFraction = 324 / 360;
+
 enum AveluneConsoleState { idle, inserting, latched, launching, error }
 
 class AveluneConsole extends StatelessWidget {

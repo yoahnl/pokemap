@@ -69,6 +69,7 @@ import 'map_canvas/map_canvas_navigation_controls.dart';
 import 'map_canvas/editor_canvas_animation_need_resolver.dart';
 import 'map_canvas/editor_canvas_repaint_clock.dart';
 import 'map_canvas/narrative_event_map_banner.dart';
+import 'map_canvas/smart_tile_visual_painter.dart';
 import 'narrative_studio/narrative_studio_navigation.dart';
 import 'shadow/editor_static_shadow_preview_painter.dart';
 import '../design_system/pokemap_badge.dart';

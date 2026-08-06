@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pokemap_hub/src/platform/public_product_identity.dart';
 
 void main() {
   test('mobile support claims are explicit and match committed runners',
@@ -73,7 +74,10 @@ void main() {
     expect(manifest, isNot(contains('PokeMap')));
     expect(activity, contains('package com.yoahnl.avelune.player'));
     expect(activity, isNot(contains('pokemap')));
-    expect(productIdentity, contains("'android' || 'ios' => 'Avelune'"));
+    // Behaviour, not source text: the mapping used to be a switch and is now
+    // unconditional, since desktop renders the same console as mobile.
+    expect(publicProductNameForOperatingSystem('android'), 'Avelune');
+    expect(productIdentity, contains("=> 'Avelune'"));
   });
 
   test('Android streams selected packages into the application cache',

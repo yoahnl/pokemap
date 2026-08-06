@@ -2802,71 +2802,12 @@ class MapGridPainter extends CustomPainter {
       ..color = PokeMapLegacyColors.white.withValues(
         alpha: layer.opacity.clamp(0.0, 1.0),
       );
-    for (final visual in visuals) {
-      final image = tilesetImagesById[visual.tilesetId];
-      if (image == null) continue;
-      final source = visual.sourceRect;
-      if (source.x < 0 ||
-          source.y < 0 ||
-          source.x + source.width > image.width ||
-          source.y + source.height > image.height) {
-        continue;
-      }
-      _drawSmartTileImage(
-        canvas,
-        image,
-        Rect.fromLTWH(
-          source.x.toDouble(),
-          source.y.toDouble(),
-          source.width.toDouble(),
-          source.height.toDouble(),
-        ),
-        visual,
-        paint,
-      );
-    }
-  }
-
-  void _drawSmartTileImage(
-    Canvas canvas,
-    ui.Image image,
-    Rect sourceRect,
-    SmartTileLayerVisual visual,
-    Paint paint,
-  ) {
-    final destination = visual.geometry.destinationRect;
-    final transform = visual.transform;
-    canvas.save();
-    try {
-      // The resulting source-space order is flipX, then clockwise rotation.
-      // Asymmetric-quadrant tests pin this order against accidental reversal.
-      canvas.translate(destination.left, destination.top);
-      switch (transform.quarterTurns) {
-        case 0:
-          break;
-        case 1:
-          canvas.translate(destination.height, 0);
-          canvas.rotate(math.pi / 2);
-        case 2:
-          canvas.translate(destination.width, destination.height);
-          canvas.rotate(math.pi);
-        case 3:
-          canvas.translate(0, destination.width);
-          canvas.rotate(3 * math.pi / 2);
-      }
-      if (transform.flipX) {
-        canvas.translate(destination.width, 0);
-        canvas.scale(-1, 1);
-      }
-      canvas.drawImageRect(
-        image,
-        sourceRect,
-        Rect.fromLTWH(0, 0, destination.width, destination.height),
-        paint,
-      );
-    } finally {
-      canvas.restore();
-    }
+    paintSmartTileVisuals(
+      canvas,
+      visuals: visuals,
+      tilesetImagesById: tilesetImagesById,
+      paint: paint,
+    );
   }
 
   Color _terrainColor(TerrainType terrain) {

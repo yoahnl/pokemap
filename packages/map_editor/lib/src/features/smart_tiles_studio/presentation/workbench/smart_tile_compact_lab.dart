@@ -1,7 +1,11 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:map_core/map_core.dart';
 
 import '../../../../theme/theme.dart';
+import '../../../../ui/canvas/map_canvas/smart_tile_visual_painter.dart';
 import '../../application/smart_tile_test_layer_controller.dart';
 
 class SmartTileCompactLab extends StatelessWidget {
@@ -11,6 +15,9 @@ class SmartTileCompactLab extends StatelessWidget {
     required this.mapSize,
     required this.topology,
     required this.onTargetPressed,
+    this.visuals = const <SmartTileLayerVisual>[],
+    this.tilesetImages = const <String, ui.Image?>{},
+    this.showStructure = true,
     this.selectedX,
     this.selectedY,
     this.cellExtent = 44,
@@ -22,6 +29,14 @@ class SmartTileCompactLab extends StatelessWidget {
   final GridSize mapSize;
   final SmartTileTopology topology;
   final ValueChanged<SmartTileLabTarget> onTargetPressed;
+
+  /// Resolved sprites for the whole layer, drawn beneath the structure overlay.
+  final List<SmartTileLayerVisual> visuals;
+  final Map<String, ui.Image?> tilesetImages;
+
+  /// Whether the intent lattice (cells, edges, corners) is drawn on top. Wang
+  /// topologies need it to debug, finished terrain reads better without it.
+  final bool showStructure;
   final int? selectedX;
   final int? selectedY;
   final double cellExtent;
@@ -52,10 +67,13 @@ class SmartTileCompactLab extends StatelessWidget {
         child: SizedBox.fromSize(
           size: size,
           child: CustomPaint(
-            painter: _SmartTileCompactLabPainter(
+            painter: SmartTileCompactLabPainter(
               layer: layer,
               mapSize: mapSize,
               topology: topology,
+              visuals: visuals,
+              tilesetImages: tilesetImages,
+              showStructure: showStructure,
               cellExtent: cellExtent,
               padding: canvasPadding,
               selectedX: selectedX,
@@ -155,11 +173,14 @@ SmartTileLabTarget? smartTileLabTargetAt({
   );
 }
 
-class _SmartTileCompactLabPainter extends CustomPainter {
-  const _SmartTileCompactLabPainter({
+class SmartTileCompactLabPainter extends CustomPainter {
+  const SmartTileCompactLabPainter({
     required this.layer,
     required this.mapSize,
     required this.topology,
+    required this.visuals,
+    required this.tilesetImages,
+    required this.showStructure,
     required this.cellExtent,
     required this.padding,
     required this.selectedX,
@@ -176,6 +197,9 @@ class _SmartTileCompactLabPainter extends CustomPainter {
   final SmartTileLayer layer;
   final GridSize mapSize;
   final SmartTileTopology topology;
+  final List<SmartTileLayerVisual> visuals;
+  final Map<String, ui.Image?> tilesetImages;
+  final bool showStructure;
   final double cellExtent;
   final double padding;
   final int? selectedX;
@@ -216,7 +240,11 @@ class _SmartTileCompactLabPainter extends CustomPainter {
             null;
         canvas.drawRRect(
           RRect.fromRectAndRadius(rect, const Radius.circular(5)),
-          Paint()..color = authored ? authoredCellColor : emptyCellColor,
+          // With the overlay off the sprite carries the cell, so the intent
+          // tint would only muddy its colours.
+          Paint()
+            ..color =
+                authored && showStructure ? authoredCellColor : emptyCellColor,
         );
         canvas.drawRRect(
           RRect.fromRectAndRadius(rect, const Radius.circular(5)),
@@ -225,7 +253,21 @@ class _SmartTileCompactLabPainter extends CustomPainter {
       }
     }
 
-    if (_usesEdges) {
+    // Resolved sprites sit above the intent grid and below the lattice hints:
+    // destination rects come from map_core in map space, so shift by padding.
+    if (visuals.isNotEmpty) {
+      canvas.save();
+      canvas.translate(padding, padding);
+      paintSmartTileVisuals(
+        canvas,
+        visuals: visuals,
+        tilesetImagesById: tilesetImages,
+        paint: Paint()..filterQuality = FilterQuality.none,
+      );
+      canvas.restore();
+    }
+
+    if (showStructure && _usesEdges) {
       final edgePaint = Paint()
         ..color = edgeColor
         ..strokeWidth = 6
@@ -266,7 +308,7 @@ class _SmartTileCompactLabPainter extends CustomPainter {
       }
     }
 
-    if (_usesCorners) {
+    if (showStructure && _usesCorners) {
       final cornerPaint = Paint()..color = cornerColor;
       for (var y = 0; y <= mapSize.height; y += 1) {
         for (var x = 0; x <= mapSize.width; x += 1) {
@@ -323,10 +365,13 @@ class _SmartTileCompactLabPainter extends CustomPainter {
       topology == SmartTileTopology.wang8;
 
   @override
-  bool shouldRepaint(covariant _SmartTileCompactLabPainter oldDelegate) {
+  bool shouldRepaint(covariant SmartTileCompactLabPainter oldDelegate) {
     return oldDelegate.layer != layer ||
         oldDelegate.mapSize != mapSize ||
         oldDelegate.topology != topology ||
+        !identical(oldDelegate.visuals, visuals) ||
+        !mapEquals(oldDelegate.tilesetImages, tilesetImages) ||
+        oldDelegate.showStructure != showStructure ||
         oldDelegate.selectedX != selectedX ||
         oldDelegate.selectedY != selectedY ||
         oldDelegate.cellExtent != cellExtent ||

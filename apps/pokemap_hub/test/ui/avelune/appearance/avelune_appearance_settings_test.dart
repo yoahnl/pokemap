@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
-import 'package:pokemap_hub/src/ui/avelune/appearance/avelune_appearance_settings.dart';
 
 void main() {
   testWidgets('settings render the three sections and all built-in presets',
