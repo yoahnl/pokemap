@@ -28,6 +28,9 @@ abstract final class AveluneGlass {
   /// contrast against a busy background.
   static const Color readableTint = Color(0x33FFFFFF);
 
+  /// Fully transparent, for borders that are only present when selected.
+  static const Color clear = Color(0x00FFFFFF);
+
   /// The bright rim along the top edge of a real glass slab.
   static const Color border = Color(0x3DFFFFFF);
 

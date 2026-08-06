@@ -9,6 +9,13 @@ import 'avelune_pressable.dart';
 
 enum AveluneNavigationItem { home, settings }
 
+/// Floating glass capsule over the room.
+///
+/// It is deliberately lifted clear of the bottom edge and sits over the
+/// credenza rather than over the dark strip that used to run beneath it. That is
+/// not decoration: a lens can only show refraction when something is behind it,
+/// and glass over near-black renders as a grey box — which is exactly how the
+/// first attempt looked.
 class AveluneBottomNavigation extends StatelessWidget {
   const AveluneBottomNavigation({
     super.key,
@@ -19,13 +26,13 @@ class AveluneBottomNavigation extends StatelessWidget {
   final AveluneNavigationItem selectedItem;
   final ValueChanged<AveluneNavigationItem> onItemSelected;
 
+  /// Height of the capsule body. Comfortably above the 48 minimum touch target
+  /// so it reads as a surface rather than a strip of buttons.
+  static const double capsuleHeight = 62;
+
   @override
   Widget build(BuildContext context) {
     final french = Localizations.localeOf(context).languageCode == 'fr';
-    // The approved prototype floats an inset capsule over the room instead of
-    // capping it with an opaque bar, so the credenza keeps reading all the way
-    // to the bottom edge of the screen. The capsule is glass: it has the room
-    // behind it, which is what gives a lens something to refract.
     return SafeArea(
       top: false,
       child: Padding(
@@ -33,16 +40,13 @@ class AveluneBottomNavigation extends StatelessWidget {
           AveluneSpacing.xxl,
           0,
           AveluneSpacing.xxl,
-          AveluneSpacing.xxs,
+          AveluneSpacing.xl,
         ),
         child: AveluneGlassSurface(
           key: const ValueKey<String>('avelune-nav-pill'),
           cornerRadius: AveluneGlass.capsuleRadius,
           child: SizedBox(
-            // Taller than the 48 minimum touch target so the capsule reads as
-            // a deliberate surface, but still inside the band
-            // AveluneHomeGeometry reserves for it above the recent activity.
-            height: 56,
+            height: capsuleHeight,
             child: Row(
               children: <Widget>[
                 Expanded(
@@ -52,15 +56,6 @@ class AveluneBottomNavigation extends StatelessWidget {
                     icon: Icons.home_rounded,
                     selected: selectedItem == AveluneNavigationItem.home,
                     onPressed: () => onItemSelected(AveluneNavigationItem.home),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    vertical: AveluneSpacing.md,
-                  ),
-                  child: SizedBox(
-                    width: 1,
-                    child: ColoredBox(color: AveluneGlass.border),
                   ),
                 ),
                 Expanded(
@@ -99,34 +94,55 @@ class _AveluneDestination extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
-    final foreground = selected ? colors.accentBright : colors.textSecondary;
+    final motion = context.aveluneMotion;
+    final foreground = selected ? colors.textPrimary : colors.textSecondary;
+
     return AvelunePressable(
       semanticLabel: label,
       selected: selected,
       selectedOutline: false,
       onPressed: onPressed,
-      borderRadius: AveluneShapes.xs,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minHeight: AveluneShapes.minimumTouchTarget,
+      borderRadius: AveluneShapes.pill,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AveluneSpacing.sm,
+          vertical: AveluneSpacing.xs,
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: <Widget>[
-            // The capsule is height-capped, so large text scales have to scale
-            // down rather than overflow it.
-            FittedBox(
+        child: AnimatedContainer(
+          // The selected item gets its own lit capsule inside the glass rather
+          // than an underline hanging off the bottom, so the indicator belongs
+          // to the same material as the surface carrying it.
+          duration: motion.selection,
+          curve: motion.movementCurve,
+          decoration: BoxDecoration(
+            borderRadius: AveluneShapes.pill,
+            gradient: selected
+                ? LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      colors.accentBright.withValues(alpha: 0.34),
+                      colors.accent.withValues(alpha: 0.16),
+                    ],
+                  )
+                : null,
+            border: Border.all(
+              color: selected ? AveluneGlass.border : AveluneGlass.clear,
+            ),
+          ),
+          child: Center(
+            child: FittedBox(
               fit: BoxFit.scaleDown,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
-                  Icon(icon, color: foreground, size: 21),
-                  const SizedBox(height: AveluneSpacing.hairline),
+                  Icon(icon, color: foreground, size: 20),
+                  const SizedBox(width: AveluneSpacing.sm),
                   Text(
                     label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: foreground,
                           fontWeight:
                               selected ? FontWeight.w800 : FontWeight.w600,
@@ -135,19 +151,7 @@ class _AveluneDestination extends StatelessWidget {
                 ],
               ),
             ),
-            if (selected)
-              Positioned(
-                bottom: 0,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: colors.accentBright,
-                    borderRadius: AveluneShapes.pill,
-                    boxShadow: context.aveluneDepth.selectedGlow,
-                  ),
-                  child: const SizedBox(width: 54, height: 3),
-                ),
-              ),
-          ],
+          ),
         ),
       ),
     );

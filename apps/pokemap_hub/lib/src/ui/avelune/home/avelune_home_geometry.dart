@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
+import '../assets/avelune_credenza_metrics.dart';
 import '../avelune_cartridge.dart';
 import '../avelune_console.dart';
 import '../design_system/foundation/avelune_breakpoints.dart';
@@ -46,8 +47,9 @@ final class AveluneHomeGeometry {
     required this.headerRect,
     required this.sceneRect,
     required this.shelfRect,
-    required this.activityRect,
     required this.navigationRect,
+    required this.credenzaRect,
+    required this.consoleFootlineY,
     required this.heroCartridgeSize,
     required this.shelfCartridgeSize,
     required this.heroCartridgeRect,
@@ -58,7 +60,6 @@ final class AveluneHomeGeometry {
     required this.anchors,
     required this.shelfGap,
     required this.shelfHorizontalPadding,
-    required this.activityRowCapacity,
     required this.hidesNonEssentialMetadata,
     required this.routesExtendedContentToSheet,
   });
@@ -142,15 +143,55 @@ final class AveluneHomeGeometry {
       width: consoleRect.width * _consoleSlotWidthFactor,
       height: metrics.consoleSlotHeight,
     );
-    final shelfBaselineY = regions.shelf.bottom - metrics.shelfBottomPadding;
+    // The credenza runs from the console's feet all the way to the bottom of the
+    // screen, so no dark strip shows beneath it. Its shelf board then lands
+    // wherever that height puts it, and the shelf band is built around the
+    // board — the reverse of deriving the furniture from a band fraction, which
+    // left the room ending short of the bottom edge.
+    final consoleFootlineY = consoleRect.top +
+        (consoleRect.height * kAveluneConsoleFootlineFraction);
+    final credenzaHeight = AveluneCredenzaMetrics.heightToReach(
+      bottomY: viewportSize.height,
+      consoleFootlineY: consoleFootlineY,
+    );
+    final credenzaWidth = math.max(
+      credenzaHeight * AveluneCredenzaMetrics.aspectRatio,
+      contentRect.width,
+    );
+    final credenzaRect = Rect.fromLTWH(
+      contentRect.center.dx - (credenzaWidth / 2),
+      AveluneCredenzaMetrics.topFor(
+        height: credenzaHeight,
+        consoleFootlineY: consoleFootlineY,
+      ),
+      credenzaWidth,
+      credenzaHeight,
+    );
+    final shelfBaselineY = credenzaRect.top +
+        (credenzaRect.height * AveluneCredenzaMetrics.shelfBoard);
+    final shelfRect = Rect.fromLTRB(
+      contentRect.left,
+      regions.scene.bottom,
+      contentRect.right,
+      math.min(
+        contentRect.bottom,
+        shelfBaselineY + metrics.shelfBottomPadding,
+      ),
+    );
+    final navigationRect = Rect.fromLTRB(
+      contentRect.left,
+      shelfRect.bottom,
+      contentRect.right,
+      contentRect.bottom,
+    );
     final shelfFirstCartridgeRect = Rect.fromLTWH(
-      regions.shelf.left + metrics.shelfHorizontalPadding,
+      shelfRect.left + metrics.shelfHorizontalPadding,
       shelfBaselineY - shelfCartridgeSize.height,
       shelfCartridgeSize.width,
       shelfCartridgeSize.height,
     );
 
-    if (!regions.shelf.contains(shelfFirstCartridgeRect.center)) {
+    if (!shelfRect.contains(shelfFirstCartridgeRect.center)) {
       throw ArgumentError.value(
         viewportSize,
         'viewportSize',
@@ -179,7 +220,6 @@ final class AveluneHomeGeometry {
     );
     final highTextScale = textScaleFactor >= _sheetTextScaleThreshold;
     final compactContent = sizeClass == AveluneHomeSizeClass.compact;
-    final activityRowCapacity = highTextScale ? 1 : metrics.activityRows;
     final anchors = AveluneHomeAnchors(
       heroCenter: heroCartridgeRect.center,
       consoleSlotCenter: consoleSlotRect.center,
@@ -201,9 +241,10 @@ final class AveluneHomeGeometry {
       contentRect: contentRect,
       headerRect: regions.header,
       sceneRect: regions.scene,
-      shelfRect: regions.shelf,
-      activityRect: regions.activity,
-      navigationRect: regions.navigation,
+      shelfRect: shelfRect,
+      navigationRect: navigationRect,
+      credenzaRect: credenzaRect,
+      consoleFootlineY: consoleFootlineY,
       heroCartridgeSize: heroCartridgeSize,
       shelfCartridgeSize: shelfCartridgeSize,
       heroCartridgeRect: heroCartridgeRect,
@@ -214,7 +255,6 @@ final class AveluneHomeGeometry {
       anchors: anchors,
       shelfGap: metrics.shelfGap,
       shelfHorizontalPadding: metrics.shelfHorizontalPadding,
-      activityRowCapacity: activityRowCapacity,
       hidesNonEssentialMetadata: compactContent || highTextScale,
       routesExtendedContentToSheet: highTextScale,
     );
@@ -231,8 +271,13 @@ final class AveluneHomeGeometry {
   final Rect headerRect;
   final Rect sceneRect;
   final Rect shelfRect;
-  final Rect activityRect;
   final Rect navigationRect;
+
+  /// The credenza, sized so its base meets the bottom of the screen.
+  final Rect credenzaRect;
+
+  /// Screen y of the console's feet — the line the credenza's top surface meets.
+  final double consoleFootlineY;
   final Size heroCartridgeSize;
   final Size shelfCartridgeSize;
   final Rect heroCartridgeRect;
@@ -245,7 +290,6 @@ final class AveluneHomeGeometry {
   final AveluneHomeAnchors anchors;
   final double shelfGap;
   final double shelfHorizontalPadding;
-  final int activityRowCapacity;
   final bool hidesNonEssentialMetadata;
   final bool routesExtendedContentToSheet;
 
@@ -318,22 +362,11 @@ final class AveluneHomeGeometry {
       return region;
     }
 
-    final header = take(metrics.headerHeightFraction);
-    final scene = take(metrics.sceneHeightFraction);
-    final shelf = take(metrics.shelfHeightFraction);
-    final activity = take(metrics.activityHeightFraction);
-    final navigation = Rect.fromLTRB(
-      contentRect.left,
-      top,
-      contentRect.right,
-      contentRect.bottom,
-    );
+    // Only the two bands above the furniture come from fractions; everything
+    // below is derived from where the credenza puts its shelf board.
     return _AveluneHomeRegions(
-      header: header,
-      scene: scene,
-      shelf: shelf,
-      activity: activity,
-      navigation: navigation,
+      header: take(metrics.headerHeightFraction),
+      scene: take(metrics.sceneHeightFraction),
     );
   }
 
@@ -349,8 +382,6 @@ final class AveluneHomeGeometry {
   static const _compactMetrics = _AveluneHomeClassMetrics(
     headerHeightFraction: 0.10,
     sceneHeightFraction: 0.43,
-    shelfHeightFraction: 0.27,
-    activityHeightFraction: 0.08,
     heroCartridgeHeight: 116,
     shelfCartridgeHeight: 104,
     shelfHorizontalPadding: 12,
@@ -361,14 +392,11 @@ final class AveluneHomeGeometry {
     heroConsoleGap: 22,
     consoleSlotHeight: 6,
     insertionClearance: 3,
-    activityRows: 1,
   );
 
   static const _regularMetrics = _AveluneHomeClassMetrics(
     headerHeightFraction: 0.09,
     sceneHeightFraction: 0.42,
-    shelfHeightFraction: 0.28,
-    activityHeightFraction: 0.13,
     heroCartridgeHeight: 148,
     shelfCartridgeHeight: 120,
     shelfHorizontalPadding: 12,
@@ -379,14 +407,11 @@ final class AveluneHomeGeometry {
     heroConsoleGap: 34,
     consoleSlotHeight: 6,
     insertionClearance: 4,
-    activityRows: 2,
   );
 
   static const _largeMetrics = _AveluneHomeClassMetrics(
     headerHeightFraction: 0.085,
     sceneHeightFraction: 0.43,
-    shelfHeightFraction: 0.27,
-    activityHeightFraction: 0.135,
     heroCartridgeHeight: 172,
     shelfCartridgeHeight: 128,
     shelfHorizontalPadding: 12,
@@ -397,25 +422,15 @@ final class AveluneHomeGeometry {
     heroConsoleGap: 38,
     consoleSlotHeight: 6,
     insertionClearance: 4,
-    activityRows: 3,
   );
 }
 
 @immutable
 final class _AveluneHomeRegions {
-  const _AveluneHomeRegions({
-    required this.header,
-    required this.scene,
-    required this.shelf,
-    required this.activity,
-    required this.navigation,
-  });
+  const _AveluneHomeRegions({required this.header, required this.scene});
 
   final Rect header;
   final Rect scene;
-  final Rect shelf;
-  final Rect activity;
-  final Rect navigation;
 }
 
 @immutable
@@ -423,8 +438,6 @@ final class _AveluneHomeClassMetrics {
   const _AveluneHomeClassMetrics({
     required this.headerHeightFraction,
     required this.sceneHeightFraction,
-    required this.shelfHeightFraction,
-    required this.activityHeightFraction,
     required this.heroCartridgeHeight,
     required this.shelfCartridgeHeight,
     required this.shelfHorizontalPadding,
@@ -435,13 +448,10 @@ final class _AveluneHomeClassMetrics {
     required this.heroConsoleGap,
     required this.consoleSlotHeight,
     required this.insertionClearance,
-    required this.activityRows,
   });
 
   final double headerHeightFraction;
   final double sceneHeightFraction;
-  final double shelfHeightFraction;
-  final double activityHeightFraction;
   final double heroCartridgeHeight;
   final double shelfCartridgeHeight;
   final double shelfHorizontalPadding;
@@ -454,5 +464,4 @@ final class _AveluneHomeClassMetrics {
   final double heroConsoleGap;
   final double consoleSlotHeight;
   final double insertionClearance;
-  final int activityRows;
 }

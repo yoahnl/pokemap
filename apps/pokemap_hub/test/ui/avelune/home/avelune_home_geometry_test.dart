@@ -25,7 +25,6 @@ void main() {
           geometry.headerRect,
           geometry.sceneRect,
           geometry.shelfRect,
-          geometry.activityRect,
           geometry.navigationRect,
         ];
 
@@ -194,11 +193,6 @@ void main() {
         final geometry = scenario.resolve();
 
         expect(
-          geometry.activityRowCapacity,
-          scenario.expectedActivityRows,
-          reason: scenario.label,
-        );
-        expect(
           geometry.hidesNonEssentialMetadata,
           scenario.expectedClass == AveluneHomeSizeClass.compact,
           reason: scenario.label,
@@ -213,7 +207,6 @@ void main() {
       expect(standard.routesExtendedContentToSheet, isFalse);
       expect(enlarged.routesExtendedContentToSheet, isTrue);
       expect(enlarged.hidesNonEssentialMetadata, isTrue);
-      expect(enlarged.activityRowCapacity, 1);
       expect(enlarged.allowsVerticalScroll, isFalse);
       expect(enlarged.contentRect, standard.contentRect);
       expect(enlarged.navigationRect.bottom, standard.navigationRect.bottom);
@@ -258,7 +251,6 @@ const _referenceViewports = <_ViewportScenario>[
     safeArea: EdgeInsets.fromLTRB(0, 20, 0, 0),
     expectedClass: AveluneHomeSizeClass.compact,
     minimumVisibleSlots: 3.25,
-    expectedActivityRows: 1,
   ),
   _ViewportScenario(
     label: 'iPhone compact tall 375x667',
@@ -266,7 +258,6 @@ const _referenceViewports = <_ViewportScenario>[
     safeArea: EdgeInsets.fromLTRB(0, 20, 0, 0),
     expectedClass: AveluneHomeSizeClass.compact,
     minimumVisibleSlots: 3.25,
-    expectedActivityRows: 1,
   ),
   _ViewportScenario(
     label: 'iPhone regular 390x844',
@@ -274,7 +265,6 @@ const _referenceViewports = <_ViewportScenario>[
     safeArea: EdgeInsets.fromLTRB(0, 47, 0, 34),
     expectedClass: AveluneHomeSizeClass.regular,
     minimumVisibleSlots: 4,
-    expectedActivityRows: 2,
   ),
   _ViewportScenario(
     label: 'iPhone large 430x932',
@@ -282,7 +272,6 @@ const _referenceViewports = <_ViewportScenario>[
     safeArea: EdgeInsets.fromLTRB(0, 47, 0, 34),
     expectedClass: AveluneHomeSizeClass.large,
     minimumVisibleSlots: 4.1,
-    expectedActivityRows: 3,
   ),
   _ViewportScenario(
     label: 'Android regular 360x800',
@@ -290,7 +279,6 @@ const _referenceViewports = <_ViewportScenario>[
     safeArea: EdgeInsets.fromLTRB(0, 24, 0, 24),
     expectedClass: AveluneHomeSizeClass.regular,
     minimumVisibleSlots: 3.5,
-    expectedActivityRows: 2,
   ),
   _ViewportScenario(
     label: 'Android large 427x952',
@@ -298,7 +286,6 @@ const _referenceViewports = <_ViewportScenario>[
     safeArea: EdgeInsets.fromLTRB(0, 32, 0, 24),
     expectedClass: AveluneHomeSizeClass.large,
     minimumVisibleSlots: 4.1,
-    expectedActivityRows: 3,
   ),
 ];
 
@@ -309,7 +296,6 @@ final class _ViewportScenario {
     required this.safeArea,
     required this.expectedClass,
     required this.minimumVisibleSlots,
-    required this.expectedActivityRows,
   });
 
   final String label;
@@ -317,7 +303,6 @@ final class _ViewportScenario {
   final EdgeInsets safeArea;
   final AveluneHomeSizeClass expectedClass;
   final double minimumVisibleSlots;
-  final int expectedActivityRows;
 
   AveluneHomeGeometry resolve({double textScaleFactor = 1}) =>
       AveluneHomeGeometry.resolve(
