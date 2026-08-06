@@ -67,16 +67,22 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.auto_awesome_rounded));
-      await tester.pump();
+      // The console launches by inserting the hero cartridge; the legacy
+      // desktop "new game" button no longer exists.
+      final hero = find.byKey(
+        const ValueKey<String>('avelune-room-hero-cartridge'),
+      );
+      expect(hero, findsOneWidget);
+      await tester.tap(hero);
+      await _settleInsertion(tester);
       expect(find.text('Lecteur Aube'), findsOneWidget);
-      expect(find.byIcon(Icons.auto_awesome_rounded), findsNothing);
+      expect(hero, findsNothing);
 
       await tester.tap(find.text('Retour test'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
       expect(find.text('Lecteur Aube'), findsNothing);
-      expect(find.byIcon(Icons.auto_awesome_rounded), findsOneWidget);
+      expect(hero, findsOneWidget);
     },
   );
 
@@ -91,7 +97,6 @@ void main() {
       await tester.pumpWidget(
         PokeMapHubApp(
           productName: 'Avelune',
-          mobileConsoleExperience: true,
           controller: controller,
           initializeController: false,
           playerBuilder: (
@@ -147,7 +152,6 @@ void main() {
     await tester.pumpWidget(
       PokeMapHubApp(
         productName: 'Avelune',
-        mobileConsoleExperience: true,
         controller: controller,
         initializeController: false,
         appearanceController: appearanceController,
@@ -174,6 +178,12 @@ void main() {
           ),
         ),
       );
+
+      // A desktop-sized window: the default 800x600 test viewport letterboxes
+      // to 277 logical pixels wide, under the 280 px the room geometry needs.
+      tester.view.physicalSize = const Size(1000, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
 
       await tester.pumpWidget(
         PokeMapHubApp(
@@ -202,7 +212,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       expect(find.text('Lecteur Aube'), findsNothing);
-      expect(find.text('PokeMap Hub'), findsOneWidget);
+      expect(find.text('POKEMAP HUB'), findsOneWidget);
     },
   );
 }
@@ -244,4 +254,11 @@ class _FakeCustomBackground implements AveluneCustomBackgroundGateway {
 
   @override
   String get thumbnailPath => '';
+}
+
+/// Drives the insertion sequence the hero cartridge starts before it launches.
+Future<void> _settleInsertion(WidgetTester tester) async {
+  for (var i = 0; i < 12; i++) {
+    await tester.pump(const Duration(milliseconds: 120));
+  }
 }

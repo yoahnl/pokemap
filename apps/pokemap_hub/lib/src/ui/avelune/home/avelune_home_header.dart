@@ -11,8 +11,15 @@ import '../avelune_theme.dart';
 /// live-looking control that does nothing would be worse than painting none.
 /// It is excluded from semantics until a real profile surface exists.
 class AveluneHomeHeader extends StatelessWidget {
-  const AveluneHomeHeader({super.key, this.compact = false});
+  const AveluneHomeHeader({
+    super.key,
+    this.productName = 'Avelune',
+    this.compact = false,
+  });
 
+  /// Injected product identity. Rendered as the wordmark, so a differently
+  /// branded build shows its own name rather than a hardcoded one.
+  final String productName;
   final bool compact;
 
   @override
@@ -30,7 +37,7 @@ class AveluneHomeHeader extends StatelessWidget {
         children: <Widget>[
           Semantics(
             image: true,
-            label: 'Avelune',
+            label: productName,
             child: SizedBox.square(
               dimension: markSize,
               child: Image.asset(
@@ -51,7 +58,7 @@ class AveluneHomeHeader extends StatelessWidget {
           Expanded(
             child: ExcludeSemantics(
               child: Text(
-                'AVELUNE',
+                productName.toUpperCase(),
                 maxLines: 1,
                 overflow: TextOverflow.clip,
                 style: TextStyle(

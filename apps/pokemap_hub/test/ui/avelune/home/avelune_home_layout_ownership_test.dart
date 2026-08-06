@@ -5,15 +5,15 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pub_semver/pub_semver.dart';
 
-/// AVELUNE-500 regression contract.
-///
-/// The bottom navigation must float above the room scene instead of stealing
-/// layout height from it. When it steals height, the safe-area insets are
-/// subtracted twice and `navigationRect` is reserved for a bar that lives
-/// outside the scene, which drops a 393x852 iPhone from `regular` to `compact`
-/// and shrinks every object in the room.
 final Finder _navPill = find.byKey(const ValueKey<String>('avelune-nav-pill'));
 
+// AVELUNE-500 regression contract.
+//
+// The bottom navigation must float above the room scene instead of stealing
+// layout height from it. When it steals height, the safe-area insets are
+// subtracted twice and `navigationRect` is reserved for a bar that lives
+// outside the scene, which drops a 393x852 iPhone from `regular` to `compact`
+// and shrinks every object in the room.
 void main() {
   const iphone = Size(393, 852);
   const iphoneInsets = EdgeInsets.only(top: 47, bottom: 34);
@@ -133,7 +133,6 @@ Future<void> _pumpConsoleShell(
           ),
           child: HubShell(
             productName: 'Avelune',
-            mobileConsoleExperience: true,
             snapshot: snapshot,
             actions: actions,
             homeController: AveluneHomeController(
@@ -141,10 +140,6 @@ Future<void> _pumpConsoleShell(
               actions: actions,
             ),
             onSectionSelected: (_) {},
-            onQueryChanged: (_) {},
-            onGameSelected: (_) {},
-            onGameDetailsClosed: () {},
-            onPreferencesChanged: (_) {},
           ),
         ),
       ),

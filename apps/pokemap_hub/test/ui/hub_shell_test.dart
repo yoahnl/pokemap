@@ -5,302 +5,80 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pub_semver/pub_semver.dart';
 
+/// Shell behaviour that survives the desktop cutover.
+///
+/// The tests that used to live here exercised the second, desktop-only
+/// interface — navigation rail, library grid, `HubGameDetailView` and the
+/// preferences form. That interface is gone, so those tests went with it; the
+/// console experience is covered by the Avelune suites and
+/// `hub_desktop_parity_test.dart`. What remains here is the shell's own
+/// responsibility: product identity, the diagnostics banner, and the install
+/// modal.
 void main() {
-  testWidgets('injected iOS product identity is displayed as Avelune',
+  testWidgets('the injected product identity replaces PokeMap branding',
       (tester) async {
     tester.view.physicalSize = const Size(1280, 820);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      _app(
-        HubShell(
-          productName: 'Avelune',
-          snapshot: HubDashboardSnapshot.ready(
-            library: GameLibrary.empty(),
-            games: const <HubGameView>[],
-          ),
-          actions: const HubUiActions(),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
-        ),
-      ),
+    final snapshot = HubDashboardSnapshot.ready(
+      library: GameLibrary.empty(),
+      games: const <HubGameView>[],
     );
+    await tester.pumpWidget(_app(_shell(snapshot, productName: 'Avelune')));
+    await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text('Avelune'), findsWidgets);
+    expect(find.text('AVELUNE'), findsWidgets);
     expect(find.text('PokeMap Hub'), findsNothing);
-    expect(find.text('PokeMap'), findsNothing);
-  });
-
-  testWidgets('empty home guides the player to package import', (tester) async {
-    var imports = 0;
-    await tester.pumpWidget(
-      _app(
-        HubShell(
-          productName: 'Avelune',
-          snapshot: HubDashboardSnapshot.ready(
-            library: GameLibrary.empty(),
-            games: const <HubGameView>[],
-          ),
-          actions: HubUiActions(
-            onImportRequested: () => imports++,
-          ),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
-        ),
-      ),
-    );
-
-    expect(find.text('Votre bibliothèque vous attend'), findsOneWidget);
-    expect(
-      find.textContaining('package de jeu compatible'),
-      findsOneWidget,
-    );
     expect(
       find.textContaining(RegExp('poke', caseSensitive: false)),
       findsNothing,
     );
-    await tester.tap(find.text('Importer un jeu').first);
-    expect(imports, 1);
-    expect(find.textContaining('workspace'), findsNothing);
-    expect(find.textContaining('seed'), findsNothing);
-    expect(find.textContaining('FPS'), findsNothing);
   });
 
-  testWidgets('wide library uses rail, grid, and opens a complete detail',
+  testWidgets('installation errors stay visible without hiding the room',
       (tester) async {
-    tester.view.physicalSize = const Size(1280, 820);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final game = _view(canContinue: true);
-    var selected = '';
-    await tester.pumpWidget(
-      _app(
-        HubShell(
-          snapshot: HubDashboardSnapshot.ready(
-            library: GameLibrary(
-              revision: 1,
-              updatedAt: DateTime.utc(2026, 7, 25),
-              games: <InstalledGame>[game.game],
-            ),
-            games: <HubGameView>[game],
-            section: HubSection.library,
-          ),
-          actions: const HubUiActions(),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (gameId) => selected = gameId,
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
-        ),
-      ),
-    );
-
-    expect(find.byType(NavigationRail), findsOneWidget);
-    expect(
-        find.byKey(const ValueKey<String>('hub-library-grid')), findsOneWidget);
-    await tester.tap(find.text('Aube'));
-    expect(selected, 'games.example.aube');
-
-    await tester.pumpWidget(
-      _app(
-        HubShell(
-          snapshot: HubDashboardSnapshot.ready(
-            library: GameLibrary(
-              revision: 1,
-              updatedAt: DateTime.utc(2026, 7, 25),
-              games: <InstalledGame>[game.game],
-            ),
-            games: <HubGameView>[game],
-            selectedGameId: game.game.gameId,
-          ),
-          actions: const HubUiActions(),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
-        ),
-      ),
-    );
-
-    expect(find.text('Une aventure générique.'), findsOneWidget);
-    expect(find.text('Continuer'), findsOneWidget);
-    expect(find.text('Nouvelle partie'), findsOneWidget);
-    expect(find.text('Réparer'), findsOneWidget);
-    expect(find.text('Mettre à jour'), findsOneWidget);
-    expect(find.text('Gérer les sauvegardes'), findsOneWidget);
-    expect(find.text('Désinstaller'), findsOneWidget);
-  });
-
-  testWidgets('compact portrait uses bottom navigation without overflow',
-      (tester) async {
-    tester.view.physicalSize = const Size(390, 720);
+    tester.view.physicalSize = const Size(430, 932);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    await tester.pumpWidget(
-      MediaQuery(
-        data: const MediaQueryData(textScaler: TextScaler.linear(1.4)),
-        child: _app(
-          HubShell(
-            snapshot: HubDashboardSnapshot.ready(
-              library: GameLibrary(
-                revision: 1,
-                updatedAt: DateTime.utc(2026, 7, 25),
-                games: <InstalledGame>[_view().game],
-              ),
-              games: <HubGameView>[_view()],
-            ),
-            actions: const HubUiActions(),
-            onSectionSelected: (_) {},
-            onQueryChanged: (_) {},
-            onGameSelected: (_) {},
-            onGameDetailsClosed: () {},
-            onPreferencesChanged: (_) {},
-          ),
-        ),
-      ),
-    );
-
-    expect(find.byType(NavigationBar), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
-
-  testWidgets('disabled Continue exposes a player-safe explanation',
-      (tester) async {
-    tester.view.physicalSize = const Size(1200, 1000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final game = _view(canContinue: false);
-    await tester.pumpWidget(
-      _app(
-        HubGameDetailView(
-          game: game,
-          actions: const HubUiActions(),
-          onBack: () {},
-        ),
-      ),
-    );
-
-    final semantics = tester.getSemantics(
-      find.byKey(
-        const ValueKey<String>('player-action-semantics-Continuer'),
-      ),
-    );
-    expect(semantics.hint, contains('Aucune sauvegarde'));
-  });
-
-  testWidgets('English locale translates Hub preferences', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        locale: const Locale('en'),
-        supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-        localizationsDelegates:
-            PokeMapPlayerLocalizations.localizationsDelegates,
-        theme: PokeMapPlayerTheme.light(),
-        home: HubShell(
-          snapshot: HubDashboardSnapshot.ready(
-            library: GameLibrary.empty(),
-            games: const <HubGameView>[],
-            section: HubSection.preferences,
-          ),
-          actions: const HubUiActions(),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
-        ),
-      ),
-    );
-
-    expect(find.text('Preferences'), findsWidgets);
-    expect(find.text('Global settings for the Hub and games.'), findsOneWidget);
-    expect(find.text('System language'), findsOneWidget);
-    await tester.drag(find.byType(ListView), const Offset(0, -600));
-    await tester.pumpAndSettle();
-    expect(find.text('Master volume'), findsOneWidget);
-    expect(find.text('Réglages globaux du Hub et des jeux.'), findsNothing);
-  });
-
-  testWidgets('preferences expose direct startup as an explicit toggle',
-      (tester) async {
-    PlayerPreferences? changed;
-    await tester.pumpWidget(
-      _app(
-        HubShell(
-          snapshot: HubDashboardSnapshot.ready(
-            library: GameLibrary.empty(),
-            games: const <HubGameView>[],
-            section: HubSection.preferences,
-          ),
-          actions: const HubUiActions(),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (preferences) => changed = preferences,
-        ),
-      ),
-    );
-
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('hub-launch-most-recent-on-startup-toggle'),
-      ),
-    );
-
-    expect(changed?.launchMostRecentGameOnStartup, isTrue);
-  });
-
-  testWidgets('installation errors stay visible without hiding installed games',
-      (tester) async {
     final game = _view();
-    await tester.pumpWidget(
-      _app(
-        HubShell(
-          snapshot: HubDashboardSnapshot(
-            status: HubDashboardStatus.error,
-            library: GameLibrary(
-              revision: 1,
-              updatedAt: DateTime.utc(2026, 7, 25),
-              games: <InstalledGame>[game.game],
-            ),
-            games: <HubGameView>[game],
-            diagnostics: const <HubDiagnostic>[
-              HubDiagnostic(
-                code: 'install.incompatible',
-                severity: HubDiagnosticSeverity.error,
-                message: 'Ce jeu est incompatible.',
-                recommendation:
-                    'Le jeu installé précédemment reste disponible.',
-              ),
-            ],
-          ),
-          actions: const HubUiActions(),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
-        ),
+    final snapshot = HubDashboardSnapshot(
+      status: HubDashboardStatus.error,
+      library: GameLibrary(
+        revision: 1,
+        updatedAt: DateTime.utc(2026, 7, 25),
+        games: <InstalledGame>[game.game],
       ),
+      games: <HubGameView>[game],
+      diagnostics: const <HubDiagnostic>[
+        HubDiagnostic(
+          code: 'install.incompatible',
+          severity: HubDiagnosticSeverity.error,
+          message: 'Ce jeu est incompatible.',
+          recommendation: 'Le jeu installé précédemment reste disponible.',
+        ),
+      ],
     );
+
+    await tester.pumpWidget(_app(_shell(snapshot)));
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Ce jeu est incompatible.'), findsOneWidget);
-    expect(find.text('Aube'), findsOneWidget);
+    expect(
+      find.byType(AveluneRoomScene),
+      findsOneWidget,
+      reason: 'An install error must not replace the library the player still '
+          'has.',
+    );
   });
 
-  testWidgets(
-      'picker failures keep the empty library usable and expose diagnostics',
+  testWidgets('picker failures keep the library usable and expose diagnostics',
       (tester) async {
+    tester.view.physicalSize = const Size(430, 932);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
     const diagnostic = HubDiagnostic(
       code: 'importPicker.missingEntitlement',
       severity: HubDiagnosticSeverity.error,
@@ -316,46 +94,24 @@ void main() {
       diagnostics: const <HubDiagnostic>[diagnostic],
     );
 
-    await tester.pumpWidget(
-      _app(
-        HubShell(
-          snapshot: snapshot,
-          actions: const HubUiActions(),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
-        ),
-      ),
-    );
+    await tester.pumpWidget(_app(_shell(snapshot)));
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(
       find.text('Le sélecteur de fichiers ne peut pas s’ouvrir.'),
       findsOneWidget,
     );
-    expect(find.text('Importer un jeu'), findsWidgets);
 
     await tester.pumpWidget(
-      _app(
-        HubShell(
-          snapshot: snapshot.copyWith(section: HubSection.diagnostics),
-          actions: const HubUiActions(),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
-        ),
-      ),
+      _app(_shell(snapshot.copyWith(section: HubSection.diagnostics))),
     );
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(find.text('Autorisation macOS manquante.'), findsOneWidget);
     expect(find.text('Journal : /tmp/hub-import.log'), findsOneWidget);
   });
 
-  testWidgets(
-      'installation uses a modal progress screen with percent ETA and steps',
+  testWidgets('installation uses a modal progress screen with ETA and steps',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -380,10 +136,6 @@ void main() {
           ),
           actions: const HubUiActions(),
           onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
           onCancelInstall: () => cancellations++,
         ),
       ),
@@ -397,15 +149,11 @@ void main() {
     expect(find.text('45 %'), findsOneWidget);
     expect(find.textContaining('Temps restant estimé'), findsOneWidget);
     expect(
-      find.byKey(
-        const ValueKey<String>('hub-install-step-package-completed'),
-      ),
+      find.byKey(const ValueKey<String>('hub-install-step-package-completed')),
       findsOneWidget,
     );
     expect(
-      find.byKey(
-        const ValueKey<String>('hub-install-step-extraction-active'),
-      ),
+      find.byKey(const ValueKey<String>('hub-install-step-extraction-active')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
@@ -413,6 +161,24 @@ void main() {
     await tester.tap(find.text('Annuler'));
     expect(cancellations, 1);
   });
+}
+
+HubShell _shell(
+  HubDashboardSnapshot snapshot, {
+  String productName = 'PokeMap Hub',
+}) {
+  const actions = HubUiActions();
+  return HubShell(
+    productName: productName,
+    snapshot: snapshot,
+    actions: actions,
+    referenceTime: DateTime.utc(2026, 8, 4, 12),
+    homeController: AveluneHomeController(
+      snapshot: snapshot,
+      actions: actions,
+    ),
+    onSectionSelected: (_) {},
+  );
 }
 
 HubGameView _view({bool canContinue = false}) {
@@ -448,6 +214,8 @@ Widget _app(Widget child) => MaterialApp(
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.light(),
+      // The shell is Avelune-only now, so the Avelune theme extension is a
+      // hard requirement rather than a mobile-only decoration.
+      theme: applyAveluneTheme(PokeMapPlayerTheme.dark()),
       home: child,
     );

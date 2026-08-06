@@ -42,6 +42,7 @@ class AveluneHomeScreen extends StatefulWidget {
     this.onLaunchError,
     this.onShowDetails,
     this.referenceTime,
+    this.productName = 'Avelune',
   });
 
   final AveluneHomeViewData viewData;
@@ -61,6 +62,9 @@ class AveluneHomeScreen extends StatefulWidget {
 
   /// Fixed clock for deterministic relative wording in tests and goldens.
   final DateTime? referenceTime;
+
+  /// Injected product identity shown as the header wordmark.
+  final String productName;
 
   @override
   State<AveluneHomeScreen> createState() => _AveluneHomeScreenState();
@@ -200,6 +204,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
               Positioned.fromRect(
                 rect: geometry.headerRect,
                 child: AveluneHomeHeader(
+                  productName: widget.productName,
                   compact: geometry.sizeClass == AveluneHomeSizeClass.compact,
                 ),
               ),

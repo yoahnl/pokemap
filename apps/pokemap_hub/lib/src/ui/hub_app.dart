@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
-import '../display/hub_display_preferences_controller.dart';
 import 'avelune/appearance/avelune_appearance_controller.dart';
 import 'avelune/home/avelune_home_controller.dart';
 import 'hub_dashboard_controller.dart';
@@ -28,9 +27,7 @@ class PokeMapHubApp extends StatefulWidget {
     this.productName = 'PokeMap Hub',
     this.actions = const HubUiActions(),
     this.playerBuilder,
-    this.displayPreferencesController,
     this.appearanceController,
-    this.mobileConsoleExperience = false,
     this.initializeController = true,
   });
 
@@ -38,9 +35,7 @@ class PokeMapHubApp extends StatefulWidget {
   final String productName;
   final HubUiActions actions;
   final HubPlayerBuilder? playerBuilder;
-  final HubDisplayPreferencesController? displayPreferencesController;
   final AveluneAppearanceController? appearanceController;
-  final bool mobileConsoleExperience;
   final bool initializeController;
 
   @override
@@ -247,16 +242,7 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
                   actions: _effectiveActions,
                   homeController: _homeController,
                   appearanceController: widget.appearanceController,
-                  mobileConsoleExperience: widget.mobileConsoleExperience,
-                  displayPreferencesController:
-                      widget.displayPreferencesController,
                   onSectionSelected: widget.controller.selectSection,
-                  onQueryChanged: widget.controller.setQuery,
-                  onGameSelected: widget.controller.selectGame,
-                  onGameDetailsClosed: widget.controller.closeGameDetails,
-                  onPreferencesChanged: (preferences) => unawaited(
-                    widget.controller.updatePreferences(preferences),
-                  ),
                   onCancelInstall: widget.controller.cancelImport,
                 ),
             },

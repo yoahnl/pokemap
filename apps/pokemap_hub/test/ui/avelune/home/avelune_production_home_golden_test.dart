@@ -14,9 +14,9 @@ import 'package:pub_semver/pub_semver.dart';
 /// The pre-existing gate in `test/ui/avelune_mobile_home_golden_test.dart`
 /// pumped `AveluneMobileHome`, which commit 2d8485837 removed from the shell.
 /// Every one of its goldens stayed green while the shipped screen drifted, so
-/// this gate pumps `HubShell(mobileConsoleExperience: true)` instead — the same
-/// composition the app builds — at the two device presets the approved
-/// prototype was captured on.
+/// this gate pumps `HubShell` itself — the same composition the app builds on
+/// every platform — at the two device presets the approved prototype was
+/// captured on.
 ///
 /// It also measures how far the render is from the frozen prototype capture.
 /// That number is a ratchet, not a parity claim: it may only go down. The
@@ -164,7 +164,6 @@ Future<void> _pumpProductionHome(
               productName: 'Avelune',
               // Pinned so the relative wording never drifts with the calendar.
               referenceTime: DateTime.utc(2026, 8, 4, 12),
-              mobileConsoleExperience: true,
               snapshot: snapshot,
               actions: actions,
               homeController: AveluneHomeController(
@@ -172,10 +171,6 @@ Future<void> _pumpProductionHome(
                 actions: actions,
               ),
               onSectionSelected: (_) {},
-              onQueryChanged: (_) {},
-              onGameSelected: (_) {},
-              onGameDetailsClosed: () {},
-              onPreferencesChanged: (_) {},
             ),
           ),
         ),

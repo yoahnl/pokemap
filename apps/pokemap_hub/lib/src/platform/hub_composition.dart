@@ -31,7 +31,6 @@ final class HubComposition implements HubAppComposition {
     required this.controller,
     required this.actions,
     required this.launchResolver,
-    required this.displayPreferencesController,
     required this.appearanceController,
     required HubPlatformAdapter platformAdapter,
   }) : _platformAdapter = platformAdapter;
@@ -40,7 +39,6 @@ final class HubComposition implements HubAppComposition {
   final HubDashboardController controller;
   final HubUiActions actions;
   final InstalledGameLaunchResolver launchResolver;
-  final HubDisplayPreferencesController displayPreferencesController;
   final AveluneAppearanceController appearanceController;
   final HubPlatformAdapter _platformAdapter;
 
@@ -105,11 +103,6 @@ final class HubComposition implements HubAppComposition {
           unawaited(initializedComposition._pickAndImport());
         },
       );
-      final displayPreferencesController = HubDisplayPreferencesController(
-        store: HubDisplayPreferencesStore(supportRoot: root),
-        driver: WindowManagerHubDisplayDriver(),
-      );
-      await displayPreferencesController.initialize();
       final backgroundProcessor = AveluneIsolateBackgroundImageProcessor();
       final appearanceController = AveluneAppearanceController(
         store: AveluneAppearanceStore(supportRoot: root),
@@ -128,7 +121,6 @@ final class HubComposition implements HubAppComposition {
         controller: controller,
         actions: actions,
         launchResolver: launchResolver,
-        displayPreferencesController: displayPreferencesController,
         appearanceController: appearanceController,
         platformAdapter: adapter,
       );
@@ -157,8 +149,6 @@ final class HubComposition implements HubAppComposition {
         productName: publicProductName,
         controller: controller,
         actions: actions,
-        mobileConsoleExperience: Platform.isAndroid || Platform.isIOS,
-        displayPreferencesController: displayPreferencesController,
         appearanceController: appearanceController,
         playerBuilder: (context, game, intent, onHubRequested) =>
             HubInstalledGamePlayer(
@@ -225,7 +215,6 @@ final class HubComposition implements HubAppComposition {
   void dispose() {
     _platformAdapter.dispose();
     appearanceController.dispose();
-    displayPreferencesController.dispose();
     controller.dispose();
   }
 }
