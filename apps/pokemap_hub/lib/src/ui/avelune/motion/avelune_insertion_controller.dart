@@ -113,7 +113,6 @@ final class AveluneInsertionController extends ChangeNotifier {
     final cue = switch (next) {
       AveluneInteractionState.aligning => AveluneFeedbackCue.align,
       AveluneInteractionState.latched => AveluneFeedbackCue.latch,
-      AveluneInteractionState.launching => AveluneFeedbackCue.launch,
       AveluneInteractionState.error => AveluneFeedbackCue.error,
       _ => null,
     };

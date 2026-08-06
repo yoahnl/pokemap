@@ -8,9 +8,9 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:pub_semver/pub_semver.dart';
 
 import '../../pokemap_hub_ui.dart';
+import 'avelune_host_compatibility.dart';
 import 'hub_platform_adapter.dart';
 import 'hub_platform_adapter_factory.dart';
 import 'public_product_identity.dart';
@@ -53,7 +53,7 @@ final class HubComposition implements HubAppComposition {
     try {
       final root = supportRoot ?? await _defaultSupportRoot();
       await root.create(recursive: true);
-      final hostCompatibility = _hostCompatibility();
+      final hostCompatibility = aveluneHostCompatibility();
       late final GamePackageInstaller installer;
       installer = GamePackageInstaller(
         supportRoot: root,
@@ -228,21 +228,6 @@ final class HubComposition implements HubAppComposition {
     controller.dispose();
   }
 }
-
-GamePackageHostCompatibility _hostCompatibility() =>
-    GamePackageHostCompatibility(
-      hubVersion: Version.parse('0.1.0'),
-      runtimeApiVersion: Version.parse('1.4.0'),
-      capabilities: const <String>{
-        'dialogue.choices@1',
-        'map@1',
-        'overworld.menu@1',
-        'world.shop@1',
-      },
-      supportedProjectFormats: const <String>{'v1', 'v2'},
-      currentProjectFormat: 'v2',
-      supportedSaveFormats: const <int>{1},
-    );
 
 Future<void> _loadInstalledProjectSmoke(
   Directory stagedVersionRoot,

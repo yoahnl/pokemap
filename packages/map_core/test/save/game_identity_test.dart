@@ -3,6 +3,16 @@ import 'package:test/test.dart';
 
 void main() {
   group('GameIdentity', () {
+    test('supports every serialized project schema version', () {
+      for (final version in ProjectVersion.values) {
+        expect(
+          ProjectFormat.parse(version.name).name,
+          version.name,
+          reason: version.name,
+        );
+      }
+    });
+
     test('accepts the Phase 0 identity contract', () {
       final identity = GameIdentity(
         gameId: 'games.example.complete',

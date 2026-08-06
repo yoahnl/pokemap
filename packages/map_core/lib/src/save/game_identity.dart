@@ -2,11 +2,19 @@ import 'save_contract_exception.dart';
 
 enum ProjectFormat {
   v1,
-  v2;
+  v2,
+  v3,
+  v4,
+  v5,
+  v6;
 
   static ProjectFormat parse(String value) => switch (value) {
         'v1' => ProjectFormat.v1,
         'v2' => ProjectFormat.v2,
+        'v3' => ProjectFormat.v3,
+        'v4' => ProjectFormat.v4,
+        'v5' => ProjectFormat.v5,
+        'v6' => ProjectFormat.v6,
         _ => throw SaveContractException(
             SaveContractErrorCode.invalidField,
             'Unsupported project format "$value".',

@@ -73,7 +73,9 @@ class AveluneRoomScene extends StatelessWidget {
     this.shelfCartridgeKeyFor,
     this.hiddenShelfGameIds = const <String>{},
     this.showHero = true,
+    this.behindConsoleOverlay,
     this.foregroundOverlay,
+    this.heroSemanticsLabel,
   });
 
   final AveluneHomeGeometry geometry;
@@ -91,7 +93,9 @@ class AveluneRoomScene extends StatelessWidget {
   final GlobalKey Function(String gameId)? shelfCartridgeKeyFor;
   final Set<String> hiddenShelfGameIds;
   final bool showHero;
+  final Widget? behindConsoleOverlay;
   final Widget? foregroundOverlay;
+  final String? heroSemanticsLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -170,6 +174,8 @@ class AveluneRoomScene extends StatelessWidget {
               hiddenGameIds: hiddenShelfGameIds,
             ),
           ),
+          if (behindConsoleOverlay != null)
+            Positioned.fill(child: behindConsoleOverlay!),
           Positioned.fromRect(
             rect: geometry.consoleRect,
             child: AveluneConsole(
@@ -182,15 +188,21 @@ class AveluneRoomScene extends StatelessWidget {
               rect: geometry.heroCartridgeRect.inflate(
                 geometry.heroCartridgeSize.width * 0.22,
               ),
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  key: const ValueKey<String>('avelune-room-hero-glow'),
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      colors: <Color>[
-                        colors.glow.withValues(alpha: 0.3),
-                        colors.glow.withValues(alpha: 0),
-                      ],
+              child: Visibility(
+                visible: showHero,
+                maintainAnimation: true,
+                maintainSize: true,
+                maintainState: true,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    key: const ValueKey<String>('avelune-room-hero-glow'),
+                    decoration: BoxDecoration(
+                      gradient: RadialGradient(
+                        colors: <Color>[
+                          colors.glow.withValues(alpha: 0.3),
+                          colors.glow.withValues(alpha: 0),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -219,6 +231,7 @@ class AveluneRoomScene extends StatelessWidget {
                     displaySize: AveluneCartridgeDisplaySize.hero,
                     onPressed: onHeroPressed,
                     onLongPress: onHeroLongPress,
+                    semanticsLabel: heroSemanticsLabel,
                   ),
                 ),
               ),

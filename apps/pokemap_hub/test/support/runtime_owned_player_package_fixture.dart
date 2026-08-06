@@ -12,7 +12,7 @@ Map<String, List<int>> runtimeOwnedPlayerFixturePayload() => {
 
 const _projectJson = '''{
   "name": "Les Îles Claires",
-  "version": "v1",
+  "version": "v6",
   "maps": [
     {
       "id": "runtime_harbor",
@@ -403,7 +403,7 @@ const _mapJson = '''{
     "width": 5,
     "height": 4
   },
-  "version": "v1",
+  "version": "v6",
   "layers": [
     {
       "runtimeType": "object",

@@ -25,6 +25,7 @@ class AveluneCartridge extends StatelessWidget {
     this.invalid = false,
     this.onPressed,
     this.onLongPress,
+    this.semanticsLabel,
     this.semanticsHint,
     this.artworkHeroTag,
     this.connectorsOpacity = 1,
@@ -42,6 +43,7 @@ class AveluneCartridge extends StatelessWidget {
         selected = false,
         invalid = false,
         onLongPress = null,
+        semanticsLabel = null,
         semanticsHint = null,
         artworkHeroTag = null,
         connectorsOpacity = 1,
@@ -58,6 +60,7 @@ class AveluneCartridge extends StatelessWidget {
   final AveluneCartridgeDisplaySize displaySize;
   final VoidCallback? onPressed;
   final VoidCallback? onLongPress;
+  final String? semanticsLabel;
   final String? semanticsHint;
   final Object? artworkHeroTag;
   final double connectorsOpacity;
@@ -68,18 +71,20 @@ class AveluneCartridge extends StatelessWidget {
     final locale = Localizations.maybeLocaleOf(context)?.languageCode;
     final addLabel = locale == 'fr' ? 'Ajouter un jeu' : 'Add a game';
     final unavailable = locale == 'fr' ? 'indisponible' : 'unavailable';
-    final semanticsLabel = addSlot
-        ? addLabel
-        : <String>[
-            title,
-            if (subtitle case final value? when value.trim().isNotEmpty) value,
-            if (invalid) unavailable,
-          ].join(', ');
+    final resolvedSemanticsLabel = semanticsLabel ??
+        (addSlot
+            ? addLabel
+            : <String>[
+                title,
+                if (subtitle case final value? when value.trim().isNotEmpty)
+                  value,
+                if (invalid) unavailable,
+              ].join(', '));
 
     return Semantics(
       button: onPressed != null || onLongPress != null,
       selected: selected,
-      label: semanticsLabel,
+      label: resolvedSemanticsLabel,
       hint: semanticsHint,
       onTap: onPressed,
       onLongPress: onLongPress,

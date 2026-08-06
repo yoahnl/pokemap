@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pub_semver/pub_semver.dart';
 
@@ -9,8 +10,8 @@ GamePackageHostCompatibility testHostCompatibility() =>
       hubVersion: Version.parse('1.0.0'),
       runtimeApiVersion: Version.parse('1.0.0'),
       capabilities: const <String>{'map@1', 'overworld.menu@1'},
-      supportedProjectFormats: const <String>{'v2'},
-      currentProjectFormat: 'v2',
+      supportedProjectFormats: <String>{ProjectVersion.v6.name},
+      currentProjectFormat: ProjectVersion.v6.name,
       supportedSaveFormats: const <int>{1},
     );
 
@@ -22,6 +23,7 @@ Future<File> writeTestPackage(
   String projectName = 'Adventure',
   int extraFiles = 0,
   String minHubVersion = '1.0.0',
+  String projectFormat = 'v6',
   List<String> requiredCapabilities = const <String>[],
 }) async {
   final manifest = GamePackageManifest(
@@ -34,7 +36,7 @@ Future<File> writeTestPackage(
     compatibility: GamePackageCompatibility(
       minHubVersion: Version.parse(minHubVersion),
       runtimeApiExpression: '>=1.0.0 <2.0.0',
-      projectFormat: 'v2',
+      projectFormat: projectFormat,
       saveFormat: 1,
       compatibilityId: 'main',
       requiredCapabilities: requiredCapabilities,
@@ -54,7 +56,7 @@ Future<File> writeTestPackage(
     'project/project.json': utf8.encode(
       jsonEncode(<String, Object?>{
         'name': projectName,
-        'version': 'v2',
+        'version': projectFormat,
         'maps': <Object?>[],
         'tilesets': <Object?>[],
       }),

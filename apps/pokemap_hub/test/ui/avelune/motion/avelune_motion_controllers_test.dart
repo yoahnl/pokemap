@@ -234,7 +234,8 @@ void main() {
       delay.completeNext();
       await _flushMicrotasks();
       expect(controller.state, AveluneInteractionState.launching);
-      expect(feedback.cues.last, AveluneFeedbackCue.launch);
+      expect(launches, 0);
+      expect(feedback.cues.last, AveluneFeedbackCue.latch);
 
       delay.completeNext();
       expect(await insertion, isTrue);
@@ -254,7 +255,6 @@ void main() {
         <AveluneFeedbackCue>[
           AveluneFeedbackCue.align,
           AveluneFeedbackCue.latch,
-          AveluneFeedbackCue.launch,
         ],
       );
     });
@@ -324,6 +324,7 @@ void main() {
       );
       controller.recover();
       expect(controller.state, AveluneInteractionState.idle);
+      expect(await controller.insert(onLaunch: () {}), isTrue);
     });
 
     test('reduced motion uses only reduced phase durations', () async {
@@ -335,12 +336,19 @@ void main() {
       );
 
       expect(await controller.insert(onLaunch: () {}), isTrue);
-      expect(durations, isNotEmpty);
       expect(
         durations,
-        everyElement(lessThanOrEqualTo(const Duration(milliseconds: 120))),
+        <Duration>[
+          Duration.zero,
+          const Duration(milliseconds: 120),
+          Duration.zero,
+          Duration.zero,
+        ],
       );
-      expect(durations.last, Duration.zero);
+      expect(
+        durations.fold<int>(0, (total, value) => total + value.inMilliseconds),
+        120,
+      );
     });
   });
 }

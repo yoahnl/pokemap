@@ -7,10 +7,21 @@ import '../avelune_console.dart';
 import '../avelune_theme.dart';
 import '../motion/avelune_exchange_controller.dart';
 import '../motion/avelune_feedback.dart';
+import '../motion/avelune_insertion_controller.dart';
+import '../motion/avelune_interaction_state.dart';
 import 'avelune_cartridge_exchange_overlay.dart';
+import 'avelune_cartridge_insertion_overlay.dart';
 import 'avelune_home_geometry.dart';
 import 'avelune_home_view_data.dart';
 import 'avelune_room_scene.dart';
+
+typedef AveluneGameLaunchCallback = FutureOr<void> Function(
+  AveluneGameViewData game,
+);
+typedef AveluneLaunchErrorCallback = void Function(
+  AveluneGameViewData game,
+  Object error,
+);
 
 class AveluneHomeScreen extends StatefulWidget {
   const AveluneHomeScreen({
@@ -23,7 +34,9 @@ class AveluneHomeScreen extends StatefulWidget {
     this.feedback = const AveluneNoopFeedback(),
     this.onGameSelected,
     this.onAddGame,
-    this.onHeroPressed,
+    this.onContinue,
+    this.onNewGame,
+    this.onLaunchError,
     this.onHeroLongPress,
   });
 
@@ -35,7 +48,9 @@ class AveluneHomeScreen extends StatefulWidget {
   final AveluneFeedback feedback;
   final ValueChanged<AveluneGameViewData>? onGameSelected;
   final VoidCallback? onAddGame;
-  final VoidCallback? onHeroPressed;
+  final AveluneGameLaunchCallback? onContinue;
+  final AveluneGameLaunchCallback? onNewGame;
+  final AveluneLaunchErrorCallback? onLaunchError;
   final VoidCallback? onHeroLongPress;
 
   @override
@@ -49,17 +64,26 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
   final Map<String, GlobalKey> _shelfCartridgeKeys = <String, GlobalKey>{};
 
   AveluneExchangeController? _exchangeController;
+  AveluneInsertionController? _insertionController;
   AnimationController? _exchangeAnimation;
+  AveluneFeedback? _configuredFeedback;
+  AveluneMotionTokens _motion = AveluneMotionTokens.standard;
   String? _selectedGameId;
   AveluneGameViewData? _exchangeSource;
   AveluneGameViewData? _exchangeTarget;
+  AveluneGameViewData? _insertionGame;
+  AveluneInteractionState _insertionState = AveluneInteractionState.idle;
   Rect? _sourceShelfRect;
   Rect? _targetShelfRect;
   Rect? _heroRect;
+  Rect? _insertionHeroRect;
+  String? _launchErrorMessage;
   bool _reducedMotion = false;
   int _exchangeGeneration = 0;
+  int _insertionGeneration = 0;
 
   bool get _isExchanging => _exchangeSource != null;
+  bool get _isInserting => _insertionGame != null;
 
   @override
   void initState() {
@@ -95,7 +119,8 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
   @override
   void dispose() {
     _exchangeGeneration++;
-    _exchangeController?.dispose();
+    _insertionGeneration++;
+    _disposeInteractionControllers();
     _exchangeAnimation?.dispose();
     super.dispose();
   }
@@ -124,29 +149,58 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
                 _exchangeTarget!.id,
               }
             : const <String>{};
+        final canLaunch = selectedGame != null && _canLaunch(selectedGame);
 
         return SizedBox.expand(
           key: const ValueKey<String>('avelune-home-screen'),
-          child: AveluneRoomScene(
-            geometry: geometry,
-            appearance: widget.appearance,
-            games: widget.viewData.games,
-            selectedGame: selectedGame,
-            customBackground: widget.customBackground,
-            consoleState: widget.consoleState,
-            insertionProgress: widget.insertionProgress,
-            onGameSelected: _requestGameSelection,
-            onAddGame: widget.onAddGame,
-            onHeroPressed: widget.onHeroPressed,
-            onHeroLongPress: widget.onHeroLongPress,
-            heroAnchorKey: _heroAnchorKey,
-            shelfCartridgeKeyFor: _shelfKeyFor,
-            hiddenShelfGameIds: hiddenShelfIds,
-            showHero: !_isExchanging,
-            foregroundOverlay: SizedBox.expand(
-              key: _exchangeOverlayAnchorKey,
-              child: _buildExchangeOverlay(),
-            ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              AveluneRoomScene(
+                geometry: geometry,
+                appearance: widget.appearance,
+                games: widget.viewData.games,
+                selectedGame: selectedGame,
+                customBackground: widget.customBackground,
+                consoleState: _consoleState,
+                insertionProgress: _consoleInsertionProgress,
+                onGameSelected: _requestGameSelection,
+                onAddGame: widget.onAddGame,
+                onHeroPressed:
+                    canLaunch && !_isExchanging ? _requestInsertion : null,
+                onHeroLongPress: widget.onHeroLongPress,
+                heroAnchorKey: _heroAnchorKey,
+                shelfCartridgeKeyFor: _shelfKeyFor,
+                hiddenShelfGameIds: hiddenShelfIds,
+                showHero: !_isExchanging && !_isInserting,
+                heroSemanticsLabel:
+                    canLaunch ? _heroActionLabel(selectedGame) : null,
+                behindConsoleOverlay: _buildInsertionOverlay(geometry),
+                foregroundOverlay: SizedBox.expand(
+                  key: _exchangeOverlayAnchorKey,
+                  child: _buildExchangeOverlay(),
+                ),
+              ),
+              if (_launchErrorMessage case final message?)
+                Positioned(
+                  key: const ValueKey<String>('avelune-launch-error-notice'),
+                  left: geometry.contentRect.left + AveluneSpacing.md,
+                  right: viewportSize.width -
+                      geometry.contentRect.right +
+                      AveluneSpacing.md,
+                  top: geometry.headerRect.bottom + AveluneSpacing.sm,
+                  child: IgnorePointer(
+                    child: AveluneStateMessage(
+                      kind: AveluneStateMessageKind.error,
+                      title: _localized(
+                        'Lancement impossible',
+                        'Unable to launch',
+                      ),
+                      message: message,
+                    ),
+                  ),
+                ),
+            ],
           ),
         );
       },
@@ -184,6 +238,20 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     );
   }
 
+  Widget? _buildInsertionOverlay(AveluneHomeGeometry geometry) {
+    final game = _insertionGame;
+    final heroRect = _insertionHeroRect;
+    if (game == null || heroRect == null) return null;
+    return AveluneCartridgeInsertionOverlay(
+      game: game,
+      state: _insertionState,
+      heroRect: heroRect,
+      trajectory: geometry.anchors.insertion,
+      motion: _motion,
+      reducedMotion: _reducedMotion,
+    );
+  }
+
   void _configureMotion() {
     final selectedId = _selectedGameId;
     final reducedMotion = widget.viewData.reducedMotion ||
@@ -203,27 +271,63 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     }
 
     if (selectedId == null) {
-      _exchangeController?.dispose();
-      _exchangeController = null;
+      _disposeInteractionControllers();
       return;
     }
-    final controller = _exchangeController;
-    if (controller == null ||
-        !controller.isExchanging && controller.currentGameId != selectedId) {
-      controller?.dispose();
+
+    final configurationChanged =
+        _motion != motion || !identical(_configuredFeedback, widget.feedback);
+    if (configurationChanged && !_isExchanging && !_isInserting) {
+      _disposeInteractionControllers();
+    }
+    _motion = motion;
+    _configuredFeedback = widget.feedback;
+
+    _insertionController ??= _createInsertionController();
+    final exchange = _exchangeController;
+    if (exchange == null ||
+        !exchange.isExchanging && exchange.currentGameId != selectedId) {
+      exchange?.dispose();
       _exchangeController = AveluneExchangeController(
         initialGameId: selectedId,
         motion: motion,
         feedback: widget.feedback,
+        isSelectionBlocked: () =>
+            _insertionController?.isInserting == true || _isInserting,
       );
     }
+  }
+
+  AveluneInsertionController _createInsertionController() {
+    final controller = AveluneInsertionController(
+      motion: _motion,
+      feedback: widget.feedback,
+    );
+    controller.addListener(_handleInsertionStateChanged);
+    return controller;
+  }
+
+  void _disposeInteractionControllers() {
+    final insertion = _insertionController;
+    insertion?.removeListener(_handleInsertionStateChanged);
+    insertion?.dispose();
+    _insertionController = null;
+    _exchangeController?.dispose();
+    _exchangeController = null;
+  }
+
+  void _handleInsertionStateChanged() {
+    final controller = _insertionController;
+    if (!mounted || controller == null) return;
+    setState(() => _insertionState = controller.state);
   }
 
   Future<void> _requestGameSelection(AveluneGameViewData game) async {
     final controller = _exchangeController;
     final animation = _exchangeAnimation;
     final source = _gameFor(controller?.currentGameId ?? _selectedGameId);
-    if (controller == null ||
+    if (_isInserting ||
+        controller == null ||
         animation == null ||
         source == null ||
         game.id == controller.currentGameId && !controller.isExchanging) {
@@ -274,6 +378,99 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     setState(_clearExchangeVisual);
   }
 
+  Future<void> _requestInsertion() async {
+    final game = _gameFor(_selectedGameId);
+    final controller = _insertionController;
+    final heroRect = _rectInOverlay(_heroAnchorKey);
+    if (game == null ||
+        controller == null ||
+        heroRect == null ||
+        _isExchanging ||
+        _isInserting ||
+        !_canLaunch(game)) {
+      return;
+    }
+
+    final generation = ++_insertionGeneration;
+    setState(() {
+      _launchErrorMessage = null;
+      _insertionGame = game;
+      _insertionHeroRect = heroRect;
+      _insertionState = AveluneInteractionState.idle;
+    });
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted || generation != _insertionGeneration) return;
+
+    try {
+      final launched = await controller.insert(
+        onLaunch: () => _launch(game),
+      );
+      if (!mounted || generation != _insertionGeneration) return;
+      if (launched) setState(_clearInsertionVisual);
+    } catch (error) {
+      if (!mounted || generation != _insertionGeneration) return;
+      widget.onLaunchError?.call(game, error);
+      setState(() {
+        _launchErrorMessage = _localized(
+          'Impossible de lancer ${game.title}. Vérifiez la sauvegarde et réessayez.',
+          'Unable to launch ${game.title}. Check the save and try again.',
+        );
+      });
+      controller.recover();
+      await Future<void>.delayed(_motion.selection);
+      if (!mounted || generation != _insertionGeneration) return;
+      setState(_clearInsertionVisual);
+    }
+  }
+
+  Future<void> _launch(AveluneGameViewData game) async {
+    switch (game.primaryAction) {
+      case AvelunePrimaryAction.continueGame:
+        await Future<void>.sync(() => widget.onContinue!(game));
+      case AvelunePrimaryAction.play:
+        await Future<void>.sync(() => widget.onNewGame!(game));
+      case AvelunePrimaryAction.disabled:
+        throw StateError('A disabled Avelune game cannot be launched.');
+    }
+  }
+
+  bool _canLaunch(AveluneGameViewData game) {
+    if (!game.isValid || widget.viewData.import.isImporting) return false;
+    return switch (game.primaryAction) {
+      AvelunePrimaryAction.continueGame => widget.onContinue != null,
+      AvelunePrimaryAction.play => widget.onNewGame != null,
+      AvelunePrimaryAction.disabled => false,
+    };
+  }
+
+  String _heroActionLabel(AveluneGameViewData game) =>
+      switch (game.primaryAction) {
+        AvelunePrimaryAction.continueGame =>
+          _localized('Continuer ${game.title}', 'Continue ${game.title}'),
+        AvelunePrimaryAction.play =>
+          _localized('Jouer à ${game.title}', 'Play ${game.title}'),
+        AvelunePrimaryAction.disabled => game.title,
+      };
+
+  AveluneConsoleState? get _consoleState => switch (_insertionState) {
+        AveluneInteractionState.aligning ||
+        AveluneInteractionState.descending =>
+          AveluneConsoleState.inserting,
+        AveluneInteractionState.latched => AveluneConsoleState.latched,
+        AveluneInteractionState.launching => AveluneConsoleState.launching,
+        AveluneInteractionState.error => AveluneConsoleState.error,
+        _ => widget.consoleState,
+      };
+
+  double get _consoleInsertionProgress => switch (_insertionState) {
+        AveluneInteractionState.aligning => 0.15,
+        AveluneInteractionState.descending => 0.65,
+        AveluneInteractionState.latched ||
+        AveluneInteractionState.launching =>
+          1,
+        _ => widget.insertionProgress,
+      };
+
   void _commitSelection(String gameId) {
     final game = _gameFor(gameId);
     if (!mounted || game == null) return;
@@ -311,11 +508,22 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
 
   bool _containsGame(String? gameId) => _gameFor(gameId) != null;
 
+  String _localized(String french, String english) =>
+      Localizations.maybeLocaleOf(context)?.languageCode == 'fr'
+          ? french
+          : english;
+
   void _clearExchangeVisual() {
     _exchangeSource = null;
     _exchangeTarget = null;
     _heroRect = null;
     _sourceShelfRect = null;
     _targetShelfRect = null;
+  }
+
+  void _clearInsertionVisual() {
+    _insertionGame = null;
+    _insertionHeroRect = null;
+    _insertionState = AveluneInteractionState.idle;
   }
 }

@@ -875,18 +875,26 @@ tap hero
 
 **Tâches :**
 
-- [ ] Tester les transitions pures `idle → ... → launching`.
-- [ ] Appeler le flow existant seulement après `latched`.
-- [ ] Utiliser `onContinue` si `canContinue`, sinon `onNewGame`.
-- [ ] Empêcher l’insertion si jeu invalide, import en cours ou action absente.
-- [ ] Occlure progressivement les connecteurs derrière le slot.
-- [ ] Synchroniser LED, ombre, compression et feedback sur le latch.
-- [ ] En reduced motion, remplacer la trajectoire par état latched/fondu sans délai inutile.
-- [ ] Sur erreur, restaurer exactement la sélection et permettre une nouvelle tentative.
-- [ ] Ajouter une Semantics action explicite « Continuer [jeu] » ou « Jouer à [jeu] ».
-- [ ] Tester double tap, changement de route, erreur, sauvegarde invalide et dispose.
+- [x] Tester les transitions pures `idle → ... → launching`.
+- [x] Appeler le flow existant seulement après `latched`.
+- [x] Utiliser `onContinue` si `canContinue`, sinon `onNewGame`.
+- [x] Empêcher l’insertion si jeu invalide, import en cours ou action absente.
+- [x] Occlure progressivement les connecteurs derrière le slot.
+- [x] Synchroniser LED, ombre, compression et feedback sur le latch.
+- [x] En reduced motion, remplacer la trajectoire par état latched/fondu sans délai inutile.
+- [x] Sur erreur, restaurer exactement la sélection et permettre une nouvelle tentative.
+- [x] Ajouter une Semantics action explicite « Continuer [jeu] » ou « Jouer à [jeu] ».
+- [x] Tester double tap, changement de route, erreur, sauvegarde invalide et dispose.
 
 **Visual Gate :** fournir vidéo 60 fps réelle sur iOS et Android ; refuser si la cartouche traverse le slot, accélère brutalement ou déclenche le clic avant contact.
+
+**Exécution du 5 août 2026 :**
+
+- La cartouche héro est désormais l’action principale : `AveluneHomeScreen` valide l’état réel, choisit `onContinue` ou `onNewGame`, puis délègue la séquence temporelle à `AveluneInsertionController`.
+- `AveluneCartridgeInsertionOverlay` reste derrière la console, suit les anchors responsives, efface progressivement ses connecteurs pendant la descente et comprime légèrement la coque au latch ; l’état de la console synchronise le slot et la LED.
+- Le feedback de latch est l’unique contact fort/clic. Le lancement intervient 80 ms plus tard. En reduced motion, les phases nulles entourent un unique fondu/latch de 120 ms.
+- Une exception de lancement conserve la sélection, annonce une erreur sûre, remonte visuellement la cartouche et permet un nouvel essai. Les tests couvrent aussi double tap, action absente, import, jeu/sauvegarde invalide, remplacement de route et dispose.
+- Le raccordement des callbacks à `HubUiActions` reste volontairement réservé à `AVELUNE-500`. La vidéo 60 fps sur appareils physiques reste un gate de livraison de `AVELUNE-610` ; ce lot fournit le golden de latch automatisé comme preuve visuelle intermédiaire.
 
 ### AVELUNE-420 — Appui long, Hero et détails du jeu
 

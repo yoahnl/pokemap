@@ -88,6 +88,85 @@ void main() {
       ),
     );
   });
+
+  testWidgets('latched cartridge insertion visual gate', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final theme = AveluneThemeData.standard.applyTo(ThemeData.dark());
+    await tester.runAsync(_primeGoldenFileImages);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme.copyWith(
+          textTheme: theme.textTheme.apply(fontFamily: 'AveluneGoldenSans'),
+        ),
+        home: RepaintBoundary(
+          key: const ValueKey<String>('avelune-insertion-golden-root'),
+          child: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(390, 844),
+              padding: EdgeInsets.only(top: 47, bottom: 34),
+            ),
+            child: AveluneHomeScreen(
+              viewData: _viewData(),
+              appearance: const AveluneAppearancePreferences(
+                backgroundId: 'amber',
+                furnitureId: 'walnut',
+              ),
+              onNewGame: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+    final context = tester.element(find.byType(AveluneHomeScreen));
+    await tester.runAsync(() async {
+      await Future.wait<void>(<Future<void>>[
+        precacheImage(
+          const AssetImage('assets/avelune/room/backgrounds/amber.webp'),
+          context,
+        ),
+        precacheImage(
+          const AssetImage(
+            'assets/avelune/room/furniture/credenza_walnut.webp',
+          ),
+          context,
+        ),
+        ...AveluneMaterialCatalog.consoleLayers.map(
+          (asset) => precacheImage(AssetImage(asset.path), context),
+        ),
+        ...AveluneMaterialCatalog.cartridgeLayers.map(
+          (asset) => precacheImage(AssetImage(asset.path), context),
+        ),
+      ]);
+    });
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    _markSubtreeNeedsPaint(
+      tester.renderObject(
+        find.byKey(const ValueKey<String>('avelune-insertion-golden-root')),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    await expectLater(
+      find.byKey(const ValueKey<String>('avelune-insertion-golden-root')),
+      matchesGoldenFile(
+        '../../goldens/avelune/phase4_insertion_latched_390x844.png',
+      ),
+    );
+  });
 }
 
 class _Room extends StatelessWidget {
