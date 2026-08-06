@@ -344,7 +344,7 @@ final class AveluneHomeGeometry {
     shelfGap: 8,
     sceneHorizontalPadding: 20,
     sceneBottomPadding: 4,
-    heroConsoleGap: 8,
+    heroConsoleGap: 22,
     consoleSlotHeight: 6,
     insertionClearance: 3,
     activityRows: 1,
@@ -362,7 +362,7 @@ final class AveluneHomeGeometry {
     shelfGap: 8,
     sceneHorizontalPadding: 12,
     sceneBottomPadding: 4,
-    heroConsoleGap: 12,
+    heroConsoleGap: 34,
     consoleSlotHeight: 6,
     insertionClearance: 4,
     activityRows: 2,
@@ -380,7 +380,7 @@ final class AveluneHomeGeometry {
     shelfGap: 10,
     sceneHorizontalPadding: 12,
     sceneBottomPadding: 4,
-    heroConsoleGap: 14,
+    heroConsoleGap: 38,
     consoleSlotHeight: 6,
     insertionClearance: 4,
     activityRows: 3,
@@ -435,6 +435,8 @@ final class _AveluneHomeClassMetrics {
   final double shelfGap;
   final double sceneHorizontalPadding;
   final double sceneBottomPadding;
+  /// Vertical room between the hero cartridge and the console. It also hosts
+  /// the insertion hint, so it is wider than a pure visual gap.
   final double heroConsoleGap;
   final double consoleSlotHeight;
   final double insertionClearance;

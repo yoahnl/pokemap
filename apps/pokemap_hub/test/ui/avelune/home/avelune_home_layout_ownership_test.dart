@@ -81,6 +81,25 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('details control opens the real game details screen',
+      (tester) async {
+    await _pumpConsoleShell(tester, size: iphone, insets: iphoneInsets);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-hero-details-button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(
+      find.byType(AveluneGameDetailsScreen),
+      findsOneWidget,
+      reason: 'The production shell never wired any details route after the '
+          'AVELUNE-500 cutover.',
+    );
+    expect(find.text('Selbrume'), findsWidgets);
+  });
 }
 
 Future<void> _pumpConsoleShell(

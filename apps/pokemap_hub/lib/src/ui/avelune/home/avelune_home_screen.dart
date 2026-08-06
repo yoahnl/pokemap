@@ -11,8 +11,11 @@ import '../motion/avelune_insertion_controller.dart';
 import '../motion/avelune_interaction_state.dart';
 import 'avelune_cartridge_exchange_overlay.dart';
 import 'avelune_cartridge_insertion_overlay.dart';
+import 'avelune_hero_details_panel.dart';
 import 'avelune_home_geometry.dart';
+import 'avelune_home_header.dart';
 import 'avelune_home_view_data.dart';
+import 'avelune_insertion_hint.dart';
 import 'avelune_room_scene.dart';
 
 typedef AveluneGameLaunchCallback = FutureOr<void> Function(
@@ -37,7 +40,8 @@ class AveluneHomeScreen extends StatefulWidget {
     this.onContinue,
     this.onNewGame,
     this.onLaunchError,
-    this.onHeroLongPress,
+    this.onShowDetails,
+    this.referenceTime,
   });
 
   final AveluneHomeViewData viewData;
@@ -51,7 +55,12 @@ class AveluneHomeScreen extends StatefulWidget {
   final AveluneGameLaunchCallback? onContinue;
   final AveluneGameLaunchCallback? onNewGame;
   final AveluneLaunchErrorCallback? onLaunchError;
-  final VoidCallback? onHeroLongPress;
+
+  /// Raised by the visible details control and by the hero long press.
+  final ValueChanged<AveluneGameViewData>? onShowDetails;
+
+  /// Fixed clock for deterministic relative wording in tests and goldens.
+  final DateTime? referenceTime;
 
   @override
   State<AveluneHomeScreen> createState() => _AveluneHomeScreenState();
@@ -150,6 +159,10 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
               }
             : const <String>{};
         final canLaunch = selectedGame != null && _canLaunch(selectedGame);
+        // Chrome tied to the hero steps aside while the cartridge is animating
+        // between the shelf and the console slot.
+        final showChrome = !_isExchanging && !_isInserting;
+        final detailsPanelRect = _detailsPanelRect(geometry);
 
         return SizedBox.expand(
           key: const ValueKey<String>('avelune-home-screen'),
@@ -165,12 +178,13 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
                 consoleState: _consoleState,
                 insertionProgress: _consoleInsertionProgress,
                 recentActivity: widget.viewData.recentActivity,
+                referenceTime: widget.referenceTime,
                 onGameSelected: _requestGameSelection,
                 onAddGame: widget.onAddGame,
                 onActivitySelected: _handleActivitySelected,
                 onHeroPressed:
                     canLaunch && !_isExchanging ? _requestInsertion : null,
-                onHeroLongPress: widget.onHeroLongPress,
+                onHeroLongPress: _detailsCallbackFor(selectedGame),
                 heroAnchorKey: _heroAnchorKey,
                 shelfCartridgeKeyFor: _shelfKeyFor,
                 hiddenShelfGameIds: hiddenShelfIds,
@@ -183,6 +197,45 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
                   child: _buildExchangeOverlay(),
                 ),
               ),
+              Positioned.fromRect(
+                rect: geometry.headerRect,
+                child: AveluneHomeHeader(
+                  compact: geometry.sizeClass == AveluneHomeSizeClass.compact,
+                ),
+              ),
+              if (selectedGame case final game?) ...<Widget>[
+                Positioned.fromRect(
+                  rect: detailsPanelRect,
+                  child: Visibility(
+                    visible: showChrome,
+                    maintainState: true,
+                    child: FittedBox(
+                      // The home has a no-vertical-scroll contract, so the
+                      // column scales down rather than overflowing at large
+                      // text scales. The inner SizedBox pins the width first:
+                      // FittedBox lays its child out unbounded, so without it
+                      // the copy would never wrap and the whole column would be
+                      // scaled down to fit one long line.
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        width: detailsPanelRect.width,
+                        child: AveluneHeroDetailsPanel(
+                          game: game,
+                          referenceTime: widget.referenceTime ?? DateTime.now(),
+                          condensed: geometry.hidesNonEssentialMetadata,
+                          onShowDetails: widget.onShowDetails,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (canLaunch && showChrome)
+                  Positioned.fromRect(
+                    rect: _insertionHintRect(geometry),
+                    child: AveluneInsertionHint(action: game.primaryAction),
+                  ),
+              ],
               if (_launchErrorMessage case final message?)
                 Positioned(
                   key: const ValueKey<String>('avelune-launch-error-notice'),
@@ -208,6 +261,28 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
       },
     );
   }
+
+  VoidCallback? _detailsCallbackFor(AveluneGameViewData? game) {
+    final callback = widget.onShowDetails;
+    if (game == null || callback == null) return null;
+    return () => callback(game);
+  }
+
+  /// Metadata column occupying the margin to the right of the centred hero.
+  Rect _detailsPanelRect(AveluneHomeGeometry geometry) => Rect.fromLTRB(
+        geometry.heroCartridgeRect.right + AveluneSpacing.md,
+        geometry.heroCartridgeRect.top,
+        geometry.contentRect.right - AveluneSpacing.sm,
+        geometry.consoleRect.top,
+      );
+
+  /// The hero-to-console gap, which the geometry sizes to host the hint.
+  Rect _insertionHintRect(AveluneHomeGeometry geometry) => Rect.fromLTRB(
+        geometry.contentRect.left,
+        geometry.heroCartridgeRect.bottom,
+        geometry.contentRect.right,
+        geometry.consoleRect.top,
+      );
 
   Widget _buildExchangeOverlay() {
     final animation = _exchangeAnimation;

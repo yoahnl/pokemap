@@ -11,6 +11,7 @@ import '../avelune_theme.dart';
 import 'avelune_game_shelf.dart';
 import 'avelune_home_geometry.dart';
 import 'avelune_home_view_data.dart';
+import 'avelune_relative_time.dart';
 
 @immutable
 final class AveluneRoomSceneLayout {
@@ -78,6 +79,7 @@ class AveluneRoomScene extends StatelessWidget {
     this.behindConsoleOverlay,
     this.foregroundOverlay,
     this.heroSemanticsLabel,
+    this.referenceTime,
   });
 
   final AveluneHomeGeometry geometry;
@@ -100,6 +102,10 @@ class AveluneRoomScene extends StatelessWidget {
   final Widget? behindConsoleOverlay;
   final Widget? foregroundOverlay;
   final String? heroSemanticsLabel;
+
+  /// Pinned clock for relative wording. Goldens and tests must supply it so
+  /// the render does not drift with the calendar.
+  final DateTime? referenceTime;
 
   @override
   Widget build(BuildContext context) {
@@ -183,6 +189,7 @@ class AveluneRoomScene extends StatelessWidget {
               rect: geometry.activityRect,
               child: _RoomActivityRail(
                 activities: recentActivity,
+                referenceTime: referenceTime,
                 maxVisibleRows: geometry.activityRowCapacity,
                 onActivitySelected: onActivitySelected,
               ),
@@ -284,10 +291,12 @@ class _RoomActivityRail extends StatelessWidget {
     required this.activities,
     required this.maxVisibleRows,
     this.onActivitySelected,
+    this.referenceTime,
   });
 
   final List<AveluneRecentActivityViewData> activities;
   final int maxVisibleRows;
+  final DateTime? referenceTime;
   final ValueChanged<AveluneRecentActivityViewData>? onActivitySelected;
 
   @override
@@ -353,6 +362,7 @@ class _RoomActivityRail extends StatelessWidget {
             for (var i = 0; i < visibleCount; i++)
               _ActivityTile(
                 activity: activities[i],
+                referenceTime: referenceTime,
                 onTap: onActivitySelected != null
                     ? () => onActivitySelected!(activities[i])
                     : null,
@@ -373,6 +383,7 @@ class _RoomActivityRail extends StatelessWidget {
         itemCount: activities.length,
         itemBuilder: (context, index) => _ActivityTile(
           activity: activities[index],
+          referenceTime: referenceTime,
           onTap: () {
             Navigator.of(context).pop();
             onActivitySelected?.call(activities[index]);
@@ -387,16 +398,20 @@ class _ActivityTile extends StatelessWidget {
   const _ActivityTile({
     required this.activity,
     this.onTap,
+    this.referenceTime,
   });
 
   final AveluneRecentActivityViewData activity;
   final VoidCallback? onTap;
+  final DateTime? referenceTime;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
-    final now = DateTime.now();
-    final relative = _formatRelative(activity.occurredAt, now);
+    final now = referenceTime ?? DateTime.now();
+    final french = Localizations.localeOf(context).languageCode == 'fr';
+    final relative =
+        aveluneRelativeTime(activity.occurredAt, now, french: french);
 
     return GestureDetector(
       onTap: onTap,
@@ -463,12 +478,3 @@ class _ActivityTile extends StatelessWidget {
   }
 }
 
-String _formatRelative(DateTime occurredAt, DateTime now) {
-  final diff = now.difference(occurredAt);
-  if (diff.inMinutes < 1) return 'à l\'instant';
-  if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes} min';
-  if (diff.inHours < 24) return 'il y a ${diff.inHours} h';
-  if (diff.inDays == 1) return 'hier';
-  if (diff.inDays < 7) return 'il y a ${diff.inDays} j';
-  return '${occurredAt.day}/${occurredAt.month}';
-}

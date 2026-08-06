@@ -9,6 +9,7 @@ import '../display/hub_display_preferences_controller.dart';
 import 'avelune/appearance/avelune_appearance_controller.dart';
 import 'avelune/appearance/avelune_appearance_preferences.dart';
 import 'avelune/appearance/avelune_appearance_settings.dart';
+import 'avelune/avelune_game_details.dart';
 import 'avelune/avelune_theme.dart';
 import 'avelune/home/avelune_home_controller.dart';
 import 'avelune/home/avelune_home_screen.dart';
@@ -30,6 +31,7 @@ class HubShell extends StatelessWidget {
     this.homeController,
     this.appearanceController,
     this.mobileConsoleExperience = false,
+    this.referenceTime,
     this.displayPreferencesController,
     this.onCancelInstall,
   });
@@ -45,6 +47,10 @@ class HubShell extends StatelessWidget {
   final AveluneHomeController? homeController;
   final AveluneAppearanceController? appearanceController;
   final bool mobileConsoleExperience;
+
+  /// Pinned clock for relative wording, so visual gates do not drift with the
+  /// calendar. Production leaves it null and reads the wall clock.
+  final DateTime? referenceTime;
   final HubDisplayPreferencesController? displayPreferencesController;
   final VoidCallback? onCancelInstall;
 
@@ -166,6 +172,7 @@ class HubShell extends StatelessWidget {
                 actions: actions,
                 homeController: homeController,
                 appearanceController: appearanceController,
+                referenceTime: referenceTime,
               ),
             HubSection.preferences => _AvelunePreferencesContent(
                 appearanceController: appearanceController,
@@ -321,6 +328,7 @@ final class _HubDestination {
 class _AveluneHomeContent extends StatelessWidget {
   const _AveluneHomeContent({
     required this.productName,
+    this.referenceTime,
     required this.snapshot,
     required this.actions,
     required this.homeController,
@@ -332,6 +340,7 @@ class _AveluneHomeContent extends StatelessWidget {
   final HubUiActions actions;
   final AveluneHomeController? homeController;
   final AveluneAppearanceController? appearanceController;
+  final DateTime? referenceTime;
 
   @override
   Widget build(BuildContext context) {
@@ -352,11 +361,13 @@ class _AveluneHomeContent extends StatelessWidget {
               return AveluneHomeScreen(
                 key: const ValueKey<String>('avelune-home-screen'),
                 viewData: viewData,
+                referenceTime: referenceTime,
                 appearance: state.preferences,
                 customBackground: state.customBackgroundPath != null
                     ? FileImage(File(state.customBackgroundPath!))
                     : null,
                 onGameSelected: (game) => controller.selectGame(game.id),
+                onShowDetails: (game) => _showDetails(context, game.id),
                 onAddGame: viewData.canImport
                     ? () => controller.requestImport()
                     : null,
@@ -375,8 +386,10 @@ class _AveluneHomeContent extends StatelessWidget {
         return AveluneHomeScreen(
           key: const ValueKey<String>('avelune-home-screen'),
           viewData: viewData,
+          referenceTime: referenceTime,
           appearance: const AveluneAppearancePreferences(),
           onGameSelected: (game) => controller.selectGame(game.id),
+          onShowDetails: (game) => _showDetails(context, game.id),
           onAddGame:
               viewData.canImport ? () => controller.requestImport() : null,
           onContinue: (game) {
@@ -389,6 +402,49 @@ class _AveluneHomeContent extends StatelessWidget {
           },
         );
       },
+    );
+  }
+
+  /// Opens the real game details screen for [gameId].
+  ///
+  /// The prototype exposes this through a visible control on the hero details
+  /// panel as well as the hero long press. Before AVELUNE-500 finished the
+  /// cutover, neither gesture was wired on the production path at all.
+  void _showDetails(BuildContext context, String gameId) {
+    final source = _findSource(gameId);
+    if (source == null) return;
+    final reducedMotion = MediaQuery.disableAnimationsOf(context);
+    Navigator.of(context).push<void>(
+      PageRouteBuilder<void>(
+        settings: const RouteSettings(name: 'avelune-game-details'),
+        transitionDuration:
+            reducedMotion ? Duration.zero : const Duration(milliseconds: 420),
+        reverseTransitionDuration: reducedMotion
+            ? Duration.zero
+            : const Duration(milliseconds: 300),
+        pageBuilder: (_, __, ___) => AveluneGameDetailsScreen(
+          game: source,
+          referenceTime: referenceTime ?? DateTime.now(),
+        ),
+        transitionsBuilder: (_, animation, __, child) {
+          if (reducedMotion) return child;
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return FadeTransition(
+            opacity: curved,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.025),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            ),
+          );
+        },
+      ),
     );
   }
 

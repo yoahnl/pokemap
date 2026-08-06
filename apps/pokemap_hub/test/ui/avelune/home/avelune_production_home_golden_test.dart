@@ -128,7 +128,14 @@ Future<void> _pumpProductionHome(
 
   final games = _games();
   final snapshot = _snapshot(games);
-  const actions = HubUiActions();
+  // Real callbacks: AveluneHomeController derives launchability from these, so
+  // an empty HubUiActions would freeze every cartridge into the disabled state
+  // and the gate would capture a degraded home instead of the resting one.
+  final actions = HubUiActions(
+    onImportRequested: () {},
+    onContinue: (_) {},
+    onNewGame: (_) {},
+  );
   await tester.runAsync(() => _primeCoverImages(snapshot));
 
   final theme = applyAveluneTheme(PokeMapPlayerTheme.dark(reducedMotion: true));
@@ -155,6 +162,8 @@ Future<void> _pumpProductionHome(
             ),
             child: HubShell(
               productName: 'Avelune',
+              // Pinned so the relative wording never drifts with the calendar.
+              referenceTime: DateTime.utc(2026, 8, 4, 12),
               mobileConsoleExperience: true,
               snapshot: snapshot,
               actions: actions,
