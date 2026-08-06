@@ -21,16 +21,30 @@ class AveluneBottomNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
     final french = Localizations.localeOf(context).languageCode == 'fr';
-    return Material(
-      color: colors.canvas,
-      child: SafeArea(
-        top: false,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: colors.outline)),
+    // The approved prototype floats an inset capsule over the room instead of
+    // capping it with an opaque bar, so the credenza keeps reading all the way
+    // to the bottom edge of the screen.
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+          AveluneSpacing.xxl,
+          0,
+          AveluneSpacing.xxl,
+          AveluneSpacing.sm,
+        ),
+        child: Material(
+          key: const ValueKey<String>('avelune-nav-pill'),
+          color: colors.canvas.withValues(alpha: 0.92),
+          shape: RoundedRectangleBorder(
+            borderRadius: AveluneShapes.pill,
+            side: BorderSide(color: colors.outline.withValues(alpha: 0.6)),
           ),
+          clipBehavior: Clip.antiAlias,
           child: SizedBox(
-            height: AveluneShapes.minimumTouchTarget + AveluneSpacing.lg,
+            // The capsule has to stay inside the 8 percent band that
+            // AveluneHomeGeometry reserves for it above the recent activity.
+            height: AveluneShapes.minimumTouchTarget,
             child: Row(
               children: <Widget>[
                 Expanded(
@@ -40,6 +54,17 @@ class AveluneBottomNavigation extends StatelessWidget {
                     icon: Icons.home_rounded,
                     selected: selectedItem == AveluneNavigationItem.home,
                     onPressed: () => onItemSelected(AveluneNavigationItem.home),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: AveluneSpacing.md,
+                  ),
+                  child: SizedBox(
+                    width: 1,
+                    child: ColoredBox(
+                      color: colors.outline.withValues(alpha: 0.6),
+                    ),
                   ),
                 ),
                 Expanded(
@@ -92,22 +117,27 @@ class _AveluneDestination extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: <Widget>[
-            Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Icon(icon, color: foreground, size: 23),
-                const SizedBox(height: AveluneSpacing.xxs),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: foreground,
-                        fontWeight:
-                            selected ? FontWeight.w800 : FontWeight.w600,
-                      ),
-                ),
-              ],
+            // The capsule is height-capped, so large text scales have to scale
+            // down rather than overflow it.
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Icon(icon, color: foreground, size: 21),
+                  const SizedBox(height: AveluneSpacing.hairline),
+                  Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: foreground,
+                          fontWeight:
+                              selected ? FontWeight.w800 : FontWeight.w600,
+                        ),
+                  ),
+                ],
+              ),
             ),
             if (selected)
               Positioned(

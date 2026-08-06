@@ -64,18 +64,30 @@ class HubShell extends StatelessWidget {
                           context.aveluneColors.background,
                       systemNavigationBarIconBrightness: Brightness.light,
                     ),
-                    child: Column(
+                    // The room scene owns the whole viewport and the navigation
+                    // floats above it. Laying them out in a Column instead
+                    // would remove the navigation height from the scene while
+                    // AveluneHomeGeometry still subtracts the safe-area insets
+                    // and reserves `navigationRect`, double-counting the same
+                    // band and dropping a 393x852 iPhone to the compact class.
+                    child: Stack(
+                      fit: StackFit.expand,
                       children: <Widget>[
-                        Expanded(child: content),
-                        AveluneBottomNavigation(
-                          selectedItem:
-                              snapshot.section == HubSection.preferences
-                                  ? AveluneNavigationItem.settings
-                                  : AveluneNavigationItem.home,
-                          onItemSelected: (item) => onSectionSelected(
-                            item == AveluneNavigationItem.settings
-                                ? HubSection.preferences
-                                : HubSection.home,
+                        content,
+                        Positioned(
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          child: AveluneBottomNavigation(
+                            selectedItem:
+                                snapshot.section == HubSection.preferences
+                                    ? AveluneNavigationItem.settings
+                                    : AveluneNavigationItem.home,
+                            onItemSelected: (item) => onSectionSelected(
+                              item == AveluneNavigationItem.settings
+                                  ? HubSection.preferences
+                                  : HubSection.home,
+                            ),
                           ),
                         ),
                       ],
