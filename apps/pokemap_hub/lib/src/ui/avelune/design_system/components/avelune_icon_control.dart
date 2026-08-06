@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../foundation/avelune_shape_tokens.dart';
 import '../theme/avelune_theme_extensions.dart';
+import 'avelune_glass_surface.dart';
 import 'avelune_pressable.dart';
 
 class AveluneIconControl extends StatelessWidget {
@@ -34,17 +35,15 @@ class AveluneIconControl extends StatelessWidget {
         selected: selected,
         autofocus: autofocus,
         borderRadius: AveluneShapes.pill,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: selected ? colors.glass : colors.surfaceRaised,
-            shape: BoxShape.circle,
-            border: Border.all(color: colors.outline),
-          ),
+        child: AveluneGlassSurface(
+          cornerRadius: AveluneShapes.minimumTouchTarget / 2,
+          elevated: false,
+          interactive: true,
           child: Center(
             child: Icon(
               icon,
-              size: 24,
-              color: selected ? colors.accentBright : colors.textSecondary,
+              size: 20,
+              color: enabled ? colors.textPrimary : colors.textSecondary,
             ),
           ),
         ),

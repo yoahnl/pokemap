@@ -34,6 +34,25 @@ abstract final class AveluneGlass {
   /// The bright rim along the top edge of a real glass slab.
   static const Color border = Color(0x3DFFFFFF);
 
+  /// Rim thickness handed to the lens shape, which lights the edge from what it
+  /// samples behind the glass rather than stroking a flat outline.
+  static const double borderWidth = 1.2;
+
+  /// Colour and strength of that rim light.
+  static const Color lightColor = Color(0xC2FFFFFF);
+  static const double lightIntensity = 1.15;
+
+  /// How much colour the optical border pulls from the backdrop, and how much
+  /// ambient light it adds. Kept near the package defaults: the room is warm and
+  /// detailed, and a hotter rim starts to look like neon.
+  static const double borderSaturation = 1.45;
+  static const double ambientIntensity = 1.1;
+
+  /// Width of the band at the edge where the lens bends hardest, and the colour
+  /// split across it. Both are what make an edge read as thick glass.
+  static const double distortionWidth = 26;
+  static const double chromaticAberration = 0.004;
+
   /// How much the lens bends what sits behind it. Kept low: the room is
   /// detailed, and heavy distortion turns the credenza into soup.
   static const double distortion = 0.07;
@@ -57,11 +76,11 @@ abstract final class AveluneGlass {
   /// Drop shadow under a floating surface. Follows the Grimaldi navigation bar:
   /// a wide, soft shadow pulled slightly inward so it reads as height above the
   /// scene rather than as a hard outline.
-  static List<BoxShadow> elevation(Color shade) => <BoxShadow>[
+  static const List<BoxShadow> elevation = <BoxShadow>[
         BoxShadow(
-          color: shade.withValues(alpha: 0.46),
+          color: Color(0x75000000),
           blurRadius: 30,
-          offset: const Offset(0, 10),
+          offset: Offset(0, 10),
           spreadRadius: -2,
         ),
       ];

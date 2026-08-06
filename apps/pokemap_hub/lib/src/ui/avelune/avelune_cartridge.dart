@@ -96,15 +96,13 @@ class AveluneCartridge extends StatelessWidget {
       onTap: onPressed,
       onLongPress: onLongPress,
       excludeSemantics: true,
-      child: Material(
-        type: MaterialType.transparency,
-        child: InkWell(
-          onTap: onPressed,
-          onLongPress: onLongPress,
-          customBorder: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: AspectRatio(
+      // A cartridge is a moulded object, not a Material target: an ink splash
+      // washing across its shell breaks the illusion outright.
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPressed,
+        onLongPress: onLongPress,
+        child: AspectRatio(
             key: const ValueKey<String>('avelune-cartridge-aspect'),
             aspectRatio: kAveluneCartridgeAspectRatio,
             child: RepaintBoundary(
@@ -127,8 +125,7 @@ class AveluneCartridge extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

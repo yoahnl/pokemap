@@ -79,12 +79,10 @@ class _AveluneSettingsRow extends StatelessWidget {
       semanticLabel: '${entry.title}, ${entry.subtitle}',
       onPressed: entry.onSelected,
       borderRadius: AveluneShapes.lg,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: colors.surfaceRaised.withValues(alpha: 0.62),
-          borderRadius: AveluneShapes.lg,
-          border: Border.all(color: colors.outline.withValues(alpha: 0.6)),
-        ),
+      child: AveluneGlassSurface(
+        cornerRadius: AveluneGlass.tileRadius,
+        elevated: false,
+        interactive: true,
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AveluneSpacing.md,
