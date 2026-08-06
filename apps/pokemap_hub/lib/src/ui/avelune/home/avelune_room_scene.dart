@@ -65,10 +65,12 @@ class AveluneRoomScene extends StatelessWidget {
     this.customBackground,
     this.consoleState,
     this.insertionProgress = 0,
+    this.recentActivity = const [],
     this.onGameSelected,
     this.onAddGame,
     this.onHeroPressed,
     this.onHeroLongPress,
+    this.onActivitySelected,
     this.heroAnchorKey,
     this.shelfCartridgeKeyFor,
     this.hiddenShelfGameIds = const <String>{},
@@ -85,10 +87,12 @@ class AveluneRoomScene extends StatelessWidget {
   final ImageProvider<Object>? customBackground;
   final AveluneConsoleState? consoleState;
   final double insertionProgress;
+  final List<AveluneRecentActivityViewData> recentActivity;
   final ValueChanged<AveluneGameViewData>? onGameSelected;
   final VoidCallback? onAddGame;
   final VoidCallback? onHeroPressed;
   final VoidCallback? onHeroLongPress;
+  final ValueChanged<AveluneRecentActivityViewData>? onActivitySelected;
   final GlobalKey? heroAnchorKey;
   final GlobalKey Function(String gameId)? shelfCartridgeKeyFor;
   final Set<String> hiddenShelfGameIds;
@@ -174,6 +178,15 @@ class AveluneRoomScene extends StatelessWidget {
               hiddenGameIds: hiddenShelfGameIds,
             ),
           ),
+          if (recentActivity.isNotEmpty)
+            Positioned.fromRect(
+              rect: geometry.activityRect,
+              child: _RoomActivityRail(
+                activities: recentActivity,
+                maxVisibleRows: geometry.activityRowCapacity,
+                onActivitySelected: onActivitySelected,
+              ),
+            ),
           if (behindConsoleOverlay != null)
             Positioned.fill(child: behindConsoleOverlay!),
           Positioned.fromRect(
@@ -264,4 +277,198 @@ ImageProvider<Object>? _artworkFor(AveluneArtworkViewData artwork) {
   final path = artwork.path;
   if (path == null || path.trim().isEmpty) return null;
   return FileImage(File(path));
+}
+
+class _RoomActivityRail extends StatelessWidget {
+  const _RoomActivityRail({
+    required this.activities,
+    required this.maxVisibleRows,
+    this.onActivitySelected,
+  });
+
+  final List<AveluneRecentActivityViewData> activities;
+  final int maxVisibleRows;
+  final ValueChanged<AveluneRecentActivityViewData>? onActivitySelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.aveluneColors;
+    final french = Localizations.localeOf(context).languageCode == 'fr';
+    const titleHeight = 16.0;
+    const spacingAfterTitle = AveluneSpacing.xxs;
+    const tileHeight = 32.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final availableForTiles =
+            constraints.maxHeight - titleHeight - spacingAfterTitle;
+        final fitsByHeight = availableForTiles <= 0
+            ? 0
+            : (availableForTiles / tileHeight).floor();
+        final visibleCount =
+            activities.length.clamp(0, math.min(maxVisibleRows, fitsByHeight));
+        final hasMore = activities.length > visibleCount;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            SizedBox(
+              height: titleHeight,
+              child: Row(
+                children: <Widget>[
+                  Icon(Icons.schedule_rounded, size: 12, color: colors.brass),
+                  const SizedBox(width: AveluneSpacing.xxs),
+                  Expanded(
+                    child: Text(
+                      french ? 'ACTIVITÉ RÉCENTE' : 'RECENT ACTIVITY',
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.1,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                  if (hasMore)
+                    GestureDetector(
+                      onTap: () => _showAllActivities(context),
+                      child: Text(
+                        french ? 'Voir tout' : 'See all',
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: colors.brass,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          height: 1.1,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: spacingAfterTitle),
+            for (var i = 0; i < visibleCount; i++)
+              _ActivityTile(
+                activity: activities[i],
+                onTap: onActivitySelected != null
+                    ? () => onActivitySelected!(activities[i])
+                    : null,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showAllActivities(BuildContext context) {
+    final french = Localizations.localeOf(context).languageCode == 'fr';
+    AveluneSheet.show<void>(
+      context: context,
+      title: french ? 'Activité récente' : 'Recent activity',
+      builder: (context) => ListView.builder(
+        shrinkWrap: true,
+        itemCount: activities.length,
+        itemBuilder: (context, index) => _ActivityTile(
+          activity: activities[index],
+          onTap: () {
+            Navigator.of(context).pop();
+            onActivitySelected?.call(activities[index]);
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivityTile extends StatelessWidget {
+  const _ActivityTile({
+    required this.activity,
+    this.onTap,
+  });
+
+  final AveluneRecentActivityViewData activity;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.aveluneColors;
+    final now = DateTime.now();
+    final relative = _formatRelative(activity.occurredAt, now);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: AveluneSpacing.xs),
+        child: Row(
+          children: <Widget>[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(5),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: _activityArtwork(activity.artwork),
+              ),
+            ),
+            const SizedBox(width: AveluneSpacing.sm),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Text(
+                    activity.gameTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      height: 1.1,
+                    ),
+                  ),
+                  Text(
+                    relative,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colors.textSecondary,
+                      fontSize: 9,
+                      height: 1.1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _activityArtwork(AveluneArtworkViewData artwork) {
+    final path = artwork.path;
+    if (path == null || path.trim().isEmpty) {
+      return ColoredBox(color: Colors.grey.shade800);
+    }
+    return Image.file(
+      File(path),
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => ColoredBox(color: Colors.grey.shade800),
+    );
+  }
+}
+
+String _formatRelative(DateTime occurredAt, DateTime now) {
+  final diff = now.difference(occurredAt);
+  if (diff.inMinutes < 1) return 'à l\'instant';
+  if (diff.inMinutes < 60) return 'il y a ${diff.inMinutes} min';
+  if (diff.inHours < 24) return 'il y a ${diff.inHours} h';
+  if (diff.inDays == 1) return 'hier';
+  if (diff.inDays < 7) return 'il y a ${diff.inDays} j';
+  return '${occurredAt.day}/${occurredAt.month}';
 }

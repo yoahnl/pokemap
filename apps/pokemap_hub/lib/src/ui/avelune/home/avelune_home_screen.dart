@@ -164,8 +164,10 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
                 customBackground: widget.customBackground,
                 consoleState: _consoleState,
                 insertionProgress: _consoleInsertionProgress,
+                recentActivity: widget.viewData.recentActivity,
                 onGameSelected: _requestGameSelection,
                 onAddGame: widget.onAddGame,
+                onActivitySelected: _handleActivitySelected,
                 onHeroPressed:
                     canLaunch && !_isExchanging ? _requestInsertion : null,
                 onHeroLongPress: widget.onHeroLongPress,
@@ -476,6 +478,17 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     if (!mounted || game == null) return;
     setState(() => _selectedGameId = gameId);
     widget.onGameSelected?.call(game);
+  }
+
+  void _handleActivitySelected(AveluneRecentActivityViewData activity) {
+    final game = _gameFor(activity.gameId);
+    if (game == null || !activity.canActivate) return;
+    _requestGameSelection(game);
+    if (game.isValid &&
+        game.primaryAction == AvelunePrimaryAction.continueGame &&
+        widget.onContinue != null) {
+      widget.onContinue!(game);
+    }
   }
 
   Rect? _rectInOverlay(GlobalKey key) {
