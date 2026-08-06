@@ -88,6 +88,17 @@ void main() {
         greaterThanOrEqualTo(geometry.contentRect.width),
         reason: 'It still has to reach both edges of the room.',
       );
+      expect(
+        layout.shelfCartridgeLift,
+        greaterThan(0),
+        reason: 'The cartridges stand back from the board lip, so a sliver of '
+            'board shows in front of them and they read as inside the recess.',
+      );
+      expect(
+        layout.shelfCartridgeLift,
+        lessThan(layout.alcoveRect.height * 0.2),
+        reason: 'Lifting them further would float them off the board.',
+      );
     });
   }
 }

@@ -80,6 +80,28 @@ void main() {
     expect(find.byType(AveluneConsole), findsOneWidget);
   });
 
+  testWidgets('the letterbox is filled with the room, not black bars',
+      (tester) async {
+    await _pumpShell(tester, const Size(1440, 900));
+
+    expect(
+      find.byKey(const ValueKey<String>('avelune-letterbox-backdrop')),
+      findsOneWidget,
+      reason: 'Flat black beside the scene reads as dead space on a desktop '
+          'window; the room extends into it instead.',
+    );
+  });
+
+  testWidgets('portrait viewports paint no backdrop', (tester) async {
+    await _pumpShell(tester, const Size(393, 852));
+
+    expect(
+      find.byKey(const ValueKey<String>('avelune-letterbox-backdrop')),
+      findsNothing,
+      reason: 'Nothing to fill when the scene already spans the screen.',
+    );
+  });
+
   testWidgets('desktop visual gate', (tester) async {
     await _pumpShell(tester, const Size(1280, 800));
     await expectLater(

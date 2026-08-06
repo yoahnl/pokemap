@@ -92,11 +92,19 @@ void main() {
           widget is AveluneCartridge &&
           widget.displaySize == AveluneCartridgeDisplaySize.shelf,
     );
+    // The cartridges stand back from the board's front lip rather than on it, so
+    // a sliver of board shows in front of them and they read as inside the
+    // recess. They must still agree with each other to the pixel.
+    final scene = tester.widget<AveluneRoomScene>(
+      find.byType(AveluneRoomScene),
+    );
+    final lift = AveluneRoomSceneLayout.resolve(scene.geometry)
+        .shelfCartridgeLift;
     for (final element in shelfCartridges.evaluate()) {
       final rect = tester.getRect(
         find.byElementPredicate((candidate) => candidate == element),
       );
-      expect(rect.bottom, closeTo(shelfBaseline, 1));
+      expect(rect.bottom, closeTo(shelfBaseline - lift, 1));
     }
   });
 

@@ -13,6 +13,15 @@ import 'avelune_home_geometry.dart';
 import 'avelune_home_view_data.dart';
 import 'avelune_relative_time.dart';
 
+/// How far the cartridges stand above the shelf board's front lip, as a
+/// fraction of the alcove height.
+///
+/// The board recedes in perspective, so a cartridge resting toward the back of
+/// the shelf reads as sitting higher than the lip. Without the lift its base
+/// lands exactly on the alcove's bottom edge, which makes it look like it is
+/// standing in front of the recess rather than inside it.
+const double kAveluneShelfCartridgeLiftFraction = 0.09;
+
 /// Front edge of the credenza's top surface, as a fraction of its canvas.
 ///
 /// Together with [kAveluneCredenzaVisibleTopFraction] this bounds the tabletop
@@ -57,6 +66,10 @@ final class AveluneRoomSceneLayout {
         furnitureRect.top +
             (furnitureRect.height * kAveluneCredenzaAlcove.bottom),
       );
+
+  /// How far the shelf cartridges stand above the board's front lip on screen.
+  double get shelfCartridgeLift =>
+      alcoveRect.height * kAveluneShelfCartridgeLiftFraction;
 
   /// Depth of the top surface on screen, from its back edge to its front lip.
   double get tabletopDepth =>
@@ -233,9 +246,9 @@ class AveluneRoomScene extends StatelessWidget {
             // have to stay untouched or the cartridges leave the board.
             rect: Rect.fromLTRB(
               math.max(geometry.shelfRect.left, roomLayout.alcoveRect.left),
-              geometry.shelfRect.top,
+              geometry.shelfRect.top - roomLayout.shelfCartridgeLift,
               math.min(geometry.shelfRect.right, roomLayout.alcoveRect.right),
-              geometry.shelfRect.bottom,
+              geometry.shelfRect.bottom - roomLayout.shelfCartridgeLift,
             ),
             child: AveluneGameShelf(
               geometry: geometry,
@@ -477,6 +490,14 @@ class _AveluneSlotMouthClipper extends CustomClipper<Rect> {
   bool shouldReclip(_AveluneSlotMouthClipper oldClipper) =>
       oldClipper.mouthY != mouthY;
 }
+
+/// Background the room paints, so surfaces around the scene can extend it
+/// instead of falling back to flat black.
+ImageProvider<Object> aveluneRoomBackgroundImage(
+  AveluneAppearancePreferences appearance,
+  ImageProvider<Object>? customBackground,
+) =>
+    _backgroundFor(appearance, customBackground);
 
 ImageProvider<Object> _backgroundFor(
   AveluneAppearancePreferences appearance,

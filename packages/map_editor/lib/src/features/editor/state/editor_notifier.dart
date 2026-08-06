@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_authoring/map_authoring.dart'
     show
+        MapAuthoringException,
         computeAuthoringJsonFingerprint,
         smartTileCanonicalLayerActionRequiredCode;
 import 'package:map_core/map_core.dart';
@@ -2128,6 +2129,31 @@ class EditorNotifier extends _$EditorNotifier
         );
       }
       return ActiveMapSaveOutcome.conflict;
+    } on MapAuthoringException catch (e) {
+      if (e.code != 'map.no_change') {
+        debugPrint('EditorNotifier: Error saving map: $e');
+        if (_canAdoptMapDiskMutation(lease)) {
+          state = _projectSessionController.markMapSaveFailed(
+            current: state,
+            errorMessage: 'Impossible d’enregistrer la carte : $e',
+          );
+        }
+        return ActiveMapSaveOutcome.failed;
+      }
+      // Repainting a cell with the value it already holds leaves the session
+      // dirty while producing an identical document. The durable state already
+      // matches, so this is a completed save with nothing to write, not a
+      // failure the author could act on.
+      if (!_canAdoptMapDiskMutation(lease)) {
+        return ActiveMapSaveOutcome.unavailable;
+      }
+      endMapStroke();
+      state = _projectSessionController.markMapSaved(
+        current: state,
+        map: candidateMap,
+        statusMessage: 'Carte « ${candidateMap.id} » déjà à jour',
+      );
+      return ActiveMapSaveOutcome.saved;
     } catch (e) {
       debugPrint('EditorNotifier: Error saving map: $e');
       if (_canAdoptMapDiskMutation(lease)) {

@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +16,7 @@ import 'avelune/avelune_game_details.dart';
 import 'avelune/avelune_theme.dart';
 import 'avelune/home/avelune_home_controller.dart';
 import 'avelune/home/avelune_home_screen.dart';
+import 'avelune/home/avelune_room_scene.dart';
 import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
 import 'hub_install_progress.dart';
@@ -97,15 +99,29 @@ class HubShell extends StatelessWidget {
             return Stack(
               fit: StackFit.expand,
               children: <Widget>[
-                if (letterboxed)
+                if (letterboxed) ...<Widget>[
+                  _AveluneLetterboxBackdrop(
+                    appearanceController: appearanceController,
+                  ),
                   Center(
                     child: SizedBox(
                       width: sceneWidth,
                       height: viewport.height,
-                      child: scene,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          boxShadow: <BoxShadow>[
+                            BoxShadow(
+                              color: colors.canvas.withValues(alpha: 0.72),
+                              blurRadius: 48,
+                              spreadRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: scene,
+                      ),
                     ),
-                  )
-                else
+                  ),
+                ] else
                   scene,
                 if (snapshot.status == HubDashboardStatus.installing)
                   HubInstallProgressScreen(
@@ -341,6 +357,68 @@ class HubShell extends StatelessWidget {
               .firstOrNull
           : null;
 
+}
+
+/// Fills the space beside a letterboxed scene with the room itself, blurred.
+///
+/// A landscape window cannot hold the portrait console, so the sides were flat
+/// black bars. Extending the player's own chosen background reads as the rest of
+/// the room falling out of focus instead of as dead space.
+class _AveluneLetterboxBackdrop extends StatelessWidget {
+  const _AveluneLetterboxBackdrop({required this.appearanceController});
+
+  final AveluneAppearanceController? appearanceController;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = appearanceController;
+    if (controller == null) return _paint(context, null, null);
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => _paint(
+        context,
+        controller.state.preferences,
+        controller.state.customBackgroundPath,
+      ),
+    );
+  }
+
+  Widget _paint(
+    BuildContext context,
+    AveluneAppearancePreferences? preferences,
+    String? customBackgroundPath,
+  ) {
+    final colors = context.aveluneColors;
+    final image = aveluneRoomBackgroundImage(
+      preferences ?? const AveluneAppearancePreferences(),
+      customBackgroundPath == null
+          ? null
+          : FileImage(File(customBackgroundPath)),
+    );
+    return IgnorePointer(
+      child: Stack(
+        key: const ValueKey<String>('avelune-letterbox-backdrop'),
+        fit: StackFit.expand,
+        children: <Widget>[
+          ColoredBox(color: colors.canvas),
+          // Blurring the image directly rather than with a BackdropFilter: there
+          // is nothing painted underneath to sample.
+          ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: 56, sigmaY: 56),
+            child: Image(
+              image: image,
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.low,
+              excludeFromSemantics: true,
+              errorBuilder: (_, __, ___) => ColoredBox(color: colors.canvas),
+            ),
+          ),
+          // Held well back so the console stays the subject.
+          ColoredBox(color: colors.canvas.withValues(alpha: 0.68)),
+        ],
+      ),
+    );
+  }
 }
 
 /// Shown when the window is smaller than the console geometry supports.
