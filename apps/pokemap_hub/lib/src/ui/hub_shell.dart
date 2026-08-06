@@ -8,6 +8,7 @@ import '../display/hub_display_preferences.dart';
 import '../display/hub_display_preferences_controller.dart';
 import 'avelune/appearance/avelune_appearance_controller.dart';
 import 'avelune/appearance/avelune_appearance_preferences.dart';
+import 'avelune/appearance/avelune_appearance_settings.dart';
 import 'avelune/avelune_theme.dart';
 import 'avelune/home/avelune_home_controller.dart';
 import 'avelune/home/avelune_home_screen.dart';
@@ -154,7 +155,9 @@ class HubShell extends StatelessWidget {
                 homeController: homeController,
                 appearanceController: appearanceController,
               ),
-            HubSection.preferences => _preferencesContent(context),
+            HubSection.preferences => _AvelunePreferencesContent(
+                appearanceController: appearanceController,
+              ),
             HubSection.diagnostics => _HubDiagnostics(snapshot: snapshot),
           }
         : selectedGame != null
@@ -382,6 +385,32 @@ class _AveluneHomeContent extends StatelessWidget {
       if (game.game.gameId == gameId) return game;
     }
     return null;
+  }
+}
+
+class _AvelunePreferencesContent extends StatelessWidget {
+  const _AvelunePreferencesContent({
+    required this.appearanceController,
+  });
+
+  final AveluneAppearanceController? appearanceController;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = appearanceController;
+    if (controller == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => AveluneAppearanceSettings(
+        state: controller.state,
+        onBackgroundSelected: (id) => controller.selectBackground(id),
+        onFurnitureSelected: (id) => controller.selectFurniture(id),
+        onImportCustomBackground: () => controller.importCustomBackground(),
+        onRemoveCustomBackground: () => controller.removeCustomBackground(),
+      ),
+    );
   }
 }
 

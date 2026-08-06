@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
+import 'package:pokemap_hub/src/ui/avelune/appearance/avelune_appearance_settings.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 void main() {
@@ -129,11 +130,19 @@ void main() {
     },
   );
 
-  testWidgets('mobile Settings opens the existing preferences screen',
+  testWidgets('mobile Settings opens the Avelune appearance settings',
       (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
+
+    final appearanceController = AveluneAppearanceController(
+      store: AveluneAppearanceStore(supportRoot: root),
+      customBackground: _FakeCustomBackground(),
+    );
+    await tester.runAsync(() => appearanceController.initialize());
+    await tester.pump();
+    await tester.pumpAndSettle();
 
     await tester.pumpWidget(
       PokeMapHubApp(
@@ -141,6 +150,7 @@ void main() {
         mobileConsoleExperience: true,
         controller: controller,
         initializeController: false,
+        appearanceController: appearanceController,
       ),
     );
 
@@ -148,13 +158,10 @@ void main() {
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
     );
     await tester.pump();
+    await tester.pumpAndSettle();
 
     expect(controller.snapshot.section, HubSection.preferences);
-    expect(find.byType(AveluneMobileHome), findsNothing);
-    expect(
-      find.byType(DropdownButtonFormField<PlayerLanguage>),
-      findsOneWidget,
-    );
+    expect(find.byType(AveluneAppearanceSettings), findsOneWidget);
   });
 
   testWidgets(
@@ -219,4 +226,22 @@ InstalledGame _installedGame() {
     current: version.pointer,
     versions: <InstalledGameVersion>[version],
   );
+}
+
+class _FakeCustomBackground implements AveluneCustomBackgroundGateway {
+  @override
+  Future<AveluneCustomBackgroundImportOutcome> pickAndImport() async =>
+      AveluneCustomBackgroundImportOutcome.cancelled;
+
+  @override
+  Future<bool> isCurrentValid() async => false;
+
+  @override
+  Future<void> delete() async {}
+
+  @override
+  String get imagePath => '';
+
+  @override
+  String get thumbnailPath => '';
 }
