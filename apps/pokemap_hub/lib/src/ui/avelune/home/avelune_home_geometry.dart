@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 
 import '../avelune_cartridge.dart';
+import '../avelune_console.dart';
 import '../design_system/foundation/avelune_breakpoints.dart';
 
 enum AveluneHomeSizeClass { compact, regular, large }
@@ -107,7 +108,7 @@ final class AveluneHomeGeometry {
       contentRect.width - (metrics.sceneHorizontalPadding * 2),
       _maximumConsoleWidth,
     );
-    final consoleHeight = consoleWidth / _consoleAspectRatio;
+    final consoleHeight = consoleWidth / kAveluneConsoleAspectRatio;
     final consoleRect = Rect.fromLTWH(
       contentRect.center.dx - (consoleWidth / 2),
       regions.scene.bottom - metrics.sceneBottomPadding - consoleHeight,
@@ -207,7 +208,6 @@ final class AveluneHomeGeometry {
   }
 
   static const double _maximumConsoleWidth = 408;
-  static const double _consoleAspectRatio = 3.08;
   static const double _consoleSlotCenterYFactor = 0.16;
   static const double _consoleSlotWidthFactor = 0.34;
   static const double _latchedHeroCenterFactor = 0.3;

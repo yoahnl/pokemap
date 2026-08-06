@@ -3,7 +3,12 @@ import 'package:flutter/material.dart';
 import 'assets/avelune_material_catalog.dart';
 import 'avelune_theme.dart';
 
-const double kAveluneConsoleAspectRatio = 3.08;
+/// Aspect ratio of the console hardware, taken from its own art.
+///
+/// Every layer is painted with `BoxFit.fill`, which maps the whole canvas onto
+/// the box, so this has to match `console/body.webp` (1200x360). It used to be
+/// 3.08, stretching the hardware vertically by 8 percent.
+const double kAveluneConsoleAspectRatio = 1200 / 360;
 
 enum AveluneConsoleState { idle, inserting, latched, launching, error }
 
