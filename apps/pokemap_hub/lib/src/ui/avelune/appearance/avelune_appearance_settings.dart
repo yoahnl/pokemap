@@ -303,8 +303,7 @@ class _CustomBackgroundSection extends StatelessWidget {
     final colors = context.aveluneColors;
     final french = Localizations.localeOf(context).languageCode == 'fr';
     final hasCustom = state.customBackgroundPath != null;
-    final isCustomSelected =
-        state.preferences.backgroundId ==
+    final isCustomSelected = state.preferences.backgroundId ==
         AveluneAppearanceCatalog.customBackgroundId;
     final saving = state.status == AveluneAppearanceControllerStatus.saving;
 
