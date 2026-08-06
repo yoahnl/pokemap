@@ -13,6 +13,22 @@ import 'avelune_home_geometry.dart';
 import 'avelune_home_view_data.dart';
 import 'avelune_relative_time.dart';
 
+/// Front edge of the credenza's top surface, as a fraction of its canvas.
+///
+/// Together with [kAveluneCredenzaVisibleTopFraction] this bounds the tabletop
+/// depth, which is where the console's contact shadow belongs.
+const double kAveluneCredenzaTabletopFrontFraction = 262 / 700;
+
+/// The open alcove, as fractions of the credenza canvas: the recess the shelf
+/// cartridges stand in. Measured off `credenza_*.webp`, whose recess spans
+/// x 171..589 and y 295..479 on a 768x700 canvas.
+const Rect kAveluneCredenzaAlcove = Rect.fromLTRB(
+  171 / 768,
+  295 / 700,
+  589 / 768,
+  479 / 700,
+);
+
 /// Fraction of the credenza canvas at which its shelf board sits — the surface
 /// the shelf cartridges stand on.
 const double kAveluneCredenzaShelfBoardFraction = 0.68;
@@ -31,6 +47,22 @@ final class AveluneRoomSceneLayout {
     required this.furnitureSupportY,
     required this.furnitureShelfBaselineY,
   });
+
+  /// The recess the shelf cartridges stand in, in screen coordinates.
+  Rect get alcoveRect => Rect.fromLTRB(
+        furnitureRect.left + (furnitureRect.width * kAveluneCredenzaAlcove.left),
+        furnitureRect.top + (furnitureRect.height * kAveluneCredenzaAlcove.top),
+        furnitureRect.left +
+            (furnitureRect.width * kAveluneCredenzaAlcove.right),
+        furnitureRect.top +
+            (furnitureRect.height * kAveluneCredenzaAlcove.bottom),
+      );
+
+  /// Depth of the top surface on screen, from its back edge to its front lip.
+  double get tabletopDepth =>
+      furnitureRect.height *
+      (kAveluneCredenzaTabletopFrontFraction -
+          kAveluneCredenzaVisibleTopFraction);
 
   factory AveluneRoomSceneLayout.resolve(AveluneHomeGeometry geometry) {
     // The console art keeps transparent padding below its feet, so the surface
@@ -190,7 +222,21 @@ class AveluneRoomScene extends StatelessWidget {
             ),
           ),
           Positioned.fromRect(
-            rect: geometry.shelfRect,
+            rect: roomLayout.alcoveRect,
+            child: const _AveluneAlcoveOcclusion(),
+          ),
+          Positioned.fromRect(
+            // Confined to the recess. Spanning the content width instead put the
+            // outer cartridges on the door faces, so nothing read as being in
+            // the alcove. Only the sides are clamped: the shelf derives its own
+            // bottom padding from `geometry.shelfRect`, so its vertical bounds
+            // have to stay untouched or the cartridges leave the board.
+            rect: Rect.fromLTRB(
+              math.max(geometry.shelfRect.left, roomLayout.alcoveRect.left),
+              geometry.shelfRect.top,
+              math.min(geometry.shelfRect.right, roomLayout.alcoveRect.right),
+              geometry.shelfRect.bottom,
+            ),
             child: AveluneGameShelf(
               geometry: geometry,
               games: games,
@@ -211,6 +257,22 @@ class AveluneRoomScene extends StatelessWidget {
                 onActivitySelected: onActivitySelected,
               ),
             ),
+          Positioned.fromRect(
+            rect: roomLayout.alcoveRect,
+            child: const _AveluneAlcoveOverhang(),
+          ),
+          Positioned.fromRect(
+            rect: Rect.fromCenter(
+              center: Offset(
+                geometry.consoleRect.center.dx,
+                roomLayout.furnitureSupportY +
+                    (roomLayout.tabletopDepth * 0.08),
+              ),
+              width: geometry.consoleRect.width * 1.08,
+              height: roomLayout.tabletopDepth * 1.9,
+            ),
+            child: const _AveluneConsoleContactShadow(),
+          ),
           Positioned.fromRect(
             rect: geometry.consoleRect,
             child: AveluneConsole(
@@ -283,6 +345,119 @@ class AveluneRoomScene extends StatelessWidget {
           if (foregroundOverlay != null)
             Positioned.fill(child: foregroundOverlay!),
         ],
+      ),
+    );
+  }
+}
+
+/// Ambient occlusion inside the credenza recess.
+///
+/// Without it the cartridges read as pasted onto a flat panel: the alcove is lit
+/// evenly, so nothing says the shelf is set back into the furniture.
+class _AveluneAlcoveOcclusion extends StatelessWidget {
+  const _AveluneAlcoveOcclusion();
+
+  @override
+  Widget build(BuildContext context) {
+    final shade = context.aveluneColors.canvas;
+    return IgnorePointer(
+      child: Stack(
+        key: const ValueKey<String>('avelune-alcove-occlusion'),
+        fit: StackFit.expand,
+        children: <Widget>[
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const <double>[0, 0.34, 1],
+                colors: <Color>[
+                  shade.withValues(alpha: 0.74),
+                  shade.withValues(alpha: 0.26),
+                  shade.withValues(alpha: 0.44),
+                ],
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                stops: const <double>[0, 0.18, 0.82, 1],
+                colors: <Color>[
+                  shade.withValues(alpha: 0.62),
+                  shade.withValues(alpha: 0),
+                  shade.withValues(alpha: 0),
+                  shade.withValues(alpha: 0.54),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The tabletop overhang falling across the tops of the cartridges. Painted over
+/// them, so they sit under the lip rather than in front of it.
+class _AveluneAlcoveOverhang extends StatelessWidget {
+  const _AveluneAlcoveOverhang();
+
+  @override
+  Widget build(BuildContext context) {
+    final shade = context.aveluneColors.canvas;
+    return IgnorePointer(
+      child: DecoratedBox(
+        key: const ValueKey<String>('avelune-alcove-overhang'),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: const <double>[0, 0.3, 1],
+            colors: <Color>[
+              shade.withValues(alpha: 0.44),
+              shade.withValues(alpha: 0.06),
+              shade.withValues(alpha: 0),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shadow the console drops onto the wood it stands on.
+///
+/// The console art carries its own contact band, but that band lives inside the
+/// console's own box, which stops at its feet — so it fell on the wall behind
+/// instead of on the surface, and the hardware read as floating in front of the
+/// furniture rather than resting on it.
+class _AveluneConsoleContactShadow extends StatelessWidget {
+  const _AveluneConsoleContactShadow();
+
+  @override
+  Widget build(BuildContext context) {
+    final shade = context.aveluneColors.canvas;
+    return IgnorePointer(
+      // Darkest right under the feet, fading forward across the wood, with
+      // tapered ends from the stadium shape. A RadialGradient is wrong here:
+      // Flutter scales its radius by the box's shortest side, so in a wide,
+      // shallow band it collapses into a small blob in the middle.
+      child: DecoratedBox(
+        key: const ValueKey<String>('avelune-console-contact-shadow'),
+        decoration: BoxDecoration(
+          borderRadius: AveluneShapes.pill,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            stops: const <double>[0, 0.3, 1],
+            colors: <Color>[
+              shade.withValues(alpha: 0.55),
+              shade.withValues(alpha: 0.3),
+              shade.withValues(alpha: 0),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -3059,7 +3059,11 @@ class MapValidator {
         (definition) => definition.tileId == localTileId,
       );
     }
-    return false;
+    // A tileset authored before `source` existed declares no extent, so the
+    // tile id cannot be disproved. Treating "unverifiable" as "invalid" would
+    // fail every tile layer of a pre-existing project and block all painting.
+    // Lower bounds stay enforced by the palette entry check itself.
+    return true;
   }
 
   static String _requireNonBlank(String value, String message) {
