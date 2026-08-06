@@ -159,6 +159,7 @@ final class HubComposition implements HubAppComposition {
         actions: actions,
         mobileConsoleExperience: Platform.isAndroid || Platform.isIOS,
         displayPreferencesController: displayPreferencesController,
+        appearanceController: appearanceController,
         playerBuilder: (context, game, intent, onHubRequested) =>
             HubInstalledGamePlayer(
           supportRoot: supportRoot,

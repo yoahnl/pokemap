@@ -21,7 +21,7 @@ final class AveluneHomeController extends ChangeNotifier {
     _selectedGameId = _viewData.selectedGameId;
   }
 
-  final HubUiActions actions;
+  HubUiActions actions;
   final AveluneHomeViewDataMapper mapper;
   HubDashboardSnapshot _snapshot;
   bool _reducedMotion;

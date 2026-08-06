@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 import '../display/hub_display_preferences_controller.dart';
+import 'avelune/appearance/avelune_appearance_controller.dart';
+import 'avelune/home/avelune_home_controller.dart';
 import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
 import 'hub_shell.dart';
@@ -27,6 +29,7 @@ class PokeMapHubApp extends StatefulWidget {
     this.actions = const HubUiActions(),
     this.playerBuilder,
     this.displayPreferencesController,
+    this.appearanceController,
     this.mobileConsoleExperience = false,
     this.initializeController = true,
   });
@@ -36,6 +39,7 @@ class PokeMapHubApp extends StatefulWidget {
   final HubUiActions actions;
   final HubPlayerBuilder? playerBuilder;
   final HubDisplayPreferencesController? displayPreferencesController;
+  final AveluneAppearanceController? appearanceController;
   final bool mobileConsoleExperience;
   final bool initializeController;
 
@@ -47,6 +51,7 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
   HubGameView? _activeGame;
   HubPlayerLaunchIntent _activeLaunchIntent = HubPlayerLaunchIntent.title;
   bool _startupLaunchEvaluated = false;
+  AveluneHomeController? _homeController;
 
   @override
   void initState() {
@@ -61,20 +66,49 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncHomeController();
+  }
+
+  @override
   void didUpdateWidget(covariant PokeMapHubApp oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.controller == widget.controller) return;
+    if (oldWidget.controller == widget.controller) {
+      _syncHomeController();
+      return;
+    }
     oldWidget.controller.removeListener(_handleControllerChanged);
     widget.controller.addListener(_handleControllerChanged);
     _activeGame = null;
     _activeLaunchIntent = HubPlayerLaunchIntent.title;
     _startupLaunchEvaluated = false;
+    _syncHomeController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _maybeLaunchMostRecentGame();
     });
   }
 
+  void _syncHomeController() {
+    final snapshot = widget.controller.snapshot;
+    final reducedMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final effectiveActions = _effectiveActions;
+    final existing = _homeController;
+    if (existing != null) {
+      existing.actions = effectiveActions;
+      existing.updateSnapshot(snapshot, reducedMotion: reducedMotion);
+    } else {
+      _homeController = AveluneHomeController(
+        snapshot: snapshot,
+        actions: effectiveActions,
+        reducedMotion: reducedMotion,
+      );
+    }
+  }
+
   void _handleControllerChanged() {
+    _syncHomeController();
     _maybeLaunchMostRecentGame();
   }
 
@@ -153,6 +187,7 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
   @override
   void dispose() {
     widget.controller.removeListener(_handleControllerChanged);
+    _homeController?.dispose();
     super.dispose();
   }
 
@@ -210,6 +245,8 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
                   productName: widget.productName,
                   snapshot: snapshot,
                   actions: _effectiveActions,
+                  homeController: _homeController,
+                  appearanceController: widget.appearanceController,
                   mobileConsoleExperience: widget.mobileConsoleExperience,
                   displayPreferencesController:
                       widget.displayPreferencesController,

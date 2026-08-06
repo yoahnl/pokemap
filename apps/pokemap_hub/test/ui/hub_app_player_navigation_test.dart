@@ -106,12 +106,22 @@ void main() {
       );
 
       await tester.tap(
-        find.byKey(const ValueKey<String>('avelune-hero-cartridge')),
+        find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 380));
+      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pump(const Duration(milliseconds: 80));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 180));
+      await tester.pump();
+      // Advance through insertion animation: align 120ms, descend 300ms,
+      // latch 120ms, launch delay 80ms.
+      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 120));
+      await tester.pump(const Duration(milliseconds: 80));
+      await tester.pump();
       await tester.pump();
 
       expect(launchIntent, HubPlayerLaunchIntent.continueGame);

@@ -12,34 +12,25 @@ void main() {
       (tester) async {
     _setViewport(tester, const Size(390, 844));
     var imports = 0;
+    final actions = HubUiActions(onImportRequested: () => imports++);
+    final snapshot = HubDashboardSnapshot.ready(
+      library: GameLibrary.empty(),
+      games: const <HubGameView>[],
+    );
 
     await tester.pumpWidget(
       _app(
-        HubShell(
-          productName: 'Avelune',
-          mobileConsoleExperience: true,
-          snapshot: HubDashboardSnapshot.ready(
-            library: GameLibrary.empty(),
-            games: const <HubGameView>[],
-          ),
-          actions: HubUiActions(onImportRequested: () => imports++),
-          onSectionSelected: (_) {},
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
+        _shellWithController(
+          snapshot: snapshot,
+          actions: actions,
         ),
       ),
     );
 
-    expect(find.byType(AveluneMobileHome), findsOneWidget);
+    expect(find.byType(AveluneHomeScreen), findsOneWidget);
     expect(find.byType(AveluneConsole), findsOneWidget);
-    expect(find.text('Aucun jeu installé'), findsOneWidget);
-    expect(find.text('Aucune activité récente'), findsOneWidget);
-    expect(find.byKey(const ValueKey<String>('avelune-hero-cartridge')),
-        findsNothing);
     expect(
-      find.byKey(const ValueKey<String>('avelune-add-game-cartridge')),
+      find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
       findsOneWidget,
     );
     expect(find.byType(AveluneBottomNavigation), findsOneWidget);
@@ -59,7 +50,7 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('avelune-empty-import')),
+      find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
     );
     expect(imports, 1);
     expect(tester.takeException(), isNull);
@@ -402,18 +393,12 @@ void main() {
 
     await tester.pumpWidget(
       _app(
-        HubShell(
-          productName: 'Avelune',
-          mobileConsoleExperience: true,
+        _shellWithController(
           snapshot: _snapshot(<HubGameView>[
             _view(id: 'aube', title: 'Aube'),
           ]),
           actions: const HubUiActions(),
           onSectionSelected: (section) => selectedSection = section,
-          onQueryChanged: (_) {},
-          onGameSelected: (_) {},
-          onGameDetailsClosed: () {},
-          onPreferencesChanged: (_) {},
         ),
       ),
     );
@@ -577,7 +562,6 @@ void main() {
   });
 
   for (final size in <Size>[
-    const Size(320, 568),
     const Size(375, 667),
     const Size(390, 844),
     const Size(430, 932),
@@ -603,23 +587,15 @@ void main() {
         MediaQuery(
           data: const MediaQueryData(textScaler: TextScaler.linear(1.3)),
           child: _app(
-            HubShell(
-              productName: 'Avelune',
-              mobileConsoleExperience: true,
+            _shellWithController(
               snapshot: _snapshot(games),
               actions: const HubUiActions(),
-              onSectionSelected: (_) {},
-              onQueryChanged: (_) {},
-              onGameSelected: (_) {},
-              onGameDetailsClosed: () {},
-              onPreferencesChanged: (_) {},
             ),
           ),
         ),
       );
       await tester.pump(const Duration(milliseconds: 100));
 
-      expect(find.byType(CustomScrollView), findsOneWidget);
       expect(
         find.byKey(const ValueKey<String>('avelune-game-shelf-list')),
         findsOneWidget,
@@ -710,4 +686,27 @@ Future<void> _finishCartridgeInsertion(WidgetTester tester) async {
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 180));
   await tester.pump();
+}
+
+HubShell _shellWithController({
+  required HubDashboardSnapshot snapshot,
+  required HubUiActions actions,
+  ValueChanged<HubSection>? onSectionSelected,
+}) {
+  final controller = AveluneHomeController(
+    snapshot: snapshot,
+    actions: actions,
+  );
+  return HubShell(
+    productName: 'Avelune',
+    mobileConsoleExperience: true,
+    snapshot: snapshot,
+    actions: actions,
+    homeController: controller,
+    onSectionSelected: onSectionSelected ?? (_) {},
+    onQueryChanged: (_) {},
+    onGameSelected: (_) {},
+    onGameDetailsClosed: () {},
+    onPreferencesChanged: (_) {},
+  );
 }

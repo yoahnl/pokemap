@@ -1,11 +1,16 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 import '../display/hub_display_preferences.dart';
 import '../display/hub_display_preferences_controller.dart';
-import 'avelune/avelune_mobile_home.dart';
+import 'avelune/appearance/avelune_appearance_controller.dart';
+import 'avelune/appearance/avelune_appearance_preferences.dart';
 import 'avelune/avelune_theme.dart';
+import 'avelune/home/avelune_home_controller.dart';
+import 'avelune/home/avelune_home_screen.dart';
 import 'hub_dashboard_controller.dart';
 import 'hub_game_views.dart';
 import 'hub_install_progress.dart';
@@ -21,6 +26,8 @@ class HubShell extends StatelessWidget {
     required this.onGameSelected,
     required this.onGameDetailsClosed,
     required this.onPreferencesChanged,
+    this.homeController,
+    this.appearanceController,
     this.mobileConsoleExperience = false,
     this.displayPreferencesController,
     this.onCancelInstall,
@@ -34,6 +41,8 @@ class HubShell extends StatelessWidget {
   final ValueChanged<String> onGameSelected;
   final VoidCallback onGameDetailsClosed;
   final ValueChanged<PlayerPreferences> onPreferencesChanged;
+  final AveluneHomeController? homeController;
+  final AveluneAppearanceController? appearanceController;
   final bool mobileConsoleExperience;
   final HubDisplayPreferencesController? displayPreferencesController;
   final VoidCallback? onCancelInstall;
@@ -138,10 +147,12 @@ class HubShell extends StatelessWidget {
     final selectedGame = snapshot.selectedGame;
     final content = mobileConsoleExperience
         ? switch (snapshot.section) {
-            HubSection.home || HubSection.library => AveluneMobileHome(
+            HubSection.home || HubSection.library => _AveluneHomeContent(
                 productName: productName,
                 snapshot: snapshot,
                 actions: actions,
+                homeController: homeController,
+                appearanceController: appearanceController,
               ),
             HubSection.preferences => _preferencesContent(context),
             HubSection.diagnostics => _HubDiagnostics(snapshot: snapshot),
@@ -290,6 +301,88 @@ final class _HubDestination {
   final IconData icon;
   final IconData selectedIcon;
   final String label;
+}
+
+class _AveluneHomeContent extends StatelessWidget {
+  const _AveluneHomeContent({
+    required this.productName,
+    required this.snapshot,
+    required this.actions,
+    required this.homeController,
+    required this.appearanceController,
+  });
+
+  final String productName;
+  final HubDashboardSnapshot snapshot;
+  final HubUiActions actions;
+  final AveluneHomeController? homeController;
+  final AveluneAppearanceController? appearanceController;
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = homeController;
+    final appearance = appearanceController;
+    if (controller == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) {
+        final viewData = controller.viewData;
+        if (appearance != null) {
+          return ListenableBuilder(
+            listenable: appearance,
+            builder: (context, _) {
+              final state = appearance.state;
+              return AveluneHomeScreen(
+                key: const ValueKey<String>('avelune-home-screen'),
+                viewData: viewData,
+                appearance: state.preferences,
+                customBackground: state.customBackgroundPath != null
+                    ? FileImage(File(state.customBackgroundPath!))
+                    : null,
+                onGameSelected: (game) => controller.selectGame(game.id),
+                onAddGame: viewData.canImport
+                    ? () => controller.requestImport()
+                    : null,
+                onContinue: (game) {
+                  final source = _findSource(game.id);
+                  if (source != null) actions.onContinue?.call(source);
+                },
+                onNewGame: (game) {
+                  final source = _findSource(game.id);
+                  if (source != null) actions.onNewGame?.call(source);
+                },
+              );
+            },
+          );
+        }
+        return AveluneHomeScreen(
+          key: const ValueKey<String>('avelune-home-screen'),
+          viewData: viewData,
+          appearance: const AveluneAppearancePreferences(),
+          onGameSelected: (game) => controller.selectGame(game.id),
+          onAddGame:
+              viewData.canImport ? () => controller.requestImport() : null,
+          onContinue: (game) {
+            final source = _findSource(game.id);
+            if (source != null) actions.onContinue?.call(source);
+          },
+          onNewGame: (game) {
+            final source = _findSource(game.id);
+            if (source != null) actions.onNewGame?.call(source);
+          },
+        );
+      },
+    );
+  }
+
+  HubGameView? _findSource(String gameId) {
+    for (final game in snapshot.games) {
+      if (game.game.gameId == gameId) return game;
+    }
+    return null;
+  }
 }
 
 class _HubStatusBanner extends StatelessWidget {
