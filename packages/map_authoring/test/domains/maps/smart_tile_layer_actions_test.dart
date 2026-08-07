@@ -18,6 +18,7 @@ void main() {
           'smart_tile.layer.merge',
           'smart_tile.layer.normalize',
           'smart_tile.layer.reconstruct',
+          'smart_tile.layer.set_candidate_weights',
         ],
       );
       for (final descriptor in descriptors) {
@@ -517,6 +518,203 @@ void main() {
       expect(
           directResult.layers.first, _reconstructionFixture().map.layers.first);
       expect((directResult.layers.last as SmartTileLayer).isVisible, isFalse);
+    });
+  });
+
+  group('smart_tile.layer.set_candidate_weights', () {
+    const rules = <SmartTileRule>[
+      SmartTileRule(
+        id: 'fill',
+        centerMatch: SmartTileSlotMatch.any(),
+        candidates: <SmartTileCandidate>[
+          SmartTileCandidate(id: 'fill-a', weight: 1000),
+          SmartTileCandidate(id: 'fill-b', weight: 1000),
+        ],
+      ),
+    ];
+
+    // Fixture dédié : le _m01Fixture partagé porte un calque terrain dont la
+    // palette sort du preset — une incohérence dormante que la validation de
+    // carte projetée refuse dès qu'un draft complet la traverse.
+    ProjectSnapshot snapshotWith({
+      Map<String, int> layerWeights = const <String, int>{},
+    }) {
+      final manifest = ProjectManifest(
+        name: 'Candidate weights fixture',
+        version: ProjectVersion.v6,
+        maps: const [
+          ProjectMapEntry(
+            id: 'map_hanazuki_village',
+            name: 'Hanazuki Village',
+            relativePath: 'maps/map_hanazuki_village.json',
+          ),
+        ],
+        tilesets: const [],
+        smartTileCatalog: ProjectSmartTileCatalog(
+          materials: const [
+            ProjectSmartTileMaterial(
+              id: 'dirt',
+              name: 'Dirt',
+              connectionGroupId: 'path',
+            ),
+          ],
+          presets: const [
+            ProjectSmartTilePreset(
+              id: 'path',
+              name: 'Path',
+              usage: SmartTileUsage.path,
+              topology: SmartTileTopology.wang8,
+              templateHint: SmartTileTemplateHint.mixed256,
+              status: SmartTilePresetStatus.published,
+              coveragePolicy: SmartTileCoveragePolicy.complete,
+              coverageProfile: SmartTileCoverageProfile(
+                mode: SmartTileCoverageMode.template,
+              ),
+              transformPolicy: SmartTileTransformPolicy(),
+              defaultMaterialId: 'dirt',
+              allowedMaterialIds: ['dirt'],
+              rules: rules,
+            ),
+          ],
+        ),
+      );
+      final map = MapData(
+        id: 'map_hanazuki_village',
+        name: 'Hanazuki Village',
+        size: const GridSize(width: 3, height: 3),
+        version: ProjectVersion.v6,
+        visualStack: MapVisualStackConfig.canonicalV1,
+        layers: [
+          MapLayer.tile(
+            id: 'l_base',
+            name: 'Base',
+            cells: List<int>.filled(9, 0),
+          ),
+          MapLayer.smartTile(
+            id: 'l_qc02_path_dirt',
+            name: 'Path',
+            presetId: 'path',
+            usage: SmartTileUsage.path,
+            materialPalette: const ['', 'dirt'],
+            field: SmartTileField.mixed(
+              semanticCells: const [0, 0, 0, 1, 1, 1, 0, 0, 0],
+              horizontalEdges: List<int>.filled(12, 0),
+              verticalEdges: List<int>.filled(12, 0),
+              corners: List<int>.filled(16, 0),
+            ),
+            candidateWeights: layerWeights,
+          ),
+        ],
+      );
+      return _snapshot(manifest, map);
+    }
+
+    AuthoringMutationDraft build(
+      ProjectSnapshot snapshot,
+      Map<String, Object?> weights,
+    ) =>
+        const SmartTileLayerActions().build(
+          _context(
+            snapshot,
+            actionId: 'smart_tile.layer.set_candidate_weights',
+            parameters: <String, Object?>{
+              'mapId': 'map_hanazuki_village',
+              'layerId': 'l_qc02_path_dirt',
+              'weights': weights,
+            },
+          ),
+        );
+
+    SmartTileLayer projectedLayer(AuthoringMutationDraft draft) =>
+        _projectedMap(draft)
+            .layers
+            .whereType<SmartTileLayer>()
+            .firstWhere((layer) => layer.id == 'l_qc02_path_dirt');
+
+    test('remplace la table du calque et la prévisualise', () {
+      final draft = build(
+        snapshotWith(),
+        const <String, Object?>{'fill-a': 900, 'fill-b': 100},
+      );
+
+      expect(
+        projectedLayer(draft).candidateWeights,
+        <String, int>{'fill-a': 900, 'fill-b': 100},
+      );
+      expect(
+        draft.preview,
+        containsPair('operation', 'smart_tile.layer.set_candidate_weights'),
+      );
+      expect(draft.preview, containsPair('overriddenCandidateCount', 2));
+    });
+
+    test('remplace, ne fusionne pas', () {
+      final draft = build(
+        snapshotWith(
+          layerWeights: const <String, int>{'fill-a': 1, 'fill-b': 999},
+        ),
+        const <String, Object?>{'fill-a': 500},
+      );
+
+      expect(
+        projectedLayer(draft).candidateWeights,
+        <String, int>{'fill-a': 500},
+      );
+    });
+
+    test('une table vide rend le calque au preset', () {
+      final draft = build(
+        snapshotWith(layerWeights: const <String, int>{'fill-a': 1}),
+        const <String, Object?>{},
+      );
+
+      expect(projectedLayer(draft).candidateWeights, isEmpty);
+    });
+
+    test('refuse un poids négatif ou non entier', () {
+      final snapshot = snapshotWith();
+
+      for (final invalid in <Object?>[-1, 'lourd', 1.5]) {
+        expect(
+          () => build(snapshot, <String, Object?>{'fill-a': invalid}),
+          throwsA(
+            isA<MapAuthoringException>().having(
+              (error) => error.code,
+              'code',
+              'smart_tile.candidate_weight_invalid',
+            ),
+          ),
+        );
+      }
+    });
+
+    test('refuse un candidat absent du preset', () {
+      expect(
+        () => build(snapshotWith(), const <String, Object?>{'fantome': 10}),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile.candidate_weight_unknown',
+          ),
+        ),
+      );
+    });
+
+    test('refuse de vider une règle de tout candidat positif', () {
+      expect(
+        () => build(
+          snapshotWith(),
+          const <String, Object?>{'fill-a': 0, 'fill-b': 0},
+        ),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile.rule_without_positive_candidate',
+          ),
+        ),
+      );
     });
   });
 }
