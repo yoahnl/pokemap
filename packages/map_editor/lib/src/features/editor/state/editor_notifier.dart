@@ -83,6 +83,8 @@ import '../../border_map_editing/application/border_preview_transaction.dart';
 import '../../border_map_editing/application/pending_border_save_guard.dart';
 import '../../border_map_editing/state/border_map_editing_providers.dart';
 import '../../border_map_editing/state/border_preview_providers.dart';
+import '../../smart_tiles_studio/application/smart_tile_publication_service.dart';
+import '../application/smart_tile_variant_density.dart';
 
 part 'editor_notifier.g.dart';
 part 'editor_notifier_tileset_library.dart';
@@ -963,6 +965,54 @@ class EditorNotifier extends _$EditorNotifier
       errorMessage: null,
       statusMessage: statusMessage ?? state.statusMessage,
     );
+  }
+
+  /// Réécrit les poids d'une règle du preset et republie celui-ci.
+  ///
+  /// La portée est volontairement globale : c'est le défaut du preset, pas une
+  /// surcharge de calque. Passe par le même chemin canonique que la
+  /// publication du Studio, puis adopte le manifeste relu.
+  Future<void> applySmartTilePresetVariantWeights({
+    required String presetId,
+    required String ruleId,
+    required Map<String, int> weights,
+  }) async {
+    final project = state.project;
+    final projectRootPath = state.projectRootPath;
+    if (project == null || projectRootPath == null) return;
+
+    final preset = project.smartTileCatalog.presets
+        .where((candidate) => candidate.id == presetId)
+        .firstOrNull;
+    if (preset == null) return;
+
+    final updated = applySmartTileVariantWeights(
+      preset: preset,
+      ruleId: ruleId,
+      weights: weights,
+    );
+
+    try {
+      final gateway = CanonicalSmartTilePublicationGateway(
+        mutations: ref.read(authoringMutationAdapterProvider),
+        queries: ref.read(authoringQueryAdapterProvider),
+      );
+      final service = SmartTilePublicationService(gateway: gateway);
+      await service.publishPreset(
+        projectRootPath: projectRootPath,
+        preset: updated,
+      );
+      final canonical = await gateway.load(projectRootPath: projectRootPath);
+      acceptCanonicalProjectManifest(
+        canonical.manifest,
+        statusMessage: 'Densité des variantes mise à jour.',
+      );
+    } catch (error) {
+      debugPrint('EditorNotifier: variant weights publish failed: $error');
+      state = state.copyWith(
+        errorMessage: 'Densité non enregistrée : $error',
+      );
+    }
   }
 
   /// Adopts the authoritative manifest + active map returned by one atomic

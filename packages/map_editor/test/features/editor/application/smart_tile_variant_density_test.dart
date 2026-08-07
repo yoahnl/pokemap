@@ -1,5 +1,39 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/application/smart_tile_variant_density.dart';
+
+ProjectSmartTilePreset _presetWithTwoRules() => const ProjectSmartTilePreset(
+      id: 'eau',
+      name: 'Eau',
+      usage: SmartTileUsage.path,
+      topology: SmartTileTopology.wangCorner4,
+      status: SmartTilePresetStatus.published,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
+      defaultMaterialId: 'eau',
+      allowedMaterialIds: <String>['eau'],
+      rules: <SmartTileRule>[
+        SmartTileRule(
+          id: 'rule-0',
+          centerMatch: SmartTileSlotMatch.any(),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(id: 'r0-c0', weight: 1000),
+            SmartTileCandidate(id: 'r0-c1', weight: 1000),
+            SmartTileCandidate(id: 'r0-c2', weight: 1000),
+          ],
+        ),
+        SmartTileRule(
+          id: 'rule-1',
+          centerMatch: SmartTileSlotMatch.any(),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(id: 'r1-c0', weight: 1000),
+          ],
+        ),
+      ],
+    );
 
 void main() {
   group('normaliseSmartTileVariantWeights', () {
@@ -121,6 +155,59 @@ void main() {
         ),
         throwsArgumentError,
       );
+    });
+  });
+
+  group('applySmartTileVariantWeights', () {
+    test('réécrit les poids de la règle visée et laisse les autres', () {
+      final preset = _presetWithTwoRules();
+      final updated = applySmartTileVariantWeights(
+        preset: preset,
+        ruleId: 'rule-0',
+        weights: const <String, int>{'r0-c0': 900, 'r0-c1': 50, 'r0-c2': 50},
+      );
+
+      expect(
+        updated.rules
+            .firstWhere((rule) => rule.id == 'rule-0')
+            .candidates
+            .map((candidate) => candidate.weight),
+        <int>[900, 50, 50],
+      );
+      expect(
+        updated.rules.firstWhere((rule) => rule.id == 'rule-1'),
+        preset.rules.firstWhere((rule) => rule.id == 'rule-1'),
+      );
+    });
+
+    test('laisse intact un candidat absent de la table', () {
+      final preset = _presetWithTwoRules();
+      final updated = applySmartTileVariantWeights(
+        preset: preset,
+        ruleId: 'rule-0',
+        weights: const <String, int>{'r0-c0': 900},
+      );
+      expect(
+        updated.rules
+            .firstWhere((rule) => rule.id == 'rule-0')
+            .candidates
+            .last
+            .weight,
+        1000,
+      );
+    });
+  });
+
+  group('smartTileFillRuleOf', () {
+    test('retient la règle qui porte le plus de variantes', () {
+      expect(smartTileFillRuleOf(_presetWithTwoRules())?.id, 'rule-0');
+    });
+
+    test('rend null pour un preset sans règles', () {
+      final bare = _presetWithTwoRules().copyWith(
+        rules: const <SmartTileRule>[],
+      );
+      expect(smartTileFillRuleOf(bare), isNull);
     });
   });
 }

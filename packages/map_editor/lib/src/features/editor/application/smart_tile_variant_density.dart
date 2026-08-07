@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 /// Total fixe vers lequel les poids d'une règle Smart Tile sont normalisés.
 ///
 /// Une part se lit donc en pour mille : 10 vaut 1 %. Cette résolution suffit
@@ -62,6 +64,47 @@ Map<String, int> rescaleSmartTileVariantWeights({
     for (final key in weights.keys)
       key: key == targetId ? effectivePermille : distributed[key]!,
   };
+}
+
+/// Règle dont les variantes se voient le plus : celle qui en porte le plus.
+///
+/// Sur un Wang Set importé, c'est la tuile de remplissage — celle qui couvre
+/// l'intérieur d'une surface, donc celle dont la densité saute aux yeux.
+/// Rend null pour un preset sans règles : les presets migrés d'anciens
+/// projets n'en portent aucune.
+SmartTileRule? smartTileFillRuleOf(ProjectSmartTilePreset preset) {
+  if (preset.rules.isEmpty) return null;
+  return preset.rules.reduce(
+    (best, rule) =>
+        rule.candidates.length > best.candidates.length ? rule : best,
+  );
+}
+
+/// Renvoie [preset] avec les poids de la règle [ruleId] réécrits.
+///
+/// Un candidat absent de [weights] garde le sien : la table n'a pas besoin
+/// d'être exhaustive.
+ProjectSmartTilePreset applySmartTileVariantWeights({
+  required ProjectSmartTilePreset preset,
+  required String ruleId,
+  required Map<String, int> weights,
+}) {
+  return preset.copyWith(
+    rules: <SmartTileRule>[
+      for (final rule in preset.rules)
+        if (rule.id != ruleId)
+          rule
+        else
+          rule.copyWith(
+            candidates: <SmartTileCandidate>[
+              for (final candidate in rule.candidates)
+                candidate.copyWith(
+                  weight: weights[candidate.id] ?? candidate.weight,
+                ),
+            ],
+          ),
+    ],
+  );
 }
 
 /// Répartit [budget] entre [weights] proportionnellement, au plus fort reste.
