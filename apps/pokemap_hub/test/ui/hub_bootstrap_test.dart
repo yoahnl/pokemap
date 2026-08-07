@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_hub/app/app_root.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pokemap_hub/app/di/hub_composition.dart';
+import 'package:pokemap_hub/app/di/hub_composition_provider.dart';
 
 void main() {
   testWidgets('startup failure is responsive, diagnostic, and retryable',
@@ -20,9 +22,11 @@ void main() {
     }
 
     await tester.pumpWidget(
-      PokeMapHubBootstrap(
-        compositionFactory: createComposition,
-        showTechnicalDetails: true,
+      ProviderScope(
+        overrides: [
+          hubCompositionProvider.overrideWith((ref) => createComposition()),
+        ],
+        child: PokeMapHubBootstrap(showTechnicalDetails: true),
       ),
     );
     await tester.pumpAndSettle();
@@ -47,11 +51,13 @@ void main() {
   testWidgets('release startup failure does not expose the raw exception',
       (tester) async {
     await tester.pumpWidget(
-      PokeMapHubBootstrap(
-        compositionFactory: () async {
+      ProviderScope(
+        overrides: [
+          hubCompositionProvider.overrideWith((ref) async {
           throw StateError('private absolute path');
-        },
-        showTechnicalDetails: false,
+          }),
+        ],
+        child: PokeMapHubBootstrap(showTechnicalDetails: false),
       ),
     );
     await tester.pumpAndSettle();
@@ -67,11 +73,13 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(
-      PokeMapHubBootstrap(
-        compositionFactory: () async {
+      ProviderScope(
+        overrides: [
+          hubCompositionProvider.overrideWith((ref) async {
           throw StateError('landscape failure');
-        },
-        showTechnicalDetails: true,
+          }),
+        ],
+        child: PokeMapHubBootstrap(showTechnicalDetails: true),
       ),
     );
     await tester.pumpAndSettle();

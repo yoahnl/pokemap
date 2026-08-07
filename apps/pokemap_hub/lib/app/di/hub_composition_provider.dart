@@ -1,0 +1,20 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:pokemap_hub/app/di/hub_composition.dart';
+import 'package:pokemap_hub/app/di/providers.dart';
+
+/// Bridges the widget tree to the composition root.
+///
+/// Ordering note: [HubComposition] still owns the ChangeNotifier controllers,
+/// so it cannot be deleted until lots 20-21 turn them into Notifiers. What
+/// changes here is where its inputs come from — the support root and the
+/// platform adapter are resolved from providers, so a test overriding
+/// [supportRootProvider] relocates the entire app.
+final hubCompositionProvider = FutureProvider<HubAppComposition>((ref) async {
+  final composition = await HubComposition.create(
+    platformAdapter: ref.watch(hubPlatformAdapterProvider),
+    supportRoot: await ref.watch(supportRootProvider.future),
+  );
+  ref.onDispose(composition.dispose);
+  return composition;
+});

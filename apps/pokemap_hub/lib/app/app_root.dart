@@ -1,82 +1,38 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
-import 'package:pokemap_hub/app/di/hub_composition.dart';
+import 'package:pokemap_hub/app/di/hub_composition_provider.dart';
 import 'package:pokemap_hub/core/config/public_product_identity.dart';
 
-typedef HubCompositionFactory = Future<HubAppComposition> Function();
-
-class PokeMapHubBootstrap extends StatefulWidget {
+/// Root of the Hub application.
+///
+/// Reads the composition from [hubCompositionProvider] rather than owning a
+/// Future itself: retry is now `ref.invalidate`, and disposal is the provider's
+/// job, which removes the manual _ownedComposition bookkeeping this widget used
+/// to carry.
+class PokeMapHubBootstrap extends ConsumerWidget {
   const PokeMapHubBootstrap({
     super.key,
-    this.compositionFactory,
     this.showTechnicalDetails = kDebugMode,
   });
 
-  final HubCompositionFactory? compositionFactory;
   final bool showTechnicalDetails;
 
   @override
-  State<PokeMapHubBootstrap> createState() => _PokeMapHubBootstrapState();
-}
-
-class _PokeMapHubBootstrapState extends State<PokeMapHubBootstrap> {
-  late Future<HubAppComposition> _composition;
-  HubAppComposition? _ownedComposition;
-
-  HubCompositionFactory get _compositionFactory =>
-      widget.compositionFactory ?? HubComposition.create;
-
-  @override
-  void initState() {
-    super.initState();
-    _composition = _createComposition();
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ref.watch(hubCompositionProvider).when(
+          data: (composition) => composition.buildApp(),
+          error: (error, stackTrace) => _HubBootstrapFailureApp(
+            error: error,
+            stackTrace: stackTrace,
+            showTechnicalDetails: showTechnicalDetails,
+            onRetry: () => ref.invalidate(hubCompositionProvider),
+          ),
+          loading: () => const _HubBootstrapLoadingApp(),
+        );
   }
-
-  Future<HubAppComposition> _createComposition() async {
-    final composition = await _compositionFactory();
-    if (!mounted) {
-      composition.dispose();
-    }
-    return composition;
-  }
-
-  void _retry() {
-    _ownedComposition?.dispose();
-    _ownedComposition = null;
-    final nextComposition = _createComposition();
-    setState(() {
-      _composition = nextComposition;
-    });
-  }
-
-  @override
-  void dispose() {
-    _ownedComposition?.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => FutureBuilder<HubAppComposition>(
-        future: _composition,
-        builder: (context, snapshot) {
-          final composition = snapshot.data;
-          if (composition != null) {
-            _ownedComposition ??= composition;
-            return composition.buildApp();
-          }
-          if (snapshot.hasError) {
-            return _HubBootstrapFailureApp(
-              error: snapshot.error!,
-              stackTrace: snapshot.stackTrace,
-              showTechnicalDetails: widget.showTechnicalDetails,
-              onRetry: _retry,
-            );
-          }
-          return const _HubBootstrapLoadingApp();
-        },
-      );
 }
 
 class _HubBootstrapLoadingApp extends StatelessWidget {
