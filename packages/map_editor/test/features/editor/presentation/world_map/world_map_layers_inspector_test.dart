@@ -1582,6 +1582,106 @@ void main() {
     expect(requests.single.invokerFocusNode, same(rowFocus.focusNode));
     expect(requests.single.invokerFocusNode.hasFocus, isTrue);
   });
+
+  group('environment attachment', () {
+    testWidgets('an untargeted environment layer reads as pending, not broken',
+        (tester) async {
+      final harness = _Harness(
+        _environmentMap(targetTileLayerId: null),
+        activeLayerId: 'env',
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      expect(find.textContaining('Cible à définir'), findsOneWidget);
+      expect(find.textContaining('Cible invalide'), findsNothing);
+    });
+
+    testWidgets('an environment layer can name its target TileLayer',
+        (tester) async {
+      final harness = _Harness(
+        _environmentMap(targetTileLayerId: null),
+        activeLayerId: 'env',
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('world-map-layer-environment-target-env'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('world-map-environment-target-decor'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final layer = harness.notifier.state.activeMap!.layers
+          .whereType<EnvironmentLayer>()
+          .single;
+      expect(layer.content.targetTileLayerId, 'decor');
+      expect(find.textContaining('Cible à définir'), findsNothing);
+    });
+
+    testWidgets('a broken target still reads as invalid', (tester) async {
+      final harness = _Harness(
+        _environmentMap(targetTileLayerId: 'gone'),
+        activeLayerId: 'env',
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      expect(find.textContaining('Cible invalide'), findsOneWidget);
+      expect(find.textContaining('Cible à définir'), findsNothing);
+    });
+
+    testWidgets('an active TileLayer can grow an environment', (tester) async {
+      final harness = _Harness(_threeLayerMap(), activeLayerId: 'top');
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      final enable = find.byKey(
+        const ValueKey<String>('world-map-layer-environment-enable-top'),
+      );
+      expect(enable, findsOneWidget);
+      // Only the selected layer offers it, so the list stays readable.
+      expect(
+        find.byKey(
+          const ValueKey<String>('world-map-layer-environment-enable-middle'),
+        ),
+        findsNothing,
+      );
+
+      await tester.tap(enable);
+      await tester.pump();
+
+      final created = harness.notifier.state.activeMap!.layers
+          .whereType<EnvironmentLayer>()
+          .single;
+      expect(created.content.targetTileLayerId, 'top');
+    });
+  });
+}
+
+MapData _environmentMap({required String? targetTileLayerId}) {
+  return MapData(
+    id: 'map',
+    name: 'Map',
+    size: const GridSize(width: 1, height: 1),
+    layers: <MapLayer>[
+      _tile('decor', 'Décor'),
+      EnvironmentLayer(
+        id: 'env',
+        name: 'Environnement',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: targetTileLayerId,
+        ),
+      ),
+    ],
+  );
 }
 
 final class _Harness {

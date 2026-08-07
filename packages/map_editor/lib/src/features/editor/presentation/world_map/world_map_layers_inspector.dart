@@ -521,6 +521,50 @@ final class _WorldMapLayerRow extends ConsumerWidget {
             icon: const Icon(Icons.arrow_downward_rounded),
           ),
         ];
+    // An Environment layer is useless until it names the TileLayer it
+    // decorates, and a TileLayer needs a way to grow one in the first place.
+    // Both controls live here because the layer list is where the author
+    // already selects what to work on.
+    List<Widget> buildEnvironmentActions(BuildContext context) {
+      if (layer is EnvironmentLayer) {
+        final hasTarget = row.environmentTargetPendingLabel == null &&
+            row.environmentWarningLabel == null;
+        return <Widget>[
+          const SizedBox(height: 6),
+          PokeMapButton(
+            key: ValueKey<String>('world-map-layer-environment-target-$layerId'),
+            onPressed: () => _pickEnvironmentTarget(context, layerId),
+            variant: PokeMapButtonVariant.secondary,
+            size: PokeMapButtonSize.compact,
+            leading: const Icon(Icons.adjust_outlined),
+            child: Text(
+              hasTarget
+                  ? 'Changer de TileLayer cible'
+                  : 'Choisir le TileLayer cible',
+            ),
+          ),
+        ];
+      }
+      return const <Widget>[];
+    }
+
+    // Growing an environment is offered as an icon on the selected TileLayer:
+    // a full-width button here would break the compact row rhythm the list
+    // relies on to stay scannable.
+    Widget? buildEnableEnvironmentAction() {
+      if (layer is! TileLayer ||
+          !row.isActive ||
+          row.hasAttachedEnvironmentLayers) {
+        return null;
+      }
+      return PokeMapIconButton(
+        key: ValueKey<String>('world-map-layer-environment-enable-$layerId'),
+        tooltip: 'Activer l’environnement sur ce calque',
+        onPressed: notifier.enableEnvironmentForActiveTileLayer,
+        icon: const Icon(Icons.park_outlined),
+      );
+    }
+
     final card = Semantics(
       key: ValueKey<String>('world-map-layer-semantics-$layerId'),
       container: true,
@@ -586,6 +630,8 @@ final class _WorldMapLayerRow extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
+                    if (buildEnableEnvironmentAction() case final action?)
+                      action,
                     PokeMapIconButton(
                       key: ValueKey<String>(
                           'world-map-layer-visibility-$layerId'),
@@ -654,6 +700,15 @@ final class _WorldMapLayerRow extends ConsumerWidget {
                     message: warning,
                   ),
                 ],
+                if (row.environmentTargetPendingLabel case final pending?) ...[
+                  const SizedBox(height: 6),
+                  PokeMapDiagnosticCallout(
+                    severity: PokeMapDiagnosticSeverity.info,
+                    message: '$pending — le masque est déjà peignable, la '
+                        'cible sert à la génération.',
+                  ),
+                ],
+                ...buildEnvironmentActions(context),
                 const SizedBox(height: 4),
                 if (usesNarrowLayout) ...[
                   Row(
@@ -697,6 +752,26 @@ final class _WorldMapLayerRow extends ConsumerWidget {
       layerId: layerId,
       onRequested: onContextMenuRequested,
       child: hoverPreviewCard,
+    );
+  }
+
+  Future<void> _pickEnvironmentTarget(
+    BuildContext context,
+    String environmentLayerId,
+  ) async {
+    final tileLayers = readActiveMap()
+            ?.layers
+            .whereType<TileLayer>()
+            .toList(growable: false) ??
+        const <TileLayer>[];
+    final picked = await _showWorldMapEnvironmentTargetDialog(
+      context: context,
+      tileLayers: tileLayers,
+    );
+    if (picked == null) return;
+    notifier.setEnvironmentLayerTargetTileLayer(
+      environmentLayerId: environmentLayerId,
+      targetTileLayerId: picked.id,
     );
   }
 
@@ -944,6 +1019,61 @@ Future<ProjectSmartTilePreset?> _showWorldMapSmartTilePresetDialog({
       ),
     ],
     barrierLabel: 'Fermer le choix de $noun',
+  );
+}
+
+/// Lets the author pick the TileLayer an Environment layer decorates.
+///
+/// The inspector that used to own this choice was dropped when the shell moved
+/// to the World Maps inspectors, which left every Environment layer stuck
+/// without a reachable way to name its target.
+Future<TileLayer?> _showWorldMapEnvironmentTargetDialog({
+  required BuildContext context,
+  required List<TileLayer> tileLayers,
+}) {
+  final hasTileLayers = tileLayers.isNotEmpty;
+  return showPokeMapConfirmationDialog<TileLayer?>(
+    context: context,
+    title: 'TileLayer cible',
+    message: hasTileLayers
+        ? 'Choisissez le calque de tuiles que cet environnement décore. '
+            'La génération posera ses éléments dessus.'
+        : 'Cette carte n’a aucun calque de tuiles. Ajoutez-en un, puis '
+            'revenez choisir la cible.',
+    details: hasTileLayers
+        ? Builder(
+            builder: (dialogContext) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final layer in tileLayers) ...[
+                  PokeMapButton(
+                    key: ValueKey<String>(
+                      'world-map-environment-target-${layer.id}',
+                    ),
+                    onPressed: () => Navigator.of(dialogContext).pop(layer),
+                    variant: PokeMapButtonVariant.secondary,
+                    leading: const Icon(Icons.layers_outlined),
+                    child: Text(layer.name),
+                  ),
+                  if (layer != tileLayers.last) const SizedBox(height: 8),
+                ],
+              ],
+            ),
+          )
+        : const PokeMapEmptyState(
+            icon: Icon(Icons.layers_outlined),
+            title: 'Aucun calque de tuiles',
+            description:
+                'Un environnement décore un calque de tuiles. Créez-en un '
+                'depuis « Ajouter », puis revenez ici.',
+          ),
+    actions: const <PokeMapDialogAction<TileLayer?>>[
+      PokeMapDialogAction<TileLayer?>(
+        label: 'Fermer',
+        value: null,
+      ),
+    ],
+    barrierLabel: 'Fermer le choix du TileLayer cible',
   );
 }
 

@@ -36,6 +36,7 @@ final class LayerPanelPresentationRow {
     required this.deletionImpact,
     this.environmentAttachmentLabel,
     this.environmentWarningLabel,
+    this.environmentTargetPendingLabel,
     this.technicalEnvironmentSelectionLabel,
     this.attachedEnvironmentLayerIds = const <String>[],
   });
@@ -53,6 +54,13 @@ final class LayerPanelPresentationRow {
   final MapLayerDeletionImpact deletionImpact;
   final String? environmentAttachmentLabel;
   final String? environmentWarningLabel;
+
+  /// Set on an Environment layer that simply has no target TileLayer yet.
+  ///
+  /// This is a legitimate step — the mask can already be painted — so it is
+  /// deliberately kept apart from [environmentWarningLabel], which means the
+  /// configured target points at something that cannot be decorated.
+  final String? environmentTargetPendingLabel;
   final String? technicalEnvironmentSelectionLabel;
   final List<String> attachedEnvironmentLayerIds;
 
@@ -117,6 +125,7 @@ List<LayerPanelPresentationRow> buildLayerPanelPresentationRows(
         environmentAttachmentLabel:
             _environmentAttachmentLabel(attachedEnvironmentLayerIds.length),
         environmentWarningLabel: _environmentWarningLabel(layer, layersById),
+        environmentTargetPendingLabel: _environmentTargetPendingLabel(layer),
         technicalEnvironmentSelectionLabel: hasActiveTechnicalEnvironment
             ? 'Environnement technique sélectionné'
             : null,
@@ -147,11 +156,24 @@ String? _environmentWarningLabel(
   }
   final targetLayerId = layer.content.targetTileLayerId?.trim();
   if (targetLayerId == null || targetLayerId.isEmpty) {
-    return 'Cible invalide';
+    // Not yet configured is not the same as misconfigured; see
+    // [_environmentTargetPendingLabel].
+    return null;
   }
   final targetLayer = layersById[targetLayerId];
   if (targetLayer is TileLayer) {
     return null;
   }
   return 'Cible invalide';
+}
+
+String? _environmentTargetPendingLabel(MapLayer layer) {
+  if (layer is! EnvironmentLayer) {
+    return null;
+  }
+  final targetLayerId = layer.content.targetTileLayerId?.trim();
+  if (targetLayerId != null && targetLayerId.isNotEmpty) {
+    return null;
+  }
+  return 'Cible à définir';
 }
