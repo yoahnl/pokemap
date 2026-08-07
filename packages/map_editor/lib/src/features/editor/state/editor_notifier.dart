@@ -256,6 +256,25 @@ ProjectMapEntry? _findMapEntryForPath(
   return null;
 }
 
+/// How many times a canonical Smart Tile mutation replans after `plan.stale`.
+///
+/// The Studio autosaves drafts on a debounce, so a background write can land
+/// between reading the project revision and planning against it. One replan
+/// clears that race; a persistent conflict is reported instead of looping.
+const int _canonicalStalePlanRetryBudget = 1;
+
+/// Turns a canonical Smart Tile layer failure into something an author can act
+/// on, instead of surfacing the raw authoring code.
+String canonicalSmartTileLayerFailureMessage(
+  EditorAuthoringMutationFailure failure,
+) {
+  if (failure.code == 'plan.stale') {
+    return 'Le projet a changé pendant l’ajout du calque. '
+        'Réessayez : la nouvelle révision sera prise en compte.';
+  }
+  return failure.message;
+}
+
 @riverpod
 class EditorNotifier extends _$EditorNotifier
     implements WorldMapToolActivationHost {
@@ -9353,32 +9372,50 @@ class EditorNotifier extends _$EditorNotifier
     try {
       final queries = ref.read(authoringQueryAdapterProvider);
       final mutations = ref.read(authoringMutationAdapterProvider);
-      final before = await queries.open(projectRootPath);
-      final identity = _smartTileEditorMutationIdentity(
-        purpose: 'smart-tile-layer-create',
-        values: <String, Object?>{
-          'mapId': map.id,
-          'layerId': layerId,
-          'revision': before.snapshotRevision,
-        },
-      );
-      final plan = await mutations.plan(
-        projectRootPath,
-        actionId: 'smart_tile.layer.create',
-        parameters: <String, Object?>{
-          'mapId': map.id,
-          'presetId': preset.id,
-          'layerId': layerId,
-          'name': layerName,
-        },
-        expectedRevision: before.snapshotRevision,
-        idempotencyKey: identity,
-        requestId: identity,
-      );
-      final applied = await mutations.apply(
-        plan,
-        operationId: '$identity-apply',
-      );
+      // The Studio autosaves drafts on a debounce, so the project revision can
+      // advance between reading it and planning against it. `plan.stale` is a
+      // transient revision conflict — the canonical worker already classifies
+      // it retryable — so replan from the latest revision instead of failing.
+      late EditorAuthoringMutationResult applied;
+      var attempt = 0;
+      while (true) {
+        final before = await queries.open(projectRootPath);
+        final identity = _smartTileEditorMutationIdentity(
+          purpose: 'smart-tile-layer-create',
+          values: <String, Object?>{
+            'mapId': map.id,
+            'layerId': layerId,
+            'revision': before.snapshotRevision,
+          },
+        );
+        try {
+          final plan = await mutations.plan(
+            projectRootPath,
+            actionId: 'smart_tile.layer.create',
+            parameters: <String, Object?>{
+              'mapId': map.id,
+              'presetId': preset.id,
+              'layerId': layerId,
+              'name': layerName,
+            },
+            expectedRevision: before.snapshotRevision,
+            idempotencyKey: identity,
+            requestId: identity,
+          );
+          applied = await mutations.apply(
+            plan,
+            operationId: '$identity-apply',
+          );
+          break;
+        } on Object catch (error) {
+          final failure = EditorAuthoringMutationFailure.capture(error);
+          if (failure.code != 'plan.stale' ||
+              attempt >= _canonicalStalePlanRetryBudget) {
+            rethrow;
+          }
+          attempt++;
+        }
+      }
       final after = await queries.open(projectRootPath);
       if (after.snapshotRevision != applied.snapshotRevision) {
         throw const EditorAuthoringMutationFailure(
@@ -9403,7 +9440,9 @@ class EditorNotifier extends _$EditorNotifier
       );
     } on Object catch (error) {
       final failure = EditorAuthoringMutationFailure.capture(error);
-      state = state.copyWith(errorMessage: failure.code);
+      state = state.copyWith(
+        errorMessage: canonicalSmartTileLayerFailureMessage(failure),
+      );
       return false;
     }
   }

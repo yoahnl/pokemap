@@ -94,7 +94,12 @@ final class MapLayerGroupService {
         ),
       );
     }
-    return List<MapLayerGroup>.unmodifiable(groups);
+    // Present the stack front-first on every map. A `bottom_to_top` map
+    // serializes back-first, so its groups are flipped here and flipped back by
+    // [_mapWithGroups]; every consumer then shares one meaning of "up".
+    return List<MapLayerGroup>.unmodifiable(
+      mapPaintsFirstLayerInFront(map) ? groups : groups.reversed,
+    );
   }
 
   MapData moveAdjacent({
@@ -187,8 +192,12 @@ MapData _mapWithGroups(
   MapData map,
   List<MapLayerGroup> groups,
 ) {
+  // [groupsTopFirst] hands back a front-first list; restore the map's own
+  // serialization order before writing it out.
+  final serializedGroups =
+      mapPaintsFirstLayerInFront(map) ? groups : groups.reversed.toList();
   final layers = <MapLayer>[
-    for (final group in groups) ...group.membersTopFirst,
+    for (final group in serializedGroups) ...group.membersTopFirst,
   ];
   if (!_hasSameIdentityMembers(map.layers, layers)) {
     throw StateError(

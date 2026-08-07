@@ -8,6 +8,20 @@ import '../models/map_visual_stack_config.dart';
 
 const _bottomToTopLayerOrder = 'bottom_to_top';
 
+/// Whether [map] paints `layers.first` in front of every other layer.
+///
+/// Canonical maps serialize their stack front-first. Legacy maps do too, unless
+/// they carry `tileLayerOrder: bottom_to_top`, in which case the serialized
+/// order is the paint order and `layers.first` renders at the back.
+///
+/// Any surface that presents or reorders the stack must agree with the
+/// composer here, otherwise "up" in the layer panel moves a layer backwards on
+/// some maps and forwards on others.
+bool mapPaintsFirstLayerInFront(MapData map) {
+  if (map.visualStack != null) return true;
+  return map.properties['tileLayerOrder'] != _bottomToTopLayerOrder;
+}
+
 enum MapVisualCompositionSemantics {
   legacyRuntimeV1,
   canonicalV1,
@@ -181,11 +195,11 @@ MapVisualCompositionPlan _buildAuthoredPlan(
   required MapVisualCompositionSemantics semantics,
   required bool canonical,
 }) {
-  final ordered = canonical
+  // Same rule as [mapPaintsFirstLayerInFront]: paint back-to-front, so a map
+  // that serializes front-first is walked in reverse.
+  final ordered = mapPaintsFirstLayerInFront(map)
       ? visible.reversed.toList(growable: true)
-      : map.properties['tileLayerOrder'] == _bottomToTopLayerOrder
-          ? visible.toList(growable: true)
-          : visible.reversed.toList(growable: true);
+      : visible.toList(growable: true);
   final tileLayers = ordered.whereType<TileLayer>().toList(growable: false);
   final steps = <MapVisualCompositionStep>[
     for (final layer in ordered)
