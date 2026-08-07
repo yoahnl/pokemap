@@ -677,7 +677,7 @@ sous ce qui était `src/ui/`.
 - `InstalledHubGameActivityReader` — dans `installed_game_activity_reader.dart`
 - `HubDashboardController` — reste dans `hub_dashboard_notifier.dart`, renommé en `HubDashboardNotifier` **au lot 20 seulement**
 
-- [ ] **Étape 9.1 — Extraire le contrat de diagnostic transverse**
+- [x] **Étape 9.1 — Extraire le contrat de diagnostic transverse**
 
 Créer `lib/core/diagnostics/hub_diagnostic.dart` avec `HubDiagnosticSeverity` et `HubDiagnostic`,
 copiés **sans modification** depuis les lignes 20-39 de `hub_dashboard_notifier.dart` :
@@ -706,7 +706,7 @@ final class HubDiagnostic {
 }
 ```
 
-- [ ] **Étape 9.2 — Extraire l'état de vue**
+- [x] **Étape 9.2 — Extraire l'état de vue**
 
 Créer `lib/features/dashboard/application/notifiers/hub_dashboard_state.dart` et y déplacer
 `HubDashboardStatus`, `HubSection`, `HubStorageSnapshot`, `HubGameActivity`, `HubGameView`,
@@ -714,12 +714,12 @@ Créer `lib/features/dashboard/application/notifiers/hub_dashboard_state.dart` e
 la décision du lot 2 écarte freezed. Elles sont déjà immuables avec un `copyWith` manuel, ce qui est
 exactement ce que freezed aurait produit.
 
-- [ ] **Étape 9.3 — Extraire le lecteur d'activité**
+- [x] **Étape 9.3 — Extraire le lecteur d'activité**
 
 Déplacer `InstalledHubGameActivityReader` vers
 `lib/features/dashboard/application/services/installed_game_activity_reader.dart`.
 
-- [ ] **Étape 9.4 — Vérifier la taille du reste**
+- [x] **Étape 9.4 — Vérifier la taille du reste**
 
 ```bash
 cd apps/pokemap_hub && wc -l lib/features/dashboard/application/notifiers/hub_dashboard_notifier.dart
@@ -728,7 +728,7 @@ cd apps/pokemap_hub && wc -l lib/features/dashboard/application/notifiers/hub_da
 Attendu : **< 450**. Si c'est encore au-dessus, extraire aussi la gestion du journal de diagnostic
 vers `features/dashboard/application/services/diagnostic_log_writer.dart`.
 
-- [ ] **Étape 9.5 — Vérifier**
+- [x] **Étape 9.5 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
@@ -736,7 +736,7 @@ cd apps/pokemap_hub && flutter analyze && flutter test
 
 Attendu : mêmes chiffres qu'à l'étape 1.6.
 
-- [ ] **Étape 9.6 — Committer**
+- [x] **Étape 9.6 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): split the dashboard controller into state, services and core diagnostics"
@@ -756,7 +756,7 @@ commit atomique et le rollback. **Ne modifier aucune règle métier**, uniquemen
 - Créer : `features/installation/data/repositories/install_failures.dart` → `_formatFailure`, `_releaseFailure`, `_failure`, `_throwIfCancelled`, `_fault`
 - Créer : `features/installation/domain/services/install_compatibility_rules.dart` → `_sameInspection`, `_branding`, `_verifyStaged` (partie pure)
 
-- [ ] **Étape 10.1 — Établir la référence des tests d'installation**
+- [x] **Étape 10.1 — Établir la référence des tests d'installation**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/install/
@@ -767,7 +767,7 @@ Noter le nombre de tests. Ces 6 fichiers (`game_install_recovery_test`, `game_pa
 `game_maintenance_service_test`, `editor_export_install_inbox_test`) sont la **référence de non-régression**
 de ce lot. Ils doivent rester verts après **chaque** étape ci-dessous.
 
-- [ ] **Étape 10.2 — Extraire les règles pures vers `domain/services/`**
+- [x] **Étape 10.2 — Extraire les règles pures vers `domain/services/`**
 
 Sortir `_sameInspection` et `_branding` vers `install_compatibility_rules.dart` en fonctions publiques
 sans état. Ce fichier atterrit dans `domain/` : il ne doit importer ni `dart:io`, ni `flutter`.
@@ -778,7 +778,7 @@ cd apps/pokemap_hub && grep -cE "^import 'dart:io'|^import 'package:flutter/" li
 
 Attendu : `0`.
 
-- [ ] **Étape 10.3 — Vérifier**
+- [x] **Étape 10.3 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/install/
@@ -786,34 +786,34 @@ cd apps/pokemap_hub && flutter test test/install/
 
 Attendu : même nombre de tests verts qu'à l'étape 10.1.
 
-- [ ] **Étape 10.4 — Extraire le staging**
+- [x] **Étape 10.4 — Extraire le staging**
 
 Déplacer `_createTransactionRoot`, `_copyPackageSnapshot`, `_extractSnapshot`, `_inspect` vers
 `install_staging.dart`, sous une classe `InstallStaging` prenant `supportRoot` et `inspector` au constructeur.
 
-- [ ] **Étape 10.5 — Vérifier**
+- [x] **Étape 10.5 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/install/
 ```
 
-- [ ] **Étape 10.6 — Extraire le commit et le rollback**
+- [x] **Étape 10.6 — Extraire le commit et le rollback**
 
 Déplacer `_publishLibrary`, `_writeJournal`, `_writeFlushed`, `_quarantineTransaction`,
 `_rebuildLibraryLocked` vers `install_commit.dart`, sous une classe `InstallCommit`.
 
-- [ ] **Étape 10.7 — Vérifier**
+- [x] **Étape 10.7 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/install/
 ```
 
-- [ ] **Étape 10.8 — Extraire la fabrique d'erreurs**
+- [x] **Étape 10.8 — Extraire la fabrique d'erreurs**
 
 Déplacer `_formatFailure`, `_releaseFailure`, `_failure`, `_throwIfCancelled`, `_fault` vers
 `install_failures.dart`. **Les codes et messages d'erreur ne changent pas** — ils sont assertés par les tests.
 
-- [ ] **Étape 10.9 — Vérifier les tailles**
+- [x] **Étape 10.9 — Vérifier les tailles**
 
 ```bash
 cd apps/pokemap_hub && wc -l lib/features/installation/data/repositories/*.dart lib/features/installation/domain/services/*.dart | sort -rn
@@ -821,13 +821,13 @@ cd apps/pokemap_hub && wc -l lib/features/installation/data/repositories/*.dart 
 
 Attendu : aucun fichier > 450 l.
 
-- [ ] **Étape 10.10 — Vérifier la suite complète**
+- [x] **Étape 10.10 — Vérifier la suite complète**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 10.11 — Committer**
+- [x] **Étape 10.11 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): split the package installer into staging, commit, failures and pure rules"
@@ -846,7 +846,7 @@ Même prudence qu'au lot 10 : atomicité d'écriture, quarantaine, migration. Au
 - Créer : `features/saves/data/repositories/save_path_guard.dart` → `_assertAddressScope`, `_safeSlotDirectory`, `_safeProfileDirectory`, `_safeGameDirectory`, `_safeSupportRoot`, `_safeChildDirectory`, `_rejectLink`
 - Créer : `features/saves/data/repositories/save_migration_runner.dart` → `_createMigrationSnapshot` + corps de `migrate` et `restoreMigrationSnapshot`
 
-- [ ] **Étape 11.1 — Établir la référence**
+- [x] **Étape 11.1 — Établir la référence**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/saves/
@@ -856,23 +856,23 @@ Noter le compte. Les 5 fichiers de test (`hub_save_store_atomic_test`, `hub_save
 `hub_save_migration_test`, `hub_save_profile_manager_test`, `legacy_global_save_importer_test`) sont
 la référence de non-régression.
 
-- [ ] **Étape 11.2 — Extraire le garde-fou de chemins**
+- [x] **Étape 11.2 — Extraire le garde-fou de chemins**
 
 `save_path_guard.dart` d'abord : c'est la brique dont les trois autres dépendent. Elle porte les
 protections anti-symlink et anti-évasion de répertoire — **ne pas les assouplir**.
 
-- [ ] **Étape 11.3 — Vérifier**
+- [x] **Étape 11.3 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/saves/
 ```
 
-- [ ] **Étape 11.4 — Extraire lecture, écriture, migration**
+- [x] **Étape 11.4 — Extraire lecture, écriture, migration**
 
 Dans cet ordre : `save_slot_reader.dart`, puis `save_atomic_writer.dart`, puis `save_migration_runner.dart`.
 **Vérifier avec `flutter test test/saves/` après chacune des trois extractions**, pas seulement à la fin.
 
-- [ ] **Étape 11.5 — Vérifier les tailles**
+- [x] **Étape 11.5 — Vérifier les tailles**
 
 ```bash
 cd apps/pokemap_hub && wc -l lib/features/saves/data/repositories/*.dart | sort -rn
@@ -880,13 +880,13 @@ cd apps/pokemap_hub && wc -l lib/features/saves/data/repositories/*.dart | sort 
 
 Attendu : aucun fichier > 450 l.
 
-- [ ] **Étape 11.6 — Vérifier la suite complète**
+- [x] **Étape 11.6 — Vérifier la suite complète**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 11.7 — Committer**
+- [x] **Étape 11.7 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): split the save store into reader, writer, path guard and migration runner"
@@ -914,7 +914,7 @@ aucune méthode à réécrire.
 > ou `shell/` sont publics). Ne pas contourner avec `part` / `part of` : ça masquerait la découpe
 > aux garde-fous du lot 23.
 
-- [ ] **Étape 12.1 — Établir la référence**
+- [x] **Étape 12.1 — Établir la référence**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/ui/
@@ -923,24 +923,24 @@ cd apps/pokemap_hub && flutter test test/ui/
 Noter le compte. `avelune_home_chrome_test.dart` et `avelune_home_layout_ownership_test.dart` sont
 les plus sensibles à ce lot.
 
-- [ ] **Étape 12.2 — Extraire les diagnostics**
+- [x] **Étape 12.2 — Extraire les diagnostics**
 
 Déplacer `_HubStatusBanner`, `_HubDiagnostics` et `_DiagnosticCard` vers `hub_shell_diagnostics.dart`,
 en retirant le `_` de leurs trois noms et de toutes leurs références dans `HubShell`.
 
-- [ ] **Étape 12.3 — Vérifier**
+- [x] **Étape 12.3 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/ui/
 ```
 
-- [ ] **Étape 12.4 — Extraire le layout puis les sections**
+- [x] **Étape 12.4 — Extraire le layout puis les sections**
 
 Dans cet ordre : `_AveluneLetterboxBackdrop` + `_HubViewportTooSmall` vers `hub_shell_layout.dart`,
 puis `_AveluneHomeContent` + `_AvelunePreferencesContent` + `_HubHeader` vers `hub_shell_sections.dart`.
 **Vérifier avec `flutter test test/ui/` après chacune des deux extractions.**
 
-- [ ] **Étape 12.5 — Vérifier**
+- [x] **Étape 12.5 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && wc -l lib/presentation/shell/*.dart && flutter analyze && flutter test
@@ -948,7 +948,7 @@ cd apps/pokemap_hub && wc -l lib/presentation/shell/*.dart && flutter analyze &&
 
 Attendu : aucun fichier > 450 l., suites vertes.
 
-- [ ] **Étape 12.6 — Committer**
+- [x] **Étape 12.6 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): split the shell into scaffold, layout, sections and diagnostics"
@@ -972,36 +972,36 @@ le chargement de typographie et l'arbre de widgets.
 > `_PlayerLaunchFailure` devient `PlayerLaunchFailure` (public) : il traverse un fichier. Même raison
 > qu'au lot 12.
 
-- [ ] **Étape 13.1 — Établir la référence**
+- [x] **Étape 13.1 — Établir la référence**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/player/ test/session/
 ```
 
-- [ ] **Étape 13.2 — Extraire le chargeur de typographie**
+- [x] **Étape 13.2 — Extraire le chargeur de typographie**
 
 `_loadTypography` (86 l.) est autonome et sans état : c'est l'extraction la moins risquée, à faire
 en premier pour valider la mécanique.
 
-- [ ] **Étape 13.3 — Vérifier**
+- [x] **Étape 13.3 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/player/ test/session/
 ```
 
-- [ ] **Étape 13.4 — Extraire le contrôleur de session**
+- [x] **Étape 13.4 — Extraire le contrôleur de session**
 
 Déplacer le cycle de vie (`_initialize`, `_mountGame`, `_unmountGame`, `_handleSystemBack`,
 `didChangeAppLifecycleState`, `_recordFailure`, `_updateControlProfile`) et `PlayerLaunchFailure`.
 La page ne garde que `build`, `_finishIntro` et `dispose`.
 
-- [ ] **Étape 13.5 — Vérifier**
+- [x] **Étape 13.5 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && wc -l lib/presentation/features/player/pages/*.dart lib/presentation/features/player/state/*.dart && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 13.6 — Vérification de fin de phase 3**
+- [x] **Étape 13.6 — Vérification de fin de phase 3**
 
 ```bash
 cd apps/pokemap_hub && find lib -name '*.dart' -exec wc -l {} + | sort -rn | head -12
@@ -1011,7 +1011,7 @@ Attendu : **aucun fichier au-dessus de 450 lignes**. Si un fichier dépasse enco
 « Journal des décisions » en fin de plan avec sa justification écrite, plutôt que de le laisser passer
 en silence.
 
-- [ ] **Étape 13.7 — Committer**
+- [x] **Étape 13.7 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): extract the installed game player view controller"
@@ -2192,6 +2192,9 @@ Attendu : working tree propre, 25 commits `refactor(hub):` / `test(hub):` lisibl
 | 8 | Repointage des tests avancé du lot 24 au lot 8 | La suite est le seul filet des phases 3 à 5 ; la laisser incompilable jusqu'au lot 24 aurait supprimé toute détection de régression pendant 16 lots |
 | 9 | `hub_dashboard_notifier.dart` reste à 468 l., 18 au-dessus de la cible | Ce qui reste **est** l'orchestrateur. La seule coupe possible serait de déplacer 12 littéraux de diagnostic en français : ça déplace de la copie sans séparer de responsabilité. Renvoyé au chantier l10n déjà hors périmètre |
 | 10 | `game_package_installer.dart` reste à 1 072 l. ; la cible de 450 est inatteignable par cette approche | Le plan supposait que la masse était dans les helpers. Elle est dans **deux méthodes** : `_installLocked` (478 l.) et `_recoverLocked` (172 l.). Extraire tous les helpers restants mènerait à ~870. Découper `_installLocked` — staging, vérification, commit et rollback d'une transaction atomique — mérite **son propre lot**, pas une coupe précipitée |
+| 11 | `hub_save_repository_impl.dart` reste à 746 l. | Même cause qu'au lot 10 : `_readLocked` (100 l.) et `_writeLocked` (97 l.) portent le chemin d'écriture atomique. Les gardes de chemins, l'intégrité de slot et le mapper de compatibilité sont sortis ; le cœur transactionnel mérite son propre lot |
+| 11 | Découpe par **nom de méthode**, plus par plage de lignes | Une première coupe 698-798 a emporté `_withFileLock` et `_queueSlot` avec les primitives d'intégrité. Ce sont des primitives de concurrence adossées au champ statique `_slotQueues` du store — remises en place |
+| 13 | `hub_installed_game_player.dart` reste à 501 l. | Ce qui reste est le widget : `build` (143 l.) et `_initialize` (143 l.), tous deux liés à `setState` et au cycle de vie du `State`. Le lot 21 rouvrira ce fichier pour la bascule en `Notifier` — à traiter là plutôt qu'ici |
 | 12-13 | 11 widgets et `_PlayerLaunchFailure` passent de privés à publics | Le privé Dart est à portée de bibliothèque : un symbole privé ne peut pas traverser un fichier. `part`/`part of` est écarté car il masquerait la découpe aux garde-fous du lot 23 |
 | 15 | `dart:io` autorisé dans `game_installation_repository_interface.dart` | `File` est le type d'entrée réel d'une installation locale ; l'abstraire changerait le comportement, ce que la contrainte globale interdit |
 | 21 | `avelune_exchange_controller` et `avelune_insertion_controller` restent des `ChangeNotifier` | Animation pure, sans dépendance métier, confinée à un seul widget |
