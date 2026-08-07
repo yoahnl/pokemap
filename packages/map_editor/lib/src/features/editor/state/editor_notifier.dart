@@ -1015,6 +1015,63 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  /// Écrit la surcharge de densité portée par un seul calque.
+  ///
+  /// Même chemin canonique que les gestes de peinture Smart Tile : plan,
+  /// application, puis adoption du cliché renvoyé pour que la carte à l'écran
+  /// reparte de la révision écrite.
+  Future<void> applySmartTileLayerVariantWeights({
+    required String mapId,
+    required String layerId,
+    required Map<String, int> weights,
+  }) async {
+    final projectRootPath = state.projectRootPath;
+    if (projectRootPath == null) return;
+
+    final parameters = <String, Object?>{
+      'mapId': mapId,
+      'layerId': layerId,
+      'weights': weights,
+    };
+    final identity = _smartTileEditorMutationIdentity(
+      purpose: 'smart-tile-candidate-weights',
+      values: <String, Object?>{
+        'mapId': mapId,
+        'layerId': layerId,
+        'sequence': ++_smartTileGestureSequence,
+      },
+    );
+
+    try {
+      final mutations = ref.read(authoringMutationAdapterProvider);
+      final plan = await mutations.plan(
+        projectRootPath,
+        actionId: 'smart_tile.layer.set_candidate_weights',
+        parameters: parameters,
+        idempotencyKey: identity,
+        requestId: identity,
+      );
+      final applied = await mutations.apply(
+        plan,
+        operationId: '$identity-apply',
+      );
+      await _adoptCanonicalSmartTileSnapshot(
+        projectRootPath: projectRootPath,
+        expectedSnapshotRevision: applied.snapshotRevision,
+        mapId: mapId,
+        layerId: layerId,
+        statusMessage: 'Densité des variantes mise à jour sur ce calque.',
+      );
+    } on Object catch (error) {
+      debugPrint('EditorNotifier: layer variant weights failed: $error');
+      state = state.copyWith(
+        errorMessage: canonicalSmartTileFailureMessage(
+          EditorAuthoringMutationFailure.capture(error),
+        ),
+      );
+    }
+  }
+
   /// Adopts the authoritative manifest + active map returned by one atomic
   /// Authoring transaction, then focuses the newly-created layer.
   ///

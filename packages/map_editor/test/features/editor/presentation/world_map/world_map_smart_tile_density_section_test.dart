@@ -31,9 +31,9 @@ void main() {
       tester,
       child: WorldMapSmartTileDensitySection(
         rule: _rule(),
-        initialWeights: const <String, int>{},
+        layerWeights: const <String, int>{},
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_) async {},
+        onApply: (_, __) async {},
       ),
     );
 
@@ -46,9 +46,9 @@ void main() {
       tester,
       child: WorldMapSmartTileDensitySection(
         rule: _rule(),
-        initialWeights: const <String, int>{},
+        layerWeights: const <String, int>{},
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_) async {},
+        onApply: (_, __) async {},
       ),
     );
 
@@ -63,13 +63,13 @@ void main() {
       tester,
       child: WorldMapSmartTileDensitySection(
         rule: _rule(),
-        initialWeights: const <String, int>{
+        layerWeights: const <String, int>{
           'cand-0': 0,
           'cand-1': 500,
           'cand-2': 500,
         },
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_) async {},
+        onApply: (_, __) async {},
       ),
     );
 
@@ -86,9 +86,9 @@ void main() {
       tester,
       child: WorldMapSmartTileDensitySection(
         rule: _rule(),
-        initialWeights: const <String, int>{},
+        layerWeights: const <String, int>{},
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (weights) async => applied.add(weights),
+        onApply: (_, weights) async => applied.add(weights),
       ),
     );
 
@@ -106,13 +106,13 @@ void main() {
       tester,
       child: WorldMapSmartTileDensitySection(
         rule: _rule(),
-        initialWeights: const <String, int>{
+        layerWeights: const <String, int>{
           'cand-0': 800,
           'cand-1': 100,
           'cand-2': 100,
         },
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_) async {},
+        onApply: (_, __) async {},
       ),
     );
 
@@ -130,13 +130,13 @@ void main() {
       tester,
       child: WorldMapSmartTileDensitySection(
         rule: _rule(),
-        initialWeights: const <String, int>{
+        layerWeights: const <String, int>{
           'cand-0': 900,
           'cand-1': 50,
           'cand-2': 50,
         },
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_) async {},
+        onApply: (_, __) async {},
       ),
     );
 
@@ -149,9 +149,9 @@ void main() {
       tester,
       child: WorldMapSmartTileDensitySection(
         rule: _rule(),
-        initialWeights: const <String, int>{},
+        layerWeights: const <String, int>{},
         spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
-        onApply: (_) async {},
+        onApply: (_, __) async {},
       ),
     );
 
@@ -162,5 +162,52 @@ void main() {
       find.byKey(const Key('world-map-density-reshuffle-notice')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('bascule la source des curseurs avec la portée', (tester) async {
+    await _pump(
+      tester,
+      child: WorldMapSmartTileDensitySection(
+        rule: _rule(),
+        layerWeights: const <String, int>{
+          'cand-0': 900,
+          'cand-1': 50,
+          'cand-2': 50,
+        },
+        spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
+        onApply: (_, __) async {},
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('world-map-density-summary')));
+    await tester.pumpAndSettle();
+    expect(find.text('90,0 %'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('world-map-density-scope-preset')));
+    await tester.pumpAndSettle();
+    expect(find.text('33,4 %'), findsOneWidget);
+    expect(find.text('90,0 %'), findsNothing);
+  });
+
+  testWidgets('Appliquer transmet la portée choisie', (tester) async {
+    final calls = <SmartTileDensityScope>[];
+    await _pump(
+      tester,
+      child: WorldMapSmartTileDensitySection(
+        rule: _rule(),
+        layerWeights: const <String, int>{},
+        spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
+        onApply: (scope, _) async => calls.add(scope),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('world-map-density-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('world-map-density-scope-preset')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('world-map-density-apply')));
+    await tester.pumpAndSettle();
+
+    expect(calls, <SmartTileDensityScope>[SmartTileDensityScope.preset]);
   });
 }

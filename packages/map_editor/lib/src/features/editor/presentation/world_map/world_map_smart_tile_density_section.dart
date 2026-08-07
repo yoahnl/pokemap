@@ -5,16 +5,21 @@ import 'package:map_core/map_core.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/smart_tile_variant_density.dart';
 
+/// Ce que le réglage de densité écrit : la surcharge du calque actif, ou les
+/// poids par défaut du preset — donc tous les calques qui le suivent.
+enum SmartTileDensityScope { layer, preset }
+
 /// Réglage de la fréquence de chaque variante d'une règle Smart Tile.
 ///
 /// Repliée par défaut : le panneau de peinture garde sa longueur, et la ligne
 /// de résumé suffit à voir qu'un réglage s'écarte du preset. Le widget ne
-/// touche à rien — il rend une table de poids à [onApply] et attend.
+/// touche à rien — il rend une table de poids et sa portée à [onApply] et
+/// attend.
 class WorldMapSmartTileDensitySection extends StatefulWidget {
   const WorldMapSmartTileDensitySection({
     super.key,
     required this.rule,
-    required this.initialWeights,
+    required this.layerWeights,
     required this.spriteBuilder,
     required this.onApply,
     this.isEditable = true,
@@ -22,12 +27,16 @@ class WorldMapSmartTileDensitySection extends StatefulWidget {
 
   final SmartTileRule rule;
 
-  /// Poids d'ouverture, par identifiant de candidat. Une entrée absente prend
-  /// le poids porté par le candidat lui-même.
-  final Map<String, int> initialWeights;
+  /// Surcharge portée par le calque actif, par identifiant de candidat. Une
+  /// entrée absente suit le poids du preset — que [rule] porte déjà sur ses
+  /// candidats.
+  final Map<String, int> layerWeights;
 
   final Widget Function(SmartTileCandidate candidate) spriteBuilder;
-  final Future<void> Function(Map<String, int> weights) onApply;
+  final Future<void> Function(
+    SmartTileDensityScope scope,
+    Map<String, int> weights,
+  ) onApply;
   final bool isEditable;
 
   @override
@@ -37,6 +46,7 @@ class WorldMapSmartTileDensitySection extends StatefulWidget {
 
 class _WorldMapSmartTileDensitySectionState
     extends State<WorldMapSmartTileDensitySection> {
+  var _scope = SmartTileDensityScope.layer;
   late Map<String, int> _opening;
   late Map<String, int> _current;
   var _expanded = false;
@@ -45,34 +55,40 @@ class _WorldMapSmartTileDensitySectionState
   @override
   void initState() {
     super.initState();
-    _opening = _normalisedOpening();
-    _current = Map<String, int>.of(_opening);
+    _reload();
   }
 
   @override
   void didUpdateWidget(WorldMapSmartTileDensitySection oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.rule.id == widget.rule.id &&
-        mapEquals(oldWidget.initialWeights, widget.initialWeights)) {
+        mapEquals(oldWidget.layerWeights, widget.layerWeights)) {
       return;
     }
-    _opening = _normalisedOpening();
+    _reload();
+  }
+
+  void _reload() {
+    _opening = _openingFor(_scope);
     _current = Map<String, int>.of(_opening);
   }
 
-  Map<String, int> _normalisedOpening() {
+  /// Poids d'ouverture pour une portée : la table du calque complétée par les
+  /// défauts du preset, ou les défauts seuls.
+  Map<String, int> _openingFor(SmartTileDensityScope scope) {
     return normaliseSmartTileVariantWeights(<String, int>{
       for (final candidate in widget.rule.candidates)
-        candidate.id: widget.initialWeights[candidate.id] ?? candidate.weight,
+        candidate.id: scope == SmartTileDensityScope.layer
+            ? widget.layerWeights[candidate.id] ?? candidate.weight
+            : candidate.weight,
     });
   }
 
-  /// Poids par défaut du preset, normalisés — la référence dont un réglage
-  /// « s'écarte ».
-  Map<String, int> _presetDefaults() {
-    return normaliseSmartTileVariantWeights(<String, int>{
-      for (final candidate in widget.rule.candidates)
-        candidate.id: candidate.weight,
+  void _selectScope(SmartTileDensityScope scope) {
+    if (scope == _scope) return;
+    setState(() {
+      _scope = scope;
+      _reload();
     });
   }
 
@@ -85,7 +101,7 @@ class _WorldMapSmartTileDensitySectionState
   Future<void> _apply() async {
     setState(() => _applying = true);
     try {
-      await widget.onApply(Map<String, int>.of(_current));
+      await widget.onApply(_scope, Map<String, int>.of(_current));
       if (mounted) {
         setState(() => _opening = Map<String, int>.of(_current));
       }
@@ -97,8 +113,9 @@ class _WorldMapSmartTileDensitySectionState
   @override
   Widget build(BuildContext context) {
     final count = widget.rule.candidates.length;
-    final defaults = _presetDefaults();
-    final changed = _opening.entries
+    final defaults = _openingFor(SmartTileDensityScope.preset);
+    final layerOpening = _openingFor(SmartTileDensityScope.layer);
+    final changed = layerOpening.entries
         .where((entry) => defaults[entry.key] != entry.value)
         .length;
     return Column(
@@ -125,6 +142,34 @@ class _WorldMapSmartTileDensitySectionState
           ),
         ),
         if (_expanded) ...[
+          const SizedBox(height: 8),
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: PokeMapButton(
+                  key: const Key('world-map-density-scope-layer'),
+                  onPressed: () => _selectScope(SmartTileDensityScope.layer),
+                  variant: _scope == SmartTileDensityScope.layer
+                      ? PokeMapButtonVariant.primary
+                      : PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.compact,
+                  child: const Text('Ce calque'),
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: PokeMapButton(
+                  key: const Key('world-map-density-scope-preset'),
+                  onPressed: () => _selectScope(SmartTileDensityScope.preset),
+                  variant: _scope == SmartTileDensityScope.preset
+                      ? PokeMapButtonVariant.primary
+                      : PokeMapButtonVariant.secondary,
+                  size: PokeMapButtonSize.compact,
+                  child: const Text('Tous les calques'),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8),
           const PokeMapBadge(
             key: Key('world-map-density-reshuffle-notice'),

@@ -299,7 +299,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                         'world-map-density-${activePreset.id}',
                       ),
                       rule: fillRule,
-                      initialWeights: const <String, int>{},
+                      layerWeights: activeLayer.candidateWeights,
                       spriteBuilder: (candidate) => _candidateSpritePreview(
                         catalog: snapshot.project!.smartTileCatalog,
                         tilesets: snapshot.project!.tilesets,
@@ -307,12 +307,20 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                         candidate: candidate,
                       ),
                       isEditable: canEdit,
-                      onApply: (weights) =>
+                      onApply: (scope, weights) => switch (scope) {
+                        SmartTileDensityScope.layer =>
+                          notifier.applySmartTileLayerVariantWeights(
+                            mapId: snapshot.map!.id,
+                            layerId: activeLayer.id,
+                            weights: weights,
+                          ),
+                        SmartTileDensityScope.preset =>
                           notifier.applySmartTilePresetVariantWeights(
-                        presetId: activePreset.id,
-                        ruleId: fillRule.id,
-                        weights: weights,
-                      ),
+                            presetId: activePreset.id,
+                            ruleId: fillRule.id,
+                            weights: weights,
+                          ),
+                      },
                     ),
                 },
               if (activeLayer != null && snapshot.project != null) ...[
