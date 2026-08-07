@@ -366,6 +366,65 @@ void main() {
       expect(back, findsNothing);
     });
 
+    testWidgets('environment header returns to the canonical layers inspector',
+        (tester) async {
+      final container = ProviderContainer();
+      final editorKeepAlive = container.listen<EditorState>(
+        editorNotifierProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      final sessionKeepAlive = container.listen<WorldMapWorkspaceSession>(
+        worldMapWorkspaceSessionProvider,
+        (_, __) {},
+        fireImmediately: true,
+      );
+      addTearDown(() {
+        sessionKeepAlive.close();
+        editorKeepAlive.close();
+        container.dispose();
+      });
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        activeMap: _map,
+        activeLayerId: 'tile',
+        activeTool: EditorToolType.selection,
+      );
+      final session = container.read(worldMapWorkspaceSessionProvider.notifier)
+        ..pinInspector(WorldMapInspectorKind.environment);
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: PokeMapTheme.dark(),
+            home: const Scaffold(
+              body: SizedBox(
+                width: 400,
+                height: 600,
+                child: AdaptiveMapInspector(),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final back = find.byKey(
+        const ValueKey<String>('world-map-inspector-back-to-layers'),
+      );
+      expect(back, findsOneWidget);
+
+      await tester.tap(back);
+      await tester.pump();
+
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).pinnedInspectorKind,
+        isNull,
+      );
+      expect(find.byType(WorldMapLayersInspector), findsOneWidget);
+      expect(back, findsNothing);
+      expect(session, isNotNull);
+    });
+
     testWidgets(
         'pins and unpins layerless non-object Place without a stale no-op',
         (tester) async {
