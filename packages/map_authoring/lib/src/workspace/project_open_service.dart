@@ -69,13 +69,22 @@ final class ProjectOpenService {
         bytes: manifestBytes,
       ),
     ]);
+    final reader = _fileReader;
     final registered = _handles.registerProject(
       projectName: manifest.name,
       initialFingerprint: fingerprint,
-      readBytes: (relativePath) => _fileReader.readBytes(
+      readBytes: (relativePath) => reader.readBytes(
         projectRoot: canonicalRoot,
         relativePath: relativePath,
       ),
+      // Only readers that can report identity cheaply enable snapshot reuse.
+      readIdentity: reader is ProjectResourceIdentityReader
+          ? (relativePath) => (reader as ProjectResourceIdentityReader)
+              .readIdentity(
+                projectRoot: canonicalRoot,
+                relativePath: relativePath,
+              )
+          : null,
     );
     return OpenedProject(
       workspaceHandle: registered.workspaceHandle,

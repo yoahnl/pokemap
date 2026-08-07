@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'dart:collection';
 import 'dart:math';
 
+import '../ports/project_file_reader.dart';
+
 typedef WorkspaceClock = DateTime Function();
 typedef WorkspaceTokenFactory = String Function(String prefix);
 typedef ProjectResourceReader = Future<List<int>> Function(String relativePath);
@@ -75,6 +77,9 @@ final class ProjectResourceBytes {
 /// Authorized read-only access associated with an opaque project handle.
 ///
 /// The canonical filesystem root remains captured privately by [readBytes].
+typedef ProjectResourceIdentityLookup = Future<ProjectResourceIdentity?>
+    Function(String relativePath);
+
 final class ProjectWorkspaceAccess {
   ProjectWorkspaceAccess._({
     required this.projectHandle,
@@ -82,16 +87,31 @@ final class ProjectWorkspaceAccess {
     required this.initialFingerprint,
     required this.expiresAt,
     required ProjectResourceReader readBytes,
-  }) : _readBytes = readBytes;
+    ProjectResourceIdentityLookup? readIdentity,
+  })  : _readBytes = readBytes,
+        _readIdentity = readIdentity;
 
   final ProjectHandle projectHandle;
   final String projectName;
   final String initialFingerprint;
   final DateTime expiresAt;
   final ProjectResourceReader _readBytes;
+  final ProjectResourceIdentityLookup? _readIdentity;
+
+  /// Identity of a stored resource when the reader can report it cheaply.
+  ///
+  /// Null means "unknown": callers must fall back to reading the bytes.
+  Future<ProjectResourceIdentity?> readResourceIdentity(
+    String relativePath,
+  ) async =>
+      await _readIdentity?.call(relativePath);
 
   Future<ProjectResourceBytes> readResourceBytes(String relativePath) async =>
       ProjectResourceBytes._(await _readBytes(relativePath));
+
+  /// Wraps already-trusted bytes without re-reading them.
+  ProjectResourceBytes adoptResourceBytes(List<int> bytes) =>
+      ProjectResourceBytes._(bytes);
 
   Future<List<int>> readBytes(String relativePath) async =>
       (await readResourceBytes(relativePath)).bytes;
@@ -144,6 +164,7 @@ final class WorkspaceHandleStore {
     required String projectName,
     required String initialFingerprint,
     required ProjectResourceReader readBytes,
+    ProjectResourceIdentityLookup? readIdentity,
   }) {
     final workspaceHandle = WorkspaceHandle(_nextUniqueToken('ws_'));
     final projectHandle = ProjectHandle(_nextUniqueToken('prj_'));
@@ -155,6 +176,7 @@ final class WorkspaceHandleStore {
       initialFingerprint: initialFingerprint,
       expiresAt: expiresAt,
       readBytes: readBytes,
+      readIdentity: readIdentity,
     );
     return RegisteredProjectHandles(
       workspaceHandle: workspaceHandle,
@@ -171,6 +193,7 @@ final class WorkspaceHandleStore {
       initialFingerprint: stored.initialFingerprint,
       expiresAt: stored.expiresAt,
       readBytes: (relativePath) => _readForHandle(handle, relativePath),
+      readIdentity: stored.readIdentity,
     );
   }
 
@@ -243,6 +266,7 @@ final class _StoredProjectAccess {
     required this.initialFingerprint,
     required this.expiresAt,
     required this.readBytes,
+    this.readIdentity,
   });
 
   final WorkspaceHandle workspaceHandle;
@@ -250,6 +274,7 @@ final class _StoredProjectAccess {
   final String initialFingerprint;
   final DateTime expiresAt;
   final ProjectResourceReader readBytes;
+  final ProjectResourceIdentityLookup? readIdentity;
 }
 
 DateTime _systemClock() => DateTime.now().toUtc();

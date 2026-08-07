@@ -11,6 +11,46 @@ final class WorkspaceAccessException implements Exception {
   String toString() => 'WorkspaceAccessException($code): $message';
 }
 
+/// Cheap identity of a stored resource, used to skip work on unchanged files.
+///
+/// [scope] is the canonical project root, so two projects holding the same
+/// relative path can never share a cache entry.
+final class ProjectResourceIdentity {
+  const ProjectResourceIdentity({
+    required this.scope,
+    required this.relativePath,
+    required this.byteLength,
+    required this.modifiedAtMicros,
+  });
+
+  final String scope;
+  final String relativePath;
+  final int byteLength;
+  final int modifiedAtMicros;
+
+  @override
+  bool operator ==(Object other) =>
+      other is ProjectResourceIdentity &&
+      other.scope == scope &&
+      other.relativePath == relativePath &&
+      other.byteLength == byteLength &&
+      other.modifiedAtMicros == modifiedAtMicros;
+
+  @override
+  int get hashCode =>
+      Object.hash(scope, relativePath, byteLength, modifiedAtMicros);
+}
+
+/// Optional capability: a reader that can report a resource's identity without
+/// reading it. Readers that cannot simply do not implement it and lose the
+/// caching, never the correctness.
+abstract interface class ProjectResourceIdentityReader {
+  Future<ProjectResourceIdentity?> readIdentity({
+    required String projectRoot,
+    required String relativePath,
+  });
+}
+
 /// The complete filesystem capability available to the Authoring Read API.
 ///
 /// Deliberately no mutation method is exposed by this port.
@@ -24,8 +64,28 @@ abstract interface class ProjectFileReader {
 }
 
 /// `dart:io` implementation constrained to an already-authorized project root.
-final class LocalProjectFileReader implements ProjectFileReader {
+final class LocalProjectFileReader
+    implements ProjectFileReader, ProjectResourceIdentityReader {
   const LocalProjectFileReader();
+
+  @override
+  Future<ProjectResourceIdentity?> readIdentity({
+    required String projectRoot,
+    required String relativePath,
+  }) async {
+    try {
+      final stat = await File('$projectRoot/$relativePath').stat();
+      if (stat.type != FileSystemEntityType.file) return null;
+      return ProjectResourceIdentity(
+        scope: projectRoot,
+        relativePath: relativePath,
+        byteLength: stat.size,
+        modifiedAtMicros: stat.modified.microsecondsSinceEpoch,
+      );
+    } on FileSystemException {
+      return null;
+    }
+  }
 
   @override
   Future<String> canonicalizeDirectory(String path) async {
