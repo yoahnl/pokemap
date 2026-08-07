@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 import '../design_system/pokemap_button.dart';
+import '../design_system/pokemap_dialog.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/editor_updates/application/editor_update_providers.dart';
@@ -49,6 +50,30 @@ class _StatusBarState extends ConsumerState<StatusBar> {
     } else {
       _lastSaveText = "Sauvegardé : il y a ${diff.inMinutes} min";
     }
+  }
+
+  /// Adopts the stored map after the session fell out of sync.
+  ///
+  /// Reloading cannot merge: a desynchronised session has no common base with
+  /// the stored document, so unsaved edits are dropped. Only warn when there is
+  /// actually something to lose — confirming a no-op reload is just friction.
+  Future<void> _reloadActiveMap(BuildContext context) async {
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    if (ref.read(editorNotifierProvider).isDirty) {
+      final confirmed = await showPokeMapBinaryConfirmationDialog(
+        context,
+        title: 'Recharger la carte ?',
+        message: 'Cette carte a changé en dehors de l’éditeur. La recharger '
+            'reprend la version enregistrée : tout ce que vous avez peint '
+            'depuis la dernière sauvegarde sera perdu.',
+        secondaryLabel: 'Annuler',
+        primaryLabel: 'Recharger et perdre',
+        primaryIsDestructive: true,
+        icon: CupertinoIcons.refresh,
+      );
+      if (!confirmed) return;
+    }
+    await notifier.reloadActiveMapFromDisk();
   }
 
   @override
@@ -174,11 +199,7 @@ class _StatusBarState extends ConsumerState<StatusBar> {
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
                   leading: const Icon(CupertinoIcons.refresh, size: 13),
-                  onPressed: () => unawaited(
-                    ref
-                        .read(editorNotifierProvider.notifier)
-                        .reloadActiveMapFromDisk(),
-                  ),
+                  onPressed: () => unawaited(_reloadActiveMap(context)),
                   child: const Text('Recharger la carte'),
                 ),
               ],

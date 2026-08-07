@@ -40,6 +40,41 @@ void main() {
     );
   });
 
+  testWidgets('warns before discarding unsaved work', (tester) async {
+    await pumpStatusBarHarness(
+      tester,
+      initialState: const EditorState(
+        errorMessage: editorReloadRequiredMessage,
+        isDirty: true,
+      ),
+      // The confirmation is a full dialog; the default strip cannot host it.
+      surfaceSize: const Size(900, 700),
+    );
+
+    await tester.tap(find.byKey(const Key('status-bar-reload-active-map')));
+    await tester.pumpAndSettle();
+
+    // Reloading adopts the stored document, so anything unsaved is dropped.
+    expect(find.textContaining('perdu'), findsOneWidget);
+    expect(find.text('Recharger et perdre'), findsOneWidget);
+    expect(find.text('Annuler'), findsOneWidget);
+  });
+
+  testWidgets('reloads straight away when nothing is unsaved', (tester) async {
+    await pumpStatusBarHarness(
+      tester,
+      initialState: const EditorState(
+        errorMessage: editorReloadRequiredMessage,
+      ),
+      surfaceSize: const Size(900, 700),
+    );
+
+    await tester.tap(find.byKey(const Key('status-bar-reload-active-map')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recharger et perdre'), findsNothing);
+  });
+
   testWidgets('shows nothing to recover when there is no error',
       (tester) async {
     await pumpStatusBarHarness(
