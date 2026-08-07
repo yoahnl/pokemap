@@ -71,6 +71,7 @@ class AveluneGlassSurface extends StatelessWidget {
         refraction: const LiquidGlassRefraction(
           distortion: AveluneGlass.distortion,
           distortionWidth: AveluneGlass.distortionWidth,
+          magnification: AveluneGlass.magnification,
           chromaticAberration: AveluneGlass.chromaticAberration,
         ),
       ),

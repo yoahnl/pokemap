@@ -22,11 +22,11 @@ abstract final class AveluneGlass {
 
   /// Fill of the glass. Low-alpha white over the dark room reads as a lit edge
   /// rather than a grey overlay.
-  static const Color tint = Color(0x1FFFFFFF);
+  static const Color tint = Color(0x14FFFFFF);
 
   /// Slightly denser fill for surfaces that carry body copy, so text keeps its
   /// contrast against a busy background.
-  static const Color readableTint = Color(0x33FFFFFF);
+  static const Color readableTint = Color(0x26FFFFFF);
 
   /// Fully transparent, for borders that are only present when selected.
   static const Color clear = Color(0x00FFFFFF);
@@ -50,16 +50,25 @@ abstract final class AveluneGlass {
 
   /// Width of the band at the edge where the lens bends hardest, and the colour
   /// split across it. Both are what make an edge read as thick glass.
-  static const double distortionWidth = 26;
-  static const double chromaticAberration = 0.004;
+  static const double distortionWidth = 34;
+  static const double chromaticAberration = 0.006;
 
-  /// How much the lens bends what sits behind it. Kept low: the room is
-  /// detailed, and heavy distortion turns the credenza into soup.
-  static const double distortion = 0.07;
+  /// How much the lens bends what sits behind it.
+  ///
+  /// This is the effect. It was 0.07 against a blur of 6, which is the recipe
+  /// for frosted glass rather than for a lens: blur is what makes a surface read
+  /// as frosted, refraction is what makes it read as glass. The ratio is now the
+  /// other way round.
+  static const double distortion = 0.14;
 
-  /// Blur behind the glass. The package warns that values above roughly 7 stop
-  /// matching between Skia and Impeller, so this stays under that.
-  static const double blur = 6;
+  /// How much the lens enlarges what is behind it. Above 1 it magnifies, which
+  /// is the plainest tell that a surface is a lens and not a tint.
+  static const double magnification = 1.06;
+
+  /// Blur behind the glass. Deliberately small: enough to soften what shows
+  /// through, not enough to frost it. Above roughly 7 it also stops matching
+  /// between Skia and Impeller, per the package's own warning.
+  static const double blur = 2.5;
 
   /// Saturation lift, so the warm room colour carries through the glass instead
   /// of washing out to grey.
