@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 import '../design_system/pokemap_button.dart';
 import '../design_system/pokemap_dialog.dart';
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_toast_replay_provider.dart';
 import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/editor_updates/application/editor_update_providers.dart';
 import '../../theme/theme.dart';
@@ -74,6 +76,19 @@ class _StatusBarState extends ConsumerState<StatusBar> {
       if (!confirmed) return;
     }
     await notifier.reloadActiveMapFromDisk();
+  }
+
+  /// Puts the pill message back in reach: the pill truncates it and the toast
+  /// that carried the full text is long gone, so a click copies it and replays
+  /// the toast.
+  Future<void> _copyAndReplayMessage(
+    String message, {
+    required bool isError,
+  }) async {
+    ref
+        .read(editorToastReplayProvider.notifier)
+        .replay(message, isError: isError);
+    await Clipboard.setData(ClipboardData(text: message));
   }
 
   @override
@@ -152,40 +167,58 @@ class _StatusBarState extends ConsumerState<StatusBar> {
           child: Row(
             children: [
               // 1. Status message pill
-              Container(
-                constraints: const BoxConstraints(maxWidth: 220),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: pillBg,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: pillBorder,
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    MacosIcon(
-                      pillIcon,
-                      size: 13,
-                      color: pillText,
-                    ),
-                    const SizedBox(width: 6),
-                    Flexible(
-                      child: Text(
+              MacosTooltip(
+                message: 'Cliquer pour copier le message et le réafficher',
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    key: const Key('status-bar-message-pill'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => unawaited(
+                      _copyAndReplayMessage(
                         primaryMessage,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: pillText,
-                          fontWeight: FontWeight.w600,
-                          decoration: TextDecoration.none,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                        isError: hasError,
                       ),
                     ),
-                  ],
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 220),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: pillBg,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: pillBorder,
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          MacosIcon(
+                            pillIcon,
+                            size: 13,
+                            color: pillText,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              primaryMessage,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: pillText,
+                                fontWeight: FontWeight.w600,
+                                decoration: TextDecoration.none,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
 

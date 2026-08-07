@@ -38,6 +38,7 @@ import '../features/editor/presentation/world_map/world_map_workspace_session.da
 import '../features/editor/state/editor_notifier.dart';
 import '../features/editor/state/editor_selectors.dart';
 import '../features/editor/state/editor_state.dart';
+import '../features/editor/state/editor_toast_replay_provider.dart';
 import '../features/editor_updates/application/editor_update_providers.dart';
 import '../features/editor_updates/domain/editor_update_models.dart';
 import '../features/narrative/state/narrative_event_builder_v2_providers.dart';
@@ -156,13 +157,17 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     super.dispose();
   }
 
-  void _flashToast(String message, {required bool isError}) {
+  void _flashToast(
+    String message, {
+    required bool isError,
+    Duration duration = const Duration(seconds: 2),
+  }) {
     _toastTimer?.cancel();
     setState(() {
       _toastMessage = message;
       _toastIsError = isError;
     });
-    _toastTimer = Timer(const Duration(seconds: 2), () {
+    _toastTimer = Timer(duration, () {
       if (mounted) {
         setState(() => _toastMessage = null);
       }
@@ -577,6 +582,18 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         (prev, next) {
       if (next != null) {
         _flashToast(next, isError: false);
+      }
+    });
+
+    // Replays asked for from the status bar linger longer than the automatic
+    // flash: the user clicked precisely because they need time to read it.
+    ref.listen(editorToastReplayProvider, (prev, next) {
+      if (next != null && next.revision != prev?.revision) {
+        _flashToast(
+          next.message,
+          isError: next.isError,
+          duration: const Duration(seconds: 6),
+        );
       }
     });
 
