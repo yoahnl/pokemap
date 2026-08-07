@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:pokemap_hub/src/player/hub_player_preferences_gateway.dart';
-import 'package:pokemap_hub/src/ui/preferences/hub_preferences_store.dart';
+import 'package:pokemap_hub/features/session/application/gateways/hub_player_preferences_gateway.dart';
+import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 
 void main() {
   late Directory root;

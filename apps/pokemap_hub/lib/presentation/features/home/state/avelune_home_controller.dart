@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 
-import '../../hub_dashboard_controller.dart';
-import '../../hub_game_views.dart';
-import 'avelune_home_view_data.dart';
-import 'avelune_home_view_data_mapper.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
+import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data_mapper.dart';
 
 /// Owns only Avelune UI selection and action routing.
 ///

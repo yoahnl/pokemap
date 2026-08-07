@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 
-import 'hub_save_store.dart';
-import 'save_storage_diagnostic.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
+import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
 
 enum LegacySaveImportErrorCode {
   sourceMissing,

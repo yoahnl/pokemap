@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../assets/avelune_material_catalog.dart';
-import '../avelune_theme.dart';
+import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 
 /// Branded header of the console home: logo mark, wordmark and the profile
 /// affordance the approved prototype shows in the top-right corner.

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'assets/avelune_material_catalog.dart';
-import 'avelune_game_presentation.dart';
-import 'avelune_theme.dart';
+import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_presentation.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 
 const double kAveluneCartridgeAspectRatio = 0.7;
 

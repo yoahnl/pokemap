@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:pokemap_hub/src/player/hub_player_save_gateway.dart';
-import 'package:pokemap_hub/src/player/hub_session_checkpoint_committer.dart';
-import 'package:pokemap_hub/src/saves/hub_save_store.dart';
-import 'package:pokemap_hub/src/saves/save_storage_diagnostic.dart';
+import 'package:pokemap_hub/features/session/application/gateways/hub_player_save_gateway.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_session_checkpoint_committer.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
+import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
 
 void main() {
   late Directory root;

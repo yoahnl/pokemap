@@ -10,7 +10,7 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
 
-import '../library/game_library.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 
 final class GameCurrentPointerCodec {
   const GameCurrentPointerCodec();

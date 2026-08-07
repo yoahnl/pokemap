@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub.dart';
-import 'package:pokemap_hub/src/ui/player/hub_save_profiles_screen.dart';
+import 'package:pokemap_hub/presentation/features/player/pages/hub_save_profiles_screen.dart';
 
 void main() {
   late _FakeSaveProfilesController controller;

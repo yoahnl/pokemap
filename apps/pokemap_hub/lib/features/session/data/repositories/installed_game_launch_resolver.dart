@@ -4,9 +4,9 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 
-import '../install/installed_game_verifier.dart';
-import '../library/game_library.dart';
-import 'package_asset_resolver.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/installed_game_verifier.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
+import 'package:pokemap_hub/features/session/data/repositories/package_asset_resolver.dart';
 
 enum InstalledGameLaunchErrorCode {
   installationUnhealthy,

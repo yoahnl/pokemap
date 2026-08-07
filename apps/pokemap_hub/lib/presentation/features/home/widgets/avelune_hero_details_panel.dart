@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../avelune_theme.dart';
-import 'avelune_home_view_data.dart';
-import 'avelune_relative_time.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
+import 'package:pokemap_hub/core/utils/relative_time.dart';
 
 /// Metadata column the approved prototype places to the right of the hero
 /// cartridge: a visible details control, the game identity, and the real last

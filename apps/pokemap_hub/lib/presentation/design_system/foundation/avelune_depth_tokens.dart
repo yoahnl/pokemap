@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'avelune_color_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_color_tokens.dart';
 
 @immutable
 final class AveluneDepthTokens extends ThemeExtension<AveluneDepthTokens> {

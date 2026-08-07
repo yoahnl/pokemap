@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../foundation/avelune_shape_tokens.dart';
-import '../theme/avelune_theme_extensions.dart';
-import 'avelune_glass_surface.dart';
-import 'avelune_pressable.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_shape_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/theme/avelune_theme_extensions.dart';
+import 'package:pokemap_hub/presentation/design_system/components/avelune_glass_surface.dart';
+import 'package:pokemap_hub/presentation/design_system/components/avelune_pressable.dart';
 
 class AveluneIconControl extends StatelessWidget {
   const AveluneIconControl({

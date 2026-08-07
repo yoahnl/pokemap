@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:pokemap_hub/src/session/save_read_handle.dart';
+import 'package:pokemap_hub/features/session/domain/entities/save_read_handle.dart';
 
 void main() {
   final identity = GameIdentity(

@@ -1,7 +1,7 @@
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import '../ui/preferences/hub_preferences_store.dart';
+import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 
 /// Projects global Hub preferences into the runtime's data-only contract.
 final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {

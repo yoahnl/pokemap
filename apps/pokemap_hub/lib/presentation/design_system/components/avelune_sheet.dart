@@ -2,12 +2,12 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
-import '../foundation/avelune_shape_tokens.dart';
-import '../foundation/avelune_spacing_tokens.dart';
-import '../theme/avelune_theme_extensions.dart';
-import 'avelune_icon_control.dart';
-import 'avelune_inset_panel.dart';
-import '../foundation/avelune_icon_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_shape_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_spacing_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/theme/avelune_theme_extensions.dart';
+import 'package:pokemap_hub/presentation/design_system/components/avelune_icon_control.dart';
+import 'package:pokemap_hub/presentation/design_system/components/avelune_inset_panel.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_icon_tokens.dart';
 
 class AveluneSheet extends StatelessWidget {
   const AveluneSheet({

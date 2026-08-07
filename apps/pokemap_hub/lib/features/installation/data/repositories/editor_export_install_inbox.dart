@@ -4,8 +4,8 @@ import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 
-import 'game_installation_diagnostic.dart';
-import 'game_package_installer.dart';
+import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/game_package_installer.dart';
 
 typedef EditorExportPackageInstaller = Future<void> Function(
   File package, {

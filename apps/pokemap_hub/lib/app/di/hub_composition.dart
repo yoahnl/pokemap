@@ -9,11 +9,11 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../../pokemap_hub_ui.dart';
-import 'avelune_host_compatibility.dart';
-import 'hub_platform_adapter.dart';
-import 'hub_platform_adapter_factory.dart';
-import 'public_product_identity.dart';
+import 'package:pokemap_hub/pokemap_hub_ui.dart';
+import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
+import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
+import 'package:pokemap_hub/platform/hub_platform_adapter_factory.dart';
+import 'package:pokemap_hub/core/config/public_product_identity.dart';
 
 abstract interface class HubAppComposition {
   Widget buildApp();

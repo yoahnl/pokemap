@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../foundation/avelune_shape_tokens.dart';
-import '../foundation/avelune_spacing_tokens.dart';
-import 'avelune_glass_surface.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_shape_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_spacing_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/components/avelune_glass_surface.dart';
 
 class AveluneInsetPanel extends StatelessWidget {
   const AveluneInsetPanel({

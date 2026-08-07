@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/ui/player/hub_installed_player_strings.dart';
+import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
 
 void main() {
   test('installed player presentation uses explicit English copy', () {

@@ -7,9 +7,9 @@ void main() {
       () async {
     final main = await File('lib/main.dart').readAsString();
     final bootstrap =
-        await File('lib/src/bootstrap/hub_bootstrap.dart').readAsString();
+        await File('lib/app/app_root.dart').readAsString();
     final composition =
-        await File('lib/src/platform/hub_composition.dart').readAsString();
+        await File('lib/app/di/hub_composition.dart').readAsString();
 
     expect(main, contains('PokeMapHubBootstrap'));
     expect(main, isNot(contains('MacOSHubComposition')));
@@ -19,18 +19,18 @@ void main() {
     expect(composition, contains('publicProductName'));
     expect(
       bootstrap,
-      contains("../platform/public_product_identity.dart"),
+      contains('package:pokemap_hub/core/config/public_product_identity.dart'),
     );
     expect(
       composition,
-      contains("'public_product_identity.dart'"),
+      contains('package:pokemap_hub/core/config/public_product_identity.dart'),
     );
   });
 
   test('iOS adapter uses the native Hub channel for picker and disk space',
       () async {
     final adapter = await File(
-      'lib/src/platform/ios_hub_platform_adapter.dart',
+      'lib/platform/ios_hub_platform_adapter.dart',
     ).readAsString();
 
     expect(

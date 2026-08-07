@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 
-import 'avelune_appearance_catalog.dart';
-import 'avelune_appearance_preferences.dart';
-import 'avelune_appearance_store.dart';
-import 'avelune_custom_background_importer.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
+import 'package:pokemap_hub/features/appearance/data/repositories/avelune_appearance_repository_impl.dart';
+import 'package:pokemap_hub/features/appearance/data/repositories/custom_background_repository_impl.dart';
 
 enum AveluneAppearanceControllerStatus { idle, loading, ready, saving, error }
 

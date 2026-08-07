@@ -3,8 +3,8 @@ import 'dart:math';
 
 import 'package:path/path.dart' as p;
 
-import 'game_library.dart';
-import 'game_library_codec.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
+import 'package:pokemap_hub/features/library/data/codecs/game_library_codec.dart';
 
 enum GameLibrarySource { current, backup, empty }
 

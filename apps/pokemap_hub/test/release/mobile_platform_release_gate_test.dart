@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/platform/public_product_identity.dart';
+import 'package:pokemap_hub/core/config/public_product_identity.dart';
 
 void main() {
   test('mobile support claims are explicit and match committed runners',
@@ -53,7 +53,7 @@ void main() {
       'android/app/src/main/kotlin/com/yoahnl/avelune/player/MainActivity.kt',
     ).readAsString();
     final productIdentity = await File(
-      'lib/src/platform/public_product_identity.dart',
+      'lib/core/config/public_product_identity.dart',
     ).readAsString();
 
     expect(gradle, contains('namespace = "com.yoahnl.avelune.player"'));
@@ -86,7 +86,7 @@ void main() {
       'android/app/src/main/kotlin/com/yoahnl/avelune/player/MainActivity.kt',
     ).readAsString();
     final adapter = await File(
-      'lib/src/platform/android_hub_platform_adapter.dart',
+      'lib/platform/android_hub_platform_adapter.dart',
     ).readAsString();
 
     expect(activity, contains('Intent.ACTION_OPEN_DOCUMENT'));

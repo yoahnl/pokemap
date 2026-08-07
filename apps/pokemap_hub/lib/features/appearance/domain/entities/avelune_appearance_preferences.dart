@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import 'avelune_appearance_catalog.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
 
 @immutable
 final class AveluneAppearancePreferences {

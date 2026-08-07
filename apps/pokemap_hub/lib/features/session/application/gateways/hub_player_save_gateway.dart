@@ -1,10 +1,10 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import '../saves/hub_save_store.dart';
-import '../saves/save_storage_diagnostic.dart';
-import '../session/save_read_handle.dart';
-import 'hub_session_checkpoint_committer.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
+import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
+import 'package:pokemap_hub/features/session/domain/entities/save_read_handle.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_session_checkpoint_committer.dart';
 
 /// Keeps runtime save operations behind the game-scoped Hub store.
 final class HubPlayerSaveGateway implements PlayerSaveGateway {

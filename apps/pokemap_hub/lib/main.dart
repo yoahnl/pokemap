@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'src/bootstrap/hub_bootstrap.dart';
+import 'package:pokemap_hub/app/app_root.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

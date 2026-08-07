@@ -5,21 +5,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
-import 'avelune/appearance/avelune_appearance_controller.dart';
-import 'avelune/appearance/avelune_appearance_preferences.dart';
-import 'avelune/appearance/avelune_appearance_catalog.dart';
-import 'avelune/appearance/avelune_appearance_settings.dart';
-import 'avelune/settings/avelune_motion_panel.dart';
-import 'avelune/settings/avelune_settings_menu.dart';
-import 'avelune/settings/avelune_storage_panel.dart';
-import 'avelune/avelune_game_details.dart';
-import 'avelune/avelune_theme.dart';
-import 'avelune/home/avelune_home_controller.dart';
-import 'avelune/home/avelune_home_screen.dart';
-import 'avelune/home/avelune_room_scene.dart';
-import 'hub_dashboard_controller.dart';
-import 'hub_game_views.dart';
-import 'hub_install_progress.dart';
+import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
+import 'package:pokemap_hub/presentation/features/settings/pages/avelune_appearance_settings_page.dart';
+import 'package:pokemap_hub/presentation/features/settings/widgets/avelune_motion_panel.dart';
+import 'package:pokemap_hub/presentation/features/settings/pages/avelune_settings_menu.dart';
+import 'package:pokemap_hub/presentation/features/settings/widgets/avelune_storage_panel.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_details.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
+import 'package:pokemap_hub/presentation/features/home/pages/avelune_home_screen.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
+import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
+import 'package:pokemap_hub/presentation/features/installation/widgets/hub_install_progress.dart';
 
 /// Single shell for every platform.
 ///

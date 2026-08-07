@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'assets/avelune_material_catalog.dart';
-import 'avelune_theme.dart';
+import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 
 /// Aspect ratio of the console hardware, taken from its own art.
 ///

@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import 'avelune_appearance_catalog.dart';
-import 'avelune_appearance_controller.dart';
-import '../avelune_theme.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
+import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 
 class AveluneAppearanceSettings extends StatelessWidget {
   const AveluneAppearanceSettings({

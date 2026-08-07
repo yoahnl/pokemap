@@ -6,9 +6,9 @@ import 'package:path/path.dart' as p;
 void main() {
   test('Hub cannot define a second player state machine or shell', () async {
     const removedFiles = <String>[
-      'lib/src/player/player_shell_controller.dart',
-      'lib/src/player/player_shell_models.dart',
-      'lib/src/ui/player/hub_player_shell_view.dart',
+      'lib/features/session/application/services/player_shell_controller.dart',
+      'lib/features/session/domain/entities/player_shell_models.dart',
+      'lib/presentation/features/player/pages/hub_player_shell_view.dart',
     ];
     for (final path in removedFiles) {
       expect(

@@ -5,12 +5,12 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 import 'package:pub_semver/pub_semver.dart';
 
-import '../library/game_library.dart';
-import '../library/game_library_store.dart';
-import 'game_installation_diagnostic.dart';
-import 'game_installation_ports.dart';
-import 'game_package_installer.dart';
-import 'installed_game_verifier.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
+import 'package:pokemap_hub/features/library/data/repositories/game_library_repository_impl.dart';
+import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
+import 'package:pokemap_hub/core/ports/game_installation_ports.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/game_package_installer.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/installed_game_verifier.dart';
 
 final class GameMaintenanceService {
   GameMaintenanceService({

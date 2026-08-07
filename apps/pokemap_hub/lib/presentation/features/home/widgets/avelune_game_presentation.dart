@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../hub_dashboard_controller.dart';
-import '../hub_game_views.dart';
-import 'avelune_theme.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
+import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 
 String aveluneArtworkHeroTag(String gameId) => 'avelune-artwork-$gameId';
 

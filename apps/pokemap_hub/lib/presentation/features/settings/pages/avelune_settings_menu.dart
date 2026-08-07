@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../avelune_theme.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 
 /// One destination in the Avelune settings sheet.
 @immutable

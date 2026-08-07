@@ -5,9 +5,9 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('Hub composition owns no player presentation state machine', () async {
     final installedPlayer = await File(
-      'lib/src/ui/player/hub_installed_game_player.dart',
+      'lib/presentation/features/player/pages/hub_installed_game_player.dart',
     ).readAsString();
-    final app = await File('lib/src/ui/hub_app.dart').readAsString();
+    final app = await File('lib/app/ui/app_widget.dart').readAsString();
 
     for (final forbidden in <String>[
       'PlayerShellController',

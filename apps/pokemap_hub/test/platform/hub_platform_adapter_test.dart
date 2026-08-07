@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
-import 'package:pokemap_hub/src/platform/hub_composition.dart';
-import 'package:pokemap_hub/src/platform/hub_platform_adapter.dart';
-import 'package:pokemap_hub/src/platform/ios_hub_platform_adapter.dart';
+import 'package:pokemap_hub/app/di/hub_composition.dart';
+import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
+import 'package:pokemap_hub/platform/ios_hub_platform_adapter.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../foundation/avelune_shape_tokens.dart';
-import '../theme/avelune_theme_extensions.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_shape_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/theme/avelune_theme_extensions.dart';
 
 class AvelunePressable extends StatefulWidget {
   const AvelunePressable({

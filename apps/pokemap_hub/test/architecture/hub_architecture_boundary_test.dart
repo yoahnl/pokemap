@@ -110,7 +110,7 @@ void main() {
   test('pure recovery barrel does not export Flutter player UI', () async {
     final source = await File('lib/pokemap_hub.dart').readAsString();
 
-    expect(source, isNot(contains('src/ui/')));
+    expect(source, isNot(contains('presentation/')));
     expect(source, isNot(contains('pokemap_hub_player.dart')));
     expect(source, isNot(contains('map_player_ui')));
   });

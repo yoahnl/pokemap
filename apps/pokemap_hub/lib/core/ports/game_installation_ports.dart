@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:map_distribution/map_distribution.dart';
 
-import '../library/game_library.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 
 typedef HubAvailableDiskBytes = Future<int> Function(Directory supportRoot);
 

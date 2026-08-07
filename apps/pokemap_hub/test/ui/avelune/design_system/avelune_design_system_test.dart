@@ -52,7 +52,7 @@ void main() {
     });
 
     test('component layer cannot introduce raw visual primitives', () {
-      final root = Directory('lib/src/ui/avelune/design_system');
+      final root = Directory('lib/presentation/design_system');
       final componentSources = root
           .listSync(recursive: true)
           .whereType<File>()

@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:path/path.dart' as p;
 
-import 'avelune_appearance_preferences.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
 
 enum AveluneAppearanceSource { current, backup, defaults }
 

@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-import '../design_system/foundation/avelune_motion_tokens.dart';
-import 'avelune_feedback.dart';
-import 'avelune_interaction_state.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_motion_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/motion/avelune_feedback.dart';
+import 'package:pokemap_hub/presentation/design_system/motion/avelune_interaction_state.dart';
 
 final class AveluneInsertionController extends ChangeNotifier {
   AveluneInsertionController({

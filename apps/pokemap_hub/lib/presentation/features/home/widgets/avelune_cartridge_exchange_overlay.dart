@@ -2,9 +2,9 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../avelune_cartridge.dart';
-import '../avelune_theme.dart';
-import 'avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 
 class AveluneCartridgeExchangeOverlay extends StatelessWidget {
   const AveluneCartridgeExchangeOverlay({

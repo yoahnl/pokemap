@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/platform/android_hub_platform_adapter.dart';
-import 'package:pokemap_hub/src/platform/hub_platform_adapter.dart';
+import 'package:pokemap_hub/platform/android_hub_platform_adapter.dart';
+import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
 
 void main() {
   test('picker returns the local path copied by the Android host', () async {

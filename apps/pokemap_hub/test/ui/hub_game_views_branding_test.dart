@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
-import 'package:pokemap_hub/src/ui/hub_game_views.dart';
+import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 
 void main() {
   testWidgets('artwork fallback consumes the project accent color',

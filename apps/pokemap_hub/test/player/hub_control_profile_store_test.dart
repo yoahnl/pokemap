@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:pokemap_hub/src/player/hub_control_profile_store.dart';
+import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
 
 void main() {
   late Directory root;

@@ -6,7 +6,7 @@ void main() {
   test('Hub mounts the canonical runtime-owned player view exactly once',
       () async {
     final installedPlayer = await File(
-      'lib/src/ui/player/hub_installed_game_player.dart',
+      'lib/presentation/features/player/pages/hub_installed_game_player.dart',
     ).readAsString();
     final uiBarrel = await File('lib/pokemap_hub_ui.dart').readAsString();
     final playerBarrel =

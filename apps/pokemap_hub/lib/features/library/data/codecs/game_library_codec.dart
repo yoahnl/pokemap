@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pub_semver/pub_semver.dart';
 
-import 'game_library.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 
 final class GameLibraryFormatException implements Exception {
   const GameLibraryFormatException({

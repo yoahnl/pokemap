@@ -2,14 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/ui/avelune/appearance/avelune_appearance_preferences.dart';
-import 'package:pokemap_hub/src/ui/avelune/avelune_cartridge.dart';
-import 'package:pokemap_hub/src/ui/avelune/avelune_console.dart';
-import 'package:pokemap_hub/src/ui/avelune/avelune_theme.dart';
-import 'package:pokemap_hub/src/ui/avelune/home/avelune_home_screen.dart';
-import 'package:pokemap_hub/src/ui/avelune/home/avelune_home_view_data.dart';
-import 'package:pokemap_hub/src/ui/avelune/home/avelune_room_scene.dart';
-import 'package:pokemap_hub/src/ui/avelune/motion/avelune_feedback.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_console.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/pages/avelune_home_screen.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
+import 'package:pokemap_hub/presentation/design_system/motion/avelune_feedback.dart';
 
 // Phase lengths come from the tokens rather than being copied here: the
 // insertion was re-paced to let the console's LED sequence read, and hardcoded

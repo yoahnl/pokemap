@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
-import 'avelune/appearance/avelune_appearance_controller.dart';
-import 'avelune/home/avelune_home_controller.dart';
-import 'hub_dashboard_controller.dart';
-import 'hub_game_views.dart';
-import 'hub_shell.dart';
-import 'avelune/avelune_theme.dart';
-import 'player/hub_player_launch_intent.dart';
+import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
+import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
+import 'package:pokemap_hub/presentation/shell/hub_shell.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
 
 typedef HubPlayerBuilder = Widget Function(
   BuildContext context,

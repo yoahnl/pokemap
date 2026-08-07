@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../avelune_theme.dart';
-import 'avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 
 /// Arrow and wording the prototype places between the hero cartridge and the
 /// console slot, telling the player the cartridge is meant to go down.

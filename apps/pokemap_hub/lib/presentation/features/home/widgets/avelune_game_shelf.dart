@@ -4,10 +4,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
-import '../avelune_cartridge.dart';
-import '../avelune_theme.dart';
-import 'avelune_home_geometry.dart';
-import 'avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 
 const double kAveluneGameShelfMaxCacheExtent = 640;
 

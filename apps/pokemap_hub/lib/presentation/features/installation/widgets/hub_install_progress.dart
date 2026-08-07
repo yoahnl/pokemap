@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
-import '../install/game_installation_diagnostic.dart';
+import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
 
 enum HubInstallMilestone {
   package,

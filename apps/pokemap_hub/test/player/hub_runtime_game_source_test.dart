@@ -2,10 +2,10 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:pokemap_hub/src/player/hub_player_preferences_gateway.dart';
-import 'package:pokemap_hub/src/player/hub_runtime_external_exit.dart';
-import 'package:pokemap_hub/src/player/hub_runtime_game_source.dart';
-import 'package:pokemap_hub/src/ui/preferences/hub_preferences_store.dart';
+import 'package:pokemap_hub/features/session/application/gateways/hub_player_preferences_gateway.dart';
+import 'package:pokemap_hub/features/session/domain/entities/hub_runtime_external_exit.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_runtime_game_source.dart';
+import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 
 import '../support/runtime_player_hub_fixture.dart';
 

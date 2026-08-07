@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:crypto/crypto.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/ui/avelune/assets/avelune_material_catalog.dart';
+import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

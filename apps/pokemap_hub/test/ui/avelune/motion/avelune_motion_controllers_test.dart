@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/ui/avelune/design_system/foundation/avelune_motion_tokens.dart';
-import 'package:pokemap_hub/src/ui/avelune/motion/avelune_exchange_controller.dart';
-import 'package:pokemap_hub/src/ui/avelune/motion/avelune_feedback.dart';
-import 'package:pokemap_hub/src/ui/avelune/motion/avelune_insertion_controller.dart';
-import 'package:pokemap_hub/src/ui/avelune/motion/avelune_interaction_state.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_motion_tokens.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_exchange_controller.dart';
+import 'package:pokemap_hub/presentation/design_system/motion/avelune_feedback.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_insertion_controller.dart';
+import 'package:pokemap_hub/presentation/design_system/motion/avelune_interaction_state.dart';
 
 void main() {
   group('Avelune interaction transitions', () {

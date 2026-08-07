@@ -55,7 +55,7 @@ void main() {
     final window =
         await File('macos/Runner/MainFlutterWindow.swift').readAsString();
     final adapter = await File(
-      'lib/src/platform/macos_hub_platform_adapter.dart',
+      'lib/platform/macos_hub_platform_adapter.dart',
     ).readAsString();
 
     expect(window, contains('import Security'));
@@ -76,7 +76,7 @@ void main() {
     final window =
         await File('macos/Runner/MainFlutterWindow.swift').readAsString();
     final adapter = await File(
-      'lib/src/platform/macos_hub_platform_adapter.dart',
+      'lib/platform/macos_hub_platform_adapter.dart',
     ).readAsString();
 
     expect(window, contains('import UniformTypeIdentifiers'));
@@ -94,7 +94,7 @@ void main() {
       () async {
     final main = await File('lib/main.dart').readAsString();
     final composition =
-        await File('lib/src/platform/hub_composition.dart').readAsString();
+        await File('lib/app/di/hub_composition.dart').readAsString();
 
     expect(main, contains('PokeMapHubBootstrap'));
     expect(main, isNot(contains('MacOSHubComposition')));
@@ -112,7 +112,7 @@ void main() {
     final window =
         await File('macos/Runner/MainFlutterWindow.swift').readAsString();
     final adapter = await File(
-      'lib/src/platform/macos_hub_platform_adapter.dart',
+      'lib/platform/macos_hub_platform_adapter.dart',
     ).readAsString();
 
     expect(appDelegate, contains('openFiles filenames'));

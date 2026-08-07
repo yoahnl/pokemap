@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../foundation/avelune_color_tokens.dart';
-import '../foundation/avelune_depth_tokens.dart';
-import '../foundation/avelune_material_tokens.dart';
-import '../foundation/avelune_motion_tokens.dart';
-import '../foundation/avelune_typography_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_color_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_depth_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_material_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_motion_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_typography_tokens.dart';
 
 @immutable
 final class AveluneThemeData {

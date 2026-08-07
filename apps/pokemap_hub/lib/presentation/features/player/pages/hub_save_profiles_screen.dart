@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 
-import '../../saves/hub_save_profile_manager.dart';
-import '../../saves/save_profile.dart';
+import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
+import 'package:pokemap_hub/features/saves/domain/entities/save_profile.dart';
 
 class HubSaveProfilesScreen extends StatefulWidget {
   const HubSaveProfilesScreen({

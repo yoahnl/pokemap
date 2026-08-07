@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/ui/avelune/avelune_cartridge.dart';
-import 'package:pokemap_hub/src/ui/avelune/home/avelune_home_geometry.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
 
 void main() {
   group('AveluneHomeGeometry', () {

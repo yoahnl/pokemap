@@ -10,22 +10,22 @@ import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
-import '../../library/game_library.dart';
-import '../../player/hub_player_preferences_gateway.dart';
-import '../../player/hub_control_profile_store.dart';
-import '../../player/hub_player_save_gateway.dart';
-import '../../player/hub_runtime_external_exit.dart';
-import '../../player/hub_runtime_game_source.dart';
-import '../../saves/hub_save_store.dart';
-import '../../saves/hub_save_profile_manager.dart';
-import '../../session/hub_in_process_session_factory.dart';
-import '../../session/installed_game_launch_resolver.dart';
-import '../preferences/hub_preferences_store.dart';
-import 'hub_intro_video_player.dart';
-import 'hub_installed_player_strings.dart';
-import 'hub_player_launch_intent.dart';
-import 'hub_save_profiles_screen.dart';
-import 'hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
+import 'package:pokemap_hub/features/session/application/gateways/hub_player_preferences_gateway.dart';
+import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
+import 'package:pokemap_hub/features/session/application/gateways/hub_player_save_gateway.dart';
+import 'package:pokemap_hub/features/session/domain/entities/hub_runtime_external_exit.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_runtime_game_source.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
+import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_in_process_session_factory.dart';
+import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
+import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
+import 'package:pokemap_hub/presentation/features/player/pages/hub_intro_video_player.dart';
+import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
+import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
+import 'package:pokemap_hub/presentation/features/player/pages/hub_save_profiles_screen.dart';
+import 'package:pokemap_hub/presentation/features/player/state/hub_title_presentation_loader.dart';
 
 typedef HubPlayerReturnRequest = Future<void> Function();
 

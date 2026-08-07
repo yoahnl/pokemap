@@ -1,6 +1,6 @@
-import 'design_system/foundation/avelune_material_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_material_tokens.dart';
 
-export 'design_system/avelune_design_system.dart';
+export 'package:pokemap_hub/presentation/design_system/avelune_design_system.dart';
 
 const String kAveluneMatteAbsTextureAssetPath =
     'assets/avelune/materials/matte_abs_grain.webp';

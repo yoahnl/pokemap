@@ -3,14 +3,14 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../appearance/avelune_appearance_catalog.dart';
-import '../appearance/avelune_appearance_preferences.dart';
-import '../avelune_cartridge.dart';
-import '../avelune_console.dart';
-import '../avelune_theme.dart';
-import 'avelune_game_shelf.dart';
-import 'avelune_home_geometry.dart';
-import 'avelune_home_view_data.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_console.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_shelf.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 
 /// How far the cartridges stand above the shelf board's front lip, as a
 /// fraction of the alcove height.

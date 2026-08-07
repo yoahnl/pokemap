@@ -4,8 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
-import 'package:pokemap_hub/src/ui/player/hub_intro_video_player.dart';
-import 'package:pokemap_hub/src/ui/player/hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/presentation/features/player/pages/hub_intro_video_player.dart';
+import 'package:pokemap_hub/presentation/features/player/state/hub_title_presentation_loader.dart';
 
 void main() {
   testWidgets('reduced motion uses the poster without creating a decoder',

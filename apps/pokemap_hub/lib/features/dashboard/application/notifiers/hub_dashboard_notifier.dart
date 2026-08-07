@@ -5,13 +5,13 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
-import '../install/editor_export_install_inbox.dart';
-import '../install/game_installation_diagnostic.dart';
-import '../library/game_library.dart';
-import '../library/game_library_store.dart';
-import '../saves/hub_save_store.dart';
-import '../session/installed_game_launch_resolver.dart';
-import 'preferences/hub_preferences_store.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/editor_export_install_inbox.dart';
+import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
+import 'package:pokemap_hub/features/library/data/repositories/game_library_repository_impl.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
+import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
+import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 
 enum HubDashboardStatus { idle, loading, ready, installing, error }
 

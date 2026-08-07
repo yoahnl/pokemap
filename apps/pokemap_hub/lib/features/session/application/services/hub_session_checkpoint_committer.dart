@@ -1,7 +1,7 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import '../saves/hub_save_store.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
 
 enum HubSessionCheckpointErrorCode {
   identityMismatch,

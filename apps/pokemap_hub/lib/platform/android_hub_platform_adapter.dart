@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 
-import 'hub_platform_adapter.dart';
+import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
 
 typedef AndroidPackageFilePicker = Future<String?> Function();
 typedef AndroidDiskBytesReader = Future<num?> Function();

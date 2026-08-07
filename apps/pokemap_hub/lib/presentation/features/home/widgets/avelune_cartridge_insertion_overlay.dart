@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../avelune_cartridge.dart';
-import '../avelune_theme.dart';
-import '../motion/avelune_interaction_state.dart';
-import 'avelune_home_geometry.dart';
-import 'avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/design_system/motion/avelune_interaction_state.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 
 class AveluneCartridgeInsertionOverlay extends StatelessWidget {
   const AveluneCartridgeInsertionOverlay({

@@ -2,8 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
-import '../platform/hub_composition.dart';
-import '../platform/public_product_identity.dart';
+import 'package:pokemap_hub/app/di/hub_composition.dart';
+import 'package:pokemap_hub/core/config/public_product_identity.dart';
 
 typedef HubCompositionFactory = Future<HubAppComposition> Function();
 

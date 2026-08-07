@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:liquid_glass_easy/liquid_glass_easy.dart';
 
-import '../foundation/avelune_glass_tokens.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_glass_tokens.dart';
 
 /// The one place in the app that touches `liquid_glass_easy`.
 ///

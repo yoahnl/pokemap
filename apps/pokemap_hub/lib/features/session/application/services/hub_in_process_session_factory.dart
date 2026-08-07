@@ -1,9 +1,9 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import '../saves/hub_save_store.dart';
-import 'installed_game_launch_resolver.dart';
-import 'save_read_handle.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
+import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
+import 'package:pokemap_hub/features/session/domain/entities/save_read_handle.dart';
 
 /// Composition bridge from verified Hub handles to the production Flame graph.
 ///

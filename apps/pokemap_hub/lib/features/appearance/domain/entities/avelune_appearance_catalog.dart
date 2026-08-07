@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../assets/avelune_material_catalog.dart';
+import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
 
 enum AveluneAppearanceOptionKind { background, furniture }
 

@@ -2,21 +2,21 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../appearance/avelune_appearance_preferences.dart';
-import '../avelune_console.dart';
-import '../avelune_theme.dart';
-import '../motion/avelune_exchange_controller.dart';
-import '../motion/avelune_feedback.dart';
-import '../motion/avelune_insertion_controller.dart';
-import '../motion/avelune_interaction_state.dart';
-import 'avelune_cartridge_exchange_overlay.dart';
-import 'avelune_cartridge_insertion_overlay.dart';
-import 'avelune_hero_details_panel.dart';
-import 'avelune_home_geometry.dart';
-import 'avelune_home_header.dart';
-import 'avelune_home_view_data.dart';
-import 'avelune_insertion_hint.dart';
-import 'avelune_room_scene.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_console.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_exchange_controller.dart';
+import 'package:pokemap_hub/presentation/design_system/motion/avelune_feedback.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_insertion_controller.dart';
+import 'package:pokemap_hub/presentation/design_system/motion/avelune_interaction_state.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge_exchange_overlay.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge_insertion_overlay.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_hero_details_panel.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_home_header.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_insertion_hint.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
 
 typedef AveluneGameLaunchCallback = FutureOr<void> Function(
   AveluneGameViewData game,

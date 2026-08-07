@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/ui/avelune/avelune_cartridge.dart';
-import 'package:pokemap_hub/src/ui/avelune/avelune_theme.dart';
-import 'package:pokemap_hub/src/ui/avelune/home/avelune_game_shelf.dart';
-import 'package:pokemap_hub/src/ui/avelune/home/avelune_home_geometry.dart';
-import 'package:pokemap_hub/src/ui/avelune/home/avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_shelf.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 
 void main() {
   testWidgets('shelf keeps add game last for 0, 1, 3, and 10 games',

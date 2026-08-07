@@ -1,9 +1,9 @@
 import 'package:map_core/map_core.dart';
 
-import 'hub_save_store.dart';
-import 'save_profile.dart';
-import 'save_slot_metadata.dart';
-import 'save_storage_diagnostic.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
+import 'package:pokemap_hub/features/saves/domain/entities/save_profile.dart';
+import 'package:pokemap_hub/features/saves/domain/entities/save_slot_metadata.dart';
+import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
 
 final class HubManagedSaveSlot {
   const HubManagedSaveSlot({

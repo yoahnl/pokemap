@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/bootstrap/hub_bootstrap.dart';
-import 'package:pokemap_hub/src/platform/hub_composition.dart';
+import 'package:pokemap_hub/app/app_root.dart';
+import 'package:pokemap_hub/app/di/hub_composition.dart';
 
 void main() {
   testWidgets('startup failure is responsive, diagnostic, and retryable',

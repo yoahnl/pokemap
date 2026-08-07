@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
-import 'package:pokemap_hub/src/platform/avelune_host_compatibility.dart';
+import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
 import 'package:test/test.dart';
 
 import '../support/game_package_fixture.dart';

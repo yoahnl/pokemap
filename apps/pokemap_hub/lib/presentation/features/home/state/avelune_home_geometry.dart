@@ -2,10 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-import '../assets/avelune_credenza_metrics.dart';
-import '../avelune_cartridge.dart';
-import '../avelune_console.dart';
-import '../design_system/foundation/avelune_breakpoints.dart';
+import 'package:pokemap_hub/presentation/design_system/assets/avelune_credenza_metrics.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_console.dart';
+import 'package:pokemap_hub/presentation/design_system/foundation/avelune_breakpoints.dart';
 
 enum AveluneHomeSizeClass { compact, regular, large }
 

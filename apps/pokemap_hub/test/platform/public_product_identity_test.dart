@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/src/platform/public_product_identity.dart';
+import 'package:pokemap_hub/core/config/public_product_identity.dart';
 
 void main() {
   test('every platform shows the Avelune identity', () {
