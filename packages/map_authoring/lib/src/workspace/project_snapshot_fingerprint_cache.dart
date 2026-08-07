@@ -18,6 +18,7 @@ final class ProjectSnapshotFingerprintCache {
   final int maximumEntries;
   final Map<ProjectResourceIdentity, String> _resourceFingerprints = {};
   final Map<String, String> _revisions = {};
+  final Map<ProjectResourceIdentity, Object> _decoded = {};
 
   int hits = 0;
   int misses = 0;
@@ -53,8 +54,28 @@ final class ProjectSnapshotFingerprintCache {
     _revisions[identityKey] = revision;
   }
 
+  /// Decoded models are pure functions of the bytes and are immutable, so an
+  /// unchanged resource can hand back the very same instance.
+  T? decoded<T extends Object>(ProjectResourceIdentity identity) {
+    final found = _decoded[identity];
+    if (found is T) {
+      hits += 1;
+      return found;
+    }
+    misses += 1;
+    return null;
+  }
+
+  void storeDecoded(ProjectResourceIdentity identity, Object model) {
+    if (_decoded.length >= maximumEntries) {
+      _decoded.remove(_decoded.keys.first);
+    }
+    _decoded[identity] = model;
+  }
+
   void clear() {
     _resourceFingerprints.clear();
     _revisions.clear();
+    _decoded.clear();
   }
 }

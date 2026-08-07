@@ -164,7 +164,16 @@ final class ProjectSnapshotLoader {
     profiler?.recordInitialRead(manifestReadTimer!);
 
     final manifestDecodeTimer = profiler?.startStage();
-    final manifest = await _decodeExecutor.decodeManifest(manifestBytes.bytes);
+    final manifestIdentity = _fingerprintCache == null
+        ? null
+        : await access.readResourceIdentity('project.json');
+    final manifest = (manifestIdentity == null
+            ? null
+            : _fingerprintCache?.decoded<ProjectManifest>(manifestIdentity)) ??
+        await _decodeExecutor.decodeManifest(manifestBytes.bytes);
+    if (manifestIdentity != null) {
+      _fingerprintCache?.storeDecoded(manifestIdentity, manifest);
+    }
     final entries = _validatedMapEntries(manifest.maps);
     final resources = <_LoadedProjectResource>[
       _LoadedProjectResource(
@@ -177,13 +186,26 @@ final class ProjectSnapshotLoader {
     final loadDiagnostics = <ProjectSnapshotLoadDiagnostic>[];
     profiler?.recordDecodeModel(manifestDecodeTimer!);
 
+    final identities = <String, ProjectResourceIdentity?>{
+      'project.json': manifestIdentity,
+    };
+    final cache = _fingerprintCache;
     for (final entry in entries) {
       final mapReadTimer = profiler?.startStage();
       final bytes = await access.readResourceBytes(entry.relativePath);
+      if (cache != null) {
+        identities[entry.relativePath] =
+            await access.readResourceIdentity(entry.relativePath);
+      }
       profiler?.recordInitialRead(mapReadTimer!);
 
       final mapDecodeTimer = profiler?.startStage();
-      final map = await _decodeExecutor.decodeMap(bytes.bytes);
+      final mapIdentity = identities[entry.relativePath];
+      final map = (mapIdentity == null
+              ? null
+              : cache?.decoded<MapData>(mapIdentity)) ??
+          await _decodeExecutor.decodeMap(bytes.bytes);
+      if (mapIdentity != null) cache?.storeDecoded(mapIdentity, map);
       if (map.id != entry.id) {
         throw const ProjectSnapshotException(
           'project.map_identity_mismatch',
@@ -331,14 +353,13 @@ final class ProjectSnapshotLoader {
     profiler?.recordSecondObservation(secondObservationTimer!);
 
     final fingerprintTimer = profiler?.startStage();
-    final cache = _fingerprintCache;
     // One stat() per resource is orders of magnitude cheaper than re-hashing
     // it. A null identity means the reader cannot report one, which simply
-    // disables reuse for that resource.
-    final identities = <String, ProjectResourceIdentity?>{};
+    // disables reuse for that resource. Map identities were already taken
+    // while reading, so only the remaining resources are stat'ed here.
     if (cache != null) {
       for (final resource in resources) {
-        identities[resource.relativePath] =
+        identities[resource.relativePath] ??=
             await access.readResourceIdentity(resource.relativePath);
       }
     }
