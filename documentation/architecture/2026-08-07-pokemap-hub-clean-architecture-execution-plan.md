@@ -1452,7 +1452,7 @@ disparaît au lot 19.*
 `playerPreferencesRepositoryProvider`, `aveluneAppearanceRepositoryProvider`,
 `customBackgroundRepositoryProvider`.
 
-- [ ] **Étape 17.1 — Écrire `infrastructure_providers.dart`**
+- [x] **Étape 17.1 — Écrire `infrastructure_providers.dart`**
 
 ```dart
 import 'dart:io';
@@ -1493,7 +1493,7 @@ final hostCompatibilityProvider = Provider<GamePackageHostCompatibility>(
 > tant qu'ils sont observés ; l'équivalent du `keepAlive: true` de Grimaldi s'obtient en les lisant
 > depuis le `ProviderScope` racine, ce que fait `app_root.dart` au lot 19.
 
-- [ ] **Étape 17.2 — Écrire un provider par repository**
+- [x] **Étape 17.2 — Écrire un provider par repository**
 
 Modèle, à décliner pour les 6 fichiers `*_repository_provider.dart` :
 
@@ -1514,7 +1514,7 @@ final gameLibraryRepositoryProvider =
 
 **C'est le seul endroit du code où une interface et son implémentation se rencontrent** (règle 6).
 
-- [ ] **Étape 17.3 — Écrire le barrel**
+- [x] **Étape 17.3 — Écrire le barrel**
 
 Créer `lib/app/di/providers.dart`. **Uniquement des `export`** (règle 7) :
 
@@ -1531,7 +1531,7 @@ export 'package:pokemap_hub/app/di/save_repository_provider.dart';
 export 'package:pokemap_hub/app/di/session_repository_provider.dart';
 ```
 
-- [ ] **Étape 17.4 — Vérifier qu'aucun générateur n'a été réintroduit**
+- [x] **Étape 17.4 — Vérifier qu'aucun générateur n'a été réintroduit**
 
 ```bash
 cd apps/pokemap_hub && grep -rn "@Riverpod\|\.g\.dart" lib/app/di/ | wc -l
@@ -1539,7 +1539,7 @@ cd apps/pokemap_hub && grep -rn "@Riverpod\|\.g\.dart" lib/app/di/ | wc -l
 
 Attendu : `0` — décision du lot 2.
 
-- [ ] **Étape 17.5 — Vérifier que le barrel ne déclare rien**
+- [x] **Étape 17.5 — Vérifier que le barrel ne déclare rien**
 
 ```bash
 cd apps/pokemap_hub && grep -cE "^(final|const|class )" lib/app/di/providers.dart
@@ -1547,13 +1547,13 @@ cd apps/pokemap_hub && grep -cE "^(final|const|class )" lib/app/di/providers.dar
 
 Attendu : `0`.
 
-- [ ] **Étape 17.6 — Vérifier**
+- [x] **Étape 17.6 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 17.7 — Committer**
+- [x] **Étape 17.7 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): wire repositories through riverpod providers under app/di"
@@ -1571,7 +1571,7 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): wire repositories t
 **Produit** : `LoadGameLibraryUseCase`, `InstallGamePackageUseCase`, `VerifyInstalledGameUseCase`,
 `RunGameMaintenanceUseCase`, `ConsumeEditorExportsUseCase` et leurs providers.
 
-- [ ] **Étape 18.1 — Écrire les use cases d'installation**
+- [x] **Étape 18.1 — Écrire les use cases d'installation**
 
 Modèle, calqué sur `LoadConsumptionPeriodUseCase` de Grimaldi — un use case = une classe, un `call()`,
 des dépendances passées au constructeur :
@@ -1602,7 +1602,7 @@ final class InstallGamePackageUseCase {
 }
 ```
 
-- [ ] **Étape 18.2 — Écrire les `<f>_providers.dart`**
+- [x] **Étape 18.2 — Écrire les `<f>_providers.dart`**
 
 Modèle :
 
@@ -1619,13 +1619,13 @@ final installGamePackageUseCaseProvider =
 });
 ```
 
-- [ ] **Étape 18.3 — Vérifier**
+- [x] **Étape 18.3 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 18.4 — Committer**
+- [x] **Étape 18.4 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): add application use cases and per-feature providers"
@@ -1640,7 +1640,7 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): add application use
 - Modifier : `app/app_root.dart`
 - Supprimer : `app/di/hub_composition.dart`
 
-- [ ] **Étape 19.1 — Envelopper l'app**
+- [x] **Étape 19.1 — Envelopper l'app**
 
 `main.dart` :
 
@@ -1655,7 +1655,7 @@ Future<void> main() async {
 }
 ```
 
-- [ ] **Étape 19.2 — Réécrire `app_root.dart`**
+- [x] **Étape 19.2 — Réécrire `app_root.dart`**
 
 `PokeMapHubBootstrap` porte aujourd'hui un `Future<HubAppComposition>` et un `StatefulWidget`.
 Le remplacer par un `ConsumerWidget` qui observe `supportRootProvider` et rend les 3 états
@@ -1663,13 +1663,13 @@ Le remplacer par un `ConsumerWidget` qui observe `supportRootProvider` et rend l
 package externe (`_pickAndImport`, `_importExternalPackage`) part dans
 `features/dashboard/application/notifiers/hub_dashboard_notifier.dart`.
 
-- [ ] **Étape 19.3 — Supprimer la composition manuelle**
+- [x] **Étape 19.3 — Supprimer la composition manuelle**
 
 ```bash
 cd apps/pokemap_hub && git rm lib/app/di/hub_composition.dart
 ```
 
-- [ ] **Étape 19.4 — Vérifier qu'il n'en reste aucune trace**
+- [x] **Étape 19.4 — Vérifier qu'il n'en reste aucune trace**
 
 ```bash
 cd apps/pokemap_hub && grep -rn "HubComposition\|HubAppComposition" lib/ test/ | wc -l
@@ -1678,13 +1678,13 @@ cd apps/pokemap_hub && grep -rn "HubComposition\|HubAppComposition" lib/ test/ |
 Attendu : `0`. Les tests qui construisaient une `HubComposition` passent par un `ProviderContainer`
 avec overrides — ils sont repris au lot 24.
 
-- [ ] **Étape 19.5 — Vérifier**
+- [x] **Étape 19.5 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 19.6 — Committer**
+- [x] **Étape 19.6 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): replace the manual composition root with a provider scope"
@@ -2199,6 +2199,9 @@ Attendu : working tree propre, 25 commits `refactor(hub):` / `test(hub):` lisibl
 | 15 | Le garde-fou de pureté du barrel testait le **texte**, pas le graphe | Exporter `hub_preferences_read.dart` a tiré `map_player_ui` (Flutter) dans le barrel pur : les tests de crash-recovery en sous-processus Dart ont cessé de compiler. Sonde ajoutée qui **compile** le barrel en Dart pur |
 | 15 | Nouvelle référence de test : **+362 −1** | La sonde de pureté est le test supplémentaire |
 | 16 | `hub_installed_game_player.dart` garde 3 imports vers `data/` | Même forme que le lecteur d'activité : la page construit ses dépendances. Le lot 19 la fait lire depuis les providers et supprime le problème. Corriger ici imposerait une factory temporaire que le lot 19 effacerait |
+| 17 | Tout le graphe de repositories est en `FutureProvider` | `supportRoot` est résolu de façon asynchrone au démarrage ; c'est la forme honnête, et surcharger ce seul provider relocalise toute l'app en test |
+| 18 | Les use cases `verify` et `maintenance` ne sont **pas** créés | Rien ne les appelle, et les méthodes de repository qu'ils envelopperaient ne portent aucune décision supplémentaire. Ils viendront avec la feature qui en aura besoin |
+| 19 | **Ordre corrigé** : `hub_composition.dart` n'est pas supprimé au lot 19 | Le plan le supprimait avant que les lots 20-21 aient converti les `ChangeNotifier` qu'il construit — il aurait fallu recâbler deux fois. La composition est désormais **alimentée** par les providers ; sa suppression suit la conversion |
 | 12-13 | 11 widgets et `_PlayerLaunchFailure` passent de privés à publics | Le privé Dart est à portée de bibliothèque : un symbole privé ne peut pas traverser un fichier. `part`/`part of` est écarté car il masquerait la découpe aux garde-fous du lot 23 |
 | 15 | `dart:io` autorisé dans `game_installation_repository_interface.dart` | `File` est le type d'entrée réel d'une installation locale ; l'abstraire changerait le comportement, ce que la contrainte globale interdit |
 | 21 | `avelune_exchange_controller` et `avelune_insertion_controller` restent des `ChangeNotifier` | Animation pure, sans dépendance métier, confinée à un seul widget |
