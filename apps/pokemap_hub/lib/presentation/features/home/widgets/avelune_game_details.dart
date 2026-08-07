@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_presentation.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 
 class AveluneGameDetailsScreen extends StatelessWidget {
   const AveluneGameDetailsScreen({

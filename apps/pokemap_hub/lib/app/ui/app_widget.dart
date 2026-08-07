@@ -10,6 +10,7 @@ import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 import 'package:pokemap_hub/presentation/shell/hub_shell.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 
 typedef HubPlayerBuilder = Widget Function(
   BuildContext context,

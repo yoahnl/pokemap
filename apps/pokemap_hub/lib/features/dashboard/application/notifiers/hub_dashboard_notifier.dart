@@ -1,211 +1,17 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
+import 'package:pokemap_hub/core/diagnostics/hub_diagnostic.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
+import 'package:pokemap_hub/features/dashboard/application/services/hub_diagnostic_log_writer.dart';
+import 'package:pokemap_hub/features/dashboard/application/services/hub_directory_storage_reader.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/editor_export_install_inbox.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
-import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/library/data/repositories/game_library_repository_impl.dart';
-import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
-import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
 import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
-
-enum HubDashboardStatus { idle, loading, ready, installing, error }
-
-enum HubSection { home, library, preferences, diagnostics }
-
-enum HubDiagnosticSeverity { information, warning, error }
-
-final class HubDiagnostic {
-  const HubDiagnostic({
-    required this.code,
-    required this.severity,
-    required this.message,
-    required this.recommendation,
-    this.gameId,
-    this.technicalDetails,
-    this.logPath,
-  });
-
-  final String code;
-  final HubDiagnosticSeverity severity;
-  final String message;
-  final String recommendation;
-  final String? gameId;
-  final String? technicalDetails;
-  final String? logPath;
-}
-
-final class HubStorageSnapshot {
-  const HubStorageSnapshot({
-    this.usedBytes = 0,
-    this.availableBytes,
-  });
-
-  final int usedBytes;
-  final int? availableBytes;
-}
-
-final class HubGameActivity {
-  const HubGameActivity({
-    this.canContinue = false,
-    this.lastSaveAt,
-    this.playTimeSeconds = 0,
-    this.installationHealthy = true,
-    this.updateAvailable = false,
-    this.iconPath,
-    this.coverPath,
-    this.heroPath,
-    this.diagnostic,
-  });
-
-  final bool canContinue;
-  final DateTime? lastSaveAt;
-  final int playTimeSeconds;
-  final bool installationHealthy;
-  final bool updateAvailable;
-  final String? iconPath;
-  final String? coverPath;
-  final String? heroPath;
-  final HubDiagnostic? diagnostic;
-}
-
-final class HubGameView {
-  const HubGameView({
-    required this.game,
-    required this.activity,
-  });
-
-  final InstalledGame game;
-  final HubGameActivity activity;
-}
-
-final class HubDashboardSnapshot {
-  HubDashboardSnapshot({
-    required this.status,
-    required this.library,
-    required List<HubGameView> games,
-    this.query = '',
-    this.section = HubSection.home,
-    this.selectedGameId,
-    this.installProgress,
-    List<HubDiagnostic> diagnostics = const <HubDiagnostic>[],
-    this.storage = const HubStorageSnapshot(),
-    this.preferences = const PlayerPreferences(),
-    this.safeErrorMessage,
-  })  : games = List.unmodifiable(games),
-        diagnostics = List.unmodifiable(diagnostics);
-
-  factory HubDashboardSnapshot.initial() => HubDashboardSnapshot(
-        status: HubDashboardStatus.idle,
-        library: GameLibrary.empty(),
-        games: const <HubGameView>[],
-      );
-
-  factory HubDashboardSnapshot.ready({
-    required GameLibrary library,
-    required List<HubGameView> games,
-    String query = '',
-    HubSection section = HubSection.home,
-    String? selectedGameId,
-    List<HubDiagnostic> diagnostics = const <HubDiagnostic>[],
-    HubStorageSnapshot storage = const HubStorageSnapshot(),
-    PlayerPreferences preferences = const PlayerPreferences(),
-  }) =>
-      HubDashboardSnapshot(
-        status: HubDashboardStatus.ready,
-        library: library,
-        games: games,
-        query: query,
-        section: section,
-        selectedGameId: selectedGameId,
-        diagnostics: diagnostics,
-        storage: storage,
-        preferences: preferences,
-      );
-
-  final HubDashboardStatus status;
-  final GameLibrary library;
-  final List<HubGameView> games;
-  final String query;
-  final HubSection section;
-  final String? selectedGameId;
-  final GameInstallProgress? installProgress;
-  final List<HubDiagnostic> diagnostics;
-  final HubStorageSnapshot storage;
-  final PlayerPreferences preferences;
-  final String? safeErrorMessage;
-
-  List<HubGameView> get visibleGames {
-    final normalized = query.trim().toLowerCase();
-    if (normalized.isEmpty) return games;
-    return List<HubGameView>.unmodifiable(
-      games.where((view) {
-        final game = view.game;
-        return game.title.toLowerCase().contains(normalized) ||
-            game.authorName.toLowerCase().contains(normalized);
-      }),
-    );
-  }
-
-  HubGameView? get selectedGame {
-    final selected = selectedGameId;
-    if (selected == null) return null;
-    for (final game in games) {
-      if (game.game.gameId == selected) return game;
-    }
-    return null;
-  }
-
-  HubDashboardSnapshot copyWith({
-    HubDashboardStatus? status,
-    GameLibrary? library,
-    List<HubGameView>? games,
-    String? query,
-    HubSection? section,
-    String? selectedGameId,
-    bool clearSelectedGame = false,
-    GameInstallProgress? installProgress,
-    bool clearInstallProgress = false,
-    List<HubDiagnostic>? diagnostics,
-    HubStorageSnapshot? storage,
-    PlayerPreferences? preferences,
-    String? safeErrorMessage,
-    bool clearSafeError = false,
-  }) =>
-      HubDashboardSnapshot(
-        status: status ?? this.status,
-        library: library ?? this.library,
-        games: games ?? this.games,
-        query: query ?? this.query,
-        section: section ?? this.section,
-        selectedGameId:
-            clearSelectedGame ? null : selectedGameId ?? this.selectedGameId,
-        installProgress: clearInstallProgress
-            ? null
-            : installProgress ?? this.installProgress,
-        diagnostics: diagnostics ?? this.diagnostics,
-        storage: storage ?? this.storage,
-        preferences: preferences ?? this.preferences,
-        safeErrorMessage:
-            clearSafeError ? null : safeErrorMessage ?? this.safeErrorMessage,
-      );
-}
-
-typedef HubGameActivityReader = Future<HubGameActivity> Function(
-  InstalledGame game,
-);
-typedef HubPackageImporter = Future<void> Function(
-  File package,
-  GameInstallCancellationToken cancellationToken,
-  GameInstallProgressListener onProgress,
-);
-typedef HubStorageReader = Future<HubStorageSnapshot> Function();
-typedef HubEditorExportConsumer = Future<List<EditorExportInstallResult>>
-    Function();
 
 final class HubDashboardController extends ChangeNotifier {
   HubDashboardController({
@@ -225,6 +31,9 @@ final class HubDashboardController extends ChangeNotifier {
   final HubPreferencesStore? preferencesStore;
   final HubStorageReader? storageReader;
   final File? diagnosticLogFile;
+
+  HubDiagnosticLogWriter get _diagnosticLog =>
+      HubDiagnosticLogWriter(logFile: diagnosticLogFile);
 
   HubDashboardSnapshot _snapshot = HubDashboardSnapshot.initial();
   GameInstallCancellationToken? _installCancellation;
@@ -404,14 +213,14 @@ final class HubDashboardController extends ChangeNotifier {
         return;
       }
       final effectiveStackTrace = error.stackTrace ?? stackTrace;
-      final details = _technicalDetails(
+      final details = HubDiagnosticLogWriter.technicalDetails(
         code: 'install.${error.diagnostic.code.name}',
         operation: 'import',
         packagePath: package.path,
         cause: error.cause ?? error,
         stackTrace: effectiveStackTrace,
       );
-      final logPath = await _appendDiagnostic(
+      final logPath = await _diagnosticLog.append(
         code: 'install.${error.diagnostic.code.name}',
         operation: 'import',
         packagePath: package.path,
@@ -441,14 +250,14 @@ final class HubDashboardController extends ChangeNotifier {
       );
     } on Object catch (error, stackTrace) {
       const message = 'Le package n’a pas pu être installé.';
-      final details = _technicalDetails(
+      final details = HubDiagnosticLogWriter.technicalDetails(
         code: 'install.unexpected',
         operation: 'import',
         packagePath: package.path,
         cause: error,
         stackTrace: stackTrace,
       );
-      final logPath = await _appendDiagnostic(
+      final logPath = await _diagnosticLog.append(
         code: 'install.unexpected',
         operation: 'import',
         packagePath: package.path,
@@ -487,14 +296,14 @@ final class HubDashboardController extends ChangeNotifier {
     required StackTrace stackTrace,
   }) async {
     const packagePath = '<aucun package sélectionné>';
-    final details = _technicalDetails(
+    final details = HubDiagnosticLogWriter.technicalDetails(
       code: code,
       operation: 'pickPackage',
       packagePath: packagePath,
       cause: cause,
       stackTrace: stackTrace,
     );
-    final logPath = await _appendDiagnostic(
+    final logPath = await _diagnosticLog.append(
       code: code,
       operation: 'pickPackage',
       packagePath: packagePath,
@@ -525,59 +334,6 @@ final class HubDashboardController extends ChangeNotifier {
   }
 
   void cancelImport() => _installCancellation?.cancel();
-
-  Future<String?> _appendDiagnostic({
-    required String code,
-    required String operation,
-    required String packagePath,
-    required Object cause,
-    required StackTrace stackTrace,
-  }) async {
-    final logFile = diagnosticLogFile;
-    if (logFile == null) return null;
-    try {
-      await logFile.parent.create(recursive: true);
-      final sink = logFile.openWrite(mode: FileMode.append);
-      sink.writeln(
-        jsonEncode(<String, Object?>{
-          'timestamp': DateTime.now().toUtc().toIso8601String(),
-          'feature': 'hub-package-import',
-          'operation': operation,
-          'code': code,
-          'packagePath': packagePath,
-          'cause': cause.toString(),
-          'stackTrace': stackTrace.toString(),
-        }),
-      );
-      await sink.flush();
-      await sink.close();
-      return logFile.path;
-    } on Object {
-      return null;
-    }
-  }
-
-  static String _technicalDetails({
-    required String code,
-    required String operation,
-    required String packagePath,
-    required Object cause,
-    required StackTrace stackTrace,
-  }) {
-    final stackLines = stackTrace
-        .toString()
-        .split('\n')
-        .where((line) => line.trim().isNotEmpty)
-        .take(12)
-        .join('\n');
-    return <String>[
-      'Code : $code',
-      'Opération : $operation',
-      'Package : $packagePath',
-      'Cause système : $cause',
-      if (stackLines.isNotEmpty) 'Pile :\n$stackLines',
-    ].join('\n');
-  }
 
   Future<void> _reload({
     PlayerPreferences? preferences,
@@ -708,93 +464,5 @@ final class HubDashboardController extends ChangeNotifier {
     _disposed = true;
     _installCancellation?.cancel();
     super.dispose();
-  }
-}
-
-/// Reads save activity and branding only after the installed release verifies.
-final class InstalledHubGameActivityReader {
-  const InstalledHubGameActivityReader({
-    required this.supportRoot,
-    required this.launchResolver,
-  });
-
-  final Directory supportRoot;
-  final InstalledGameLaunchResolver launchResolver;
-
-  Future<HubGameActivity> call(InstalledGame game) async {
-    try {
-      final launch = await launchResolver.resolve(game);
-      final save = await HubSaveStore(
-        supportRoot: supportRoot,
-        identity: launch.identity,
-      ).findContinue();
-      Future<String?> resolve(String? path) async {
-        if (path == null) return null;
-        try {
-          return (await launch.assets.resolveFile(path)).path;
-        } on Object {
-          return null;
-        }
-      }
-
-      final branding = launch.manifest.branding;
-      return HubGameActivity(
-        canContinue: save?.canContinue ?? false,
-        lastSaveAt: save?.envelope?.updatedAt,
-        playTimeSeconds: save?.envelope?.playTimeSeconds ?? 0,
-        iconPath: await resolve(branding?.icon),
-        coverPath: await resolve(branding?.cover),
-        heroPath: await resolve(branding?.hero),
-      );
-    } on InstalledGameLaunchException catch (error) {
-      return HubGameActivity(
-        installationHealthy: false,
-        diagnostic: HubDiagnostic(
-          code: 'launch.${error.code.name}',
-          severity: HubDiagnosticSeverity.error,
-          message: '${game.title} ne peut pas être lancé.',
-          recommendation: 'Réparez l’installation avant de jouer.',
-          gameId: game.gameId,
-        ),
-      );
-    }
-  }
-}
-
-/// Bounded, symlink-safe measurement of Hub-owned application data.
-final class HubDirectoryStorageReader {
-  const HubDirectoryStorageReader({
-    required this.supportRoot,
-    this.maxEntries = 100000,
-  });
-
-  final Directory supportRoot;
-  final int maxEntries;
-
-  Future<HubStorageSnapshot> call() async {
-    final type = await FileSystemEntity.type(
-      supportRoot.path,
-      followLinks: false,
-    );
-    if (type == FileSystemEntityType.notFound) {
-      return const HubStorageSnapshot();
-    }
-    if (type != FileSystemEntityType.directory) {
-      throw const FileSystemException('Unsafe Hub storage root.');
-    }
-    var entries = 0;
-    var bytes = 0;
-    await for (final entity
-        in supportRoot.list(recursive: true, followLinks: false)) {
-      if (++entries > maxEntries) break;
-      if (entity is! File) continue;
-      final entityType = await FileSystemEntity.type(
-        entity.path,
-        followLinks: false,
-      );
-      if (entityType != FileSystemEntityType.file) continue;
-      bytes += await entity.length();
-    }
-    return HubStorageSnapshot(usedBytes: bytes);
   }
 }

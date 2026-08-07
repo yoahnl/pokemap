@@ -17,9 +17,10 @@ import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
 import 'package:pokemap_hub/presentation/features/home/pages/avelune_home_screen.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
-import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
 import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 import 'package:pokemap_hub/presentation/features/installation/widgets/hub_install_progress.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
+import 'package:pokemap_hub/core/diagnostics/hub_diagnostic.dart';
 
 /// Single shell for every platform.
 ///

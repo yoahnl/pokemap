@@ -1,7 +1,7 @@
 import 'package:pokemap_hub/presentation/design_system/avelune_design_system.dart';
-import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
 import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 
 /// Pure projection from the Hub snapshot into immutable Avelune-facing data.
 ///
