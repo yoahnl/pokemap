@@ -41,6 +41,31 @@ SmartTileLayerReadinessReport analyzeSmartTileLayerReadiness({
   var intentionalEmptyCellCount = 0;
   var unresolvedCellCount = 0;
 
+  // Une surcharge de densité qui ne correspond plus à aucun candidat du
+  // preset — typiquement après un réimport qui a changé les identifiants —
+  // est ignorée par le résolveur. On la signale sans bloquer la carte.
+  final knownCandidateIds = <String>{
+    for (final rule in preset.rules)
+      for (final candidate in rule.candidates) candidate.id,
+  };
+  final orphanCandidateIds = layer.candidateWeights.keys
+      .where((id) => !knownCandidateIds.contains(id))
+      .toList(growable: false)
+    ..sort();
+  if (orphanCandidateIds.isNotEmpty) {
+    diagnostics.add(
+      SmartTileDiagnostic(
+        code: 'smart_tiles.layer.candidate_weight_orphan',
+        severity: SmartTileDiagnosticSeverity.warning,
+        path: r'$.layers.' '${layer.id}.candidateWeights',
+        presetId: preset.id,
+        message: 'Le calque "${layer.id}" règle la densité de variantes '
+            'absentes de son preset : ${orphanCandidateIds.join(', ')}. '
+            'Ces réglages sont ignorés.',
+      ),
+    );
+  }
+
   for (var y = 0; y < map.size.height; y += 1) {
     for (var x = 0; x < map.size.width; x += 1) {
       final cellIndex = y * map.size.width + x;
@@ -85,6 +110,7 @@ SmartTileLayerReadinessReport analyzeSmartTileLayerReadiness({
         mapId: map.id,
         layerId: layer.id,
         layerSeed: layer.layerSeed,
+        candidateWeights: layer.candidateWeights,
       );
 
       if (resolution.status == SmartTileResolutionStatus.noIntent) {
