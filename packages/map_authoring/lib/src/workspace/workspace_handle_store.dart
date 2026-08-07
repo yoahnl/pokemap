@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+import 'dart:collection';
 import 'dart:math';
 
 typedef WorkspaceClock = DateTime Function();
@@ -52,10 +54,22 @@ final class WorkspaceHandleException implements Exception {
 /// storage without copying it again. Callers can only obtain instances from an
 /// authorized [ProjectWorkspaceAccess].
 final class ProjectResourceBytes {
-  ProjectResourceBytes._(List<int> bytes)
-      : bytes = List<int>.unmodifiable(bytes);
+  ProjectResourceBytes._(List<int> source)
+      : this._typed(Uint8List.fromList(source));
 
+  ProjectResourceBytes._typed(this.typedBytes)
+      : bytes = UnmodifiableListView<int>(typedBytes);
+
+  /// Immutable view of the resource. Mutating a snapshot must throw, and
+  /// `project_open_service_test` pins that contract.
   final List<int> bytes;
+
+  /// The same bytes as typed data, for hashing hot paths only.
+  ///
+  /// Walking the unmodifiable view element by element denies the crypto sinks
+  /// their fast typed-data path; on a 10 MB project that cost ~25% of a whole
+  /// snapshot. Read through [bytes] everywhere else so the contract holds.
+  final Uint8List typedBytes;
 }
 
 /// Authorized read-only access associated with an opaque project handle.

@@ -332,9 +332,9 @@ final class ProjectSnapshotLoader {
       revisionBuilder
         ..startEntry(
           relativePath: resource.relativePath,
-          byteLength: resource.bytes.bytes.length,
+          byteLength: resource.bytes.typedBytes.length,
         )
-        ..addBytes(resource.bytes.bytes)
+        ..addBytes(resource.bytes.typedBytes)
         ..endEntry();
     }
     final revision = revisionBuilder.close();
@@ -343,9 +343,9 @@ final class ProjectSnapshotLoader {
       final builder = NarrativeProjectFingerprintBuilder()
         ..startEntry(
           relativePath: resource.relativePath,
-          byteLength: resource.bytes.bytes.length,
+          byteLength: resource.bytes.typedBytes.length,
         )
-        ..addBytes(resource.bytes.bytes)
+        ..addBytes(resource.bytes.typedBytes)
         ..endEntry();
       resourceFingerprints[resource.identity] = builder.close();
     }
@@ -375,7 +375,7 @@ final class ProjectSnapshotLoader {
           resourceCount: resources.length,
           resourceBytes: resources.fold<int>(
             0,
-            (total, resource) => total + resource.bytes.bytes.length,
+            (total, resource) => total + resource.bytes.typedBytes.length,
           ),
         ),
       );
@@ -398,7 +398,7 @@ final class ProjectSnapshotLoader {
         final resource = resources[index];
         matches[index] = await access.matchesResourceBytes(
           resource.relativePath,
-          resource.bytes.bytes,
+          resource.bytes.typedBytes,
         );
       }
     }
