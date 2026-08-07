@@ -1701,7 +1701,7 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): replace the manual 
 
 **Produit** : `HubDashboardNotifier`, `hubDashboardNotifierProvider`.
 
-> ### 🔬 Reconnaissance du 7 août 2026 — tentative annulée
+> ### ✅ Lot 20 réalisé — la reconnaissance ci-dessous a servi de plan
 >
 > Une première conversion a été menée jusqu'au bout côté `lib/` (analyse verte) puis **annulée**,
 > faute de marge pour reprendre les tests. Ce qu'elle a établi, à reprendre tel quel :
@@ -1728,7 +1728,7 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): replace the manual 
 > unique** qui construit ce conteneur, puis réécrire les 10 sites — c'est ce lot, et il ne tient pas
 > dans la fin d'un autre.
 
-- [ ] **Étape 20.1 — Laisser l'état en Dart brut**
+- [x] **Étape 20.1 — Laisser l'état en Dart brut**
 
 Pas de `@freezed` (décision du lot 2). `HubDashboardSnapshot` est **déjà** une classe immuable avec
 un `copyWith` manuel et des `factory` `.initial()` / `.ready(...)` — c'est exactement ce que freezed
@@ -1742,7 +1742,7 @@ cd apps/pokemap_hub && grep -nE "^\s+(final|const)" lib/features/dashboard/appli
 
 Attendu : tous les champs sont `final`. Un champ mutable serait à corriger ici.
 
-- [ ] **Étape 20.2 — Convertir le `ChangeNotifier` en `Notifier`**
+- [x] **Étape 20.2 — Convertir le `ChangeNotifier` en `Notifier`**
 
 ```dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1768,13 +1768,13 @@ Chaque `notifyListeners()` devient une affectation de `state`. Les méthodes pub
 Les dépendances lues dans le constructeur actuel (`libraryStore`, `preferencesStore`, `importer`, …)
 se lisent désormais via `ref.read(...)` dans `build()`, sur les providers du lot 17.
 
-- [ ] **Étape 20.3 — Vérifier**
+- [x] **Étape 20.3 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 20.4 — Committer**
+- [x] **Étape 20.4 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): turn the dashboard controller into a riverpod notifier with a freezed state"
@@ -2229,6 +2229,9 @@ Attendu : working tree propre, 25 commits `refactor(hub):` / `test(hub):` lisibl
 | 17 | Tout le graphe de repositories est en `FutureProvider` | `supportRoot` est résolu de façon asynchrone au démarrage ; c'est la forme honnête, et surcharger ce seul provider relocalise toute l'app en test |
 | 18 | Les use cases `verify` et `maintenance` ne sont **pas** créés | Rien ne les appelle, et les méthodes de repository qu'ils envelopperaient ne portent aucune décision supplémentaire. Ils viendront avec la feature qui en aura besoin |
 | 19 | **Ordre corrigé** : `hub_composition.dart` n'est pas supprimé au lot 19 | Le plan le supprimait avant que les lots 20-21 aient converti les `ChangeNotifier` qu'il construit — il aurait fallu recâbler deux fois. La composition est désormais **alimentée** par les providers ; sa suppression suit la conversion |
+| 20 | Les 7 dépendances du dashboard sont **groupées** derrière `hubDashboardDependenciesProvider` | C'est la décision qui rend les tests faisables : surcharger **un** provider en remplace sept, donc aucun test n'a besoin de connaître les providers de repository en dessous |
+| 20 | `_wire()` résout le graphe une fois, en tête des **5** entrées asynchrones | L'état est synchrone, les dépendances non : `build()` ne peut pas les attendre. Aucune méthode ne peut tourner sur un notifier à moitié construit, quel que soit l'ordre d'appel de l'UI |
+| 20 | Le harness de test expose `wrap()` | Un widget pompé sans ce scope construirait un **second** notifier, sans lien avec le conteneur du test |
 | 12-13 | 11 widgets et `_PlayerLaunchFailure` passent de privés à publics | Le privé Dart est à portée de bibliothèque : un symbole privé ne peut pas traverser un fichier. `part`/`part of` est écarté car il masquerait la découpe aux garde-fous du lot 23 |
 | 15 | `dart:io` autorisé dans `game_installation_repository_interface.dart` | `File` est le type d'entrée réel d'une installation locale ; l'abstraire changerait le comportement, ce que la contrainte globale interdit |
 | 21 | `avelune_exchange_controller` et `avelune_insertion_controller` restent des `ChangeNotifier` | Animation pure, sans dépendance métier, confinée à un seul widget |
