@@ -9,6 +9,7 @@ import '../ports/project_file_reader.dart';
 import '../domains/assets/asset_store.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import 'project_snapshot.dart';
+import 'project_snapshot_fingerprint_cache.dart';
 import 'workspace_handle_store.dart';
 
 enum ProjectSnapshotLoadPolicy {
@@ -139,11 +140,14 @@ final class ProjectSnapshotLoader {
     this.profileSink,
     this.maxConcurrentSecondObservations = 8,
     ProjectSnapshotDecodeExecutor? decodeExecutor,
+    ProjectSnapshotFingerprintCache? fingerprintCache,
   })  : assert(maxConcurrentSecondObservations > 0),
         _decodeExecutor = decodeExecutor ?? ProjectSnapshotDecodeExecutor(),
+        _fingerprintCache = fingerprintCache,
         _handles = handles;
 
   final WorkspaceHandleStore _handles;
+  final ProjectSnapshotFingerprintCache? _fingerprintCache;
   final ProjectSnapshotDecodeExecutor _decodeExecutor;
   final ProjectSnapshotLoadProfileSink? profileSink;
   final int maxConcurrentSecondObservations;
@@ -327,27 +331,64 @@ final class ProjectSnapshotLoader {
     profiler?.recordSecondObservation(secondObservationTimer!);
 
     final fingerprintTimer = profiler?.startStage();
-    final revisionBuilder = NarrativeProjectFingerprintBuilder();
-    for (final resource in resources) {
-      revisionBuilder
-        ..startEntry(
-          relativePath: resource.relativePath,
-          byteLength: resource.bytes.typedBytes.length,
-        )
-        ..addBytes(resource.bytes.typedBytes)
-        ..endEntry();
+    final cache = _fingerprintCache;
+    // One stat() per resource is orders of magnitude cheaper than re-hashing
+    // it. A null identity means the reader cannot report one, which simply
+    // disables reuse for that resource.
+    final identities = <String, ProjectResourceIdentity?>{};
+    if (cache != null) {
+      for (final resource in resources) {
+        identities[resource.relativePath] =
+            await access.readResourceIdentity(resource.relativePath);
+      }
     }
-    final revision = revisionBuilder.close();
+    final identityKey = cache == null ||
+            resources.any((r) => identities[r.relativePath] == null)
+        ? null
+        : resources
+            .map(
+              (r) => '${r.relativePath}:'
+                  '${identities[r.relativePath]!.byteLength}:'
+                  '${identities[r.relativePath]!.modifiedAtMicros}',
+            )
+            .join('|');
+
+    String buildFingerprint(_LoadedProjectResource resource) =>
+        (NarrativeProjectFingerprintBuilder()
+              ..startEntry(
+                relativePath: resource.relativePath,
+                byteLength: resource.bytes.typedBytes.length,
+              )
+              ..addBytes(resource.bytes.typedBytes)
+              ..endEntry())
+            .close();
+
+    var revision = identityKey == null ? null : cache!.revision(identityKey);
+    if (revision == null) {
+      final revisionBuilder = NarrativeProjectFingerprintBuilder();
+      for (final resource in resources) {
+        revisionBuilder
+          ..startEntry(
+            relativePath: resource.relativePath,
+            byteLength: resource.bytes.typedBytes.length,
+          )
+          ..addBytes(resource.bytes.typedBytes)
+          ..endEntry();
+      }
+      revision = revisionBuilder.close();
+      if (identityKey != null) cache!.storeRevision(identityKey, revision);
+    }
+
     final resourceFingerprints = <String, String>{};
     for (final resource in resources) {
-      final builder = NarrativeProjectFingerprintBuilder()
-        ..startEntry(
-          relativePath: resource.relativePath,
-          byteLength: resource.bytes.typedBytes.length,
-        )
-        ..addBytes(resource.bytes.typedBytes)
-        ..endEntry();
-      resourceFingerprints[resource.identity] = builder.close();
+      final identity = identities[resource.relativePath];
+      final reused =
+          identity == null ? null : cache?.resourceFingerprint(identity);
+      final fingerprint = reused ?? buildFingerprint(resource);
+      if (reused == null && identity != null) {
+        cache?.storeResourceFingerprint(identity, fingerprint);
+      }
+      resourceFingerprints[resource.identity] = fingerprint;
     }
     profiler?.recordFingerprint(fingerprintTimer!);
 

@@ -10,6 +10,14 @@ import 'authoring_session_lifecycle.dart';
 /// This adapter intentionally exposes typed PokeMap models to the editor while
 /// keeping handles, path authorization, revision calculation, query ordering,
 /// pagination, and reference diagnostics owned by `map_authoring`.
+
+/// One cache for the whole editor process.
+///
+/// A session is opened per operation, so a per-loader cache would never see a
+/// second hit. Keying on `(root, path, size, mtime)` makes sharing across
+/// sessions and projects safe.
+final _sharedFingerprintCache = ProjectSnapshotFingerprintCache();
+
 final class AuthoringQueryAdapter
     implements EditorAuthoringLifecycleParticipant {
   AuthoringQueryAdapter({required ProjectFileReader fileReader})
@@ -163,7 +171,10 @@ final class AuthoringQueryAdapter
       fileReader: _fileReader,
     );
     final handles = WorkspaceHandleStore();
-    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final snapshots = ProjectSnapshotLoader(
+      handles: handles,
+      fingerprintCache: _sharedFingerprintCache,
+    );
     final api = AuthoringReadApi(
       openService: ProjectOpenService(
         policy: policy,

@@ -34,6 +34,9 @@ Future<void> main(List<String> args) async {
   final snapshots = ProjectSnapshotLoader(
     handles: handles,
     profileSink: profiles.add,
+    // A long-lived cache is what a real editor session holds; run 1 fills it
+    // and the rest measure the steady state an author actually experiences.
+    fingerprintCache: ProjectSnapshotFingerprintCache(),
   );
   final api = AuthoringReadApi(
     openService: ProjectOpenService(

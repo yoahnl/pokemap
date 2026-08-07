@@ -125,6 +125,7 @@ export 'src/transactions/transaction_journal.dart';
 export 'src/workspace/project_open_service.dart';
 export 'src/workspace/project_query_service.dart';
 export 'src/workspace/project_snapshot.dart';
+export 'src/workspace/project_snapshot_fingerprint_cache.dart';
 export 'src/workspace/project_snapshot_loader.dart';
 export 'src/workspace/workspace_handle_store.dart';
 export 'src/workspace/workspace_policy.dart';

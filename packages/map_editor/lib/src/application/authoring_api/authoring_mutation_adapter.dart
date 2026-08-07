@@ -14,6 +14,14 @@ abstract interface class EditorProjectRootLocator {
   Future<String> locateForResource(String resourcePath);
 }
 
+
+/// One cache for the whole editor process.
+///
+/// A session is opened per operation, so a per-loader cache would never see a
+/// second hit. Keying on `(root, path, size, mtime)` makes sharing across
+/// sessions and projects safe.
+final _sharedFingerprintCache = ProjectSnapshotFingerprintCache();
+
 final class EditorAuthoringMutationPlan {
   const EditorAuthoringMutationPlan._({
     required this.projectRootPath,
@@ -517,7 +525,10 @@ final class _EditorMutationSession {
       fileReader: fileReader,
     );
     final handles = WorkspaceHandleStore();
-    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final snapshots = ProjectSnapshotLoader(
+      handles: handles,
+      fingerprintCache: _sharedFingerprintCache,
+    );
     final reads = AuthoringReadApi(
       openService: ProjectOpenService(
         policy: policy,
