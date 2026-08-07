@@ -9,6 +9,7 @@ import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import 'world_map_cell_inspector.dart';
 import 'world_map_erase_inspector.dart';
+import 'world_map_environment_inspector.dart';
 import 'world_map_layers_inspector.dart';
 import 'world_map_paint_inspection_intent.dart';
 import 'world_map_paint_inspector.dart';
@@ -48,15 +49,7 @@ class AdaptiveMapInspector extends ConsumerWidget {
     final canPin = ref.watch(worldMapInspectorCanPinProvider);
     final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
 
-    void returnToLayers() {
-      final result = session.activateLayers(
-        ref.read(editorNotifierProvider.notifier),
-      );
-      if (!result.accepted) return;
-      session.pinInspector(null);
-      ref.read(worldMapPaintInspectionIntentProvider.notifier).clear();
-      session.setInspectorVisible(true);
-    }
+    void returnToLayers() => returnWorldMapInspectorToLayers(ref);
 
     final inspector = Semantics(
       container: true,
@@ -70,7 +63,7 @@ class AdaptiveMapInspector extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
           child: Row(
             children: [
-              if (snapshot.kind == WorldMapInspectorKind.paint) ...[
+              if (worldMapInspectorCanReturnToLayers(snapshot.kind)) ...[
                 PokeMapIconButton(
                   key: const ValueKey<String>(
                     'world-map-inspector-back-to-layers',
@@ -150,6 +143,30 @@ class AdaptiveMapInspector extends ConsumerWidget {
   }
 }
 
+/// Whether [kind] is a layer sub-page the author can step back out of.
+///
+/// Paint and Environment are both opened from the layer list, so both owe the
+/// author a way back — the arrow in the header and the Escape key.
+bool worldMapInspectorCanReturnToLayers(WorldMapInspectorKind kind) {
+  return kind == WorldMapInspectorKind.paint ||
+      kind == WorldMapInspectorKind.environment;
+}
+
+/// Steps the inspector back to the layer list. Returns false when there was
+/// nothing to step back from, so callers can fall through to their own
+/// behaviour.
+bool returnWorldMapInspectorToLayers(WidgetRef ref) {
+  final snapshot = ref.read(worldMapInspectorSnapshotProvider);
+  if (!worldMapInspectorCanReturnToLayers(snapshot.kind)) return false;
+  final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
+  final result = session.activateLayers(ref.read(editorNotifierProvider.notifier));
+  if (!result.accepted) return false;
+  session.pinInspector(null);
+  ref.read(worldMapPaintInspectionIntentProvider.notifier).clear();
+  session.setInspectorVisible(true);
+  return true;
+}
+
 Widget _bodyFor(
   WorldMapInspectorSnapshot snapshot, {
   WorldMapLayerContextMenuRequested? onLayerContextMenuRequested,
@@ -176,6 +193,7 @@ Widget _bodyFor(
     WorldMapInspectorKind.layers => WorldMapLayersInspector(
         onContextMenuRequested: onLayerContextMenuRequested,
       ),
+    WorldMapInspectorKind.environment => const WorldMapEnvironmentInspector(),
     WorldMapInspectorKind.empty => const PokeMapEmptyState(
         icon: Icon(Icons.ads_click_outlined),
         title: 'Aucune sélection',
@@ -214,6 +232,7 @@ String _titleFor(WorldMapInspectorKind kind) {
     WorldMapInspectorKind.objectSelection => 'Objet sélectionné',
     WorldMapInspectorKind.cellSelection => 'Cellule sélectionnée',
     WorldMapInspectorKind.layers => 'Calques',
+    WorldMapInspectorKind.environment => 'Environnement',
     WorldMapInspectorKind.empty => 'Aucune sélection',
   };
 }

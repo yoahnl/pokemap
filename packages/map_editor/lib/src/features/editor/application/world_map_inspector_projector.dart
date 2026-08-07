@@ -191,6 +191,9 @@ bool isWorldMapInspectorPinValid({
       map != null && activeLayerId != null,
     WorldMapInspectorKind.place => map != null,
     WorldMapInspectorKind.layers => map != null,
+    // The environment page is only ever reached by pinning it from the layer
+    // list, and it authors the environment of one layer.
+    WorldMapInspectorKind.environment => map != null && activeLayerId != null,
     WorldMapInspectorKind.empty => false,
   };
 }

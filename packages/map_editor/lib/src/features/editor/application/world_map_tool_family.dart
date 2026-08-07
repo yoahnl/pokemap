@@ -25,5 +25,6 @@ enum WorldMapInspectorKind {
   objectSelection,
   cellSelection,
   layers,
+  environment,
   empty,
 }

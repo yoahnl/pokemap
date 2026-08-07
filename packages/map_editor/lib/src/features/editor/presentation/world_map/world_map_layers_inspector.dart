@@ -12,7 +12,6 @@ import '../../application/map_context_target.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import '../../../../ui/canvas/map_canvas.dart';
-import 'world_map_environment_section.dart';
 import 'world_map_layer_mutation_dialogs.dart';
 import 'world_map_layer_hover_preview.dart';
 import 'world_map_paint_inspection_intent.dart';
@@ -90,9 +89,18 @@ final class _WorldMapLayersInspectorState
     required EditorNotifier notifier,
     required WorldMapWorkspaceSessionController session,
     required MapLayer layer,
+    bool ownsEnvironment = false,
   }) {
     final paintInspectionIntent =
         ref.read(worldMapPaintInspectionIntentProvider.notifier);
+    // A layer carrying an environment is authored as an environment, whatever
+    // the storage says it is underneath.
+    if (ownsEnvironment) {
+      paintInspectionIntent.clear();
+      session.setActiveLayer(notifier, layer.id);
+      session.pinInspector(WorldMapInspectorKind.environment);
+      return;
+    }
     final subtool = _paintSubtoolForLayer(layer);
     if (subtool == null) {
       paintInspectionIntent.clear();
@@ -373,6 +381,7 @@ final class _WorldMapLayersInspectorState
                         notifier: notifier,
                         session: session,
                         layer: row.layer,
+                        ownsEnvironment: row.hasAttachedEnvironmentLayers,
                       ),
                       readActiveMap: () =>
                           ref.read(editorNotifierProvider).activeMap,
@@ -734,13 +743,6 @@ final class _WorldMapLayerRow extends ConsumerWidget {
                   ),
                 ],
                 ...buildEnvironmentActions(context),
-                // The environment belongs to this layer, so its authoring
-                // chain opens with it instead of sitting in a panel-wide
-                // section the author has to go looking for.
-                if (row.isActive && row.hasAttachedEnvironmentLayers) ...[
-                  const SizedBox(height: 8),
-                  const WorldMapEnvironmentSection(embedded: true),
-                ],
                 const SizedBox(height: 4),
                 if (usesNarrowLayout) ...[
                   Row(

@@ -518,6 +518,9 @@ class _WorldMapWorkspaceState extends ConsumerState<WorldMapWorkspace> {
         }
 
         void handleEscape() {
+          // Stepping out of a layer sub-page is what Escape means while one is
+          // open; only then does it fall through to closing and cancelling.
+          if (returnWorldMapInspectorToLayers(ref)) return;
           closeCompactInspector();
           editorNotifier.cancelProjectElementPlacement();
         }

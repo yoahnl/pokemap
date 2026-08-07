@@ -1638,8 +1638,31 @@ void main() {
       expect(find.textContaining('Cible à définir'), findsNothing);
     });
 
-    testWidgets('the authoring chain opens with the layer that owns it',
+    testWidgets('opens its own page instead of the tile paint one',
         (tester) async {
+      final harness = _Harness(
+        _attachedEnvironmentMap(),
+        activeLayerId: 'other',
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      // A layer that owns an environment reads as one, not as plain tiles.
+      expect(find.text('Environnement'), findsWidgets);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-layer-activate-decor')),
+      );
+      await tester.pump();
+
+      expect(
+        harness.sessionState.pinnedInspectorKind,
+        WorldMapInspectorKind.environment,
+      );
+      expect(harness.notifier.state.activeLayerId, 'decor');
+    });
+
+    testWidgets('a plain tile layer still routes to painting', (tester) async {
       final harness = _Harness(
         _attachedEnvironmentMap(),
         activeLayerId: 'decor',
@@ -1647,20 +1670,14 @@ void main() {
       addTearDown(harness.dispose);
       await harness.pump(tester);
 
-      expect(
-        find.byKey(const ValueKey<String>('world-map-environment-section')),
-        findsOneWidget,
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-layer-activate-other')),
       );
-      // A layer that owns an environment reads as one, not as plain tiles.
-      expect(find.text('Environnement'), findsWidgets);
-
-      harness.notifier.setActiveLayer('other');
       await tester.pump();
 
-      expect(
-        find.byKey(const ValueKey<String>('world-map-environment-section')),
-        findsNothing,
-      );
+      expect(harness.sessionState.pinnedInspectorKind, isNot(
+        WorldMapInspectorKind.environment,
+      ));
     });
 
     testWidgets('an active TileLayer can grow an environment', (tester) async {
