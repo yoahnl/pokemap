@@ -178,6 +178,44 @@ void main() {
         'grass_layer_3',
       );
     });
+
+    test('publishPreset envoie la charge preset et renvoie le reçu', () async {
+      final gateway = _FakeGateway(before: _snapshot());
+      final service = SmartTilePublicationService(gateway: gateway);
+
+      final receipt = await service.publishPreset(
+        projectRootPath: '/project',
+        preset: _preset(),
+      );
+
+      expect(receipt, gateway.after.snapshotRevision);
+      expect(gateway.plannedParameters!.keys, <String>['preset']);
+      expect(
+        (gateway.plannedParameters!['preset']! as Map<String, Object?>)['id'],
+        'grass',
+      );
+      expect(gateway.expectedRevision, 'revision-1');
+      expect(gateway.appliedOperationId, isNotNull);
+    });
+
+    test('publishPreset dérive une clé d\'idempotence stable du contenu',
+        () async {
+      final gateway = _FakeGateway(before: _snapshot());
+      final service = SmartTilePublicationService(gateway: gateway);
+
+      await service.publishPreset(
+        projectRootPath: '/project',
+        preset: _preset(),
+      );
+      final first = gateway.lastIdempotencyKey;
+      await service.publishPreset(
+        projectRootPath: '/project',
+        preset: _preset(),
+      );
+
+      expect(first, isNotNull);
+      expect(gateway.lastIdempotencyKey, first);
+    });
   });
 }
 
@@ -201,6 +239,7 @@ final class _FakeGateway implements SmartTilePublicationGateway {
   Map<String, Object?>? plannedParameters;
   String? expectedRevision;
   String? appliedOperationId;
+  String? lastIdempotencyKey;
 
   bool get flushedBeforePlan => didFlush;
 
@@ -220,6 +259,7 @@ final class _FakeGateway implements SmartTilePublicationGateway {
     planCount++;
     plannedParameters = parameters;
     this.expectedRevision = expectedRevision;
+    lastIdempotencyKey = idempotencyKey;
     final resources = <AuthoringResourceRef>[
       AuthoringResourceRef(kind: 'project', id: 'project'),
       if (includeMapDiff) AuthoringResourceRef(kind: 'map', id: 'map'),

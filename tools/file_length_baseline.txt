@@ -8,7 +8,7 @@
 3794 packages/map_core/lib/src/compatibility/narrative_event_migration_planner_impl.dart
 9582 packages/map_core/lib/src/operations/stone_chain_line_border_resolver.dart
 3106 packages/map_core/lib/src/validation/validators.dart
-14607 packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+14402 packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
 4412 packages/map_editor/lib/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart
 14225 packages/map_editor/lib/src/ui/canvas/cinematics/cinematic_builder_workspace.dart
 4663 packages/map_editor/lib/src/ui/canvas/events/event_builder_workspace.dart

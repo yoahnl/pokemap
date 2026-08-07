@@ -333,6 +333,7 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
     layerId: layer.id,
     projectSeed: projectSeed,
     layerSeed: layer.layerSeed,
+    candidateWeights: layer.candidateWeights,
   );
   var ownerCellVisits = 0;
   for (var y = scan.startY; y < scan.endY; y++) {

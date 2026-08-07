@@ -123,7 +123,9 @@ void main() {
       expect(result['a'], kSmartTileVariantWeightTotal);
     });
 
-    test('plancherise à 1 une variante non nulle qui arrondirait à zéro', () {
+    test('borne la cible pour garder un point à chaque variante vivante', () {
+      // 990 est inatteignable : il faut 1 pour mille à chacune des 40 autres
+      // variantes positives. La cible est ramenée à 1000 - 40 = 960.
       final weights = <String, int>{'gros': 1000};
       for (var i = 0; i < 40; i += 1) {
         weights['petit$i'] = 1;
@@ -133,11 +135,21 @@ void main() {
         targetId: 'gros',
         targetPermille: 990,
       );
-      expect(result['gros'], 990);
+      expect(result['gros'], 960);
       for (var i = 0; i < 40; i += 1) {
-        expect(result['petit$i'], greaterThanOrEqualTo(1));
+        expect(result['petit$i'], 1);
       }
       expect(result.values.reduce((a, b) => a + b), kSmartTileVariantWeightTotal);
+    });
+
+    test('la seule variante positive reste à 1000 quoi qu\'on demande', () {
+      final result = rescaleSmartTileVariantWeights(
+        weights: <String, int>{'seul': 1000, 'mort': 0},
+        targetId: 'seul',
+        targetPermille: 300,
+      );
+      expect(result['seul'], kSmartTileVariantWeightTotal);
+      expect(result['mort'], 0);
     });
 
     test('refuse une cible hors bornes', () {
@@ -211,13 +223,25 @@ Map<String, int> rescaleSmartTileVariantWeights({
     for (final entry in weights.entries)
       if (entry.key != targetId) entry.key: entry.value,
   };
+  // Le plancher anti-« jamais » impose un plafond à la cible : chaque autre
+  // variante positive garde au moins 1 pour mille. Et la seule variante
+  // positive d'une règle reste à 1000 — rien ne peut compenser sa baisse.
+  final positiveOtherCount = others.values.where((value) => value > 0).length;
+  final int effectivePermille;
+  if (positiveOtherCount == 0) {
+    effectivePermille = kSmartTileVariantWeightTotal;
+  } else {
+    final ceiling = kSmartTileVariantWeightTotal - positiveOtherCount;
+    effectivePermille =
+        targetPermille > ceiling ? (ceiling < 0 ? 0 : ceiling) : targetPermille;
+  }
   final distributed = _distribute(
     others,
-    budget: kSmartTileVariantWeightTotal - targetPermille,
+    budget: kSmartTileVariantWeightTotal - effectivePermille,
   );
   return <String, int>{
     for (final key in weights.keys)
-      key: key == targetId ? targetPermille : distributed[key]!,
+      key: key == targetId ? effectivePermille : distributed[key]!,
   };
 }
 
@@ -277,7 +301,7 @@ void _floorPositiveEntries(Map<String, int> result, Iterable<String> intended) {
 - [ ] **Step 4 : Lancer les tests pour vérifier qu'ils passent**
 
 Run: `cd packages/map_editor && flutter test test/features/editor/application/smart_tile_variant_density_test.dart`
-Expected: PASS — 8 tests
+Expected: PASS — 9 tests
 
 - [ ] **Step 5 : Commit**
 

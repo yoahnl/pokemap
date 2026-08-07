@@ -51,6 +51,7 @@ SmartTileResolution resolveSmartTile({
   String layerId = '',
   int projectSeed = 0,
   int layerSeed = 0,
+  Map<String, int> candidateWeights = const <String, int>{},
 }) =>
     PreparedSmartTileResolver(
       preset: preset,
@@ -59,6 +60,7 @@ SmartTileResolution resolveSmartTile({
       layerId: layerId,
       projectSeed: projectSeed,
       layerSeed: layerSeed,
+      candidateWeights: candidateWeights,
     ).resolve(context: context, x: x, y: y);
 
 /// Reusable, immutable resolver that prepares all preset-stable work once.
@@ -75,6 +77,7 @@ final class PreparedSmartTileResolver {
     String layerId = '',
     int projectSeed = 0,
     int layerSeed = 0,
+    Map<String, int> candidateWeights = const <String, int>{},
   }) {
     final materialMap = Map<String, ProjectSmartTileMaterial>.unmodifiable(
       <String, ProjectSmartTileMaterial>{
@@ -90,17 +93,33 @@ final class PreparedSmartTileResolver {
     );
 
     _PreparedSmartTileRule prepare(SmartTileRule rule) {
+      // La surcharge par calque s'applique ici, avant le filtre des poids
+      // positifs et la somme : la boucle de résolution ne la voit jamais.
+      // Une clé qui ne correspond à aucun candidat est ignorée — les
+      // surcharges orphelines d'un preset réimporté ne cassent pas la carte.
+      final effective = candidateWeights.isEmpty
+          ? rule
+          : rule.copyWith(
+              candidates: <SmartTileCandidate>[
+                for (final candidate in rule.candidates)
+                  candidateWeights.containsKey(candidate.id)
+                      ? candidate.copyWith(
+                          weight: candidateWeights[candidate.id]!,
+                        )
+                      : candidate,
+              ],
+            );
       return _PreparedSmartTileRule(
-        rule: rule,
+        rule: effective,
         signatures: List<_PreparedSmartTileSignature>.unmodifiable(
           <_PreparedSmartTileSignature>[
             for (final transform in allowedTransforms)
               _PreparedSmartTileSignature(
                 transform: transform,
-                centerMatch: rule.centerMatch,
+                centerMatch: effective.centerMatch,
                 constraints: _prepareSlotConstraints(
                   transformSmartTileSignature(
-                    rule.signature,
+                    effective.signature,
                     transform,
                   ),
                   preset.topology,
@@ -114,7 +133,7 @@ final class PreparedSmartTileResolver {
             mapId: mapId,
             layerId: layerId,
             presetId: preset.id,
-            ruleId: rule.id,
+            ruleId: effective.id,
           ),
         ),
       );

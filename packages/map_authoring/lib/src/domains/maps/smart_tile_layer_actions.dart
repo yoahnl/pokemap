@@ -62,6 +62,15 @@ final class SmartTileLayerActions {
       ],
       risk: AuthoringRiskLevel.high,
     ),
+    _smartTileLayerDescriptor(
+      'smart_tile.layer.set_candidate_weights',
+      'Replace one Smart Tile layer\'s per-candidate weight overrides',
+      resourceKinds: const <String>[
+        'map',
+        'smartTileLayer',
+        'smartTilePreset',
+      ],
+    ),
   ]);
 
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
@@ -71,6 +80,8 @@ final class SmartTileLayerActions {
       'smart_tile.layer.normalize' => _normalize(planning),
       'smart_tile.layer.merge' => _merge(planning),
       'smart_tile.layer.reconstruct' => _reconstruct(planning),
+      'smart_tile.layer.set_candidate_weights' =>
+        _setCandidateWeights(planning),
       _ => throw semanticFailure(
           'map.action_unsupported',
           'The requested Smart Tile layer action is unsupported.',
@@ -330,6 +341,95 @@ final class SmartTileLayerActions {
         'targetMetadataPreserved': true,
         'batchAtomicity': 'all_or_nothing',
       },
+    );
+  }
+
+  AuthoringMutationDraft _setCandidateWeights(
+    AuthoringPlanningContext planning,
+  ) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const <String>{'layerId', 'weights'},
+    );
+    final layerId = context.parameters.string('layerId');
+    _requireNativeSmartTileProject(
+      context,
+      operation: 'smart_tile.layer.set_candidate_weights',
+      layerId: layerId,
+    );
+    final layer = _smartTileLayer(context.map, layerId);
+    final preset = _smartTilePreset(context.manifest, layer.presetId);
+    final knownCandidateIds = <String>{
+      for (final rule in preset.rules)
+        for (final candidate in rule.candidates) candidate.id,
+    };
+
+    final raw = context.parameters.object('weights');
+    final weights = <String, int>{};
+    for (final entry in raw.entries) {
+      final value = entry.value;
+      if (value is! int || value < 0) {
+        throw semanticFailure(
+          'smart_tile.candidate_weight_invalid',
+          'A variant weight must be a non-negative integer.',
+          details: <String, Object?>{
+            'candidateId': entry.key,
+            'weight': value,
+          },
+        );
+      }
+      if (!knownCandidateIds.contains(entry.key)) {
+        throw semanticFailure(
+          'smart_tile.candidate_weight_unknown',
+          'The weight table references a candidate outside the layer preset.',
+          details: <String, Object?>{
+            'candidateId': entry.key,
+            'presetId': preset.id,
+          },
+          remediation: const <String>[
+            'Reload the preset and rebuild the weight table from its rules.',
+          ],
+        );
+      }
+      weights[entry.key] = value;
+    }
+
+    // Le tirage exige au moins un candidat positif par règle : ce refus est le
+    // pendant écriture du cas `noCandidate` que le résolveur sait rendre mais
+    // que rien ne doit produire.
+    for (final rule in preset.rules) {
+      final hasPositive = rule.candidates.any(
+        (candidate) => (weights[candidate.id] ?? candidate.weight) > 0,
+      );
+      if (!hasPositive) {
+        throw semanticFailure(
+          'smart_tile.rule_without_positive_candidate',
+          'This weight table would leave a rule with no drawable variant.',
+          details: <String, Object?>{'ruleId': rule.id},
+          remediation: const <String>[
+            'Keep at least one variant of the rule above zero.',
+          ],
+        );
+      }
+    }
+
+    final projected = replaceSmartTileLayer(
+      context.map,
+      layer: layer.copyWith(candidateWeights: weights),
+    );
+    return context.draft(
+      SemanticMapEdit(
+        map: projected,
+        layerId: layerId,
+        operation: 'smart_tile.layer.set_candidate_weights',
+        changedCells: weights.length,
+        preview: <String, Object?>{
+          'presetId': preset.id,
+          'overriddenCandidateCount': weights.length,
+          'clearedToPresetDefaults': weights.isEmpty,
+          'renderPreserved': false,
+        },
+      ),
     );
   }
 

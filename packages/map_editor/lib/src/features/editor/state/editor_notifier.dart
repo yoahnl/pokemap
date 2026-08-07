@@ -83,8 +83,11 @@ import '../../border_map_editing/application/border_preview_transaction.dart';
 import '../../border_map_editing/application/pending_border_save_guard.dart';
 import '../../border_map_editing/state/border_map_editing_providers.dart';
 import '../../border_map_editing/state/border_preview_providers.dart';
+import '../../smart_tiles_studio/application/smart_tile_publication_service.dart';
+import '../application/smart_tile_variant_density.dart';
 
 part 'editor_notifier.g.dart';
+part 'editor_notifier_tileset_library.dart';
 
 /// Valeur sentinelle pour les paramètres optionnels nullable dans [EditorNotifier].
 const Object _trainerUnset = Object();
@@ -319,6 +322,7 @@ String canonicalSmartTileFailureMessage(
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier
+    with _EditorNotifierTilesetLibrary
     implements WorldMapToolActivationHost {
   static const ProjectMapIdPolicy _projectMapIdPolicy = ProjectMapIdPolicy();
   static const ProjectMapManifestIntegrityPolicy
@@ -406,12 +410,14 @@ class EditorNotifier extends _$EditorNotifier
       ref.read(projectContentControllerProvider);
   ProjectSessionController get _projectSessionController =>
       const ProjectSessionController();
+  @override
   EditorMapSessionCoordinator get _editorMapSessionCoordinator =>
       ref.read(editorMapSessionCoordinatorProvider);
   EditorMapMutationCoordinator get _editorMapMutationCoordinator =>
       ref.read(editorMapMutationCoordinatorProvider);
   ProjectWorkspaceFactory get _projectWorkspaceFactory =>
       ref.read(projectWorkspaceFactoryProvider);
+  @override
   ProjectWorkspace? get _projectWorkspace {
     final projectRootPath = state.projectSession.projectRootPath;
     if (projectRootPath == null || projectRootPath.trim().isEmpty) {
@@ -975,6 +981,111 @@ class EditorNotifier extends _$EditorNotifier
       errorMessage: null,
       statusMessage: statusMessage ?? state.statusMessage,
     );
+  }
+
+  /// Réécrit les poids d'une règle du preset et republie celui-ci.
+  ///
+  /// La portée est volontairement globale : c'est le défaut du preset, pas une
+  /// surcharge de calque. Passe par le même chemin canonique que la
+  /// publication du Studio, puis adopte le manifeste relu.
+  Future<void> applySmartTilePresetVariantWeights({
+    required String presetId,
+    required String ruleId,
+    required Map<String, int> weights,
+  }) async {
+    final project = state.project;
+    final projectRootPath = state.projectRootPath;
+    if (project == null || projectRootPath == null) return;
+
+    final preset = project.smartTileCatalog.presets
+        .where((candidate) => candidate.id == presetId)
+        .firstOrNull;
+    if (preset == null) return;
+
+    final updated = applySmartTileVariantWeights(
+      preset: preset,
+      ruleId: ruleId,
+      weights: weights,
+    );
+
+    try {
+      final gateway = CanonicalSmartTilePublicationGateway(
+        mutations: ref.read(authoringMutationAdapterProvider),
+        queries: ref.read(authoringQueryAdapterProvider),
+      );
+      final service = SmartTilePublicationService(gateway: gateway);
+      await service.publishPreset(
+        projectRootPath: projectRootPath,
+        preset: updated,
+      );
+      final canonical = await gateway.load(projectRootPath: projectRootPath);
+      acceptCanonicalProjectManifest(
+        canonical.manifest,
+        statusMessage: 'Densité des variantes mise à jour.',
+      );
+    } catch (error) {
+      debugPrint('EditorNotifier: variant weights publish failed: $error');
+      state = state.copyWith(
+        errorMessage: 'Densité non enregistrée : $error',
+      );
+    }
+  }
+
+  /// Écrit la surcharge de densité portée par un seul calque.
+  ///
+  /// Même chemin canonique que les gestes de peinture Smart Tile : plan,
+  /// application, puis adoption du cliché renvoyé pour que la carte à l'écran
+  /// reparte de la révision écrite.
+  Future<void> applySmartTileLayerVariantWeights({
+    required String mapId,
+    required String layerId,
+    required Map<String, int> weights,
+  }) async {
+    final projectRootPath = state.projectRootPath;
+    if (projectRootPath == null) return;
+
+    final parameters = <String, Object?>{
+      'mapId': mapId,
+      'layerId': layerId,
+      'weights': weights,
+    };
+    final identity = _smartTileEditorMutationIdentity(
+      purpose: 'smart-tile-candidate-weights',
+      values: <String, Object?>{
+        'mapId': mapId,
+        'layerId': layerId,
+        'sequence': ++_smartTileGestureSequence,
+      },
+    );
+
+    try {
+      final mutations = ref.read(authoringMutationAdapterProvider);
+      final plan = await mutations.plan(
+        projectRootPath,
+        actionId: 'smart_tile.layer.set_candidate_weights',
+        parameters: parameters,
+        idempotencyKey: identity,
+        requestId: identity,
+      );
+      final applied = await mutations.apply(
+        plan,
+        operationId: '$identity-apply',
+      );
+      await _adoptCanonicalSmartTileSnapshot(
+        projectRootPath: projectRootPath,
+        expectedSnapshotRevision: applied.snapshotRevision,
+        mapId: mapId,
+        layerId: layerId,
+        statusMessage: 'Densité des variantes mise à jour sur ce calque.',
+      );
+    } on Object catch (error) {
+      debugPrint('EditorNotifier: layer variant weights failed: $error');
+      state = state.copyWith(
+        errorMessage: canonicalSmartTileFailureMessage(
+          EditorAuthoringMutationFailure.capture(error),
+        ),
+      );
+    }
   }
 
   /// Adopts the authoritative manifest + active map returned by one atomic
@@ -3860,314 +3971,6 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  Future<void> importProjectTileset({
-    required String sourcePath,
-    required String name,
-    required TilesetScope scope,
-    String? groupId,
-    bool isWorldTileset = false,
-    String? libraryFolderId,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-
-    try {
-      final useCase = ref.read(importProjectTilesetUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        sourcePath: sourcePath,
-        name: name,
-        scope: scope,
-        groupId: groupId,
-        isWorldTileset: isWorldTileset,
-        folderId: libraryFolderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        selectedTilesetEditorId:
-            updated.tilesets.isNotEmpty ? updated.tilesets.last.id : null,
-        selectedTilesetElementGroupId: null,
-        statusMessage: 'Tileset "$name" imported',
-        errorMessage: null,
-      );
-    } catch (e) {
-      debugPrint('EditorNotifier: Error importing tileset: $e');
-      state = state.copyWith(errorMessage: 'Failed to import tileset: $e');
-    }
-  }
-
-  Future<void> updateProjectTileset({
-    required String tilesetId,
-    String? name,
-    TilesetScope? scope,
-    String? groupId,
-    bool? isWorldTileset,
-    int? sortOrder,
-    String? libraryFolderId,
-    bool clearLibraryFolder = false,
-    TilesetTransparentColor? transparentColor,
-    bool clearTransparentColor = false,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-
-    try {
-      final useCase = ref.read(updateProjectTilesetUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        tilesetId: tilesetId,
-        name: name,
-        scope: scope,
-        groupId: groupId,
-        isWorldTileset: isWorldTileset,
-        sortOrder: sortOrder,
-        folderId: libraryFolderId,
-        clearLibraryFolder: clearLibraryFolder,
-        transparentColor: transparentColor,
-        clearTransparentColor: clearTransparentColor,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Tileset updated',
-        errorMessage: null,
-      );
-    } catch (e) {
-      debugPrint('EditorNotifier: Error updating tileset: $e');
-      state = state.copyWith(errorMessage: 'Failed to update tileset: $e');
-    }
-  }
-
-  Future<void> reorderProjectTileset(String tilesetId, int direction) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-
-    try {
-      final useCase = ref.read(reorderProjectTilesetUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        tilesetId: tilesetId,
-        direction: direction,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Tileset reordered',
-        errorMessage: null,
-      );
-    } catch (e) {
-      debugPrint('EditorNotifier: Error reordering tileset: $e');
-      state = state.copyWith(errorMessage: 'Failed to reorder tileset: $e');
-    }
-  }
-
-  Future<void> createTilesetLibraryFolder({
-    required String name,
-    String? parentFolderId,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(createTilesetLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        name: name,
-        parentFolderId: parentFolderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Tileset folder created',
-        errorMessage: null,
-      );
-    } catch (e) {
-      debugPrint('EditorNotifier: Error creating tileset folder: $e');
-      state = state.copyWith(
-        errorMessage: 'Failed to create tileset folder: $e',
-      );
-    }
-  }
-
-  Future<void> renameTilesetLibraryFolder({
-    required String folderId,
-    required String name,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(renameTilesetLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        folderId: folderId,
-        name: name,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Tileset folder renamed',
-        errorMessage: null,
-      );
-    } catch (e) {
-      debugPrint('EditorNotifier: Error renaming tileset folder: $e');
-      state = state.copyWith(
-        errorMessage: 'Failed to rename tileset folder: $e',
-      );
-    }
-  }
-
-  Future<void> moveTilesetLibraryFolder({
-    required String folderId,
-    String? newParentFolderId,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(moveTilesetLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        folderId: folderId,
-        newParentFolderId: newParentFolderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Tileset folder moved',
-        errorMessage: null,
-      );
-    } catch (e) {
-      debugPrint('EditorNotifier: Error moving tileset folder: $e');
-      state = state.copyWith(
-        errorMessage: 'Failed to move tileset folder: $e',
-      );
-    }
-  }
-
-  Future<void> deleteTilesetLibraryFolder(String folderId) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(deleteTilesetLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        folderId: folderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Tileset folder deleted',
-        errorMessage: null,
-      );
-    } catch (e) {
-      debugPrint('EditorNotifier: Error deleting tileset folder: $e');
-      state = state.copyWith(
-        errorMessage: 'Failed to delete tileset folder: $e',
-      );
-    }
-  }
-
-  Future<void> assignTilesetToLibraryFolder({
-    required String tilesetId,
-    required String folderId,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(assignTilesetToLibraryFolderUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        tilesetId: tilesetId,
-        folderId: folderId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Tileset moved to folder',
-        errorMessage: null,
-      );
-    } catch (e) {
-      debugPrint('EditorNotifier: Error assigning tileset folder: $e');
-      state = state.copyWith(
-        errorMessage: 'Failed to move tileset to folder: $e',
-      );
-    }
-  }
-
-  Future<void> moveTilesetToLibraryRoot(String tilesetId) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-    try {
-      final useCase = ref.read(moveTilesetToLibraryRootUseCaseProvider);
-      final updated = await useCase.execute(
-        fs,
-        project,
-        tilesetId: tilesetId,
-      );
-      state = state.copyWith(
-        project: updated,
-        statusMessage: 'Tileset moved to library root',
-        errorMessage: null,
-      );
-    } catch (e) {
-      debugPrint('EditorNotifier: Error moving tileset to library root: $e');
-      state = state.copyWith(
-        errorMessage: 'Failed to move tileset to library root: $e',
-      );
-    }
-  }
-
-  Future<void> deleteProjectTileset(String tilesetId) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    if (fs == null || project == null) return;
-
-    try {
-      final useCase = ref.read(deleteProjectTilesetUseCaseProvider);
-      final updated = await useCase.execute(fs, project, tilesetId);
-      String? selectedTilesetEditorId = state.selectedTilesetEditorId;
-      var workspaceMode = state.workspaceMode;
-      var activeBrush =
-          _clearBrushIfTilesetRemoved(state.activeBrush, tilesetId);
-      if (selectedTilesetEditorId == tilesetId) {
-        selectedTilesetEditorId =
-            _editorMapSessionCoordinator.resolveSelectedTilesetIdForMap(
-          state.activeMap,
-          preferredLayerId: state.activeLayerId,
-        );
-        if (selectedTilesetEditorId != null &&
-            !updated.tilesets.any((t) => t.id == selectedTilesetEditorId)) {
-          selectedTilesetEditorId =
-              updated.tilesets.isNotEmpty ? updated.tilesets.first.id : null;
-        }
-        if (selectedTilesetEditorId == null) {
-          workspaceMode = EditorWorkspaceMode.map;
-        }
-      }
-      state = state.copyWith(
-        project: updated,
-        workspaceMode: workspaceMode,
-        activeBrush: activeBrush,
-        selectedTilesetEditorId: selectedTilesetEditorId,
-        selectedTilesetElementGroupId: null,
-        statusMessage: 'Tileset deleted',
-        errorMessage: null,
-      );
-      state = _activatePaletteContext(state);
-    } catch (e) {
-      debugPrint('EditorNotifier: Error deleting tileset: $e');
-      state = state.copyWith(errorMessage: 'Failed to delete tileset: $e');
-    }
-  }
-
   ProjectTilesetEntry? getActiveTilesetEntry() {
     return getSelectedTilesetEntry();
   }
@@ -4553,6 +4356,7 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
+  @override
   EditorState _activatePaletteContext(EditorState source) {
     final project = source.project;
     final key = _activePaletteContextKey(source);
@@ -8881,6 +8685,7 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  @override
   EditorBrush _clearBrushIfTilesetRemoved(EditorBrush brush, String tilesetId) {
     if (brush is TileEditorBrush && brush.tilesetId == tilesetId) {
       return const EditorBrush.none();

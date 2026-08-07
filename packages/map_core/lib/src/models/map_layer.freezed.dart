@@ -699,6 +699,8 @@ mixin _$MapLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)
         smartTile,
     required TResult Function(
@@ -759,6 +761,8 @@ mixin _$MapLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
@@ -814,6 +818,8 @@ mixin _$MapLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
@@ -1130,6 +1136,8 @@ class _$TileLayerImpl extends TileLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)
         smartTile,
     required TResult Function(
@@ -1193,6 +1201,8 @@ class _$TileLayerImpl extends TileLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
@@ -1251,6 +1261,8 @@ class _$TileLayerImpl extends TileLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
@@ -1530,6 +1542,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)
         smartTile,
     required TResult Function(
@@ -1593,6 +1607,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
@@ -1651,6 +1667,8 @@ class _$CollisionLayerImpl extends CollisionLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
@@ -1787,6 +1805,8 @@ abstract class _$$SmartTileLayerImplCopyWith<$Res>
       SmartTileField field,
       List<SmartTilePatternStroke> patternStrokes,
       int layerSeed,
+      @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+      Map<String, int> candidateWeights,
       Map<String, String> properties});
 
   $SmartTileFieldCopyWith<$Res> get field;
@@ -1815,6 +1835,7 @@ class __$$SmartTileLayerImplCopyWithImpl<$Res>
     Object? field = null,
     Object? patternStrokes = null,
     Object? layerSeed = null,
+    Object? candidateWeights = null,
     Object? properties = null,
   }) {
     return _then(_$SmartTileLayerImpl(
@@ -1858,6 +1879,10 @@ class __$$SmartTileLayerImplCopyWithImpl<$Res>
           ? _value.layerSeed
           : layerSeed // ignore: cast_nullable_to_non_nullable
               as int,
+      candidateWeights: null == candidateWeights
+          ? _value._candidateWeights
+          : candidateWeights // ignore: cast_nullable_to_non_nullable
+              as Map<String, int>,
       properties: null == properties
           ? _value._properties
           : properties // ignore: cast_nullable_to_non_nullable
@@ -1892,10 +1917,13 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
       final List<SmartTilePatternStroke> patternStrokes =
           const <SmartTilePatternStroke>[],
       this.layerSeed = 0,
+      @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+      final Map<String, int> candidateWeights = const <String, int>{},
       final Map<String, String> properties = const <String, String>{},
       final String? $type})
       : _materialPalette = materialPalette,
         _patternStrokes = patternStrokes,
+        _candidateWeights = candidateWeights,
         _properties = properties,
         $type = $type ?? 'smart_tile',
         super._();
@@ -1940,6 +1968,25 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
   @override
   @JsonKey()
   final int layerSeed;
+
+  /// Surcharge locale des poids de variantes du preset, par identifiant de
+  /// candidat. Une clé absente prend le poids du preset ; `0` exclut le
+  /// candidat du tirage sur ce calque. Table vide : le calque suit le
+  /// preset, et la clé n'est pas sérialisée.
+  final Map<String, int> _candidateWeights;
+
+  /// Surcharge locale des poids de variantes du preset, par identifiant de
+  /// candidat. Une clé absente prend le poids du preset ; `0` exclut le
+  /// candidat du tirage sur ce calque. Table vide : le calque suit le
+  /// preset, et la clé n'est pas sérialisée.
+  @override
+  @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+  Map<String, int> get candidateWeights {
+    if (_candidateWeights is EqualUnmodifiableMapView) return _candidateWeights;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_candidateWeights);
+  }
+
   final Map<String, String> _properties;
   @override
   @JsonKey()
@@ -1954,7 +2001,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
 
   @override
   String toString() {
-    return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, field: $field, patternStrokes: $patternStrokes, layerSeed: $layerSeed, properties: $properties)';
+    return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, field: $field, patternStrokes: $patternStrokes, layerSeed: $layerSeed, candidateWeights: $candidateWeights, properties: $properties)';
   }
 
   @override
@@ -1978,6 +2025,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             (identical(other.layerSeed, layerSeed) ||
                 other.layerSeed == layerSeed) &&
             const DeepCollectionEquality()
+                .equals(other._candidateWeights, _candidateWeights) &&
+            const DeepCollectionEquality()
                 .equals(other._properties, _properties));
   }
 
@@ -1995,6 +2044,7 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
       field,
       const DeepCollectionEquality().hash(_patternStrokes),
       layerSeed,
+      const DeepCollectionEquality().hash(_candidateWeights),
       const DeepCollectionEquality().hash(_properties));
 
   /// Create a copy of MapLayer
@@ -2032,6 +2082,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)
         smartTile,
     required TResult Function(
@@ -2066,8 +2118,19 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             Map<String, String> properties)
         border,
   }) {
-    return smartTile(id, name, isVisible, opacity, presetId, usage,
-        materialPalette, field, patternStrokes, layerSeed, properties);
+    return smartTile(
+        id,
+        name,
+        isVisible,
+        opacity,
+        presetId,
+        usage,
+        materialPalette,
+        field,
+        patternStrokes,
+        layerSeed,
+        candidateWeights,
+        properties);
   }
 
   @override
@@ -2096,6 +2159,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
@@ -2125,8 +2190,19 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             Map<String, String> properties)?
         border,
   }) {
-    return smartTile?.call(id, name, isVisible, opacity, presetId, usage,
-        materialPalette, field, patternStrokes, layerSeed, properties);
+    return smartTile?.call(
+        id,
+        name,
+        isVisible,
+        opacity,
+        presetId,
+        usage,
+        materialPalette,
+        field,
+        patternStrokes,
+        layerSeed,
+        candidateWeights,
+        properties);
   }
 
   @override
@@ -2155,6 +2231,8 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
@@ -2186,8 +2264,19 @@ class _$SmartTileLayerImpl extends SmartTileLayer {
     required TResult orElse(),
   }) {
     if (smartTile != null) {
-      return smartTile(id, name, isVisible, opacity, presetId, usage,
-          materialPalette, field, patternStrokes, layerSeed, properties);
+      return smartTile(
+          id,
+          name,
+          isVisible,
+          opacity,
+          presetId,
+          usage,
+          materialPalette,
+          field,
+          patternStrokes,
+          layerSeed,
+          candidateWeights,
+          properties);
     }
     return orElse();
   }
@@ -2255,6 +2344,8 @@ abstract class SmartTileLayer extends MapLayer {
       required final SmartTileField field,
       final List<SmartTilePatternStroke> patternStrokes,
       final int layerSeed,
+      @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+      final Map<String, int> candidateWeights,
       final Map<String, String> properties}) = _$SmartTileLayerImpl;
   const SmartTileLayer._() : super._();
 
@@ -2275,6 +2366,13 @@ abstract class SmartTileLayer extends MapLayer {
   SmartTileField get field;
   List<SmartTilePatternStroke> get patternStrokes;
   int get layerSeed;
+
+  /// Surcharge locale des poids de variantes du preset, par identifiant de
+  /// candidat. Une clé absente prend le poids du preset ; `0` exclut le
+  /// candidat du tirage sur ce calque. Table vide : le calque suit le
+  /// preset, et la clé n'est pas sérialisée.
+  @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+  Map<String, int> get candidateWeights;
   Map<String, String> get properties;
 
   /// Create a copy of MapLayer
@@ -2454,6 +2552,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)
         smartTile,
     required TResult Function(
@@ -2517,6 +2617,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
@@ -2575,6 +2677,8 @@ class _$ObjectLayerImpl extends ObjectLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
@@ -2872,6 +2976,8 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)
         smartTile,
     required TResult Function(
@@ -2935,6 +3041,8 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
@@ -2993,6 +3101,8 @@ class _$EnvironmentLayerImpl extends EnvironmentLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,
@@ -3298,6 +3408,8 @@ class _$BorderLayerImpl extends BorderLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)
         smartTile,
     required TResult Function(
@@ -3361,6 +3473,8 @@ class _$BorderLayerImpl extends BorderLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult? Function(String id, String name, bool isVisible, double opacity,
@@ -3419,6 +3533,8 @@ class _$BorderLayerImpl extends BorderLayer {
             SmartTileField field,
             List<SmartTilePatternStroke> patternStrokes,
             int layerSeed,
+            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+            Map<String, int> candidateWeights,
             Map<String, String> properties)?
         smartTile,
     TResult Function(String id, String name, bool isVisible, double opacity,

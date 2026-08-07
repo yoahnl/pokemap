@@ -6,11 +6,14 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
 import '../../../smart_tiles_studio/presentation/smart_tile_behavior_action_menu.dart';
+import '../../../smart_tiles_studio/presentation/smart_tile_sprite_preview.dart';
+import '../../application/smart_tile_variant_density.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import '../../tools/editor_tool.dart';
 import 'world_map_paint_inspection_intent.dart';
+import 'world_map_smart_tile_density_section.dart';
 import 'world_map_smart_tile_gesture_mode.dart';
 import 'world_map_workspace_session.dart';
 
@@ -48,6 +51,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
           map: state.activeMap,
           activeLayerId: state.activeLayerId,
           activeTool: state.activeTool,
+          projectRootPath: state.projectRootPath,
         ),
       ),
     );
@@ -285,6 +289,40 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                   ],
                 ),
               ],
+              if (activePreset != null &&
+                  activeLayer != null &&
+                  snapshot.project != null)
+                switch (smartTileFillRuleOf(activePreset)) {
+                  null => const SizedBox.shrink(),
+                  final fillRule => WorldMapSmartTileDensitySection(
+                      key: ValueKey<String>(
+                        'world-map-density-${activePreset.id}',
+                      ),
+                      rule: fillRule,
+                      layerWeights: activeLayer.candidateWeights,
+                      spriteBuilder: (candidate) => _candidateSpritePreview(
+                        catalog: snapshot.project!.smartTileCatalog,
+                        tilesets: snapshot.project!.tilesets,
+                        projectRootPath: snapshot.projectRootPath,
+                        candidate: candidate,
+                      ),
+                      isEditable: canEdit,
+                      onApply: (scope, weights) => switch (scope) {
+                        SmartTileDensityScope.layer =>
+                          notifier.applySmartTileLayerVariantWeights(
+                            mapId: snapshot.map!.id,
+                            layerId: activeLayer.id,
+                            weights: weights,
+                          ),
+                        SmartTileDensityScope.preset =>
+                          notifier.applySmartTilePresetVariantWeights(
+                            presetId: activePreset.id,
+                            ruleId: fillRule.id,
+                            weights: weights,
+                          ),
+                      },
+                    ),
+                },
               if (activeLayer != null && snapshot.project != null) ...[
                 const SizedBox(height: 10),
                 PokeMapSectionHeader(
@@ -563,4 +601,34 @@ SmartTileLayer? _layerForPreset(
     }
   }
   return null;
+}
+
+/// Vignette du premier visuel d'un candidat : la frame directe, ou la
+/// première frame de son animation. Sans visuel résoluble, un simple gabarit
+/// vide garde l'alignement des curseurs.
+Widget _candidateSpritePreview({
+  required ProjectSmartTileCatalog catalog,
+  required Iterable<ProjectTilesetEntry> tilesets,
+  required String? projectRootPath,
+  required SmartTileCandidate candidate,
+}) {
+  final source = candidate.parts.isEmpty ? null : candidate.parts.first.source;
+  final frame = switch (source) {
+    SmartTileFrameSource(:final frame) => frame,
+    SmartTileAnimationSource(:final animationId) => catalog.animations
+        .where((animation) => animation.id == animationId)
+        .firstOrNull
+        ?.frames
+        .firstOrNull
+        ?.frame,
+    null => null,
+  };
+  if (frame == null) return const SizedBox(width: 24, height: 24);
+  return SmartTileSpritePreview(
+    frame: frame,
+    atlases: catalog.atlases,
+    tilesets: tilesets,
+    projectRootPath: projectRootPath,
+    size: 24,
+  );
 }

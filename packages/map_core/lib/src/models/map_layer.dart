@@ -29,6 +29,11 @@ BorderLayerContent _borderLayerContentFromJson(Object? json) {
 Map<String, Object?> _borderLayerContentToJson(BorderLayerContent content) =>
     encodeBorderLayerContentJson(content, path: r'$.content');
 
+/// Une table vide n'écrit pas de clé : combiné à `includeIfNull: false`, cela
+/// évite un `"candidateWeights":{}` sur chaque calque Smart Tile existant.
+Map<String, int>? _candidateWeightsToJson(Map<String, int> weights) =>
+    weights.isEmpty ? null : weights;
+
 /// Declares whether a literal layer participates in the playable visual stack.
 ///
 /// Data layers remain fully authored and inspectable, but runtime composition
@@ -126,6 +131,14 @@ sealed class MapLayer with _$MapLayer {
     @Default(<SmartTilePatternStroke>[])
     List<SmartTilePatternStroke> patternStrokes,
     @Default(0) int layerSeed,
+
+    /// Surcharge locale des poids de variantes du preset, par identifiant de
+    /// candidat. Une clé absente prend le poids du preset ; `0` exclut le
+    /// candidat du tirage sur ce calque. Table vide : le calque suit le
+    /// preset, et la clé n'est pas sérialisée.
+    @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
+    @Default(<String, int>{})
+    Map<String, int> candidateWeights,
     @Default(<String, String>{}) Map<String, String> properties,
   }) = SmartTileLayer;
 

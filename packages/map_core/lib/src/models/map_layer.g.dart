@@ -139,6 +139,11 @@ _$SmartTileLayerImpl _$$SmartTileLayerImplFromJson(Map<String, dynamic> json) =>
               .toList() ??
           const <SmartTilePatternStroke>[],
       layerSeed: (json['layerSeed'] as num?)?.toInt() ?? 0,
+      candidateWeights:
+          (json['candidateWeights'] as Map<String, dynamic>?)?.map(
+                (k, e) => MapEntry(k, (e as num).toInt()),
+              ) ??
+              const <String, int>{},
       properties: (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
@@ -159,6 +164,8 @@ Map<String, dynamic> _$$SmartTileLayerImplToJson(
       'field': instance.field.toJson(),
       'patternStrokes': instance.patternStrokes.map((e) => e.toJson()).toList(),
       'layerSeed': instance.layerSeed,
+      if (_candidateWeightsToJson(instance.candidateWeights) case final value?)
+        'candidateWeights': value,
       'properties': instance.properties,
       'runtimeType': instance.$type,
     };

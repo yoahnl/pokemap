@@ -114,7 +114,11 @@ d'arrondi :
 
 - un candidat que l'auteur a posé à `0` reste à exactement `0` et sort de la redistribution ;
 - un candidat dont la part arrondirait à `0` sans avoir été posé à `0` est plancherisé à `1`, pour
-  que « rare » ne devienne jamais « jamais » par accident.
+  que « rare » ne devienne jamais « jamais » par accident ;
+- conséquence arithmétique du plancher : la cible demandée est **bornée** à `1000 − N` où `N` est
+  le nombre d'autres variantes positives — demander 99 % avec quarante variantes vivantes pose
+  96 %, et le curseur retombe sur la valeur réellement posée ; la seule variante positive d'une
+  règle reste à `1000`, il n'y a rien pour compenser une baisse.
 
 Les presets importés arrivent avec tous leurs candidats à `1000`, soit un total de `11000` pour une
 règle à 11 variantes. Le premier « Appliquer » les renormalise à un total de `1000`. La distribution
