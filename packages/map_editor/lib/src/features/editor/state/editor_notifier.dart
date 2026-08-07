@@ -181,8 +181,14 @@ final class _PendingSmartTileGesture {
   final String mapId;
   final String layerId;
   final String? materialId;
-  final EditorState rollbackState;
-  final SmartTileGestureSelection? selection;
+
+  /// Re-anchored on every adopted snapshot: once a canonical write lands, the
+  /// state captured before it no longer describes anything on disk.
+  EditorState rollbackState;
+
+  /// Cleared when clicks with different selections merge: the canonical action
+  /// then carries the plain cell list, which describes the same edit.
+  SmartTileGestureSelection? selection;
   final Set<GridPos> cells = <GridPos>{};
 }
 
@@ -259,9 +265,11 @@ ProjectMapEntry? _findMapEntryForPath(
 /// How many times a canonical Smart Tile mutation replans after `plan.stale`.
 ///
 /// The Studio autosaves drafts on a debounce, so a background write can land
-/// between reading the project revision and planning against it. One replan
-/// clears that race; a persistent conflict is reported instead of looping.
-const int _canonicalStalePlanRetryBudget = 1;
+/// between reading the project revision and planning against it. A debounce can
+/// fire more than once while the author is clicking, and a single replan left
+/// them retrying the button by hand; a persistent conflict is still reported
+/// rather than looped on forever.
+const int _canonicalStalePlanRetryBudget = 4;
 
 /// Shown when the open session no longer matches the document on disk.
 ///
@@ -363,6 +371,14 @@ class EditorNotifier extends _$EditorNotifier
   bool _suppressBorderSelectionReconciliation = false;
   bool _registeredNarrativeDocumentDisposal = false;
   _PendingSmartTileGesture? _pendingSmartTileGesture;
+
+  /// Whether the map is only dirty because of Smart Tile work we already own.
+  ///
+  /// That work is on its way to disk, so refusing the next click over it would
+  /// make ordinary clicking impossible. Unrelated unsaved edits still block,
+  /// since a canonical gesture plans against the stored version.
+  bool get _canonicalSmartTileGestureOwnsDirtyMap =>
+      _smartTileGestureCommitInProgress || _pendingSmartTileGesture != null;
   bool _smartTileGestureCommitInProgress = false;
   bool _smartTileCanonicalRecoveryRequired = false;
   int _smartTileGestureSequence = 0;
@@ -5605,15 +5621,14 @@ class EditorNotifier extends _$EditorNotifier
     final selectedCells = cells.toSet().toList(growable: false);
     if (selectedCells.isEmpty) return;
     if (state.projectRootPath != null &&
-        (_smartTileGestureCommitInProgress ||
-            _smartTileCanonicalRecoveryRequired ||
-            state.isDirty && state.mapStrokeStart == null)) {
+        (_smartTileCanonicalRecoveryRequired ||
+            state.isDirty &&
+                state.mapStrokeStart == null &&
+                !_canonicalSmartTileGestureOwnsDirtyMap)) {
       _setPaintError(
         _smartTileCanonicalRecoveryRequired
             ? editorReloadRequiredMessage
-            : _smartTileGestureCommitInProgress
-                ? editorSmartTileCommitInProgressMessage
-                : editorSmartTileCleanMapRequiredMessage,
+            : editorSmartTileCleanMapRequiredMessage,
       );
       return;
     }
@@ -5741,15 +5756,14 @@ class EditorNotifier extends _$EditorNotifier
       );
     } else if (layer is SmartTileLayer) {
       if (state.projectRootPath != null &&
-          (_smartTileGestureCommitInProgress ||
-              _smartTileCanonicalRecoveryRequired ||
-              state.isDirty && state.mapStrokeStart == null)) {
+          (_smartTileCanonicalRecoveryRequired ||
+              state.isDirty &&
+                  state.mapStrokeStart == null &&
+                  !_canonicalSmartTileGestureOwnsDirtyMap)) {
         _setPaintError(
           _smartTileCanonicalRecoveryRequired
               ? editorReloadRequiredMessage
-              : _smartTileGestureCommitInProgress
-                  ? editorSmartTileCommitInProgressMessage
-                  : editorSmartTileCleanMapRequiredMessage,
+              : editorSmartTileCleanMapRequiredMessage,
         );
         return false;
       }
@@ -8120,29 +8134,24 @@ class EditorNotifier extends _$EditorNotifier
     final activeLayer =
         map == null || layerId == null ? null : _findLayerById(map, layerId);
     if (activeLayer is SmartTileLayer &&
-        (state.isDirty ||
-            _smartTileGestureCommitInProgress ||
+        (state.isDirty && !_canonicalSmartTileGestureOwnsDirtyMap ||
             _smartTileCanonicalRecoveryRequired)) {
       state = state.copyWith(
         errorMessage: _smartTileCanonicalRecoveryRequired
             ? 'Rechargez la map avant de continuer la peinture Smart Tile.'
-            : _smartTileGestureCommitInProgress
-                ? 'La peinture Smart Tile précédente est encore en cours '
-                    'd’enregistrement.'
-                : 'Enregistrez les modifications de la map avant de peindre un '
-                    'Smart Tile.',
+            : 'Enregistrez les modifications de la map avant de peindre un '
+                'Smart Tile.',
       );
       return;
     }
-    _pendingSmartTileGesture = null;
+    // A burst still waiting for the in-flight write keeps its gesture: dropping
+    // it here would leave those cells on screen with no commit to carry them.
     state = _mapEditingController.beginStroke(state);
   }
 
   void endMapStroke() {
-    final gesture = _pendingSmartTileGesture;
-    _pendingSmartTileGesture = null;
     state = _mapEditingController.endStroke(state);
-    if (gesture != null) unawaited(_commitCanonicalSmartTileGesture(gesture));
+    _flushPendingSmartTileGesture();
   }
 
   void cancelMapStroke() {
@@ -8184,19 +8193,40 @@ class EditorNotifier extends _$EditorNotifier
       _pendingSmartTileGesture = gesture;
     } else if (gesture.mapId != mapId ||
         gesture.layerId != layerId ||
-        gesture.materialId != materialId ||
-        gesture.selection != selection) {
+        gesture.materialId != materialId) {
       state = state.copyWith(
         errorMessage: 'Un geste Smart Tile ne peut viser qu’une seule couche '
             'et un seul matériau.',
       );
       return;
+    } else if (gesture.selection != selection) {
+      // Same layer and material, different shapes: one edit over the union of
+      // their cells. Drop the shape, keep every cell.
+      gesture.selection = null;
     }
     gesture.cells.addAll(additions);
-    if (commitImmediately) {
-      _pendingSmartTileGesture = null;
-      unawaited(_commitCanonicalSmartTileGesture(gesture));
+    if (!commitImmediately) return;
+    _flushPendingSmartTileGesture();
+  }
+
+  /// Starts the canonical write for the pending gesture, unless one is running.
+  ///
+  /// A canonical write costs hundreds of milliseconds, so committing per click
+  /// made ordinary clicking collide with itself. The write in flight *is* the
+  /// coalescing window: clicks landing during it stay in the pending gesture
+  /// and leave together with the next write, which also gives the author one
+  /// undo step per burst instead of one per click.
+  void _flushPendingSmartTileGesture() {
+    if (_smartTileGestureCommitInProgress ||
+        _smartTileCanonicalRecoveryRequired) {
+      return;
     }
+    // The canvas arbiter still owns the stroke; [endMapStroke] flushes it.
+    if (state.mapStrokeStart != null) return;
+    final gesture = _pendingSmartTileGesture;
+    if (gesture == null || gesture.cells.isEmpty) return;
+    _pendingSmartTileGesture = null;
+    unawaited(_commitCanonicalSmartTileGesture(gesture));
   }
 
   Future<void> _commitCanonicalSmartTileGesture(
@@ -8263,9 +8293,16 @@ class EditorNotifier extends _$EditorNotifier
       _canonicalSmartTileUndoStack.add(historyEntry);
       _canonicalSmartTileRedoStack.clear();
       _smartTileCanonicalRecoveryRequired = false;
-      if (adopted) _syncCanonicalSmartTileHistoryFlags();
+      if (adopted) {
+        _replayPendingSmartTileGestureOverAdoptedMap();
+        _syncCanonicalSmartTileHistoryFlags();
+      }
     } on Object catch (error) {
       final failure = EditorAuthoringMutationFailure.capture(error);
+      // Rolling back restores the map from before this burst, which also undoes
+      // the cells clicked while it was being written. Drop their gesture too
+      // rather than commit cells the author can no longer see.
+      _pendingSmartTileGesture = null;
       if (applied == null) {
         _rollbackOptimisticSmartTileGesture(
           gesture,
@@ -8277,6 +8314,7 @@ class EditorNotifier extends _$EditorNotifier
       }
     } finally {
       _smartTileGestureCommitInProgress = false;
+      _flushPendingSmartTileGesture();
     }
   }
 
@@ -8526,6 +8564,46 @@ class EditorNotifier extends _$EditorNotifier
       preservePaintTool: true,
       preserveCanonicalGestureHistory: true,
     );
+  }
+
+  /// Re-paints the cells clicked while the adopted snapshot was being written.
+  ///
+  /// An adopted snapshot is the disk truth for the burst that just landed and
+  /// knows nothing of the clicks that arrived since, so adopting it on its own
+  /// wipes them off the canvas until their own write lands — the author sees
+  /// the path they just erased come back, then vanish again. Replaying them
+  /// keeps the canvas continuous, and re-anchors the rollback checkpoint on the
+  /// snapshot the next write will plan against, so it can no longer go stale.
+  void _replayPendingSmartTileGestureOverAdoptedMap() {
+    final pending = _pendingSmartTileGesture;
+    if (pending == null || pending.cells.isEmpty) return;
+    final map = state.activeMap;
+    if (map == null || map.id != pending.mapId) return;
+    final layer = _findLayerById(map, pending.layerId);
+    if (layer is! SmartTileLayer) return;
+    pending.rollbackState = state;
+    try {
+      final painted = applySmartTileMaterialGesture(
+        layer,
+        mapSize: map.size,
+        cells: pending.cells.toList(growable: false),
+        materialId: pending.materialId,
+      );
+      if (painted == layer) return;
+      final updated = replaceSmartTileLayer(map, layer: painted);
+      MapValidator.validate(updated, projectDialogueContext: state.project);
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: pending.layerId,
+        // A drag started over the write owns its own undo boundary; replaying
+        // inside it must not open a second one.
+        partOfStroke: state.mapStrokeStart != null,
+      );
+    } catch (error) {
+      _pendingSmartTileGesture = null;
+      _setPaintError('Failed to replay pending Smart Tile cells: $error');
+    }
   }
 
   void _rollbackOptimisticSmartTileGesture(
@@ -9347,17 +9425,15 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return;
     try {
       final useCase = ref.read(addMapLayerUseCaseProvider);
-      int? insertIndex;
-      final activeId = state.activeLayerId;
       // Border layers represent authored visual overlays. Their default
       // creation position is the end of the authored stack, independently of
       // whichever legacy layer happens to be active.
-      if (kind != MapLayerKind.border && activeId != null) {
-        final idx = map.layers.indexWhere((layer) => layer.id == activeId);
-        if (idx >= 0) {
-          insertIndex = idx;
-        }
-      }
+      final insertIndex = kind == MapLayerKind.border
+          ? null
+          : resolveAuthoredLayerInsertIndex(
+              map,
+              activeLayerId: state.activeLayerId,
+            );
       final result = useCase.execute(
         map,
         kind: kind,
@@ -9407,20 +9483,56 @@ class EditorNotifier extends _$EditorNotifier
     return outcome == MapActivationOutcome.activated;
   }
 
+  /// Persists whatever the session still owns so a canonical Smart Tile layer
+  /// can be planned against the stored document.
+  ///
+  /// Returns false — with an actionable error already in state — when the save
+  /// could not complete, since planning over unsaved work would discard it.
+  Future<bool> _flushSessionForCanonicalSmartTileLayer() async {
+    if (state.isProjectDirty && !await saveProjectManifest()) {
+      state = state.copyWith(
+        errorMessage: 'Le projet n’a pas pu être enregistré, donc le calque '
+            'Smart Tile n’a pas été créé. Corrigez l’erreur ci-dessus, puis '
+            'réessayez.',
+      );
+      return false;
+    }
+    if (!state.isDirty) return true;
+    final outcome = await saveActiveMap();
+    if (outcome == ActiveMapSaveOutcome.saved) return true;
+    // A blocked save has already explained itself (border decision, bulk
+    // placement loss, conflict…); only the silent outcomes need a message.
+    if (state.errorMessage == null) {
+      state = state.copyWith(
+        errorMessage: 'La carte n’a pas pu être enregistrée, donc le calque '
+            'Smart Tile n’a pas été créé. Enregistrez la carte, puis '
+            'réessayez.',
+      );
+    }
+    return false;
+  }
+
   Future<bool> createCanonicalSmartTileLayer({
     required ProjectSmartTilePreset preset,
     String? name,
   }) async {
-    final map = state.activeMap;
     final projectRootPath = state.projectRootPath;
-    if (map == null || projectRootPath == null) return false;
-    if (state.isDirty || state.isProjectDirty) {
-      state = state.copyWith(
-        errorMessage: 'Enregistrez les modifications en cours avant d’ajouter '
-            'un calque Smart Tile.',
-      );
+    if (state.activeMap == null || projectRootPath == null) return false;
+    // The canonical action plans against the stored document, so a dirty
+    // session would be planned away. Flushing it here is what the author would
+    // do by hand anyway; refusing the click only made them do it twice.
+    if (!await _flushSessionForCanonicalSmartTileLayer()) {
       return false;
     }
+    final map = state.activeMap;
+    if (map == null) return false;
+    // A terrain provider fills the whole map, so creating one in front would
+    // hide everything under it. Everything else belongs above the active layer.
+    final insertIndex = resolveAuthoredLayerInsertIndex(
+      map,
+      activeLayerId: state.activeLayerId,
+      sendToBack: preset.usage == SmartTileUsage.terrain,
+    );
     final layerId = _nextCanonicalSmartTileLayerId(map, preset.id);
     final layerName = (name ?? preset.name).trim();
     if (layerName.isEmpty) return false;
@@ -9452,6 +9564,7 @@ class EditorNotifier extends _$EditorNotifier
               'presetId': preset.id,
               'layerId': layerId,
               'name': layerName,
+              'insertIndex': insertIndex,
             },
             expectedRevision: before.snapshotRevision,
             idempotencyKey: identity,
@@ -11259,7 +11372,7 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  void deleteMapLayer(String layerId) {
+  void deleteMapLayer(String layerId, {bool confirmBulkPlacementLoss = false}) {
     final map = state.activeMap;
     if (map == null) return;
     final removedIndex = _findLayerIndexById(map, layerId);
@@ -11267,6 +11380,8 @@ class EditorNotifier extends _$EditorNotifier
     try {
       final useCase = ref.read(deleteMapLayerUseCaseProvider);
       final updated = useCase.execute(map, layerId: layerId);
+      final removedPlacements =
+          updated.placedElements.length < map.placedElements.length;
       final nextActiveLayerId = state.activeLayerId == layerId
           ? _editorMapSessionCoordinator.resolveFallbackLayerIdAfterDeletion(
               updated,
@@ -11282,6 +11397,14 @@ class EditorNotifier extends _$EditorNotifier
         preferredActiveLayerId: nextActiveLayerId,
         statusMessage: 'Calque supprimé',
       );
+      // Deleting a layer drops the placements it hosted, which can trip the
+      // save-time bulk placement loss guard. An author who confirmed this
+      // deletion has already accepted that loss, so carry the confirmation
+      // over instead of blocking the save with no way out.
+      if (removedPlacements) {
+        _confirmedBulkPlacementLossBaseline =
+            confirmBulkPlacementLoss ? state.savedMapSnapshot : null;
+      }
       _coerceEnvironmentMaskSelectionAfterMapChange();
     } on EditorValidationException catch (e) {
       state = state.copyWith(errorMessage: e.message);
