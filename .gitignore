@@ -42,3 +42,6 @@ packages/map_editor/test/**/failures/
 # Local Pokemon SDK fixture project. The wildcard avoids macOS Unicode
 # normalization issues between "pokemon", "pokémon", and "pokémon".
 /pok*mon_sdk_test_project/
+
+# Superpowers brainstorming scratch
+.superpowers/
