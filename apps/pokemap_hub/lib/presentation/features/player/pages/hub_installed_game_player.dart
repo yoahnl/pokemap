@@ -22,8 +22,8 @@ import 'package:pokemap_hub/presentation/features/player/pages/hub_intro_video_p
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
 import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_save_profiles_screen.dart';
-import 'package:pokemap_hub/presentation/features/player/state/hub_title_presentation_loader.dart';
-import 'package:pokemap_hub/presentation/features/player/state/player_launch_failure.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/features/session/application/services/player_launch_failure.dart';
 import 'package:pokemap_hub/presentation/features/player/state/player_typography_loader.dart';
 import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';

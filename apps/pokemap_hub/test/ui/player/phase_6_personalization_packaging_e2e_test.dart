@@ -10,7 +10,7 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
-import 'package:pokemap_hub/presentation/features/player/state/hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
 import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 import 'package:pub_semver/pub_semver.dart';
 

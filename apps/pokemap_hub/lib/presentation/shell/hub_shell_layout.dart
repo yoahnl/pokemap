@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
@@ -6,6 +5,7 @@ import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearan
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
 
 /// Letterbox backdrop and the too-small viewport notice.
 ///
@@ -42,7 +42,7 @@ class AveluneLetterboxBackdrop extends StatelessWidget {
       preferences ?? const AveluneAppearancePreferences(),
       customBackgroundPath == null
           ? null
-          : FileImage(File(customBackgroundPath)),
+          : requireLocalArtworkImage(customBackgroundPath),
     );
     return IgnorePointer(
       child: Stack(

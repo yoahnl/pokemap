@@ -7,7 +7,7 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:video_player/video_player.dart';
 
-import 'package:pokemap_hub/presentation/features/player/state/hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
 
 @immutable
 final class HubIntroPlaybackSnapshot {

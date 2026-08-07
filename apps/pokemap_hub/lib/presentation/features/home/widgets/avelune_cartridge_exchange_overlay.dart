@@ -1,10 +1,10 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
 
 class AveluneCartridgeExchangeOverlay extends StatelessWidget {
   const AveluneCartridgeExchangeOverlay({
@@ -112,5 +112,5 @@ double _connectorOpacity(double progress) {
 ImageProvider<Object>? _artworkFor(AveluneArtworkViewData artwork) {
   final path = artwork.path;
   if (path == null || path.trim().isEmpty) return null;
-  return FileImage(File(path));
+  return requireLocalArtworkImage(path);
 }

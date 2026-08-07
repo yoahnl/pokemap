@@ -7,7 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/presentation/features/player/state/hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 void main() {

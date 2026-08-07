@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -11,6 +10,7 @@ import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_shelf.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
 
 /// How far the cartridges stand above the shelf board's front lip, as a
 /// fraction of the alcove height.
@@ -476,6 +476,6 @@ ImageProvider<Object> _backgroundFor(
 ImageProvider<Object>? _artworkFor(AveluneArtworkViewData artwork) {
   final path = artwork.path;
   if (path == null || path.trim().isEmpty) return null;
-  return FileImage(File(path));
+  return requireLocalArtworkImage(path);
 }
 

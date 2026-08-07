@@ -1,10 +1,10 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
 import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
 
 class AveluneAppearanceSettings extends StatelessWidget {
   const AveluneAppearanceSettings({
@@ -125,8 +125,8 @@ class _BackgroundGrid extends StatelessWidget {
 
   Widget? _customThumbnail(String? path) {
     if (path == null) return null;
-    return Image.file(
-      File(path),
+    return Image(
+      image: requireLocalArtworkImage(path),
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => const SizedBox.shrink(),
     );
@@ -319,8 +319,10 @@ class _CustomBackgroundSection extends StatelessWidget {
                 child: SizedBox(
                   height: 160,
                   width: double.infinity,
-                  child: Image.file(
-                    File(state.customBackgroundThumbnailPath!),
+                  child: Image(
+                    image: requireLocalArtworkImage(
+                      state.customBackgroundThumbnailPath!,
+                    ),
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => DecoratedBox(
                       decoration: BoxDecoration(

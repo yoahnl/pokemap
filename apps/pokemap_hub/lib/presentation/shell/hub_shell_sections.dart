@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
@@ -10,6 +9,7 @@ import 'package:pokemap_hub/presentation/features/home/pages/avelune_home_screen
 import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
 
 /// Per-section content of the Hub shell, plus its header.
 ///
@@ -55,7 +55,7 @@ class AveluneHomeContent extends StatelessWidget {
                 referenceTime: referenceTime,
                 appearance: state.preferences,
                 customBackground: state.customBackgroundPath != null
-                    ? FileImage(File(state.customBackgroundPath!))
+                    ? requireLocalArtworkImage(state.customBackgroundPath!)
                     : null,
                 onGameSelected: (game) => controller.selectGame(game.id),
                 onShowDetails: (game) => _showDetails(context, game.id),

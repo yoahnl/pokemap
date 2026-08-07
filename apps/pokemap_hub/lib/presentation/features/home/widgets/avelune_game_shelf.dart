@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -8,6 +7,7 @@ import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
 
 const double kAveluneGameShelfMaxCacheExtent = 640;
 
@@ -214,5 +214,5 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
 ImageProvider<Object>? _artworkFor(AveluneArtworkViewData artwork) {
   final path = artwork.path;
   if (path == null || path.trim().isEmpty) return null;
-  return FileImage(File(path));
+  return requireLocalArtworkImage(path);
 }

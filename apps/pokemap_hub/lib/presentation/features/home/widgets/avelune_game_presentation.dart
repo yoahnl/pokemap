@@ -1,10 +1,10 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
 
 String aveluneArtworkHeroTag(String gameId) => 'avelune-artwork-$gameId';
 
@@ -37,7 +37,7 @@ ImageProvider<Object>? aveluneArtworkFor(HubGameView game) {
   final path = game.activity.coverPath ??
       game.activity.heroPath ??
       game.activity.iconPath;
-  return path == null ? null : FileImage(File(path));
+  return localArtworkImage(path);
 }
 
 Color aveluneShellColorFor(BuildContext context, HubGameView game) {

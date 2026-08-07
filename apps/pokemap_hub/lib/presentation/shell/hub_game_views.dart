@@ -1,9 +1,9 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
 
 final class HubUiActions {
   const HubUiActions({
@@ -57,8 +57,8 @@ class HubArtwork extends StatelessWidget {
     );
     final assetPath = path;
     if (assetPath == null) return fallback;
-    return Image.file(
-      File(assetPath),
+    return Image(
+      image: requireLocalArtworkImage(assetPath),
       fit: BoxFit.cover,
       excludeFromSemantics: true,
       errorBuilder: (_, __, ___) => fallback,
