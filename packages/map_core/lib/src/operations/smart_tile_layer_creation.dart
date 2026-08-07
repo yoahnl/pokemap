@@ -40,6 +40,7 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreation({
   required ProjectSmartTilePreset preset,
   required String layerId,
   required String layerName,
+  int? insertIndex,
 }) {
   final maps = List<MapData>.unmodifiable(projectMaps);
   final mapCoverageFailure = _validateProjectMapCoverage(
@@ -177,9 +178,15 @@ SmartTileLayerCreationResult planNativeSmartTileLayerCreation({
     field: field,
     layerSeed: preset.seedSalt,
   );
+  // Without an explicit slot the layer goes to the end of the serialized
+  // stack, which the caller may or may not mean as "in front".
+  final targetIndex =
+      (insertIndex ?? target.layers.length).clamp(0, target.layers.length);
+  final projectedLayers = List<MapLayer>.from(target.layers, growable: true)
+    ..insert(targetIndex, layer);
   final projectedMap = target.copyWith(
     version: ProjectVersion.v6,
-    layers: List<MapLayer>.unmodifiable(<MapLayer>[...target.layers, layer]),
+    layers: List<MapLayer>.unmodifiable(projectedLayers),
   );
 
   final catalog = manifest.smartTileCatalog;

@@ -82,7 +82,12 @@ final class SmartTileLayerActions {
   AuthoringMutationDraft _create(AuthoringPlanningContext planning) {
     final context = SemanticMapActionContext.read(
       planning,
-      allowedParameters: const <String>{'presetId', 'layerId', 'name'},
+      allowedParameters: const <String>{
+        'presetId',
+        'layerId',
+        'name',
+        'insertIndex',
+      },
     );
     final presetId = context.parameters.string('presetId');
     final layerId = context.parameters.string('layerId');
@@ -107,6 +112,9 @@ final class SmartTileLayerActions {
       preset: preset,
       layerId: layerId,
       layerName: context.parameters.string('name'),
+      // Callers that know the authored stack say where the layer belongs;
+      // omitting it keeps the historical append-to-the-end behaviour.
+      insertIndex: context.parameters.optionalInteger('insertIndex'),
     );
     if (result case final SmartTileLayerCreationFailure failure) {
       throw semanticFailure(failure.code, failure.message);

@@ -22,6 +22,37 @@ bool mapPaintsFirstLayerInFront(MapData map) {
   return map.properties['tileLayerOrder'] != _bottomToTopLayerOrder;
 }
 
+/// Where a freshly authored layer belongs in [map]'s serialized stack.
+///
+/// Authors think in front-to-back terms — "on top of what I am working on" —
+/// while the serialized index means the opposite thing on the two conventions
+/// [mapPaintsFirstLayerInFront] distinguishes. Resolving the index here keeps
+/// every creation path agreeing on one answer instead of each appending to
+/// `layers.length` and silently landing behind the whole map.
+///
+/// A new layer lands directly in front of [activeLayerId], or at the very front
+/// when nothing usable is active. Pass [sendToBack] for a layer that fills the
+/// map and would otherwise hide everything under it — a Smart Tile terrain.
+int resolveAuthoredLayerInsertIndex(
+  MapData map, {
+  required String? activeLayerId,
+  bool sendToBack = false,
+}) {
+  final frontFirst = mapPaintsFirstLayerInFront(map);
+  if (sendToBack) {
+    return frontFirst ? map.layers.length : 0;
+  }
+  final activeIndex = activeLayerId == null
+      ? -1
+      : map.layers.indexWhere((layer) => layer.id == activeLayerId);
+  if (activeIndex < 0) {
+    return frontFirst ? 0 : map.layers.length;
+  }
+  // Front-first: inserting at the active index pushes it back by one. Back-
+  // first: the slot in front of the active layer is the one right after it.
+  return frontFirst ? activeIndex : activeIndex + 1;
+}
+
 enum MapVisualCompositionSemantics {
   legacyRuntimeV1,
   canonicalV1,
