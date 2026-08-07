@@ -79,8 +79,8 @@ class WorldMapEnvironmentInspector extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 10),
-        _ZoneCard(model: model, state: state, notifier: notifier),
-        if (model.areaSummaries.isNotEmpty) ...[
+        _PresetCard(model: model, notifier: notifier),
+        if (model.selectedEnvironmentAreaId != null) ...[
           const SizedBox(height: 10),
           _MaskCard(model: model, maskMode: maskMode, notifier: notifier),
           const SizedBox(height: 10),
@@ -135,192 +135,83 @@ class _Card extends StatelessWidget {
   }
 }
 
-class _ZoneCard extends ConsumerStatefulWidget {
-  const _ZoneCard({
-    required this.model,
-    required this.state,
-    required this.notifier,
-  });
+/// The preset the single zone runs on, plus the way to open that zone.
+///
+/// A layer carries exactly one zone, so there is nothing to pick between and
+/// nothing to name: the preset is the only choice left.
+class _PresetCard extends ConsumerWidget {
+  const _PresetCard({required this.model, required this.notifier});
 
   final TileLayerEnvironmentAttachmentReadModel model;
-  final dynamic state;
   final EditorNotifier notifier;
 
   @override
-  ConsumerState<_ZoneCard> createState() => _ZoneCardState();
-}
-
-class _ZoneCardState extends ConsumerState<_ZoneCard> {
-  String? _presetIdForNewArea;
-
-  @override
-  Widget build(BuildContext context) {
-    final model = widget.model;
-    final notifier = widget.notifier;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(editorNotifierProvider);
     final presets =
-        ref.watch(editorNotifierProvider).project?.environmentPresets ??
-            const <EnvironmentPreset>[];
-    final presetId = presets.isEmpty
-        ? null
-        : presets.length == 1
-            ? presets.single.id
-            : (_presetIdForNewArea ?? presets.first.id);
-
-    return _Card(
-      title: 'Zones',
-      description: model.areaSummaries.isEmpty
-          ? 'Une zone porte un preset, un masque et sa génération.'
-          : '${model.areaSummaries.length} zone(s)',
-      children: <Widget>[
-        if (model.areaSummaries.isNotEmpty) ...[
-          PokeMapDropdownField<String>(
-            key: const ValueKey<String>('world-map-environment-area'),
-            label: 'Zone active',
-            value: model.selectedEnvironmentAreaId ??
-                model.areaSummaries.first.id,
-            compact: true,
-            items: <PokeMapDropdownItem<String>>[
-              for (final area in model.areaSummaries)
-                PokeMapDropdownItem<String>(
-                  value: area.id,
-                  label: '${area.name} · ${area.presetName ?? area.presetId}',
-                ),
-            ],
-            onChanged: (value) =>
-                notifier.selectEnvironmentAreaForActiveTileLayer(value),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: PokeMapButton(
-                  key: const ValueKey<String>('world-map-environment-rename'),
-                  onPressed: model.selectedEnvironmentAreaId == null
-                      ? null
-                      : () => _renameArea(context, notifier, model),
-                  variant: PokeMapButtonVariant.secondary,
-                  size: PokeMapButtonSize.compact,
-                  leading: const Icon(Icons.edit_outlined),
-                  child: const Text('Renommer'),
-                ),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: PokeMapButton(
-                  key: const ValueKey<String>('world-map-environment-delete'),
-                  onPressed: model.selectedEnvironmentAreaId == null
-                      ? null
-                      : () => _deleteArea(context, notifier, model),
-                  variant: PokeMapButtonVariant.danger,
-                  size: PokeMapButtonSize.compact,
-                  leading: const Icon(Icons.delete_outline_rounded),
-                  child: const Text('Supprimer'),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-        ],
-        if (presets.isEmpty)
-          const PokeMapEmptyState(
+        state.project?.environmentPresets ?? const <EnvironmentPreset>[];
+    if (presets.isEmpty) {
+      return const _Card(
+        title: 'Preset',
+        children: <Widget>[
+          PokeMapEmptyState(
             key: ValueKey<String>('world-map-environment-no-preset'),
             icon: Icon(Icons.park_outlined),
             title: 'Aucun preset d’environnement',
             description: 'Créez-en un dans Environment Studio, puis revenez '
-                'ouvrir une zone ici.',
+                'ici.',
             compact: true,
-          )
-        else ...[
-          if (presets.length > 1) ...[
-            PokeMapDropdownField<String>(
-              key: const ValueKey<String>('world-map-environment-preset'),
-              label: 'Preset de la nouvelle zone',
-              value: presetId!,
-              compact: true,
-              items: <PokeMapDropdownItem<String>>[
-                for (final preset in presets)
-                  PokeMapDropdownItem<String>(
-                    value: preset.id,
-                    label: preset.name,
-                  ),
-              ],
-              onChanged: (value) => setState(() => _presetIdForNewArea = value),
-            ),
-            const SizedBox(height: 8),
+          ),
+        ],
+      );
+    }
+
+    final areaId = model.selectedEnvironmentAreaId;
+    final presetId = model.selectedPresetId ?? presets.first.id;
+    final environmentLayerId = model.attachedEnvironmentLayerId;
+    return _Card(
+      title: 'Preset',
+      description: model.selectedPresetName,
+      children: <Widget>[
+        PokeMapDropdownField<String>(
+          key: const ValueKey<String>('world-map-environment-preset'),
+          label: 'Preset',
+          value: presets.any((preset) => preset.id == presetId)
+              ? presetId
+              : presets.first.id,
+          compact: true,
+          items: <PokeMapDropdownItem<String>>[
+            for (final preset in presets)
+              PokeMapDropdownItem<String>(
+                value: preset.id,
+                label: preset.name,
+              ),
           ],
+          onChanged: areaId == null || environmentLayerId == null
+              ? (_) {}
+              : (value) => notifier.setEnvironmentAreaPreset(
+                    environmentLayerId: environmentLayerId,
+                    areaId: areaId,
+                    presetId: value,
+                  ),
+        ),
+        if (areaId == null) ...[
+          const SizedBox(height: 8),
           PokeMapButton(
             key: const ValueKey<String>('world-map-environment-create-area'),
-            onPressed: model.hasErrors || presetId == null
+            onPressed: model.hasErrors
                 ? null
                 : () => notifier.createEnvironmentAreaForActiveTileLayer(
                       presetId: presetId,
                     ),
             variant: PokeMapButtonVariant.primary,
             size: PokeMapButtonSize.compact,
-            leading: const Icon(Icons.add_circle_outline),
-            child: const Text('Ouvrir une zone'),
+            leading: const Icon(Icons.play_arrow_rounded),
+            child: const Text('Démarrer l’environnement'),
           ),
         ],
       ],
     );
-  }
-
-  Future<void> _renameArea(
-    BuildContext context,
-    EditorNotifier notifier,
-    TileLayerEnvironmentAttachmentReadModel model,
-  ) async {
-    final controller = TextEditingController(
-      text: model.selectedEnvironmentAreaName ?? '',
-    );
-    final name = await showPokeMapConfirmationDialog<String?>(
-      context: context,
-      title: 'Renommer la zone',
-      message: 'Un nom parlant aide quand une carte porte plusieurs zones.',
-      details: PokeMapTextField(
-        key: const ValueKey<String>('world-map-environment-rename-field'),
-        controller: controller,
-        label: 'Nom',
-      ),
-      actions: <PokeMapDialogAction<String?>>[
-        const PokeMapDialogAction<String?>(label: 'Annuler', value: null),
-        PokeMapDialogAction<String?>(
-          label: 'Renommer',
-          value: controller.text,
-          variant: PokeMapButtonVariant.primary,
-        ),
-      ],
-      barrierLabel: 'Fermer le renommage de la zone',
-    );
-    controller.dispose();
-    final trimmed = name?.trim();
-    if (trimmed == null || trimmed.isEmpty) return;
-    notifier.renameEnvironmentAreaForActiveTileLayer(trimmed);
-  }
-
-  Future<void> _deleteArea(
-    BuildContext context,
-    EditorNotifier notifier,
-    TileLayerEnvironmentAttachmentReadModel model,
-  ) async {
-    final confirmed = await showPokeMapConfirmationDialog<bool>(
-      context: context,
-      title: 'Supprimer la zone',
-      message: 'Le masque et les éléments générés de « '
-          '${model.selectedEnvironmentAreaName ?? 'cette zone'} » '
-          'seront perdus.',
-      actions: const <PokeMapDialogAction<bool>>[
-        PokeMapDialogAction<bool>(label: 'Annuler', value: false),
-        PokeMapDialogAction<bool>(
-          label: 'Supprimer',
-          value: true,
-          variant: PokeMapButtonVariant.danger,
-        ),
-      ],
-      barrierLabel: 'Fermer la suppression de la zone',
-    );
-    if (confirmed != true) return;
-    notifier.deleteEnvironmentAreaForActiveTileLayer();
   }
 }
 

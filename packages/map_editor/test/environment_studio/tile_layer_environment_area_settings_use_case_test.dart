@@ -5,7 +5,7 @@ import 'package:map_editor/src/application/use_cases/tile_layer_environment_area
 
 void main() {
   group('TileLayerEnvironmentAreaSettingsUseCases', () {
-    test('set paramsOverride sur l’area ciblée seulement', () {
+    test('set paramsOverride sans toucher au reste de la carte', () {
       final map = _mapWithAreas(
         placedElements: const [
           MapPlacedElement(
@@ -33,12 +33,10 @@ void main() {
 
       final env = _environmentLayer(updated);
       final areaA = _areaById(env, 'area_a');
-      final areaB = _areaById(env, 'area_b');
       expect(areaA.paramsOverride, params);
       expect(areaA.seed, 11);
       expect(areaA.mask, _areaById(_environmentLayer(map), 'area_a').mask);
       expect(areaA.generatedPlacementIds, const ['generated_a']);
-      expect(areaB.paramsOverride, isNull);
       expect(updated.placedElements, map.placedElements);
       expect(updated.placedElements, hasLength(1));
     });
@@ -199,11 +197,6 @@ MapData _mapWithAreas({
               activeIndexes: const [0, 4],
               paramsOverride: areaAParamsOverride,
               generatedPlacementIds: const ['generated_a'],
-            ),
-            _area(
-              id: 'area_b',
-              seed: 22,
-              activeIndexes: const [8],
             ),
           ],
         ),

@@ -237,6 +237,42 @@ void main() {
       expect(() => MapValidator.validate(map), returnsNormally);
     });
 
+    test('valide avec la zone unique qu’un calque porte', () {
+      final map = _minimalMap(layers: [
+        MapLayer.tile(id: 'decor', name: 'D', cells: List<int>.filled(80, 0)),
+        MapLayer.environment(
+          id: 'e',
+          name: 'E',
+          content: EnvironmentLayerContent(
+            targetTileLayerId: 'decor',
+            areas: [_areaFor1024(id: 'a1')],
+          ),
+        ),
+      ]);
+      expect(() => MapValidator.validate(map), returnsNormally);
+    });
+
+    test('invalide au-delà d’une zone : deux presets, deux calques', () {
+      final map = _minimalMap(layers: [
+        MapLayer.tile(id: 'decor', name: 'D', cells: List<int>.filled(80, 0)),
+        MapLayer.environment(
+          id: 'e',
+          name: 'E',
+          content: EnvironmentLayerContent(
+            targetTileLayerId: 'decor',
+            areas: [
+              _areaFor1024(id: 'a1'),
+              _areaFor1024(id: 'a2', presetId: 'preset_b'),
+            ],
+          ),
+        ),
+      ]);
+      expect(
+        () => MapValidator.validate(map),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
     test('invalide si targetTileLayerId inconnu', () {
       final map = _minimalMap(layers: [
         MapLayer.environment(

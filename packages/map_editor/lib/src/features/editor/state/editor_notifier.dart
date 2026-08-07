@@ -31,7 +31,6 @@ import '../../../application/use_cases/environment_generator_use_cases.dart';
 import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
 import '../../../application/use_cases/map_use_cases.dart';
-import '../../../application/use_cases/tile_layer_environment_area_management_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_area_settings_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_clear_use_cases.dart';
@@ -9420,6 +9419,42 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  void setEnvironmentAreaPreset({
+    required String environmentLayerId,
+    required String areaId,
+    required String presetId,
+  }) {
+    final map = state.activeMap;
+    final project = state.project;
+    if (map == null || project == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Cannot set environment area preset: no active map or project manifest.',
+      );
+      return;
+    }
+    try {
+      final useCase = SetEnvironmentAreaPresetUseCase();
+      final updated = useCase.execute(
+        map,
+        manifest: project,
+        environmentLayerId: environmentLayerId,
+        areaId: areaId,
+        presetId: presetId,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: environmentLayerId,
+        statusMessage: 'Environment area preset updated',
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to set environment area preset: $e',
+      );
+    }
+  }
+
   /// Lot Environment-20 : [EnvironmentLayerContent.targetTileLayerId] uniquement.
   void setEnvironmentLayerTargetTileLayer({
     required String environmentLayerId,
@@ -9562,173 +9597,6 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  void selectEnvironmentAreaForActiveTileLayer(String areaId) {
-    final map = state.activeMap;
-    if (map == null) return;
-    final layerId = state.activeLayerId?.trim();
-    if (layerId == null || layerId.isEmpty) {
-      state = state.copyWith(
-        errorMessage: 'Sélectionnez un TileLayer pour choisir une zone.',
-      );
-      return;
-    }
-    final activeLayer = _findLayerById(map, layerId);
-    if (activeLayer is! TileLayer) {
-      state = state.copyWith(
-        errorMessage: 'Sélectionnez un TileLayer pour choisir une zone.',
-      );
-      return;
-    }
-
-    final aid = areaId.trim();
-    if (aid.isEmpty) {
-      state = state.copyWith(
-        errorMessage: 'Sélectionnez une zone d’environnement valide.',
-      );
-      return;
-    }
-
-    final target = resolveEnvironmentMaskPaintTarget(
-      map: map,
-      activeLayerId: layerId,
-      selectedAreaId: aid,
-    );
-    if (target == null) {
-      final hasAttachment = map.layers.any(
-        (layer) =>
-            layer is EnvironmentLayer &&
-            layer.content.targetTileLayerId?.trim() == layerId,
-      );
-      state = state.copyWith(
-        errorMessage: hasAttachment
-            ? 'La zone d’environnement sélectionnée est introuvable.'
-            : 'Activez d’abord l’environnement sur ce layer.',
-      );
-      return;
-    }
-
-    state = state.copyWith(
-      activeLayerId: layerId,
-      selectedEnvironmentAreaId: target.areaId,
-      environmentMaskEditMode: null,
-      statusMessage: 'Zone d’environnement sélectionnée.',
-      errorMessage: null,
-    );
-  }
-
-  void renameEnvironmentAreaForActiveTileLayer(String name) {
-    final map = state.activeMap;
-    if (map == null) return;
-    final layerId = state.activeLayerId?.trim();
-    if (layerId == null || layerId.isEmpty) {
-      state = state.copyWith(
-        errorMessage: 'Sélectionnez un TileLayer pour renommer une zone.',
-      );
-      return;
-    }
-    final activeLayer = _findLayerById(map, layerId);
-    if (activeLayer is! TileLayer) {
-      state = state.copyWith(
-        errorMessage: 'Sélectionnez un TileLayer pour renommer une zone.',
-      );
-      return;
-    }
-    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
-    if (areaId == null || areaId.isEmpty) {
-      state = state.copyWith(
-        errorMessage:
-            'Sélectionnez une zone d’environnement avant de la renommer.',
-      );
-      return;
-    }
-    final mode = state.environmentMaskEditMode;
-
-    try {
-      final result = RenameTileLayerEnvironmentAreaUseCase().execute(
-        map,
-        tileLayerId: layerId,
-        areaId: areaId,
-        name: name,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: result.map,
-        preferredActiveLayerId: result.tileLayerId,
-        statusMessage: 'Zone renommée : ${result.name}.',
-      );
-      state = state.copyWith(
-        activeLayerId: result.tileLayerId,
-        selectedEnvironmentAreaId: result.areaId,
-        environmentMaskEditMode: mode,
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Impossible de renommer la zone : $e',
-      );
-    }
-  }
-
-  void deleteEnvironmentAreaForActiveTileLayer() {
-    final map = state.activeMap;
-    if (map == null) return;
-    final layerId = state.activeLayerId?.trim();
-    if (layerId == null || layerId.isEmpty) {
-      state = state.copyWith(
-        errorMessage: 'Sélectionnez un TileLayer pour supprimer une zone.',
-      );
-      return;
-    }
-    final activeLayer = _findLayerById(map, layerId);
-    if (activeLayer is! TileLayer) {
-      state = state.copyWith(
-        errorMessage: 'Sélectionnez un TileLayer pour supprimer une zone.',
-      );
-      return;
-    }
-    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
-    if (areaId == null || areaId.isEmpty) {
-      state = state.copyWith(
-        errorMessage:
-            'Sélectionnez une zone d’environnement avant de la supprimer.',
-      );
-      return;
-    }
-    final selectedPlacementId = state.selectedPlacedElementInstanceId?.trim();
-
-    try {
-      final result = DeleteTileLayerEnvironmentAreaUseCase().execute(
-        map,
-        tileLayerId: layerId,
-        areaId: areaId,
-      );
-      final removedPlacementIds = result.removedPlacementIds.toSet();
-      final shouldClearPlacedSelection = selectedPlacementId != null &&
-          selectedPlacementId.isNotEmpty &&
-          removedPlacementIds.contains(selectedPlacementId);
-      ref.read(environmentGeneratedPlacementAddElementProvider.notifier).state =
-          null;
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: result.map,
-        preferredActiveLayerId: result.tileLayerId,
-        statusMessage: 'Zone supprimée.',
-      );
-      state = state.copyWith(
-        activeLayerId: result.tileLayerId,
-        selectedEnvironmentAreaId: null,
-        selectedPlacedElementInstanceId: shouldClearPlacedSelection
-            ? null
-            : state.selectedPlacedElementInstanceId,
-        environmentMaskEditMode: null,
-        errorMessage: null,
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Impossible de supprimer la zone : $e',
-      );
-    }
-  }
 
   void setEnvironmentAreaParamsOverrideForActiveTileLayer(
     EnvironmentGenerationParams params,
@@ -10509,105 +10377,6 @@ class EditorNotifier extends _$EditorNotifier
     state = state.copyWith(errorMessage: null);
   }
 
-  /// Lot Environment-21 : ajoute une [EnvironmentArea] (mask vide, preset manifest).
-  void addEnvironmentAreaToLayer({
-    required String environmentLayerId,
-    required String presetId,
-  }) {
-    final map = state.activeMap;
-    final project = state.project;
-    if (map == null || project == null) {
-      state = state.copyWith(
-        errorMessage:
-            'Cannot add environment area: no active map or project manifest.',
-      );
-      return;
-    }
-    try {
-      final useCase = AddEnvironmentAreaUseCase();
-      final result = useCase.execute(
-        map,
-        manifest: project,
-        environmentLayerId: environmentLayerId,
-        presetId: presetId,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: result.map,
-        preferredActiveLayerId: environmentLayerId,
-        statusMessage: 'Environment area added',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to add environment area: $e',
-      );
-    }
-  }
-
-  /// Lot Environment-21 : change le preset d’une zone existante.
-  void setEnvironmentAreaPreset({
-    required String environmentLayerId,
-    required String areaId,
-    required String presetId,
-  }) {
-    final map = state.activeMap;
-    final project = state.project;
-    if (map == null || project == null) {
-      state = state.copyWith(
-        errorMessage:
-            'Cannot set environment area preset: no active map or project manifest.',
-      );
-      return;
-    }
-    try {
-      final useCase = SetEnvironmentAreaPresetUseCase();
-      final updated = useCase.execute(
-        map,
-        manifest: project,
-        environmentLayerId: environmentLayerId,
-        areaId: areaId,
-        presetId: presetId,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: updated,
-        preferredActiveLayerId: environmentLayerId,
-        statusMessage: 'Environment area preset updated',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to set environment area preset: $e',
-      );
-    }
-  }
-
-  /// Lot Environment-21 : retire une [EnvironmentArea].
-  void removeEnvironmentArea({
-    required String environmentLayerId,
-    required String areaId,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    try {
-      final useCase = RemoveEnvironmentAreaUseCase();
-      final updated = useCase.execute(
-        map,
-        environmentLayerId: environmentLayerId,
-        areaId: areaId,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: updated,
-        preferredActiveLayerId: environmentLayerId,
-        statusMessage: 'Environment area removed',
-      );
-      _coerceEnvironmentMaskSelectionAfterMapChange();
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to remove environment area: $e',
-      );
-    }
-  }
 
   /// Lot Environment-22 : area sélectionnée pour édition masque, sans activer paint/erase.
   void selectEnvironmentAreaForMaskEditing({

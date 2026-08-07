@@ -200,17 +200,21 @@ void main() {
       );
     });
 
-    test('deux areas même preset absent => deux diagnostics', () {
+    test('deux calques même preset absent => deux diagnostics', () {
       final m = _manifest();
+      // Une zone par calque : deux zones fautives, ce sont deux calques.
       final map = _map(
         layers: [
           _envLayer(
-            id: 'env',
+            id: 'env1',
             content: EnvironmentLayerContent(
-              areas: [
-                _area(id: 'a1', presetId: 'gone'),
-                _area(id: 'a2', presetId: 'gone'),
-              ],
+              areas: [_area(id: 'a1', presetId: 'gone')],
+            ),
+          ),
+          _envLayer(
+            id: 'env2',
+            content: EnvironmentLayerContent(
+              areas: [_area(id: 'a2', presetId: 'gone')],
             ),
           ),
         ],
@@ -615,8 +619,10 @@ void main() {
       final map = _map(
         layers: [
           MapLayer.object(id: 'objects', name: 'O'),
+          // Une zone par calque : les trois cas fautifs sont trois calques,
+          // et l'ordre attendu reste celui des genres de diagnostic.
           _envLayer(
-            id: 'env_layer',
+            id: 'env_layer_1',
             content: EnvironmentLayerContent(
               targetTileLayerId: 'objects',
               areas: [
@@ -625,6 +631,14 @@ void main() {
                   presetId: 'good_pre',
                   mask: areaBadMask,
                 ),
+              ],
+            ),
+          ),
+          _envLayer(
+            id: 'env_layer_2',
+            content: EnvironmentLayerContent(
+              targetTileLayerId: 'objects',
+              areas: [
                 EnvironmentArea(
                   id: 'r2',
                   name: 'R2',
@@ -632,6 +646,14 @@ void main() {
                   mask: areaEmptyOkSize,
                   seed: 0,
                 ),
+              ],
+            ),
+          ),
+          _envLayer(
+            id: 'env_layer_3',
+            content: EnvironmentLayerContent(
+              targetTileLayerId: 'objects',
+              areas: [
                 _area(
                   id: 'r3',
                   presetId: 'good_pre',

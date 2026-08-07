@@ -547,6 +547,12 @@ final class EnvironmentLayerContent {
 
   bool get hasAreas => areas.isNotEmpty;
 
+  /// The single zone this layer carries, or null while it has none.
+  ///
+  /// The list shape is storage; a layer is allowed exactly one zone, so this
+  /// is the accessor callers should reach for.
+  EnvironmentArea? get area => areas.isEmpty ? null : areas.first;
+
   int get areaCount => areas.length;
 
   bool get hasGeneratedPlacements => areas.any((a) => a.hasGeneratedPlacements);

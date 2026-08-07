@@ -396,34 +396,6 @@ void main() {
       expect(s.selectedEnvironmentAreaId, isNull);
     });
 
-    test('removeEnvironmentArea nettoie la sélection masque', () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final env = MapLayer.environment(
-        id: 'env1',
-        name: 'E',
-        content: EnvironmentLayerContent(
-          areas: [_area(id: 'a1', w: 4, h: 3)],
-        ),
-      ) as EnvironmentLayer;
-      final map = _mapWithEnv(env);
-      container.read(editorNotifierProvider.notifier).state = EditorState(
-        projectRootPath: '/r',
-        project: buildShellChromeProject(),
-        activeMap: map,
-        activeMapPath: 'maps/x.json',
-        activeLayerId: 'env1',
-        selectedEnvironmentAreaId: 'a1',
-        environmentMaskEditMode: EnvironmentMaskEditMode.paint,
-      );
-      container.read(editorNotifierProvider.notifier).removeEnvironmentArea(
-            environmentLayerId: 'env1',
-            areaId: 'a1',
-          );
-      final s = container.read(editorNotifierProvider);
-      expect(s.selectedEnvironmentAreaId, isNull);
-      expect(s.environmentMaskEditMode, isNull);
-    });
   });
 
   group('Lot 22 — inspecteur masque', () {

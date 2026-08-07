@@ -49,13 +49,16 @@ void main() {
       );
     });
 
-    test('accepts valid areas and preserves order', () {
-      final a = _area('z1');
-      final b = _area('z2');
-      final c = EnvironmentLayerContent(areas: [a, b]);
-      expect(c.areas.length, 2);
-      expect(c.areas[0].id, 'z1');
-      expect(c.areas[1].id, 'z2');
+    test('accepts the single zone a layer is allowed', () {
+      final c = EnvironmentLayerContent(areas: [_area('z1')]);
+      expect(c.areas.length, 1);
+      expect(c.areas.single.id, 'z1');
+    });
+
+    test('exposes the single zone directly', () {
+      final c = EnvironmentLayerContent(areas: [_area('z1')]);
+      expect(c.area?.id, 'z1');
+      expect(EnvironmentLayerContent.emptyContent.area, isNull);
     });
 
     test('empty factory', () {
@@ -106,12 +109,7 @@ void main() {
 
     test('areaCount', () {
       expect(EnvironmentLayerContent().areaCount, 0);
-      expect(
-        EnvironmentLayerContent(
-          areas: [_area('a'), _area('b')],
-        ).areaCount,
-        2,
-      );
+      expect(EnvironmentLayerContent(areas: [_area('a')]).areaCount, 1);
     });
 
     test('containsArea known id', () {
@@ -165,30 +163,22 @@ void main() {
 
   group('EnvironmentLayerContent generated placements aggregate', () {
     test('hasGeneratedPlacements false when none', () {
-      final c = EnvironmentLayerContent(
-        areas: [_area('a'), _area('b')],
-      );
+      final c = EnvironmentLayerContent(areas: [_area('a')]);
       expect(c.hasGeneratedPlacements, isFalse);
     });
 
     test('hasGeneratedPlacements true when any area has ids', () {
       final c = EnvironmentLayerContent(
-        areas: [
-          _area('a'),
-          _area('b', generatedPlacementIds: ['g1']),
-        ],
+        areas: [_area('a', generatedPlacementIds: ['g1'])],
       );
       expect(c.hasGeneratedPlacements, isTrue);
     });
 
-    test('generatedPlacementIds order: areas then inner order', () {
+    test('generatedPlacementIds keeps the zone inner order', () {
       final c = EnvironmentLayerContent(
-        areas: [
-          _area('a', generatedPlacementIds: ['p1', 'p2']),
-          _area('b', generatedPlacementIds: ['q1']),
-        ],
+        areas: [_area('a', generatedPlacementIds: ['p1', 'p2'])],
       );
-      expect(c.generatedPlacementIds, ['p1', 'p2', 'q1']);
+      expect(c.generatedPlacementIds, ['p1', 'p2']);
     });
 
     test('generatedPlacementIds returns unmodifiable list', () {
@@ -226,12 +216,10 @@ void main() {
       );
     });
 
-    test('different areas order not equal', () {
-      final x = _area('x');
-      final y = _area('y');
+    test('different zone not equal', () {
       expect(
-        EnvironmentLayerContent(areas: [x, y]),
-        isNot(equals(EnvironmentLayerContent(areas: [y, x]))),
+        EnvironmentLayerContent(areas: [_area('x')]),
+        isNot(equals(EnvironmentLayerContent(areas: [_area('y')]))),
       );
     });
   });

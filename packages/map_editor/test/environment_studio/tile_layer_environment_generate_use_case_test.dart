@@ -171,7 +171,6 @@ MapData _map({
               cells: cells,
               generatedPlacementIds: generatedPlacementIds,
             ),
-            _area(id: 'other', presetId: 'forest'),
           ],
         ),
       ),

@@ -134,18 +134,52 @@ class CreateTileLayerEnvironmentAreaUseCase {
       );
     }
 
-    final result = AddEnvironmentAreaUseCase().execute(
-      map,
-      manifest: manifest,
-      environmentLayerId: environmentLayer.id,
+    // A layer carries exactly one zone, so this is a creation, never an
+    // append: asking twice is a mistake worth naming rather than a second zone.
+    if (environmentLayer.content.area != null) {
+      throw const EditorValidationException(
+        'Ce calque d’environnement porte déjà sa zone.',
+      );
+    }
+
+    EnvironmentPreset? preset;
+    for (final candidate in manifest.environmentPresets) {
+      if (candidate.id == pid) {
+        preset = candidate;
+        break;
+      }
+    }
+    if (preset == null) {
+      throw EditorValidationException('Environment preset not found: $pid');
+    }
+
+    final area = EnvironmentArea(
+      id: environmentAreaIdForPreset(pid),
+      name: preset.name,
       presetId: pid,
+      mask: emptyEnvironmentAreaMaskForMap(map),
+      seed: 0,
     );
+    final MapData updated;
+    try {
+      updated = setEnvironmentLayerContent(
+        map,
+        layerId: environmentLayer.id,
+        content: EnvironmentLayerContent(
+          targetTileLayerId: environmentLayer.content.targetTileLayerId,
+          areas: <EnvironmentArea>[area],
+        ),
+      );
+      MapValidator.validate(updated);
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
 
     return CreateTileLayerEnvironmentAreaResult(
-      map: result.map,
+      map: updated,
       tileLayerId: tid,
       environmentLayerId: environmentLayer.id,
-      areaId: result.area.id,
+      areaId: area.id,
       presetId: pid,
       created: true,
     );

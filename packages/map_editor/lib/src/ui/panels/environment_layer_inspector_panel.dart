@@ -143,17 +143,6 @@ class EnvironmentLayerInspectorPanel extends ConsumerWidget {
                     hasTargetTileLayerId: tid != null,
                   ),
                 ),
-              const SizedBox(height: 10),
-              PushButton(
-                key: const Key('env-layer-inspector-add-area'),
-                controlSize: ControlSize.regular,
-                onPressed: () => _pickPresetAndAddArea(
-                  context,
-                  notifier,
-                  presets,
-                ),
-                child: const Text('Ajouter une zone'),
-              ),
             ],
             const SizedBox(height: 18),
             Text(
@@ -299,23 +288,7 @@ class EnvironmentLayerInspectorPanel extends ConsumerWidget {
     );
   }
 
-  Future<void> _pickPresetAndAddArea(
-    BuildContext context,
-    EditorNotifier notifier,
-    List<EnvironmentPreset> presets,
-  ) async {
-    final picked = await showCupertinoListPicker<EnvironmentPreset>(
-      context: context,
-      title: 'Preset d’environnement',
-      items: presets,
-      labelOf: (p) => '${p.name} — ${p.id}',
-    );
-    if (picked == null) return;
-    notifier.addEnvironmentAreaToLayer(
-      environmentLayerId: layer.id,
-      presetId: picked.id,
-    );
-  }
+
 }
 
 const _kGenerateHelp =
@@ -681,17 +654,6 @@ class _EnvironmentAreaCard extends ConsumerWidget {
                           manifestPresets,
                         ),
                 child: const Text('Changer de preset'),
-              ),
-              const SizedBox(height: 6),
-              PushButton(
-                key: Key('env-area-remove-${area.id}'),
-                controlSize: ControlSize.small,
-                secondary: true,
-                onPressed: () => notifier.removeEnvironmentArea(
-                  environmentLayerId: layerId,
-                  areaId: area.id,
-                ),
-                child: const Text('Retirer'),
               ),
             ],
           ),

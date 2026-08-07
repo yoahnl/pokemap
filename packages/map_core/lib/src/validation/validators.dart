@@ -3025,6 +3025,17 @@ class MapValidator {
             );
           }
         }
+        // One zone per Environment layer. Two presets on the same TileLayer
+        // are two layers, which the stack already supports; a second zone
+        // inside one layer would be a second way to say the same thing.
+        if (environmentLayer.content.areas.length > 1) {
+          throw ValidationException(
+            'Environment layer $layerId carries '
+            '${environmentLayer.content.areas.length} zones: a layer carries '
+            'exactly one. Author a second Environment layer on the same '
+            'TileLayer instead.',
+          );
+        }
         for (final area in environmentLayer.content.areas) {
           if (area.mask.width != mapWidth || area.mask.height != mapHeight) {
             throw ValidationException(
