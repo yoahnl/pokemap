@@ -15,6 +15,8 @@ import 'package:pub_semver/pub_semver.dart';
 
 import '../test/support/runtime_owned_player_package_fixture.dart';
 
+import '../test/support/dashboard_notifier_harness.dart';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -66,7 +68,7 @@ void main() {
         supportRoot: supportRoot,
         hostCompatibility: compatibility,
       );
-      final controller = HubDashboardController(
+      final harness = buildDashboardHarness(
         libraryStore: libraryStore,
         activityReader: InstalledHubGameActivityReader(
           supportRoot: supportRoot,
@@ -78,20 +80,22 @@ void main() {
         ).call,
         preferencesStore: preferencesStore,
       );
-      addTearDown(controller.dispose);
+      final controller = harness.notifier;
       await controller.initialize();
 
       await tester.pumpWidget(
-        PokeMapHubApp(
-          controller: controller,
-          initializeController: false,
-          playerBuilder: (_, game, intent, onHubRequested) =>
-              HubInstalledGamePlayer(
-            supportRoot: supportRoot,
-            launchResolver: launchResolver,
-            game: game.game,
-            initialLaunchIntent: intent,
-            onHubRequested: onHubRequested,
+        harness.wrap(
+          PokeMapHubApp(
+            controller: controller,
+            initializeController: false,
+            playerBuilder: (_, game, intent, onHubRequested) =>
+                HubInstalledGamePlayer(
+              supportRoot: supportRoot,
+              launchResolver: launchResolver,
+              game: game.game,
+              initialLaunchIntent: intent,
+              onHubRequested: onHubRequested,
+            ),
           ),
         ),
       );

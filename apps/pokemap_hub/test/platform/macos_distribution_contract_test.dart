@@ -95,12 +95,19 @@ void main() {
     final main = await File('lib/main.dart').readAsString();
     final composition =
         await File('lib/app/di/hub_composition.dart').readAsString();
+    // The installer moved out of the composition root into the DI layer when
+    // the dashboard became a Notifier; the assertion follows it rather than
+    // being dropped.
+    final installerWiring = await File(
+      'lib/app/di/installation_repository_provider.dart',
+    ).readAsString();
 
     expect(main, contains('PokeMapHubBootstrap'));
+    expect(main, contains('ProviderScope'));
     expect(main, isNot(contains('MacOSHubComposition')));
     expect(composition, contains('PokeMapHubApp'));
-    expect(composition, contains('GamePackageInstaller'));
-    expect(composition, contains('_loadInstalledProjectSmoke'));
+    expect(installerWiring, contains('GamePackageInstaller'));
+    expect(installerWiring, contains('loadInstalledProjectSmoke'));
     expect(main, isNot(contains('Flutter Demo')));
     expect(main, isNot(contains('MyHomePage')));
   });

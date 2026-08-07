@@ -8,10 +8,12 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pub_semver/pub_semver.dart';
 
+import '../support/dashboard_notifier_harness.dart';
+
 void main() {
   late Directory root;
   late InstalledGame game;
-  late HubDashboardController controller;
+  late DashboardHarness harness;
 
   setUp(() async {
     root = await Directory.systemTemp.createTemp('hub-app-player-');
@@ -24,18 +26,18 @@ void main() {
         games: <InstalledGame>[game],
       ),
     );
-    controller = HubDashboardController(
+    harness = buildDashboardHarness(
       libraryStore: store,
       activityReader: (_) async => HubGameActivity(
         canContinue: true,
         lastSaveAt: DateTime.utc(2026, 7, 25),
       ),
     );
-    await controller.initialize();
+    await harness.notifier.initialize();
   });
 
   tearDown(() async {
-    controller.dispose();
+    harness.dispose();
     if (await root.exists()) await root.delete(recursive: true);
   });
 
@@ -45,22 +47,24 @@ void main() {
       tester.view.physicalSize = const Size(1200, 1000);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      controller.selectGame(game.gameId);
+      harness.notifier.selectGame(game.gameId);
 
       await tester.pumpWidget(
-        PokeMapHubApp(
-          controller: controller,
-          initializeController: false,
-          playerBuilder: (context, selected, intent, onHubRequested) =>
-              Scaffold(
-            body: Column(
-              children: <Widget>[
-                Text('Lecteur ${selected.game.title}'),
-                FilledButton(
-                  onPressed: () => onHubRequested(),
-                  child: const Text('Retour test'),
-                ),
-              ],
+        harness.wrap(
+          PokeMapHubApp(
+            controller: harness.notifier,
+            initializeController: false,
+            playerBuilder: (context, selected, intent, onHubRequested) =>
+                Scaffold(
+              body: Column(
+                children: <Widget>[
+                  Text('Lecteur ${selected.game.title}'),
+                  FilledButton(
+                    onPressed: () => onHubRequested(),
+                    child: const Text('Retour test'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -94,19 +98,21 @@ void main() {
       HubPlayerLaunchIntent? launchIntent;
 
       await tester.pumpWidget(
-        PokeMapHubApp(
-          productName: 'Avelune',
-          controller: controller,
-          initializeController: false,
-          playerBuilder: (
-            context,
-            selected,
-            intent,
-            onHubRequested,
-          ) {
-            launchIntent = intent;
-            return Scaffold(body: Text('Lecteur ${selected.game.title}'));
-          },
+        harness.wrap(
+          PokeMapHubApp(
+            productName: 'Avelune',
+            controller: harness.notifier,
+            initializeController: false,
+            playerBuilder: (
+              context,
+              selected,
+              intent,
+              onHubRequested,
+            ) {
+              launchIntent = intent;
+              return Scaffold(body: Text('Lecteur ${selected.game.title}'));
+            },
+          ),
         ),
       );
 
@@ -146,11 +152,13 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.pumpWidget(
-      PokeMapHubApp(
-        productName: 'Avelune',
-        controller: controller,
-        initializeController: false,
-        appearanceController: appearanceController,
+      harness.wrap(
+        PokeMapHubApp(
+          productName: 'Avelune',
+          controller: harness.notifier,
+          initializeController: false,
+          appearanceController: appearanceController,
+        ),
       ),
     );
 
@@ -166,7 +174,7 @@ void main() {
     // The approved settings sheet floats over the room rather than replacing
     // it, so the section does not change. Rows are matched by key: this app is
     // pumped without a forced locale, so their labels are localised.
-    expect(controller.snapshot.section, HubSection.home);
+    expect(harness.snapshot.section, HubSection.home);
     for (final id in <String>[
       'appearance',
       'storage',
@@ -193,7 +201,7 @@ void main() {
     'startup preference opens the most recent healthy game exactly once',
     (tester) async {
       unawaited(
-        controller.updatePreferences(
+        harness.notifier.updatePreferences(
           const PlayerPreferences().copyWith(
             launchMostRecentGameOnStartup: true,
           ),
@@ -207,19 +215,21 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(
-        PokeMapHubApp(
-          controller: controller,
-          initializeController: false,
-          playerBuilder: (context, selected, intent, onHubRequested) =>
-              Scaffold(
-            body: Column(
-              children: <Widget>[
-                Text('Lecteur ${selected.game.title}'),
-                FilledButton(
-                  onPressed: () => onHubRequested(),
-                  child: const Text('Retour automatique'),
-                ),
-              ],
+        harness.wrap(
+          PokeMapHubApp(
+            controller: harness.notifier,
+            initializeController: false,
+            playerBuilder: (context, selected, intent, onHubRequested) =>
+                Scaffold(
+              body: Column(
+                children: <Widget>[
+                  Text('Lecteur ${selected.game.title}'),
+                  FilledButton(
+                    onPressed: () => onHubRequested(),
+                    child: const Text('Retour automatique'),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

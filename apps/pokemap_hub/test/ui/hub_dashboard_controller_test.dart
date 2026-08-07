@@ -7,6 +7,8 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pub_semver/pub_semver.dart';
 
+import '../support/dashboard_notifier_harness.dart';
+
 void main() {
   late Directory root;
   late GameLibraryStore libraryStore;
@@ -21,23 +23,23 @@ void main() {
   });
 
   test('initialization exposes a guided empty library', () async {
-    final controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
     );
 
-    await controller.initialize();
+    await harness.notifier.initialize();
 
-    expect(controller.snapshot.status, HubDashboardStatus.ready);
-    expect(controller.snapshot.games, isEmpty);
-    expect(controller.snapshot.library.revision, 0);
-    controller.dispose();
+    expect(harness.snapshot.status, HubDashboardStatus.ready);
+    expect(harness.snapshot.games, isEmpty);
+    expect(harness.snapshot.library.revision, 0);
+    harness.dispose();
   });
 
   test('initialization consumes editor exports before reading the library',
       () async {
     var consumed = false;
-    final controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       editorExportConsumer: () async {
@@ -61,11 +63,11 @@ void main() {
       },
     );
 
-    await controller.initialize();
+    await harness.notifier.initialize();
 
     expect(consumed, isTrue);
-    expect(controller.snapshot.games.single.game.title, 'Exported');
-    controller.dispose();
+    expect(harness.snapshot.games.single.game.title, 'Exported');
+    harness.dispose();
   });
 
   test('search, recent ordering, and selection are deterministic', () async {
@@ -79,7 +81,7 @@ void main() {
         ],
       ),
     );
-    final controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (game) async => HubGameActivity(
         canContinue: true,
@@ -90,30 +92,28 @@ void main() {
       ),
     );
 
-    await controller.initialize();
+    await harness.notifier.initialize();
 
     expect(
-      controller.snapshot.games.map((game) => game.game.title),
+      harness.snapshot.games.map((game) => game.game.title),
       <String>['Brume', 'Aube'],
     );
-    controller.setQuery('aub');
+    harness.notifier.setQuery('aub');
     expect(
-      controller.snapshot.visibleGames.single.game.title,
+      harness.snapshot.visibleGames.single.game.title,
       'Aube',
     );
-    controller.selectGame('games.example.aube');
-    expect(controller.snapshot.selectedGame?.game.title, 'Aube');
-    controller.closeGameDetails();
-    expect(controller.snapshot.selectedGame, isNull);
-    controller.dispose();
+    harness.notifier.selectGame('games.example.aube');
+    expect(harness.snapshot.selectedGame?.game.title, 'Aube');
+    harness.notifier.closeGameDetails();
+    expect(harness.snapshot.selectedGame, isNull);
+    harness.dispose();
   });
 
   test('package import publishes progress then refreshes the library',
       () async {
-    final observed = <HubDashboardStatus>[];
     var storageReads = 0;
-    late HubDashboardController controller;
-    controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       storageReader: () async => HubStorageSnapshot(usedBytes: ++storageReads),
@@ -137,25 +137,26 @@ void main() {
           ),
         );
       },
-    )..addListener(() => observed.add(controller.snapshot.status));
+    );
+    final observed = harness.observeStatuses();
 
-    await controller.initialize();
+    await harness.notifier.initialize();
     final package = File('${root.path}/aube.pokemapgame');
     await package.writeAsBytes(<int>[1, 2, 3]);
-    await controller.importPackage(package);
+    await harness.notifier.importPackage(package);
 
     expect(observed, contains(HubDashboardStatus.installing));
-    expect(controller.snapshot.games.single.game.title, 'Aube');
-    expect(controller.snapshot.status, HubDashboardStatus.ready);
+    expect(harness.snapshot.games.single.game.title, 'Aube');
+    expect(harness.snapshot.status, HubDashboardStatus.ready);
     expect(storageReads, 2, reason: 'Storage is refreshed after installation.');
-    controller.dispose();
+    harness.dispose();
   });
 
   test('cancel forwards to the active installation token', () async {
     late GameInstallCancellationToken received;
     final started = Completer<void>();
     final release = Completer<void>();
-    final controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       importer: (_, token, __) async {
@@ -164,21 +165,21 @@ void main() {
         await release.future;
       },
     );
-    await controller.initialize();
+    await harness.notifier.initialize();
     final package = File('${root.path}/aube.pokemapgame');
     await package.writeAsBytes(<int>[1]);
 
-    final import = controller.importPackage(package);
+    final import = harness.notifier.importPackage(package);
     await started.future;
-    controller.cancelImport();
+    harness.notifier.cancelImport();
     expect(received.isCancelled, isTrue);
     release.complete();
     await import;
-    controller.dispose();
+    harness.dispose();
   });
 
   test('installer cancellation returns to the ready library state', () async {
-    final controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       importer: (_, __, ___) async {
@@ -192,40 +193,40 @@ void main() {
         );
       },
     );
-    await controller.initialize();
+    await harness.notifier.initialize();
     final package = File('${root.path}/aube.pokemapgame');
     await package.writeAsBytes(<int>[1]);
 
-    await controller.importPackage(package);
+    await harness.notifier.importPackage(package);
 
-    expect(controller.snapshot.status, HubDashboardStatus.ready);
-    expect(controller.snapshot.safeErrorMessage, isNull);
-    controller.dispose();
+    expect(harness.snapshot.status, HubDashboardStatus.ready);
+    expect(harness.snapshot.safeErrorMessage, isNull);
+    harness.dispose();
   });
 
   test('unexpected installer failures become player-safe diagnostics',
       () async {
-    final controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       importer: (_, __, ___) async => throw StateError('private path'),
     );
-    await controller.initialize();
+    await harness.notifier.initialize();
     final package = File('${root.path}/aube.pokemapgame');
     await package.writeAsBytes(<int>[1]);
 
-    await controller.importPackage(package);
+    await harness.notifier.importPackage(package);
 
-    expect(controller.snapshot.status, HubDashboardStatus.error);
-    expect(controller.snapshot.diagnostics.last.code, 'install.unexpected');
-    expect(controller.snapshot.safeErrorMessage, isNot(contains(root.path)));
-    controller.dispose();
+    expect(harness.snapshot.status, HubDashboardStatus.error);
+    expect(harness.snapshot.diagnostics.last.code, 'install.unexpected');
+    expect(harness.snapshot.safeErrorMessage, isNot(contains(root.path)));
+    harness.dispose();
   });
 
   test('installation failures persist their exact cause in the Hub log',
       () async {
     final log = File('${root.path}/logs/hub.log');
-    final controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       diagnosticLogFile: log,
@@ -245,13 +246,13 @@ void main() {
         );
       },
     );
-    await controller.initialize();
+    await harness.notifier.initialize();
     final package = File('${root.path}/selbrume.pokemapgame');
     await package.writeAsBytes(<int>[1]);
 
-    await controller.importPackage(package);
+    await harness.notifier.importPackage(package);
 
-    final diagnostic = controller.snapshot.diagnostics.last;
+    final diagnostic = harness.snapshot.diagnostics.last;
     expect(diagnostic.code, 'install.integrityFailed');
     expect(diagnostic.technicalDetails, contains('Operation not permitted'));
     expect(diagnostic.technicalDetails, contains(package.path));
@@ -260,20 +261,20 @@ void main() {
     final persisted = await log.readAsString();
     expect(persisted, contains('Operation not permitted'));
     expect(persisted, contains(package.path));
-    controller.dispose();
+    harness.dispose();
   });
 
   test('file picker failures are visible and persisted before installation',
       () async {
     final log = File('${root.path}/logs/hub-import.log');
-    final controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       diagnosticLogFile: log,
     );
-    await controller.initialize();
+    await harness.notifier.initialize();
 
-    await controller.reportImportPickerFailure(
+    await harness.notifier.reportImportPickerFailure(
       code: 'importPicker.missingEntitlement',
       message: 'Le sélecteur de fichiers ne peut pas s’ouvrir.',
       recommendation: 'Fermez complètement le Hub puis relancez-le.',
@@ -283,10 +284,10 @@ void main() {
       stackTrace: StackTrace.current,
     );
 
-    final diagnostic = controller.snapshot.diagnostics.last;
-    expect(controller.snapshot.status, HubDashboardStatus.error);
+    final diagnostic = harness.snapshot.diagnostics.last;
+    expect(harness.snapshot.status, HubDashboardStatus.error);
     expect(
-      controller.snapshot.safeErrorMessage,
+      harness.snapshot.safeErrorMessage,
       'Le sélecteur de fichiers ne peut pas s’ouvrir.',
     );
     expect(diagnostic.code, 'importPicker.missingEntitlement');
@@ -299,17 +300,17 @@ void main() {
     final persisted = await log.readAsString();
     expect(persisted, contains('"operation":"pickPackage"'));
     expect(persisted, contains('"code":"importPicker.missingEntitlement"'));
-    controller.dispose();
+    harness.dispose();
   });
 
   test('rapid preference changes are persisted in order', () async {
     final preferences = HubPreferencesStore(supportRoot: root);
-    final controller = HubDashboardController(
+    final harness = buildDashboardHarness(
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       preferencesStore: preferences,
     );
-    await controller.initialize();
+    await harness.notifier.initialize();
     final first =
         const PlayerPreferences().copyWith(language: PlayerLanguage.fr);
     final second =
@@ -317,13 +318,13 @@ void main() {
     final last = second.copyWith(theme: PlayerThemePreference.dark);
 
     await Future.wait(<Future<void>>[
-      controller.updatePreferences(first),
-      controller.updatePreferences(second),
-      controller.updatePreferences(last),
+      harness.notifier.updatePreferences(first),
+      harness.notifier.updatePreferences(second),
+      harness.notifier.updatePreferences(last),
     ]);
 
     expect((await preferences.load()).preferences, last);
-    controller.dispose();
+    harness.dispose();
   });
 }
 

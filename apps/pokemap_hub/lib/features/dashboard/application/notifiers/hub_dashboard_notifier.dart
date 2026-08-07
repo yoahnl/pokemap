@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 import 'package:pokemap_hub/core/diagnostics/hub_diagnostic.dart';
@@ -12,38 +12,64 @@ import 'package:pokemap_hub/features/installation/data/repositories/editor_expor
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
 import 'package:pokemap_hub/features/library/domain/repositories/game_library_repository_interface.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
+import 'package:pokemap_hub/app/di/dashboard_dependencies_provider.dart';
 
-final class HubDashboardController extends ChangeNotifier {
-  HubDashboardController({
-    required this.libraryStore,
-    required this.activityReader,
-    this.importer,
-    this.editorExportConsumer,
-    this.preferencesStore,
-    this.storageReader,
-    this.diagnosticLogFile,
-  });
+/// Orchestrates the Hub dashboard.
+///
+/// The state is synchronous but every dependency hangs off the async support
+/// root, so they are resolved once by [_wire] on the first async entry point
+/// rather than in `build()`. `build()` returns the same
+/// [HubDashboardSnapshot.initial] the ChangeNotifier version started from, so
+/// the UI observes an identical sequence of states.
+final class HubDashboardNotifier extends Notifier<HubDashboardSnapshot> {
+  late GameLibraryRepositoryInterface libraryStore;
+  late HubGameActivityReader activityReader;
+  HubPackageImporter? importer;
+  HubEditorExportConsumer? editorExportConsumer;
+  PlayerPreferencesRepositoryInterface? preferencesStore;
+  HubStorageReader? storageReader;
+  File? diagnosticLogFile;
 
-  final GameLibraryRepositoryInterface libraryStore;
-  final HubGameActivityReader activityReader;
-  final HubPackageImporter? importer;
-  final HubEditorExportConsumer? editorExportConsumer;
-  final PlayerPreferencesRepositoryInterface? preferencesStore;
-  final HubStorageReader? storageReader;
-  final File? diagnosticLogFile;
+  bool _wired = false;
+
+  @override
+  HubDashboardSnapshot build() {
+    ref.onDispose(() {
+      _disposed = true;
+      _installCancellation?.cancel();
+    });
+    return HubDashboardSnapshot.initial();
+  }
+
+  /// Resolves the dependency bundle exactly once.
+  ///
+  /// Called at the head of every public async entry point so no method can run
+  /// against a half-built notifier, whatever order the UI calls them in.
+  Future<void> _wire() async {
+    if (_wired) return;
+    final deps = await ref.read(hubDashboardDependenciesProvider.future);
+    libraryStore = deps.libraryStore;
+    activityReader = deps.activityReader;
+    importer = deps.importer;
+    editorExportConsumer = deps.editorExportConsumer;
+    preferencesStore = deps.preferencesStore;
+    storageReader = deps.storageReader;
+    diagnosticLogFile = deps.diagnosticLogFile;
+    _wired = true;
+  }
 
   HubDiagnosticLogWriter get _diagnosticLog =>
       HubDiagnosticLogWriter(logFile: diagnosticLogFile);
 
-  HubDashboardSnapshot _snapshot = HubDashboardSnapshot.initial();
   GameInstallCancellationToken? _installCancellation;
   Future<void> _preferenceWrites = Future<void>.value();
   bool _disposed = false;
 
-  HubDashboardSnapshot get snapshot => _snapshot;
+  HubDashboardSnapshot get snapshot => state;
 
   Future<void> initialize() async {
-    _publish(_snapshot.copyWith(status: HubDashboardStatus.loading));
+    await _wire();
+    _publish(state.copyWith(status: HubDashboardStatus.loading));
     try {
       final preferences = await preferencesStore?.load();
       final exportDiagnostics = await _consumeEditorExports();
@@ -68,9 +94,9 @@ final class HubDashboardController extends ChangeNotifier {
       ];
       if (preferenceDiagnostics.isNotEmpty || exportDiagnostics.isNotEmpty) {
         _publish(
-          _snapshot.copyWith(
+          state.copyWith(
             diagnostics: <HubDiagnostic>[
-              ..._snapshot.diagnostics,
+              ...state.diagnostics,
               ...exportDiagnostics,
               ...preferenceDiagnostics,
             ],
@@ -79,7 +105,7 @@ final class HubDashboardController extends ChangeNotifier {
       }
     } on Object {
       _publish(
-        _snapshot.copyWith(
+        state.copyWith(
           status: HubDashboardStatus.error,
           safeErrorMessage:
               'Le Hub ne peut pas ouvrir la bibliothèque pour le moment.',
@@ -88,7 +114,10 @@ final class HubDashboardController extends ChangeNotifier {
     }
   }
 
-  Future<void> refresh() => _reload();
+  Future<void> refresh() async {
+    await _wire();
+    await _reload();
+  }
 
   Future<List<HubDiagnostic>> _consumeEditorExports() async {
     final consume = editorExportConsumer;
@@ -131,7 +160,7 @@ final class HubDashboardController extends ChangeNotifier {
 
   void selectSection(HubSection section) {
     _publish(
-      _snapshot.copyWith(
+      state.copyWith(
         section: section,
         clearSelectedGame: true,
       ),
@@ -139,20 +168,20 @@ final class HubDashboardController extends ChangeNotifier {
   }
 
   void setQuery(String query) {
-    _publish(_snapshot.copyWith(query: query));
+    _publish(state.copyWith(query: query));
   }
 
   void selectGame(String gameId) {
-    if (_snapshot.games.every((view) => view.game.gameId != gameId)) return;
-    _publish(_snapshot.copyWith(selectedGameId: gameId));
+    if (state.games.every((view) => view.game.gameId != gameId)) return;
+    _publish(state.copyWith(selectedGameId: gameId));
   }
 
   void closeGameDetails() {
-    _publish(_snapshot.copyWith(clearSelectedGame: true));
+    _publish(state.copyWith(clearSelectedGame: true));
   }
 
   Future<void> updatePreferences(PlayerPreferences preferences) {
-    _publish(_snapshot.copyWith(preferences: preferences));
+    _publish(state.copyWith(preferences: preferences));
     _preferenceWrites = _preferenceWrites.then(
       (_) => _persistPreferences(preferences),
     );
@@ -160,13 +189,14 @@ final class HubDashboardController extends ChangeNotifier {
   }
 
   Future<void> _persistPreferences(PlayerPreferences preferences) async {
+    await _wire();
     try {
       await preferencesStore?.save(preferences);
     } on Object {
       _publish(
-        _snapshot.copyWith(
+        state.copyWith(
           diagnostics: <HubDiagnostic>[
-            ..._snapshot.diagnostics.where(
+            ...state.diagnostics.where(
               (diagnostic) => diagnostic.code != 'preferences.writeFailed',
             ),
             const HubDiagnostic(
@@ -182,12 +212,13 @@ final class HubDashboardController extends ChangeNotifier {
   }
 
   Future<void> importPackage(File package) async {
+    await _wire();
     final import = importer;
     if (import == null || _installCancellation != null) return;
     final cancellation = GameInstallCancellationToken();
     _installCancellation = cancellation;
     _publish(
-      _snapshot.copyWith(
+      state.copyWith(
         status: HubDashboardStatus.installing,
         clearSafeError: true,
       ),
@@ -199,7 +230,7 @@ final class HubDashboardController extends ChangeNotifier {
         (progress) {
           if (_disposed) return;
           _publish(
-            _snapshot.copyWith(
+            state.copyWith(
               status: HubDashboardStatus.installing,
               installProgress: progress,
             ),
@@ -228,12 +259,12 @@ final class HubDashboardController extends ChangeNotifier {
         stackTrace: effectiveStackTrace,
       );
       _publish(
-        _snapshot.copyWith(
+        state.copyWith(
           status: HubDashboardStatus.error,
           clearInstallProgress: true,
           safeErrorMessage: _installMessage(error.diagnostic),
           diagnostics: <HubDiagnostic>[
-            ..._snapshot.diagnostics,
+            ...state.diagnostics,
             HubDiagnostic(
               code: 'install.${error.diagnostic.code.name}',
               severity: HubDiagnosticSeverity.error,
@@ -265,12 +296,12 @@ final class HubDashboardController extends ChangeNotifier {
         stackTrace: stackTrace,
       );
       _publish(
-        _snapshot.copyWith(
+        state.copyWith(
           status: HubDashboardStatus.error,
           clearInstallProgress: true,
           safeErrorMessage: message,
           diagnostics: <HubDiagnostic>[
-            ..._snapshot.diagnostics,
+            ...state.diagnostics,
             HubDiagnostic(
               code: 'install.unexpected',
               severity: HubDiagnosticSeverity.error,
@@ -295,6 +326,7 @@ final class HubDashboardController extends ChangeNotifier {
     required Object cause,
     required StackTrace stackTrace,
   }) async {
+    await _wire();
     const packagePath = '<aucun package sélectionné>';
     final details = HubDiagnosticLogWriter.technicalDetails(
       code: code,
@@ -312,12 +344,12 @@ final class HubDashboardController extends ChangeNotifier {
     );
     if (_disposed) return;
     _publish(
-      _snapshot.copyWith(
+      state.copyWith(
         status: HubDashboardStatus.error,
         clearInstallProgress: true,
         safeErrorMessage: message,
         diagnostics: <HubDiagnostic>[
-          ..._snapshot.diagnostics.where(
+          ...state.diagnostics.where(
             (diagnostic) => diagnostic.code != code,
           ),
           HubDiagnostic(
@@ -377,9 +409,9 @@ final class HubDashboardController extends ChangeNotifier {
         if (view.activity.diagnostic case final diagnostic?) diagnostic,
       if (storageRead.diagnostic case final diagnostic?) diagnostic,
     ];
-    final selected = _snapshot.selectedGameId;
+    final selected = state.selectedGameId;
     _publish(
-      _snapshot.copyWith(
+      state.copyWith(
         status: HubDashboardStatus.ready,
         library: read.library,
         games: views,
@@ -413,7 +445,7 @@ final class HubDashboardController extends ChangeNotifier {
       );
     } on Object {
       return (
-        snapshot: _snapshot.storage,
+        snapshot: state.storage,
         diagnostic: const HubDiagnostic(
           code: 'storage.measurementUnavailable',
           severity: HubDiagnosticSeverity.warning,
@@ -455,14 +487,12 @@ final class HubDashboardController extends ChangeNotifier {
 
   void _publish(HubDashboardSnapshot snapshot) {
     if (_disposed) return;
-    _snapshot = snapshot;
-    notifyListeners();
+    state = snapshot;
   }
 
-  @override
-  void dispose() {
-    _disposed = true;
-    _installCancellation?.cancel();
-    super.dispose();
-  }
 }
+
+final hubDashboardNotifierProvider =
+    NotifierProvider<HubDashboardNotifier, HubDashboardSnapshot>(
+  HubDashboardNotifier.new,
+);

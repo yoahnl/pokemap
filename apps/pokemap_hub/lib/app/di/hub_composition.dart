@@ -1,11 +1,7 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
-import 'package:map_core/map_core.dart';
-import 'package:map_distribution/map_distribution.dart';
-import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
@@ -39,13 +35,21 @@ final class HubComposition implements HubAppComposition {
   }) : _platformAdapter = platformAdapter;
 
   final Directory supportRoot;
-  final HubDashboardController controller;
+  final HubDashboardNotifier controller;
   final HubUiActions actions;
   final InstalledGameLaunchResolver launchResolver;
   final AveluneAppearanceController appearanceController;
   final HubPlatformAdapter _platformAdapter;
 
+  /// Builds the app shell around an already-wired dashboard notifier.
+  ///
+  /// The notifier used to be assembled here from seven hand-held dependencies;
+  /// it now arrives from [hubDashboardNotifierProvider] and resolves its own
+  /// graph through [hubDashboardDependenciesProvider]. What is left is genuinely
+  /// composition: the platform adapter, the launch resolver the player screen
+  /// needs, and the widget tree.
   static Future<HubComposition> create({
+    required HubDashboardNotifier dashboardNotifier,
     HubPlatformAdapter? platformAdapter,
     Directory? supportRoot,
   }) async {
@@ -54,57 +58,11 @@ final class HubComposition implements HubAppComposition {
     try {
       final root = supportRoot ?? await const PathProviderSupportRootAdapter().resolve();
       await root.create(recursive: true);
-      final hostCompatibility = aveluneHostCompatibility();
-      late final GamePackageInstaller installer;
-      installer = GamePackageInstaller(
-        supportRoot: root,
-        inspector: GamePackageInspector(
-          hostCompatibility: hostCompatibility,
-        ),
-        availableDiskBytes: adapter.availableDiskBytes,
-        loadSmoke: _loadInstalledProjectSmoke,
-        prepareSavesForUpdate: (_, __) {
-          throw UnsupportedError(
-            'Updates remain disabled until save migration transactions '
-            'are recoverable.',
-          );
-        },
-      );
-      final libraryStore = GameLibraryStore(supportRoot: root);
       final launchResolver = InstalledGameLaunchResolver(
         supportRoot: root,
-        hostCompatibility: hostCompatibility,
+        hostCompatibility: aveluneHostCompatibility(),
       );
-      final inbox = EditorExportInstallInbox.fromInstaller(
-        inbox: Directory(p.join(root.path, 'install-inbox')),
-        installer: installer,
-      );
-      late final HubDashboardController controller;
-      controller = HubDashboardController(
-        libraryStore: libraryStore,
-        activityReader: InstalledHubGameActivityReader(
-          supportRoot: root,
-          launchResolver: launchResolver,
-          // The only place an interface meets its implementation (rule 6).
-          saveRepositoryFactory: (supportRoot, identity) => HubSaveStore(
-            supportRoot: supportRoot,
-            identity: identity,
-          ),
-        ).call,
-        importer: (package, cancellation, progress) async {
-          await installer.install(
-            package,
-            source: GamePackageInstallSource.localFile,
-            cancellationToken: cancellation,
-            onProgress: progress,
-          );
-        },
-        editorExportConsumer: inbox.consumePending,
-        preferencesStore: HubPreferencesStore(supportRoot: root),
-        diagnosticLogFile: File(
-          p.join(root.path, 'logs', 'hub-import.log'),
-        ),
-      );
+      final controller = dashboardNotifier;
       late final HubComposition initializedComposition;
       final actions = HubUiActions(
         onImportRequested: () {
@@ -219,33 +177,5 @@ final class HubComposition implements HubAppComposition {
   void dispose() {
     _platformAdapter.dispose();
     appearanceController.dispose();
-    controller.dispose();
-  }
-}
-
-Future<void> _loadInstalledProjectSmoke(
-  Directory stagedVersionRoot,
-  GamePackageManifest manifest,
-) async {
-  final projectFile = File(
-    p.join(stagedVersionRoot.path, 'project', 'project.json'),
-  );
-  final decoded = jsonDecode(await projectFile.readAsString());
-  if (decoded is! Map<String, dynamic>) {
-    throw const FormatException('Installed project manifest is invalid.');
-  }
-  final project = ProjectManifest.fromJson(decoded);
-  final mapId = project.newGame.enabled
-      ? project.newGame.startMapId
-      : project.maps.firstOrNull?.id;
-  if (mapId == null || mapId.trim().isEmpty) {
-    throw const FormatException('Installed game has no launchable map.');
-  }
-  final bundle = await loadRuntimeMapBundle(
-    projectFilePath: projectFile.path,
-    mapId: mapId,
-  );
-  if (bundle.manifest.version.name != manifest.compatibility.projectFormat) {
-    throw const FormatException('Installed project format changed on load.');
   }
 }

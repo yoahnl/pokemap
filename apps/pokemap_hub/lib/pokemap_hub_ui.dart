@@ -39,6 +39,7 @@ export 'package:pokemap_hub/app/ui/app_widget.dart';
 export 'package:pokemap_hub/core/diagnostics/hub_diagnostic.dart';
 export 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
 export 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
+export 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_dependencies.dart';
 export 'package:pokemap_hub/features/dashboard/application/services/hub_directory_storage_reader.dart';
 export 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
 export 'package:pokemap_hub/presentation/shell/hub_game_views.dart';

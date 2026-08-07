@@ -11,6 +11,7 @@ import 'package:pokemap_hub/presentation/shell/hub_shell.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 typedef HubPlayerBuilder = Widget Function(
   BuildContext context,
@@ -21,7 +22,7 @@ typedef HubPlayerBuilder = Widget Function(
 
 /// Player application root. Platform composition injects package picking,
 /// install/maintenance, and session launch actions.
-class PokeMapHubApp extends StatefulWidget {
+class PokeMapHubApp extends ConsumerStatefulWidget {
   const PokeMapHubApp({
     super.key,
     required this.controller,
@@ -32,7 +33,7 @@ class PokeMapHubApp extends StatefulWidget {
     this.initializeController = true,
   });
 
-  final HubDashboardController controller;
+  final HubDashboardNotifier controller;
   final String productName;
   final HubUiActions actions;
   final HubPlayerBuilder? playerBuilder;
@@ -40,10 +41,10 @@ class PokeMapHubApp extends StatefulWidget {
   final bool initializeController;
 
   @override
-  State<PokeMapHubApp> createState() => _PokeMapHubAppState();
+  ConsumerState<PokeMapHubApp> createState() => _PokeMapHubAppState();
 }
 
-class _PokeMapHubAppState extends State<PokeMapHubApp> {
+class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
   HubGameView? _activeGame;
   HubPlayerLaunchIntent _activeLaunchIntent = HubPlayerLaunchIntent.title;
   bool _startupLaunchEvaluated = false;
@@ -52,7 +53,12 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_handleControllerChanged);
+    // Subscribes to the provider, not to the widget field: swapping notifiers
+    // no longer requires detaching a listener in didUpdateWidget.
+    ref.listenManual(
+      hubDashboardNotifierProvider,
+      (_, __) => _handleControllerChanged(),
+    );
     if (widget.initializeController) {
       unawaited(widget.controller.initialize());
     }
@@ -74,8 +80,6 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
       _syncHomeController();
       return;
     }
-    oldWidget.controller.removeListener(_handleControllerChanged);
-    widget.controller.addListener(_handleControllerChanged);
     _activeGame = null;
     _activeLaunchIntent = HubPlayerLaunchIntent.title;
     _startupLaunchEvaluated = false;
@@ -182,16 +186,14 @@ class _PokeMapHubAppState extends State<PokeMapHubApp> {
 
   @override
   void dispose() {
-    widget.controller.removeListener(_handleControllerChanged);
     _homeController?.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(
-        listenable: widget.controller,
-        builder: (context, _) {
-          final snapshot = widget.controller.snapshot;
+  Widget build(BuildContext context) => Builder(
+        builder: (context) {
+          final snapshot = ref.watch(hubDashboardNotifierProvider);
           final preferences = snapshot.preferences;
           return MaterialApp(
             title: widget.productName,

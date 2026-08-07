@@ -6,6 +6,7 @@ import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pokemap_hub/app/di/hub_composition.dart';
 import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
 import 'package:pokemap_hub/platform/ios_hub_platform_adapter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -68,7 +69,10 @@ void main() {
     addTearDown(() => supportRoot.delete(recursive: true));
     final adapter = _RecordingPlatformAdapter();
 
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
     final composition = await HubComposition.create(
+      dashboardNotifier: container.read(hubDashboardNotifierProvider.notifier),
       platformAdapter: adapter,
       supportRoot: supportRoot,
     );
@@ -90,7 +94,10 @@ void main() {
         await Directory.systemTemp.createTemp('pokemap-hub-import-action-');
     addTearDown(() => supportRoot.delete(recursive: true));
     final adapter = _RecordingPlatformAdapter();
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
     final composition = await HubComposition.create(
+      dashboardNotifier: container.read(hubDashboardNotifierProvider.notifier),
       platformAdapter: adapter,
       supportRoot: supportRoot,
     );
