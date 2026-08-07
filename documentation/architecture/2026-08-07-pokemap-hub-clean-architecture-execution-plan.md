@@ -1701,6 +1701,33 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): replace the manual 
 
 **Produit** : `HubDashboardNotifier`, `hubDashboardNotifierProvider`.
 
+> ### 🔬 Reconnaissance du 7 août 2026 — tentative annulée
+>
+> Une première conversion a été menée jusqu'au bout côté `lib/` (analyse verte) puis **annulée**,
+> faute de marge pour reprendre les tests. Ce qu'elle a établi, à reprendre tel quel :
+>
+> **La conversion elle-même fonctionne.** `HubDashboardNotifier extends Notifier<HubDashboardSnapshot>`,
+> `build()` renvoie `HubDashboardSnapshot.initial()`, `_publish()` affecte `state`, `dispose()` devient
+> `ref.onDispose`. `hub_composition.dart` tombe de 252 à **214 lignes** : elle reçoit le notifier au
+> lieu d'assembler ses sept dépendances à la main.
+>
+> **Le point dur est l'asynchronisme.** Les dépendances pendent toutes à `supportRootProvider`, donc
+> elles sont asynchrones, alors que l'état est synchrone. `build()` ne peut pas les attendre. Solution
+> retenue : une méthode `_wire()` qui résout le graphe **une seule fois**, appelée en tête des trois
+> entrées asynchrones publiques (`initialize`, `refresh`, `importPackage`). Aucune méthode ne peut
+> alors tourner sur un notifier à moitié construit.
+>
+> **Côté UI, l'accroche est minuscule** : un seul fichier, `app_widget.dart`. `addListener` devient
+> `ref.listenManual(hubDashboardNotifierProvider, ...)`, `ListenableBuilder` devient `ref.watch`, et le
+> `removeListener` de `didUpdateWidget` disparaît — l'abonnement porte sur le provider, plus sur le
+> champ du widget.
+>
+> **Le vrai coût est dans les tests.** `test/ui/hub_dashboard_controller_test.dart` construit le
+> contrôleur sur **10 sites indépendants**, chacun avec ses propres fakes, sans helper partagé. Chaque
+> site doit devenir un `ProviderContainer` surchargeant 6 à 7 providers. **Écrire d'abord un helper
+> unique** qui construit ce conteneur, puis réécrire les 10 sites — c'est ce lot, et il ne tient pas
+> dans la fin d'un autre.
+
 - [ ] **Étape 20.1 — Laisser l'état en Dart brut**
 
 Pas de `@freezed` (décision du lot 2). `HubDashboardSnapshot` est **déjà** une classe immuable avec
