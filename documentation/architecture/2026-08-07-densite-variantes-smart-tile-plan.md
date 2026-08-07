@@ -17,7 +17,16 @@
 - Un candidat que l'auteur a posé à `0` reste à exactement `0` et sort de la redistribution.
 - Un candidat dont la part arrondirait à `0` sans avoir été posé à `0` est plancherisé à `1`.
 - Aucune règle ne doit se retrouver sans candidat de poids positif.
-- `packages/map_editor/lib/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart` est gelé à 4412 lignes dans `tools/file_length_baseline.txt` : ce plan n'y touche pas. Aucun fichier de production ne doit dépasser 3000 lignes.
+- **Cliquet de longueur.** `tools/file_length_baseline.txt` gèle plusieurs fichiers que ce plan touche : ils sont tolérés au-dessus de 3000 lignes mais **ne peuvent jamais grandir**. Ils peuvent rétrécir.
+
+  | Fichier | Gelé à | Conséquence pour ce plan |
+  |---|---|---|
+  | `…/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart` | 4412 | non touché, rien à faire |
+  | `…/features/editor/state/editor_notifier.dart` | 14607 | Tasks 4 et 9 doivent nettoyer plus qu'elles n'ajoutent (Task 4a) |
+  | `packages/map_core/lib/src/validation/validators.dart` | 3106 | Task 10 doit nettoyer plus qu'elle n'ajoute (Task 10a) |
+
+  Vérifier après chaque tâche touchant ces fichiers : `dart tools/check_file_length.dart`. Le contrôle échoue à la moindre ligne de plus.
+- Aucun fichier de production hors cliquet ne doit dépasser 3000 lignes.
 - Toute nouvelle chaîne visible par l'auteur est en français, comme le reste du panneau.
 - Commandes de test : `flutter test` dans `packages/map_editor`, `dart test` dans `packages/map_core` et `packages/map_authoring`.
 - Travail directement sur `main`, un commit par tâche.
@@ -756,6 +765,50 @@ Expected: PASS — 6 tests
 ```bash
 git add packages/map_editor/lib/src/features/editor/presentation/world_map/world_map_smart_tile_density_section.dart packages/map_editor/test/features/editor/presentation/world_map/world_map_smart_tile_density_section_test.dart
 git commit -m "feat(editor): add the Smart Tile variant density section"
+```
+
+---
+
+## Task 4a : Dégager de la place dans `editor_notifier.dart`
+
+**Files:**
+- Create: `packages/map_editor/lib/src/features/editor/state/editor_notifier_tileset_import.dart`
+- Modify: `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart`
+- Modify: `tools/file_length_baseline.txt`
+
+**Interfaces:**
+- Consomme : rien.
+- Produit : `extension EditorNotifierTilesetImport on EditorNotifier` portant `importProjectTileset` et `updateProjectTileset`, déplacées telles quelles.
+
+Les Tasks 4 et 9 ajoutent environ 90 lignes à un fichier gelé. Cette tâche en sort davantage, pour que le solde reste négatif. Les deux méthodes de tileset choisies n'utilisent que `state`, `ref` et `_projectWorkspace` — vérifier avant de déplacer que `_projectWorkspace` est accessible depuis une extension ; si elle est privée, exposer un accesseur de paquet plutôt que de rendre le champ public.
+
+- [ ] **Step 1 : Vérifier l'état de départ**
+
+Run: `cd packages/map_editor && wc -l lib/src/features/editor/state/editor_notifier.dart`
+Expected: 14607 lignes (ou la valeur courante du baseline)
+
+- [ ] **Step 2 : Déplacer les deux méthodes**
+
+Couper `importProjectTileset` (`editor_notifier.dart:3861`) et `updateProjectTileset` (`:3899`) et leurs éventuels helpers privés exclusifs, les coller dans le nouveau fichier sous une extension, et ajouter l'import correspondant.
+
+- [ ] **Step 3 : Lancer les tests existants**
+
+Run: `cd packages/map_editor && flutter test`
+Expected: PASS — aucun changement de comportement, seulement un déplacement
+
+- [ ] **Step 4 : Vérifier le solde et rafraîchir le baseline**
+
+```bash
+cd packages/map_editor && wc -l lib/src/features/editor/state/editor_notifier.dart
+cd ../.. && dart tools/check_file_length.dart --update-baseline
+```
+Expected: le fichier a perdu au moins 120 lignes ; le baseline enregistre la nouvelle valeur
+
+- [ ] **Step 5 : Commit**
+
+```bash
+git add packages/map_editor/lib/src/features/editor/state/ tools/file_length_baseline.txt
+git commit -m "refactor(editor): move tileset import off the editor notifier"
 ```
 
 ---
@@ -1608,10 +1661,52 @@ git commit -m "feat(editor): choose between layer and preset variant density"
 
 ---
 
+## Task 10a : Dégager de la place dans `validators.dart`
+
+**Files:**
+- Create: `packages/map_core/lib/src/validation/smart_tile_layer_validation.dart`
+- Modify: `packages/map_core/lib/src/validation/validators.dart:2681-2720`
+- Modify: `tools/file_length_baseline.txt`
+
+**Interfaces:**
+- Produit : `List<ValidationDiagnostic> validateSmartTileLayer({required SmartTileLayer layer, required ProjectSmartTilePreset preset})`, appelée depuis la branche `smartTile:` de `validators.dart`.
+
+`validators.dart` est gelé à 3106 lignes. Sortir la validation de calque Smart Tile dans son propre fichier fait de la place pour Task 10 et rapproche le fichier de la limite de 3000.
+
+- [ ] **Step 1 : Écrire le test de non-régression**
+
+Dans `packages/map_core/test/validators_smart_tile_layer_test.dart`, reprendre les cas existants de validation de calque Smart Tile (preset inconnu, palette de matériaux invalide) en appelant directement `validateSmartTileLayer`.
+
+- [ ] **Step 2 : Lancer le test pour vérifier qu'il échoue**
+
+Run: `cd packages/map_core && dart test test/validators_smart_tile_layer_test.dart`
+Expected: FAIL — `validateSmartTileLayer` n'existe pas
+
+- [ ] **Step 3 : Extraire la fonction**
+
+Déplacer le corps de la branche `smartTile:` dans le nouveau fichier, et ne laisser dans `validators.dart` que l'appel et l'ajout des diagnostics retournés.
+
+- [ ] **Step 4 : Vérifier le solde et rafraîchir le baseline**
+
+```bash
+cd packages/map_core && dart test && wc -l lib/src/validation/validators.dart
+cd ../.. && dart tools/check_file_length.dart --update-baseline
+```
+Expected: PASS, et `validators.dart` a perdu au moins 40 lignes
+
+- [ ] **Step 5 : Commit**
+
+```bash
+git add packages/map_core/lib/src/validation/ packages/map_core/test/validators_smart_tile_layer_test.dart tools/file_length_baseline.txt
+git commit -m "refactor(core): extract Smart Tile layer validation"
+```
+
+---
+
 ## Task 10 : Avertissement sur les clés orphelines
 
 **Files:**
-- Modify: `packages/map_core/lib/src/validation/validators.dart:2681-2700`
+- Modify: `packages/map_core/lib/src/validation/smart_tile_layer_validation.dart` (créé en Task 10a)
 - Test: `packages/map_core/test/validators_smart_tile_candidate_weights_test.dart`
 
 **Interfaces:**
@@ -1661,7 +1756,7 @@ Expected: FAIL — `Bad state: No element` (le diagnostic n'existe pas)
 
 - [ ] **Step 3 : Écrire l'implémentation**
 
-Dans la branche `smartTile:` de la validation de calque, après le contrôle de `materialPalette` :
+Dans `validateSmartTileLayer`, après le contrôle de `materialPalette` :
 
 ```dart
         final knownCandidateIds = <String>{
