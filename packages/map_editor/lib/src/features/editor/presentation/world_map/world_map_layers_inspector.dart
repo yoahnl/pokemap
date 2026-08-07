@@ -12,6 +12,7 @@ import '../../application/map_context_target.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import '../../../../ui/canvas/map_canvas.dart';
+import 'world_map_environment_section.dart';
 import 'world_map_layer_mutation_dialogs.dart';
 import 'world_map_layer_hover_preview.dart';
 import 'world_map_paint_inspection_intent.dart';
@@ -378,6 +379,12 @@ final class _WorldMapLayersInspectorState
                 },
               ),
             ),
+          const SliverPadding(
+            padding: EdgeInsets.fromLTRB(10, 10, 10, 0),
+            sliver: SliverToBoxAdapter(
+              child: WorldMapEnvironmentSection(),
+            ),
+          ),
           const SliverPadding(
             padding: EdgeInsets.all(10),
             sliver: SliverToBoxAdapter(
