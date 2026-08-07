@@ -7,7 +7,7 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pub_semver/pub_semver.dart';
 
-import '../support/dashboard_notifier_harness.dart';
+import '../../support/dashboard_notifier_harness.dart';
 
 void main() {
   late Directory root;
