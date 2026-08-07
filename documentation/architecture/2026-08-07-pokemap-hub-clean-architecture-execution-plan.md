@@ -263,19 +263,19 @@ les imports au lot 8. Un `git mv` conserve l'historique et rend le diff lisible.
 | `src/platform/avelune_host_compatibility.dart` → `core/config/avelune_host_compatibility.dart` | 18 |
 | `src/ui/avelune/home/avelune_relative_time.dart` → `core/utils/relative_time.dart` | 30 |
 
-- [ ] **Étape 3.1 — Créer l'arborescence**
+- [x] **Étape 3.1 — Créer l'arborescence**
 
 ```bash
 cd apps/pokemap_hub/lib && mkdir -p core/ports core/error core/diagnostics core/config core/utils
 ```
 
-- [ ] **Étape 3.2 — Déplacer**
+- [x] **Étape 3.2 — Déplacer**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/platform/hub_platform_adapter.dart core/ports/hub_platform_port.dart && git mv src/install/game_installation_ports.dart core/ports/game_installation_ports.dart && git mv src/platform/public_product_identity.dart core/config/public_product_identity.dart && git mv src/platform/avelune_host_compatibility.dart core/config/avelune_host_compatibility.dart && git mv src/ui/avelune/home/avelune_relative_time.dart core/utils/relative_time.dart
 ```
 
-- [ ] **Étape 3.3 — Vérifier**
+- [x] **Étape 3.3 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub/lib && ls core/ports core/config core/utils
@@ -286,7 +286,7 @@ Attendu : `hub_platform_port.dart` et `game_installation_ports.dart` dans `core/
 `relative_time.dart` dans `core/utils/`. Les dossiers `core/error/` et `core/diagnostics/` sont vides —
 c'est normal : `core/diagnostics/` se remplit au lot 9, `core/error/` au lot 14.
 
-- [ ] **Étape 3.4 — Committer**
+- [x] **Étape 3.4 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub/lib && git commit -m "refactor(hub): move cross-cutting ports and config to core (wip, does not compile)"
@@ -307,13 +307,13 @@ git add -A apps/pokemap_hub/lib && git commit -m "refactor(hub): move cross-cutt
 
 `src/platform/hub_composition.dart` (247 l.) **reste sur place** — il est traité au lot 19.
 
-- [ ] **Étape 4.1 — Déplacer**
+- [x] **Étape 4.1 — Déplacer**
 
 ```bash
 cd apps/pokemap_hub/lib && mkdir -p platform && git mv src/platform/android_hub_platform_adapter.dart src/platform/ios_hub_platform_adapter.dart src/platform/macos_hub_platform_adapter.dart src/platform/hub_platform_adapter_factory.dart platform/
 ```
 
-- [ ] **Étape 4.2 — Vérifier ce qui reste**
+- [x] **Étape 4.2 — Vérifier ce qui reste**
 
 ```bash
 cd apps/pokemap_hub/lib && ls src/platform/
@@ -321,7 +321,7 @@ cd apps/pokemap_hub/lib && ls src/platform/
 
 Attendu : `hub_composition.dart` **seul**.
 
-- [ ] **Étape 4.3 — Committer**
+- [x] **Étape 4.3 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub/lib && git commit -m "refactor(hub): move native adapters to platform (wip, does not compile)"
@@ -333,57 +333,59 @@ git add -A apps/pokemap_hub/lib && git commit -m "refactor(hub): move native ada
 
 C'est le plus gros lot de la phase : 40 fichiers, 7 features.
 
-- [ ] **Étape 5.1 — Créer l'arborescence des 7 features**
+- [x] **Étape 5.1 — Créer l'arborescence des 7 features**
 
 ```bash
 cd apps/pokemap_hub/lib && mkdir -p features/library/{domain/{entities,repositories},application/use_cases,data/{codecs,repositories}} features/installation/{domain/{entities,repositories,services},application/use_cases,data/{repositories,sources}} features/saves/{domain/{entities,repositories},application/services,data/repositories} features/session/{domain/{entities,repositories},application/{services,gateways},data/repositories} features/preferences/{domain/repositories,data/repositories} features/appearance/{domain/{entities,repositories},application/notifiers,data/repositories} features/dashboard/application/{notifiers,services}
 ```
 
-- [ ] **Étape 5.2 — `library` (3 fichiers)**
+- [x] **Étape 5.2 — `library` (3 fichiers)**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/library/game_library.dart features/library/domain/entities/game_library.dart && git mv src/library/game_library_codec.dart features/library/data/codecs/game_library_codec.dart && git mv src/library/game_library_store.dart features/library/data/repositories/game_library_repository_impl.dart
 ```
 
-- [ ] **Étape 5.3 — `installation` (7 fichiers)**
+- [x] **Étape 5.3 — `installation` (7 fichiers)**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/install/game_installation_transaction.dart features/installation/domain/entities/game_installation_transaction.dart && git mv src/install/game_installation_diagnostic.dart features/installation/domain/entities/game_installation_diagnostic.dart && git mv src/install/game_package_installer.dart features/installation/data/repositories/game_package_installer.dart && git mv src/install/installed_game_verifier.dart features/installation/data/repositories/installed_game_verifier.dart && git mv src/install/game_maintenance_service.dart features/installation/data/repositories/game_maintenance_service.dart && git mv src/install/editor_export_install_inbox.dart features/installation/data/repositories/editor_export_install_inbox.dart && git mv src/install/file_package_source.dart features/installation/data/sources/file_package_source.dart
 ```
 
-- [ ] **Étape 5.4 — `saves` (7 fichiers)**
+- [x] **Étape 5.4 — `saves` (7 fichiers)**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/saves/save_profile.dart features/saves/domain/entities/save_profile.dart && git mv src/saves/save_slot_metadata.dart features/saves/domain/entities/save_slot_metadata.dart && git mv src/saves/save_storage_diagnostic.dart features/saves/domain/entities/save_storage_diagnostic.dart && git mv src/saves/hub_save_profile_manager.dart features/saves/application/services/hub_save_profile_manager.dart && git mv src/lifecycle/hub_save_lifecycle_coordinator.dart features/saves/application/services/hub_save_lifecycle_coordinator.dart && git mv src/saves/hub_save_store.dart features/saves/data/repositories/hub_save_repository_impl.dart && git mv src/saves/legacy_global_save_importer.dart features/saves/data/repositories/legacy_global_save_importer.dart
 ```
 
-- [ ] **Étape 5.5 — `session` (12 fichiers)**
+- [x] **Étape 5.5 — `session` (12 fichiers)**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/session/save_read_handle.dart features/session/domain/entities/save_read_handle.dart && git mv src/ui/player/hub_player_launch_intent.dart features/session/domain/entities/hub_player_launch_intent.dart && git mv src/player/hub_runtime_external_exit.dart features/session/domain/entities/hub_runtime_external_exit.dart && git mv src/session/hub_in_process_session_factory.dart features/session/application/services/hub_in_process_session_factory.dart && git mv src/player/hub_session_checkpoint_committer.dart features/session/application/services/hub_session_checkpoint_committer.dart && git mv src/player/hub_runtime_game_source.dart features/session/application/services/hub_runtime_game_source.dart && git mv src/player/hub_player_save_gateway.dart features/session/application/gateways/hub_player_save_gateway.dart && git mv src/player/hub_player_preferences_gateway.dart features/session/application/gateways/hub_player_preferences_gateway.dart && git mv src/session/installed_game_launch_resolver.dart features/session/data/repositories/installed_game_launch_resolver.dart && git mv src/session/package_asset_resolver.dart features/session/data/repositories/package_asset_resolver.dart && git mv src/player/hub_control_profile_store.dart features/session/data/repositories/control_profile_repository_impl.dart
 ```
 
-- [ ] **Étape 5.6 — `preferences` et `appearance` (7 fichiers)**
+- [x] **Étape 5.6 — `preferences` et `appearance` (7 fichiers)**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/ui/preferences/hub_preferences_store.dart features/preferences/data/repositories/hub_preferences_repository_impl.dart && git mv src/ui/avelune/appearance/avelune_appearance_preferences.dart features/appearance/domain/entities/avelune_appearance_preferences.dart && git mv src/ui/avelune/appearance/avelune_appearance_catalog.dart features/appearance/domain/entities/avelune_appearance_catalog.dart && git mv src/ui/avelune/appearance/avelune_appearance_controller.dart features/appearance/application/notifiers/avelune_appearance_notifier.dart && git mv src/ui/avelune/appearance/avelune_appearance_store.dart features/appearance/data/repositories/avelune_appearance_repository_impl.dart && git mv src/ui/avelune/appearance/avelune_custom_background_importer.dart features/appearance/data/repositories/custom_background_repository_impl.dart
 ```
 
-- [ ] **Étape 5.7 — `dashboard` (1 fichier, éclaté plus tard)**
+- [x] **Étape 5.7 — `dashboard` (1 fichier, éclaté plus tard)**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/ui/hub_dashboard_controller.dart features/dashboard/application/notifiers/hub_dashboard_notifier.dart
 ```
 
-- [ ] **Étape 5.8 — Vérifier que les dossiers sources sont vides**
+- [x] **Étape 5.8 — Vérifier que les dossiers sources sont vides**
+
+`git mv` **ne supprime pas** les répertoires qu'il vide. Les retirer explicitement :
 
 ```bash
-cd apps/pokemap_hub/lib && ls src/library src/install src/saves src/session src/lifecycle src/player src/ui/preferences 2>&1
+cd apps/pokemap_hub/lib && find src -type d -empty -delete && ls src/library src/install src/saves src/session src/lifecycle src/player src/ui/preferences 2>&1
 ```
 
-Attendu : `No such file or directory` pour les 7 chemins.
+Attendu : `No such file or directory` pour les 7 chemins, et 35 fichiers répartis dans `features/`.
 
-- [ ] **Étape 5.9 — Committer**
+- [x] **Étape 5.9 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub/lib && git commit -m "refactor(hub): slice business code into seven features (wip, does not compile)"
@@ -395,23 +397,34 @@ git add -A apps/pokemap_hub/lib && git commit -m "refactor(hub): slice business 
 
 **Fichiers** : 47 fichiers UI.
 
-- [ ] **Étape 6.1 — Créer l'arborescence**
+- [x] **Étape 6.1 — Créer l'arborescence**
 
 ```bash
 cd apps/pokemap_hub/lib && mkdir -p presentation/design_system/{foundation,components,theme,assets,motion} presentation/{theme,shell,startup,shared/artwork} presentation/features/home/{pages,widgets,state} presentation/features/player/{pages,state} presentation/features/settings/{pages,widgets} presentation/features/installation/widgets
 ```
 
-- [ ] **Étape 6.2 — Design system (déplacement sec, 27 fichiers)**
+- [x] **Étape 6.2 — Design system (déplacement sec, 27 fichiers)**
 
 ```bash
-cd apps/pokemap_hub/lib && git mv src/ui/avelune/design_system/foundation/* presentation/design_system/foundation/ && git mv src/ui/avelune/design_system/components/* presentation/design_system/components/ && git mv src/ui/avelune/design_system/theme/* presentation/design_system/theme/ && git mv src/ui/avelune/design_system/avelune_design_system.dart presentation/design_system/avelune_design_system.dart && git mv src/ui/avelune/assets/* presentation/design_system/assets/ && git mv src/ui/avelune/motion/* presentation/design_system/motion/
+cd apps/pokemap_hub/lib && git mv src/ui/avelune/design_system/foundation/* presentation/design_system/foundation/ && git mv src/ui/avelune/design_system/components/* presentation/design_system/components/ && git mv src/ui/avelune/design_system/theme/* presentation/design_system/theme/ && git mv src/ui/avelune/design_system/avelune_design_system.dart presentation/design_system/avelune_design_system.dart && git mv src/ui/avelune/assets/* presentation/design_system/assets/ && git mv src/ui/avelune/motion/avelune_feedback.dart src/ui/avelune/motion/avelune_interaction_state.dart src/ui/avelune/motion/avelune_motion.dart presentation/design_system/motion/ && git mv src/ui/avelune/motion/avelune_exchange_controller.dart src/ui/avelune/motion/avelune_insertion_controller.dart presentation/features/home/state/
 ```
+
+> ⚠️ **`motion/` se scinde en deux.** `avelune_exchange_controller` et `avelune_insertion_controller`
+> ne vont **pas** dans le design system : ce sont des contrôleurs d'animation consommés uniquement par
+> `presentation/features/home/`, et `exchange` utilise des `Duration(` bruts. Le test existant
+> `avelune_design_system_test.dart` (« component layer cannot introduce raw visual primitives ») les
+> refuse, à juste titre. Seuls `avelune_feedback`, `avelune_interaction_state` et le barrel
+> `avelune_motion` sont des primitives d'interaction génériques.
+>
+> Le barrel `avelune_motion.dart` doit donc perdre les deux `export` correspondants, et
+> `pokemap_hub_ui.dart` les ré-exporter explicitement depuis leur nouvel emplacement — l'API publique
+> du barrel ne change pas (contrainte globale).
 
 > Le design system est **le seul bloc dont le contenu ne doit pas bouger d'un octet**. Ses tests golden
 > (`avelune_components_golden_test.dart`, `avelune_material_catalog_golden_test.dart`) doivent rester
 > bit-à-bit identiques au lot 24. Toute différence de golden signale une erreur de déplacement.
 
-- [ ] **Étape 6.3 — Thème et suppression du ré-export mort**
+- [x] **Étape 6.3 — Thème et suppression du ré-export mort**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/ui/avelune/avelune_theme.dart presentation/theme/avelune_theme.dart && git rm src/ui/avelune/avelune_navigation.dart
@@ -421,40 +434,41 @@ cd apps/pokemap_hub/lib && git mv src/ui/avelune/avelune_theme.dart presentation
 Le barrel `avelune_design_system.dart` couvre déjà ce ré-export. Son entrée dans `pokemap_hub_ui.dart`
 est retirée au lot 8.
 
-- [ ] **Étape 6.4 — Shell, startup, installation**
+- [x] **Étape 6.4 — Shell, startup, installation**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/ui/hub_shell.dart presentation/shell/hub_shell.dart && git mv src/ui/hub_game_views.dart presentation/shell/hub_game_views.dart && git mv src/ui/hub_install_progress.dart presentation/features/installation/widgets/hub_install_progress.dart
 ```
 
-- [ ] **Étape 6.5 — Feature UI `home` (16 fichiers)**
+- [x] **Étape 6.5 — Feature UI `home` (16 fichiers)**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/ui/avelune/home/avelune_home_screen.dart presentation/features/home/pages/avelune_home_screen.dart && git mv src/ui/avelune/home/avelune_room_scene.dart src/ui/avelune/home/avelune_game_shelf.dart src/ui/avelune/home/avelune_hero_details_panel.dart src/ui/avelune/home/avelune_home_header.dart src/ui/avelune/home/avelune_insertion_hint.dart src/ui/avelune/home/avelune_cartridge_insertion_overlay.dart src/ui/avelune/home/avelune_cartridge_exchange_overlay.dart presentation/features/home/widgets/ && git mv src/ui/avelune/avelune_cartridge.dart src/ui/avelune/avelune_console.dart src/ui/avelune/avelune_game_details.dart src/ui/avelune/avelune_game_presentation.dart presentation/features/home/widgets/ && git mv src/ui/avelune/home/avelune_home_controller.dart src/ui/avelune/home/avelune_home_geometry.dart src/ui/avelune/home/avelune_home_view_data.dart src/ui/avelune/home/avelune_home_view_data_mapper.dart presentation/features/home/state/
 ```
 
-- [ ] **Étape 6.6 — Feature UI `player` (5 fichiers)**
+- [x] **Étape 6.6 — Feature UI `player` (5 fichiers)**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/ui/player/hub_installed_game_player.dart src/ui/player/hub_intro_video_player.dart src/ui/player/hub_save_profiles_screen.dart src/ui/player/hub_installed_player_strings.dart presentation/features/player/pages/ && git mv src/ui/player/hub_title_presentation_loader.dart presentation/features/player/state/hub_title_presentation_loader.dart
 ```
 
-- [ ] **Étape 6.7 — Feature UI `settings` (4 fichiers)**
+- [x] **Étape 6.7 — Feature UI `settings` (4 fichiers)**
 
 ```bash
 cd apps/pokemap_hub/lib && git mv src/ui/avelune/settings/avelune_settings_menu.dart presentation/features/settings/pages/avelune_settings_menu.dart && git mv src/ui/avelune/appearance/avelune_appearance_settings.dart presentation/features/settings/pages/avelune_appearance_settings_page.dart && git mv src/ui/avelune/settings/avelune_storage_panel.dart src/ui/avelune/settings/avelune_motion_panel.dart presentation/features/settings/widgets/
 ```
 
-- [ ] **Étape 6.8 — Vérifier**
+- [x] **Étape 6.8 — Vérifier**
 
 ```bash
-cd apps/pokemap_hub/lib && find src/ui -name '*.dart' | sort
+cd apps/pokemap_hub/lib && find src -type d -empty -delete && find src -type f | sort
 ```
 
-Attendu : exactement **2 fichiers** — `src/ui/hub_app.dart` et rien d'autre sous `src/ui/avelune/`.
-Si `src/ui/avelune/` contient encore des `.dart`, un déplacement a été oublié.
+Attendu : exactement **3 fichiers**, ceux du lot 7 — `src/bootstrap/hub_bootstrap.dart`,
+`src/platform/hub_composition.dart`, `src/ui/hub_app.dart`. Total de `lib/` : 108 (109 moins
+`avelune_navigation.dart`).
 
-- [ ] **Étape 6.9 — Committer**
+- [x] **Étape 6.9 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub/lib && git commit -m "refactor(hub): move ui to a feature-first presentation layer (wip, does not compile)"
@@ -472,13 +486,13 @@ git add -A apps/pokemap_hub/lib && git commit -m "refactor(hub): move ui to a fe
 | `src/ui/hub_app.dart` → `app/ui/app_widget.dart` | 252 |
 | `src/platform/hub_composition.dart` → `app/di/hub_composition.dart` *(éclaté au lot 19)* | 247 |
 
-- [ ] **Étape 7.1 — Déplacer**
+- [x] **Étape 7.1 — Déplacer**
 
 ```bash
 cd apps/pokemap_hub/lib && mkdir -p app/di app/ui && git mv src/bootstrap/hub_bootstrap.dart app/app_root.dart && git mv src/ui/hub_app.dart app/ui/app_widget.dart && git mv src/platform/hub_composition.dart app/di/hub_composition.dart
 ```
 
-- [ ] **Étape 7.2 — Supprimer `lib/src/`**
+- [x] **Étape 7.2 — Supprimer `lib/src/`**
 
 ```bash
 cd apps/pokemap_hub/lib && find src -type f | sort
@@ -490,7 +504,7 @@ Attendu : **sortie vide**. Puis seulement :
 cd apps/pokemap_hub/lib && rm -rf src
 ```
 
-- [ ] **Étape 7.3 — Vérifier le compte**
+- [x] **Étape 7.3 — Vérifier le compte**
 
 ```bash
 cd apps/pokemap_hub/lib && find . -name '*.dart' | wc -l
@@ -498,7 +512,7 @@ cd apps/pokemap_hub/lib && find . -name '*.dart' | wc -l
 
 Attendu : **108** (109 mesurés à l'étape 1.6, moins `avelune_navigation.dart` supprimé au lot 6).
 
-- [ ] **Étape 7.4 — Committer**
+- [x] **Étape 7.4 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub/lib && git commit -m "refactor(hub): promote composition root to app/ and drop lib/src (wip, does not compile)"
@@ -513,7 +527,7 @@ C'est le lot qui remet l'app debout. Il touche les 107 fichiers de `lib/` et les
 **Produit** : l'app compile et les 88 fichiers de test passent — avec la nouvelle arborescence mais
 encore l'ancienne sémantique (pas d'interfaces, pas de Riverpod).
 
-- [ ] **Étape 8.1 — Recenser les imports relatifs à traiter**
+- [x] **Étape 8.1 — Recenser les imports relatifs à traiter**
 
 ```bash
 cd apps/pokemap_hub/lib && grep -rn "^import '\.\./\|^import '\./" --include="*.dart" . | wc -l
@@ -521,7 +535,7 @@ cd apps/pokemap_hub/lib && grep -rn "^import '\.\./\|^import '\./" --include="*.
 
 Noter le chiffre. Il devra tomber à 0 à l'étape 8.5.
 
-- [ ] **Étape 8.2 — Réécrire tous les imports en absolus**
+- [x] **Étape 8.2 — Réécrire tous les imports en absolus**
 
 Chaque `import '../install/game_package_installer.dart';` devient
 `import 'package:pokemap_hub/features/installation/data/repositories/game_package_installer.dart';`.
@@ -535,7 +549,7 @@ cd apps/pokemap_hub && flutter analyze 2>&1 | grep "uri_does_not_exist" | head -
 Corriger le lot d'erreurs affiché, relancer, recommencer jusqu'à ce que `uri_does_not_exist` disparaisse.
 La table de correspondance complète est le § 5 de la spec.
 
-- [ ] **Étape 8.3 — Mettre à jour `pokemap_hub.dart`**
+- [x] **Étape 8.3 — Mettre à jour `pokemap_hub.dart`**
 
 Le barrel pur. **Les mêmes 19 symboles sont exportés**, seuls les chemins changent :
 
@@ -562,12 +576,36 @@ export 'package:pokemap_hub/features/saves/domain/entities/save_slot_metadata.da
 export 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
 ```
 
-- [ ] **Étape 8.4 — Mettre à jour `pokemap_hub_ui.dart` et `pokemap_hub_player.dart`**
+- [x] **Étape 8.4 — Mettre à jour `pokemap_hub_ui.dart` et `pokemap_hub_player.dart`**
 
 Mêmes symboles, nouveaux chemins. **Retirer** la ligne `export 'src/ui/avelune/avelune_navigation.dart';`
 (fichier supprimé au lot 6 ; `avelune_design_system.dart` couvre déjà `AveluneBottomNavigation`).
 
-- [ ] **Étape 8.5 — Vérifier qu'il ne reste aucun import relatif**
+- [x] **Étape 8.4 bis — Repointer les imports et les chemins codés en dur des tests**
+
+> ⚠️ **Correction du plan.** Le repointage des tests était initialement prévu au lot 24. C'est trop
+> tard : la suite est le **seul filet** des phases 3 à 5, elle ne peut pas rester incompilable jusqu'à
+> la fin. Elle est donc repointée ici. Le lot 24 ne garde que la réorganisation des répertoires.
+
+Deux passes distinctes :
+
+1. **URI de package** — 77 occurrences de `package:pokemap_hub/src/...` dans `test/`, à résoudre avec
+   la même table de renommage que l'étape 8.2.
+2. **Chemins codés en dur** — 15 littéraux `'lib/src/...'` dans `test/platform/`, `test/release/` et
+   `test/player/hub_player_architecture_boundary_test.dart`. Ces tests **lisent des fichiers source par
+   chemin** ; ils cassent silencieusement sinon.
+
+Trois assertions sont à corriger à la main, parce qu'elles portent sur le *contenu* et pas sur le chemin :
+
+- `ios_distribution_contract_test.dart` attend `contains("../platform/public_product_identity.dart")` —
+  devient `contains('package:pokemap_hub/core/config/public_product_identity.dart')`, et l'assertion
+  jumelle sur `composition` de même.
+- `avelune_design_system_test.dart` liste `Directory('lib/src/ui/avelune/design_system')` — devient
+  `Directory('lib/presentation/design_system')`.
+- `hub_player_architecture_boundary_test.dart` nomme 3 fichiers **dont il vérifie l'absence** ; les
+  pointer vers leur emplacement dans la nouvelle arborescence pour que le garde-fou garde son sens.
+
+- [x] **Étape 8.5 — Vérifier qu'il ne reste aucun import relatif**
 
 ```bash
 cd apps/pokemap_hub/lib && grep -rn "^import '\.\./\|^import '\./" --include="*.dart" . | wc -l
@@ -575,7 +613,7 @@ cd apps/pokemap_hub/lib && grep -rn "^import '\.\./\|^import '\./" --include="*.
 
 Attendu : `0`.
 
-- [ ] **Étape 8.6 — Vérifier que le barrel pur reste pur**
+- [x] **Étape 8.6 — Vérifier que le barrel pur reste pur**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/architecture/hub_architecture_boundary_test.dart
@@ -595,7 +633,7 @@ donc **remplacer les 3 assertions** par leurs équivalents sur la nouvelle arbor
   });
 ```
 
-- [ ] **Étape 8.7 — GATE : analyse et tests complets**
+- [x] **Étape 8.7 — GATE : analyse et tests complets**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
@@ -607,7 +645,7 @@ rien changé d'autre que des chemins.
 Si un test échoue ici, la cause est un déplacement erroné, pas une régression fonctionnelle :
 comparer avec `git log --diff-filter=R --name-status` pour retrouver le fichier mal placé.
 
-- [ ] **Étape 8.8 — Committer**
+- [x] **Étape 8.8 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): rewrite imports onto the new layer tree"
@@ -2032,9 +2070,16 @@ Puis supprimer les dossiers vidés :
 cd apps/pokemap_hub/test && rmdir -p library install saves lifecycle session ui/avelune/appearance ui/avelune/design_system ui/avelune/assets ui/avelune/home 2>/dev/null; find . -type d -empty -delete
 ```
 
-- [ ] **Étape 24.2 — Repointer les imports**
+- [ ] **Étape 24.2 — Repointer les imports relatifs entre fichiers de test**
 
-Même méthode qu'à l'étape 8.2 : s'appuyer sur `flutter analyze` par lots.
+Les imports vers `lib/` ont déjà été traités à l'**étape 8.4 bis** — il ne reste ici que les imports
+relatifs *entre* fichiers de test (`import '../support/game_package_fixture.dart'`), cassés par le
+déplacement des répertoires, plus les chemins relatifs vers les goldens et les polices
+(`'../../goldens/avelune/…'`, `'../../packages/map_editor/assets/fonts/…'`) dont la profondeur change.
+
+```bash
+cd apps/pokemap_hub && flutter analyze test 2>&1 | grep uri_does_not_exist | head -40
+```
 
 - [ ] **Étape 24.3 — Convertir les tests qui construisaient une composition**
 
@@ -2143,6 +2188,8 @@ Attendu : working tree propre, 25 commits `refactor(hub):` / `test(hub):` lisibl
 |---|---|---|
 | 2 | Riverpod en runtime seul, providers écrits à la main, états en Dart brut | Aucune chaîne de codegen n'est installable : `map_core` épingle `freezed_annotation ^2.4.1` (hors périmètre) tandis que Dart 3.13 impose `analyzer >=13`. Vérifié par 4 échecs du solveur `pub` |
 | 2 | `riverpod_annotation` et `freezed_annotation` non ajoutés en dépendances directes | Le premier est inerte sans générateur ; le second arrive déjà transitivement par `map_core` et n'est consommé par rien ici |
+| 6 | `avelune_exchange_controller` et `avelune_insertion_controller` vont dans `presentation/features/home/state/`, pas dans `design_system/motion/` | Contredit la spec §5.11, mais confirmé par le test `avelune_design_system_test` : `exchange` utilise des `Duration(` bruts et les deux ne sont consommés que par la feature home. Le lot 21 le disait déjà |
+| 8 | Repointage des tests avancé du lot 24 au lot 8 | La suite est le seul filet des phases 3 à 5 ; la laisser incompilable jusqu'au lot 24 aurait supprimé toute détection de régression pendant 16 lots |
 | 12-13 | 11 widgets et `_PlayerLaunchFailure` passent de privés à publics | Le privé Dart est à portée de bibliothèque : un symbole privé ne peut pas traverser un fichier. `part`/`part of` est écarté car il masquerait la découpe aux garde-fous du lot 23 |
 | 15 | `dart:io` autorisé dans `game_installation_repository_interface.dart` | `File` est le type d'entrée réel d'une installation locale ; l'abstraire changerait le comportement, ce que la contrainte globale interdit |
 | 21 | `avelune_exchange_controller` et `avelune_insertion_controller` restent des `ChangeNotifier` | Animation pure, sans dépendance métier, confinée à un seul widget |

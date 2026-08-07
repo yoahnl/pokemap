@@ -251,7 +251,8 @@ Deux features incomplètes, **assumées et documentées**, exactement comme Grim
 |---|---|
 | `src/ui/avelune/design_system/**` (21 fichiers, 1 817 l.) | `presentation/design_system/{foundation,components,theme}` — **déplacement sec** |
 | `src/ui/avelune/assets/**` (2 fichiers, 292 l.) | `presentation/design_system/assets/` |
-| `src/ui/avelune/motion/**` (5 fichiers, 447 l.) | `presentation/design_system/motion/` |
+| `src/ui/avelune/motion/{avelune_feedback,avelune_interaction_state,avelune_motion}.dart` (3 fichiers) | `presentation/design_system/motion/` |
+| `src/ui/avelune/motion/avelune_{exchange,insertion}_controller.dart` (2 fichiers, 313 l.) | `presentation/features/home/state/` — contrôleurs d'animation de la feature, pas des primitives du design system |
 | `src/ui/avelune/avelune_theme.dart` (23) | `presentation/theme/avelune_theme.dart` |
 | `src/ui/avelune/avelune_navigation.dart` (1) | **supprimé** — ré-export absorbé par le barrel `design_system` |
 | `src/ui/hub_shell.dart` (927) | `presentation/shell/` — **à éclater** (§ 6) |
