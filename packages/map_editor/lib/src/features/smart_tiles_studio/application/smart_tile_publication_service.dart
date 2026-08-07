@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 
@@ -349,6 +352,34 @@ final class SmartTilePublicationService {
       snapshot: snapshot,
       map: map,
       mapRevision: mapRevision,
+    );
+  }
+
+  /// Publie un preset déjà existant en remplaçant son contenu.
+  ///
+  /// C'est la seconde forme de `smart_tile.preset.publish` : elle prend le
+  /// preset complet au lieu d'un brouillon, et sert à modifier un preset
+  /// publié sans repasser par l'assistant — par exemple pour réécrire les
+  /// poids de ses variantes. Renvoie le résultat de l'application du plan.
+  Future<String> publishPreset({
+    required String projectRootPath,
+    required ProjectSmartTilePreset preset,
+  }) async {
+    final snapshot = await _gateway.load(projectRootPath: projectRootPath);
+    final payload = preset.toJson();
+    final fingerprint = sha256
+        .convert(utf8.encode(jsonEncode(payload)))
+        .toString()
+        .substring(0, 20);
+    final plan = await _gateway.plan(
+      projectRootPath: projectRootPath,
+      parameters: <String, Object?>{'preset': payload},
+      expectedRevision: snapshot.snapshotRevision,
+      idempotencyKey: 'smart-tile-preset-publish-$fingerprint',
+    );
+    return _gateway.apply(
+      plan: plan,
+      operationId: 'smart-tile-preset-publish-$fingerprint',
     );
   }
 
