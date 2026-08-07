@@ -5,10 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_authoring/map_authoring.dart'
-    show
-        MapAuthoringException,
-        computeAuthoringJsonFingerprint,
-        smartTileCanonicalLayerActionRequiredCode;
+    show MapAuthoringException, smartTileCanonicalLayerActionRequiredCode;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -83,6 +80,7 @@ import '../../border_map_editing/application/pending_border_save_guard.dart';
 import '../../border_map_editing/state/border_map_editing_providers.dart';
 import '../../border_map_editing/state/border_preview_providers.dart';
 import '../../smart_tiles_studio/application/smart_tile_publication_service.dart';
+import '../application/smart_tile_mutation_identity.dart';
 import '../application/smart_tile_variant_density.dart';
 
 part 'editor_notifier.g.dart';
@@ -115,16 +113,24 @@ String _nextCanonicalSmartTileLayerId(MapData map, String presetId) {
   return '${stem}_$suffix';
 }
 
+/// Jeton de la session d'édition courante.
+///
+/// Les identités de gestes Smart Tile se construisent sur un compteur remis à
+/// zéro au démarrage. Le journal d'idempotence, lui, est persistant : sans ce
+/// jeton, le premier geste d'une session rejoue la clé du premier geste de la
+/// session précédente et se fait refuser.
+final String _smartTileEditorMutationSession =
+    newSmartTileMutationSessionToken();
+
 String _smartTileEditorMutationIdentity({
   required String purpose,
   required Map<String, Object?> values,
-}) {
-  final digest = computeAuthoringJsonFingerprint(
-    values,
-    logicalName: '$purpose-identity.json',
-  );
-  return '$purpose-${digest.substring('sha256:'.length, 39)}';
-}
+}) =>
+    smartTileMutationIdentity(
+      purpose: purpose,
+      sessionToken: _smartTileEditorMutationSession,
+      values: values,
+    );
 
 typedef _NarrativeEventSourceCleanupInterlock = ({
   String projectRootPath,
