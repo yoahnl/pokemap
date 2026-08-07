@@ -22,3 +22,5 @@ export 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnost
 export 'package:pokemap_hub/features/installation/domain/entities/game_installation_result.dart';
 export 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 export 'package:pokemap_hub/features/saves/domain/entities/save_migration.dart';
+export 'package:pokemap_hub/features/installation/domain/entities/editor_export_install_result.dart';
+export 'package:pokemap_hub/features/installation/domain/repositories/editor_export_inbox_interface.dart';

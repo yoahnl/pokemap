@@ -15,7 +15,6 @@ final class GameLibraryStore
     this.codec = const GameLibraryCodec(),
   });
 
-  @override
   final Directory supportRoot;
   final GameLibraryCodec codec;
   final Random _random = Random.secure();

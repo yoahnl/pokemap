@@ -68,7 +68,7 @@ void main() {
     expect(AveluneAppearanceCatalog.background('custom').label, 'Mon image');
     expect(AveluneAppearanceCatalog.furnitureFinish('ivory').label, 'Ivoire');
     expect(
-      AveluneAppearanceCatalog.background('amber').assetPath,
+      appearanceAssetPath(AveluneAppearanceCatalog.background('amber')),
       'assets/avelune/room/backgrounds/amber.webp',
     );
   });

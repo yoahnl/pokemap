@@ -1,7 +1,5 @@
 import 'package:flutter/foundation.dart';
 
-import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
-
 enum AveluneAppearanceOptionKind { background, furniture }
 
 @immutable
@@ -10,13 +8,11 @@ final class AveluneAppearanceOption {
     required this.id,
     required this.label,
     required this.kind,
-    required this.assetPath,
   });
 
   final String id;
   final String label;
   final AveluneAppearanceOptionKind kind;
-  final String? assetPath;
 
   bool get isCustom => id == AveluneAppearanceCatalog.customBackgroundId;
 }
@@ -39,7 +35,6 @@ abstract final class AveluneAppearanceCatalog {
         id: customBackgroundId,
         label: 'Mon image',
         kind: AveluneAppearanceOptionKind.background,
-        assetPath: null,
       ),
     ],
   );
@@ -81,7 +76,6 @@ abstract final class AveluneAppearanceCatalog {
         id: id,
         label: label,
         kind: AveluneAppearanceOptionKind.background,
-        assetPath: AveluneMaterialCatalog.background(id).path,
       );
 
   static AveluneAppearanceOption _furniture(String id, String label) =>
@@ -89,7 +83,6 @@ abstract final class AveluneAppearanceCatalog {
         id: id,
         label: label,
         kind: AveluneAppearanceOptionKind.furniture,
-        assetPath: AveluneMaterialCatalog.furnitureFinish(id).path,
       );
 
   static AveluneAppearanceOption _find(

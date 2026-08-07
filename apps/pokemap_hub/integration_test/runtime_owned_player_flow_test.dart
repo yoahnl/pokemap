@@ -16,6 +16,7 @@ import 'package:pub_semver/pub_semver.dart';
 import '../test/support/runtime_owned_player_package_fixture.dart';
 
 import '../test/support/dashboard_notifier_harness.dart';
+import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -69,6 +70,7 @@ void main() {
         hostCompatibility: compatibility,
       );
       final harness = buildDashboardHarness(
+        supportRoot: root,
         libraryStore: libraryStore,
         activityReader: InstalledHubGameActivityReader(
           supportRoot: supportRoot,
@@ -91,6 +93,13 @@ void main() {
             playerBuilder: (_, game, intent, onHubRequested) =>
                 HubInstalledGamePlayer(
               supportRoot: supportRoot,
+              saveRepositoryFactory: (root, identity) => HubSaveStore(
+                supportRoot: root,
+                identity: identity,
+              ),
+              preferencesRepository: preferencesStore,
+              controlProfileRepository:
+                  HubControlProfileStore(supportRoot: supportRoot),
               launchResolver: launchResolver,
               game: game.game,
               initialLaunchIntent: intent,

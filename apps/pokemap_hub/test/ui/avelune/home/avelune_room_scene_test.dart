@@ -10,6 +10,7 @@ import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geomet
 import 'package:pokemap_hub/presentation/features/home/pages/avelune_home_screen.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/appearance_asset_path.dart';
 
 void main() {
   testWidgets('background and furniture finish remain independent',
@@ -64,7 +65,7 @@ void main() {
       );
       expect(
         _assetPath(tester, 'avelune-room-furniture-layer'),
-        option.assetPath,
+        appearanceAssetPath(option),
       );
     }
     expect(rects.toSet(), hasLength(1));

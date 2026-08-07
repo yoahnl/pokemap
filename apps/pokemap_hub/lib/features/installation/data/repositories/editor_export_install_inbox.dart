@@ -6,6 +6,8 @@ import 'package:path/path.dart' as p;
 
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
 import 'package:pokemap_hub/features/installation/domain/repositories/game_installation_repository_interface.dart';
+import 'package:pokemap_hub/features/installation/domain/entities/editor_export_install_result.dart';
+import 'package:pokemap_hub/features/installation/domain/repositories/editor_export_inbox_interface.dart';
 
 typedef EditorExportPackageInstaller = Future<void> Function(
   File package, {
@@ -14,22 +16,7 @@ typedef EditorExportPackageInstaller = Future<void> Function(
   GameInstallProgressListener? onProgress,
 });
 
-enum EditorExportInstallStatus { installed, failed }
-
-final class EditorExportInstallResult {
-  const EditorExportInstallResult({
-    required this.requestId,
-    required this.status,
-    required this.code,
-  });
-
-  final String requestId;
-  final EditorExportInstallStatus status;
-  final String code;
-}
-
-/// Consumes the editor-to-Hub inbox without trusting either filename or bytes.
-final class EditorExportInstallInbox {
+final class EditorExportInstallInbox implements EditorExportInboxInterface {
   const EditorExportInstallInbox({
     required this.inbox,
     required this.installer,
@@ -67,6 +54,7 @@ final class EditorExportInstallInbox {
   final int maxRequests;
   final int maxRequestBytes;
 
+  @override
   Future<List<EditorExportInstallResult>> consumePending({
     GameInstallCancellationToken? cancellationToken,
     GameInstallProgressListener? onProgress,

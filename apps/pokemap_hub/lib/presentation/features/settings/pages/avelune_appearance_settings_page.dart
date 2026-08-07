@@ -5,6 +5,7 @@ import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearan
 import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/appearance_asset_path.dart';
 
 class AveluneAppearanceSettings extends StatelessWidget {
   const AveluneAppearanceSettings({
@@ -116,7 +117,7 @@ class _BackgroundGrid extends StatelessWidget {
             saving: saving,
             thumbnail: bg.isCustom
                 ? _customThumbnail(customThumbnailPath)
-                : _assetThumbnail(bg.assetPath),
+                : _assetThumbnail(appearanceAssetPath(bg)),
             onTap: saving ? null : () => onSelected(bg.id),
           ),
       ],
@@ -167,9 +168,9 @@ class _FurnitureGrid extends StatelessWidget {
             label: f.label,
             isSelected: f.id == selectedId,
             saving: saving,
-            thumbnail: f.assetPath != null
+            thumbnail: appearanceAssetPath(f) != null
                 ? Image.asset(
-                    f.assetPath!,
+                    appearanceAssetPath(f)!,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                   )

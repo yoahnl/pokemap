@@ -11,6 +11,7 @@ import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_shel
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/appearance_asset_path.dart';
 
 /// How far the cartridges stand above the shelf board's front lip, as a
 /// fraction of the alcove height.
@@ -177,8 +178,11 @@ class AveluneRoomScene extends StatelessWidget {
           Positioned.fromRect(
             rect: roomLayout.furnitureRect,
             child: Image.asset(
-              AveluneAppearanceCatalog.furnitureFinish(appearance.furnitureId)
-                  .assetPath!,
+              appearanceAssetPath(
+                AveluneAppearanceCatalog.furnitureFinish(
+                  appearance.furnitureId,
+                ),
+              )!,
               key: const ValueKey<String>('avelune-room-furniture-layer'),
               fit: BoxFit.contain,
               filterQuality: FilterQuality.high,
@@ -470,7 +474,9 @@ ImageProvider<Object> _backgroundFor(
       appearance.backgroundId == AveluneAppearanceCatalog.customBackgroundId
           ? AveluneAppearanceCatalog.defaultBackgroundId
           : appearance.backgroundId;
-  return AssetImage(AveluneAppearanceCatalog.background(id).assetPath!);
+  return AssetImage(
+    appearanceAssetPath(AveluneAppearanceCatalog.background(id))!,
+  );
 }
 
 ImageProvider<Object>? _artworkFor(AveluneArtworkViewData artwork) {

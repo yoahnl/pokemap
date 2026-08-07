@@ -3,7 +3,7 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 
 /// Pure installation rules, extracted from the installer so they can be read
-/// and tested without a filesystem. Nothing here touches `dart:io`.
+/// and tested without a filesystem. Nothing here touches the filesystem.
 
 /// Whether two inspection receipts describe the exact same package bytes.
 ///

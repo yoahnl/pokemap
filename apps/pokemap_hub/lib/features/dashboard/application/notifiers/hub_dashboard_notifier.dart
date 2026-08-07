@@ -8,7 +8,7 @@ import 'package:pokemap_hub/core/diagnostics/hub_diagnostic.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/hub_diagnostic_log_writer.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/hub_directory_storage_reader.dart';
-import 'package:pokemap_hub/features/installation/data/repositories/editor_export_install_inbox.dart';
+import 'package:pokemap_hub/features/installation/domain/entities/editor_export_install_result.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
 import 'package:pokemap_hub/features/library/domain/repositories/game_library_repository_interface.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
@@ -22,6 +22,7 @@ import 'package:pokemap_hub/app/di/dashboard_dependencies_provider.dart';
 /// [HubDashboardSnapshot.initial] the ChangeNotifier version started from, so
 /// the UI observes an identical sequence of states.
 final class HubDashboardNotifier extends Notifier<HubDashboardSnapshot> {
+  late Directory supportRoot;
   late GameLibraryRepositoryInterface libraryStore;
   late HubGameActivityReader activityReader;
   HubPackageImporter? importer;
@@ -48,6 +49,7 @@ final class HubDashboardNotifier extends Notifier<HubDashboardSnapshot> {
   Future<void> _wire() async {
     if (_wired) return;
     final deps = await ref.read(hubDashboardDependenciesProvider.future);
+    supportRoot = deps.supportRoot;
     libraryStore = deps.libraryStore;
     activityReader = deps.activityReader;
     importer = deps.importer;
@@ -439,7 +441,7 @@ final class HubDashboardNotifier extends Notifier<HubDashboardSnapshot> {
       return (
         snapshot: await (storageReader?.call() ??
             HubDirectoryStorageReader(
-              supportRoot: libraryStore.supportRoot,
+              supportRoot: supportRoot,
             ).call()),
         diagnostic: null,
       );

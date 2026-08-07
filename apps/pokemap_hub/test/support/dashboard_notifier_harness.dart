@@ -54,6 +54,7 @@ final class DashboardHarness {
 /// Anything left null keeps the notifier's own default: no importer, no export
 /// consumer, no preference persistence, no diagnostic log.
 DashboardHarness buildDashboardHarness({
+  required Directory supportRoot,
   required GameLibraryRepositoryInterface libraryStore,
   required HubGameActivityReader activityReader,
   HubPackageImporter? importer,
@@ -71,6 +72,7 @@ DashboardHarness buildDashboardHarness({
       ...extraOverrides,
       hubDashboardDependenciesProvider.overrideWith(
         (ref) async => HubDashboardDependencies(
+          supportRoot: supportRoot,
           libraryStore: libraryStore,
           activityReader: activityReader,
           importer: importer,

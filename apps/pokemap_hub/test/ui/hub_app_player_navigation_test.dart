@@ -28,6 +28,7 @@ void main() {
       ),
     );
     harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: store,
       activityReader: (_) async => HubGameActivity(
         canContinue: true,

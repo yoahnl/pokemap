@@ -21,6 +21,7 @@ final hubDashboardDependenciesProvider =
       await ref.watch(consumeEditorExportsUseCaseProvider.future);
 
   return HubDashboardDependencies(
+    supportRoot: root,
     libraryStore: await ref.watch(gameLibraryRepositoryProvider.future),
     activityReader: InstalledHubGameActivityReader(
       supportRoot: root,

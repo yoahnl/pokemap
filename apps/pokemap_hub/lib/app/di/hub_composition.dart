@@ -11,6 +11,7 @@ import 'package:pokemap_hub/platform/hub_platform_adapter_factory.dart';
 import 'package:pokemap_hub/core/config/public_product_identity.dart';
 import 'package:pokemap_hub/core/error/hub_failure.dart';
 import 'package:pokemap_hub/platform/path_provider_support_root_adapter.dart';
+import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
 
 abstract interface class HubAppComposition {
   Widget buildApp();
@@ -103,6 +104,14 @@ final class HubComposition implements HubAppComposition {
         playerBuilder: (context, game, intent, onHubRequested) =>
             HubInstalledGamePlayer(
           supportRoot: supportRoot,
+          // Interface meets implementation here and nowhere else (rule 6).
+          saveRepositoryFactory: (root, identity) => HubSaveStore(
+            supportRoot: root,
+            identity: identity,
+          ),
+          preferencesRepository: HubPreferencesStore(supportRoot: supportRoot),
+          controlProfileRepository:
+              HubControlProfileStore(supportRoot: supportRoot),
           launchResolver: launchResolver,
           game: game.game,
           initialLaunchIntent: intent,

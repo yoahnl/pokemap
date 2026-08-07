@@ -188,17 +188,21 @@ Future<void> _pumpProductionHome(
       precacheImage(const AssetImage(kAveluneFallbackArtworkAssetPath), context),
       precacheImage(
         AssetImage(
-          AveluneAppearanceCatalog.background(
-            AveluneAppearanceCatalog.defaultBackgroundId,
-          ).assetPath!,
+          appearanceAssetPath(
+            AveluneAppearanceCatalog.background(
+              AveluneAppearanceCatalog.defaultBackgroundId,
+            ),
+          )!,
         ),
         context,
       ),
       precacheImage(
         AssetImage(
-          AveluneAppearanceCatalog.furnitureFinish(
-            AveluneAppearanceCatalog.defaultFurnitureId,
-          ).assetPath!,
+          appearanceAssetPath(
+            AveluneAppearanceCatalog.furnitureFinish(
+              AveluneAppearanceCatalog.defaultFurnitureId,
+            ),
+          )!,
         ),
         context,
       ),

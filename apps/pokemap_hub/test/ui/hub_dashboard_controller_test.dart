@@ -24,6 +24,7 @@ void main() {
 
   test('initialization exposes a guided empty library', () async {
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
     );
@@ -40,6 +41,7 @@ void main() {
       () async {
     var consumed = false;
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       editorExportConsumer: () async {
@@ -82,6 +84,7 @@ void main() {
       ),
     );
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (game) async => HubGameActivity(
         canContinue: true,
@@ -114,6 +117,7 @@ void main() {
       () async {
     var storageReads = 0;
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       storageReader: () async => HubStorageSnapshot(usedBytes: ++storageReads),
@@ -157,6 +161,7 @@ void main() {
     final started = Completer<void>();
     final release = Completer<void>();
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       importer: (_, token, __) async {
@@ -180,6 +185,7 @@ void main() {
 
   test('installer cancellation returns to the ready library state', () async {
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       importer: (_, __, ___) async {
@@ -207,6 +213,7 @@ void main() {
   test('unexpected installer failures become player-safe diagnostics',
       () async {
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       importer: (_, __, ___) async => throw StateError('private path'),
@@ -227,6 +234,7 @@ void main() {
       () async {
     final log = File('${root.path}/logs/hub.log');
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       diagnosticLogFile: log,
@@ -268,6 +276,7 @@ void main() {
       () async {
     final log = File('${root.path}/logs/hub-import.log');
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       diagnosticLogFile: log,
@@ -306,6 +315,7 @@ void main() {
   test('rapid preference changes are persisted in order', () async {
     final preferences = HubPreferencesStore(supportRoot: root);
     final harness = buildDashboardHarness(
+      supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
       preferencesStore: preferences,

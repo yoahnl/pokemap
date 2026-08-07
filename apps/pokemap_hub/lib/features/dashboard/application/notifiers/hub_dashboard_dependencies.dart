@@ -12,6 +12,7 @@ import 'package:pokemap_hub/features/preferences/domain/repositories/player_pref
 /// overrides **one** provider instead of six.
 final class HubDashboardDependencies {
   const HubDashboardDependencies({
+    required this.supportRoot,
     required this.libraryStore,
     required this.activityReader,
     this.importer,
@@ -21,6 +22,9 @@ final class HubDashboardDependencies {
     this.diagnosticLogFile,
   });
 
+  /// Carried here rather than exposed on the library contract, which would
+  /// have forced `dart:io` into a domain interface.
+  final Directory supportRoot;
   final GameLibraryRepositoryInterface libraryStore;
   final HubGameActivityReader activityReader;
   final HubPackageImporter? importer;

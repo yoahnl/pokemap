@@ -10,14 +10,11 @@ import 'package:map_runtime/map_runtime.dart';
 
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/session/application/gateways/hub_player_preferences_gateway.dart';
-import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
 import 'package:pokemap_hub/features/session/application/gateways/hub_player_save_gateway.dart';
 import 'package:pokemap_hub/features/session/domain/entities/hub_runtime_external_exit.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_game_source.dart';
-import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
 import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_in_process_session_factory.dart';
-import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_intro_video_player.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
 import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
@@ -27,6 +24,9 @@ import 'package:pokemap_hub/features/session/application/services/player_launch_
 import 'package:pokemap_hub/presentation/features/player/state/player_typography_loader.dart';
 import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
+import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
+import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
+import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 
 typedef HubPlayerReturnRequest = Future<void> Function();
 
@@ -39,6 +39,9 @@ class HubInstalledGamePlayer extends StatefulWidget {
   const HubInstalledGamePlayer({
     super.key,
     required this.supportRoot,
+    required this.saveRepositoryFactory,
+    required this.preferencesRepository,
+    required this.controlProfileRepository,
     required this.launchResolver,
     required this.game,
     required this.onHubRequested,
@@ -48,6 +51,13 @@ class HubInstalledGamePlayer extends StatefulWidget {
   });
 
   final Directory supportRoot;
+
+  /// Injected rather than constructed here: building repositories is the DI
+  /// layer's job, and a widget that news up a store makes presentation depend
+  /// on data (rules 2 and 6).
+  final SaveRepositoryFactory saveRepositoryFactory;
+  final PlayerPreferencesRepositoryInterface preferencesRepository;
+  final ControlProfileRepositoryInterface controlProfileRepository;
   final SessionLaunchRepositoryInterface launchResolver;
   final InstalledGame game;
   final HubPlayerReturnRequest onHubRequested;
@@ -73,7 +83,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       const player_ui.PokeMapPlayerTypography();
   RuntimeTitleMusicController? _titleMusicController;
   RuntimeAudioMixer? _audioMixer;
-  HubControlProfileStore? _controlProfileStore;
+  ControlProfileRepositoryInterface? _controlProfileStore;
   player_ui.PlayerControlProfile _controlProfile =
       player_ui.PlayerControlProfile.standard;
   StreamSubscription<RuntimePlayerSnapshot>? _titleMusicSubscription;
@@ -94,16 +104,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     StreamSubscription<RuntimePlayerSnapshot>? titleMusicSubscription;
     try {
       final launch = await widget.launchResolver.resolve(widget.game);
-      final store = HubSaveStore(
-        supportRoot: widget.supportRoot,
-        identity: launch.identity,
+      final store = widget.saveRepositoryFactory(
+        widget.supportRoot,
+        launch.identity,
       );
-      final preferencesStore =
-          HubPreferencesStore(supportRoot: widget.supportRoot);
+      final preferencesStore = widget.preferencesRepository;
       final preferences = (await preferencesStore.load()).preferences;
-      final controlProfileStore = HubControlProfileStore(
-        supportRoot: widget.supportRoot,
-      );
+      final controlProfileStore = widget.controlProfileRepository;
       final controlProfile = await controlProfileStore.load();
       final audioMixer = RuntimeAudioMixer(
         mix: RuntimeAudioMix(

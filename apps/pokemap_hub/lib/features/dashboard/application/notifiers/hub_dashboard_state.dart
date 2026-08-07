@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:map_player_ui/map_player_ui.dart';
 
 import 'package:pokemap_hub/core/diagnostics/hub_diagnostic.dart';
-import 'package:pokemap_hub/features/installation/data/repositories/editor_export_install_inbox.dart';
+import 'package:pokemap_hub/features/installation/domain/entities/editor_export_install_result.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 

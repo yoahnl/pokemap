@@ -51,3 +51,5 @@ export 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_i
 export 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 export 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
 export 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_read.dart';
+export 'package:pokemap_hub/presentation/shared/artwork/appearance_asset_path.dart';
+export 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
