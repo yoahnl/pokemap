@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flame/game.dart';
@@ -8,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
-import 'package:path/path.dart' as p;
 
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/session/application/gateways/hub_player_preferences_gateway.dart';
@@ -26,6 +24,8 @@ import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_pla
 import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_save_profiles_screen.dart';
 import 'package:pokemap_hub/presentation/features/player/state/hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/presentation/features/player/state/player_launch_failure.dart';
+import 'package:pokemap_hub/presentation/features/player/state/player_typography_loader.dart';
 
 typedef HubPlayerReturnRequest = Future<void> Function();
 
@@ -64,7 +64,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   GameSessionController? _sessions;
   PlayableMapGame? _mountedGame;
   InstalledGameLaunchContext? _launch;
-  _PlayerLaunchFailure? _failure;
+  PlayerLaunchFailure? _failure;
   HubSaveProfileManager? _profileManager;
   HubSaveSelection? _saveSelection;
   HubLoadedTitlePresentation? _titlePresentation;
@@ -130,12 +130,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         defaultSlotDisplayName: 'Slot 1',
       );
       final newGameIdentityPresentation =
-          await _loadNewGameIdentityPresentation(launch);
+          await loadNewGameIdentityPresentation(launch);
       final titlePresentation = await HubTitlePresentationLoader(
         manifest: launch.manifest,
         resolveFile: launch.assets.resolveFile,
       ).load(newGameIdentity: newGameIdentityPresentation);
-      final loadedTypography = await _loadTypography(titlePresentation);
+      final loadedTypography = await loadPlayerTypography(titlePresentation);
       final intro = titlePresentation.intro;
       _reducedMotion = preferences.reducedMotion;
       _introComplete = widget.initialLaunchIntent.skipsIntro ||
@@ -220,7 +220,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       await titleMusicSubscription?.cancel();
       await titleMusicController?.dispose();
       await coordinator?.dispose();
-      final failure = await _recordFailure(
+      final failure = await recordPlayerLaunchFailure(
+        game: widget.game,
+        supportRoot: widget.supportRoot,
+        diagnosticLogFile: widget.diagnosticLogFile,
+        
         error,
         stackTrace,
         event: 'playerLaunchFailed',
@@ -228,92 +232,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (!mounted) return;
       setState(() => _failure = failure);
     }
-  }
-
-  Future<player_ui.PokeMapPlayerTypography> _loadTypography(
-    HubLoadedTitlePresentation presentation,
-  ) async {
-    final typography = presentation.typography;
-    if (typography == null) {
-      return const player_ui.PokeMapPlayerTypography();
-    }
-    final loaded = await const RuntimeProjectTypographyLoader().load(
-      <ProjectTypographyRole, RuntimeProjectFontRequest>{
-        for (final entry in typography.roles.entries)
-          entry.key: RuntimeProjectFontRequest(
-            file: entry.value.file,
-            family: entry.value.family,
-            fallbackFamilies: entry.value.fallbackFamilies,
-          ),
-      },
-    );
-    RuntimeLoadedFontRole role(
-      ProjectTypographyRole role,
-      List<String> fallback,
-    ) =>
-        loaded.roles[role] ??
-        RuntimeLoadedFontRole(
-          registeredFamily: null,
-          fallbackFamilies: fallback,
-        );
-
-    final display =
-        role(ProjectTypographyRole.display, const <String>['sans-serif']);
-    final body = role(ProjectTypographyRole.body, const <String>['sans-serif']);
-    final dialogue =
-        role(ProjectTypographyRole.dialogue, const <String>['sans-serif']);
-    final numbers =
-        role(ProjectTypographyRole.numbers, const <String>['monospace']);
-    return player_ui.PokeMapPlayerTypography(
-      displayFamily: display.registeredFamily,
-      displayFallback: display.fallbackFamilies,
-      bodyFamily: body.registeredFamily,
-      bodyFallback: body.fallbackFamilies,
-      dialogueFamily: dialogue.registeredFamily,
-      dialogueFallback: dialogue.fallbackFamilies,
-      numbersFamily: numbers.registeredFamily,
-      numbersFallback: numbers.fallbackFamilies,
-    );
-  }
-
-  Future<player_ui.PlayerNewGameIdentityPresentation>
-      _loadNewGameIdentityPresentation(
-    InstalledGameLaunchContext launch,
-  ) async {
-    final projectFile = await launch.assets.resolveReference(launch.project);
-    final decoded = jsonDecode(await projectFile.readAsString());
-    if (decoded is! Map) {
-      throw const FormatException(
-        'The installed project manifest must be a JSON object.',
-      );
-    }
-    final project = ProjectManifest.fromJson(
-      Map<String, dynamic>.from(decoded),
-    );
-    final config = project.newGame;
-    final charactersById = <String, ProjectCharacterEntry>{
-      for (final character in project.characters) character.id: character,
-    };
-    final authoredIds = config.playerAvatarCharacterIds;
-    final fallbackId = project.settings.defaultPlayerCharacterId?.trim();
-    final avatarIds = authoredIds.isNotEmpty
-        ? authoredIds
-        : fallbackId == null || fallbackId.isEmpty
-            ? const <String>[]
-            : <String>[fallbackId];
-    return player_ui.PlayerNewGameIdentityPresentation(
-      defaultName: config.playerName,
-      defaultPronounSet: config.playerPronounSet,
-      defaultAvatarCharacterId: fallbackId,
-      avatarOptions: <player_ui.PlayerNewGameAvatarOption>[
-        for (final id in avatarIds)
-          if (charactersById[id] case final character?)
-            player_ui.PlayerNewGameAvatarOption(
-              characterId: character.id,
-              label: character.name,
-            ),
-      ],
-    );
   }
 
   Future<void> _mountGame(PlayableMapGame game) async {
@@ -391,59 +309,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       unawaited(_titleMusicController?.pauseForLifecycle());
       unawaited(coordinator.pauseForLifecycle());
     }
-  }
-
-  Future<_PlayerLaunchFailure> _recordFailure(
-    Object error,
-    StackTrace stackTrace, {
-    required String event,
-  }) async {
-    final cause = switch (error) {
-      InstalledGameLaunchException(:final cause) => cause,
-      _ => null,
-    };
-    final details = <String>[
-      error.toString(),
-      if (cause != null) 'Cause: $cause',
-      stackTrace.toString(),
-    ].join('\n');
-    final logFile = widget.diagnosticLogFile ??
-        File(
-          p.join(
-            widget.supportRoot.path,
-            'logs',
-            'hub-player.log',
-          ),
-        );
-    String? logPath;
-    try {
-      await logFile.parent.create(recursive: true);
-      await logFile.writeAsString(
-        '${jsonEncode(<String, Object?>{
-              'timestamp': DateTime.now().toUtc().toIso8601String(),
-              'event': event,
-              'gameId': widget.game.gameId,
-              'gameVersion': widget.game.current.gameVersion.toString(),
-              'errorType': error.runtimeType.toString(),
-              'error': error.toString(),
-              if (cause != null) 'cause': cause.toString(),
-              'stackTrace': stackTrace.toString(),
-            })}\n',
-        mode: FileMode.append,
-        flush: true,
-      );
-      logPath = logFile.path;
-    } on Object {
-      // The player-safe error remains available if log persistence fails.
-    }
-    return _PlayerLaunchFailure(
-      code: switch (error) {
-        InstalledGameLaunchException(:final code) => code.name,
-        _ => 'unexpected',
-      },
-      details: details,
-      logPath: logPath,
-    );
   }
 
   @override
@@ -633,16 +498,4 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     if (coordinator != null) unawaited(coordinator.dispose());
     super.dispose();
   }
-}
-
-final class _PlayerLaunchFailure {
-  const _PlayerLaunchFailure({
-    required this.code,
-    required this.details,
-    required this.logPath,
-  });
-
-  final String code;
-  final String details;
-  final String? logPath;
 }
