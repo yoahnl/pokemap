@@ -13,6 +13,7 @@ import 'map_metadata.dart';
 import 'map_visual_stack_config.dart';
 import 'shadow.dart';
 
+import '../compatibility/environment_single_area_migration.dart';
 import '../operations/map_placed_element_shadow_override_json_codec.dart';
 
 part 'map_data.freezed.dart';
@@ -44,7 +45,9 @@ class MapData with _$MapData {
   }) = _MapData;
 
   factory MapData.fromJson(Map<String, dynamic> json) {
-    final canonical = _migrateLegacyTileLayers(json);
+    final canonical = migrateEnvironmentSingleAreaMapJson(
+      _migrateLegacyTileLayers(json),
+    );
     _preflightSmartTileMapJson(canonical);
     if (canonical.containsKey('visualStack')) {
       final visualStack = canonical['visualStack'];
