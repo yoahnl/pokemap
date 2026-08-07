@@ -182,7 +182,10 @@ final class _PendingSmartTileGesture {
   final String layerId;
   final String? materialId;
   final EditorState rollbackState;
-  final SmartTileGestureSelection? selection;
+
+  /// Cleared when clicks with different selections merge: the canonical action
+  /// then carries the plain cell list, which describes the same edit.
+  SmartTileGestureSelection? selection;
   final Set<GridPos> cells = <GridPos>{};
 }
 
@@ -261,6 +264,12 @@ ProjectMapEntry? _findMapEntryForPath(
 /// The Studio autosaves drafts on a debounce, so a background write can land
 /// between reading the project revision and planning against it. One replan
 /// clears that race; a persistent conflict is reported instead of looping.
+/// How long a Smart Tile burst is coalesced before it is committed.
+///
+/// Long enough to swallow ordinary repeated clicking, short enough that the
+/// edit still feels immediate — the optimistic paint is already on screen.
+const Duration smartTileGestureCoalesceDelay = Duration(milliseconds: 250);
+
 const int _canonicalStalePlanRetryBudget = 1;
 
 /// Shown when the open session no longer matches the document on disk.
@@ -363,6 +372,15 @@ class EditorNotifier extends _$EditorNotifier
   bool _suppressBorderSelectionReconciliation = false;
   bool _registeredNarrativeDocumentDisposal = false;
   _PendingSmartTileGesture? _pendingSmartTileGesture;
+  Timer? _smartTileGestureCoalesceTimer;
+
+  /// Whether the map is only dirty because of Smart Tile work we own.
+  ///
+  /// That work is already on its way to disk, so refusing the next click over
+  /// it would make continuous painting impossible. Unrelated unsaved edits
+  /// still block, since a canonical gesture plans from the stored version.
+  bool get _canonicalSmartTileGestureOwnsDirtyMap =>
+      _smartTileGestureCommitInProgress || _pendingSmartTileGesture != null;
   bool _smartTileGestureCommitInProgress = false;
   bool _smartTileCanonicalRecoveryRequired = false;
   int _smartTileGestureSequence = 0;
@@ -2045,7 +2063,12 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null || path == null) {
       return ActiveMapSaveOutcome.unavailable;
     }
-    if (_smartTileGestureCommitInProgress) {
+    if (_smartTileGestureCommitInProgress ||
+        _smartTileGestureCoalesceTimer != null) {
+      // A coalesced burst is still waiting to be written. Saving now would
+      // persist the optimistic map and let the canonical commit land on top of
+      // it, so flush the burst and let the author save once it settles.
+      _flushCoalescedSmartTileGesture();
       return ActiveMapSaveOutcome.unavailable;
     }
     if (_smartTileCanonicalRecoveryRequired) {
@@ -5605,15 +5628,14 @@ class EditorNotifier extends _$EditorNotifier
     final selectedCells = cells.toSet().toList(growable: false);
     if (selectedCells.isEmpty) return;
     if (state.projectRootPath != null &&
-        (_smartTileGestureCommitInProgress ||
-            _smartTileCanonicalRecoveryRequired ||
-            state.isDirty && state.mapStrokeStart == null)) {
+        (_smartTileCanonicalRecoveryRequired ||
+            state.isDirty &&
+                state.mapStrokeStart == null &&
+                !_canonicalSmartTileGestureOwnsDirtyMap)) {
       _setPaintError(
         _smartTileCanonicalRecoveryRequired
             ? editorReloadRequiredMessage
-            : _smartTileGestureCommitInProgress
-                ? editorSmartTileCommitInProgressMessage
-                : editorSmartTileCleanMapRequiredMessage,
+            : editorSmartTileCleanMapRequiredMessage,
       );
       return;
     }
@@ -5741,15 +5763,14 @@ class EditorNotifier extends _$EditorNotifier
       );
     } else if (layer is SmartTileLayer) {
       if (state.projectRootPath != null &&
-          (_smartTileGestureCommitInProgress ||
-              _smartTileCanonicalRecoveryRequired ||
-              state.isDirty && state.mapStrokeStart == null)) {
+          (_smartTileCanonicalRecoveryRequired ||
+              state.isDirty &&
+                  state.mapStrokeStart == null &&
+                  !_canonicalSmartTileGestureOwnsDirtyMap)) {
         _setPaintError(
           _smartTileCanonicalRecoveryRequired
               ? editorReloadRequiredMessage
-              : _smartTileGestureCommitInProgress
-                  ? editorSmartTileCommitInProgressMessage
-                  : editorSmartTileCleanMapRequiredMessage,
+              : editorSmartTileCleanMapRequiredMessage,
         );
         return false;
       }
@@ -8120,17 +8141,13 @@ class EditorNotifier extends _$EditorNotifier
     final activeLayer =
         map == null || layerId == null ? null : _findLayerById(map, layerId);
     if (activeLayer is SmartTileLayer &&
-        (state.isDirty ||
-            _smartTileGestureCommitInProgress ||
+        (state.isDirty && !_canonicalSmartTileGestureOwnsDirtyMap ||
             _smartTileCanonicalRecoveryRequired)) {
       state = state.copyWith(
         errorMessage: _smartTileCanonicalRecoveryRequired
             ? 'Rechargez la map avant de continuer la peinture Smart Tile.'
-            : _smartTileGestureCommitInProgress
-                ? 'La peinture Smart Tile précédente est encore en cours '
-                    'd’enregistrement.'
-                : 'Enregistrez les modifications de la map avant de peindre un '
-                    'Smart Tile.',
+            : 'Enregistrez les modifications de la map avant de peindre un '
+                'Smart Tile.',
       );
       return;
     }
@@ -8139,6 +8156,8 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   void endMapStroke() {
+    _smartTileGestureCoalesceTimer?.cancel();
+    _smartTileGestureCoalesceTimer = null;
     final gesture = _pendingSmartTileGesture;
     _pendingSmartTileGesture = null;
     state = _mapEditingController.endStroke(state);
@@ -8184,19 +8203,46 @@ class EditorNotifier extends _$EditorNotifier
       _pendingSmartTileGesture = gesture;
     } else if (gesture.mapId != mapId ||
         gesture.layerId != layerId ||
-        gesture.materialId != materialId ||
-        gesture.selection != selection) {
+        gesture.materialId != materialId) {
       state = state.copyWith(
         errorMessage: 'Un geste Smart Tile ne peut viser qu’une seule couche '
             'et un seul matériau.',
       );
       return;
+    } else if (gesture.selection != selection) {
+      // Same layer and material, different shapes: one edit over the union of
+      // their cells. Drop the shape, keep every cell.
+      gesture.selection = null;
     }
     gesture.cells.addAll(additions);
-    if (commitImmediately) {
-      _pendingSmartTileGesture = null;
-      unawaited(_commitCanonicalSmartTileGesture(gesture));
+    if (!commitImmediately) return;
+    // One canonical commit costs hundreds of milliseconds, so committing per
+    // click made ordinary clicking collide with itself. Wait for the burst to
+    // end and commit it once — which also gives the author a single undo step.
+    _smartTileGestureCoalesceTimer?.cancel();
+    _smartTileGestureCoalesceTimer = Timer(
+      smartTileGestureCoalesceDelay,
+      _flushCoalescedSmartTileGesture,
+    );
+  }
+
+  /// Commits the coalesced burst once the author stops clicking.
+  void _flushCoalescedSmartTileGesture() {
+    _smartTileGestureCoalesceTimer?.cancel();
+    _smartTileGestureCoalesceTimer = null;
+    final gesture = _pendingSmartTileGesture;
+    if (gesture == null || gesture.cells.isEmpty) return;
+    if (_smartTileGestureCommitInProgress) {
+      // Still writing the previous burst: retry once it lands rather than
+      // planning against a revision that is about to move.
+      _smartTileGestureCoalesceTimer = Timer(
+        smartTileGestureCoalesceDelay,
+        _flushCoalescedSmartTileGesture,
+      );
+      return;
     }
+    _pendingSmartTileGesture = null;
+    unawaited(_commitCanonicalSmartTileGesture(gesture));
   }
 
   Future<void> _commitCanonicalSmartTileGesture(
@@ -11259,7 +11305,7 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  void deleteMapLayer(String layerId) {
+  void deleteMapLayer(String layerId, {bool confirmBulkPlacementLoss = false}) {
     final map = state.activeMap;
     if (map == null) return;
     final removedIndex = _findLayerIndexById(map, layerId);
@@ -11267,6 +11313,8 @@ class EditorNotifier extends _$EditorNotifier
     try {
       final useCase = ref.read(deleteMapLayerUseCaseProvider);
       final updated = useCase.execute(map, layerId: layerId);
+      final removedPlacements =
+          updated.placedElements.length < map.placedElements.length;
       final nextActiveLayerId = state.activeLayerId == layerId
           ? _editorMapSessionCoordinator.resolveFallbackLayerIdAfterDeletion(
               updated,
@@ -11282,6 +11330,14 @@ class EditorNotifier extends _$EditorNotifier
         preferredActiveLayerId: nextActiveLayerId,
         statusMessage: 'Calque supprimé',
       );
+      // Deleting a layer drops the placements it hosted, which can trip the
+      // save-time bulk placement loss guard. An author who confirmed this
+      // deletion has already accepted that loss, so carry the confirmation
+      // over instead of blocking the save with no way out.
+      if (removedPlacements) {
+        _confirmedBulkPlacementLossBaseline =
+            confirmBulkPlacementLoss ? state.savedMapSnapshot : null;
+      }
       _coerceEnvironmentMaskSelectionAfterMapChange();
     } on EditorValidationException catch (e) {
       state = state.copyWith(errorMessage: e.message);
