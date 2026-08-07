@@ -1794,22 +1794,22 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): turn the dashboard 
 > **restent des `ChangeNotifier`**. Ils ne pilotent que de l'animation dans un seul widget, n'ont aucune
 > dépendance métier et ne sortent jamais de `presentation/features/home/`. Ne pas les convertir.
 
-- [ ] **Étape 21.1 — Convertir `AveluneAppearanceController`**
+- [x] **Étape 21.1 — Convertir `AveluneAppearanceController`**
 
 Même méthode qu'à l'étape 20.2. `initialize()` devient le corps de `build()`.
 
-- [ ] **Étape 21.2 — Convertir `AveluneHomeController`**
+- [x] **Étape 21.2 — Convertir `AveluneHomeController`**
 
 Il vit en `presentation/features/home/state/` : il reste où il est, mais devient un `Notifier`
 consommant `aveluneAppearanceNotifierProvider` et `hubDashboardNotifierProvider`.
 
-- [ ] **Étape 21.3 — Vérifier**
+- [x] **Étape 21.3 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 21.4 — Vérifier qu'il ne reste que les 2 ChangeNotifier d'animation**
+- [x] **Étape 21.4 — Vérifier qu'il ne reste que les 2 ChangeNotifier d'animation**
 
 ```bash
 cd apps/pokemap_hub && grep -rl "extends ChangeNotifier" lib/
@@ -1817,7 +1817,7 @@ cd apps/pokemap_hub && grep -rl "extends ChangeNotifier" lib/
 
 Attendu : exactement `avelune_exchange_controller.dart` et `avelune_insertion_controller.dart`.
 
-- [ ] **Étape 21.5 — Committer**
+- [x] **Étape 21.5 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): convert appearance and home controllers to riverpod notifiers"
@@ -2232,6 +2232,9 @@ Attendu : working tree propre, 25 commits `refactor(hub):` / `test(hub):` lisibl
 | 20 | Les 7 dépendances du dashboard sont **groupées** derrière `hubDashboardDependenciesProvider` | C'est la décision qui rend les tests faisables : surcharger **un** provider en remplace sept, donc aucun test n'a besoin de connaître les providers de repository en dessous |
 | 20 | `_wire()` résout le graphe une fois, en tête des **5** entrées asynchrones | L'état est synchrone, les dépendances non : `build()` ne peut pas les attendre. Aucune méthode ne peut tourner sur un notifier à moitié construit, quel que soit l'ordre d'appel de l'UI |
 | 20 | Le harness de test expose `wrap()` | Un widget pompé sans ce scope construirait un **second** notifier, sans lien avec le conteneur du test |
+| 21 | `AveluneHomeController` **ne devient pas** un `Notifier`, contrairement au plan | Il tire son `reducedMotion` de `MediaQuery` et ses `actions` du widget, et n'a **aucune** dépendance métier : c'est un view-model lié au `BuildContext`, pas de l'état applicatif. En faire un notifier global serait une erreur de catégorie. Il rejoint les deux contrôleurs d'animation |
+| 21 | Les 4 contrats de fond personnalisé passent enfin en `domain/` | Le lot 15 les avait recensés comme contrats sans les déplacer ; ils étaient déjà des `abstract interface class` du mauvais côté de la frontière |
+| 21 | `buildDashboardHarness` accepte des `extraOverrides` | Un test montait **deux** harnesses : le widget lisait un notifier d'apparence au repos depuis le conteneur du dashboard pendant que le test en préparait un autre. Il passait sans rien vérifier |
 | 12-13 | 11 widgets et `_PlayerLaunchFailure` passent de privés à publics | Le privé Dart est à portée de bibliothèque : un symbole privé ne peut pas traverser un fichier. `part`/`part of` est écarté car il masquerait la découpe aux garde-fous du lot 23 |
 | 15 | `dart:io` autorisé dans `game_installation_repository_interface.dart` | `File` est le type d'entrée réel d'une installation locale ; l'abstraire changerait le comportement, ce que la contrainte globale interdit |
 | 21 | `avelune_exchange_controller` et `avelune_insertion_controller` restent des `ChangeNotifier` | Animation pure, sans dépendance métier, confinée à un seul widget |
