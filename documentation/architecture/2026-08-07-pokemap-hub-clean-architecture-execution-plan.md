@@ -1040,7 +1040,7 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): extract the install
 **Produit** : `SupportRootPort`, `DiagnosticLogPort`, `ClockPort`, `SystemClock`,
 `PathProviderSupportRootAdapter`, et `HubPackagePickerFailure` relocalisé.
 
-- [ ] **Étape 14.1 — Écrire `support_root_port.dart`**
+- [x] **Étape 14.1 — Écrire `support_root_port.dart`**
 
 ```dart
 import 'dart:io';
@@ -1051,7 +1051,7 @@ abstract interface class SupportRootPort {
 }
 ```
 
-- [ ] **Étape 14.2 — Écrire `diagnostic_log_port.dart`**
+- [x] **Étape 14.2 — Écrire `diagnostic_log_port.dart`**
 
 ```dart
 /// Appends Hub diagnostics to durable storage, outside the widget tree.
@@ -1060,7 +1060,7 @@ abstract interface class DiagnosticLogPort {
 }
 ```
 
-- [ ] **Étape 14.3 — Écrire `clock_port.dart`**
+- [x] **Étape 14.3 — Écrire `clock_port.dart`**
 
 ```dart
 /// Injectable clock so play-time and save recency stay testable.
@@ -1076,7 +1076,7 @@ final class SystemClock implements ClockPort {
 }
 ```
 
-- [ ] **Étape 14.4 — Écrire l'adaptateur `path_provider`**
+- [x] **Étape 14.4 — Écrire l'adaptateur `path_provider`**
 
 Créer `lib/platform/path_provider_support_root_adapter.dart` en y déplaçant le corps de
 `HubComposition._defaultSupportRoot` :
@@ -1099,12 +1099,12 @@ final class PathProviderSupportRootAdapter implements SupportRootPort {
 }
 ```
 
-- [ ] **Étape 14.5 — Brancher l'adaptateur**
+- [x] **Étape 14.5 — Brancher l'adaptateur**
 
 Dans `app/di/hub_composition.dart`, remplacer l'appel à `_defaultSupportRoot()` par
 `const PathProviderSupportRootAdapter().resolve()` et supprimer la méthode privée.
 
-- [ ] **Étape 14.6 — Sortir l'exception du port**
+- [x] **Étape 14.6 — Sortir l'exception du port**
 
 `HubPackagePickerFailure` vit aujourd'hui dans `core/ports/hub_platform_port.dart`, à côté de l'interface.
 C'est un type d'erreur, pas un contrat de port. Le déplacer vers `lib/core/error/hub_failure.dart`,
@@ -1135,7 +1135,7 @@ Trois adaptateurs la lèvent (`android_hub_platform_adapter.dart`, `macos_hub_pl
 et `app/di/hub_composition.dart` la rattrape : ajouter l'import `package:pokemap_hub/core/error/hub_failure.dart`
 dans ces fichiers.
 
-- [ ] **Étape 14.7 — Extraire les deux adaptateurs natifs de l'importeur de fond**
+- [x] **Étape 14.7 — Extraire les deux adaptateurs natifs de l'importeur de fond**
 
 `custom_background_repository_impl.dart` (482 l.) contient deux implémentations qui sont de
 l'infrastructure de plateforme, pas de la donnée métier. Les déplacer vers `platform/` :
@@ -1151,13 +1151,13 @@ cd apps/pokemap_hub/lib && touch platform/file_picker_background_picker.dart pla
 
 `AveluneLocalCustomBackgroundStorage` **reste** dans `data/repositories/` : c'est bien de la persistance.
 
-- [ ] **Étape 14.8 — Vérifier**
+- [x] **Étape 14.8 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 14.9 — Committer**
+- [x] **Étape 14.9 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): introduce core ports, move the picker failure to core/error and extract native background adapters"
@@ -1176,7 +1176,7 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): introduce core port
 
 **Produit** : les 8 noms sur lesquels les lots 16, 17 et 18 s'appuient.
 
-- [ ] **Étape 15.1 — `library`**
+- [x] **Étape 15.1 — `library`**
 
 Créer `lib/features/library/domain/repositories/game_library_repository_interface.dart` :
 
@@ -1194,7 +1194,7 @@ abstract interface class GameLibraryRepositoryInterface {
 migrent de `data/repositories/game_library_repository_impl.dart` vers
 `domain/entities/game_library.dart` : ce sont des types de retour du contrat, donc du domaine.
 
-- [ ] **Étape 15.2 — `installation`**
+- [x] **Étape 15.2 — `installation`**
 
 Créer `lib/features/installation/domain/repositories/game_installation_repository_interface.dart` :
 
@@ -1223,7 +1223,7 @@ abstract interface class GameInstallationRepositoryInterface {
 > le comportement — ce que la contrainte globale interdit. L'inscrire dans l'allowlist du lot 23 avec
 > ce motif, comme Grimaldi allowliste ses imports `Locale` en couche `application`.
 
-- [ ] **Étape 15.3 — `saves`**
+- [x] **Étape 15.3 — `saves`**
 
 Créer `lib/features/saves/domain/repositories/save_repository_interface.dart` :
 
@@ -1262,7 +1262,7 @@ Reprendre les signatures exactes de `hub_save_repository_impl.dart` — les para
 `saveSlotMetadata` et `migrate` doivent correspondre **au caractère près**, sinon les 5 fichiers de test
 `test/saves/` ne compileront plus.
 
-- [ ] **Étape 15.4 — `session` (2 interfaces)**
+- [x] **Étape 15.4 — `session` (2 interfaces)**
 
 Créer `lib/features/session/domain/repositories/session_launch_repository_interface.dart` :
 
@@ -1290,7 +1290,7 @@ abstract interface class ControlProfileRepositoryInterface {
 }
 ```
 
-- [ ] **Étape 15.5 — `preferences`**
+- [x] **Étape 15.5 — `preferences`**
 
 Créer `lib/features/preferences/domain/repositories/player_preferences_repository_interface.dart` :
 
@@ -1312,7 +1312,7 @@ abstract interface class PlayerPreferencesRepositoryInterface {
 cd apps/pokemap_hub/lib && mkdir -p features/preferences/domain/entities
 ```
 
-- [ ] **Étape 15.6 — `appearance` (2 interfaces)**
+- [x] **Étape 15.6 — `appearance` (2 interfaces)**
 
 Créer `lib/features/appearance/domain/repositories/avelune_appearance_repository_interface.dart` :
 
@@ -1332,7 +1332,7 @@ Puis **déplacer** les 4 interfaces déjà écrites — `AveluneCustomBackground
 de `data/repositories/custom_background_repository_impl.dart` vers
 `domain/repositories/custom_background_repository_interface.dart`, **sans modifier une ligne de leur corps**.
 
-- [ ] **Étape 15.7 — Renommer les implémentations**
+- [x] **Étape 15.7 — Renommer les implémentations**
 
 Chaque classe concrète prend le suffixe `Impl` et déclare `implements` :
 
@@ -1350,7 +1350,7 @@ Chaque classe concrète prend le suffixe `Impl` et déclare `implements` :
 Les renommages cassent les 88 fichiers de test — c'est attendu, ils sont repris au lot 24. Pour ce lot,
 les corriger mécaniquement au fur et à mesure que `flutter analyze` les signale.
 
-- [ ] **Étape 15.8 — Vérifier la pureté du domaine**
+- [x] **Étape 15.8 — Vérifier la pureté du domaine**
 
 ```bash
 cd apps/pokemap_hub && grep -rlE "^import 'package:flutter/|^import 'package:(flutter_)?riverpod" lib/features/*/domain/
@@ -1365,13 +1365,13 @@ cd apps/pokemap_hub && grep -rl "dart:io" lib/features/*/domain/
 Attendu : uniquement `features/installation/domain/repositories/game_installation_repository_interface.dart`
 (exception documentée à l'étape 15.2).
 
-- [ ] **Étape 15.9 — Vérifier**
+- [x] **Étape 15.9 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 15.10 — Committer**
+- [x] **Étape 15.10 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): introduce eight repository interfaces and invert the data dependencies"
@@ -1385,7 +1385,7 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): introduce eight rep
 
 **Produit** : plus aucune couche `application` ni `presentation` ne connaît une implémentation.
 
-- [ ] **Étape 16.1 — Recenser les violations**
+- [x] **Étape 16.1 — Recenser les violations**
 
 ```bash
 cd apps/pokemap_hub && grep -rnE "RepositoryImpl|GameLibraryStore|HubSaveStore|HubPreferencesStore|AveluneAppearanceStore|HubControlProfileStore" lib/features/*/application lib/presentation
@@ -1393,13 +1393,13 @@ cd apps/pokemap_hub && grep -rnE "RepositoryImpl|GameLibraryStore|HubSaveStore|H
 
 Noter chaque occurrence : c'est la liste de travail du lot.
 
-- [ ] **Étape 16.2 — Substituer, fichier par fichier**
+- [x] **Étape 16.2 — Substituer, fichier par fichier**
 
 Dans chaque fichier listé, remplacer le type concret par son interface (colonne de droite du tableau 15.7)
 dans les champs, paramètres de constructeur et types de retour. **Ne changer aucun appel de méthode** :
 les signatures sont identiques par construction.
 
-- [ ] **Étape 16.3 — Vérifier qu'il ne reste rien**
+- [x] **Étape 16.3 — Vérifier qu'il ne reste rien**
 
 ```bash
 cd apps/pokemap_hub && grep -rnE "RepositoryImpl|GameLibraryStore|HubSaveStore|HubPreferencesStore|AveluneAppearanceStore|HubControlProfileStore" lib/features/*/application lib/presentation | wc -l
@@ -1407,7 +1407,7 @@ cd apps/pokemap_hub && grep -rnE "RepositoryImpl|GameLibraryStore|HubSaveStore|H
 
 Attendu : `0`.
 
-- [ ] **Étape 16.4 — Vérifier que `presentation` ignore `data`**
+- [x] **Étape 16.4 — Vérifier que `presentation` ignore `data`**
 
 ```bash
 cd apps/pokemap_hub && grep -rn "features/[a-z_]*/data/" lib/presentation | wc -l
@@ -1415,13 +1415,13 @@ cd apps/pokemap_hub && grep -rn "features/[a-z_]*/data/" lib/presentation | wc -
 
 Attendu : `0`.
 
-- [ ] **Étape 16.5 — Vérifier**
+- [x] **Étape 16.5 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 16.6 — Committer**
+- [x] **Étape 16.6 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): make application and presentation depend on interfaces only"
@@ -2195,6 +2195,10 @@ Attendu : working tree propre, 25 commits `refactor(hub):` / `test(hub):` lisibl
 | 11 | `hub_save_repository_impl.dart` reste à 746 l. | Même cause qu'au lot 10 : `_readLocked` (100 l.) et `_writeLocked` (97 l.) portent le chemin d'écriture atomique. Les gardes de chemins, l'intégrité de slot et le mapper de compatibilité sont sortis ; le cœur transactionnel mérite son propre lot |
 | 11 | Découpe par **nom de méthode**, plus par plage de lignes | Une première coupe 698-798 a emporté `_withFileLock` et `_queueSlot` avec les primitives d'intégrité. Ce sont des primitives de concurrence adossées au champ statique `_slotQueues` du store — remises en place |
 | 13 | `hub_installed_game_player.dart` reste à 501 l. | Ce qui reste est le widget : `build` (143 l.) et `_initialize` (143 l.), tous deux liés à `setState` et au cycle de vie du `State`. Le lot 21 rouvrira ce fichier pour la bascule en `Notifier` — à traiter là plutôt qu'ici |
+| 15 | **9e contrat non prévu** : `PackageAssetPort` | `InstalledGameLaunchContext` portait un `PackageAssetResolver` concret ; le passer en `domain/` aurait créé une dépendance domain → data. Le port est la couture |
+| 15 | Le garde-fou de pureté du barrel testait le **texte**, pas le graphe | Exporter `hub_preferences_read.dart` a tiré `map_player_ui` (Flutter) dans le barrel pur : les tests de crash-recovery en sous-processus Dart ont cessé de compiler. Sonde ajoutée qui **compile** le barrel en Dart pur |
+| 15 | Nouvelle référence de test : **+362 −1** | La sonde de pureté est le test supplémentaire |
+| 16 | `hub_installed_game_player.dart` garde 3 imports vers `data/` | Même forme que le lecteur d'activité : la page construit ses dépendances. Le lot 19 la fait lire depuis les providers et supprime le problème. Corriger ici imposerait une factory temporaire que le lot 19 effacerait |
 | 12-13 | 11 widgets et `_PlayerLaunchFailure` passent de privés à publics | Le privé Dart est à portée de bibliothèque : un symbole privé ne peut pas traverser un fichier. `part`/`part of` est écarté car il masquerait la découpe aux garde-fous du lot 23 |
 | 15 | `dart:io` autorisé dans `game_installation_repository_interface.dart` | `File` est le type d'entrée réel d'une installation locale ; l'abstraire changerait le comportement, ce que la contrainte globale interdit |
 | 21 | `avelune_exchange_controller` et `avelune_insertion_controller` restent des `ChangeNotifier` | Animation pure, sans dépendance métier, confinée à un seul widget |
