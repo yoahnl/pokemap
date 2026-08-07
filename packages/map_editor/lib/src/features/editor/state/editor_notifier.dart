@@ -263,16 +263,50 @@ ProjectMapEntry? _findMapEntryForPath(
 /// clears that race; a persistent conflict is reported instead of looping.
 const int _canonicalStalePlanRetryBudget = 1;
 
-/// Turns a canonical Smart Tile layer failure into something an author can act
-/// on, instead of surfacing the raw authoring code.
-String canonicalSmartTileLayerFailureMessage(
+/// Shown when the open session no longer matches the document on disk.
+///
+/// The revision guard is doing its job here, so the only cure is to reload;
+/// [editorErrorRequiresReload] lets the shell offer that as a one-click action.
+const String editorReloadRequiredMessage =
+    'Cette carte a changé en dehors de l’éditeur : la session ouverte n’est '
+    'plus à jour. Rechargez la carte pour reprendre l’édition.';
+
+/// Whether [message] describes a desynchronised session the author can repair
+/// by reloading the active map.
+bool editorErrorRequiresReload(String? message) =>
+    message == editorReloadRequiredMessage;
+
+/// Shown while a canonical Smart Tile commit is still in flight.
+///
+/// Each gesture is committed through the authoring API, and a second gesture
+/// cannot be planned against a revision the first one is about to move.
+const String editorSmartTileCommitInProgressMessage =
+    'Modification précédente en cours d’enregistrement. Relâchez une seconde, '
+    'puis reprenez : rien n’est perdu.';
+
+/// Shown when the map holds unsaved edits that a canonical gesture cannot join.
+const String editorSmartTileCleanMapRequiredMessage =
+    'Enregistrez la carte avant de peindre ou d’effacer : cette modification '
+    'passe par l’API canonique, qui part de la version enregistrée.';
+
+/// Turns a canonical Smart Tile failure into something an author can act on,
+/// instead of surfacing the raw authoring code.
+String canonicalSmartTileFailureMessage(
   EditorAuthoringMutationFailure failure,
 ) {
-  if (failure.code == 'plan.stale') {
-    return 'Le projet a changé pendant l’ajout du calque. '
-        'Réessayez : la nouvelle révision sera prise en compte.';
+  switch (failure.code) {
+    case 'plan.stale':
+      return 'Le projet a changé pendant l’ajout du calque. '
+          'Réessayez : la nouvelle révision sera prise en compte.';
+    // `authoring.unexpected_failure` is the untyped fallback. In practice the
+    // canonical write path only reaches it once the session and the stored
+    // document have diverged, so point at the recovery instead of the code.
+    case 'authoring.unexpected_failure':
+    case 'smart_tile.cell.reload_required':
+      return editorReloadRequiredMessage;
+    default:
+      return failure.message;
   }
-  return failure.message;
 }
 
 @riverpod
@@ -2016,7 +2050,7 @@ class EditorNotifier extends _$EditorNotifier
     }
     if (_smartTileCanonicalRecoveryRequired) {
       state = state.copyWith(
-        errorMessage: 'smart_tile.cell.reload_required',
+        errorMessage: editorReloadRequiredMessage,
       );
       return ActiveMapSaveOutcome.unavailable;
     }
@@ -5576,10 +5610,10 @@ class EditorNotifier extends _$EditorNotifier
             state.isDirty && state.mapStrokeStart == null)) {
       _setPaintError(
         _smartTileCanonicalRecoveryRequired
-            ? 'smart_tile.cell.reload_required'
+            ? editorReloadRequiredMessage
             : _smartTileGestureCommitInProgress
-                ? 'smart_tile.cell.commit_in_progress'
-                : 'smart_tile.cell.clean_map_required',
+                ? editorSmartTileCommitInProgressMessage
+                : editorSmartTileCleanMapRequiredMessage,
       );
       return;
     }
@@ -5712,10 +5746,10 @@ class EditorNotifier extends _$EditorNotifier
               state.isDirty && state.mapStrokeStart == null)) {
         _setPaintError(
           _smartTileCanonicalRecoveryRequired
-              ? 'smart_tile.cell.reload_required'
+              ? editorReloadRequiredMessage
               : _smartTileGestureCommitInProgress
-                  ? 'smart_tile.cell.commit_in_progress'
-                  : 'smart_tile.cell.clean_map_required',
+                  ? editorSmartTileCommitInProgressMessage
+                  : editorSmartTileCleanMapRequiredMessage,
         );
         return false;
       }
@@ -8233,10 +8267,13 @@ class EditorNotifier extends _$EditorNotifier
     } on Object catch (error) {
       final failure = EditorAuthoringMutationFailure.capture(error);
       if (applied == null) {
-        _rollbackOptimisticSmartTileGesture(gesture, failure.code);
+        _rollbackOptimisticSmartTileGesture(
+          gesture,
+          canonicalSmartTileFailureMessage(failure),
+        );
       } else {
         _smartTileCanonicalRecoveryRequired = true;
-        state = state.copyWith(errorMessage: 'smart_tile.cell.reload_required');
+        state = state.copyWith(errorMessage: editorReloadRequiredMessage);
       }
     } finally {
       _smartTileGestureCommitInProgress = false;
@@ -8493,12 +8530,12 @@ class EditorNotifier extends _$EditorNotifier
 
   void _rollbackOptimisticSmartTileGesture(
     _PendingSmartTileGesture gesture,
-    String errorCode,
+    String errorMessage,
   ) {
     final rollback = gesture.rollbackState;
     if (state.activeMap?.id != gesture.mapId ||
         state.projectRootPath != rollback.projectRootPath) {
-      state = state.copyWith(errorMessage: errorCode);
+      state = state.copyWith(errorMessage: errorMessage);
       return;
     }
     state = state.copyWith(
@@ -8511,7 +8548,7 @@ class EditorNotifier extends _$EditorNotifier
       canUndoMap: rollback.canUndoMap,
       canRedoMap: rollback.canRedoMap,
       isDirty: rollback.isDirty,
-      errorMessage: errorCode,
+      errorMessage: errorMessage,
     );
     _syncCanonicalSmartTileHistoryFlags();
   }
@@ -8552,7 +8589,7 @@ class EditorNotifier extends _$EditorNotifier
         _rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease()) {
       if (_smartTileCanonicalRecoveryRequired) {
-        state = state.copyWith(errorMessage: 'smart_tile.cell.reload_required');
+        state = state.copyWith(errorMessage: editorReloadRequiredMessage);
       }
       return;
     }
@@ -8607,7 +8644,7 @@ class EditorNotifier extends _$EditorNotifier
         _rejectNarrativeEventSourceCleanupMapMutation() ||
         _rejectMapDiskMutationLease()) {
       if (_smartTileCanonicalRecoveryRequired) {
-        state = state.copyWith(errorMessage: 'smart_tile.cell.reload_required');
+        state = state.copyWith(errorMessage: editorReloadRequiredMessage);
       }
       return;
     }
@@ -8695,8 +8732,9 @@ class EditorNotifier extends _$EditorNotifier
       final failure = EditorAuthoringMutationFailure.capture(error);
       if (applied != null) _smartTileCanonicalRecoveryRequired = true;
       state = state.copyWith(
-        errorMessage:
-            applied == null ? failure.code : 'smart_tile.cell.reload_required',
+        errorMessage: applied == null
+            ? canonicalSmartTileFailureMessage(failure)
+            : editorReloadRequiredMessage,
       );
     } finally {
       _smartTileGestureCommitInProgress = false;
@@ -8755,8 +8793,9 @@ class EditorNotifier extends _$EditorNotifier
       final failure = EditorAuthoringMutationFailure.capture(error);
       if (applied != null) _smartTileCanonicalRecoveryRequired = true;
       state = state.copyWith(
-        errorMessage:
-            applied == null ? failure.code : 'smart_tile.cell.reload_required',
+        errorMessage: applied == null
+            ? canonicalSmartTileFailureMessage(failure)
+            : editorReloadRequiredMessage,
       );
     } finally {
       _smartTileGestureCommitInProgress = false;
@@ -9352,6 +9391,22 @@ class EditorNotifier extends _$EditorNotifier
 
   /// Creates one published Smart Tile layer through the canonical atomic
   /// Authoring action, then adopts the resulting manifest and active map.
+  /// Re-reads the active map from disk, discarding the desynchronised session.
+  ///
+  /// Offered as the recovery for [editorReloadRequiredMessage]: once the stored
+  /// document has moved ahead, no local mutation can be reconciled, so the only
+  /// honest repair is to adopt the durable state.
+  Future<bool> reloadActiveMapFromDisk() async {
+    final path = state.activeMapPath;
+    if (path == null || path.trim().isEmpty) return false;
+    final outcome = await activateMap(
+      path,
+      forceReload: true,
+      dirtyDecision: DirtyMapActivationDecision.discard,
+    );
+    return outcome == MapActivationOutcome.activated;
+  }
+
   Future<bool> createCanonicalSmartTileLayer({
     required ProjectSmartTilePreset preset,
     String? name,
@@ -9441,7 +9496,7 @@ class EditorNotifier extends _$EditorNotifier
     } on Object catch (error) {
       final failure = EditorAuthoringMutationFailure.capture(error);
       state = state.copyWith(
-        errorMessage: canonicalSmartTileLayerFailureMessage(failure),
+        errorMessage: canonicalSmartTileFailureMessage(failure),
       );
       return false;
     }

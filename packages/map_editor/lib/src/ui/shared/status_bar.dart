@@ -3,6 +3,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
+import '../design_system/pokemap_button.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/models/editor_workspace_mode.dart';
 import '../../features/editor_updates/application/editor_update_providers.dart';
@@ -162,6 +163,25 @@ class _StatusBarState extends ConsumerState<StatusBar> {
                   ],
                 ),
               ),
+
+              // 1b. One-click recovery for a desynchronised session. The
+              // revision guard blocks every write until the editor adopts the
+              // stored document, so the repair belongs next to the error.
+              if (editorErrorRequiresReload(state.errorMessage)) ...[
+                const SizedBox(width: 8),
+                PokeMapButton(
+                  key: const Key('status-bar-reload-active-map'),
+                  size: PokeMapButtonSize.small,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: const Icon(CupertinoIcons.refresh, size: 13),
+                  onPressed: () => unawaited(
+                    ref
+                        .read(editorNotifierProvider.notifier)
+                        .reloadActiveMapFromDisk(),
+                  ),
+                  child: const Text('Recharger la carte'),
+                ),
+              ],
 
               if (isWide) ...[
                 const SizedBox(width: 12),
