@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:archive/archive.dart';
 import 'package:crypto/crypto.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
@@ -10,10 +9,12 @@ import 'package:pub_semver/pub_semver.dart';
 
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/library/data/repositories/game_library_repository_impl.dart';
-import 'package:pokemap_hub/features/installation/data/sources/file_package_source.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
 import 'package:pokemap_hub/core/ports/game_installation_ports.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_transaction.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/install_failures.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/install_staging.dart';
+import 'package:pokemap_hub/features/installation/domain/services/install_compatibility_rules.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/installed_game_verifier.dart';
 
 final class GameInstallationResult {
@@ -75,6 +76,9 @@ final class GamePackageInstaller {
   GameLibraryStore get _library =>
       libraryStore ?? GameLibraryStore(supportRoot: supportRoot);
 
+  InstallStaging get _staging =>
+      InstallStaging(supportRoot: supportRoot, inspector: inspector, random: _random);
+
   GameCurrentPointerStore get _currentPointers =>
       GameCurrentPointerStore(supportRoot: supportRoot);
 
@@ -121,12 +125,12 @@ final class GamePackageInstaller {
     var promotionStarted = false;
     GamePackageInspectionResult initialInspection;
     try {
-      _emit(onProgress, stage: stage);
-      initialInspection = await _inspect(packageFile);
+      emitInstallProgress(onProgress, stage: stage);
+      initialInspection = await _staging.inspect(packageFile);
     } on GamePackageFormatException catch (error, stackTrace) {
-      throw _formatFailure(error, stage, null, null, stackTrace);
+      throw formatFailure(error, stage, null, null, stackTrace);
     } on Object catch (error, stackTrace) {
-      throw _failure(
+      throw installFailure(
         GameInstallationErrorCode.integrityFailed,
         stage,
         retryable: true,
@@ -140,7 +144,7 @@ final class GamePackageInstaller {
     final gameVersion = manifest.gameVersion.toString();
     try {
       stage = GameInstallStage.checkingCompatibility;
-      _emit(
+      emitInstallProgress(
         onProgress,
         stage: stage,
         gameId: gameId,
@@ -152,7 +156,7 @@ final class GamePackageInstaller {
           (source == GamePackageInstallSource.publicCatalog &&
               initialInspection.signatureStatus !=
                   PackageSignatureStatus.verified)) {
-        throw _failure(
+        throw installFailure(
           GameInstallationErrorCode.incompatible,
           stage,
           gameId: gameId,
@@ -180,7 +184,7 @@ final class GamePackageInstaller {
         }
         if (existingCandidate != null &&
             existingCandidate.treeSha256 != candidate.treeSha256) {
-          throw _failure(
+          throw installFailure(
             GameInstallationErrorCode.releaseConflict,
             stage,
             gameId: gameId,
@@ -197,7 +201,7 @@ final class GamePackageInstaller {
             receiptFileName: existingCandidate.receiptFileName,
           );
           if (verification.isHealthy) {
-            _emit(
+            emitInstallProgress(
               onProgress,
               stage: GameInstallStage.completed,
               gameId: gameId,
@@ -221,7 +225,7 @@ final class GamePackageInstaller {
           mode: mode,
         );
         if (release.decision == GamePackageReleaseDecision.reject) {
-          throw _releaseFailure(
+          throw releaseFailure(
             release.code,
             stage,
             gameId,
@@ -234,19 +238,19 @@ final class GamePackageInstaller {
       }
 
       stage = GameInstallStage.checkingStorage;
-      _emit(
+      emitInstallProgress(
         onProgress,
         stage: stage,
         gameId: gameId,
         gameVersion: gameVersion,
       );
-      _throwIfCancelled(cancellationToken, stage, gameId, gameVersion);
+      throwIfCancelled(cancellationToken, stage, gameId, gameVersion);
       final requiredBytes = max(
         536870912,
         initialInspection.receipt.archiveBytes * 5 ~/ 2,
       );
       if (await availableDiskBytes(supportRoot) < requiredBytes) {
-        throw _failure(
+        throw installFailure(
           GameInstallationErrorCode.insufficientDisk,
           stage,
           gameId: gameId,
@@ -256,16 +260,16 @@ final class GamePackageInstaller {
       }
 
       stage = GameInstallStage.snapshotting;
-      _emit(
+      emitInstallProgress(
         onProgress,
         stage: stage,
         gameId: gameId,
         gameVersion: gameVersion,
         totalBytes: initialInspection.receipt.archiveBytes,
       );
-      transactionRoot = await _createTransactionRoot();
+      transactionRoot = await _staging.createTransactionRoot();
       final snapshot = File(p.join(transactionRoot.path, 'package.snapshot'));
-      await _copyPackageSnapshot(
+      await _staging.copyPackageSnapshot(
         packageFile,
         snapshot,
         cancellationToken: cancellationToken,
@@ -274,12 +278,12 @@ final class GamePackageInstaller {
         onProgress: onProgress,
         totalBytes: initialInspection.receipt.archiveBytes,
       );
-      final snapshotInspection = await _inspect(snapshot);
-      if (!_sameInspection(
+      final snapshotInspection = await _staging.inspect(snapshot);
+      if (!sameInspection(
         initialInspection.receipt,
         snapshotInspection.receipt,
       )) {
-        throw _failure(
+        throw installFailure(
           GameInstallationErrorCode.sourceChanged,
           stage,
           gameId: gameId,
@@ -306,7 +310,7 @@ final class GamePackageInstaller {
       stage = GameInstallStage.extracting;
       final stagedVersion =
           Directory(p.join(transactionRoot.path, 'staged-version'));
-      await _extractSnapshot(
+      await _staging.extractSnapshot(
         snapshot,
         stagedVersion,
         snapshotInspection,
@@ -320,7 +324,7 @@ final class GamePackageInstaller {
       await _fault(GameInstallFaultStage.afterExtraction);
 
       stage = GameInstallStage.verifying;
-      _emit(
+      emitInstallProgress(
         onProgress,
         stage: stage,
         gameId: gameId,
@@ -331,7 +335,7 @@ final class GamePackageInstaller {
       await _verifyStaged(stagedVersion, manifest);
 
       stage = GameInstallStage.validatingProject;
-      _emit(
+      emitInstallProgress(
         onProgress,
         stage: stage,
         gameId: gameId,
@@ -346,7 +350,7 @@ final class GamePackageInstaller {
       );
 
       stage = GameInstallStage.smokeLoading;
-      _emit(
+      emitInstallProgress(
         onProgress,
         stage: stage,
         gameId: gameId,
@@ -358,7 +362,7 @@ final class GamePackageInstaller {
           manifest,
         ).timeout(loadSmokeTimeout);
       } on Object {
-        throw _failure(
+        throw installFailure(
           GameInstallationErrorCode.smokeFailed,
           stage,
           gameId: gameId,
@@ -369,7 +373,7 @@ final class GamePackageInstaller {
 
       if (installedGame != null && mode == GamePackageActivationMode.update) {
         stage = GameInstallStage.preparingSaves;
-        _emit(
+        emitInstallProgress(
           onProgress,
           stage: stage,
           gameId: gameId,
@@ -378,7 +382,7 @@ final class GamePackageInstaller {
         try {
           await prepareSavesForUpdate(installedGame.current, manifest);
         } on Object {
-          throw _failure(
+          throw installFailure(
             GameInstallationErrorCode.savePreparationFailed,
             stage,
             gameId: gameId,
@@ -418,9 +422,9 @@ final class GamePackageInstaller {
       );
       await _writeJournal(transactionRoot, transaction);
 
-      _throwIfCancelled(cancellationToken, stage, gameId, gameVersion);
+      throwIfCancelled(cancellationToken, stage, gameId, gameVersion);
       stage = GameInstallStage.promoting;
-      _emit(
+      emitInstallProgress(
         onProgress,
         stage: stage,
         gameId: gameId,
@@ -441,7 +445,7 @@ final class GamePackageInstaller {
       await target.parent.create(recursive: true);
       if (await target.exists()) {
         if (mode != GamePackageActivationMode.repair) {
-          throw _failure(
+          throw installFailure(
             GameInstallationErrorCode.releaseConflict,
             stage,
             gameId: gameId,
@@ -470,7 +474,7 @@ final class GamePackageInstaller {
       final finalReceipt = File(p.join(receipts.path, receiptFileName));
       if (await finalReceipt.exists()) {
         if (mode != GamePackageActivationMode.repair) {
-          throw _failure(
+          throw installFailure(
             GameInstallationErrorCode.releaseConflict,
             stage,
             gameId: gameId,
@@ -503,7 +507,7 @@ final class GamePackageInstaller {
       await _fault(GameInstallFaultStage.afterCurrentUpdated);
 
       stage = GameInstallStage.updatingLibrary;
-      _emit(
+      emitInstallProgress(
         onProgress,
         stage: stage,
         gameId: gameId,
@@ -523,7 +527,7 @@ final class GamePackageInstaller {
       await _fault(GameInstallFaultStage.afterLibraryUpdated);
       await transactionRoot.delete(recursive: true);
       transactionRoot = null;
-      _emit(
+      emitInstallProgress(
         onProgress,
         stage: GameInstallStage.completed,
         gameId: gameId,
@@ -542,7 +546,7 @@ final class GamePackageInstaller {
         await transactionRoot.delete(recursive: true);
       }
       if (error.diagnostic.code == GameInstallationErrorCode.cancelled) {
-        _emit(
+        emitInstallProgress(
           onProgress,
           stage: GameInstallStage.cancelled,
           gameId: gameId,
@@ -557,7 +561,7 @@ final class GamePackageInstaller {
           await transactionRoot.exists()) {
         await transactionRoot.delete(recursive: true);
       }
-      throw _formatFailure(
+      throw formatFailure(
         error,
         stage,
         gameId,
@@ -570,7 +574,7 @@ final class GamePackageInstaller {
           await transactionRoot.exists()) {
         await transactionRoot.delete(recursive: true);
       }
-      throw _failure(
+      throw installFailure(
         promotionStarted
             ? GameInstallationErrorCode.storageFailure
             : GameInstallationErrorCode.extractionFailed,
@@ -595,7 +599,7 @@ final class GamePackageInstaller {
     if (!await transactions.exists()) {
       return _recoverLibraryIfNeeded(result);
     }
-    _emit(
+    emitInstallProgress(
       onProgress,
       stage: GameInstallStage.recovering,
       cancellable: false,
@@ -876,7 +880,7 @@ final class GamePackageInstaller {
             publisherName: currentManifest.publisher?.name,
             defaultLocale: currentManifest.locales.defaultLocale,
             supportedLocales: currentManifest.locales.supported,
-            branding: _branding(currentManifest.branding),
+            branding: installedBrandingOf(currentManifest.branding),
             current: current,
             versions: versions,
           ),
@@ -892,148 +896,6 @@ final class GamePackageInstaller {
     return rebuilt;
   }
 
-  Future<GamePackageInspectionResult> _inspect(File file) async {
-    final source = await FilePackageSource.open(file);
-    try {
-      return inspector.inspectSourceSync(source);
-    } finally {
-      await source.close();
-    }
-  }
-
-  Future<Directory> _createTransactionRoot() async {
-    final transactions = Directory(
-      p.join(supportRoot.path, 'games', '.transactions'),
-    );
-    await transactions.create(recursive: true);
-    final id =
-        '${DateTime.now().microsecondsSinceEpoch}-${_random.nextInt(1 << 32)}';
-    final root = Directory(p.join(transactions.path, id));
-    await root.create();
-    return root;
-  }
-
-  Future<void> _copyPackageSnapshot(
-    File source,
-    File target, {
-    required GameInstallCancellationToken cancellationToken,
-    required String gameId,
-    required String gameVersion,
-    required GameInstallProgressListener? onProgress,
-    required int totalBytes,
-  }) async {
-    final input = await source.open(mode: FileMode.read);
-    final output = await target.open(mode: FileMode.writeOnly);
-    var copied = 0;
-    try {
-      while (true) {
-        _throwIfCancelled(
-          cancellationToken,
-          GameInstallStage.snapshotting,
-          gameId,
-          gameVersion,
-        );
-        final bytes = await input.read(1024 * 1024);
-        if (bytes.isEmpty) break;
-        await output.writeFrom(bytes);
-        copied += bytes.length;
-        _emit(
-          onProgress,
-          stage: GameInstallStage.snapshotting,
-          gameId: gameId,
-          gameVersion: gameVersion,
-          completedBytes: copied,
-          totalBytes: totalBytes,
-        );
-      }
-      await output.flush();
-    } finally {
-      await input.close();
-      await output.close();
-    }
-  }
-
-  Future<void> _extractSnapshot(
-    File snapshot,
-    Directory target,
-    GamePackageInspectionResult inspection, {
-    required GameInstallCancellationToken cancellationToken,
-    required GameInstallProgressListener? onProgress,
-  }) async {
-    await target.create();
-    final input = InputFileStream(snapshot.path);
-    final archive = ZipDecoder().decodeStream(input);
-    final expected = <String>{
-      'game-manifest.json',
-      ...inspection.payloadPaths,
-    };
-    var completedFiles = 0;
-    var completedBytes = 0;
-    final totalBytes =
-        archive.files.fold<int>(0, (total, file) => total + file.size);
-    try {
-      for (final entry in archive.files) {
-        _throwIfCancelled(
-          cancellationToken,
-          GameInstallStage.extracting,
-          inspection.manifest.gameId,
-          inspection.manifest.gameVersion.toString(),
-        );
-        if (!expected.remove(entry.name) ||
-            !entry.isFile ||
-            entry.isSymbolicLink) {
-          throw const FormatException('Unexpected archive entry.');
-        }
-        final outputPath = p.joinAll(<String>[
-          target.path,
-          ...p.posix.split(entry.name),
-        ]);
-        if (!p.isWithin(target.path, outputPath)) {
-          throw const FormatException('Archive entry escaped staging.');
-        }
-        final outputFile = File(outputPath);
-        await outputFile.parent.create(recursive: true);
-        final output = await outputFile.open(mode: FileMode.writeOnly);
-        try {
-          final content = entry.getContent();
-          if (content == null) {
-            throw const FormatException('Archive entry has no content.');
-          }
-          var remaining = content.length;
-          while (remaining > 0) {
-            final count = min(remaining, 1024 * 1024);
-            final bytes = content.readBytes(count).toUint8List();
-            if (bytes.length != count) {
-              throw const FormatException('Archive entry was truncated.');
-            }
-            await output.writeFrom(bytes);
-            remaining -= bytes.length;
-            completedBytes += bytes.length;
-          }
-          await output.flush();
-        } finally {
-          await output.close();
-        }
-        completedFiles++;
-        _emit(
-          onProgress,
-          stage: GameInstallStage.extracting,
-          gameId: inspection.manifest.gameId,
-          gameVersion: inspection.manifest.gameVersion.toString(),
-          completedFiles: completedFiles,
-          totalFiles: archive.files.length,
-          completedBytes: completedBytes,
-          totalBytes: totalBytes,
-        );
-      }
-      if (expected.isNotEmpty) {
-        throw const FormatException('Archive entries are missing.');
-      }
-    } finally {
-      await archive.clear();
-      await input.close();
-    }
-  }
 
   Future<void> _verifyStaged(
     Directory root,
@@ -1122,7 +984,7 @@ final class GamePackageInstaller {
           ? manifest.locales.supported
           : existing.supportedLocales,
       branding: useCandidateMetadata
-          ? _branding(manifest.branding)
+          ? installedBrandingOf(manifest.branding)
           : existing.branding,
       current: pointer,
       versions: versions,
@@ -1131,18 +993,6 @@ final class GamePackageInstaller {
     await _library.save(updated);
     return game;
   }
-
-  InstalledGameBranding? _branding(GamePackageBranding? branding) =>
-      branding == null
-          ? null
-          : InstalledGameBranding(
-              icon: branding.icon,
-              cover: branding.cover,
-              hero: branding.hero,
-              accentColor: branding.accentColor,
-              titleMusic: branding.titleMusic,
-              layoutVariant: branding.layoutVariant,
-            );
 
   Future<void> _writeJournal(
     Directory transactionRoot,
@@ -1168,132 +1018,10 @@ final class GamePackageInstaller {
     }
   }
 
-  bool _sameInspection(
-    GamePackageInspectionReceipt left,
-    GamePackageInspectionReceipt right,
-  ) =>
-      left.gameId == right.gameId &&
-      left.gameVersion == right.gameVersion &&
-      left.treeSha256 == right.treeSha256 &&
-      left.manifestSha256 == right.manifestSha256 &&
-      left.packageSha256 == right.packageSha256 &&
-      left.archiveBytes == right.archiveBytes &&
-      left.payloadBytes == right.payloadBytes &&
-      left.fileCount == right.fileCount;
-
-  void _throwIfCancelled(
-    GameInstallCancellationToken token,
-    GameInstallStage stage,
-    String gameId,
-    String gameVersion,
-  ) {
-    if (!token.isCancelled) return;
-    throw _failure(
-      GameInstallationErrorCode.cancelled,
-      stage,
-      gameId: gameId,
-      gameVersion: gameVersion,
-      retryable: true,
-    );
-  }
-
-  void _emit(
-    GameInstallProgressListener? listener, {
-    required GameInstallStage stage,
-    String? gameId,
-    String? gameVersion,
-    int completedFiles = 0,
-    int totalFiles = 0,
-    int completedBytes = 0,
-    int totalBytes = 0,
-    bool cancellable = true,
-  }) {
-    listener?.call(
-      GameInstallProgress(
-        stage: stage,
-        completedFiles: completedFiles,
-        totalFiles: totalFiles,
-        completedBytes: completedBytes,
-        totalBytes: totalBytes,
-        cancellable: cancellable,
-      ),
-    );
-  }
-
   Future<void> _fault(GameInstallFaultStage stage) async {
     final hook = faultHook;
     if (hook != null) await hook(stage);
   }
-
-  GameInstallationException _formatFailure(
-    GamePackageFormatException error,
-    GameInstallStage stage, [
-    String? gameId,
-    String? gameVersion,
-    StackTrace? stackTrace,
-  ]) {
-    final code = switch (error.code) {
-      'releaseConflict' => GameInstallationErrorCode.releaseConflict,
-      'hubTooOld' ||
-      'runtimeApiUnsupported' ||
-      'capabilityUnsupported' ||
-      'projectFormatUnsupported' ||
-      'saveFormatUnsupported' =>
-        GameInstallationErrorCode.incompatible,
-      _ => GameInstallationErrorCode.integrityFailed,
-    };
-    return _failure(
-      code,
-      stage,
-      gameId: gameId,
-      gameVersion: gameVersion,
-      retryable: code != GameInstallationErrorCode.integrityFailed,
-      cause: error,
-      stackTrace: stackTrace,
-    );
-  }
-
-  GameInstallationException _releaseFailure(
-    String? code,
-    GameInstallStage stage,
-    String gameId,
-    String gameVersion,
-  ) =>
-      _failure(
-        switch (code) {
-          'releaseConflict' => GameInstallationErrorCode.releaseConflict,
-          'notAnUpdate' => GameInstallationErrorCode.notAnUpdate,
-          'repairIdentityMismatch' =>
-            GameInstallationErrorCode.repairIdentityMismatch,
-          _ => GameInstallationErrorCode.incompatible,
-        },
-        stage,
-        gameId: gameId,
-        gameVersion: gameVersion,
-      );
-
-  GameInstallationException _failure(
-    GameInstallationErrorCode code,
-    GameInstallStage stage, {
-    String? gameId,
-    String? gameVersion,
-    bool retryable = false,
-    bool repairSuggested = false,
-    Object? cause,
-    StackTrace? stackTrace,
-  }) =>
-      GameInstallationException(
-        GameInstallationDiagnostic(
-          code: code,
-          stage: stage,
-          gameId: gameId,
-          gameVersion: gameVersion,
-          retryable: retryable,
-          repairSuggested: repairSuggested,
-        ),
-        cause: cause,
-        stackTrace: stackTrace,
-      );
 
   Future<T> _withMutationLock<T>(Future<T> Function() operation) {
     final previous = _mutationTail;
@@ -1332,7 +1060,7 @@ final class GamePackageInstaller {
     if (type == FileSystemEntityType.link ||
         (type != FileSystemEntityType.notFound &&
             type != FileSystemEntityType.directory)) {
-      throw _failure(
+      throw installFailure(
         GameInstallationErrorCode.unsafePath,
         GameInstallStage.inspecting,
       );
