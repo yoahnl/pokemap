@@ -198,6 +198,82 @@ void main() {
     });
   });
 
+  group('smartTileDensityMutationIdentity', () {
+    const parameters = <String, Object?>{
+      'mapId': 'm01',
+      'layerId': 'riviere',
+      'weights': <String, int>{'a': 900, 'b': 100},
+    };
+
+    test('la même requête sur la même révision garde sa clé', () {
+      expect(
+        smartTileDensityMutationIdentity(
+          revision: 'sha256:aaa',
+          parameters: parameters,
+        ),
+        smartTileDensityMutationIdentity(
+          revision: 'sha256:aaa',
+          parameters: parameters,
+        ),
+      );
+    });
+
+    test('une révision différente donne une clé différente', () {
+      // C'est l'invariant qui compte : le journal compare la révision dans la
+      // charge, donc rejouer une clé sur une révision plus récente la fait
+      // refuser (idempotency.payload_conflict).
+      expect(
+        smartTileDensityMutationIdentity(
+          revision: 'sha256:aaa',
+          parameters: parameters,
+        ),
+        isNot(
+          smartTileDensityMutationIdentity(
+            revision: 'sha256:bbb',
+            parameters: parameters,
+          ),
+        ),
+      );
+    });
+
+    test('des poids différents donnent une clé différente', () {
+      expect(
+        smartTileDensityMutationIdentity(
+          revision: 'sha256:aaa',
+          parameters: parameters,
+        ),
+        isNot(
+          smartTileDensityMutationIdentity(
+            revision: 'sha256:aaa',
+            parameters: const <String, Object?>{
+              'mapId': 'm01',
+              'layerId': 'riviere',
+              'weights': <String, int>{'a': 500, 'b': 500},
+            },
+          ),
+        ),
+      );
+    });
+
+    test('ne dépend d\'aucun état de session', () {
+      // Un compteur en mémoire repart à zéro au redémarrage : la première
+      // écriture d'une session rejouerait la clé de la première écriture de la
+      // session d'avant. La clé ne doit dépendre que de ses arguments.
+      final fresh = smartTileDensityMutationIdentity(
+        revision: 'sha256:ccc',
+        parameters: parameters,
+      );
+      expect(fresh, startsWith('smart-tile-density-'));
+      expect(
+        smartTileDensityMutationIdentity(
+          revision: 'sha256:ccc',
+          parameters: parameters,
+        ),
+        fresh,
+      );
+    });
+  });
+
   group('smartTileFillRuleOf', () {
     test('retient la règle qui porte le plus de variantes', () {
       expect(smartTileFillRuleOf(_presetWithTwoRules())?.id, 'rule-0');

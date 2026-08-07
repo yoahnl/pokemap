@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:crypto/crypto.dart';
 import 'package:map_core/map_core.dart';
 
 /// Total fixe vers lequel les poids d'une règle Smart Tile sont normalisés.
@@ -64,6 +67,24 @@ Map<String, int> rescaleSmartTileVariantWeights({
     for (final key in weights.keys)
       key: key == targetId ? effectivePermille : distributed[key]!,
   };
+}
+
+/// Identité canonique d'une écriture de densité, dérivée de ses seuls
+/// arguments.
+///
+/// Le journal d'idempotence compare la révision attendue avec la charge, donc
+/// deux écritures distinctes ne doivent jamais partager une clé : la révision
+/// en fait partie. Et rien ici ne vient de la session — un compteur en mémoire
+/// repart à zéro au redémarrage et rejouerait la clé de la session précédente
+/// sur une charge différente, ce que le journal refuse.
+String smartTileDensityMutationIdentity({
+  required String revision,
+  required Map<String, Object?> parameters,
+}) {
+  final digest = sha256
+      .convert(utf8.encode('$revision|${jsonEncode(parameters)}'))
+      .toString();
+  return 'smart-tile-density-${digest.substring(0, 20)}';
 }
 
 /// Règle dont les variantes se voient le plus : celle qui en porte le plus.

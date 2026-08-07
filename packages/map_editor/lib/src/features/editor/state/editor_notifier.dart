@@ -1073,16 +1073,14 @@ class EditorNotifier extends _$EditorNotifier
       'layerId': layerId,
       'weights': weights,
     };
-    final identity = _smartTileEditorMutationIdentity(
-      purpose: 'smart-tile-candidate-weights',
-      values: <String, Object?>{
-        'mapId': mapId,
-        'layerId': layerId,
-        'sequence': ++_smartTileGestureSequence,
-      },
-    );
 
     try {
+      final before =
+          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      final identity = smartTileDensityMutationIdentity(
+        revision: before.snapshotRevision,
+        parameters: parameters,
+      );
       final mutations = ref.read(authoringMutationAdapterProvider);
       final plan = await mutations.plan(
         projectRootPath,
