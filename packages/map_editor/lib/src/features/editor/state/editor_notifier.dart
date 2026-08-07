@@ -1006,6 +1006,16 @@ class EditorNotifier extends _$EditorNotifier
       ruleId: ruleId,
       weights: weights,
     );
+    // Le cœur refuse une mutation qui n'écrit rien (smart_tile.no_change). Un
+    // arrondi qui retombe sur les mêmes entiers est un geste normal, pas une
+    // erreur : on s'arrête ici plutôt que de faire remonter un échec.
+    if (updated == preset) {
+      state = state.copyWith(
+        statusMessage: 'Densité inchangée.',
+        errorMessage: null,
+      );
+      return;
+    }
 
     try {
       final gateway = CanonicalSmartTilePublicationGateway(
@@ -1042,6 +1052,21 @@ class EditorNotifier extends _$EditorNotifier
   }) async {
     final projectRootPath = state.projectRootPath;
     if (projectRootPath == null) return;
+
+    // Même garde que la portée preset : le cœur refuse une carte projetée
+    // identique (map.no_change), et retomber sur la même table par arrondi
+    // n'est pas une erreur d'auteur.
+    final activeMap = state.activeMap;
+    final currentLayer =
+        activeMap == null ? null : _findLayerById(activeMap, layerId);
+    if (currentLayer is SmartTileLayer &&
+        mapEquals(currentLayer.candidateWeights, weights)) {
+      state = state.copyWith(
+        statusMessage: 'Densité inchangée.',
+        errorMessage: null,
+      );
+      return;
+    }
 
     final parameters = <String, Object?>{
       'mapId': mapId,

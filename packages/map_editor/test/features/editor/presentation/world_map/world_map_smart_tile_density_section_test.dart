@@ -94,6 +94,12 @@ void main() {
 
     await tester.tap(find.byKey(const Key('world-map-density-summary')));
     await tester.pumpAndSettle();
+    tester
+        .widget<PokeMapGuidedSlider>(
+          find.byKey(const ValueKey<String>('world-map-density-cand-0')),
+        )
+        .onChanged(600);
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('world-map-density-apply')));
     await tester.pumpAndSettle();
 
@@ -189,6 +195,101 @@ void main() {
     expect(find.text('90,0 %'), findsNothing);
   });
 
+  testWidgets('Appliquer reste inactif tant que rien n\'a bougé',
+      (tester) async {
+    final applied = <Map<String, int>>[];
+    await _pump(
+      tester,
+      child: WorldMapSmartTileDensitySection(
+        rule: _rule(),
+        layerWeights: const <String, int>{},
+        spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
+        onApply: (_, weights) async => applied.add(weights),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('world-map-density-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('world-map-density-apply')));
+    await tester.pumpAndSettle();
+
+    expect(applied, isEmpty);
+  });
+
+  testWidgets(
+      'la portée preset signale la surcharge du calque qui la masque',
+      (tester) async {
+    await _pump(
+      tester,
+      child: WorldMapSmartTileDensitySection(
+        rule: _rule(),
+        layerWeights: const <String, int>{'cand-0': 900},
+        spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
+        onApply: (_, __) async {},
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('world-map-density-summary')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('world-map-density-shadowing-notice')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const Key('world-map-density-scope-preset')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('world-map-density-shadowing-notice')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('« Rendre ce calque au preset » envoie la table vide',
+      (tester) async {
+    final calls = <(SmartTileDensityScope, Map<String, int>)>[];
+    await _pump(
+      tester,
+      child: WorldMapSmartTileDensitySection(
+        rule: _rule(),
+        layerWeights: const <String, int>{'cand-0': 900},
+        spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
+        onApply: (scope, weights) async => calls.add((scope, weights)),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('world-map-density-summary')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('world-map-density-clear-override')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(calls, hasLength(1));
+    expect(calls.single.$1, SmartTileDensityScope.layer);
+    expect(calls.single.$2, isEmpty);
+  });
+
+  testWidgets('pas de bouton de retour au preset sans surcharge',
+      (tester) async {
+    await _pump(
+      tester,
+      child: WorldMapSmartTileDensitySection(
+        rule: _rule(),
+        layerWeights: const <String, int>{},
+        spriteBuilder: (_) => const SizedBox(width: 24, height: 24),
+        onApply: (_, __) async {},
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('world-map-density-summary')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('world-map-density-clear-override')),
+      findsNothing,
+    );
+  });
+
   testWidgets('Appliquer transmet la portée choisie', (tester) async {
     final calls = <SmartTileDensityScope>[];
     await _pump(
@@ -204,6 +305,12 @@ void main() {
     await tester.tap(find.byKey(const Key('world-map-density-summary')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('world-map-density-scope-preset')));
+    await tester.pumpAndSettle();
+    tester
+        .widget<PokeMapGuidedSlider>(
+          find.byKey(const ValueKey<String>('world-map-density-cand-0')),
+        )
+        .onChanged(600);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('world-map-density-apply')));
     await tester.pumpAndSettle();

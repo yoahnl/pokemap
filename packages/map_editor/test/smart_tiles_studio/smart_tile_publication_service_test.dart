@@ -198,8 +198,11 @@ void main() {
       expect(gateway.appliedOperationId, isNotNull);
     });
 
-    test('publishPreset dérive une clé d\'idempotence stable du contenu',
-        () async {
+    test('publishPreset lie sa clé d\'idempotence à la révision', () async {
+      // Revenir à une table déjà appliquée est le geste normal quand on
+      // tâtonne sur un curseur. Une clé dérivée du seul contenu se répète
+      // alors sur une révision différente, et le journal la refuse
+      // (idempotency.payload_conflict).
       final gateway = _FakeGateway(before: _snapshot());
       final service = SmartTilePublicationService(gateway: gateway);
 
@@ -208,13 +211,16 @@ void main() {
         preset: _preset(),
       );
       final first = gateway.lastIdempotencyKey;
+      final firstRevision = gateway.expectedRevision;
+
       await service.publishPreset(
         projectRootPath: '/project',
         preset: _preset(),
       );
 
       expect(first, isNotNull);
-      expect(gateway.lastIdempotencyKey, first);
+      expect(gateway.expectedRevision, isNot(firstRevision));
+      expect(gateway.lastIdempotencyKey, isNot(first));
     });
   });
 }

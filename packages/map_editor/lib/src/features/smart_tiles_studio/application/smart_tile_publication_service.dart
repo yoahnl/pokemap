@@ -367,8 +367,13 @@ final class SmartTilePublicationService {
   }) async {
     final snapshot = await _gateway.load(projectRootPath: projectRootPath);
     final payload = preset.toJson();
+    // La révision fait partie de l'identité de la requête : sans elle, revenir
+    // à une table déjà appliquée rejoue la même clé sur une charge différente
+    // et le journal d'idempotence la refuse.
     final fingerprint = sha256
-        .convert(utf8.encode(jsonEncode(payload)))
+        .convert(
+          utf8.encode('${snapshot.snapshotRevision}|${jsonEncode(payload)}'),
+        )
         .toString()
         .substring(0, 20);
     final plan = await _gateway.plan(

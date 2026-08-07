@@ -110,6 +110,20 @@ class _WorldMapSmartTileDensitySectionState
     }
   }
 
+  /// Rend le calque au preset : la table vide efface sa surcharge, et les
+  /// poids du preset redeviennent visibles ici.
+  Future<void> _clearOverride() async {
+    setState(() => _applying = true);
+    try {
+      await widget.onApply(
+        SmartTileDensityScope.layer,
+        const <String, int>{},
+      );
+    } finally {
+      if (mounted) setState(() => _applying = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final count = widget.rule.candidates.length;
@@ -171,6 +185,28 @@ class _WorldMapSmartTileDensitySectionState
             ],
           ),
           const SizedBox(height: 8),
+          if (_scope == SmartTileDensityScope.preset &&
+              widget.layerWeights.isNotEmpty) ...[
+            const PokeMapBadge(
+              key: Key('world-map-density-shadowing-notice'),
+              variant: PokeMapBadgeVariant.warning,
+              label: 'Ce calque suit sa propre surcharge : elle masque ces '
+                  'valeurs ici. « Rendre ce calque au preset » pour les voir.',
+            ),
+            const SizedBox(height: 8),
+          ],
+          if (widget.layerWeights.isNotEmpty) ...[
+            PokeMapButton(
+              key: const Key('world-map-density-clear-override'),
+              onPressed:
+                  _applying || !widget.isEditable ? null : _clearOverride,
+              variant: PokeMapButtonVariant.secondary,
+              size: PokeMapButtonSize.compact,
+              leading: const Icon(Icons.undo_outlined, size: 14),
+              child: const Text('Rendre ce calque au preset'),
+            ),
+            const SizedBox(height: 8),
+          ],
           const PokeMapBadge(
             key: Key('world-map-density-reshuffle-notice'),
             variant: PokeMapBadgeVariant.warning,
@@ -227,7 +263,9 @@ class _WorldMapSmartTileDensitySectionState
               Expanded(
                 child: PokeMapButton(
                   key: const Key('world-map-density-apply'),
-                  onPressed: _applying || !widget.isEditable ? null : _apply,
+                  onPressed: _applying || !widget.isEditable || !_dirty
+                      ? null
+                      : _apply,
                   variant: PokeMapButtonVariant.primary,
                   size: PokeMapButtonSize.compact,
                   child: const Text('Appliquer'),
