@@ -7,13 +7,16 @@ import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
 import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
 import 'package:pokemap_hub/platform/hub_platform_adapter_factory.dart';
 import 'package:pokemap_hub/core/config/public_product_identity.dart';
+import 'package:pokemap_hub/core/error/hub_failure.dart';
+import 'package:pokemap_hub/platform/path_provider_support_root_adapter.dart';
+import 'package:pokemap_hub/platform/file_picker_background_picker.dart';
+import 'package:pokemap_hub/platform/isolate_background_image_processor.dart';
 
 abstract interface class HubAppComposition {
   Widget buildApp();
@@ -49,7 +52,7 @@ final class HubComposition implements HubAppComposition {
     final adapter = platformAdapter ?? createHubPlatformAdapter();
     HubComposition? composition;
     try {
-      final root = supportRoot ?? await _defaultSupportRoot();
+      final root = supportRoot ?? await const PathProviderSupportRootAdapter().resolve();
       await root.create(recursive: true);
       final hostCompatibility = aveluneHostCompatibility();
       late final GamePackageInstaller installer;
@@ -139,10 +142,6 @@ final class HubComposition implements HubAppComposition {
     }
   }
 
-  static Future<Directory> _defaultSupportRoot() async {
-    final platformRoot = await getApplicationSupportDirectory();
-    return Directory(p.join(platformRoot.path, 'PokeMap'));
-  }
 
   @override
   Widget buildApp() => PokeMapHubApp(

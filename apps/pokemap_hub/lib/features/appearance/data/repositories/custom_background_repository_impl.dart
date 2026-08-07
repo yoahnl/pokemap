@@ -1,9 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
-import 'package:image/image.dart' as image;
 import 'package:path/path.dart' as p;
 
 const int kAveluneMaximumCustomBackgroundBytes = 12 * 1024 * 1024;
@@ -90,77 +88,6 @@ abstract interface class AveluneCustomBackgroundGateway {
 }
 
 /// Native picker adapter. The returned path is read but never persisted.
-final class AveluneFilePickerBackgroundPicker
-    implements AveluneBackgroundPicker {
-  const AveluneFilePickerBackgroundPicker();
-
-  @override
-  Future<AvelunePickedBackground?> pick() async {
-    try {
-      final result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const <String>['jpg', 'jpeg', 'png', 'webp'],
-        allowMultiple: false,
-        withData: true,
-      );
-      if (result == null || result.files.isEmpty) return null;
-      final selected = result.files.single;
-      final path = selected.path;
-      if (path != null) {
-        final file = File(path);
-        if (await file.length() > kAveluneMaximumCustomBackgroundBytes) {
-          throw const AveluneCustomBackgroundException(
-            AveluneCustomBackgroundErrorCode.fileTooLarge,
-            'L’image dépasse la limite de 12 Mo.',
-          );
-        }
-      }
-      final bytes = selected.bytes ??
-          (path == null ? null : await File(path).readAsBytes());
-      if (bytes == null) {
-        throw const AveluneCustomBackgroundException(
-          AveluneCustomBackgroundErrorCode.readFailed,
-          'L’image sélectionnée n’a pas pu être lue.',
-        );
-      }
-      return AvelunePickedBackground(name: selected.name, bytes: bytes);
-    } on AveluneCustomBackgroundException {
-      rethrow;
-    } on Object {
-      throw const AveluneCustomBackgroundException(
-        AveluneCustomBackgroundErrorCode.readFailed,
-        'L’image sélectionnée n’a pas pu être lue.',
-      );
-    }
-  }
-}
-
-/// Performs every decode, orientation and resize operation outside the UI
-/// isolate. Both generated JPEGs are decoded once more before being accepted.
-final class AveluneIsolateBackgroundImageProcessor
-    implements AveluneBackgroundImageProcessor {
-  @override
-  Future<AveluneProcessedBackground> process(Uint8List bytes) async {
-    try {
-      final result = await compute(_processBackground, bytes);
-      return AveluneProcessedBackground(
-        imageBytes: result['imageBytes']! as Uint8List,
-        thumbnailBytes: result['thumbnailBytes']! as Uint8List,
-        width: result['width']! as int,
-        height: result['height']! as int,
-      );
-    } on Object {
-      throw const AveluneCustomBackgroundException(
-        AveluneCustomBackgroundErrorCode.decodeFailed,
-        'Cette image ne peut pas être décodée.',
-      );
-    }
-  }
-
-  @override
-  Future<bool> validateJpeg(Uint8List bytes) => compute(_validateJpeg, bytes);
-}
-
 final class AveluneLocalCustomBackgroundStorage
     implements AveluneCustomBackgroundStorage {
   AveluneLocalCustomBackgroundStorage({
@@ -425,58 +352,3 @@ final class AveluneCustomBackgroundImporter
     return jpeg || png || webp;
   }
 }
-
-Map<String, Object> _processBackground(Uint8List bytes) {
-  final decoded = image.decodeImage(bytes);
-  if (decoded == null) throw const FormatException('Image decode failed.');
-  var oriented = image.bakeOrientation(decoded);
-  final longest = max(oriented.width, oriented.height);
-  if (longest > kAveluneMaximumCustomBackgroundDimension) {
-    oriented = oriented.width >= oriented.height
-        ? image.copyResize(
-            oriented,
-            width: kAveluneMaximumCustomBackgroundDimension,
-            interpolation: image.Interpolation.cubic,
-          )
-        : image.copyResize(
-            oriented,
-            height: kAveluneMaximumCustomBackgroundDimension,
-            interpolation: image.Interpolation.cubic,
-          );
-  }
-  final opaque = image.Image(
-    width: oriented.width,
-    height: oriented.height,
-  );
-  image.fill(opaque, color: image.ColorRgb8(0x17, 0x12, 0x18));
-  image.compositeImage(opaque, oriented);
-  final thumbnail = opaque.width >= opaque.height
-      ? image.copyResize(
-          opaque,
-          width: kAveluneThumbnailMaximumDimension,
-          interpolation: image.Interpolation.cubic,
-        )
-      : image.copyResize(
-          opaque,
-          height: kAveluneThumbnailMaximumDimension,
-          interpolation: image.Interpolation.cubic,
-        );
-  final imageBytes = image.encodeJpg(opaque, quality: 84);
-  final thumbnailBytes = image.encodeJpg(thumbnail, quality: 78);
-  if (!_validateJpeg(imageBytes) || !_validateJpeg(thumbnailBytes)) {
-    throw const FormatException('Generated JPEG decode failed.');
-  }
-  return <String, Object>{
-    'imageBytes': imageBytes,
-    'thumbnailBytes': thumbnailBytes,
-    'width': opaque.width,
-    'height': opaque.height,
-  };
-}
-
-bool _validateJpeg(Uint8List bytes) =>
-    bytes.length >= 3 &&
-    bytes[0] == 0xFF &&
-    bytes[1] == 0xD8 &&
-    bytes[2] == 0xFF &&
-    image.decodeJpg(bytes) != null;

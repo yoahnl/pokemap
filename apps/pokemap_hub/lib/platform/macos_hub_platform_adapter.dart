@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
+import 'package:pokemap_hub/core/error/hub_failure.dart';
 
 /// macOS platform integration for open events, picking, and disk space.
 final class MacOSHubPlatformAdapter implements HubPlatformAdapter {

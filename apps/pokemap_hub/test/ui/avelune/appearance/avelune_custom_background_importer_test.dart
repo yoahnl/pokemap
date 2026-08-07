@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as image;
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
+import 'package:pokemap_hub/platform/isolate_background_image_processor.dart';
 
 void main() {
   group('AveluneCustomBackgroundImporter', () {

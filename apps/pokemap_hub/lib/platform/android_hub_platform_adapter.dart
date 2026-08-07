@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
+import 'package:pokemap_hub/core/error/hub_failure.dart';
 
 typedef AndroidPackageFilePicker = Future<String?> Function();
 typedef AndroidDiskBytesReader = Future<num?> Function();

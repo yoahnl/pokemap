@@ -15,20 +15,3 @@ abstract interface class HubPlatformAdapter {
 
   void dispose();
 }
-
-final class HubPackagePickerFailure implements Exception {
-  const HubPackagePickerFailure({
-    required this.code,
-    required this.message,
-    required this.recommendation,
-    this.cause,
-  });
-
-  final String code;
-  final String message;
-  final String recommendation;
-  final Object? cause;
-
-  @override
-  String toString() => cause == null ? message : '$message Cause: $cause';
-}
