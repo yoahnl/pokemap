@@ -1,0 +1,10 @@
+#!/bin/sh
+# Blocks a commit that pushes a Dart file past the 3000-line limit, or that
+# grows a file already frozen in tools/file_length_baseline.txt.
+#
+# Enable once per clone:
+#   git config core.hooksPath .githooks
+#
+# The same check runs in CI, so bypassing it with --no-verify only defers the
+# failure.
+exec dart tools/check_file_length.dart
