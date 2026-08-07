@@ -5,7 +5,7 @@ import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
-import 'package:pokemap_hub/features/installation/data/repositories/game_package_installer.dart';
+import 'package:pokemap_hub/features/installation/domain/repositories/game_installation_repository_interface.dart';
 
 typedef EditorExportPackageInstaller = Future<void> Function(
   File package, {
@@ -39,7 +39,7 @@ final class EditorExportInstallInbox {
 
   factory EditorExportInstallInbox.fromInstaller({
     required Directory inbox,
-    required GamePackageInstaller installer,
+    required GameInstallationRepositoryInterface installer,
     int maxRequests = 100,
     int maxRequestBytes = 64 * 1024,
   }) =>
