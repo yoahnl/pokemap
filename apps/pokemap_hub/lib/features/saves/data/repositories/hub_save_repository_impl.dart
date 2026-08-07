@@ -8,6 +8,9 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/features/saves/domain/entities/save_profile.dart';
 import 'package:pokemap_hub/features/saves/domain/entities/save_slot_metadata.dart';
 import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/save_compatibility_diagnostics.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/save_path_guard.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/save_slot_integrity.dart';
 
 enum SaveWriteStage {
   afterTemporaryFlushed,
@@ -63,6 +66,50 @@ final class HubSaveStore {
   final SaveCompatibilityEvaluator compatibilityEvaluator;
   final SaveWriteFaultHook? faultHook;
 
+  Future<T> _withFileLock<T>(
+    Directory slot,
+    Future<T> Function() action,
+  ) async {
+    final lockFile = File(p.join(slot.path, '.save.lock'));
+    await _paths.rejectLink(lockFile.path);
+    final handle = await lockFile.open(mode: FileMode.append);
+    try {
+      await handle.lock(FileLock.exclusive);
+      return await action();
+    } finally {
+      await handle.unlock();
+      await handle.close();
+    }
+  }
+
+  Future<T> _queueSlot<T>(
+    String key,
+    Future<T> Function() action,
+  ) async {
+    final previous = _slotQueues[key] ?? Future<void>.value();
+    final completer = Completer<void>();
+    _slotQueues[key] = completer.future;
+    try {
+      await previous.catchError((_) {});
+      return await action();
+    } finally {
+      completer.complete();
+      if (identical(_slotQueues[key], completer.future)) {
+        _slotQueues.remove(key);
+      }
+    }
+  }
+
+  SaveSlotIntegrity get _integrity => SaveSlotIntegrity(
+        supportRoot: supportRoot,
+        identity: identity,
+        codec: codec,
+        compatibilityEvaluator: compatibilityEvaluator,
+      );
+
+  SavePathGuard get _paths =>
+      SavePathGuard(supportRoot: supportRoot, identity: identity);
+
   static final Map<String, Future<void>> _slotQueues = <String, Future<void>>{};
   static int _nonce = 0;
 
@@ -72,7 +119,7 @@ final class HubSaveStore {
 
   /// Atomically writes and returns the exact generation confirmed on disk.
   Future<SaveEnvelope> writeVerified(SaveEnvelope envelope) async {
-    _assertAddressScope(envelope.address);
+    _paths.assertAddressScope(envelope.address);
     final validated = codec.decode(
       codec.encode(envelope),
       expectedAddress: envelope.address,
@@ -89,7 +136,7 @@ final class HubSaveStore {
         '${compatibility.code?.name}.',
       );
     }
-    final slot = (await _safeSlotDirectory(envelope.address, create: true))!;
+    final slot = (await _paths.safeSlotDirectory(envelope.address, create: true))!;
     return _queueSlot<SaveEnvelope>(
       slot.path,
       () => _withFileLock<SaveEnvelope>(
@@ -103,8 +150,8 @@ final class HubSaveStore {
     SaveSlotAddress address, {
     bool migrationChainAvailable = false,
   }) async {
-    _assertAddressScope(address);
-    final slot = await _safeSlotDirectory(address, create: false);
+    _paths.assertAddressScope(address);
+    final slot = await _paths.safeSlotDirectory(address, create: false);
     if (slot == null) {
       return SaveSlotRead(
         address: address,
@@ -132,12 +179,12 @@ final class HubSaveStore {
 
   Future<void> saveProfile(SaveProfile profile) async {
     profile.validate();
-    final profileDirectory = await _safeProfileDirectory(
+    final profileDirectory = await _paths.safeProfileDirectory(
       profile.profileId,
       create: true,
     );
     final target = File(p.join(profileDirectory!.path, 'profile.json'));
-    await _rejectLink(target.path);
+    await _paths.rejectLink(target.path);
     final temporary = File('${target.path}.tmp.$pid.${_nonce++}');
     try {
       await temporary.writeAsString(
@@ -157,7 +204,7 @@ final class HubSaveStore {
   }
 
   Future<List<SaveProfile>> listProfiles() async {
-    final gameDirectory = await _safeGameDirectory(create: false);
+    final gameDirectory = await _paths.safeGameDirectory(create: false);
     if (gameDirectory == null) return const <SaveProfile>[];
     final profiles = <SaveProfile>[];
     await for (final entity in gameDirectory.list(followLinks: false)) {
@@ -180,7 +227,7 @@ final class HubSaveStore {
 
   Future<void> deleteProfile(String profileId) async {
     GameIdentity.validateLocalId(profileId, path: r'$.profileId');
-    final profile = await _safeProfileDirectory(profileId, create: false);
+    final profile = await _paths.safeProfileDirectory(profileId, create: false);
     if (profile == null) return;
     await _queueSlot<void>(
       profile.path,
@@ -197,7 +244,7 @@ final class HubSaveStore {
   }) async {
     GameIdentity.validateLocalId(profileId, path: r'$.profileId');
     metadata.validate();
-    final slot = await _safeSlotDirectory(
+    final slot = await _paths.safeSlotDirectory(
       SaveSlotAddress(
         gameId: identity.gameId,
         profileId: profileId,
@@ -206,7 +253,7 @@ final class HubSaveStore {
       create: true,
     );
     final target = File(p.join(slot!.path, 'slot.json'));
-    await _rejectLink(target.path);
+    await _paths.rejectLink(target.path);
     final temporary = File('${target.path}.tmp.$pid.${_nonce++}');
     try {
       await temporary.writeAsString(
@@ -229,14 +276,14 @@ final class HubSaveStore {
     required String profileId,
   }) async {
     GameIdentity.validateLocalId(profileId, path: r'$.profileId');
-    final profile = await _safeProfileDirectory(profileId, create: false);
+    final profile = await _paths.safeProfileDirectory(profileId, create: false);
     if (profile == null) return const <SaveSlotMetadata>[];
     final result = <SaveSlotMetadata>[];
     await for (final entity in profile.list(followLinks: false)) {
       if (entity is! Directory) continue;
       final file = File(p.join(entity.path, 'slot.json'));
       try {
-        await _rejectLink(file.path);
+        await _paths.rejectLink(file.path);
         if (!await file.exists()) continue;
         final decoded = jsonDecode(await file.readAsString());
         if (decoded is! Map<String, dynamic>) continue;
@@ -255,7 +302,7 @@ final class HubSaveStore {
     required String profileId,
   }) async {
     GameIdentity.validateLocalId(profileId, path: r'$.profileId');
-    final profile = await _safeProfileDirectory(profileId, create: false);
+    final profile = await _paths.safeProfileDirectory(profileId, create: false);
     if (profile == null) return const <SaveSlotSummary>[];
     final summaries = <SaveSlotSummary>[];
     await for (final entity in profile.list(followLinks: false)) {
@@ -303,7 +350,7 @@ final class HubSaveStore {
       GameIdentity.validateLocalId(profileId, path: r'$.profileId');
       profileIds.add(profileId);
     } else {
-      final game = await _safeGameDirectory(create: false);
+      final game = await _paths.safeGameDirectory(create: false);
       if (game != null) {
         await for (final entity in game.list(followLinks: false)) {
           if (entity is! Directory) continue;
@@ -318,7 +365,7 @@ final class HubSaveStore {
       }
     }
     for (final id in profileIds) {
-      final profile = await _safeProfileDirectory(id, create: false);
+      final profile = await _paths.safeProfileDirectory(id, create: false);
       if (profile == null) continue;
       await for (final entity in profile.list(followLinks: false)) {
         if (entity is! Directory) continue;
@@ -352,8 +399,8 @@ final class HubSaveStore {
   }
 
   Future<void> deleteSlot(SaveSlotAddress address) async {
-    _assertAddressScope(address);
-    final slot = await _safeSlotDirectory(address, create: false);
+    _paths.assertAddressScope(address);
+    final slot = await _paths.safeSlotDirectory(address, create: false);
     if (slot == null) return;
     await _queueSlot<void>(
       slot.path,
@@ -369,7 +416,7 @@ final class HubSaveStore {
     required String newSaveId,
     required DateTime updatedAt,
   }) async {
-    _assertAddressScope(address);
+    _paths.assertAddressScope(address);
     final sourceRead = await read(address);
     final source = sourceRead.envelope;
     if (source == null ||
@@ -386,7 +433,7 @@ final class HubSaveStore {
       );
     }
 
-    final slot = (await _safeSlotDirectory(address, create: true))!;
+    final slot = (await _paths.safeSlotDirectory(address, create: true))!;
     return _queueSlot<SaveMigrationResult>(
       slot.path,
       () => _withFileLock<SaveMigrationResult>(slot, () async {
@@ -409,8 +456,8 @@ final class HubSaveStore {
   Future<void> restoreMigrationSnapshot(
     SaveMigrationSnapshot snapshot,
   ) async {
-    _assertAddressScope(snapshot.address);
-    final slot = (await _safeSlotDirectory(snapshot.address, create: false))!;
+    _paths.assertAddressScope(snapshot.address);
+    final slot = (await _paths.safeSlotDirectory(snapshot.address, create: false))!;
     final snapshotsRoot = p.join(slot.path, 'migration-snapshots');
     final snapshotResolved = await snapshot.primaryFile.resolveSymbolicLinks();
     final rootResolved = await Directory(snapshotsRoot).resolveSymbolicLinks();
@@ -420,7 +467,7 @@ final class HubSaveStore {
         'Migration snapshot is outside the expected slot.',
       );
     }
-    final restored = await _decodeCandidate(
+    final restored = await _integrity.decodeCandidate(
       snapshot.primaryFile,
       snapshot.address,
     );
@@ -452,13 +499,13 @@ final class HubSaveStore {
     required SaveEnvelope source,
   }) async {
     final snapshots =
-        (await _safeChildDirectory(slot, 'migration-snapshots', create: true))!;
-    final version = (await _safeChildDirectory(
+        (await _paths.safeChildDirectory(slot, 'migration-snapshots', create: true))!;
+    final version = (await _paths.safeChildDirectory(
       snapshots,
       source.gameVersion,
       create: true,
     ))!;
-    final directory = (await _safeChildDirectory(
+    final directory = (await _paths.safeChildDirectory(
       version,
       source.saveId,
       create: true,
@@ -466,12 +513,12 @@ final class HubSaveStore {
     final primary = File(p.join(directory.path, 'save.json'));
     final backup = File(p.join(directory.path, 'save.backup.json'));
     for (final file in <File>[primary, backup]) {
-      await _rejectLink(file.path);
+      await _paths.rejectLink(file.path);
     }
     if (!await primary.exists()) {
       await primary.writeAsString(codec.encode(source), flush: true);
     }
-    final verified = await _decodeCandidate(primary, source.address);
+    final verified = await _integrity.decodeCandidate(primary, source.address);
     if (verified.checksum != source.checksum) {
       throw const SaveStorageException(
         SaveStorageErrorCode.invalidEnvelope,
@@ -479,7 +526,7 @@ final class HubSaveStore {
       );
     }
     final liveBackup = File(p.join(slot.path, 'save.backup.json'));
-    if (!await backup.exists() && await _isValid(liveBackup, source.address)) {
+    if (!await backup.exists() && await _integrity.isValid(liveBackup, source.address)) {
       await liveBackup.copy(backup.path);
     }
     return SaveMigrationSnapshot._(
@@ -502,7 +549,7 @@ final class HubSaveStore {
     final nextBackup = File(p.join(slot.path, 'save.backup.json.next'));
     final temporary = File(p.join(slot.path, 'save.json.tmp.$pid.${_nonce++}'));
     for (final file in <File>[current, backup, nextBackup, temporary]) {
-      await _rejectLink(file.path);
+      await _paths.rejectLink(file.path);
     }
 
     try {
@@ -525,7 +572,7 @@ final class HubSaveStore {
       if (await current.exists()) {
         try {
           final currentEnvelope =
-              await _decodeCandidate(current, envelope.address);
+              await _integrity.decodeCandidate(current, envelope.address);
           final currentCompatibility = compatibilityEvaluator.evaluate(
             save: currentEnvelope.compatibility,
             game: identity,
@@ -545,7 +592,7 @@ final class HubSaveStore {
         } on SaveStorageException {
           rethrow;
         } catch (_) {
-          await _quarantine(slot, current);
+          await _integrity.quarantine(slot, current);
         }
       }
       if (rotateCurrent) {
@@ -573,7 +620,7 @@ final class HubSaveStore {
       await _fault(SaveWriteStage.afterCurrentConfirmed);
       return confirmed;
     } catch (error) {
-      await _restoreAnyValidCurrent(
+      await _integrity.restoreAnyValidCurrent(
         slot: slot,
         address: envelope.address,
         temporary: temporary,
@@ -604,11 +651,11 @@ final class HubSaveStore {
     ];
     for (final candidate in candidates) {
       final file = candidate.$1;
-      await _rejectLink(file.path);
+      await _paths.rejectLink(file.path);
       if (!await file.exists()) continue;
       SaveEnvelope envelope;
       try {
-        envelope = await _decodeCandidate(file, address);
+        envelope = await _integrity.decodeCandidate(file, address);
       } catch (error) {
         if (candidate.$2 == SaveSlotSource.current) {
           diagnostics.add(
@@ -618,7 +665,7 @@ final class HubSaveStore {
             ),
           );
         }
-        await _quarantine(slot, file);
+        await _integrity.quarantine(slot, file);
         continue;
       }
       final compatibility = compatibilityEvaluator.evaluate(
@@ -669,7 +716,7 @@ final class HubSaveStore {
                     : envelope,
             source: candidate.$2,
             diagnostics: <SaveStorageDiagnostic>[
-              _compatibilityDiagnostic(compatibility.code!),
+              compatibilityDiagnostic(compatibility.code!),
             ],
           );
       }
@@ -690,237 +737,10 @@ final class HubSaveStore {
     );
   }
 
-  Future<SaveEnvelope> _decodeCandidate(
-    File file,
-    SaveSlotAddress address,
-  ) async {
-    final content = await file.readAsString();
-    final decoded = jsonDecode(content);
-    if (decoded is! Map<String, dynamic> || decoded['saveFormat'] is! int) {
-      throw const FormatException('Invalid save candidate.');
-    }
-    final format = decoded['saveFormat']! as int;
-    final envelope = codec.decodeJson(
-      decoded,
-      acceptedSaveFormats: <int>{format},
-    );
-    if (envelope.profileId != address.profileId ||
-        envelope.slotId != address.slotId) {
-      throw const SaveContractException(
-        SaveContractErrorCode.addressMismatch,
-        'Save profile/slot does not match its storage address.',
-      );
-    }
-    return envelope;
-  }
-
-  Future<void> _restoreAnyValidCurrent({
-    required Directory slot,
-    required SaveSlotAddress address,
-    required File temporary,
-  }) async {
-    final current = File(p.join(slot.path, 'save.json'));
-    if (await _isValid(current, address)) return;
-    for (final source in <File>[
-      File(p.join(slot.path, 'save.backup.json.next')),
-      File(p.join(slot.path, 'save.backup.json')),
-    ]) {
-      if (await _isValid(source, address)) {
-        if (await current.exists()) await _quarantine(slot, current);
-        await source.copy(current.path);
-        return;
-      }
-    }
-    if (await _isValid(temporary, address)) {
-      if (await current.exists()) await _quarantine(slot, current);
-      await temporary.copy(current.path);
-    }
-  }
-
-  Future<bool> _isValid(File file, SaveSlotAddress address) async {
-    if (!await file.exists()) return false;
-    try {
-      await _decodeCandidate(file, address);
-      return true;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  Future<void> _quarantine(Directory slot, File file) async {
-    if (!await file.exists()) return;
-    final quarantine = Directory(p.join(slot.path, 'quarantine'));
-    await quarantine.create(recursive: true);
-    final name =
-        '${p.basename(file.path)}.${DateTime.now().toUtc().microsecondsSinceEpoch}'
-        '.corrupt';
-    await file.rename(p.join(quarantine.path, name));
-  }
-
-  Future<T> _withFileLock<T>(
-    Directory slot,
-    Future<T> Function() action,
-  ) async {
-    final lockFile = File(p.join(slot.path, '.save.lock'));
-    await _rejectLink(lockFile.path);
-    final handle = await lockFile.open(mode: FileMode.append);
-    try {
-      await handle.lock(FileLock.exclusive);
-      return await action();
-    } finally {
-      await handle.unlock();
-      await handle.close();
-    }
-  }
-
-  Future<T> _queueSlot<T>(
-    String key,
-    Future<T> Function() action,
-  ) async {
-    final previous = _slotQueues[key] ?? Future<void>.value();
-    final completer = Completer<void>();
-    _slotQueues[key] = completer.future;
-    try {
-      await previous.catchError((_) {});
-      return await action();
-    } finally {
-      completer.complete();
-      if (identical(_slotQueues[key], completer.future)) {
-        _slotQueues.remove(key);
-      }
-    }
-  }
-
   Future<void> _fault(SaveWriteStage stage) async {
     final hook = faultHook;
     if (hook != null) await hook(stage);
   }
 
-  void _assertAddressScope(SaveSlotAddress address) {
-    if (address.gameId != identity.gameId) {
-      throw SaveStorageException(
-        SaveStorageErrorCode.outOfScope,
-        'Address ${address.gameId} is outside ${identity.gameId}.',
-      );
-    }
-  }
-
-  Future<Directory?> _safeSlotDirectory(
-    SaveSlotAddress address, {
-    required bool create,
-  }) async {
-    final profile = await _safeProfileDirectory(
-      address.profileId,
-      create: create,
-    );
-    if (profile == null) return null;
-    return _safeChildDirectory(profile, address.slotId, create: create);
-  }
-
-  Future<Directory?> _safeProfileDirectory(
-    String profileId, {
-    required bool create,
-  }) async {
-    GameIdentity.validateLocalId(profileId, path: r'$.profileId');
-    final game = await _safeGameDirectory(create: create);
-    if (game == null) return null;
-    return _safeChildDirectory(game, profileId, create: create);
-  }
-
-  Future<Directory?> _safeGameDirectory({required bool create}) async {
-    GameIdentity.validateGameId(identity.gameId);
-    final root = await _safeSupportRoot(create: create);
-    if (root == null) return null;
-    final saves = await _safeChildDirectory(root, 'saves', create: create);
-    if (saves == null) return null;
-    return _safeChildDirectory(saves, identity.gameId, create: create);
-  }
-
-  Future<Directory?> _safeSupportRoot({required bool create}) async {
-    if (!await supportRoot.exists()) {
-      if (!create) return null;
-      await supportRoot.create(recursive: true);
-    }
-    if (await FileSystemEntity.isLink(supportRoot.path)) {
-      throw const SaveStorageException(
-        SaveStorageErrorCode.pathEscapesRoot,
-        'Support root must not be a symbolic link.',
-      );
-    }
-    return supportRoot;
-  }
-
-  Future<Directory?> _safeChildDirectory(
-    Directory parent,
-    String name, {
-    required bool create,
-  }) async {
-    final child = Directory(p.join(parent.path, name));
-    final type = await FileSystemEntity.type(child.path, followLinks: false);
-    if (type == FileSystemEntityType.link ||
-        (type != FileSystemEntityType.notFound &&
-            type != FileSystemEntityType.directory)) {
-      throw SaveStorageException(
-        SaveStorageErrorCode.pathEscapesRoot,
-        'Unsafe save path component "$name".',
-      );
-    }
-    if (type == FileSystemEntityType.notFound) {
-      if (!create) return null;
-      await child.create();
-    }
-    final rootResolved = await supportRoot.resolveSymbolicLinks();
-    final childResolved = await child.resolveSymbolicLinks();
-    if (childResolved != rootResolved &&
-        !p.isWithin(rootResolved, childResolved)) {
-      throw SaveStorageException(
-        SaveStorageErrorCode.pathEscapesRoot,
-        'Resolved save path escapes the PokeMap support root.',
-      );
-    }
-    return child;
-  }
-
-  Future<void> _rejectLink(String path) async {
-    if (await FileSystemEntity.type(path, followLinks: false) ==
-        FileSystemEntityType.link) {
-      throw SaveStorageException(
-        SaveStorageErrorCode.pathEscapesRoot,
-        'Save file path is a symbolic link: $path',
-      );
-    }
-  }
 }
 
-SaveStorageDiagnostic _compatibilityDiagnostic(
-  SaveCompatibilityCode code,
-) =>
-    switch (code) {
-      SaveCompatibilityCode.saveGameMismatch => const SaveStorageDiagnostic(
-          SaveStorageDiagnosticCode.saveGameMismatch,
-          'Save belongs to another game.',
-        ),
-      SaveCompatibilityCode.saveCompatibilityMismatch =>
-        const SaveStorageDiagnostic(
-          SaveStorageDiagnosticCode.saveCompatibilityMismatch,
-          'Save compatibility identifier does not match this game.',
-        ),
-      SaveCompatibilityCode.saveFormatFuture => const SaveStorageDiagnostic(
-          SaveStorageDiagnosticCode.saveFormatFuture,
-          'Save was written by a future unsupported format.',
-        ),
-      SaveCompatibilityCode.saveMigrationRequired =>
-        const SaveStorageDiagnostic(
-          SaveStorageDiagnosticCode.saveMigrationRequired,
-          'Save requires migration.',
-        ),
-      SaveCompatibilityCode.saveMigrationUnavailable =>
-        const SaveStorageDiagnostic(
-          SaveStorageDiagnosticCode.saveMigrationUnavailable,
-          'No migration chain is available for this save.',
-        ),
-      SaveCompatibilityCode.migrationFailed => const SaveStorageDiagnostic(
-          SaveStorageDiagnosticCode.saveMigrationUnavailable,
-          'Save migration failed.',
-        ),
-    };
