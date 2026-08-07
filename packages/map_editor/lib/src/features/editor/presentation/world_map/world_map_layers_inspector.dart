@@ -167,7 +167,10 @@ final class _WorldMapLayersInspectorState
     );
     final availableTypes = <String>[];
     for (final row in rows) {
-      final label = _layerTypeLabel(row.layer);
+      final label = _layerTypeLabel(
+        row.layer,
+        hasAttachedEnvironment: row.hasAttachedEnvironmentLayers,
+      );
       if (!availableTypes.contains(label)) availableTypes.add(label);
     }
     final effectiveTypeFilter = availableTypes.contains(_typeFilter)
@@ -175,7 +178,10 @@ final class _WorldMapLayersInspectorState
         : _allLayerTypesFilter;
     final normalizedQuery = _query.trim().toLowerCase();
     final visibleRows = rows.where((row) {
-      final typeLabel = _layerTypeLabel(row.layer);
+      final typeLabel = _layerTypeLabel(
+        row.layer,
+        hasAttachedEnvironment: row.hasAttachedEnvironmentLayers,
+      );
       if (effectiveTypeFilter != _allLayerTypesFilter &&
           typeLabel != effectiveTypeFilter) {
         return false;
@@ -380,12 +386,6 @@ final class _WorldMapLayersInspectorState
               ),
             ),
           const SliverPadding(
-            padding: EdgeInsets.fromLTRB(10, 10, 10, 0),
-            sliver: SliverToBoxAdapter(
-              child: WorldMapEnvironmentSection(),
-            ),
-          ),
-          const SliverPadding(
             padding: EdgeInsets.all(10),
             sliver: SliverToBoxAdapter(
               child: PokeMapDiagnosticCallout(
@@ -453,8 +453,14 @@ final class _WorldMapLayerRow extends ConsumerWidget {
     final layerId = layer.id;
     Widget buildTypeLabel() => PokeMapStatusLabel(
           key: ValueKey<String>('world-map-layer-type-$layerId'),
-          label: _layerTypeLabel(layer),
-          tone: _layerTone(layer),
+          label: _layerTypeLabel(
+            layer,
+            hasAttachedEnvironment: row.hasAttachedEnvironmentLayers,
+          ),
+          tone: _layerTone(
+            layer,
+            hasAttachedEnvironment: row.hasAttachedEnvironmentLayers,
+          ),
         );
     Widget buildOpacitySlider() => PokeMapGuidedSlider(
           key: ValueKey<String>('world-map-layer-opacity-$layerId'),
@@ -578,13 +584,16 @@ final class _WorldMapLayerRow extends ConsumerWidget {
       selected: row.isActive,
       label: [
         layer.name,
-        'Type ${_layerTypeLabel(layer)}',
+        'Type ${_layerTypeLabel(layer, hasAttachedEnvironment: row.hasAttachedEnvironmentLayers)}',
         if (row.technicalEnvironmentSelectionLabel case final label?) label,
       ].join(', '),
       child: PokeMapPanel(
         key: ValueKey<String>('world-map-layer-card-$layerId'),
         borderRadius: 8,
-        accentTone: _layerTone(layer),
+        accentTone: _layerTone(
+          layer,
+          hasAttachedEnvironment: row.hasAttachedEnvironmentLayers,
+        ),
         padding: const EdgeInsetsDirectional.fromSTEB(12, 8, 8, 8),
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -611,7 +620,13 @@ final class _WorldMapLayerRow extends ConsumerWidget {
                                   'world-map-layer-active-$layerId',
                                 ),
                               )
-                            : Icon(_layerIcon(layer)),
+                            : Icon(
+                                _layerIcon(
+                                  layer,
+                                  hasAttachedEnvironment:
+                                      row.hasAttachedEnvironmentLayers,
+                                ),
+                              ),
                         child: usesNarrowLayout
                             ? Align(
                                 alignment: Alignment.centerLeft,
@@ -679,10 +694,13 @@ final class _WorldMapLayerRow extends ConsumerWidget {
                     ),
                   ],
                 ),
-                if (row.environmentAttachmentLabel case final label?) ...[
+                // One attachment is already announced by the layer type; only
+                // the unusual case of several still needs spelling out.
+                if (row.attachedEnvironmentLayerIds.length > 1 &&
+                    row.environmentAttachmentLabel != null) ...[
                   const SizedBox(height: 6),
                   Text(
-                    label,
+                    row.environmentAttachmentLabel!,
                     style: TextStyle(
                       color: context.pokeMapColors.textSecondary,
                       fontSize: 11,
@@ -716,6 +734,13 @@ final class _WorldMapLayerRow extends ConsumerWidget {
                   ),
                 ],
                 ...buildEnvironmentActions(context),
+                // The environment belongs to this layer, so its authoring
+                // chain opens with it instead of sitting in a panel-wide
+                // section the author has to go looking for.
+                if (row.isActive && row.hasAttachedEnvironmentLayers) ...[
+                  const SizedBox(height: 8),
+                  const WorldMapEnvironmentSection(embedded: true),
+                ],
                 const SizedBox(height: 4),
                 if (usesNarrowLayout) ...[
                   Row(
@@ -1129,7 +1154,11 @@ String _creationKindDefaultName(WorldMapLayerCreationKind kind) {
   };
 }
 
-String _layerTypeLabel(MapLayer layer) {
+/// A Tile layer carrying an attached Environment is presented as an
+/// Environment layer: the pair is shown as one row, and the environment is what
+/// the author came for. Tile painting still targets the same layer underneath.
+String _layerTypeLabel(MapLayer layer, {bool hasAttachedEnvironment = false}) {
+  if (layer is TileLayer && hasAttachedEnvironment) return 'Environnement';
   return switch (layer) {
     TileLayer() => 'Tuiles',
     CollisionLayer() => 'Collision',
@@ -1142,7 +1171,8 @@ String _layerTypeLabel(MapLayer layer) {
   };
 }
 
-PokeMapTone _layerTone(MapLayer layer) {
+PokeMapTone _layerTone(MapLayer layer, {bool hasAttachedEnvironment = false}) {
+  if (layer is TileLayer && hasAttachedEnvironment) return PokeMapTone.success;
   return switch (layer) {
     TileLayer() => PokeMapTone.brand,
     CollisionLayer() => PokeMapTone.danger,
@@ -1156,7 +1186,8 @@ PokeMapTone _layerTone(MapLayer layer) {
   };
 }
 
-IconData _layerIcon(MapLayer layer) {
+IconData _layerIcon(MapLayer layer, {bool hasAttachedEnvironment = false}) {
+  if (layer is TileLayer && hasAttachedEnvironment) return Icons.park_outlined;
   return switch (layer) {
     TileLayer() => Icons.grid_view_rounded,
     CollisionLayer() => Icons.block_outlined,

@@ -18,7 +18,14 @@ import '../../tools/editor_tool.dart';
 /// façade was missing — this is the minimal path from an empty attachment to
 /// generated elements, kept next to the layer list the author already uses.
 class WorldMapEnvironmentSection extends ConsumerStatefulWidget {
-  const WorldMapEnvironmentSection({super.key});
+  const WorldMapEnvironmentSection({
+    super.key,
+    this.embedded = false,
+  });
+
+  /// Drops the surrounding card when the section already sits inside the card
+  /// of the layer that owns the environment.
+  final bool embedded;
 
   @override
   ConsumerState<WorldMapEnvironmentSection> createState() =>
@@ -58,21 +65,27 @@ class _WorldMapEnvironmentSectionState
     final isPainting = maskMode == EnvironmentMaskEditMode.paint;
     final isErasing = maskMode == EnvironmentMaskEditMode.erase;
 
-    return PokeMapPanel(
-      key: const ValueKey<String>('world-map-environment-section'),
-      borderRadius: 8,
-      accentTone: PokeMapTone.success,
-      padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 12, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          PokeMapSectionHeader(
-            title: 'Environnement du calque',
-            description: model.emptyStateTitle.isEmpty
-                ? model.selectedEnvironmentAreaName
-                : model.emptyStateTitle,
-          ),
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+          if (widget.embedded)
+            Text(
+              model.emptyStateTitle.isEmpty
+                  ? model.selectedEnvironmentAreaName ?? 'Environnement'
+                  : model.emptyStateTitle,
+              style: TextStyle(
+                color: context.pokeMapColors.textSecondary,
+                fontSize: 11,
+              ),
+            )
+          else
+            PokeMapSectionHeader(
+              title: 'Environnement du calque',
+              description: model.emptyStateTitle.isEmpty
+                  ? model.selectedEnvironmentAreaName
+                  : model.emptyStateTitle,
+            ),
           for (final error in model.errors) ...[
             const SizedBox(height: 8),
             PokeMapDiagnosticCallout(
@@ -100,10 +113,23 @@ class _WorldMapEnvironmentSectionState
               notifier: notifier,
               model: model,
               isPainting: isPainting,
-              isErasing: isErasing,
-            ),
-        ],
-      ),
+          isErasing: isErasing,
+        ),
+      ],
+    );
+
+    if (widget.embedded) {
+      return KeyedSubtree(
+        key: const ValueKey<String>('world-map-environment-section'),
+        child: body,
+      );
+    }
+    return PokeMapPanel(
+      key: const ValueKey<String>('world-map-environment-section'),
+      borderRadius: 8,
+      accentTone: PokeMapTone.success,
+      padding: const EdgeInsetsDirectional.fromSTEB(12, 10, 12, 12),
+      child: body,
     );
   }
 

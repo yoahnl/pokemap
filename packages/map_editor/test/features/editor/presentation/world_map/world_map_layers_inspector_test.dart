@@ -1638,6 +1638,31 @@ void main() {
       expect(find.textContaining('Cible à définir'), findsNothing);
     });
 
+    testWidgets('the authoring chain opens with the layer that owns it',
+        (tester) async {
+      final harness = _Harness(
+        _attachedEnvironmentMap(),
+        activeLayerId: 'decor',
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      expect(
+        find.byKey(const ValueKey<String>('world-map-environment-section')),
+        findsOneWidget,
+      );
+      // A layer that owns an environment reads as one, not as plain tiles.
+      expect(find.text('Environnement'), findsWidgets);
+
+      harness.notifier.setActiveLayer('other');
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey<String>('world-map-environment-section')),
+        findsNothing,
+      );
+    });
+
     testWidgets('an active TileLayer can grow an environment', (tester) async {
       final harness = _Harness(_threeLayerMap(), activeLayerId: 'top');
       addTearDown(harness.dispose);
@@ -1664,6 +1689,23 @@ void main() {
       expect(created.content.targetTileLayerId, 'top');
     });
   });
+}
+
+MapData _attachedEnvironmentMap() {
+  return MapData(
+    id: 'map',
+    name: 'Map',
+    size: const GridSize(width: 1, height: 1),
+    layers: <MapLayer>[
+      _tile('decor', 'Décor'),
+      EnvironmentLayer(
+        id: 'env',
+        name: 'Environnement',
+        content: EnvironmentLayerContent(targetTileLayerId: 'decor'),
+      ),
+      _tile('other', 'Autre'),
+    ],
+  );
 }
 
 MapData _environmentMap({required String? targetTileLayerId}) {
