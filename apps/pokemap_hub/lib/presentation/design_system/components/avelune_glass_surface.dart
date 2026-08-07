@@ -52,6 +52,11 @@ class AveluneGlassSurface extends StatelessWidget {
         // separates real glass from a tinted rectangle.
         shape: LiquidGlassShape.squircle(
           cornerRadius: cornerRadius,
+          // The default clip is a plain circular rounded rectangle, so its
+          // silhouette does not follow the squircle the shader draws and the
+          // clipped blur edge misses the refraction in the corners. An exact
+          // ClipPath costs one save layer and lines the two up.
+          clipQuality: LiquidGlassClipQuality.exact,
           borderWidth: AveluneGlass.borderWidth,
           lightIntensity: AveluneGlass.lightIntensity,
           lightColor: AveluneGlass.lightColor,
@@ -68,9 +73,21 @@ class AveluneGlassSurface extends StatelessWidget {
           ),
           saturation: AveluneGlass.saturation,
         ),
+        // Snell's law rather than the package's legacy distortion curve.
+        //
+        // That curve is `1 + d * pow(t, d)` with `d = distortion * 100`, so at
+        // any usable strength it stays flat across the band and then explodes
+        // over the last few percent at the rim. A near-discontinuous sampling
+        // gradient is what read as pixelated stair-stepping, and turning the
+        // strength up made it worse because the exponent grows with it. The
+        // optical path ramps smoothly off the SDF, so the gradient is
+        // continuous. Setting `refractionType` makes the legacy fields inert.
         refraction: const LiquidGlassRefraction(
-          distortion: AveluneGlass.distortion,
-          distortionWidth: AveluneGlass.distortionWidth,
+          refractionType: OpticalRefraction(
+            refraction: AveluneGlass.refractiveIndex,
+            refractionWidth: AveluneGlass.refractionWidth,
+            depth: AveluneGlass.refractionDepth,
+          ),
           magnification: AveluneGlass.magnification,
           chromaticAberration: AveluneGlass.chromaticAberration,
         ),

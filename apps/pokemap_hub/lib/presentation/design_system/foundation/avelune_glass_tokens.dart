@@ -48,26 +48,37 @@ abstract final class AveluneGlass {
   static const double borderSaturation = 1.45;
   static const double ambientIntensity = 1.1;
 
-  /// Width of the band at the edge where the lens bends hardest, and the colour
-  /// split across it. Both are what make an edge read as thick glass.
-  static const double distortionWidth = 34;
+  /// Refractive index fed to Snell's law — the bending *angle*. Roughly 1.5 is
+  /// common glass; the calculation saturates past about 2.
+  static const double refractiveIndex = 1.5;
+
+  /// Width of the bevelled edge band, in logical pixels: how far in from the rim
+  /// the surface ramps from flat to vertical.
+  static const double refractionWidth = 30;
+
+  /// Optical depth — how far the refracted ray travels, i.e. how much the
+  /// content behind the glass is displaced. The strength dial, decoupled from
+  /// the band width and from the index.
+  static const double refractionDepth = 0.25;
+
+  /// Colour split across the refracted band. Part of what makes an edge read as
+  /// thick glass rather than as a tinted outline.
   static const double chromaticAberration = 0.006;
 
-  /// How much the lens bends what sits behind it.
+  /// How much the lens enlarges what is behind it.
   ///
-  /// This is the effect. It was 0.07 against a blur of 6, which is the recipe
-  /// for frosted glass rather than for a lens: blur is what makes a surface read
-  /// as frosted, refraction is what makes it read as glass. The ratio is now the
-  /// other way round.
-  static const double distortion = 0.14;
-
-  /// How much the lens enlarges what is behind it. Above 1 it magnifies, which
-  /// is the plainest tell that a surface is a lens and not a tint.
-  static const double magnification = 1.06;
+  /// Held at 1 for now. Magnification scales the sampling around the lens
+  /// centre, so above 1 it enlarges the pixels it samples — which is the last
+  /// thing this surface needs while the edge quality is being judged.
+  static const double magnification = 1;
 
   /// Blur behind the glass. Deliberately small: enough to soften what shows
   /// through, not enough to frost it. Above roughly 7 it also stops matching
   /// between Skia and Impeller, per the package's own warning.
+  ///
+  /// It used to be 6, and that was doing hidden work — masking the legacy
+  /// distortion curve's near-discontinuity at the rim. With the optical
+  /// calculation the gradient is smooth, so nothing needs masking.
   static const double blur = 2.5;
 
   /// Saturation lift, so the warm room colour carries through the glass instead
