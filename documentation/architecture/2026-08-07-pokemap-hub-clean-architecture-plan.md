@@ -1,10 +1,11 @@
 # Plan — Bascule de `pokemap_hub` sur l'architecture Grimaldi
 
 **Date** : 7 août 2026
-**Périmètre** : `apps/pokemap_hub/` uniquement (108 fichiers, 19 848 lignes, 88 fichiers de test)
+**Périmètre** : `apps/pokemap_hub/` uniquement (109 fichiers, 19 942 lignes, 88 fichiers de test)
 **Référence cible** : `grimaldi-mobile/lib` (647 fichiers, règle de dépendance à 0 violation)
 **Stratégie retenue** : big-bang — un seul chantier, l'app est cassée pendant l'exécution
-**Décision DI** : Grimaldi intégral, Riverpod + codegen inclus
+**Décision DI** : Riverpod, **runtime seul** — aucune chaîne de codegen n'est installable dans ce
+monorepo (voir § 10)
 
 ---
 
@@ -127,7 +128,7 @@ Deux features incomplètes, **assumées et documentées**, exactement comme Grim
 
 ---
 
-## 5. Mapping des 108 fichiers
+## 5. Mapping des 109 fichiers
 
 ### 5.1 `app/`
 
@@ -227,7 +228,7 @@ Deux features incomplètes, **assumées et documentées**, exactement comme Grim
 | `src/ui/avelune/appearance/avelune_appearance_preferences.dart` (66) | `domain/entities/avelune_appearance_preferences.dart` |
 | `src/ui/avelune/appearance/avelune_appearance_catalog.dart` (105) | `domain/entities/avelune_appearance_catalog.dart` |
 | *(nouveaux)* | `domain/repositories/avelune_appearance_repository_interface.dart` · `custom_background_repository_interface.dart` |
-| `src/ui/avelune/appearance/avelune_appearance_controller.dart` (285) | `application/notifiers/avelune_appearance_notifier.dart` + `_state.dart` (freezed) |
+| `src/ui/avelune/appearance/avelune_appearance_controller.dart` (285) | `application/notifiers/avelune_appearance_notifier.dart` + `_state.dart` |
 | `src/ui/avelune/appearance/avelune_appearance_store.dart` (240) | `data/repositories/avelune_appearance_repository_impl.dart` |
 | `src/ui/avelune/appearance/avelune_custom_background_importer.dart` (482) | `data/repositories/custom_background_repository_impl.dart` ; picker + processor → `platform/` |
 | `src/ui/avelune/appearance/avelune_appearance_settings.dart` (393) | **UI** → `presentation/features/settings/pages/` |
@@ -239,7 +240,7 @@ Deux features incomplètes, **assumées et documentées**, exactement comme Grim
 | Contenu actuel | Cible |
 |---|---|
 | `HubDiagnostic`, `HubDiagnosticSeverity` | `core/diagnostics/hub_diagnostic.dart` |
-| `HubDashboardStatus`, `HubSection`, `HubStorageSnapshot`, `HubGameActivity`, `HubGameView`, `HubDashboardSnapshot` | `features/dashboard/application/notifiers/hub_dashboard_state.dart` (freezed) |
+| `HubDashboardStatus`, `HubSection`, `HubStorageSnapshot`, `HubGameActivity`, `HubGameView`, `HubDashboardSnapshot` | `features/dashboard/application/notifiers/hub_dashboard_state.dart` |
 | Orchestration (import, sélection, section, requête, rafraîchissement) | `features/dashboard/application/notifiers/hub_dashboard_notifier.dart` |
 | `InstalledHubGameActivityReader` | `features/dashboard/application/services/installed_game_activity_reader.dart` |
 | *(nouveau)* | `features/dashboard/application/dashboard_providers.dart` |
@@ -248,7 +249,7 @@ Deux features incomplètes, **assumées et documentées**, exactement comme Grim
 
 | Actuel | Cible |
 |---|---|
-| `src/ui/avelune/design_system/**` (20 fichiers, 1 764 l.) | `presentation/design_system/{foundation,components,theme}` — **déplacement sec** |
+| `src/ui/avelune/design_system/**` (21 fichiers, 1 817 l.) | `presentation/design_system/{foundation,components,theme}` — **déplacement sec** |
 | `src/ui/avelune/assets/**` (2 fichiers, 292 l.) | `presentation/design_system/assets/` |
 | `src/ui/avelune/motion/**` (5 fichiers, 447 l.) | `presentation/design_system/motion/` |
 | `src/ui/avelune/avelune_theme.dart` (23) | `presentation/theme/avelune_theme.dart` |
@@ -309,14 +310,14 @@ Ordre imposé : chaque étape dépend de la précédente. L'app ne compile pas e
 - **Fait quand** : `git status` sur `apps/pokemap_hub/` est vide.
 
 ### Étape 1 — Dépendances et outillage
-- `pubspec.yaml` : ajouter `flutter_riverpod`, `riverpod_annotation`, `freezed_annotation`.
-- `dev_dependencies` : `build_runner`, `riverpod_generator`, `freezed`, `custom_lint`, `riverpod_lint` (5).
-- `analysis_options.yaml` : activer `custom_lint`, exclure `**/*.g.dart` et `**/*.freezed.dart`.
-- **Fait quand** : `flutter pub get` passe et `dart run build_runner build` tourne à vide sans erreur.
+- `pubspec.yaml` : ajouter `flutter_riverpod: ^3.0.3`. **Rien d'autre.**
+- `analysis_options.yaml` : inchangé — sans codegen, il n'y a ni fichier généré à exclure, ni plugin
+  `custom_lint` installable.
+- **Fait quand** : `flutter pub get` passe et un `ProviderContainer` résout un provider avec override.
 
 ### Étape 2 — Arborescence et déplacements
 - Créer l'arborescence du § 3 (dossiers vides).
-- `git mv` des 108 fichiers selon le § 5, **sans toucher au contenu**.
+- `git mv` des 109 fichiers selon le § 5, **sans toucher au contenu**.
 - **Fait quand** : `find lib/src -name '*.dart'` ne retourne plus rien et `lib/src/` est supprimé.
 
 ### Étape 3 — Réécriture des imports
@@ -345,15 +346,16 @@ Ordre imposé : chaque étape dépend de la précédente. L'app ne compile pas e
 - Envelopper `app_root.dart` dans un `ProviderScope`.
 - **Fait quand** : `hub_composition.dart` n'existe plus et `providers.dart` ne contient que des `export`.
 
-### Étape 7 — Notifiers et états freezed
+### Étape 7 — Notifiers
 - Convertir en `Notifier` Riverpod les 3 `ChangeNotifier` porteurs d'état applicatif :
   `hub_dashboard_controller` · `avelune_home_controller` · `avelune_appearance_controller`.
-- Les états (`HubDashboardSnapshot`, `AveluneHomeViewData`, …) passent en `@freezed`.
+- Les états (`HubDashboardSnapshot`, `AveluneHomeViewData`, …) **restent des classes Dart immuables
+  avec `copyWith` manuel** — c'est déjà le cas aujourd'hui, et c'est ce que freezed aurait produit.
 - **Décision posée** : `avelune_exchange_controller` et `avelune_insertion_controller` **restent des
   `ChangeNotifier` locaux**. Ils ne pilotent que de l'animation à l'intérieur d'un seul widget, n'ont
   aucune dépendance métier et ne sortent jamais de `presentation/features/home/`. Seuls les 3 autres
   sont convertis.
-- **Fait quand** : `dart run build_runner build --delete-conflicting-outputs` est vert.
+- **Fait quand** : `flutter analyze` et `flutter test` sont à la référence, et `grep -rl "extends ChangeNotifier" lib/` ne renvoie que les 2 controllers d'animation.
 
 ### Étape 8 — Purge `dart:io` en présentation
 - Appliquer le § 7.
@@ -392,7 +394,7 @@ cd apps/pokemap_hub && flutter analyze && flutter test
 | Fichiers issus de l'éclatement des monolithes | ~18 (à partir de 5) |
 | Fichiers de providers créés | ~14 |
 | Fichiers de test repointés | 88 |
-| Nouvelles dépendances | 3 runtime + 5 dev |
+| Nouvelles dépendances | **1** (`flutter_riverpod`) |
 
 ---
 
@@ -415,7 +417,7 @@ cd apps/pokemap_hub && flutter analyze && flutter test
 |---|---|
 | Big-bang = l'app est cassée pendant tout le chantier, aucune bisection possible en cas de régression | Les 88 tests existants sont le seul filet. Ne pas les affaiblir à l'étape 10 pour « faire passer » : les corriger. |
 | Le chantier se déroule sur `main` (workflow du projet, pas de branche feature) | Étape 0 obligatoire : partir d'un working tree propre, et livrer le refactor en un commit unique et identifiable. |
-| Riverpod + codegen introduit un cycle `build_runner` dans un launcher sans état serveur asynchrone | Coût assumé, décision prise. Verrouiller les versions dans `pubspec.yaml` pour éviter la dérive de codegen. |
+| Le codegen Riverpod/freezed est **impossible** ici : `map_core` épingle `freezed_annotation ^2.4.1` (hors périmètre) et Dart 3.13 impose `analyzer >=13`. Aucune version ne satisfait les deux. | Vérifié par 4 échecs du solveur `pub` au lot 2. Providers écrits à la main, états en Dart brut. L'architecture n'en dépend pas — le codegen est une commodité d'écriture. Corollaire : `map_core` ne peut pas non plus régénérer ses propres `.freezed.dart` sur ce SDK ; ça compile parce qu'ils sont commités. Dette pré-existante du monorepo, à traiter à part. |
 | Les tests golden de `design_system` peuvent bouger si les chemins d'assets changent | Le design_system est un **déplacement sec**, sans modification de contenu — les goldens doivent rester bit-à-bit identiques. Toute différence signale une erreur de déplacement. |
 | `game_package_installer.dart` (1 344 l.) est le cœur de l'installation, avec des transactions et du rollback | L'éclater en dernier dans l'étape 4, et ne pas modifier une seule règle métier au passage. Les tests d'install (`game_install_recovery_test`, `game_package_installer_test`) sont la référence. |
 

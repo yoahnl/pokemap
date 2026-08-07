@@ -9,12 +9,29 @@
 l'architecture feature-first de Grimaldi (`app/` · `core/` · `platform/` · `features/<f>/{domain,application,data}` · `presentation/`),
 avec DI Riverpod et garde-fous automatiques.
 
-**Approche** : big-bang en 25 lots regroupés en 6 phases. La phase 2 déplace les 108 fichiers sans
+**Approche** : big-bang en 25 lots regroupés en 6 phases. La phase 2 déplace les 109 fichiers sans
 toucher au contenu — **l'app ne compile pas pendant cette phase**. Elle recompile au lot 8, qui est le
 point de non-retour utile : à partir de là, chaque lot se termine sur `flutter analyze` + `flutter test` verts.
 
-**Stack** : Flutter · Dart ≥ 3.4 · Riverpod (`flutter_riverpod`, `riverpod_annotation`, `riverpod_generator`) ·
-`freezed` · `build_runner` · `custom_lint` + `riverpod_lint`
+**Stack** : Flutter 3.46 · Dart 3.13 · `flutter_riverpod ^3.0.3` — **runtime seul, sans codegen**.
+
+> ⚠️ **Contrainte découverte au lot 2, vérifiée par le solveur de `pub`.** Aucune chaîne de génération
+> de code n'est installable dans ce monorepo :
+>
+> | Chaîne | Exige | Bloqué par |
+> |---|---|---|
+> | `riverpod_generator` 4.x · `riverpod_lint` 3.x · `freezed` 3.x | `freezed_annotation ^3.0.0` | `map_core` épingle `^2.4.1` (dépendance `path`, hors périmètre) |
+> | `riverpod_generator` 2.x · `riverpod_lint` 2.x · `freezed` 2.x | `analyzer ^6/^7` | Dart 3.13 impose `analyzer >=13` |
+>
+> Le monorepo est pris en tenaille entre `map_core` (qui tire vers le bas) et le SDK Flutter beta
+> (qui tire vers le haut). **Décision prise** : Riverpod en runtime seul.
+>
+> **Conséquences sur ce plan** : les providers des lots 17 à 21 s'écrivent **à la main**
+> (`final xProvider = Provider<X>((ref) => …)`) au lieu de `@Riverpod`. Les états restent des classes
+> Dart avec `copyWith` — ce que `HubDashboardSnapshot` est déjà aujourd'hui — au lieu de `@freezed`.
+> Aucun `.g.dart`, aucun `.freezed.dart`, aucun `build.yaml`, aucune étape de génération nulle part.
+> **L'architecture Grimaldi n'est pas affectée** : couches, interfaces, frontières de DI et garde-fous
+> sont identiques. Le codegen est une commodité d'écriture, pas une propriété structurelle.
 
 ---
 
@@ -54,7 +71,7 @@ Elles s'appliquent implicitement à **tous** les lots.
 | Phase | Lots | Objet | App compile ? |
 |---|---|---|:---:|
 | **1 — Socle** | 1-2 | Working tree propre, dépendances, codegen | ✅ |
-| **2 — Translation** | 3-8 | Déplacement des 108 fichiers, réécriture des imports | ❌ puis ✅ au lot 8 |
+| **2 — Translation** | 3-8 | Déplacement des 109 fichiers, réécriture des imports | ❌ puis ✅ au lot 8 |
 | **3 — Décomposition** | 9-13 | Éclatement des 5 monolithes (4 645 l.) | ✅ |
 | **4 — Inversion** | 14-16 | 3 ports + 8 interfaces + substitution | ✅ |
 | **5 — Riverpod** | 17-21 | `app/di`, providers, `ProviderScope`, Notifiers | ✅ |
@@ -75,143 +92,150 @@ Elles s'appliquent implicitement à **tous** les lots.
 **Produit** : un point de départ bisectable. Sans ça, une régression du chantier sera confondue avec le
 travail avelune en cours.
 
-- [ ] **Étape 1.1 — Inventorier ce qui traîne**
+- [x] **Étape 1.1 — Inventorier ce qui traîne**
 
 ```bash
 git status --short
 ```
 
-Attendu : 5 fichiers `M` sous `apps/pokemap_hub/lib/src/ui/avelune/` et 2 fichiers `??` sous `packages/map_editor/test/`.
+**Résultat (7 août 2026)** : sortie vide, branche `main`. Le travail avelune a été livré entre-temps
+par les commits `32b87b70f` et `81e801940`.
 
-- [ ] **Étape 1.2 — Vérifier que le travail avelune en cours est vert**
+- [x] **Étape 1.2 — Vérifier que le travail avelune en cours est vert**
 
-```bash
-cd apps/pokemap_hub && flutter test test/ui/avelune/
-```
+**Résultat** : sans objet, le travail est déjà commité. Couvert par la suite complète de l'étape 1.6.
 
-Attendu : tous verts. Si rouge, **arrêter le chantier** et finir le travail avelune d'abord.
+- [x] **Étape 1.3 — Committer le travail avelune en cours**
 
-- [ ] **Étape 1.3 — Committer le travail avelune en cours**
+**Résultat** : déjà fait — `81e801940 feat(avelune): Cupertino glyphs, no Scaffold, and a glass details screen`.
+Ce commit **ajoute** `presentation/design_system/foundation/avelune_icon_tokens.dart` (53 l.), d'où le
+passage de 108 à 109 fichiers.
 
-```bash
-git add apps/pokemap_hub/lib/src/ui/avelune/ && git commit -m "feat(avelune): finalize glass surface tuning before the architecture migration"
-```
+- [x] **Étape 1.4 — Supprimer les deux sondes temporaires**
 
-- [ ] **Étape 1.4 — Supprimer les deux sondes temporaires**
+**Résultat** : déjà supprimées. `find packages/map_editor/test -name 'tmp_*'` renvoie 0.
 
-```bash
-rm packages/map_editor/test/tmp_export_probe_test.dart packages/map_editor/test/tmp_scenario_seed_test.dart
-```
+- [x] **Étape 1.5 — Confirmer le point de départ**
 
-- [ ] **Étape 1.5 — Confirmer le point de départ**
+**Résultat** : `git status --short` vide. ✅
 
-```bash
-git status --short
-```
-
-Attendu : **sortie vide**. Ne pas passer au lot 2 tant que ce n'est pas le cas.
-
-- [ ] **Étape 1.6 — Prendre la référence de test**
-
-```bash
-cd apps/pokemap_hub && flutter analyze 2>&1 | tail -3 && flutter test 2>&1 | tail -3
-```
-
-Noter les deux chiffres (issues d'analyse, tests passants). C'est la **référence** que le lot 25 devra
-retrouver à l'identique.
-
----
-
-## Lot 2 — Dépendances et chaîne de génération
-
-**Fichiers**
-- Modifier : `apps/pokemap_hub/pubspec.yaml`
-- Modifier : `apps/pokemap_hub/analysis_options.yaml`
-- Créer : `apps/pokemap_hub/build.yaml`
-
-**Produit** : `dart run build_runner build` fonctionne. Aucun code ne l'utilise encore.
-
-- [ ] **Étape 2.1 — Ajouter les dépendances runtime**
-
-Dans `pubspec.yaml`, section `dependencies`, en respectant l'ordre alphabétique existant :
-
-```yaml
-  flutter_riverpod: ^2.6.1
-  freezed_annotation: ^2.4.4
-  riverpod_annotation: ^2.6.1
-```
-
-- [ ] **Étape 2.2 — Ajouter les dépendances de développement**
-
-Dans `pubspec.yaml`, section `dev_dependencies` :
-
-```yaml
-  build_runner: ^2.4.13
-  custom_lint: ^0.7.0
-  freezed: ^2.5.7
-  riverpod_generator: ^2.6.3
-  riverpod_lint: ^2.6.3
-```
-
-- [ ] **Étape 2.3 — Résoudre les versions**
-
-```bash
-cd apps/pokemap_hub && flutter pub get
-```
-
-Attendu : `Got dependencies!`. En cas de conflit de version, **ne pas** relâcher les contraintes des
-packages locaux (`map_core`, `map_runtime`, …) — ajuster uniquement les bornes des nouvelles dépendances.
-
-- [ ] **Étape 2.4 — Exclure le code généré de l'analyse**
-
-Dans `analysis_options.yaml`, ajouter au niveau racine :
-
-```yaml
-analyzer:
-  exclude:
-    - "**/*.g.dart"
-    - "**/*.freezed.dart"
-  plugins:
-    - custom_lint
-```
-
-- [ ] **Étape 2.5 — Cadrer le générateur**
-
-Créer `apps/pokemap_hub/build.yaml` :
-
-```yaml
-targets:
-  $default:
-    builders:
-      riverpod_generator:
-        generate_for:
-          - lib/app/di/**.dart
-          - lib/features/**/application/**.dart
-      freezed:
-        generate_for:
-          - lib/features/**/application/**.dart
-```
-
-- [ ] **Étape 2.6 — Vérifier que la chaîne tourne à vide**
-
-```bash
-cd apps/pokemap_hub && dart run build_runner build --delete-conflicting-outputs
-```
-
-Attendu : `Succeeded after ...` avec `0 outputs` — aucun fichier annoté n'existe encore.
-
-- [ ] **Étape 2.7 — Vérifier la non-régression**
+- [x] **Étape 1.6 — Prendre la référence de test**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-Attendu : **strictement les mêmes chiffres qu'à l'étape 1.6**.
+**Référence mesurée le 7 août 2026 — à retrouver à l'identique au lot 25 :**
 
-- [ ] **Étape 2.8 — Committer**
+| Mesure | Valeur |
+|---|---|
+| `flutter analyze` | **0 issue** (`No issues found!`) |
+| `flutter test` | **+361 −1** |
+| Fichiers Dart dans `lib/` | **109** |
+| Lignes dans `lib/` | **19 942** |
+| Fichiers de test | **88** |
+
+> ⚠️ **La référence n'est pas entièrement verte, et c'est assumé.**
+> `test/support/runtime_owned_player_package_fixture_test.dart` →
+> *« installed Golden fixture keeps the canonical Selbrume ending contract »* échoue sur
+> `Bad state: Repository root containing Selbrume was not found.`
+>
+> Cause : le test remonte l'arborescence à la recherche de `<repo>/selbrume/project.json`. Ce dossier
+> **n'est pas tracké par git** (0 fichier) et **n'est pas listé dans `.gitignore`** — c'est un projet de
+> jeu local, présent sur la machine où le test a été écrit (`b05149005`), absent de ce checkout.
+>
+> **Conséquence pour tout le chantier** : chaque gate de lot qui demande « les mêmes chiffres qu'à
+> l'étape 1.6 » attend **`+361 −1`**, pas « tout vert ». Cet unique échec est indépendant de
+> l'architecture — il ne doit **ni être corrigé ici, ni servir d'excuse** si un second test rougit.
+> Un deuxième échec, quel qu'il soit, est une régression du chantier.
+
+---
+
+## Lot 2 — Dépendance Riverpod
+
+**Fichiers**
+- Modifier : `apps/pokemap_hub/pubspec.yaml`, `apps/pokemap_hub/pubspec.lock`
+
+`analysis_options.yaml` et `build.yaml` ne sont **pas** touchés : sans codegen il n'y a ni fichier
+généré à exclure, ni plugin `custom_lint` installable.
+
+**Produit** : le runtime Riverpod, `ProviderContainer` et les overrides de test.
+
+- [x] **Étape 2.1 — Établir ce qui est installable**
+
+Avant d'écrire quoi que ce soit, faire trancher le solveur plutôt que de deviner :
 
 ```bash
-git add apps/pokemap_hub/pubspec.yaml apps/pokemap_hub/pubspec.lock apps/pokemap_hub/analysis_options.yaml apps/pokemap_hub/build.yaml && git commit -m "refactor(hub): add riverpod and freezed toolchain ahead of the layer migration"
+cd apps/pokemap_hub && cp pubspec.yaml /tmp/pubspec.bak && cp pubspec.lock /tmp/pubspec.lock.bak
+flutter pub add "freezed_annotation:^3.1.0"     # échoue : map_core épingle ^2.4.1
+flutter pub add "dev:riverpod_generator:^4.0.0" # échoue : exige freezed_annotation ^3.0.0
+flutter pub add "dev:riverpod_generator:^2.6.3" # échoue : exige analyzer ^6/^7, SDK impose >=13
+flutter pub add "dev:freezed:^2.5.7"            # échoue : exige analyzer ^6/^7
+cp /tmp/pubspec.bak pubspec.yaml && cp /tmp/pubspec.lock.bak pubspec.lock
+```
+
+**Résultat (7 août 2026)** : les 4 tentatives échouent. `flutter pub add` est atomique — le `pubspec.yaml`
+est intact après chaque échec (vérifié par `diff`). Voir le bandeau du § Stack pour la matrice complète.
+
+- [x] **Étape 2.2 — Ajouter la seule dépendance viable**
+
+```bash
+cd apps/pokemap_hub && flutter pub add "flutter_riverpod:^3.0.3"
+```
+
+**Résultat** : `+ flutter_riverpod 3.4.2`, `+ riverpod 3.4.2`, `+ listen 1.0.1`, `+ state_notifier 1.0.0`.
+Une seule ligne ajoutée au `pubspec.yaml`, à sa place alphabétique. 32 lignes dans le `pubspec.lock`.
+
+Ne **pas** ajouter `riverpod_annotation` : sans générateur, ses annotations sont inertes (YAGNI).
+Ne **pas** ajouter `freezed_annotation` en dépendance directe : il arrive déjà transitivement par
+`map_core` et `map_runtime`, et rien ne le consomme ici.
+
+- [x] **Étape 2.3 — Prouver que le runtime fonctionne**
+
+C'est le remplaçant du `build_runner build` à vide : une sonde jetable qui vérifie ce dont les lots
+17-21 et 24 dépendent réellement — la résolution de providers et les overrides de test.
+
+```dart
+// test/tmp_riverpod_smoke_test.dart — à supprimer juste après
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('provider container resolves and honours overrides', () {
+    final greeting = Provider<String>((ref) => 'hub');
+
+    final plain = ProviderContainer();
+    addTearDown(plain.dispose);
+    expect(plain.read(greeting), 'hub');
+
+    final overridden = ProviderContainer(
+      overrides: [greeting.overrideWithValue('avelune')],
+    );
+    addTearDown(overridden.dispose);
+    expect(overridden.read(greeting), 'avelune');
+  });
+}
+```
+
+```bash
+cd apps/pokemap_hub && flutter test test/tmp_riverpod_smoke_test.dart && rm test/tmp_riverpod_smoke_test.dart
+```
+
+**Résultat** : `+1: All tests passed!`, sonde supprimée.
+
+- [x] **Étape 2.4 — Vérifier la non-régression**
+
+```bash
+cd apps/pokemap_hub && flutter analyze && flutter test
+```
+
+**Résultat** : `No issues found!` et `+361 −1` — **strictement la référence de l'étape 1.6**.
+L'unique échec reste celui de `selbrume`, documenté au lot 1.
+
+- [x] **Étape 2.5 — Committer**
+
+```bash
+git add apps/pokemap_hub/pubspec.yaml apps/pokemap_hub/pubspec.lock && git commit -m "refactor(hub): add the riverpod runtime ahead of the layer migration"
 ```
 
 ---
@@ -472,7 +496,7 @@ cd apps/pokemap_hub/lib && rm -rf src
 cd apps/pokemap_hub/lib && find . -name '*.dart' | wc -l
 ```
 
-Attendu : **107** (108 au départ, moins `avelune_navigation.dart` supprimé au lot 6).
+Attendu : **108** (109 mesurés à l'étape 1.6, moins `avelune_navigation.dart` supprimé au lot 6).
 
 - [ ] **Étape 7.4 — Committer**
 
@@ -648,8 +672,9 @@ final class HubDiagnostic {
 
 Créer `lib/features/dashboard/application/notifiers/hub_dashboard_state.dart` et y déplacer
 `HubDashboardStatus`, `HubSection`, `HubStorageSnapshot`, `HubGameActivity`, `HubGameView`,
-`HubDashboardSnapshot`. Ces classes restent en Dart brut à ce lot — leur passage en `@freezed`
-est le lot 20.
+`HubDashboardSnapshot`. Ces classes restent en Dart brut — définitivement, pas seulement à ce lot :
+la décision du lot 2 écarte freezed. Elles sont déjà immuables avec un `copyWith` manuel, ce qui est
+exactement ce que freezed aurait produit.
 
 - [ ] **Étape 9.3 — Extraire le lecteur d'activité**
 
@@ -1394,60 +1419,59 @@ disparaît au lot 19.*
 ```dart
 import 'dart:io';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pokemap_hub/core/config/avelune_host_compatibility.dart';
 import 'package:pokemap_hub/core/ports/clock_port.dart';
 import 'package:pokemap_hub/core/ports/hub_platform_port.dart';
 import 'package:pokemap_hub/core/ports/support_root_port.dart';
 import 'package:pokemap_hub/platform/hub_platform_adapter_factory.dart';
 import 'package:pokemap_hub/platform/path_provider_support_root_adapter.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'infrastructure_providers.g.dart';
-
-@Riverpod(keepAlive: true)
-SupportRootPort supportRootPort(Ref ref) =>
-    const PathProviderSupportRootAdapter();
+final supportRootPortProvider = Provider<SupportRootPort>(
+  (ref) => const PathProviderSupportRootAdapter(),
+);
 
 /// Resolved once at startup and overridden in tests with a temporary directory.
-@Riverpod(keepAlive: true)
-Future<Directory> supportRoot(Ref ref) async {
+final supportRootProvider = FutureProvider<Directory>((ref) async {
   final root = await ref.read(supportRootPortProvider).resolve();
   await root.create(recursive: true);
   return root;
-}
+});
 
-@Riverpod(keepAlive: true)
-HubPlatformAdapter hubPlatformAdapter(Ref ref) {
+final hubPlatformAdapterProvider = Provider<HubPlatformAdapter>((ref) {
   final adapter = createHubPlatformAdapter();
   ref.onDispose(adapter.dispose);
   return adapter;
-}
+});
 
-@Riverpod(keepAlive: true)
-ClockPort clock(Ref ref) => const SystemClock();
+final clockProvider = Provider<ClockPort>((ref) => const SystemClock());
 
-@Riverpod(keepAlive: true)
-GamePackageHostCompatibility hostCompatibility(Ref ref) =>
-    aveluneHostCompatibility();
+final hostCompatibilityProvider = Provider<GamePackageHostCompatibility>(
+  (ref) => aveluneHostCompatibility(),
+);
 ```
+
+> Pas de `part` ni de `@Riverpod` : décision du lot 2. Riverpod 3 garde les providers vivants par défaut
+> tant qu'ils sont observés ; l'équivalent du `keepAlive: true` de Grimaldi s'obtient en les lisant
+> depuis le `ProviderScope` racine, ce que fait `app_root.dart` au lot 19.
 
 - [ ] **Étape 17.2 — Écrire un provider par repository**
 
 Modèle, à décliner pour les 6 fichiers `*_repository_provider.dart` :
 
 ```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pokemap_hub/app/di/infrastructure_providers.dart';
 import 'package:pokemap_hub/features/library/data/repositories/game_library_repository_impl.dart';
 import 'package:pokemap_hub/features/library/domain/repositories/game_library_repository_interface.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-
-part 'library_repository_provider.g.dart';
 
 /// Infrastructure wiring for the game library (outside the application layer).
-@Riverpod(keepAlive: true)
-Future<GameLibraryRepositoryInterface> gameLibraryRepository(Ref ref) async {
-  return GameLibraryRepositoryImpl(supportRoot: await ref.watch(supportRootProvider.future));
-}
+final gameLibraryRepositoryProvider =
+    FutureProvider<GameLibraryRepositoryInterface>((ref) async {
+  return GameLibraryRepositoryImpl(
+    supportRoot: await ref.watch(supportRootProvider.future),
+  );
+});
 ```
 
 **C'est le seul endroit du code où une interface et son implémentation se rencontrent** (règle 6).
@@ -1469,18 +1493,18 @@ export 'package:pokemap_hub/app/di/save_repository_provider.dart';
 export 'package:pokemap_hub/app/di/session_repository_provider.dart';
 ```
 
-- [ ] **Étape 17.4 — Générer**
+- [ ] **Étape 17.4 — Vérifier qu'aucun générateur n'a été réintroduit**
 
 ```bash
-cd apps/pokemap_hub && dart run build_runner build --delete-conflicting-outputs
+cd apps/pokemap_hub && grep -rn "@Riverpod\|\.g\.dart" lib/app/di/ | wc -l
 ```
 
-Attendu : 7 fichiers `.g.dart` produits sous `lib/app/di/`.
+Attendu : `0` — décision du lot 2.
 
 - [ ] **Étape 17.5 — Vérifier que le barrel ne déclare rien**
 
 ```bash
-cd apps/pokemap_hub && grep -cE "^(final|@Riverpod|class )" lib/app/di/providers.dart
+cd apps/pokemap_hub && grep -cE "^(final|const|class )" lib/app/di/providers.dart
 ```
 
 Attendu : `0`.
@@ -1545,24 +1569,22 @@ final class InstallGamePackageUseCase {
 Modèle :
 
 ```dart
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pokemap_hub/app/di/providers.dart';
 import 'package:pokemap_hub/features/installation/application/use_cases/install_game_package_use_case.dart';
-import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-part 'installation_providers.g.dart';
-
-@Riverpod(keepAlive: true)
-Future<InstallGamePackageUseCase> installGamePackageUseCase(Ref ref) async {
+final installGamePackageUseCaseProvider =
+    FutureProvider<InstallGamePackageUseCase>((ref) async {
   return InstallGamePackageUseCase(
     await ref.watch(gameInstallationRepositoryProvider.future),
   );
-}
+});
 ```
 
-- [ ] **Étape 18.3 — Générer et vérifier**
+- [ ] **Étape 18.3 — Vérifier**
 
 ```bash
-cd apps/pokemap_hub && dart run build_runner build --delete-conflicting-outputs && flutter analyze && flutter test
+cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
 - [ ] **Étape 18.4 — Committer**
@@ -1632,64 +1654,59 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): replace the manual 
 
 ---
 
-## Lot 20 — `HubDashboardNotifier` et état freezed
+## Lot 20 — `HubDashboardNotifier`
 
 **Fichiers**
 - Modifier : `features/dashboard/application/notifiers/hub_dashboard_notifier.dart`
 - Modifier : `features/dashboard/application/notifiers/hub_dashboard_state.dart`
 - Créer : `features/dashboard/application/dashboard_providers.dart`
 
-**Produit** : `HubDashboardNotifier`, `hubDashboardNotifierProvider`, `HubDashboardSnapshot` en `@freezed`.
+**Produit** : `HubDashboardNotifier`, `hubDashboardNotifierProvider`.
 
-- [ ] **Étape 20.1 — Passer l'état en freezed**
+- [ ] **Étape 20.1 — Laisser l'état en Dart brut**
 
-```dart
-import 'package:freezed_annotation/freezed_annotation.dart';
+Pas de `@freezed` (décision du lot 2). `HubDashboardSnapshot` est **déjà** une classe immuable avec
+un `copyWith` manuel et des `factory` `.initial()` / `.ready(...)` — c'est exactement ce que freezed
+aurait généré. **Ne rien changer à ce fichier** au-delà du déplacement fait au lot 9.
 
-part 'hub_dashboard_state.freezed.dart';
+Vérifier simplement que l'immuabilité tient :
 
-@freezed
-class HubDashboardSnapshot with _$HubDashboardSnapshot {
-  const factory HubDashboardSnapshot({
-    required HubDashboardStatus status,
-    required GameLibrary library,
-    @Default(<HubGameView>[]) List<HubGameView> games,
-    @Default('') String query,
-    @Default(HubSection.home) HubSection section,
-    String? selectedGameId,
-    GameInstallProgress? installProgress,
-    @Default(<HubDiagnostic>[]) List<HubDiagnostic> diagnostics,
-    @Default(HubStorageSnapshot()) HubStorageSnapshot storage,
-    @Default(PlayerPreferences()) PlayerPreferences preferences,
-    String? safeErrorMessage,
-  }) = _HubDashboardSnapshot;
-}
+```bash
+cd apps/pokemap_hub && grep -nE "^\s+(final|const)" lib/features/dashboard/application/notifiers/hub_dashboard_state.dart | wc -l
 ```
 
-> Les constructeurs nommés existants `HubDashboardSnapshot.initial()` et `.ready(...)` sont **conservés**
-> comme `factory` supplémentaires : les tests et l'UI les appellent. Ne pas les supprimer.
+Attendu : tous les champs sont `final`. Un champ mutable serait à corriger ici.
 
 - [ ] **Étape 20.2 — Convertir le `ChangeNotifier` en `Notifier`**
 
 ```dart
-@Riverpod(keepAlive: true, name: 'hubDashboardNotifierProvider')
-class HubDashboardNotifier extends _$HubDashboardNotifier {
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class HubDashboardNotifier extends Notifier<HubDashboardSnapshot> {
   @override
   HubDashboardSnapshot build() {
     // ...initialisation identique au constructeur actuel
     return HubDashboardSnapshot.initial();
   }
 }
+
+final hubDashboardNotifierProvider =
+    NotifierProvider<HubDashboardNotifier, HubDashboardSnapshot>(
+  HubDashboardNotifier.new,
+);
 ```
 
 Chaque `notifyListeners()` devient une affectation de `state`. Les méthodes publiques
 (`importPackage`, `reportImportPickerFailure`, `selectGame`, `search`, `changeSection`, …) gardent
 **exactement leurs noms et signatures** : elles sont appelées depuis `presentation/shell/` et testées.
 
-- [ ] **Étape 20.3 — Générer et vérifier**
+Les dépendances lues dans le constructeur actuel (`libraryStore`, `preferencesStore`, `importer`, …)
+se lisent désormais via `ref.read(...)` dans `build()`, sur les providers du lot 17.
+
+- [ ] **Étape 20.3 — Vérifier**
 
 ```bash
-cd apps/pokemap_hub && dart run build_runner build --delete-conflicting-outputs && flutter analyze && flutter test
+cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
 - [ ] **Étape 20.4 — Committer**
@@ -1721,10 +1738,10 @@ Même méthode qu'à l'étape 20.2. `initialize()` devient le corps de `build()`
 Il vit en `presentation/features/home/state/` : il reste où il est, mais devient un `Notifier`
 consommant `aveluneAppearanceNotifierProvider` et `hubDashboardNotifierProvider`.
 
-- [ ] **Étape 21.3 — Générer et vérifier**
+- [ ] **Étape 21.3 — Vérifier**
 
 ```bash
-cd apps/pokemap_hub && dart run build_runner build --delete-conflicting-outputs && flutter analyze && flutter test
+cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
 - [ ] **Étape 21.4 — Vérifier qu'il ne reste que les 2 ChangeNotifier d'animation**
@@ -2067,13 +2084,14 @@ cd apps/pokemap_hub && flutter analyze && flutter test
 Attendu : 0 erreur, et **le même nombre de tests passants qu'à l'étape 1.6** — pas moins.
 Un test disparu est une régression de couverture, pas une simplification.
 
-- [ ] **Étape 25.2 — Génération propre depuis zéro**
+- [ ] **Étape 25.2 — Vérifier qu'aucun code généré ne s'est glissé dans l'arbre**
 
 ```bash
-cd apps/pokemap_hub && dart run build_runner build --delete-conflicting-outputs
+cd apps/pokemap_hub && find lib -name '*.g.dart' -o -name '*.freezed.dart' | wc -l
 ```
 
-Attendu : succès, et `git status --short` vide après coup — le code généré committé est à jour.
+Attendu : `0`. Le chantier n'utilise aucun générateur (décision du lot 2) ; un fichier généré signalerait
+qu'une chaîne de codegen a été réintroduite en cours de route sans passer par le journal des décisions.
 
 - [ ] **Étape 25.3 — Vérifier les 8 règles**
 
@@ -2123,6 +2141,8 @@ Attendu : working tree propre, 25 commits `refactor(hub):` / `test(hub):` lisibl
 
 | Lot | Décision | Motif |
 |---|---|---|
+| 2 | Riverpod en runtime seul, providers écrits à la main, états en Dart brut | Aucune chaîne de codegen n'est installable : `map_core` épingle `freezed_annotation ^2.4.1` (hors périmètre) tandis que Dart 3.13 impose `analyzer >=13`. Vérifié par 4 échecs du solveur `pub` |
+| 2 | `riverpod_annotation` et `freezed_annotation` non ajoutés en dépendances directes | Le premier est inerte sans générateur ; le second arrive déjà transitivement par `map_core` et n'est consommé par rien ici |
 | 12-13 | 11 widgets et `_PlayerLaunchFailure` passent de privés à publics | Le privé Dart est à portée de bibliothèque : un symbole privé ne peut pas traverser un fichier. `part`/`part of` est écarté car il masquerait la découpe aux garde-fous du lot 23 |
 | 15 | `dart:io` autorisé dans `game_installation_repository_interface.dart` | `File` est le type d'entrée réel d'une installation locale ; l'abstraire changerait le comportement, ce que la contrainte globale interdit |
 | 21 | `avelune_exchange_controller` et `avelune_insertion_controller` restent des `ChangeNotifier` | Animation pure, sans dépendance métier, confinée à un seul widget |
