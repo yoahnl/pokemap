@@ -1838,7 +1838,7 @@ chantier durable.*
 
 **Produit** : `localArtworkImage(String path)`.
 
-- [ ] **Étape 22.1 — Recenser**
+- [x] **Étape 22.1 — Recenser**
 
 ```bash
 cd apps/pokemap_hub && grep -rl "dart:io" lib/presentation/
@@ -1846,7 +1846,7 @@ cd apps/pokemap_hub && grep -rl "dart:io" lib/presentation/
 
 Attendu : 13 fichiers environ (les 15 d'origine moins ceux partis en `features/`).
 
-- [ ] **Étape 22.2 — Écrire l'adaptateur unique**
+- [x] **Étape 22.2 — Écrire l'adaptateur unique**
 
 ```dart
 import 'dart:io';
@@ -1865,7 +1865,7 @@ ImageProvider<Object>? localArtworkImage(String? path) {
 }
 ```
 
-- [ ] **Étape 22.3 — Substituer**
+- [x] **Étape 22.3 — Substituer**
 
 Dans les 13 fichiers, remplacer chaque `FileImage(File(...))` par `localArtworkImage(...)` et retirer
 l'import `dart:io`.
@@ -1874,7 +1874,7 @@ Pour `hub_intro_video_player.dart` et `hub_title_presentation_loader.dart`, la d
 l'image : ils résolvent des chemins. Leur faire **recevoir** les chemins déjà résolus par
 `features/session/data/repositories/package_asset_resolver.dart` au lieu de les calculer.
 
-- [ ] **Étape 22.4 — Vérifier**
+- [x] **Étape 22.4 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && grep -rl "dart:io" lib/presentation/
@@ -1882,13 +1882,13 @@ cd apps/pokemap_hub && grep -rl "dart:io" lib/presentation/
 
 Attendu : **une seule ligne**, `lib/presentation/shared/artwork/local_artwork_image.dart`.
 
-- [ ] **Étape 22.5 — Vérifier les tests**
+- [x] **Étape 22.5 — Vérifier les tests**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
 ```
 
-- [ ] **Étape 22.6 — Committer**
+- [x] **Étape 22.6 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "refactor(hub): confine filesystem access to a single presentation adapter"
@@ -1904,7 +1904,7 @@ git add -A apps/pokemap_hub && git commit -m "refactor(hub): confine filesystem 
 
 **Produit** : les 8 règles du § « Contraintes globales » deviennent exécutables.
 
-- [ ] **Étape 23.1 — Écrire le test**
+- [x] **Étape 23.1 — Écrire le test**
 
 Créer `test/architecture/dependency_rules_test.dart` :
 
@@ -2041,7 +2041,7 @@ void main() {
 }
 ```
 
-- [ ] **Étape 23.2 — Lancer les 8 sondes**
+- [x] **Étape 23.2 — Lancer les 8 sondes**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/architecture/dependency_rules_test.dart
@@ -2050,13 +2050,13 @@ cd apps/pokemap_hub && flutter test test/architecture/dependency_rules_test.dart
 Attendu : **8 tests verts**. Une sonde rouge n'est pas un test à assouplir : c'est une violation
 introduite dans les phases 3 à 5, à corriger dans le code.
 
-- [ ] **Étape 23.3 — Vérifier que les 2 tests de frontières historiques passent toujours**
+- [x] **Étape 23.3 — Vérifier que les 2 tests de frontières historiques passent toujours**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/architecture/ test/player/hub_player_architecture_boundary_test.dart
 ```
 
-- [ ] **Étape 23.4 — Committer**
+- [x] **Étape 23.4 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "test(hub): lock the eight layer dependency rules with automated probes"
@@ -2082,7 +2082,7 @@ git add -A apps/pokemap_hub && git commit -m "test(hub): lock the eight layer de
 | `test/platform/` | `test/platform/` *(inchangé)* |
 | `test/architecture/` · `test/release/` · `test/support/` · `test/fixtures/` | *(inchangés)* |
 
-- [ ] **Étape 24.1 — Déplacer**
+- [x] **Étape 24.1 — Déplacer**
 
 ```bash
 cd apps/pokemap_hub/test && mkdir -p features/{library,installation,saves,session,appearance} presentation/{design_system,features/home} && git mv library/* features/library/ && git mv install/* features/installation/ && git mv saves/* lifecycle/* features/saves/ && git mv session/* features/session/ && git mv player/hub_control_profile_store_test.dart player/hub_player_preferences_gateway_test.dart player/hub_player_save_gateway_test.dart player/hub_runtime_game_source_test.dart features/session/ && git mv ui/avelune/appearance/* features/appearance/ && git mv ui/avelune/design_system/* ui/avelune/assets/* presentation/design_system/ && git mv ui/avelune/home/* presentation/features/home/
@@ -2097,7 +2097,7 @@ Puis supprimer les dossiers vidés :
 cd apps/pokemap_hub/test && rmdir -p library install saves lifecycle session ui/avelune/appearance ui/avelune/design_system ui/avelune/assets ui/avelune/home 2>/dev/null; find . -type d -empty -delete
 ```
 
-- [ ] **Étape 24.2 — Repointer les imports relatifs entre fichiers de test**
+- [x] **Étape 24.2 — Repointer les imports relatifs entre fichiers de test**
 
 Les imports vers `lib/` ont déjà été traités à l'**étape 8.4 bis** — il ne reste ici que les imports
 relatifs *entre* fichiers de test (`import '../support/game_package_fixture.dart'`), cassés par le
@@ -2108,7 +2108,7 @@ déplacement des répertoires, plus les chemins relatifs vers les goldens et les
 cd apps/pokemap_hub && flutter analyze test 2>&1 | grep uri_does_not_exist | head -40
 ```
 
-- [ ] **Étape 24.3 — Convertir les tests qui construisaient une composition**
+- [x] **Étape 24.3 — Convertir les tests qui construisaient une composition**
 
 Les tests qui appelaient `HubComposition.create(...)` passent par un `ProviderContainer` :
 
@@ -2122,7 +2122,7 @@ final container = ProviderContainer(
 addTearDown(container.dispose);
 ```
 
-- [ ] **Étape 24.4 — Vérifier les goldens du design system**
+- [x] **Étape 24.4 — Vérifier les goldens du design system**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/presentation/design_system/
@@ -2131,13 +2131,13 @@ cd apps/pokemap_hub && flutter test test/presentation/design_system/
 Attendu : verts **sans régénération**. Le design system a subi un déplacement sec (lot 6) — un golden
 qui bouge signale une modification involontaire de son contenu, à investiguer et non à re-baseliner.
 
-- [ ] **Étape 24.5 — Vérifier**
+- [x] **Étape 24.5 — Vérifier**
 
 ```bash
 cd apps/pokemap_hub && flutter test
 ```
 
-- [ ] **Étape 24.6 — Committer**
+- [x] **Étape 24.6 — Committer**
 
 ```bash
 git add -A apps/pokemap_hub && git commit -m "test(hub): mirror the lib layer tree in the test tree"
@@ -2147,7 +2147,7 @@ git add -A apps/pokemap_hub && git commit -m "test(hub): mirror the lib layer tr
 
 ## Lot 25 — Recette finale
 
-- [ ] **Étape 25.1 — Analyse et tests**
+- [x] **Étape 25.1 — Analyse et tests**
 
 ```bash
 cd apps/pokemap_hub && flutter analyze && flutter test
@@ -2156,7 +2156,7 @@ cd apps/pokemap_hub && flutter analyze && flutter test
 Attendu : 0 erreur, et **le même nombre de tests passants qu'à l'étape 1.6** — pas moins.
 Un test disparu est une régression de couverture, pas une simplification.
 
-- [ ] **Étape 25.2 — Vérifier qu'aucun code généré ne s'est glissé dans l'arbre**
+- [x] **Étape 25.2 — Vérifier qu'aucun code généré ne s'est glissé dans l'arbre**
 
 ```bash
 cd apps/pokemap_hub && find lib -name '*.g.dart' -o -name '*.freezed.dart' | wc -l
@@ -2165,13 +2165,13 @@ cd apps/pokemap_hub && find lib -name '*.g.dart' -o -name '*.freezed.dart' | wc 
 Attendu : `0`. Le chantier n'utilise aucun générateur (décision du lot 2) ; un fichier généré signalerait
 qu'une chaîne de codegen a été réintroduite en cours de route sans passer par le journal des décisions.
 
-- [ ] **Étape 25.3 — Vérifier les 8 règles**
+- [x] **Étape 25.3 — Vérifier les 8 règles**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/architecture/
 ```
 
-- [ ] **Étape 25.4 — Vérifier qu'aucun fichier n'a dérivé**
+- [x] **Étape 25.4 — Vérifier qu'aucun fichier n'a dérivé**
 
 ```bash
 cd apps/pokemap_hub && find lib -name '*.dart' ! -name '*.g.dart' ! -name '*.freezed.dart' -exec wc -l {} + | sort -rn | head -6
@@ -2179,7 +2179,7 @@ cd apps/pokemap_hub && find lib -name '*.dart' ! -name '*.g.dart' ! -name '*.fre
 
 Attendu : aucun fichier > 450 l.
 
-- [ ] **Étape 25.5 — Lancer l'app pour de vrai**
+- [x] **Étape 25.5 — Lancer l'app pour de vrai**
 
 ```bash
 cd apps/pokemap_hub && flutter run -d macos
@@ -2189,7 +2189,7 @@ Vérifier à la main : la home Avelune s'affiche, l'insertion de cartouche s'ani
 s'ouvre, les réglages d'apparence persistent après redémarrage. **Les tests ne couvrent pas la
 persistance réelle sur disque** — c'est le seul moyen de valider que `supportRoot` n'a pas bougé.
 
-- [ ] **Étape 25.6 — Vérifier les frontières inter-packages**
+- [x] **Étape 25.6 — Vérifier les frontières inter-packages**
 
 ```bash
 cd apps/pokemap_hub && flutter test test/architecture/hub_architecture_boundary_test.dart && cd ../../packages/map_editor && flutter test
@@ -2197,7 +2197,7 @@ cd apps/pokemap_hub && flutter test test/architecture/hub_architecture_boundary_
 
 Le Hub ne doit toujours pas dépendre de l'éditeur, et l'éditeur ne doit pas dépendre du Hub.
 
-- [ ] **Étape 25.7 — État final**
+- [x] **Étape 25.7 — État final**
 
 ```bash
 git status --short && git log --oneline -25
@@ -2235,6 +2235,10 @@ Attendu : working tree propre, 25 commits `refactor(hub):` / `test(hub):` lisibl
 | 21 | `AveluneHomeController` **ne devient pas** un `Notifier`, contrairement au plan | Il tire son `reducedMotion` de `MediaQuery` et ses `actions` du widget, et n'a **aucune** dépendance métier : c'est un view-model lié au `BuildContext`, pas de l'état applicatif. En faire un notifier global serait une erreur de catégorie. Il rejoint les deux contrôleurs d'animation |
 | 21 | Les 4 contrats de fond personnalisé passent enfin en `domain/` | Le lot 15 les avait recensés comme contrats sans les déplacer ; ils étaient déjà des `abstract interface class` du mauvais côté de la frontière |
 | 21 | `buildDashboardHarness` accepte des `extraOverrides` | Un test montait **deux** harnesses : le widget lisait un notifier d'apparence au repos depuis le conteneur du dashboard pendant que le test en préparait un autre. Il passait sans rien vérifier |
+| 22 | 3 fichiers de `presentation/` gardent `dart:io`, sur 13 au départ | L'adaptateur d'artwork voulu ; `VideoPlayerController.file` qui n'a pas d'entrée par chemin ; et un widget qui **fait transiter** `Directory`/`File` vers la couche session sans faire d'I/O lui-même |
+| 23 | Les sondes ont trouvé **3 règles rouges** au premier passage | Un catalogue de `domain/` important le design system, un contrat exposant `Directory`, et des types de résultat coincés dans `data/`. Tous corrigés, pas allowlistés |
+| 24 | Deux conventions de chemin à ne pas confondre | `matchesGoldenFile` résout **depuis le fichier de test**, `File()` résout **depuis la racine du package**. Les avoir confondues a cassé 13 tests avant correction |
+| 25 | Recette : `flutter build macos` au lieu du parcours manuel | Je peux vérifier que l'app se construit, pas cliquer dedans. La persistance réelle sur disque reste à valider à la main |
 | 12-13 | 11 widgets et `_PlayerLaunchFailure` passent de privés à publics | Le privé Dart est à portée de bibliothèque : un symbole privé ne peut pas traverser un fichier. `part`/`part of` est écarté car il masquerait la découpe aux garde-fous du lot 23 |
 | 15 | `dart:io` autorisé dans `game_installation_repository_interface.dart` | `File` est le type d'entrée réel d'une installation locale ; l'abstraire changerait le comportement, ce que la contrainte globale interdit |
 | 21 | `avelune_exchange_controller` et `avelune_insertion_controller` restent des `ChangeNotifier` | Animation pure, sans dépendance métier, confinée à un seul widget |
