@@ -17,7 +17,6 @@ import 'package:pokemap_hub/features/session/application/services/hub_runtime_ga
 import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
 import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_in_process_session_factory.dart';
-import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
 import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_intro_video_player.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
@@ -27,6 +26,7 @@ import 'package:pokemap_hub/presentation/features/player/state/hub_title_present
 import 'package:pokemap_hub/presentation/features/player/state/player_launch_failure.dart';
 import 'package:pokemap_hub/presentation/features/player/state/player_typography_loader.dart';
 import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
+import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 
 typedef HubPlayerReturnRequest = Future<void> Function();
 
@@ -48,7 +48,7 @@ class HubInstalledGamePlayer extends StatefulWidget {
   });
 
   final Directory supportRoot;
-  final InstalledGameLaunchResolver launchResolver;
+  final SessionLaunchRepositoryInterface launchResolver;
   final InstalledGame game;
   final HubPlayerReturnRequest onHubRequested;
   final HubPlayerLaunchIntent initialLaunchIntent;

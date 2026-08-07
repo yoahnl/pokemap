@@ -3,26 +3,39 @@ import 'dart:io';
 import 'package:pokemap_hub/core/diagnostics/hub_diagnostic.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
-import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
-import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
+import 'package:map_core/map_core.dart';
+import 'package:pokemap_hub/features/saves/domain/repositories/save_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
+import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
+
+/// Builds the save repository scoped to one installed game.
+///
+/// A factory rather than a repository, because the save store is per-game: its
+/// identity is only known once the launch context resolves. Injected so this
+/// application service never names an implementation (rule 3).
+typedef SaveRepositoryFactory = SaveRepositoryInterface Function(
+  Directory supportRoot,
+  GameIdentity identity,
+);
 
 /// Reads save activity and branding only after the installed release verifies.
 final class InstalledHubGameActivityReader {
   const InstalledHubGameActivityReader({
     required this.supportRoot,
     required this.launchResolver,
+    required this.saveRepositoryFactory,
   });
 
   final Directory supportRoot;
-  final InstalledGameLaunchResolver launchResolver;
+  final SessionLaunchRepositoryInterface launchResolver;
+  final SaveRepositoryFactory saveRepositoryFactory;
 
   Future<HubGameActivity> call(InstalledGame game) async {
     try {
       final launch = await launchResolver.resolve(game);
-      final save = await HubSaveStore(
-        supportRoot: supportRoot,
-        identity: launch.identity,
+      final save = await saveRepositoryFactory(
+        supportRoot,
+        launch.identity,
       ).findContinue();
       Future<String?> resolve(String? path) async {
         if (path == null) return null;

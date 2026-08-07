@@ -7,6 +7,9 @@ import 'package:pokemap_hub/features/saves/domain/entities/save_slot_metadata.da
 
 /// Durable, crash-safe save storage scoped to a single installed game.
 abstract interface class SaveRepositoryInterface {
+  /// Game this store is scoped to. Every address is validated against it.
+  GameIdentity get identity;
+
   Future<void> write(SaveEnvelope envelope);
 
   Future<SaveEnvelope> writeVerified(SaveEnvelope envelope);

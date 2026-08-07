@@ -1,7 +1,7 @@
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
+import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
 
 /// Projects global Hub preferences into the runtime's data-only contract.
 final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
@@ -19,7 +19,7 @@ final class HubPlayerPreferencesGateway implements PlayerPreferencesGateway {
     }
   }
 
-  final HubPreferencesStore store;
+  final PlayerPreferencesRepositoryInterface store;
   final String fallbackLocale;
   final RuntimeAudioMixer? audioMixer;
 

@@ -37,6 +37,7 @@ final class HubSaveStore
   });
 
   final Directory supportRoot;
+  @override
   final GameIdentity identity;
   final SaveEnvelopeCodec codec;
   final SaveCompatibilityEvaluator compatibilityEvaluator;

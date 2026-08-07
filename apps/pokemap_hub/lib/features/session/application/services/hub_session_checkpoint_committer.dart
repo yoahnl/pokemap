@@ -1,7 +1,7 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
+import 'package:pokemap_hub/features/saves/domain/repositories/save_repository_interface.dart';
 
 enum HubSessionCheckpointErrorCode {
   identityMismatch,
@@ -35,7 +35,7 @@ final class HubSessionCheckpointCommitter {
     this.codec = const SaveEnvelopeCodec(),
   });
 
-  final HubSaveStore store;
+  final SaveRepositoryInterface store;
   final SaveEnvelopeCodec codec;
 
   Future<void> commit(GameSessionCheckpointCommit request) async {

@@ -85,6 +85,11 @@ final class HubComposition implements HubAppComposition {
         activityReader: InstalledHubGameActivityReader(
           supportRoot: root,
           launchResolver: launchResolver,
+          // The only place an interface meets its implementation (rule 6).
+          saveRepositoryFactory: (supportRoot, identity) => HubSaveStore(
+            supportRoot: supportRoot,
+            identity: identity,
+          ),
         ).call,
         importer: (package, cancellation, progress) async {
           await installer.install(

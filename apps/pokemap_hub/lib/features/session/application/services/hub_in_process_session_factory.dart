@@ -1,9 +1,9 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
 import 'package:pokemap_hub/features/session/domain/entities/save_read_handle.dart';
 import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
+import 'package:pokemap_hub/features/saves/domain/repositories/save_repository_interface.dart';
 
 /// Composition bridge from verified Hub handles to the production Flame graph.
 ///
@@ -21,7 +21,7 @@ final class HubInProcessSessionFactory {
   });
 
   final InstalledGameLaunchContext launch;
-  final HubSaveStore saves;
+  final SaveRepositoryInterface saves;
   final PlayableMapGameMount mountGame;
   final PlayableMapGameUnmount unmountGame;
   final RuntimeAudioMixer? audioMixer;

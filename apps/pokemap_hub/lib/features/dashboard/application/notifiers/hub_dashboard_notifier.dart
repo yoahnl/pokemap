@@ -10,8 +10,8 @@ import 'package:pokemap_hub/features/dashboard/application/services/hub_diagnost
 import 'package:pokemap_hub/features/dashboard/application/services/hub_directory_storage_reader.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/editor_export_install_inbox.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
-import 'package:pokemap_hub/features/library/data/repositories/game_library_repository_impl.dart';
-import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
+import 'package:pokemap_hub/features/library/domain/repositories/game_library_repository_interface.dart';
+import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
 
 final class HubDashboardController extends ChangeNotifier {
   HubDashboardController({
@@ -24,11 +24,11 @@ final class HubDashboardController extends ChangeNotifier {
     this.diagnosticLogFile,
   });
 
-  final GameLibraryStore libraryStore;
+  final GameLibraryRepositoryInterface libraryStore;
   final HubGameActivityReader activityReader;
   final HubPackageImporter? importer;
   final HubEditorExportConsumer? editorExportConsumer;
-  final HubPreferencesStore? preferencesStore;
+  final PlayerPreferencesRepositoryInterface? preferencesStore;
   final HubStorageReader? storageReader;
   final File? diagnosticLogFile;
 

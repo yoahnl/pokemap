@@ -1,9 +1,9 @@
 import 'package:map_core/map_core.dart';
 
-import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
 import 'package:pokemap_hub/features/saves/domain/entities/save_profile.dart';
 import 'package:pokemap_hub/features/saves/domain/entities/save_slot_metadata.dart';
 import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
+import 'package:pokemap_hub/features/saves/domain/repositories/save_repository_interface.dart';
 
 final class HubManagedSaveSlot {
   const HubManagedSaveSlot({
@@ -67,7 +67,7 @@ final class HubSaveProfileManager implements HubSaveProfilesController {
     DateTime Function()? now,
   }) : _now = now ?? DateTime.now;
 
-  final HubSaveStore store;
+  final SaveRepositoryInterface store;
   final DateTime Function() _now;
 
   @override

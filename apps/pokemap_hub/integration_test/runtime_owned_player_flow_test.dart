@@ -71,6 +71,10 @@ void main() {
         activityReader: InstalledHubGameActivityReader(
           supportRoot: supportRoot,
           launchResolver: launchResolver,
+          saveRepositoryFactory: (supportRoot, identity) => HubSaveStore(
+            supportRoot: supportRoot,
+            identity: identity,
+          ),
         ).call,
         preferencesStore: preferencesStore,
       );

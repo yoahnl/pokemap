@@ -2,9 +2,9 @@ import 'package:flutter/foundation.dart';
 
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
-import 'package:pokemap_hub/features/appearance/data/repositories/avelune_appearance_repository_impl.dart';
 import 'package:pokemap_hub/features/appearance/data/repositories/custom_background_repository_impl.dart';
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_read.dart';
+import 'package:pokemap_hub/features/appearance/domain/repositories/avelune_appearance_repository_interface.dart';
 
 enum AveluneAppearanceControllerStatus { idle, loading, ready, saving, error }
 
@@ -39,7 +39,7 @@ final class AveluneAppearanceController extends ChangeNotifier {
     required this.customBackground,
   });
 
-  final AveluneAppearanceStore store;
+  final AveluneAppearanceRepositoryInterface store;
   final AveluneCustomBackgroundGateway customBackground;
   AveluneAppearanceState _state = const AveluneAppearanceState.idle();
 
