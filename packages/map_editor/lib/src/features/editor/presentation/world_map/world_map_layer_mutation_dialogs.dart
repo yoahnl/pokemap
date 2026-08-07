@@ -17,6 +17,11 @@ typedef WorldMapLayerDeleteRequested = Future<bool> Function({
   required MapLayerDeletionImpact impact,
 });
 
+typedef WorldMapLayerDeleter = void Function(
+  String layerId, {
+  bool confirmBulkPlacementLoss,
+});
+
 Future<bool> runWorldMapLayerRenameFlow({
   required BuildContext context,
   required String layerId,
@@ -54,7 +59,7 @@ Future<bool> runWorldMapLayerDeleteFlow({
   required String layerId,
   required MapData? Function() readActiveMap,
   required WorldMapLayerDeleteRequested onDeleteRequested,
-  required void Function(String layerId) deleteLayer,
+  required WorldMapLayerDeleter deleteLayer,
 }) async {
   final map = readActiveMap();
   if (map == null) return false;
@@ -87,7 +92,10 @@ Future<bool> runWorldMapLayerDeleteFlow({
       )) {
     return false;
   }
-  deleteLayer(layerId);
+  // The author just accepted this layer's deletion impact, placements
+  // included, so the save-time bulk placement loss guard has its explicit
+  // confirmation and must not block the save that follows.
+  deleteLayer(layerId, confirmBulkPlacementLoss: true);
   return true;
 }
 

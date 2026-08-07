@@ -1,9 +1,13 @@
 // Enforces the repository file-length rule with a ratchet.
 //
-// New code must stay under [_limit] lines. Files that already exceeded it are
-// frozen in `tools/file_length_baseline.txt` at their current size: they are
-// tolerated, but they may never grow. Once a listed file drops back under the
-// limit it is dropped from the baseline and can never regress again.
+// New code must stay under [_limit] lines: a file crossing it for the first
+// time is a hard failure.
+//
+// Files that already exceeded it are listed in
+// `tools/file_length_baseline.txt`. Growth there is reported, not blocked — a
+// ten-line bug fix in a 14 000-line file must not require refactoring it
+// first, or the rule gets bypassed with --no-verify and stops meaning
+// anything. Shrinking below the limit removes a file from the list for good.
 //
 //   dart tools/check_file_length.dart                  # verify (CI, hooks)
 //   dart tools/check_file_length.dart --update-baseline # after a split
@@ -59,7 +63,7 @@ void _writeBaseline(Map<String, int> entries) {
   final sorted = entries.keys.toList()..sort();
   final buffer = StringBuffer()
     ..writeln('# Files that exceeded $_limit lines when the rule landed.')
-    ..writeln('# They are tolerated at this exact size and may never grow.')
+    ..writeln('# Growth is reported, not blocked; shrinking removes a file for good.')
     ..writeln('# Shrink one below $_limit and remove its line: the list only')
     ..writeln('# ever gets shorter. Regenerate with:')
     ..writeln('#   dart tools/check_file_length.dart --update-baseline')
@@ -113,7 +117,16 @@ void main(List<String> args) {
   }
   final fixed = baseline.keys.where((path) => !oversized.containsKey(path));
 
-  if (introduced.isEmpty && grown.isEmpty) {
+  if (grown.isNotEmpty) {
+    stdout.writeln('Baseline file(s) grew — refresh the list with '
+        '--update-baseline so the trend stays visible:');
+    for (final entry in grown.entries) {
+      stdout.writeln('  ${entry.key}: ${entry.value.allowed} -> '
+          '${entry.value.now} lines');
+    }
+    stdout.writeln();
+  }
+  if (introduced.isEmpty) {
     stdout.writeln('File length OK — no file over $_limit lines outside the '
         'baseline (${baseline.length} tolerated).');
     if (fixed.isNotEmpty) {
@@ -127,21 +140,11 @@ void main(List<String> args) {
   }
 
   stderr.writeln('File length rule violated (limit: $_limit lines).\n');
-  if (introduced.isNotEmpty) {
-    stderr.writeln('New file(s) over the limit — split them:');
-    for (final entry in introduced.entries) {
-      stderr.writeln('  ${entry.value} lines  ${entry.key}');
-    }
-    stderr.writeln();
+  stderr.writeln('New file(s) over the limit — split them:');
+  for (final entry in introduced.entries) {
+    stderr.writeln('  ${entry.value} lines  ${entry.key}');
   }
-  if (grown.isNotEmpty) {
-    stderr.writeln('Baseline file(s) that grew — they may only shrink:');
-    for (final entry in grown.entries) {
-      stderr.writeln('  ${entry.key}: ${entry.value.allowed} -> '
-          '${entry.value.now} lines');
-    }
-    stderr.writeln();
-  }
+  stderr.writeln();
   stderr.writeln('Split the offending file, or move the code you added into a '
       'new one. The baseline is not a place to register new debt.');
   exitCode = 1;

@@ -653,7 +653,7 @@ class _LayerList extends StatelessWidget {
       PokeMapIconButton(
         key: ValueKey('delete-layer-${layer.id}'),
         onPressed: canDeleteLayer
-            ? () => _showDeleteLayerDialog(context, notifier, layer)
+            ? () => _showDeleteLayerDialog(context, notifier, row)
             : null,
         icon: const Icon(CupertinoIcons.trash),
         tooltip: canDeleteLayer
@@ -790,16 +790,23 @@ class _LayerList extends StatelessWidget {
   Future<void> _showDeleteLayerDialog(
     BuildContext context,
     EditorNotifier notifier,
-    MapLayer layer,
+    LayerPanelPresentationRow row,
   ) async {
+    final layer = row.layer;
+    final hostedPlacementCount = row.deletionImpact.placedElementCount;
     final shouldDelete = await showMacosEditorTwoChoiceAlert(
       context,
       title: 'Supprimer le calque',
-      message: 'Supprimer le calque « ${layer.name} » ?',
+      message: hostedPlacementCount == 0
+          ? 'Supprimer le calque « ${layer.name} » ?'
+          : 'Supprimer le calque « ${layer.name} » et ses '
+              '$hostedPlacementCount élément(s) placé(s) ?',
       primaryLabel: 'Supprimer',
       primaryIsDestructive: true,
     );
     if (!shouldDelete) return;
-    notifier.deleteMapLayer(layer.id);
+    // The alert states the placement loss, so this stands as the explicit
+    // confirmation the save-time bulk placement loss guard asks for.
+    notifier.deleteMapLayer(layer.id, confirmBulkPlacementLoss: true);
   }
 }
