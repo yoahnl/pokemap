@@ -5,31 +5,8 @@ import 'dart:math';
 import 'package:path/path.dart' as p;
 
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
-
-enum AveluneAppearanceSource { current, backup, defaults }
-
-final class AveluneAppearanceRead {
-  const AveluneAppearanceRead({
-    required this.preferences,
-    required this.source,
-    required this.currentCorrupt,
-    required this.backupCorrupt,
-  });
-
-  final AveluneAppearancePreferences preferences;
-  final AveluneAppearanceSource source;
-  final bool currentCorrupt;
-  final bool backupCorrupt;
-}
-
-final class AveluneAppearanceStorageException implements Exception {
-  const AveluneAppearanceStorageException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'AveluneAppearanceStorageException: $message';
-}
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_read.dart';
+import 'package:pokemap_hub/features/appearance/domain/repositories/avelune_appearance_repository_interface.dart';
 
 typedef AveluneAppearanceDocumentWriter = Future<void> Function(
   File file,
@@ -40,7 +17,8 @@ typedef AveluneAppearanceDocumentWriter = Future<void> Function(
 ///
 /// Custom image bytes use a separate fixed-file storage; absolute picker paths
 /// can therefore never leak into this JSON document.
-final class AveluneAppearanceStore {
+final class AveluneAppearanceStore
+    implements AveluneAppearanceRepositoryInterface {
   AveluneAppearanceStore({
     required this.supportRoot,
     AveluneAppearanceDocumentWriter? writeDocument,
@@ -68,6 +46,7 @@ final class AveluneAppearanceStore {
         p.join(appearanceRoot.path, 'custom-background.thumbnail.jpg'),
       );
 
+  @override
   Future<AveluneAppearanceRead> load() async {
     if (!await _assertSafeDirectories(create: false)) {
       return const AveluneAppearanceRead(
@@ -113,6 +92,7 @@ final class AveluneAppearanceStore {
     );
   }
 
+  @override
   Future<void> save(AveluneAppearancePreferences preferences) async {
     await _assertSafeDirectories(create: true);
     await _assertSafeFile(preferencesFile);

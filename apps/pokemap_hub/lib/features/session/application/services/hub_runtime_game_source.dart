@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
 
-import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
+import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 
 typedef HubOpaqueIdFactory = String Function();
 

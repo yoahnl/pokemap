@@ -4,6 +4,7 @@ import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearan
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
 import 'package:pokemap_hub/features/appearance/data/repositories/avelune_appearance_repository_impl.dart';
 import 'package:pokemap_hub/features/appearance/data/repositories/custom_background_repository_impl.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_read.dart';
 
 enum AveluneAppearanceControllerStatus { idle, loading, ready, saving, error }
 

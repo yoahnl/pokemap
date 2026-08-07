@@ -5,6 +5,7 @@ import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboa
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/hub_save_repository_impl.dart';
 import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
+import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 
 /// Reads save activity and branding only after the installed release verifies.
 final class InstalledHubGameActivityReader {

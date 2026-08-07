@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_hub/features/session/domain/repositories/package_asset_port.dart';
 
 enum PackageAssetResolutionCode {
   unsafeRoot,
@@ -25,9 +26,10 @@ final class PackageAssetResolutionException implements Exception {
 }
 
 /// Opaque package-relative reference safe to retain in player snapshots.
-final class PackageAssetReference {
+final class PackageAssetReference implements PackageAssetReferencePort {
   const PackageAssetReference._(this.packagePath);
 
+  @override
   final String packagePath;
 
   @override
@@ -42,7 +44,7 @@ final class PackageAssetReference {
 ///
 /// Installation already validates hashes and collisions. Launch repeats the
 /// path and symlink checks because local tampering may happen after install.
-final class PackageAssetResolver {
+final class PackageAssetResolver implements PackageAssetPort {
   PackageAssetResolver._({
     required Directory versionRoot,
     required String canonicalRoot,
@@ -87,6 +89,7 @@ final class PackageAssetResolver {
     );
   }
 
+  @override
   PackageAssetReference reference(String packagePath) {
     final normalized = _validatePackagePath(packagePath);
     if (!_inventoriedPaths.contains(normalized)) {
@@ -98,10 +101,12 @@ final class PackageAssetResolver {
     return PackageAssetReference._(normalized);
   }
 
+  @override
   Future<File> resolveFile(String packagePath) =>
       resolveReference(reference(packagePath));
 
-  Future<File> resolveReference(PackageAssetReference reference) async {
+  @override
+  Future<File> resolveReference(PackageAssetReferencePort reference) async {
     final segments = reference.packagePath.split('/');
     var current = _versionRoot.path;
     for (var index = 0; index < segments.length; index++) {

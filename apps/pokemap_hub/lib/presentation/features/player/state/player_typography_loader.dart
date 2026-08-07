@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
-import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
 import 'package:pokemap_hub/presentation/features/player/state/hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 
 /// Resolves the runtime typography and new-game identity a launched title
 /// declares. Pulled out of the player page: it is I/O and manifest reading,

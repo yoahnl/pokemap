@@ -11,6 +11,7 @@ import 'package:pokemap_hub/features/installation/domain/entities/game_installat
 import 'package:pokemap_hub/core/ports/game_installation_ports.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/game_package_installer.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/installed_game_verifier.dart';
+import 'package:pokemap_hub/features/installation/domain/entities/game_installation_result.dart';
 
 final class GameMaintenanceService {
   GameMaintenanceService({

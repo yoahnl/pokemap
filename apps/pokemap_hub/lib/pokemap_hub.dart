@@ -2,6 +2,7 @@
 library;
 
 export 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
+export 'package:pokemap_hub/features/library/domain/entities/game_library_read.dart';
 export 'package:pokemap_hub/features/library/data/codecs/game_library_codec.dart';
 export 'package:pokemap_hub/features/library/data/repositories/game_library_repository_impl.dart';
 export 'package:pokemap_hub/features/installation/data/sources/file_package_source.dart';
@@ -18,3 +19,6 @@ export 'package:pokemap_hub/features/saves/data/repositories/legacy_global_save_
 export 'package:pokemap_hub/features/saves/domain/entities/save_profile.dart';
 export 'package:pokemap_hub/features/saves/domain/entities/save_slot_metadata.dart';
 export 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnostic.dart';
+export 'package:pokemap_hub/features/installation/domain/entities/game_installation_result.dart';
+export 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
+export 'package:pokemap_hub/features/saves/domain/entities/save_migration.dart';

@@ -16,39 +16,12 @@ import 'package:pokemap_hub/features/installation/data/repositories/install_fail
 import 'package:pokemap_hub/features/installation/data/repositories/install_staging.dart';
 import 'package:pokemap_hub/features/installation/domain/services/install_compatibility_rules.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/installed_game_verifier.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library_read.dart';
+import 'package:pokemap_hub/features/installation/domain/repositories/game_installation_repository_interface.dart';
+import 'package:pokemap_hub/features/installation/domain/entities/game_installation_result.dart';
 
-final class GameInstallationResult {
-  const GameInstallationResult({
-    required this.game,
-    required this.receipt,
-    required this.alreadyInstalled,
-  });
-
-  final InstalledGame game;
-  final GamePackageInstallReceipt receipt;
-  final bool alreadyInstalled;
-}
-
-enum GameInstallationRecoveryCode {
-  abandonedStagingRemoved,
-  promotionCompleted,
-  transactionQuarantined,
-  libraryRebuilt,
-}
-
-final class GameInstallationRecovery {
-  const GameInstallationRecovery({
-    required this.code,
-    this.gameId,
-    this.gameVersion,
-  });
-
-  final GameInstallationRecoveryCode code;
-  final String? gameId;
-  final String? gameVersion;
-}
-
-final class GamePackageInstaller {
+final class GamePackageInstaller
+    implements GameInstallationRepositoryInterface {
   GamePackageInstaller({
     required this.supportRoot,
     required this.inspector,
@@ -82,6 +55,7 @@ final class GamePackageInstaller {
   GameCurrentPointerStore get _currentPointers =>
       GameCurrentPointerStore(supportRoot: supportRoot);
 
+  @override
   Future<GameInstallationResult> install(
     File packageFile, {
     required GamePackageInstallSource source,
@@ -100,6 +74,7 @@ final class GamePackageInstaller {
         ),
       );
 
+  @override
   Future<InstalledGamePointer> readCurrent(String gameId) =>
       _currentPointers.read(gameId);
 
@@ -108,6 +83,7 @@ final class GamePackageInstaller {
   }) =>
       _withMutationLock(() => _recoverLocked(onProgress: onProgress));
 
+  @override
   Future<GameLibrary> rebuildLibrary() =>
       _withMutationLock(_rebuildLibraryLocked);
 

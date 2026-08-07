@@ -11,6 +11,8 @@ import 'package:pokemap_hub/features/saves/domain/entities/save_storage_diagnost
 import 'package:pokemap_hub/features/saves/data/repositories/save_compatibility_diagnostics.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/save_path_guard.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/save_slot_integrity.dart';
+import 'package:pokemap_hub/features/saves/domain/entities/save_migration.dart';
+import 'package:pokemap_hub/features/saves/domain/repositories/save_repository_interface.dart';
 
 enum SaveWriteStage {
   afterTemporaryFlushed,
@@ -24,34 +26,8 @@ enum SaveWriteStage {
 
 typedef SaveWriteFaultHook = Future<void> Function(SaveWriteStage stage);
 
-final class SaveMigrationSnapshot {
-  const SaveMigrationSnapshot._({
-    required this.address,
-    required this.sourceGameVersion,
-    required this.sourceSaveId,
-    required this.primaryFile,
-    required this.backupFile,
-  });
-
-  final SaveSlotAddress address;
-  final String sourceGameVersion;
-  final String sourceSaveId;
-  final File primaryFile;
-  final File backupFile;
-}
-
-final class SaveMigrationResult {
-  const SaveMigrationResult({
-    required this.envelope,
-    required this.snapshot,
-  });
-
-  final SaveEnvelope envelope;
-  final SaveMigrationSnapshot snapshot;
-}
-
-/// App-private, game-scoped save storage rooted under PokeMap support data.
-final class HubSaveStore {
+final class HubSaveStore
+    implements SaveRepositoryInterface {
   HubSaveStore({
     required this.supportRoot,
     required this.identity,
@@ -113,11 +89,13 @@ final class HubSaveStore {
   static final Map<String, Future<void>> _slotQueues = <String, Future<void>>{};
   static int _nonce = 0;
 
+  @override
   Future<void> write(SaveEnvelope envelope) async {
     await writeVerified(envelope);
   }
 
   /// Atomically writes and returns the exact generation confirmed on disk.
+  @override
   Future<SaveEnvelope> writeVerified(SaveEnvelope envelope) async {
     _paths.assertAddressScope(envelope.address);
     final validated = codec.decode(
@@ -146,6 +124,7 @@ final class HubSaveStore {
     );
   }
 
+  @override
   Future<SaveSlotRead> read(
     SaveSlotAddress address, {
     bool migrationChainAvailable = false,
@@ -177,6 +156,7 @@ final class HubSaveStore {
     );
   }
 
+  @override
   Future<void> saveProfile(SaveProfile profile) async {
     profile.validate();
     final profileDirectory = await _paths.safeProfileDirectory(
@@ -203,6 +183,7 @@ final class HubSaveStore {
     }
   }
 
+  @override
   Future<List<SaveProfile>> listProfiles() async {
     final gameDirectory = await _paths.safeGameDirectory(create: false);
     if (gameDirectory == null) return const <SaveProfile>[];
@@ -225,6 +206,7 @@ final class HubSaveStore {
     return List<SaveProfile>.unmodifiable(profiles);
   }
 
+  @override
   Future<void> deleteProfile(String profileId) async {
     GameIdentity.validateLocalId(profileId, path: r'$.profileId');
     final profile = await _paths.safeProfileDirectory(profileId, create: false);
@@ -238,6 +220,7 @@ final class HubSaveStore {
     );
   }
 
+  @override
   Future<void> saveSlotMetadata({
     required String profileId,
     required SaveSlotMetadata metadata,
@@ -272,6 +255,7 @@ final class HubSaveStore {
     }
   }
 
+  @override
   Future<List<SaveSlotMetadata>> listSlotMetadata({
     required String profileId,
   }) async {
@@ -298,6 +282,7 @@ final class HubSaveStore {
     return List<SaveSlotMetadata>.unmodifiable(result);
   }
 
+  @override
   Future<List<SaveSlotSummary>> listSlots({
     required String profileId,
   }) async {
@@ -343,6 +328,7 @@ final class HubSaveStore {
     return List<SaveSlotSummary>.unmodifiable(summaries);
   }
 
+  @override
   Future<SaveSlotRead?> findContinue({String? profileId}) async {
     final candidates = <SaveSlotRead>[];
     final profileIds = <String>[];
@@ -398,6 +384,7 @@ final class HubSaveStore {
     return candidates.first;
   }
 
+  @override
   Future<void> deleteSlot(SaveSlotAddress address) async {
     _paths.assertAddressScope(address);
     final slot = await _paths.safeSlotDirectory(address, create: false);
@@ -410,6 +397,7 @@ final class HubSaveStore {
     );
   }
 
+  @override
   Future<SaveMigrationResult> migrate({
     required SaveSlotAddress address,
     required SaveMigrationEngine engine,
@@ -453,6 +441,7 @@ final class HubSaveStore {
     );
   }
 
+  @override
   Future<void> restoreMigrationSnapshot(
     SaveMigrationSnapshot snapshot,
   ) async {
@@ -529,7 +518,7 @@ final class HubSaveStore {
     if (!await backup.exists() && await _integrity.isValid(liveBackup, source.address)) {
       await liveBackup.copy(backup.path);
     }
-    return SaveMigrationSnapshot._(
+    return SaveMigrationSnapshot(
       address: source.address,
       sourceGameVersion: source.gameVersion,
       sourceSaveId: source.saveId,

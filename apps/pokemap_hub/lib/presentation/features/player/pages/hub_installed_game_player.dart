@@ -26,6 +26,7 @@ import 'package:pokemap_hub/presentation/features/player/pages/hub_save_profiles
 import 'package:pokemap_hub/presentation/features/player/state/hub_title_presentation_loader.dart';
 import 'package:pokemap_hub/presentation/features/player/state/player_launch_failure.dart';
 import 'package:pokemap_hub/presentation/features/player/state/player_typography_loader.dart';
+import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 
 typedef HubPlayerReturnRequest = Future<void> Function();
 

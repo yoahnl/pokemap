@@ -4,39 +4,17 @@ import 'dart:math';
 
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:path/path.dart' as p;
+import 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
+import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
 
-enum HubPreferencesSource { current, backup, defaults }
-
-final class HubPreferencesRead {
-  const HubPreferencesRead({
-    required this.preferences,
-    required this.source,
-    required this.currentCorrupt,
-    required this.backupCorrupt,
-  });
-
-  final PlayerPreferences preferences;
-  final HubPreferencesSource source;
-  final bool currentCorrupt;
-  final bool backupCorrupt;
-}
-
-final class HubPreferencesStorageException implements Exception {
-  const HubPreferencesStorageException(this.message);
-
-  final String message;
-
-  @override
-  String toString() => 'HubPreferencesStorageException: $message';
-}
-
-/// Atomic player preference storage under the Hub application-support root.
-final class HubPreferencesStore {
+final class HubPreferencesStore
+    implements PlayerPreferencesRepositoryInterface {
   HubPreferencesStore({required this.supportRoot});
 
   final Directory supportRoot;
   final Random _random = Random.secure();
 
+  @override
   Future<HubPreferencesRead> load() async {
     await _assertSafeRoot(create: false);
     var currentCorrupt = false;
@@ -77,6 +55,7 @@ final class HubPreferencesStore {
     );
   }
 
+  @override
   Future<void> save(PlayerPreferences preferences) async {
     await _assertSafeRoot(create: true);
     final current = File(p.join(supportRoot.path, 'preferences.json'));

@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
-import 'package:pokemap_hub/features/session/data/repositories/installed_game_launch_resolver.dart';
+import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 
 /// Records why a launch failed, both for the player and the diagnostics log.
 

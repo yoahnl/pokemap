@@ -114,4 +114,33 @@ void main() {
     expect(source, isNot(contains('pokemap_hub_player.dart')));
     expect(source, isNot(contains('map_player_ui')));
   });
+
+  test('pure recovery barrel compiles without Flutter', () async {
+    // The text assertions above only inspect this file's own directives. They
+    // cannot see a Flutter package pulled in transitively by something the
+    // barrel exports — which is exactly how map_player_ui slipped in through
+    // hub_preferences_read.dart. Compiling as plain Dart is the real guard:
+    // recovery workers run in a Dart subprocess with no Flutter engine.
+    final probe = File('test/.pure_barrel_probe.dart');
+    final output = File('test/.pure_barrel_probe.dill');
+    await probe.writeAsString(
+      "import 'package:pokemap_hub/pokemap_hub.dart';\n"
+      'void main() => print(GameLibrary.empty().games.length);\n',
+    );
+    try {
+      final result = await Process.run(
+        'dart',
+        <String>['compile', 'kernel', probe.path, '-o', output.path],
+      );
+      expect(
+        result.exitCode,
+        0,
+        reason: 'pokemap_hub.dart must compile as plain Dart.\n'
+            '${result.stdout}\n${result.stderr}',
+      );
+    } finally {
+      if (probe.existsSync()) await probe.delete();
+      if (output.existsSync()) await output.delete();
+    }
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }
