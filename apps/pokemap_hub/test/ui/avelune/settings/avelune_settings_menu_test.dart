@@ -8,6 +8,8 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pub_semver/pub_semver.dart';
 
+import '../../../support/appearance_notifier_harness.dart';
+
 /// Settings is the approved sheet, not a section swap.
 ///
 /// The prototype keeps the room visible behind a bottom sheet titled
@@ -21,27 +23,27 @@ void main() {
   const iphone = Size(393, 852);
 
   late Directory root;
-  late AveluneAppearanceController appearanceController;
+  late AppearanceHarness appearanceHarness;
 
   // Real file I/O has to happen outside the test body: inside it, the fake
   // async zone never completes `Directory.systemTemp.createTemp`.
   setUp(() async {
     root = await Directory.systemTemp.createTemp('avelune-settings-');
-    appearanceController = AveluneAppearanceController(
+    appearanceHarness = buildAppearanceHarness(
       store: AveluneAppearanceStore(supportRoot: root),
       customBackground: _FakeCustomBackground(),
     );
-    await appearanceController.initialize();
+    await appearanceHarness.notifier.initialize();
   });
 
   tearDown(() async {
-    appearanceController.dispose();
+    appearanceHarness.dispose();
     await root.delete(recursive: true);
   });
 
   testWidgets('the navigation opens the settings sheet over the room',
       (tester) async {
-    await _pumpShell(tester, iphone, appearanceController);
+    await _pumpShell(tester, iphone, appearanceHarness);
 
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
@@ -61,7 +63,7 @@ void main() {
   });
 
   testWidgets('the sheet lists the four approved destinations', (tester) async {
-    await _pumpShell(tester, iphone, appearanceController);
+    await _pumpShell(tester, iphone, appearanceHarness);
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
     );
@@ -74,7 +76,7 @@ void main() {
   });
 
   testWidgets('subtitles carry real state, not placeholders', (tester) async {
-    await _pumpShell(tester, iphone, appearanceController);
+    await _pumpShell(tester, iphone, appearanceHarness);
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
     );
@@ -88,7 +90,7 @@ void main() {
   });
 
   testWidgets('Apparence opens the real appearance settings', (tester) async {
-    await _pumpShell(tester, iphone, appearanceController);
+    await _pumpShell(tester, iphone, appearanceHarness);
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
     );
@@ -101,7 +103,7 @@ void main() {
   });
 
   testWidgets('Stockage reports the real figures', (tester) async {
-    await _pumpShell(tester, iphone, appearanceController);
+    await _pumpShell(tester, iphone, appearanceHarness);
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
     );
@@ -118,7 +120,7 @@ void main() {
   });
 
   testWidgets('settings sheet visual gate', (tester) async {
-    await _pumpShell(tester, iphone, appearanceController);
+    await _pumpShell(tester, iphone, appearanceHarness);
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
     );
@@ -135,7 +137,7 @@ void main() {
     await _pumpShell(
       tester,
       iphone,
-      appearanceController,
+      appearanceHarness,
       onSectionSelected: observed.add,
     );
 
@@ -156,7 +158,7 @@ void main() {
 Future<void> _pumpShell(
   WidgetTester tester,
   Size size,
-  AveluneAppearanceController appearanceController, {
+  AppearanceHarness appearance, {
   ValueChanged<HubSection>? onSectionSelected,
 }) async {
   tester.view.physicalSize = size;
@@ -186,31 +188,34 @@ Future<void> _pumpShell(
   );
 
   await tester.pumpWidget(
-    MaterialApp(
-      debugShowCheckedModeBanner: false,
-      locale: const Locale('fr'),
-      supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
-      localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: () {
-        final theme =
-            applyAveluneTheme(PokeMapPlayerTheme.dark(reducedMotion: true));
-        return theme.copyWith(
-          textTheme: theme.textTheme.apply(fontFamily: 'AveluneGoldenSans'),
-          primaryTextTheme:
-              theme.primaryTextTheme.apply(fontFamily: 'AveluneGoldenSans'),
-        );
-      }(),
-      home: HubShell(
-        productName: 'Avelune',
-        snapshot: snapshot,
-        actions: actions,
-        referenceTime: DateTime.utc(2026, 8, 4, 12),
-        homeController: AveluneHomeController(
+    appearance.wrap(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        locale: const Locale('fr'),
+        supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
+        localizationsDelegates:
+            PokeMapPlayerLocalizations.localizationsDelegates,
+        theme: () {
+          final theme =
+              applyAveluneTheme(PokeMapPlayerTheme.dark(reducedMotion: true));
+          return theme.copyWith(
+            textTheme: theme.textTheme.apply(fontFamily: 'AveluneGoldenSans'),
+            primaryTextTheme:
+                theme.primaryTextTheme.apply(fontFamily: 'AveluneGoldenSans'),
+          );
+        }(),
+        home: HubShell(
+          productName: 'Avelune',
           snapshot: snapshot,
           actions: actions,
+          referenceTime: DateTime.utc(2026, 8, 4, 12),
+          homeController: AveluneHomeController(
+            snapshot: snapshot,
+            actions: actions,
+          ),
+          appearanceController: appearance.notifier,
+          onSectionSelected: onSectionSelected ?? (_) {},
         ),
-        appearanceController: appearanceController,
-        onSectionSelected: onSectionSelected ?? (_) {},
       ),
     ),
   );

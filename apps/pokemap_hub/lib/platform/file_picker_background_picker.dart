@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 
-import 'package:pokemap_hub/features/appearance/data/repositories/custom_background_repository_impl.dart';
+import 'package:pokemap_hub/features/appearance/domain/repositories/custom_background_repository_interface.dart';
 
 /// Host file picker adapter for custom Avelune backgrounds.
 ///

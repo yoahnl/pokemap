@@ -9,6 +9,7 @@ import 'package:pokemap_hub/pokemap_hub_ui.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 import '../support/dashboard_notifier_harness.dart';
+import 'package:pokemap_hub/app/di/appearance_dependencies_provider.dart';
 
 void main() {
   late Directory root;
@@ -32,6 +33,16 @@ void main() {
         canContinue: true,
         lastSaveAt: DateTime.utc(2026, 7, 25),
       ),
+      // The appearance bundle goes into the same container, so a Consumer deep
+      // in the shell resolves the notifier this test set up.
+      extraOverrides: [
+        aveluneAppearanceDependenciesProvider.overrideWith(
+          (ref) async => AveluneAppearanceDependencies(
+            store: AveluneAppearanceStore(supportRoot: root),
+            customBackground: _FakeCustomBackground(),
+          ),
+        ),
+      ],
     );
     await harness.notifier.initialize();
   });
@@ -143,11 +154,12 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
-    final appearanceController = AveluneAppearanceController(
-      store: AveluneAppearanceStore(supportRoot: root),
-      customBackground: _FakeCustomBackground(),
-    );
-    await tester.runAsync(() => appearanceController.initialize());
+    // One container, both bundles. Two harnesses would mean the pumped widget
+    // reads an idle appearance notifier from the dashboard container while the
+    // test prepared a different one — passing, but asserting nothing.
+    final appearance = harness.container
+        .read(aveluneAppearanceNotifierProvider.notifier);
+    await tester.runAsync(appearance.initialize);
     await tester.pump();
     await tester.pumpAndSettle();
 
@@ -157,7 +169,7 @@ void main() {
           productName: 'Avelune',
           controller: harness.notifier,
           initializeController: false,
-          appearanceController: appearanceController,
+          appearanceController: appearance,
         ),
       ),
     );

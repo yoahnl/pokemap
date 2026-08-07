@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pokemap_hub/app/di/hub_composition.dart';
 import 'package:pokemap_hub/app/di/providers.dart';
+import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_notifier.dart';
 
 /// Bridges the widget tree to the composition root.
@@ -14,6 +15,7 @@ import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboa
 final hubCompositionProvider = FutureProvider<HubAppComposition>((ref) async {
   final composition = await HubComposition.create(
     dashboardNotifier: ref.watch(hubDashboardNotifierProvider.notifier),
+    appearanceNotifier: ref.watch(aveluneAppearanceNotifierProvider.notifier),
     platformAdapter: ref.watch(hubPlatformAdapterProvider),
     supportRoot: await ref.watch(supportRootProvider.future),
   );

@@ -37,7 +37,7 @@ class PokeMapHubApp extends ConsumerStatefulWidget {
   final String productName;
   final HubUiActions actions;
   final HubPlayerBuilder? playerBuilder;
-  final AveluneAppearanceController? appearanceController;
+  final AveluneAppearanceNotifier? appearanceController;
   final bool initializeController;
 
   @override

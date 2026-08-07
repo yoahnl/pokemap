@@ -18,6 +18,7 @@ import 'package:pokemap_hub/core/diagnostics/hub_diagnostic.dart';
 import 'package:pokemap_hub/presentation/shell/hub_shell_diagnostics.dart';
 import 'package:pokemap_hub/presentation/shell/hub_shell_layout.dart';
 import 'package:pokemap_hub/presentation/shell/hub_shell_sections.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Single shell for every platform.
 ///
@@ -43,7 +44,7 @@ class HubShell extends StatelessWidget {
   final HubUiActions actions;
   final ValueChanged<HubSection> onSectionSelected;
   final AveluneHomeController? homeController;
-  final AveluneAppearanceController? appearanceController;
+  final AveluneAppearanceNotifier? appearanceController;
 
   /// Pinned clock for relative wording, so visual gates do not drift with the
   /// calendar. Production leaves it null and reads the wall clock.
@@ -220,7 +221,10 @@ class HubShell extends StatelessWidget {
               id: 'appearance',
               icon: AveluneIcons.appearance,
               title: french ? 'Apparence' : 'Appearance',
-              subtitle: _appearanceSummary(appearance),
+              subtitle: _appearanceSummary(
+                ProviderScope.containerOf(context)
+                    .read(aveluneAppearanceNotifierProvider),
+              ),
               onSelected: () => _openAppearance(sheetContext, appearance),
             ),
           AveluneSettingsEntry(
@@ -275,8 +279,8 @@ class HubShell extends StatelessWidget {
     );
   }
 
-  String _appearanceSummary(AveluneAppearanceController controller) {
-    final preferences = controller.state.preferences;
+  String _appearanceSummary(AveluneAppearanceState state) {
+    final preferences = state.preferences;
     final background =
         AveluneAppearanceCatalog.background(preferences.backgroundId).label;
     final furniture =
@@ -286,16 +290,15 @@ class HubShell extends StatelessWidget {
 
   void _openAppearance(
     BuildContext context,
-    AveluneAppearanceController controller,
+    AveluneAppearanceNotifier controller,
   ) {
     final french = Localizations.maybeLocaleOf(context)?.languageCode == 'fr';
     AveluneSheet.show<void>(
       context: context,
       title: french ? 'Apparence' : 'Appearance',
-      builder: (sheetContext) => ListenableBuilder(
-        listenable: controller,
-        builder: (context, _) => AveluneAppearanceSettings(
-          state: controller.state,
+      builder: (sheetContext) => Consumer(
+        builder: (context, ref, _) => AveluneAppearanceSettings(
+          state: ref.watch(aveluneAppearanceNotifierProvider),
           onBackgroundSelected: controller.selectBackground,
           onFurnitureSelected: controller.selectFurniture,
           onImportCustomBackground: controller.importCustomBackground,

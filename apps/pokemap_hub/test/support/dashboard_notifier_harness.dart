@@ -1,6 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Riverpod 3 ships Override from misc.dart, and dart:core declares its own
+// Override (the class behind @override), so it needs an alias here. riverpod
+// arrives transitively through flutter_riverpod.
+// ignore: depend_on_referenced_packages
+import 'package:riverpod/misc.dart' as riverpod show Override;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_hub/app/di/dashboard_dependencies_provider.dart';
@@ -56,9 +61,14 @@ DashboardHarness buildDashboardHarness({
   PlayerPreferencesRepositoryInterface? preferencesStore,
   HubStorageReader? storageReader,
   File? diagnosticLogFile,
+  /// Extra overrides to install in the **same** container, for tests that also
+  /// need another feature's bundle — a second harness would create a second
+  /// container and the widget would resolve from the wrong one.
+  List<riverpod.Override> extraOverrides = const <riverpod.Override>[],
 }) {
   final container = ProviderContainer(
     overrides: [
+      ...extraOverrides,
       hubDashboardDependenciesProvider.overrideWith(
         (ref) async => HubDashboardDependencies(
           libraryStore: libraryStore,

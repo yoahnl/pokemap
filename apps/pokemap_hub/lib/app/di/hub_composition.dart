@@ -11,8 +11,6 @@ import 'package:pokemap_hub/platform/hub_platform_adapter_factory.dart';
 import 'package:pokemap_hub/core/config/public_product_identity.dart';
 import 'package:pokemap_hub/core/error/hub_failure.dart';
 import 'package:pokemap_hub/platform/path_provider_support_root_adapter.dart';
-import 'package:pokemap_hub/platform/file_picker_background_picker.dart';
-import 'package:pokemap_hub/platform/isolate_background_image_processor.dart';
 
 abstract interface class HubAppComposition {
   Widget buildApp();
@@ -38,7 +36,7 @@ final class HubComposition implements HubAppComposition {
   final HubDashboardNotifier controller;
   final HubUiActions actions;
   final InstalledGameLaunchResolver launchResolver;
-  final AveluneAppearanceController appearanceController;
+  final AveluneAppearanceNotifier appearanceController;
   final HubPlatformAdapter _platformAdapter;
 
   /// Builds the app shell around an already-wired dashboard notifier.
@@ -50,6 +48,7 @@ final class HubComposition implements HubAppComposition {
   /// needs, and the widget tree.
   static Future<HubComposition> create({
     required HubDashboardNotifier dashboardNotifier,
+    required AveluneAppearanceNotifier appearanceNotifier,
     HubPlatformAdapter? platformAdapter,
     Directory? supportRoot,
   }) async {
@@ -69,18 +68,7 @@ final class HubComposition implements HubAppComposition {
           unawaited(initializedComposition._pickAndImport());
         },
       );
-      final backgroundProcessor = AveluneIsolateBackgroundImageProcessor();
-      final appearanceController = AveluneAppearanceController(
-        store: AveluneAppearanceStore(supportRoot: root),
-        customBackground: AveluneCustomBackgroundImporter(
-          picker: const AveluneFilePickerBackgroundPicker(),
-          processor: backgroundProcessor,
-          storage: AveluneLocalCustomBackgroundStorage(
-            supportRoot: root,
-            processor: backgroundProcessor,
-          ),
-        ),
-      );
+      final appearanceController = appearanceNotifier;
       await appearanceController.initialize();
       initializedComposition = HubComposition._(
         supportRoot: root,
@@ -176,6 +164,5 @@ final class HubComposition implements HubAppComposition {
   @override
   void dispose() {
     _platformAdapter.dispose();
-    appearanceController.dispose();
   }
 }

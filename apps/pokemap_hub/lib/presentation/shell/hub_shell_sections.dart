@@ -9,6 +9,7 @@ import 'package:pokemap_hub/presentation/features/home/state/avelune_home_contro
 import 'package:pokemap_hub/presentation/features/home/pages/avelune_home_screen.dart';
 import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Per-section content of the Hub shell, plus its header.
 ///
@@ -29,7 +30,7 @@ class AveluneHomeContent extends StatelessWidget {
   final HubDashboardSnapshot snapshot;
   final HubUiActions actions;
   final AveluneHomeController? homeController;
-  final AveluneAppearanceController? appearanceController;
+  final AveluneAppearanceNotifier? appearanceController;
   final DateTime? referenceTime;
 
   @override
@@ -44,10 +45,9 @@ class AveluneHomeContent extends StatelessWidget {
       builder: (context, _) {
         final viewData = controller.viewData;
         if (appearance != null) {
-          return ListenableBuilder(
-            listenable: appearance,
-            builder: (context, _) {
-              final state = appearance.state;
+          return Consumer(
+            builder: (context, ref, _) {
+              final state = ref.watch(aveluneAppearanceNotifierProvider);
               return AveluneHomeScreen(
                 key: const ValueKey<String>('avelune-home-screen'),
                 viewData: viewData,
@@ -153,7 +153,7 @@ class AvelunePreferencesContent extends StatelessWidget {
     required this.appearanceController,
   });
 
-  final AveluneAppearanceController? appearanceController;
+  final AveluneAppearanceNotifier? appearanceController;
 
   @override
   Widget build(BuildContext context) {
@@ -161,10 +161,9 @@ class AvelunePreferencesContent extends StatelessWidget {
     if (controller == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    return ListenableBuilder(
-      listenable: controller,
-      builder: (context, _) => AveluneAppearanceSettings(
-        state: controller.state,
+    return Consumer(
+      builder: (context, ref, _) => AveluneAppearanceSettings(
+        state: ref.watch(aveluneAppearanceNotifierProvider),
         onBackgroundSelected: (id) => controller.selectBackground(id),
         onFurnitureSelected: (id) => controller.selectFurniture(id),
         onImportCustomBackground: () => controller.importCustomBackground(),

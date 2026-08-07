@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as image;
 
-import 'package:pokemap_hub/features/appearance/data/repositories/custom_background_repository_impl.dart';
+import 'package:pokemap_hub/features/appearance/domain/repositories/custom_background_repository_interface.dart';
 
 /// Decodes and re-encodes background images on a background isolate.
 ///

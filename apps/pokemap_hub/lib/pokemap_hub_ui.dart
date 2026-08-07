@@ -14,6 +14,7 @@ export 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_pres
 export 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 export 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
 export 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
+export 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_dependencies.dart';
 export 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
 export 'package:pokemap_hub/presentation/features/settings/pages/avelune_appearance_settings_page.dart';
 export 'package:pokemap_hub/presentation/features/settings/pages/avelune_settings_menu.dart';
@@ -21,6 +22,7 @@ export 'package:pokemap_hub/presentation/features/settings/widgets/avelune_stora
 export 'package:pokemap_hub/presentation/features/settings/widgets/avelune_motion_panel.dart';
 export 'package:pokemap_hub/features/appearance/data/repositories/avelune_appearance_repository_impl.dart';
 export 'package:pokemap_hub/features/appearance/data/repositories/custom_background_repository_impl.dart';
+export 'package:pokemap_hub/features/appearance/domain/repositories/custom_background_repository_interface.dart';
 export 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
 export 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_shelf.dart';
 export 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';

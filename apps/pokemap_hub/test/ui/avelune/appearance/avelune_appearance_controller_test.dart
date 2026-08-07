@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 
+import '../../../support/appearance_notifier_harness.dart';
+
 void main() {
   late Directory supportRoot;
 
@@ -18,40 +20,40 @@ void main() {
 
   test('initialization exposes ready defaults for a new installation',
       () async {
-    final controller = AveluneAppearanceController(
+    final controllerHarness = buildAppearanceHarness(
       store: AveluneAppearanceStore(supportRoot: supportRoot),
       customBackground: _CustomBackgroundGateway(),
     );
-    addTearDown(controller.dispose);
+    addTearDown(controllerHarness.dispose);
 
-    await controller.initialize();
+    await controllerHarness.notifier.initialize();
 
-    expect(controller.state.status, AveluneAppearanceControllerStatus.ready);
-    expect(controller.state.preferences, const AveluneAppearancePreferences());
-    expect(controller.state.message, isNull);
+    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.ready);
+    expect(controllerHarness.state.preferences, const AveluneAppearancePreferences());
+    expect(controllerHarness.state.message, isNull);
   });
 
   test('background and furniture choices survive a controller restart',
       () async {
     final store = AveluneAppearanceStore(supportRoot: supportRoot);
-    final first = AveluneAppearanceController(
+    final firstHarness = buildAppearanceHarness(
       store: store,
       customBackground: _CustomBackgroundGateway(),
     );
-    await first.initialize();
-    await first.selectBackground('violet');
-    await first.selectFurniture('ivory');
-    first.dispose();
+    await firstHarness.notifier.initialize();
+    await firstHarness.notifier.selectBackground('violet');
+    await firstHarness.notifier.selectFurniture('ivory');
+    firstHarness.dispose();
 
-    final restarted = AveluneAppearanceController(
+    final restartedHarness = buildAppearanceHarness(
       store: AveluneAppearanceStore(supportRoot: supportRoot),
       customBackground: _CustomBackgroundGateway(),
     );
-    addTearDown(restarted.dispose);
-    await restarted.initialize();
+    addTearDown(restartedHarness.dispose);
+    await restartedHarness.notifier.initialize();
 
     expect(
-      restarted.state.preferences,
+      restartedHarness.state.preferences,
       const AveluneAppearancePreferences(
         backgroundId: 'violet',
         furnitureId: 'ivory',
@@ -68,18 +70,18 @@ void main() {
         furnitureId: 'mahogany',
       ),
     );
-    final controller = AveluneAppearanceController(
+    final controllerHarness = buildAppearanceHarness(
       store: store,
       customBackground: _CustomBackgroundGateway(valid: false),
     );
-    addTearDown(controller.dispose);
+    addTearDown(controllerHarness.dispose);
 
-    await controller.initialize();
+    await controllerHarness.notifier.initialize();
 
-    expect(controller.state.status, AveluneAppearanceControllerStatus.ready);
-    expect(controller.state.preferences.backgroundId, 'amber');
-    expect(controller.state.preferences.furnitureId, 'mahogany');
-    expect(controller.state.message, contains('introuvable'));
+    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.ready);
+    expect(controllerHarness.state.preferences.backgroundId, 'amber');
+    expect(controllerHarness.state.preferences.furnitureId, 'mahogany');
+    expect(controllerHarness.state.message, contains('introuvable'));
     expect((await store.load()).preferences.backgroundId, 'amber');
   });
 
@@ -87,22 +89,21 @@ void main() {
       () async {
     final gateway = _CustomBackgroundGateway(valid: true);
     final store = AveluneAppearanceStore(supportRoot: supportRoot);
-    final controller = AveluneAppearanceController(
+    final controllerHarness = buildAppearanceHarness(
       store: store,
       customBackground: gateway,
     );
-    addTearDown(controller.dispose);
-    await controller.initialize();
-    final statuses = <AveluneAppearanceControllerStatus>[];
-    controller.addListener(() => statuses.add(controller.state.status));
+    addTearDown(controllerHarness.dispose);
+    await controllerHarness.notifier.initialize();
+    final statuses = controllerHarness.observeStatuses();
 
-    final imported = await controller.importCustomBackground();
+    final imported = await controllerHarness.notifier.importCustomBackground();
 
     expect(imported, isTrue);
     expect(statuses, contains(AveluneAppearanceControllerStatus.saving));
-    expect(controller.state.status, AveluneAppearanceControllerStatus.ready);
-    expect(controller.state.preferences.backgroundId, 'custom');
-    expect(controller.state.customBackgroundPath, gateway.imagePath);
+    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.ready);
+    expect(controllerHarness.state.preferences.backgroundId, 'custom');
+    expect(controllerHarness.state.customBackgroundPath, gateway.imagePath);
     expect((await store.load()).preferences.toJson().values,
         isNot(contains(gateway.imagePath)));
   });
@@ -112,18 +113,18 @@ void main() {
     final gateway = _CustomBackgroundGateway(
       outcome: AveluneCustomBackgroundImportOutcome.cancelled,
     );
-    final controller = AveluneAppearanceController(
+    final controllerHarness = buildAppearanceHarness(
       store: AveluneAppearanceStore(supportRoot: supportRoot),
       customBackground: gateway,
     );
-    addTearDown(controller.dispose);
-    await controller.initialize();
+    addTearDown(controllerHarness.dispose);
+    await controllerHarness.notifier.initialize();
 
-    final imported = await controller.importCustomBackground();
+    final imported = await controllerHarness.notifier.importCustomBackground();
 
     expect(imported, isFalse);
-    expect(controller.state.status, AveluneAppearanceControllerStatus.ready);
-    expect(controller.state.preferences, const AveluneAppearancePreferences());
+    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.ready);
+    expect(controllerHarness.state.preferences, const AveluneAppearancePreferences());
   });
 
   test('cancelled replacement keeps an existing custom image active', () async {
@@ -135,17 +136,17 @@ void main() {
       valid: true,
       outcome: AveluneCustomBackgroundImportOutcome.cancelled,
     );
-    final controller = AveluneAppearanceController(
+    final controllerHarness = buildAppearanceHarness(
       store: store,
       customBackground: gateway,
     );
-    addTearDown(controller.dispose);
-    await controller.initialize();
+    addTearDown(controllerHarness.dispose);
+    await controllerHarness.notifier.initialize();
 
-    await controller.importCustomBackground();
+    await controllerHarness.notifier.importCustomBackground();
 
-    expect(controller.state.preferences.backgroundId, 'custom');
-    expect(controller.state.customBackgroundPath, gateway.imagePath);
+    expect(controllerHarness.state.preferences.backgroundId, 'custom');
+    expect(controllerHarness.state.customBackgroundPath, gateway.imagePath);
   });
 
   test('preference write failure restores prior choice and exposes error',
@@ -156,19 +157,19 @@ void main() {
         'simulated write failure',
       ),
     );
-    final controller = AveluneAppearanceController(
+    final controllerHarness = buildAppearanceHarness(
       store: store,
       customBackground: _CustomBackgroundGateway(),
     );
-    addTearDown(controller.dispose);
-    await controller.initialize();
+    addTearDown(controllerHarness.dispose);
+    await controllerHarness.notifier.initialize();
 
-    final saved = await controller.selectFurniture('ivory');
+    final saved = await controllerHarness.notifier.selectFurniture('ivory');
 
     expect(saved, isFalse);
-    expect(controller.state.status, AveluneAppearanceControllerStatus.error);
-    expect(controller.state.preferences, const AveluneAppearancePreferences());
-    expect(controller.state.message, isNotEmpty);
+    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.error);
+    expect(controllerHarness.state.preferences, const AveluneAppearancePreferences());
+    expect(controllerHarness.state.message, isNotEmpty);
   });
 
   test('deleting custom image returns to amber', () async {
@@ -177,19 +178,19 @@ void main() {
     await store.save(
       const AveluneAppearancePreferences(backgroundId: 'custom'),
     );
-    final controller = AveluneAppearanceController(
+    final controllerHarness = buildAppearanceHarness(
       store: store,
       customBackground: gateway,
     );
-    addTearDown(controller.dispose);
-    await controller.initialize();
+    addTearDown(controllerHarness.dispose);
+    await controllerHarness.notifier.initialize();
 
-    final removed = await controller.removeCustomBackground();
+    final removed = await controllerHarness.notifier.removeCustomBackground();
 
     expect(removed, isTrue);
     expect(gateway.deletes, 1);
-    expect(controller.state.preferences.backgroundId, 'amber');
-    expect(controller.state.customBackgroundPath, isNull);
+    expect(controllerHarness.state.preferences.backgroundId, 'amber');
+    expect(controllerHarness.state.customBackgroundPath, isNull);
   });
 
   test('delete failure keeps the persisted amber fallback coherent', () async {
@@ -198,19 +199,19 @@ void main() {
     await store.save(
       const AveluneAppearancePreferences(backgroundId: 'custom'),
     );
-    final controller = AveluneAppearanceController(
+    final controllerHarness = buildAppearanceHarness(
       store: store,
       customBackground: gateway,
     );
-    addTearDown(controller.dispose);
-    await controller.initialize();
+    addTearDown(controllerHarness.dispose);
+    await controllerHarness.notifier.initialize();
 
-    final removed = await controller.removeCustomBackground();
+    final removed = await controllerHarness.notifier.removeCustomBackground();
 
     expect(removed, isFalse);
     expect((await store.load()).preferences.backgroundId, 'amber');
-    expect(controller.state.preferences.backgroundId, 'amber');
-    expect(controller.state.customBackgroundPath, isNull);
+    expect(controllerHarness.state.preferences.backgroundId, 'amber');
+    expect(controllerHarness.state.customBackgroundPath, isNull);
   });
 }
 

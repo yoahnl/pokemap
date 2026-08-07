@@ -6,6 +6,7 @@ import 'package:pokemap_hub/features/appearance/data/repositories/custom_backgro
 import 'package:pokemap_hub/features/appearance/domain/repositories/avelune_appearance_repository_interface.dart';
 import 'package:pokemap_hub/platform/file_picker_background_picker.dart';
 import 'package:pokemap_hub/platform/isolate_background_image_processor.dart';
+import 'package:pokemap_hub/features/appearance/domain/repositories/custom_background_repository_interface.dart';
 
 /// Infrastructure wiring for Avelune appearance.
 final aveluneAppearanceRepositoryProvider =

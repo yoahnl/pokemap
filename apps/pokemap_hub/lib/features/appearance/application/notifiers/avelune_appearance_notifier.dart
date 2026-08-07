@@ -1,10 +1,12 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
-import 'package:pokemap_hub/features/appearance/data/repositories/custom_background_repository_impl.dart';
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_read.dart';
 import 'package:pokemap_hub/features/appearance/domain/repositories/avelune_appearance_repository_interface.dart';
+import 'package:pokemap_hub/features/appearance/domain/repositories/custom_background_repository_interface.dart';
+import 'package:pokemap_hub/app/di/appearance_dependencies_provider.dart';
 
 enum AveluneAppearanceControllerStatus { idle, loading, ready, saving, error }
 
@@ -33,23 +35,35 @@ final class AveluneAppearanceState {
 
 /// Coordinates appearance persistence and custom-image import without owning
 /// either file I/O implementation. Failures keep the last confirmed choice.
-final class AveluneAppearanceController extends ChangeNotifier {
-  AveluneAppearanceController({
-    required this.store,
-    required this.customBackground,
-  });
+/// Owns the player's Avelune appearance choices.
+///
+/// Same shape as [HubDashboardNotifier]: synchronous state, async dependencies
+/// resolved once by [_wire] at the head of every async entry point, and
+/// `build()` returning the same idle state the ChangeNotifier version started
+/// from.
+final class AveluneAppearanceNotifier extends Notifier<AveluneAppearanceState> {
+  late AveluneAppearanceRepositoryInterface store;
+  late AveluneCustomBackgroundGateway customBackground;
 
-  final AveluneAppearanceRepositoryInterface store;
-  final AveluneCustomBackgroundGateway customBackground;
-  AveluneAppearanceState _state = const AveluneAppearanceState.idle();
+  bool _wired = false;
 
-  AveluneAppearanceState get state => _state;
+  @override
+  AveluneAppearanceState build() => const AveluneAppearanceState.idle();
+
+  Future<void> _wire() async {
+    if (_wired) return;
+    final deps = await ref.read(aveluneAppearanceDependenciesProvider.future);
+    store = deps.store;
+    customBackground = deps.customBackground;
+    _wired = true;
+  }
 
   Future<void> initialize() async {
+    await _wire();
     _emit(
       AveluneAppearanceState(
         status: AveluneAppearanceControllerStatus.loading,
-        preferences: _state.preferences,
+        preferences: state.preferences,
       ),
     );
     try {
@@ -95,6 +109,7 @@ final class AveluneAppearanceController extends ChangeNotifier {
   }
 
   Future<bool> selectBackground(String id) async {
+    await _wire();
     try {
       AveluneAppearanceCatalog.background(id);
     } on ArgumentError {
@@ -105,34 +120,36 @@ final class AveluneAppearanceController extends ChangeNotifier {
       customIsValid = await customBackground.isCurrentValid();
       if (!customIsValid) {
         _emitError(
-          _state.preferences,
+          state.preferences,
           'Importez une image avant de sélectionner « Mon image ».',
         );
         return false;
       }
     }
     return _save(
-      _state.preferences.copyWith(backgroundId: id),
+      state.preferences.copyWith(backgroundId: id),
       customIsValid: customIsValid,
     );
   }
 
   Future<bool> selectFurniture(String id) async {
+    await _wire();
     try {
       AveluneAppearanceCatalog.furnitureFinish(id);
     } on ArgumentError {
       return false;
     }
     return _save(
-      _state.preferences.copyWith(furnitureId: id),
-      customIsValid: _state.preferences.backgroundId ==
+      state.preferences.copyWith(furnitureId: id),
+      customIsValid: state.preferences.backgroundId ==
           AveluneAppearanceCatalog.customBackgroundId,
     );
   }
 
   Future<bool> importCustomBackground() async {
-    final previous = _state.preferences;
-    final previousCustomIsValid = _state.customBackgroundPath != null;
+    await _wire();
+    final previous = state.preferences;
+    final previousCustomIsValid = state.customBackgroundPath != null;
     _emit(
       AveluneAppearanceState(
         status: AveluneAppearanceControllerStatus.saving,
@@ -175,8 +192,9 @@ final class AveluneAppearanceController extends ChangeNotifier {
   }
 
   Future<bool> removeCustomBackground() async {
-    final previous = _state.preferences;
-    final previousCustomIsValid = _state.customBackgroundPath != null;
+    await _wire();
+    final previous = state.preferences;
+    final previousCustomIsValid = state.customBackgroundPath != null;
     final next = previous.copyWith(
       backgroundId: AveluneAppearanceCatalog.defaultBackgroundId,
     );
@@ -213,8 +231,8 @@ final class AveluneAppearanceController extends ChangeNotifier {
     AveluneAppearancePreferences next, {
     required bool customIsValid,
   }) async {
-    final previous = _state.preferences;
-    final previousCustomIsValid = _state.customBackgroundPath != null;
+    final previous = state.preferences;
+    final previousCustomIsValid = state.customBackgroundPath != null;
     if (next == previous) {
       _emitReady(previous, customIsValid: customIsValid);
       return true;
@@ -279,8 +297,10 @@ final class AveluneAppearanceController extends ChangeNotifier {
     );
   }
 
-  void _emit(AveluneAppearanceState state) {
-    _state = state;
-    notifyListeners();
-  }
+  void _emit(AveluneAppearanceState next) => state = next;
 }
+
+final aveluneAppearanceNotifierProvider =
+    NotifierProvider<AveluneAppearanceNotifier, AveluneAppearanceState>(
+  AveluneAppearanceNotifier.new,
+);
