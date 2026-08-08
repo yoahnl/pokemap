@@ -35,6 +35,8 @@ import 'smart_tile_pattern_editor.dart';
 import 'smart_tile_reconstruction_editor.dart';
 import 'smart_tile_sprite_preview.dart';
 import 'smart_tile_tiled_wang_import_editor.dart';
+import 'smart_tiles_studio_inspector.dart';
+import 'smart_tiles_studio_library_pane.dart';
 import 'smart_tiles_studio_shell.dart';
 import 'smart_tiles_studio_stage_header.dart';
 import 'stages/smart_tile_grid_stage.dart';
@@ -49,8 +51,6 @@ import 'stages/smart_tile_usage_stage.dart';
 import 'stages/smart_tile_variants_stage.dart';
 
 enum SmartTilesStudioTab { atlas, rules, animations, testBench, validation }
-
-enum _LibraryUsageFilter { all, terrain, path, forestSurface }
 
 class SmartTilesStudioPanel extends StatefulWidget {
   const SmartTilesStudioPanel({
@@ -131,7 +131,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
       SmartTileAuthoringController.blank();
 
   SmartTilesStudioTab _tab = SmartTilesStudioTab.atlas;
-  _LibraryUsageFilter _usageFilter = _LibraryUsageFilter.all;
+  SmartTileLibraryUsageFilter _usageFilter = SmartTileLibraryUsageFilter.all;
   String _query = '';
   String? _selectedItemKey;
   String? _resumedDraftId;
@@ -252,9 +252,19 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final items = buildSmartTileStudioLibrary(widget.manifest);
-    final visibleItems = _filterItems(items);
+    final visibleItems = filterSmartTileLibraryItems(
+      items: items,
+      usageFilter: _usageFilter,
+      query: _query,
+    );
     final selectedItem =
         items.where((item) => item.key == _selectedItemKey).firstOrNull;
+    final diagnostics = validateProjectSmartTileCatalog(
+      catalog: widget.manifest.smartTileCatalog,
+      projectTilesetIds: widget.manifest.tilesets.map((tileset) => tileset.id),
+    );
+    final inspectorFrame =
+        selectedItem == null ? null : _inspectorFrameFor(selectedItem);
 
     return Material(
       type: MaterialType.transparency,
@@ -263,154 +273,60 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: SmartTilesStudioShell(
-            library: _buildLibrary(visibleItems),
-            workbench: _buildWorkbench(selectedItem),
-            inspector: _buildInspector(selectedItem),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLibrary(List<SmartTileLibraryItem> items) {
-    return PokeMapPanel(
-      expandChild: true,
-      padding: const EdgeInsets.all(12),
-      header: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-        child: PokeMapSectionHeader(
-          title: 'Bibliothèque',
-          description: 'Terrain, chemins et surfaces forestières',
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            spacing: 6,
-            children: <Widget>[
-              PokeMapIconButton(
-                key: const Key('smart-tiles-import-tiled-wang'),
-                onPressed: widget.onPickTiledWangSource == null ||
-                        widget.onImportTiledWang == null ||
-                        _tiledWangPicking ||
-                        _tiledWangImporting
-                    ? null
-                    : () => unawaited(_pickTiledWangSource()),
-                tooltip: 'Importer un TSX / Wang Set',
-                semanticLabel: 'Importer un TSX / Wang Set',
-                variant: PokeMapIconButtonVariant.soft,
-                icon: const Icon(CupertinoIcons.arrow_down_doc, size: 15),
-              ),
-              PokeMapIconButton(
-                key: const Key('smart-tiles-reconstruct-literal-layer'),
-                onPressed:
-                    _canStartReconstruction ? _startReconstruction : null,
-                tooltip: 'Reconstruire une couche importée',
-                semanticLabel: 'Reconstruire une couche importée',
-                variant: PokeMapIconButtonVariant.soft,
-                icon: const Icon(CupertinoIcons.wand_stars, size: 15),
-              ),
-              PokeMapIconButton(
-                key: const Key('smart-tiles-new-pattern'),
-                onPressed:
-                    widget.onUpsertPattern == null ? null : _startNewPattern,
-                tooltip: 'Nouveau motif réutilisable',
-                semanticLabel: 'Nouveau motif réutilisable',
-                variant: PokeMapIconButtonVariant.soft,
-                icon: const Icon(CupertinoIcons.square_grid_2x2, size: 15),
-              ),
-              PokeMapIconButton(
-                key: const Key('smart-tiles-new-preset'),
-                onPressed: _startDraft,
-                tooltip: 'Nouveau Smart Tile',
-                semanticLabel: 'Nouveau Smart Tile',
-                variant: PokeMapIconButtonVariant.soft,
-                icon: const Icon(CupertinoIcons.add, size: 15),
-              ),
-            ],
-          ),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          PokeMapSearchField(
-            controller: _searchController,
-            hintText: 'Rechercher un preset…',
-            onChanged: (value) => setState(() => _query = value),
-          ),
-          if (_tiledWangError != null && _tiledWangSource == null) ...[
-            const SizedBox(height: 10),
-            PokeMapDiagnosticCallout(
-              key: const Key('smart-tiles-tiled-wang-picker-error'),
-              severity: PokeMapDiagnosticSeverity.error,
-              message: _tiledWangError!,
+            library: SmartTilesStudioLibraryPane(
+              items: visibleItems,
+              searchController: _searchController,
+              usageFilter: _usageFilter,
+              isCreating: _session.state.isCreating,
+              selectedItemKey: _selectedItemKey,
+              tiledWangPickerError:
+                  _tiledWangSource == null ? _tiledWangError : null,
+              onImportTiledWang: widget.onPickTiledWangSource == null ||
+                      widget.onImportTiledWang == null ||
+                      _tiledWangPicking ||
+                      _tiledWangImporting
+                  ? null
+                  : () => unawaited(_pickTiledWangSource()),
+              onReconstructLiteralLayer:
+                  _canStartReconstruction ? _startReconstruction : null,
+              onCreatePattern:
+                  widget.onUpsertPattern == null ? null : _startNewPattern,
+              onCreatePreset: _startDraft,
+              onQueryChanged: (value) => setState(() => _query = value),
+              onUsageFilterChanged: (filter) =>
+                  setState(() => _usageFilter = filter),
+              onResumeDraft: (draft) => unawaited(_resumeDraft(draft)),
+              onSelectItem: _selectLibraryItem,
             ),
-          ],
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: _LibraryUsageFilter.values.map((filter) {
-              return PokeMapButton(
-                key: Key('smart-tiles-filter-${filter.name}'),
-                onPressed: () => setState(() => _usageFilter = filter),
-                variant: PokeMapButtonVariant.ghost,
-                size: PokeMapButtonSize.small,
-                isSelected: _usageFilter == filter,
-                child: Text(_usageFilterLabel(filter)),
-              );
-            }).toList(growable: false),
+            workbench: _buildWorkbench(selectedItem),
+            inspector: SmartTilesStudioInspector(
+              isCreating: _session.state.isCreating,
+              isResumedDraft: _resumedDraftId != null,
+              wizardStepLabel: _wizardStepLabel(_session.state.wizardStep),
+              sourceChoiceLabel:
+                  _sourceChoiceLabel(_session.state.sourceChoice),
+              selectedItem: selectedItem,
+              diagnostics: diagnostics,
+              selectedItemPreview: inspectorFrame == null
+                  ? null
+                  : _spritePreview(
+                      inspectorFrame,
+                      size: 72,
+                      key: const Key('smart-tiles-inspector-sprite'),
+                      semanticLabel: 'Aperçu de ${selectedItem!.name}',
+                    ),
+              canAddSelectedPresetToMap: selectedItem != null &&
+                  _canAddSelectedPresetToMap(selectedItem),
+              isAddingSelectedPreset: _addingSelectedPreset,
+              addSelectedPresetDisabledReason: selectedItem == null
+                  ? null
+                  : _addSelectedPresetDisabledReason(selectedItem),
+              onAddSelectedPresetToMap: selectedItem == null
+                  ? null
+                  : () => unawaited(_addSelectedPresetToMap(selectedItem)),
+            ),
           ),
-          const SizedBox(height: 12),
-          Expanded(
-            child: items.isEmpty
-                ? const PokeMapEmptyState(
-                    title: 'Aucun Smart Tile',
-                    description:
-                        'Créez un preset natif ou recherchez un preset historique.',
-                    icon: Icon(CupertinoIcons.square_grid_3x2),
-                    compact: true,
-                  )
-                : ListView.separated(
-                    key: const Key('smart-tiles-library-list'),
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return PokeMapAssetCard(
-                        key: Key('smart-tiles-library-item-${item.key}'),
-                        thumbnail: Icon(
-                          item.isPattern
-                              ? CupertinoIcons.square_grid_2x2
-                              : CupertinoIcons.square_grid_3x2,
-                          size: 20,
-                        ),
-                        label: item.name,
-                        description: '${item.usageLabel} • ${item.statusLabel}',
-                        onPressed: item.isResumableDraft
-                            ? () =>
-                                unawaited(_resumeDraft(item.canonicalDraft!))
-                            : () => setState(() {
-                                  _session.cancelDraft();
-                                  _editingPattern = null;
-                                  _newPatternId = null;
-                                  _patternError = null;
-                                  _tiledWangSource = null;
-                                  _tiledWangError = null;
-                                  _reconstructionOpen = false;
-                                  _reconstructionPlan = null;
-                                  _reconstructionError = null;
-                                  _selectedItemKey = item.key;
-                                  _focusedRuleId = null;
-                                  _focusedMask = null;
-                                  _testLabController = null;
-                                  _testLabTool = SmartTileLabTool.pencil;
-                                }),
-                        selected: !_session.state.isCreating &&
-                            _selectedItemKey == item.key,
-                      );
-                    },
-                  ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -616,109 +532,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildInspector(SmartTileLibraryItem? selectedItem) {
-    final diagnostics = validateProjectSmartTileCatalog(
-      catalog: widget.manifest.smartTileCatalog,
-      projectTilesetIds: widget.manifest.tilesets.map((tileset) => tileset.id),
-    );
-    return PokeMapPanel(
-      expandChild: true,
-      padding: const EdgeInsets.all(14),
-      header: const Padding(
-        padding: EdgeInsets.fromLTRB(14, 12, 14, 10),
-        child: PokeMapSectionHeader(
-          title: 'Inspecteur',
-          description: 'Propriétés et validation contextuelle',
-        ),
-      ),
-      child: ListView(
-        children: <Widget>[
-          if (_session.state.isCreating) ...[
-            PokeMapBadge(
-              key: const Key('smart-tiles-active-draft-kind'),
-              label: _resumedDraftId == null
-                  ? 'Brouillon de session'
-                  : 'Brouillon repris',
-              variant: PokeMapBadgeVariant.warning,
-            ),
-            const SizedBox(height: 12),
-            _InspectorValue(
-              label: 'Étape',
-              value: _wizardStepLabel(_session.state.wizardStep),
-            ),
-            _InspectorValue(
-              label: 'Source',
-              value: _sourceChoiceLabel(_session.state.sourceChoice),
-            ),
-          ] else if (selectedItem != null) ...[
-            PokeMapBadge(
-              label: selectedItem.statusLabel,
-              variant: selectedItem.isPattern
-                  ? PokeMapBadgeVariant.info
-                  : selectedItem.statusLabel == 'Publié'
-                      ? PokeMapBadgeVariant.success
-                      : PokeMapBadgeVariant.warning,
-            ),
-            const SizedBox(height: 12),
-            if (_inspectorFrameFor(selectedItem) case final frame?) ...[
-              Align(
-                alignment: Alignment.centerLeft,
-                child: _spritePreview(
-                  frame,
-                  size: 72,
-                  key: const Key('smart-tiles-inspector-sprite'),
-                  semanticLabel: 'Aperçu de ${selectedItem.name}',
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
-            _InspectorValue(label: 'Nom', value: selectedItem.name),
-            if (!selectedItem.isPattern)
-              _InspectorValue(label: 'Identifiant', value: selectedItem.id),
-            _InspectorValue(label: 'Usage', value: selectedItem.usageLabel),
-            _InspectorValue(
-              label: 'Origine',
-              value: selectedItem.isPattern ? 'Motif natif' : 'Natif v6',
-            ),
-            if (selectedItem.nativePreset != null) ...[
-              const SizedBox(height: 12),
-              PokeMapButton(
-                key: const Key('smart-tiles-add-to-active-map'),
-                onPressed: _canAddSelectedPresetToMap(selectedItem)
-                    ? () => unawaited(_addSelectedPresetToMap(selectedItem))
-                    : null,
-                disabledReason: _addSelectedPresetDisabledReason(selectedItem),
-                leading: _addingSelectedPreset
-                    ? const CupertinoActivityIndicator(radius: 7)
-                    : const Icon(CupertinoIcons.square_grid_3x2, size: 15),
-                child: const Text('Ajouter à la map active'),
-              ),
-            ],
-          ] else
-            const PokeMapEmptyState(
-              title: 'Rien à inspecter',
-              description: 'Sélectionnez un preset ou créez un brouillon.',
-            ),
-          const SizedBox(height: 18),
-          PokeMapSectionHeader(
-            title: 'Diagnostics du catalogue',
-            description: diagnostics.isEmpty
-                ? 'Aucune erreur structurelle.'
-                : '${diagnostics.length} diagnostic(s) à examiner.',
-          ),
-          PokeMapBadge(
-            label: diagnostics.isEmpty
-                ? 'Structure valide'
-                : '${diagnostics.length} diagnostic(s)',
-            variant: diagnostics.any((item) => item.isError)
-                ? PokeMapBadgeVariant.error
-                : PokeMapBadgeVariant.warning,
-          ),
-        ],
-      ),
     );
   }
 
@@ -3864,23 +3677,23 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     return '$base-$suffix';
   }
 
-  List<SmartTileLibraryItem> _filterItems(
-    List<SmartTileLibraryItem> items,
-  ) {
-    final normalizedQuery = _query.trim().toLowerCase();
-    return items.where((item) {
-      final usageMatches = switch (_usageFilter) {
-        _LibraryUsageFilter.all => true,
-        _LibraryUsageFilter.terrain => item.usage == SmartTileUsage.terrain,
-        _LibraryUsageFilter.path => item.usage == SmartTileUsage.path,
-        _LibraryUsageFilter.forestSurface =>
-          item.usage == SmartTileUsage.forestSurface,
-      };
-      return usageMatches &&
-          (normalizedQuery.isEmpty ||
-              item.name.toLowerCase().contains(normalizedQuery) ||
-              item.id.toLowerCase().contains(normalizedQuery));
-    }).toList(growable: false);
+  void _selectLibraryItem(SmartTileLibraryItem item) {
+    setState(() {
+      _session.cancelDraft();
+      _editingPattern = null;
+      _newPatternId = null;
+      _patternError = null;
+      _tiledWangSource = null;
+      _tiledWangError = null;
+      _reconstructionOpen = false;
+      _reconstructionPlan = null;
+      _reconstructionError = null;
+      _selectedItemKey = item.key;
+      _focusedRuleId = null;
+      _focusedMask = null;
+      _testLabController = null;
+      _testLabTool = SmartTileLabTool.pencil;
+    });
   }
 }
 
@@ -4314,59 +4127,12 @@ class _SmartTileAtlasGridPainter extends CustomPainter {
   }
 }
 
-class _InspectorValue extends StatelessWidget {
-  const _InspectorValue({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.pokeMapColors;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          Text(
-            label,
-            style: TextStyle(
-              color: colors.textMuted,
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            value,
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 String _tabLabel(SmartTilesStudioTab tab) => switch (tab) {
       SmartTilesStudioTab.atlas => 'Atlas',
       SmartTilesStudioTab.rules => 'Règles',
       SmartTilesStudioTab.animations => 'Animations',
       SmartTilesStudioTab.testBench => 'Banc d’essai',
       SmartTilesStudioTab.validation => 'Validation',
-    };
-
-String _usageFilterLabel(_LibraryUsageFilter filter) => switch (filter) {
-      _LibraryUsageFilter.all => 'Tous',
-      _LibraryUsageFilter.terrain => 'Terrain',
-      _LibraryUsageFilter.path => 'Chemin',
-      _LibraryUsageFilter.forestSurface => 'Forêt',
     };
 
 String _templateLabel(SmartTileTemplateHint template) => switch (template) {
