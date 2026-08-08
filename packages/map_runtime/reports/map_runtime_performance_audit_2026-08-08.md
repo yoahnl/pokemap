@@ -217,3 +217,51 @@ Non strippés en release ; les arguments interpolés sont évalués quoi qu'il a
 | **9. Catalogue RMXP** | B1 (asset binaire lazy + maps const résiduelles) | Élevé | −2,5 Mo binaire, temps de build/analyse, mémoire debug/tests |
 
 Les lots 1-2 sont sans risque (mémoïsation pure de données immuables, comportement identique). Le lot 9 est le plus structurant et mérite son propre chantier avec l'outil Python de génération.
+
+---
+
+# Addendum de clôture (2026-08-08)
+
+Les 9 lots ont été livrés le jour même, un commit par lot, poussés sur `main` :
+
+| Lot | Commit | Contenu livré |
+|---|---|---|
+| 1 | `4797a6bf2` | Quick wins rendu (fast path `drawImageRect`, caches foreground/marges, gardes `isEmpty`, `debugPrint` chauds) |
+| 2 | `d13311318` | Bordures construites au mount, ombres cuites par instruction, fusion mémoïsée, culling branché |
+| 3 | `fe9ab5b5d` | `SmartTileLayerVisualPlan` (map_core) : préparation par calque, cellules lazy, variantes d'animation pré-construites, test de parité plan ↔ batch |
+| 4 | `4226964cb` | Battle frame time : cache `TextPainter` LRU, layout HUD scindé, caches de gradients, backdrop en `ui.Picture`, churn `TextPaint`/`Vector2` éliminé |
+| 5 | `6320c1c2a` | Mémoire battle : cache FX au scope jeu, `dispose()` au teardown, borne LRU sur le cache de sprites, scan de pixels en isolate |
+| 6 | `c88c08b24` | Sauvegarde : passes redondantes supprimées (self-verify de `create`, round-trip de `writeVerified`), création d'enveloppe en `Isolate.run`, estimateur borné, écriture atomique du repo fallback |
+| 7 | `710b98d35` | Chargement/warp : tilesets décodés une fois (codec moteur), parse cartes/manifest en isolate, readiness bordure mémoïsée (clé stat) + isolate, dialogues cachés par (chemin, mtime, taille) |
+| 8 | `87b80740d` | PNJ/pathfinding : sonde A* préparée + prédicat de blocage vivant, index de chapitres et projection World Rules cachés, loaders partagés, catalogue pause signé |
+| 9 | `90d2539de` | Catalogue RMXP : 282 843 → 1 730 lignes, asset binaire 480 Ko décodé au premier combat (round-trip validé champ par champ avant suppression du const) |
+
+**Vérification** : `dart analyze` propre à chaque lot ; suites complètes vertes à chaque lot (map_runtime 2128, map_core 3968, éditeur smart tiles 219, hub session+saves 61 — y compris les tests de crash-recovery à injection de pannes du store de sauvegarde). Les seuls échecs restants préexistaient à l'audit et ont été vérifiés par stash sur HEAD : `border_map_layers_component_ordering_test` (ne compile plus contre l'API map_core actuelle), ROT-01 (fixture désalignée), `save_envelope_codec_test` (fixture Phase 0), 16 tests d'artefacts/gates map_core, 1 test de flux de gestes smart tiles éditeur.
+
+## Constats traités hors périmètre initial des lots
+
+- Bug attrapé en route (lot 7) : le nouveau chemin de transparence des tilesets gardait le RGB des pixels keyés avec alpha 0 — invalide en convention prémultipliée (teinte au blending). Détecté par le test de rendu réel des bordures, corrigé en zéroant le pixel entier.
+- Piège de sur-capture des closures `Isolate.run` (lot 6) : un closure créé dans une méthode capture `this` (donc le store et ses hooks de test non envoyables). Convention adoptée : construire les closures d'offload dans des portées statiques/top-level ne contenant que des valeurs envoyables — appliquée aux lots 6, 7 et à la readiness bordure.
+
+## Constats délibérément non traités
+
+Écarts de design assumés (le fix de l'audit a été remplacé par mieux) :
+- **A4/A5 invalidation** : validation par identité à la lecture plutôt que hooks d'invalidation disséminés.
+- **C1 (blocage dynamique)** : prédicat sur l'état vivant plutôt que `Set` caché — les réservations mutent au milieu d'un tick via 12 sites, un cache aurait pu faire traverser un PNJ.
+- **C5 (loaders)** : partage des instances du jeu plutôt que caches `static` — un cache process-level servirait des données périmées après édition + relancement de playtest dans le même process.
+- **D4 (estimateur)** : borné par le seuil plutôt que supprimé — préserve les décisions d'offload et les tests existants.
+- **F15 partiel (RMXP)** : la liste des cellules visibles n'est pas mémoïsée par index de frame — leur position dépend d'ancres de combattants vivantes entre ticks (projectiles).
+
+Reliquat classé par intérêt décroissant, pour un éventuel lot 10 :
+- **C4 (suite)** : interpolation lazy des dialogues — `mapText` clone encore tous les nœuds/choix du fichier à l'ouverture et passe la regex `{{var}}` sur des nœuds jamais visités.
+- **C6 (suite)** : `_loadMoveMachineAvailability` garde sa boucle sac × équipe séquentielle et le pause builder construit encore ses loaders machine/évolution par appel ; la section sac est toujours entièrement reconstruite après usage d'objet.
+- **A8/A9** : index spatial des placed elements par calque (requête + Set + tri par calque par frame) et tri complet des enfants du monde sur changement de `priority` (isoler les acteurs dans un parent depth-sorted).
+- **A10 reliquat** : `PlayerComponent.syncState` par frame idle, re-résolution d'animation des acteurs, rect absolu des patchs d'occlusion, `.trim()`/transforms par instance par frame, `runes.length` du dialogue.
+- **D6 reliquat** : ~290 `debugPrint` non gardés restants (les points chauds — save, pathfinding, update, loaders — sont faits).
+- **D7** : constructeur non vérifié pour `RuntimePlayerSnapshot.next()`.
+- **C7 reliquat** : shop entries calculées 2× par frappe, lookup de nœuds Yarn linéaire, historique playtest non borné, etc.
+- **B7 reliquat** : `battle_move_visual_recipe_library.dart` (12,8k lignes) collapsible en ~20 templates — uniquement si on y retouche.
+
+## Limite de la validation
+
+Tout a été vérifié par analyse statique et par les suites de tests (y compris les tests pixel-level des renderers modifiés et le benchmark d'offload du codec). **Aucune session de jeu réelle n'a été jouée** : le scénario qui exerce le plus de chemins modifiés — warp vers une carte à bordures animées et bâtiments à ombres projetées, ouverture du menu pause, combat complet avec animations RMXP, sauvegarde — reste à faire tourner une fois en conditions réelles.
