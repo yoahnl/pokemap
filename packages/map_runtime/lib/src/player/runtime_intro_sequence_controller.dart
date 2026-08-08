@@ -15,7 +15,11 @@ final class RuntimeIntroSequenceController {
 
   RuntimeIntroPhase get phase => _phase;
   String? get failureReason => _failureReason;
-  bool get canReplay => _allowReplay && _hasVideo;
+  bool get canReplay =>
+      _allowReplay &&
+      _hasVideo &&
+      (_phase == RuntimeIntroPhase.poster ||
+          _phase == RuntimeIntroPhase.completed);
 
   void start({
     required bool hasVideo,
@@ -30,7 +34,8 @@ final class RuntimeIntroSequenceController {
     _failureReason = null;
 
     if (!hasVideo) {
-      _phase = RuntimeIntroPhase.completed;
+      _phase =
+          hasPoster ? RuntimeIntroPhase.poster : RuntimeIntroPhase.completed;
       return;
     }
     if (reducedMotion) {
@@ -64,14 +69,30 @@ final class RuntimeIntroSequenceController {
   }
 
   void playbackFailed(String reason) {
+    // Decoder callbacks can arrive after a skip/dispose. Only the playback
+    // phases are allowed to change the fallback decision.
+    if (_phase != RuntimeIntroPhase.playing &&
+        _phase != RuntimeIntroPhase.paused) {
+      return;
+    }
     _failureReason = reason;
     _phase =
         _hasPoster ? RuntimeIntroPhase.poster : RuntimeIntroPhase.completed;
   }
 
-  void skip() => _phase = RuntimeIntroPhase.completed;
+  void skip() {
+    if (_phase == RuntimeIntroPhase.playing ||
+        _phase == RuntimeIntroPhase.paused ||
+        _phase == RuntimeIntroPhase.poster) {
+      _phase = RuntimeIntroPhase.completed;
+    }
+  }
 
-  void continueFromPoster() => _phase = RuntimeIntroPhase.completed;
+  void continueFromPoster() {
+    if (_phase == RuntimeIntroPhase.poster) {
+      _phase = RuntimeIntroPhase.completed;
+    }
+  }
 
   bool replay() {
     if (!canReplay) return false;

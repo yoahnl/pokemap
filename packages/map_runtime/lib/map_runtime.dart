@@ -49,6 +49,38 @@ export 'src/player/runtime_intro_sequence_controller.dart'
         RuntimeIntroPhase,
         RuntimeIntroReducedMotionBehavior,
         RuntimeIntroSequenceController;
+export 'src/player/runtime_startup_models.dart'
+    show
+        RuntimeStartupPhase,
+        RuntimeStartupAction,
+        RuntimeStartupCommandStatus,
+        RuntimeStartupCommand,
+        RuntimeStartupCommandResult,
+        RuntimeStartupPreparationStage,
+        RuntimeStartupDiagnostic,
+        RuntimeStartupFailure,
+        RuntimeHostSplashBranding,
+        RuntimeResolvedAsset,
+        RuntimeStartupPresentationAsset,
+        RuntimeStartupResolvedPresentation,
+        RuntimeStartupSnapshot;
+export 'src/player/runtime_startup_preparation.dart'
+    show
+        runtimeStartupPreparationWeights,
+        RuntimeStartupClock,
+        SystemRuntimeStartupClock,
+        RuntimeStartupPreparationStepStatus,
+        RuntimeStartupPreparationStepResult,
+        RuntimeStartupPreparationOperation,
+        RuntimeStartupPreparationSnapshot,
+        RuntimeStartupPreparationStatus,
+        RuntimeStartupPreparationResult,
+        RuntimeStartupPreparation;
+export 'src/player/runtime_startup_coordinator.dart'
+    show
+        RuntimeStartupPreparationPort,
+        RuntimePresentationAssetResolver,
+        RuntimeStartupCoordinator;
 
 export 'src/application/scene_runtime/narrative_command_runtime_capability_evidence.dart'
     show buildMapRuntimeNarrativeCommandConsumerAttestation;

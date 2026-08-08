@@ -104,7 +104,6 @@ void main() {
         ),
       ),
       isTrue,
-      reason: 'Menu is consumed even when the title has no menu action.',
     );
     await router.route(
       const PlayerInputCommand.press(
@@ -123,6 +122,7 @@ void main() {
 
     expect(toggles, 0);
     expect(routed.map((command) => command.action), <PlayerInputAction>[
+      PlayerInputAction.menu,
       PlayerInputAction.down,
     ]);
   });
@@ -164,5 +164,26 @@ void main() {
     expect(gameplayCalls, 0);
     expect(shellCalls, 0);
     expect(menuToggles, 0);
+  });
+
+  test('Menu is not forwarded from result or credits surfaces', () async {
+    var surface = PlayerInputSurface.result;
+    final routed = <PlayerInputCommand>[];
+    final router = PlayerInputRouter(
+      surface: () => surface,
+      routeGameplay: (_) => false,
+      routeSurface: (command) async => routed.add(command),
+      toggleMenu: () async {},
+      releaseGameplayDirections: () {},
+    );
+    const menu = PlayerInputCommand.press(
+      PlayerInputAction.menu,
+      source: PlayerInputSource.controller,
+    );
+
+    expect(await router.route(menu), isTrue);
+    surface = PlayerInputSurface.credits;
+    expect(await router.route(menu), isTrue);
+    expect(routed, isEmpty);
   });
 }

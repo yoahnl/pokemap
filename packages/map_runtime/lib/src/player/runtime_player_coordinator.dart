@@ -58,6 +58,7 @@ final class RuntimePlayerCoordinator {
   RuntimePlayerSnapshot? _lifecycleResumeSnapshot;
   Future<bool>? _activeSaveBoundary;
   int _launchGeneration = 0;
+  bool _lifecycleActive = true;
   bool _creditsOpenedFromTitle = false;
   bool _disposed = false;
 
@@ -131,6 +132,13 @@ final class RuntimePlayerCoordinator {
   }
 
   Future<void> pauseForLifecycle() {
+    _ensureOpen();
+    if (!_lifecycleActive) return Future<void>.value();
+    // Invalidate a descriptor/session launch synchronously. The serialized
+    // lifecycle operation may sit behind that launch, but allocation checks
+    // observe this generation change as soon as their current await returns.
+    _lifecycleActive = false;
+    _launchGeneration++;
     return _serialize(() async {
       _ensureOpen();
       if (_snapshot.phase == RuntimePlayerPhase.lifecyclePaused) return;
@@ -151,6 +159,9 @@ final class RuntimePlayerCoordinator {
   }
 
   Future<void> resumeFromLifecycle() {
+    _ensureOpen();
+    if (_lifecycleActive) return Future<void>.value();
+    _lifecycleActive = true;
     return _serialize(() async {
       _ensureOpen();
       if (_snapshot.phase != RuntimePlayerPhase.lifecyclePaused) return;
@@ -651,6 +662,11 @@ final class RuntimePlayerCoordinator {
   Future<RuntimePlayerCommandResult> _launch(
     _RuntimeLaunchRequest request,
   ) async {
+    if (!_lifecycleActive) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.cancelled,
+      );
+    }
     final generation = ++_launchGeneration;
     _retryLaunch = request;
     _publish(
@@ -670,32 +686,24 @@ final class RuntimePlayerCoordinator {
         initialPlayerIdentity: request.initialPlayerIdentity,
       );
       if (generation != _launchGeneration) {
-        return const RuntimePlayerCommandResult(
-          status: RuntimePlayerCommandStatus.cancelled,
-        );
+        return _finishCancelledLaunch();
       }
       await _sessions.prepare(descriptor);
       if (generation != _launchGeneration) {
         await _sessions.terminate();
-        return const RuntimePlayerCommandResult(
-          status: RuntimePlayerCommandStatus.cancelled,
-        );
+        return _finishCancelledLaunch();
       }
       await _sessions.start();
       if (generation != _launchGeneration) {
         await _cancelLiveSession();
-        return const RuntimePlayerCommandResult(
-          status: RuntimePlayerCommandStatus.cancelled,
-        );
+        return _finishCancelledLaunch();
       }
       return const RuntimePlayerCommandResult(
         status: RuntimePlayerCommandStatus.accepted,
       );
     } catch (_) {
       if (generation != _launchGeneration) {
-        return const RuntimePlayerCommandResult(
-          status: RuntimePlayerCommandStatus.cancelled,
-        );
+        return _finishCancelledLaunch();
       }
       _publishFailure(
         const GameSessionFailure(
@@ -710,6 +718,15 @@ final class RuntimePlayerCoordinator {
         safeMessage: 'The game session could not be launched.',
       );
     }
+  }
+
+  RuntimePlayerCommandResult _finishCancelledLaunch() {
+    if (!_disposed && _snapshot.phase != RuntimePlayerPhase.title) {
+      _publishTitle();
+    }
+    return const RuntimePlayerCommandResult(
+      status: RuntimePlayerCommandStatus.cancelled,
+    );
   }
 
   Future<RuntimePlayerCommandResult> _cancel(

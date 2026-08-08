@@ -82,4 +82,53 @@ void main() {
     expect(controller.replay(), isFalse);
     expect(controller.phase, RuntimeIntroPhase.completed);
   });
+
+  test('resolved poster remains the fallback when video is unavailable', () {
+    final controller = RuntimeIntroSequenceController()
+      ..start(
+        hasVideo: false,
+        hasPoster: true,
+        reducedMotion: false,
+        reducedMotionBehavior: RuntimeIntroReducedMotionBehavior.poster,
+        allowReplay: true,
+      );
+
+    expect(controller.phase, RuntimeIntroPhase.poster);
+    expect(controller.canReplay, isFalse);
+    controller.continueFromPoster();
+    expect(controller.phase, RuntimeIntroPhase.completed);
+  });
+
+  test('late playback failure cannot reopen an intro after skip', () {
+    final controller = RuntimeIntroSequenceController()
+      ..start(
+        hasVideo: true,
+        hasPoster: true,
+        reducedMotion: false,
+        reducedMotionBehavior: RuntimeIntroReducedMotionBehavior.poster,
+        allowReplay: true,
+      )
+      ..skip();
+
+    controller.playbackFailed('late decoder callback');
+
+    expect(controller.phase, RuntimeIntroPhase.completed);
+    expect(controller.failureReason, isNull);
+  });
+
+  test('replay is only available from poster or completed state', () {
+    final controller = RuntimeIntroSequenceController()
+      ..start(
+        hasVideo: true,
+        hasPoster: true,
+        reducedMotion: false,
+        reducedMotionBehavior: RuntimeIntroReducedMotionBehavior.poster,
+        allowReplay: true,
+      );
+
+    expect(controller.replay(), isFalse);
+    controller.playbackFailed('decoder unavailable');
+    expect(controller.replay(), isTrue);
+    expect(controller.phase, RuntimeIntroPhase.playing);
+  });
 }

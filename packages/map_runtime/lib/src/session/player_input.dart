@@ -110,6 +110,11 @@ final class PlayerInputRouter {
           surface == PlayerInputSurface.pause) {
         _releaseGameplayDirections();
         await _toggleMenu();
+      } else if (surface == PlayerInputSurface.title) {
+        // Start/Menu is also the primary startup action on title surfaces.
+        // Route it once to the shell; non-directional repeats were consumed
+        // above, so the same held button cannot cross two startup phases.
+        await _routeSurface(command);
       }
       return true;
     }
