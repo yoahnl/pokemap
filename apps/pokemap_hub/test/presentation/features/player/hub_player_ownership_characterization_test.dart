@@ -28,6 +28,8 @@ void main() {
       );
     }
     expect(installedPlayer, contains('RuntimePlayerCoordinator('));
+    expect(installedPlayer, contains('RuntimeStartupCoordinator('));
+    expect(installedPlayer, contains('PlayerRuntimeStartupShell('));
     expect(installedPlayer, contains('PokeMapPlayerSessionView('));
   });
 }

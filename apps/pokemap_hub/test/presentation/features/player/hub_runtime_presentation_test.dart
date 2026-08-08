@@ -14,6 +14,11 @@ void main() {
 
     expect(installedPlayer, contains('GameWidget('));
     expect(installedPlayer, contains('RuntimePlayerCoordinator('));
+    expect(installedPlayer, contains('RuntimeStartupCoordinator('));
+    expect(installedPlayer, contains('HubRuntimeStartupAdapter('));
+    expect(installedPlayer, contains('PlayerRuntimeStartupShell('));
+    expect(installedPlayer, contains('runtimeStartupShellEnabled'));
+    expect(installedPlayer, contains('stopIntroPlayback'));
     expect(installedPlayer, contains('PokeMapPlayerSessionView('));
     expect(
       installedPlayer,
@@ -32,6 +37,15 @@ void main() {
     expect(
       'PokeMapPlayerSessionView('.allMatches(installedPlayer),
       hasLength(1),
+    );
+    expect(
+      'PlayerRuntimeStartupShell('.allMatches(installedPlayer),
+      hasLength(1),
+    );
+    expect(
+      installedPlayer,
+      isNot(contains('HubIntroVideoPlayer(')),
+      reason: 'Concrete intro playback must now live in map_player_ui.',
     );
     expect(installedPlayer, contains('HubRuntimeGameSource('));
     expect(installedPlayer, contains('HubPlayerSaveGateway('));

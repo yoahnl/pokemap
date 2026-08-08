@@ -23,6 +23,7 @@ class PlayerIntroVideoPlayer extends StatefulWidget {
     required this.onSkip,
     required this.onContinue,
     required this.onReplay,
+    this.controller,
     this.poster,
     this.driverFactory,
     this.allowReplay = false,
@@ -30,6 +31,7 @@ class PlayerIntroVideoPlayer extends StatefulWidget {
 
   final PlayerIntroVideoSource source;
   final RuntimeIntroPhase phase;
+  final PlayerIntroVideoPlayerController? controller;
   final ImageProvider? poster;
   final PlayerIntroPlaybackFactory? driverFactory;
   final VoidCallback onPlaybackCompleted;
@@ -51,6 +53,7 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
   int _generation = 0;
   bool _completionReported = false;
   bool _failureReported = false;
+  bool _stoppedByHost = false;
 
   bool get _shouldPlay => widget.phase == RuntimeIntroPhase.playing;
 
@@ -58,18 +61,24 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.controller?.attach(_stopPlaybackForHost);
     if (_shouldPlay) _startPlayback();
   }
 
   @override
   void didUpdateWidget(PlayerIntroVideoPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.controller, widget.controller)) {
+      oldWidget.controller?.detach(_stopPlaybackForHost);
+      widget.controller?.attach(_stopPlaybackForHost);
+    }
     if (oldWidget.source.videoUri != widget.source.videoUri) {
       _replaceDriver();
       return;
     }
     if (oldWidget.phase != widget.phase) {
       if (_shouldPlay) {
+        _stoppedByHost = false;
         _completionReported = false;
         _failureReported = false;
         if (_failureMessage != null) {
@@ -131,7 +140,7 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
 
   void _handleSnapshot() {
     final driver = _driver;
-    if (driver == null || !mounted) return;
+    if (driver == null || !mounted || _stoppedByHost) return;
     final next = driver.snapshots.value;
     if (next.errorDescription case final reason?) {
       _reportFailure(reason);
@@ -153,12 +162,24 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
     widget.onPlaybackFailed(safeReason);
   }
 
+  /// The coordinator awaits this pause before title music may begin. The
+  /// generation guard also prevents a pending initialize from restarting the
+  /// decoder while the startup phase is still being committed.
+  Future<void> _stopPlaybackForHost() async {
+    _stoppedByHost = true;
+    _generation++;
+    await _driver?.pause();
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final driver = _driver;
     if (driver == null) return;
     if (state == AppLifecycleState.resumed) {
-      if (_shouldPlay && !_failureReported && !_completionReported) {
+      if (_shouldPlay &&
+          !_stoppedByHost &&
+          !_failureReported &&
+          !_completionReported) {
         unawaited(driver.play());
       }
       return;
@@ -203,6 +224,7 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.controller?.detach(_stopPlaybackForHost);
     _generation++;
     final driver = _driver;
     _driver = null;

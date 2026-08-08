@@ -1,15 +1,19 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
-import 'package:pokemap_loader/src/runtime_launch_save.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
+import 'package:pokemap_loader/src/runtime_launch_save.dart';
+import 'package:pokemap_loader/src/runtime_startup_host.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('the versioned Phase A golden slice exposes a real launch save',
       () async {
-    final projectFilePath =
-        '${Directory.current.path}${Platform.pathSeparator}golden_battle_slice${Platform.pathSeparator}project.json';
+    final projectFilePath = _goldenProjectPath();
 
     final save = await loadRuntimeHostLaunchSaveData(
       projectFilePath: projectFilePath,
@@ -20,4 +24,385 @@ void main() {
     expect(save.party.members, hasLength(2));
     expect(save.party.members.first.speciesId, equals('sproutle'));
   });
+
+  test('startup shell launches New Game through the standalone session port',
+      () async {
+    final projectFilePath = _goldenProjectPath();
+    final manifest = await _loadManifest(projectFilePath);
+    final identity = buildStandaloneRuntimeGameIdentity(
+      projectFilePath: projectFilePath,
+      projectFormat: manifest.version.name,
+    );
+    expect(
+      await StandalonePlayerSaveGateway(
+        projectFilePath: projectFilePath,
+        identity: identity,
+      ).readLatestSummary(),
+      isNotNull,
+    );
+    final launches = <GameSessionDescriptor>[];
+    final loadedMapIds = <String>[];
+    final host = StandaloneRuntimeStartupHost(
+      projectFilePath: projectFilePath,
+      manifest: manifest,
+      minimumSplashDuration: Duration.zero,
+      sessionPort: CallbackStandaloneRuntimeSessionPort(
+        onLaunch: (descriptor, reportProgress) async {
+          launches.add(descriptor);
+          final bundle = await loadRuntimeMapBundle(
+            projectFilePath: projectFilePath,
+            mapId: 'golden_field',
+          );
+          loadedMapIds.add(bundle.map.id);
+          reportProgress(
+            const GameSessionLoadingProgress(
+              stage: 'ready',
+              current: 1,
+              total: 1,
+            ),
+          );
+        },
+      ),
+    );
+    addTearDown(host.dispose);
+
+    host.start();
+    await _waitForPhase(host, RuntimeStartupPhase.titlePrompt);
+    await host.coordinator.dispatch(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.pressStart,
+        snapshotRevision: host.snapshot.revision,
+      ),
+    );
+    final player = host.snapshot.playerSnapshot!;
+
+    final result = await host.coordinator.dispatchPlayerCommand(
+      startupSnapshotRevision: host.snapshot.revision,
+      command: RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: player.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: standaloneRuntimeProfileId,
+          slotId: standaloneRuntimeSlotId,
+        ),
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(launches, hasLength(1));
+    expect(launches.single.launchMode, GameSessionLaunchMode.newGame);
+    expect(loadedMapIds, <String>['golden_field']);
+    await _waitForPhase(host, RuntimeStartupPhase.completed);
+    expect(host.snapshot.phase, RuntimeStartupPhase.completed);
+  });
+
+  test('startup shell discovers and continues the canonical adjacent save',
+      () async {
+    final projectFilePath = _goldenProjectPath();
+    final manifest = await _loadManifest(projectFilePath);
+    final launches = <GameSessionDescriptor>[];
+    final restoredPositions = <String>[];
+    final host = StandaloneRuntimeStartupHost(
+      projectFilePath: projectFilePath,
+      manifest: manifest,
+      minimumSplashDuration: Duration.zero,
+      sessionPort: CallbackStandaloneRuntimeSessionPort(
+        onLaunch: (descriptor, _) async {
+          launches.add(descriptor);
+          final save = await loadRuntimeHostLaunchSaveData(
+            projectFilePath: projectFilePath,
+          );
+          final bundle = await loadRuntimeMapBundle(
+            projectFilePath: projectFilePath,
+            mapId: save!.currentMapId,
+          );
+          restoredPositions.add(
+            '${bundle.map.id}:${save.playerPosition.x},${save.playerPosition.y}',
+          );
+        },
+      ),
+    );
+    addTearDown(host.dispose);
+
+    host.start();
+    await _waitForPhase(host, RuntimeStartupPhase.titlePrompt);
+    expect(host.snapshot.playerSnapshot!.hasDiscoveredSave, isTrue);
+    await host.coordinator.dispatch(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.pressStart,
+        snapshotRevision: host.snapshot.revision,
+      ),
+    );
+    final player = host.snapshot.playerSnapshot!;
+
+    final result = await host.coordinator.dispatchPlayerCommand(
+      startupSnapshotRevision: host.snapshot.revision,
+      command: RuntimePlayerCommand(
+        action: RuntimePlayerAction.continueGame,
+        snapshotRevision: player.revision,
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(launches, hasLength(1));
+    expect(launches.single.launchMode, GameSessionLaunchMode.continueGame);
+    expect(launches.single.saveReadHandle, 'standalone-save-v1');
+    expect(restoredPositions, <String>['golden_field:1,1']);
+    await _waitForPhase(host, RuntimeStartupPhase.completed);
+    expect(host.snapshot.phase, RuntimeStartupPhase.completed);
+  });
+
+  test('standalone presentation resolution cannot escape the project root',
+      () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap-standalone-startup-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(
+      '${root.path}${Platform.pathSeparator}project.json',
+    );
+    await projectFile.writeAsString('{}');
+    final inside = File('${root.path}${Platform.pathSeparator}hero.png');
+    await inside.writeAsBytes(const <int>[0, 1, 2]);
+    final outside = File('${root.parent.path}${Platform.pathSeparator}x.png');
+    await outside.writeAsBytes(const <int>[3, 4, 5]);
+    addTearDown(() async {
+      if (await outside.exists()) await outside.delete();
+    });
+    final manifest = await _loadManifest(_goldenProjectPath());
+    final adapter = StandaloneRuntimeStartupAdapter(
+      projectFilePath: projectFile.path,
+      manifest: manifest,
+    );
+
+    expect(await adapter.resolveImage('hero.png'), isNotNull);
+    expect(await adapter.resolveImage('../x.png'), isNull);
+    expect(await adapter.resolveMedia('missing.mp4'), isNull);
+  });
+
+  test('missing standalone presentation media stays non-blocking', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap-standalone-missing-media-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(
+      '${root.path}${Platform.pathSeparator}project.json',
+    );
+    await projectFile.writeAsString('{}');
+    final fixture = await _loadManifest(_goldenProjectPath());
+    final manifest = fixture.copyWith(
+      presentation: const ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(
+          heroPath: 'media/missing-hero.png',
+          titleMusicPath: 'media/missing-title.ogg',
+        ),
+        intro: ProjectIntroVideoProfile(
+          videoPath: 'media/missing-intro.mp4',
+          posterPath: 'media/missing-poster.png',
+          durationMilliseconds: 1200,
+          width: 1280,
+          height: 720,
+          bitrateKbps: 1200,
+          sizeBytes: 1024,
+          videoCodec: 'h264',
+        ),
+      ),
+    );
+    final host = StandaloneRuntimeStartupHost(
+      projectFilePath: projectFile.path,
+      manifest: manifest,
+      minimumSplashDuration: Duration.zero,
+      sessionPort: CallbackStandaloneRuntimeSessionPort(
+        onLaunch: (_, __) async {},
+      ),
+    );
+    addTearDown(host.dispose);
+
+    host.start();
+    await _waitForPhase(host, RuntimeStartupPhase.titlePrompt);
+
+    expect(
+      host.snapshot.diagnostics.map((item) => item.code),
+      containsAll(<String>{
+        'introVideoUnavailable',
+        'introPosterUnavailable',
+        'titleHeroUnavailable',
+        'titleMusicUnavailable',
+      }),
+    );
+  });
+
+  test('a malformed adjacent save becomes a recoverable startup error',
+      () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap-standalone-invalid-save-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(
+      '${root.path}${Platform.pathSeparator}project.json',
+    );
+    await projectFile.writeAsString('{}');
+    await File(
+      '${root.path}${Platform.pathSeparator}$kRuntimeHostLaunchSaveFileName',
+    ).writeAsString('{ invalid json');
+    final host = StandaloneRuntimeStartupHost(
+      projectFilePath: projectFile.path,
+      manifest: await _loadManifest(_goldenProjectPath()),
+      minimumSplashDuration: Duration.zero,
+      sessionPort: CallbackStandaloneRuntimeSessionPort(
+        onLaunch: (_, __) async {},
+      ),
+    );
+    addTearDown(host.dispose);
+
+    host.start();
+    await _waitForPhase(host, RuntimeStartupPhase.recoverableError);
+
+    expect(host.snapshot.canRetry, isTrue);
+    expect(
+      host.snapshot.playerSnapshot?.failure?.code,
+      GameSessionFailureCode.storage,
+    );
+  });
+
+  test('the standalone canonical slot commits through the runtime gateway',
+      () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap-standalone-save-commit-',
+    );
+    addTearDown(() => root.delete(recursive: true));
+    final projectFile = File(
+      '${root.path}${Platform.pathSeparator}project.json',
+    );
+    await projectFile.writeAsString('{}');
+    final manifest = await _loadManifest(_goldenProjectPath());
+    final identity = buildStandaloneRuntimeGameIdentity(
+      projectFilePath: projectFile.path,
+      projectFormat: manifest.version.name,
+    );
+    final gateway = StandalonePlayerSaveGateway(
+      projectFilePath: projectFile.path,
+      identity: identity,
+    );
+    final fixtureSave = await loadRuntimeHostLaunchSaveData(
+      projectFilePath: _goldenProjectPath(),
+    );
+    final createdAt = DateTime.utc(2026, 8, 9, 12);
+    const saveId = 'e74ef416-9ad1-5d32-a420-20f7eb375b6c';
+    final descriptor = GameSessionDescriptor(
+      sessionId: 'standalone-save-test',
+      sessionToken: 'standalone-save-secret',
+      identity: identity,
+      profileId: standaloneRuntimeProfileId,
+      slotId: standaloneRuntimeSlotId,
+      launchMode: GameSessionLaunchMode.newGame,
+      installedVersionHandle: 'standalone-save-fixture',
+      runtimeApiVersion: '1.0.0',
+      grantedCapabilities: const <String>{},
+      locale: 'fr',
+      accessibility: const GameSessionAccessibilityOptions(),
+    );
+
+    await gateway.commit(
+      GameSessionCheckpointCommit(
+        descriptor: descriptor.publicContext,
+        checkpoint: GameSessionCheckpoint(
+          saveId: saveId,
+          createdAt: createdAt,
+          updatedAt: createdAt.add(const Duration(minutes: 3)),
+          playTimeSeconds: 180,
+          state: gameStateFromSaveData(
+            fixtureSave!,
+          ).copyWith(saveId: saveId).toJson(),
+        ),
+        status: SaveStatus.active,
+      ),
+    );
+
+    final committed = await loadRuntimeHostLaunchSaveData(
+      projectFilePath: projectFile.path,
+    );
+    expect(committed?.saveId, saveId);
+    expect(committed?.currentMapId, 'golden_field');
+    expect(await gateway.readLatestSummary(), isNotNull);
+  });
+
+  test('the standalone splash waits for the real minimum gate', () async {
+    final projectFilePath = _goldenProjectPath();
+    final clock = _GateClock();
+    final host = StandaloneRuntimeStartupHost(
+      projectFilePath: projectFilePath,
+      manifest: await _loadManifest(projectFilePath),
+      clock: clock,
+      minimumSplashDuration: const Duration(seconds: 10),
+      sessionPort: CallbackStandaloneRuntimeSessionPort(
+        onLaunch: (_, __) async {},
+      ),
+    );
+    addTearDown(host.dispose);
+
+    host.start();
+    await _waitForPreparation(host);
+
+    expect(host.snapshot.phase, RuntimeStartupPhase.splash);
+    expect(host.snapshot.isMinimumElapsed, isFalse);
+    clock.complete();
+    await _waitForPhase(host, RuntimeStartupPhase.titlePrompt);
+  });
+
+  test('the developer picker adopts the generic shell behind a host flag',
+      () async {
+    final source = await File('lib/main.dart').readAsString();
+
+    expect(source, contains('PlayerRuntimeStartupShell('));
+    expect(source, contains('StandaloneRuntimeStartupHost('));
+    expect(source, contains("'POKEMAP_RUNTIME_STARTUP_SHELL'"));
+    expect(source,
+        contains('onPressed: _loading ? null : _launchSelectedProject'));
+    expect(source, isNot(contains('onPressed: _loading ? null : _load,')));
+  });
+}
+
+String _goldenProjectPath() =>
+    '${Directory.current.path}${Platform.pathSeparator}golden_battle_slice${Platform.pathSeparator}project.json';
+
+Future<ProjectManifest> _loadManifest(String path) async =>
+    ProjectManifest.fromJson(
+      jsonDecode(await File(path).readAsString()) as Map<String, dynamic>,
+    );
+
+Future<void> _waitForPhase(
+  StandaloneRuntimeStartupHost host,
+  RuntimeStartupPhase phase,
+) async {
+  for (var attempt = 0; attempt < 200; attempt++) {
+    if (host.snapshot.phase == phase) return;
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+  fail(
+    'Timed out waiting for ${phase.name}; '
+    'current phase is ${host.snapshot.phase.name}, '
+    'startup failure=${host.snapshot.failure?.code}, '
+    'player phase=${host.snapshot.playerSnapshot?.phase.name}, '
+    'player failure=${host.snapshot.playerSnapshot?.failure?.code.name}.',
+  );
+}
+
+Future<void> _waitForPreparation(StandaloneRuntimeStartupHost host) async {
+  for (var attempt = 0; attempt < 200; attempt++) {
+    if (host.snapshot.isPreparationReady) return;
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+  fail('Timed out waiting for standalone startup preparation.');
+}
+
+final class _GateClock implements RuntimeStartupClock {
+  final Completer<void> _gate = Completer<void>();
+
+  @override
+  Future<void> delay(Duration duration) => _gate.future;
+
+  void complete() {
+    if (!_gate.isCompleted) _gate.complete();
+  }
 }

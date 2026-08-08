@@ -27,15 +27,28 @@ typedef PlayerStartupIntroFailure = void Function(
 /// runtime input router. Keyboard and touch remain regular Flutter input.
 final class PlayerRuntimeStartupShellController {
   bool Function(PlayerInputCommand command)? _handler;
+  Future<void> Function()? _stopIntroPlayback;
 
   bool handle(PlayerInputCommand command) => _handler?.call(command) ?? false;
 
-  void _attach(bool Function(PlayerInputCommand command) handler) {
+  /// Awaits decoder silence without owning any startup navigation decision.
+  Future<void> stopIntroPlayback() =>
+      _stopIntroPlayback?.call() ?? Future<void>.value();
+
+  void _attach(
+    bool Function(PlayerInputCommand command) handler,
+    Future<void> Function() stopIntroPlayback,
+  ) {
     _handler = handler;
+    _stopIntroPlayback = stopIntroPlayback;
   }
 
-  void _detach(bool Function(PlayerInputCommand command) handler) {
+  void _detach(
+    bool Function(PlayerInputCommand command) handler,
+    Future<void> Function() stopIntroPlayback,
+  ) {
     if (_handler == handler) _handler = null;
+    if (_stopIntroPlayback == stopIntroPlayback) _stopIntroPlayback = null;
   }
 }
 
@@ -95,6 +108,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     with SingleTickerProviderStateMixin {
   late final AnimationController _splashAnimation;
   late final RuntimePlayerFocusController _focusController;
+  late final PlayerIntroVideoPlayerController _introPlaybackController;
   int? _consumedStartupRevision;
 
   RuntimeStartupPhase get _visiblePhase =>
@@ -122,15 +136,16 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       activeInputSource: widget.snapshot.playerSnapshot?.activeInputSource ??
           PlayerInputSource.keyboard,
     );
-    widget.controller?._attach(_handleInput);
+    _introPlaybackController = PlayerIntroVideoPlayerController();
+    widget.controller?._attach(_handleInput, _stopIntroPlayback);
   }
 
   @override
   void didUpdateWidget(PlayerRuntimeStartupShell oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
-      oldWidget.controller?._detach(_handleInput);
-      widget.controller?._attach(_handleInput);
+      oldWidget.controller?._detach(_handleInput, _stopIntroPlayback);
+      widget.controller?._attach(_handleInput, _stopIntroPlayback);
     }
     if (oldWidget.snapshot.revision != widget.snapshot.revision) {
       _consumedStartupRevision = null;
@@ -207,6 +222,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     }
     return PlayerIntroVideoPlayer(
       source: source,
+      controller: _introPlaybackController,
       poster: widget.introPoster,
       phase: snapshot.introPhase,
       allowReplay: snapshot.canReplayIntro,
@@ -227,6 +243,8 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       onReplay: () => _dispatchStartup(RuntimeStartupAction.replayIntro),
     );
   }
+
+  Future<void> _stopIntroPlayback() => _introPlaybackController.stopPlayback();
 
   Widget _buildTitlePrompt() {
     final player = widget.snapshot.playerSnapshot;
@@ -536,7 +554,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
 
   @override
   void dispose() {
-    widget.controller?._detach(_handleInput);
+    widget.controller?._detach(_handleInput, _stopIntroPlayback);
     _splashAnimation.dispose();
     _focusController.dispose();
     super.dispose();

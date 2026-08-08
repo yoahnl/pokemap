@@ -12,6 +12,7 @@ import 'package:gamepads/gamepads.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
 
 import 'src/in_game_menu.dart';
@@ -35,12 +36,19 @@ import 'src/runtime_pokedex_loader.dart';
 import 'src/runtime_project_picker.dart';
 import 'src/runtime_project_launch_map.dart';
 import 'src/runtime_projects_directory.dart';
+import 'src/runtime_startup_host.dart';
 import 'src/runtime_touch_controls.dart';
 import 'src/runtime_touch_controls_visibility.dart';
 
 void _runtimeHostLog(String message) {
   debugPrint('[runtime_host] $message');
 }
+
+/// Host-owned rollback capability. Authored project data cannot change it.
+const _runtimeStartupShellEnabled = bool.fromEnvironment(
+  'POKEMAP_RUNTIME_STARTUP_SHELL',
+  defaultValue: true,
+);
 
 // Point d'entrée minimal du host runtime.
 // On garde un MaterialApp très simple, puis toute la navigation se fait
@@ -62,7 +70,8 @@ class _ProjectLoaderPage extends StatefulWidget {
   State<_ProjectLoaderPage> createState() => _ProjectLoaderPageState();
 }
 
-class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
+class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
+    with WidgetsBindingObserver {
   String _projectFilePath = '';
   List<ProjectMapEntry> _availableMaps = const [];
   ProjectManifest? _projectManifest;
@@ -96,12 +105,20 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
           : null;
   InteractiveEvaluationBridge? _interactiveBridge;
   final GlobalKey _interactiveGameSurfaceKey = GlobalKey();
+  final player_ui.PlayerRuntimeStartupShellController _startupShellController =
+      player_ui.PlayerRuntimeStartupShellController();
+  StandaloneRuntimeStartupHost? _startupHost;
+  RuntimeStartupSnapshot? _startupSnapshot;
+  StreamSubscription<RuntimeStartupSnapshot>? _startupSubscription;
+  DateTime? _sessionCreatedAt;
+  Stopwatch? _sessionPlayWatch;
 
   static const _prefsFileName = '.playable_runtime_host_prefs.json';
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _bindGamepadInputsIfNeeded();
     _startGamepadPresenceRefreshIfNeeded();
     _restoreLastSession();
@@ -114,8 +131,20 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     _runtimeInfoTicker?.cancel();
     _gamepadPresenceTimer?.cancel();
     _runtimeGamepadSubscription?.cancel();
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_disposeInteractiveBridge());
-    _disposeCurrentGame();
+    final startupSubscription = _startupSubscription;
+    _startupSubscription = null;
+    if (startupSubscription != null) {
+      unawaited(startupSubscription.cancel());
+    }
+    final startupHost = _startupHost;
+    _startupHost = null;
+    if (startupHost != null) {
+      unawaited(startupHost.dispose());
+    } else {
+      _disposeCurrentGame();
+    }
     super.dispose();
   }
 
@@ -123,6 +152,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     final game = _game;
     _game = null;
     game?.dispose();
+    _sessionPlayWatch?.stop();
+    _sessionPlayWatch = null;
+    _sessionCreatedAt = null;
   }
 
   bool get _supportsTouchControls =>
@@ -150,9 +182,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
           setState(() => _hasConnectedGamepad = true);
           _syncBattleCommandOverlayPreference();
         }
-        if (game == null) {
-          return;
-        }
         final runtimeEvents = event.button != null
             ? bridge.handleButton(
                 gamepadId: event.gamepadId,
@@ -165,7 +194,21 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                 value: event.value,
               );
         for (final runtimeEvent in runtimeEvents) {
-          game.handleRuntimeInputEvent(runtimeEvent);
+          if (game != null) {
+            final startupHost = _startupHost;
+            if (startupHost != null) {
+              startupHost.sessionController.handleInput(runtimeEvent);
+            } else {
+              game.handleRuntimeInputEvent(runtimeEvent);
+            }
+          } else {
+            _startupShellController.handle(
+              playerInputCommandFromRuntimeEvent(
+                runtimeEvent,
+                source: PlayerInputSource.controller,
+              ),
+            );
+          }
         }
       },
       onError: (_) {},
@@ -555,7 +598,10 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
 
   // Ce chargement construit uniquement le bundle runtime et l'instance de jeu.
   // Il ne modifie pas la structure métier des saves.
-  Future<void> _load() async {
+  Future<PlayableMapGame> _load({
+    GameSessionLaunchMode launchMode = GameSessionLaunchMode.continueGame,
+    GameSessionProgressReporter? reportProgress,
+  }) async {
     final projectFilePath = _projectFilePath;
     final selectedMapId = (_selectedMapId ?? '').trim();
     var mapId = selectedMapId;
@@ -563,40 +609,58 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     if (projectFilePath.isEmpty) {
       _runtimeHostLog('map load blocked: empty projectFilePath');
       setState(() => _error = 'Sélectionnez un dossier projet valide.');
-      return;
+      throw StateError('A project must be selected before launch.');
     }
     if (selectedMapId.isEmpty) {
       _runtimeHostLog(
           'map load blocked: empty mapId projectFilePath=$projectFilePath');
       setState(() => _error = 'Saisissez un identifiant de map.');
-      return;
+      throw StateError('A map must be selected before launch.');
     }
 
     _runtimeHostLog(
       'map load start projectFilePath=$projectFilePath mapId=$mapId',
     );
     await _disposeInteractiveBridge();
-    if (!mounted) return;
+    if (!mounted) {
+      throw StateError('The runtime host closed before launch.');
+    }
     _disposeCurrentGame();
     setState(() {
       _loading = true;
       _error = null;
     });
+    reportProgress?.call(
+      const GameSessionLoadingProgress(
+        stage: 'project',
+        current: 0,
+        total: 4,
+      ),
+    );
 
     try {
       // A versioned launch save is gameplay state, unlike host preferences.
       // Resolve it before the bundle so PlayableMapGame receives the map that
       // actually owns the restored position/state.
       _runtimeHostLog('launch save load start');
-      final launchSaveData = await loadRuntimeHostLaunchSaveData(
-        projectFilePath: projectFilePath,
-      );
+      final launchSaveData = launchMode == GameSessionLaunchMode.newGame
+          ? null
+          : await loadRuntimeHostLaunchSaveData(
+              projectFilePath: projectFilePath,
+            );
       final restoredMapId = launchSaveData?.currentMapId.trim();
       if (restoredMapId != null && restoredMapId.isNotEmpty) {
         mapId = restoredMapId;
       }
       _runtimeHostLog(
         'launch save load ${launchSaveData == null ? 'missing: will use project/legacy fallback' : 'ok: mapId=$mapId'}',
+      );
+      reportProgress?.call(
+        const GameSessionLoadingProgress(
+          stage: 'save',
+          current: 1,
+          total: 4,
+        ),
       );
       _runtimeHostLog('bundle load start mapId=$mapId');
       final bundle = await loadRuntimeMapBundle(
@@ -605,6 +669,13 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       );
       _runtimeHostLog(
         'bundle load ok map=${bundle.map.id} size=${bundle.map.size.width}x${bundle.map.size.height} layers=${bundle.map.layers.length} entities=${bundle.map.entities.length} tilesets=${bundle.tilesetAbsolutePathsById.length}',
+      );
+      reportProgress?.call(
+        const GameSessionLoadingProgress(
+          stage: 'world',
+          current: 2,
+          total: 4,
+        ),
       );
       // Phase A privilégie un vrai état joueur versionné quand le projet en
       // fournit un. Le seed de démo historique reste un fallback pratique pour
@@ -625,7 +696,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                   projectFilePath: projectFilePath,
                 )
               : null;
-      if (!mounted) return;
+      if (!mounted) {
+        throw StateError('The runtime host closed before the map was ready.');
+      }
       final launchSaveOverride = selectedManualPartySeed == null
           ? null
           : buildRuntimeHostLaunchDemoSaveData(
@@ -651,6 +724,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         initialMapActivationReason: launchPlan.initialMapActivationReason,
         enableActorContactShadows: false,
         enableStaticPlacedElementShadows: false,
+        audioMixer: _startupHost?.audioMixer,
       );
       nextGame.setPlayerServiceRuntimeController(
         PlayerServiceRuntimeController(
@@ -683,6 +757,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         _saveLoadStatus = null;
         _saveLoadError = null;
       });
+      _sessionCreatedAt = DateTime.now().toUtc();
+      _sessionPlayWatch = Stopwatch()..start();
       // Interactive evaluation never enables the expensive collision layers.
       nextGame.setCollisionOverlayVisible(
         interactiveEvaluationConfig.enabled ? false : _showCollisionOverlay,
@@ -701,7 +777,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       if (interactiveEvaluationConfig.enabled) {
         await WidgetsBinding.instance.endOfFrame;
         await nextGame.loaded.timeout(const Duration(seconds: 60));
-        if (!mounted || !identical(_game, nextGame)) return;
+        if (!mounted || !identical(_game, nextGame)) {
+          throw StateError('The runtime session changed before evaluation.');
+        }
         _interactiveBridge = await InteractiveEvaluationBridge.attach(
           config: interactiveEvaluationConfig,
           game: nextGame,
@@ -714,23 +792,139 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       _startRuntimeInfoTicker();
       await _persistLastSession();
       _runtimeHostLog('map load completed mapId=$mapId');
+      reportProgress?.call(
+        const GameSessionLoadingProgress(
+          stage: 'ready',
+          current: 4,
+          total: 4,
+        ),
+      );
+      return nextGame;
     } catch (e, stackTrace) {
       _runtimeHostLog('map load failed mapId=$mapId error=$e');
       debugPrintStack(
         label: '[runtime_host] map load stack',
         stackTrace: stackTrace,
       );
-      if (!mounted) return;
-      setState(() => _error = e.toString());
+      if (mounted) setState(() => _error = e.toString());
+      rethrow;
     } finally {
       if (mounted) setState(() => _loading = false);
       _runtimeHostLog('map load finished loading=false mapId=$mapId');
     }
   }
 
+  Future<void> _launchSelectedProject() async {
+    if (!_runtimeStartupShellEnabled) {
+      try {
+        await _load();
+      } on Object {
+        // `_load` already exposes the developer-facing diagnostic.
+      }
+      return;
+    }
+    final manifest = _projectManifest;
+    if (_projectFilePath.isEmpty || manifest == null) {
+      setState(() => _error = 'Sélectionnez un dossier projet valide.');
+      return;
+    }
+    if ((_selectedMapId ?? '').trim().isEmpty) {
+      setState(() => _error = 'Sélectionnez une map de lancement.');
+      return;
+    }
+
+    await _disposeStartupHost();
+    if (!mounted) return;
+    late final StandaloneRuntimeStartupHost startupHost;
+    startupHost = StandaloneRuntimeStartupHost(
+      projectFilePath: _projectFilePath,
+      manifest: manifest,
+      sessionPort: CallbackStandaloneRuntimeSessionPort(
+        onLaunch: (descriptor, reportProgress) async {
+          await _load(
+            launchMode: descriptor.launchMode,
+            reportProgress: reportProgress,
+          );
+        },
+        onPause: _pauseStandaloneSession,
+        onResume: _resumeStandaloneSession,
+        onCaptureCheckpoint: _captureStandaloneCheckpoint,
+        onStop: (_) => _pauseStandaloneSession(),
+        onDispose: _disposeStandaloneSession,
+        onInput: (event) => _game?.handleRuntimeInputEvent(event) ?? false,
+      ),
+      onExternalExit: _reset,
+      stopIntroPlayback: _startupShellController.stopIntroPlayback,
+      reducedMotion: MediaQuery.maybeOf(context)?.disableAnimations ?? false,
+    );
+    final subscription = startupHost.snapshots.listen((snapshot) {
+      if (!mounted || !identical(_startupHost, startupHost)) return;
+      setState(() => _startupSnapshot = snapshot);
+    });
+    setState(() {
+      _startupHost = startupHost;
+      _startupSnapshot = startupHost.snapshot;
+      _startupSubscription = subscription;
+      _error = null;
+    });
+    startupHost.start();
+  }
+
+  Future<void> _pauseStandaloneSession() async {
+    _sessionPlayWatch?.stop();
+    _game?.pauseEngine();
+  }
+
+  Future<void> _resumeStandaloneSession() async {
+    _game?.resumeEngine();
+    _sessionPlayWatch?.start();
+  }
+
+  Future<GameSessionCheckpoint?> _captureStandaloneCheckpoint() async {
+    final game = _game;
+    final createdAt = _sessionCreatedAt;
+    if (game == null || createdAt == null) return null;
+    final updatedAt = DateTime.now().toUtc();
+    final state = game.gameStateSnapshot;
+    final saveId = state.saveId.trim().isEmpty
+        ? 'standalone-${createdAt.microsecondsSinceEpoch}'
+        : state.saveId.trim();
+    return GameSessionCheckpoint(
+      saveId: saveId,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      playTimeSeconds: _sessionPlayWatch?.elapsed.inSeconds ?? 0,
+      state: state.copyWith(saveId: saveId).toJson(),
+    );
+  }
+
+  Future<void> _disposeStandaloneSession() async {
+    await _disposeInteractiveBridge();
+    if (_game == null) return;
+    if (mounted) {
+      setState(() {
+        _stopRuntimeInfoTicker();
+        _disposeCurrentGame();
+      });
+    } else {
+      _disposeCurrentGame();
+    }
+  }
+
+  Future<void> _disposeStartupHost() async {
+    final subscription = _startupSubscription;
+    _startupSubscription = null;
+    await subscription?.cancel();
+    final startupHost = _startupHost;
+    _startupHost = null;
+    _startupSnapshot = null;
+    await startupHost?.dispose();
+  }
+
   // Retour au chargeur de projet.
   // On ne détruit pas de données persistées, on ferme juste la session runtime.
   Future<void> _reset() async {
+    await _disposeStartupHost();
     await _disposeInteractiveBridge();
     if (!mounted) return;
     _disposeCurrentGame();
@@ -974,11 +1168,133 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final startupHost = _startupHost;
+    if (startupHost == null) return;
+    if (state == AppLifecycleState.resumed) {
+      unawaited(startupHost.coordinator.resumeFromLifecycle());
+      return;
+    }
+    if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
+        state == AppLifecycleState.detached) {
+      unawaited(startupHost.coordinator.pauseForLifecycle());
+    }
+  }
+
+  Object? _startupPayloadForAction(RuntimePlayerAction action) {
+    if (action == RuntimePlayerAction.newGame ||
+        action == RuntimePlayerAction.load) {
+      return const RuntimePlayerLoadSlot(
+        profileId: standaloneRuntimeProfileId,
+        slotId: standaloneRuntimeSlotId,
+      );
+    }
+    return null;
+  }
+
+  ImageProvider? _startupImage(
+    StandaloneRuntimeStartupHost host,
+    RuntimeStartupPresentationAsset? asset,
+  ) {
+    if (asset == null) return null;
+    final resolved = host.presentation.resolvedAsset(asset.assetId);
+    if (resolved == null || resolved.resolvedUri.scheme != 'file') return null;
+    return FileImage(File.fromUri(resolved.resolvedUri));
+  }
+
+  Widget _buildStartupShell(
+    StandaloneRuntimeStartupHost host,
+    RuntimeStartupSnapshot snapshot,
+    Widget? activeGameSurface,
+  ) {
+    final profile = snapshot.presentation?.profile;
+    final introProfile = profile?.intro;
+    final introAsset = snapshot.presentation?.introVideo;
+    final resolvedIntro = introAsset == null
+        ? null
+        : host.presentation.resolvedAsset(introAsset.assetId);
+    final introSource = resolvedIntro == null
+        ? null
+        : player_ui.PlayerIntroVideoSource(
+            videoUri: resolvedIntro.resolvedUri,
+            captionsLoader: introProfile?.captionsPath == null
+                ? null
+                : () => host.presentation.loadText(
+                      introProfile!.captionsPath!,
+                    ),
+            volume: host.audioMixer.mix.volumeFor(
+              RuntimeAudioRoute.cinematicMusic,
+            ),
+          );
+    final titlePresentation = player_ui.RuntimePlayerTitlePresentation(
+      author: 'PokeMap',
+      description: 'Projet local · host développeur',
+      background: _startupImage(
+        host,
+        snapshot.presentation?.titleHero,
+      ),
+      accentColor: player_ui.PokeMapPlayerProjectColorResolver.tryHex(
+        profile?.branding.accentColor,
+      ),
+      layoutVariant: player_ui.PlayerTitleLayoutVariant.runtimeStartup,
+    );
+    final reducedMotion =
+        snapshot.playerSnapshot?.preferences?.accessibility.reducedMotion ??
+            false;
+    return Theme(
+      data: player_ui.PokeMapPlayerTheme.dark(
+        reducedMotion: reducedMotion,
+      ),
+      child: player_ui.PlayerRuntimeStartupShell(
+        key: const ValueKey<String>('standalone-runtime-startup-shell'),
+        controller: _startupShellController,
+        branding: standaloneRuntimeSplashBranding,
+        snapshot: snapshot,
+        titlePresentation: titlePresentation,
+        introSource: introSource,
+        introPoster: _startupImage(
+          host,
+          snapshot.presentation?.introPoster,
+        ),
+        reducedMotion: reducedMotion,
+        payloadForAction: _startupPayloadForAction,
+        onStartupCommand: (command) =>
+            unawaited(host.coordinator.dispatch(command)),
+        onPlayerCommand: (command) => unawaited(
+          host.coordinator.dispatchPlayerCommand(
+            startupSnapshotRevision: snapshot.revision,
+            command: command,
+          ),
+        ),
+        onIntroPlaybackCompleted: (revision) => unawaited(
+          host.coordinator.introPlaybackCompleted(
+            snapshotRevision: revision,
+          ),
+        ),
+        onIntroPlaybackFailed: (revision, reason) => unawaited(
+          host.coordinator.introPlaybackFailed(
+            snapshotRevision: revision,
+            reason: reason,
+          ),
+        ),
+        sessionBuilder: (_, __) =>
+            activeGameSurface ??
+            const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Deux états d'interface seulement :
     // 1. soit une session runtime est active et on affiche le jeu ;
     // 2. soit on reste sur le chargeur de projet.
     final game = _game;
+    Widget? activeGameSurface;
     if (game != null) {
       final info = game.saveLoadInfo;
       final touchControlsVisibility = resolveRuntimeTouchControlsVisibility(
@@ -987,7 +1303,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         hasConnectedGamepad: _hasConnectedGamepad,
         isBattleActive: game.isBattleUiActive,
       );
-      return Scaffold(
+      activeGameSurface = Scaffold(
         appBar: AppBar(
           title: Text((_selectedMapId ?? '').trim()),
           leading: IconButton(
@@ -1215,6 +1531,17 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       );
     }
 
+    final startupHost = _startupHost;
+    final startupSnapshot = _startupSnapshot;
+    if (startupHost != null && startupSnapshot != null) {
+      return _buildStartupShell(
+        startupHost,
+        startupSnapshot,
+        activeGameSurface,
+      );
+    }
+    if (activeGameSurface != null) return activeGameSurface;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Playable Runtime Host')),
       body: SingleChildScrollView(
@@ -1282,7 +1609,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
             ],
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: _loading ? null : _load,
+              onPressed: _loading ? null : _launchSelectedProject,
               child: Text(_loading ? 'Chargement…' : 'Lancer'),
             ),
             if (_error != null) ...[

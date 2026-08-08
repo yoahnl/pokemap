@@ -25,6 +25,8 @@ dependencies:
     path: ../../packages/map_gameplay
   map_runtime:
     path: ../../packages/map_runtime
+  map_player_ui:
+    path: ../../packages/map_player_ui
   map_authoring:
     path: ../../packages/map_authoring
   map_distribution:

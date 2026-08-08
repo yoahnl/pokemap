@@ -1,6 +1,24 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+/// Imperative bridge used only for the ordered intro-to-title audio handoff.
+///
+/// Navigation remains runtime-owned: this controller can silence the concrete
+/// decoder, but it cannot advance or mutate the startup state machine.
+final class PlayerIntroVideoPlayerController {
+  Future<void> Function()? _stopHandler;
+
+  Future<void> stopPlayback() => _stopHandler?.call() ?? Future<void>.value();
+
+  void attach(Future<void> Function() stopHandler) {
+    _stopHandler = stopHandler;
+  }
+
+  void detach(Future<void> Function() stopHandler) {
+    if (_stopHandler == stopHandler) _stopHandler = null;
+  }
+}
+
 @immutable
 final class PlayerIntroVideoSource {
   const PlayerIntroVideoSource({

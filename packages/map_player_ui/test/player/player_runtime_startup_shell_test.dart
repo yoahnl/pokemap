@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -273,12 +276,57 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     expect(commands, isEmpty);
   });
+
+  testWidgets('host stop bridge awaits the active intro pause', (tester) async {
+    final controller = PlayerRuntimeStartupShellController();
+    final pauseGate = Completer<void>();
+    final playback = _GatePlaybackDriver(pauseGate);
+
+    await tester.pumpWidget(
+      _app(
+        PlayerRuntimeStartupShell(
+          controller: controller,
+          branding: branding,
+          snapshot: _startup(
+            RuntimeStartupPhase.intro,
+            introPhase: RuntimeIntroPhase.playing,
+          ),
+          titlePresentation: presentation,
+          introSource: PlayerIntroVideoSource(
+            videoUri: Uri.parse('file:///installed/intro.mp4'),
+          ),
+          introDriverFactory: (_) => playback,
+          onStartupCommand: (_) {},
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    var stopped = false;
+    final stop = controller.stopIntroPlayback().then((_) => stopped = true);
+    await tester.pump();
+
+    expect(playback.pauseCalls, 1);
+    expect(stopped, isFalse);
+    final playCallsBeforeResume = playback.playCalls;
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+    expect(playback.playCalls, playCallsBeforeResume);
+
+    pauseGate.complete();
+    await stop;
+    expect(stopped, isTrue);
+  });
 }
 
 RuntimeStartupSnapshot _startup(
   RuntimeStartupPhase phase, {
   int revision = 5,
   RuntimePlayerSnapshot? player,
+  RuntimeIntroPhase introPhase = RuntimeIntroPhase.completed,
 }) =>
     RuntimeStartupSnapshot(
       revision: revision,
@@ -289,6 +337,7 @@ RuntimeStartupSnapshot _startup(
       isMinimumElapsed: true,
       isLifecycleActive: true,
       playerSnapshot: player,
+      introPhase: introPhase,
     );
 
 RuntimeStartupSnapshot _startupPaused(RuntimeStartupPhase suspended) =>
@@ -357,3 +406,42 @@ Widget _app(Widget child, {double textScale = 1}) => MaterialApp(
         child: builtChild!,
       ),
     );
+
+final class _GatePlaybackDriver implements PlayerIntroPlaybackDriver {
+  _GatePlaybackDriver(this.pauseGate);
+
+  final Completer<void> pauseGate;
+  final ValueNotifier<PlayerIntroPlaybackSnapshot> _snapshots =
+      ValueNotifier<PlayerIntroPlaybackSnapshot>(
+    const PlayerIntroPlaybackSnapshot(),
+  );
+  int pauseCalls = 0;
+  int playCalls = 0;
+
+  @override
+  ValueListenable<PlayerIntroPlaybackSnapshot> get snapshots => _snapshots;
+
+  @override
+  Widget buildVideo() => const SizedBox();
+
+  @override
+  Future<void> initialize() async {
+    _snapshots.value = const PlayerIntroPlaybackSnapshot(isInitialized: true);
+  }
+
+  @override
+  Future<void> play() async {
+    playCalls++;
+  }
+
+  @override
+  Future<void> pause() {
+    pauseCalls++;
+    return pauseGate.future;
+  }
+
+  @override
+  Future<void> dispose() async {
+    _snapshots.dispose();
+  }
+}

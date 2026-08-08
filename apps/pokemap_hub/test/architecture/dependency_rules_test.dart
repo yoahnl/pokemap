@@ -17,9 +17,6 @@ const _allowlist = <String, String>{
   'lib/features/session/domain/repositories/package_asset_port.dart': 'dart:io',
   // The single presentation bridge from artwork paths to ImageProvider.
   'lib/presentation/shared/artwork/local_artwork_image.dart': 'dart:io',
-  // VideoPlayerController.file takes a File; there is no path-based entry point.
-  'lib/presentation/features/player/pages/hub_intro_video_player.dart':
-      'dart:io',
   // supportRoot and diagnosticLogFile are values passed THROUGH this widget to
   // the session layer, not I/O the UI performs.
   'lib/presentation/features/player/pages/hub_installed_game_player.dart':
