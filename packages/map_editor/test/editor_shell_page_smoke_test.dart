@@ -15,6 +15,7 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_connections_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_toolbelt.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
@@ -114,6 +115,35 @@ void main() {
               )
               .top,
         ),
+      );
+    });
+
+    testWidgets('opens the Connections root inspector from the map toolbelt',
+        (tester) async {
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_connections',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: buildShellChromeMap(),
+        ),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-tool-connections')),
+      );
+      await tester.pump();
+
+      expect(find.byType(WorldMapConnectionsInspector), findsOneWidget);
+      expect(find.text('Connexions'), findsWidgets);
+      expect(
+        container.read(worldMapWorkspaceSessionProvider).activeFamily,
+        WorldMapToolFamily.connections,
+      );
+      expect(
+        container.read(editorNotifierProvider).activeTool.name,
+        'selection',
       );
     });
 

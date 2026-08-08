@@ -103,8 +103,6 @@ EntityEditingService entityEditingService(Ref ref) {
 @riverpod
 MapConnectionEditingService mapConnectionEditingService(Ref ref) {
   return MapConnectionEditingService(
-    upsertMapConnectionUseCase: ref.watch(upsertMapConnectionUseCaseProvider),
-    deleteMapConnectionUseCase: ref.watch(deleteMapConnectionUseCaseProvider),
     resolveMapConnectionTargetUseCase:
         ref.watch(resolveMapConnectionTargetUseCaseProvider),
   );

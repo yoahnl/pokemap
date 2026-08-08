@@ -8,6 +8,7 @@ import 'package:map_editor/src/features/editor/application/world_map_tool_activa
 import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/adaptive_map_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_cell_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_connections_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_erase_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_layers_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_paint_inspector.dart';
@@ -22,6 +23,15 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   group('AdaptiveMapInspector', () {
+    test('Connections is a root inspector, not a Layers sub-page', () {
+      expect(
+        worldMapInspectorCanReturnToLayers(
+          WorldMapInspectorKind.connections,
+        ),
+        isFalse,
+      );
+    });
+
     testWidgets('owns exactly one real body for every projected kind',
         (tester) async {
       const cases = <({
@@ -88,6 +98,17 @@ void main() {
           ),
           title: 'Cellule sélectionnée',
           bodyType: WorldMapCellInspector,
+        ),
+        (
+          snapshot: (
+            kind: WorldMapInspectorKind.connections,
+            activeLayerId: 'tile',
+            objectTarget: null,
+            cell: null,
+            pinned: false,
+          ),
+          title: 'Connexions',
+          bodyType: WorldMapConnectionsInspector,
         ),
         (
           snapshot: (
@@ -560,6 +581,7 @@ int _mountedRoutedBodyCount() {
     WorldMapPlaceInspector,
     WorldMapSelectionInspector,
     WorldMapCellInspector,
+    WorldMapConnectionsInspector,
     WorldMapLayersInspector,
   ].map((type) => find.byType(type).evaluate().length).reduce((a, b) => a + b);
 }

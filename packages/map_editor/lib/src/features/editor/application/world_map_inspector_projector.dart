@@ -109,6 +109,7 @@ final class WorldMapInspectorProjector {
       brushKind: brushKind,
     );
     final kind = switch (family) {
+      WorldMapToolFamily.connections => WorldMapInspectorKind.connections,
       WorldMapToolFamily.layers => WorldMapInspectorKind.layers,
       _ when objectTarget != null => WorldMapInspectorKind.objectSelection,
       _ when cell != null => WorldMapInspectorKind.cellSelection,
@@ -190,6 +191,7 @@ bool isWorldMapInspectorPinValid({
     WorldMapInspectorKind.erase =>
       map != null && activeLayerId != null,
     WorldMapInspectorKind.place => map != null,
+    WorldMapInspectorKind.connections => false,
     WorldMapInspectorKind.layers => map != null,
     // The environment page is only ever reached by pinning it from the layer
     // list, and it authors the environment of one layer.

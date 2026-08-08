@@ -154,6 +154,26 @@ class WorldMapWorkspaceSessionController
     return result;
   }
 
+  WorldMapToolActivationResult activateConnections(
+    WorldMapToolActivationHost editorNotifier,
+  ) {
+    final result = editorNotifier.activateWorldMapTool(
+      const ActivateWorldMapSelection(),
+    );
+    if (!result.accepted) return result;
+    var candidate = _forMapOwnership(
+      state,
+      worldMapDocumentScopeFromSnapshot(
+        editorNotifier.worldMapToolActivationSessionSnapshot,
+      ),
+    );
+    candidate = candidate.copyWith(
+      activeFamily: WorldMapToolFamily.connections,
+    );
+    state = candidate;
+    return result;
+  }
+
   void pinInspector(WorldMapInspectorKind? kind) {
     if (state.pinnedInspectorKind == kind) return;
     state = state.copyWith(pinnedInspectorKind: kind);
@@ -459,6 +479,7 @@ class WorldMapWorkspaceSessionController
   ) {
     return switch (source.activeFamily) {
       WorldMapToolFamily.selection ||
+      WorldMapToolFamily.connections ||
       WorldMapToolFamily.layers =>
         const ActivateWorldMapSelection(),
       WorldMapToolFamily.paint => ActivateWorldMapPaint(

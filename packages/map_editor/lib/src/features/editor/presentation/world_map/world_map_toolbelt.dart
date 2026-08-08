@@ -154,6 +154,15 @@ class WorldMapToolbelt extends ConsumerWidget {
       reportResult(result);
     }
 
+    void activateConnections() {
+      final result = sessionController.activateConnections(editor);
+      if (result.accepted) {
+        paintInspectionIntent.clear();
+        sessionController.setInspectorVisible(true);
+      }
+      reportResult(result);
+    }
+
     final rememberedPaint = sessionController.resolveRememberedPaintSubtool(
       mapId: toolbar.activeMap?.id,
       layerId: toolbar.activeLayer?.id,
@@ -319,6 +328,22 @@ class WorldMapToolbelt extends ConsumerWidget {
                   child: condensed
                       ? const Icon(Icons.add_location_alt_outlined)
                       : const Text('Placer'),
+                ),
+              ),
+              Tooltip(
+                message: 'Gérer les connexions entre maps',
+                child: PokeMapButton(
+                  key: const ValueKey<String>('world-map-tool-connections'),
+                  onPressed: activateConnections,
+                  semanticLabel: 'Gérer les connexions entre maps',
+                  isSelected:
+                      visualState.family == WorldMapToolFamily.connections,
+                  size: PokeMapButtonSize.compact,
+                  variant: PokeMapButtonVariant.secondary,
+                  leading: condensed ? null : const Icon(Icons.hub_outlined),
+                  child: condensed
+                      ? const Icon(Icons.hub_outlined)
+                      : const Text('Connexions'),
                 ),
               ),
               Tooltip(
@@ -754,6 +779,7 @@ String _toolFamilyAccessibleLabel(WorldMapToolFamily family) {
     WorldMapToolFamily.paint => 'Peinture',
     WorldMapToolFamily.erase => 'Effacement',
     WorldMapToolFamily.place => 'Placement',
+    WorldMapToolFamily.connections => 'Connexions',
     WorldMapToolFamily.layers => 'Calques',
   };
 }

@@ -8,6 +8,7 @@ import '../../application/world_map_inspector_projector.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import 'world_map_cell_inspector.dart';
+import 'world_map_connections_inspector.dart';
 import 'world_map_erase_inspector.dart';
 import 'world_map_environment_inspector.dart';
 import 'world_map_layers_inspector.dart';
@@ -148,8 +149,17 @@ class AdaptiveMapInspector extends ConsumerWidget {
 /// Paint and Environment are both opened from the layer list, so both owe the
 /// author a way back — the arrow in the header and the Escape key.
 bool worldMapInspectorCanReturnToLayers(WorldMapInspectorKind kind) {
-  return kind == WorldMapInspectorKind.paint ||
-      kind == WorldMapInspectorKind.environment;
+  return switch (kind) {
+    WorldMapInspectorKind.paint || WorldMapInspectorKind.environment => true,
+    WorldMapInspectorKind.connections ||
+    WorldMapInspectorKind.erase ||
+    WorldMapInspectorKind.place ||
+    WorldMapInspectorKind.objectSelection ||
+    WorldMapInspectorKind.cellSelection ||
+    WorldMapInspectorKind.layers ||
+    WorldMapInspectorKind.empty =>
+      false,
+  };
 }
 
 /// Steps the inspector back to the layer list. Returns false when there was
@@ -159,7 +169,8 @@ bool returnWorldMapInspectorToLayers(WidgetRef ref) {
   final snapshot = ref.read(worldMapInspectorSnapshotProvider);
   if (!worldMapInspectorCanReturnToLayers(snapshot.kind)) return false;
   final session = ref.read(worldMapWorkspaceSessionProvider.notifier);
-  final result = session.activateLayers(ref.read(editorNotifierProvider.notifier));
+  final result =
+      session.activateLayers(ref.read(editorNotifierProvider.notifier));
   if (!result.accepted) return false;
   session.pinInspector(null);
   ref.read(worldMapPaintInspectionIntentProvider.notifier).clear();
@@ -190,6 +201,7 @@ Widget _bodyFor(
         cell: _requiredCell(snapshot),
         layerId: snapshot.activeLayerId,
       ),
+    WorldMapInspectorKind.connections => const WorldMapConnectionsInspector(),
     WorldMapInspectorKind.layers => WorldMapLayersInspector(
         onContextMenuRequested: onLayerContextMenuRequested,
       ),
@@ -231,6 +243,7 @@ String _titleFor(WorldMapInspectorKind kind) {
     WorldMapInspectorKind.place => 'Placer',
     WorldMapInspectorKind.objectSelection => 'Objet sélectionné',
     WorldMapInspectorKind.cellSelection => 'Cellule sélectionnée',
+    WorldMapInspectorKind.connections => 'Connexions',
     WorldMapInspectorKind.layers => 'Calques',
     WorldMapInspectorKind.environment => 'Environnement',
     WorldMapInspectorKind.empty => 'Aucune sélection',

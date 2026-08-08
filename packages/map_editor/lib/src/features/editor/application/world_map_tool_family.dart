@@ -1,4 +1,4 @@
-enum WorldMapToolFamily { selection, paint, erase, place, layers }
+enum WorldMapToolFamily { selection, paint, erase, place, connections, layers }
 
 enum WorldMapPaintSubtool {
   tile,
@@ -24,6 +24,7 @@ enum WorldMapInspectorKind {
   place,
   objectSelection,
   cellSelection,
+  connections,
   layers,
   environment,
   empty,

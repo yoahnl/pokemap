@@ -17,7 +17,7 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   group('WorldMapToolbelt', () {
-    testWidgets('keeps the five tool families visible in the approved order',
+    testWidgets('keeps the six tool families visible in the approved order',
         (tester) async {
       _useViewport(tester, const Size(1280, 800));
       final container = _containerWith(_tileState());
@@ -29,6 +29,7 @@ void main() {
         ValueKey<String>('world-map-tool-paint'),
         ValueKey<String>('world-map-tool-erase'),
         ValueKey<String>('world-map-tool-place'),
+        ValueKey<String>('world-map-tool-connections'),
         ValueKey<String>('world-map-tool-layers'),
       ];
       final leftEdges = <double>[
@@ -157,6 +158,10 @@ void main() {
         'Effacer sur le calque actif',
       );
       expectTooltip(
+        'world-map-tool-connections',
+        'Gérer les connexions entre maps',
+      );
+      expectTooltip(
         'world-map-tool-layers',
         'Ouvrir la gestion des calques',
       );
@@ -225,7 +230,7 @@ void main() {
       expect(invoked, callbacks.keys);
     });
 
-    testWidgets('Selection Erase and Layers activate in one click',
+    testWidgets('Selection Erase Connections and Layers activate in one click',
         (tester) async {
       final container = _containerWith(
         _tileState().copyWith(activeTool: EditorToolType.entityPlacement),
@@ -263,10 +268,26 @@ void main() {
           .setInspectorVisible(false);
       await tester.pump();
       await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-tool-connections')),
+      );
+      await tester.pump();
+      var session = container.read(worldMapWorkspaceSessionProvider);
+      expect(session.activeFamily, WorldMapToolFamily.connections);
+      expect(session.inspectorVisible, isTrue);
+      expect(
+        container.read(editorNotifierProvider).activeTool,
+        EditorToolType.selection,
+      );
+
+      container
+          .read(worldMapWorkspaceSessionProvider.notifier)
+          .setInspectorVisible(false);
+      await tester.pump();
+      await tester.tap(
         find.byKey(const ValueKey<String>('world-map-tool-layers')),
       );
       await tester.pump();
-      final session = container.read(worldMapWorkspaceSessionProvider);
+      session = container.read(worldMapWorkspaceSessionProvider);
       expect(session.activeFamily, WorldMapToolFamily.layers);
       expect(session.inspectorVisible, isTrue);
       expect(

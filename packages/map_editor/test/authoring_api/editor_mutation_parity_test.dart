@@ -192,6 +192,164 @@ void main() {
       expect(target.properties, {'keep': 'yes'});
     });
 
+    test('creates updates and deletes reciprocal map connections canonically',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'pmcp_editor_connections_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      const project = ProjectManifest(
+        name: 'Connection editor parity',
+        maps: [
+          ProjectMapEntry(
+            id: 'alpha',
+            name: 'Alpha',
+            relativePath: 'maps/alpha.json',
+          ),
+          ProjectMapEntry(
+            id: 'beta',
+            name: 'Beta',
+            relativePath: 'maps/beta.json',
+          ),
+        ],
+        tilesets: [],
+      );
+      const alpha = MapData(
+        id: 'alpha',
+        name: 'Alpha',
+        size: GridSize(width: 8, height: 8),
+      );
+      const beta = MapData(
+        id: 'beta',
+        name: 'Beta',
+        size: GridSize(width: 8, height: 8),
+      );
+      final projectRepository = FileProjectRepository();
+      final mapRepository = FileMapRepository();
+      await projectRepository.saveProject(
+        project,
+        p.join(root.path, 'project.json'),
+      );
+      await mapRepository.saveMap(
+        alpha,
+        p.join(root.path, 'maps', 'alpha.json'),
+        projectDialogueContext: project,
+      );
+      await mapRepository.saveMap(
+        beta,
+        p.join(root.path, 'maps', 'beta.json'),
+        projectDialogueContext: project,
+      );
+      const reader = EditorProjectFileReader();
+      final queries = AuthoringQueryAdapter(fileReader: reader);
+      final mutations = AuthoringMutationAdapter(
+        fileReader: reader,
+        queries: queries,
+        projectRoots: reader,
+      );
+      addTearDown(mutations.closeAll);
+      addTearDown(queries.closeAll);
+
+      final create = await mutations.plan(
+        root.path,
+        actionId: 'connection.create_bidirectional_apply',
+        parameters: const {
+          'mapId': 'alpha',
+          'direction': 'east',
+          'targetMapId': 'beta',
+          'offset': 0,
+        },
+        idempotencyKey: 'editor_connection_create',
+      );
+      final created = await mutations.apply(
+        create,
+        operationId: 'editor_connection_create',
+      );
+
+      expect(created.receipt.affectedResources, hasLength(2));
+      expect(
+        (await mapRepository.loadMap(
+          p.join(root.path, 'maps', 'alpha.json'),
+        ))
+            .connections
+            .single,
+        const MapConnection(
+          direction: MapConnectionDirection.east,
+          targetMapId: 'beta',
+          offset: 0,
+        ),
+      );
+      expect(
+        (await mapRepository.loadMap(
+          p.join(root.path, 'maps', 'beta.json'),
+        ))
+            .connections
+            .single,
+        const MapConnection(
+          direction: MapConnectionDirection.west,
+          targetMapId: 'alpha',
+          offset: 0,
+        ),
+      );
+
+      final update = await mutations.plan(
+        root.path,
+        actionId: 'connection.update_bidirectional_apply',
+        parameters: const {
+          'mapId': 'alpha',
+          'direction': 'east',
+          'targetMapId': 'beta',
+          'offset': 2,
+        },
+        idempotencyKey: 'editor_connection_update',
+      );
+      await mutations.apply(
+        update,
+        operationId: 'editor_connection_update',
+      );
+      expect(
+        (await mapRepository.loadMap(
+          p.join(root.path, 'maps', 'beta.json'),
+        ))
+            .connections
+            .single
+            .offset,
+        -2,
+      );
+
+      final deletion = await mutations.plan(
+        root.path,
+        actionId: 'connection.delete_bidirectional_apply',
+        parameters: const {
+          'mapId': 'alpha',
+          'direction': 'east',
+        },
+        idempotencyKey: 'editor_connection_delete',
+      );
+      final confirmation = await mutations.confirm(deletion);
+      await mutations.apply(
+        deletion,
+        operationId: 'editor_connection_delete',
+        confirmationToken: confirmation,
+      );
+      expect(
+        (await mapRepository.loadMap(
+          p.join(root.path, 'maps', 'alpha.json'),
+        ))
+            .connections,
+        isEmpty,
+      );
+      expect(
+        (await mapRepository.loadMap(
+          p.join(root.path, 'maps', 'beta.json'),
+        ))
+            .connections,
+        isEmpty,
+      );
+    });
+
     test('upserts and queries Smart Tile animations through the editor adapter',
         () async {
       final fixture = await _MutationFixture.createSmartTiles();

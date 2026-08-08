@@ -24,10 +24,11 @@ WorldMapToolFamily resolveWorldMapObservedToolFamily({
           session.lastPlacementSubtool == WorldMapPlacementSubtool.object,
   };
   return switch (activeTool) {
-    EditorToolType.selection =>
-      session.activeFamily == WorldMapToolFamily.layers
-          ? WorldMapToolFamily.layers
-          : WorldMapToolFamily.selection,
+    EditorToolType.selection => switch (session.activeFamily) {
+        WorldMapToolFamily.connections => WorldMapToolFamily.connections,
+        WorldMapToolFamily.layers => WorldMapToolFamily.layers,
+        _ => WorldMapToolFamily.selection,
+      },
     EditorToolType.tilePaint =>
       tilePaintIsPlace ? WorldMapToolFamily.place : WorldMapToolFamily.paint,
     EditorToolType.terrainPaint ||

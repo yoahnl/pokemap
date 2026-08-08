@@ -110,19 +110,6 @@ ResolveMapConnectionTargetUseCase resolveMapConnectionTargetUseCase(Ref ref) {
 }
 
 @riverpod
-UpsertMapConnectionUseCase upsertMapConnectionUseCase(Ref ref) {
-  return UpsertMapConnectionUseCase(
-    ref.watch(mapRepositoryProvider),
-    ref.watch(resolveMapConnectionTargetUseCaseProvider),
-  );
-}
-
-@riverpod
-DeleteMapConnectionUseCase deleteMapConnectionUseCase(Ref ref) {
-  return DeleteMapConnectionUseCase();
-}
-
-@riverpod
 UpdateWarpOnMapUseCase updateWarpOnMapUseCase(Ref ref) {
   return UpdateWarpOnMapUseCase();
 }

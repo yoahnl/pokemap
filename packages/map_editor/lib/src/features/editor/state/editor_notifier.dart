@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:map_authoring/map_authoring.dart'
@@ -85,6 +86,7 @@ import '../application/smart_tile_mutation_identity.dart';
 import '../application/smart_tile_variant_density.dart';
 
 part 'editor_notifier.g.dart';
+part 'editor_notifier_map_connections.dart';
 part 'editor_notifier_tileset_library.dart';
 
 /// Valeur sentinelle pour les paramètres optionnels nullable dans [EditorNotifier].
@@ -323,7 +325,7 @@ String canonicalSmartTileFailureMessage(
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier
-    with _EditorNotifierTilesetLibrary
+    with _EditorNotifierMapConnections, _EditorNotifierTilesetLibrary
     implements WorldMapToolActivationHost {
   static const ProjectMapIdPolicy _projectMapIdPolicy = ProjectMapIdPolicy();
   static const ProjectMapManifestIntegrityPolicy
@@ -411,6 +413,7 @@ class EditorNotifier extends _$EditorNotifier
       const MapSelectionController();
   ProjectContentController get _projectContentController =>
       ref.read(projectContentControllerProvider);
+  @override
   ProjectSessionController get _projectSessionController =>
       const ProjectSessionController();
   @override
@@ -437,6 +440,7 @@ class EditorNotifier extends _$EditorNotifier
       ref.read(triggerEditingServiceProvider);
   GameplayZoneEditingService get _gameplayZoneEditingService =>
       ref.read(gameplayZoneEditingServiceProvider);
+  @override
   MapConnectionEditingService get _mapConnectionEditingService =>
       ref.read(mapConnectionEditingServiceProvider);
   ElementCollisionProfileGenerator get _elementCollisionProfileGenerator =>
@@ -1579,6 +1583,7 @@ class EditorNotifier extends _$EditorNotifier
     return attestation.revision;
   }
 
+  @override
   void _rememberMapDocumentRevision(
     String path, {
     required String? revision,
@@ -2108,6 +2113,7 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  @override
   Future<bool> saveProjectManifest() async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -2189,6 +2195,7 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  @override
   Future<ActiveMapSaveOutcome> saveActiveMap({
     bool confirmBulkPlacementLoss = false,
     PendingBorderSaveDecision? pendingBorderDecision,
@@ -2730,6 +2737,7 @@ class EditorNotifier extends _$EditorNotifier
   ///   non sauvegardés en cours, utile pour une UX cohérente);
   /// - sinon lit le fichier map depuis le disque;
   /// - retourne `null` si le contexte projet est incomplet ou en cas d'erreur.
+  @override
   Future<MapData?> loadMapSnapshotById(String mapId) async {
     final normalizedMapId = mapId.trim();
     if (normalizedMapId.isEmpty) {
@@ -7856,65 +7864,6 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  Future<void> saveMapConnection({
-    required MapConnectionDirection direction,
-    required String targetMapId,
-    required int offset,
-  }) async {
-    final fs = _projectWorkspace;
-    final project = state.project;
-    final map = state.activeMap;
-    if (fs == null || project == null || map == null) return;
-    try {
-      final updatedMap = await _mapConnectionEditingService.upsertConnection(
-        fs,
-        project,
-        sourceMap: map,
-        direction: direction,
-        targetMapId: targetMapId,
-        offset: offset,
-      );
-      final targetEntry = _mapConnectionEditingService.resolveTargetMapEntry(
-        project,
-        targetMapId,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: updatedMap,
-        preferredActiveLayerId: state.activeLayerId,
-        preferredSelectedWarpId: state.selectedWarpId,
-        statusMessage:
-            '${direction.name.toUpperCase()} connection saved to "${targetEntry.name}"',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to save map connection: $e',
-      );
-    }
-  }
-
-  void deleteMapConnection(MapConnectionDirection direction) {
-    final map = state.activeMap;
-    if (map == null) return;
-    try {
-      final updatedMap = _mapConnectionEditingService.deleteConnection(
-        map,
-        direction: direction,
-      );
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: updatedMap,
-        preferredActiveLayerId: state.activeLayerId,
-        preferredSelectedWarpId: state.selectedWarpId,
-        statusMessage: '${direction.name.toUpperCase()} connection deleted',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to delete map connection: $e',
-      );
-    }
-  }
-
   Future<void> openConnectedMap(MapConnectionDirection direction) async {
     await activateConnectedMap(direction);
   }
@@ -8565,6 +8514,7 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
+  @override
   void _clearCanonicalSmartTileHistory() {
     _canonicalSmartTileUndoStack.clear();
     _canonicalSmartTileRedoStack.clear();
@@ -9705,7 +9655,6 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-
   void setEnvironmentAreaParamsOverrideForActiveTileLayer(
     EnvironmentGenerationParams params,
   ) {
@@ -10484,7 +10433,6 @@ class EditorNotifier extends _$EditorNotifier
     ref.read(environmentMaskBrushSizeProvider.notifier).state = size;
     state = state.copyWith(errorMessage: null);
   }
-
 
   /// Lot Environment-22 : area sélectionnée pour édition masque, sans activer paint/erase.
   void selectEnvironmentAreaForMaskEditing({
@@ -13630,6 +13578,7 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   /// Bascule vers la sélection si l’outil courant ne peut pas agir sur le calque actif.
+  @override
   void _coerceActiveToolIfIncompatibleWithLayer() {
     state = _mapSelectionController.coerceActiveToolIfIncompatibleWithLayer(
       state,

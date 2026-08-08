@@ -1,20 +1,24 @@
 import 'package:map_core/map_core.dart';
 
-import '../ports/project_workspace.dart';
+import '../errors/application_errors.dart';
 import '../use_cases/map_connection_use_cases.dart';
+
+final class MapConnectionMutationIntent {
+  const MapConnectionMutationIntent({
+    required this.actionId,
+    required this.parameters,
+  });
+
+  final String actionId;
+  final Map<String, Object?> parameters;
+}
 
 class MapConnectionEditingService {
   const MapConnectionEditingService({
-    required UpsertMapConnectionUseCase upsertMapConnectionUseCase,
-    required DeleteMapConnectionUseCase deleteMapConnectionUseCase,
     required ResolveMapConnectionTargetUseCase
         resolveMapConnectionTargetUseCase,
-  })  : _upsertMapConnectionUseCase = upsertMapConnectionUseCase,
-        _deleteMapConnectionUseCase = deleteMapConnectionUseCase,
-        _resolveMapConnectionTargetUseCase = resolveMapConnectionTargetUseCase;
+  }) : _resolveMapConnectionTargetUseCase = resolveMapConnectionTargetUseCase;
 
-  final UpsertMapConnectionUseCase _upsertMapConnectionUseCase;
-  final DeleteMapConnectionUseCase _deleteMapConnectionUseCase;
   final ResolveMapConnectionTargetUseCase _resolveMapConnectionTargetUseCase;
 
   MapConnection? findConnection(
@@ -27,32 +31,70 @@ class MapConnectionEditingService {
     return findMapConnection(map, direction);
   }
 
-  Future<MapData> upsertConnection(
-    ProjectWorkspace fs,
-    ProjectManifest project, {
+  MapConnectionMutationIntent buildUpsertIntent({
     required MapData sourceMap,
     required MapConnectionDirection direction,
     required String targetMapId,
     required int offset,
+    required bool reciprocal,
+    required bool exactReciprocalPairExists,
   }) {
-    return _upsertMapConnectionUseCase.execute(
-      fs,
-      project,
-      sourceMap: sourceMap,
-      direction: direction,
-      targetMapId: targetMapId,
-      offset: offset,
+    final normalizedTargetMapId = targetMapId.trim();
+    if (normalizedTargetMapId.isEmpty) {
+      throw const EditorValidationException(
+        'Connected map cannot be empty',
+      );
+    }
+    if (normalizedTargetMapId == sourceMap.id) {
+      throw const EditorValidationException(
+        'A map cannot connect to itself',
+      );
+    }
+    return MapConnectionMutationIntent(
+      actionId: reciprocal
+          ? exactReciprocalPairExists
+              ? 'connection.update_bidirectional_apply'
+              : 'connection.create_bidirectional_apply'
+          : 'connection.upsert',
+      parameters: Map<String, Object?>.unmodifiable({
+        'mapId': sourceMap.id,
+        'direction': direction.name,
+        'targetMapId': normalizedTargetMapId,
+        'offset': offset,
+      }),
     );
   }
 
-  MapData deleteConnection(
-    MapData map, {
+  MapConnectionMutationIntent buildDeleteIntent({
+    required MapData sourceMap,
+    required MapConnectionDirection direction,
+    required bool exactReciprocalPairExists,
+  }) {
+    return MapConnectionMutationIntent(
+      actionId: exactReciprocalPairExists
+          ? 'connection.delete_bidirectional_apply'
+          : 'connection.delete',
+      parameters: Map<String, Object?>.unmodifiable({
+        'mapId': sourceMap.id,
+        'direction': direction.name,
+      }),
+    );
+  }
+
+  bool hasExactReciprocalPair({
+    required MapData sourceMap,
+    required MapData targetMap,
     required MapConnectionDirection direction,
   }) {
-    return _deleteMapConnectionUseCase.execute(
-      map,
-      direction: direction,
-    );
+    final sourceConnection = findConnection(sourceMap, direction);
+    if (sourceConnection == null ||
+        sourceConnection.targetMapId != targetMap.id) {
+      return false;
+    }
+    final targetConnection = findConnection(targetMap, direction.opposite);
+    return targetConnection != null &&
+        targetConnection.targetMapId == sourceMap.id &&
+        targetConnection.offset == -sourceConnection.offset;
   }
 
   ProjectMapEntry resolveTargetMapEntry(
