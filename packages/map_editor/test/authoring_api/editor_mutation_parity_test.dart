@@ -426,6 +426,42 @@ void main() {
       );
     });
 
+    test('saveMap reopens an expired Authoring workspace', () async {
+      final clock = _MutableClock(DateTime.utc(2026, 8, 8, 12));
+      final fixture = await _MutationFixture.create(
+        workspaceHandles: () => WorkspaceHandleStore(
+          clock: () => clock.value,
+          ttl: const Duration(minutes: 5),
+        ),
+      );
+      addTearDown(fixture.dispose);
+      await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'map.save',
+        parameters: {
+          'map': fixture.map.copyWith(name: 'Warm workspace').toJson(),
+        },
+        idempotencyKey: 'editor_expired_workspace_warmup',
+      );
+      final baseline =
+          await FileMapRepository().loadMapDocument(fixture.mapPath);
+      clock.value = clock.value.add(const Duration(minutes: 6));
+
+      final result = await fixture.mutations.saveMap(
+        fixture.map.copyWith(name: 'Saved after expiry'),
+        fixture.mapPath,
+        expectedMapRevision: baseline.revision,
+      );
+
+      expect(result.receipt.status, AuthoringReceiptStatus.applied);
+      expect(
+        (await FileMapRepository().loadMap(fixture.mapPath)).name,
+        'Saved after expiry',
+      );
+      expect(fixture.mutations.diagnostics.liveSessions, 1);
+      expect(fixture.mutations.diagnostics.closeCount, 1);
+    });
+
     test('stale external bytes are visible and never overwritten', () async {
       final fixture = await _MutationFixture.create();
       addTearDown(fixture.dispose);
@@ -570,7 +606,9 @@ final class _MutationFixture {
     required this.mutations,
   });
 
-  static Future<_MutationFixture> create() async {
+  static Future<_MutationFixture> create({
+    WorkspaceHandleStore Function()? workspaceHandles,
+  }) async {
     final root = await Directory.systemTemp.createTemp('pmcp081_editor_');
     const project = ProjectManifest(
       name: 'PMCP-081 editor fixture',
@@ -615,6 +653,7 @@ final class _MutationFixture {
       fileReader: reader,
       queries: queries,
       projectRoots: reader,
+      workspaceHandles: workspaceHandles,
     );
     return _MutationFixture(
       root: root,
@@ -805,4 +844,10 @@ final class _MutationFixture {
     await queries.closeAll();
     if (await root.exists()) await root.delete(recursive: true);
   }
+}
+
+final class _MutableClock {
+  _MutableClock(this.value);
+
+  DateTime value;
 }

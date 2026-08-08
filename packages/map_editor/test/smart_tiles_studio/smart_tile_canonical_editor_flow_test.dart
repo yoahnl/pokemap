@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
-import 'package:map_editor/src/features/border_map_editing/application/pending_border_save_guard.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -66,24 +65,27 @@ void main() {
     notifier.state = notifier.state.copyWith(
       activeTool: EditorToolType.terrainPaint,
     );
+    notifier.updateMapMetadata(
+      notifier.state.activeMap!.mapMetadata.copyWith(
+        displayName: 'Unsaved before painting a path',
+      ),
+    );
+    expect(notifier.state.isDirty, isTrue);
     notifier.applyActiveSmartTileSelection(
       const SmartTileGestureSelection.line(
         start: GridPos(x: 0, y: 0),
         end: GridPos(x: 1, y: 0),
       ),
     );
+    expect(notifier.state.errorMessage, isNull);
 
-    expect(
-      await notifier.saveActiveMap(),
-      ActiveMapSaveOutcome.unavailable,
-      reason: 'A canonical gesture must settle before any map save.',
-    );
+    expect(notifier.state.isSaving, isTrue);
 
     await _waitUntil(
       () =>
           mutations.lastAppliedReceipt?.actionId == 'smart_tile.cell.paint' &&
           !notifier.state.isDirty,
-      failure: () => notifier.state.errorMessage,
+      failure: () => null,
     );
     final paintReceipt = mutations.lastAppliedReceipt!;
     expect(paintReceipt.diff.entries, hasLength(1));
@@ -98,6 +100,12 @@ void main() {
       <int>[1, 1, 0, 0, 0, 0],
     );
 
+    notifier.updateMapMetadata(
+      notifier.state.activeMap!.mapMetadata.copyWith(
+        displayName: 'Unsaved before erasing a path',
+      ),
+    );
+    expect(notifier.state.isDirty, isTrue);
     notifier.beginMapStroke();
     notifier.eraseAt(const GridPos(x: 0, y: 0));
     notifier.eraseAt(const GridPos(x: 1, y: 0));
@@ -144,6 +152,10 @@ void main() {
     expect(notifier.state.canRedoMap, isFalse);
 
     final diskMap = await FileMapRepository().loadMap(mapPath);
+    expect(
+      diskMap.mapMetadata.displayName,
+      'Unsaved before erasing a path',
+    );
     expect(
       smartTileSemanticCells(diskMap.layers.single as SmartTileLayer),
       <int>[0, 0, 0, 0, 0, 0],
@@ -343,7 +355,7 @@ void main() {
           notifier.state.errorMessage ==
               'smart_tile.cell.material_not_allowed' &&
           notifier.state.activeMap == baseline,
-      failure: () => null,
+      failure: () => notifier.state.errorMessage,
     );
     expect(notifier.state.isDirty, isFalse);
     expect(notifier.state.mapUndoStack, isEmpty);

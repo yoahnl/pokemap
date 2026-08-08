@@ -71,13 +71,16 @@ final class AuthoringMutationAdapter
     required ProjectFileReader fileReader,
     required AuthoringQueryAdapter queries,
     required EditorProjectRootLocator projectRoots,
+    WorkspaceHandleStore Function()? workspaceHandles,
   })  : _fileReader = fileReader,
         _queries = queries,
-        _projectRoots = projectRoots;
+        _projectRoots = projectRoots,
+        _workspaceHandles = workspaceHandles ?? (() => WorkspaceHandleStore());
 
   final ProjectFileReader _fileReader;
   final AuthoringQueryAdapter _queries;
   final EditorProjectRootLocator _projectRoots;
+  final WorkspaceHandleStore Function() _workspaceHandles;
   final Map<String, Future<_EditorMutationSession>> _sessions = {};
   final Set<String> _openingRoots = {};
   String? _retainedRoot;
@@ -435,7 +438,10 @@ final class AuthoringMutationAdapter
       if (identical(_sessions[canonicalRoot], current) &&
           !session.isClosing &&
           _isAllowedRoot(canonicalRoot)) {
-        return session;
+        if (session.hasActiveWorkspace) return session;
+        _sessions.remove(canonicalRoot);
+        await session.close();
+        return _open(canonicalRoot);
       }
       await session.close();
       if (identical(_sessions[canonicalRoot], current)) {
@@ -480,6 +486,7 @@ final class AuthoringMutationAdapter
       return await _EditorMutationSession.open(
         canonicalRoot: canonicalRoot,
         fileReader: _fileReader,
+        workspaceHandles: _workspaceHandles,
         onOperationDelta: (delta) => _activeOperations += delta,
         onClosed: () => _closeCount++,
       );
@@ -507,16 +514,19 @@ final class _EditorMutationSession {
     required this.reads,
     required this.mutations,
     required this.artifactStore,
+    required WorkspaceHandleStore handles,
     required ProjectSnapshotLoader snapshots,
     required void Function(int delta) onOperationDelta,
     required void Function() onClosed,
-  })  : _snapshots = snapshots,
+  })  : _handles = handles,
+        _snapshots = snapshots,
         _onOperationDelta = onOperationDelta,
         _onClosed = onClosed;
 
   static Future<_EditorMutationSession> open({
     required String canonicalRoot,
     required ProjectFileReader fileReader,
+    required WorkspaceHandleStore Function() workspaceHandles,
     required void Function(int delta) onOperationDelta,
     required void Function() onClosed,
   }) async {
@@ -524,7 +534,7 @@ final class _EditorMutationSession {
       allowedRootPaths: [canonicalRoot],
       fileReader: fileReader,
     );
-    final handles = WorkspaceHandleStore();
+    final handles = workspaceHandles();
     final snapshots = ProjectSnapshotLoader(
       handles: handles,
       fingerprintCache: _sharedFingerprintCache,
@@ -565,6 +575,7 @@ final class _EditorMutationSession {
         reads: reads,
         mutations: mutations,
         artifactStore: artifactStore,
+        handles: handles,
         snapshots: snapshots,
         onOperationDelta: onOperationDelta,
         onClosed: onClosed,
@@ -581,6 +592,7 @@ final class _EditorMutationSession {
   final AuthoringReadApi reads;
   final LocalMapAuthoringMutationApi mutations;
   final LocalArtifactStore artifactStore;
+  final WorkspaceHandleStore _handles;
   final ProjectSnapshotLoader _snapshots;
   final void Function(int delta) _onOperationDelta;
   final void Function() _onClosed;
@@ -590,6 +602,15 @@ final class _EditorMutationSession {
   Future<void>? _closeOperation;
 
   bool get isClosing => _closing;
+
+  bool get hasActiveWorkspace {
+    try {
+      _handles.resolveProject(projectHandle);
+      return true;
+    } on WorkspaceHandleException {
+      return false;
+    }
+  }
 
   Future<ProjectSnapshot> snapshot() => _snapshots.load(projectHandle);
 

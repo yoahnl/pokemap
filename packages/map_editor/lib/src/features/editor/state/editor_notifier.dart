@@ -57,6 +57,7 @@ import '../../../application/services/project_map_manifest_integrity_policy.dart
 import '../../../application/services/trigger_editing_service.dart';
 import '../../../application/services/warp_editing_service.dart';
 import '../../personalization/application/personalization_studio_session_controller.dart';
+import '../application/deferred_smart_tile_gesture.dart';
 import '../application/editor_workspace_controller.dart';
 import '../application/map_activation_coordinator.dart';
 import '../application/map_canvas_object_hit_test.dart';
@@ -300,11 +301,6 @@ const String editorSmartTileCommitInProgressMessage =
     'Modification précédente en cours d’enregistrement. Relâchez une seconde, '
     'puis reprenez : rien n’est perdu.';
 
-/// Shown when the map holds unsaved edits that a canonical gesture cannot join.
-const String editorSmartTileCleanMapRequiredMessage =
-    'Enregistrez la carte avant de peindre ou d’effacer : cette modification '
-    'passe par l’API canonique, qui part de la version enregistrée.';
-
 /// Turns a canonical Smart Tile failure into something an author can act on,
 /// instead of surfacing the raw authoring code.
 String canonicalSmartTileFailureMessage(
@@ -380,6 +376,8 @@ class EditorNotifier extends _$EditorNotifier
   bool _suppressBorderSelectionReconciliation = false;
   bool _registeredNarrativeDocumentDisposal = false;
   _PendingSmartTileGesture? _pendingSmartTileGesture;
+  DeferredSmartTileGesture? _deferredSmartTileGesture;
+  bool _smartTileAutosaveInProgress = false;
 
   /// Whether the map is only dirty because of Smart Tile work we already own.
   ///
@@ -5452,15 +5450,19 @@ class EditorNotifier extends _$EditorNotifier
     }
     final selectedCells = cells.toSet().toList(growable: false);
     if (selectedCells.isEmpty) return;
+    if (_smartTileCanonicalRecoveryRequired) {
+      _setPaintError(editorReloadRequiredMessage);
+      return;
+    }
     if (state.projectRootPath != null &&
-        (_smartTileCanonicalRecoveryRequired ||
-            state.isDirty &&
-                state.mapStrokeStart == null &&
-                !_canonicalSmartTileGestureOwnsDirtyMap)) {
-      _setPaintError(
-        _smartTileCanonicalRecoveryRequired
-            ? editorReloadRequiredMessage
-            : editorSmartTileCleanMapRequiredMessage,
+        state.isDirty &&
+        !_canonicalSmartTileGestureOwnsDirtyMap) {
+      _deferSmartTileGestureUntilSaved(
+        mapId: map.id,
+        layerId: layerId,
+        materialId: materialId,
+        cells: selectedCells,
+        selection: selection,
       );
       return;
     }
@@ -5499,6 +5501,78 @@ class EditorNotifier extends _$EditorNotifier
       );
     } catch (e) {
       _setPaintError('Failed to paint Smart Tile material: $e');
+    }
+  }
+
+  void _deferSmartTileGestureUntilSaved({
+    required String mapId,
+    required String layerId,
+    required String? materialId,
+    required Iterable<GridPos> cells,
+    SmartTileGestureSelection? selection,
+  }) {
+    final projectRootPath = state.projectRootPath;
+    if (projectRootPath == null) return;
+    final deferred = _deferredSmartTileGesture;
+    if (deferred == null) {
+      _deferredSmartTileGesture = DeferredSmartTileGesture(
+        projectRootPath: projectRootPath,
+        mapId: mapId,
+        layerId: layerId,
+        materialId: materialId,
+        cells: cells,
+        selection: selection,
+      );
+    } else if (deferred.targets(
+      projectRootPath: projectRootPath,
+      mapId: mapId,
+      layerId: layerId,
+      materialId: materialId,
+    )) {
+      deferred.merge(cells, selection: selection);
+    } else {
+      _setPaintError(
+        'Terminez le tracé Smart Tile en cours avant d’en créer un autre.',
+      );
+      return;
+    }
+    state = state.copyWith(
+      errorMessage: null,
+      statusMessage: 'Enregistrement automatique avant d’appliquer le tracé…',
+    );
+    if (!_smartTileAutosaveInProgress) {
+      unawaited(_saveAndReplayDeferredSmartTileGesture());
+    }
+  }
+
+  Future<void> _saveAndReplayDeferredSmartTileGesture() async {
+    final deferred = _deferredSmartTileGesture;
+    if (deferred == null) return;
+    _smartTileAutosaveInProgress = true;
+    try {
+      if (!await _flushSessionForCanonicalSmartTileMutation()) {
+        _deferredSmartTileGesture = null;
+        return;
+      }
+      if (state.projectRootPath != deferred.projectRootPath ||
+          state.activeMap?.id != deferred.mapId ||
+          state.activeLayerId != deferred.layerId) {
+        _deferredSmartTileGesture = null;
+        _setPaintError('Le tracé a été annulé car la carte active a changé.');
+        return;
+      }
+      _deferredSmartTileGesture = null;
+      _paintSmartTileMaterialCells(
+        deferred.cells,
+        materialId: deferred.materialId,
+        partOfStroke: false,
+        selection: deferred.selection,
+      );
+    } finally {
+      _smartTileAutosaveInProgress = false;
+      if (_deferredSmartTileGesture != null) {
+        unawaited(_saveAndReplayDeferredSmartTileGesture());
+      }
     }
   }
 
@@ -5587,18 +5661,6 @@ class EditorNotifier extends _$EditorNotifier
         partOfStroke: partOfStroke,
       );
     } else if (layer is SmartTileLayer) {
-      if (state.projectRootPath != null &&
-          (_smartTileCanonicalRecoveryRequired ||
-              state.isDirty &&
-                  state.mapStrokeStart == null &&
-                  !_canonicalSmartTileGestureOwnsDirtyMap)) {
-        _setPaintError(
-          _smartTileCanonicalRecoveryRequired
-              ? editorReloadRequiredMessage
-              : editorSmartTileCleanMapRequiredMessage,
-        );
-        return false;
-      }
       try {
         final erasedCells = <GridPos>[];
         for (var y = 0; y < patternSize.height; y++) {
@@ -5620,6 +5682,25 @@ class EditorNotifier extends _$EditorNotifier
             if (!hasAuthoredValue) continue;
             erasedCells.add(GridPos(x: targetX, y: targetY));
           }
+        }
+        if (erasedCells.isEmpty) {
+          state = state.copyWith(errorMessage: null);
+          return false;
+        }
+        if (_smartTileCanonicalRecoveryRequired) {
+          _setPaintError(editorReloadRequiredMessage);
+          return false;
+        }
+        if (state.projectRootPath != null &&
+            state.isDirty &&
+            !_canonicalSmartTileGestureOwnsDirtyMap) {
+          _deferSmartTileGestureUntilSaved(
+            mapId: map.id,
+            layerId: layerId,
+            materialId: null,
+            cells: erasedCells,
+          );
+          return true;
         }
         final erasedLayer = applySmartTileMaterialGesture(
           layer,
@@ -7965,19 +8046,18 @@ class EditorNotifier extends _$EditorNotifier
     final layerId = state.activeLayerId;
     final activeLayer =
         map == null || layerId == null ? null : _findLayerById(map, layerId);
-    if (activeLayer is SmartTileLayer &&
-        (state.isDirty && !_canonicalSmartTileGestureOwnsDirtyMap ||
-            _smartTileCanonicalRecoveryRequired)) {
+    if (activeLayer is SmartTileLayer && _smartTileCanonicalRecoveryRequired) {
       state = state.copyWith(
-        errorMessage: _smartTileCanonicalRecoveryRequired
-            ? 'Rechargez la map avant de continuer la peinture Smart Tile.'
-            : 'Enregistrez les modifications de la map avant de peindre un '
-                'Smart Tile.',
+        errorMessage:
+            'Rechargez la map avant de continuer la peinture Smart Tile.',
       );
       return;
     }
-    // A burst still waiting for the in-flight write keeps its gesture: dropping
-    // it here would leave those cells on screen with no commit to carry them.
+    if (activeLayer is SmartTileLayer &&
+        state.isDirty &&
+        !_canonicalSmartTileGestureOwnsDirtyMap) {
+      return;
+    }
     state = _mapEditingController.beginStroke(state);
   }
 
@@ -7988,6 +8068,7 @@ class EditorNotifier extends _$EditorNotifier
 
   void cancelMapStroke() {
     _pendingSmartTileGesture = null;
+    _deferredSmartTileGesture = null;
     state = _mapEditingController.cancelStroke(state);
   }
 
@@ -9316,16 +9397,13 @@ class EditorNotifier extends _$EditorNotifier
     return outcome == MapActivationOutcome.activated;
   }
 
-  /// Persists whatever the session still owns so a canonical Smart Tile layer
-  /// can be planned against the stored document.
-  ///
-  /// Returns false — with an actionable error already in state — when the save
-  /// could not complete, since planning over unsaved work would discard it.
-  Future<bool> _flushSessionForCanonicalSmartTileLayer() async {
+  /// Saves editor-owned data before a canonical Smart Tile action reads disk.
+  Future<bool> _flushSessionForCanonicalSmartTileMutation() async {
     if (state.isProjectDirty && !await saveProjectManifest()) {
       state = state.copyWith(
-        errorMessage: 'Le projet n’a pas pu être enregistré, donc le calque '
-            'Smart Tile n’a pas été créé. Corrigez l’erreur ci-dessus, puis '
+        errorMessage:
+            'Le projet n’a pas pu être enregistré, donc la modification '
+            'Smart Tile n’a pas été appliquée. Corrigez l’erreur, puis '
             'réessayez.',
       );
       return false;
@@ -9337,8 +9415,9 @@ class EditorNotifier extends _$EditorNotifier
     // placement loss, conflict…); only the silent outcomes need a message.
     if (state.errorMessage == null) {
       state = state.copyWith(
-        errorMessage: 'La carte n’a pas pu être enregistrée, donc le calque '
-            'Smart Tile n’a pas été créé. Enregistrez la carte, puis '
+        errorMessage:
+            'La carte n’a pas pu être enregistrée, donc la modification '
+            'Smart Tile n’a pas été appliquée. Enregistrez la carte, puis '
             'réessayez.',
       );
     }
@@ -9354,7 +9433,7 @@ class EditorNotifier extends _$EditorNotifier
     // The canonical action plans against the stored document, so a dirty
     // session would be planned away. Flushing it here is what the author would
     // do by hand anyway; refusing the click only made them do it twice.
-    if (!await _flushSessionForCanonicalSmartTileLayer()) {
+    if (!await _flushSessionForCanonicalSmartTileMutation()) {
       return false;
     }
     final map = state.activeMap;
