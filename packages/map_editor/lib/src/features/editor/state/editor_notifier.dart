@@ -213,6 +213,9 @@ final class _CanonicalSmartTileHistoryEntry {
     required this.layerId,
     required this.redoActionId,
     required this.redoParameters,
+    this.selectedPlacedElementInstanceId,
+    this.undoStatusMessage = 'Geste Smart Tile annulé.',
+    this.redoStatusMessage = 'Geste Smart Tile réappliqué.',
   });
 
   final String projectRootPath;
@@ -221,6 +224,9 @@ final class _CanonicalSmartTileHistoryEntry {
   final String layerId;
   final String redoActionId;
   final Map<String, Object?> redoParameters;
+  final String? selectedPlacedElementInstanceId;
+  final String undoStatusMessage;
+  final String redoStatusMessage;
 
   _CanonicalSmartTileHistoryEntry withReceipt(String nextReceiptId) =>
       _CanonicalSmartTileHistoryEntry(
@@ -230,6 +236,9 @@ final class _CanonicalSmartTileHistoryEntry {
         layerId: layerId,
         redoActionId: redoActionId,
         redoParameters: redoParameters,
+        selectedPlacedElementInstanceId: selectedPlacedElementInstanceId,
+        undoStatusMessage: undoStatusMessage,
+        redoStatusMessage: redoStatusMessage,
       );
 }
 
@@ -8538,6 +8547,31 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   @override
+  void _recordCanonicalPlacedElementPlacement({
+    required String projectRootPath,
+    required String receiptId,
+    required String mapId,
+    required String layerId,
+    required PlacedElementMutationIntent intent,
+  }) {
+    _canonicalSmartTileUndoStack.add(
+      _CanonicalSmartTileHistoryEntry(
+        projectRootPath: projectRootPath,
+        receiptId: receiptId,
+        mapId: mapId,
+        layerId: layerId,
+        redoActionId: intent.actionId,
+        redoParameters: intent.parameters,
+        selectedPlacedElementInstanceId: intent.instanceId,
+        undoStatusMessage: 'Placement de l’élément annulé.',
+        redoStatusMessage: 'Placement de l’élément réappliqué.',
+      ),
+    );
+    _canonicalSmartTileRedoStack.clear();
+    _syncCanonicalSmartTileHistoryFlags();
+  }
+
+  @override
   void _clearCanonicalSmartTileHistory() {
     _canonicalSmartTileUndoStack.clear();
     _canonicalSmartTileRedoStack.clear();
@@ -8683,7 +8717,7 @@ class EditorNotifier extends _$EditorNotifier
         expectedSnapshotRevision: applied.snapshotRevision,
         mapId: entry.mapId,
         layerId: entry.layerId,
-        statusMessage: 'Geste Smart Tile annulé.',
+        statusMessage: entry.undoStatusMessage,
       );
       if (_canonicalSmartTileUndoStack.isNotEmpty &&
           _canonicalSmartTileUndoStack.last.receiptId == entry.receiptId) {
@@ -8691,7 +8725,12 @@ class EditorNotifier extends _$EditorNotifier
         _canonicalSmartTileRedoStack.add(entry);
       }
       _smartTileCanonicalRecoveryRequired = false;
-      if (adopted) _syncCanonicalSmartTileHistoryFlags();
+      if (adopted) {
+        if (entry.selectedPlacedElementInstanceId != null) {
+          state = state.copyWith(selectedPlacedElementInstanceId: null);
+        }
+        _syncCanonicalSmartTileHistoryFlags();
+      }
     } on Object catch (error) {
       final failure = EditorAuthoringMutationFailure.capture(error);
       if (applied != null) _smartTileCanonicalRecoveryRequired = true;
@@ -8742,7 +8781,7 @@ class EditorNotifier extends _$EditorNotifier
         expectedSnapshotRevision: applied.snapshotRevision,
         mapId: entry.mapId,
         layerId: entry.layerId,
-        statusMessage: 'Geste Smart Tile réappliqué.',
+        statusMessage: entry.redoStatusMessage,
       );
       if (_canonicalSmartTileRedoStack.isNotEmpty &&
           _canonicalSmartTileRedoStack.last.receiptId == entry.receiptId) {
@@ -8752,7 +8791,13 @@ class EditorNotifier extends _$EditorNotifier
         );
       }
       _smartTileCanonicalRecoveryRequired = false;
-      if (adopted) _syncCanonicalSmartTileHistoryFlags();
+      if (adopted) {
+        final selectedId = entry.selectedPlacedElementInstanceId;
+        if (selectedId != null) {
+          state = state.copyWith(selectedPlacedElementInstanceId: selectedId);
+        }
+        _syncCanonicalSmartTileHistoryFlags();
+      }
     } on Object catch (error) {
       final failure = EditorAuthoringMutationFailure.capture(error);
       if (applied != null) _smartTileCanonicalRecoveryRequired = true;

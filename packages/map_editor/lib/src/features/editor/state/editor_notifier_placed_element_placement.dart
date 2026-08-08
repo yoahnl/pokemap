@@ -14,8 +14,14 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
     required String? revision,
     required MapData sourceDocument,
   });
-  void _clearCanonicalSmartTileHistory();
   void _coerceActiveToolIfIncompatibleWithLayer();
+  void _recordCanonicalPlacedElementPlacement({
+    required String projectRootPath,
+    required String receiptId,
+    required String mapId,
+    required String layerId,
+    required PlacedElementMutationIntent intent,
+  });
 
   bool _placedElementPlacementInProgress = false;
 
@@ -114,6 +120,16 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
         mapRevision: mapRevision,
         preferredLayerId: layerId,
       );
+      _recordCanonicalPlacedElementPlacement(
+        projectRootPath: projectRootPath,
+        receiptId: applied.receipt.receiptId,
+        mapId: map.id,
+        layerId: layerId,
+        intent: intent,
+      );
+      state = state.copyWith(
+        selectedPlacedElementInstanceId: intent.instanceId,
+      );
     } on Object catch (error) {
       final failure = EditorAuthoringMutationFailure.capture(error);
       state = state.copyWith(
@@ -181,7 +197,6 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
       revision: mapRevision,
       sourceDocument: map,
     );
-    _clearCanonicalSmartTileHistory();
     _coerceActiveToolIfIncompatibleWithLayer();
   }
 }
