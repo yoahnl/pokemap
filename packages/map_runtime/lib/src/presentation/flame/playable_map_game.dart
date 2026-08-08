@@ -480,6 +480,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Map<String, ShadowRuntimeInstructionCollection>
       _staticShadowCollectionByMapId =
       <String, ShadowRuntimeInstructionCollection>{};
+  final Map<String, _MergedShadowCollectionCache>
+      _mergedShadowCollectionCacheByMapId =
+      <String, _MergedShadowCollectionCache>{};
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
   final RuntimeDialogueSessionLoader _dialogueSessionLoader;
@@ -4019,29 +4022,47 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   ShadowRuntimeInstructionCollection? _provideShadowCollectionForMap(
     String mapId,
   ) {
-    final collections = <ShadowRuntimeInstructionCollection>[];
+    // Appelé depuis render() à chaque frame : la fusion (plusieurs copies de
+    // listes) ne doit se refaire que quand une des collections sources change.
+    // Les trois sources sont immuables et remplacées par identité, donc un
+    // simple test d'identité suffit à valider le cache — y compris après un
+    // changement de carte active (l'entrée actor devient null/non-null).
+    ShadowRuntimeInstructionCollection? projected;
+    ShadowRuntimeInstructionCollection? staticCollection;
     if (enableStaticPlacedElementShadows) {
-      final projectedBuildingCollection =
-          _projectedBuildingShadowCollectionByMapId[mapId];
-      if (projectedBuildingCollection != null &&
-          projectedBuildingCollection.isNotEmpty) {
-        collections.add(projectedBuildingCollection);
-      }
-      final staticCollection = _staticShadowCollectionByMapId[mapId];
-      if (staticCollection != null && staticCollection.isNotEmpty) {
-        collections.add(staticCollection);
-      }
+      projected = _projectedBuildingShadowCollectionByMapId[mapId];
+      staticCollection = _staticShadowCollectionByMapId[mapId];
     }
+    ShadowRuntimeInstructionCollection? actorCollection;
     if (enableActorContactShadows && mapId == _activeMapId) {
-      final actorCollection = _actorShadowCollectionController.provide();
-      if (actorCollection != null && actorCollection.isNotEmpty) {
-        collections.add(actorCollection);
-      }
+      actorCollection = _actorShadowCollectionController.provide();
     }
-    if (collections.isEmpty) {
-      return null;
+    final cached = _mergedShadowCollectionCacheByMapId[mapId];
+    if (cached != null &&
+        identical(cached.projected, projected) &&
+        identical(cached.staticCollection, staticCollection) &&
+        identical(cached.actorCollection, actorCollection)) {
+      return cached.merged;
     }
-    return mergeShadowRuntimeInstructionCollections(collections);
+    final collections = <ShadowRuntimeInstructionCollection>[
+      if (projected != null && projected.isNotEmpty) projected,
+      if (staticCollection != null && staticCollection.isNotEmpty)
+        staticCollection,
+      if (actorCollection != null && actorCollection.isNotEmpty)
+        actorCollection,
+    ];
+    final merged = switch (collections.length) {
+      0 => null,
+      1 => collections.first,
+      _ => mergeShadowRuntimeInstructionCollections(collections),
+    };
+    _mergedShadowCollectionCacheByMapId[mapId] = _MergedShadowCollectionCache(
+      projected: projected,
+      staticCollection: staticCollection,
+      actorCollection: actorCollection,
+      merged: merged,
+    );
+    return merged;
   }
 
   void _refreshActorContactShadowCollection() {
@@ -11867,6 +11888,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _projectedBuildingShadowCollectionByMapId.remove(mapId);
     _staticShadowCollectionByMapId.remove(mapId);
+    _mergedShadowCollectionCacheByMapId.remove(mapId);
   }
 
   Future<_LoadedPlayableMap> _mountLoadedMap({
@@ -13791,4 +13813,20 @@ class _WarpTransitionSpec {
   final _WarpTransitionStyle style;
   final Duration fadeOut;
   final Duration fadeIn;
+}
+
+/// Fusion d'ombres mémoïsée avec les collections sources ayant servi à la
+/// construire ; la validité se vérifie par identité des sources.
+class _MergedShadowCollectionCache {
+  const _MergedShadowCollectionCache({
+    required this.projected,
+    required this.staticCollection,
+    required this.actorCollection,
+    required this.merged,
+  });
+
+  final ShadowRuntimeInstructionCollection? projected;
+  final ShadowRuntimeInstructionCollection? staticCollection;
+  final ShadowRuntimeInstructionCollection? actorCollection;
+  final ShadowRuntimeInstructionCollection? merged;
 }

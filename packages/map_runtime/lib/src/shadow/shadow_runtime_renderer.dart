@@ -5,6 +5,18 @@ import 'package:map_core/map_core.dart';
 import 'shadow_runtime_instruction_collection.dart';
 import 'shadow_runtime_render_instruction.dart';
 
+/// Opacity bands never vary at runtime; building them per polygon per frame
+/// was pure waste.
+final List<ProjectedStaticShadowOpacityBand> _defaultProjectedOpacityBands =
+    createProjectedStaticShadowOpacityBands();
+
+/// Instructions are immutable and identity-stable across frames (collections
+/// are built once per map and the merged provider is cached), so paths and
+/// paints are baked once per instruction. Expando keys are weak: unloading a
+/// map releases the baked data together with its instructions.
+final Expando<_BakedShadowInstruction> _bakedShadowInstructionCache =
+    Expando<_BakedShadowInstruction>('bakedShadowInstruction');
+
 final class ShadowRuntimeRenderer {
   const ShadowRuntimeRenderer();
 
@@ -13,48 +25,9 @@ final class ShadowRuntimeRenderer {
     ShadowRuntimeRenderInstruction instruction,
   ) {
     _validateHardEdge(instruction);
-    switch (instruction.shape) {
-      case ShadowRuntimeShapeKind.contactBlob:
-      case ShadowRuntimeShapeKind.ellipse:
-        _renderOval(canvas, instruction);
-      case ShadowRuntimeShapeKind.projectedPolygon:
-        _renderProjectedPolygon(canvas, instruction);
-    }
-  }
-
-  void _renderOval(
-    ui.Canvas canvas,
-    ShadowRuntimeRenderInstruction instruction,
-  ) {
-    final rect = ui.Rect.fromLTWH(
-      instruction.worldLeft,
-      instruction.worldTop,
-      instruction.width,
-      instruction.height,
-    );
-    canvas.drawOval(rect, shadowRuntimePaintForInstruction(instruction));
-  }
-
-  void _renderProjectedPolygon(
-    ui.Canvas canvas,
-    ShadowRuntimeRenderInstruction instruction,
-  ) {
-    final points = instruction.polygonPoints;
-    if (points.length != 4) {
-      canvas.drawPath(
-        _pathFromRuntimePoints(points),
-        shadowRuntimePaintForInstruction(instruction),
-      );
-      return;
-    }
-    for (final band in createProjectedStaticShadowOpacityBands()) {
-      canvas.drawPath(
-        _projectedRuntimeBandPath(points, band),
-        shadowRuntimePaintForInstruction(
-          _instructionWithOpacityScale(instruction, band.opacityScale),
-        ),
-      );
-    }
+    final baked = _bakedShadowInstructionCache[instruction] ??=
+        _bakeShadowInstruction(instruction);
+    baked.draw(canvas);
   }
 
   void renderInstructions(
@@ -69,32 +42,51 @@ final class ShadowRuntimeRenderer {
   void renderCollectionPass(
     ui.Canvas canvas,
     ShadowRuntimeInstructionCollection collection,
-    ShadowRenderPass pass,
-  ) {
+    ShadowRenderPass pass, {
+    ShadowRuntimeCullingBounds? cullingBounds,
+  }) {
     final instructions = switch (pass) {
       ShadowRenderPass.groundStatic => collection.groundStatic,
       ShadowRenderPass.actorContact => collection.actorContact,
     };
-    renderInstructions(canvas, instructions);
+    if (cullingBounds == null) {
+      renderInstructions(canvas, instructions);
+      return;
+    }
+    for (final instruction in instructions) {
+      if (shadowRuntimeInstructionIntersectsBounds(
+        instruction,
+        cullingBounds,
+      )) {
+        renderInstruction(canvas, instruction);
+      }
+    }
   }
 }
 
 ui.Color shadowRuntimeColorForInstruction(
   ShadowRuntimeRenderInstruction instruction,
 ) {
-  final rgb = int.parse(instruction.colorHexRgb, radix: 16);
-  final alpha = (instruction.opacity * 255).round().clamp(0, 255).toInt();
-  return ui.Color((alpha << 24) | rgb);
+  return _shadowColor(instruction.colorRgbValue, instruction.opacity);
 }
 
 ui.Paint shadowRuntimePaintForInstruction(
   ShadowRuntimeRenderInstruction instruction,
 ) {
   _validateHardEdge(instruction);
+  return _shadowPaint(instruction.colorRgbValue, instruction.opacity);
+}
+
+ui.Color _shadowColor(int rgb, double opacity) {
+  final alpha = (opacity * 255).round().clamp(0, 255).toInt();
+  return ui.Color((alpha << 24) | rgb);
+}
+
+ui.Paint _shadowPaint(int rgb, double opacity) {
   return ui.Paint()
     ..style = ui.PaintingStyle.fill
     ..isAntiAlias = false
-    ..color = shadowRuntimeColorForInstruction(instruction);
+    ..color = _shadowColor(rgb, opacity);
 }
 
 void _validateHardEdge(ShadowRuntimeRenderInstruction instruction) {
@@ -102,6 +94,69 @@ void _validateHardEdge(ShadowRuntimeRenderInstruction instruction) {
     throw const ValidationException(
       'ShadowRuntimeRenderer only supports hardEdge shadows in V0',
     );
+  }
+}
+
+final class _BakedShadowInstruction {
+  const _BakedShadowInstruction({
+    this.ovalRect,
+    this.ovalPaint,
+    this.paths = const [],
+    this.pathPaints = const [],
+  });
+
+  final ui.Rect? ovalRect;
+  final ui.Paint? ovalPaint;
+  final List<ui.Path> paths;
+  final List<ui.Paint> pathPaints;
+
+  void draw(ui.Canvas canvas) {
+    final rect = ovalRect;
+    if (rect != null) {
+      canvas.drawOval(rect, ovalPaint!);
+      return;
+    }
+    for (var index = 0; index < paths.length; index += 1) {
+      canvas.drawPath(paths[index], pathPaints[index]);
+    }
+  }
+}
+
+_BakedShadowInstruction _bakeShadowInstruction(
+  ShadowRuntimeRenderInstruction instruction,
+) {
+  switch (instruction.shape) {
+    case ShadowRuntimeShapeKind.contactBlob:
+    case ShadowRuntimeShapeKind.ellipse:
+      return _BakedShadowInstruction(
+        ovalRect: ui.Rect.fromLTWH(
+          instruction.worldLeft,
+          instruction.worldTop,
+          instruction.width,
+          instruction.height,
+        ),
+        ovalPaint: shadowRuntimePaintForInstruction(instruction),
+      );
+    case ShadowRuntimeShapeKind.projectedPolygon:
+      final points = instruction.polygonPoints;
+      if (points.length != 4) {
+        return _BakedShadowInstruction(
+          paths: [_pathFromRuntimePoints(points)],
+          pathPaints: [shadowRuntimePaintForInstruction(instruction)],
+        );
+      }
+      final paths = <ui.Path>[];
+      final paints = <ui.Paint>[];
+      for (final band in _defaultProjectedOpacityBands) {
+        paths.add(_projectedRuntimeBandPath(points, band));
+        paints.add(
+          _shadowPaint(
+            instruction.colorRgbValue,
+            instruction.opacity * band.opacityScale,
+          ),
+        );
+      }
+      return _BakedShadowInstruction(paths: paths, pathPaints: paints);
   }
 }
 
@@ -141,23 +196,5 @@ ShadowRuntimePoint _lerpRuntimePoint(
   return ShadowRuntimePoint(
     worldX: first.worldX + (second.worldX - first.worldX) * t,
     worldY: first.worldY + (second.worldY - first.worldY) * t,
-  );
-}
-
-ShadowRuntimeRenderInstruction _instructionWithOpacityScale(
-  ShadowRuntimeRenderInstruction instruction,
-  double opacityScale,
-) {
-  return ShadowRuntimeRenderInstruction(
-    shape: instruction.shape,
-    renderPass: instruction.renderPass,
-    worldLeft: instruction.worldLeft,
-    worldTop: instruction.worldTop,
-    width: instruction.width,
-    height: instruction.height,
-    opacity: instruction.opacity * opacityScale,
-    colorHexRgb: instruction.colorHexRgb,
-    softnessMode: instruction.softnessMode,
-    polygonPoints: instruction.polygonPoints,
   );
 }

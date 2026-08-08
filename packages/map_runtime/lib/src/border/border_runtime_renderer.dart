@@ -29,39 +29,43 @@ final class BorderRuntimeRenderer {
       ..isAntiAlias = false
       ..filterQuality = ui.FilterQuality.none
       ..color = ui.Color.fromRGBO(255, 255, 255, collection.opacity);
+    // `elapsedMs` is constant during the call, so the active frame of a
+    // snapshot is resolved once per snapshot instead of once per instruction.
+    final resolvedBySnapshotId = <String, _ResolvedSnapshotFrame>{};
     for (final instruction in collection.instructions) {
-      if (viewport != null &&
-          !_intersects(
-            instruction.cullingBoundsPx,
-            viewport,
-            displayScale: displayScale,
-          )) {
-        continue;
-      }
-      final snapshot = assets.snapshotById(instruction.snapshotId);
-      final frame = _animationFrame(snapshot, elapsedMs);
-      final sourceRect = _sourceRect(frame.request.sourceRectPx);
-      if (!frame.image.containsSourceRect(sourceRect)) {
-        throw AssetNotFoundException(
-          'Border snapshot source rectangle is outside its loaded image: '
-          '${instruction.snapshotId} frame ${frame.request.frameIndex}',
-        );
-      }
-
       switch (instruction) {
         case BorderRuntimeGroundInstruction():
-          frame.image.drawImageRect(
+          // Ground culling bounds equal the destination bounds: compute the
+          // scaled rect once and reuse it for both the test and the draw.
+          final destinationRect =
+              _scaledRect(instruction.worldBoundsPx, displayScale);
+          if (viewport != null && !_rectsIntersect(destinationRect, viewport)) {
+            continue;
+          }
+          final resolved = resolvedBySnapshotId[instruction.snapshotId] ??=
+              _resolveSnapshotFrame(assets, instruction.snapshotId, elapsedMs);
+          resolved.frame.image.drawImageRect(
             canvas,
-            sourceRect,
-            _scaledRect(instruction.worldBoundsPx, displayScale),
+            resolved.sourceRect,
+            destinationRect,
             paint,
           );
         case BorderRuntimePlacementInstruction():
+          if (viewport != null &&
+              !_intersects(
+                instruction.cullingBoundsPx,
+                viewport,
+                displayScale: displayScale,
+              )) {
+            continue;
+          }
+          final resolved = resolvedBySnapshotId[instruction.snapshotId] ??=
+              _resolveSnapshotFrame(assets, instruction.snapshotId, elapsedMs);
           _drawPlacement(
             canvas: canvas,
             instruction: instruction,
-            frame: frame,
-            sourceRect: sourceRect,
+            frame: resolved.frame,
+            sourceRect: resolved.sourceRect,
             paint: paint,
             displayScale: displayScale,
           );
@@ -70,21 +74,38 @@ final class BorderRuntimeRenderer {
   }
 }
 
+final class _ResolvedSnapshotFrame {
+  const _ResolvedSnapshotFrame({
+    required this.frame,
+    required this.sourceRect,
+  });
+
+  final BorderRuntimeLoadedFrame frame;
+  final ui.Rect sourceRect;
+}
+
+_ResolvedSnapshotFrame _resolveSnapshotFrame(
+  BorderRuntimeAssetBundle assets,
+  String snapshotId,
+  int elapsedMs,
+) {
+  final snapshot = assets.snapshotById(snapshotId);
+  final frame = _animationFrame(snapshot, elapsedMs);
+  final sourceRect = _sourceRect(frame.request.sourceRectPx);
+  if (!frame.image.containsSourceRect(sourceRect)) {
+    throw AssetNotFoundException(
+      'Border snapshot source rectangle is outside its loaded image: '
+      '$snapshotId frame ${frame.request.frameIndex}',
+    );
+  }
+  return _ResolvedSnapshotFrame(frame: frame, sourceRect: sourceRect);
+}
+
 BorderRuntimeLoadedFrame _animationFrame(
   BorderRuntimeLoadedSnapshot snapshot,
   int elapsedMs,
 ) {
-  var totalDurationMs = 0;
-  for (final frame in snapshot.frames) {
-    if (frame.request.durationMs <= 0) {
-      throw AssetNotFoundException(
-        'Border snapshot has a non-positive frame duration: '
-        '${snapshot.snapshotId} frame ${frame.request.frameIndex}',
-      );
-    }
-    totalDurationMs += frame.request.durationMs;
-  }
-  final localMs = (elapsedMs < 0 ? 0 : elapsedMs) % totalDurationMs;
+  final localMs = (elapsedMs < 0 ? 0 : elapsedMs) % snapshot.totalDurationMs;
   var boundaryMs = 0;
   for (final frame in snapshot.frames) {
     boundaryMs += frame.request.durationMs;
@@ -165,11 +186,17 @@ bool _intersects(
   ui.Rect viewport, {
   required double displayScale,
 }) {
-  final scaled = _scaledRect(bounds, displayScale);
-  return scaled.left < viewport.right &&
-      scaled.right > viewport.left &&
-      scaled.top < viewport.bottom &&
-      scaled.bottom > viewport.top;
+  return bounds.x * displayScale < viewport.right &&
+      (bounds.x + bounds.width) * displayScale > viewport.left &&
+      bounds.y * displayScale < viewport.bottom &&
+      (bounds.y + bounds.height) * displayScale > viewport.top;
+}
+
+bool _rectsIntersect(ui.Rect a, ui.Rect b) {
+  return a.left < b.right &&
+      a.right > b.left &&
+      a.top < b.bottom &&
+      a.bottom > b.top;
 }
 
 ui.Rect _sourceRect(BorderPixelRect rect) => ui.Rect.fromLTWH(

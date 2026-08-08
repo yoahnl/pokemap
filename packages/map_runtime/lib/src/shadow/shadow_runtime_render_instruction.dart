@@ -71,6 +71,11 @@ final class ShadowRuntimeRenderInstruction {
   final ShadowSoftnessMode softnessMode;
   final List<ShadowRuntimePoint> polygonPoints;
 
+  /// Packed RGB value of [colorHexRgb], resolved once so the renderer never
+  /// parses the hex string on a per-frame path. The constructor already
+  /// guarantees the string is a valid 6-character hex.
+  late final int colorRgbValue = int.parse(colorHexRgb, radix: 16);
+
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||

@@ -12,6 +12,7 @@ import '../../border/border_runtime_renderer.dart';
 import '../../infrastructure/project_tileset_visual_resolution.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../shadow/shadow_runtime_collection_provider.dart';
+import '../../shadow/shadow_runtime_instruction_collection.dart';
 import '../../shadow/shadow_runtime_renderer.dart';
 import 'quarter_turn_pixel_renderer.dart';
 import 'runtime_map_layer_paint_order.dart';
@@ -176,6 +177,9 @@ class MapLayersComponent extends PositionComponent {
       _regularTileVisualCache =
       <(String, int), ProjectTilesetVisualResolution>{};
   final Map<String, bool> _explicitForegroundByLayerId = <String, bool>{};
+  final Map<String, BorderRuntimeDrawInstructionCollection>
+      _borderInstructionsByLayerId =
+      <String, BorderRuntimeDrawInstructionCollection>{};
   final Map<String, ({double minX, double minY, double maxX, double maxY})>
       _tileLayerMarginsByLayerId =
       <String, ({double minX, double minY, double maxX, double maxY})>{};
@@ -458,7 +462,10 @@ class MapLayersComponent extends PositionComponent {
   }
 
   void _paintBorderLayer(Canvas canvas, BorderLayer layer) {
-    final collection = buildBorderRuntimeDrawInstructions(
+    // Border materialization and tile sizes are immutable for the component
+    // lifetime: build the instruction list once per layer, not per frame.
+    final collection = _borderInstructionsByLayerId[layer.id] ??=
+        buildBorderRuntimeDrawInstructions(
       layer: layer,
       tileWidthPx: bundle.manifest.settings.tileWidth,
       tileHeightPx: bundle.manifest.settings.tileHeight,
@@ -508,15 +515,29 @@ class MapLayersComponent extends PositionComponent {
     if (collection == null || collection.isEmpty) {
       return;
     }
+    // Static building/element shadows cover the whole map; without culling
+    // every off-screen polygon still costs its draw calls.
+    final visibleRect = _visibleLocalRect;
+    final cullingBounds =
+        visibleRect == null || visibleRect.width <= 0 || visibleRect.height <= 0
+            ? null
+            : ShadowRuntimeCullingBounds(
+                worldLeft: visibleRect.left,
+                worldTop: visibleRect.top,
+                width: visibleRect.width,
+                height: visibleRect.height,
+              );
     shadowRenderer.renderCollectionPass(
       canvas,
       collection,
       ShadowRenderPass.groundStatic,
+      cullingBounds: cullingBounds,
     );
     shadowRenderer.renderCollectionPass(
       canvas,
       collection,
       ShadowRenderPass.actorContact,
+      cullingBounds: cullingBounds,
     );
   }
 

@@ -45,27 +45,35 @@ final class ShadowRuntimeCullingBounds {
 
 /// Immutable runtime shadow instruction grouping after optional culling.
 final class ShadowRuntimeInstructionCollection {
-  ShadowRuntimeInstructionCollection({
+  factory ShadowRuntimeInstructionCollection({
     Iterable<ShadowRuntimeRenderInstruction> instructions = const [],
-  }) : this._fromList(List<ShadowRuntimeRenderInstruction>.of(instructions));
+  }) {
+    final source = List<ShadowRuntimeRenderInstruction>.of(instructions);
+    final groundStatic = <ShadowRuntimeRenderInstruction>[];
+    final actorContact = <ShadowRuntimeRenderInstruction>[];
+    for (final instruction in source) {
+      switch (instruction.renderPass) {
+        case ShadowRenderPass.groundStatic:
+          groundStatic.add(instruction);
+        case ShadowRenderPass.actorContact:
+          actorContact.add(instruction);
+      }
+    }
+    return ShadowRuntimeInstructionCollection._(
+      instructions:
+          List<ShadowRuntimeRenderInstruction>.unmodifiable(source),
+      groundStatic:
+          List<ShadowRuntimeRenderInstruction>.unmodifiable(groundStatic),
+      actorContact:
+          List<ShadowRuntimeRenderInstruction>.unmodifiable(actorContact),
+    );
+  }
 
-  ShadowRuntimeInstructionCollection._fromList(
-    List<ShadowRuntimeRenderInstruction> source,
-  )   : instructions = List<ShadowRuntimeRenderInstruction>.unmodifiable(
-          source,
-        ),
-        groundStatic = List<ShadowRuntimeRenderInstruction>.unmodifiable(
-          source.where(
-            (instruction) =>
-                instruction.renderPass == ShadowRenderPass.groundStatic,
-          ),
-        ),
-        actorContact = List<ShadowRuntimeRenderInstruction>.unmodifiable(
-          source.where(
-            (instruction) =>
-                instruction.renderPass == ShadowRenderPass.actorContact,
-          ),
-        );
+  const ShadowRuntimeInstructionCollection._({
+    required this.instructions,
+    required this.groundStatic,
+    required this.actorContact,
+  });
 
   final List<ShadowRuntimeRenderInstruction> instructions;
   final List<ShadowRuntimeRenderInstruction> groundStatic;

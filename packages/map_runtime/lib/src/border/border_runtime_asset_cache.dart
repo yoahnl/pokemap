@@ -26,17 +26,43 @@ final class BorderRuntimeLoadedFrame {
 /// Every ordered frame loaded for one immutable snapshot.
 @immutable
 final class BorderRuntimeLoadedSnapshot {
-  BorderRuntimeLoadedSnapshot({
-    required this.snapshotId,
+  factory BorderRuntimeLoadedSnapshot({
+    required String snapshotId,
     required List<BorderRuntimeLoadedFrame> frames,
-  }) : frames = List<BorderRuntimeLoadedFrame>.unmodifiable(frames) {
-    if (this.frames.isEmpty) {
+  }) {
+    final ownedFrames = List<BorderRuntimeLoadedFrame>.unmodifiable(frames);
+    if (ownedFrames.isEmpty) {
       throw ArgumentError.value(frames, 'frames', 'must not be empty');
     }
+    var totalDurationMs = 0;
+    for (final frame in ownedFrames) {
+      if (frame.request.durationMs <= 0) {
+        throw AssetNotFoundException(
+          'Border snapshot has a non-positive frame duration: '
+          '$snapshotId frame ${frame.request.frameIndex}',
+        );
+      }
+      totalDurationMs += frame.request.durationMs;
+    }
+    return BorderRuntimeLoadedSnapshot._(
+      snapshotId: snapshotId,
+      frames: ownedFrames,
+      totalDurationMs: totalDurationMs,
+    );
   }
+
+  const BorderRuntimeLoadedSnapshot._({
+    required this.snapshotId,
+    required this.frames,
+    required this.totalDurationMs,
+  });
 
   final String snapshotId;
   final List<BorderRuntimeLoadedFrame> frames;
+
+  /// Sum of every frame duration, validated and computed once at load time
+  /// instead of per rendered instruction per frame.
+  final int totalDurationMs;
 }
 
 /// Loaded immutable Border visuals indexed by snapshot identity.
