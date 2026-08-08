@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/services/placed_element_instance_indexer.dart';
 import 'package:map_editor/src/application/services/placed_element_origin_migrator.dart';
 
 void main() {

@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 
-import '../../../application/services/placed_element_instance_indexer.dart';
-
 /// Stable reasons why an editor rotation preview cannot be committed.
 ///
 /// The enum is intentionally UI-agnostic: presentation layers translate these

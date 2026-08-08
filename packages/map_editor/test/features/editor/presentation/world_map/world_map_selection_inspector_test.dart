@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_editor/src/application/services/placed_element_instance_indexer.dart';
 import 'package:map_editor/src/features/editor/application/map_canvas_object_hit_test.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/map_placed_element_rotation_preview_controller.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_selection_inspector.dart';

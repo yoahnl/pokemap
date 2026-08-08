@@ -1,6 +1,5 @@
 import 'package:map_core/map_core.dart';
 
-import '../services/placed_element_instance_indexer.dart';
 import 'environment_generator_use_cases.dart';
 
 // ---------------------------------------------------------------------------

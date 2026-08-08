@@ -9,7 +9,6 @@ import '../../../../ui/panels/gameplay_zone_properties_panel.dart';
 import '../../../../ui/panels/placed_element_properties_panel.dart';
 import '../../../../ui/panels/trigger_properties_panel.dart';
 import '../../../../ui/panels/warp_properties_panel.dart';
-import '../../../../application/services/placed_element_instance_indexer.dart';
 import '../../application/map_canvas_object_hit_test.dart';
 import '../../application/map_placed_element_rotation_planner.dart';
 import '../../state/editor_notifier.dart';
