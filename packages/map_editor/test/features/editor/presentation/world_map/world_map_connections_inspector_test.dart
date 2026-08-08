@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/application/world_map_connection_context.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_connections_inspector.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_connection_context_provider.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -132,6 +133,52 @@ void main() {
       expect(announcement.properties.liveRegion, isTrue);
     });
 
+    testWidgets(
+        'loads a new draft target while persisted connection context is active',
+        (tester) async {
+      final applied = <({String targetMapId, int offset})>[];
+      final harness = _ConnectionsHarness(
+        withSharedContext: true,
+        onApply: ({
+          required direction,
+          required targetMapId,
+          required offset,
+          required reciprocal,
+        }) async {
+          applied.add((targetMapId: targetMapId, offset: offset));
+        },
+      );
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-connection-south')),
+      );
+      await tester.pump();
+      tester
+          .widget<PokeMapDropdownField<String>>(
+            find.byKey(
+              const ValueKey<String>('world-map-connection-target'),
+            ),
+          )
+          .onChanged('south');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Recouvrement : 8 tiles communes.'), findsOneWidget);
+      expect(find.text('Valide'), findsOneWidget);
+      final apply = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey<String>('world-map-connection-apply')),
+      );
+      expect(apply.onPressed, isNotNull);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-connection-apply')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(applied, [(targetMapId: 'south', offset: 0)]);
+    });
+
     testWidgets('disables apply when offset removes every overlap',
         (tester) async {
       final harness = _ConnectionsHarness();
@@ -257,18 +304,33 @@ class _ConnectionsHarness {
     this.onApply,
     this.onDelete,
     this.onOpen,
+    this.withSharedContext = false,
   }) {
+    container = ProviderContainer(
+      overrides: [
+        if (withSharedContext)
+          worldMapConnectionContextProvider.overrideWith(
+            (ref, request) async => WorldMapConnectionContext(
+              sourceMap: request.sourceMap,
+              neighbors: const {},
+              issues: const {},
+            ),
+          ),
+      ],
+    );
     keepAlive = container.listen(editorNotifierProvider, (_, __) {});
-    notifier.state = const EditorState(
+    notifier.state = EditorState(
       project: _project,
       activeMap: _activeMap,
+      projectRootPath: withSharedContext ? '/project' : null,
     );
   }
 
   final WorldMapConnectionApplyCallback? onApply;
   final WorldMapConnectionDirectionCallback? onDelete;
   final WorldMapConnectionDirectionCallback? onOpen;
-  final ProviderContainer container = ProviderContainer();
+  final bool withSharedContext;
+  late final ProviderContainer container;
   late final ProviderSubscription<EditorState> keepAlive;
 
   EditorNotifier get notifier =>

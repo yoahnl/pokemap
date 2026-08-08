@@ -112,14 +112,15 @@ class _WorldMapConnectionsInspectorState
     final targetManifested = targetMapId != null &&
         targetMapId.isNotEmpty &&
         projectMapById.containsKey(targetMapId);
-    final targetFuture = sharedContext == null && targetManifested
-        ? _targetFutures.putIfAbsent(
-            targetMapId,
-            () => (widget.loadTargetMap ?? notifier.loadMapSnapshotById)(
-              targetMapId,
-            ),
-          )
-        : null;
+    final targetFuture =
+        targetManifested && (sharedContext == null || existing == null)
+            ? _targetFutures.putIfAbsent(
+                targetMapId,
+                () => (widget.loadTargetMap ?? notifier.loadMapSnapshotById)(
+                  targetMapId,
+                ),
+              )
+            : null;
 
     return FutureBuilder<MapData?>(
       future: targetFuture,
