@@ -135,9 +135,10 @@ final class FileIdempotencyStore implements IdempotencyStore {
   Future<T> _withLock<T>(Future<T> Function() operation) async {
     RandomAccessFile? lock;
     try {
-      await _file.parent.create(recursive: true);
+      await _requireSafePaths();
       lock = await _lockFile.open(mode: FileMode.append);
       await lock.lock(FileLock.exclusive);
+      await _requireSafePaths();
       await _recoverCompactionUnlocked();
       return await operation();
     } on IdempotencyStoreException {
@@ -155,6 +156,53 @@ final class FileIdempotencyStore implements IdempotencyStore {
           // Closing releases the OS lock even if explicit unlock fails.
         }
         await lock.close();
+      }
+    }
+  }
+
+  Future<void> _requireSafePaths() async {
+    final metadataParents = <Directory>[];
+    final hasMetadataRoot = _file.uri.pathSegments.contains('.pokemap');
+    var current = _file.parent;
+    while (true) {
+      metadataParents.add(current);
+      if (!hasMetadataRoot || _directoryName(current) == '.pokemap') break;
+      final parent = current.parent;
+      if (parent.path == current.path) {
+        throw const IdempotencyStoreException(
+          'idempotency.path_unsafe',
+          'The durable idempotency metadata path is unsafe.',
+        );
+      }
+      current = parent;
+    }
+    for (final directory in metadataParents.reversed) {
+      var type = await FileSystemEntity.type(
+        directory.path,
+        followLinks: false,
+      );
+      if (type == FileSystemEntityType.notFound) {
+        await directory.create();
+        type = await FileSystemEntity.type(
+          directory.path,
+          followLinks: false,
+        );
+      }
+      if (type != FileSystemEntityType.directory) {
+        throw const IdempotencyStoreException(
+          'idempotency.path_unsafe',
+          'The durable idempotency metadata path is unsafe.',
+        );
+      }
+    }
+    for (final file in [_file, _lockFile, _compactionFile, _backupFile]) {
+      final type = await FileSystemEntity.type(file.path, followLinks: false);
+      if (type != FileSystemEntityType.notFound &&
+          type != FileSystemEntityType.file) {
+        throw const IdempotencyStoreException(
+          'idempotency.path_unsafe',
+          'The durable idempotency metadata path is unsafe.',
+        );
       }
     }
   }
@@ -243,6 +291,13 @@ final class FileIdempotencyStore implements IdempotencyStore {
       await _backupFile.rename(_file.path);
     }
   }
+}
+
+String _directoryName(Directory directory) {
+  final segments = directory.uri.pathSegments
+      .where((segment) => segment.isNotEmpty)
+      .toList(growable: false);
+  return segments.isEmpty ? '' : segments.last;
 }
 
 Future<void> _deleteIfExists(File file) async {

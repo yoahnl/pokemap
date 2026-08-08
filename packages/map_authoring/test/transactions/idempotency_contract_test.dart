@@ -316,7 +316,53 @@ void main() {
         ),
       );
     });
+
+    test('rejects symlinked metadata parents, ledger, and auxiliary files',
+        () async {
+      final outside = await Directory.systemTemp.createTemp(
+        'pokemap_idempotency_outside_',
+      );
+      addTearDown(() => outside.delete(recursive: true));
+
+      final parentProject = Directory('${sandbox.path}/parent-project');
+      await parentProject.create();
+      await Link('${parentProject.path}/.pokemap').create(outside.path);
+      await _expectUnsafeStore(
+        '${parentProject.path}/.pokemap/authoring/idempotency.jsonl',
+      );
+      expect(await Directory('${outside.path}/authoring').exists(), isFalse);
+
+      for (final suffix in const ['', '.lock', '.compact', '.backup']) {
+        final project = Directory(
+          '${sandbox.path}/file-${suffix.isEmpty ? 'ledger' : suffix.substring(1)}',
+        );
+        final authoring = Directory('${project.path}/.pokemap/authoring');
+        await authoring.create(recursive: true);
+        final path = '${authoring.path}/idempotency.jsonl';
+        final target = File(
+          '${outside.path}/target-${suffix.isEmpty ? 'ledger' : suffix.substring(1)}',
+        );
+        await target.writeAsString('sentinel');
+        await Link('$path$suffix').create(target.path);
+
+        await _expectUnsafeStore(path);
+        expect(await target.readAsString(), 'sentinel');
+      }
+    });
   });
+}
+
+Future<void> _expectUnsafeStore(String filePath) async {
+  await expectLater(
+    () => FileIdempotencyStore(filePath: filePath).read(_scope()),
+    throwsA(
+      isA<IdempotencyStoreException>().having(
+        (error) => error.code,
+        'code',
+        'idempotency.path_unsafe',
+      ),
+    ),
+  );
 }
 
 AuthoringIdempotencyLedger _ledger(
