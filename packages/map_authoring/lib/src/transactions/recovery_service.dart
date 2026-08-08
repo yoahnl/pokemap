@@ -86,10 +86,12 @@ final class AuthoringRecoveryService {
       }
       await _requireStages(journal);
       if (journal.status == AuthoringTransactionStatus.compensated) {
-        return _idempotency.completeRecovered(
-          scope: journal.scope,
-          operationId: operationId,
-          receipt: journal.finalReceipt!,
+        return _mutate(
+          () => _idempotency.completeRecovered(
+            scope: journal.scope,
+            operationId: operationId,
+            receipt: journal.finalReceipt!,
+          ),
         );
       }
 
@@ -112,12 +114,14 @@ final class AuthoringRecoveryService {
           updatedAt: _clock().toUtc(),
           finalReceipt: recovered,
         );
-        await _gateway.writeJournal(journal);
+        await _mutate(() => _gateway.writeJournal(journal));
         await _recordCommitted(journal);
-        return _idempotency.completeRecovered(
-          scope: journal.scope,
-          operationId: operationId,
-          receipt: recovered,
+        return _mutate(
+          () => _idempotency.completeRecovered(
+            scope: journal.scope,
+            operationId: operationId,
+            receipt: recovered,
+          ),
         );
       }
 
@@ -133,7 +137,7 @@ final class AuthoringRecoveryService {
         status: AuthoringTransactionStatus.promoting,
         updatedAt: _clock().toUtc(),
       );
-      await _gateway.writeJournal(journal);
+      await _mutate(() => _gateway.writeJournal(journal));
       for (var index = 0; index < journal.entries.length; index++) {
         final entry = journal.entries[index];
         final current = await _gateway.readResourceRevision(entry.storageKey);
@@ -151,12 +155,13 @@ final class AuthoringRecoveryService {
             'A transaction resource has an unexpected recovery revision.',
           );
         }
-        _requireMutationAllowed();
-        await _gateway.promoteStaged(
-          operationId: operationId,
-          storageKey: entry.storageKey,
-          kind: TransactionPayloadKind.after,
-          expectedCurrentRevision: entry.beforeRevision,
+        await _mutate(
+          () => _gateway.promoteStaged(
+            operationId: operationId,
+            storageKey: entry.storageKey,
+            kind: TransactionPayloadKind.after,
+            expectedCurrentRevision: entry.beforeRevision,
+          ),
         );
         journal = await _checkpointEntry(
           journal,
@@ -176,12 +181,14 @@ final class AuthoringRecoveryService {
         updatedAt: _clock().toUtc(),
         finalReceipt: recovered,
       );
-      await _gateway.writeJournal(journal);
+      await _mutate(() => _gateway.writeJournal(journal));
       await _recordCommitted(journal);
-      return _idempotency.completeRecovered(
-        scope: journal.scope,
-        operationId: operationId,
-        receipt: recovered,
+      return _mutate(
+        () => _idempotency.completeRecovered(
+          scope: journal.scope,
+          operationId: operationId,
+          receipt: recovered,
+        ),
       );
     });
   }
@@ -209,7 +216,7 @@ final class AuthoringRecoveryService {
         updatedAt: _clock().toUtc(),
         finalReceipt: null,
       );
-      await _gateway.writeJournal(journal);
+      await _mutate(() => _gateway.writeJournal(journal));
       for (var index = journal.entries.length - 1; index >= 0; index--) {
         final entry = journal.entries[index];
         final current = await _gateway.readResourceRevision(entry.storageKey);
@@ -227,12 +234,13 @@ final class AuthoringRecoveryService {
             'A transaction resource has an unexpected compensation revision.',
           );
         }
-        _requireMutationAllowed();
-        await _gateway.promoteStaged(
-          operationId: operationId,
-          storageKey: entry.storageKey,
-          kind: TransactionPayloadKind.before,
-          expectedCurrentRevision: entry.afterRevision,
+        await _mutate(
+          () => _gateway.promoteStaged(
+            operationId: operationId,
+            storageKey: entry.storageKey,
+            kind: TransactionPayloadKind.before,
+            expectedCurrentRevision: entry.afterRevision,
+          ),
         );
         journal = await _checkpointEntry(
           journal,
@@ -259,11 +267,13 @@ final class AuthoringRecoveryService {
         updatedAt: _clock().toUtc(),
         finalReceipt: recovered,
       );
-      await _gateway.writeJournal(journal);
-      return _idempotency.completeRecovered(
-        scope: journal.scope,
-        operationId: operationId,
-        receipt: recovered,
+      await _mutate(() => _gateway.writeJournal(journal));
+      return _mutate(
+        () => _idempotency.completeRecovered(
+          scope: journal.scope,
+          operationId: operationId,
+          receipt: recovered,
+        ),
       );
     });
   }
@@ -288,13 +298,18 @@ final class AuthoringRecoveryService {
           'An unreserved intent cannot be discarded after a resource change.',
         );
       }
-      await _gateway.deleteTransaction(operationId);
+      await _mutate(() => _gateway.deleteTransaction(operationId));
       return true;
     });
   }
 
   void _requireMutationAllowed() {
     _mutationGuard?.call();
+  }
+
+  Future<T> _mutate<T>(Future<T> Function() operation) {
+    _requireMutationAllowed();
+    return operation();
   }
 
   Future<AuthoringRecoveryInspection> _inspectJournal(
@@ -452,7 +467,7 @@ final class AuthoringRecoveryService {
           if (entryIndex == index) replacement else journal.entries[entryIndex],
       ],
     );
-    await _gateway.writeJournal(updated);
+    await _mutate(() => _gateway.writeJournal(updated));
     return updated;
   }
 
@@ -507,15 +522,17 @@ final class AuthoringRecoveryService {
         ),
       );
     }
-    await hook.record(
-      AuthoringCommittedMutation(
-        scope: journal.scope,
-        planId: journal.planId,
-        operationId: journal.operationId,
-        // Reuse the frozen receipt so a retry after the history hook but before
-        // idempotency completion remains byte-for-byte idempotent.
-        receipt: journal.intendedReceipt,
-        changes: changes,
+    await _mutate(
+      () => hook.record(
+        AuthoringCommittedMutation(
+          scope: journal.scope,
+          planId: journal.planId,
+          operationId: journal.operationId,
+          // Reuse the frozen receipt so a retry after the history hook but
+          // before idempotency completion remains byte-for-byte idempotent.
+          receipt: journal.intendedReceipt,
+          changes: changes,
+        ),
       ),
     );
   }

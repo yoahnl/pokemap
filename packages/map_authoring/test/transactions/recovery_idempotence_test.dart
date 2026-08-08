@@ -86,6 +86,54 @@ void main() {
       expect(await harness.readB(), external);
     });
 
+    test('capability expiry before the first recovery write changes nothing',
+        () async {
+      var crashed = false;
+      final harness = await TransactionTestHarness.create(
+        faultInjector: (context) {
+          if (!crashed &&
+              context.checkpoint ==
+                  AuthoringTransactionCheckpoint.afterReservation) {
+            crashed = true;
+            throw const AuthoringTransactionSimulatedCrash();
+          }
+        },
+      );
+      addTearDown(harness.dispose);
+      await expectLater(
+        harness.apply,
+        throwsA(isA<AuthoringTransactionSimulatedCrash>()),
+      );
+      final journalBefore = await harness.readJournal();
+      var guardCalls = 0;
+      final recovery = await harness.reopenRecovery(
+        mutationGuard: () {
+          guardCalls++;
+          if (guardCalls >= 2) {
+            throw const WorkspaceHandleException(
+              'workspace.handle_expired',
+              'The requested project handle has expired.',
+            );
+          }
+        },
+      );
+
+      await expectLater(
+        () => recovery.resume(harness.operationId),
+        throwsA(
+          isA<WorkspaceHandleException>().having(
+            (error) => error.code,
+            'code',
+            'workspace.handle_expired',
+          ),
+        ),
+      );
+
+      expect((await harness.readJournal())?.toJson(), journalBefore?.toJson());
+      expect(await harness.readA(), TransactionTestHarness.beforeA);
+      expect(await harness.readB(), TransactionTestHarness.beforeB);
+    });
+
     test('committed journal finalizes a pending ledger exactly once', () async {
       var crashed = false;
       final harness = await TransactionTestHarness.create(

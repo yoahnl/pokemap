@@ -144,7 +144,9 @@ final class TransactionTestHarness {
   Future<AuthoringTransactionJournal?> readJournal() =>
       gateway.readJournal(operationId);
 
-  Future<AuthoringRecoveryService> reopenRecovery() async {
+  Future<AuthoringRecoveryService> reopenRecovery({
+    void Function()? mutationGuard,
+  }) async {
     final reopenedGateway = await LocalTransactionFileGateway.open(
       projectRoot: projectDirectory.path,
     );
@@ -152,6 +154,7 @@ final class TransactionTestHarness {
       gateway: reopenedGateway,
       idempotency: _ledger(projectDirectory.path, now),
       clock: () => now,
+      mutationGuard: mutationGuard,
     );
   }
 
