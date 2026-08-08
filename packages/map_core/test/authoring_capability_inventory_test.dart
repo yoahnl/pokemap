@@ -279,6 +279,7 @@ void main() {
           'smart_tile.layer.delete',
           'smart_tile.layer.merge',
           'smart_tile.layer.normalize',
+          'smart_tile.layer.reconstruct',
           'smart_tile.material.upsert',
           'smart_tile.pattern.delete',
           'smart_tile.pattern.erase',
