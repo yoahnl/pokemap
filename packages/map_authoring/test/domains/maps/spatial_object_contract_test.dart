@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
@@ -82,7 +84,148 @@ void main() {
         }),
       );
     });
+
+    test('places a 128 by 128 building as one logical instance', () {
+      final context = _largePlacementContext(
+        pos: const GridPos(x: 64, y: 64),
+      );
+
+      final draft = const PlacedElementActions().build(context);
+      final updated = MapData.fromJson(
+        jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
+            as Map<String, dynamic>,
+      );
+
+      expect(updated.placedElements, hasLength(1));
+      expect(updated.placedElements.single.elementId, 'large_building');
+      expect(updated.placedElements.single.pos, const GridPos(x: 64, y: 64));
+      expect(updated.layers.whereType<TileLayer>().single.palette, isEmpty);
+      expect(
+        updated.layers.whereType<TileLayer>().single.cells,
+        everyElement(0),
+      );
+    });
+
+    test('rejects a large building footprint outside map bounds', () {
+      final context = _largePlacementContext(
+        pos: const GridPos(x: 129, y: 0),
+      );
+
+      expect(
+        () => const PlacedElementActions().build(context),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'placed_element.footprint_out_of_bounds',
+          ),
+        ),
+      );
+      expect(context.snapshot.maps.single.placedElements, isEmpty);
+    });
   });
+}
+
+AuthoringPlanningContext _largePlacementContext({required GridPos pos}) {
+  final map = MapData(
+    id: 'large_map',
+    name: 'Large map',
+    size: const GridSize(width: 256, height: 256),
+    version: ProjectVersion.v6,
+    visualStack: MapVisualStackConfig.canonicalV1,
+    layers: <MapLayer>[
+      MapLayer.tile(
+        id: 'objects',
+        name: 'Objects',
+        cells: List<int>.filled(256 * 256, 0),
+      ),
+    ],
+  );
+  const manifest = ProjectManifest(
+    name: 'Large placement project',
+    version: ProjectVersion.v6,
+    maps: <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'large_map',
+        name: 'Large map',
+        relativePath: 'maps/large_map.json',
+      ),
+    ],
+    tilesets: <ProjectTilesetEntry>[],
+    elements: <ProjectElementEntry>[
+      ProjectElementEntry(
+        id: 'large_building',
+        name: 'Large building',
+        tilesetId: 'buildings',
+        categoryId: 'building',
+        frames: <TilesetVisualFrame>[
+          TilesetVisualFrame(
+            source: TilesetSourceRect(x: 0, y: 0, width: 128, height: 128),
+          ),
+        ],
+      ),
+    ],
+  );
+  final manifestBytes = utf8.encode(jsonEncode(manifest.toJson()));
+  final mapBytes = utf8.encode(jsonEncode(map.toJson()));
+  final projectRevision = computeAuthoringBytesFingerprint(
+    manifestBytes,
+    logicalName: 'project.json',
+  );
+  final mapRevision = computeAuthoringBytesFingerprint(
+    mapBytes,
+    logicalName: 'maps/large_map.json',
+  );
+  final snapshot = ProjectSnapshot(
+    projectHandle: const ProjectHandle('prj_large_placement'),
+    revision:
+        computeNarrativeProjectFingerprint(<NarrativeProjectFingerprintEntry>[
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'project.json',
+        bytes: manifestBytes,
+      ),
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'maps/large_map.json',
+        bytes: mapBytes,
+      ),
+    ]),
+    manifest: manifest,
+    maps: <MapData>[map],
+    resourceFingerprints: <String, String>{
+      'project': projectRevision,
+      'map:large_map': mapRevision,
+    },
+    resourceBytes: <String, List<int>>{
+      'project': manifestBytes,
+      'map:large_map': mapBytes,
+    },
+  );
+  return AuthoringPlanningContext(
+    snapshot: snapshot,
+    request: AuthoringRequest(
+      requestId: 'request_large_placement',
+      actionId: 'placed_element.place',
+      actionVersion: 1,
+      workspaceHandle: 'workspace_large_placement',
+      parameters: <String, Object?>{
+        'mapId': 'large_map',
+        'instance': MapPlacedElement(
+          id: 'objects::${pos.x}::${pos.y}',
+          layerId: 'objects',
+          elementId: 'large_building',
+          pos: pos,
+          properties: const <String, String>{
+            'pokemapPlacementOrigin': 'authored',
+          },
+        ).toJson(),
+      },
+      expectedRevision: snapshot.revision,
+      idempotencyKey: 'idem_large_placement_${pos.x}_${pos.y}',
+      dryRun: false,
+    ),
+    planId: 'plan_large_placement',
+    seed: 128,
+  );
 }
 
 MapData _emptyMap() => const MapData(
