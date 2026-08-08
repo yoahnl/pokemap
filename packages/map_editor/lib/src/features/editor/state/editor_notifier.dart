@@ -5301,9 +5301,17 @@ class EditorNotifier extends _$EditorNotifier
     bool partOfStroke = false,
   }) async {
     if (state.activeBrush is ProjectElementEditorBrush) {
-      if (!partOfStroke) {
-        await placeSelectedProjectElementAt(pos);
+      if (partOfStroke) return;
+      final preview = resolveSelectedProjectElementPlacementPreview(pos);
+      if (preview == null) {
+        _setPaintError('Selected project element is no longer available');
+        return;
       }
+      if (preview.validity == MapToolPreviewValidity.invalid) {
+        _setPaintError(preview.reason ?? 'Element placement is invalid');
+        return;
+      }
+      await placeSelectedProjectElementAt(pos);
       return;
     }
     final layerContext = _resolveActiveTileLayerContext(emitErrors: true);
@@ -7929,6 +7937,9 @@ class EditorNotifier extends _$EditorNotifier
 
     if (tool == EditorToolType.tilePaint) {
       if (activeLayer is! TileLayer) return null;
+      if (state.activeBrush is ProjectElementEditorBrush) {
+        return resolveSelectedProjectElementPlacementPreview(hoveredTile);
+      }
       final resolvedBrush = _resolveActiveBrushPattern(
         tilesetColumnsById: tilesetColumnsById,
         emitErrors: false,

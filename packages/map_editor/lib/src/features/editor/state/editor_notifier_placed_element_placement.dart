@@ -19,6 +19,38 @@ mixin _EditorNotifierPlacedElementPlacement on _$EditorNotifier {
 
   bool _placedElementPlacementInProgress = false;
 
+  MapToolPreview? resolveSelectedProjectElementPlacementPreview(GridPos pos) {
+    final brush = state.activeBrush;
+    final project = state.project;
+    final map = state.activeMap;
+    if (brush is! ProjectElementEditorBrush || project == null || map == null) {
+      return null;
+    }
+    ProjectElementEntry? element;
+    for (final candidate in project.elements) {
+      if (candidate.id == brush.elementId) {
+        element = candidate;
+        break;
+      }
+    }
+    if (element == null) return null;
+    final source = element.frames.primarySource;
+    final size = GridSize(width: source.width, height: source.height);
+    final isInside = pos.x >= 0 &&
+        pos.y >= 0 &&
+        pos.x + size.width <= map.size.width &&
+        pos.y + size.height <= map.size.height;
+    return MapToolPreview.elementPlacement(
+      origin: pos,
+      size: size,
+      elementId: element.id,
+      validity: isInside
+          ? MapToolPreviewValidity.valid
+          : MapToolPreviewValidity.invalid,
+      reason: isInside ? null : 'Le bâtiment dépasse des limites de la map.',
+    );
+  }
+
   Future<void> placeSelectedProjectElementAt(GridPos pos) async {
     if (_placedElementPlacementInProgress) return;
     final brush = state.activeBrush;

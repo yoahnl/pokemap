@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/map_tool_preview.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 
 void main() {
   test('project element brush routes one pointer-down to semantic placement',
@@ -34,6 +36,43 @@ void main() {
       (notifier.state.activeMap!.layers.single as TileLayer).cells,
       beforeCells,
     );
+  });
+
+  test('project element preview exposes the footprint and rejects overflow',
+      () async {
+    final seeded = _RoutingEditorNotifier(_state());
+    final container = ProviderContainer(
+      overrides: <Override>[
+        editorNotifierProvider.overrideWith(() => seeded),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+
+    final valid = notifier.resolveMapToolPreview(
+      hoveredTile: const GridPos(x: 3, y: 2),
+      tilesetColumnsById: const <String, int>{'village': 64},
+    );
+    final invalid = notifier.resolveMapToolPreview(
+      hoveredTile: const GridPos(x: 10, y: 8),
+      tilesetColumnsById: const <String, int>{'village': 64},
+    );
+
+    expect(valid?.mode, MapToolPreviewMode.elementPlacement);
+    expect(valid?.size, const GridSize(width: 8, height: 7));
+    expect(valid?.elementId, 'guesthouse');
+    expect(valid?.validity, MapToolPreviewValidity.valid);
+    expect(invalid?.mode, MapToolPreviewMode.elementPlacement);
+    expect(invalid?.validity, MapToolPreviewValidity.invalid);
+    expect(invalid?.reason, isNotEmpty);
+
+    await notifier.paintSelectedBrushAt(
+      const GridPos(x: 10, y: 8),
+      tilesetColumnsById: const <String, int>{'village': 64},
+    );
+
+    expect(seeded.semanticPlacements, isEmpty);
+    expect(notifier.state.errorMessage, contains('dépasse'));
   });
 }
 
@@ -95,5 +134,6 @@ EditorState _state() => EditorState(
         ],
       ),
       activeLayerId: 'objects',
+      activeTool: EditorToolType.tilePaint,
       activeBrush: const EditorBrush.projectElement(elementId: 'guesthouse'),
     );

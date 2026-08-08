@@ -1677,6 +1677,10 @@ class MapGridPainter extends CustomPainter {
       _paintPaintPreview(canvas, preview);
       return;
     }
+    if (preview.mode == MapToolPreviewMode.elementPlacement) {
+      _paintElementPlacementPreview(canvas, preview);
+      return;
+    }
     if (preview.mode == MapToolPreviewMode.erase) {
       _paintErasePreview(canvas, preview);
       return;
@@ -1702,6 +1706,45 @@ class MapGridPainter extends CustomPainter {
       return;
     }
     _paintCollisionErasePreview(canvas, preview);
+  }
+
+  void _paintElementPlacementPreview(
+    Canvas canvas,
+    MapToolPreview preview,
+  ) {
+    final elementId = preview.elementId;
+    final layerId = activeLayerId;
+    final projectContext = project;
+    if (elementId == null || layerId == null || projectContext == null) return;
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in projectContext.elements) entry.id: entry,
+    };
+    final placed = MapPlacedElement(
+      id: '__placement_preview__',
+      layerId: layerId,
+      elementId: elementId,
+      pos: preview.origin,
+      applyCollision: false,
+    );
+    final isValid = preview.validity == MapToolPreviewValidity.valid;
+    _paintPlacedElement(
+      canvas,
+      placed,
+      elementById: elementById,
+      renderPass: _EditorMapTileRenderPass.foreground,
+      opacity: isValid ? 0.6 : 0.3,
+      ignoreRenderPassSplit: true,
+    );
+    _paintPlacedElementFootprintHint(
+      canvas,
+      placed,
+      elementById: elementById,
+      color: isValid
+          ? PokeMapLegacyColors.cyanAccent
+          : PokeMapLegacyColors.redAccent,
+      fillAlpha: isValid ? 0.08 : 0.18,
+      strokeAlpha: 0.95,
+    );
   }
 
   void _paintPaintPreview(Canvas canvas, MapToolPreview preview) {
@@ -3034,6 +3077,7 @@ class MapGridPainter extends CustomPainter {
         previous.origin == next.origin &&
         previous.size == next.size &&
         previous.tilesetId == next.tilesetId &&
+        previous.elementId == next.elementId &&
         previous.terrain == next.terrain &&
         previous.validity == next.validity &&
         previous.reason == next.reason &&
