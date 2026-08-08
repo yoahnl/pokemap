@@ -125,8 +125,8 @@ Rect _arcRect({
       ? Offset.zero
       : Offset(-travel.dy / distance, travel.dx / distance);
   final laneWidth = math.min(
-    math.max(begin.width, end.width) * 0.46,
-    48,
+    math.max(begin.width, end.width) * 0.58,
+    60,
   );
   final arc = math.sin(math.pi * progress) * laneWidth;
   final center =

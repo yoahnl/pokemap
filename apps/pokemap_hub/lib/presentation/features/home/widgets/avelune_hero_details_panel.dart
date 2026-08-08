@@ -4,9 +4,8 @@ import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 import 'package:pokemap_hub/core/utils/relative_time.dart';
 
-/// Metadata column the approved prototype places to the right of the hero
-/// cartridge: a visible details control, the game identity, and the real last
-/// session.
+/// Editorial identity block placed above the hero cartridge: a visible details
+/// control, the game identity, and the real last session.
 ///
 /// Every line is projected from [game]. The prototype also shows a
 /// "genre · players" line, which is intentionally absent here: the read model
@@ -88,135 +87,91 @@ class _AveluneHeroDetailsPanelState extends State<AveluneHeroDetailsPanel>
     final game = widget.game;
     final lastSaveAt = game.lastSaveAt;
 
+    final titleSize = widget.condensed ? 27.0 : 38.0;
+
     return Column(
       key: const ValueKey<String>('avelune-hero-details-panel'),
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.end,
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (widget.onShowDetails case final callback?) ...<Widget>[
-          _reveal(
-            id: 'action',
-            index: 0,
-            child: AvelunePressable(
-              key: const ValueKey<String>('avelune-hero-details-button'),
-              semanticLabel:
-                  french ? 'Détails de ${game.title}' : '${game.title} details',
-              onPressed: () => callback(game),
-              borderRadius: AveluneShapes.pill,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: colors.outline.withValues(alpha: 0.86),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(AveluneSpacing.xxs),
-                  child: Icon(
-                    AveluneIcons.details,
-                    size: 15,
-                    color: colors.textSecondary,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AveluneSpacing.sm),
-        ],
         _reveal(
           id: 'title',
           index: 0,
-          child: Text(
-            game.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: colors.textPrimary,
-              fontSize: 17,
-              fontWeight: FontWeight.w700,
-              height: 1.12,
-            ),
-          ),
-        ),
-        if (!widget.condensed)
-          if (game.subtitle case final subtitle?
-              when subtitle.trim().isNotEmpty) ...<Widget>[
-            const SizedBox(height: AveluneSpacing.xxs),
-            _reveal(
-              id: 'subtitle',
-              index: 1,
-              child: Text(
-                subtitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textSecondary,
-                  fontSize: 11.5,
-                  height: 1.24,
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  game.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w400,
+                    height: 1.04,
+                    letterSpacing: -0.7,
+                  ),
                 ),
               ),
-            ),
-          ],
-        const SizedBox(height: AveluneSpacing.xxs),
+              if (widget.onShowDetails case final callback?)
+                AvelunePressable(
+                  key: const ValueKey<String>('avelune-hero-details-button'),
+                  semanticLabel: french
+                      ? 'Détails de ${game.title}'
+                      : '${game.title} details',
+                  onPressed: () => callback(game),
+                  borderRadius: AveluneShapes.pill,
+                  child: Padding(
+                    padding: const EdgeInsets.all(AveluneSpacing.xs),
+                    child: Icon(
+                      AveluneIcons.details,
+                      size: 17,
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AveluneSpacing.sm),
         _reveal(
-          id: 'author',
-          index: 2,
-          child: Text(
-            game.authorName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: colors.textSecondary,
-              fontSize: 11.5,
-              height: 1.24,
-            ),
+          id: 'rule',
+          index: 1,
+          child: Row(
+            children: <Widget>[
+              Icon(
+                AveluneIcons.motionOn,
+                color: colors.accentBright,
+                size: 13,
+              ),
+              const SizedBox(width: AveluneSpacing.xs),
+              Flexible(
+                child: Container(
+                  height: 1,
+                  constraints: const BoxConstraints(maxWidth: 210),
+                  color: colors.accentBright.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
           ),
         ),
         if (lastSaveAt != null) ...<Widget>[
           const SizedBox(height: AveluneSpacing.sm),
           _reveal(
             id: 'session',
-            index: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                SizedBox(
-                  width: 96,
-                  child: ColoredBox(
-                    color: colors.outline.withValues(alpha: 0.7),
-                    child: const SizedBox(height: 1),
-                  ),
-                ),
-                const SizedBox(height: AveluneSpacing.sm),
-                Text(
-                  french ? 'Dernière partie' : 'Last session',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textSecondary,
-                    fontSize: 10.5,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: AveluneSpacing.hairline),
-                Text(
-                  aveluneRelativeTime(
-                    lastSaveAt,
-                    widget.referenceTime,
-                    french: french,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
-                ),
-              ],
+            index: 2,
+            child: Text(
+              '${french ? 'Dernière partie' : 'Last session'}  ·  '
+              '${aveluneRelativeTime(lastSaveAt, widget.referenceTime, french: french)}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: widget.condensed ? 11.5 : 13.5,
+                fontWeight: FontWeight.w500,
+                height: 1.2,
+              ),
             ),
           ),
         ],

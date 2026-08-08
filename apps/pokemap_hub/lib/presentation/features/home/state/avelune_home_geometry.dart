@@ -2,7 +2,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/widgets.dart';
 
-import 'package:pokemap_hub/presentation/design_system/assets/avelune_credenza_metrics.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_console.dart';
 import 'package:pokemap_hub/presentation/design_system/foundation/avelune_breakpoints.dart';
@@ -48,7 +47,9 @@ final class AveluneHomeGeometry {
     required this.sceneRect,
     required this.shelfRect,
     required this.navigationRect,
-    required this.credenzaRect,
+    required this.cabinWindowRect,
+    required this.consoleLedgeRect,
+    required this.librarySheetRect,
     required this.consoleFootlineY,
     required this.heroCartridgeSize,
     required this.shelfCartridgeSize,
@@ -96,7 +97,50 @@ final class AveluneHomeGeometry {
     );
     final sizeClass = _resolveSizeClass(contentRect.size);
     final metrics = _metricsFor(sizeClass);
-    final regions = _resolveRegions(contentRect, metrics);
+    final librarySheetTop = contentRect.top +
+        (contentRect.height * metrics.librarySheetTopFraction);
+    final sceneRect = Rect.fromLTRB(
+      contentRect.left,
+      contentRect.top,
+      contentRect.right,
+      librarySheetTop,
+    );
+    final navigationRect = Rect.fromLTRB(
+      contentRect.left,
+      contentRect.bottom - metrics.navigationHeight,
+      contentRect.right,
+      contentRect.bottom,
+    );
+    final shelfRect = Rect.fromLTRB(
+      contentRect.left,
+      librarySheetTop + metrics.libraryHeaderHeight,
+      contentRect.right,
+      navigationRect.top,
+    );
+    final librarySheetRect = Rect.fromLTRB(
+      0,
+      librarySheetTop,
+      viewportSize.width,
+      viewportSize.height,
+    );
+    final consoleLedgeRect = Rect.fromLTRB(
+      0,
+      librarySheetTop - metrics.consoleLedgeDepth,
+      viewportSize.width,
+      librarySheetTop,
+    );
+    final cabinWindowRect = Rect.fromLTRB(
+      contentRect.left + metrics.windowHorizontalInset,
+      contentRect.top + metrics.windowTopInset,
+      contentRect.right - metrics.windowHorizontalInset,
+      consoleLedgeRect.top + metrics.windowLedgeOverlap,
+    );
+    final headerRect = Rect.fromLTWH(
+      cabinWindowRect.left + metrics.windowContentInset,
+      cabinWindowRect.top + metrics.windowContentInset,
+      cabinWindowRect.width - (metrics.windowContentInset * 2),
+      metrics.headerHeight,
+    );
     final heroCartridgeSize = Size(
       metrics.heroCartridgeHeight * kAveluneCartridgeAspectRatio,
       metrics.heroCartridgeHeight,
@@ -113,7 +157,9 @@ final class AveluneHomeGeometry {
     final consoleHeight = consoleWidth / kAveluneConsoleAspectRatio;
     final consoleRect = Rect.fromLTWH(
       contentRect.center.dx - (consoleWidth / 2),
-      regions.scene.bottom - metrics.sceneBottomPadding - consoleHeight,
+      librarySheetTop -
+          metrics.consoleFootlineInset -
+          (consoleHeight * kAveluneConsoleFootlineFraction),
       consoleWidth,
       consoleHeight,
     );
@@ -124,7 +170,7 @@ final class AveluneHomeGeometry {
       heroCartridgeSize.height,
     );
 
-    if (heroCartridgeRect.top < regions.scene.top) {
+    if (heroCartridgeRect.top < headerRect.bottom) {
       throw ArgumentError.value(
         viewportSize,
         'viewportSize',
@@ -143,47 +189,9 @@ final class AveluneHomeGeometry {
       width: consoleRect.width * _consoleSlotWidthFactor,
       height: metrics.consoleSlotHeight,
     );
-    // The credenza runs from the console's feet all the way to the bottom of the
-    // screen, so no dark strip shows beneath it. Its shelf board then lands
-    // wherever that height puts it, and the shelf band is built around the
-    // board — the reverse of deriving the furniture from a band fraction, which
-    // left the room ending short of the bottom edge.
     final consoleFootlineY = consoleRect.top +
         (consoleRect.height * kAveluneConsoleFootlineFraction);
-    final credenzaHeight = AveluneCredenzaMetrics.heightToReach(
-      bottomY: viewportSize.height,
-      consoleFootlineY: consoleFootlineY,
-    );
-    final credenzaWidth = math.max(
-      credenzaHeight * AveluneCredenzaMetrics.aspectRatio,
-      contentRect.width,
-    );
-    final credenzaRect = Rect.fromLTWH(
-      contentRect.center.dx - (credenzaWidth / 2),
-      AveluneCredenzaMetrics.topFor(
-        height: credenzaHeight,
-        consoleFootlineY: consoleFootlineY,
-      ),
-      credenzaWidth,
-      credenzaHeight,
-    );
-    final shelfBaselineY = credenzaRect.top +
-        (credenzaRect.height * AveluneCredenzaMetrics.shelfBoard);
-    final shelfRect = Rect.fromLTRB(
-      contentRect.left,
-      regions.scene.bottom,
-      contentRect.right,
-      math.min(
-        contentRect.bottom,
-        shelfBaselineY + metrics.shelfBottomPadding,
-      ),
-    );
-    final navigationRect = Rect.fromLTRB(
-      contentRect.left,
-      shelfRect.bottom,
-      contentRect.right,
-      contentRect.bottom,
-    );
+    final shelfBaselineY = shelfRect.bottom - metrics.shelfBottomPadding;
     final shelfFirstCartridgeRect = Rect.fromLTWH(
       shelfRect.left + metrics.shelfHorizontalPadding,
       shelfBaselineY - shelfCartridgeSize.height,
@@ -239,11 +247,13 @@ final class AveluneHomeGeometry {
       viewportSize: viewportSize,
       safeArea: safeArea,
       contentRect: contentRect,
-      headerRect: regions.header,
-      sceneRect: regions.scene,
+      headerRect: headerRect,
+      sceneRect: sceneRect,
       shelfRect: shelfRect,
       navigationRect: navigationRect,
-      credenzaRect: credenzaRect,
+      cabinWindowRect: cabinWindowRect,
+      consoleLedgeRect: consoleLedgeRect,
+      librarySheetRect: librarySheetRect,
       consoleFootlineY: consoleFootlineY,
       heroCartridgeSize: heroCartridgeSize,
       shelfCartridgeSize: shelfCartridgeSize,
@@ -273,10 +283,16 @@ final class AveluneHomeGeometry {
   final Rect shelfRect;
   final Rect navigationRect;
 
-  /// The credenza, sized so its base meets the bottom of the screen.
-  final Rect credenzaRect;
+  /// Scenic view clipped by the fixed train/aircraft cabin surround.
+  final Rect cabinWindowRect;
 
-  /// Screen y of the console's feet — the line the credenza's top surface meets.
+  /// Dark technical shelf supporting the console. It is never marble.
+  final Rect consoleLedgeRect;
+
+  /// Warm lower panel containing the library and navigation.
+  final Rect librarySheetRect;
+
+  /// Screen y of the console's feet where the technical ledge supports it.
   final double consoleFootlineY;
   final Size heroCartridgeSize;
   final Size shelfCartridgeSize;
@@ -345,31 +361,6 @@ final class AveluneHomeGeometry {
     };
   }
 
-  static _AveluneHomeRegions _resolveRegions(
-    Rect contentRect,
-    _AveluneHomeClassMetrics metrics,
-  ) {
-    var top = contentRect.top;
-
-    Rect take(double heightFraction) {
-      final region = Rect.fromLTWH(
-        contentRect.left,
-        top,
-        contentRect.width,
-        contentRect.height * heightFraction,
-      );
-      top = region.bottom;
-      return region;
-    }
-
-    // Only the two bands above the furniture come from fractions; everything
-    // below is derived from where the credenza puts its shelf board.
-    return _AveluneHomeRegions(
-      header: take(metrics.headerHeightFraction),
-      scene: take(metrics.sceneHeightFraction),
-    );
-  }
-
   static _AveluneHomeClassMetrics _metricsFor(
     AveluneHomeSizeClass sizeClass,
   ) =>
@@ -380,87 +371,114 @@ final class AveluneHomeGeometry {
       };
 
   static const _compactMetrics = _AveluneHomeClassMetrics(
-    headerHeightFraction: 0.10,
-    sceneHeightFraction: 0.43,
-    heroCartridgeHeight: 116,
-    shelfCartridgeHeight: 104,
+    librarySheetTopFraction: 0.60,
+    headerHeight: 42,
+    libraryHeaderHeight: 54,
+    navigationHeight: 56,
+    heroCartridgeHeight: 100,
+    shelfCartridgeHeight: 98,
     shelfHorizontalPadding: 12,
-    shelfBottomPadding: 12,
+    shelfBottomPadding: 10,
     shelfGap: 8,
-    sceneHorizontalPadding: 20,
-    sceneBottomPadding: 4,
-    heroConsoleGap: 22,
+    sceneHorizontalPadding: 14,
+    heroConsoleGap: 14,
+    windowHorizontalInset: 8,
+    windowTopInset: 2,
+    windowContentInset: 12,
+    windowLedgeOverlap: 14,
+    consoleLedgeDepth: 38,
+    consoleFootlineInset: 14,
     consoleSlotHeight: 6,
     insertionClearance: 3,
   );
 
   static const _regularMetrics = _AveluneHomeClassMetrics(
-    headerHeightFraction: 0.09,
-    sceneHeightFraction: 0.42,
+    librarySheetTopFraction: 0.64,
+    headerHeight: 48,
+    libraryHeaderHeight: 70,
+    navigationHeight: 60,
     heroCartridgeHeight: 148,
-    shelfCartridgeHeight: 120,
-    shelfHorizontalPadding: 12,
-    shelfBottomPadding: 14,
-    shelfGap: 8,
-    sceneHorizontalPadding: 12,
-    sceneBottomPadding: 4,
-    heroConsoleGap: 34,
+    shelfCartridgeHeight: 133,
+    shelfHorizontalPadding: 18,
+    shelfBottomPadding: 10,
+    shelfGap: 10,
+    sceneHorizontalPadding: 20,
+    heroConsoleGap: 20,
+    windowHorizontalInset: 9,
+    windowTopInset: 3,
+    windowContentInset: 16,
+    windowLedgeOverlap: 18,
+    consoleLedgeDepth: 48,
+    consoleFootlineInset: 17,
     consoleSlotHeight: 6,
     insertionClearance: 4,
   );
 
   static const _largeMetrics = _AveluneHomeClassMetrics(
-    headerHeightFraction: 0.085,
-    sceneHeightFraction: 0.43,
+    librarySheetTopFraction: 0.635,
+    headerHeight: 52,
+    libraryHeaderHeight: 72,
+    navigationHeight: 60,
     heroCartridgeHeight: 172,
-    shelfCartridgeHeight: 128,
-    shelfHorizontalPadding: 12,
-    shelfBottomPadding: 16,
-    shelfGap: 10,
-    sceneHorizontalPadding: 12,
-    sceneBottomPadding: 4,
-    heroConsoleGap: 38,
+    shelfCartridgeHeight: 140,
+    shelfHorizontalPadding: 18,
+    shelfBottomPadding: 12,
+    shelfGap: 12,
+    sceneHorizontalPadding: 20,
+    heroConsoleGap: 22,
+    windowHorizontalInset: 10,
+    windowTopInset: 3,
+    windowContentInset: 18,
+    windowLedgeOverlap: 20,
+    consoleLedgeDepth: 54,
+    consoleFootlineInset: 18,
     consoleSlotHeight: 6,
     insertionClearance: 4,
   );
 }
 
 @immutable
-final class _AveluneHomeRegions {
-  const _AveluneHomeRegions({required this.header, required this.scene});
-
-  final Rect header;
-  final Rect scene;
-}
-
-@immutable
 final class _AveluneHomeClassMetrics {
   const _AveluneHomeClassMetrics({
-    required this.headerHeightFraction,
-    required this.sceneHeightFraction,
+    required this.librarySheetTopFraction,
+    required this.headerHeight,
+    required this.libraryHeaderHeight,
+    required this.navigationHeight,
     required this.heroCartridgeHeight,
     required this.shelfCartridgeHeight,
     required this.shelfHorizontalPadding,
     required this.shelfBottomPadding,
     required this.shelfGap,
     required this.sceneHorizontalPadding,
-    required this.sceneBottomPadding,
     required this.heroConsoleGap,
+    required this.windowHorizontalInset,
+    required this.windowTopInset,
+    required this.windowContentInset,
+    required this.windowLedgeOverlap,
+    required this.consoleLedgeDepth,
+    required this.consoleFootlineInset,
     required this.consoleSlotHeight,
     required this.insertionClearance,
   });
 
-  final double headerHeightFraction;
-  final double sceneHeightFraction;
+  final double librarySheetTopFraction;
+  final double headerHeight;
+  final double libraryHeaderHeight;
+  final double navigationHeight;
   final double heroCartridgeHeight;
   final double shelfCartridgeHeight;
   final double shelfHorizontalPadding;
   final double shelfBottomPadding;
   final double shelfGap;
   final double sceneHorizontalPadding;
-  final double sceneBottomPadding;
-  /// Vertical room between the hero cartridge and the console. It also hosts
-  /// the insertion hint, so it is wider than a pure visual gap.
+  final double windowHorizontalInset;
+  final double windowTopInset;
+  final double windowContentInset;
+  final double windowLedgeOverlap;
+  final double consoleLedgeDepth;
+  final double consoleFootlineInset;
+
+  /// Vertical breathing room between the hero cartridge and the console.
   final double heroConsoleGap;
   final double consoleSlotHeight;
   final double insertionClearance;

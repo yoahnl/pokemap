@@ -39,7 +39,7 @@ void main() {
     expect(find.byType(AveluneBottomNavigation), findsOneWidget);
     expect(find.text('Accueil'), findsOneWidget);
     expect(find.text('Paramètres'), findsOneWidget);
-    expect(find.text('Bibliothèque'), findsNothing);
+    expect(find.text('Bibliothèque'), findsOneWidget);
     expect(find.text('Diagnostics'), findsNothing);
     final systemOverlay = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
       find.byWidgetPredicate(
@@ -213,7 +213,6 @@ void _setViewport(WidgetTester tester, Size size) {
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 }
-
 
 HubShell _shellWithController({
   required HubDashboardSnapshot snapshot,

@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
@@ -63,7 +62,7 @@ class AveluneAppearanceSettings extends StatelessWidget {
         const SizedBox(height: AveluneSpacing.xl),
         AveluneSectionLabel(
           icon: AveluneIcons.furniture,
-          label: french ? 'Commode' : 'Furniture',
+          label: french ? 'Finition de cabine' : 'Cabin finish',
         ),
         const SizedBox(height: AveluneSpacing.md),
         _FurnitureGrid(
@@ -168,16 +167,54 @@ class _FurnitureGrid extends StatelessWidget {
             label: f.label,
             isSelected: f.id == selectedId,
             saving: saving,
-            thumbnail: appearanceAssetPath(f) != null
-                ? Image.asset(
-                    appearanceAssetPath(f)!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  )
-                : null,
+            thumbnail: _CabinFinishSwatch(
+              key: ValueKey<String>('avelune-cabin-finish-swatch-${f.id}'),
+              finishId: f.id,
+            ),
             onTap: saving ? null : () => onSelected(f.id),
           ),
       ],
+    );
+  }
+}
+
+class _CabinFinishSwatch extends StatelessWidget {
+  const _CabinFinishSwatch({
+    super.key,
+    required this.finishId,
+  });
+
+  final String finishId;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.aveluneColors;
+    final finish = aveluneCabinFinishColor(colors, finishId);
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: <Color>[
+            Color.lerp(finish, colors.ivoryHighlight, 0.16)!,
+            finish,
+            Color.lerp(finish, colors.canvas, 0.24)!,
+          ],
+          stops: const <double>[0, 0.54, 1],
+        ),
+      ),
+      child: Opacity(
+        opacity: 0.24,
+        child: ColorFiltered(
+          colorFilter: ColorFilter.mode(finish, BlendMode.softLight),
+          child: Image.asset(
+            kAveluneMatteAbsTextureAssetPath,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -244,12 +281,12 @@ class _PresetCard extends StatelessWidget {
                                   color: colors.focus,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Padding(
-                                  padding: EdgeInsets.all(3),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(3),
                                   child: Icon(
                                     AveluneIcons.selected,
                                     size: 14,
-                                    color: Colors.white,
+                                    color: colors.textPrimary,
                                   ),
                                 ),
                               ),
@@ -355,9 +392,7 @@ class _CustomBackgroundSection extends StatelessWidget {
                 child: OutlinedButton.icon(
                   onPressed: saving ? null : onImport,
                   icon: Icon(
-                    hasCustom
-                        ? AveluneIcons.exchange
-                        : AveluneIcons.ownImage,
+                    hasCustom ? AveluneIcons.exchange : AveluneIcons.ownImage,
                   ),
                   label: Text(
                     hasCustom

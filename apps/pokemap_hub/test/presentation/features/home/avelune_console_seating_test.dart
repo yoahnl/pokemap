@@ -5,12 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
 
-/// The console has to rest on the credenza, not hover over it.
-///
-/// Both layers are painted with transparent padding around their art, so the
-/// seam between them cannot be derived from the layout rectangles alone:
-/// `console/body.webp` keeps 36 px of empty canvas below the feet on a 360 px
-/// height, which put the credenza a tenth of the console height too low.
+/// The console has to rest on the cabin's technical ledge, not hover over it.
 void main() {
   const presets = <Size>[
     Size(393, 852),
@@ -18,15 +13,11 @@ void main() {
     Size(320, 568),
   ];
 
-  testWidgets('the published fractions still match the artwork',
+  testWidgets('the published console footline still matches the artwork',
       (tester) async {
     final consoleBottom = await _lastOpaqueRowFraction(
       tester,
       AveluneMaterialCatalog.consoleBody.path,
-    );
-    final credenzaTop = await _firstOpaqueRowFraction(
-      tester,
-      AveluneMaterialCatalog.furnitureFinish('walnut').path,
     );
 
     expect(
@@ -35,15 +26,11 @@ void main() {
       reason: 'Re-exporting the console art without its padding would silently '
           'move the seam.',
     );
-    expect(
-      credenzaTop,
-      closeTo(kAveluneCredenzaVisibleTopFraction, 0.005),
-      reason: 'Same for the credenza silhouette.',
-    );
   });
 
   for (final preset in presets) {
-    test('console feet meet the credenza surface at '
+    test(
+        'console feet land inside the technical ledge at '
         '${preset.width.toInt()}x${preset.height.toInt()}', () {
       final geometry = AveluneHomeGeometry.resolve(
         viewportSize: preset,
@@ -53,18 +40,20 @@ void main() {
 
       final consoleFootline = geometry.consoleRect.top +
           (geometry.consoleRect.height * kAveluneConsoleFootlineFraction);
-      final credenzaSurface = layout.furnitureRect.top +
-          (layout.furnitureRect.height * kAveluneCredenzaVisibleTopFraction);
-
       expect(
-        credenzaSurface,
-        closeTo(consoleFootline, 0.5),
-        reason: 'A gap here is the console floating; an overlap is the console '
-            'sinking into the furniture.',
+        layout.consoleSupportY,
+        closeTo(consoleFootline, 0.01),
+      );
+      expect(layout.consoleLedgeRect.top, lessThan(consoleFootline));
+      expect(layout.consoleLedgeRect.bottom, greaterThan(consoleFootline));
+      expect(
+        layout.consoleLedgeRect.bottom,
+        closeTo(layout.librarySheetRect.top, 0.01),
       );
     });
 
-    test('the shelf board carries the cartridges at '
+    test(
+        'the ivory library carries uniformly aligned cartridges at '
         '${preset.width.toInt()}x${preset.height.toInt()}', () {
       final geometry = AveluneHomeGeometry.resolve(
         viewportSize: preset,
@@ -72,48 +61,33 @@ void main() {
       );
       final layout = AveluneRoomSceneLayout.resolve(geometry);
 
-      // Where the artwork's board actually lands, not the value the layout
-      // echoes back from the geometry.
-      final board = layout.furnitureRect.top +
-          (layout.furnitureRect.height * kAveluneCredenzaShelfBoardFraction);
       expect(
-        board,
+        geometry.shelfFirstCartridgeRect.bottom,
         closeTo(geometry.anchors.shelfBaseline.dy, 1),
-        reason: 'The furniture was scaled by an arbitrary width multiple that '
-            'overrode this anchor, so the cartridges stood off the board and '
-            'the credenza ran past the bottom of the screen.',
       );
       expect(
-        layout.furnitureRect.width,
+        layout.librarySheetRect.width,
         greaterThanOrEqualTo(geometry.contentRect.width),
-        reason: 'It still has to reach both edges of the room.',
       );
       expect(
-        layout.shelfCartridgeLift,
-        greaterThan(0),
-        reason: 'The cartridges stand back from the board lip, so a sliver of '
-            'board shows in front of them and they read as inside the recess.',
+        layout.shelfRect.contains(geometry.shelfFirstCartridgeRect.center),
+        isTrue,
       );
       expect(
-        layout.shelfCartridgeLift,
-        lessThan(layout.alcoveRect.height * 0.2),
-        reason: 'Lifting them further would float them off the board.',
+        layout.windowRect.bottom,
+        lessThan(layout.librarySheetRect.top),
       );
     });
   }
 }
 
-Future<double> _firstOpaqueRowFraction(WidgetTester tester, String asset) =>
-    _rowFraction(tester, asset, first: true);
-
 Future<double> _lastOpaqueRowFraction(WidgetTester tester, String asset) =>
-    _rowFraction(tester, asset, first: false);
+    _rowFraction(tester, asset);
 
 Future<double> _rowFraction(
   WidgetTester tester,
-  String asset, {
-  required bool first,
-}) async {
+  String asset,
+) async {
   late double fraction;
   await tester.runAsync(() async {
     final data = await rootBundle.load(asset);
@@ -134,11 +108,7 @@ Future<double> _rowFraction(
           }
         }
       }
-      // `first` yields the top of the art; otherwise the row just past the
-      // bottom of it, which is the edge a surface has to line up with.
-      fraction = first
-          ? rows.first / image.height
-          : (rows.last + 1) / image.height;
+      fraction = (rows.last + 1) / image.height;
     } finally {
       image.dispose();
       codec.dispose();

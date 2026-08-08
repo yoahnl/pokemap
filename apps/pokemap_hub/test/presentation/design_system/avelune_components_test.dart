@@ -163,6 +163,12 @@ void main() {
     expect(find.text('Home'), findsOneWidget);
     expect(find.text('Settings'), findsOneWidget);
     expect(find.byType(AveluneBottomNavigation), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('avelune-nav-ivory-surface')),
+      findsOneWidget,
+      reason: 'The cabin home integrates navigation into the ivory library '
+          'panel rather than a dark glass capsule.',
+    );
     final semantics = tester
         .getSemantics(find.byType(AvelunePressable).first)
         .getSemanticsData();

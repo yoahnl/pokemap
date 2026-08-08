@@ -184,29 +184,29 @@ void main() {
     final title = find.byKey(
       const ValueKey<String>('avelune-hero-details-reveal-title'),
     );
-    final subtitle = find.byKey(
-      const ValueKey<String>('avelune-hero-details-reveal-subtitle'),
+    final rule = find.byKey(
+      const ValueKey<String>('avelune-hero-details-reveal-rule'),
     );
-    final author = find.byKey(
-      const ValueKey<String>('avelune-hero-details-reveal-author'),
+    final session = find.byKey(
+      const ValueKey<String>('avelune-hero-details-reveal-session'),
     );
     expect(title, findsOneWidget);
-    expect(subtitle, findsOneWidget);
-    expect(author, findsOneWidget);
+    expect(rule, findsOneWidget);
+    expect(session, findsOneWidget);
 
     final titleOpacity = _revealOpacity(tester, title);
-    final subtitleOpacity = _revealOpacity(tester, subtitle);
-    final authorOpacity = _revealOpacity(tester, author);
-    expect(titleOpacity, greaterThan(subtitleOpacity));
-    expect(subtitleOpacity, greaterThan(authorOpacity));
+    final ruleOpacity = _revealOpacity(tester, rule);
+    final sessionOpacity = _revealOpacity(tester, session);
+    expect(titleOpacity, greaterThan(ruleOpacity));
+    expect(ruleOpacity, greaterThan(sessionOpacity));
     expect(_revealOffset(tester, title).dx, lessThan(0.08));
-    expect(_revealOffset(tester, author).dx, greaterThan(0.08));
+    expect(_revealOffset(tester, session).dx, greaterThan(0.08));
 
     await tester.pumpAndSettle();
     expect(_revealOpacity(tester, title), 1);
-    expect(_revealOpacity(tester, subtitle), 1);
-    expect(_revealOpacity(tester, author), 1);
-    expect(_revealOffset(tester, author), Offset.zero);
+    expect(_revealOpacity(tester, rule), 1);
+    expect(_revealOpacity(tester, session), 1);
+    expect(_revealOffset(tester, session), Offset.zero);
   });
 
   testWidgets('reduced motion cross-fades in 120 ms without moving',
@@ -385,7 +385,7 @@ AveluneGameViewData _game(int index) => AveluneGameViewData(
       validity: AveluneGameValidity.available,
       primaryAction: AvelunePrimaryAction.play,
       isSelected: index == 0,
-      lastSaveAt: null,
+      lastSaveAt: DateTime.utc(2026, 8, 8, 12),
       playTimeSeconds: 0,
     );
 

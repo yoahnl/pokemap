@@ -61,9 +61,22 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Selbrume'), findsWidgets);
-    expect(find.text('Les Brumes de Selbrume'), findsOneWidget);
-    expect(find.text('Studio Avelune'), findsOneWidget);
-    expect(find.text('Dernière partie'), findsOneWidget);
+    expect(find.textContaining('Dernière partie'), findsOneWidget);
+  });
+
+  testWidgets('editorial game title sits above the floating cartridge',
+      (tester) async {
+    await _pumpHome(tester, size: iphone, insets: iphoneInsets);
+
+    final details = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-hero-details-panel')),
+    );
+    final hero = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
+    );
+
+    expect(details.left, lessThan(hero.left));
+    expect(details.bottom, lessThanOrEqualTo(hero.top));
   });
 
   testWidgets('hero details panel invents no last session without a save',
@@ -80,7 +93,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.text('Dernière partie'),
+      find.textContaining('Dernière partie'),
       findsNothing,
       reason: 'No save means no last-session row. Fabricated dates are barred.',
     );
@@ -112,7 +125,8 @@ void main() {
       (tester) async {
     await _pumpHome(tester, size: iphone, insets: iphoneInsets);
 
-    final hint = find.byKey(const ValueKey<String>('avelune-insertion-hint'));
+    final hint =
+        find.byKey(const ValueKey<String>('avelune-library-play-hint'));
     expect(hint, findsOneWidget);
     expect(
       find.descendant(of: hint, matching: find.textContaining('Touchez')),
@@ -131,6 +145,10 @@ void main() {
 
     expect(
       find.byKey(const ValueKey<String>('avelune-insertion-hint')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-library-play-hint')),
       findsNothing,
     );
   });
@@ -190,7 +208,8 @@ AveluneHomeViewData _viewData({required bool withSave}) {
         ? AvelunePrimaryAction.continueGame
         : AvelunePrimaryAction.play,
     isSelected: true,
-    lastSaveAt: withSave ? DateTime.now().subtract(const Duration(hours: 2)) : null,
+    lastSaveAt:
+        withSave ? DateTime.now().subtract(const Duration(hours: 2)) : null,
     playTimeSeconds: withSave ? 3720 : 0,
   );
   return AveluneHomeViewData(

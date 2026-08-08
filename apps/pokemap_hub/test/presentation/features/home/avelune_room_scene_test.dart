@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
-import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_console.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
@@ -10,10 +9,36 @@ import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geomet
 import 'package:pokemap_hub/presentation/features/home/pages/avelune_home_screen.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
-import 'package:pokemap_hub/presentation/shared/artwork/appearance_asset_path.dart';
 
 void main() {
-  testWidgets('background and furniture finish remain independent',
+  testWidgets('home is framed as a cabin window above an ivory library sheet',
+      (tester) async {
+    await _pumpHome(tester);
+
+    final window = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-cabin-window')),
+    );
+    final ledge = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-console-ledge')),
+    );
+    final sheet = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-library-sheet')),
+    );
+    final console = tester.getRect(find.byType(AveluneConsole));
+
+    expect(window.top, lessThan(console.top));
+    expect(window.bottom, greaterThan(console.top));
+    expect(console.bottom, lessThanOrEqualTo(ledge.bottom));
+    expect(ledge.bottom, closeTo(sheet.top, 1));
+    expect(
+      find.byKey(const ValueKey<String>('avelune-room-furniture-layer')),
+      findsNothing,
+      reason: 'The approved cabin design has no credenza or marble slab.',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('background selection does not move the cabin architecture',
       (tester) async {
     await _pumpHome(
       tester,
@@ -23,9 +48,8 @@ void main() {
       ),
     );
     final amberPath = _assetPath(tester, 'avelune-room-background-layer');
-    final walnutPath = _assetPath(tester, 'avelune-room-furniture-layer');
-    final walnutRect = tester.getRect(
-      find.byKey(const ValueKey<String>('avelune-room-furniture-layer')),
+    final amberWindowRect = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-cabin-window')),
     );
 
     await _pumpHome(
@@ -36,43 +60,69 @@ void main() {
       ),
     );
     final linenPath = _assetPath(tester, 'avelune-room-background-layer');
-    final ivoryPath = _assetPath(tester, 'avelune-room-furniture-layer');
-    final ivoryRect = tester.getRect(
-      find.byKey(const ValueKey<String>('avelune-room-furniture-layer')),
+    final linenWindowRect = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-cabin-window')),
     );
 
-    expect(amberPath, AveluneMaterialCatalog.background('amber').path);
-    expect(linenPath, AveluneMaterialCatalog.background('linen').path);
-    expect(walnutPath, AveluneMaterialCatalog.furnitureFinish('walnut').path);
-    expect(ivoryPath, AveluneMaterialCatalog.furnitureFinish('ivory').path);
+    expect(
+      amberPath,
+      'assets/avelune/room/backgrounds/amber.webp',
+    );
+    expect(
+      linenPath,
+      'assets/avelune/room/backgrounds/linen.webp',
+    );
     expect(amberPath, isNot(linenPath));
-    expect(walnutPath, isNot(ivoryPath));
-    expect(walnutRect, ivoryRect);
+    expect(amberWindowRect, linenWindowRect);
   });
 
-  testWidgets('all six furniture finishes share exact physical anchors',
+  testWidgets('custom background remains the view through the cabin window',
       (tester) async {
-    final rects = <Rect>[];
+    const custom = AssetImage('assets/avelune/room/backgrounds/slate.webp');
+    await _pumpHome(
+      tester,
+      appearance: const AveluneAppearancePreferences(
+        backgroundId: AveluneAppearanceCatalog.customBackgroundId,
+      ),
+      customBackground: custom,
+    );
+
+    final image = tester.widget<Image>(
+      find.byKey(const ValueKey<String>('avelune-room-background-layer')),
+    );
+    expect(image.image, same(custom));
+    expect(
+      find.byKey(const ValueKey<String>('avelune-cabin-window')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('all six cabin finishes share exact physical anchors',
+      (tester) async {
+    final windowRects = <Rect>[];
+    final ledgeRects = <Rect>[];
     for (final option in AveluneAppearanceCatalog.furniture) {
       await _pumpHome(
         tester,
         appearance: AveluneAppearancePreferences(furnitureId: option.id),
       );
-      rects.add(
+      windowRects.add(
         tester.getRect(
-          find.byKey(const ValueKey<String>('avelune-room-furniture-layer')),
+          find.byKey(const ValueKey<String>('avelune-cabin-window')),
         ),
       );
-      expect(
-        _assetPath(tester, 'avelune-room-furniture-layer'),
-        appearanceAssetPath(option),
+      ledgeRects.add(
+        tester.getRect(
+          find.byKey(const ValueKey<String>('avelune-console-ledge')),
+        ),
       );
     }
-    expect(rects.toSet(), hasLength(1));
+    expect(windowRects.toSet(), hasLength(1));
+    expect(ledgeRects.toSet(), hasLength(1));
 
     final console = tester.getRect(find.byType(AveluneConsole));
     final support = tester.getRect(
-      find.byKey(const ValueKey<String>('avelune-furniture-support-anchor')),
+      find.byKey(const ValueKey<String>('avelune-console-support-anchor')),
     );
     // The support line is the console's foot line, not the bottom of its layout
     // box: the art keeps transparent padding below the feet.
@@ -80,32 +130,20 @@ void main() {
         console.top + (console.height * kAveluneConsoleFootlineFraction);
     expect(support.center.dy, closeTo(footline, 2));
 
-    final shelfBaseline = tester
-        .getRect(
-          find.byKey(
-            const ValueKey<String>('avelune-furniture-shelf-baseline'),
-          ),
-        )
-        .center
-        .dy;
+    final scene = tester.widget<AveluneRoomScene>(
+      find.byType(AveluneRoomScene),
+    );
+    final shelfBaseline = scene.geometry.anchors.shelfBaseline.dy;
     final shelfCartridges = find.byWidgetPredicate(
       (widget) =>
           widget is AveluneCartridge &&
           widget.displaySize == AveluneCartridgeDisplaySize.shelf,
     );
-    // The cartridges stand back from the board's front lip rather than on it, so
-    // a sliver of board shows in front of them and they read as inside the
-    // recess. They must still agree with each other to the pixel.
-    final scene = tester.widget<AveluneRoomScene>(
-      find.byType(AveluneRoomScene),
-    );
-    final lift = AveluneRoomSceneLayout.resolve(scene.geometry)
-        .shelfCartridgeLift;
     for (final element in shelfCartridges.evaluate()) {
       final rect = tester.getRect(
         find.byElementPredicate((candidate) => candidate == element),
       );
-      expect(rect.bottom, closeTo(shelfBaseline - lift, 1));
+      expect(rect.bottom, closeTo(shelfBaseline, 1));
     }
   });
 
@@ -158,7 +196,7 @@ void main() {
     }
   });
 
-  test('room layout aligns furniture top and shelf board to home geometry', () {
+  test('room layout aligns cabin, ledge and shelf to home geometry', () {
     final geometry = AveluneHomeGeometry.resolve(
       viewportSize: const Size(390, 844),
       safeArea: const EdgeInsets.only(top: 47, bottom: 34),
@@ -166,20 +204,22 @@ void main() {
     final room = AveluneRoomSceneLayout.resolve(geometry);
 
     expect(
-      room.furnitureSupportY,
+      room.consoleSupportY,
       closeTo(
         geometry.consoleRect.top +
             (geometry.consoleRect.height * kAveluneConsoleFootlineFraction),
         0.01,
       ),
-      reason: 'Seating the credenza on consoleRect.bottom left the console '
-          'hovering by a tenth of its height.',
+      reason: 'The technical ledge must meet the console at its feet, not at '
+          'the transparent bottom of the console asset.',
     );
     expect(
-      room.furnitureShelfBaselineY,
+      room.shelfBaselineY,
       closeTo(geometry.anchors.shelfBaseline.dy, 0.01),
     );
-    expect(room.furnitureRect.width, greaterThan(geometry.contentRect.width));
+    expect(room.windowRect, geometry.cabinWindowRect);
+    expect(room.consoleLedgeRect, geometry.consoleLedgeRect);
+    expect(room.librarySheetRect, geometry.librarySheetRect);
   });
 }
 
@@ -190,6 +230,7 @@ Future<void> _pumpHome(
   AveluneAppearancePreferences appearance =
       const AveluneAppearancePreferences(),
   AveluneHomeViewData? viewData,
+  ImageProvider<Object>? customBackground,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -204,6 +245,7 @@ Future<void> _pumpHome(
         child: AveluneHomeScreen(
           viewData: viewData ?? _viewData(),
           appearance: appearance,
+          customBackground: customBackground,
           onGameSelected: (_) {},
           onAddGame: () {},
         ),

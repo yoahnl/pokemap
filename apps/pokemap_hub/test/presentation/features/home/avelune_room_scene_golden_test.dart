@@ -26,18 +26,22 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: theme.copyWith(
-          textTheme: theme.textTheme.apply(fontFamily: 'AveluneGoldenSans'),
+          textTheme: theme.textTheme.apply(fontFamily: 'Roboto'),
+          primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: 'Roboto'),
         ),
-        home: const RepaintBoundary(
-          key: ValueKey<String>('avelune-room-golden-root'),
-          child: ColoredBox(
-            color: Colors.black,
-            child: Row(
-              children: <Widget>[
-                _Room(furnitureId: 'walnut'),
-                SizedBox(width: 16),
-                _Room(furnitureId: 'ivory'),
-              ],
+        home: DefaultTextStyle(
+          style: theme.textTheme.bodyMedium!.copyWith(fontFamily: 'Roboto'),
+          child: const RepaintBoundary(
+            key: ValueKey<String>('avelune-room-golden-root'),
+            child: ColoredBox(
+              color: Colors.black,
+              child: Row(
+                children: <Widget>[
+                  _Room(furnitureId: 'walnut'),
+                  SizedBox(width: 16),
+                  _Room(furnitureId: 'ivory'),
+                ],
+              ),
             ),
           ),
         ),
@@ -100,22 +104,27 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: theme.copyWith(
-          textTheme: theme.textTheme.apply(fontFamily: 'AveluneGoldenSans'),
+          textTheme: theme.textTheme.apply(fontFamily: 'Roboto'),
+          primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: 'Roboto'),
         ),
-        home: RepaintBoundary(
-          key: const ValueKey<String>('avelune-insertion-golden-root'),
-          child: MediaQuery(
-            data: const MediaQueryData(
-              size: Size(390, 844),
-              padding: EdgeInsets.only(top: 47, bottom: 34),
-            ),
-            child: AveluneHomeScreen(
-              viewData: _viewData(),
-              appearance: const AveluneAppearancePreferences(
-                backgroundId: 'amber',
-                furnitureId: 'walnut',
+        home: DefaultTextStyle(
+          style: theme.textTheme.bodyMedium!.copyWith(fontFamily: 'Roboto'),
+          child: RepaintBoundary(
+            key: const ValueKey<String>('avelune-insertion-golden-root'),
+            child: MediaQuery(
+              data: const MediaQueryData(
+                size: Size(390, 844),
+                padding: EdgeInsets.only(top: 47, bottom: 34),
               ),
-              onNewGame: (_) {},
+              child: AveluneHomeScreen(
+                viewData: _viewData(),
+                appearance: const AveluneAppearancePreferences(
+                  backgroundId: 'amber',
+                  furnitureId: 'walnut',
+                ),
+                onContinue: (_) {},
+                onNewGame: (_) {},
+              ),
             ),
           ),
         ),
@@ -198,19 +207,41 @@ class _Room extends StatelessWidget {
   final String furnitureId;
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: 390,
-        height: 844,
-        child: MediaQuery(
-          data: const MediaQueryData(
-            size: Size(390, 844),
-            padding: EdgeInsets.only(top: 47, bottom: 34),
-          ),
-          child: AveluneHomeScreen(
-            viewData: _viewData(),
-            appearance: AveluneAppearancePreferences(
-              backgroundId: 'amber',
-              furnitureId: furnitureId,
+  Widget build(BuildContext context) => Localizations.override(
+        context: context,
+        locale: const Locale('fr'),
+        child: SizedBox(
+          width: 390,
+          height: 844,
+          child: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(390, 844),
+              padding: EdgeInsets.only(top: 47, bottom: 34),
+            ),
+            child: Stack(
+              fit: StackFit.expand,
+              children: <Widget>[
+                AveluneHomeScreen(
+                  viewData: _viewData(),
+                  appearance: AveluneAppearancePreferences(
+                    backgroundId: 'amber',
+                    furnitureId: furnitureId,
+                  ),
+                  referenceTime: DateTime.utc(2026, 8, 4, 12),
+                  onAddGame: () {},
+                  onContinue: (_) {},
+                  onNewGame: (_) {},
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: AveluneBottomNavigation(
+                    selectedItem: AveluneNavigationItem.home,
+                    onItemSelected: (_) {},
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -272,10 +303,12 @@ AveluneGameViewData _game(
       ),
       shellColor: shellColor,
       validity: AveluneGameValidity.available,
-      primaryAction: AvelunePrimaryAction.play,
+      primaryAction: selected
+          ? AvelunePrimaryAction.continueGame
+          : AvelunePrimaryAction.play,
       isSelected: selected,
-      lastSaveAt: null,
-      playTimeSeconds: 0,
+      lastSaveAt: selected ? DateTime.utc(2026, 8, 4, 10) : null,
+      playTimeSeconds: selected ? 3720 : 0,
     );
 
 void _markSubtreeNeedsPaint(RenderObject object) {
@@ -339,9 +372,17 @@ Future<void> _loadGoldenFonts() async {
   final bytes = await File(
     '../../packages/map_editor/assets/fonts/pokemap_capture_sans_regular.ttf',
   ).readAsBytes();
-  final textLoader = FontLoader('AveluneGoldenSans')
+  final textLoader = FontLoader('Roboto')
     ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)));
   final iconLoader = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
-  await Future.wait(<Future<void>>[textLoader.load(), iconLoader.load()]);
+  final cupertinoLoader = FontLoader('packages/cupertino_icons/CupertinoIcons')
+    ..addFont(
+      rootBundle.load('packages/cupertino_icons/assets/CupertinoIcons.ttf'),
+    );
+  await Future.wait(<Future<void>>[
+    textLoader.load(),
+    iconLoader.load(),
+    cupertinoLoader.load(),
+  ]);
 }

@@ -15,7 +15,6 @@ import 'package:pokemap_hub/presentation/features/home/widgets/avelune_hero_deta
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_home_header.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
-import 'package:pokemap_hub/presentation/features/home/widgets/avelune_insertion_hint.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_presentation.dart';
 
@@ -211,6 +210,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
                 showHero: !_isExchanging && !_isInserting,
                 heroSemanticsLabel:
                     canLaunch ? _heroActionLabel(selectedGame) : null,
+                showPlayHint: canLaunch && showChrome,
                 insertionOverlay: _buildInsertionOverlay(geometry),
                 foregroundOverlay: SizedBox.expand(
                   key: _exchangeOverlayAnchorKey,
@@ -255,11 +255,6 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
                     ),
                   ),
                 ),
-                if (canLaunch && showChrome)
-                  Positioned.fromRect(
-                    rect: _insertionHintRect(geometry),
-                    child: AveluneInsertionHint(action: game.primaryAction),
-                  ),
               ],
               if (_launchErrorMessage case final message?)
                 Positioned(
@@ -316,20 +311,15 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     callback(game);
   }
 
-  /// Metadata column occupying the margin to the right of the centred hero.
+  /// Editorial identity block inside the panoramic window, above the hero.
   Rect _detailsPanelRect(AveluneHomeGeometry geometry) => Rect.fromLTRB(
-        geometry.heroCartridgeRect.right + AveluneSpacing.md,
-        geometry.heroCartridgeRect.top,
-        geometry.contentRect.right - AveluneSpacing.sm,
-        geometry.consoleRect.top,
-      );
-
-  /// The hero-to-console gap, which the geometry sizes to host the hint.
-  Rect _insertionHintRect(AveluneHomeGeometry geometry) => Rect.fromLTRB(
-        geometry.contentRect.left,
-        geometry.heroCartridgeRect.bottom,
-        geometry.contentRect.right,
-        geometry.consoleRect.top,
+        geometry.cabinWindowRect.left + AveluneSpacing.xxl,
+        geometry.headerRect.bottom +
+            (geometry.sizeClass == AveluneHomeSizeClass.compact
+                ? AveluneSpacing.xs
+                : AveluneSpacing.xxl),
+        geometry.cabinWindowRect.right - AveluneSpacing.xxl,
+        geometry.heroCartridgeRect.top - AveluneSpacing.sm,
       );
 
   Widget _buildExchangeOverlay() {

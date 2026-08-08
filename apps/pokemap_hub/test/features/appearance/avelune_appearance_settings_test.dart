@@ -10,7 +10,8 @@ void main() {
     await tester.pump();
 
     expect(find.text('Fond'), findsOneWidget);
-    expect(find.text('Commode'), findsOneWidget);
+    expect(find.text('Finition de cabine'), findsOneWidget);
+    expect(find.text('Commode'), findsNothing);
     expect(find.text('Mon image'), findsOneWidget);
 
     for (final label in const <String>[
@@ -31,6 +32,20 @@ void main() {
       'Ébène',
     ]) {
       expect(find.text(label), findsOneWidget, reason: label);
+    }
+    for (final id in const <String>[
+      'walnut',
+      'ivory',
+      'oak',
+      'ash',
+      'mahogany',
+      'ebony',
+    ]) {
+      expect(
+        find.byKey(ValueKey<String>('avelune-cabin-finish-swatch-$id')),
+        findsOneWidget,
+        reason: id,
+      );
     }
   });
 

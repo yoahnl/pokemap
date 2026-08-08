@@ -7,10 +7,10 @@
   "assets": [
     {
       "id": "background.amber",
-      "source": "OpenAI ImageGen output exec-9d5c411e-eee1-4b0c-b645-cef4dec1ac6c.png",
-      "tool": "OpenAI ImageGen, ffmpeg, cwebp",
-      "transformation": "Generated as an empty 9:16 plaster niche, resized to 768x1365, amber master grade, WebP q88.",
-      "sha256": "51d592642afc7a34c7d2f8c546d93988982c6059ab7ab0f3b4a10edd671ee5c9"
+      "source": "OpenAI ImageGen output exec-a3d84c0f-95b1-493f-ae92-e5013c403aca.png",
+      "tool": "OpenAI ImageGen, sips, cwebp",
+      "transformation": "Generated as a UI-free moonlit mountain valley and lighthouse view, resized to 768x1365, WebP q88 for the cabin window.",
+      "sha256": "40af4d55a2c1b59fb6be5e10cb1d0d059f3ef2d1a01f1e2a2b9a200517cb7693"
     },
     {
       "id": "background.dawn",

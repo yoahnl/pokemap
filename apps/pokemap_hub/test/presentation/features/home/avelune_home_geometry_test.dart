@@ -18,15 +18,9 @@ void main() {
       }
     });
 
-    test('partitions the Safe Area without overflow or overlap', () {
+    test('nests the cabin above a contiguous library sheet', () {
       for (final scenario in _referenceViewports) {
         final geometry = scenario.resolve();
-        final regions = <Rect>[
-          geometry.headerRect,
-          geometry.sceneRect,
-          geometry.shelfRect,
-          geometry.navigationRect,
-        ];
 
         expect(
           geometry.contentRect,
@@ -38,50 +32,21 @@ void main() {
           ),
           reason: scenario.label,
         );
-        expect(regions.first.top, geometry.contentRect.top);
+        expect(geometry.sceneRect.top, geometry.contentRect.top);
+        expect(geometry.sceneRect.bottom, geometry.librarySheetRect.top);
+        expect(geometry.consoleLedgeRect.bottom, geometry.librarySheetRect.top);
         expect(
-            regions.last.bottom, closeTo(geometry.contentRect.bottom, 0.001));
-
-        for (var index = 0; index < regions.length; index++) {
-          final region = regions[index];
-          expect(region.width, greaterThan(0), reason: scenario.label);
-          expect(region.height, greaterThan(0), reason: scenario.label);
-          expect(
-            geometry.contentRect.contains(region.topLeft),
-            isTrue,
-            reason: '${scenario.label}: region $index top-left',
-          );
-          expect(
-            region.right,
-            lessThanOrEqualTo(geometry.contentRect.right),
-            reason: scenario.label,
-          );
-          expect(
-            region.bottom,
-            lessThanOrEqualTo(geometry.contentRect.bottom + 0.001),
-            reason: scenario.label,
-          );
-
-          if (index > 0) {
-            final previous = regions[index - 1];
-            expect(
-              previous.bottom,
-              closeTo(region.top, 0.001),
-              reason: '${scenario.label}: regions $index',
-            );
-            expect(previous.overlaps(region), isFalse, reason: scenario.label);
-          }
-        }
-
-        final allocatedHeight = regions.fold<double>(
-          0,
-          (sum, region) => sum + region.height,
-        );
-        expect(
-          allocatedHeight,
-          closeTo(geometry.contentRect.height, 0.001),
-          reason: scenario.label,
-        );
+            geometry.shelfRect.top, greaterThan(geometry.librarySheetRect.top));
+        expect(geometry.shelfRect.bottom, geometry.navigationRect.top);
+        expect(geometry.navigationRect.bottom, geometry.contentRect.bottom);
+        expect(geometry.headerRect.top,
+            greaterThanOrEqualTo(geometry.cabinWindowRect.top));
+        expect(geometry.headerRect.bottom,
+            lessThan(geometry.cabinWindowRect.bottom));
+        expect(geometry.cabinWindowRect.left,
+            greaterThan(geometry.contentRect.left));
+        expect(geometry.cabinWindowRect.right,
+            lessThan(geometry.contentRect.right));
       }
     });
 
@@ -179,8 +144,7 @@ void main() {
         // before the descent, not a move toward the slot.
         expect(insertion.alignedCenter.dy,
             lessThanOrEqualTo(insertion.startCenter.dy));
-        expect(
-            insertion.startCenter.dy - insertion.alignedCenter.dy,
+        expect(insertion.startCenter.dy - insertion.alignedCenter.dy,
             lessThanOrEqualTo(8));
         expect(insertion.latchedCenter.dy,
             greaterThan(insertion.alignedCenter.dy));
@@ -264,28 +228,28 @@ const _referenceViewports = <_ViewportScenario>[
     size: Size(390, 844),
     safeArea: EdgeInsets.fromLTRB(0, 47, 0, 34),
     expectedClass: AveluneHomeSizeClass.regular,
-    minimumVisibleSlots: 4,
+    minimumVisibleSlots: 3.4,
   ),
   _ViewportScenario(
     label: 'iPhone large 430x932',
     size: Size(430, 932),
     safeArea: EdgeInsets.fromLTRB(0, 47, 0, 34),
     expectedClass: AveluneHomeSizeClass.large,
-    minimumVisibleSlots: 4.1,
+    minimumVisibleSlots: 3.4,
   ),
   _ViewportScenario(
     label: 'Android regular 360x800',
     size: Size(360, 800),
     safeArea: EdgeInsets.fromLTRB(0, 24, 0, 24),
     expectedClass: AveluneHomeSizeClass.regular,
-    minimumVisibleSlots: 3.5,
+    minimumVisibleSlots: 3.2,
   ),
   _ViewportScenario(
     label: 'Android large 427x952',
     size: Size(427, 952),
     safeArea: EdgeInsets.fromLTRB(0, 32, 0, 24),
     expectedClass: AveluneHomeSizeClass.large,
-    minimumVisibleSlots: 4.1,
+    minimumVisibleSlots: 3.4,
   ),
 ];
 

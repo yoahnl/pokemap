@@ -202,3 +202,12 @@ final class AveluneColors extends ThemeExtension<AveluneColors> {
     );
   }
 }
+
+Color aveluneCabinFinishColor(AveluneColors colors, String id) => switch (id) {
+      'ivory' => colors.ivory,
+      'oak' => Color.lerp(colors.woodHighlight, colors.ivory, 0.3)!,
+      'ash' => Color.lerp(colors.surfaceRaised, colors.ivory, 0.26)!,
+      'mahogany' => Color.lerp(colors.wood, colors.accent, 0.18)!,
+      'ebony' => colors.canvas,
+      _ => colors.wood,
+    };
