@@ -15,6 +15,7 @@ import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_instruction_collection.dart';
 import '../../shadow/shadow_runtime_renderer.dart';
 import 'quarter_turn_pixel_renderer.dart';
+import 'placed_element_collision_clip.dart';
 import 'runtime_map_layer_paint_order.dart';
 
 const int _kEntityFrameDurationFallbackMs = 200;
@@ -1125,11 +1126,6 @@ class MapLayersComponent extends PositionComponent {
           !hasForegroundSplit) {
         continue;
       }
-      final collisionCellIndices = hasForegroundSplit
-          ? <int>{
-              for (final cell in collisionCells) cell.y * source.width + cell.x,
-            }
-          : const <int>{};
       // Viewport culling pour les éléments placés.
       if (visibleRect != null) {
         final dstLeft = instance.pos.x * cw;
@@ -1176,28 +1172,45 @@ class MapLayersComponent extends PositionComponent {
         width: gridTransform.destinationSize.width * tw,
         height: gridTransform.destinationSize.height * th,
       );
-      drawQuarterTurnPixels(
-        canvas,
-        image: image,
-        sourceRect: src,
-        destinationRect: dst,
-        sourcePixelSize: sourcePixelSize,
-        destinationPixelSize: destinationPixelSize,
-        quarterTurns: gridTransform.quarterTurns,
-        paint: paint,
-        includeSourcePixel: hasForegroundSplit
-            ? (sourcePixel) {
-                final cellIndex =
-                    (sourcePixel.y ~/ th) * source.width + sourcePixel.x ~/ tw;
-                final isCollisionCell =
-                    collisionCellIndices.contains(cellIndex);
-                return switch (renderPass) {
-                  MapLayerRenderPass.background => isCollisionCell,
-                  MapLayerRenderPass.foreground => !isCollisionCell,
-                };
-              }
-            : null,
-      );
+      if (hasForegroundSplit) {
+        final clip = buildPlacedElementCollisionClip(
+          destinationRect: dst,
+          sourceGridSize: GridSize(
+            width: source.width,
+            height: source.height,
+          ),
+          quarterTurns: gridTransform.quarterTurns,
+          collisionCells: collisionCells,
+          includeCollisionCells: renderPass == MapLayerRenderPass.background,
+        );
+        canvas.save();
+        try {
+          canvas.clipPath(clip.path, doAntiAlias: false);
+          drawQuarterTurnPixels(
+            canvas,
+            image: image,
+            sourceRect: src,
+            destinationRect: dst,
+            sourcePixelSize: sourcePixelSize,
+            destinationPixelSize: destinationPixelSize,
+            quarterTurns: gridTransform.quarterTurns,
+            paint: paint,
+          );
+        } finally {
+          canvas.restore();
+        }
+      } else {
+        drawQuarterTurnPixels(
+          canvas,
+          image: image,
+          sourceRect: src,
+          destinationRect: dst,
+          sourcePixelSize: sourcePixelSize,
+          destinationPixelSize: destinationPixelSize,
+          quarterTurns: gridTransform.quarterTurns,
+          paint: paint,
+        );
+      }
     }
   }
 

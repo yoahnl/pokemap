@@ -588,7 +588,7 @@ MapData _map(MapPlacedElement instance) {
       MapLayer.tile(
         id: 'ground',
         name: 'Ground',
-        tiles: List<int>.filled(
+        cells: List<int>.filled(
           _mapSize.width * _mapSize.height,
           0,
           growable: false,

@@ -327,7 +327,7 @@ void main() {
             MapLayer.tile(
               id: 'tile',
               name: 'Tile',
-              tiles: List<int>.filled(144, 0),
+              cells: List<int>.filled(144, 0),
             ),
           ],
           placedElements: const [
@@ -366,7 +366,7 @@ void main() {
             MapLayer.tile(
               id: 'tile',
               name: 'Tile',
-              tiles: List<int>.filled(144, 0),
+              cells: List<int>.filled(144, 0),
             ),
           ],
           placedElements: const [
@@ -425,7 +425,7 @@ void main() {
             MapLayer.tile(
               id: 'tile',
               name: 'Tile',
-              tiles: List<int>.filled(144, 0),
+              cells: List<int>.filled(144, 0),
             ),
           ],
           placedElements: const [
@@ -474,7 +474,7 @@ void main() {
             MapLayer.tile(
               id: 'tile',
               name: 'Tile',
-              tiles: List<int>.filled(144, 0),
+              cells: List<int>.filled(144, 0),
             ),
           ],
           placedElements: const [
@@ -630,7 +630,7 @@ MapData _baseMap({
       MapLayer.tile(
         id: 'tile',
         name: 'Tile',
-        tiles: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        cells: [0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ],
     placedElements: [
