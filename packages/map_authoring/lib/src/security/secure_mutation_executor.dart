@@ -48,6 +48,7 @@ final class SecureAuthoringMutationExecutor {
     AuthoringTransactionPrecondition? precondition,
   }) async {
     late final AuthoringAuthorizationDecision authorization;
+    AuthoringReceipt? replay;
     try {
       _requireContextMatches(
         actor: actor,
@@ -56,35 +57,58 @@ final class SecureAuthoringMutationExecutor {
         plan: plan,
         scope: scope,
       );
-      final binding = AuthoringConfirmationBinding.forPlan(
-        actorId: actor.actorId,
-        projectId: projectId,
-        plan: plan,
+      replay = await _transaction.inspectReplay(
+        scope: scope,
+        request: plan.request,
       );
-      authorization = _policy.authorize(
-        AuthoringAuthorizationRequest(
-          actor: actor,
-          projectId: projectId,
-          operation: AuthoringSecurityOperation.apply,
-          actionId: plan.request.actionId,
-          actionVersion: plan.request.actionVersion,
-          riskLevel: action.riskLevel,
-          requestBytes: utf8
-              .encode(
-                canonicalAuthoringJson(plan.request.toJson()),
-              )
-              .length,
-          touchedResources: plan.changeSet.changes.length,
-          planId: plan.planId,
-          diffFingerprint: binding.diffFingerprint,
-          destructive: plan.changeSet.changes.any(
-            (change) => change.beforeBytes != null,
+      if (replay != null) {
+        authorization = _policy.authorize(
+          AuthoringAuthorizationRequest(
+            actor: actor,
+            projectId: projectId,
+            operation: AuthoringSecurityOperation.apply,
+            actionId: plan.request.actionId,
+            actionVersion: plan.request.actionVersion,
+            riskLevel: action.riskLevel,
+            requestBytes: utf8
+                .encode(canonicalAuthoringJson(plan.request.toJson()))
+                .length,
+            touchedResources: 0,
+            additionalPermissions: action.requiredPermissions
+                .map(_securityPermissionForDescriptor),
           ),
-          confirmationToken: confirmationToken,
-          additionalPermissions:
-              action.requiredPermissions.map(_securityPermissionForDescriptor),
-        ),
-      );
+        );
+      } else {
+        final binding = AuthoringConfirmationBinding.forPlan(
+          actorId: actor.actorId,
+          projectId: projectId,
+          plan: plan,
+        );
+        authorization = _policy.authorize(
+          AuthoringAuthorizationRequest(
+            actor: actor,
+            projectId: projectId,
+            operation: AuthoringSecurityOperation.apply,
+            actionId: plan.request.actionId,
+            actionVersion: plan.request.actionVersion,
+            riskLevel: action.riskLevel,
+            requestBytes: utf8
+                .encode(
+                  canonicalAuthoringJson(plan.request.toJson()),
+                )
+                .length,
+            touchedResources: plan.changeSet.changes.length,
+            planId: plan.planId,
+            diffFingerprint: binding.diffFingerprint,
+            destructive: plan.changeSet.changes.any(
+              (change) => change.beforeBytes != null,
+            ),
+            confirmationToken: confirmationToken,
+            additionalPermissions: action.requiredPermissions
+                .map(_securityPermissionForDescriptor),
+          ),
+        );
+      }
     } on Object catch (error, stackTrace) {
       await _appendAudit(
         actor: actor,
@@ -95,6 +119,27 @@ final class SecureAuthoringMutationExecutor {
         error: error,
       );
       Error.throwWithStackTrace(error, stackTrace);
+    }
+
+    if (replay != null) {
+      await _appendAudit(
+        actor: actor,
+        projectId: projectId,
+        action: action,
+        plan: plan,
+        decision: AuthoringAuditDecision.succeeded,
+        receipt: replay,
+        details: {
+          'confirmationConsumed': false,
+          'idempotentReplay': true,
+          'requiredPermissions': [
+            for (final permission in authorization.requiredPermissions)
+              permission.wireName,
+          ],
+          'touchedResources': 0,
+        },
+      );
+      return replay;
     }
 
     late final AuthoringReceipt receipt;

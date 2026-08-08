@@ -81,6 +81,13 @@ final class JournaledAuthoringTransaction {
   final AuthoringTransactionFaultInjector? _faultInjector;
   final AuthoringTransactionCommitHook? _commitHook;
 
+  /// Returns a completed durable receipt without preparing transaction files.
+  Future<AuthoringReceipt?> inspectReplay({
+    required AuthoringIdempotencyScope scope,
+    required AuthoringRequest request,
+  }) =>
+      _idempotency.inspect(scope: scope, request: request);
+
   Future<AuthoringReceipt> apply({
     required String planId,
     required AuthoringRequest request,

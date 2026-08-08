@@ -106,6 +106,7 @@ export 'src/security/authorization_policy.dart';
 export 'src/security/confirmation_token.dart';
 export 'src/security/output_redaction.dart';
 export 'src/security/secure_mutation_executor.dart';
+export 'src/security/secure_recovery_executor.dart';
 export 'src/support/authoring_fingerprint.dart';
 export 'src/tooling/cli_exit_codes.dart';
 export 'src/tooling/jsonl_worker.dart';

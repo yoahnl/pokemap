@@ -21,6 +21,7 @@ import '../security/authoring_permission.dart';
 import '../security/authorization_policy.dart';
 import '../security/confirmation_token.dart';
 import '../security/secure_mutation_executor.dart';
+import '../security/secure_recovery_executor.dart';
 import '../support/authoring_fingerprint.dart';
 import '../transactions/action_planner.dart';
 import '../transactions/authoring_plan.dart';
@@ -278,7 +279,7 @@ final class _LocalMapAuthoringSession {
     required SecureAuthoringMutationExecutor executor,
     required AuthoringUndoService undoService,
     required AuthoringHistoryStore history,
-    required AuthoringRecoveryService recovery,
+    required SecureAuthoringRecoveryExecutor recoveryExecutor,
   })  : _snapshotLoader = snapshotLoader,
         _dispatcher = dispatcher,
         _actor = actor,
@@ -289,7 +290,7 @@ final class _LocalMapAuthoringSession {
         _executor = executor,
         _undoService = undoService,
         _history = history,
-        _recovery = recovery;
+        _recoveryExecutor = recoveryExecutor;
 
   static Future<_LocalMapAuthoringSession> open({
     required String canonicalProjectRoot,
@@ -366,6 +367,13 @@ final class _LocalMapAuthoringSession {
       commitHook: recorder,
       mutationGuard: () => snapshotLoader.requireActiveProject(projectHandle),
     );
+    final recoveryExecutor = SecureAuthoringRecoveryExecutor(
+      recover: recovery.resume,
+      policy: policy,
+      auditLog: audit,
+      clock: clock,
+      auditIdFactory: () => _secureIdentity('audit_'),
+    );
     return _LocalMapAuthoringSession._(
       projectId: projectId,
       workspaceHandle: workspaceHandle,
@@ -380,7 +388,7 @@ final class _LocalMapAuthoringSession {
       executor: executor,
       undoService: undoService,
       history: history,
-      recovery: recovery,
+      recoveryExecutor: recoveryExecutor,
     );
   }
 
@@ -397,7 +405,7 @@ final class _LocalMapAuthoringSession {
   final SecureAuthoringMutationExecutor _executor;
   final AuthoringUndoService _undoService;
   final AuthoringHistoryStore _history;
-  final AuthoringRecoveryService _recovery;
+  final SecureAuthoringRecoveryExecutor _recoveryExecutor;
 
   Future<Map<String, Object?>> history({
     required int limit,
@@ -556,19 +564,11 @@ final class _LocalMapAuthoringSession {
 
   Future<Map<String, Object?>> recover(String operationId) async {
     final safeOperationId = _safeIdentity(operationId, 'operationId');
-    _policy.authorize(
-      AuthoringAuthorizationRequest(
-        actor: _actor,
-        projectId: projectId,
-        operation: AuthoringSecurityOperation.recover,
-        actionId: 'transaction.recover',
-        actionVersion: 1,
-        riskLevel: AuthoringRiskLevel.high,
-        requestBytes: utf8.encode(safeOperationId).length,
-        touchedResources: 0,
-      ),
+    final receipt = await _recoveryExecutor.recover(
+      actor: _actor,
+      projectId: projectId,
+      operationId: safeOperationId,
     );
-    final receipt = await _recovery.resume(safeOperationId);
     return _receiptResult(receipt);
   }
 

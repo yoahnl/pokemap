@@ -203,21 +203,26 @@ void main() {
       );
       expect(await File('${setup.root.path}/maps/town.json').exists(), isFalse);
 
-      await expectLater(
-        () => setup.mutations.apply(
-          setup.projectHandle,
-          planId: planned['planId']! as String,
-          operationId: 'operation_delete_town_reuse',
-          confirmationToken: token,
-        ),
-        throwsA(
-          isA<AuthoringAuthorizationException>().having(
-            (error) => error.code,
-            'code',
-            'confirmation.used',
-          ),
-        ),
+      final replayed = await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation_delete_town_reuse',
+        confirmationToken: token,
       );
+      expect(replayed['receipt'], applied['receipt']);
+      expect(await File('${setup.root.path}/maps/town.json').exists(), isFalse);
+      final audit = await FileAuthoringAuditLog.open(
+        projectRoot: setup.root.path,
+      );
+      final successful = (await audit.readAll())
+          .where(
+            (record) => record.decision == AuthoringAuditDecision.succeeded,
+          )
+          .toList(growable: false);
+      expect(successful, hasLength(2));
+      expect(successful.first.details['confirmationConsumed'], isTrue);
+      expect(successful.last.details['confirmationConsumed'], isFalse);
+      expect(successful.last.details['idempotentReplay'], isTrue);
     });
 
     test('recovers manifest plus map after a crash between promotions',
@@ -281,6 +286,23 @@ void main() {
           ) as Map<String, dynamic>,
         ).maps.single.id,
         'recovered_map',
+      );
+      final audit = await FileAuthoringAuditLog.open(
+        projectRoot: setup.root.path,
+      );
+      final recoveryRecords = (await audit.readAll())
+          .where(
+            (record) => record.operation == AuthoringSecurityOperation.recover,
+          )
+          .toList(growable: false);
+      expect(recoveryRecords, hasLength(1));
+      expect(
+        recoveryRecords.single.decision,
+        AuthoringAuditDecision.succeeded,
+      );
+      expect(
+        recoveryRecords.single.receiptId,
+        (recovered['receipt']! as Map<String, Object?>)['receiptId'],
       );
     });
 
@@ -361,6 +383,62 @@ void main() {
       );
       expect(await manifestFile.readAsBytes(), manifestBeforeRecovery);
     });
+
+    test('audits denied and failed recovery attempts', () async {
+      final deniedSetup = await _Setup.create(
+        actor: AuthoringActor(
+          actorId: 'recovery_denied_actor',
+          permissions: const [
+            AuthoringPermissionScope.projectRead,
+            AuthoringPermissionScope.projectWrite,
+          ],
+        ),
+      );
+      addTearDown(deniedSetup.dispose);
+      await expectLater(
+        () => deniedSetup.mutations.recover(
+          deniedSetup.projectHandle,
+          operationId: 'operation_denied_recovery',
+        ),
+        throwsA(
+          isA<AuthoringAuthorizationException>().having(
+            (error) => error.code,
+            'code',
+            'authorization.permission_denied',
+          ),
+        ),
+      );
+      final deniedAudit = await FileAuthoringAuditLog.open(
+        projectRoot: deniedSetup.root.path,
+      );
+      expect(
+        (await deniedAudit.readAll()).single.decision,
+        AuthoringAuditDecision.denied,
+      );
+
+      final failedSetup = await _Setup.create();
+      addTearDown(failedSetup.dispose);
+      await expectLater(
+        () => failedSetup.mutations.recover(
+          failedSetup.projectHandle,
+          operationId: 'operation_missing_recovery',
+        ),
+        throwsA(
+          isA<AuthoringRecoveryException>().having(
+            (error) => error.code,
+            'code',
+            'recovery.journal_missing',
+          ),
+        ),
+      );
+      final failedAudit = await FileAuthoringAuditLog.open(
+        projectRoot: failedSetup.root.path,
+      );
+      expect(
+        (await failedAudit.readAll()).single.decision,
+        AuthoringAuditDecision.failed,
+      );
+    });
   });
 }
 
@@ -380,6 +458,7 @@ final class _Setup {
     bool enableSnapshotCache = false,
     DateTime Function()? clock,
     Duration handleTtl = const Duration(minutes: 15),
+    AuthoringActor? actor,
   }) async {
     final root = await Directory.systemTemp.createTemp('map-lifecycle-');
     final manifest = ProjectManifest(
@@ -433,6 +512,7 @@ final class _Setup {
       snapshotLoader: snapshots,
       clock: clock,
       faultInjector: faultInjector,
+      actor: actor,
     );
     await mutations.attachProject(
       projectRootPath: root.path,

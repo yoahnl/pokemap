@@ -364,7 +364,104 @@ void main() {
         [AuthoringAuditDecision.denied, AuthoringAuditDecision.succeeded],
       );
     });
+
+    test('replays a committed high-risk receipt after audit persistence fails',
+        () async {
+      final harness = await TransactionTestHarness.create();
+      addTearDown(harness.dispose);
+      final log = _FailFirstSuccessAuditLog();
+      final confirmations = AuthoringConfirmationStore(
+        clock: () => harness.now,
+        tokenFactory: () => 'secure-token-audit-retry',
+      );
+      var auditId = 0;
+      final executor = SecureAuthoringMutationExecutor(
+        transaction: harness.transaction,
+        policy: AuthoringAuthorizationPolicy(
+          confirmations: confirmations,
+          clock: () => harness.now,
+        ),
+        auditLog: log,
+        clock: () => harness.now,
+        auditIdFactory: () => 'audit-retry-${auditId++}',
+      );
+      final actor = AuthoringActor(
+        actorId: harness.scope.actorId,
+        permissions: const [
+          AuthoringPermissionScope.projectWrite,
+          AuthoringPermissionScope.projectDestructive,
+        ],
+      );
+      final action = _action(riskLevel: AuthoringRiskLevel.high);
+      final confirmation = confirmations.issue(
+        AuthoringConfirmationBinding.forPlan(
+          actorId: actor.actorId,
+          projectId: harness.scope.projectId,
+          plan: harness.plan,
+        ),
+      );
+
+      await expectLater(
+        () => executor.apply(
+          actor: actor,
+          projectId: harness.scope.projectId,
+          action: action,
+          plan: harness.plan,
+          currentProjectRevision: harness.currentProjectRevision,
+          scope: harness.scope,
+          operationId: harness.operationId,
+          confirmationToken: confirmation,
+        ),
+        throwsA(
+          isA<AuthoringAuditLogException>().having(
+            (error) => error.code,
+            'code',
+            'audit.injected_failure',
+          ),
+        ),
+      );
+      expect(await harness.readA(), TransactionTestHarness.afterA);
+
+      final replay = await executor.apply(
+        actor: actor,
+        projectId: harness.scope.projectId,
+        action: action,
+        plan: harness.plan,
+        currentProjectRevision: harness.currentProjectRevision,
+        scope: harness.scope,
+        operationId: harness.operationId,
+        confirmationToken: confirmation,
+      );
+
+      expect(replay.receiptId, harness.plan.receiptId);
+      expect(await harness.readA(), TransactionTestHarness.afterA);
+      expect(log.records, hasLength(1));
+      expect(log.records.single.decision, AuthoringAuditDecision.succeeded);
+      expect(log.records.single.details['idempotentReplay'], isTrue);
+    });
   });
+}
+
+final class _FailFirstSuccessAuditLog implements AuthoringAuditLog {
+  final records = <AuthoringAuditRecord>[];
+  var _failed = false;
+
+  @override
+  Future<void> append(AuthoringAuditRecord record) async {
+    if (!_failed && record.decision == AuthoringAuditDecision.succeeded) {
+      _failed = true;
+      throw const AuthoringAuditLogException(
+        'audit.injected_failure',
+        'Injected audit persistence failure.',
+      );
+    }
+    records.add(record);
+  }
+
+  @override
+  Future<List<AuthoringAuditRecord>> readAll() async => List.unmodifiable(
+        records,
+      );
 }
 
 AuthoringAuditRecord _record({
