@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flame/sprite.dart';
@@ -74,7 +75,25 @@ final class BattleFxBundleCache {
     }
   }
 
+  /// Oublie les entrées sans libérer les images (elles peuvent encore être
+  /// référencées par des sprites vivants ; le GC les récupérera).
   void clear() {
+    _imageFutureByEffectId.clear();
+    _spriteFutureByEffectId.clear();
+  }
+
+  /// Libère toutes les images décodées puis vide le cache.
+  ///
+  /// À n'appeler que quand plus aucun composant battle ne référence les
+  /// sprites servis — typiquement au teardown du jeu propriétaire. Les
+  /// sprites partagent les images de [_imageFutureByEffectId], donc une seule
+  /// passe de libération suffit.
+  void dispose() {
+    for (final future in _imageFutureByEffectId.values) {
+      unawaited(
+        future.then((image) => image.dispose()).catchError((_) {}),
+      );
+    }
     _imageFutureByEffectId.clear();
     _spriteFutureByEffectId.clear();
   }

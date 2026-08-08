@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:isolate';
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -9,9 +11,18 @@ typedef BattleVisualImageLoader = Future<ui.Image> Function(String absolutePath)
 final class BattleVisualAssetCache {
   BattleVisualAssetCache({
     BattleVisualImageLoader? imageLoader,
-  }) : _imageLoader = imageLoader ?? loadImageFromFilePath;
+    int capacity = 96,
+  })  : _imageLoader = imageLoader ?? loadImageFromFilePath,
+        _capacity = capacity;
 
   final BattleVisualImageLoader _imageLoader;
+
+  /// Borne LRU : ce cache vit toute la session de jeu et retenait chaque
+  /// sprite/backdrop/icône jamais vus. L'éviction se contente de lâcher la
+  /// référence — une image évincée peut encore être affichée par un
+  /// composant vivant, c'est donc le GC qui libère le natif ; la libération
+  /// déterministe passe par [dispose] au teardown.
+  final int _capacity;
   final Map<String, Future<ui.Image>> _imageFutureByPath =
       <String, Future<ui.Image>>{};
   final Map<String, Future<ui.Rect?>> _opaqueRectFutureByPath =
@@ -33,8 +44,9 @@ final class BattleVisualAssetCache {
       );
     }
 
-    final cached = _imageFutureByPath[normalizedPath];
+    final cached = _imageFutureByPath.remove(normalizedPath);
     if (cached != null) {
+      _imageFutureByPath[normalizedPath] = cached;
       return await cached;
     }
 
@@ -45,14 +57,19 @@ final class BattleVisualAssetCache {
         return await _imageLoader(normalizedPath);
       } finally {
         stopwatch.stop();
-        debugPrint(
-          '[perf][battle][real] imageLoad path=$normalizedPath total=${stopwatch.elapsedMilliseconds}ms',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[perf][battle][real] imageLoad path=$normalizedPath total=${stopwatch.elapsedMilliseconds}ms',
+          );
+        }
       }
     }
 
     final future = load();
     _imageFutureByPath[normalizedPath] = future;
+    while (_imageFutureByPath.length > _capacity) {
+      _imageFutureByPath.remove(_imageFutureByPath.keys.first);
+    }
     try {
       return await future;
     } catch (_) {
@@ -73,8 +90,9 @@ final class BattleVisualAssetCache {
       return null;
     }
 
-    final cached = _opaqueRectFutureByPath[normalizedPath];
+    final cached = _opaqueRectFutureByPath.remove(normalizedPath);
     if (cached != null) {
+      _opaqueRectFutureByPath[normalizedPath] = cached;
       return await cached;
     }
 
@@ -86,14 +104,19 @@ final class BattleVisualAssetCache {
         return await _computeOpaqueSourceRect(resolvedImage);
       } finally {
         stopwatch.stop();
-        debugPrint(
-          '[perf][battle][real] opaqueRect path=$normalizedPath total=${stopwatch.elapsedMilliseconds}ms',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[perf][battle][real] opaqueRect path=$normalizedPath total=${stopwatch.elapsedMilliseconds}ms',
+          );
+        }
       }
     }
 
     final future = compute();
     _opaqueRectFutureByPath[normalizedPath] = future;
+    while (_opaqueRectFutureByPath.length > _capacity) {
+      _opaqueRectFutureByPath.remove(_opaqueRectFutureByPath.keys.first);
+    }
     try {
       return await future;
     } catch (_) {
@@ -116,6 +139,20 @@ final class BattleVisualAssetCache {
       image: image,
     );
   }
+
+  /// Libère toutes les images décodées puis vide le cache.
+  ///
+  /// À n'appeler que quand plus rien ne peint depuis ce cache — typiquement
+  /// au teardown du jeu propriétaire.
+  void dispose() {
+    for (final future in _imageFutureByPath.values) {
+      unawaited(
+        future.then((image) => image.dispose()).catchError((_) {}),
+      );
+    }
+    _imageFutureByPath.clear();
+    _opaqueRectFutureByPath.clear();
+  }
 }
 
 Future<ui.Rect?> _computeOpaqueSourceRect(ui.Image image) async {
@@ -126,6 +163,29 @@ Future<ui.Rect?> _computeOpaqueSourceRect(ui.Image image) async {
   final rgba = byteData.buffer.asUint8List();
   final width = image.width;
   final height = image.height;
+  // Le readback doit rester sur l'isolate UI, mais le balayage O(largeur ×
+  // hauteur) part en isolate pour les grandes images (backdrops) : il tombait
+  // pile pendant la transition d'entrée en combat.
+  const inlinePixelBudget = 256 * 256;
+  final bounds = width * height <= inlinePixelBudget
+      ? _opaqueBoundsFromRgba(rgba, width, height)
+      : await Isolate.run(() => _opaqueBoundsFromRgba(rgba, width, height));
+  if (bounds == null) {
+    return null;
+  }
+  return ui.Rect.fromLTRB(
+    bounds.minX.toDouble(),
+    bounds.minY.toDouble(),
+    (bounds.maxX + 1).toDouble(),
+    (bounds.maxY + 1).toDouble(),
+  );
+}
+
+({int minX, int minY, int maxX, int maxY})? _opaqueBoundsFromRgba(
+  Uint8List rgba,
+  int width,
+  int height,
+) {
   var minX = width;
   var minY = height;
   var maxX = -1;
@@ -153,10 +213,5 @@ Future<ui.Rect?> _computeOpaqueSourceRect(ui.Image image) async {
   if (maxX < minX || maxY < minY) {
     return null;
   }
-  return ui.Rect.fromLTRB(
-    minX.toDouble(),
-    minY.toDouble(),
-    (maxX + 1).toDouble(),
-    (maxY + 1).toDouble(),
-  );
+  return (minX: minX, minY: minY, maxX: maxX, maxY: maxY);
 }

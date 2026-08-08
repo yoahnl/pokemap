@@ -104,6 +104,7 @@ import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_instruction_collection.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
+import 'battle_fx_bundle_cache.dart';
 import 'battle_overlay_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_medicine_target_menu_model.dart';
@@ -523,6 +524,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   late final CinematicRuntimePlaybackController _cinematicRuntimeController;
   final BattleVisualAssetCache _battleVisualAssetCache =
       BattleVisualAssetCache();
+
+  /// Cache FX au scope jeu : construit par combat auparavant, chaque combat
+  /// re-décodait les mêmes PNG et orphelinait les images du combat précédent.
+  final BattleFxBundleCache _battleFxBundleCache = BattleFxBundleCache();
   late final RuntimeBattleSetupMapper _battleSetupMapper =
       RuntimeBattleSetupMapper(
     moveCatalogLoader: _battleMoveCatalogLoader,
@@ -3362,6 +3367,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _isRemoved = true;
     if (!_onLoadInProgress) {
       _tilesetImageCache.dispose();
+      _battleVisualAssetCache.dispose();
+      _battleFxBundleCache.dispose();
     }
     super.onRemove();
   }
@@ -7486,6 +7493,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           backgroundSpec: backgroundSpec,
           spriteResolver: _battleSpriteResolver,
           visualAssetCache: _battleVisualAssetCache,
+          fxBundleCache: _battleFxBundleCache,
           bagItemIconResolver: _battleBagItemIconResolver,
           genderResolver: genderResolver,
           onPlayerChoice: _onPlayerBattleChoice,
