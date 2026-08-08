@@ -14,7 +14,37 @@ import 'battle_command_menu_model.dart';
 import 'battle_medicine_target_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_scene_layout.dart';
+import 'battle_text_paint_cache.dart';
 import 'battle_visual_asset_cache.dart';
+
+/// Caches partagés par tous les sous-composants du panneau : le texte façonné
+/// et les shaders de gradient étaient reconstruits par bouton/entrée à chaque
+/// frame. Les rects sont locaux aux composants donc stables entre resizes.
+final BattleTextPaintCache _panelTextPaintCache =
+    BattleTextPaintCache(capacity: 192);
+final Map<String, Paint> _panelGradientPaintCache = <String, Paint>{};
+const int _panelGradientPaintCacheCapacity = 96;
+
+Paint _gradientFillPaint(Rect rect, Color top, Color bottom) {
+  final key = '${rect.left},${rect.top},${rect.width},${rect.height}|'
+      '${top.toARGB32()},${bottom.toARGB32()}';
+  final cached = _panelGradientPaintCache.remove(key);
+  if (cached != null) {
+    _panelGradientPaintCache[key] = cached;
+    return cached;
+  }
+  final paint = Paint()
+    ..shader = LinearGradient(
+      colors: <Color>[top, bottom],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ).createShader(rect);
+  _panelGradientPaintCache[key] = paint;
+  if (_panelGradientPaintCache.length > _panelGradientPaintCacheCapacity) {
+    _panelGradientPaintCache.remove(_panelGradientPaintCache.keys.first);
+  }
+  return paint;
+}
 
 class BattleCommandButtonSnapshot {
   const BattleCommandButtonSnapshot({
@@ -875,15 +905,11 @@ class BattleCommandPanelComponent extends PositionComponent with DragCallbacks {
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(commandsRect, const Radius.circular(18)),
-        Paint()
-          ..shader = const LinearGradient(
-            colors: <Color>[
-              Color(0xC12D3640),
-              Color(0xA61B2127),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(commandsRect),
+        _gradientFillPaint(
+          commandsRect,
+          const Color(0xC12D3640),
+          const Color(0xA61B2127),
+        ),
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(commandsRect, const Radius.circular(18)),
@@ -1652,7 +1678,15 @@ String _medicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
   };
 }
 
+final Map<String, String> _humanizedBagItemLabelById = <String, String>{};
+
 String _humanizeBagItemId(String itemId) {
+  // Appelé depuis render() pour chaque entrée de sac à chaque frame ; les ids
+  // viennent des données projet, donc le memo reste borné.
+  return _humanizedBagItemLabelById[itemId] ??= _computeBagItemLabel(itemId);
+}
+
+String _computeBagItemLabel(String itemId) {
   final normalized = itemId.replaceAll('_', '-');
   if (normalized == 'poke-ball') {
     return 'Poké Ball';
@@ -1897,12 +1931,7 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(16)),
-      Paint()
-        ..shader = LinearGradient(
-          colors: <Color>[palette.primary, palette.secondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(rect),
+      _gradientFillPaint(rect, palette.primary, palette.secondary),
     );
     final upperBevelRect = Rect.fromLTWH(3, 3, size.x - 6, size.y * 0.36);
     canvas.drawRRect(
@@ -2026,12 +2055,7 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(16)),
-      Paint()
-        ..shader = LinearGradient(
-          colors: <Color>[palette.primary, palette.secondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(rect),
+      _gradientFillPaint(rect, palette.primary, palette.secondary),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(16)),
@@ -2111,12 +2135,7 @@ class _BattlePartyEntryComponent extends PositionComponent with TapCallbacks {
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, cornerRadius),
-      Paint()
-        ..shader = LinearGradient(
-          colors: <Color>[backgroundTop, backgroundBottom],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(rect),
+      _gradientFillPaint(rect, backgroundTop, backgroundBottom),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, cornerRadius),
@@ -2247,12 +2266,7 @@ class _BattleMedicineTargetEntryComponent extends PositionComponent
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, cornerRadius),
-      Paint()
-        ..shader = LinearGradient(
-          colors: <Color>[backgroundTop, backgroundBottom],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(rect),
+      _gradientFillPaint(rect, backgroundTop, backgroundBottom),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, cornerRadius),
@@ -2390,12 +2404,7 @@ class _BattleBagEntryComponent extends PositionComponent with TapCallbacks {
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, cornerRadius),
-      Paint()
-        ..shader = LinearGradient(
-          colors: <Color>[backgroundTop, backgroundBottom],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(rect),
+      _gradientFillPaint(rect, backgroundTop, backgroundBottom),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, cornerRadius),
@@ -2799,7 +2808,9 @@ double _measureSingleLineWidth(String text, TextStyle style) {
     maxLines: 1,
     textDirection: TextDirection.ltr,
   )..layout();
-  return painter.width;
+  final width = painter.width;
+  painter.dispose();
+  return width;
 }
 
 void _paintButtonText(
@@ -2811,20 +2822,17 @@ void _paintButtonText(
   required TextAlign align,
   required FontWeight fontWeight,
 }) {
-  final painter = TextPainter(
-    text: TextSpan(
-      text: text,
-      style: TextStyle(
-        color: color,
-        fontSize: fontSize,
-        fontWeight: fontWeight,
-      ),
+  final painter = _panelTextPaintCache.painterFor(
+    text: text,
+    style: TextStyle(
+      color: color,
+      fontSize: fontSize,
+      fontWeight: fontWeight,
     ),
-    maxLines: 1,
-    ellipsis: '…',
+    maxWidth: rect.width,
     textAlign: align,
-    textDirection: TextDirection.ltr,
-  )..layout(maxWidth: rect.width);
+    ellipsis: '…',
+  );
 
   final dx = switch (align) {
     TextAlign.right => rect.right - painter.width,
@@ -2950,12 +2958,7 @@ class _BattleUtilityButtonComponent extends PositionComponent
           );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(10)),
-      Paint()
-        ..shader = LinearGradient(
-          colors: <Color>[fillPalette.primary, fillPalette.secondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ).createShader(rect),
+      _gradientFillPaint(rect, fillPalette.primary, fillPalette.secondary),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(rect, const Radius.circular(10)),

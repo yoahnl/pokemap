@@ -35,6 +35,14 @@ class BattleSceneBackdropComponent extends PositionComponent {
   String? _explicitImageSourcePath;
   bool _didExplicitImageLoadFail = false;
 
+  /// Le backdrop ne dépend que de (taille, clé de spec, image explicite) :
+  /// il est enregistré une fois dans un [ui.Picture] au lieu de re-rasteriser
+  /// ~13 draws et 6 gradients à chaque frame.
+  ui.Picture? _cachedBackdrop;
+  Size? _cachedBackdropSize;
+  BattleBackgroundKey? _cachedBackdropKey;
+  ui.Image? _cachedBackdropImage;
+
   @visibleForTesting
   BattleBackgroundKey get currentBackgroundKey => _backgroundSpec.key;
 
@@ -66,7 +74,30 @@ class BattleSceneBackdropComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
+    final currentSize = Size(size.x, size.y);
+    if (_cachedBackdrop == null ||
+        _cachedBackdropSize != currentSize ||
+        _cachedBackdropKey != _backgroundSpec.key ||
+        !identical(_cachedBackdropImage, _explicitImage)) {
+      _cachedBackdrop?.dispose();
+      final recorder = ui.PictureRecorder();
+      _paintBackdrop(Canvas(recorder));
+      _cachedBackdrop = recorder.endRecording();
+      _cachedBackdropSize = currentSize;
+      _cachedBackdropKey = _backgroundSpec.key;
+      _cachedBackdropImage = _explicitImage;
+    }
+    canvas.drawPicture(_cachedBackdrop!);
+  }
 
+  @override
+  void onRemove() {
+    _cachedBackdrop?.dispose();
+    _cachedBackdrop = null;
+    super.onRemove();
+  }
+
+  void _paintBackdrop(Canvas canvas) {
     final rect = Offset.zero & Size(size.x, size.y);
     final palette = _paletteFor(_backgroundSpec.key);
 

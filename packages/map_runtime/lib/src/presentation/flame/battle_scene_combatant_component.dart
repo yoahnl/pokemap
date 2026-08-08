@@ -70,8 +70,16 @@ class BattleSceneCombatantComponent extends PositionComponent {
   TextComponent? _speciesText;
   TextComponent? _monogramText;
   Vector2 _basePosition = Vector2.zero();
-  Vector2 _sceneCameraOffset = Vector2.zero();
+  final Vector2 _sceneCameraOffset = Vector2.zero();
   double _sceneCameraScale = 1.0;
+
+  /// Dernière opacité (quantifiée 0-255) appliquée aux TextPaint : réassigner
+  /// `textRenderer` invalide le cache texte de Flame, donc on ne le fait que
+  /// quand l'opacité visible a réellement changé.
+  int? _lastTextOpacityQuantized;
+  Paint? _auraPaint;
+  Rect? _auraPaintRect;
+  int? _auraPaintAlpha;
   Offset _visualOffset = Offset.zero;
   double _visualOpacity = 1.0;
   double _visualScaleX = 1.0;
@@ -380,7 +388,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     required Vector2 offset,
     required double scale,
   }) {
-    _sceneCameraOffset = offset.clone();
+    _sceneCameraOffset.setFrom(offset);
     _sceneCameraScale = scale;
     _applyVisualPresentation();
   }
@@ -441,21 +449,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
       width: _spriteRect.width * (isPlayerSide ? 0.78 : 0.72),
       height: _spriteRect.height * 0.6,
     );
-    canvas.drawOval(
-      auraRect,
-      Paint()
-        ..shader = RadialGradient(
-          colors: isPlayerSide
-              ? <Color>[
-                  _applyOpacity(const Color(0x667AA9F4)),
-                  _applyOpacity(const Color(0x00000000)),
-                ]
-              : <Color>[
-                  _applyOpacity(const Color(0x66B9D27A)),
-                  _applyOpacity(const Color(0x00000000)),
-                ],
-        ).createShader(auraRect),
-    );
+    canvas.drawOval(auraRect, _auraPaintFor(auraRect));
 
     if (_spriteImage != null) {
       _renderDashTrail(canvas);
@@ -923,15 +917,22 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }
 
   void _applyVisualPresentation() {
-    position = Vector2(
+    // Appelé à chaque frame d'animation et de caméra : mutation in place,
+    // aucune allocation de Vector2.
+    position.setValues(
       _basePosition.x + _visualOffset.dx + _sceneCameraOffset.x,
       _basePosition.y + _visualOffset.dy + _sceneCameraOffset.y,
     );
-    scale = Vector2.all(_sceneCameraScale);
+    scale.setValues(_sceneCameraScale, _sceneCameraScale);
     _updateTextOpacity();
   }
 
   void _updateTextOpacity() {
+    final quantized = (_visualOpacity.clamp(0.0, 1.0) * 255).round();
+    if (quantized == _lastTextOpacityQuantized) {
+      return;
+    }
+    _lastTextOpacityQuantized = quantized;
     final speciesText = _speciesText;
     if (speciesText != null) {
       speciesText.textRenderer = TextPaint(
@@ -956,6 +957,33 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   Color _applyOpacity(Color color) {
     return color.withValues(alpha: color.a * _visualOpacity);
+  }
+
+  /// Le shader d'aura ne dépend que du rect du sprite, du côté et de
+  /// l'opacité visible : reconstruit uniquement quand l'un d'eux change au
+  /// lieu d'un `createShader` par combattant par frame.
+  Paint _auraPaintFor(Rect auraRect) {
+    final alpha = (_visualOpacity.clamp(0.0, 1.0) * 255).round();
+    final cached = _auraPaint;
+    if (cached != null && _auraPaintRect == auraRect && _auraPaintAlpha == alpha) {
+      return cached;
+    }
+    final paint = Paint()
+      ..shader = RadialGradient(
+        colors: isPlayerSide
+            ? <Color>[
+                _applyOpacity(const Color(0x667AA9F4)),
+                _applyOpacity(const Color(0x00000000)),
+              ]
+            : <Color>[
+                _applyOpacity(const Color(0x66B9D27A)),
+                _applyOpacity(const Color(0x00000000)),
+              ],
+      ).createShader(auraRect);
+    _auraPaint = paint;
+    _auraPaintRect = auraRect;
+    _auraPaintAlpha = alpha;
+    return paint;
   }
 }
 

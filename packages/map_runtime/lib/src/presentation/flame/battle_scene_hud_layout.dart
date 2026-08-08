@@ -238,5 +238,7 @@ double _measureSingleLineWidth(String text, TextStyle style) {
     maxLines: 1,
     textDirection: TextDirection.ltr,
   )..layout();
-  return painter.width;
+  final width = painter.width;
+  painter.dispose();
+  return width;
 }

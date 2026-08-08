@@ -64,10 +64,18 @@ final class RmxpHueFilter {
     ];
   }
 
+  static final Map<int, ColorFilter> _filterByNormalizedHue =
+      <int, ColorFilter>{};
+
   static ColorFilter? colorFilterForHue(int hueDegrees) {
-    if (hueDegrees % 360 == 0) {
+    final normalized = hueDegrees % 360;
+    if (normalized == 0) {
       return null;
     }
-    return ColorFilter.matrix(matrixForHue(hueDegrees));
+    // La matrice est périodique sur 360° : au plus 359 filtres distincts,
+    // construits une fois au lieu d'une liste de 20 doubles par cellule
+    // rendue par frame.
+    return _filterByNormalizedHue[normalized] ??=
+        ColorFilter.matrix(matrixForHue(normalized));
   }
 }

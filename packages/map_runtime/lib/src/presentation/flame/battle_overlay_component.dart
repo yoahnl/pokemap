@@ -515,6 +515,7 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCombatant? _displayedPlayerCombatant;
   int _presentationGeneration = 0;
   final BattleCameraRig _battleCameraRig = BattleCameraRig();
+  final Vector2 _cameraScaleScratch = Vector2.all(1);
 
   BattleCommandMenuMode _menuMode = BattleCommandMenuMode.root;
   int _selectedRootIndex = 0;
@@ -2610,14 +2611,17 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _applyBattleCameraTransform() {
+    // Tourne à chaque frame quand la caméra battle est active : les setters
+    // Flame copient déjà (setFrom), aucun clone nécessaire.
     final offset = _battleCameraRig.offset;
     final scale = _battleCameraRig.scale;
+    _cameraScaleScratch.setValues(scale, scale);
     _backdrop
-      ?..position = offset.clone()
-      ..scale = Vector2.all(scale);
+      ?..position = offset
+      ..scale = _cameraScaleScratch;
     _fxLayer
-      ?..position = offset.clone()
-      ..scale = Vector2.all(scale);
+      ?..position = offset
+      ..scale = _cameraScaleScratch;
     _enemyCombatant?.applyBattleCameraTransform(
       offset: offset,
       scale: scale,

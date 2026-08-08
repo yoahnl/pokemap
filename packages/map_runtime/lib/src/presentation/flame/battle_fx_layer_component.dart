@@ -82,50 +82,42 @@ final class BattleFxLayerComponent extends PositionComponent {
 
   bool get hasPseudoWeatherAmbient => _pseudoWeatherAmbient?.parent == this;
 
+  final List<Component> _pendingFxRemovals = <Component>[];
+
   @override
   void update(double dt) {
     super.update(dt);
-    if (_weatherAmbient != null) {
-      _weatherAmbient!.size = size.clone();
+    // Les setters Flame copient (setFrom) : pas de clone, et pas d'assignation
+    // quand la taille n'a pas changé.
+    final weatherAmbient = _weatherAmbient;
+    if (weatherAmbient != null && weatherAmbient.size != size) {
+      weatherAmbient.size = size;
     }
-    if (_pseudoWeatherAmbient != null) {
-      _pseudoWeatherAmbient!.size = size.clone();
+    final pseudoWeatherAmbient = _pseudoWeatherAmbient;
+    if (pseudoWeatherAmbient != null && pseudoWeatherAmbient.size != size) {
+      pseudoWeatherAmbient.size = size;
     }
-    for (final component
-        in children.whereType<BattleFxSpriteComponent>().toList()) {
-      if (component.isAnimationComplete) {
-        component.removeFromParent();
+    // Une seule traversée des enfants avec un buffer réutilisé, au lieu de
+    // six passes `whereType().toList()` par frame.
+    for (final component in children) {
+      final finished = switch (component) {
+        BattleFxSpriteComponent c => c.isAnimationComplete,
+        BattleFxSpriteSheetComponent c => c.isAnimationComplete,
+        BattleRmxpAnimationComponent c => c.isAnimationComplete,
+        BattleSdkParticleComponent c => c.isAnimationComplete,
+        _BattleScreenFlashComponent c => c.isExpired,
+        _BattleBarrierPulseComponent c => c.isExpired,
+        _ => false,
+      };
+      if (finished) {
+        _pendingFxRemovals.add(component);
       }
     }
-    for (final component
-        in children.whereType<BattleFxSpriteSheetComponent>().toList()) {
-      if (component.isAnimationComplete) {
+    if (_pendingFxRemovals.isNotEmpty) {
+      for (final component in _pendingFxRemovals) {
         component.removeFromParent();
       }
-    }
-    for (final component
-        in children.whereType<BattleRmxpAnimationComponent>().toList()) {
-      if (component.isAnimationComplete) {
-        component.removeFromParent();
-      }
-    }
-    for (final component
-        in children.whereType<BattleSdkParticleComponent>().toList()) {
-      if (component.isAnimationComplete) {
-        component.removeFromParent();
-      }
-    }
-    for (final component
-        in children.whereType<_BattleScreenFlashComponent>().toList()) {
-      if (component.isExpired) {
-        component.removeFromParent();
-      }
-    }
-    for (final component
-        in children.whereType<_BattleBarrierPulseComponent>().toList()) {
-      if (component.isExpired) {
-        component.removeFromParent();
-      }
+      _pendingFxRemovals.clear();
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
 import 'battle_scene_hud_layout.dart';
+import 'battle_text_paint_cache.dart';
 
 /// HUD de combattant pour la scène de combat.
 ///
@@ -42,6 +43,34 @@ class BattleSceneHudComponent extends PositionComponent {
   double _hpAnimationDuration = 0;
   RectangleComponent? _hpBarFill;
   BattleSceneHudLayout? _layout;
+
+  /// Texte HP utilisé pour construire [_layout] : pendant un tween HP, la
+  /// géométrie ne doit être remesurée que quand le texte affiché change.
+  String? _layoutHpValueText;
+  final BattleTextPaintCache _textCache = BattleTextPaintCache();
+  Size? _panelGeometrySize;
+  RRect? _panelRRect;
+  Path? _panelShadowPath;
+  Rect? _accentRect;
+
+  static final Paint _panelFillPaint = Paint()
+    ..color = const Color(0xFFF3F0E8);
+  static final Paint _panelStrokePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 2
+    ..color = const Color(0xFF798394);
+  static final Paint _accentPlayerPaint = Paint()
+    ..color = const Color(0xFF86B7F2);
+  static final Paint _accentEnemyPaint = Paint()
+    ..color = const Color(0xFFB4C18D);
+  static final Paint _hpBarBackgroundPaint = Paint()
+    ..color = const Color(0xFFABB5C1);
+  static final Paint _statusFillPaint = Paint()
+    ..color = const Color(0xFFE2E7F0);
+  static final Paint _statusStrokePaint = Paint()
+    ..style = PaintingStyle.stroke
+    ..strokeWidth = 1
+    ..color = const Color(0xFF90A0B6);
 
   @visibleForTesting
   bool get belongsToPlayerSide => isPlayerSide;
@@ -134,7 +163,7 @@ class BattleSceneHudComponent extends PositionComponent {
     } else {
       _displayedHp = startingDisplayedHp.toDouble();
     }
-    _layout = _buildLayout();
+    _rebuildLayout();
     _updateHpBarFill();
   }
 
@@ -148,7 +177,7 @@ class BattleSceneHudComponent extends PositionComponent {
     _hpAnimationTo = toHp.toDouble();
     _hpAnimationElapsed = 0;
     _hpAnimationDuration = duration;
-    _layout = _buildLayout();
+    _rebuildLayout();
     _updateHpBarFill();
   }
 
@@ -164,7 +193,7 @@ class BattleSceneHudComponent extends PositionComponent {
   }) {
     this.position = position;
     this.size = size;
-    _layout = _buildLayout();
+    _rebuildLayout();
     _updateHpBarFill();
   }
 
@@ -181,12 +210,15 @@ class BattleSceneHudComponent extends PositionComponent {
             (_hpAnimationDuration <= 0 ? 0.0001 : _hpAnimationDuration))
         .clamp(0.0, 1.0);
     _displayedHp = ui.lerpDouble(hpAnimationFrom, hpAnimationTo, progress)!;
-    _layout = _buildLayout();
+    // Pendant le tween seuls le remplissage de barre et le texte HP bougent :
+    // la géométrie (4 mesures de texte) n'est remesurée que si le texte
+    // affiché a réellement changé.
+    _refreshLayoutIfHpTextChanged();
     _updateHpBarFill();
     if (progress >= 1) {
       _displayedHp = hpAnimationTo;
       _clearHpAnimation();
-      _layout = _buildLayout();
+      _refreshLayoutIfHpTextChanged();
       _updateHpBarFill();
     }
   }
@@ -194,43 +226,27 @@ class BattleSceneHudComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-    final panelRect = Offset.zero & Size(size.x, size.y);
+    _ensurePanelGeometry();
 
     canvas.drawShadow(
-      Path()
-        ..addRRect(
-          RRect.fromRectAndRadius(panelRect, const Radius.circular(20)),
-        ),
+      _panelShadowPath!,
       const Color(0x55000000),
       10,
       true,
     );
 
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(panelRect, const Radius.circular(20)),
-      Paint()..color = const Color(0xFFF3F0E8),
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(panelRect, const Radius.circular(20)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = const Color(0xFF798394),
-    );
+    canvas.drawRRect(_panelRRect!, _panelFillPaint);
+    canvas.drawRRect(_panelRRect!, _panelStrokePaint);
 
-    final accentRect = Rect.fromLTWH(12, 12, size.x - 24, 6);
     canvas.drawRRect(
-      RRect.fromRectAndRadius(accentRect, const Radius.circular(999)),
-      Paint()
-        ..color =
-            isPlayerSide ? const Color(0xFF86B7F2) : const Color(0xFFB4C18D),
+      RRect.fromRectAndRadius(_accentRect!, const Radius.circular(999)),
+      isPlayerSide ? _accentPlayerPaint : _accentEnemyPaint,
     );
 
     final layout = currentLayout;
-    final hpBarBackgroundPaint = Paint()..color = const Color(0xFFABB5C1);
     canvas.drawRRect(
       RRect.fromRectAndRadius(layout.hpBarRect, const Radius.circular(999)),
-      hpBarBackgroundPaint,
+      _hpBarBackgroundPaint,
     );
 
     _paintText(
@@ -284,14 +300,11 @@ class BattleSceneHudComponent extends PositionComponent {
     if (statusLabel.isNotEmpty && layout.statusRect != null) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(layout.statusRect!, const Radius.circular(999)),
-        Paint()..color = const Color(0xFFE2E7F0),
+        _statusFillPaint,
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(layout.statusRect!, const Radius.circular(999)),
-        Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1
-          ..color = const Color(0xFF90A0B6),
+        _statusStrokePaint,
       );
       _paintText(
         canvas,
@@ -372,18 +385,45 @@ class BattleSceneHudComponent extends PositionComponent {
     );
   }
 
+  void _rebuildLayout() {
+    _layoutHpValueText = _hpValueText;
+    _layout = _buildLayout();
+  }
+
+  void _refreshLayoutIfHpTextChanged() {
+    if (_layout != null && _hpValueText == _layoutHpValueText) {
+      return;
+    }
+    _rebuildLayout();
+  }
+
+  void _ensurePanelGeometry() {
+    final panelSize = Size(size.x, size.y);
+    if (_panelGeometrySize == panelSize) {
+      return;
+    }
+    _panelGeometrySize = panelSize;
+    _panelRRect = RRect.fromRectAndRadius(
+      Offset.zero & panelSize,
+      const Radius.circular(20),
+    );
+    _panelShadowPath = Path()..addRRect(_panelRRect!);
+    _accentRect = Rect.fromLTWH(12, 12, panelSize.width - 24, 6);
+  }
+
   void _updateHpBarFill() {
     final safeMaxHp = _combatant.maxHp <= 0 ? 1 : _combatant.maxHp;
     final hpRatio = (_displayedHp / safeMaxHp).clamp(0.0, 1.0);
-    _hpBarFill?.position = Vector2(
-      currentLayout.hpBarRect.left,
-      currentLayout.hpBarRect.top,
-    );
-    _hpBarFill?.size = Vector2(
-      currentLayout.hpBarRect.width * hpRatio,
-      currentLayout.hpBarRect.height,
-    );
+    final hpBarRect = currentLayout.hpBarRect;
+    _hpBarFill?.position = Vector2(hpBarRect.left, hpBarRect.top);
+    _hpBarFill?.size = Vector2(hpBarRect.width * hpRatio, hpBarRect.height);
     _hpBarFill?.paint.color = _hpColor(hpRatio);
+  }
+
+  @override
+  void onRemove() {
+    _textCache.clear();
+    super.onRemove();
   }
 
   void _clearHpAnimation() {
@@ -400,28 +440,28 @@ class BattleSceneHudComponent extends PositionComponent {
     return current.lineupIndex == next.lineupIndex &&
         current.speciesId == next.speciesId;
   }
-}
 
-void _paintText(
-  Canvas canvas,
-  String text,
-  Rect rect,
-  TextStyle style, {
-  required TextAlign align,
-}) {
-  final painter = TextPainter(
-    text: TextSpan(text: text, style: style),
-    maxLines: 1,
-    ellipsis: '…',
-    textAlign: align,
-    textDirection: TextDirection.ltr,
-  )..layout(maxWidth: rect.width);
+  void _paintText(
+    Canvas canvas,
+    String text,
+    Rect rect,
+    TextStyle style, {
+    required TextAlign align,
+  }) {
+    final painter = _textCache.painterFor(
+      text: text,
+      style: style,
+      maxWidth: rect.width,
+      textAlign: align,
+      ellipsis: '…',
+    );
 
-  final dx = switch (align) {
-    TextAlign.right => rect.right - painter.width,
-    TextAlign.center => rect.left + ((rect.width - painter.width) / 2),
-    _ => rect.left,
-  };
-  final dy = rect.top + ((rect.height - painter.height) / 2);
-  painter.paint(canvas, Offset(dx, dy));
+    final dx = switch (align) {
+      TextAlign.right => rect.right - painter.width,
+      TextAlign.center => rect.left + ((rect.width - painter.width) / 2),
+      _ => rect.left,
+    };
+    final dy = rect.top + ((rect.height - painter.height) / 2);
+    painter.paint(canvas, Offset(dx, dy));
+  }
 }

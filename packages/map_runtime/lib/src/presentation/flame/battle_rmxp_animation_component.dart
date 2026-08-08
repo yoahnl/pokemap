@@ -175,19 +175,23 @@ final class BattleRmxpAnimationComponent extends PositionComponent {
           2;
       final destination =
           Offset(-halfSize.width, -halfSize.height) & halfSize * 2;
+      // Paint réutilisé : Skia copie l'état du paint au moment du draw.
+      _cellPaint
+        ..blendMode = renderedCell.blendMode
+        ..colorFilter = renderedCell.colorFilter
+        ..color = Color.fromRGBO(255, 255, 255, renderedCell.opacity);
       canvas.drawImageRect(
         image,
         renderedCell.sourceRect,
         destination,
-        Paint()
-          ..filterQuality = FilterQuality.none
-          ..blendMode = renderedCell.blendMode
-          ..colorFilter = renderedCell.colorFilter
-          ..color = Color.fromRGBO(255, 255, 255, renderedCell.opacity),
+        _cellPaint,
       );
       canvas.restore();
     }
   }
+
+  static final Paint _cellPaint = Paint()
+    ..filterQuality = FilterQuality.none;
 
   void _processTimingsForCurrentFrame() {
     for (var i = 0; i < animation.timings.length; i++) {

@@ -1,13 +1,11 @@
-import 'dart:math' as math;
-
 import 'package:flame/components.dart';
 
 import 'battle_animation_plan.dart';
 
 final class BattleCameraRig {
-  Vector2 _offset = Vector2.zero();
-  Vector2 _startOffset = Vector2.zero();
-  Vector2 _targetOffset = Vector2.zero();
+  final Vector2 _offset = Vector2.zero();
+  final Vector2 _startOffset = Vector2.zero();
+  final Vector2 _targetOffset = Vector2.zero();
   double _scale = 1.0;
   double _startScale = 1.0;
   double _targetScale = 1.0;
@@ -16,7 +14,10 @@ final class BattleCameraRig {
   BattleFxMotionCurve _curve = BattleFxMotionCurve.easeOut;
   bool _active = false;
 
-  Vector2 get offset => _offset.clone();
+  /// Vue directe sur l'offset interne : `update` tourne à chaque frame, un
+  /// clone par lecture générait du churn. Les consommateurs copient via les
+  /// setters Flame (`position = ...` fait un setFrom) et ne mutent jamais.
+  Vector2 get offset => _offset;
 
   double get scale => _scale;
 
@@ -55,8 +56,8 @@ final class BattleCameraRig {
     required double durationSeconds,
     BattleFxMotionCurve curve = BattleFxMotionCurve.easeOut,
   }) {
-    _startOffset = _offset.clone();
-    _targetOffset = offset.clone();
+    _startOffset.setFrom(_offset);
+    _targetOffset.setFrom(offset);
     _startScale = _scale;
     _targetScale = scale;
     _elapsed = 0;
@@ -81,9 +82,9 @@ final class BattleCameraRig {
     _active = false;
     _elapsed = 0;
     _duration = 0;
-    _offset = Vector2.zero();
-    _startOffset = Vector2.zero();
-    _targetOffset = Vector2.zero();
+    _offset.setZero();
+    _startOffset.setZero();
+    _targetOffset.setZero();
     _scale = 1.0;
     _startScale = 1.0;
     _targetScale = 1.0;
@@ -96,7 +97,10 @@ final class BattleCameraRig {
     _elapsed += dt;
     final progress = (_elapsed / _duration).clamp(0.0, 1.0);
     final curvedProgress = _applyCurve(progress);
-    _offset = _startOffset + ((_targetOffset - _startOffset) * curvedProgress);
+    _offset.setValues(
+      _startOffset.x + (_targetOffset.x - _startOffset.x) * curvedProgress,
+      _startOffset.y + (_targetOffset.y - _startOffset.y) * curvedProgress,
+    );
     _scale = _startScale + ((_targetScale - _startScale) * curvedProgress);
     if (progress >= 1) {
       _finishMove();
@@ -104,19 +108,20 @@ final class BattleCameraRig {
   }
 
   void _finishMove() {
-    _offset = _targetOffset.clone();
+    _offset.setFrom(_targetOffset);
     _scale = _targetScale;
     _elapsed = _duration;
     _active = false;
   }
 
   double _applyCurve(double progress) {
+    final remaining = 1 - progress;
     return switch (_curve) {
       BattleFxMotionCurve.linear => progress,
       BattleFxMotionCurve.easeOut ||
       BattleFxMotionCurve.arcUnder ||
       BattleFxMotionCurve.arcOver =>
-        1 - math.pow(1 - progress, 2).toDouble(),
+        1 - remaining * remaining,
     };
   }
 }
