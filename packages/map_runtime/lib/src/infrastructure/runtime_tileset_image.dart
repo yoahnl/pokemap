@@ -162,6 +162,18 @@ final class RuntimeTilesetImage {
     if (_isDisposed) {
       throw StateError('RuntimeTilesetImage is disposed.');
     }
+    // Single-chunk atlases (height <= kRuntimeMaxTilesetChunkHeight) never
+    // need slicing; drawing directly avoids allocating slices on the hottest
+    // draw call of the renderer.
+    if (chunks.length == 1) {
+      if (destinationRect.width <= 0 ||
+          destinationRect.height <= 0 ||
+          !containsSourceRect(sourceRect)) {
+        return;
+      }
+      canvas.drawImageRect(_images[0], sourceRect, destinationRect, paint);
+      return;
+    }
     final slices = resolveRuntimeTilesetDrawSlices(
       sourceRect: sourceRect,
       destinationRect: destinationRect,

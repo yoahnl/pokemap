@@ -156,9 +156,11 @@ class ScriptedEntityMovementController {
     double? stepDurationSeconds,
   }) {
     final current = _trackedPositions[entityId];
-    debugPrint(
-      '[npc_patrol] move request entity=$entityId from=${current == null ? '(unknown)' : '(${current.x},${current.y})'} to=(${destination.x},${destination.y})',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[npc_patrol] move request entity=$entityId from=${current == null ? '(unknown)' : '(${current.x},${current.y})'} to=(${destination.x},${destination.y})',
+      );
+    }
     if (current == null) {
       return _fail(
         entityId: entityId,
@@ -181,9 +183,11 @@ class ScriptedEntityMovementController {
       },
     );
     if (!pathResult.foundPath) {
-      debugPrint(
-        '[npc_patrol] path failed entity=$entityId target=(${destination.x},${destination.y}) reason="${pathResult.failureReason ?? 'No path found.'}"',
-      );
+      if (kDebugMode) {
+        debugPrint(
+          '[npc_patrol] path failed entity=$entityId target=(${destination.x},${destination.y}) reason="${pathResult.failureReason ?? 'No path found.'}"',
+        );
+      }
       return _fail(
         entityId: entityId,
         currentPos: current,
@@ -194,9 +198,11 @@ class ScriptedEntityMovementController {
     }
 
     final steps = pathResult.path.skip(1).toList(growable: false);
-    debugPrint(
-      '[npc_patrol] path result entity=$entityId target=(${destination.x},${destination.y}) nodes=${pathResult.path.length} steps=${steps.length}',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[npc_patrol] path result entity=$entityId target=(${destination.x},${destination.y}) nodes=${pathResult.path.length} steps=${steps.length}',
+      );
+    }
     if (steps.isEmpty) {
       final pendingRuntimeCommit = replacedTask?.pendingRuntimeCommit;
       if (pendingRuntimeCommit != null || _isEntityStepping(entityId)) {
@@ -350,6 +356,9 @@ class ScriptedEntityMovementController {
   }
 
   void _tickActiveMoves({String? onlyEntityId}) {
+    if (onlyEntityId == null && _activeTasks.isEmpty) {
+      return;
+    }
     final entityIds = onlyEntityId == null
         ? (_activeTasks.keys.toList(growable: false)..sort())
         : <String>[onlyEntityId];
@@ -502,6 +511,9 @@ class ScriptedEntityMovementController {
   }
 
   void _tickPatrols(double dt) {
+    if (_patrols.isEmpty) {
+      return;
+    }
     final entityIds = _patrols.keys.toList(growable: false)..sort();
     for (final entityId in entityIds) {
       final patrol = _patrols[entityId];
@@ -571,9 +583,11 @@ class ScriptedEntityMovementController {
         // - pas de fallback implicite,
         // - si waypoint invalide/inatteignable => arrêt patrouille + log explicite.
         _patrols.remove(entityId);
-        debugPrint(
-          '[npc_patrol] patrol stopped entity=$entityId waypoint=(${target.x},${target.y}) reason="${status.failureReason ?? 'unknown failure'}"',
-        );
+        if (kDebugMode) {
+          debugPrint(
+            '[npc_patrol] patrol stopped entity=$entityId waypoint=(${target.x},${target.y}) reason="${status.failureReason ?? 'unknown failure'}"',
+          );
+        }
       }
     }
   }

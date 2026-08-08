@@ -59,14 +59,18 @@ class FileGameSaveRepository implements GameSaveRepository {
             final json = normalizedState.toJson();
             final encoded = await _codecExecutor.encodeJson(json);
             final file = File(filePath);
-            debugPrint(
-              '[step_studio_trace] save_repo_write_start path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
-            );
+            if (kDebugMode) {
+              debugPrint(
+                '[step_studio_trace] save_repo_write_start path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
+              );
+            }
             await file.writeAsString(encoded);
-            debugPrint('[save] game saved to $filePath');
-            debugPrint(
-              '[step_studio_trace] save_repo_write_done path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
-            );
+            if (kDebugMode) {
+              debugPrint('[save] game saved to $filePath');
+              debugPrint(
+                '[step_studio_trace] save_repo_write_done path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
+              );
+            }
           } catch (e, st) {
             debugPrint('[save] failed: $e\n$st');
             throw GameSaveException('Failed to save game: $e');

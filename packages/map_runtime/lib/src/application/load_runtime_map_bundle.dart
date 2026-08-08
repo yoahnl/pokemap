@@ -42,7 +42,9 @@ typedef RuntimeMapBundleLoadProfileSink = void Function(
 );
 
 void _runtimeLoaderLog(String message) {
-  debugPrint('[runtime_loader] $message');
+  if (kDebugMode) {
+    debugPrint('[runtime_loader] $message');
+  }
 }
 
 Map<String, String> resolveTilesetAbsolutePaths({

@@ -175,6 +175,10 @@ class MapLayersComponent extends PositionComponent {
   final Map<(String, int), ProjectTilesetVisualResolution>
       _regularTileVisualCache =
       <(String, int), ProjectTilesetVisualResolution>{};
+  final Map<String, bool> _explicitForegroundByLayerId = <String, bool>{};
+  final Map<String, ({double minX, double minY, double maxX, double maxY})>
+      _tileLayerMarginsByLayerId =
+      <String, ({double minX, double minY, double maxX, double maxY})>{};
   late final Map<String, MapPlacedTileVisualIndex>
       _objectVisualIndicesByLayerId;
   late final Map<String, SmartTilePatternOwnerIndex>
@@ -236,6 +240,30 @@ class MapLayersComponent extends PositionComponent {
       return (startX: 0, startY: 0, endX: width, endY: height);
     }
 
+    // The margins only depend on the immutable palette and tile sizes, so
+    // they are computed once per layer instead of rescanning the palette on
+    // every frame.
+    final margins = _tileLayerMarginsByLayerId[layer.id] ??=
+        _computeTileLayerMargins(layer);
+
+    return (
+      startX: math.max(0, ((rect.left - margins.maxX) / cellWidth).floor()),
+      startY: math.max(0, ((rect.top - margins.maxY) / cellHeight).floor()),
+      endX: math.min(
+        width,
+        ((rect.right - margins.minX) / cellWidth).ceil(),
+      ),
+      endY: math.min(
+        height,
+        ((rect.bottom - margins.minY) / cellHeight).ceil(),
+      ),
+    );
+  }
+
+  ({double minX, double minY, double maxX, double maxY})
+      _computeTileLayerMargins(TileLayer layer) {
+    final cellWidth = bundle.cellWidth;
+    final cellHeight = bundle.cellHeight;
     final sourceTileWidth = bundle.manifest.settings.tileWidth;
     final sourceTileHeight = bundle.manifest.settings.tileHeight;
     var minimumX = 0.0;
@@ -263,16 +291,10 @@ class MapLayersComponent extends PositionComponent {
     }
 
     return (
-      startX: math.max(0, ((rect.left - maximumX) / cellWidth).floor()),
-      startY: math.max(0, ((rect.top - maximumY) / cellHeight).floor()),
-      endX: math.min(
-        width,
-        ((rect.right - minimumX) / cellWidth).ceil(),
-      ),
-      endY: math.min(
-        height,
-        ((rect.bottom - minimumY) / cellHeight).ceil(),
-      ),
+      minX: minimumX,
+      minY: minimumY,
+      maxX: maximumX,
+      maxY: maximumY,
     );
   }
 
@@ -891,6 +913,10 @@ class MapLayersComponent extends PositionComponent {
     _activeRenderCounter
       ?..objectTileCandidateVisits += batch.work.candidateObjectVisits
       ..objectTileVisualCount += visuals.length;
+    final paint = Paint()
+      ..isAntiAlias = false
+      ..filterQuality = FilterQuality.none;
+    var paintOpacity = -1.0;
     for (final visual in visuals) {
       final image = tileImagesByTilesetId[visual.assetId] ??
           tileImagesByTilesetId[visual.tilesetId];
@@ -904,6 +930,10 @@ class MapLayersComponent extends PositionComponent {
       );
       if (!image.containsSourceRect(sourceRect)) continue;
       final destination = visual.destinationRect;
+      if (visual.opacity != paintOpacity) {
+        paintOpacity = visual.opacity;
+        paint.color = Colors.white.withValues(alpha: paintOpacity);
+      }
       _drawTileLayerImage(
         canvas: canvas,
         image: image,
@@ -915,10 +945,7 @@ class MapLayersComponent extends PositionComponent {
           destination.height,
         ),
         transform: visual.transform,
-        paint: Paint()
-          ..isAntiAlias = false
-          ..filterQuality = FilterQuality.none
-          ..color = Colors.white.withValues(alpha: visual.opacity),
+        paint: paint,
       );
     }
   }
@@ -1138,6 +1165,25 @@ class MapLayersComponent extends PositionComponent {
   }
 
   bool _isExplicitForegroundTileLayer({
+    required String layerId,
+    required String layerName,
+  }) {
+    // Layer ids and names are immutable for the component lifetime; this is
+    // called from the per-frame paint path so the marker scan (which builds
+    // dozens of interpolated strings) must only run once per layer.
+    final cached = _explicitForegroundByLayerId[layerId];
+    if (cached != null) {
+      return cached;
+    }
+    final result = _computeExplicitForegroundTileLayer(
+      layerId: layerId,
+      layerName: layerName,
+    );
+    _explicitForegroundByLayerId[layerId] = result;
+    return result;
+  }
+
+  bool _computeExplicitForegroundTileLayer({
     required String layerId,
     required String layerName,
   }) {

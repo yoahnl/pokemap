@@ -10625,9 +10625,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (isLoaded) {
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
     }
-    debugPrint(
-      '[step_studio_trace] runtime_save_requested map=$_activeMapId completedStepIds=${_gameState.progression.completedStepIds} completedCutsceneIds=${_gameState.progression.completedCutsceneIds}',
-    );
+    if (kDebugMode) {
+      debugPrint(
+        '[step_studio_trace] runtime_save_requested map=$_activeMapId completedStepIds=${_gameState.progression.completedStepIds} completedCutsceneIds=${_gameState.progression.completedCutsceneIds}',
+      );
+    }
     return _saveGameUseCase.execute(_gameState);
   }
 
@@ -12748,7 +12750,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ignoreEntityId: normalizedIgnore,
       ),
     );
-    if (!probe.passable) {
+    // Ce probe est appelé pour chaque nœud A* bloqué : le log (avec sa jointure
+    // de footprint) ne doit exister qu'en debug.
+    if (kDebugMode && !probe.passable) {
       debugPrint(
         '[npc_patrol] blocked anchor entity=$normalizedIgnore anchor=($x,$y) reason="${probe.reason}" footprint=${probe.evaluatedCollisionCells.map((c) => '(${c.x},${c.y})').join(',')}',
       );

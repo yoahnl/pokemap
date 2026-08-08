@@ -112,14 +112,6 @@ class PlacedBehaviorCooldownGate {
     if (_blockedUntilMs.isEmpty) {
       return;
     }
-    final toRemove = <PlacedBehaviorRuntimeKey>[];
-    for (final entry in _blockedUntilMs.entries) {
-      if (entry.value <= nowMs) {
-        toRemove.add(entry.key);
-      }
-    }
-    for (final key in toRemove) {
-      _blockedUntilMs.remove(key);
-    }
+    _blockedUntilMs.removeWhere((_, blockedUntil) => blockedUntil <= nowMs);
   }
 }
