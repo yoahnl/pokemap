@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_connections_inspector.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_connection_context_provider.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
@@ -10,6 +11,23 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 
 void main() {
   group('WorldMapConnectionsInspector', () {
+    testWidgets('shares the selected direction with the canvas context',
+        (tester) async {
+      final harness = _ConnectionsHarness();
+      addTearDown(harness.dispose);
+      await harness.pump(tester);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('world-map-connection-east')),
+      );
+      await tester.pump();
+
+      expect(
+        harness.container.read(worldMapConnectionDirectionProvider),
+        MapConnectionDirection.east,
+      );
+    });
+
     testWidgets('shows four directions and excludes the active map from picker',
         (tester) async {
       final harness = _ConnectionsHarness();

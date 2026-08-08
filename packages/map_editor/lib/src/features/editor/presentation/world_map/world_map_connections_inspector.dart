@@ -9,6 +9,7 @@ import '../../../../theme/theme.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../state/editor_notifier.dart';
 import '../map_activation_guard.dart';
+import 'world_map_connection_context_provider.dart';
 
 typedef WorldMapConnectionApplyCallback = Future<void> Function({
   required MapConnectionDirection direction,
@@ -51,7 +52,6 @@ class _WorldMapConnectionsInspectorState
   final _selectedTargetMapIds = <MapConnectionDirection, String?>{};
   final _reciprocalDrafts = <MapConnectionDirection, bool>{};
   final _targetFutures = <String, Future<MapData?>>{};
-  MapConnectionDirection _selectedDirection = MapConnectionDirection.north;
   String? _boundConnectionsKey;
   String _announcement = 'Sélectionnez une direction à configurer.';
   bool _isApplying = false;
@@ -77,6 +77,7 @@ class _WorldMapConnectionsInspectorState
   Widget build(BuildContext context) {
     final editorState = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
+    final selectedDirection = ref.watch(worldMapConnectionDirectionProvider);
     final map = editorState.activeMap;
     final project = editorState.project;
     if (map == null || project == null) {
@@ -95,12 +96,23 @@ class _WorldMapConnectionsInspectorState
     final projectMapById = {
       for (final entry in projectMaps) entry.id: entry,
     };
-    final existing = _connectionFor(map, _selectedDirection);
-    final targetMapId = _selectedTargetMapIds[_selectedDirection]?.trim();
+    final projectRootPath = editorState.projectRootPath;
+    final contextRequest = projectRootPath == null
+        ? null
+        : WorldMapConnectionContextRequest(
+            projectRootPath: projectRootPath,
+            project: project,
+            sourceMap: map,
+          );
+    final sharedContext = contextRequest == null
+        ? null
+        : ref.watch(worldMapConnectionContextProvider(contextRequest));
+    final existing = _connectionFor(map, selectedDirection);
+    final targetMapId = _selectedTargetMapIds[selectedDirection]?.trim();
     final targetManifested = targetMapId != null &&
         targetMapId.isNotEmpty &&
         projectMapById.containsKey(targetMapId);
-    final targetFuture = targetManifested
+    final targetFuture = sharedContext == null && targetManifested
         ? _targetFutures.putIfAbsent(
             targetMapId,
             () => (widget.loadTargetMap ?? notifier.loadMapSnapshotById)(
@@ -112,22 +124,28 @@ class _WorldMapConnectionsInspectorState
     return FutureBuilder<MapData?>(
       future: targetFuture,
       builder: (context, targetSnapshot) {
-        final targetMap = targetSnapshot.data;
+        final loadedContext = sharedContext?.valueOrNull;
+        final targetMap = loadedContext?.neighbors[selectedDirection]?.map ??
+            targetSnapshot.data;
+        final contextIssue = loadedContext?.issues[selectedDirection];
         final targetMissing = targetMapId != null &&
             targetMapId.isNotEmpty &&
             (!targetManifested ||
+                contextIssue != null ||
                 (targetSnapshot.connectionState == ConnectionState.done &&
-                    targetMap == null));
-        final targetLoading = targetFuture != null &&
-            targetSnapshot.connectionState != ConnectionState.done;
-        final offsetText = _offsetControllers[_selectedDirection]!.text.trim();
+                    targetMap == null &&
+                    sharedContext == null));
+        final targetLoading = sharedContext?.isLoading == true ||
+            (targetFuture != null &&
+                targetSnapshot.connectionState != ConnectionState.done);
+        final offsetText = _offsetControllers[selectedDirection]!.text.trim();
         final offset = int.tryParse(offsetText);
         final preview = targetMap == null || offset == null
             ? null
             : const WarpConnectionActions().previewAlignment(
                 sourceSize: map.size,
                 targetSize: targetMap.size,
-                direction: _selectedDirection,
+                direction: selectedDirection,
                 offset: offset,
               );
         final exactPair = existing != null &&
@@ -137,10 +155,10 @@ class _WorldMapConnectionsInspectorState
                 .hasExactReciprocalPair(
                   sourceMap: map,
                   targetMap: targetMap,
-                  direction: _selectedDirection,
+                  direction: selectedDirection,
                 );
         final reciprocal = existing == null
-            ? (_reciprocalDrafts[_selectedDirection] ?? true)
+            ? (_reciprocalDrafts[selectedDirection] ?? true)
             : exactPair;
         final validation = _validationFor(
           targetMapId: targetMapId,
@@ -167,13 +185,14 @@ class _WorldMapConnectionsInspectorState
             _ConnectionCompass(
               map: map,
               projectMapById: projectMapById,
-              selectedDirection: _selectedDirection,
+              selectedDirection: selectedDirection,
               onSelected: (direction) {
                 setState(() {
-                  _selectedDirection = direction;
                   _announcement =
                       'Direction ${_directionLabel(direction)} sélectionnée.';
                 });
+                ref.read(worldMapConnectionDirectionProvider.notifier).state =
+                    direction;
               },
             ),
             const SizedBox(height: 12),
@@ -185,7 +204,7 @@ class _WorldMapConnectionsInspectorState
                     children: [
                       Expanded(
                         child: Text(
-                          _directionLabel(_selectedDirection),
+                          _directionLabel(selectedDirection),
                           style: TextStyle(
                             color: context.pokeMapColors.textPrimary,
                             fontSize: 13,
@@ -230,7 +249,7 @@ class _WorldMapConnectionsInspectorState
                     ],
                     onChanged: (value) {
                       setState(() {
-                        _selectedTargetMapIds[_selectedDirection] =
+                        _selectedTargetMapIds[selectedDirection] =
                             value.isEmpty ? null : value;
                         _announcement = value.isEmpty
                             ? 'Choisissez une map cible.'
@@ -253,7 +272,7 @@ class _WorldMapConnectionsInspectorState
                   const SizedBox(height: 12),
                   PokeMapTextField(
                     label: 'Décalage en tiles',
-                    controller: _offsetControllers[_selectedDirection],
+                    controller: _offsetControllers[selectedDirection],
                     fieldKey: const ValueKey<String>(
                       'world-map-connection-offset',
                     ),
@@ -285,7 +304,7 @@ class _WorldMapConnectionsInspectorState
                           ),
                           onPressed: existing == null
                               ? () => setState(() {
-                                    _reciprocalDrafts[_selectedDirection] =
+                                    _reciprocalDrafts[selectedDirection] =
                                         false;
                                   })
                               : null,
@@ -303,8 +322,7 @@ class _WorldMapConnectionsInspectorState
                           ),
                           onPressed: existing == null
                               ? () => setState(() {
-                                    _reciprocalDrafts[_selectedDirection] =
-                                        true;
+                                    _reciprocalDrafts[selectedDirection] = true;
                                   })
                               : null,
                           isSelected: reciprocal,
@@ -444,6 +462,7 @@ class _WorldMapConnectionsInspectorState
     required int offset,
     required bool reciprocal,
   }) async {
+    final direction = ref.read(worldMapConnectionDirectionProvider);
     setState(() {
       _isApplying = true;
       _announcement = 'Application de la connexion en cours…';
@@ -452,14 +471,14 @@ class _WorldMapConnectionsInspectorState
       final callback = widget.onApply;
       if (callback != null) {
         await callback(
-          direction: _selectedDirection,
+          direction: direction,
           targetMapId: targetMapId,
           offset: offset,
           reciprocal: reciprocal,
         );
       } else {
         await notifier.saveMapConnection(
-          direction: _selectedDirection,
+          direction: direction,
           targetMapId: targetMapId,
           offset: offset,
           reciprocal: reciprocal,
@@ -468,8 +487,8 @@ class _WorldMapConnectionsInspectorState
       if (!mounted) return;
       final error = ref.read(editorNotifierProvider).errorMessage;
       setState(() {
-        _announcement = error ??
-            'Connexion ${_directionLabel(_selectedDirection)} appliquée.';
+        _announcement =
+            error ?? 'Connexion ${_directionLabel(direction)} appliquée.';
       });
     } on Object catch (error) {
       if (!mounted) return;
@@ -482,6 +501,7 @@ class _WorldMapConnectionsInspectorState
   }
 
   Future<void> _delete(EditorNotifier notifier) async {
+    final direction = ref.read(worldMapConnectionDirectionProvider);
     setState(() {
       _isApplying = true;
       _announcement = 'Suppression de la connexion en cours…';
@@ -489,15 +509,15 @@ class _WorldMapConnectionsInspectorState
     try {
       final callback = widget.onDelete;
       if (callback != null) {
-        await callback(_selectedDirection);
+        await callback(direction);
       } else {
-        await notifier.deleteMapConnection(_selectedDirection);
+        await notifier.deleteMapConnection(direction);
       }
       if (!mounted) return;
       final error = ref.read(editorNotifierProvider).errorMessage;
       setState(() {
-        _announcement = error ??
-            'Connexion ${_directionLabel(_selectedDirection)} supprimée.';
+        _announcement =
+            error ?? 'Connexion ${_directionLabel(direction)} supprimée.';
       });
     } on Object catch (error) {
       if (!mounted) return;
@@ -510,16 +530,17 @@ class _WorldMapConnectionsInspectorState
   }
 
   Future<void> _open(EditorNotifier notifier) async {
+    final direction = ref.read(worldMapConnectionDirectionProvider);
     final callback = widget.onOpen;
     if (callback != null) {
-      await callback(_selectedDirection);
+      await callback(direction);
       return;
     }
     if (!mounted) return;
     await requestEditorConnectedMapActivation(
       context: context,
       notifier: notifier,
-      direction: _selectedDirection,
+      direction: direction,
     );
   }
 }
