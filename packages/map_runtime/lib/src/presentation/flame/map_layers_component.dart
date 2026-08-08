@@ -1810,17 +1810,17 @@ final class _RuntimeSpatialIndex<T> {
     final sorted = indices.toList()..sort();
     return List<T>.unmodifiable(
       sorted
-          .where((index) => _intersectsInclusive(_bounds[index], viewport))
+          .where((index) => _intersects(_bounds[index], viewport))
           .map((index) => _items[index]),
     );
   }
 }
 
-bool _intersectsInclusive(Rect left, Rect right) =>
-    left.right >= right.left &&
-    right.right >= left.left &&
-    left.bottom >= right.top &&
-    right.bottom >= left.top;
+bool _intersects(Rect left, Rect right) =>
+    left.right > right.left &&
+    right.right > left.left &&
+    left.bottom > right.top &&
+    right.bottom > left.top;
 
 class _RuntimeAnimationFrame {
   const _RuntimeAnimationFrame({
