@@ -13,6 +13,7 @@ void main() {
     final game = _LifecycleTestPlayableMapGame(
       bundle: _bundle(),
       projectFilePath: '/tmp/cinematic_runtime/project.json',
+      devicePixelRatioProvider: () => 2,
     );
     game.onGameResize(Vector2(320, 240));
     await game.onLoad();
@@ -74,6 +75,7 @@ final class _LifecycleTestPlayableMapGame extends PlayableMapGame {
   _LifecycleTestPlayableMapGame({
     required super.bundle,
     required super.projectFilePath,
+    required super.devicePixelRatioProvider,
   });
 
   @override
