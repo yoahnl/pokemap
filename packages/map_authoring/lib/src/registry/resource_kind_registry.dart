@@ -2,27 +2,10 @@ import '../contracts/json_contract_support.dart';
 
 /// Resource kinds currently published by the canonical read API description.
 ///
-/// Keeping this inventory beside the canonical descriptors lets parity gates
-/// prove discoverability instead of inferring it from aggregate persistence.
-const Set<String> canonicalQueryableResourceKindIds = {
-  'asset',
-  'elementCategory',
-  'map',
-  'mapConnection',
-  'project',
-  'smartTileAnimation',
-  'smartTileAtlas',
-  'smartTileDraft',
-  'smartTileLayer',
-  'smartTileMaterial',
-  'smartTilePattern',
-  'smartTilePreset',
-  'tilesetFolder',
-  'worldGraph',
-  'worldGraphEdge',
-  'worldGraphIssue',
-  'worldGraphNode',
-};
+/// This compatibility view is derived from the canonical registry so resource
+/// descriptors and direct-query capabilities cannot drift independently.
+final Set<String> canonicalQueryableResourceKindIds =
+    AuthoringResourceKindRegistry.canonical().queryableResourceKindIds;
 
 /// Public description of one resource kind accepted by authoring contracts.
 final class AuthoringResourceKindDescriptor {
@@ -124,14 +107,25 @@ final class UnknownAuthoringResourceKindException implements Exception {
 /// Immutable registry of resource kinds, sorted by stable identifier.
 final class AuthoringResourceKindRegistry {
   AuthoringResourceKindRegistry(
-    Iterable<AuthoringResourceKindDescriptor> descriptors,
-  ) : resourceKinds = _validateAndSort(descriptors) {
+    Iterable<AuthoringResourceKindDescriptor> descriptors, {
+    Iterable<String> queryableResourceKindIds = const [],
+  }) : resourceKinds = _validateAndSort(descriptors) {
     _byId = Map.unmodifiable({
       for (final descriptor in resourceKinds) descriptor.id: descriptor,
     });
+    final queryableIds = queryableResourceKindIds.toSet();
+    final unknownQueryableIds = queryableIds.difference(_byId.keys.toSet());
+    if (unknownQueryableIds.isNotEmpty) {
+      throw ArgumentError.value(
+        unknownQueryableIds,
+        'queryableResourceKindIds',
+        'must reference registered resource kinds',
+      );
+    }
+    this.queryableResourceKindIds = Set.unmodifiable(queryableIds);
   }
 
-  factory AuthoringResourceKindRegistry.canonicalMinimal() {
+  factory AuthoringResourceKindRegistry.canonical() {
     return AuthoringResourceKindRegistry([
       AuthoringResourceKindDescriptor(
         id: 'project',
@@ -351,6 +345,12 @@ final class AuthoringResourceKindRegistry {
         summary: 'Catalog, species, learnset, evolution or media document',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'preset',
+        version: 1,
+        displayName: 'Preset',
+        summary: 'Reusable authoring preset referenced by canonical mutations',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'campaignContent',
         version: 1,
         displayName: 'Campaign content',
@@ -374,11 +374,60 @@ final class AuthoringResourceKindRegistry {
         displayName: 'Tileset folder',
         summary: 'Hierarchical tileset library folder',
       ),
-    ]);
+      AuthoringResourceKindDescriptor(
+        id: 'tileLayer',
+        version: 1,
+        displayName: 'Tile layer',
+        summary: 'Map-owned tile layer referenced by canonical mutations',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'tileset',
+        version: 1,
+        displayName: 'Tileset',
+        summary: 'Project tileset referenced by canonical mutations',
+      ),
+    ], queryableResourceKindIds: const {
+      'asset',
+      'dialogue',
+      'elementCategory',
+      'eventV2',
+      'fact',
+      'map',
+      'mapConnection',
+      'project',
+      'scenario',
+      'scene',
+      'script',
+      'smartTileAnimation',
+      'smartTileAtlas',
+      'smartTileDraft',
+      'smartTileLayer',
+      'smartTileMaterial',
+      'smartTilePattern',
+      'smartTilePreset',
+      'storyline',
+      'tilesetFolder',
+      'worldGraph',
+      'worldGraphEdge',
+      'worldGraphIssue',
+      'worldGraphNode',
+      'worldRule',
+    });
   }
 
+  @Deprecated('Use AuthoringResourceKindRegistry.canonical() instead.')
+  factory AuthoringResourceKindRegistry.canonicalMinimal() =>
+      AuthoringResourceKindRegistry.canonical();
+
   factory AuthoringResourceKindRegistry.fromJson(Map<String, dynamic> json) {
-    rejectUnknownContractKeys(json, const {'formatVersion', 'resourceKinds'});
+    rejectUnknownContractKeys(
+      json,
+      const {
+        'formatVersion',
+        'queryableResourceKindIds',
+        'resourceKinds',
+      },
+    );
     if (json['formatVersion'] != 1) {
       throw FormatException(
         'Unsupported resource registry formatVersion: '
@@ -398,10 +447,15 @@ final class AuthoringResourceKindRegistry {
           Map<String, dynamic>.from(rawKind),
         );
       }),
+      queryableResourceKindIds: readContractStringList(
+        json['queryableResourceKindIds'] ?? const <Object?>[],
+        'queryableResourceKindIds',
+      ),
     );
   }
 
   final List<AuthoringResourceKindDescriptor> resourceKinds;
+  late final Set<String> queryableResourceKindIds;
   late final Map<String, AuthoringResourceKindDescriptor> _byId;
 
   AuthoringResourceKindDescriptor? find(String kindId) => _byId[kindId];
@@ -414,6 +468,7 @@ final class AuthoringResourceKindRegistry {
   Map<String, Object?> toJson() {
     return {
       'formatVersion': 1,
+      'queryableResourceKindIds': queryableResourceKindIds.toList()..sort(),
       'resourceKinds': resourceKinds
           .map((descriptor) => descriptor.toJson())
           .toList(growable: false),

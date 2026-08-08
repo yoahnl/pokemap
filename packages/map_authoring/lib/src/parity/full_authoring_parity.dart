@@ -149,14 +149,16 @@ final class AuthoringFullParityCatalog {
   }
 
   factory AuthoringFullParityCatalog.canonical({
-    Set<String> queryableResourceKinds = canonicalQueryableResourceKindIds,
+    Set<String>? queryableResourceKinds,
   }) {
+    final publishedQueryableKinds =
+        queryableResourceKinds ?? canonicalQueryableResourceKindIds;
     final resources = <AuthoringResourceParity>[
       for (final entry in _semanticOwners.entries)
         _resourceParity(
           entry.key,
           entry.value,
-          queryableResourceKinds: queryableResourceKinds,
+          queryableResourceKinds: publishedQueryableKinds,
         ),
     ];
     final actions = [

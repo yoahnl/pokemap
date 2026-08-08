@@ -45,10 +45,50 @@ void main() {
           .cast<Map<String, Object?>>()
           .map((command) => command['id']);
       expect(commands, ['close', 'describe', 'open', 'query', 'validate']);
+      final resourceKinds = (result.data['resourceKinds']! as List)
+          .cast<Map<String, Object?>>()
+          .map((descriptor) => descriptor['id'])
+          .toSet();
+      expect(resourceKinds, canonicalQueryableResourceKindIds);
       expect(
         jsonEncode(result.data).toLowerCase(),
         isNot(contains('"write"')),
       );
+    });
+
+    test('every described resource kind has an executable query route',
+        () async {
+      final setup = await _TestSetup.create(clean: true);
+      addTearDown(setup.dispose);
+      final opened = await _request(
+        setup.worker,
+        id: 'open-query-catalog',
+        command: 'open',
+        args: {'projectRoot': setup.fixture.path},
+      );
+      final projectHandle = opened.data['projectHandle']! as String;
+
+      for (final resourceKind in canonicalQueryableResourceKindIds) {
+        final result = await _request(
+          setup.worker,
+          id: 'query-$resourceKind',
+          command: 'query',
+          args: {
+            'projectHandle': projectHandle,
+            'request': AuthoringQueryRequest(
+              resourceKind: resourceKind,
+              operation: AuthoringQueryOperation.list,
+              view: AuthoringQueryView.summary,
+            ).toJson(),
+          },
+        );
+
+        expect(
+          result.status,
+          AuthoringResultStatus.success,
+          reason: resourceKind,
+        );
+      }
     });
 
     test('opens, queries, validates, and closes the real project', () async {

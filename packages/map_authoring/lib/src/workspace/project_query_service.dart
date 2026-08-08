@@ -14,6 +14,7 @@ import '../domains/narrative/dialogue_source_store.dart';
 import '../domains/narrative/script_authoring_service.dart';
 import '../domains/narrative/scenario_actions.dart';
 import '../domains/narrative/storyline_inspection.dart';
+import '../registry/resource_kind_registry.dart';
 import 'project_snapshot.dart';
 
 final class AuthoringQueryException implements Exception {
@@ -34,6 +35,12 @@ final class ProjectQueryService {
     ProjectSnapshot snapshot,
     AuthoringQueryRequest request,
   ) {
+    if (!canonicalQueryableResourceKindIds.contains(request.resourceKind)) {
+      throw const AuthoringQueryException(
+        'query.resource_kind_unsupported',
+        'The requested resource kind is not readable in this phase.',
+      );
+    }
     final regionPage = _queryMapRegion(snapshot, request);
     if (regionPage != null) return regionPage;
     final connectionActionPage = _queryConnectionAction(snapshot, request);
@@ -739,9 +746,8 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
           ),
       ];
     default:
-      throw const AuthoringQueryException(
-        'query.resource_kind_unsupported',
-        'The requested resource kind is not readable in this phase.',
+      throw StateError(
+        'Canonical queryable resource kind has no query route: $resourceKind',
       );
   }
 }

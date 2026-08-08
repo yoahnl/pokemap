@@ -76,7 +76,7 @@ void main() {
 
   group('AuthoringResourceKindRegistry', () {
     test('provides the canonical minimal resource kinds', () {
-      final registry = AuthoringResourceKindRegistry.canonicalMinimal();
+      final registry = AuthoringResourceKindRegistry.canonical();
 
       expect(
         registry.resourceKinds.map((descriptor) => descriptor.id),
@@ -96,6 +96,7 @@ void main() {
           'map',
           'mapConnection',
           'pokemonDocument',
+          'preset',
           'project',
           'region',
           'sandboxPlayerState',
@@ -110,6 +111,8 @@ void main() {
           'smartTilePattern',
           'smartTilePreset',
           'storyline',
+          'tileLayer',
+          'tileset',
           'tilesetFolder',
           'worldGraph',
           'worldGraphEdge',
@@ -141,6 +144,22 @@ void main() {
         ]),
       );
       expect(registry.find('unknown'), isNull);
+      expect(
+        registry.queryableResourceKindIds,
+        canonicalQueryableResourceKindIds,
+      );
+    });
+
+    test('registers every resource kind used by canonical mutations', () {
+      final registry = AuthoringResourceKindRegistry.canonical();
+      final registeredKinds =
+          registry.resourceKinds.map((descriptor) => descriptor.id).toSet();
+      final mutationKinds = MapMutationDispatcher.canonical()
+          .descriptors
+          .expand((descriptor) => descriptor.resourceKinds)
+          .toSet();
+
+      expect(mutationKinds.difference(registeredKinds), isEmpty);
     });
 
     test('rejects duplicate and incompatible kind versions', () {

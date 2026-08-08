@@ -46,13 +46,11 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
 
   @override
   Map<String, Object?> describe() {
-    final readableResourceKinds =
-        AuthoringResourceKindRegistry.canonicalMinimal()
-            .resourceKinds
-            .where(
-                (kind) => canonicalQueryableResourceKindIds.contains(kind.id))
-            .map((kind) => kind.toJson())
-            .toList(growable: false);
+    final registry = AuthoringResourceKindRegistry.canonical();
+    final readableResourceKinds = registry.resourceKinds
+        .where((kind) => registry.queryableResourceKindIds.contains(kind.id))
+        .map((kind) => kind.toJson())
+        .toList(growable: false);
     return freezeContractJsonObject(
       {
         'schemaVersion': 1,
