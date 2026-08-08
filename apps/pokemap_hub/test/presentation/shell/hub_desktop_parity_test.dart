@@ -104,6 +104,7 @@ void main() {
 
   testWidgets('desktop visual gate', (tester) async {
     await _pumpShell(tester, const Size(1280, 800));
+    await _precacheRoomMaterials(tester);
     await expectLater(
       find.byType(HubShell),
       matchesGoldenFile('../../goldens/avelune/desktop_home_1280x800.png'),
@@ -169,6 +170,41 @@ Future<void> _pumpShell(WidgetTester tester, Size size) async {
     ),
   );
   await tester.pump(const Duration(milliseconds: 100));
+}
+
+Future<void> _precacheRoomMaterials(WidgetTester tester) async {
+  final room = find.byType(AveluneRoomScene);
+  final context = tester.element(room);
+  await tester.runAsync(
+    () => Future.wait<void>(<Future<void>>[
+      for (final asset in AveluneMaterialCatalog.cartridgeLayers)
+        precacheImage(AssetImage(asset.path), context),
+      for (final asset in AveluneMaterialCatalog.consoleLayers)
+        precacheImage(AssetImage(asset.path), context),
+      precacheImage(
+        const AssetImage(kAveluneFallbackArtworkAssetPath),
+        context,
+      ),
+      precacheImage(
+        const AssetImage('assets/avelune/room/backgrounds/amber.webp'),
+        context,
+      ),
+      precacheImage(
+        const AssetImage(
+          'assets/avelune/room/furniture/credenza_walnut.webp',
+        ),
+        context,
+      ),
+    ]),
+  );
+  await tester.pump(const Duration(milliseconds: 100));
+  _markSubtreeNeedsPaint(tester.renderObject(room));
+  await tester.pump();
+}
+
+void _markSubtreeNeedsPaint(RenderObject object) {
+  object.markNeedsPaint();
+  object.visitChildren(_markSubtreeNeedsPaint);
 }
 
 HubDashboardSnapshot _snapshot(List<HubGameView> games) =>

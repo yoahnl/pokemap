@@ -81,7 +81,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(find.byType(AveluneHomeScreen), findsNWidgets(2));
-    expect(find.byType(AveluneCartridge), findsNWidgets(10));
+    expect(find.byType(AveluneCartridge), findsNWidgets(8));
     await expectLater(
       find.byKey(const ValueKey<String>('avelune-room-golden-root')),
       matchesGoldenFile(

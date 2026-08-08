@@ -121,6 +121,7 @@ void main() {
 
   testWidgets('settings sheet visual gate', (tester) async {
     await _pumpShell(tester, iphone, appearanceHarness);
+    await _precacheRoomMaterials(tester);
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
     );
@@ -228,6 +229,41 @@ Future<void> _settleSheet(WidgetTester tester) async {
   for (var i = 0; i < 6; i++) {
     await tester.pump(const Duration(milliseconds: 120));
   }
+}
+
+Future<void> _precacheRoomMaterials(WidgetTester tester) async {
+  final room = find.byType(AveluneRoomScene);
+  final context = tester.element(room);
+  await tester.runAsync(
+    () => Future.wait<void>(<Future<void>>[
+      for (final asset in AveluneMaterialCatalog.cartridgeLayers)
+        precacheImage(AssetImage(asset.path), context),
+      for (final asset in AveluneMaterialCatalog.consoleLayers)
+        precacheImage(AssetImage(asset.path), context),
+      precacheImage(
+        const AssetImage(kAveluneFallbackArtworkAssetPath),
+        context,
+      ),
+      precacheImage(
+        const AssetImage('assets/avelune/room/backgrounds/amber.webp'),
+        context,
+      ),
+      precacheImage(
+        const AssetImage(
+          'assets/avelune/room/furniture/credenza_walnut.webp',
+        ),
+        context,
+      ),
+    ]),
+  );
+  await tester.pump(const Duration(milliseconds: 100));
+  _markSubtreeNeedsPaint(tester.renderObject(room));
+  await tester.pump();
+}
+
+void _markSubtreeNeedsPaint(RenderObject object) {
+  object.markNeedsPaint();
+  object.visitChildren(_markSubtreeNeedsPaint);
 }
 
 HubGameView _view({

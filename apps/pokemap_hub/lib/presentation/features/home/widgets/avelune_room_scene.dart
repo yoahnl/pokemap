@@ -8,7 +8,6 @@ import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_console.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_shelf.dart';
-import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_presentation.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
@@ -102,11 +101,14 @@ class AveluneRoomScene extends StatelessWidget {
     this.consoleState,
     this.insertionProgress = 0,
     this.onGameSelected,
+    this.onShelfGameLongPress,
     this.onAddGame,
     this.onHeroPressed,
     this.onHeroLongPress,
     this.heroAnchorKey,
+    this.heroArtworkHeroTag,
     this.shelfCartridgeKeyFor,
+    this.shelfArtworkHeroGameId,
     this.hiddenShelfGameIds = const <String>{},
     this.showHero = true,
     this.insertionOverlay,
@@ -123,11 +125,14 @@ class AveluneRoomScene extends StatelessWidget {
   final AveluneConsoleState? consoleState;
   final double insertionProgress;
   final ValueChanged<AveluneGameViewData>? onGameSelected;
+  final ValueChanged<AveluneGameViewData>? onShelfGameLongPress;
   final VoidCallback? onAddGame;
   final VoidCallback? onHeroPressed;
   final VoidCallback? onHeroLongPress;
   final GlobalKey? heroAnchorKey;
+  final Object? heroArtworkHeroTag;
   final GlobalKey Function(String gameId)? shelfCartridgeKeyFor;
+  final String? shelfArtworkHeroGameId;
   final Set<String> hiddenShelfGameIds;
   final bool showHero;
 
@@ -230,8 +235,10 @@ class AveluneRoomScene extends StatelessWidget {
               games: games,
               selectedGameId: selected?.id,
               onGameSelected: onGameSelected,
+              onGameLongPress: onShelfGameLongPress,
               onAddGame: onAddGame,
               cartridgeKeyFor: shelfCartridgeKeyFor,
+              artworkHeroGameId: shelfArtworkHeroGameId,
               hiddenGameIds: hiddenShelfGameIds,
             ),
           ),
@@ -312,7 +319,7 @@ class AveluneRoomScene extends StatelessWidget {
                     selected: true,
                     invalid: !selected.isValid,
                     displaySize: AveluneCartridgeDisplaySize.hero,
-                    artworkHeroTag: aveluneArtworkHeroTag(selected.id),
+                    artworkHeroTag: heroArtworkHeroTag,
                     onPressed: onHeroPressed,
                     onLongPress: onHeroLongPress,
                     semanticsLabel: heroSemanticsLabel,

@@ -17,6 +17,7 @@ import 'package:pokemap_hub/presentation/features/home/widgets/avelune_home_head
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_insertion_hint.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_presentation.dart';
 
 typedef AveluneGameLaunchCallback = FutureOr<void> Function(
   AveluneGameViewData game,
@@ -75,6 +76,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
   final GlobalKey _heroAnchorKey = GlobalKey();
   final GlobalKey _exchangeOverlayAnchorKey = GlobalKey();
   final Map<String, GlobalKey> _shelfCartridgeKeys = <String, GlobalKey>{};
+  final List<String> _shelfGameIds = <String>[];
 
   AveluneExchangeController? _exchangeController;
   AveluneInsertionController? _insertionController;
@@ -91,9 +93,11 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
   Rect? _heroRect;
   Rect? _insertionHeroRect;
   String? _launchErrorMessage;
+  String? _detailsHeroShelfGameId;
   bool _reducedMotion = false;
   int _exchangeGeneration = 0;
   int _insertionGeneration = 0;
+  int _detailsRevealGeneration = 0;
 
   bool get _isExchanging => _exchangeSource != null;
   bool get _isInserting => _insertionGame != null;
@@ -102,6 +106,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
   void initState() {
     super.initState();
     _selectedGameId = widget.viewData.selectedGameId;
+    _syncShelfGameIds();
   }
 
   @override
@@ -116,6 +121,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     if (!_isExchanging &&
         oldWidget.viewData.selectedGameId != widget.viewData.selectedGameId) {
       _selectedGameId = widget.viewData.selectedGameId;
+      _detailsHeroShelfGameId = null;
     }
     if (!_containsGame(_selectedGameId)) {
       _selectedGameId = widget.viewData.selectedGameId ??
@@ -123,6 +129,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
               ? null
               : widget.viewData.games.first.id);
     }
+    _syncShelfGameIds();
     _shelfCartridgeKeys.removeWhere(
       (id, _) => !widget.viewData.games.any((game) => game.id == id),
     );
@@ -176,19 +183,30 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
               AveluneRoomScene(
                 geometry: geometry,
                 appearance: widget.appearance,
-                games: widget.viewData.games,
+                games: _shelfGames,
                 selectedGame: selectedGame,
                 customBackground: widget.customBackground,
                 consoleState: _consoleState,
                 insertionProgress: _consoleInsertionProgress,
                 referenceTime: widget.referenceTime,
                 onGameSelected: _requestGameSelection,
+                onShelfGameLongPress: widget.onShowDetails == null
+                    ? null
+                    : _requestShelfGameDetails,
                 onAddGame: widget.onAddGame,
                 onHeroPressed:
                     canLaunch && !_isExchanging ? _requestInsertion : null,
-                onHeroLongPress: _detailsCallbackFor(selectedGame),
+                onHeroLongPress: _detailsCallbackFor(
+                  selectedGame,
+                  fromShelf: false,
+                ),
                 heroAnchorKey: _heroAnchorKey,
+                heroArtworkHeroTag:
+                    _detailsHeroShelfGameId == null && selectedGame != null
+                        ? aveluneArtworkHeroTag(selectedGame.id)
+                        : null,
                 shelfCartridgeKeyFor: _shelfKeyFor,
+                shelfArtworkHeroGameId: _detailsHeroShelfGameId,
                 hiddenShelfGameIds: hiddenShelfIds,
                 showHero: !_isExchanging && !_isInserting,
                 heroSemanticsLabel:
@@ -224,6 +242,10 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
                       child: SizedBox(
                         width: detailsPanelRect.width,
                         child: AveluneHeroDetailsPanel(
+                          key: ValueKey<String>(
+                            'avelune-hero-details-${game.id}-'
+                            '$_detailsRevealGeneration',
+                          ),
                           game: game,
                           referenceTime: widget.referenceTime ?? DateTime.now(),
                           condensed: geometry.hidesNonEssentialMetadata,
@@ -265,10 +287,33 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     );
   }
 
-  VoidCallback? _detailsCallbackFor(AveluneGameViewData? game) {
+  VoidCallback? _detailsCallbackFor(
+    AveluneGameViewData? game, {
+    required bool fromShelf,
+  }) {
     final callback = widget.onShowDetails;
     if (game == null || callback == null) return null;
-    return () => callback(game);
+    return () => unawaited(_requestDetails(game, fromShelf: fromShelf));
+  }
+
+  void _requestShelfGameDetails(AveluneGameViewData game) =>
+      unawaited(_requestDetails(game, fromShelf: true));
+
+  Future<void> _requestDetails(
+    AveluneGameViewData game, {
+    required bool fromShelf,
+  }) async {
+    final callback = widget.onShowDetails;
+    if (callback == null || _isExchanging || _isInserting) return;
+
+    widget.feedback.emit(AveluneFeedbackCue.details);
+    final shelfHeroGameId = fromShelf ? game.id : null;
+    if (_detailsHeroShelfGameId != shelfHeroGameId) {
+      setState(() => _detailsHeroShelfGameId = shelfHeroGameId);
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return;
+    }
+    callback(game);
   }
 
   /// Metadata column occupying the margin to the right of the centred hero.
@@ -420,6 +465,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     if (controller.isExchanging) {
       setState(() {
         _exchangeTarget = game;
+        _sourceShelfRect = targetShelfRect;
         _targetShelfRect = targetShelfRect;
       });
       unawaited(
@@ -429,7 +475,6 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     }
 
     final heroRect = _rectInOverlay(_heroAnchorKey);
-    final sourceShelfRect = _rectInOverlay(_shelfKeyFor(source.id));
     if (heroRect == null) return;
     final generation = ++_exchangeGeneration;
     animation.stop();
@@ -438,7 +483,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
       _exchangeSource = source;
       _exchangeTarget = game;
       _heroRect = heroRect;
-      _sourceShelfRect = sourceShelfRect ?? targetShelfRect;
+      _sourceShelfRect = targetShelfRect;
       _targetShelfRect = targetShelfRect;
     });
 
@@ -554,11 +599,18 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
   void _commitSelection(String gameId) {
     final game = _gameFor(gameId);
     if (!mounted || game == null) return;
-    setState(() => _selectedGameId = gameId);
+    setState(() {
+      final sourceGameId = _selectedGameId;
+      final targetSlot = _shelfGameIds.indexOf(gameId);
+      if (targetSlot >= 0 && sourceGameId != null) {
+        _shelfGameIds[targetSlot] = sourceGameId;
+      }
+      _selectedGameId = gameId;
+      _detailsHeroShelfGameId = null;
+      _syncShelfGameIds();
+    });
     widget.onGameSelected?.call(game);
   }
-
-
 
   Rect? _rectInOverlay(GlobalKey key) {
     final overlayObject =
@@ -590,6 +642,23 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
 
   bool _containsGame(String? gameId) => _gameFor(gameId) != null;
 
+  List<AveluneGameViewData> get _shelfGames => _shelfGameIds
+      .map(_gameFor)
+      .whereType<AveluneGameViewData>()
+      .toList(growable: false);
+
+  void _syncShelfGameIds() {
+    final availableIds = widget.viewData.games
+        .map((game) => game.id)
+        .where((id) => id != _selectedGameId)
+        .toList(growable: false);
+    final availableSet = availableIds.toSet();
+    _shelfGameIds.removeWhere((id) => !availableSet.contains(id));
+    for (final id in availableIds) {
+      if (!_shelfGameIds.contains(id)) _shelfGameIds.add(id);
+    }
+  }
+
   String _localized(String french, String english) =>
       Localizations.maybeLocaleOf(context)?.languageCode == 'fr'
           ? french
@@ -601,6 +670,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
     _heroRect = null;
     _sourceShelfRect = null;
     _targetShelfRect = null;
+    _detailsRevealGeneration++;
   }
 
   void _clearInsertionVisual() {

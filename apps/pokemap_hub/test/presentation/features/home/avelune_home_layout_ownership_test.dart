@@ -106,7 +106,18 @@ void main() {
 
   testWidgets('long press flies the cartridge artwork into game details',
       (tester) async {
+    final platformCalls = <MethodCall>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      platformCalls.add(call);
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
     await _pumpConsoleShell(tester, size: iphone, insets: iphoneInsets);
+    platformCalls.clear();
 
     final artworkHero = find.byWidgetPredicate(
       (widget) =>
@@ -132,6 +143,57 @@ void main() {
       findsOneWidget,
       reason: 'The artwork must fly from the cartridge instead of appearing '
           'through the page fade alone.',
+    );
+    expect(
+      platformCalls.where(
+        (call) =>
+            call.method == 'HapticFeedback.vibrate' &&
+            call.arguments == 'HapticFeedbackType.mediumImpact',
+      ),
+      hasLength(1),
+      reason: 'Recognizing the long press must feel physical immediately.',
+    );
+  });
+
+  testWidgets('long press on a shelf game opens its details with Hero feedback',
+      (tester) async {
+    final platformCalls = <MethodCall>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      platformCalls.add(call);
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    await _pumpConsoleShell(tester, size: iphone, insets: iphoneInsets);
+    platformCalls.clear();
+
+    await tester.longPress(
+      find.byKey(
+        const ValueKey<String>(
+          'avelune-game-shelf-item-games.example.train',
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 80));
+
+    expect(find.byType(AveluneGameDetailsScreen), findsOneWidget);
+    expect(find.text('Le Train de 17h42'), findsWidgets);
+    expect(
+      find.byKey(const ValueKey<String>('avelune-details-hero-flight')),
+      findsOneWidget,
+      reason: 'The shelf artwork must be the source of the details flight.',
+    );
+    expect(
+      platformCalls.where(
+        (call) =>
+            call.method == 'HapticFeedback.vibrate' &&
+            call.arguments == 'HapticFeedbackType.mediumImpact',
+      ),
+      hasLength(1),
     );
   });
 

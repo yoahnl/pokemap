@@ -57,7 +57,7 @@ void main() {
     }
   });
 
-  testWidgets('100-game shelf remains lazy and reveals selected last game',
+  testWidgets('100-game shelf remains lazy and omits the selected hero game',
       (tester) async {
     final geometry = AveluneHomeGeometry.resolve(
       viewportSize: const Size(390, 844),
@@ -82,17 +82,62 @@ void main() {
     final selected = find.byKey(
       ValueKey<String>('avelune-game-shelf-item-${games.last.id}'),
     );
-    expect(selected, findsOneWidget);
-    final selectedRect = tester.getRect(selected);
-    final shelfRect = tester.getRect(
-      find.byKey(const ValueKey<String>('avelune-game-shelf')),
+    expect(
+      selected,
+      findsNothing,
+      reason: 'The cartridge above the console must not be duplicated below.',
     );
-    expect(selectedRect.overlaps(shelfRect), isTrue);
+    expect(
+      tester
+          .widget<ListView>(
+            find.byKey(const ValueKey<String>('avelune-game-shelf-list')),
+          )
+          .childrenDelegate
+          .estimatedChildCount,
+      100,
+      reason: '99 shelf games plus the canonical add cartridge remain.',
+    );
+    await tester.drag(
+      find.byKey(const ValueKey<String>('avelune-game-shelf-list')),
+      const Offset(-10000, 0),
+    );
+    await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('selected game exists only as the hero cartridge',
+      (tester) async {
+    final geometry = AveluneHomeGeometry.resolve(
+      viewportSize: const Size(390, 844),
+    );
+    final games = <AveluneGameViewData>[_game(0), _game(1)];
+
+    await tester.pumpWidget(
+      _app(
+        _shelf(
+          geometry,
+          games,
+          selectedGameId: games.first.id,
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(
+        ValueKey<String>('avelune-game-shelf-item-${games.first.id}'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.byKey(
+        ValueKey<String>('avelune-game-shelf-item-${games.last.id}'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('shelf routes game and add interactions without resizing items',

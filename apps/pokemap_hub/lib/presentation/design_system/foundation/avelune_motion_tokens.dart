@@ -11,8 +11,10 @@ final class AveluneMotionTokens extends ThemeExtension<AveluneMotionTokens> {
     required this.insertionLatch,
     required this.insertionLaunchDelay,
     required this.detailsHero,
+    required this.detailsReveal,
     required this.ambientFloat,
     required this.movementCurve,
+    required this.exchangeCurve,
     required this.pressCurve,
     required this.descentCurve,
     required this.ambientFloatAmplitude,
@@ -30,8 +32,10 @@ final class AveluneMotionTokens extends ThemeExtension<AveluneMotionTokens> {
     insertionLatch: Duration(milliseconds: 460),
     insertionLaunchDelay: Duration(milliseconds: 720),
     detailsHero: Duration(milliseconds: 420),
+    detailsReveal: Duration(milliseconds: 560),
     ambientFloat: Duration(milliseconds: 2800),
     movementCurve: Cubic(0.2, 0.8, 0.2, 1),
+    exchangeCurve: Curves.easeInOutCubic,
     pressCurve: Curves.easeOutCubic,
     descentCurve: Curves.easeInCubic,
     ambientFloatAmplitude: 4,
@@ -46,8 +50,10 @@ final class AveluneMotionTokens extends ThemeExtension<AveluneMotionTokens> {
     insertionLatch: Duration.zero,
     insertionLaunchDelay: Duration.zero,
     detailsHero: Duration(milliseconds: 120),
+    detailsReveal: Duration.zero,
     ambientFloat: Duration.zero,
     movementCurve: Curves.easeOut,
+    exchangeCurve: Curves.linear,
     pressCurve: Curves.easeOut,
     descentCurve: Curves.easeOut,
     ambientFloatAmplitude: 0,
@@ -61,8 +67,10 @@ final class AveluneMotionTokens extends ThemeExtension<AveluneMotionTokens> {
   final Duration insertionLatch;
   final Duration insertionLaunchDelay;
   final Duration detailsHero;
+  final Duration detailsReveal;
   final Duration ambientFloat;
   final Curve movementCurve;
+  final Curve exchangeCurve;
   final Curve pressCurve;
   final Curve descentCurve;
   final double ambientFloatAmplitude;
@@ -76,6 +84,7 @@ final class AveluneMotionTokens extends ThemeExtension<AveluneMotionTokens> {
         'insertionLatch': insertionLatch,
         'insertionLaunchDelay': insertionLaunchDelay,
         'detailsHero': detailsHero,
+        'detailsReveal': detailsReveal,
         'ambientFloat': ambientFloat,
       };
 
@@ -89,11 +98,13 @@ final class AveluneMotionTokens extends ThemeExtension<AveluneMotionTokens> {
     Duration? insertionLatch,
     Duration? insertionLaunchDelay,
     Duration? detailsHero,
+    Duration? detailsReveal,
     Duration? ambientFloat,
     Curve? movementCurve,
     Curve? pressCurve,
     Curve? descentCurve,
     double? ambientFloatAmplitude,
+    Curve? exchangeCurve,
   }) =>
       AveluneMotionTokens(
         press: press ?? this.press,
@@ -104,8 +115,10 @@ final class AveluneMotionTokens extends ThemeExtension<AveluneMotionTokens> {
         insertionLatch: insertionLatch ?? this.insertionLatch,
         insertionLaunchDelay: insertionLaunchDelay ?? this.insertionLaunchDelay,
         detailsHero: detailsHero ?? this.detailsHero,
+        detailsReveal: detailsReveal ?? this.detailsReveal,
         ambientFloat: ambientFloat ?? this.ambientFloat,
         movementCurve: movementCurve ?? this.movementCurve,
+        exchangeCurve: exchangeCurve ?? this.exchangeCurve,
         pressCurve: pressCurve ?? this.pressCurve,
         descentCurve: descentCurve ?? this.descentCurve,
         ambientFloatAmplitude:
@@ -130,8 +143,10 @@ final class AveluneMotionTokens extends ThemeExtension<AveluneMotionTokens> {
       insertionLaunchDelay:
           _lerpDuration(insertionLaunchDelay, other.insertionLaunchDelay, t),
       detailsHero: _lerpDuration(detailsHero, other.detailsHero, t),
+      detailsReveal: _lerpDuration(detailsReveal, other.detailsReveal, t),
       ambientFloat: _lerpDuration(ambientFloat, other.ambientFloat, t),
       movementCurve: t < 0.5 ? movementCurve : other.movementCurve,
+      exchangeCurve: t < 0.5 ? exchangeCurve : other.exchangeCurve,
       pressCurve: t < 0.5 ? pressCurve : other.pressCurve,
       descentCurve: t < 0.5 ? descentCurve : other.descentCurve,
       ambientFloatAmplitude: ambientFloatAmplitude +

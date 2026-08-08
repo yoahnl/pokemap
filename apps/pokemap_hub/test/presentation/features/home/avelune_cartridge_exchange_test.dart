@@ -21,6 +21,15 @@ void main() {
     final heroBefore = tester.getRect(
       find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
     );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'avelune-game-shelf-item-games.exchange.0',
+        ),
+      ),
+      findsNothing,
+      reason: 'The hero game must not have a second physical cartridge.',
+    );
     final targetItem = find.byKey(
       const ValueKey<String>('avelune-game-shelf-item-games.exchange.1'),
     );
@@ -57,6 +66,51 @@ void main() {
     expect(feedback.cues, <AveluneFeedbackCue>[
       AveluneFeedbackCue.selection,
     ]);
+    final oldCartridge = find.byKey(
+      const ValueKey<String>('avelune-exchange-old-cartridge'),
+    );
+    final newCartridge = find.byKey(
+      const ValueKey<String>('avelune-exchange-new-cartridge'),
+    );
+    expect(
+      tester
+          .widget<Opacity>(
+            find
+                .ancestor(of: oldCartridge, matching: find.byType(Opacity))
+                .first,
+          )
+          .opacity,
+      1,
+      reason: 'A physical cartridge must not dissolve during the swap.',
+    );
+    expect(
+      tester
+          .widget<Opacity>(
+            find
+                .ancestor(of: newCartridge, matching: find.byType(Opacity))
+                .first,
+          )
+          .opacity,
+      1,
+      reason: 'The incoming cartridge must remain tangible during the swap.',
+    );
+    expect(
+      tester.getRect(oldCartridge).overlaps(tester.getRect(newCartridge)),
+      isFalse,
+      reason: 'The cartridges need separate arcs instead of merging halfway.',
+    );
+    final oldProgress =
+        (tester.getRect(oldCartridge).center - heroBefore.center).distance /
+            (targetBefore.center - heroBefore.center).distance;
+    final newProgress =
+        (tester.getRect(newCartridge).center - targetBefore.center).distance /
+            (heroBefore.center - targetBefore.center).distance;
+    expect(
+      oldProgress,
+      inInclusiveRange(0.35, 0.7),
+      reason: 'Half the duration must read as half the physical trip.',
+    );
+    expect(newProgress, inInclusiveRange(0.35, 0.7));
     final connectorOpacities = tester
         .widgetList<Opacity>(
           find.descendant(
@@ -69,7 +123,11 @@ void main() {
           ),
         )
         .map((widget) => widget.opacity);
-    expect(connectorOpacities, everyElement(0));
+    expect(
+      connectorOpacities,
+      everyElement(1),
+      reason: 'The canonical cartridge stays physically complete in flight.',
+    );
 
     await tester.pump(const Duration(milliseconds: 220));
     await tester.pumpAndSettle();
@@ -78,7 +136,77 @@ void main() {
       _heroCartridge(tester).gameId,
       'games.exchange.1',
     );
+    expect(
+      find.byKey(
+        const ValueKey<String>(
+          'avelune-game-shelf-item-games.exchange.1',
+        ),
+      ),
+      findsNothing,
+      reason: 'The new hero must leave its shelf slot completely.',
+    );
+    final returnedSource = find.descendant(
+      of: find.byKey(
+        const ValueKey<String>(
+          'avelune-game-shelf-item-games.exchange.0',
+        ),
+      ),
+      matching: find.byType(AveluneCartridge),
+    );
+    expect(returnedSource, findsOneWidget);
+    expect(
+      tester.getRect(returnedSource),
+      targetBefore,
+      reason: 'The outgoing hero must occupy the chosen cartridge slot.',
+    );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('hero copy enters from the right in staggered paragraphs',
+      (tester) async {
+    await _pumpHome(
+      tester,
+      onGameSelected: (_) {},
+      feedback: _RecordingFeedback(),
+    );
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('avelune-game-shelf-item-games.exchange.1'),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 440));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pump(const Duration(milliseconds: 120));
+
+    final title = find.byKey(
+      const ValueKey<String>('avelune-hero-details-reveal-title'),
+    );
+    final subtitle = find.byKey(
+      const ValueKey<String>('avelune-hero-details-reveal-subtitle'),
+    );
+    final author = find.byKey(
+      const ValueKey<String>('avelune-hero-details-reveal-author'),
+    );
+    expect(title, findsOneWidget);
+    expect(subtitle, findsOneWidget);
+    expect(author, findsOneWidget);
+
+    final titleOpacity = _revealOpacity(tester, title);
+    final subtitleOpacity = _revealOpacity(tester, subtitle);
+    final authorOpacity = _revealOpacity(tester, author);
+    expect(titleOpacity, greaterThan(subtitleOpacity));
+    expect(subtitleOpacity, greaterThan(authorOpacity));
+    expect(_revealOffset(tester, title).dx, lessThan(0.08));
+    expect(_revealOffset(tester, author).dx, greaterThan(0.08));
+
+    await tester.pumpAndSettle();
+    expect(_revealOpacity(tester, title), 1);
+    expect(_revealOpacity(tester, subtitle), 1);
+    expect(_revealOpacity(tester, author), 1);
+    expect(_revealOffset(tester, author), Offset.zero);
   });
 
   testWidgets('reduced motion cross-fades in 120 ms without moving',
@@ -188,6 +316,16 @@ AveluneCartridge _heroCartridge(WidgetTester tester) =>
     tester.widget<AveluneCartridge>(
       find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
     );
+
+double _revealOpacity(WidgetTester tester, Finder reveal) => tester
+    .widget<FadeTransition>(
+      find.descendant(of: reveal, matching: find.byType(FadeTransition)),
+    )
+    .opacity
+    .value;
+
+Offset _revealOffset(WidgetTester tester, Finder reveal) =>
+    tester.widget<SlideTransition>(reveal).position.value;
 
 Future<void> _pumpHome(
   WidgetTester tester, {

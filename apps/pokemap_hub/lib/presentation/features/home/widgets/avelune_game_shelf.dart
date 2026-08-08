@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
-import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_presentation.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
@@ -18,8 +18,10 @@ class AveluneGameShelf extends StatefulWidget {
     required this.games,
     required this.selectedGameId,
     this.onGameSelected,
+    this.onGameLongPress,
     this.onAddGame,
     this.cartridgeKeyFor,
+    this.artworkHeroGameId,
     this.hiddenGameIds = const <String>{},
   });
 
@@ -27,8 +29,10 @@ class AveluneGameShelf extends StatefulWidget {
   final List<AveluneGameViewData> games;
   final String? selectedGameId;
   final ValueChanged<AveluneGameViewData>? onGameSelected;
+  final ValueChanged<AveluneGameViewData>? onGameLongPress;
   final VoidCallback? onAddGame;
   final GlobalKey Function(String gameId)? cartridgeKeyFor;
+  final String? artworkHeroGameId;
   final Set<String> hiddenGameIds;
 
   @override
@@ -37,29 +41,9 @@ class AveluneGameShelf extends StatefulWidget {
 
 class _AveluneGameShelfState extends State<AveluneGameShelf> {
   final ScrollController _scrollController = ScrollController();
-  final Map<String, GlobalKey> _itemKeys = <String, GlobalKey>{};
 
   double get _itemExtent =>
       widget.geometry.shelfCartridgeSize.width + widget.geometry.shelfGap;
-
-  @override
-  void initState() {
-    super.initState();
-    _scheduleSelectedGameReveal();
-  }
-
-  @override
-  void didUpdateWidget(covariant AveluneGameShelf oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    final gameIdsChanged = oldWidget.games.length != widget.games.length ||
-        !oldWidget.games
-            .map((game) => game.id)
-            .toSet()
-            .containsAll(widget.games.map((game) => game.id));
-    if (oldWidget.selectedGameId != widget.selectedGameId || gameIdsChanged) {
-      _scheduleSelectedGameReveal();
-    }
-  }
 
   @override
   void dispose() {
@@ -70,6 +54,9 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
   @override
   Widget build(BuildContext context) {
     final geometry = widget.geometry;
+    final shelfGames = widget.games
+        .where((game) => game.id != widget.selectedGameId)
+        .toList(growable: false);
     final bottomPadding =
         geometry.shelfRect.bottom - geometry.anchors.shelfBaseline.dy;
 
@@ -92,10 +79,10 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
             left: geometry.shelfHorizontalPadding,
             right: geometry.shelfHorizontalPadding,
           ),
-          itemCount: widget.games.length + 1,
-          semanticChildCount: widget.games.length + 1,
+          itemCount: shelfGames.length + 1,
+          semanticChildCount: shelfGames.length + 1,
           itemBuilder: (context, index) {
-            if (index == widget.games.length) {
+            if (index == shelfGames.length) {
               return _shelfItem(
                 id: 'avelune.add-game',
                 bottomPadding: bottomPadding,
@@ -112,7 +99,7 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
               );
             }
 
-            final game = widget.games[index];
+            final game = shelfGames[index];
             return _shelfItem(
               id: game.id,
               bottomPadding: bottomPadding,
@@ -141,6 +128,12 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
                           onPressed: widget.onGameSelected == null
                               ? null
                               : () => widget.onGameSelected!(game),
+                          onLongPress: widget.onGameLongPress == null
+                              ? null
+                              : () => widget.onGameLongPress!(game),
+                          artworkHeroTag: game.id == widget.artworkHeroGameId
+                              ? aveluneArtworkHeroTag(game.id)
+                              : null,
                         ),
                       ),
                     ),
@@ -159,56 +152,17 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
     required double bottomPadding,
     required Widget child,
   }) =>
-      KeyedSubtree(
-        key: _itemKeys.putIfAbsent(id, GlobalKey.new),
-        child: Padding(
-          padding: EdgeInsets.only(
-            right: widget.geometry.shelfGap,
-            bottom: bottomPadding,
-          ),
-          child: Align(
-            alignment: Alignment.bottomCenter,
-            child: child,
-          ),
+      Padding(
+        key: ValueKey<String>('avelune-game-shelf-slot-$id'),
+        padding: EdgeInsets.only(
+          right: widget.geometry.shelfGap,
+          bottom: bottomPadding,
+        ),
+        child: Align(
+          alignment: Alignment.bottomCenter,
+          child: child,
         ),
       );
-
-  void _scheduleSelectedGameReveal() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
-      final selectedId = widget.selectedGameId;
-      if (selectedId == null) return;
-      final index = widget.games.indexWhere((game) => game.id == selectedId);
-      if (index < 0) return;
-
-      final position = _scrollController.position;
-      final target = (widget.geometry.shelfHorizontalPadding +
-              (index * _itemExtent) -
-              ((position.viewportDimension - _itemExtent) / 2))
-          .clamp(position.minScrollExtent, position.maxScrollExtent)
-          .toDouble();
-      final reducedMotion = MediaQuery.disableAnimationsOf(context);
-      final future = reducedMotion
-          ? Future<void>.sync(() => _scrollController.jumpTo(target))
-          : _scrollController.animateTo(
-              target,
-              duration: context.aveluneMotion.selection,
-              curve: context.aveluneMotion.movementCurve,
-            );
-      future.whenComplete(() {
-        if (!mounted) return;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          final itemContext = _itemKeys[selectedId]?.currentContext;
-          if (!mounted || itemContext == null) return;
-          Scrollable.ensureVisible(
-            itemContext,
-            alignment: 0.5,
-            duration: Duration.zero,
-          );
-        });
-      });
-    });
-  }
 }
 
 ImageProvider<Object>? _artworkFor(AveluneArtworkViewData artwork) {
