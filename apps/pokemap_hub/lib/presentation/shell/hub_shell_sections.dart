@@ -6,6 +6,7 @@ import 'package:pokemap_hub/presentation/features/settings/pages/avelune_appeara
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_details.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
 import 'package:pokemap_hub/presentation/features/home/pages/avelune_home_screen.dart';
+import 'package:pokemap_hub/presentation/design_system/motion/avelune_feedback.dart';
 import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -48,50 +49,58 @@ class AveluneHomeContent extends StatelessWidget {
           return Consumer(
             builder: (context, ref, _) {
               final state = ref.watch(aveluneAppearanceNotifierProvider);
-              return AveluneHomeScreen(
-                key: const ValueKey<String>('avelune-home-screen'),
-                viewData: viewData,
-                productName: productName,
-                referenceTime: referenceTime,
-                appearance: state.preferences,
-                customBackground: state.customBackgroundPath != null
-                    ? requireLocalArtworkImage(state.customBackgroundPath!)
-                    : null,
-                onGameSelected: (game) => controller.selectGame(game.id),
-                onShowDetails: (game) => _showDetails(context, game.id),
-                onAddGame: viewData.canImport
-                    ? () => controller.requestImport()
-                    : null,
-                onContinue: (game) {
-                  final source = _findSource(game.id);
-                  if (source != null) actions.onContinue?.call(source);
-                },
-                onNewGame: (game) {
-                  final source = _findSource(game.id);
-                  if (source != null) actions.onNewGame?.call(source);
-                },
+              return _AveluneFeedbackHost(
+                preferences: snapshot.preferences,
+                builder: (feedback) => AveluneHomeScreen(
+                  key: const ValueKey<String>('avelune-home-screen'),
+                  viewData: viewData,
+                  productName: productName,
+                  referenceTime: referenceTime,
+                  appearance: state.preferences,
+                  customBackground: state.customBackgroundPath != null
+                      ? requireLocalArtworkImage(state.customBackgroundPath!)
+                      : null,
+                  feedback: feedback,
+                  onGameSelected: (game) => controller.selectGame(game.id),
+                  onShowDetails: (game) => _showDetails(context, game.id),
+                  onAddGame: viewData.canImport
+                      ? () => controller.requestImport()
+                      : null,
+                  onContinue: (game) {
+                    final source = _findSource(game.id);
+                    if (source != null) actions.onContinue?.call(source);
+                  },
+                  onNewGame: (game) {
+                    final source = _findSource(game.id);
+                    if (source != null) actions.onNewGame?.call(source);
+                  },
+                ),
               );
             },
           );
         }
-        return AveluneHomeScreen(
-          key: const ValueKey<String>('avelune-home-screen'),
-          viewData: viewData,
-          productName: productName,
-          referenceTime: referenceTime,
-          appearance: const AveluneAppearancePreferences(),
-          onGameSelected: (game) => controller.selectGame(game.id),
-          onShowDetails: (game) => _showDetails(context, game.id),
-          onAddGame:
-              viewData.canImport ? () => controller.requestImport() : null,
-          onContinue: (game) {
-            final source = _findSource(game.id);
-            if (source != null) actions.onContinue?.call(source);
-          },
-          onNewGame: (game) {
-            final source = _findSource(game.id);
-            if (source != null) actions.onNewGame?.call(source);
-          },
+        return _AveluneFeedbackHost(
+          preferences: snapshot.preferences,
+          builder: (feedback) => AveluneHomeScreen(
+            key: const ValueKey<String>('avelune-home-screen'),
+            viewData: viewData,
+            productName: productName,
+            referenceTime: referenceTime,
+            appearance: const AveluneAppearancePreferences(),
+            feedback: feedback,
+            onGameSelected: (game) => controller.selectGame(game.id),
+            onShowDetails: (game) => _showDetails(context, game.id),
+            onAddGame:
+                viewData.canImport ? () => controller.requestImport() : null,
+            onContinue: (game) {
+              final source = _findSource(game.id);
+              if (source != null) actions.onContinue?.call(source);
+            },
+            onNewGame: (game) {
+              final source = _findSource(game.id);
+              if (source != null) actions.onNewGame?.call(source);
+            },
+          ),
         );
       },
     );
@@ -111,9 +120,8 @@ class AveluneHomeContent extends StatelessWidget {
         settings: const RouteSettings(name: 'avelune-game-details'),
         transitionDuration:
             reducedMotion ? Duration.zero : const Duration(milliseconds: 420),
-        reverseTransitionDuration: reducedMotion
-            ? Duration.zero
-            : const Duration(milliseconds: 300),
+        reverseTransitionDuration:
+            reducedMotion ? Duration.zero : const Duration(milliseconds: 300),
         pageBuilder: (_, __, ___) => AveluneGameDetailsScreen(
           game: source,
           referenceTime: referenceTime ?? DateTime.now(),
@@ -146,6 +154,37 @@ class AveluneHomeContent extends StatelessWidget {
     }
     return null;
   }
+}
+
+class _AveluneFeedbackHost extends StatefulWidget {
+  const _AveluneFeedbackHost({
+    required this.preferences,
+    required this.builder,
+  });
+
+  final PlayerPreferences preferences;
+  final Widget Function(AveluneFeedback feedback) builder;
+
+  @override
+  State<_AveluneFeedbackHost> createState() => _AveluneFeedbackHostState();
+}
+
+class _AveluneFeedbackHostState extends State<_AveluneFeedbackHost> {
+  late final AveluneSystemFeedback _feedback;
+
+  @override
+  void initState() {
+    super.initState();
+    _feedback = AveluneSystemFeedback(
+      hapticsEnabled: () => widget.preferences.hapticsEnabled,
+      clickSoundEnabled: () =>
+          widget.preferences.masterVolume > 0 &&
+          widget.preferences.effectsVolume > 0,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_feedback);
 }
 
 class AvelunePreferencesContent extends StatelessWidget {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
@@ -22,7 +23,8 @@ void main() {
       (tester) async {
     await _pumpConsoleShell(tester, size: iphone, insets: iphoneInsets);
 
-    final scene = tester.widget<AveluneRoomScene>(find.byType(AveluneRoomScene));
+    final scene =
+        tester.widget<AveluneRoomScene>(find.byType(AveluneRoomScene));
 
     expect(
       scene.geometry.viewportSize.height,
@@ -70,7 +72,8 @@ void main() {
       (tester) async {
     await _pumpConsoleShell(tester, size: iphone, insets: iphoneInsets);
 
-    final scene = tester.widget<AveluneRoomScene>(find.byType(AveluneRoomScene));
+    final scene =
+        tester.widget<AveluneRoomScene>(find.byType(AveluneRoomScene));
     final navRect = tester.getRect(_navPill);
 
     expect(
@@ -100,12 +103,131 @@ void main() {
     );
     expect(find.text('Selbrume'), findsWidgets);
   });
+
+  testWidgets('long press flies the cartridge artwork into game details',
+      (tester) async {
+    await _pumpConsoleShell(tester, size: iphone, insets: iphoneInsets);
+
+    final artworkHero = find.byWidgetPredicate(
+      (widget) =>
+          widget is Hero &&
+          widget.tag == aveluneArtworkHeroTag('games.example.selbrume'),
+      description: 'selected cartridge artwork Hero',
+    );
+    expect(
+      artworkHero,
+      findsOneWidget,
+      reason: 'The selected cartridge must be the source of the details Hero.',
+    );
+
+    await tester.longPress(
+      find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 80));
+
+    expect(find.byType(AveluneGameDetailsScreen), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('avelune-details-hero-flight')),
+      findsOneWidget,
+      reason: 'The artwork must fly from the cartridge instead of appearing '
+          'through the page fade alone.',
+    );
+  });
+
+  testWidgets('production insertion emits physical latch feedback',
+      (tester) async {
+    final platformCalls = <MethodCall>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      platformCalls.add(call);
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    var launches = 0;
+    await _pumpConsoleShell(
+      tester,
+      size: iphone,
+      insets: iphoneInsets,
+      actions: HubUiActions(onContinue: (_) => launches++),
+    );
+    platformCalls.clear();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 950));
+
+    expect(
+      platformCalls.where((call) => call.method == 'HapticFeedback.vibrate'),
+      isNotEmpty,
+      reason: 'The production shell must not replace physical feedback with '
+          'AveluneNoopFeedback.',
+    );
+    expect(
+      platformCalls.where((call) => call.method == 'SystemSound.play'),
+      hasLength(1),
+      reason: 'The cartridge latch must produce one system click.',
+    );
+
+    await tester.pump(const Duration(milliseconds: 1500));
+    expect(launches, 1);
+  });
+
+  testWidgets('player preferences can silence physical feedback',
+      (tester) async {
+    final platformCalls = <MethodCall>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      platformCalls.add(call);
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    await _pumpConsoleShell(
+      tester,
+      size: iphone,
+      insets: iphoneInsets,
+      actions: HubUiActions(onContinue: (_) {}),
+      preferences: const PlayerPreferences(
+        masterVolume: 0,
+        effectsVolume: 0,
+        hapticsEnabled: false,
+      ),
+    );
+    platformCalls.clear();
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 950));
+
+    expect(
+      platformCalls.where((call) => call.method == 'HapticFeedback.vibrate'),
+      isEmpty,
+    );
+    expect(
+      platformCalls.where((call) => call.method == 'SystemSound.play'),
+      isEmpty,
+    );
+
+    await tester.pump(const Duration(milliseconds: 1500));
+  });
 }
 
 Future<void> _pumpConsoleShell(
   WidgetTester tester, {
   required Size size,
   required EdgeInsets insets,
+  HubUiActions actions = const HubUiActions(),
+  PlayerPreferences preferences = const PlayerPreferences(),
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -116,8 +238,7 @@ Future<void> _pumpConsoleShell(
     _view(id: 'train', title: 'Le Train de 17h42'),
     _view(id: 'demo', title: 'Démo technique'),
   ];
-  final snapshot = _snapshot(games);
-  const actions = HubUiActions();
+  final snapshot = _snapshot(games, preferences: preferences);
 
   await tester.pumpWidget(
     MaterialApp(
@@ -148,7 +269,10 @@ Future<void> _pumpConsoleShell(
   await tester.pump(const Duration(milliseconds: 100));
 }
 
-HubDashboardSnapshot _snapshot(List<HubGameView> games) =>
+HubDashboardSnapshot _snapshot(
+  List<HubGameView> games, {
+  PlayerPreferences preferences = const PlayerPreferences(),
+}) =>
     HubDashboardSnapshot.ready(
       library: GameLibrary(
         revision: 1,
@@ -156,6 +280,7 @@ HubDashboardSnapshot _snapshot(List<HubGameView> games) =>
         games: games.map((view) => view.game).toList(growable: false),
       ),
       games: games,
+      preferences: preferences,
     );
 
 HubGameView _view({

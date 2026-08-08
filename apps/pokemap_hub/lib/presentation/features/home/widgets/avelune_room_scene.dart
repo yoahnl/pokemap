@@ -8,6 +8,7 @@ import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_console.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_shelf.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_presentation.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_geometry.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_view_data.dart';
 import 'package:pokemap_hub/presentation/shared/artwork/local_artwork_image.dart';
@@ -59,7 +60,8 @@ final class AveluneRoomSceneLayout {
 
   /// The recess the shelf cartridges stand in, in screen coordinates.
   Rect get alcoveRect => Rect.fromLTRB(
-        furnitureRect.left + (furnitureRect.width * kAveluneCredenzaAlcove.left),
+        furnitureRect.left +
+            (furnitureRect.width * kAveluneCredenzaAlcove.left),
         furnitureRect.top + (furnitureRect.height * kAveluneCredenzaAlcove.top),
         furnitureRect.left +
             (furnitureRect.width * kAveluneCredenzaAlcove.right),
@@ -83,7 +85,6 @@ final class AveluneRoomSceneLayout {
         furnitureSupportY: geometry.consoleFootlineY,
         furnitureShelfBaselineY: geometry.anchors.shelfBaseline.dy,
       );
-
 
   final Rect furnitureRect;
   final double furnitureSupportY;
@@ -129,6 +130,7 @@ class AveluneRoomScene extends StatelessWidget {
   final GlobalKey Function(String gameId)? shelfCartridgeKeyFor;
   final Set<String> hiddenShelfGameIds;
   final bool showHero;
+
   /// Cartridge being inserted. Painted over the console and clipped at the slot
   /// mouth so it disappears into the cavity instead of behind the hardware.
   final Widget? insertionOverlay;
@@ -310,6 +312,7 @@ class AveluneRoomScene extends StatelessWidget {
                     selected: true,
                     invalid: !selected.isValid,
                     displaySize: AveluneCartridgeDisplaySize.hero,
+                    artworkHeroTag: aveluneArtworkHeroTag(selected.id),
                     onPressed: onHeroPressed,
                     onLongPress: onHeroLongPress,
                     semanticsLabel: heroSemanticsLabel,
@@ -484,4 +487,3 @@ ImageProvider<Object>? _artworkFor(AveluneArtworkViewData artwork) {
   if (path == null || path.trim().isEmpty) return null;
   return requireLocalArtworkImage(path);
 }
-
