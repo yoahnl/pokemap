@@ -8,6 +8,7 @@ library;
 export 'src/api/authoring_read_api.dart';
 export 'src/api/authoring_read_contracts.dart';
 export 'src/api/authoring_mutation_api.dart';
+export 'src/api/authoring_mutation_contracts.dart';
 export 'src/api/local_map_authoring_mutation_api.dart';
 export 'src/application/map_mutation_dispatcher.dart';
 export 'src/architecture/package_boundaries.dart';

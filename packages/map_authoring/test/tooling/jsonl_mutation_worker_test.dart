@@ -6,6 +6,28 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('typed mutation facade owns contracts before wire serialization',
+      () async {
+    final root = await Directory.systemTemp.createTemp('typed-mutation-');
+    addTearDown(() async {
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    const reader = LocalProjectFileReader();
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [root.path],
+      fileReader: reader,
+    );
+    final mutations = LocalMapAuthoringMutationApi(
+      policy: policy,
+      snapshotLoader: ProjectSnapshotLoader(handles: WorkspaceHandleStore()),
+    );
+
+    final typed = (mutations as dynamic).describeMutationContracts();
+
+    expect(typed, isA<AuthoringMutationDescription>());
+    expect(typed.toJson(), mutations.describeMutations());
+  });
+
   test('JSONL exposes lifecycle plan and apply without leaking roots',
       () async {
     final root = await Directory.systemTemp.createTemp('jsonl-mutation-');
@@ -144,6 +166,12 @@ void main() {
       (applied.data['receipt']! as Map<String, Object?>)['status'],
       'applied',
     );
+    final typedReplay = await mutations.applyMutation(
+      ProjectHandle(projectHandle),
+      planId: planned.data['planId']! as String,
+      operationId: 'operation_jsonl_map',
+    );
+    expect(typedReplay.toJson(), applied.data);
     expect(await File('${root.path}/maps/jsonl_map.json').exists(), isTrue);
 
     final history = await _request(
@@ -160,11 +188,11 @@ void main() {
       ((history.data['entries']! as List).single as Map)['operationId'],
       'operation_jsonl_map',
     );
-    final directHistory = await mutations.history(
+    final directHistory = await mutations.listMutationHistory(
       ProjectHandle(projectHandle),
       limit: 1,
     );
-    expect(history.data, directHistory);
+    expect(history.data, directHistory.toJson());
 
     final beforePalette = await snapshots.load(ProjectHandle(projectHandle));
     final paletteRequest = AuthoringRequest(

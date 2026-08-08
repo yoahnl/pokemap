@@ -5,7 +5,6 @@ import 'dart:math';
 import '../contracts/action_descriptor.dart';
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
-import '../contracts/json_contract_support.dart';
 import '../application/map_mutation_dispatcher.dart';
 import '../domains/assets/tiled_image_collection_packer.dart';
 import '../history/content_blob_store.dart';
@@ -35,6 +34,7 @@ import '../workspace/project_snapshot.dart';
 import '../workspace/project_snapshot_loader.dart';
 import '../workspace/workspace_handle_store.dart';
 import '../workspace/workspace_policy.dart';
+import 'authoring_mutation_contracts.dart';
 import 'authoring_mutation_api.dart';
 
 /// Filesystem composition root for secure map mutation sessions.
@@ -42,7 +42,11 @@ import 'authoring_mutation_api.dart';
 /// Canonical roots are captured only by server-side adapters. They never enter
 /// action contracts, receipts, errors, audit records, or JSONL responses.
 final class LocalMapAuthoringMutationApi
-    implements AuthoringMutationApiPort, AuthoringArtifactStagingPort {
+    implements
+        AuthoringMutationApiPort,
+        AuthoringArtifactStagingPort,
+        AuthoringMutationServicePort,
+        AuthoringArtifactStagingServicePort {
   LocalMapAuthoringMutationApi({
     required WorkspacePolicy policy,
     required ProjectSnapshotLoader snapshotLoader,
@@ -81,35 +85,48 @@ final class LocalMapAuthoringMutationApi
   final Map<WorkspaceHandle, ProjectHandle> _projectsByWorkspace = {};
 
   @override
-  Map<String, Object?> describeMutations() => freezeContractJsonObject(
-        {
-          'schemaVersion': 1,
-          'protocol': 'pokemap.authoring.mutation.v1',
-          'readOnly': false,
-          'commands': const [
-            {'id': 'apply', 'summary': 'Apply a frozen mutation plan.'},
-            {'id': 'confirm', 'summary': 'Confirm one destructive plan.'},
-            {'id': 'history', 'summary': 'List committed history entries.'},
-            {'id': 'plan', 'summary': 'Plan and preview a map mutation.'},
-            {'id': 'recover', 'summary': 'Resume a recoverable transaction.'},
-            {
-              'id': 'stage_artifact',
-              'summary': 'Securely stage a local file for an asset mutation.',
-            },
-            {'id': 'undo', 'summary': 'Undo one committed history entry.'},
-          ],
-          'actions': [
-            for (final descriptor in _dispatcher.descriptors)
-              descriptor.toJson(),
-          ],
-          'multiFileGuarantee': 'recoverable',
-          'fullParity': AuthoringFullParityCatalog.canonical().toJson(),
-        },
-        field: 'describeMutations',
+  AuthoringMutationDescription describeMutationContracts() =>
+      AuthoringMutationDescription(
+        commands: const [
+          AuthoringMutationCommandDescriptor(
+            id: 'apply',
+            summary: 'Apply a frozen mutation plan.',
+          ),
+          AuthoringMutationCommandDescriptor(
+            id: 'confirm',
+            summary: 'Confirm one destructive plan.',
+          ),
+          AuthoringMutationCommandDescriptor(
+            id: 'history',
+            summary: 'List committed history entries.',
+          ),
+          AuthoringMutationCommandDescriptor(
+            id: 'plan',
+            summary: 'Plan and preview a map mutation.',
+          ),
+          AuthoringMutationCommandDescriptor(
+            id: 'recover',
+            summary: 'Resume a recoverable transaction.',
+          ),
+          AuthoringMutationCommandDescriptor(
+            id: 'stage_artifact',
+            summary: 'Securely stage a local file for an asset mutation.',
+          ),
+          AuthoringMutationCommandDescriptor(
+            id: 'undo',
+            summary: 'Undo one committed history entry.',
+          ),
+        ],
+        actions: _dispatcher.descriptors,
+        fullParity: AuthoringFullParityCatalog.canonical(),
       );
 
   @override
-  Future<Map<String, Object?>> stageArtifact({
+  Map<String, Object?> describeMutations() =>
+      describeMutationContracts().toJson();
+
+  @override
+  Future<AuthoringArtifactStageResult> stageArtifactFile({
     required String sourcePath,
     String? declaredMediaType,
   }) async {
@@ -125,18 +142,22 @@ final class LocalMapAuthoringMutationApi
       sourcePath,
       declaredMediaType: declaredMediaType,
     );
-    final reference = stored.reference;
-    return freezeContractJsonObject(
-      {
-        'artifactHandle': reference.handle,
-        'digest': reference.digest,
-        'mediaType': reference.mediaType,
-        'byteLength': reference.byteLength,
-        'deduplicated': stored.deduplicated,
-      },
-      field: 'stageArtifact',
+    return AuthoringArtifactStageResult(
+      reference: stored.reference,
+      deduplicated: stored.deduplicated,
     );
   }
+
+  @override
+  Future<Map<String, Object?>> stageArtifact({
+    required String sourcePath,
+    String? declaredMediaType,
+  }) async =>
+      (await stageArtifactFile(
+        sourcePath: sourcePath,
+        declaredMediaType: declaredMediaType,
+      ))
+          .toJson();
 
   @override
   Future<void> attachProject({
@@ -180,18 +201,45 @@ final class LocalMapAuthoringMutationApi
   }
 
   @override
-  Future<Map<String, Object?>> plan(
+  Future<AuthoringMutationPlanResult> planMutation(
     ProjectHandle projectHandle,
     AuthoringRequest request,
   ) =>
-      _session(projectHandle).plan(request);
+      _session(projectHandle).planMutation(request);
+
+  @override
+  Future<Map<String, Object?>> plan(
+    ProjectHandle projectHandle,
+    AuthoringRequest request,
+  ) async =>
+      (await planMutation(projectHandle, request)).toJson();
+
+  @override
+  Future<AuthoringMutationConfirmationResult> confirmMutation(
+    ProjectHandle projectHandle, {
+    required String planId,
+  }) =>
+      _session(projectHandle).confirmMutation(planId);
 
   @override
   Future<Map<String, Object?>> confirm(
     ProjectHandle projectHandle, {
     required String planId,
+  }) async =>
+      (await confirmMutation(projectHandle, planId: planId)).toJson();
+
+  @override
+  Future<AuthoringMutationResult> applyMutation(
+    ProjectHandle projectHandle, {
+    required String planId,
+    required String operationId,
+    String? confirmationToken,
   }) =>
-      _session(projectHandle).confirm(planId);
+      _session(projectHandle).applyMutation(
+        planId: planId,
+        operationId: operationId,
+        confirmationToken: confirmationToken,
+      );
 
   @override
   Future<Map<String, Object?>> apply(
@@ -199,11 +247,24 @@ final class LocalMapAuthoringMutationApi
     required String planId,
     required String operationId,
     String? confirmationToken,
-  }) =>
-      _session(projectHandle).apply(
+  }) async =>
+      (await applyMutation(
+        projectHandle,
         planId: planId,
         operationId: operationId,
         confirmationToken: confirmationToken,
+      ))
+          .toJson();
+
+  @override
+  Future<AuthoringMutationResult> undoMutation(
+    ProjectHandle projectHandle, {
+    required String entryId,
+    required String idempotencyKey,
+  }) =>
+      _session(projectHandle).undoMutation(
+        entryId: entryId,
+        idempotencyKey: idempotencyKey,
       );
 
   @override
@@ -211,26 +272,48 @@ final class LocalMapAuthoringMutationApi
     ProjectHandle projectHandle, {
     required String entryId,
     required String idempotencyKey,
-  }) =>
-      _session(projectHandle).undo(
+  }) async =>
+      (await undoMutation(
+        projectHandle,
         entryId: entryId,
         idempotencyKey: idempotencyKey,
-      );
+      ))
+          .toJson();
+
+  @override
+  Future<AuthoringMutationHistoryResult> listMutationHistory(
+    ProjectHandle projectHandle, {
+    required int limit,
+    String? cursor,
+  }) =>
+      _session(projectHandle).listMutationHistory(limit: limit, cursor: cursor);
 
   @override
   Future<Map<String, Object?>> history(
     ProjectHandle projectHandle, {
     required int limit,
     String? cursor,
+  }) async =>
+      (await listMutationHistory(
+        projectHandle,
+        limit: limit,
+        cursor: cursor,
+      ))
+          .toJson();
+
+  @override
+  Future<AuthoringMutationResult> recoverMutation(
+    ProjectHandle projectHandle, {
+    required String operationId,
   }) =>
-      _session(projectHandle).history(limit: limit, cursor: cursor);
+      _session(projectHandle).recoverMutation(operationId);
 
   @override
   Future<Map<String, Object?>> recover(
     ProjectHandle projectHandle, {
     required String operationId,
-  }) =>
-      _session(projectHandle).recover(operationId);
+  }) async =>
+      (await recoverMutation(projectHandle, operationId: operationId)).toJson();
 
   _LocalMapAuthoringSession _session(ProjectHandle projectHandle) {
     final session = _sessions[projectHandle];
@@ -407,7 +490,7 @@ final class _LocalMapAuthoringSession {
   final AuthoringHistoryStore _history;
   final SecureAuthoringRecoveryExecutor _recoveryExecutor;
 
-  Future<Map<String, Object?>> history({
+  Future<AuthoringMutationHistoryResult> listMutationHistory({
     required int limit,
     String? cursor,
   }) async {
@@ -417,16 +500,12 @@ final class _LocalMapAuthoringSession {
       cursor:
           cursor == null ? null : AuthoringHistoryCursor.fromWireValue(cursor),
     );
-    return freezeContractJsonObject(
-      {
-        'entries': [for (final entry in page.entries) entry.toJson()],
-        if (page.nextCursor case final next?) 'nextCursor': next.wireValue,
-      },
-      field: 'mutationHistory',
-    );
+    return AuthoringMutationHistoryResult(page);
   }
 
-  Future<Map<String, Object?>> plan(AuthoringRequest request) async {
+  Future<AuthoringMutationPlanResult> planMutation(
+    AuthoringRequest request,
+  ) async {
     _requireWorkspace(request.workspaceHandle);
     final idempotencyKey = request.idempotencyKey;
     if (idempotencyKey == null) {
@@ -463,21 +542,16 @@ final class _LocalMapAuthoringSession {
       snapshot: snapshot,
       build: _dispatcher.build,
     );
-    return freezeContractJsonObject(
-      {
-        'planId': plan.planId,
-        'applicable': plan.applicable,
-        if (plan.nonApplicableReason case final reason?)
-          'nonApplicableReason': reason,
-        'snapshotRevision': snapshot.revision,
-        'plan': plan.toJson(),
-        'receipt': plan.toPlannedReceipt().toJson(),
-      },
-      field: 'mutationPlan',
+    return AuthoringMutationPlanResult(
+      plan: plan,
+      snapshotRevision: snapshot.revision,
+      receipt: plan.toPlannedReceipt(),
     );
   }
 
-  Future<Map<String, Object?>> confirm(String planId) async {
+  Future<AuthoringMutationConfirmationResult> confirmMutation(
+    String planId,
+  ) async {
     final snapshot = await _snapshotLoader.load(projectHandle);
     final plan = _plans.resolve(
       _safeIdentity(planId, 'planId'),
@@ -491,14 +565,14 @@ final class _LocalMapAuthoringSession {
         plan: plan,
       ),
     );
-    return Map.unmodifiable({
-      'planId': plan.planId,
-      'confirmationToken': token.wireValue,
-      'expiresInSeconds': _confirmations.lifetime.inSeconds,
-    });
+    return AuthoringMutationConfirmationResult(
+      planId: plan.planId,
+      confirmationToken: token.wireValue,
+      expiresInSeconds: _confirmations.lifetime.inSeconds,
+    );
   }
 
-  Future<Map<String, Object?>> apply({
+  Future<AuthoringMutationResult> applyMutation({
     required String planId,
     required String operationId,
     String? confirmationToken,
@@ -542,10 +616,10 @@ final class _LocalMapAuthoringSession {
             changes: plan.changeSet.changes,
           )
         : null;
-    return _receiptResult(receipt, snapshot: projected);
+    return _mutationResult(receipt, snapshot: projected);
   }
 
-  Future<Map<String, Object?>> undo({
+  Future<AuthoringMutationResult> undoMutation({
     required String entryId,
     required String idempotencyKey,
   }) async {
@@ -559,31 +633,28 @@ final class _LocalMapAuthoringSession {
       idempotencyKey: _safeIdentity(idempotencyKey, 'idempotencyKey'),
     );
     final receipt = await _undoService.apply(prepared);
-    return _receiptResult(receipt);
+    return _mutationResult(receipt);
   }
 
-  Future<Map<String, Object?>> recover(String operationId) async {
+  Future<AuthoringMutationResult> recoverMutation(String operationId) async {
     final safeOperationId = _safeIdentity(operationId, 'operationId');
     final receipt = await _recoveryExecutor.recover(
       actor: _actor,
       projectId: projectId,
       operationId: safeOperationId,
     );
-    return _receiptResult(receipt);
+    return _mutationResult(receipt);
   }
 
-  Future<Map<String, Object?>> _receiptResult(
+  Future<AuthoringMutationResult> _mutationResult(
     AuthoringReceipt receipt, {
     ProjectSnapshot? snapshot,
   }) async {
     final resolvedSnapshot =
         snapshot ?? await _snapshotLoader.load(projectHandle);
-    return freezeContractJsonObject(
-      {
-        'receipt': receipt.toJson(),
-        'snapshotRevision': resolvedSnapshot.revision,
-      },
-      field: 'mutationReceipt',
+    return AuthoringMutationResult(
+      receipt: receipt,
+      snapshotRevision: resolvedSnapshot.revision,
     );
   }
 

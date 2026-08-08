@@ -141,17 +141,13 @@ final class AuthoringMutationAdapter
       final session = await _open(projectRootPath);
       return await session.use(() async {
         await session.artifactStore.authorizeSourceFile(sourcePath);
-        final result = await session.mutations.stageArtifact(
+        final result = await session.mutations.stageArtifactFile(
           sourcePath: sourcePath,
           declaredMediaType: declaredMediaType,
         );
         return EditorStagedArtifact(
-          reference: ContentArtifactRef(
-            digest: result['digest']! as String,
-            mediaType: result['mediaType']! as String,
-            byteLength: result['byteLength']! as int,
-          ),
-          deduplicated: result['deduplicated']! as bool,
+          reference: result.reference,
+          deduplicated: result.deduplicated,
         );
       });
     } on Object catch (error) {
@@ -163,11 +159,11 @@ final class AuthoringMutationAdapter
     try {
       final session = await _open(plan.projectRootPath);
       return await session.use(() async {
-        final response = await session.mutations.confirm(
+        final response = await session.mutations.confirmMutation(
           session.projectHandle,
           planId: plan.planId,
         );
-        return response['confirmationToken']! as String;
+        return response.confirmationToken;
       });
     } on Object catch (error) {
       throw EditorAuthoringMutationFailure.capture(error);
@@ -202,14 +198,14 @@ final class AuthoringMutationAdapter
     try {
       final session = await _open(projectRootPath);
       return await session.use(() async {
-        final response = await session.mutations.undo(
+        final response = await session.mutations.undoMutation(
           session.projectHandle,
           entryId: entryId,
           idempotencyKey: idempotencyKey,
         );
         final result = EditorAuthoringMutationResult(
-          receipt: _receipt(response),
-          snapshotRevision: response['snapshotRevision']! as String,
+          receipt: response.receipt,
+          snapshotRevision: response.snapshotRevision,
         );
         _lastAppliedReceipt = result.receipt;
         await _queries.invalidate(session.canonicalRoot);
@@ -227,13 +223,13 @@ final class AuthoringMutationAdapter
     try {
       final session = await _open(projectRootPath);
       return await session.use(() async {
-        final response = await session.mutations.recover(
+        final response = await session.mutations.recoverMutation(
           session.projectHandle,
           operationId: operationId,
         );
         final result = EditorAuthoringMutationResult(
-          receipt: _receipt(response),
-          snapshotRevision: response['snapshotRevision']! as String,
+          receipt: response.receipt,
+          snapshotRevision: response.snapshotRevision,
         );
         _lastAppliedReceipt = result.receipt;
         await _queries.invalidate(session.canonicalRoot);
@@ -253,7 +249,7 @@ final class AuthoringMutationAdapter
     String? expectedRevision,
   }) async {
     final snapshot = await session.snapshot();
-    final response = await session.mutations.plan(
+    final response = await session.mutations.planMutation(
       session.projectHandle,
       AuthoringRequest(
         requestId: requestId ?? _identity('editor_request'),
@@ -269,24 +265,12 @@ final class AuthoringMutationAdapter
         dryRun: false,
       ),
     );
-    final rawPlan = response['plan'];
-    if (rawPlan is! Map) {
-      throw const FormatException('Authoring response plan is missing.');
-    }
-    final rawPreview = rawPlan['preview'];
-    if (rawPreview != null && rawPreview is! Map) {
-      throw const FormatException('Authoring plan preview is invalid.');
-    }
     return EditorAuthoringMutationPlan._(
       projectRootPath: session.canonicalRoot,
-      planId: response['planId']! as String,
-      snapshotRevision: response['snapshotRevision']! as String,
-      receipt: _receipt(response),
-      preview: Map<String, Object?>.unmodifiable(
-        rawPreview == null
-            ? const <String, Object?>{}
-            : Map<String, Object?>.from(rawPreview),
-      ),
+      planId: response.planId,
+      snapshotRevision: response.snapshotRevision,
+      receipt: response.receipt,
+      preview: response.plan.preview,
     );
   }
 
@@ -296,15 +280,15 @@ final class AuthoringMutationAdapter
     required String operationId,
     String? confirmationToken,
   }) async {
-    final response = await session.mutations.apply(
+    final response = await session.mutations.applyMutation(
       session.projectHandle,
       planId: plan.planId,
       operationId: operationId,
       confirmationToken: confirmationToken,
     );
     final result = EditorAuthoringMutationResult(
-      receipt: _receipt(response),
-      snapshotRevision: response['snapshotRevision']! as String,
+      receipt: response.receipt,
+      snapshotRevision: response.snapshotRevision,
     );
     _lastAppliedReceipt = result.receipt;
     await _queries.invalidate(session.canonicalRoot);
@@ -657,14 +641,6 @@ Future<void> _closeMutationSessions(
   await Future.wait<void>(
     sessions.map((opening) async => (await opening).close()),
   );
-}
-
-AuthoringReceipt _receipt(Map<String, Object?> response) {
-  final raw = response['receipt'];
-  if (raw is! Map) {
-    throw const FormatException('Authoring response receipt is missing.');
-  }
-  return AuthoringReceipt.fromJson(Map<String, dynamic>.from(raw));
 }
 
 bool _isConflictCode(String code) =>
