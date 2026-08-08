@@ -101,6 +101,43 @@ void main() {
     );
   });
 
+  test('exports a manifest-referenced PokeMap store blob', () async {
+    final root = await createAuthorProject(
+      withDialogue: false,
+    );
+    addTearDown(() => root.delete(recursive: true));
+    const storePath = 'assets/.pokemap-store/'
+        '0079d95b54750e42a7b369b8610cd7d87ad4e09edc1c239c8079dc3235a8e5b2.blob';
+    final blob = File(p.joinAll(<String>[
+      root.path,
+      ...storePath.split('/'),
+    ]));
+    await blob.parent.create(recursive: true);
+    await blob.writeAsBytes(onePixelPng, flush: true);
+
+    final projectFile = File(p.join(root.path, 'project.json'));
+    final project =
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    project['tilesets'] = <Object?>[
+      const ProjectTilesetEntry(
+        id: 'smart-tile-tileset-0079d95b54750e42',
+        name: 'Stored smart tileset',
+        relativePath: storePath,
+      ).toJson(),
+    ];
+    await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+    final artifact = await const GamePackageExportService().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+
+    expect(
+      artifact.inspection.payloadPaths,
+      contains('project/$storePath'),
+    );
+  });
+
   group('gameplay publication readiness gate', () {
     test(
         'rejects a Finish Game reachable only through the non-runtime '

@@ -753,7 +753,18 @@ final class RuntimeProjectProjectionBuilder {
   static String _normalizePackagePath(String value) =>
       PackagePathPolicy.normalizeNfc(value);
 
+  static bool _isPokeMapStoreBlob(String path) {
+    final segments = path.toLowerCase().split('/');
+    if (segments.length != 3 ||
+        segments[0] != 'assets' ||
+        segments[1] != '.pokemap-store') {
+      return false;
+    }
+    return RegExp(r'^[0-9a-f]{64}\.blob$').hasMatch(segments[2]);
+  }
+
   static bool _isRuntimeProjectFile(String path, String extension) {
+    if (_isPokeMapStoreBlob(path)) return true;
     final firstSegment = path.split('/').first;
     if (extension == '.json') {
       // `assets/` is the media tree. The runtime only ever resolves it through
@@ -769,6 +780,7 @@ final class RuntimeProjectProjectionBuilder {
   }
 
   static bool _isExcludedAuthoringPath(String path) {
+    if (_isPokeMapStoreBlob(path)) return false;
     final segments = path.toLowerCase().split('/');
     final basename = segments.last;
     if (segments.any((segment) => segment.startsWith('.')) ||

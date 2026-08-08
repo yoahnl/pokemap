@@ -23,6 +23,10 @@ final class GamePackageContentValidator {
     GamePackageBinarySecretScanner(path).add(bytes);
     final lowerPath = path.toLowerCase();
     final extension = p.extension(lowerPath);
+    final validationExtension =
+        extension == '.blob' && _isPokeMapStoreBlob(lowerPath)
+            ? _embeddedImageExtension(bytes) ?? extension
+            : extension;
     if (_isExcludedAuthorArtifact(lowerPath)) {
       _fail(
         'executableContent',
@@ -43,7 +47,7 @@ final class GamePackageContentValidator {
       );
     }
 
-    final expectedMediaType = _expectedMediaTypes[extension];
+    final expectedMediaType = _expectedMediaTypes[validationExtension];
     if (inventoryEntry.mediaType != null &&
         inventoryEntry.mediaType != expectedMediaType) {
       _fail(
@@ -53,22 +57,25 @@ final class GamePackageContentValidator {
       );
     }
 
-    if (extension == '.json') {
+    if (validationExtension == '.json') {
       _validateJson(path, bytes);
       return;
     }
-    if (extension == '.txt' || extension == '.md' || extension == '.vtt') {
+    if (validationExtension == '.txt' ||
+        validationExtension == '.md' ||
+        validationExtension == '.vtt') {
       if (!streamedTextValidated) {
         final text = _decodeText(path, bytes);
         _scanText(path, text);
-        if (extension == '.vtt' && !text.startsWith('WEBVTT')) {
+        if (validationExtension == '.vtt' && !text.startsWith('WEBVTT')) {
           _fail(
             'executableContent',
             path,
             'Caption files must use WebVTT.',
           );
         }
-      } else if (extension == '.vtt' && !_asciiAt(bytes, 0, 'WEBVTT')) {
+      } else if (validationExtension == '.vtt' &&
+          !_asciiAt(bytes, 0, 'WEBVTT')) {
         _fail(
           'executableContent',
           path,
@@ -77,12 +84,12 @@ final class GamePackageContentValidator {
       }
       return;
     }
-    if (_imageExtensions.contains(extension)) {
+    if (_imageExtensions.contains(validationExtension)) {
       final headerLength = bytes.length < policy.maxMediaHeaderBytes
           ? bytes.length
           : policy.maxMediaHeaderBytes;
       final dimensions = _imageDimensions(
-        extension,
+        validationExtension,
         Uint8List.sublistView(bytes, 0, headerLength),
       );
       if (dimensions == null) {
@@ -103,7 +110,7 @@ final class GamePackageContentValidator {
       }
       return;
     }
-    if (!_matchesMediaMagic(extension, bytes)) {
+    if (!_matchesMediaMagic(validationExtension, bytes)) {
       _fail(
         'executableContent',
         path,
@@ -197,6 +204,7 @@ final class GamePackageContentValidator {
   }
 
   bool _isAllowedExtension(String path, String extension) {
+    if (_isPokeMapStoreBlob(path)) return true;
     if (path.startsWith('legal/')) {
       return extension == '.txt' || extension == '.md';
     }
@@ -220,6 +228,10 @@ final class GamePackageContentValidator {
     }
     return path.startsWith('project/') && extension == '.json';
   }
+
+  bool _isPokeMapStoreBlob(String path) => RegExp(
+        r'^project/assets/\.pokemap-store/[0-9a-f]{64}\.blob$',
+      ).hasMatch(path);
 
   bool _isExcludedAuthorArtifact(String path) {
     final segments = path.split('/');
@@ -274,6 +286,13 @@ final class GamePackageContentValidator {
       '.woff2' => _asciiAt(bytes, 0, 'wOF2'),
       _ => false,
     };
+  }
+
+  String? _embeddedImageExtension(Uint8List bytes) {
+    for (final extension in _imageExtensions) {
+      if (_imageDimensions(extension, bytes) != null) return extension;
+    }
+    return null;
   }
 
   ({int width, int height})? _imageDimensions(
