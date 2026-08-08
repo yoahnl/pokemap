@@ -53,6 +53,10 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
               (kind) =>
                   kind.id == 'map' ||
                   kind.id == 'mapConnection' ||
+                  kind.id == 'worldGraph' ||
+                  kind.id == 'worldGraphNode' ||
+                  kind.id == 'worldGraphEdge' ||
+                  kind.id == 'worldGraphIssue' ||
                   kind.id == 'project' ||
                   kind.id == 'asset' ||
                   kind.id == 'tilesetFolder' ||

@@ -369,6 +369,128 @@ void main() {
       );
     });
 
+    test('projects a bounded world graph through paginated resources', () {
+      final snapshot = _snapshot(withConnections: true);
+      const service = ProjectQueryService();
+      final graph = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'worldGraph',
+          operation: AuthoringQueryOperation.get,
+          ids: const ['world-graph'],
+          view: AuthoringQueryView.detail,
+        ),
+      );
+      final firstEdge = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'worldGraphEdge',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+          pageSize: 1,
+        ),
+      );
+      final secondEdge = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'worldGraphEdge',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+          pageSize: 1,
+          cursor: firstEdge.nextCursor,
+        ),
+      );
+
+      expect(graph.items.single, {
+        'id': 'world-graph',
+        'name': 'World graph',
+        'resourceKind': 'worldGraph',
+        'nodeCount': 3,
+        'edgeCount': 2,
+        'issueCount': 0,
+        'isConsistent': true,
+        'resources': {
+          'nodes': 'worldGraphNode',
+          'edges': 'worldGraphEdge',
+          'issues': 'worldGraphIssue',
+        },
+        'render': {
+          'hasPersistentLayout': false,
+          'layoutPolicy': 'logical_graph_only',
+          'nodeResourceKind': 'worldGraphNode',
+          'edgeResourceKind': 'worldGraphEdge',
+        },
+      });
+      expect(firstEdge.returned, 1);
+      expect(firstEdge.totalAvailable, 2);
+      expect(firstEdge.nextCursor, isNotNull);
+      expect(secondEdge.returned, 1);
+      expect(secondEdge.nextCursor, isNull);
+    });
+
+    test('runs bounded world graph traversal query actions', () {
+      final snapshot = _snapshot(withConnections: true);
+      const service = ProjectQueryService();
+
+      AuthoringQueryPage traverse(
+        String actionId,
+        Map<String, Object?> parameters,
+      ) =>
+          service.query(
+            snapshot,
+            AuthoringQueryRequest(
+              resourceKind: 'worldGraphNode',
+              operation: AuthoringQueryOperation.list,
+              view: AuthoringQueryView.detail,
+              extensions: {
+                'actionId': actionId,
+                'parameters': parameters,
+              },
+            ),
+          );
+
+      expect(
+        traverse(
+          'world_graph.list_connected',
+          const {'fromMapId': 'a-map'},
+        ).items.map((item) => item['mapId']),
+        ['a-map', 'b-map'],
+      );
+      expect(
+        traverse(
+          'world_graph.list_disconnected',
+          const {'fromMapId': 'a-map'},
+        ).items.map((item) => item['mapId']),
+        ['c-map'],
+      );
+      final path = traverse(
+        'world_graph.find_path',
+        const {'sourceMapId': 'a-map', 'targetMapId': 'b-map'},
+      );
+      expect(path.items.map((item) => item['mapId']), ['a-map', 'b-map']);
+      expect(path.items.map((item) => item['pathIndex']), [0, 1]);
+    });
+
+    test('exposes world graph consistency issues as bounded resources', () {
+      final page = const ProjectQueryService().query(
+        _snapshot(withBrokenConnection: true),
+        AuthoringQueryRequest(
+          resourceKind: 'worldGraphIssue',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+          pageSize: 1,
+        ),
+      );
+
+      expect(page.returned, 1);
+      expect(page.totalAvailable, 2);
+      expect(page.nextCursor, isNotNull);
+      expect(
+        page.items.single['code'],
+        startsWith('world_graph.connection_'),
+      );
+    });
+
     test('applies filters, descending sort, and dotted field masks', () {
       final page = const ProjectQueryService().query(
         _snapshot(),

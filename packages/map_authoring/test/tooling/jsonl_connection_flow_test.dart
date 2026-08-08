@@ -142,6 +142,45 @@ void main() {
       (validation.data['items']! as List).cast<Map>().single,
       containsPair('valid', true),
     );
+    final graph = await setup.request(
+      'query',
+      args: {
+        'projectHandle': projectHandle.value,
+        'request': AuthoringQueryRequest(
+          resourceKind: 'worldGraph',
+          operation: AuthoringQueryOperation.get,
+          ids: const ['world-graph'],
+          view: AuthoringQueryView.detail,
+        ).toJson(),
+      },
+    );
+    expect(graph.status, AuthoringResultStatus.success);
+    expect(
+      (graph.data['items']! as List).cast<Map>().single,
+      containsPair('edgeCount', 2),
+    );
+    final connectedNodes = await setup.request(
+      'query',
+      args: {
+        'projectHandle': projectHandle.value,
+        'request': AuthoringQueryRequest(
+          resourceKind: 'worldGraphNode',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+          extensions: const {
+            'actionId': 'world_graph.list_connected',
+            'parameters': {'fromMapId': 'alpha'},
+          },
+        ).toJson(),
+      },
+    );
+    expect(connectedNodes.status, AuthoringResultStatus.success);
+    expect(
+      (connectedNodes.data['items']! as List)
+          .cast<Map>()
+          .map((item) => item['mapId']),
+      ['alpha', 'beta'],
+    );
 
     final deletePlan = await setup.request(
       'plan',

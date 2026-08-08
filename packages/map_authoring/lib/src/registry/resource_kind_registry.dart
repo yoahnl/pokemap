@@ -261,6 +261,48 @@ final class AuthoringResourceKindRegistry {
         summary: 'Runtime-consumed world projection rule',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'worldGraph',
+        version: 1,
+        displayName: 'World graph',
+        summary: 'Bounded overview of authored map connectivity',
+        extensions: const {
+          'queryActions': ['world_graph.inspect', 'world_graph.render'],
+          'childResourceKinds': [
+            'worldGraphNode',
+            'worldGraphEdge',
+            'worldGraphIssue',
+          ],
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'worldGraphNode',
+        version: 1,
+        displayName: 'World graph node',
+        summary: 'One map in the paginated world graph',
+        extensions: const {
+          'queryActions': [
+            'world_graph.list_connected',
+            'world_graph.list_disconnected',
+            'world_graph.find_path',
+          ],
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'worldGraphEdge',
+        version: 1,
+        displayName: 'World graph edge',
+        summary: 'One paginated connection or warp edge',
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'worldGraphIssue',
+        version: 1,
+        displayName: 'World graph issue',
+        summary: 'One paginated world graph consistency issue',
+        extensions: const {
+          'queryActions': ['world_graph.validate_consistency'],
+        },
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'storyline',
         version: 1,
         displayName: 'Storyline',

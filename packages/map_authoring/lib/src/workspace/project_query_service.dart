@@ -8,6 +8,7 @@ import '../contracts/query_request.dart';
 import '../domains/assets/asset_store.dart';
 import '../domains/maps/map_region_query.dart';
 import '../domains/maps/warp_connection_actions.dart';
+import '../domains/maps/world_graph_queries.dart';
 import '../domains/narrative/dialogue_authoring_service.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../domains/narrative/script_authoring_service.dart';
@@ -37,12 +38,14 @@ final class ProjectQueryService {
     if (regionPage != null) return regionPage;
     final connectionActionPage = _queryConnectionAction(snapshot, request);
     if (connectionActionPage != null) return connectionActionPage;
-    var records = _records(snapshot, request.resourceKind);
+    var records = _worldGraphActionRecords(snapshot, request) ??
+        _records(snapshot, request.resourceKind);
     records = _applyOperation(records, request);
     records = records
         .where((record) => _matchesFilters(record.detail, request.filters))
         .toList(growable: false);
-    final ordered = records.toList()..sort(_comparator(request.sort));
+    final ordered = records.toList()
+      ..sort(_comparator(_effectiveSort(request)));
     final offset = _cursorOffset(snapshot, request);
     if (offset > ordered.length) {
       throw const AuthoringQueryException(
@@ -82,7 +85,7 @@ AuthoringQueryPage? _queryConnectionAction(
   AuthoringQueryRequest request,
 ) {
   final actionId = request.extensions['actionId'];
-  if (actionId == null) return null;
+  if (actionId == null || request.resourceKind != 'mapConnection') return null;
   if (request.resourceKind != 'mapConnection' ||
       request.operation != AuthoringQueryOperation.summary ||
       request.ids.isNotEmpty ||
@@ -122,6 +125,103 @@ AuthoringQueryPage? _queryConnectionAction(
     items: [_applyFieldMask(item, request.fieldMask)],
     totalAvailable: 1,
   );
+}
+
+List<_QueryRecord>? _worldGraphActionRecords(
+  ProjectSnapshot snapshot,
+  AuthoringQueryRequest request,
+) {
+  final actionId = request.extensions['actionId'];
+  if (actionId == null || request.resourceKind != 'worldGraphNode') return null;
+  if (request.operation != AuthoringQueryOperation.list ||
+      request.ids.isNotEmpty ||
+      request.extensions.keys.any(
+        (key) => key != 'actionId' && key != 'parameters',
+      )) {
+    throw const AuthoringQueryException(
+      'query.world_graph_action_contract_invalid',
+      'A world graph traversal requires a worldGraphNode list request.',
+    );
+  }
+  final parameters = request.extensions['parameters'];
+  if (actionId is! String ||
+      parameters is! Map ||
+      parameters.keys.any((key) => key is! String)) {
+    throw const AuthoringQueryException(
+      'query.world_graph_action_invalid',
+      'The world graph query action and parameters are invalid.',
+    );
+  }
+  final values = Map<String, Object?>.from(parameters);
+  const queries = WorldGraphQueries();
+  late final List<String> mapIds;
+  switch (actionId) {
+    case 'world_graph.list_connected':
+      _requireExactKeys(
+        values,
+        const {'fromMapId'},
+        code: 'query.world_graph_parameters_invalid',
+      );
+      mapIds = queries.listConnected(
+        snapshot,
+        fromMapId: _requiredWorldGraphMapId(snapshot, values, 'fromMapId'),
+      );
+    case 'world_graph.list_disconnected':
+      _requireExactKeys(
+        values,
+        const {'fromMapId'},
+        code: 'query.world_graph_parameters_invalid',
+      );
+      mapIds = queries.listDisconnected(
+        snapshot,
+        fromMapId: _requiredWorldGraphMapId(snapshot, values, 'fromMapId'),
+      );
+    case 'world_graph.find_path':
+      _requireExactKeys(
+        values,
+        const {'sourceMapId', 'targetMapId'},
+        code: 'query.world_graph_parameters_invalid',
+      );
+      mapIds = queries.findPath(
+            snapshot,
+            sourceMapId:
+                _requiredWorldGraphMapId(snapshot, values, 'sourceMapId'),
+            targetMapId:
+                _requiredWorldGraphMapId(snapshot, values, 'targetMapId'),
+          ) ??
+          const [];
+    default:
+      throw const AuthoringQueryException(
+        'query.world_graph_action_unsupported',
+        'The requested world graph query action is unsupported.',
+      );
+  }
+  return [
+    for (var index = 0; index < mapIds.length; index++)
+      _QueryRecord(
+        summary: _worldGraphNodeRecord(snapshot, mapIds[index]),
+        detail: {
+          ..._worldGraphNodeRecord(snapshot, mapIds[index]),
+          'actionId': actionId,
+          if (actionId == 'world_graph.find_path') 'pathIndex': index,
+        },
+      ),
+  ];
+}
+
+String _requiredWorldGraphMapId(
+  ProjectSnapshot snapshot,
+  Map<String, Object?> values,
+  String key,
+) {
+  final mapId = _requiredStringParameter(values, key);
+  if (!const WorldGraphQueries().inspect(snapshot).nodes.contains(mapId)) {
+    throw const AuthoringQueryException(
+      'query.resource_not_found',
+      'A map requested by the world graph query was not found.',
+    );
+  }
+  return mapId;
 }
 
 Map<String, Object?> _connectionAlignmentPreview(
@@ -339,6 +439,37 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
               summary: _mapConnectionRecord(map, connection),
               detail: _mapConnectionRecord(map, connection),
             ),
+      ];
+    case 'worldGraph':
+      final inspection = const WorldGraphQueries().inspect(snapshot);
+      final record = _worldGraphRecord(inspection);
+      return [_QueryRecord(summary: record, detail: record)];
+    case 'worldGraphNode':
+      final inspection = const WorldGraphQueries().inspect(snapshot);
+      return [
+        for (final mapId in inspection.nodes)
+          _QueryRecord(
+            summary: _worldGraphNodeRecord(snapshot, mapId),
+            detail: _worldGraphNodeRecord(snapshot, mapId),
+          ),
+      ];
+    case 'worldGraphEdge':
+      final inspection = const WorldGraphQueries().inspect(snapshot);
+      return [
+        for (final edge in inspection.edges)
+          _QueryRecord(
+            summary: _worldGraphEdgeRecord(edge),
+            detail: _worldGraphEdgeRecord(edge),
+          ),
+      ];
+    case 'worldGraphIssue':
+      final inspection = const WorldGraphQueries().inspect(snapshot);
+      return [
+        for (var index = 0; index < inspection.issues.length; index++)
+          _QueryRecord(
+            summary: _worldGraphIssueRecord(inspection.issues[index], index),
+            detail: _worldGraphIssueRecord(inspection.issues[index], index),
+          ),
       ];
     case 'asset':
       final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
@@ -654,6 +785,67 @@ String _directionLabel(MapConnectionDirection direction) => switch (direction) {
       MapConnectionDirection.east => 'East',
       MapConnectionDirection.south => 'South',
       MapConnectionDirection.west => 'West',
+    };
+
+Map<String, Object?> _worldGraphRecord(WorldGraphInspection inspection) => {
+      'id': 'world-graph',
+      'name': 'World graph',
+      'resourceKind': 'worldGraph',
+      'nodeCount': inspection.nodes.length,
+      'edgeCount': inspection.edges.length,
+      'issueCount': inspection.issues.length,
+      'isConsistent': inspection.isConsistent,
+      'resources': const {
+        'nodes': 'worldGraphNode',
+        'edges': 'worldGraphEdge',
+        'issues': 'worldGraphIssue',
+      },
+      'render': const {
+        'hasPersistentLayout': false,
+        'layoutPolicy': 'logical_graph_only',
+        'nodeResourceKind': 'worldGraphNode',
+        'edgeResourceKind': 'worldGraphEdge',
+      },
+    };
+
+Map<String, Object?> _worldGraphNodeRecord(
+  ProjectSnapshot snapshot,
+  String mapId,
+) {
+  final loadedMap = snapshot.mapById(mapId);
+  String? manifestName;
+  for (final entry in snapshot.manifest.maps) {
+    if (entry.id == mapId) {
+      manifestName = entry.name;
+      break;
+    }
+  }
+  return {
+    'id': mapId,
+    'name': loadedMap?.name ?? manifestName ?? mapId,
+    'resourceKind': 'worldGraphNode',
+    'mapId': mapId,
+    'mapDocumentLoaded': loadedMap != null,
+  };
+}
+
+Map<String, Object?> _worldGraphEdgeRecord(WorldGraphEdge edge) => {
+      'id': '${edge.kind.name}:${edge.sourceMapId}:${edge.sourceId}:'
+          '${edge.targetMapId}',
+      'name': '${edge.sourceMapId} → ${edge.targetMapId}',
+      'resourceKind': 'worldGraphEdge',
+      ...edge.toJson(),
+    };
+
+Map<String, Object?> _worldGraphIssueRecord(
+  WorldGraphIssue issue,
+  int index,
+) =>
+    {
+      'id': 'world-graph-issue-${index.toString().padLeft(4, '0')}',
+      'name': issue.code,
+      'resourceKind': 'worldGraphIssue',
+      ...issue.toJson(),
     };
 
 Map<String, Object?> _assetSummary(AssetRecord asset) => {
@@ -1041,6 +1233,14 @@ Comparator<_QueryRecord> _comparator(List<AuthoringQuerySort> sort) {
     }
     return 0;
   };
+}
+
+List<AuthoringQuerySort> _effectiveSort(AuthoringQueryRequest request) {
+  if (request.sort.isEmpty &&
+      request.extensions['actionId'] == 'world_graph.find_path') {
+    return const [AuthoringQuerySort(field: 'pathIndex')];
+  }
+  return request.sort;
 }
 
 int _compareJsonValues(Object? left, Object? right) {

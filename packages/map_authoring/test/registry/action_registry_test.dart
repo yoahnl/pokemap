@@ -111,6 +111,10 @@ void main() {
           'smartTilePreset',
           'storyline',
           'tilesetFolder',
+          'worldGraph',
+          'worldGraphEdge',
+          'worldGraphIssue',
+          'worldGraphNode',
           'worldRule',
         ],
       );
@@ -126,6 +130,14 @@ void main() {
           'connection.get',
           'connection.preview_alignment',
           'connection.validate',
+        ]),
+      );
+      expect(
+        registry.require('worldGraphNode').extensions['queryActions'],
+        containsAll([
+          'world_graph.list_connected',
+          'world_graph.list_disconnected',
+          'world_graph.find_path',
         ]),
       );
       expect(registry.find('unknown'), isNull);
