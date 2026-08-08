@@ -10,6 +10,8 @@ import 'package:map_editor/src/application/authoring_api/authoring_query_adapter
 import 'package:map_editor/src/application/authoring_api/authoring_session_lifecycle.dart';
 import 'package:map_editor/src/application/authoring_api/editor_receipt_presenter.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
+import 'package:map_editor/src/application/services/map_connection_editing_service.dart';
+import 'package:map_editor/src/application/use_cases/map_connection_use_cases.dart';
 import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
 import 'package:map_editor/src/infrastructure/authoring_api/editor_project_file_reader.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
@@ -17,6 +19,79 @@ import 'package:path/path.dart' as p;
 
 void main() {
   group('AuthoringMutationAdapter', () {
+    test('editor connection intents consume all five catalogued actions', () {
+      final service = MapConnectionEditingService(
+        resolveMapConnectionTargetUseCase: ResolveMapConnectionTargetUseCase(),
+      );
+      const source = MapData(
+        id: 'source',
+        name: 'Source',
+        size: GridSize(width: 8, height: 8),
+      );
+      final consumedActionIds = <String>{
+        service
+            .buildUpsertIntent(
+              sourceMap: source,
+              direction: MapConnectionDirection.east,
+              targetMapId: 'target',
+              offset: 0,
+              reciprocal: false,
+              exactReciprocalPairExists: false,
+            )
+            .actionId,
+        service
+            .buildUpsertIntent(
+              sourceMap: source,
+              direction: MapConnectionDirection.east,
+              targetMapId: 'target',
+              offset: 0,
+              reciprocal: true,
+              exactReciprocalPairExists: false,
+            )
+            .actionId,
+        service
+            .buildUpsertIntent(
+              sourceMap: source,
+              direction: MapConnectionDirection.east,
+              targetMapId: 'target',
+              offset: 0,
+              reciprocal: true,
+              exactReciprocalPairExists: true,
+            )
+            .actionId,
+        service
+            .buildDeleteIntent(
+              sourceMap: source,
+              direction: MapConnectionDirection.east,
+              exactReciprocalPairExists: false,
+            )
+            .actionId,
+        service
+            .buildDeleteIntent(
+              sourceMap: source,
+              direction: MapConnectionDirection.east,
+              exactReciprocalPairExists: true,
+            )
+            .actionId,
+      };
+      expect(consumedActionIds, const {
+        'connection.upsert',
+        'connection.delete',
+        'connection.create_bidirectional_apply',
+        'connection.update_bidirectional_apply',
+        'connection.delete_bidirectional_apply',
+      });
+
+      final catalog = AuthoringFullParityCatalog.canonical();
+      for (final actionId in consumedActionIds) {
+        expect(
+          catalog.requireMutationAction(actionId).transports,
+          contains(AuthoringTransport.editor),
+          reason: actionId,
+        );
+      }
+    });
+
     test('warm canonical map save rereads only the touched map payload',
         () async {
       final fixture = await _MutationFixture.create(enableSnapshotCache: true);
