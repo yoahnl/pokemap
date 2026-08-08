@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/map_tool_preview.dart';
 import 'package:map_editor/src/features/editor/application/map_placed_element_rotation_planner.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas/editor_canvas_repaint_clock.dart';
@@ -826,6 +827,85 @@ void main() {
       // while the obsolete third column stays untouched.
       expect(alphaAt(4, 20), greaterThan(0));
       expect(alphaAt(20, 20), 0);
+      picture.dispose();
+      image.dispose();
+    });
+
+    test('element placement preview uses the semantic theme color', () async {
+      const previewColor = ui.Color(0xFF12A34A);
+      const map = MapData(
+        id: 'element-placement-preview',
+        name: 'Element placement preview',
+        size: GridSize(width: 4, height: 4),
+        layers: <MapLayer>[
+          TileLayer(id: 'decor', name: 'Decor'),
+        ],
+      );
+      const project = ProjectManifest(
+        name: 'Element placement preview',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        elements: <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'building',
+            name: 'Building',
+            tilesetId: 'tiles',
+            categoryId: 'buildings',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+              ),
+            ],
+          ),
+        ],
+      );
+      final recorder = ui.PictureRecorder();
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        activeLayerId: 'decor',
+        tileWidth: 8,
+        tileHeight: 8,
+        tilesetImagesById: const <String, ui.Image?>{},
+        sourceTileWidth: 8,
+        sourceTileHeight: 8,
+        tilesPerRowById: const <String, int>{},
+        toolPreview: const MapToolPreview.elementPlacement(
+          origin: GridPos(x: 0, y: 0),
+          size: GridSize(width: 2, height: 2),
+          elementId: 'building',
+          validity: MapToolPreviewValidity.valid,
+        ),
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        project: project,
+        rotationPreviewAcceptedColor: previewColor,
+        showGrid: false,
+      ).paint(ui.Canvas(recorder), const ui.Size(32, 32));
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(32, 32);
+      final pixels = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      final offset = ((1 * image.width) + 1) * 4;
+      final alpha = pixels.getUint8(offset + 3);
+      final argb = previewColor.toARGB32();
+      int premultiply(int channel) => (channel * alpha / 255).round();
+
+      expect(
+        <int>[
+          pixels.getUint8(offset),
+          pixels.getUint8(offset + 1),
+          pixels.getUint8(offset + 2),
+        ],
+        <int>[
+          premultiply((argb >> 16) & 0xff),
+          premultiply((argb >> 8) & 0xff),
+          premultiply(argb & 0xff),
+        ],
+      );
       picture.dispose();
       image.dispose();
     });

@@ -1727,6 +1727,8 @@ class MapGridPainter extends CustomPainter {
       applyCollision: false,
     );
     final isValid = preview.validity == MapToolPreviewValidity.valid;
+    final previewColor =
+        isValid ? rotationPreviewAcceptedColor : rotationPreviewRejectedColor;
     _paintPlacedElement(
       canvas,
       placed,
@@ -1735,13 +1737,12 @@ class MapGridPainter extends CustomPainter {
       opacity: isValid ? 0.6 : 0.3,
       ignoreRenderPassSplit: true,
     );
+    if (previewColor == null) return;
     _paintPlacedElementFootprintHint(
       canvas,
       placed,
       elementById: elementById,
-      color: isValid
-          ? PokeMapLegacyColors.cyanAccent
-          : PokeMapLegacyColors.redAccent,
+      color: previewColor,
       fillAlpha: isValid ? 0.08 : 0.18,
       strokeAlpha: 0.95,
     );
