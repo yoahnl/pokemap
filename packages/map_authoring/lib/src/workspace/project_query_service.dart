@@ -38,8 +38,16 @@ final class ProjectQueryService {
     if (regionPage != null) return regionPage;
     final connectionActionPage = _queryConnectionAction(snapshot, request);
     if (connectionActionPage != null) return connectionActionPage;
-    var records = _worldGraphActionRecords(snapshot, request) ??
-        _records(snapshot, request.resourceKind);
+    final worldGraphActionRecords = _worldGraphActionRecords(snapshot, request);
+    if (request.extensions['actionId'] != null &&
+        worldGraphActionRecords == null) {
+      throw const AuthoringQueryException(
+        'query.action_resource_mismatch',
+        'The query action is not supported by the requested resource kind.',
+      );
+    }
+    var records =
+        worldGraphActionRecords ?? _records(snapshot, request.resourceKind);
     records = _applyOperation(records, request);
     records = records
         .where((record) => _matchesFilters(record.detail, request.filters))
@@ -132,27 +140,70 @@ List<_QueryRecord>? _worldGraphActionRecords(
   AuthoringQueryRequest request,
 ) {
   final actionId = request.extensions['actionId'];
-  if (actionId == null || request.resourceKind != 'worldGraphNode') return null;
-  if (request.operation != AuthoringQueryOperation.list ||
-      request.ids.isNotEmpty ||
-      request.extensions.keys.any(
-        (key) => key != 'actionId' && key != 'parameters',
-      )) {
-    throw const AuthoringQueryException(
-      'query.world_graph_action_contract_invalid',
-      'A world graph traversal requires a worldGraphNode list request.',
-    );
-  }
+  if (actionId == null) return null;
   final parameters = request.extensions['parameters'];
   if (actionId is! String ||
       parameters is! Map ||
-      parameters.keys.any((key) => key is! String)) {
+      parameters.keys.any((key) => key is! String) ||
+      request.extensions.keys.any(
+        (key) => key != 'actionId' && key != 'parameters',
+      )) {
     throw const AuthoringQueryException(
       'query.world_graph_action_invalid',
       'The world graph query action and parameters are invalid.',
     );
   }
   final values = Map<String, Object?>.from(parameters);
+  if (actionId == 'world_graph.inspect' || actionId == 'world_graph.render') {
+    if (request.resourceKind != 'worldGraph' ||
+        request.operation != AuthoringQueryOperation.get ||
+        request.ids.singleOrNull != 'world-graph' ||
+        request.filters.isNotEmpty ||
+        request.sort.isNotEmpty ||
+        request.cursor != null) {
+      throw const AuthoringQueryException(
+        'query.action_resource_mismatch',
+        'World graph inspection and rendering require the worldGraph resource.',
+      );
+    }
+    _requireExactKeys(
+      values,
+      const {},
+      code: 'query.world_graph_parameters_invalid',
+    );
+    return _withQueryAction(
+      _records(snapshot, 'worldGraph'),
+      actionId,
+    );
+  }
+  if (actionId == 'world_graph.validate_consistency') {
+    if (request.resourceKind != 'worldGraphIssue' ||
+        request.operation != AuthoringQueryOperation.list ||
+        request.ids.isNotEmpty) {
+      throw const AuthoringQueryException(
+        'query.action_resource_mismatch',
+        'World graph validation requires the worldGraphIssue resource.',
+      );
+    }
+    _requireExactKeys(
+      values,
+      const {},
+      code: 'query.world_graph_parameters_invalid',
+    );
+    return _withQueryAction(
+      _records(snapshot, 'worldGraphIssue'),
+      actionId,
+    );
+  }
+  if (!actionId.startsWith('world_graph.')) return null;
+  if (request.resourceKind != 'worldGraphNode' ||
+      request.operation != AuthoringQueryOperation.list ||
+      request.ids.isNotEmpty) {
+    throw const AuthoringQueryException(
+      'query.action_resource_mismatch',
+      'World graph traversal requires the worldGraphNode resource.',
+    );
+  }
   const queries = WorldGraphQueries();
   late final List<String> mapIds;
   switch (actionId) {
@@ -199,7 +250,11 @@ List<_QueryRecord>? _worldGraphActionRecords(
   return [
     for (var index = 0; index < mapIds.length; index++)
       _QueryRecord(
-        summary: _worldGraphNodeRecord(snapshot, mapIds[index]),
+        summary: {
+          ..._worldGraphNodeRecord(snapshot, mapIds[index]),
+          'actionId': actionId,
+          if (actionId == 'world_graph.find_path') 'pathIndex': index,
+        },
         detail: {
           ..._worldGraphNodeRecord(snapshot, mapIds[index]),
           'actionId': actionId,
@@ -208,6 +263,18 @@ List<_QueryRecord>? _worldGraphActionRecords(
       ),
   ];
 }
+
+List<_QueryRecord> _withQueryAction(
+  List<_QueryRecord> records,
+  String actionId,
+) =>
+    [
+      for (final record in records)
+        _QueryRecord(
+          summary: {...record.summary, 'actionId': actionId},
+          detail: {...record.detail, 'actionId': actionId},
+        ),
+    ];
 
 String _requiredWorldGraphMapId(
   ProjectSnapshot snapshot,

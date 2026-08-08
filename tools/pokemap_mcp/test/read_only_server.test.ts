@@ -227,9 +227,14 @@ test("MCP exposes connection and bounded world graph reads", async () => {
       operation: "get",
       view: "detail",
       ids: ["world-graph"],
+      extensions: {
+        actionId: "world_graph.inspect",
+        parameters: {},
+      },
     });
     const graphItem = record((graph.items as unknown[])[0]);
     assert.equal(graphItem.nodeCount, 3);
+    assert.equal(graphItem.actionId, "world_graph.inspect");
     assert.deepEqual(record(graphItem.resources), {
       nodes: "worldGraphNode",
       edges: "worldGraphEdge",
@@ -249,6 +254,19 @@ test("MCP exposes connection and bounded world graph reads", async () => {
     });
     assert.equal(connected.returned, 1);
     assert.ok(Number(connected.totalAvailable) >= 1);
+
+    const issues = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "worldGraphIssue",
+      operation: "list",
+      view: "detail",
+      pageSize: 1,
+      extensions: {
+        actionId: "world_graph.validate_consistency",
+        parameters: {},
+      },
+    });
+    assert.equal(typeof issues.totalAvailable, "number");
   } finally {
     await fixture.client.close();
     await fixture.server.close();

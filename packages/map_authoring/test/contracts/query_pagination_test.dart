@@ -471,6 +471,74 @@ void main() {
       expect(path.items.map((item) => item['pathIndex']), [0, 1]);
     });
 
+    test('executes every advertised world graph action explicitly', () {
+      const service = ProjectQueryService();
+      final snapshot = _snapshot(withBrokenConnection: true);
+
+      for (final actionId in const [
+        'world_graph.inspect',
+        'world_graph.render',
+      ]) {
+        final page = service.query(
+          snapshot,
+          AuthoringQueryRequest(
+            resourceKind: 'worldGraph',
+            operation: AuthoringQueryOperation.get,
+            ids: const ['world-graph'],
+            view: AuthoringQueryView.detail,
+            extensions: {
+              'actionId': actionId,
+              'parameters': const <String, Object?>{},
+            },
+          ),
+        );
+        expect(page.items.single['actionId'], actionId);
+      }
+
+      final validation = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'worldGraphIssue',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+          extensions: const {
+            'actionId': 'world_graph.validate_consistency',
+            'parameters': <String, Object?>{},
+          },
+        ),
+      );
+      expect(validation.totalAvailable, 2);
+      expect(
+        validation.items,
+        everyElement(
+          containsPair('actionId', 'world_graph.validate_consistency'),
+        ),
+      );
+    });
+
+    test('rejects a query action attached to the wrong resource kind', () {
+      expect(
+        () => const ProjectQueryService().query(
+          _snapshot(),
+          AuthoringQueryRequest(
+            resourceKind: 'worldGraphEdge',
+            operation: AuthoringQueryOperation.list,
+            extensions: const {
+              'actionId': 'connection.validate',
+              'parameters': <String, Object?>{},
+            },
+          ),
+        ),
+        throwsA(
+          isA<AuthoringQueryException>().having(
+            (error) => error.code,
+            'code',
+            'query.action_resource_mismatch',
+          ),
+        ),
+      );
+    });
+
     test('exposes world graph consistency issues as bounded resources', () {
       final page = const ProjectQueryService().query(
         _snapshot(withBrokenConnection: true),
