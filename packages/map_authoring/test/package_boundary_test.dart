@@ -131,6 +131,23 @@ void main() {
         ),
       );
     });
+
+    test('keeps Environment generation internals outside the action adapter',
+        () {
+      final actionFile = File(
+        'lib/src/domains/maps/environment_actions.dart',
+      );
+      final generationSupport = File(
+        'lib/src/domains/maps/environment_generation_support.dart',
+      );
+
+      expect(generationSupport.existsSync(), isTrue);
+      expect(actionFile.readAsLinesSync(), hasLength(lessThan(1300)));
+      expect(
+        actionFile.readAsStringSync(),
+        contains("part 'environment_generation_support.dart';"),
+      );
+    });
   });
 }
 
