@@ -73,7 +73,7 @@ void main() {
     expect(work['journalBytes'], greaterThan(0));
     expect(work['recoveredResourceCount'], greaterThanOrEqualTo(4));
     expect('${row['reopenedSnapshotChecksum']}', isNotEmpty);
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
   test('rejects unsupported extents and escaped output', () async {
     final unsupported = await _run(const <String>[
@@ -100,7 +100,7 @@ void main() {
       '${escaped.stderr}',
       contains('must stay inside packages/map_authoring'),
     );
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 3)));
 }
 
 Future<File> _temporaryOutput(String prefix) async {

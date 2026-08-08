@@ -100,7 +100,7 @@ void main() {
         completed.rawResponses.join(),
         isNot(contains(fixture.parent.path)),
       );
-    }, timeout: const Timeout(Duration(minutes: 2)));
+    }, timeout: const Timeout(Duration(minutes: 3)));
 
     test('requires at least one allowed root without polluting stdout',
         () async {
@@ -111,7 +111,7 @@ void main() {
       expect(result.exitCode, AuthoringCliExitCodes.usage);
       expect(result.stdout, isEmpty);
       expect(result.stderr, contains('--root'));
-    }, timeout: const Timeout(Duration(minutes: 2)));
+    }, timeout: const Timeout(Duration(minutes: 3)));
 
     test('rejects an option token used as a root value', () async {
       final result = await (await cli).run(
@@ -124,7 +124,7 @@ void main() {
       expect(result.exitCode, AuthoringCliExitCodes.usage);
       expect(result.stdout, isEmpty);
       expect(result.stderr, contains('--root requires a value'));
-    }, timeout: const Timeout(Duration(minutes: 2)));
+    }, timeout: const Timeout(Duration(minutes: 3)));
 
     test('does not echo an unknown machine-local argument', () async {
       const secretArgument = '/Users/secret/project';
@@ -138,7 +138,7 @@ void main() {
       expect(result.stdout, isEmpty);
       expect(result.stderr, isNot(contains(secretArgument)));
       expect(result.stderr, contains('Unknown command-line option'));
-    }, timeout: const Timeout(Duration(minutes: 2)));
+    }, timeout: const Timeout(Duration(minutes: 3)));
   });
 }
 
@@ -259,12 +259,9 @@ final class _CliSession {
 
   Future<void> dispose() async {
     if (_finished) return;
+    await CompiledDartExecutable.terminate(_process);
     await _stdoutLines.cancel();
-    _process.kill();
-    await _process.exitCode.timeout(
-      const Duration(seconds: 5),
-      onTimeout: () => -1,
-    );
+    await _stderr;
     _finished = true;
   }
 }

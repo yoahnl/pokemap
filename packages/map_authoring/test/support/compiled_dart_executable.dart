@@ -23,10 +23,11 @@ final class CompiledDartExecutable {
     final executable = File(
       '${outputDirectory.path}/$name${Platform.isWindows ? '.exe' : ''}',
     );
-    final result = await Process.run(
+    final result = await _runProcess(
       Platform.resolvedExecutable,
       <String>['compile', 'exe', entrypoint, '-o', executable.path],
       workingDirectory: Directory.current.path,
+      timeout: const Duration(minutes: 1),
     );
     if (result.exitCode != 0) {
       await outputDirectory.delete(recursive: true);
@@ -51,26 +52,18 @@ final class CompiledDartExecutable {
 
   Future<ProcessResult> run(
     List<String> arguments, {
-    Duration timeout = const Duration(minutes: 2),
+    Duration timeout = const Duration(minutes: 1),
   }) async {
-    final process = await start(arguments);
-    final stdout = process.stdout.transform(utf8.decoder).join();
-    final stderr = process.stderr.transform(utf8.decoder).join();
-    try {
-      final exitCode = await process.exitCode.timeout(timeout);
-      return ProcessResult(
-        process.pid,
-        exitCode,
-        await stdout,
-        await stderr,
-      );
-    } on TimeoutException {
-      process.kill();
-      await process.exitCode;
-      await stdout;
-      await stderr;
-      rethrow;
-    }
+    return _runProcess(
+      executable.path,
+      arguments,
+      workingDirectory: workingDirectory,
+      timeout: timeout,
+    );
+  }
+
+  static Future<void> terminate(Process process) {
+    return _terminateProcess(process);
   }
 
   Future<void> dispose() async {
@@ -78,4 +71,46 @@ final class CompiledDartExecutable {
       await _outputDirectory.delete(recursive: true);
     }
   }
+}
+
+Future<ProcessResult> _runProcess(
+  String executable,
+  List<String> arguments, {
+  required String workingDirectory,
+  required Duration timeout,
+}) async {
+  final process = await Process.start(
+    executable,
+    arguments,
+    workingDirectory: workingDirectory,
+  );
+  final stdout = process.stdout.transform(utf8.decoder).join();
+  final stderr = process.stderr.transform(utf8.decoder).join();
+  try {
+    final exitCode = await process.exitCode.timeout(timeout);
+    return ProcessResult(
+      process.pid,
+      exitCode,
+      await stdout,
+      await stderr,
+    );
+  } on TimeoutException catch (error, stackTrace) {
+    await _terminateProcess(process);
+    await stdout;
+    await stderr;
+    Error.throwWithStackTrace(error, stackTrace);
+  }
+}
+
+Future<void> _terminateProcess(Process process) async {
+  final exitCode = process.exitCode;
+  process.kill();
+  try {
+    await exitCode.timeout(const Duration(seconds: 2));
+    return;
+  } on TimeoutException {
+    process.kill(
+        Platform.isWindows ? ProcessSignal.sigterm : ProcessSignal.sigkill);
+  }
+  await exitCode.timeout(const Duration(seconds: 2));
 }

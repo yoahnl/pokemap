@@ -57,7 +57,7 @@ void main() {
           ),
       isTrue,
     );
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 3)));
 
   test('rejects promotion checkpoint, zero samples, and escaped output',
       () async {
@@ -85,7 +85,7 @@ void main() {
     expect(escaped.exitCode, 64);
     expect('${escaped.stderr}',
         contains('must stay inside packages/map_authoring'));
-  }, timeout: const Timeout(Duration(minutes: 2)));
+  }, timeout: const Timeout(Duration(minutes: 3)));
 }
 
 Future<File> _temporaryOutput(String prefix) async {
