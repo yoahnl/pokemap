@@ -127,6 +127,51 @@ void main() {
       expect(outside, isEmpty);
     });
 
+    test('selects a 128x128 building and preserves overlap priority', () {
+      final map = _baseMap.copyWith(
+        size: const GridSize(width: 256, height: 256),
+        placedElements: const <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'large-building',
+            layerId: 'top',
+            elementId: 'element-128x128',
+            pos: GridPos(x: 1, y: 1),
+          ),
+          MapPlacedElement(
+            id: 'small-overlay',
+            layerId: 'top',
+            elementId: 'element-2x2',
+            pos: GridPos(x: 2, y: 2),
+          ),
+        ],
+      );
+
+      final deepInside = hitTest.hitStack(
+        map: map,
+        project: _project,
+        position: const GridPos(x: 100, y: 100),
+      );
+      final overlapHits = hitTest.hitStack(
+        map: map,
+        project: _project,
+        position: const GridPos(x: 2, y: 2),
+      );
+
+      expect(deepInside.map((target) => target.id), <String>['large-building']);
+      expect(
+        deepInside.single.size,
+        const GridSize(width: 128, height: 128),
+      );
+      expect(
+        overlapHits.map((target) => target.id),
+        <String>['small-overlay', 'large-building'],
+      );
+      expect(
+        hitTest.cycleTarget(hits: overlapHits, current: overlapHits.first)?.id,
+        'large-building',
+      );
+    });
+
     test('hit-tests every destination cell of each non-square rotation', () {
       for (final quarterTurns in <int>[0, 1, 2, 3]) {
         final map = _baseMap.copyWith(
@@ -581,6 +626,17 @@ const _project = ProjectManifest(
       collisionProfile: ElementCollisionProfile(
         cells: <GridPos>[GridPos(x: 0, y: 0)],
       ),
+    ),
+    ProjectElementEntry(
+      id: 'element-128x128',
+      name: 'Element 128x128',
+      tilesetId: 'tiles',
+      categoryId: 'building',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 128, height: 128),
+        ),
+      ],
     ),
     ProjectElementEntry(
       id: 'animated-element',
