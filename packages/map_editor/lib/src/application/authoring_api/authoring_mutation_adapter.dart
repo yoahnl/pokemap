@@ -14,14 +14,6 @@ abstract interface class EditorProjectRootLocator {
   Future<String> locateForResource(String resourcePath);
 }
 
-
-/// One cache for the whole editor process.
-///
-/// A session is opened per operation, so a per-loader cache would never see a
-/// second hit. Keying on `(root, path, size, mtime)` makes sharing across
-/// sessions and projects safe.
-final _sharedFingerprintCache = ProjectSnapshotFingerprintCache();
-
 final class EditorAuthoringMutationPlan {
   const EditorAuthoringMutationPlan._({
     required this.projectRootPath,
@@ -72,15 +64,22 @@ final class AuthoringMutationAdapter
     required AuthoringQueryAdapter queries,
     required EditorProjectRootLocator projectRoots,
     WorkspaceHandleStore Function()? workspaceHandles,
+    ProjectSnapshotFingerprintCache? fingerprintCache,
+    ProjectSnapshotCache? snapshotCache,
   })  : _fileReader = fileReader,
         _queries = queries,
         _projectRoots = projectRoots,
-        _workspaceHandles = workspaceHandles ?? (() => WorkspaceHandleStore());
+        _workspaceHandles = workspaceHandles ?? (() => WorkspaceHandleStore()),
+        _fingerprintCache =
+            fingerprintCache ?? ProjectSnapshotFingerprintCache(),
+        _snapshotCache = snapshotCache ?? ProjectSnapshotCache();
 
   final ProjectFileReader _fileReader;
   final AuthoringQueryAdapter _queries;
   final EditorProjectRootLocator _projectRoots;
   final WorkspaceHandleStore Function() _workspaceHandles;
+  final ProjectSnapshotFingerprintCache _fingerprintCache;
+  final ProjectSnapshotCache _snapshotCache;
   final Map<String, Future<_EditorMutationSession>> _sessions = {};
   final Set<String> _openingRoots = {};
   String? _retainedRoot;
@@ -487,6 +486,8 @@ final class AuthoringMutationAdapter
         canonicalRoot: canonicalRoot,
         fileReader: _fileReader,
         workspaceHandles: _workspaceHandles,
+        fingerprintCache: _fingerprintCache,
+        snapshotCache: _snapshotCache,
         onOperationDelta: (delta) => _activeOperations += delta,
         onClosed: () => _closeCount++,
       );
@@ -527,6 +528,8 @@ final class _EditorMutationSession {
     required String canonicalRoot,
     required ProjectFileReader fileReader,
     required WorkspaceHandleStore Function() workspaceHandles,
+    required ProjectSnapshotFingerprintCache fingerprintCache,
+    required ProjectSnapshotCache snapshotCache,
     required void Function(int delta) onOperationDelta,
     required void Function() onClosed,
   }) async {
@@ -537,7 +540,8 @@ final class _EditorMutationSession {
     final handles = workspaceHandles();
     final snapshots = ProjectSnapshotLoader(
       handles: handles,
-      fingerprintCache: _sharedFingerprintCache,
+      fingerprintCache: fingerprintCache,
+      snapshotCache: snapshotCache,
     );
     final reads = AuthoringReadApi(
       openService: ProjectOpenService(

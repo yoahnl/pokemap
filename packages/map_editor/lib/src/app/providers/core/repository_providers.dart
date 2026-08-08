@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show Provider, Ref;
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -51,6 +52,15 @@ final editorProjectFileReaderProvider = Provider<EditorProjectFileReader>(
   (ref) => const EditorProjectFileReader(),
 );
 
+final authoringFingerprintCacheProvider =
+    Provider<ProjectSnapshotFingerprintCache>(
+  (ref) => ProjectSnapshotFingerprintCache(),
+);
+
+final authoringSnapshotCacheProvider = Provider<ProjectSnapshotCache>(
+  (ref) => ProjectSnapshotCache(),
+);
+
 final editorAuthoringSessionLifecycleProvider =
     Provider<EditorAuthoringSessionLifecycle>((ref) {
   final lifecycle = EditorAuthoringSessionLifecycle(
@@ -63,6 +73,8 @@ final editorAuthoringSessionLifecycleProvider =
 final authoringQueryAdapterProvider = Provider<AuthoringQueryAdapter>((ref) {
   final adapter = AuthoringQueryAdapter(
     fileReader: ref.watch(editorProjectFileReaderProvider),
+    fingerprintCache: ref.watch(authoringFingerprintCacheProvider),
+    snapshotCache: ref.watch(authoringSnapshotCacheProvider),
   );
   ref.watch(editorAuthoringSessionLifecycleProvider).attach(adapter);
   ref.onDispose(adapter.closeAll);
@@ -76,6 +88,8 @@ final authoringMutationAdapterProvider =
     fileReader: projectFiles,
     queries: ref.watch(authoringQueryAdapterProvider),
     projectRoots: projectFiles,
+    fingerprintCache: ref.watch(authoringFingerprintCacheProvider),
+    snapshotCache: ref.watch(authoringSnapshotCacheProvider),
   );
   ref.watch(editorAuthoringSessionLifecycleProvider).attach(adapter);
   ref.onDispose(adapter.closeAll);

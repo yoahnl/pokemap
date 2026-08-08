@@ -22,12 +22,18 @@ Future<void> main(List<String> arguments) async {
         'fixtures',
         'roots',
         'cycles',
+        'modes',
         'output',
       },
     );
     final warmups = cli.nonNegativeInt('warmups', fallback: 2);
     final samples = cli.positiveInt('samples', fallback: 15);
     final cycles = cli.positiveInt('cycles', fallback: 10);
+    final modes = cli.strings('modes', fallback: 'cold,warm');
+    if (modes.isEmpty ||
+        modes.any((mode) => !{'cold', 'warm'}.contains(mode))) {
+      throw const FormatException('modes must contain only cold or warm');
+    }
     final fixtures = cli.strings(
       'fixtures',
       fallback: 'small,intermediate,selbrume,synthetic-10mb',
@@ -60,78 +66,85 @@ Future<void> main(List<String> arguments) async {
       final fingerprint = await _fixtureFingerprint(fixture);
       for (final rootCount in rootCounts) {
         final roots = await _allowedRoots(fixture, rootCount);
-        for (var index = 0; index < warmups; index += 1) {
-          await _measure(fixture, roots, cycles);
+        for (final mode in modes) {
+          for (var index = 0; index < warmups; index += 1) {
+            await _measure(fixture, roots, cycles, mode);
+          }
+          final measured = <({
+            int elapsedUs,
+            String checksum,
+            int maps,
+            int resourceCount,
+            int resourceBytes,
+            int initialReadUs,
+            int decodeModelUs,
+            int secondObservationUs,
+            int fingerprintUs,
+            int projectionUs,
+            int loaderTotalUs,
+            int snapshotCacheHits,
+          })>[];
+          for (var index = 0; index < samples; index += 1) {
+            measured.add(await _measure(fixture, roots, cycles, mode));
+          }
+          final checksum = measured.first.checksum;
+          if (measured.any((sample) => sample.checksum != checksum)) {
+            throw StateError(
+              'Unstable snapshot for $fixtureName with $rootCount roots.',
+            );
+          }
+          results.add(<String, Object?>{
+            'fixture': fixtureName,
+            'fixturePath': _repositoryRelativePath(fixture),
+            'mode': mode,
+            'rootCount': rootCount,
+            'cyclesPerSample': cycles,
+            'mapCount': measured.first.maps,
+            'resourceCount': measured.first.resourceCount,
+            'resourceBytes': measured.first.resourceBytes,
+            'snapshotCacheHits': measured.first.snapshotCacheHits,
+            'datasetFingerprint': fingerprint,
+            'snapshotChecksum': checksum,
+            'rssBytesAfterSamples': ProcessInfo.currentRss,
+            'snapshotProfile': <String, Object?>{
+              'initialRead': percentileFields(
+                measured
+                    .map((sample) => sample.initialReadUs)
+                    .toList(growable: false),
+              ),
+              'decodeModel': percentileFields(
+                measured
+                    .map((sample) => sample.decodeModelUs)
+                    .toList(growable: false),
+              ),
+              'secondObservation': percentileFields(
+                measured
+                    .map((sample) => sample.secondObservationUs)
+                    .toList(growable: false),
+              ),
+              'fingerprint': percentileFields(
+                measured
+                    .map((sample) => sample.fingerprintUs)
+                    .toList(growable: false),
+              ),
+              'projection': percentileFields(
+                measured
+                    .map((sample) => sample.projectionUs)
+                    .toList(growable: false),
+              ),
+              'total': percentileFields(
+                measured
+                    .map((sample) => sample.loaderTotalUs)
+                    .toList(growable: false),
+              ),
+            },
+            ...percentileFields(
+              measured
+                  .map((sample) => sample.elapsedUs)
+                  .toList(growable: false),
+            ),
+          });
         }
-        final measured = <({
-          int elapsedUs,
-          String checksum,
-          int maps,
-          int resourceCount,
-          int resourceBytes,
-          int initialReadUs,
-          int decodeModelUs,
-          int secondObservationUs,
-          int fingerprintUs,
-          int projectionUs,
-          int loaderTotalUs,
-        })>[];
-        for (var index = 0; index < samples; index += 1) {
-          measured.add(await _measure(fixture, roots, cycles));
-        }
-        final checksum = measured.first.checksum;
-        if (measured.any((sample) => sample.checksum != checksum)) {
-          throw StateError(
-            'Unstable snapshot for $fixtureName with $rootCount roots.',
-          );
-        }
-        results.add(<String, Object?>{
-          'fixture': fixtureName,
-          'fixturePath': _repositoryRelativePath(fixture),
-          'rootCount': rootCount,
-          'cyclesPerSample': cycles,
-          'mapCount': measured.first.maps,
-          'resourceCount': measured.first.resourceCount,
-          'resourceBytes': measured.first.resourceBytes,
-          'datasetFingerprint': fingerprint,
-          'snapshotChecksum': checksum,
-          'rssBytesAfterSamples': ProcessInfo.currentRss,
-          'snapshotProfile': <String, Object?>{
-            'initialRead': percentileFields(
-              measured
-                  .map((sample) => sample.initialReadUs)
-                  .toList(growable: false),
-            ),
-            'decodeModel': percentileFields(
-              measured
-                  .map((sample) => sample.decodeModelUs)
-                  .toList(growable: false),
-            ),
-            'secondObservation': percentileFields(
-              measured
-                  .map((sample) => sample.secondObservationUs)
-                  .toList(growable: false),
-            ),
-            'fingerprint': percentileFields(
-              measured
-                  .map((sample) => sample.fingerprintUs)
-                  .toList(growable: false),
-            ),
-            'projection': percentileFields(
-              measured
-                  .map((sample) => sample.projectionUs)
-                  .toList(growable: false),
-            ),
-            'total': percentileFields(
-              measured
-                  .map((sample) => sample.loaderTotalUs)
-                  .toList(growable: false),
-            ),
-          },
-          ...percentileFields(
-            measured.map((sample) => sample.elapsedUs).toList(growable: false),
-          ),
-        });
       }
     }
 
@@ -147,6 +160,7 @@ Future<void> main(List<String> arguments) async {
         'fixtures': fixtures,
         'rootCounts': rootCounts,
         'cycles': cycles,
+        'modes': modes,
         'snapshotPolicy': ProjectSnapshotLoadPolicy.strict.name,
       },
       results: results,
@@ -177,18 +191,20 @@ Future<
       int fingerprintUs,
       int projectionUs,
       int loaderTotalUs,
+      int snapshotCacheHits,
     })> _measure(
   Directory fixture,
   List<String> allowedRoots,
   int cycles,
+  String mode,
 ) async {
   var token = 0;
   var mapCount = 0;
   final revisions = <String>[];
   final profiles = <ProjectSnapshotLoadProfile>[];
   const reader = LocalProjectFileReader();
-  final stopwatch = Stopwatch()..start();
-  for (var cycle = 0; cycle < cycles; cycle += 1) {
+
+  Future<ProjectSnapshot> loadCold() async {
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: allowedRoots,
       fileReader: reader,
@@ -202,15 +218,51 @@ Future<
       fileReader: reader,
       handles: handles,
     ).openProject(fixture.path);
-    final snapshot = await ProjectSnapshotLoader(
+    return ProjectSnapshotLoader(
       handles: handles,
       profileSink: profiles.add,
     ).load(
       opened.projectHandle,
       policy: ProjectSnapshotLoadPolicy.strict,
     );
-    mapCount += snapshot.maps.length;
-    revisions.add(snapshot.revision);
+  }
+
+  final stopwatch = Stopwatch();
+  if (mode == 'warm') {
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: allowedRoots,
+      fileReader: reader,
+    );
+    final handles = WorkspaceHandleStore(
+      clock: () => DateTime.utc(2026, 8, 1),
+      tokenFactory: (prefix) => '$prefix${token++}',
+    );
+    final opened = await ProjectOpenService(
+      policy: policy,
+      fileReader: reader,
+      handles: handles,
+    ).openProject(fixture.path);
+    final loader = ProjectSnapshotLoader(
+      handles: handles,
+      profileSink: profiles.add,
+      fingerprintCache: ProjectSnapshotFingerprintCache(),
+      snapshotCache: ProjectSnapshotCache(),
+    );
+    await loader.load(opened.projectHandle);
+    profiles.clear();
+    stopwatch.start();
+    for (var cycle = 0; cycle < cycles; cycle += 1) {
+      final snapshot = await loader.load(opened.projectHandle);
+      mapCount += snapshot.maps.length;
+      revisions.add(snapshot.revision);
+    }
+  } else {
+    stopwatch.start();
+    for (var cycle = 0; cycle < cycles; cycle += 1) {
+      final snapshot = await loadCold();
+      mapCount += snapshot.maps.length;
+      revisions.add(snapshot.revision);
+    }
   }
   stopwatch.stop();
   if (profiles.length != cycles) {
@@ -256,6 +308,7 @@ Future<
       0,
       (total, profile) => total + profile.totalMicroseconds,
     ),
+    snapshotCacheHits: profiles.where((profile) => profile.cacheHit).length,
   );
 }
 

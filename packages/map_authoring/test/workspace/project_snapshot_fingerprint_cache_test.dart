@@ -30,6 +30,91 @@ void main() {
       );
     });
 
+    test('warm load reuses the complete snapshot without reading payloads',
+        () async {
+      final harness = await _Harness.create(enableSnapshotCache: true);
+      addTearDown(harness.dispose);
+
+      final first = await harness.load();
+      harness.reader.resetCounts();
+
+      final second = await harness.load();
+
+      expect(second.revision, first.revision);
+      expect(harness.reader.byteReads, 0);
+      expect(harness.reader.identityReads, greaterThan(0));
+      expect(harness.snapshotCache!.hits, 1);
+    });
+
+    test('adopts a committed map post-image without a strict reload', () async {
+      final harness = await _Harness.create(enableSnapshotCache: true);
+      addTearDown(harness.dispose);
+      final before = await harness.load();
+      final beforeBytes = before.resourceBytes('map:alpha');
+      final afterBytes = _mapJson('Committed').codeUnits;
+      await harness.rewriteMap(name: 'Committed');
+      harness.reader.resetCounts();
+
+      final projected = await harness.loader.adoptAppliedChanges(
+        harness.projectHandle,
+        baseRevision: before.revision,
+        changes: [
+          AuthoringResourceChange(
+            resource: AuthoringResourceRef(
+              kind: 'map',
+              id: 'alpha',
+              revision: before.resourceFingerprints['map:alpha'],
+            ),
+            storageKey: 'maps/alpha.json',
+            beforeBytes: beforeBytes,
+            afterBytes: afterBytes,
+          ),
+        ],
+      );
+
+      expect(projected, isNotNull);
+      expect(projected!.mapById('alpha')!.name, 'Committed');
+      expect(harness.reader.byteReads, 1);
+      harness.reader.resetCounts();
+      final warm = await harness.load();
+      expect(warm.revision, projected.revision);
+      expect(harness.reader.byteReads, 0);
+      final strict = await harness.loadStrictFresh();
+      expect(projected.revision, strict.revision);
+      expect(projected.resourceFingerprints, strict.resourceFingerprints);
+    });
+
+    test('refuses projection when committed bytes were replaced externally',
+        () async {
+      final harness = await _Harness.create(enableSnapshotCache: true);
+      addTearDown(harness.dispose);
+      final before = await harness.load();
+      final beforeBytes = before.resourceBytes('map:alpha');
+      final committedBytes = _mapJson('Committed').codeUnits;
+      await harness.rewriteMap(name: 'External replacement');
+
+      final projected = await harness.loader.adoptAppliedChanges(
+        harness.projectHandle,
+        baseRevision: before.revision,
+        changes: [
+          AuthoringResourceChange(
+            resource: AuthoringResourceRef(
+              kind: 'map',
+              id: 'alpha',
+              revision: before.resourceFingerprints['map:alpha'],
+            ),
+            storageKey: 'maps/alpha.json',
+            beforeBytes: beforeBytes,
+            afterBytes: committedBytes,
+          ),
+        ],
+      );
+
+      expect(projected, isNull);
+      final strict = await harness.load();
+      expect(strict.mapById('alpha')!.name, 'External replacement');
+    });
+
     test('recomputes after a resource changes on disk', () async {
       final harness = await _Harness.create();
       addTearDown(harness.dispose);
@@ -48,6 +133,39 @@ void main() {
         after.resourceFingerprints[identity],
         isNot(before.resourceFingerprints[identity]),
       );
+    });
+
+    test('complete cache falls back to strict bytes after an external change',
+        () async {
+      final harness = await _Harness.create(enableSnapshotCache: true);
+      addTearDown(harness.dispose);
+      final before = await harness.load();
+      await harness.rewriteMap(name: 'External');
+      harness.reader.resetCounts();
+
+      final after = await harness.load();
+
+      expect(after.revision, isNot(before.revision));
+      expect(after.mapById('alpha')!.name, 'External');
+      expect(harness.reader.byteReads, greaterThan(0));
+    });
+
+    test('appearance of the optional asset catalog invalidates warm reuse',
+        () async {
+      final harness = await _Harness.create(enableSnapshotCache: true);
+      addTearDown(harness.dispose);
+      final before = await harness.load();
+      await harness.writeEmptyAssetCatalog();
+      harness.reader.resetCounts();
+
+      final after = await harness.load();
+
+      expect(after.revision, isNot(before.revision));
+      expect(
+        after.resourceFingerprints,
+        contains(assetCatalogResourceIdentity),
+      );
+      expect(harness.reader.byteReads, greaterThan(0));
     });
 
     test('still rejects a mid-load change even when identity looks stable',
@@ -93,24 +211,28 @@ final class _Harness {
     required this.projectHandle,
     required this.workspaceHandle,
     required this.handles,
+    required this.reader,
+    required this.snapshotCache,
   });
 
-  static Future<_Harness> create() async {
+  static Future<_Harness> create({bool enableSnapshotCache = false}) async {
     final root = await Directory.systemTemp.createTemp('pokemap_fp_cache_');
     await Directory('${root.path}/maps').create(recursive: true);
     await File('${root.path}/project.json').writeAsString(_manifestJson);
     await File('${root.path}/maps/alpha.json').writeAsString(_mapJson('Alpha'));
 
-    const reader = LocalProjectFileReader();
+    final reader = _CountingIdentityReader();
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: <String>[root.path],
       fileReader: reader,
     );
     final handles = WorkspaceHandleStore();
     final cache = ProjectSnapshotFingerprintCache();
+    final snapshotCache = enableSnapshotCache ? ProjectSnapshotCache() : null;
     final loader = ProjectSnapshotLoader(
       handles: handles,
       fingerprintCache: cache,
+      snapshotCache: snapshotCache,
     );
     final opened = await ProjectOpenService(
       policy: policy,
@@ -125,6 +247,8 @@ final class _Harness {
       projectHandle: opened.projectHandle,
       workspaceHandle: opened.workspaceHandle,
       handles: handles,
+      reader: reader,
+      snapshotCache: snapshotCache,
     );
   }
 
@@ -134,6 +258,8 @@ final class _Harness {
   final ProjectHandle projectHandle;
   final WorkspaceHandle workspaceHandle;
   final WorkspaceHandleStore handles;
+  final _CountingIdentityReader reader;
+  final ProjectSnapshotCache? snapshotCache;
   Future<void> Function()? onSecondObservation;
 
   Future<ProjectSnapshot> load() async {
@@ -155,9 +281,78 @@ final class _Harness {
     await file.setLastModified(DateTime.now().add(const Duration(seconds: 2)));
   }
 
+  Future<void> writeEmptyAssetCatalog() async {
+    final file = File('${root.path}/$assetCatalogStorageKey');
+    await file.parent.create(recursive: true);
+    await file.writeAsString('{"schemaVersion":1,"records":[]}');
+  }
+
+  Future<ProjectSnapshot> loadStrictFresh() async {
+    final policy = await WorkspacePolicy.create(
+      allowedRootPaths: [root.path],
+      fileReader: reader,
+    );
+    final freshHandles = WorkspaceHandleStore();
+    final opened = await ProjectOpenService(
+      policy: policy,
+      fileReader: reader,
+      handles: freshHandles,
+    ).openProject(root.path);
+    try {
+      return await ProjectSnapshotLoader(handles: freshHandles).load(
+        opened.projectHandle,
+      );
+    } finally {
+      freshHandles.closeWorkspace(opened.workspaceHandle);
+    }
+  }
+
   void dispose() {
     handles.closeWorkspace(workspaceHandle);
     if (root.existsSync()) root.deleteSync(recursive: true);
+  }
+}
+
+final class _CountingIdentityReader
+    implements
+        ProjectFileReader,
+        ProjectResourceIdentityReader,
+        ProjectSnapshotCacheIdentityReader {
+  final LocalProjectFileReader _delegate = const LocalProjectFileReader();
+  var byteReads = 0;
+  var identityReads = 0;
+
+  void resetCounts() {
+    byteReads = 0;
+    identityReads = 0;
+  }
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      _delegate.canonicalizeDirectory(path);
+
+  @override
+  Future<ProjectResourceIdentity?> readIdentity({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    identityReads += 1;
+    return _delegate.readIdentity(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
+  }
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    byteReads += 1;
+    return _delegate.readBytes(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
   }
 }
 

@@ -7,6 +7,38 @@ import 'package:test/test.dart';
 
 void main() {
   group('LocalMapAuthoringMutationApi lifecycle', () {
+    test('map save verifies only its touched payload without a full reload',
+        () async {
+      final original = _map('town');
+      final setup = await _Setup.create(
+        maps: [original],
+        enableSnapshotCache: true,
+      );
+      addTearDown(setup.dispose);
+      final request = await setup.requestAsync(
+        actionId: 'map.save',
+        parameters: {
+          'map': original.copyWith(name: 'Town Updated').toJson(),
+        },
+      );
+      setup.reader.resetCounts();
+
+      final planned = await setup.mutations.plan(setup.projectHandle, request);
+      final applied = await setup.mutations.apply(
+        setup.projectHandle,
+        planId: planned['planId']! as String,
+        operationId: 'operation_save_town_fast',
+      );
+
+      expect(applied['snapshotRevision'], startsWith('sha256:'));
+      expect(setup.reader.byteReads, 1);
+      expect(
+          (await setup.snapshots.load(setup.projectHandle))
+              .mapById('town')!
+              .name,
+          'Town Updated');
+    });
+
     test('plans, applies, records, and undoes map creation', () async {
       final setup = await _Setup.create();
       addTearDown(setup.dispose);
@@ -261,11 +293,13 @@ final class _Setup {
     required this.workspaceHandle,
     required this.projectHandle,
     required this.snapshots,
+    required this.reader,
   });
 
   static Future<_Setup> create({
     List<MapData> maps = const [],
     AuthoringTransactionFaultInjector? faultInjector,
+    bool enableSnapshotCache = false,
   }) async {
     final root = await Directory.systemTemp.createTemp('map-lifecycle-');
     final manifest = ProjectManifest(
@@ -294,7 +328,7 @@ final class _Setup {
         );
       }
     }
-    const reader = LocalProjectFileReader();
+    final reader = _CountingLocalReader();
     final policy = await WorkspacePolicy.create(
       allowedRootPaths: [root.path],
       fileReader: reader,
@@ -308,7 +342,10 @@ final class _Setup {
       handles: handles,
     );
     final opened = await open.openProject(root.path);
-    final snapshots = ProjectSnapshotLoader(handles: handles);
+    final snapshots = ProjectSnapshotLoader(
+      handles: handles,
+      snapshotCache: enableSnapshotCache ? ProjectSnapshotCache() : null,
+    );
     final mutations = LocalMapAuthoringMutationApi(
       policy: policy,
       snapshotLoader: snapshots,
@@ -325,6 +362,7 @@ final class _Setup {
       workspaceHandle: opened.workspaceHandle,
       projectHandle: opened.projectHandle,
       snapshots: snapshots,
+      reader: reader,
     );
   }
 
@@ -333,6 +371,7 @@ final class _Setup {
   final WorkspaceHandle workspaceHandle;
   final ProjectHandle projectHandle;
   final ProjectSnapshotLoader snapshots;
+  final _CountingLocalReader reader;
 
   Future<AuthoringRequest> requestAsync({
     required String actionId,
@@ -355,6 +394,43 @@ final class _Setup {
   Future<void> dispose() async {
     await mutations.detachWorkspace(workspaceHandle);
     if (await root.exists()) await root.delete(recursive: true);
+  }
+}
+
+final class _CountingLocalReader
+    implements
+        ProjectFileReader,
+        ProjectResourceIdentityReader,
+        ProjectSnapshotCacheIdentityReader {
+  final LocalProjectFileReader _delegate = const LocalProjectFileReader();
+  var byteReads = 0;
+
+  void resetCounts() => byteReads = 0;
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      _delegate.canonicalizeDirectory(path);
+
+  @override
+  Future<ProjectResourceIdentity?> readIdentity({
+    required String projectRoot,
+    required String relativePath,
+  }) =>
+      _delegate.readIdentity(
+        projectRoot: projectRoot,
+        relativePath: relativePath,
+      );
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    byteReads += 1;
+    return _delegate.readBytes(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
   }
 }
 

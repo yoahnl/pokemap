@@ -21,12 +21,14 @@ final class ProjectResourceIdentity {
     required this.relativePath,
     required this.byteLength,
     required this.modifiedAtMicros,
+    this.changedAtMicros,
   });
 
   final String scope;
   final String relativePath;
   final int byteLength;
   final int modifiedAtMicros;
+  final int? changedAtMicros;
 
   @override
   bool operator ==(Object other) =>
@@ -34,11 +36,17 @@ final class ProjectResourceIdentity {
       other.scope == scope &&
       other.relativePath == relativePath &&
       other.byteLength == byteLength &&
-      other.modifiedAtMicros == modifiedAtMicros;
+      other.modifiedAtMicros == modifiedAtMicros &&
+      other.changedAtMicros == changedAtMicros;
 
   @override
-  int get hashCode =>
-      Object.hash(scope, relativePath, byteLength, modifiedAtMicros);
+  int get hashCode => Object.hash(
+        scope,
+        relativePath,
+        byteLength,
+        modifiedAtMicros,
+        changedAtMicros,
+      );
 }
 
 /// Optional capability: a reader that can report a resource's identity without
@@ -50,6 +58,16 @@ abstract interface class ProjectResourceIdentityReader {
     required String relativePath,
   });
 }
+
+/// Opt-in guarantee required before a complete snapshot may be reused.
+///
+/// Implementations promise that [ProjectResourceIdentityReader.readIdentity]
+/// is a cheap generation observation: a changed resource receives a different
+/// identity, and `null` means the resource is absent. Readers that only offer
+/// best-effort metadata must not implement this capability; they still benefit
+/// from decoded-model and fingerprint caching after strict byte reads.
+abstract interface class ProjectSnapshotCacheIdentityReader
+    implements ProjectResourceIdentityReader {}
 
 /// The complete filesystem capability available to the Authoring Read API.
 ///
@@ -65,7 +83,10 @@ abstract interface class ProjectFileReader {
 
 /// `dart:io` implementation constrained to an already-authorized project root.
 final class LocalProjectFileReader
-    implements ProjectFileReader, ProjectResourceIdentityReader {
+    implements
+        ProjectFileReader,
+        ProjectResourceIdentityReader,
+        ProjectSnapshotCacheIdentityReader {
   const LocalProjectFileReader();
 
   @override
@@ -74,13 +95,19 @@ final class LocalProjectFileReader
     required String relativePath,
   }) async {
     try {
-      final stat = await File('$projectRoot/$relativePath').stat();
+      final root = _requirePath(projectRoot, field: 'projectRoot');
+      final segments = _projectRelativeSegments(relativePath);
+      final lexicalTarget = [root, ...segments].join(Platform.pathSeparator);
+      final resolved = await File(lexicalTarget).resolveSymbolicLinks();
+      if (!workspacePathIsWithin(root: root, candidate: resolved)) return null;
+      final stat = await File(resolved).stat();
       if (stat.type != FileSystemEntityType.file) return null;
       return ProjectResourceIdentity(
-        scope: projectRoot,
+        scope: root,
         relativePath: relativePath,
         byteLength: stat.size,
         modifiedAtMicros: stat.modified.microsecondsSinceEpoch,
+        changedAtMicros: stat.changed.microsecondsSinceEpoch,
       );
     } on FileSystemException {
       return null;

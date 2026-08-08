@@ -11,19 +11,20 @@ import 'authoring_session_lifecycle.dart';
 /// keeping handles, path authorization, revision calculation, query ordering,
 /// pagination, and reference diagnostics owned by `map_authoring`.
 
-/// One cache for the whole editor process.
-///
-/// A session is opened per operation, so a per-loader cache would never see a
-/// second hit. Keying on `(root, path, size, mtime)` makes sharing across
-/// sessions and projects safe.
-final _sharedFingerprintCache = ProjectSnapshotFingerprintCache();
-
 final class AuthoringQueryAdapter
     implements EditorAuthoringLifecycleParticipant {
-  AuthoringQueryAdapter({required ProjectFileReader fileReader})
-      : _fileReader = fileReader;
+  AuthoringQueryAdapter({
+    required ProjectFileReader fileReader,
+    ProjectSnapshotFingerprintCache? fingerprintCache,
+    ProjectSnapshotCache? snapshotCache,
+  })  : _fileReader = fileReader,
+        _fingerprintCache =
+            fingerprintCache ?? ProjectSnapshotFingerprintCache(),
+        _snapshotCache = snapshotCache ?? ProjectSnapshotCache();
 
   final ProjectFileReader _fileReader;
+  final ProjectSnapshotFingerprintCache _fingerprintCache;
+  final ProjectSnapshotCache _snapshotCache;
   final Map<String, Future<EditorAuthoringReadSession>> _sessions = {};
   final Set<String> _openingRoots = {};
   String? _retainedRoot;
@@ -173,7 +174,8 @@ final class AuthoringQueryAdapter
     final handles = WorkspaceHandleStore();
     final snapshots = ProjectSnapshotLoader(
       handles: handles,
-      fingerprintCache: _sharedFingerprintCache,
+      fingerprintCache: _fingerprintCache,
+      snapshotCache: _snapshotCache,
     );
     final api = AuthoringReadApi(
       openService: ProjectOpenService(

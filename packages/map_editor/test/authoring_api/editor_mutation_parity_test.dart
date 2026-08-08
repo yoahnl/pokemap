@@ -17,6 +17,32 @@ import 'package:path/path.dart' as p;
 
 void main() {
   group('AuthoringMutationAdapter', () {
+    test('warm canonical map save rereads only the touched map payload',
+        () async {
+      final fixture = await _MutationFixture.create(enableSnapshotCache: true);
+      addTearDown(fixture.dispose);
+      await fixture.mutations.plan(
+        fixture.root.path,
+        actionId: 'map.save',
+        parameters: {
+          'map': fixture.map.copyWith(name: 'Warmup only').toJson(),
+        },
+        idempotencyKey: 'editor_fast_save_warmup',
+      );
+      final baseline =
+          await FileMapRepository().loadMapDocument(fixture.mapPath);
+      fixture.countingReader!.resetCounts();
+
+      final result = await fixture.mutations.saveMap(
+        fixture.map.copyWith(name: 'Fast save'),
+        fixture.mapPath,
+        expectedMapRevision: baseline.revision,
+      );
+
+      expect(result.receipt.status, AuthoringReceiptStatus.applied);
+      expect(fixture.countingReader!.byteReads, 1);
+    });
+
     test('plans without writing, applies once, and replays idempotently',
         () async {
       final fixture = await _MutationFixture.create();
@@ -597,6 +623,49 @@ final class _BlockingProjectReader
   }
 }
 
+final class _CountingEditorReader
+    implements
+        ProjectFileReader,
+        ProjectResourceIdentityReader,
+        ProjectSnapshotCacheIdentityReader,
+        EditorProjectRootLocator {
+  static const _files = LocalProjectFileReader();
+  static const _roots = EditorProjectFileReader();
+  var byteReads = 0;
+
+  void resetCounts() => byteReads = 0;
+
+  @override
+  Future<String> canonicalizeDirectory(String path) =>
+      _files.canonicalizeDirectory(path);
+
+  @override
+  Future<ProjectResourceIdentity?> readIdentity({
+    required String projectRoot,
+    required String relativePath,
+  }) =>
+      _files.readIdentity(
+        projectRoot: projectRoot,
+        relativePath: relativePath,
+      );
+
+  @override
+  Future<List<int>> readBytes({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    byteReads += 1;
+    return _files.readBytes(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
+  }
+
+  @override
+  Future<String> locateForResource(String resourcePath) =>
+      _roots.locateForResource(resourcePath);
+}
+
 final class _MutationFixture {
   _MutationFixture({
     required this.root,
@@ -604,10 +673,12 @@ final class _MutationFixture {
     required this.map,
     required this.queries,
     required this.mutations,
+    required this.countingReader,
   });
 
   static Future<_MutationFixture> create({
     WorkspaceHandleStore Function()? workspaceHandles,
+    bool enableSnapshotCache = false,
   }) async {
     final root = await Directory.systemTemp.createTemp('pmcp081_editor_');
     const project = ProjectManifest(
@@ -647,13 +718,30 @@ final class _MutationFixture {
       p.join(root.path, 'maps', 'alpha.json'),
       projectDialogueContext: project,
     );
-    const reader = EditorProjectFileReader();
-    final queries = AuthoringQueryAdapter(fileReader: reader);
+    final countingReader = enableSnapshotCache ? _CountingEditorReader() : null;
+    late final ProjectFileReader reader;
+    late final EditorProjectRootLocator roots;
+    if (countingReader == null) {
+      reader = const EditorProjectFileReader();
+      roots = const EditorProjectFileReader();
+    } else {
+      reader = countingReader;
+      roots = countingReader;
+    }
+    final fingerprintCache = ProjectSnapshotFingerprintCache();
+    final snapshotCache = ProjectSnapshotCache();
+    final queries = AuthoringQueryAdapter(
+      fileReader: reader,
+      fingerprintCache: fingerprintCache,
+      snapshotCache: snapshotCache,
+    );
     final mutations = AuthoringMutationAdapter(
       fileReader: reader,
       queries: queries,
-      projectRoots: reader,
+      projectRoots: roots,
       workspaceHandles: workspaceHandles,
+      fingerprintCache: fingerprintCache,
+      snapshotCache: snapshotCache,
     );
     return _MutationFixture(
       root: root,
@@ -661,6 +749,7 @@ final class _MutationFixture {
       map: map,
       queries: queries,
       mutations: mutations,
+      countingReader: countingReader,
     );
   }
 
@@ -828,6 +917,7 @@ final class _MutationFixture {
       map: map,
       queries: queries,
       mutations: mutations,
+      countingReader: null,
     );
   }
 
@@ -836,6 +926,7 @@ final class _MutationFixture {
   final MapData map;
   final AuthoringQueryAdapter queries;
   final AuthoringMutationAdapter mutations;
+  final _CountingEditorReader? countingReader;
 
   String get mapPath => p.join(root.path, project.maps.single.relativePath);
 

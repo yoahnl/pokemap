@@ -525,7 +525,14 @@ final class _LocalMapAuthoringSession {
           ? null
           : AuthoringConfirmationToken.fromWireValue(confirmationToken),
     );
-    return _receiptResult(receipt);
+    final projected = receipt.status == AuthoringReceiptStatus.applied
+        ? await _snapshotLoader.adoptAppliedChanges(
+            projectHandle,
+            baseRevision: plan.baseRevision,
+            changes: plan.changeSet.changes,
+          )
+        : null;
+    return _receiptResult(receipt, snapshot: projected);
   }
 
   Future<Map<String, Object?>> undo({
@@ -563,12 +570,16 @@ final class _LocalMapAuthoringSession {
     return _receiptResult(receipt);
   }
 
-  Future<Map<String, Object?>> _receiptResult(AuthoringReceipt receipt) async {
-    final snapshot = await _snapshotLoader.load(projectHandle);
+  Future<Map<String, Object?>> _receiptResult(
+    AuthoringReceipt receipt, {
+    ProjectSnapshot? snapshot,
+  }) async {
+    final resolvedSnapshot =
+        snapshot ?? await _snapshotLoader.load(projectHandle);
     return freezeContractJsonObject(
       {
         'receipt': receipt.toJson(),
-        'snapshotRevision': snapshot.revision,
+        'snapshotRevision': resolvedSnapshot.revision,
       },
       field: 'mutationReceipt',
     );

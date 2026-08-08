@@ -37,7 +37,11 @@ Future<void> main(List<String> arguments) async {
   }
 
   final handles = WorkspaceHandleStore();
-  final snapshots = ProjectSnapshotLoader(handles: handles);
+  final snapshots = ProjectSnapshotLoader(
+    handles: handles,
+    fingerprintCache: ProjectSnapshotFingerprintCache(),
+    snapshotCache: ProjectSnapshotCache(),
+  );
   final api = AuthoringReadApi(
     openService: ProjectOpenService(
       policy: policy,

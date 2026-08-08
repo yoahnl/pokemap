@@ -62,6 +62,8 @@ void main() {
     expect(notifier.state.isProjectDirty, isFalse);
 
     final mutations = container.read(authoringMutationAdapterProvider);
+    final snapshotCache = container.read(authoringSnapshotCacheProvider);
+    final missesBeforeDirtyGesture = snapshotCache.misses;
     notifier.state = notifier.state.copyWith(
       activeTool: EditorToolType.terrainPaint,
     );
@@ -78,7 +80,6 @@ void main() {
       ),
     );
     expect(notifier.state.errorMessage, isNull);
-
     expect(notifier.state.isSaving, isTrue);
 
     await _waitUntil(
@@ -93,6 +94,11 @@ void main() {
     expect(notifier.state.mapUndoStack, isEmpty);
     expect(notifier.state.canUndoMap, isTrue);
     expect(notifier.state.errorMessage, isNull);
+    expect(
+      snapshotCache.misses,
+      missesBeforeDirtyGesture,
+      reason: 'save + paint must project committed map bytes, not reload them',
+    );
     expect(
       smartTileSemanticCells(
         notifier.state.activeMap!.layers.single as SmartTileLayer,
@@ -123,6 +129,11 @@ void main() {
     expect(notifier.state.mapUndoStack, isEmpty);
     expect(notifier.state.canUndoMap, isTrue);
     expect(notifier.state.errorMessage, isNull);
+    expect(
+      snapshotCache.misses,
+      missesBeforeDirtyGesture,
+      reason: 'the following erase must remain on the warm snapshot path',
+    );
 
     notifier.undoMap();
     await _waitUntil(

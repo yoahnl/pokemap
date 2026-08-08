@@ -17,6 +17,8 @@ void main() {
       '1,3',
       '--cycles',
       '1',
+      '--modes',
+      'cold,warm',
       '--output',
       output.path,
     ]);
@@ -28,10 +30,18 @@ void main() {
     expect(payload['benchmark'], 'authoring_snapshot_open');
     final rows =
         (payload['results']! as List<Object?>).cast<Map<String, Object?>>();
-    expect(rows.map((row) => row['rootCount']), <Object?>[1, 3]);
+    expect(rows, hasLength(4));
+    expect(rows.map((row) => row['mode']).toSet(), {'cold', 'warm'});
+    expect(rows.map((row) => row['rootCount']).toSet(), <Object?>{1, 3});
     expect(rows.every((row) => row['fixture'] == 'small'), isTrue);
     expect(
         rows.every((row) => '${row['snapshotChecksum']}'.isNotEmpty), isTrue);
+    expect(
+      rows.where((row) => row['mode'] == 'warm').every(
+            (row) => (row['snapshotCacheHits']! as int) > 0,
+          ),
+      isTrue,
+    );
   });
 
   test('rejects promotion checkpoint, zero samples, and escaped output',

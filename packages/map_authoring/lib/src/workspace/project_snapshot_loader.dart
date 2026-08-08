@@ -8,7 +8,9 @@ import '../contracts/artifact_ref.dart';
 import '../ports/project_file_reader.dart';
 import '../domains/assets/asset_store.dart';
 import '../domains/narrative/dialogue_source_store.dart';
+import '../transactions/change_set.dart';
 import 'project_snapshot.dart';
+import 'project_snapshot_cache.dart';
 import 'project_snapshot_fingerprint_cache.dart';
 import 'workspace_handle_store.dart';
 
@@ -116,6 +118,7 @@ final class ProjectSnapshotLoadProfile {
     required this.totalMicroseconds,
     required this.resourceCount,
     required this.resourceBytes,
+    this.cacheHit = false,
   });
 
   final int initialReadMicroseconds;
@@ -126,6 +129,7 @@ final class ProjectSnapshotLoadProfile {
   final int totalMicroseconds;
   final int resourceCount;
   final int resourceBytes;
+  final bool cacheHit;
 }
 
 /// Loads every manifest-declared map and external dialogue source twice to
@@ -141,16 +145,35 @@ final class ProjectSnapshotLoader {
     this.maxConcurrentSecondObservations = 8,
     ProjectSnapshotDecodeExecutor? decodeExecutor,
     ProjectSnapshotFingerprintCache? fingerprintCache,
+    ProjectSnapshotCache? snapshotCache,
   })  : assert(maxConcurrentSecondObservations > 0),
         _decodeExecutor = decodeExecutor ?? ProjectSnapshotDecodeExecutor(),
         _fingerprintCache = fingerprintCache,
+        _snapshotCache = snapshotCache,
         _handles = handles;
 
   final WorkspaceHandleStore _handles;
   final ProjectSnapshotFingerprintCache? _fingerprintCache;
+  final ProjectSnapshotCache? _snapshotCache;
   final ProjectSnapshotDecodeExecutor _decodeExecutor;
   final ProjectSnapshotLoadProfileSink? profileSink;
   final int maxConcurrentSecondObservations;
+
+  Future<ProjectSnapshot?> adoptAppliedChanges(
+    ProjectHandle projectHandle, {
+    required String baseRevision,
+    required Iterable<AuthoringResourceChange> changes,
+  }) {
+    final cache = _snapshotCache;
+    if (cache == null) return Future.value();
+    final access = _handles.resolveProject(projectHandle);
+    return cache.adoptAppliedChanges(
+      access,
+      projectHandle,
+      baseRevision: baseRevision,
+      changes: changes,
+    );
+  }
 
   Future<ProjectSnapshot> load(
     ProjectHandle projectHandle, {
@@ -159,12 +182,27 @@ final class ProjectSnapshotLoader {
     final profiler =
         profileSink == null ? null : _ProjectSnapshotLoadProfiler();
     final access = _handles.resolveProject(projectHandle);
+    final cached = await _snapshotCache?.lookup(access, projectHandle);
+    if (cached != null) {
+      if (profiler != null) {
+        profileSink!(
+          profiler.finish(
+            resourceCount: cached.resourceFingerprints.length,
+            resourceBytes: cached.resourceByteLength,
+            cacheHit: true,
+          ),
+        );
+      }
+      return cached;
+    }
     final manifestReadTimer = profiler?.startStage();
     final manifestBytes = await access.readResourceBytes('project.json');
     profiler?.recordInitialRead(manifestReadTimer!);
 
     final manifestDecodeTimer = profiler?.startStage();
-    final manifestIdentity = _fingerprintCache == null
+    final identityCachingEnabled =
+        _fingerprintCache != null || _snapshotCache != null;
+    final manifestIdentity = !identityCachingEnabled
         ? null
         : await access.readResourceIdentity('project.json');
     final manifest = (manifestIdentity == null
@@ -193,7 +231,7 @@ final class ProjectSnapshotLoader {
     for (final entry in entries) {
       final mapReadTimer = profiler?.startStage();
       final bytes = await access.readResourceBytes(entry.relativePath);
-      if (cache != null) {
+      if (identityCachingEnabled) {
         identities[entry.relativePath] =
             await access.readResourceIdentity(entry.relativePath);
       }
@@ -201,10 +239,9 @@ final class ProjectSnapshotLoader {
 
       final mapDecodeTimer = profiler?.startStage();
       final mapIdentity = identities[entry.relativePath];
-      final map = (mapIdentity == null
-              ? null
-              : cache?.decoded<MapData>(mapIdentity)) ??
-          await _decodeExecutor.decodeMap(bytes.bytes);
+      final map =
+          (mapIdentity == null ? null : cache?.decoded<MapData>(mapIdentity)) ??
+              await _decodeExecutor.decodeMap(bytes.bytes);
       if (mapIdentity != null) cache?.storeDecoded(mapIdentity, map);
       if (map.id != entry.id) {
         throw const ProjectSnapshotException(
@@ -357,7 +394,7 @@ final class ProjectSnapshotLoader {
     // it. A null identity means the reader cannot report one, which simply
     // disables reuse for that resource. Map identities were already taken
     // while reading, so only the remaining resources are stat'ed here.
-    if (cache != null) {
+    if (identityCachingEnabled) {
       for (final resource in resources) {
         identities[resource.relativePath] ??=
             await access.readResourceIdentity(resource.relativePath);
@@ -370,7 +407,8 @@ final class ProjectSnapshotLoader {
             .map(
               (r) => '${r.relativePath}:'
                   '${identities[r.relativePath]!.byteLength}:'
-                  '${identities[r.relativePath]!.modifiedAtMicros}',
+                  '${identities[r.relativePath]!.modifiedAtMicros}:'
+                  '${identities[r.relativePath]!.changedAtMicros ?? -1}',
             )
             .join('|');
 
@@ -429,6 +467,24 @@ final class ProjectSnapshotLoader {
       },
       loadDiagnostics: loadDiagnostics,
     );
+    final completeIdentities = <String, ProjectResourceIdentity>{};
+    for (final resource in resources) {
+      final identity = identities[resource.relativePath];
+      if (identity == null) {
+        completeIdentities.clear();
+        break;
+      }
+      completeIdentities[resource.relativePath] = identity;
+    }
+    if (completeIdentities.isNotEmpty) {
+      _snapshotCache?.store(
+        snapshot: snapshot,
+        identities: completeIdentities,
+        absentResourcePaths: assetCatalogBytes == null
+            ? const [assetCatalogStorageKey]
+            : const [],
+      );
+    }
     profiler?.recordProjection(projectionTimer!);
 
     if (profiler != null) {
@@ -687,6 +743,7 @@ final class _ProjectSnapshotLoadProfiler {
   ProjectSnapshotLoadProfile finish({
     required int resourceCount,
     required int resourceBytes,
+    bool cacheHit = false,
   }) {
     _total.stop();
     return ProjectSnapshotLoadProfile(
@@ -698,6 +755,7 @@ final class _ProjectSnapshotLoadProfiler {
       totalMicroseconds: _total.elapsedMicroseconds,
       resourceCount: resourceCount,
       resourceBytes: resourceBytes,
+      cacheHit: cacheHit,
     );
   }
 }

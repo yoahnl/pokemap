@@ -130,6 +130,37 @@ final class ProjectSnapshot {
     });
   }
 
+  ProjectSnapshot._rebound({
+    required this.projectHandle,
+    required ProjectSnapshot source,
+  })  : revision = source.revision,
+        manifest = source.manifest,
+        maps = source.maps,
+        resourceFingerprints = source.resourceFingerprints,
+        resourceStorageKeys = source.resourceStorageKeys,
+        loadDiagnostics = source.loadDiagnostics,
+        _resourceBytes = source._resourceBytes {
+    _mapsById = source._mapsById;
+  }
+
+  ProjectSnapshot._projected({
+    required ProjectSnapshot source,
+    required this.revision,
+    required List<MapData> maps,
+    required Map<String, String> resourceFingerprints,
+    required Map<String, List<int>> resourceBytes,
+  })  : projectHandle = source.projectHandle,
+        manifest = source.manifest,
+        maps = List.unmodifiable(
+          maps.toList()..sort((left, right) => left.id.compareTo(right.id)),
+        ),
+        resourceFingerprints = Map.unmodifiable(resourceFingerprints),
+        resourceStorageKeys = source.resourceStorageKeys,
+        loadDiagnostics = source.loadDiagnostics,
+        _resourceBytes = Map.unmodifiable(resourceBytes) {
+    _mapsById = Map.unmodifiable({for (final map in this.maps) map.id: map});
+  }
+
   final ProjectHandle projectHandle;
   final String revision;
   final ProjectManifest manifest;
@@ -141,6 +172,63 @@ final class ProjectSnapshot {
   late final Map<String, MapData> _mapsById;
 
   MapData? mapById(String id) => _mapsById[id];
+
+  /// Reuses immutable project data while binding it to a renewed opaque handle.
+  ProjectSnapshot rebind(ProjectHandle handle) => handle == projectHandle
+      ? this
+      : ProjectSnapshot._rebound(projectHandle: handle, source: this);
+
+  int get resourceByteLength => _resourceBytes.values.fold<int>(
+        0,
+        (total, bytes) => total + bytes.length,
+      );
+
+  /// Internal authoring projection that retains unchanged immutable payloads.
+  ///
+  /// Callers must derive [revision] and [resourceFingerprints] from the exact
+  /// projected payloads. The public method is intentionally narrow: resource
+  /// identities and storage keys cannot be added or removed here.
+  ProjectSnapshot projectMapResources({
+    required String revision,
+    required Iterable<MapData> maps,
+    required Map<String, String> resourceFingerprints,
+    required Map<String, List<int>> replacementBytes,
+  }) {
+    final projectedMaps = maps.toList(growable: false);
+    final projectedMapIds = projectedMaps.map((map) => map.id).toSet();
+    final currentMapIds = this.maps.map((map) => map.id).toSet();
+    if (!RegExp(r'^sha256:[0-9a-f]{64}$').hasMatch(revision) ||
+        projectedMapIds.length != projectedMaps.length ||
+        projectedMapIds.length != currentMapIds.length ||
+        !projectedMapIds.containsAll(currentMapIds) ||
+        resourceFingerprints.keys.toSet().length !=
+            this.resourceFingerprints.length ||
+        !resourceFingerprints.keys
+            .toSet()
+            .containsAll(this.resourceFingerprints.keys) ||
+        !this.resourceFingerprints.keys.toSet().containsAll(
+              resourceFingerprints.keys,
+            ) ||
+        !this.resourceFingerprints.keys.toSet().containsAll(
+              replacementBytes.keys,
+            )) {
+      throw ArgumentError('Invalid projected snapshot resources.');
+    }
+    final projectedBytes = Map<String, List<int>>.of(_resourceBytes);
+    for (final entry in replacementBytes.entries) {
+      if (entry.value.any((byte) => byte < 0 || byte > 255)) {
+        throw ArgumentError.value(entry.key, 'replacementBytes');
+      }
+      projectedBytes[entry.key] = List<int>.unmodifiable(entry.value);
+    }
+    return ProjectSnapshot._projected(
+      source: this,
+      revision: revision,
+      maps: projectedMaps,
+      resourceFingerprints: Map.of(resourceFingerprints),
+      resourceBytes: projectedBytes,
+    );
+  }
 
   /// Exact snapshot pre-image for one path-free resource identity.
   ///

@@ -79,12 +79,13 @@ final class ProjectOpenService {
       ),
       // Only readers that can report identity cheaply enable snapshot reuse.
       readIdentity: reader is ProjectResourceIdentityReader
-          ? (relativePath) => (reader as ProjectResourceIdentityReader)
-              .readIdentity(
+          ? (relativePath) =>
+              (reader as ProjectResourceIdentityReader).readIdentity(
                 projectRoot: canonicalRoot,
                 relativePath: relativePath,
               )
           : null,
+      canReuseSnapshots: reader is ProjectSnapshotCacheIdentityReader,
     );
     return OpenedProject(
       workspaceHandle: registered.workspaceHandle,

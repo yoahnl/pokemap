@@ -88,6 +88,7 @@ final class ProjectWorkspaceAccess {
     required this.expiresAt,
     required ProjectResourceReader readBytes,
     ProjectResourceIdentityLookup? readIdentity,
+    required this.canReuseSnapshots,
   })  : _readBytes = readBytes,
         _readIdentity = readIdentity;
 
@@ -95,6 +96,7 @@ final class ProjectWorkspaceAccess {
   final String projectName;
   final String initialFingerprint;
   final DateTime expiresAt;
+  final bool canReuseSnapshots;
   final ProjectResourceReader _readBytes;
   final ProjectResourceIdentityLookup? _readIdentity;
 
@@ -165,7 +167,13 @@ final class WorkspaceHandleStore {
     required String initialFingerprint,
     required ProjectResourceReader readBytes,
     ProjectResourceIdentityLookup? readIdentity,
+    bool canReuseSnapshots = false,
   }) {
+    if (canReuseSnapshots && readIdentity == null) {
+      throw ArgumentError(
+        'Snapshot reuse requires a resource identity lookup.',
+      );
+    }
     final workspaceHandle = WorkspaceHandle(_nextUniqueToken('ws_'));
     final projectHandle = ProjectHandle(_nextUniqueToken('prj_'));
     final expiresAt = _clock().toUtc().add(ttl);
@@ -177,6 +185,7 @@ final class WorkspaceHandleStore {
       expiresAt: expiresAt,
       readBytes: readBytes,
       readIdentity: readIdentity,
+      canReuseSnapshots: canReuseSnapshots,
     );
     return RegisteredProjectHandles(
       workspaceHandle: workspaceHandle,
@@ -193,7 +202,10 @@ final class WorkspaceHandleStore {
       initialFingerprint: stored.initialFingerprint,
       expiresAt: stored.expiresAt,
       readBytes: (relativePath) => _readForHandle(handle, relativePath),
-      readIdentity: stored.readIdentity,
+      readIdentity: stored.readIdentity == null
+          ? null
+          : (relativePath) => _readIdentityForHandle(handle, relativePath),
+      canReuseSnapshots: stored.canReuseSnapshots,
     );
   }
 
@@ -235,6 +247,16 @@ final class WorkspaceHandleStore {
     return bytes;
   }
 
+  Future<ProjectResourceIdentity?> _readIdentityForHandle(
+    ProjectHandle handle,
+    String relativePath,
+  ) async {
+    final stored = _requireActive(handle);
+    final identity = await stored.readIdentity!(relativePath);
+    _requireActive(handle);
+    return identity;
+  }
+
   void _remove(ProjectHandle handle, _StoredProjectAccess stored) {
     _projects.remove(handle);
     _projectsByWorkspace.remove(stored.workspaceHandle);
@@ -267,6 +289,7 @@ final class _StoredProjectAccess {
     required this.expiresAt,
     required this.readBytes,
     this.readIdentity,
+    required this.canReuseSnapshots,
   });
 
   final WorkspaceHandle workspaceHandle;
@@ -275,6 +298,7 @@ final class _StoredProjectAccess {
   final DateTime expiresAt;
   final ProjectResourceReader readBytes;
   final ProjectResourceIdentityLookup? readIdentity;
+  final bool canReuseSnapshots;
 }
 
 DateTime _systemClock() => DateTime.now().toUtc();

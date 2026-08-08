@@ -13,7 +13,11 @@ import '../../application/authoring_api/authoring_mutation_adapter.dart';
 /// filesystem paths or JSON bytes. Path canonicalization and symlink checks
 /// remain delegated to the canonical Authoring implementation.
 final class EditorProjectFileReader
-    implements ProjectFileReader, EditorProjectRootLocator {
+    implements
+        ProjectFileReader,
+        ProjectResourceIdentityReader,
+        ProjectSnapshotCacheIdentityReader,
+        EditorProjectRootLocator {
   const EditorProjectFileReader({
     ProjectFileReader delegate = const LocalProjectFileReader(),
   }) : _delegate = delegate;
@@ -31,6 +35,21 @@ final class EditorProjectFileReader
     required String relativePath,
   }) {
     return _delegate.readBytes(
+      projectRoot: projectRoot,
+      relativePath: relativePath,
+    );
+  }
+
+  @override
+  Future<ProjectResourceIdentity?> readIdentity({
+    required String projectRoot,
+    required String relativePath,
+  }) {
+    final delegate = _delegate;
+    if (delegate is! ProjectSnapshotCacheIdentityReader) {
+      return Future.value();
+    }
+    return (delegate as ProjectSnapshotCacheIdentityReader).readIdentity(
       projectRoot: projectRoot,
       relativePath: relativePath,
     );
