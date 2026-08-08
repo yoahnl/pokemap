@@ -52,6 +52,7 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
             .where(
               (kind) =>
                   kind.id == 'map' ||
+                  kind.id == 'mapConnection' ||
                   kind.id == 'project' ||
                   kind.id == 'asset' ||
                   kind.id == 'tilesetFolder' ||

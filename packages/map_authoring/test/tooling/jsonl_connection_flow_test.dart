@@ -79,6 +79,24 @@ void main() {
         ),
       ],
     );
+    final queriedConnections = await setup.request(
+      'query',
+      args: {
+        'projectHandle': projectHandle.value,
+        'request': AuthoringQueryRequest(
+          resourceKind: 'mapConnection',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+        ).toJson(),
+      },
+    );
+    expect(queriedConnections.status, AuthoringResultStatus.success);
+    expect(
+      (queriedConnections.data['items']! as List)
+          .cast<Map>()
+          .map((item) => item['id']),
+      ['alpha:east', 'beta:west'],
+    );
 
     final deletePlan = await setup.request(
       'plan',

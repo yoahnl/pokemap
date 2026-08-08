@@ -148,6 +148,15 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
             detail: _mapDetail(map),
           ),
       ];
+    case 'mapConnection':
+      return [
+        for (final map in snapshot.maps)
+          for (final connection in map.connections)
+            _QueryRecord(
+              summary: _mapConnectionRecord(map, connection),
+              detail: _mapConnectionRecord(map, connection),
+            ),
+      ];
     case 'asset':
       final bytes = snapshot.findResourceBytes(assetCatalogResourceIdentity);
       if (bytes == null) return const [];
@@ -437,10 +446,32 @@ Map<String, Object?> _mapSummary(MapData map) => {
       'entityCount': map.entities.length,
       'placedElementCount': map.placedElements.length,
       'eventCount': map.events.length,
+      'connections': [
+        for (final connection in map.connections) connection.toJson(),
+      ],
     };
 
 Map<String, Object?> _mapDetail(MapData map) =>
     _jsonObject(map.toJson())..['resourceKind'] = 'map';
+
+Map<String, Object?> _mapConnectionRecord(
+  MapData map,
+  MapConnection connection,
+) =>
+    {
+      'id': '${map.id}:${connection.direction.name}',
+      'name': '${map.name} — ${_directionLabel(connection.direction)}',
+      'resourceKind': 'mapConnection',
+      'mapId': map.id,
+      ...connection.toJson(),
+    };
+
+String _directionLabel(MapConnectionDirection direction) => switch (direction) {
+      MapConnectionDirection.north => 'North',
+      MapConnectionDirection.east => 'East',
+      MapConnectionDirection.south => 'South',
+      MapConnectionDirection.west => 'West',
+    };
 
 Map<String, Object?> _assetSummary(AssetRecord asset) => {
       'id': asset.id,

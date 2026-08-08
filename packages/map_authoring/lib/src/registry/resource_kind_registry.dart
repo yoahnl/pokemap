@@ -120,6 +120,19 @@ final class AuthoringResourceKindRegistry {
         version: 1,
         displayName: 'Map',
         summary: 'Editable PokeMap map',
+        extensions: const {
+          'documentedFieldMasks': ['connections'],
+        },
+      ),
+      AuthoringResourceKindDescriptor(
+        id: 'mapConnection',
+        version: 1,
+        displayName: 'Map connection',
+        summary: 'Directional physical adjacency between two maps',
+        extensions: const {
+          'idFormat': 'mapId:direction',
+          'queryActions': ['connection.list', 'connection.get'],
+        },
       ),
       AuthoringResourceKindDescriptor(
         id: 'layer',

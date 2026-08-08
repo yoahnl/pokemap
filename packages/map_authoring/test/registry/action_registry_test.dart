@@ -94,6 +94,7 @@ void main() {
           'fact',
           'layer',
           'map',
+          'mapConnection',
           'pokemonDocument',
           'project',
           'region',
@@ -114,6 +115,14 @@ void main() {
         ],
       );
       expect(registry.require('map').displayName, 'Map');
+      expect(
+        registry.require('map').extensions['documentedFieldMasks'],
+        contains('connections'),
+      );
+      expect(
+        registry.require('mapConnection').extensions['queryActions'],
+        containsAll(['connection.list', 'connection.get']),
+      );
       expect(registry.find('unknown'), isNull);
     });
 

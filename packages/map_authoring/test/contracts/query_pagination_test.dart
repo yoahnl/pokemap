@@ -249,6 +249,63 @@ void main() {
       expect(summary.items.single, containsPair('mapCount', 3));
     });
 
+    test('lists and gets map connections as first-class resources', () {
+      final snapshot = _snapshot(withConnections: true);
+      const service = ProjectQueryService();
+
+      final listed = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'mapConnection',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+        ),
+      );
+      final fetched = service.query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'mapConnection',
+          operation: AuthoringQueryOperation.get,
+          ids: const ['a-map:east'],
+          view: AuthoringQueryView.detail,
+        ),
+      );
+
+      expect(
+        listed.items.map((item) => item['id']),
+        ['a-map:east', 'b-map:west'],
+      );
+      expect(fetched.items.single, {
+        'id': 'a-map:east',
+        'name': 'Alpha Field — East',
+        'resourceKind': 'mapConnection',
+        'mapId': 'a-map',
+        'direction': 'east',
+        'targetMapId': 'b-map',
+        'offset': 0,
+      });
+    });
+
+    test('exposes map connections through the documented field mask', () {
+      final page = const ProjectQueryService().query(
+        _snapshot(withConnections: true),
+        AuthoringQueryRequest(
+          resourceKind: 'map',
+          operation: AuthoringQueryOperation.get,
+          ids: const ['a-map'],
+          fieldMask: const ['connections'],
+        ),
+      );
+
+      expect(page.items.single['connections'], [
+        {
+          'direction': 'east',
+          'targetMapId': 'b-map',
+          'offset': 0,
+        },
+      ]);
+    });
+
     test('applies filters, descending sort, and dotted field masks', () {
       final page = const ProjectQueryService().query(
         _snapshot(),
@@ -413,6 +470,7 @@ void main() {
 ProjectSnapshot _snapshot({
   String revisionDigit = 'a',
   bool withApiKey = false,
+  bool withConnections = false,
 }) {
   final maps = [
     _map(
@@ -426,12 +484,28 @@ ProjectSnapshot _snapshot({
       name: 'Alpha Field',
       width: 3,
       tiles: const [1, 2, 3, 4, 5, 6],
+      connections: withConnections
+          ? const [
+              MapConnection(
+                direction: MapConnectionDirection.east,
+                targetMapId: 'b-map',
+              ),
+            ]
+          : const [],
     ),
     _map(
       id: 'b-map',
       name: 'Bravo Field',
       width: 2,
       tiles: const [7, 8, 9, 10],
+      connections: withConnections
+          ? const [
+              MapConnection(
+                direction: MapConnectionDirection.west,
+                targetMapId: 'a-map',
+              ),
+            ]
+          : const [],
     ),
   ];
   final manifest = ProjectManifest(
@@ -475,6 +549,7 @@ MapData _map({
   required String name,
   required int width,
   required List<int> tiles,
+  List<MapConnection> connections = const [],
 }) {
   return MapData(
     id: id,
@@ -499,5 +574,6 @@ MapData _map({
       'description': 'A detailed projection carries this field.',
       'tags': id == 'a-map' ? ['forest', 'day'] : ['city'],
     },
+    connections: connections,
   );
 }
