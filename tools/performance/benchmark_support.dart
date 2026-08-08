@@ -128,7 +128,7 @@ Future<Map<String, Object?>> performanceReceipt({
   required List<Map<String, Object?>> results,
   Map<String, Object?> metadata = const <String, Object?>{},
 }) async {
-  final status = await _git(<String>['status', '--porcelain=v1']);
+  final sourceIdentity = await currentPerformanceSourceIdentity();
   return <String, Object?>{
     'schemaVersion': performanceSchemaVersion,
     'generatorVersion': performanceGeneratorVersion,
@@ -149,9 +149,7 @@ Future<Map<String, Object?>> performanceReceipt({
     'os': Platform.operatingSystem,
     'osVersion': Platform.operatingSystemVersion,
     'architecture': _architectureLabel(),
-    'commit': await _git(<String>['rev-parse', 'HEAD']),
-    'treeState': status.isEmpty ? 'clean' : 'dirty',
-    'treeFingerprint': await sourceTreeFingerprint(status: status),
+    ...sourceIdentity,
     'warmups': warmups,
     'sampleCount': sampleCount,
     'command': <String>[Platform.resolvedExecutable, ...arguments],
@@ -162,6 +160,15 @@ Future<Map<String, Object?>> performanceReceipt({
     },
     ...metadata,
     'results': results,
+  };
+}
+
+Future<Map<String, Object?>> currentPerformanceSourceIdentity() async {
+  final status = await _git(<String>['status', '--porcelain=v1']);
+  return <String, Object?>{
+    'commit': await _git(<String>['rev-parse', 'HEAD']),
+    'treeState': status.isEmpty ? 'clean' : 'dirty',
+    'treeFingerprint': await sourceTreeFingerprint(status: status),
   };
 }
 

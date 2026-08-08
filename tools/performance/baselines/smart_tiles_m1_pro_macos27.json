@@ -14,6 +14,7 @@
   },
   "policy": {
     "portableGate": "identity and work budgets are always enforced",
+    "sourceGate": "receipt commit, tree state, and tree fingerprint must match the current source unless --allow-historical is explicit",
     "timingGate": "explicit target id required",
     "timingHeadroomMultiplier": 1.5,
     "executionMode": "dart-jit and flutter_tester",

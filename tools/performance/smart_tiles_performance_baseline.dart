@@ -7,6 +7,7 @@ List<String> verifySmartTilesPerformanceBaseline({
   required Map<String, Object?> baseline,
   required Iterable<Map<String, Object?>> receipts,
   String? enforceTimingsForTargetId,
+  Map<String, Object?>? expectedSourceIdentity,
 }) {
   if (baseline['schemaVersion'] != smartTilesPerformanceBaselineSchemaVersion) {
     throw const FormatException('unsupported Smart Tiles baseline schema');
@@ -28,6 +29,7 @@ List<String> verifySmartTilesPerformanceBaseline({
     baseline['benchmarks'],
     label: 'benchmarks',
   );
+  final violations = <String>[];
   final receiptsByBenchmark = <String, Map<String, Object?>>{};
   for (final receipt in receipts) {
     final benchmark = receipt['benchmark'];
@@ -40,10 +42,17 @@ List<String> verifySmartTilesPerformanceBaseline({
     if (receiptsByBenchmark.containsKey(benchmark)) {
       throw FormatException('duplicate receipt for benchmark $benchmark');
     }
+    if (expectedSourceIdentity != null) {
+      _checkSourceIdentity(
+        benchmark: benchmark,
+        receipt: receipt,
+        expected: expectedSourceIdentity,
+        violations: violations,
+      );
+    }
     receiptsByBenchmark[benchmark] = receipt;
   }
 
-  final violations = <String>[];
   for (final benchmarkEntry in benchmarkConfigs.entries) {
     final benchmark = benchmarkEntry.key;
     final receipt = receiptsByBenchmark[benchmark];
@@ -115,6 +124,32 @@ List<String> verifySmartTilesPerformanceBaseline({
     }
   }
   return List<String>.unmodifiable(violations);
+}
+
+void _checkSourceIdentity({
+  required String benchmark,
+  required Map<String, Object?> receipt,
+  required Map<String, Object?> expected,
+  required List<String> violations,
+}) {
+  for (final field in const <String>[
+    'commit',
+    'treeState',
+    'treeFingerprint',
+  ]) {
+    final expectedValue = expected[field];
+    if (expectedValue is! String || expectedValue.isEmpty) {
+      throw FormatException('expected source $field must be a string');
+    }
+    final actualValue = receipt[field];
+    if (actualValue is! String || actualValue.isEmpty) {
+      violations.add('$benchmark receipt $field is missing');
+    } else if (actualValue != expectedValue) {
+      violations.add(
+        '$benchmark receipt $field expected $expectedValue, got $actualValue',
+      );
+    }
+  }
 }
 
 void _checkBudgets({

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'benchmark_support.dart';
 import 'smart_tiles_performance_baseline.dart';
 
 Future<void> main(List<String> arguments) async {
@@ -10,10 +11,14 @@ Future<void> main(List<String> arguments) async {
     final receipts = <Map<String, Object?>>[
       for (final path in options.receiptPaths) await _readObject(path),
     ];
+    final expectedSourceIdentity = options.allowHistorical
+        ? null
+        : await currentPerformanceSourceIdentity();
     final violations = verifySmartTilesPerformanceBaseline(
       baseline: baseline,
       receipts: receipts,
       enforceTimingsForTargetId: options.enforceTimeTargetId,
+      expectedSourceIdentity: expectedSourceIdentity,
     );
     if (violations.isNotEmpty) {
       for (final violation in violations) {
@@ -27,6 +32,7 @@ Future<void> main(List<String> arguments) async {
         'status': 'pass',
         'receiptCount': receipts.length,
         'timingGate': options.enforceTimeTargetId != null,
+        'historicalReceipts': options.allowHistorical,
       }),
     );
   } on FormatException catch (error) {
@@ -49,18 +55,30 @@ final class _Options {
     required this.baselinePath,
     required this.receiptPaths,
     required this.enforceTimeTargetId,
+    required this.allowHistorical,
   });
 
   final String baselinePath;
   final List<String> receiptPaths;
   final String? enforceTimeTargetId;
+  final bool allowHistorical;
 
   static _Options parse(List<String> arguments) {
     String? baselinePath;
     String? enforceTimeTargetId;
+    var allowHistorical = false;
     final receiptPaths = <String>[];
     for (var index = 0; index < arguments.length; index += 1) {
       final option = arguments[index];
+      if (option == '--allow-historical') {
+        if (allowHistorical) {
+          throw const FormatException(
+            '--allow-historical can be supplied once',
+          );
+        }
+        allowHistorical = true;
+        continue;
+      }
       if (index + 1 >= arguments.length) {
         throw FormatException('missing value for $option');
       }
@@ -93,6 +111,7 @@ final class _Options {
       baselinePath: baselinePath,
       receiptPaths: List<String>.unmodifiable(receiptPaths),
       enforceTimeTargetId: enforceTimeTargetId,
+      allowHistorical: allowHistorical,
     );
   }
 }

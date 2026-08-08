@@ -3,8 +3,11 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 
+import '../../../../tools/performance/benchmark_support.dart';
+
 void main() {
   test('verifies portable budgets and optional target timings', () async {
+    await Directory('build/test').create(recursive: true);
     final directory = await Directory('build/test').createTemp(
       'smart_tiles_baseline_cli_',
     );
@@ -29,9 +32,11 @@ void main() {
         },
       }),
     );
+    final sourceIdentity = await currentPerformanceSourceIdentity();
     await receipt.writeAsString(
       jsonEncode(<String, Object?>{
         'benchmark': 'example',
+        ...sourceIdentity,
         'results': <Object?>[
           <String, Object?>{
             'extent': 128,
@@ -66,6 +71,58 @@ void main() {
       '${timed.stderr}',
       contains('profiles.paint.p95Us=11 exceeds 10'),
     );
+  });
+
+  test('rejects historical receipts unless explicitly allowed', () async {
+    await Directory('build/test').create(recursive: true);
+    final directory = await Directory('build/test').createTemp(
+      'smart_tiles_historical_receipt_cli_',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final baseline = File('${directory.path}/baseline.json');
+    final receipt = File('${directory.path}/receipt.json');
+    await baseline.writeAsString(
+      jsonEncode(<String, Object?>{
+        'schemaVersion': 1,
+        'target': <String, Object?>{'id': 'test-target'},
+        'benchmarks': <String, Object?>{
+          'example': <String, Object?>{
+            'rows': <String, Object?>{
+              '128': <String, Object?>{},
+            },
+          },
+        },
+      }),
+    );
+    await receipt.writeAsString(
+      jsonEncode(<String, Object?>{
+        'benchmark': 'example',
+        'commit': 'historical-commit',
+        'treeState': 'clean',
+        'treeFingerprint': 'historical-fingerprint',
+        'results': <Object?>[
+          <String, Object?>{'extent': 128},
+        ],
+      }),
+    );
+
+    final currentOnly = await _run(<String>[
+      '--baseline',
+      baseline.path,
+      '--receipt',
+      receipt.path,
+    ]);
+    final historical = await _run(<String>[
+      '--baseline',
+      baseline.path,
+      '--receipt',
+      receipt.path,
+      '--allow-historical',
+    ]);
+
+    expect(currentOnly.exitCode, 1);
+    expect('${currentOnly.stderr}', contains('receipt commit'));
+    expect(historical.exitCode, 0, reason: '${historical.stderr}');
   });
 }
 
