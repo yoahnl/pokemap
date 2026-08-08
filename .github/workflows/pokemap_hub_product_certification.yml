@@ -24,7 +24,7 @@ on:
       - "tools/performance/**"
       - "pokemap_roadmap_mecaniques_fangame.md"
       - "documentation/reports/gameplay/**"
-      - "tool/pokemap_product_certification/**"
+      - "tools/pokemap_product_certification/**"
       - ".github/workflows/pokemap_hub_product_certification.yml"
   push:
     branches: [main]
@@ -67,7 +67,7 @@ jobs:
           fi
           tool/release/verify_intro_codecs.sh
       - name: Product certification contracts
-        working-directory: tool/pokemap_product_certification
+        working-directory: tools/pokemap_product_certification
         run: |
           flutter pub get
           flutter test
@@ -381,7 +381,7 @@ jobs:
           ! plutil -extract com.apple.security.cs.disable-library-validation raw -o - "$RUNNER_TEMP/release-entitlements.plist"
           ! plutil -extract com.apple.security.network.client raw -o - "$RUNNER_TEMP/release-entitlements.plist"
       - name: Build neutral certification package
-        working-directory: tool/pokemap_product_certification
+        working-directory: tools/pokemap_product_certification
         run: |
           flutter pub get
           flutter test test/build_neutral_package_artifact_test.dart \
