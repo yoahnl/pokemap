@@ -148,6 +148,22 @@ void main() {
         contains("part 'environment_generation_support.dart';"),
       );
     });
+
+    test('keeps Tiled map validation outside the transaction adapter', () {
+      final actionFile = File(
+        'lib/src/domains/maps/tiled_map_import_actions.dart',
+      );
+      final importSupport = File(
+        'lib/src/domains/maps/tiled_map_import_support.dart',
+      );
+
+      expect(importSupport.existsSync(), isTrue);
+      expect(actionFile.readAsLinesSync(), hasLength(lessThan(1200)));
+      expect(
+        actionFile.readAsStringSync(),
+        contains("part 'tiled_map_import_support.dart';"),
+      );
+    });
   });
 }
 
