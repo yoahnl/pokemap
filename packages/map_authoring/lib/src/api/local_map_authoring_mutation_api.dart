@@ -6,7 +6,7 @@ import '../contracts/action_descriptor.dart';
 import '../contracts/authoring_receipt.dart';
 import '../contracts/authoring_request.dart';
 import '../contracts/json_contract_support.dart';
-import '../domains/maps/map_mutation_dispatcher.dart';
+import '../application/map_mutation_dispatcher.dart';
 import '../domains/assets/tiled_image_collection_packer.dart';
 import '../history/content_blob_store.dart';
 import '../history/file_history_store.dart';

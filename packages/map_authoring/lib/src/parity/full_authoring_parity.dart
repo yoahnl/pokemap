@@ -1,4 +1,4 @@
-import '../domains/maps/map_mutation_dispatcher.dart';
+import '../application/map_mutation_dispatcher.dart';
 import '../registry/resource_kind_registry.dart';
 
 enum AuthoringParityStatus {

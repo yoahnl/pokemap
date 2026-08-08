@@ -65,6 +65,20 @@ void main() {
       expect(dependencyNames, {'map_core'});
       expect(pubspec, isNot(contains('sdk: flutter')));
     });
+
+    test('keeps canonical cross-domain composition in the application layer',
+        () {
+      final applicationDispatcher =
+          File('lib/src/application/map_mutation_dispatcher.dart');
+      final legacyMapsEntryPoint =
+          File('lib/src/domains/maps/map_mutation_dispatcher.dart');
+
+      expect(applicationDispatcher.existsSync(), isTrue);
+      expect(
+        legacyMapsEntryPoint.readAsStringSync(),
+        isNot(anyOf(contains('domains/assets'), contains('domains/narrative'))),
+      );
+    });
   });
 }
 
