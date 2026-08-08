@@ -138,6 +138,124 @@ test("read-only MCP inspects a real project with cursor pagination", async () =>
   }
 });
 
+test("MCP exposes connection and bounded world graph reads", async () => {
+  const fixture = await connectReadOnlyServer();
+  try {
+    const description = await toolData(fixture.client, "pokemap_describe");
+    const resourceKinds = description.resourceKinds as JsonRecord[];
+    const resourceKindIds = resourceKinds.map((kind) => String(kind.id));
+    for (const resourceKind of [
+      "mapConnection",
+      "worldGraph",
+      "worldGraphEdge",
+      "worldGraphIssue",
+      "worldGraphNode",
+    ]) {
+      assert.ok(resourceKindIds.includes(resourceKind), resourceKind);
+    }
+    const mapConnection = resourceKinds.find(
+      (kind) => kind.id === "mapConnection",
+    );
+    assert.ok(mapConnection);
+    assert.deepEqual(record(mapConnection.extensions).queryActions, [
+      "connection.list",
+      "connection.get",
+      "connection.preview_alignment",
+      "connection.validate",
+    ]);
+
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot,
+    });
+    const projectHandle = String(opened.projectHandle);
+
+    const connections = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "mapConnection",
+      operation: "list",
+      view: "detail",
+    });
+    assert.equal(typeof connections.totalAvailable, "number");
+
+    const mapConnections = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "map",
+      operation: "get",
+      ids: ["golden_route"],
+      fieldMask: ["connections"],
+    });
+    assert.ok(
+      Array.isArray(record((mapConnections.items as unknown[])[0]).connections),
+    );
+
+    const preview = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "mapConnection",
+      operation: "summary",
+      view: "detail",
+      extensions: {
+        actionId: "connection.preview_alignment",
+        parameters: {
+          mapId: "golden_route",
+          targetMapId: "golden_town",
+          direction: "east",
+          offset: 0,
+        },
+      },
+    });
+    assert.equal(record((preview.items as unknown[])[0]).overlapLength, 5);
+
+    const validation = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "mapConnection",
+      operation: "summary",
+      view: "detail",
+      extensions: {
+        actionId: "connection.validate",
+        parameters: {},
+      },
+    });
+    assert.equal(
+      typeof record((validation.items as unknown[])[0]).valid,
+      "boolean",
+    );
+
+    const graph = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "worldGraph",
+      operation: "get",
+      view: "detail",
+      ids: ["world-graph"],
+    });
+    const graphItem = record((graph.items as unknown[])[0]);
+    assert.equal(graphItem.nodeCount, 3);
+    assert.deepEqual(record(graphItem.resources), {
+      nodes: "worldGraphNode",
+      edges: "worldGraphEdge",
+      issues: "worldGraphIssue",
+    });
+
+    const connected = await toolData(fixture.client, "pokemap_query", {
+      projectHandle,
+      resourceKind: "worldGraphNode",
+      operation: "list",
+      view: "detail",
+      pageSize: 1,
+      extensions: {
+        actionId: "world_graph.list_connected",
+        parameters: { fromMapId: "golden_route" },
+      },
+    });
+    assert.equal(connected.returned, 1);
+    assert.ok(Number(connected.totalAvailable) >= 1);
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+  }
+});
+
 test("resource templates project map catalog and diagnostics use explicit handles", async () => {
   const fixture = await connectReadOnlyServer();
   try {

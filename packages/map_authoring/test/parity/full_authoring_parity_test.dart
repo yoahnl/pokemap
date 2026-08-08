@@ -51,6 +51,26 @@ void main() {
       }
     });
 
+    test('fails parity when a required direct read kind is not published', () {
+      final queryableKinds = canonicalQueryableResourceKindIds.toSet()
+        ..remove('mapConnection');
+      final catalog = AuthoringFullParityCatalog.canonical(
+        queryableResourceKinds: queryableKinds,
+      );
+      final connection = catalog.resources.singleWhere(
+        (resource) => resource.resourceKind == 'mapConnection',
+      );
+
+      expect(connection.canonicalOwnerKind, 'mapConnection');
+      expect(
+        connection.cells[AuthoringParityCapability.read]!.status,
+        AuthoringParityStatus.missing,
+      );
+      expect(catalog.blockedOrMissingCells, isNotEmpty);
+      expect(
+          catalog.toJson()['summary'], containsPair('catalogComplete', false));
+    });
+
     test('covers every canonical mutation with contracts and four transports',
         () {
       final catalog = AuthoringFullParityCatalog.canonical();

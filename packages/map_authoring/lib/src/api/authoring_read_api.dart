@@ -50,25 +50,7 @@ final class AuthoringReadApi implements AuthoringReadApiPort {
         AuthoringResourceKindRegistry.canonicalMinimal()
             .resourceKinds
             .where(
-              (kind) =>
-                  kind.id == 'map' ||
-                  kind.id == 'mapConnection' ||
-                  kind.id == 'worldGraph' ||
-                  kind.id == 'worldGraphNode' ||
-                  kind.id == 'worldGraphEdge' ||
-                  kind.id == 'worldGraphIssue' ||
-                  kind.id == 'project' ||
-                  kind.id == 'asset' ||
-                  kind.id == 'tilesetFolder' ||
-                  kind.id == 'elementCategory' ||
-                  kind.id == 'smartTileAtlas' ||
-                  kind.id == 'smartTileMaterial' ||
-                  kind.id == 'smartTilePattern' ||
-                  kind.id == 'smartTileAnimation' ||
-                  kind.id == 'smartTileDraft' ||
-                  kind.id == 'smartTilePreset' ||
-                  kind.id == 'smartTileLayer',
-            )
+                (kind) => canonicalQueryableResourceKindIds.contains(kind.id))
             .map((kind) => kind.toJson())
             .toList(growable: false);
     return freezeContractJsonObject(

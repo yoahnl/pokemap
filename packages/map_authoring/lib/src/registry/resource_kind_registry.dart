@@ -1,5 +1,29 @@
 import '../contracts/json_contract_support.dart';
 
+/// Resource kinds currently published by the canonical read API description.
+///
+/// Keeping this inventory beside the canonical descriptors lets parity gates
+/// prove discoverability instead of inferring it from aggregate persistence.
+const Set<String> canonicalQueryableResourceKindIds = {
+  'asset',
+  'elementCategory',
+  'map',
+  'mapConnection',
+  'project',
+  'smartTileAnimation',
+  'smartTileAtlas',
+  'smartTileDraft',
+  'smartTileLayer',
+  'smartTileMaterial',
+  'smartTilePattern',
+  'smartTilePreset',
+  'tilesetFolder',
+  'worldGraph',
+  'worldGraphEdge',
+  'worldGraphIssue',
+  'worldGraphNode',
+};
+
 /// Public description of one resource kind accepted by authoring contracts.
 final class AuthoringResourceKindDescriptor {
   AuthoringResourceKindDescriptor({

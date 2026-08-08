@@ -1,4 +1,5 @@
 import '../domains/maps/map_mutation_dispatcher.dart';
+import '../registry/resource_kind_registry.dart';
 
 enum AuthoringParityStatus {
   supported,
@@ -42,6 +43,13 @@ final class AuthoringParityCell {
     required this.capability,
     required String justification,
   })  : status = AuthoringParityStatus.notApplicable,
+        evidence = const [],
+        justification = _required(justification, 'justification');
+
+  AuthoringParityCell.missing({
+    required this.capability,
+    required String justification,
+  })  : status = AuthoringParityStatus.missing,
         evidence = const [],
         justification = _required(justification, 'justification');
 
@@ -140,10 +148,16 @@ final class AuthoringFullParityCatalog {
     });
   }
 
-  factory AuthoringFullParityCatalog.canonical() {
+  factory AuthoringFullParityCatalog.canonical({
+    Set<String> queryableResourceKinds = canonicalQueryableResourceKindIds,
+  }) {
     final resources = <AuthoringResourceParity>[
       for (final entry in _semanticOwners.entries)
-        _resourceParity(entry.key, entry.value),
+        _resourceParity(
+          entry.key,
+          entry.value,
+          queryableResourceKinds: queryableResourceKinds,
+        ),
     ];
     final actions = [
       for (final descriptor
@@ -208,12 +222,26 @@ final class AuthoringFullParityCatalog {
       };
 }
 
-AuthoringResourceParity _resourceParity(String kind, String owner) {
+AuthoringResourceParity _resourceParity(
+  String kind,
+  String owner, {
+  required Set<String> queryableResourceKinds,
+}) {
   final derived = kind == 'gamePackage';
   final sandbox = kind == 'gameSave';
   final visual = _visualResources.contains(kind);
   final cells = <AuthoringParityCapability, AuthoringParityCell>{};
   for (final capability in AuthoringParityCapability.values) {
+    if (capability == AuthoringParityCapability.read &&
+        _requiredDirectReadResourceKinds.contains(kind) &&
+        !queryableResourceKinds.contains(kind)) {
+      cells[capability] = AuthoringParityCell.missing(
+        capability: capability,
+        justification: '$kind is required as a first-class query resource but '
+            'is absent from the published readable inventory.',
+      );
+      continue;
+    }
     final notApplicable = switch (capability) {
       AuthoringParityCapability.mutation ||
       AuthoringParityCapability.durability ||
@@ -471,7 +499,7 @@ const _semanticOwners = <String, String>{
   'mapGroup': 'project',
   'map': 'map',
   'mapLayer': 'map',
-  'mapConnection': 'map',
+  'mapConnection': 'mapConnection',
   'mapWarp': 'map',
   'mapTrigger': 'map',
   'mapGameplayZone': 'map',
@@ -525,6 +553,10 @@ const _semanticOwners = <String, String>{
   'pokemonCatalog': 'pokemonDocument',
   'gameSave': 'sandboxPlayerState',
   'gamePackage': 'project',
+};
+
+const _requiredDirectReadResourceKinds = <String>{
+  'mapConnection',
 };
 
 const _visualResources = <String>{
