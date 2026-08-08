@@ -1,9 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_runner.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
   group('BattleAnimationRunner', () {
     test('executes steps in order and keeps the latest message active', () {
       final events = <String>[];

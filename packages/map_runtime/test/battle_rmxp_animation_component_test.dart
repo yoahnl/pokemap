@@ -8,6 +8,9 @@ import 'package:map_runtime/src/presentation/flame/battle_rmxp_hue_filter.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
   group('BattleRmxpAnimationComponent', () {
     test('advances RMXP frames at Pokemon SDK timing', () async {
       final component = BattleRmxpAnimationComponent(

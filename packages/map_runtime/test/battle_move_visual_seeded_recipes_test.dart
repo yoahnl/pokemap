@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_visual_catalog.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_visual_resolver.dart';
@@ -42,6 +43,9 @@ int _countFx(List<BattleAnimationStep> steps, String effectId) {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
   group('BattleMoveVisual seeded recipes', () {
     test('tackle follows a pure contact pattern without projectile fx', () {
       final steps = BattleMoveVisualRecipeLibrary().build(

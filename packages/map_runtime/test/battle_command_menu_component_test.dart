@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 import 'package:map_runtime/src/presentation/flame/battle_bag_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_bag_item_icon_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
@@ -138,6 +139,9 @@ Future<String> _writeTinyItemSprite(
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
   group('Battle command panel responsive layout', () {
     test('uses a stacked mobile layout on narrow widths', () async {
       final panel = BattleCommandPanelComponent(

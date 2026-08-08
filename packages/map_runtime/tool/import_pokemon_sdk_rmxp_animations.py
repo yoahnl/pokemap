@@ -37,6 +37,20 @@ OUTPUT = (
     / "flame"
     / "battle_sdk_rmxp_animation_catalog.dart"
 )
+SPEC_OUTPUT = (
+    PACKAGE_ROOT
+    / "lib"
+    / "src"
+    / "presentation"
+    / "flame"
+    / "battle_sdk_rmxp_animation_spec.dart"
+)
+BINARY_OUTPUT = (
+    PACKAGE_ROOT
+    / "assets"
+    / "battle_animations"
+    / "rmxp_animation_catalog.bin"
+)
 
 
 @dataclass(frozen=True)
@@ -256,53 +270,99 @@ def _quote(value: str) -> str:
     return json.dumps(value, ensure_ascii=False)
 
 
-def _dart_cell(cell: RmxpCell) -> str:
-    return (
-        "RmxpAnimationCellSpec("
-        f"index:{cell.index},pattern:{cell.pattern},x:{cell.x},y:{cell.y},"
-        f"zoom:{cell.zoom},angle:{cell.angle},mirror:{str(cell.mirror).lower()},"
-        f"opacity:{cell.opacity},blendType:{cell.blend_type})"
-    )
+_OPTION_INDEX = {
+    "normal": 0,
+    "rotateOnReverse": 1,
+    "mirrorOnReverse": 2,
+}
+
+_NULL_STRING_INDEX = 0xFFFF
 
 
-def _dart_frame(frame: RmxpFrame) -> str:
-    cells = ",".join(_dart_cell(cell) for cell in frame.cells)
-    return (
-        "RmxpAnimationFrameSpec("
-        f"cellMax:{frame.cell_max},"
-        f"cells:<RmxpAnimationCellSpec>[{cells}])"
-    )
+def _encode_binary(animations: list[RmxpAnimation]) -> bytes:
+    """Encode le catalogue au format binaire v1.
 
+    Doit rester le miroir exact de
+    lib/src/presentation/flame/battle_sdk_rmxp_animation_codec.dart
+    (decodeRmxpAnimationCatalog). Toute evolution du format doit toucher les
+    deux fichiers et incrementer la version.
+    """
+    import struct
 
-def _dart_timing(timing: RmxpTiming) -> str:
-    se_name = "null" if timing.se_name is None else _quote(timing.se_name)
-    return (
-        "RmxpAnimationTimingSpec("
-        f"frame:{timing.frame},condition:{timing.condition},"
-        f"flashScope:{timing.flash_scope},flashDuration:{timing.flash_duration},"
-        f"flashRed:{timing.red},flashGreen:{timing.green},"
-        f"flashBlue:{timing.blue},flashAlpha:{timing.alpha},"
-        f"seName:{se_name},seVolume:{timing.se_volume},sePitch:{timing.se_pitch})"
-    )
+    strings: dict[str, int] = {}
 
+    def intern(value: str) -> int:
+        if value not in strings:
+            strings[value] = len(strings)
+        return strings[value]
 
-def _dart_animation(animation: RmxpAnimation) -> str:
-    frames = ",".join(_dart_frame(frame) for frame in animation.frames)
-    timings = ",".join(_dart_timing(timing) for timing in animation.timings)
-    return (
-        "RmxpAnimationSpec("
-        f"id:{animation.id},"
-        f"name:{_quote(animation.name)},"
-        f"animationName:{_quote(animation.animation_name)},"
-        f"assetId:{_quote(animation.asset_id)},"
-        f"animationHue:{animation.animation_hue},"
-        f"position:{animation.position},"
-        f"frameMax:{animation.frame_max},"
-        f"option:RmxpAnimationOption.{animation.option},"
-        f"forceNoReverse:{str(animation.force_no_reverse).lower()},"
-        f"frames:<RmxpAnimationFrameSpec>[{frames}],"
-        f"timings:<RmxpAnimationTimingSpec>[{timings}])"
-    )
+    ordered = sorted(animations, key=lambda item: item.id)
+    for animation in ordered:
+        intern(animation.name)
+        intern(animation.animation_name)
+        intern(animation.asset_id)
+        for timing in animation.timings:
+            if timing.se_name is not None:
+                intern(timing.se_name)
+    if len(strings) >= _NULL_STRING_INDEX:
+        raise ValueError("RMXP catalog string table overflow")
+
+    out = bytearray()
+    out += b"RMXA"
+    out += struct.pack("<B", 1)
+    out += struct.pack("<H", len(strings))
+    for value in strings:
+        encoded = value.encode("utf-8")
+        out += struct.pack("<H", len(encoded))
+        out += encoded
+    out += struct.pack("<H", len(ordered))
+    for animation in ordered:
+        out += struct.pack("<i", animation.id)
+        out += struct.pack("<H", intern(animation.name))
+        out += struct.pack("<H", intern(animation.animation_name))
+        out += struct.pack("<H", intern(animation.asset_id))
+        out += struct.pack("<h", animation.animation_hue)
+        out += struct.pack("<B", animation.position)
+        out += struct.pack("<H", animation.frame_max)
+        out += struct.pack("<B", _OPTION_INDEX[animation.option])
+        out += struct.pack("<B", 1 if animation.force_no_reverse else 0)
+        out += struct.pack("<H", len(animation.frames))
+        for frame in animation.frames:
+            out += struct.pack("<H", frame.cell_max)
+            out += struct.pack("<H", len(frame.cells))
+            for cell in frame.cells:
+                out += struct.pack(
+                    "<hhhhhh",
+                    cell.index,
+                    cell.pattern,
+                    cell.x,
+                    cell.y,
+                    cell.zoom,
+                    cell.angle,
+                )
+                out += struct.pack("<B", 1 if cell.mirror else 0)
+                out += struct.pack("<h", cell.opacity)
+                out += struct.pack("<B", cell.blend_type)
+        out += struct.pack("<H", len(animation.timings))
+        for timing in animation.timings:
+            out += struct.pack("<hh", timing.frame, timing.condition)
+            out += struct.pack("<B", timing.flash_scope)
+            out += struct.pack(
+                "<hhhhh",
+                timing.flash_duration,
+                timing.red,
+                timing.green,
+                timing.blue,
+                timing.alpha,
+            )
+            se_index = (
+                _NULL_STRING_INDEX
+                if timing.se_name is None
+                else intern(timing.se_name)
+            )
+            out += struct.pack("<H", se_index)
+            out += struct.pack("<hh", timing.se_volume, timing.se_pitch)
+    return bytes(out)
 
 
 def _dart_int_map(name: str, values: dict[int, int | None]) -> str:
@@ -321,18 +381,7 @@ def _dart_move_id_map(values: dict[str, int]) -> str:
     )
 
 
-def _generate_dart(
-    animations: list[RmxpAnimation],
-    target_map: dict[int, int | None],
-    user_map: dict[int, int | None],
-    move_ids: dict[str, int],
-) -> str:
-    animation_entries = ",".join(
-        f"{animation.id}:{_dart_animation(animation)}"
-        for animation in sorted(animations, key=lambda item: item.id)
-    )
-    user_non_null = {key: value for key, value in user_map.items() if value is not None}
-    return f"""// Generated by tool/import_pokemon_sdk_rmxp_animations.py.
+_GENERATED_HEADER = f"""// Generated by tool/import_pokemon_sdk_rmxp_animations.py.
 // Sources:
 // - {DEFAULT_SDK_PROJECT}/Data/Animations.rxdata.yml
 // - {DEFAULT_SDK_PROJECT}/Data/PSP_MTAU.dat
@@ -341,15 +390,19 @@ def _generate_dart(
 // Do not edit by hand. Re-run the importer when SDK data changes.
 
 // ignore_for_file: lines_longer_than_80_chars
+"""
 
-enum RmxpAnimationOption {{
+
+def _generate_spec_dart() -> str:
+    return _GENERATED_HEADER + """
+enum RmxpAnimationOption {
   normal,
   rotateOnReverse,
   mirrorOnReverse,
-}}
+}
 
-final class RmxpAnimationCellSpec {{
-  const RmxpAnimationCellSpec({{
+final class RmxpAnimationCellSpec {
+  const RmxpAnimationCellSpec({
     required this.index,
     required this.pattern,
     required this.x,
@@ -359,7 +412,7 @@ final class RmxpAnimationCellSpec {{
     required this.mirror,
     required this.opacity,
     required this.blendType,
-  }});
+  });
 
   final int index;
   final int pattern;
@@ -370,20 +423,20 @@ final class RmxpAnimationCellSpec {{
   final bool mirror;
   final int opacity;
   final int blendType;
-}}
+}
 
-final class RmxpAnimationFrameSpec {{
-  const RmxpAnimationFrameSpec({{
+final class RmxpAnimationFrameSpec {
+  const RmxpAnimationFrameSpec({
     required this.cellMax,
     required this.cells,
-  }});
+  });
 
   final int cellMax;
   final List<RmxpAnimationCellSpec> cells;
-}}
+}
 
-final class RmxpAnimationTimingSpec {{
-  const RmxpAnimationTimingSpec({{
+final class RmxpAnimationTimingSpec {
+  const RmxpAnimationTimingSpec({
     required this.frame,
     required this.condition,
     required this.flashScope,
@@ -395,7 +448,7 @@ final class RmxpAnimationTimingSpec {{
     required this.seName,
     required this.seVolume,
     required this.sePitch,
-  }});
+  });
 
   final int frame;
   final int condition;
@@ -408,10 +461,10 @@ final class RmxpAnimationTimingSpec {{
   final String? seName;
   final int seVolume;
   final int sePitch;
-}}
+}
 
-final class RmxpAnimationSpec {{
-  const RmxpAnimationSpec({{
+final class RmxpAnimationSpec {
+  const RmxpAnimationSpec({
     required this.id,
     required this.name,
     required this.animationName,
@@ -423,7 +476,7 @@ final class RmxpAnimationSpec {{
     required this.forceNoReverse,
     required this.frames,
     required this.timings,
-  }});
+  });
 
   static const double frameDurationSeconds = 0.05;
 
@@ -440,10 +493,85 @@ final class RmxpAnimationSpec {{
   final List<RmxpAnimationTimingSpec> timings;
 
   double get durationSeconds => frameMax * frameDurationSeconds;
-}}
+}
+"""
+
+
+def _generate_catalog_dart(
+    target_map: dict[int, int | None],
+    user_map: dict[int, int | None],
+    move_ids: dict[str, int],
+) -> str:
+    user_non_null = {key: value for key, value in user_map.items() if value is not None}
+    return _GENERATED_HEADER + f"""
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+
+import 'battle_sdk_rmxp_animation_codec.dart';
+import 'battle_sdk_rmxp_animation_spec.dart';
+
+export 'battle_sdk_rmxp_animation_spec.dart';
 
 final class BattleSdkRmxpAnimationCatalog {{
-  static const Map<int,RmxpAnimationSpec> byAnimationId=<int,RmxpAnimationSpec>{{{animation_entries}}};
+  /// Les specs d'animation vivent dans
+  /// `assets/battle_animations/rmxp_animation_catalog.bin`, decodees
+  /// paresseusement au premier combat via [ensureLoaded].
+  static const String _assetPath =
+      'assets/battle_animations/rmxp_animation_catalog.bin';
+
+  static Map<int, RmxpAnimationSpec>? _loaded;
+  static Future<Map<int, RmxpAnimationSpec>>? _loading;
+
+  static bool get isLoaded => _loaded != null;
+
+  /// Catalogue decode. Exige un [ensureLoaded] prealable — fait par
+  /// `BattleOverlayComponent.onLoad`, donc avant toute planification
+  /// d'animation d'un combat monte.
+  static Map<int, RmxpAnimationSpec> get byAnimationId {{
+    final loaded = _loaded;
+    if (loaded == null) {{
+      throw StateError(
+        'BattleSdkRmxpAnimationCatalog is not loaded. '
+        'Await BattleSdkRmxpAnimationCatalog.ensureLoaded() first.',
+      );
+    }}
+    return loaded;
+  }}
+
+  static Future<void> ensureLoaded({{AssetBundle? bundle}}) async {{
+    if (_loaded != null) {{
+      return;
+    }}
+    final loading = _loading ??= _load(bundle ?? rootBundle);
+    try {{
+      _loaded = await loading;
+    }} catch (_) {{
+      if (identical(_loading, loading)) {{
+        _loading = null;
+      }}
+      rethrow;
+    }}
+  }}
+
+  static Future<Map<int, RmxpAnimationSpec>> _load(AssetBundle bundle) async {{
+    ByteData data;
+    try {{
+      // Cle cote app hote (le package est une dependance).
+      data = await bundle.load('packages/map_runtime/$_assetPath');
+    }} on Object {{
+      // Cle cote tests / execution du package lui-meme.
+      data = await bundle.load(_assetPath);
+    }}
+    return decodeRmxpAnimationCatalog(
+      data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+    );
+  }}
+
+  @visibleForTesting
+  static void debugReset() {{
+    _loaded = null;
+    _loading = null;
+  }}
 
   {_dart_int_map("moveTargetAnimationIdBySdkMoveId", target_map)}
 
@@ -473,6 +601,8 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--sdk-project", type=Path, default=DEFAULT_SDK_PROJECT)
     parser.add_argument("--output", type=Path, default=OUTPUT)
+    parser.add_argument("--spec-output", type=Path, default=SPEC_OUTPUT)
+    parser.add_argument("--binary-output", type=Path, default=BINARY_OUTPUT)
     args = parser.parse_args()
 
     data_dir = args.sdk_project / "Data"
@@ -480,14 +610,25 @@ def main() -> None:
     target_map = _load_marshal_hash(data_dir / "PSP_MTAT.dat")
     user_map = _load_marshal_hash(data_dir / "PSP_MTAU.dat")
     move_ids = _load_move_ids(data_dir / "Studio" / "moves")
-    dart = _generate_dart(animations, target_map, user_map, move_ids)
+
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(dart, encoding="utf-8")
+    args.spec_output.write_text(_generate_spec_dart(), encoding="utf-8")
+    args.output.write_text(
+        _generate_catalog_dart(target_map, user_map, move_ids), encoding="utf-8"
+    )
+    args.binary_output.parent.mkdir(parents=True, exist_ok=True)
+    binary = _encode_binary(animations)
+    args.binary_output.write_bytes(binary)
+    print(f"Wrote {args.spec_output}")
     print(f"Wrote {args.output}")
+    print(f"Wrote {args.binary_output} ({len(binary)} bytes)")
     print(
         f"animations={len(animations)} target={len(target_map)} "
         f"user={sum(1 for value in user_map.values() if value is not None)} "
         f"move_ids={len(move_ids)}"
+    )
+    print(
+        "Verify with: dart run tool/export_rmxp_animation_catalog_asset.dart"
     )
 
 

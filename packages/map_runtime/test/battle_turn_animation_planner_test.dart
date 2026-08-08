@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_visual_resolver.dart';
@@ -112,6 +113,9 @@ BattleMoveVisualResolver _resolver() {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
   group('BattleTurnAnimationPlanner', () {
     test('build returns empty plan when currentTurn is null', () {
       final session = _session(

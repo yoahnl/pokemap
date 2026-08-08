@@ -35,6 +35,9 @@ Future<ui.Image> _fakeSpriteSheetImage() async {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
+  TestWidgetsFlutterBinding.ensureInitialized();
 
   group('BattleFxLayerComponent', () {
     test('spawns a sprite for a SpawnFxStep and removes it after completion',

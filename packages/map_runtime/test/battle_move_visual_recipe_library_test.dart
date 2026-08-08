@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 import 'package:map_runtime/src/presentation/flame/battle_animation_plan.dart';
 import 'package:map_runtime/src/presentation/flame/battle_fx_catalog.dart';
 import 'package:map_runtime/src/presentation/flame/battle_move_visual_catalog.dart';
@@ -57,6 +58,9 @@ Iterable<BattleAnimationStep> _flattenSteps(
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
   group('BattleMoveVisualRecipeLibrary', () {
     test('each recipe returns at least one step or an explicit no-op', () {
       final library = BattleMoveVisualRecipeLibrary();

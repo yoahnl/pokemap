@@ -24,6 +24,7 @@ import 'battle_medicine_target_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
 import 'battle_visual_asset_cache.dart';
+import 'battle_sdk_rmxp_animation_catalog.dart';
 import 'battle_scene_layout.dart';
 import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
@@ -697,6 +698,10 @@ class BattleOverlayComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     final overlayStopwatch = Stopwatch()..start();
+    // Le catalogue d'animations RMXP est un asset binaire décodé
+    // paresseusement : le charger ici garantit que toute la planification
+    // d'animations du combat peut y accéder de façon synchrone.
+    await BattleSdkRmxpAnimationCatalog.ensureLoaded();
     final layout = BattleSceneLayout.forViewport(
       viewportSize: Size(size.x, size.y),
     );

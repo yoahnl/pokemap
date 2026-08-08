@@ -4,6 +4,9 @@ import 'package:map_runtime/src/presentation/flame/battle_rmxp_move_placement_ca
 import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
   group('RmxpMovePlacementCatalog', () {
     test('routes critical RMXP moves to explicit placement policies', () {
       const expectations =

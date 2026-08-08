@@ -3,6 +3,9 @@ import 'package:map_runtime/src/presentation/flame/battle_fx_catalog.dart';
 import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
   group('BattleSdkRmxpAnimationCatalog', () {
     test('imports the full Pokemon SDK RMXP animation dataset', () {
       expect(BattleSdkRmxpAnimationCatalog.byAnimationId, hasLength(874));

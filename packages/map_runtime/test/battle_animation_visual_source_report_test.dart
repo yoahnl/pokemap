@@ -1,8 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_runtime/src/presentation/flame/battle_sdk_rmxp_animation_catalog.dart';
 
 import '../tool/battle_animation_visual_source_report.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(BattleSdkRmxpAnimationCatalog.ensureLoaded);
+
   group('BattleAnimationVisualSourceReport', () {
     test('reports one row per normalized move id with target counters', () {
       final report = buildBattleAnimationVisualSourceReport();
