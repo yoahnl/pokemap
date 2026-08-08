@@ -139,6 +139,9 @@ class _SmartTilesStudioWorkspaceState
                 projectRootPath,
                 preset,
               ),
+      onUpdatePreset: projectRootPath == null
+          ? null
+          : (preset) => _publishExistingPreset(projectRootPath, preset),
       onAddPresetToCapturedMap: projectRootPath == null ||
               !launch.context.isCapturedMapAvailable(launch.activeMap) ||
               launch.mapIsDirty

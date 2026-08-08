@@ -20,6 +20,7 @@ class SmartTilesStudioInspector extends StatefulWidget {
     required this.isCapturedMapAvailable,
     this.selectedItemPreview,
     this.onPublishSelectedPreset,
+    this.onUpdateSelectedPreset,
     this.onAddSelectedPresetToMap,
   });
 
@@ -33,6 +34,8 @@ class SmartTilesStudioInspector extends StatefulWidget {
   final Widget? selectedItemPreview;
   final Future<void> Function(ProjectSmartTilePreset preset)?
       onPublishSelectedPreset;
+  final Future<void> Function(ProjectSmartTilePreset preset)?
+      onUpdateSelectedPreset;
   final Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddSelectedPresetToMap;
 
@@ -43,6 +46,7 @@ class SmartTilesStudioInspector extends StatefulWidget {
 
 class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
   bool _publishing = false;
+  bool _updating = false;
   bool _adding = false;
   String? _actionError;
 
@@ -123,6 +127,22 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
             ],
             if (preset != null) ...[
               const SizedBox(height: 12),
+              PokeMapButton(
+                key: const Key('smart-tiles-rename-preset'),
+                onPressed: widget.onUpdateSelectedPreset == null || _updating
+                    ? null
+                    : () => unawaited(_rename(preset)),
+                disabledReason: widget.onUpdateSelectedPreset == null
+                    ? 'Ouvrez un projet enregistrable pour renommer ce preset.'
+                    : _updating
+                        ? 'Mise à jour en cours.'
+                        : null,
+                leading: _updating
+                    ? const CupertinoActivityIndicator(radius: 7)
+                    : const Icon(CupertinoIcons.pencil, size: 15),
+                child: const Text('Renommer'),
+              ),
+              const SizedBox(height: 8),
               PokeMapButton(
                 key: const Key('smart-tiles-add-to-active-map'),
                 onPressed: _canAddToMap(preset)
@@ -205,6 +225,42 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
       });
     } finally {
       if (mounted) setState(() => _publishing = false);
+    }
+  }
+
+  Future<void> _rename(ProjectSmartTilePreset preset) async {
+    final callback = widget.onUpdateSelectedPreset;
+    if (callback == null || _updating) return;
+    final controller = TextEditingController(text: preset.name);
+    final confirmed = await showPokeMapPromptDialog(
+      context,
+      title: 'Renommer le Smart Tile',
+      controller: controller,
+      placeholder: 'Nom du Smart Tile',
+      cancelLabel: 'Annuler',
+      confirmLabel: 'Renommer',
+    );
+    final name = controller.text.trim();
+    controller.dispose();
+    if (!confirmed || !mounted || name == preset.name) return;
+    if (name.isEmpty) {
+      setState(
+          () => _actionError = 'Le nom du Smart Tile ne peut pas être vide.');
+      return;
+    }
+    setState(() {
+      _updating = true;
+      _actionError = null;
+    });
+    try {
+      await callback(preset.copyWith(name: name));
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _actionError = EditorAuthoringMutationFailure.capture(error).message;
+      });
+    } finally {
+      if (mounted) setState(() => _updating = false);
     }
   }
 

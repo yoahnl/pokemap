@@ -167,6 +167,30 @@ void main() {
       expect(published, _importedWangPreset);
     });
 
+    testWidgets('renames a preset through a guided prompt', (tester) async {
+      ProjectSmartTilePreset? updated;
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        onUpdatePreset: (preset) async => updated = preset,
+      );
+
+      await tester.tap(find.byKey(const Key('smart-tiles-rename-preset')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Renommer le Smart Tile'), findsOneWidget);
+      final field = find.byType(EditableText).last;
+      expect(field, findsOneWidget);
+      await tester.enterText(field, 'Chemin principal');
+      await tester.tap(find.text('Renommer').last);
+      await tester.pumpAndSettle();
+
+      expect(updated, isNotNull);
+      expect(updated!.id, 'hanazuki-path');
+      expect(updated!.name, 'Chemin principal');
+      expect(updated!.usage, SmartTileUsage.path);
+    });
+
     testWidgets('opens the reconstruction assistant from a captured map',
         (tester) async {
       await _pumpPanel(
@@ -1797,6 +1821,7 @@ Future<void> _pumpPanel(
   Future<void> Function(SmartTileReconstructionResult result)?
       onReconstructionApplied,
   Future<void> Function(ProjectSmartTilePreset preset)? onPublishExistingPreset,
+  Future<void> Function(ProjectSmartTilePreset preset)? onUpdatePreset,
   Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap,
   Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern,
@@ -1820,6 +1845,7 @@ Future<void> _pumpPanel(
           reconstructionService: reconstructionService,
           onReconstructionApplied: onReconstructionApplied,
           onPublishExistingPreset: onPublishExistingPreset,
+          onUpdatePreset: onUpdatePreset,
           onAddPresetToCapturedMap: onAddPresetToCapturedMap,
           onUpsertPattern: onUpsertPattern,
         ),

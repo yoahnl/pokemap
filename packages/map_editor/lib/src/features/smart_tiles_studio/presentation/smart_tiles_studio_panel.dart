@@ -75,6 +75,7 @@ class SmartTilesStudioPanel extends StatefulWidget {
     this.publicationService,
     this.onPublicationApplied,
     this.onPublishExistingPreset,
+    this.onUpdatePreset,
     this.onAddPresetToCapturedMap,
     this.onUpsertPattern,
   });
@@ -82,9 +83,7 @@ class SmartTilesStudioPanel extends StatefulWidget {
   final ProjectManifest manifest;
   final String? projectRootPath;
   final SmartTileAtlasImageLoader imageLoader;
-
-  /// Decoded-image cache used to render real sprites. Left null in production
-  /// so the Riverpod-scoped cache is picked up; injected in tests.
+  /// Decoded-image cache; null uses the Riverpod-scoped production cache.
   final EditorImageCache? imageCache;
   final SmartTilesStudioLaunchContext launchContext;
   final bool isCapturedMapAvailable;
@@ -107,10 +106,10 @@ class SmartTilesStudioPanel extends StatefulWidget {
       onPublicationApplied;
   final Future<void> Function(ProjectSmartTilePreset preset)?
       onPublishExistingPreset;
+  final Future<void> Function(ProjectSmartTilePreset preset)? onUpdatePreset;
   final Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap;
   final Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern;
-
   @override
   State<SmartTilesStudioPanel> createState() => _SmartTilesStudioPanelState();
 }
@@ -321,6 +320,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                       semanticLabel: 'Aperçu de ${selectedItem!.name}',
                     ),
               onPublishSelectedPreset: widget.onPublishExistingPreset,
+              onUpdateSelectedPreset: widget.onUpdatePreset,
               onAddSelectedPresetToMap: widget.onAddPresetToCapturedMap,
             ),
           ),
