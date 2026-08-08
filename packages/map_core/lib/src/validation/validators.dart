@@ -1699,21 +1699,6 @@ class ProjectValidator {
       throw const ValidationException('Default map size must be positive');
     }
   }
-
-  static void _validateUniqueIds<T>(
-    List<T> items,
-    String Function(T item) idSelector, {
-    required String duplicateMessagePrefix,
-  }) {
-    final ids = <String>{};
-    for (final item in items) {
-      final id = idSelector(item).trim();
-      if (id.isEmpty) continue;
-      if (!ids.add(id)) {
-        throw ValidationException('$duplicateMessagePrefix: $id');
-      }
-    }
-  }
 }
 
 void _requireScriptConditionReference(
@@ -3099,19 +3084,19 @@ class MapValidator {
       );
     }
   }
+}
 
-  static void _validateUniqueIds<T>(
-    List<T> items,
-    String Function(T item) idSelector, {
-    required String duplicateMessagePrefix,
-  }) {
-    final ids = <String>{};
-    for (final item in items) {
-      final id = idSelector(item).trim();
-      if (id.isEmpty) continue;
-      if (!ids.add(id)) {
-        throw ValidationException('$duplicateMessagePrefix: $id');
-      }
+void _validateUniqueIds<T>(
+  List<T> items,
+  String Function(T item) idSelector, {
+  required String duplicateMessagePrefix,
+}) {
+  final ids = <String>{};
+  for (final item in items) {
+    final id = idSelector(item).trim();
+    if (id.isEmpty) continue;
+    if (!ids.add(id)) {
+      throw ValidationException('$duplicateMessagePrefix: $id');
     }
   }
 }
