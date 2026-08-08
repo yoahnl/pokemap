@@ -327,47 +327,9 @@ class PlacedElementInstanceIndexer {
       final source = tileset.source;
       if (source is ProjectRegularAtlasTilesetSource) {
         out[tileset.id] = source.columns;
-        continue;
-      }
-      final maxRight = _maxFrameRightForTileset(
-        project: project,
-        tilesetId: tileset.id,
-      );
-      if (maxRight > 0) {
-        out[tileset.id] = maxRight;
       }
     }
     return out;
-  }
-
-  int _maxFrameRightForTileset({
-    required ProjectManifest project,
-    required String tilesetId,
-  }) {
-    var maxRight = 0;
-    for (final element in project.elements) {
-      if (_resolveElementPrimaryTilesetId(element) != tilesetId) {
-        continue;
-      }
-      final source = element.frames.primarySource;
-      final right = source.x + source.width;
-      if (right > maxRight) {
-        maxRight = right;
-      }
-    }
-    for (final entry in project.tilesets) {
-      if (entry.id != tilesetId) {
-        continue;
-      }
-      for (final palette in entry.paletteEntries) {
-        final source = palette.frames.primarySource;
-        final right = source.x + source.width;
-        if (right > maxRight) {
-          maxRight = right;
-        }
-      }
-    }
-    return maxRight;
   }
 
   String _resolveElementPrimaryTilesetId(ProjectElementEntry entry) {

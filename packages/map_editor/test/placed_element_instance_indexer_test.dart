@@ -273,7 +273,96 @@ void main() {
       expect(synced.placedElements, [authored, environment]);
       expect(synced.size, const GridSize(width: 2, height: 1));
     });
+
+    test('uses authoritative atlas columns for a multi-tile element', () {
+      final synced = const PlacedElementInstanceIndexer().syncAllTileLayers(
+        map: _buildingPatternMap(tilesetColumns: 64),
+        project: _buildingManifest(includeSource: true),
+      );
+
+      expect(synced.placedElements, hasLength(1));
+      expect(synced.placedElements.single.elementId, 'guesthouse');
+      expect(
+        synced.placedElements.single.properties[_originKey],
+        'tile_index',
+      );
+    });
+
+    test('does not guess atlas columns from legacy element bounds', () {
+      final synced = const PlacedElementInstanceIndexer().syncAllTileLayers(
+        map: _buildingPatternMap(tilesetColumns: 9),
+        project: _buildingManifest(includeSource: false),
+      );
+
+      expect(synced.placedElements, isEmpty);
+    });
   });
+}
+
+MapData _buildingPatternMap({required int tilesetColumns}) {
+  const source = TilesetSourceRect(x: 1, y: 1, width: 8, height: 7);
+  final palette = <TileLayerPaletteEntry>[];
+  final cells = <int>[];
+  for (var y = 0; y < source.height; y++) {
+    for (var x = 0; x < source.width; x++) {
+      palette.add(
+        TileLayerPaletteEntry(
+          tilesetId: 'village',
+          localTileId: (source.y + y) * tilesetColumns + source.x + x,
+        ),
+      );
+      cells.add(palette.length);
+    }
+  }
+  return MapData(
+    id: 'map',
+    name: 'Map',
+    size: const GridSize(width: 8, height: 7),
+    layers: <MapLayer>[
+      TileLayer(
+        id: 'decor',
+        name: 'Decor',
+        palette: palette,
+        cells: cells,
+      ),
+    ],
+  );
+}
+
+ProjectManifest _buildingManifest({required bool includeSource}) {
+  return ProjectManifest(
+    name: 'Project',
+    maps: const [],
+    tilesets: <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'village',
+        name: 'Village',
+        relativePath: 'tilesets/village.png',
+        source: includeSource
+            ? const ProjectRegularAtlasTilesetSource(
+                assetId: 'tilesets/village.png',
+                pixelWidth: 2048,
+                pixelHeight: 1024,
+                tileWidth: 32,
+                tileHeight: 32,
+              )
+            : null,
+      ),
+    ],
+    elements: const <ProjectElementEntry>[
+      ProjectElementEntry(
+        id: 'guesthouse',
+        name: 'Guesthouse',
+        tilesetId: 'village',
+        categoryId: 'building',
+        frames: <TilesetVisualFrame>[
+          TilesetVisualFrame(
+            source: TilesetSourceRect(x: 1, y: 1, width: 8, height: 7),
+          ),
+        ],
+      ),
+    ],
+  );
 }
 
 MapData _map({
@@ -354,6 +443,13 @@ ProjectManifest _manifest() {
         id: 'nature',
         name: 'Nature',
         relativePath: 'tilesets/nature.png',
+        source: ProjectRegularAtlasTilesetSource(
+          assetId: 'tilesets/nature.png',
+          pixelWidth: 32,
+          pixelHeight: 32,
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
       ),
     ],
     elements: [
