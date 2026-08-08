@@ -1,10 +1,10 @@
 # Audit complet de PokeMap — état du projet au 8 août 2026
 
-Date : 8 août 2026  
-Lot d'audit : `AUDIT-POKEMAP-COMPLET-2026-08-08`  
-Périmètre : monorepo PokeMap, Smart Tiles Studio, studios d'authoring, runtime, mécaniques de fangame, packages, distribution, MCP, CI et roadmaps  
-Nature de la passe : audit, validations et build read-only ; aucun correctif de production n'a été réalisé  
-Snapshot initial : `a936c5a76` sur `main`  
+Date : 8 août 2026
+Lot d'audit : `AUDIT-POKEMAP-COMPLET-2026-08-08`
+Périmètre : monorepo PokeMap, Smart Tiles Studio, studios d'authoring, runtime, mécaniques de fangame, packages, distribution, MCP, CI et roadmaps
+Nature de la passe : audit, validations et build read-only ; aucun correctif de production n'a été réalisé
+Snapshot initial : `a936c5a76` sur `main`
 Snapshot final observé : `f03a79511` sur `main`
 
 ## Verdict exécutif
@@ -187,7 +187,7 @@ Le Hub finit à `+375 -1`. Le seul échec charge une fixture Selbrume `version: 
 
 ### P0 — Riverpod empêche une résolution propre
 
-`apps/pokemap_hub/pubspec.yaml:17` demande `flutter_riverpod ^3.0.3`.  
+`apps/pokemap_hub/pubspec.yaml:17` demande `flutter_riverpod ^3.0.3`.
 `packages/map_editor/pubspec.yaml:16` demande `flutter_riverpod ^2.4.9`.
 
 Le host et la certification composent les deux packages. Les deux commandes suivantes échouent avant compilation :
