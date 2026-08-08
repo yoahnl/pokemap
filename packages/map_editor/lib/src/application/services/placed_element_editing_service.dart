@@ -1,7 +1,5 @@
 import 'package:map_core/map_core.dart';
 
-import 'placed_element_placement_origin.dart';
-
 final class PlacedElementMutationIntent {
   const PlacedElementMutationIntent({
     required this.actionId,

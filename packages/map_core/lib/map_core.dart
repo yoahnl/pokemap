@@ -13,6 +13,7 @@ export 'src/models/geometry.dart';
 export 'src/models/tileset.dart';
 export 'src/models/tileset_transparent_color.dart';
 export 'src/models/map_data.dart';
+export 'src/models/map_placed_element_origin.dart';
 export 'src/models/element_collision_profile.dart';
 export 'src/models/environment.dart';
 export 'src/models/map_entity_payloads.dart';

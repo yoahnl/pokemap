@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
 
@@ -91,4 +92,142 @@ void main() {
       isEmpty,
     );
   });
+
+  test('authored 128x128 elements never expand into projection caches', () {
+    final component = MapLayersComponent(
+      bundle: _authoredLargeElementBundle(
+        sourceSize: const GridSize(width: 128, height: 128),
+        mapSize: const GridSize(width: 256, height: 256),
+        filledTileLayer: true,
+      ),
+      tileImagesByTilesetId: const {},
+    );
+
+    expect(component.debugForegroundProjectionCellCount, 0);
+    expect(component.debugAnimatedProjectionCellCount, 0);
+  });
+
+  test('large-map candidate work follows visible instances, not footprint', () {
+    final profiles = <MapLayersRenderProfile>[];
+    final component = MapLayersComponent(
+      bundle: _authoredLargeElementBundle(
+        sourceSize: const GridSize(width: 192, height: 192),
+        mapSize: const GridSize(width: 4096, height: 256),
+        instanceCount: 20,
+      ),
+      tileImagesByTilesetId: const {},
+      debugOnRenderProfile: profiles.add,
+    )..setVisibleLocalRect(const Rect.fromLTWH(0, 0, 32, 32));
+
+    final recorder = ui.PictureRecorder();
+    component.render(Canvas(recorder));
+    recorder.endRecording().dispose();
+
+    expect(profiles, hasLength(1));
+    expect(profiles.single.placedElementCandidateVisits, 1);
+    expect(component.debugForegroundProjectionCellCount, 0);
+    expect(component.debugAnimatedProjectionCellCount, 0);
+  });
+
+  test('tile-index compatibility placements retain their projected cells', () {
+    final component = MapLayersComponent(
+      bundle: _authoredLargeElementBundle(
+        sourceSize: const GridSize(width: 2, height: 2),
+        mapSize: const GridSize(width: 4, height: 4),
+        filledTileLayer: true,
+        placementOrigin: pokemapPlacementOriginTileIndex,
+      ),
+      tileImagesByTilesetId: const {},
+    );
+
+    expect(component.debugForegroundProjectionCellCount, 3);
+    expect(component.debugAnimatedProjectionCellCount, 4);
+  });
+}
+
+RuntimeMapBundle _authoredLargeElementBundle({
+  required GridSize sourceSize,
+  required GridSize mapSize,
+  bool filledTileLayer = false,
+  int instanceCount = 1,
+  String placementOrigin = pokemapPlacementOriginAuthored,
+}) {
+  final cellCount = mapSize.width * mapSize.height;
+  return RuntimeMapBundle(
+    manifest: ProjectManifest(
+      name: 'Authored large element performance',
+      maps: const <ProjectMapEntry>[],
+      tilesets: const <ProjectTilesetEntry>[
+        ProjectTilesetEntry(
+          id: 'atlas',
+          name: 'Atlas',
+          relativePath: 'atlas.png',
+        ),
+      ],
+      settings: const ProjectSettings(
+        tileWidth: 1,
+        tileHeight: 1,
+        displayScale: 1,
+      ),
+      elements: <ProjectElementEntry>[
+        ProjectElementEntry(
+          id: 'building',
+          name: 'Building',
+          tilesetId: 'atlas',
+          categoryId: 'buildings',
+          frames: <TilesetVisualFrame>[
+            TilesetVisualFrame(
+              source: TilesetSourceRect(
+                x: 0,
+                y: 0,
+                width: sourceSize.width,
+                height: sourceSize.height,
+              ),
+            ),
+            TilesetVisualFrame(
+              source: TilesetSourceRect(
+                x: 0,
+                y: sourceSize.height,
+                width: sourceSize.width,
+                height: sourceSize.height,
+              ),
+            ),
+          ],
+          collisionProfile: const ElementCollisionProfile(
+            cells: <GridPos>[GridPos(x: 0, y: 0)],
+          ),
+        ),
+      ],
+    ),
+    map: MapData(
+      id: 'large-performance-map',
+      name: 'Large performance map',
+      size: mapSize,
+      layers: <MapLayer>[
+        MapLayer.tile(
+          id: 'decor',
+          name: 'Decor',
+          palette: const <TileLayerPaletteEntry>[
+            TileLayerPaletteEntry(tilesetId: 'atlas', localTileId: 0),
+          ],
+          cells:
+              filledTileLayer ? List<int>.filled(cellCount, 1) : const <int>[],
+        ),
+      ],
+      placedElements: <MapPlacedElement>[
+        for (var index = 0; index < instanceCount; index += 1)
+          MapPlacedElement(
+            id: 'building-$index',
+            layerId: 'decor',
+            elementId: 'building',
+            pos: GridPos(x: index * 200, y: 0),
+            properties: <String, String>{
+              pokemapPlacementOriginProperty: placementOrigin,
+            },
+          ),
+      ],
+    ),
+    projectRootDirectory: '/tmp/large-element-performance',
+    tilesetAbsolutePathsById: const <String, String>{},
+  );
 }

@@ -1,4 +1,6 @@
-const pokemapPlacementOriginProperty = 'pokemapPlacementOrigin';
-const pokemapPlacementOriginAuthored = 'authored';
-const pokemapPlacementOriginTileIndex = 'tile_index';
-const pokemapPlacementOriginEnvironment = 'environment';
+export 'package:map_core/map_core.dart'
+    show
+        pokemapPlacementOriginAuthored,
+        pokemapPlacementOriginEnvironment,
+        pokemapPlacementOriginProperty,
+        pokemapPlacementOriginTileIndex;

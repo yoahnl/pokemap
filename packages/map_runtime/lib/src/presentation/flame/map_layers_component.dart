@@ -214,6 +214,16 @@ class MapLayersComponent extends PositionComponent {
     _visibleLocalRect = rect;
   }
 
+  @visibleForTesting
+  int get debugForegroundProjectionCellCount =>
+      _foregroundTileCellIndicesByLayerId.values
+          .fold(0, (total, cells) => total + cells.length);
+
+  @visibleForTesting
+  int get debugAnimatedProjectionCellCount =>
+      _animatedPlacedCellsByLayerId.values
+          .fold(0, (total, cells) => total + cells.length);
+
   ({int startX, int startY, int endX, int endY}) _visibleCellRange() {
     final rect = _visibleLocalRect;
     final width = bundle.map.size.width;
@@ -1283,6 +1293,9 @@ class MapLayersComponent extends PositionComponent {
     final mapH = map.size.height;
 
     for (final instance in map.placedElements) {
+      if (isAuthoredMapPlacedElement(instance)) {
+        continue;
+      }
       final layer = tileLayerById[instance.layerId];
       if (layer == null) {
         continue;
@@ -1356,6 +1369,9 @@ class MapLayersComponent extends PositionComponent {
     final mapW = map.size.width;
     final mapH = map.size.height;
     for (final instance in map.placedElements) {
+      if (isAuthoredMapPlacedElement(instance)) {
+        continue;
+      }
       final layer = tileLayerById[instance.layerId];
       if (layer == null) {
         continue;

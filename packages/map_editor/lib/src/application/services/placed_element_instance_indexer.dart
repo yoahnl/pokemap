@@ -1,6 +1,5 @@
 import 'package:map_core/map_core.dart';
 
-import 'placed_element_placement_origin.dart';
 export 'placed_element_placement_origin.dart';
 
 class PlacedElementInstanceIndexer {
