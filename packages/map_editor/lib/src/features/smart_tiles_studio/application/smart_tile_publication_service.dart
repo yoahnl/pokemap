@@ -216,6 +216,16 @@ final class SmartTilePublicationResult {
   String? get layerId => plan.layerId;
 }
 
+final class SmartTilePresetDuplicationResult {
+  const SmartTilePresetDuplicationResult({
+    required this.preset,
+    required this.snapshot,
+  });
+
+  final ProjectSmartTilePreset preset;
+  final SmartTilePublicationCanonicalSnapshot snapshot;
+}
+
 final class SmartTilePublicationException implements Exception {
   const SmartTilePublicationException(
     this.code,
@@ -368,6 +378,53 @@ final class SmartTilePublicationService {
     required ProjectSmartTilePreset preset,
   }) async {
     final snapshot = await _gateway.load(projectRootPath: projectRootPath);
+    return _publishPresetFromSnapshot(
+      projectRootPath: projectRootPath,
+      preset: preset,
+      snapshot: snapshot,
+    );
+  }
+
+  Future<SmartTilePresetDuplicationResult> duplicatePreset({
+    required String projectRootPath,
+    required ProjectSmartTilePreset preset,
+  }) async {
+    final snapshot = await _gateway.load(projectRootPath: projectRootPath);
+    final presets = snapshot.manifest.smartTileCatalog.presets;
+    final duplicate = preset.copyWith(
+      id: suggestPresetId(
+        sourceId: preset.id,
+        existingPresetIds: presets.map((candidate) => candidate.id),
+      ),
+      name: suggestPresetCopyName(
+        sourceName: preset.name,
+        existingPresetNames: presets.map((candidate) => candidate.name),
+      ),
+      status: SmartTilePresetStatus.published,
+    );
+    final canonical = await _publishPresetFromSnapshot(
+      projectRootPath: projectRootPath,
+      preset: duplicate,
+      snapshot: snapshot,
+    );
+    if (!canonical.manifest.smartTileCatalog.presets
+        .any((candidate) => candidate.id == duplicate.id)) {
+      throw const SmartTilePublicationException(
+        'smart_tile.publish.duplicate_missing_after_apply',
+        'La copie est absente du snapshot canonique après publication.',
+      );
+    }
+    return SmartTilePresetDuplicationResult(
+      preset: duplicate,
+      snapshot: canonical,
+    );
+  }
+
+  Future<SmartTilePublicationCanonicalSnapshot> _publishPresetFromSnapshot({
+    required String projectRootPath,
+    required ProjectSmartTilePreset preset,
+    required SmartTilePublicationCanonicalSnapshot snapshot,
+  }) async {
     final payload = preset.toJson();
     // La révision fait partie de l'identité de la requête : sans elle, revenir
     // à une table déjà appliquée rejoue la même clé sur une charge différente
@@ -396,6 +453,22 @@ final class SmartTilePublicationService {
       );
     }
     return canonical;
+  }
+
+  static String suggestPresetId({
+    required String sourceId,
+    required Iterable<String> existingPresetIds,
+  }) {
+    final stem = _identifier('${sourceId}_copy', fallback: 'smart_tile_copy');
+    return _suggestUniqueValue(stem: stem, existingValues: existingPresetIds);
+  }
+
+  static String suggestPresetCopyName({
+    required String sourceName,
+    required Iterable<String> existingPresetNames,
+  }) {
+    final stem = '${sourceName.trim()} — copie';
+    return _suggestUniqueValue(stem: stem, existingValues: existingPresetNames);
   }
 
   static String suggestLayerId({
@@ -447,6 +520,21 @@ String _identifier(String value, {required String fallback}) {
       .replaceAll(RegExp(r'_+'), '_')
       .replaceAll(RegExp(r'^[_-]+|[_-]+$'), '');
   return normalized.isEmpty ? fallback : normalized;
+}
+
+String _suggestUniqueValue({
+  required String stem,
+  required Iterable<String> existingValues,
+}) {
+  final existing = existingValues.toSet();
+  if (!existing.contains(stem)) return stem;
+  var suffix = 2;
+  while (existing.contains('$stem $suffix') ||
+      existing.contains('${stem}_$suffix')) {
+    suffix++;
+  }
+  final separator = stem.contains(' — ') ? ' ' : '_';
+  return '$stem$separator$suffix';
 }
 
 String _nonBlank(String value, String field) {

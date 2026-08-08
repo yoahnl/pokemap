@@ -32,6 +32,7 @@ import '../application/smart_tile_tiled_wang_import_service.dart';
 import '../application/smart_tile_test_layer_controller.dart';
 import 'smart_tile_guide_diagram.dart';
 import 'smart_tile_guide_overlay_painter.dart';
+import 'smart_tile_preset_library_actions.dart';
 import 'smart_tile_pattern_editor.dart';
 import 'smart_tile_reconstruction_editor.dart';
 import 'smart_tile_sprite_preview.dart';
@@ -74,15 +75,14 @@ class SmartTilesStudioPanel extends StatefulWidget {
     this.onReconstructionApplied,
     this.publicationService,
     this.onPublicationApplied,
-    this.onPublishExistingPreset,
-    this.onUpdatePreset,
-    this.onAddPresetToCapturedMap,
+    this.presetActions = const SmartTilePresetLibraryActions(),
     this.onUpsertPattern,
   });
 
   final ProjectManifest manifest;
   final String? projectRootPath;
   final SmartTileAtlasImageLoader imageLoader;
+
   /// Decoded-image cache; null uses the Riverpod-scoped production cache.
   final EditorImageCache? imageCache;
   final SmartTilesStudioLaunchContext launchContext;
@@ -104,11 +104,7 @@ class SmartTilesStudioPanel extends StatefulWidget {
   final SmartTilePublicationService? publicationService;
   final Future<void> Function(SmartTilePublicationResult result)?
       onPublicationApplied;
-  final Future<void> Function(ProjectSmartTilePreset preset)?
-      onPublishExistingPreset;
-  final Future<void> Function(ProjectSmartTilePreset preset)? onUpdatePreset;
-  final Future<bool> Function(ProjectSmartTilePreset preset)?
-      onAddPresetToCapturedMap;
+  final SmartTilePresetLibraryActions presetActions;
   final Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern;
   @override
   State<SmartTilesStudioPanel> createState() => _SmartTilesStudioPanelState();
@@ -319,9 +315,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                       key: const Key('smart-tiles-inspector-sprite'),
                       semanticLabel: 'Aperçu de ${selectedItem!.name}',
                     ),
-              onPublishSelectedPreset: widget.onPublishExistingPreset,
-              onUpdateSelectedPreset: widget.onUpdatePreset,
-              onAddSelectedPresetToMap: widget.onAddPresetToCapturedMap,
+              actions: widget.presetActions,
             ),
           ),
         ),

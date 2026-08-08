@@ -19,6 +19,7 @@ import '../application/smart_tile_source_asset_import_service.dart';
 import '../application/smart_tile_source_image_picker.dart';
 import '../application/smart_tile_tiled_wang_import_service.dart';
 import 'smart_tiles_studio_panel.dart';
+import 'smart_tile_preset_library_actions.dart';
 
 /// Riverpod orchestration boundary for the native Studio.
 ///
@@ -133,22 +134,24 @@ class _SmartTilesStudioWorkspaceState
             ),
       onPublicationApplied:
           projectRootPath == null ? null : _acceptPublicationResult,
-      onPublishExistingPreset: projectRootPath == null
-          ? null
-          : (preset) => _publishExistingPreset(
-                projectRootPath,
-                preset,
-              ),
-      onUpdatePreset: projectRootPath == null
-          ? null
-          : (preset) => _publishExistingPreset(projectRootPath, preset),
-      onAddPresetToCapturedMap: projectRootPath == null ||
-              !launch.context.isCapturedMapAvailable(launch.activeMap) ||
-              launch.mapIsDirty
-          ? null
-          : (preset) => ref
-              .read(editorNotifierProvider.notifier)
-              .createCanonicalSmartTileLayer(preset: preset),
+      presetActions: SmartTilePresetLibraryActions(
+        publish: projectRootPath == null
+            ? null
+            : (preset) => _publishExistingPreset(projectRootPath, preset),
+        update: projectRootPath == null
+            ? null
+            : (preset) => _publishExistingPreset(projectRootPath, preset),
+        duplicate: projectRootPath == null
+            ? null
+            : (preset) => _duplicatePreset(projectRootPath, preset),
+        addToMap: projectRootPath == null ||
+                !launch.context.isCapturedMapAvailable(launch.activeMap) ||
+                launch.mapIsDirty
+            ? null
+            : (preset) => ref
+                .read(editorNotifierProvider.notifier)
+                .createCanonicalSmartTileLayer(preset: preset),
+      ),
       onUpsertPattern: projectRootPath == null
           ? null
           : (pattern) => _upsertPattern(projectRootPath, pattern),
@@ -371,6 +374,36 @@ class _SmartTilesStudioWorkspaceState
     ref.read(editorNotifierProvider.notifier).acceptCanonicalProjectManifest(
           canonical.manifest,
           statusMessage: 'Smart Tile « ${preset.name} » publié.',
+        );
+    setState(() {
+      _canonicalDraft = null;
+      _persistenceState = null;
+    });
+  }
+
+  Future<void> _duplicatePreset(
+    String projectRootPath,
+    ProjectSmartTilePreset preset,
+  ) async {
+    await _flushDraft();
+    await _coordinator?.close();
+    _coordinator = null;
+    _attachedRoot = null;
+    _pendingDraft = null;
+    _pendingRootPath = null;
+    final result = await SmartTilePublicationService(
+      gateway: CanonicalSmartTilePublicationGateway(
+        mutations: ref.read(authoringMutationAdapterProvider),
+        queries: ref.read(authoringQueryAdapterProvider),
+      ),
+    ).duplicatePreset(
+      projectRootPath: projectRootPath,
+      preset: preset,
+    );
+    if (!mounted) return;
+    ref.read(editorNotifierProvider.notifier).acceptCanonicalProjectManifest(
+          result.snapshot.manifest,
+          statusMessage: 'Smart Tile « ${result.preset.name} » créé.',
         );
     setState(() {
       _canonicalDraft = null;

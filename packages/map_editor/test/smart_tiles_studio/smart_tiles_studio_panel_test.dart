@@ -9,6 +9,7 @@ import 'package:map_editor/src/features/smart_tiles_studio/application/smart_til
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_reconstruction_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_tiled_wang_import_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tile_sprite_preview.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tile_preset_library_actions.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_asset_card.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
@@ -189,6 +190,29 @@ void main() {
       expect(updated!.id, 'hanazuki-path');
       expect(updated!.name, 'Chemin principal');
       expect(updated!.usage, SmartTileUsage.path);
+    });
+
+    testWidgets('duplicates the complete selected preset', (tester) async {
+      ProjectSmartTilePreset? duplicated;
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        onDuplicatePreset: (preset) async => duplicated = preset,
+      );
+
+      final duplicate = find.byKey(
+        const Key('smart-tiles-duplicate-preset'),
+      );
+      expect(duplicate, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(duplicate).onPressed, isNotNull);
+
+      await tester.tap(duplicate);
+      await tester.pumpAndSettle();
+
+      expect(duplicated, isNotNull);
+      expect(duplicated!.id, 'hanazuki-path');
+      expect(duplicated!.name, 'Chemin Hanazuki');
+      expect(duplicated!.usage, SmartTileUsage.path);
     });
 
     testWidgets('opens the reconstruction assistant from a captured map',
@@ -1822,6 +1846,7 @@ Future<void> _pumpPanel(
       onReconstructionApplied,
   Future<void> Function(ProjectSmartTilePreset preset)? onPublishExistingPreset,
   Future<void> Function(ProjectSmartTilePreset preset)? onUpdatePreset,
+  Future<void> Function(ProjectSmartTilePreset preset)? onDuplicatePreset,
   Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap,
   Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern,
@@ -1844,9 +1869,12 @@ Future<void> _pumpPanel(
           capturedMap: capturedMap,
           reconstructionService: reconstructionService,
           onReconstructionApplied: onReconstructionApplied,
-          onPublishExistingPreset: onPublishExistingPreset,
-          onUpdatePreset: onUpdatePreset,
-          onAddPresetToCapturedMap: onAddPresetToCapturedMap,
+          presetActions: SmartTilePresetLibraryActions(
+            publish: onPublishExistingPreset,
+            update: onUpdatePreset,
+            duplicate: onDuplicatePreset,
+            addToMap: onAddPresetToCapturedMap,
+          ),
           onUpsertPattern: onUpsertPattern,
         ),
       ),

@@ -223,6 +223,51 @@ void main() {
       expect(gateway.expectedRevision, isNot(firstRevision));
       expect(gateway.lastIdempotencyKey, isNot(first));
     });
+
+    test('duplicatePreset publie une copie complète avec un id unique',
+        () async {
+      final source = _preset();
+      final existingCopy = source.copyWith(
+        id: 'grass_copy',
+        name: 'Grass — copie',
+      );
+      final duplicate = source.copyWith(
+        id: 'grass_copy_2',
+        name: 'Grass — copie 2',
+      );
+      final gateway = _FakeGateway(
+        before: _snapshot(
+          manifest: _publishedManifest(
+            presets: <ProjectSmartTilePreset>[source, existingCopy],
+          ),
+        ),
+        after: _snapshot(
+          revision: 'revision-2',
+          manifest: _publishedManifest(
+            presets: <ProjectSmartTilePreset>[
+              source,
+              existingCopy,
+              duplicate,
+            ],
+          ),
+        ),
+      );
+      final service = SmartTilePublicationService(gateway: gateway);
+
+      final result = await service.duplicatePreset(
+        projectRootPath: '/project',
+        preset: source,
+      );
+
+      expect(result.preset, duplicate);
+      expect(result.snapshot.manifest, gateway.after.manifest);
+      final payload =
+          gateway.plannedParameters!['preset']! as Map<String, Object?>;
+      expect(payload['id'], 'grass_copy_2');
+      expect(payload['name'], 'Grass — copie 2');
+      expect(payload['usage'], source.toJson()['usage']);
+      expect(payload['defaultMaterialId'], 'grass');
+    });
   });
 }
 
@@ -340,13 +385,14 @@ ProjectManifest _draftManifest() => ProjectManifest(
       ),
     );
 
-ProjectManifest _publishedManifest() => ProjectManifest(
+ProjectManifest _publishedManifest({List<ProjectSmartTilePreset>? presets}) =>
+    ProjectManifest(
       name: 'Publication test',
       version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(
-        presets: <ProjectSmartTilePreset>[_preset()],
+        presets: presets ?? <ProjectSmartTilePreset>[_preset()],
       ),
     );
 

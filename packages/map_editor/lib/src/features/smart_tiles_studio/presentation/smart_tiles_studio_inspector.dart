@@ -7,6 +7,7 @@ import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/smart_tile_studio_library.dart';
+import 'smart_tile_preset_library_actions.dart';
 
 class SmartTilesStudioInspector extends StatefulWidget {
   const SmartTilesStudioInspector({
@@ -19,9 +20,7 @@ class SmartTilesStudioInspector extends StatefulWidget {
     required this.diagnostics,
     required this.isCapturedMapAvailable,
     this.selectedItemPreview,
-    this.onPublishSelectedPreset,
-    this.onUpdateSelectedPreset,
-    this.onAddSelectedPresetToMap,
+    this.actions = const SmartTilePresetLibraryActions(),
   });
 
   final bool isCreating;
@@ -32,12 +31,7 @@ class SmartTilesStudioInspector extends StatefulWidget {
   final List<SmartTileDiagnostic> diagnostics;
   final bool isCapturedMapAvailable;
   final Widget? selectedItemPreview;
-  final Future<void> Function(ProjectSmartTilePreset preset)?
-      onPublishSelectedPreset;
-  final Future<void> Function(ProjectSmartTilePreset preset)?
-      onUpdateSelectedPreset;
-  final Future<bool> Function(ProjectSmartTilePreset preset)?
-      onAddSelectedPresetToMap;
+  final SmartTilePresetLibraryActions actions;
 
   @override
   State<SmartTilesStudioInspector> createState() =>
@@ -47,6 +41,7 @@ class SmartTilesStudioInspector extends StatefulWidget {
 class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
   bool _publishing = false;
   bool _updating = false;
+  bool _duplicating = false;
   bool _adding = false;
   String? _actionError;
 
@@ -111,10 +106,10 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
               const SizedBox(height: 12),
               PokeMapButton(
                 key: const Key('smart-tiles-publish-imported-preset'),
-                onPressed: widget.onPublishSelectedPreset == null || _publishing
+                onPressed: widget.actions.publish == null || _publishing
                     ? null
                     : () => unawaited(_publish(preset!)),
-                disabledReason: widget.onPublishSelectedPreset == null
+                disabledReason: widget.actions.publish == null
                     ? 'Ouvrez un projet enregistrable pour publier ce preset.'
                     : _publishing
                         ? 'Publication en cours.'
@@ -126,22 +121,40 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
               ),
             ],
             if (preset != null) ...[
-              const SizedBox(height: 12),
-              PokeMapButton(
-                key: const Key('smart-tiles-rename-preset'),
-                onPressed: widget.onUpdateSelectedPreset == null || _updating
-                    ? null
-                    : () => unawaited(_rename(preset)),
-                disabledReason: widget.onUpdateSelectedPreset == null
-                    ? 'Ouvrez un projet enregistrable pour renommer ce preset.'
-                    : _updating
-                        ? 'Mise à jour en cours.'
-                        : null,
-                leading: _updating
-                    ? const CupertinoActivityIndicator(radius: 7)
-                    : const Icon(CupertinoIcons.pencil, size: 15),
-                child: const Text('Renommer'),
-              ),
+              if (preset.status == SmartTilePresetStatus.published) ...[
+                const SizedBox(height: 12),
+                PokeMapButton(
+                  key: const Key('smart-tiles-rename-preset'),
+                  onPressed: widget.actions.update == null || _updating
+                      ? null
+                      : () => unawaited(_rename(preset)),
+                  disabledReason: widget.actions.update == null
+                      ? 'Ouvrez un projet enregistrable pour renommer ce preset.'
+                      : _updating
+                          ? 'Mise à jour en cours.'
+                          : null,
+                  leading: _updating
+                      ? const CupertinoActivityIndicator(radius: 7)
+                      : const Icon(CupertinoIcons.pencil, size: 15),
+                  child: const Text('Renommer'),
+                ),
+                const SizedBox(height: 8),
+                PokeMapButton(
+                  key: const Key('smart-tiles-duplicate-preset'),
+                  onPressed: widget.actions.duplicate == null || _duplicating
+                      ? null
+                      : () => unawaited(_duplicate(preset)),
+                  disabledReason: widget.actions.duplicate == null
+                      ? 'Ouvrez un projet enregistrable pour dupliquer ce preset.'
+                      : _duplicating
+                          ? 'Duplication en cours.'
+                          : null,
+                  leading: _duplicating
+                      ? const CupertinoActivityIndicator(radius: 7)
+                      : const Icon(CupertinoIcons.square_on_square, size: 15),
+                  child: const Text('Dupliquer'),
+                ),
+              ],
               const SizedBox(height: 8),
               PokeMapButton(
                 key: const Key('smart-tiles-add-to-active-map'),
@@ -192,7 +205,7 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
     return !_adding &&
         preset.status == SmartTilePresetStatus.published &&
         widget.isCapturedMapAvailable &&
-        widget.onAddSelectedPresetToMap != null;
+        widget.actions.addToMap != null;
   }
 
   String? _addToMapDisabledReason(ProjectSmartTilePreset preset) {
@@ -203,14 +216,14 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
     if (!widget.isCapturedMapAvailable) {
       return 'Ouvrez une carte enregistrée depuis laquelle le Studio a été lancé.';
     }
-    if (widget.onAddSelectedPresetToMap == null) {
+    if (widget.actions.addToMap == null) {
       return 'La session canonique de la carte n’est pas disponible.';
     }
     return null;
   }
 
   Future<void> _publish(ProjectSmartTilePreset preset) async {
-    final callback = widget.onPublishSelectedPreset;
+    final callback = widget.actions.publish;
     if (callback == null || _publishing) return;
     setState(() {
       _publishing = true;
@@ -229,7 +242,7 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
   }
 
   Future<void> _rename(ProjectSmartTilePreset preset) async {
-    final callback = widget.onUpdateSelectedPreset;
+    final callback = widget.actions.update;
     if (callback == null || _updating) return;
     final controller = TextEditingController(text: preset.name);
     final confirmed = await showPokeMapPromptDialog(
@@ -264,8 +277,27 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
     }
   }
 
+  Future<void> _duplicate(ProjectSmartTilePreset preset) async {
+    final callback = widget.actions.duplicate;
+    if (callback == null || _duplicating) return;
+    setState(() {
+      _duplicating = true;
+      _actionError = null;
+    });
+    try {
+      await callback(preset);
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _actionError = EditorAuthoringMutationFailure.capture(error).message;
+      });
+    } finally {
+      if (mounted) setState(() => _duplicating = false);
+    }
+  }
+
   Future<void> _addToMap(ProjectSmartTilePreset preset) async {
-    final callback = widget.onAddSelectedPresetToMap;
+    final callback = widget.actions.addToMap;
     if (callback == null || _adding) return;
     setState(() {
       _adding = true;
