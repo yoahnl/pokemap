@@ -53,6 +53,7 @@ import '../../../application/services/narrative_event_legacy_authoring_guard.dar
 import '../../../application/services/narrative_event_source_dependency_guard.dart';
 import '../../../application/services/narrative_document_session.dart';
 import '../../../application/services/placed_element_instance_indexer.dart';
+import '../../../application/services/placed_element_editing_service.dart';
 import '../../../application/services/project_map_id_policy.dart';
 import '../../../application/services/project_map_manifest_integrity_policy.dart';
 import '../../../application/services/trigger_editing_service.dart';
@@ -87,6 +88,7 @@ import '../application/smart_tile_variant_density.dart';
 
 part 'editor_notifier.g.dart';
 part 'editor_notifier_map_connections.dart';
+part 'editor_notifier_placed_element_placement.dart';
 part 'editor_notifier_tileset_library.dart';
 
 /// Valeur sentinelle pour les paramètres optionnels nullable dans [EditorNotifier].
@@ -325,7 +327,10 @@ String canonicalSmartTileFailureMessage(
 
 @riverpod
 class EditorNotifier extends _$EditorNotifier
-    with _EditorNotifierMapConnections, _EditorNotifierTilesetLibrary
+    with
+        _EditorNotifierMapConnections,
+        _EditorNotifierPlacedElementPlacement,
+        _EditorNotifierTilesetLibrary
     implements WorldMapToolActivationHost {
   static const ProjectMapIdPolicy _projectMapIdPolicy = ProjectMapIdPolicy();
   static const ProjectMapManifestIntegrityPolicy
@@ -5290,10 +5295,17 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
-  void paintSelectedBrushAt(
+  Future<void> paintSelectedBrushAt(
     GridPos pos, {
     required Map<String, int> tilesetColumnsById,
-  }) {
+    bool partOfStroke = false,
+  }) async {
+    if (state.activeBrush is ProjectElementEditorBrush) {
+      if (!partOfStroke) {
+        await placeSelectedProjectElementAt(pos);
+      }
+      return;
+    }
     final layerContext = _resolveActiveTileLayerContext(emitErrors: true);
     if (layerContext == null) return;
     final resolvedBrush = _resolveActiveBrushPattern(
@@ -8855,39 +8867,6 @@ class EditorNotifier extends _$EditorNotifier
         failureLabel: 'palette entry',
         pattern: _buildPatternFromSource(
           entry.frames.primarySource,
-          tilesetId: tilesetId,
-          tilesetColumns: tilesetColumns,
-        ),
-      );
-    }
-
-    if (brush is ProjectElementEditorBrush) {
-      final element = getProjectElementById(brush.elementId);
-      if (element == null) {
-        if (emitErrors) {
-          _setPaintError('Selected project element is no longer available');
-        }
-        return null;
-      }
-      final tilesetId = element.tilesetId.trim();
-      if (tilesetId.isEmpty) {
-        if (emitErrors) {
-          _setPaintError('Selected project element does not have a tileset');
-        }
-        return null;
-      }
-      final tilesetColumns = tilesetColumnsById[tilesetId] ?? 0;
-      if (tilesetColumns <= 0) {
-        if (emitErrors) {
-          _setPaintError('Selected brush tileset image is not available');
-        }
-        return null;
-      }
-      return _ResolvedBrushPattern(
-        tilesetId: tilesetId,
-        failureLabel: 'element',
-        pattern: _buildPatternFromSource(
-          element.frames.primarySource,
           tilesetId: tilesetId,
           tilesetColumns: tilesetColumns,
         ),

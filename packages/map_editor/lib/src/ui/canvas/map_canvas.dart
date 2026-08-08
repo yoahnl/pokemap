@@ -1393,9 +1393,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             return;
           }
           if (state.activeTool == EditorToolType.tilePaint) {
-            notifier.paintSelectedBrushAt(
-              gridPos,
-              tilesetColumnsById: tilesPerRowById,
+            unawaited(
+              notifier.paintSelectedBrushAt(
+                gridPos,
+                tilesetColumnsById: tilesPerRowById,
+                partOfStroke: partOfStroke,
+              ),
             );
             return;
           }
