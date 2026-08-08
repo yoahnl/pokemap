@@ -41,6 +41,7 @@ class SmartTilesStudioLibraryPane extends StatelessWidget {
     required this.onCreatePreset,
     required this.onResumeDraft,
     required this.onSelectItem,
+    required this.thumbnailBuilder,
     this.onImportTiledWang,
     this.onReconstructLiteralLayer,
     this.onCreatePattern,
@@ -57,6 +58,7 @@ class SmartTilesStudioLibraryPane extends StatelessWidget {
   final VoidCallback onCreatePreset;
   final ValueChanged<ProjectSmartTileAuthoringDraft> onResumeDraft;
   final ValueChanged<SmartTileLibraryItem> onSelectItem;
+  final Widget Function(SmartTileLibraryItem item) thumbnailBuilder;
   final VoidCallback? onImportTiledWang;
   final VoidCallback? onReconstructLiteralLayer;
   final VoidCallback? onCreatePattern;
@@ -161,12 +163,7 @@ class SmartTilesStudioLibraryPane extends StatelessWidget {
                       final item = items[index];
                       return PokeMapAssetCard(
                         key: Key('smart-tiles-library-item-${item.key}'),
-                        thumbnail: Icon(
-                          item.isPattern
-                              ? CupertinoIcons.square_grid_2x2
-                              : CupertinoIcons.square_grid_3x2,
-                          size: 20,
-                        ),
+                        thumbnail: thumbnailBuilder(item),
                         label: item.name,
                         description: '${item.usageLabel} • ${item.statusLabel}',
                         onPressed: item.isResumableDraft

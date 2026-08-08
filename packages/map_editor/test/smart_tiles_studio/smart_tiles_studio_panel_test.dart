@@ -8,6 +8,7 @@ import 'package:map_editor/src/features/smart_tiles_studio/application/smart_til
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_source_asset_import_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_reconstruction_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_tiled_wang_import_service.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tile_sprite_preview.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_asset_card.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
@@ -70,6 +71,25 @@ void main() {
       expect(find.text('Chemin Hanazuki'), findsWidgets);
       expect(find.text('Publié'), findsWidgets);
       expect(find.text('Natif v6'), findsOneWidget);
+    });
+
+    testWidgets('shows the preset pixels in the permanent library', (
+      tester,
+    ) async {
+      await _pumpPanel(
+        tester,
+        _completeManifest(),
+        projectRootPath: '/virtual/project',
+      );
+
+      final thumbnail = find.byKey(
+        const Key('smart-tiles-library-thumbnail-native:edge'),
+      );
+      expect(thumbnail, findsOneWidget);
+      expect(
+        tester.widget<SmartTileSpritePreview>(thumbnail).frame,
+        const SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
+      );
     });
 
     testWidgets('opens and submits the guided TSX/Wang import flow',

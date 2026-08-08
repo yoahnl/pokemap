@@ -20,6 +20,7 @@ import '../application/smart_tile_grid_detector.dart';
 import '../application/smart_tile_guide.dart';
 import '../application/smart_tile_guide_placement.dart';
 import '../application/smart_tile_pattern_authoring.dart';
+import '../application/smart_tile_preset_preview.dart';
 import '../application/smart_tile_publication_service.dart';
 import '../application/smart_tile_reconstruction_service.dart';
 import '../application/smart_tile_studio_library.dart';
@@ -299,6 +300,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                   setState(() => _usageFilter = filter),
               onResumeDraft: (draft) => unawaited(_resumeDraft(draft)),
               onSelectItem: _selectLibraryItem,
+              thumbnailBuilder: _libraryThumbnail,
             ),
             workbench: _buildWorkbench(selectedItem),
             inspector: SmartTilesStudioInspector(
@@ -1387,8 +1389,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
-  /// Renders the real pixels of [frame], or a typed placeholder when the
-  /// catalog, the tileset registry or the project root cannot back it.
+  /// Renders [frame] pixels, or a typed placeholder when unavailable.
   Widget _spritePreview(
     SmartTileFrameRef frame, {
     double size = 34,
@@ -1409,41 +1410,40 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
     );
   }
 
-  /// The sprite that best describes [item] in the inspector: the focused rule's
-  /// variant when the author drilled into one, the preset's own otherwise.
+  /// Picks the focused variant, then the preset's representative sprite.
   SmartTileFrameRef? _inspectorFrameFor(SmartTileLibraryItem item) {
     final preset = item.nativePreset;
     if (preset == null) return null;
     final focusedRule =
         preset.rules.where((rule) => rule.id == _focusedRuleId).firstOrNull;
     if (focusedRule != null) {
-      final frame =
-          focusedRule.candidates.map(_firstFrameOf).nonNulls.firstOrNull;
+      final frame = focusedRule.candidates
+          .map(firstSmartTileFrameOf)
+          .nonNulls
+          .firstOrNull;
       if (frame != null) return frame;
     }
-    return _representativeFrameOf(preset);
+    return representativeSmartTileFrameOf(preset);
   }
 
-  /// First frame-backed part of [candidate], ignoring animation sources whose
-  /// timeline is resolved elsewhere.
-  SmartTileFrameRef? _firstFrameOf(SmartTileCandidate candidate) {
-    for (final part in candidate.parts) {
-      if (part.source case SmartTileFrameSource(frame: final frame)) {
-        return frame;
-      }
+  Widget _libraryThumbnail(SmartTileLibraryItem item) {
+    final preset = item.nativePreset;
+    final frame =
+        preset == null ? null : representativeSmartTileFrameOf(preset);
+    if (frame != null) {
+      return _spritePreview(
+        frame,
+        size: 44,
+        key: Key('smart-tiles-library-thumbnail-${item.key}'),
+        semanticLabel: 'Aperçu de ${item.name}',
+      );
     }
-    return null;
-  }
-
-  /// A sprite that stands for the whole preset in compact surfaces.
-  SmartTileFrameRef? _representativeFrameOf(ProjectSmartTilePreset preset) {
-    for (final rule in preset.rules) {
-      for (final candidate in rule.candidates) {
-        final frame = _firstFrameOf(candidate);
-        if (frame != null) return frame;
-      }
-    }
-    return null;
+    return Icon(
+      item.isPattern
+          ? CupertinoIcons.square_grid_2x2
+          : CupertinoIcons.square_grid_3x2,
+      size: 20,
+    );
   }
 
   Widget _buildAtlasTab(SmartTileLibraryItem selectedItem) {
@@ -1620,7 +1620,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         return PokeMapAssetCard(
           key: Key('smart-tiles-rule-${rule.id}'),
           thumbnail: switch (
-              rule.candidates.map(_firstFrameOf).nonNulls.firstOrNull) {
+              rule.candidates.map(firstSmartTileFrameOf).nonNulls.firstOrNull) {
             final SmartTileFrameRef frame => _spritePreview(
                 frame,
                 size: 30,
