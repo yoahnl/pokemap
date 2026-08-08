@@ -7,6 +7,26 @@ import 'dialogue_runtime_models.dart';
 import 'parse_yarn_dialogue.dart';
 import 'resolve_dialogue.dart';
 
+/// Nœuds parsés par chemin absolu, revalidés par (mtime, taille) à chaque
+/// accès : chaque interaction PNJ relisait et re-parsait le fichier entier.
+/// Les sessions ne mutent jamais les nœuds (les transformations passent par
+/// `mapText`, qui clone), le partage est donc sûr.
+final Map<String, _CachedDialogueNodes> _dialogueNodesByPath =
+    <String, _CachedDialogueNodes>{};
+const int _dialogueNodesCacheCapacity = 64;
+
+final class _CachedDialogueNodes {
+  const _CachedDialogueNodes({
+    required this.modified,
+    required this.size,
+    required this.nodes,
+  });
+
+  final DateTime modified;
+  final int size;
+  final List<YarnNode> nodes;
+}
+
 /// Read the `.yarn` file referenced by [resolved], parse it, and start a
 /// [DialogueSession] at the requested node.
 ///
@@ -15,14 +35,32 @@ import 'resolve_dialogue.dart';
 Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved) async {
   final List<YarnNode> nodes;
   try {
-    final file = File(resolved.absoluteFilePath);
-    if (resolved.absoluteFilePath.toLowerCase().endsWith('.json')) {
-      final document = const RuntimeDialogueDocumentCodec().decodeUtf8(
-        await file.readAsBytes(),
-      );
-      nodes = runtimeDialogueNodesFromDocument(document);
+    final path = resolved.absoluteFilePath;
+    final file = File(path);
+    final stat = await file.stat();
+    final cached = _dialogueNodesByPath.remove(path);
+    if (cached != null &&
+        cached.modified == stat.modified &&
+        cached.size == stat.size) {
+      _dialogueNodesByPath[path] = cached;
+      nodes = cached.nodes;
     } else {
-      nodes = parseYarnFile(await file.readAsString());
+      if (path.toLowerCase().endsWith('.json')) {
+        final document = const RuntimeDialogueDocumentCodec().decodeUtf8(
+          await file.readAsBytes(),
+        );
+        nodes = runtimeDialogueNodesFromDocument(document);
+      } else {
+        nodes = parseYarnFile(await file.readAsString());
+      }
+      _dialogueNodesByPath[path] = _CachedDialogueNodes(
+        modified: stat.modified,
+        size: stat.size,
+        nodes: nodes,
+      );
+      while (_dialogueNodesByPath.length > _dialogueNodesCacheCapacity) {
+        _dialogueNodesByPath.remove(_dialogueNodesByPath.keys.first);
+      }
     }
   } catch (e) {
     debugPrint(
@@ -31,10 +69,12 @@ Future<DialogueSession?> loadDialogueContent(ResolvedDialogue resolved) async {
     return null;
   }
 
-  debugPrint(
-    '[dialogue] parsed ${nodes.length} node(s) from '
-    '${resolved.absoluteFilePath}',
-  );
+  if (kDebugMode) {
+    debugPrint(
+      '[dialogue] parsed ${nodes.length} node(s) from '
+      '${resolved.absoluteFilePath}',
+    );
+  }
 
   if (nodes.isEmpty) {
     debugPrint('[dialogue] no nodes found in file');

@@ -279,6 +279,129 @@ Future<RuntimeTilesetImage> loadTilesetImageFromFilePath(
     throw AssetNotFoundException('Image not found: $absolutePath');
   }
   final bytes = await file.readAsBytes();
+  // Chemin principal : décodage unique par le codec moteur. L'ancien chemin
+  // décodait chaque atlas via package:image (pur Dart, 10-50x plus lent, sur
+  // l'isolate UI) puis re-décodait les mêmes octets côté moteur — et la
+  // branche multi-chunk ré-encodait même des PNG intermédiaires.
+  try {
+    return await _loadTilesetImageWithUiCodec(
+      bytes,
+      transparentColor: transparentColor,
+    );
+  } catch (_) {
+    // Filet de sécurité : formats que package:image accepte mais pas le
+    // moteur, ou readback indisponible. Comportement d'origine conservé.
+    return _loadTilesetImageWithImagePackage(
+      absolutePath,
+      bytes,
+      transparentColor: transparentColor,
+    );
+  }
+}
+
+Future<RuntimeTilesetImage> _loadTilesetImageWithUiCodec(
+  Uint8List bytes, {
+  required TilesetTransparentColor? transparentColor,
+}) async {
+  final fullImage = await _decodeUiImageFromBytes(bytes);
+  final width = fullImage.width;
+  final height = fullImage.height;
+  final chunks = buildRuntimeTilesetChunks(
+    totalWidth: width,
+    totalHeight: height,
+  );
+
+  if (transparentColor == null && chunks.length <= 1) {
+    return RuntimeTilesetImage(
+      images: <ui.Image>[fullImage],
+      chunks: chunks,
+      width: width,
+      height: height,
+    );
+  }
+
+  // Transparence et/ou découpe : une passe sur les octets RGBA plats, sans
+  // objet Pixel boxé ni ré-encodage PNG.
+  try {
+    final byteData =
+        await fullImage.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (byteData == null) {
+      throw StateError('Tileset image readback is unavailable.');
+    }
+    final rgba = byteData.buffer.asUint8List(
+      byteData.offsetInBytes,
+      byteData.lengthInBytes,
+    );
+    if (transparentColor != null) {
+      for (var offset = 0; offset < rgba.length; offset += 4) {
+        if (transparentColor.matchesRgb(
+          red: rgba[offset],
+          green: rgba[offset + 1],
+          blue: rgba[offset + 2],
+        )) {
+          // Convention prémultipliée du moteur : un pixel invisible doit être
+          // entièrement nul, sinon son RGB résiduel teinte le blending.
+          rgba[offset] = 0;
+          rgba[offset + 1] = 0;
+          rgba[offset + 2] = 0;
+          rgba[offset + 3] = 0;
+        }
+      }
+    }
+    final images = <ui.Image>[];
+    try {
+      for (final chunk in chunks) {
+        final chunkPixels = Uint8List.sublistView(
+          rgba,
+          chunk.top * width * 4,
+          chunk.bottom * width * 4,
+        );
+        images.add(
+          await _decodeImageFromRgbaPixels(
+            chunkPixels,
+            width: chunk.width,
+            height: chunk.height,
+          ),
+        );
+      }
+    } catch (_) {
+      for (final image in images) {
+        image.dispose();
+      }
+      rethrow;
+    }
+    return RuntimeTilesetImage(
+      images: images,
+      chunks: chunks,
+      width: width,
+      height: height,
+    );
+  } finally {
+    fullImage.dispose();
+  }
+}
+
+Future<ui.Image> _decodeImageFromRgbaPixels(
+  Uint8List pixels, {
+  required int width,
+  required int height,
+}) {
+  final completer = Completer<ui.Image>();
+  ui.decodeImageFromPixels(
+    pixels,
+    width,
+    height,
+    ui.PixelFormat.rgba8888,
+    completer.complete,
+  );
+  return completer.future;
+}
+
+Future<RuntimeTilesetImage> _loadTilesetImageWithImagePackage(
+  String absolutePath,
+  Uint8List bytes, {
+  required TilesetTransparentColor? transparentColor,
+}) async {
   final decoded = img.decodeImage(bytes);
   if (decoded == null) {
     final image = await loadImageFromFilePath(absolutePath);
@@ -372,21 +495,46 @@ Future<Map<String, RuntimeTilesetImage>> loadTilesetImagesById(
   RuntimeTilesetImageFileLoader? loader,
 }) async {
   final load = loader ?? loadTilesetImageFromFilePath;
+  // Chargements concurrents : la latence passe de la somme des décodages au
+  // plus lent d'entre eux. Chaque résultat est capturé individuellement pour
+  // pouvoir libérer les succès si un décodage échoue.
+  final outcomes = await Future.wait(
+    absolutePathByTilesetId.entries.map((e) async {
+      try {
+        final image = await load(
+          e.value,
+          transparentColor: transparentColorByTilesetId[e.key],
+        );
+        return (key: e.key, image: image, error: null, stackTrace: null);
+      } catch (error, stackTrace) {
+        return (
+          key: e.key,
+          image: null,
+          error: error as Object?,
+          stackTrace: stackTrace as StackTrace?,
+        );
+      }
+    }),
+  );
   final out = <String, RuntimeTilesetImage>{};
-  try {
-    for (final e in absolutePathByTilesetId.entries) {
-      out[e.key] = await load(
-        e.value,
-        transparentColor: transparentColorByTilesetId[e.key],
-      );
+  Object? firstError;
+  StackTrace? firstStackTrace;
+  for (final outcome in outcomes) {
+    final image = outcome.image;
+    if (image != null) {
+      out[outcome.key] = image;
+    } else if (firstError == null) {
+      firstError = outcome.error;
+      firstStackTrace = outcome.stackTrace;
     }
-    return out;
-  } catch (_) {
+  }
+  if (firstError != null) {
     final uniqueImages = Set<RuntimeTilesetImage>.identity()
       ..addAll(out.values);
     for (final image in uniqueImages) {
       image.dispose();
     }
-    rethrow;
+    Error.throwWithStackTrace(firstError, firstStackTrace!);
   }
+  return out;
 }

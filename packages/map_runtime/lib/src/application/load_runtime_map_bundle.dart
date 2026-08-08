@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:flutter/foundation.dart';
 import 'package:map_authoring/map_authoring.dart';
@@ -128,11 +129,9 @@ Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
   try {
     final text = await file.readAsString();
     _runtimeLoaderLog('project manifest read ok bytes=${text.length}');
-    final raw = jsonDecode(text) as Map<String, dynamic>;
-    final manifest = _normalizeProjectElementCollisionProfiles(
-      ProjectManifest.fromJson(raw),
-    );
-    ProjectValidator.validate(manifest);
+    // Parse + validation sur un isolate de travail : seul le read était
+    // asynchrone, le reste bloquait l'isolate UI à chaque chargement.
+    final manifest = await _decodeProjectManifestOffThread(text);
     _runtimeLoaderLog(
       'project manifest validated maps=${manifest.maps.length} tilesets=${manifest.tilesets.length} scenarios=${manifest.scenarios.length}',
     );
@@ -142,6 +141,21 @@ Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
         'project manifest load failed path=$manifestPath error=$e');
     throw ProjectLoadException('Failed to load project: $e');
   }
+}
+
+/// Portée top-level volontaire : un closure créé dans la fonction appelante
+/// pourrait capturer des objets non envoyables de son scope.
+Future<ProjectManifest> _decodeProjectManifestOffThread(String text) {
+  return Isolate.run(() => _decodeAndValidateProjectManifest(text));
+}
+
+ProjectManifest _decodeAndValidateProjectManifest(String text) {
+  final raw = jsonDecode(text) as Map<String, dynamic>;
+  final manifest = _normalizeProjectElementCollisionProfiles(
+    ProjectManifest.fromJson(raw),
+  );
+  ProjectValidator.validate(manifest);
+  return manifest;
 }
 
 ProjectManifest _normalizeProjectElementCollisionProfiles(
@@ -176,21 +190,10 @@ Future<MapData> loadMapDataFromFile(
   try {
     final text = await file.readAsString();
     _runtimeLoaderLog('map file read ok bytes=${text.length}');
-    final raw = jsonDecode(text) as Map<String, dynamic>;
-    final map = MapData.fromJson(raw);
-    MapValidator.validate(
-      map,
-      projectDialogueContext: projectDialogueContext,
-    );
-    final visualComposition = buildMapVisualCompositionPlan(map);
-    if (!visualComposition.canCompose) {
-      final details = visualComposition.diagnostics
-          .map((diagnostic) => diagnostic.message)
-          .join(' ');
-      throw MapLoadException(
-        'Map ${map.id} cannot be composed by this runtime. $details',
-      );
-    }
+    // Parse + validation + plan de composition sur un isolate de travail :
+    // c'était un stall de plusieurs centaines de ms par warp sur une grosse
+    // carte, entièrement sur l'isolate UI.
+    final map = await _decodeMapDataOffThread(text, projectDialogueContext);
     _runtimeLoaderLog(
       'map validated id=${map.id} size=${map.size.width}x${map.size.height} layers=${map.layers.length} entities=${map.entities.length} placedElements=${map.placedElements.length} warps=${map.warps.length} triggers=${map.triggers.length}',
     );
@@ -199,6 +202,38 @@ Future<MapData> loadMapDataFromFile(
     _runtimeLoaderLog('map load failed path=$absoluteMapPath error=$e');
     throw MapLoadException('Failed to load map: $e');
   }
+}
+
+/// Portée top-level volontaire : voir [_decodeProjectManifestOffThread].
+Future<MapData> _decodeMapDataOffThread(
+  String text,
+  ProjectManifest projectDialogueContext,
+) {
+  return Isolate.run(
+    () => _decodeValidateAndComposeMapData(text, projectDialogueContext),
+  );
+}
+
+MapData _decodeValidateAndComposeMapData(
+  String text,
+  ProjectManifest projectDialogueContext,
+) {
+  final raw = jsonDecode(text) as Map<String, dynamic>;
+  final map = MapData.fromJson(raw);
+  MapValidator.validate(
+    map,
+    projectDialogueContext: projectDialogueContext,
+  );
+  final visualComposition = buildMapVisualCompositionPlan(map);
+  if (!visualComposition.canCompose) {
+    final details = visualComposition.diagnostics
+        .map((diagnostic) => diagnostic.message)
+        .join(' ');
+    throw MapLoadException(
+      'Map ${map.id} cannot be composed by this runtime. $details',
+    );
+  }
+  return map;
 }
 
 ProjectMapEntry? projectMapEntryForId(ProjectManifest manifest, String mapId) {

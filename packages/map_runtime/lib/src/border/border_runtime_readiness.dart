@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:image/image.dart' as img;
@@ -8,6 +9,19 @@ import 'package:path/path.dart' as p;
 import '../application/runtime_map_bundle.dart';
 import 'border_runtime_asset_collection.dart';
 import 'border_runtime_preparation.dart';
+
+/// Mémo process-level des inspections d'intégrité.
+///
+/// La clé encode le fingerprint attendu et, pour chaque frame, le chemin,
+/// le mtime et la taille du fichier : toute modification sur disque change la
+/// clé et force une ré-inspection. L'invariant « ne jamais faire confiance à
+/// une préparation antérieure » porte sur les octets des fichiers, pas sur le
+/// droit de mémoïser un résultat dont les entrées n'ont pas bougé — avant ce
+/// mémo, chaque mount/warp re-décodait tous les PNG de bordure et refaisait
+/// le fingerprint pixel par pixel sur l'isolate UI.
+final Map<String, BorderVisualSnapshotIntegrity> _integrityByStatKey =
+    <String, BorderVisualSnapshotIntegrity>{};
+const int _integrityCacheCapacity = 256;
 
 /// Controlled failure raised by the Border play gate before a map is mounted.
 final class BorderRuntimeReadinessException implements Exception {
@@ -55,7 +69,7 @@ Future<RuntimeMapBundle> prepareBorderRuntimeBundle(
             filesPresent: false,
             contentFingerprintMatches: false,
           )
-        : await _inspectSnapshot(
+        : await _inspectSnapshotCached(
             snapshot,
             projectRoot: bundle.projectRootDirectory,
           );
@@ -126,6 +140,68 @@ Set<String> _materializedSnapshotIds(MapData map) {
     }
   }
   return ids;
+}
+
+Future<BorderVisualSnapshotIntegrity> _inspectSnapshotCached(
+  BorderVisualSnapshot snapshot, {
+  required String projectRoot,
+}) async {
+  final key = await _snapshotStatKey(snapshot, projectRoot: projectRoot);
+  final cached = _integrityByStatKey.remove(key);
+  if (cached != null) {
+    _integrityByStatKey[key] = cached;
+    return cached;
+  }
+  final result = await _inspectSnapshotOffThread(snapshot, projectRoot);
+  _integrityByStatKey[key] = result;
+  while (_integrityByStatKey.length > _integrityCacheCapacity) {
+    _integrityByStatKey.remove(_integrityByStatKey.keys.first);
+  }
+  return result;
+}
+
+Future<String> _snapshotStatKey(
+  BorderVisualSnapshot snapshot, {
+  required String projectRoot,
+}) async {
+  final buffer = StringBuffer()
+    ..write(snapshot.id)
+    ..write('|')
+    ..write(snapshot.contentFingerprint)
+    ..write('|')
+    ..write(projectRoot);
+  for (final frame in snapshot.frames) {
+    final absolutePath = p.normalize(
+      p.absolute(p.join(projectRoot, frame.relativeAssetPath)),
+    );
+    final stat = await FileStat.stat(absolutePath);
+    final rect = frame.sourceRectPx;
+    buffer
+      ..write('|')
+      ..write(absolutePath)
+      ..write('#')
+      ..write(stat.type == FileSystemEntityType.notFound
+          ? 'missing'
+          : '${stat.modified.microsecondsSinceEpoch},${stat.size}')
+      ..write('#')
+      ..write('${rect.x},${rect.y},${rect.width},${rect.height}')
+      ..write('#')
+      ..write(frame.transparentColorArgb)
+      ..write('#')
+      ..write(frame.durationMs);
+  }
+  return buffer.toString();
+}
+
+/// Portée top-level : le closure envoyé à l'isolate ne doit capturer que le
+/// snapshot (modèle pur) et le chemin racine.
+Future<BorderVisualSnapshotIntegrity> _inspectSnapshotOffThread(
+  BorderVisualSnapshot snapshot,
+  String projectRoot,
+) {
+  return Isolate.run(
+    () => _inspectSnapshot(snapshot, projectRoot: projectRoot),
+  );
 }
 
 Future<BorderVisualSnapshotIntegrity> _inspectSnapshot(

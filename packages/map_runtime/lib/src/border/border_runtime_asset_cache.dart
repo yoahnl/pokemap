@@ -144,24 +144,24 @@ final class BorderRuntimeAssetCache {
     required String projectRoot,
     required BorderRuntimeAssetCollection collection,
   }) async {
-    final loadedSnapshots = <BorderRuntimeLoadedSnapshot>[];
-    for (final snapshot in collection.snapshots) {
-      final loadedFrames = <BorderRuntimeLoadedFrame>[];
-      for (final frame in snapshot.frames) {
-        loadedFrames.add(
-          BorderRuntimeLoadedFrame(
-            request: frame,
-            image: await loadFrame(projectRoot: projectRoot, frame: frame),
+    // Décodages concurrents : le cache single-flight dédupe déjà les chemins
+    // partagés, la latence passe de la somme des décodages au plus lent.
+    final loadedSnapshots = await Future.wait(
+      collection.snapshots.map((snapshot) async {
+        final loadedFrames = await Future.wait(
+          snapshot.frames.map(
+            (frame) async => BorderRuntimeLoadedFrame(
+              request: frame,
+              image: await loadFrame(projectRoot: projectRoot, frame: frame),
+            ),
           ),
         );
-      }
-      loadedSnapshots.add(
-        BorderRuntimeLoadedSnapshot(
+        return BorderRuntimeLoadedSnapshot(
           snapshotId: snapshot.snapshotId,
           frames: loadedFrames,
-        ),
-      );
-    }
+        );
+      }),
+    );
     return BorderRuntimeAssetBundle(snapshots: loadedSnapshots);
   }
 }
