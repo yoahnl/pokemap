@@ -53,6 +53,7 @@ import '../../features/editor/presentation/world_map/map_placed_element_rotation
 import '../../features/editor/presentation/world_map/world_map_connection_context_provider.dart';
 import '../../features/editor/presentation/world_map/world_map_layer_hover_preview.dart';
 import '../../features/editor/presentation/world_map/world_map_smart_tile_gesture_mode.dart';
+import '../../features/editor/presentation/map_activation_guard.dart';
 import '../../features/editor/application/world_map_inspector_projector.dart';
 import '../../features/editor/application/world_map_tool_family.dart';
 import '../../features/editor/tools/editor_tool.dart';
@@ -2088,6 +2089,26 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                         ),
                       ),
                     ),
+                    if (connectionContext case final loadedContext?)
+                      Positioned.fill(
+                        child: MapConnectionContextNavigationLayer(
+                          context: loadedContext,
+                          zoom: state.zoom,
+                          offset: state.panOffset,
+                          tileWidth: tileWidth,
+                          tileHeight: tileHeight,
+                          enabled: !state.isSaving,
+                          onPressed: (direction) {
+                            unawaited(
+                              requestEditorConnectedMapSaveAndActivation(
+                                context: context,
+                                notifier: notifier,
+                                direction: direction,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                     if (hoveredTileLayer case final layer?)
                       Positioned.fill(
                         child: IgnorePointer(

@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
+import 'package:map_editor/src/app/providers/editor/map_use_case_providers.dart';
+import 'package:map_editor/src/application/use_cases/map_use_cases.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/application/world_map_connection_context.dart';
 import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
@@ -265,53 +267,18 @@ void main() {
   });
 
   testWidgets(
-    'MapCanvas loads the context while neighbor taps leave the active map intact',
+    'clicking a neighbor saves the active map before opening the target',
     (tester) async {
       final repository = _MapRepository({
         '/project/maps/north.json': _north,
         '/project/maps/east.json': _east,
       });
-      final container = ProviderContainer(
-        overrides: [mapRepositoryProvider.overrideWithValue(repository)],
-      );
-      final subscription = container.listen<EditorState>(
-        editorNotifierProvider,
-        (_, __) {},
-        fireImmediately: true,
-      );
-      addTearDown(() {
-        subscription.close();
-        container.dispose();
-      });
-      final notifier = container.read(editorNotifierProvider.notifier);
-      notifier.state = const EditorState(
-        projectRootPath: '/project',
-        project: _project,
-        activeMap: _source,
-        savedMapSnapshot: _source,
-      );
-      final activation = container
-          .read(worldMapWorkspaceSessionProvider.notifier)
-          .activateConnections(notifier);
-      expect(activation.accepted, isTrue);
       final selectedCells = <GridPos?>[];
-      await tester.binding.setSurfaceSize(const Size(900, 700));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MacosTheme(
-            data: MacosThemeData.light(),
-            child: MaterialApp(
-              theme: PokeMapTheme.dark(),
-              home: CupertinoPageScaffold(
-                child: MapCanvas(onCellSelected: selectedCells.add),
-              ),
-            ),
-          ),
-        ),
+      final container = await _pumpDirtyConnectionsCanvas(
+        tester,
+        repository: repository,
+        onCellSelected: selectedCells.add,
       );
-      await tester.pumpAndSettle();
 
       expect(find.byType(MapConnectionContextLayer), findsOneWidget);
       expect(
@@ -320,17 +287,43 @@ void main() {
         ),
         findsOneWidget,
       );
-      final before = container.read(editorNotifierProvider);
-      await tester.tapAt(const Offset(400, 50));
-      await tester.pump();
+      repository.operations.clear();
+
+      await tester.tapAt(_eastNeighborCenter(tester));
+      await tester.pumpAndSettle();
       final after = container.read(editorNotifierProvider);
 
-      expect(after.activeMap, same(before.activeMap));
-      expect(after.activeMap!.toJson(), before.activeMap!.toJson());
-      expect(after.mapUndoStack, before.mapUndoStack);
+      expect(after.activeMap?.id, 'east');
+      expect(repository.operations.first, 'save:/project/maps/source.json');
+      expect(repository.operations, contains('load:/project/maps/east.json'));
       expect(selectedCells.whereType<GridPos>(), isEmpty);
     },
   );
+
+  testWidgets('a failed neighbor save keeps the active map open',
+      (tester) async {
+    final repository = _MapRepository(
+      {
+        '/project/maps/north.json': _north,
+        '/project/maps/east.json': _east,
+      },
+      saveError: StateError('disk unavailable'),
+    );
+    final container = await _pumpDirtyConnectionsCanvas(
+      tester,
+      repository: repository,
+    );
+
+    repository.operations.clear();
+
+    await tester.tapAt(_eastNeighborCenter(tester));
+    await tester.pumpAndSettle();
+    final after = container.read(editorNotifierProvider);
+
+    expect(after.activeMap?.id, 'source');
+    expect(repository.operations, ['save:/project/maps/source.json']);
+    expect(after.errorMessage, contains('disk unavailable'));
+  });
 
   testWidgets('a late neighbor load cannot replace the current map context',
       (tester) async {
@@ -406,6 +399,77 @@ void main() {
     await tester.pump();
     expect(currentEastPainter().map.id, 'new-target');
   });
+}
+
+Future<ProviderContainer> _pumpDirtyConnectionsCanvas(
+  WidgetTester tester, {
+  required _MapRepository repository,
+  ValueChanged<GridPos?>? onCellSelected,
+}) async {
+  final container = ProviderContainer(
+    overrides: [
+      mapRepositoryProvider.overrideWithValue(repository),
+      saveMapUseCaseProvider.overrideWith(
+        (ref) => SaveMapUseCase(repository),
+      ),
+    ],
+  );
+  final subscription = container.listen<EditorState>(
+    editorNotifierProvider,
+    (_, __) {},
+    fireImmediately: true,
+  );
+  addTearDown(() {
+    subscription.close();
+    container.dispose();
+  });
+  final notifier = container.read(editorNotifierProvider.notifier);
+  notifier.state = EditorState(
+    projectRootPath: '/project',
+    project: _project,
+    activeMap: _source.copyWith(name: 'Source modifiée'),
+    activeMapPath: '/project/maps/source.json',
+    savedMapSnapshot: _source,
+    isDirty: true,
+  );
+  final activation = container
+      .read(worldMapWorkspaceSessionProvider.notifier)
+      .activateConnections(notifier);
+  expect(activation.accepted, isTrue);
+  await tester.binding.setSurfaceSize(const Size(900, 700));
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: MacosTheme(
+        data: MacosThemeData.light(),
+        child: MaterialApp(
+          theme: PokeMapTheme.dark(),
+          home: CupertinoPageScaffold(
+            child: MapCanvas(onCellSelected: onCellSelected),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+  return container;
+}
+
+Offset _eastNeighborCenter(WidgetTester tester) {
+  final painter = tester
+      .widget<CustomPaint>(
+        find.byKey(
+          const ValueKey<String>('map-connection-context-painter-east'),
+        ),
+      )
+      .painter! as MapGridPainter;
+  return tester.getTopLeft(find.byType(MapCanvas)) +
+      painter.offset +
+      Offset(
+        _east.size.width * painter.tileWidth * painter.zoom / 2,
+        _east.size.height * painter.tileHeight * painter.zoom / 2,
+      );
 }
 
 const _project = ProjectManifest(
@@ -513,14 +577,18 @@ final _contextWithIssue = WorldMapConnectionContext(
 );
 
 class _MapRepository implements MapRepository {
-  _MapRepository(this.mapsByPath);
+  _MapRepository(this.mapsByPath, {this.saveError});
 
   final Map<String, MapData> mapsByPath;
+  final Object? saveError;
+  final List<String> operations = [];
 
   @override
-  Future<MapData> loadMap(String path) async =>
-      mapsByPath[path] ??
-      (throw const MapLoadException('Map file does not exist'));
+  Future<MapData> loadMap(String path) async {
+    operations.add('load:$path');
+    return mapsByPath[path] ??
+        (throw const MapLoadException('Map file does not exist'));
+  }
 
   @override
   Future<void> deleteMap(String path) async {}
@@ -533,7 +601,11 @@ class _MapRepository implements MapRepository {
     MapData map,
     String path, {
     ProjectManifest? projectDialogueContext,
-  }) async {}
+  }) async {
+    operations.add('save:$path');
+    if (saveError case final error?) throw error;
+    mapsByPath[path] = map;
+  }
 }
 
 const _switchProject = ProjectManifest(

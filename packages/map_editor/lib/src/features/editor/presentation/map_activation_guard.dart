@@ -125,6 +125,34 @@ Future<MapActivationOutcome> requestEditorConnectedMapActivation({
   return outcome;
 }
 
+/// Saves the active map before following a visual inter-map connection.
+///
+/// Unlike ordinary tree navigation, clicking a neighboring map is an explicit
+/// "save and open" shortcut. Any cancelled, unavailable, conflicting or
+/// failed save keeps the current map active.
+Future<MapActivationOutcome> requestEditorConnectedMapSaveAndActivation({
+  required BuildContext context,
+  required EditorNotifier notifier,
+  required MapConnectionDirection direction,
+}) async {
+  final saveOutcome = await requestActiveMapSaveWithBorderPreviewGuard(
+    context: context,
+    notifier: notifier,
+  );
+  if (saveOutcome == ActiveMapSaveOutcome.cancelled) {
+    return MapActivationOutcome.cancelled;
+  }
+  if (saveOutcome != ActiveMapSaveOutcome.saved) {
+    return MapActivationOutcome.saveBlocked;
+  }
+  if (!context.mounted) return MapActivationOutcome.cancelled;
+  return requestEditorConnectedMapActivation(
+    context: context,
+    notifier: notifier,
+    direction: direction,
+  );
+}
+
 Future<MapActivationOutcome> requestEditorProjectActivation({
   required BuildContext context,
   required EditorNotifier notifier,

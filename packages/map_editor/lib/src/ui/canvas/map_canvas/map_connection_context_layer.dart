@@ -207,6 +207,72 @@ class MapConnectionContextLayer extends StatelessWidget {
       };
 }
 
+/// Transparent pointer and accessibility targets for first-level neighbors.
+///
+/// This layer is rendered above the active-map painter while the visual layer
+/// remains below it. Only the exact projected neighbor rectangles participate
+/// in hit testing, so normal editing gestures on the active map stay intact.
+class MapConnectionContextNavigationLayer extends StatelessWidget {
+  const MapConnectionContextNavigationLayer({
+    super.key,
+    required this.context,
+    required this.zoom,
+    required this.offset,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final WorldMapConnectionContext context;
+  final double zoom;
+  final Offset offset;
+  final double tileWidth;
+  final double tileHeight;
+  final bool enabled;
+  final ValueChanged<MapConnectionDirection> onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        for (final neighbor in this.context.neighbors.values)
+          Positioned.fromRect(
+            rect: _screenBounds(neighbor),
+            child: Semantics(
+              button: true,
+              enabled: enabled,
+              label: 'Enregistrer la map active et ouvrir '
+                  '${neighbor.entry.name}',
+              child: MouseRegion(
+                cursor: enabled
+                    ? SystemMouseCursors.click
+                    : SystemMouseCursors.basic,
+                child: GestureDetector(
+                  key: ValueKey<String>(
+                    'map-connection-context-open-'
+                    '${neighbor.direction.name}',
+                  ),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: enabled ? () => onPressed(neighbor.direction) : null,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Rect _screenBounds(WorldMapConnectionNeighbor neighbor) => Rect.fromLTRB(
+        offset.dx + neighbor.tileBounds.left * tileWidth * zoom,
+        offset.dy + neighbor.tileBounds.top * tileHeight * zoom,
+        offset.dx + neighbor.tileBounds.right * tileWidth * zoom,
+        offset.dy + neighbor.tileBounds.bottom * tileHeight * zoom,
+      );
+}
+
 /// Draws the tokenized, screen-space boundary of one visual-only neighbor.
 class MapConnectionContextOutlinePainter extends CustomPainter {
   const MapConnectionContextOutlinePainter({
