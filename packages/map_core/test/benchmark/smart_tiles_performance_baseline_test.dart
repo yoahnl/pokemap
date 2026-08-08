@@ -7,6 +7,11 @@ import '../../../../tools/performance/smart_tiles_performance_baseline.dart';
 
 void main() {
   const targetId = 'macos-arm64-example';
+  const sourceIdentity = <String, Object?>{
+    'commit': 'current-commit',
+    'treeState': 'dirty',
+    'treeFingerprint': 'current-fingerprint',
+  };
   final baseline = <String, Object?>{
     'schemaVersion': 1,
     'target': <String, Object?>{'id': targetId},
@@ -104,6 +109,44 @@ void main() {
       ),
       <String>['missing receipt for benchmark example'],
     );
+  });
+
+  test('checks every source identity field independently', () {
+    for (final field in const <String>[
+      'commit',
+      'treeState',
+      'treeFingerprint',
+    ]) {
+      final mismatched = <String, Object?>{
+        ...receipt(),
+        ...sourceIdentity,
+        field: 'stale-$field',
+      };
+      expect(
+        verifySmartTilesPerformanceBaseline(
+          baseline: baseline,
+          receipts: <Map<String, Object?>>[mismatched],
+          expectedSourceIdentity: sourceIdentity,
+        ),
+        contains(
+          'example receipt $field expected ${sourceIdentity[field]}, '
+          'got stale-$field',
+        ),
+      );
+
+      final missing = <String, Object?>{
+        ...receipt(),
+        ...sourceIdentity,
+      }..remove(field);
+      expect(
+        verifySmartTilesPerformanceBaseline(
+          baseline: baseline,
+          receipts: <Map<String, Object?>>[missing],
+          expectedSourceIdentity: sourceIdentity,
+        ),
+        contains('example receipt $field is missing'),
+      );
+    }
   });
 
   test('checked-in target baseline covers every STN-11 scaling harness', () {

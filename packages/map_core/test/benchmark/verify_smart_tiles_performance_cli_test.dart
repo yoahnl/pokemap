@@ -124,14 +124,65 @@ void main() {
     expect('${currentOnly.stderr}', contains('receipt commit'));
     expect(historical.exitCode, 0, reason: '${historical.stderr}');
   });
+
+  test('fails closed when the current Git source cannot be identified',
+      () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'smart_tiles_no_git_checkout_',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+    final baseline = File('${directory.path}/baseline.json');
+    final receipt = File('${directory.path}/receipt.json');
+    await baseline.writeAsString(
+      jsonEncode(<String, Object?>{
+        'schemaVersion': 1,
+        'target': <String, Object?>{'id': 'test-target'},
+        'benchmarks': <String, Object?>{
+          'example': <String, Object?>{
+            'rows': <String, Object?>{
+              '128': <String, Object?>{},
+            },
+          },
+        },
+      }),
+    );
+    await receipt.writeAsString(
+      jsonEncode(<String, Object?>{
+        'benchmark': 'example',
+        'commit': 'unknown',
+        'treeState': 'unknown',
+        'treeFingerprint': 'unknown',
+        'results': <Object?>[
+          <String, Object?>{'extent': 128},
+        ],
+      }),
+    );
+
+    final result = await _run(
+      <String>[
+        '--baseline',
+        baseline.path,
+        '--receipt',
+        receipt.path,
+      ],
+      workingDirectory: directory.path,
+    );
+
+    expect(result.exitCode, 64);
+    expect('${result.stderr}', contains('Git repository'));
+  });
 }
 
-Future<ProcessResult> _run(List<String> arguments) => Process.run(
-      Platform.resolvedExecutable,
-      <String>[
-        'run',
-        '../../tools/performance/verify_smart_tiles_performance.dart',
-        ...arguments,
-      ],
-      workingDirectory: Directory.current.path,
-    );
+Future<ProcessResult> _run(
+  List<String> arguments, {
+  String? workingDirectory,
+}) {
+  final verifier = File(
+    '../../tools/performance/verify_smart_tiles_performance.dart',
+  ).absolute.path;
+  return Process.run(
+    Platform.resolvedExecutable,
+    <String>['run', verifier, ...arguments],
+    workingDirectory: workingDirectory ?? Directory.current.path,
+  );
+}

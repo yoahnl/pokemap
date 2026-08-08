@@ -164,9 +164,15 @@ Future<Map<String, Object?>> performanceReceipt({
 }
 
 Future<Map<String, Object?>> currentPerformanceSourceIdentity() async {
+  final commit = await _git(<String>['rev-parse', 'HEAD']);
   final status = await _git(<String>['status', '--porcelain=v1']);
+  if (commit == 'unavailable' || status == 'unavailable') {
+    throw const FormatException(
+      'Git repository identity is unavailable for performance evidence',
+    );
+  }
   return <String, Object?>{
-    'commit': await _git(<String>['rev-parse', 'HEAD']),
+    'commit': commit,
     'treeState': status.isEmpty ? 'clean' : 'dirty',
     'treeFingerprint': await sourceTreeFingerprint(status: status),
   };
@@ -244,12 +250,16 @@ String _architectureLabel() {
 }
 
 Future<String> _git(List<String> arguments, {String? workingDirectory}) async {
-  final result = await Process.run(
-    'git',
-    arguments,
-    workingDirectory: workingDirectory,
-  );
-  return result.exitCode == 0 ? '${result.stdout}'.trim() : 'unavailable';
+  try {
+    final result = await Process.run(
+      'git',
+      arguments,
+      workingDirectory: workingDirectory,
+    );
+    return result.exitCode == 0 ? '${result.stdout}'.trim() : 'unavailable';
+  } on ProcessException {
+    return 'unavailable';
+  }
 }
 
 /// Fingerprints the whole Git tree from its root, including untracked content.
@@ -257,12 +267,22 @@ Future<String> _git(List<String> arguments, {String? workingDirectory}) async {
 /// comparable while this phase is still intentionally uncommitted.
 Future<String> sourceTreeFingerprint({String? status}) async {
   final repositoryRoot = await _git(<String>['rev-parse', '--show-toplevel']);
+  if (repositoryRoot == 'unavailable') {
+    throw const FormatException(
+      'Git repository root is unavailable for performance evidence',
+    );
+  }
   final effectiveStatus =
       status ??
       await _git(<String>[
         'status',
         '--porcelain=v1',
       ], workingDirectory: repositoryRoot);
+  if (effectiveStatus == 'unavailable') {
+    throw const FormatException(
+      'Git repository status is unavailable for performance evidence',
+    );
+  }
   final diff = await _git(<String>[
     'diff',
     '--binary',
@@ -273,6 +293,11 @@ Future<String> sourceTreeFingerprint({String? status}) async {
     '--others',
     '--exclude-standard',
   ], workingDirectory: repositoryRoot);
+  if (diff == 'unavailable' || untracked == 'unavailable') {
+    throw const FormatException(
+      'Git repository contents are unavailable for performance evidence',
+    );
+  }
   final untrackedEntries = <Map<String, Object?>>[];
   final paths =
       untracked
