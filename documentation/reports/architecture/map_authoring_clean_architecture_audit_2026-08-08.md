@@ -6,6 +6,8 @@ Périmètre principal : `packages/map_authoring/`
 Snapshot audité : branche `main`, commit `4c7d02d1a739b1bb1de574995706ecce90d75bfd` (`perf(authoring): speed up canonical map saves`)
 Nature de la passe : audit read-only du code ; seul ce rapport a été ajouté.
 
+> **Décision postérieure à l'audit :** la règle globale de longueur des fichiers Dart, son cliquet, son hook et sa gate CI ont été retirés le 8 août 2026. Les constats de ce rapport sur le seuil de longueur sont conservés comme historique du snapshot et ne sont plus prescriptifs.
+
 ## Verdict exécutif
 
 `map_authoring` possède de **bonnes frontières externes**, mais ne peut pas encore être qualifié de clean architecture stricte ni de package totalement « green ».

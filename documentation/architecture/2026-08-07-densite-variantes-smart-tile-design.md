@@ -3,6 +3,8 @@
 **Date :** 2026-08-07
 **Statut :** validé, prêt pour un plan d'implémentation
 
+> **Décision supersédante du 8 août 2026 :** la règle globale de longueur et son cliquet ont été retirés. La mention historique de `tools/file_length_baseline.txt` dans ce document n'est plus une contrainte produit ou d'implémentation.
+
 ## Problème
 
 Un Wang Set importé depuis Tiled compile tous ses candidats au même poids. `compileTiledWangImport`

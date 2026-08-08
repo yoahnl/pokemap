@@ -138,27 +138,6 @@ Do not broaden access to the home directory or filesystem root as a convenience 
 
 ## 5. Product and Architecture Rules
 
-File length — hard limit, enforced:
-
-- **No Dart file over 3000 lines.** Past that, split it.
-- Exempt: generated sources (`.g.dart`, `.freezed.dart`, `.gr.dart`,
-  `.config.dart`), tests, battle-engine catalogues (`packages/map_battle/**`
-  and `flame/battle_*`), build output and vendored plugin sources. Those are
-  data tables or machine-written; splitting them buys nothing.
-- Everything already over the limit is frozen in
-  `tools/file_length_baseline.txt` at its exact size. A baseline file may
-  **shrink, never grow**. The list only ever gets shorter.
-- The baseline is not a place to register new debt. If a change would push a
-  file past the limit, move the new code into its own file instead.
-
-```bash
-dart tools/check_file_length.dart                    # verify
-dart tools/check_file_length.dart --update-baseline  # after a split
-```
-
-This gate is blocking in CI (`.github/workflows/file_length.yml`). Install it
-locally too: `git config core.hooksPath .githooks`.
-
 No-code first:
 
 - guided pickers over manual IDs;

@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Décision supersédante du 8 août 2026 :** la règle globale de longueur et son cliquet ont été retirés. Toutes les tâches et commandes de ce plan relatives à `tools/check_file_length.dart`, `tools/file_length_baseline.txt` ou au seuil de 3 000 lignes sont obsolètes et ne doivent plus être exécutées.
+
 **Goal:** Permettre à un auteur d'ajuster la fréquence de chaque variante d'une règle Smart Tile depuis le panneau « Peindre » de World Map, avec un défaut porté par le preset et une surcharge optionnelle par calque.
 
 **Architecture :** Le calcul de redistribution est une fonction pure isolée dans la couche application de `map_editor`. L'interface est un widget autonome inséré dans le panneau de peinture existant. L'écriture passe par deux chemins canoniques : `smart_tile.preset.publish` (déjà présent, à câbler) pour le défaut du preset, et une action nouvelle `smart_tile.layer.set_candidate_weights` pour la surcharge de calque. La surcharge est appliquée à la préparation du résolveur, jamais dans la boucle de cellules.

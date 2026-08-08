@@ -7,6 +7,8 @@ Nature de la passe : audit, validations et build read-only ; aucun correctif de 
 Snapshot initial : `a936c5a76` sur `main`
 Snapshot final observé : `f03a79511` sur `main`
 
+> **Décision postérieure à l'audit :** la règle globale de longueur des fichiers Dart, son cliquet, son hook et sa gate CI ont été retirés le 8 août 2026. Les constats et priorités de ce rapport relatifs à cette règle décrivent uniquement le snapshot audité et ne constituent plus une action à mener.
+
 ## Verdict exécutif
 
 PokeMap a beaucoup progressé et plusieurs sous-systèmes sont réellement substantiels. Le moteur de combat pur, le modèle Smart Tiles, la résolution visuelle, l'API d'authoring canonique et une grande partie des transports sont en bien meilleur état que lors des audits précédents.

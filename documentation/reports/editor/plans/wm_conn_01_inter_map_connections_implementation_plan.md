@@ -2,6 +2,8 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Décision supersédante du 8 août 2026 :** la règle globale de longueur et son cliquet ont été retirés. Toutes les étapes de ce plan qui mentionnent `tools/check_file_length.dart` ou `tools/file_length_baseline.txt` sont obsolètes et ne doivent plus être exécutées.
+
 **Goal:** Restaurer l’édition no-code des connexions physiques entre maps et afficher les maps directement reliées autour de la map active avec une opacité réduite.
 
 **Architecture:** Ajouter un mode d’inspecteur `connections` au workspace World Map et faire transiter toutes ses mutations par les actions canoniques `connection.*` de `map_authoring`. Charger au maximum les quatre maps voisines de premier niveau, projeter leur position en coordonnées de tiles à partir de la direction et de l’offset, puis les peindre derrière la map active dans des `CustomPaint` non interactifs partageant le viewport et le cache d’images existants.
