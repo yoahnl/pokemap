@@ -30,12 +30,34 @@ void main() {
     expect(window.bottom, greaterThan(console.top));
     expect(console.bottom, lessThanOrEqualTo(ledge.bottom));
     expect(ledge.bottom, closeTo(sheet.top, 1));
-    expect(
+    final furniture = tester.widget<Image>(
       find.byKey(const ValueKey<String>('avelune-room-furniture-layer')),
-      findsNothing,
-      reason: 'The approved cabin design has no credenza or marble slab.',
+    );
+    expect(
+      (furniture.image as AssetImage).assetName,
+      'assets/avelune/room/furniture/credenza_ivory.webp',
+      reason: 'The console support must reuse the selected physical furniture '
+          'asset instead of flattening every finish into a generic slab.',
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('selected cartridge is physically connected to the console slot',
+      (tester) async {
+    await _pumpHome(tester);
+
+    final beam = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-cartridge-slot-guide-beam')),
+    );
+    final hero = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
+    );
+    final console = tester.getRect(find.byType(AveluneConsole));
+
+    expect(beam.center.dx, closeTo(hero.center.dx, 0.5));
+    expect(beam.top, lessThanOrEqualTo(hero.bottom));
+    expect(beam.bottom, greaterThan(console.top));
+    expect(beam.width, lessThan(hero.width * 0.4));
   });
 
   testWidgets('background selection does not move the cabin architecture',
@@ -147,7 +169,43 @@ void main() {
     }
   });
 
-  testWidgets('empty room keeps console and canonical add slot',
+  testWidgets('ivory finish visibly brightens the console ledge',
+      (tester) async {
+    await _pumpHome(
+      tester,
+      appearance: const AveluneAppearancePreferences(
+        furnitureId: 'walnut',
+      ),
+    );
+    final walnut = _ledgeGradient(tester);
+    final walnutAsset = _assetPath(tester, 'avelune-room-furniture-layer');
+
+    await _pumpHome(
+      tester,
+      appearance: const AveluneAppearancePreferences(
+        furnitureId: 'ivory',
+      ),
+    );
+    final ivory = _ledgeGradient(tester);
+    final ivoryAsset = _assetPath(tester, 'avelune-room-furniture-layer');
+
+    expect(
+      ivory.colors.first.computeLuminance(),
+      greaterThan(walnut.colors.first.computeLuminance() + 0.1),
+      reason: 'A white credenza must read as a light physical support, not as '
+          'the same black slab with a barely visible tint.',
+    );
+    expect(
+      walnutAsset,
+      'assets/avelune/room/furniture/credenza_walnut.webp',
+    );
+    expect(
+      ivoryAsset,
+      'assets/avelune/room/furniture/credenza_ivory.webp',
+    );
+  });
+
+  testWidgets('empty room promotes one canonical add cartridge to the hero',
       (tester) async {
     await _pumpHome(tester, viewData: _emptyViewData());
 
@@ -157,10 +215,56 @@ void main() {
     );
     expect(find.byType(AveluneConsole), findsOneWidget);
     expect(
+      find.byKey(const ValueKey<String>('avelune-room-hero-add-cartridge')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-cartridge-slot-guide-beam')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-library-header-add')),
+      findsNothing,
+    );
+    expect(find.byType(AveluneCartridge), findsOneWidget);
+    final addCartridge = tester.widget<AveluneCartridge>(
+      find.byKey(const ValueKey<String>('avelune-room-hero-add-cartridge')),
+    );
+    expect(addCartridge.addSlot, isTrue);
+    expect(addCartridge.displaySize, AveluneCartridgeDisplaySize.hero);
+    final scene = tester.widget<AveluneRoomScene>(
+      find.byType(AveluneRoomScene),
+    );
+    expect(
+      tester.getRect(
+        find.byKey(const ValueKey<String>('avelune-room-hero-add-cartridge')),
+      ),
+      scene.geometry.heroCartridgeRect,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('one-game library never covers its selected hero with add',
+      (tester) async {
+    await _pumpHome(tester, viewData: _oneGameViewData());
+
+    expect(
+      find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-room-hero-add-cartridge')),
+      findsNothing,
+    );
+    expect(
       find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
       findsOneWidget,
     );
-    expect(find.byType(AveluneCartridge), findsOneWidget);
+    expect(find.byType(AveluneCartridge), findsNWidgets(2));
     expect(tester.takeException(), isNull);
   });
 
@@ -260,6 +364,15 @@ String _assetPath(WidgetTester tester, String key) {
   return (image.image as AssetImage).assetName;
 }
 
+LinearGradient _ledgeGradient(WidgetTester tester) {
+  final surface = tester.widget<DecoratedBox>(
+    find.byKey(
+      const ValueKey<String>('avelune-console-ledge-finish-surface'),
+    ),
+  );
+  return (surface.decoration as BoxDecoration).gradient! as LinearGradient;
+}
+
 AveluneHomeViewData _emptyViewData() => AveluneHomeViewData(
       status: AveluneHomeStatus.empty,
       games: const <AveluneGameViewData>[],
@@ -269,6 +382,19 @@ AveluneHomeViewData _emptyViewData() => AveluneHomeViewData(
       safeErrorMessage: null,
       reducedMotion: true,
     );
+
+AveluneHomeViewData _oneGameViewData() {
+  final game = _game(0);
+  return AveluneHomeViewData(
+    status: AveluneHomeStatus.ready,
+    games: <AveluneGameViewData>[game],
+    selectedGameId: game.id,
+    recentActivity: const <AveluneRecentActivityViewData>[],
+    import: const AveluneImportViewData.idle(canStart: true),
+    safeErrorMessage: null,
+    reducedMotion: true,
+  );
+}
 
 AveluneHomeViewData _viewData() {
   final games = List<AveluneGameViewData>.generate(10, _game);

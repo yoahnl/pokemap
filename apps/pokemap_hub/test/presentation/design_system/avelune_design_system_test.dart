@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pokemap_hub/pokemap_hub_ui.dart';
+import 'package:pokemap_hub/presentation/design_system/avelune_design_system.dart';
 
 void main() {
   group('Avelune design system foundations', () {
@@ -12,10 +12,15 @@ void main() {
       expect(theme.colors.values, hasLength(23));
       expect(
           theme.colors.values.values, everyElement(isNot(Colors.transparent)));
-      expect(theme.typography.values, hasLength(8));
+      expect(theme.typography.values, hasLength(9));
       expect(
         theme.typography.values.values.map((style) => style.fontSize),
         everyElement(isNotNull),
+      );
+      expect(theme.typography.editorial.fontFamily, 'AveluneEditorial');
+      expect(
+        theme.typography.editorial.fontFamilyFallback,
+        contains('serif'),
       );
       expect(theme.depth.values, hasLength(6));
       expect(theme.depth.values.values, everyElement(isNotEmpty));

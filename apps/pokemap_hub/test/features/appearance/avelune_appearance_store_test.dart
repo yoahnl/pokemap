@@ -86,12 +86,15 @@ void main() {
       }
     });
 
-    test('missing documents load amber and walnut defaults', () async {
+    test('missing documents load the approved amber and ivory defaults',
+        () async {
       final store = AveluneAppearanceStore(supportRoot: supportRoot);
 
       final result = await store.load();
 
       expect(result.preferences, const AveluneAppearancePreferences());
+      expect(result.preferences.backgroundId, 'amber');
+      expect(result.preferences.furnitureId, 'ivory');
       expect(result.source, AveluneAppearanceSource.defaults);
       expect(result.currentCorrupt, isFalse);
       expect(result.backupCorrupt, isFalse);

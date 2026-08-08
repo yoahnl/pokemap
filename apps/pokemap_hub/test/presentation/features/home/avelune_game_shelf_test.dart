@@ -140,6 +140,34 @@ void main() {
     );
   });
 
+  testWidgets('a sparse shelf centres its remaining cartridges',
+      (tester) async {
+    final geometry = AveluneHomeGeometry.resolve(
+      viewportSize: const Size(390, 844),
+    );
+    final games = <AveluneGameViewData>[_game(0)];
+
+    await tester.pumpWidget(
+      _app(
+        _shelf(
+          geometry,
+          games,
+          selectedGameId: games.first.id,
+        ),
+      ),
+    );
+
+    final shelfRect = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-game-shelf-list')),
+    );
+    final addRect = tester.getRect(
+      find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
+    );
+
+    expect(addRect.center.dx, closeTo(shelfRect.center.dx, 0.5));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('shelf routes game and add interactions without resizing items',
       (tester) async {
     final geometry = AveluneHomeGeometry.resolve(

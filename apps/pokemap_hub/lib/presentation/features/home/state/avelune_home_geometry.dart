@@ -151,7 +151,7 @@ final class AveluneHomeGeometry {
     );
 
     final consoleWidth = math.min(
-      contentRect.width - (metrics.sceneHorizontalPadding * 2),
+      contentRect.width * metrics.consoleWidthFraction,
       _maximumConsoleWidth,
     );
     final consoleHeight = consoleWidth / kAveluneConsoleAspectRatio;
@@ -380,7 +380,7 @@ final class AveluneHomeGeometry {
     shelfHorizontalPadding: 12,
     shelfBottomPadding: 10,
     shelfGap: 8,
-    sceneHorizontalPadding: 14,
+    consoleWidthFraction: 0.72,
     heroConsoleGap: 14,
     windowHorizontalInset: 8,
     windowTopInset: 2,
@@ -402,7 +402,7 @@ final class AveluneHomeGeometry {
     shelfHorizontalPadding: 18,
     shelfBottomPadding: 10,
     shelfGap: 10,
-    sceneHorizontalPadding: 20,
+    consoleWidthFraction: 0.72,
     heroConsoleGap: 20,
     windowHorizontalInset: 9,
     windowTopInset: 3,
@@ -424,7 +424,7 @@ final class AveluneHomeGeometry {
     shelfHorizontalPadding: 18,
     shelfBottomPadding: 12,
     shelfGap: 12,
-    sceneHorizontalPadding: 20,
+    consoleWidthFraction: 0.70,
     heroConsoleGap: 22,
     windowHorizontalInset: 10,
     windowTopInset: 3,
@@ -449,7 +449,7 @@ final class _AveluneHomeClassMetrics {
     required this.shelfHorizontalPadding,
     required this.shelfBottomPadding,
     required this.shelfGap,
-    required this.sceneHorizontalPadding,
+    required this.consoleWidthFraction,
     required this.heroConsoleGap,
     required this.windowHorizontalInset,
     required this.windowTopInset,
@@ -470,7 +470,7 @@ final class _AveluneHomeClassMetrics {
   final double shelfHorizontalPadding;
   final double shelfBottomPadding;
   final double shelfGap;
-  final double sceneHorizontalPadding;
+  final double consoleWidthFraction;
   final double windowHorizontalInset;
   final double windowTopInset;
   final double windowContentInset;

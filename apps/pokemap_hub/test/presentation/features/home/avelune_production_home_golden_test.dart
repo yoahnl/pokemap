@@ -6,7 +6,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
-import 'package:pokemap_hub/pokemap_hub_ui.dart';
+import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
+import 'package:pokemap_hub/presentation/design_system/assets/avelune_material_catalog.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_room_scene.dart';
+import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
+import 'package:pokemap_hub/presentation/shell/hub_shell.dart';
+import 'package:pokemap_hub/presentation/shared/artwork/appearance_asset_path.dart';
+import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 /// Visual gate for the screen the production shell actually renders.
@@ -61,7 +71,8 @@ void main() {
       );
     });
 
-    testWidgets('production home reports its prototype distance on '
+    testWidgets(
+        'production home reports its prototype distance on '
         '${preset.id}', (tester) async {
       // Compares the golden the test above just produced against the frozen
       // prototype capture. Reading both PNGs off disk avoids capturing the
@@ -84,6 +95,34 @@ void main() {
       );
     });
   }
+
+  testWidgets('production home visual gate with one long-title game',
+      (tester) async {
+    const preset = _DevicePreset(
+      id: 'iphone_one_long_game',
+      size: Size(393, 852),
+      insets: EdgeInsets.only(top: 47, bottom: 34),
+      reference: 'home_iphone_393x852.png',
+    );
+    await _pumpProductionHome(
+      tester,
+      preset,
+      games: <HubGameView>[
+        _view(
+          id: 'selbrume',
+          title: 'Pokémon SDK — Galactic Horizons',
+          accentColor: '#64358A',
+          installedAt: DateTime.utc(2026, 8, 3),
+          lastSaveAt: DateTime.utc(2026, 8, 3, 12),
+        ),
+      ],
+    );
+
+    await expectLater(
+      find.byKey(_rootKey),
+      matchesGoldenFile(preset.goldenFileName),
+    );
+  });
 }
 
 const ValueKey<String> _rootKey = ValueKey<String>('avelune-production-root');
@@ -105,8 +144,7 @@ final class _DevicePreset {
   String get referencePath =>
       '../../documentation/avelune/reference/console_v1/screenshots/$reference';
 
-  String get _goldenBaseName =>
-      'production_home_${id}_'
+  String get _goldenBaseName => 'production_home_${id}_'
       '${size.width.toInt()}x${size.height.toInt()}.png';
 
   /// Relative to the test file, the form `matchesGoldenFile` expects.
@@ -118,16 +156,17 @@ final class _DevicePreset {
 
 Future<void> _pumpProductionHome(
   WidgetTester tester,
-  _DevicePreset preset,
-) async {
+  _DevicePreset preset, {
+  List<HubGameView>? games,
+}) async {
   await tester.pumpWidget(const SizedBox.shrink());
   await tester.pump();
   tester.view.physicalSize = preset.size;
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 
-  final games = _games();
-  final snapshot = _snapshot(games);
+  final resolvedGames = games ?? _games();
+  final snapshot = _snapshot(resolvedGames);
   // Real callbacks: AveluneHomeController derives launchability from these, so
   // an empty HubUiActions would freeze every cartridge into the disabled state
   // and the gate would capture a degraded home instead of the resting one.
@@ -185,7 +224,8 @@ Future<void> _pumpProductionHome(
         precacheImage(AssetImage(asset.path), context),
       for (final asset in AveluneMaterialCatalog.consoleLayers)
         precacheImage(AssetImage(asset.path), context),
-      precacheImage(const AssetImage(kAveluneFallbackArtworkAssetPath), context),
+      precacheImage(
+          const AssetImage(kAveluneFallbackArtworkAssetPath), context),
       precacheImage(
         AssetImage(
           appearanceAssetPath(
@@ -351,6 +391,12 @@ Future<void> _loadGoldenFonts() async {
     ..addFont(
       Future<ByteData>.value(ByteData.sublistView(Uint8List.fromList(bytes))),
     );
+  final editorialLoader = FontLoader('AveluneEditorial')
+    ..addFont(
+      rootBundle.load(
+        'assets/avelune/fonts/CormorantGaramond-Variable.ttf',
+      ),
+    );
   final materialLoader = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   // The Avelune surfaces draw Cupertino glyphs; without its font every icon
@@ -362,7 +408,10 @@ Future<void> _loadGoldenFonts() async {
     ..addFont(
       rootBundle.load('packages/cupertino_icons/assets/CupertinoIcons.ttf'),
     );
-  await Future.wait<void>(<Future<void>>[textLoader.load(), materialLoader.load(),
+  await Future.wait<void>(<Future<void>>[
+    textLoader.load(),
+    editorialLoader.load(),
+    materialLoader.load(),
     cupertinoLoader.load(),
   ]);
 }

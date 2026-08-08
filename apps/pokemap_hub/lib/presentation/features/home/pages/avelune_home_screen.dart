@@ -238,7 +238,7 @@ class _AveluneHomeScreenState extends State<AveluneHomeScreen>
                       // the copy would never wrap and the whole column would be
                       // scaled down to fit one long line.
                       fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
+                      alignment: Alignment.bottomLeft,
                       child: SizedBox(
                         width: detailsPanelRect.width,
                         child: AveluneHeroDetailsPanel(

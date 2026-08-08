@@ -101,16 +101,18 @@ class _AveluneHeroDetailsPanelState extends State<AveluneHeroDetailsPanel>
           child: Row(
             children: <Widget>[
               Expanded(
-                child: Text(
-                  game.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: titleSize,
-                    fontWeight: FontWeight.w400,
-                    height: 1.04,
-                    letterSpacing: -0.7,
+                child: FittedBox(
+                  key: const ValueKey<String>('avelune-hero-title-fit'),
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    game.title,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: context.aveluneTypography.editorial.copyWith(
+                      color: colors.textPrimary,
+                      fontSize: titleSize,
+                    ),
                   ),
                 ),
               ),

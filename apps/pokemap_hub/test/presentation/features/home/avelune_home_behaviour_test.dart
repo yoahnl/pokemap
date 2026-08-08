@@ -3,7 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
-import 'package:pokemap_hub/pokemap_hub_ui.dart';
+import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
+import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
+import 'package:pokemap_hub/presentation/design_system/components/avelune_bottom_navigation.dart';
+import 'package:pokemap_hub/presentation/features/home/pages/avelune_home_screen.dart';
+import 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_cartridge.dart';
+import 'package:pokemap_hub/presentation/features/home/widgets/avelune_console.dart';
+import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
+import 'package:pokemap_hub/presentation/shell/hub_shell.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 // Production console-home behaviour driven through HubShell.
@@ -11,9 +19,9 @@ import 'package:pub_semver/pub_semver.dart';
 // The tests that pumped the pre-cutover AveluneMobileHome went with the widget
 // itself; what remains here exercises the shipped screen.
 void main() {
-  testWidgets('empty Avelune home exposes the real import action',
+  testWidgets('empty Avelune home keeps one hero import action',
       (tester) async {
-    _setViewport(tester, const Size(390, 844));
+    _setViewport(tester, const Size(393, 852));
     var imports = 0;
     final actions = HubUiActions(onImportRequested: () => imports++);
     final snapshot = HubDashboardSnapshot.ready(
@@ -33,9 +41,26 @@ void main() {
     expect(find.byType(AveluneHomeScreen), findsOneWidget);
     expect(find.byType(AveluneConsole), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
+      find.byKey(const ValueKey<String>('avelune-room-hero-add-cartridge')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
+      findsNothing,
+      reason: 'The empty state must not repeat the hero import cartridge on '
+          'the shelf.',
+    );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-library-header-add')),
+      findsNothing,
+      reason: 'The empty state has one physical primary action, not a second '
+          'text button in the sheet header.',
+    );
+    final heroAdd = tester.widget<AveluneCartridge>(
+      find.byKey(const ValueKey<String>('avelune-room-hero-add-cartridge')),
+    );
+    expect(heroAdd.addSlot, isTrue);
+    expect(heroAdd.displaySize, AveluneCartridgeDisplaySize.hero);
     expect(find.byType(AveluneBottomNavigation), findsOneWidget);
     expect(find.text('Accueil'), findsOneWidget);
     expect(find.text('Paramètres'), findsOneWidget);
@@ -53,7 +78,7 @@ void main() {
     );
 
     await tester.tap(
-      find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
+      find.byKey(const ValueKey<String>('avelune-room-hero-add-cartridge')),
     );
     expect(imports, 1);
     expect(tester.takeException(), isNull);

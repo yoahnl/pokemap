@@ -152,6 +152,21 @@ void main() {
       }
     });
 
+    test('keeps the console at the approved cabin scale', () {
+      for (final scenario in _referenceViewports) {
+        final geometry = scenario.resolve();
+        final consoleWidthFraction =
+            geometry.consoleRect.width / geometry.contentRect.width;
+
+        expect(
+          consoleWidthFraction,
+          inInclusiveRange(0.66, 0.74),
+          reason: '${scenario.label}: the console is an object on the ledge, '
+              'not a full-width slab.',
+        );
+      }
+    });
+
     test('condenses secondary content by size class', () {
       for (final scenario in _referenceViewports) {
         final geometry = scenario.resolve();

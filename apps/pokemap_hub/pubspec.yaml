@@ -53,6 +53,11 @@ flutter:
     - assets/certification/intro_landscape_h264_aac.mp4
     - assets/certification/intro_portrait_h264_aac.mp4
     - ios/Runner/Assets.xcassets/AppIcon.appiconset/180.png
+  fonts:
+    - family: AveluneEditorial
+      fonts:
+        - asset: assets/avelune/fonts/CormorantGaramond-Variable.ttf
+          weight: 400
 
 dependency_overrides:
   gamepads_darwin:

@@ -20,7 +20,7 @@ final class AveluneAppearanceOption {
 /// Stable V1 appearance IDs shared by persistence and the future settings UI.
 abstract final class AveluneAppearanceCatalog {
   static const String defaultBackgroundId = 'amber';
-  static const String defaultFurnitureId = 'walnut';
+  static const String defaultFurnitureId = 'ivory';
   static const String customBackgroundId = 'custom';
 
   static final List<AveluneAppearanceOption> backgrounds =

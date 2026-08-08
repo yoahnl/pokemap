@@ -97,6 +97,17 @@ class AveluneRoomScene extends StatelessWidget {
     final colors = context.aveluneColors;
     final roomLayout = AveluneRoomSceneLayout.resolve(geometry);
     final selected = selectedGame;
+    final guideBeamWidth = geometry.heroCartridgeSize.width * 0.18;
+    final guideBeamRect = Rect.fromLTRB(
+      geometry.viewportSize.width / 2 - guideBeamWidth / 2,
+      geometry.heroCartridgeRect.bottom - 3,
+      geometry.viewportSize.width / 2 + guideBeamWidth / 2,
+      geometry.consoleSlotMouthY + 2,
+    );
+    // [games] contains only shelf games: the selected cartridge is removed by
+    // the home controller so it cannot appear twice. A one-game library is
+    // therefore empty here while still having a real selected hero.
+    final libraryEmpty = selected == null && games.isEmpty;
 
     return SizedBox.expand(
       key: const ValueKey<String>('avelune-room-scene'),
@@ -142,6 +153,18 @@ class AveluneRoomScene extends StatelessWidget {
                 key: const ValueKey<String>('avelune-slot-mouth-clip'),
                 clipper: _AveluneSlotMouthClipper(geometry.consoleSlotMouthY),
                 child: insertionOverlay!,
+              ),
+            ),
+          if (selected != null)
+            Positioned.fromRect(
+              rect: guideBeamRect,
+              child: AnimatedOpacity(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : context.aveluneMotion.detailsReveal,
+                curve: Curves.easeOutCubic,
+                opacity: showHero ? 1 : 0,
+                child: const _AveluneCartridgeSlotGuideBeam(),
               ),
             ),
           if (selected != null) ...<Widget>[
@@ -199,6 +222,36 @@ class AveluneRoomScene extends StatelessWidget {
               ),
             ),
           ],
+          if (libraryEmpty) ...<Widget>[
+            Positioned.fromRect(
+              rect: geometry.heroCartridgeRect.inflate(
+                geometry.heroCartridgeSize.width * 0.25,
+              ),
+              child: IgnorePointer(
+                child: DecoratedBox(
+                  key: const ValueKey<String>('avelune-room-hero-add-glow'),
+                  decoration: BoxDecoration(
+                    gradient: RadialGradient(
+                      colors: <Color>[
+                        colors.glow.withValues(alpha: 0.26),
+                        colors.glow.withValues(alpha: 0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned.fromRect(
+              rect: geometry.heroCartridgeRect,
+              child: AveluneCartridge.addGame(
+                key: const ValueKey<String>(
+                  'avelune-room-hero-add-cartridge',
+                ),
+                displaySize: AveluneCartridgeDisplaySize.hero,
+                onPressed: onAddGame,
+              ),
+            ),
+          ],
           Positioned.fromRect(
             rect: Rect.fromLTRB(
               roomLayout.librarySheetRect.left,
@@ -209,7 +262,7 @@ class AveluneRoomScene extends StatelessWidget {
             child: _AveluneLibraryHeader(
               hasSelectedGame: selected != null,
               showPlayHint: showPlayHint,
-              onAddGame: onAddGame,
+              onAddGame: libraryEmpty ? null : onAddGame,
             ),
           ),
           Positioned.fromRect(
@@ -221,6 +274,7 @@ class AveluneRoomScene extends StatelessWidget {
               onGameSelected: onGameSelected,
               onGameLongPress: onShelfGameLongPress,
               onAddGame: onAddGame,
+              includeAddGame: !libraryEmpty,
               cartridgeKeyFor: shelfCartridgeKeyFor,
               artworkHeroGameId: shelfArtworkHeroGameId,
               hiddenGameIds: hiddenShelfGameIds,
@@ -349,62 +403,145 @@ class _AveluneConsoleLedge extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.aveluneColors;
     final finish = aveluneCabinFinishColor(colors, finishId);
-    return Stack(
-      key: const ValueKey<String>('avelune-console-ledge'),
-      fit: StackFit.expand,
-      children: <Widget>[
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: <Color>[
-                Color.lerp(colors.surfaceRaised, finish, 0.2)!,
-                colors.surfaceInset,
-              ],
-            ),
-            border: Border(
-              top: BorderSide(
-                color: colors.ivoryHighlight.withValues(alpha: 0.32),
-              ),
-              bottom: BorderSide(
-                color: colors.warning.withValues(alpha: 0.36),
-              ),
-            ),
-          ),
-        ),
-        Opacity(
-          opacity: 0.12,
-          child: Image.asset(
-            kAveluneMatteAbsTextureAssetPath,
-            fit: BoxFit.cover,
-            repeat: ImageRepeat.repeat,
-            filterQuality: FilterQuality.low,
-            excludeFromSemantics: true,
-          ),
-        ),
-        Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            height: 5,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: <Color>[
-                  colors.warning.withValues(alpha: 0),
-                  colors.warning.withValues(alpha: 0.34),
-                  colors.warning.withValues(alpha: 0),
-                ],
-              ),
-              boxShadow: <BoxShadow>[
-                BoxShadow(
-                  color: colors.warning.withValues(alpha: 0.2),
-                  blurRadius: 12,
+    final furnitureAsset = appearanceAssetPath(
+      AveluneAppearanceCatalog.furnitureFinish(finishId),
+    )!;
+    return ClipRect(
+      child: LayoutBuilder(
+        builder: (BuildContext context, BoxConstraints constraints) {
+          const sourceAspectRatio = 768 / 700;
+          const sourceTopOffset = 198 / 700;
+          final renderedHeight = constraints.maxWidth / sourceAspectRatio;
+          return Stack(
+            key: const ValueKey<String>('avelune-console-ledge'),
+            fit: StackFit.expand,
+            children: <Widget>[
+              DecoratedBox(
+                key: const ValueKey<String>(
+                  'avelune-console-ledge-finish-surface',
                 ),
-              ],
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[
+                      Color.lerp(colors.surfaceRaised, finish, 0.44)!,
+                      Color.lerp(colors.surface, finish, 0.5)!,
+                      Color.lerp(finish, colors.warning, 0.18)!,
+                    ],
+                    stops: const <double>[0, 0.58, 1],
+                  ),
+                  border: Border(
+                    top: BorderSide(
+                      color: colors.ivoryHighlight.withValues(alpha: 0.32),
+                    ),
+                    bottom: BorderSide(
+                      color: colors.warning.withValues(alpha: 0.36),
+                    ),
+                  ),
+                ),
+              ),
+              Transform.translate(
+                offset: Offset(0, -renderedHeight * sourceTopOffset),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Image.asset(
+                    furnitureAsset,
+                    key: const ValueKey<String>(
+                      'avelune-room-furniture-layer',
+                    ),
+                    width: constraints.maxWidth,
+                    height: renderedHeight,
+                    fit: BoxFit.fill,
+                    filterQuality: FilterQuality.high,
+                    excludeFromSemantics: true,
+                  ),
+                ),
+              ),
+              Opacity(
+                opacity: 0.07,
+                child: Image.asset(
+                  kAveluneMatteAbsTextureAssetPath,
+                  fit: BoxFit.cover,
+                  repeat: ImageRepeat.repeat,
+                  filterQuality: FilterQuality.low,
+                  excludeFromSemantics: true,
+                ),
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Container(
+                  height: 10,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: <Color>[
+                        colors.warning.withValues(alpha: 0),
+                        colors.warning.withValues(alpha: 0.4),
+                        colors.warning.withValues(alpha: 0),
+                      ],
+                    ),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: colors.warning.withValues(alpha: 0.22),
+                        blurRadius: 14,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _AveluneCartridgeSlotGuideBeam extends StatelessWidget {
+  const _AveluneCartridgeSlotGuideBeam();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.aveluneColors;
+    return ExcludeSemantics(
+      child: IgnorePointer(
+        child: RepaintBoundary(
+          child: Stack(
+            key: const ValueKey<String>(
+              'avelune-cartridge-slot-guide-beam',
             ),
+            fit: StackFit.expand,
+            children: <Widget>[
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: <Color>[
+                      colors.glow.withValues(alpha: 0),
+                      colors.glow.withValues(alpha: 0.32),
+                      colors.glow.withValues(alpha: 0),
+                    ],
+                  ),
+                ),
+              ),
+              Center(
+                child: Container(
+                  width: 2,
+                  decoration: BoxDecoration(
+                    color: colors.ivoryHighlight.withValues(alpha: 0.88),
+                    boxShadow: <BoxShadow>[
+                      BoxShadow(
+                        color: colors.glow.withValues(alpha: 0.9),
+                        blurRadius: 5,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -509,6 +646,7 @@ class _AveluneLibraryHeader extends StatelessWidget {
               ),
               if (onAddGame case final callback?)
                 AvelunePressable(
+                  key: const ValueKey<String>('avelune-library-header-add'),
                   semanticLabel: french ? 'Ajouter un jeu' : 'Add a game',
                   onPressed: callback,
                   borderRadius: AveluneShapes.pill,

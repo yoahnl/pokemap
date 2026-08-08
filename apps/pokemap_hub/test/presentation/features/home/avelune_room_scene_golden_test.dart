@@ -94,6 +94,76 @@ void main() {
     );
   });
 
+  testWidgets('empty iPhone room keeps the physical composition',
+      (tester) async {
+    tester.view.physicalSize = const Size(393, 852);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final theme = AveluneThemeData.standard.applyTo(ThemeData.dark());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: theme.copyWith(
+          textTheme: theme.textTheme.apply(fontFamily: 'Roboto'),
+          primaryTextTheme: theme.primaryTextTheme.apply(fontFamily: 'Roboto'),
+        ),
+        home: DefaultTextStyle(
+          style: theme.textTheme.bodyMedium!.copyWith(fontFamily: 'Roboto'),
+          child: const RepaintBoundary(
+            key: ValueKey<String>('avelune-empty-room-golden-root'),
+            child: _Room(
+              furnitureId: 'walnut',
+              empty: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final context = tester.element(find.byType(AveluneHomeScreen));
+    await tester.runAsync(() async {
+      await Future.wait<void>(<Future<void>>[
+        precacheImage(
+          const AssetImage('assets/avelune/room/backgrounds/amber.webp'),
+          context,
+        ),
+        ...AveluneMaterialCatalog.consoleLayers.map(
+          (asset) => precacheImage(AssetImage(asset.path), context),
+        ),
+        ...AveluneMaterialCatalog.cartridgeLayers.map(
+          (asset) => precacheImage(AssetImage(asset.path), context),
+        ),
+      ]);
+    });
+    await tester.pumpAndSettle();
+    _markSubtreeNeedsPaint(
+      tester.renderObject(
+        find.byKey(
+          const ValueKey<String>('avelune-empty-room-golden-root'),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(
+      find.byKey(const ValueKey<String>('avelune-room-hero-add-cartridge')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('avelune-game-shelf-add')),
+      findsNothing,
+    );
+    await expectLater(
+      find.byKey(
+        const ValueKey<String>('avelune-empty-room-golden-root'),
+      ),
+      matchesGoldenFile(
+        '../../../goldens/avelune/empty_home_iphone_393x852.png',
+      ),
+    );
+  });
+
   testWidgets('latched cartridge insertion visual gate', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -202,9 +272,10 @@ void main() {
 }
 
 class _Room extends StatelessWidget {
-  const _Room({required this.furnitureId});
+  const _Room({required this.furnitureId, this.empty = false});
 
   final String furnitureId;
+  final bool empty;
 
   @override
   Widget build(BuildContext context) => Localizations.override(
@@ -222,7 +293,7 @@ class _Room extends StatelessWidget {
               fit: StackFit.expand,
               children: <Widget>[
                 AveluneHomeScreen(
-                  viewData: _viewData(),
+                  viewData: empty ? _emptyViewData() : _viewData(),
                   appearance: AveluneAppearancePreferences(
                     backgroundId: 'amber',
                     furnitureId: furnitureId,
@@ -247,6 +318,16 @@ class _Room extends StatelessWidget {
         ),
       );
 }
+
+AveluneHomeViewData _emptyViewData() => AveluneHomeViewData(
+      status: AveluneHomeStatus.empty,
+      games: const <AveluneGameViewData>[],
+      selectedGameId: null,
+      recentActivity: const <AveluneRecentActivityViewData>[],
+      import: const AveluneImportViewData.idle(canStart: true),
+      safeErrorMessage: null,
+      reducedMotion: true,
+    );
 
 AveluneHomeViewData _viewData() {
   final games = <AveluneGameViewData>[
@@ -374,6 +455,12 @@ Future<void> _loadGoldenFonts() async {
   ).readAsBytes();
   final textLoader = FontLoader('Roboto')
     ..addFont(Future<ByteData>.value(ByteData.sublistView(bytes)));
+  final editorialLoader = FontLoader('AveluneEditorial')
+    ..addFont(
+      rootBundle.load(
+        'assets/avelune/fonts/CormorantGaramond-Variable.ttf',
+      ),
+    );
   final iconLoader = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   final cupertinoLoader = FontLoader('packages/cupertino_icons/CupertinoIcons')
@@ -382,6 +469,7 @@ Future<void> _loadGoldenFonts() async {
     );
   await Future.wait(<Future<void>>[
     textLoader.load(),
+    editorialLoader.load(),
     iconLoader.load(),
     cupertinoLoader.load(),
   ]);

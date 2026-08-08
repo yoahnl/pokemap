@@ -5,6 +5,7 @@ final class AveluneTypographyTokens
     extends ThemeExtension<AveluneTypographyTokens> {
   const AveluneTypographyTokens({
     required this.display,
+    required this.editorial,
     required this.title,
     required this.section,
     required this.gameTitle,
@@ -20,6 +21,14 @@ final class AveluneTypographyTokens
       height: 1.08,
       fontWeight: FontWeight.w600,
       letterSpacing: 4.8,
+    ),
+    editorial: TextStyle(
+      fontFamily: 'AveluneEditorial',
+      fontFamilyFallback: <String>['Georgia', 'Times New Roman', 'serif'],
+      fontSize: 38,
+      height: 1.04,
+      fontWeight: FontWeight.w400,
+      letterSpacing: -0.7,
     ),
     title: TextStyle(
       fontSize: 24,
@@ -64,6 +73,7 @@ final class AveluneTypographyTokens
   );
 
   final TextStyle display;
+  final TextStyle editorial;
   final TextStyle title;
   final TextStyle section;
   final TextStyle gameTitle;
@@ -74,6 +84,7 @@ final class AveluneTypographyTokens
 
   Map<String, TextStyle> get values => <String, TextStyle>{
         'display': display,
+        'editorial': editorial,
         'title': title,
         'section': section,
         'gameTitle': gameTitle,
@@ -96,6 +107,7 @@ final class AveluneTypographyTokens
   @override
   AveluneTypographyTokens copyWith({
     TextStyle? display,
+    TextStyle? editorial,
     TextStyle? title,
     TextStyle? section,
     TextStyle? gameTitle,
@@ -106,6 +118,7 @@ final class AveluneTypographyTokens
   }) =>
       AveluneTypographyTokens(
         display: display ?? this.display,
+        editorial: editorial ?? this.editorial,
         title: title ?? this.title,
         section: section ?? this.section,
         gameTitle: gameTitle ?? this.gameTitle,
@@ -124,6 +137,7 @@ final class AveluneTypographyTokens
     if (t >= 1) return other;
     return AveluneTypographyTokens(
       display: TextStyle.lerp(display, other.display, t)!,
+      editorial: TextStyle.lerp(editorial, other.editorial, t)!,
       title: TextStyle.lerp(title, other.title, t)!,
       section: TextStyle.lerp(section, other.section, t)!,
       gameTitle: TextStyle.lerp(gameTitle, other.gameTitle, t)!,

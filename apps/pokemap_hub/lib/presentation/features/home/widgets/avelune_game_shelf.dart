@@ -20,6 +20,7 @@ class AveluneGameShelf extends StatefulWidget {
     this.onGameSelected,
     this.onGameLongPress,
     this.onAddGame,
+    this.includeAddGame = true,
     this.cartridgeKeyFor,
     this.artworkHeroGameId,
     this.hiddenGameIds = const <String>{},
@@ -31,6 +32,7 @@ class AveluneGameShelf extends StatefulWidget {
   final ValueChanged<AveluneGameViewData>? onGameSelected;
   final ValueChanged<AveluneGameViewData>? onGameLongPress;
   final VoidCallback? onAddGame;
+  final bool includeAddGame;
   final GlobalKey Function(String gameId)? cartridgeKeyFor;
   final String? artworkHeroGameId;
   final Set<String> hiddenGameIds;
@@ -57,11 +59,21 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
     final shelfGames = widget.games
         .where((game) => game.id != widget.selectedGameId)
         .toList(growable: false);
+    final itemCount = shelfGames.length + (widget.includeAddGame ? 1 : 0);
     final bottomPadding =
         geometry.shelfRect.bottom - geometry.anchors.shelfBaseline.dy;
 
-    return LayoutBuilder(
-      builder: (context, constraints) => SizedBox.expand(
+    return LayoutBuilder(builder: (context, constraints) {
+      final contentWidth = itemCount == 0
+          ? 0.0
+          : itemCount * geometry.shelfCartridgeSize.width +
+              (itemCount - 1) * geometry.shelfGap;
+      final horizontalPadding = math.max(
+        geometry.shelfHorizontalPadding,
+        (constraints.maxWidth - contentWidth) / 2,
+      );
+
+      return SizedBox.expand(
         key: const ValueKey<String>('avelune-game-shelf'),
         child: ListView.builder(
           key: const ValueKey<String>('avelune-game-shelf-list'),
@@ -76,13 +88,13 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
           ),
           itemExtent: _itemExtent,
           padding: EdgeInsets.only(
-            left: geometry.shelfHorizontalPadding,
-            right: geometry.shelfHorizontalPadding,
+            left: horizontalPadding,
+            right: horizontalPadding,
           ),
-          itemCount: shelfGames.length + 1,
-          semanticChildCount: shelfGames.length + 1,
+          itemCount: itemCount,
+          semanticChildCount: itemCount,
           itemBuilder: (context, index) {
-            if (index == shelfGames.length) {
+            if (widget.includeAddGame && index == shelfGames.length) {
               return _shelfItem(
                 id: 'avelune.add-game',
                 bottomPadding: bottomPadding,
@@ -143,8 +155,8 @@ class _AveluneGameShelfState extends State<AveluneGameShelf> {
             );
           },
         ),
-      ),
-    );
+      );
+    });
   }
 
   Widget _shelfItem({

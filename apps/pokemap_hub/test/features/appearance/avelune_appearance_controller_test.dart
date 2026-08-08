@@ -28,8 +28,10 @@ void main() {
 
     await controllerHarness.notifier.initialize();
 
-    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.ready);
-    expect(controllerHarness.state.preferences, const AveluneAppearancePreferences());
+    expect(controllerHarness.state.status,
+        AveluneAppearanceControllerStatus.ready);
+    expect(controllerHarness.state.preferences,
+        const AveluneAppearancePreferences());
     expect(controllerHarness.state.message, isNull);
   });
 
@@ -78,7 +80,8 @@ void main() {
 
     await controllerHarness.notifier.initialize();
 
-    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.ready);
+    expect(controllerHarness.state.status,
+        AveluneAppearanceControllerStatus.ready);
     expect(controllerHarness.state.preferences.backgroundId, 'amber');
     expect(controllerHarness.state.preferences.furnitureId, 'mahogany');
     expect(controllerHarness.state.message, contains('introuvable'));
@@ -101,7 +104,8 @@ void main() {
 
     expect(imported, isTrue);
     expect(statuses, contains(AveluneAppearanceControllerStatus.saving));
-    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.ready);
+    expect(controllerHarness.state.status,
+        AveluneAppearanceControllerStatus.ready);
     expect(controllerHarness.state.preferences.backgroundId, 'custom');
     expect(controllerHarness.state.customBackgroundPath, gateway.imagePath);
     expect((await store.load()).preferences.toJson().values,
@@ -123,8 +127,10 @@ void main() {
     final imported = await controllerHarness.notifier.importCustomBackground();
 
     expect(imported, isFalse);
-    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.ready);
-    expect(controllerHarness.state.preferences, const AveluneAppearancePreferences());
+    expect(controllerHarness.state.status,
+        AveluneAppearanceControllerStatus.ready);
+    expect(controllerHarness.state.preferences,
+        const AveluneAppearancePreferences());
   });
 
   test('cancelled replacement keeps an existing custom image active', () async {
@@ -164,11 +170,13 @@ void main() {
     addTearDown(controllerHarness.dispose);
     await controllerHarness.notifier.initialize();
 
-    final saved = await controllerHarness.notifier.selectFurniture('ivory');
+    final saved = await controllerHarness.notifier.selectFurniture('walnut');
 
     expect(saved, isFalse);
-    expect(controllerHarness.state.status, AveluneAppearanceControllerStatus.error);
-    expect(controllerHarness.state.preferences, const AveluneAppearancePreferences());
+    expect(controllerHarness.state.status,
+        AveluneAppearanceControllerStatus.error);
+    expect(controllerHarness.state.preferences,
+        const AveluneAppearancePreferences());
     expect(controllerHarness.state.message, isNotEmpty);
   });
 
