@@ -128,6 +128,53 @@ abstract final class MapViewportNavigation {
     );
   }
 
+  static MapViewport fitBounds({
+    required Rect contentBounds,
+    required Size viewportSize,
+    required Size tileSize,
+  }) {
+    _validateSize(viewportSize, 'viewportSize');
+    _validateSize(tileSize, 'tileSize');
+    if (!contentBounds.left.isFinite ||
+        !contentBounds.top.isFinite ||
+        !contentBounds.right.isFinite ||
+        !contentBounds.bottom.isFinite ||
+        contentBounds.width <= 0 ||
+        contentBounds.height <= 0) {
+      throw ArgumentError.value(
+        contentBounds,
+        'contentBounds',
+        'must be finite with positive dimensions',
+      );
+    }
+    const margin = 32.0;
+    final availableWidth = viewportSize.width - margin * 2;
+    final availableHeight = viewportSize.height - margin * 2;
+    if (availableWidth <= 0 || availableHeight <= 0) {
+      throw ArgumentError.value(
+        viewportSize,
+        'viewportSize',
+        'must leave a positive viewport area',
+      );
+    }
+    final pixelBounds = Rect.fromLTRB(
+      contentBounds.left * tileSize.width,
+      contentBounds.top * tileSize.height,
+      contentBounds.right * tileSize.width,
+      contentBounds.bottom * tileSize.height,
+    );
+    final zoom = _clampZoom(
+      math.min(
+        availableWidth / pixelBounds.width,
+        availableHeight / pixelBounds.height,
+      ),
+    );
+    return MapViewport(
+      zoom: zoom,
+      panOffset: viewportSize.center(Offset.zero) - pixelBounds.center * zoom,
+    );
+  }
+
   static MapViewport centerMap({
     required Size mapPixelSize,
     required Size viewportSize,

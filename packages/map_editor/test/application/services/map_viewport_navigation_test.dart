@@ -175,6 +175,31 @@ void main() {
       expect(result.panOffset, const Offset(40, 120));
     });
 
+    test('fits bounds with a negative origin around their world center', () {
+      final result = MapViewportNavigation.fitBounds(
+        contentBounds: const Rect.fromLTRB(-12, -8, 28, 22),
+        viewportSize: const Size(1000, 700),
+        tileSize: const Size(16, 16),
+      );
+
+      expect(
+        result.zoom,
+        inInclusiveRange(
+          MapViewportNavigation.minZoom,
+          MapViewportNavigation.maxZoom,
+        ),
+      );
+      expect(result.zoom, closeTo(1.325, 0.000001));
+      expect(result.panOffset.dx, closeTo(330.4, 0.000001));
+      expect(result.panOffset.dy, closeTo(201.6, 0.000001));
+      final centeredWorldPoint = MapViewportNavigation.worldPointAt(
+        viewport: result,
+        viewportPoint: const Size(1000, 700).center(Offset.zero),
+      );
+      expect(centeredWorldPoint.dx, closeTo(128, 0.000001));
+      expect(centeredWorldPoint.dy, closeTo(112, 0.000001));
+    });
+
     test('fit clamps tiny maps to the maximum zoom', () {
       final result = MapViewportNavigation.fitMap(
         mapPixelSize: const Size(8, 8),

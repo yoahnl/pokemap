@@ -53,6 +53,8 @@ import '../../features/editor/presentation/world_map/map_placed_element_rotation
 import '../../features/editor/presentation/world_map/world_map_connection_context_provider.dart';
 import '../../features/editor/presentation/world_map/world_map_layer_hover_preview.dart';
 import '../../features/editor/presentation/world_map/world_map_smart_tile_gesture_mode.dart';
+import '../../features/editor/application/world_map_inspector_projector.dart';
+import '../../features/editor/application/world_map_tool_family.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/narrative/state/narrative_event_map_bridge_state.dart';
 import '../../features/border_map_editing/application/border_feature_hit_test.dart';
@@ -854,9 +856,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     final hoveredTileLayerId = ref.watch(worldMapHoveredTileLayerIdProvider);
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
+    final inspectorKind = ref.watch(
+      worldMapInspectorSnapshotProvider.select((snapshot) => snapshot.kind),
+    );
+    final connectionModeActive =
+        inspectorKind == WorldMapInspectorKind.connections;
     WorldMapConnectionContextRequest? connectionContextRequest;
     final projectRootPath = state.projectRootPath?.trim();
-    if (projectRootPath != null &&
+    if (connectionModeActive &&
+        projectRootPath != null &&
         projectRootPath.isNotEmpty &&
         state.project != null &&
         activeMap != null) {
@@ -872,8 +880,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             worldMapConnectionContextProvider(connectionContextRequest),
           );
     final connectionContext = connectionContextAsync?.valueOrNull;
-    final selectedConnectionDirection =
-        ref.watch(worldMapConnectionDirectionProvider);
+    final selectedConnectionDirection = connectionModeActive
+        ? ref.watch(worldMapConnectionDirectionProvider)
+        : MapConnectionDirection.north;
     final connectionLabelsByDirection =
         resolveMapConnectionLabels(activeMap, state.project);
     final tilesetPathsById = collectMapCanvasTilesetPaths(
@@ -3207,10 +3216,21 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   void _fitActiveMap() {
     final geometry = _readActiveMapViewportGeometry();
     if (geometry == null || !_interactionController.isIdle) return;
-    final viewport = MapViewportNavigation.fitMap(
-      mapPixelSize: geometry.mapPixelSize,
-      viewportSize: geometry.viewportSize,
-    );
+    final editorState = ref.read(editorNotifierProvider);
+    final inspectorKind = ref.read(worldMapInspectorSnapshotProvider).kind;
+    final connectionContext = inspectorKind == WorldMapInspectorKind.connections
+        ? _readLoadedConnectionContext(editorState)
+        : null;
+    final viewport = connectionContext == null
+        ? MapViewportNavigation.fitMap(
+            mapPixelSize: geometry.mapPixelSize,
+            viewportSize: geometry.viewportSize,
+          )
+        : MapViewportNavigation.fitBounds(
+            contentBounds: connectionContext.contentTileBounds,
+            viewportSize: geometry.viewportSize,
+            tileSize: geometry.tileSize,
+          );
     ref.read(editorNotifierProvider.notifier).setMapViewport(viewport);
     _focusMapUnlessNavigationControlsHaveFocus();
   }
@@ -3246,6 +3266,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
 
   ({
     Size mapPixelSize,
+    Size tileSize,
     Size viewportSize,
     MapViewport viewport,
   })? _readActiveMapViewportGeometry() {
@@ -3268,12 +3289,36 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     if (mapPixelSize.width <= 0 || mapPixelSize.height <= 0) return null;
     return (
       mapPixelSize: mapPixelSize,
+      tileSize: Size(tileWidth, tileHeight),
       viewportSize: renderObject.size,
       viewport: MapViewport(
         zoom: state.zoom,
         panOffset: state.panOffset,
       ),
     );
+  }
+
+  WorldMapConnectionContext? _readLoadedConnectionContext(EditorState state) {
+    final projectRootPath = state.projectRootPath?.trim();
+    final project = state.project;
+    final activeMap = state.activeMap;
+    if (projectRootPath == null ||
+        projectRootPath.isEmpty ||
+        project == null ||
+        activeMap == null) {
+      return null;
+    }
+    return ref
+        .read(
+          worldMapConnectionContextProvider(
+            WorldMapConnectionContextRequest(
+              projectRootPath: projectRootPath,
+              project: project,
+              sourceMap: activeMap,
+            ),
+          ),
+        )
+        .valueOrNull;
   }
 
   void _clearTrackpadGesture([int? interactionId]) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/cupertino.dart';
@@ -8,6 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/application/world_map_connection_context.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/theme/theme.dart';
@@ -263,12 +265,17 @@ void main() {
         subscription.close();
         container.dispose();
       });
-      container.read(editorNotifierProvider.notifier).state = const EditorState(
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = const EditorState(
         projectRootPath: '/project',
         project: _project,
         activeMap: _source,
         savedMapSnapshot: _source,
       );
+      final activation = container
+          .read(worldMapWorkspaceSessionProvider.notifier)
+          .activateConnections(notifier);
+      expect(activation.accepted, isTrue);
       final selectedCells = <GridPos?>[];
       await tester.binding.setSurfaceSize(const Size(900, 700));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -306,6 +313,81 @@ void main() {
       expect(selectedCells.whereType<GridPos>(), isEmpty);
     },
   );
+
+  testWidgets('a late neighbor load cannot replace the current map context',
+      (tester) async {
+    final oldTarget = Completer<MapData>();
+    final newTarget = Completer<MapData>();
+    final repository = _DeferredMapRepository({
+      '/project/maps/old-target.json': oldTarget,
+      '/project/maps/new-target.json': newTarget,
+    });
+    final container = ProviderContainer(
+      overrides: [mapRepositoryProvider.overrideWithValue(repository)],
+    );
+    final subscription = container.listen<EditorState>(
+      editorNotifierProvider,
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(() {
+      subscription.close();
+      container.dispose();
+    });
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = const EditorState(
+      projectRootPath: '/project',
+      project: _switchProject,
+      activeMap: _oldSource,
+      savedMapSnapshot: _oldSource,
+    );
+    final activation = container
+        .read(worldMapWorkspaceSessionProvider.notifier)
+        .activateConnections(notifier);
+    expect(activation.accepted, isTrue);
+    await tester.binding.setSurfaceSize(const Size(900, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MacosTheme(
+          data: MacosThemeData.light(),
+          child: MaterialApp(
+            theme: PokeMapTheme.dark(),
+            home: const CupertinoPageScaffold(child: MapCanvas()),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    notifier.state = const EditorState(
+      projectRootPath: '/project',
+      project: _switchProject,
+      activeMap: _newSource,
+      savedMapSnapshot: _newSource,
+    );
+    await tester.pump();
+    newTarget.complete(_newTargetMap);
+    await tester.pump();
+    await tester.pump();
+
+    MapGridPainter currentEastPainter() => tester
+        .widget<CustomPaint>(
+          find.byKey(
+            const ValueKey<String>(
+              'map-connection-context-painter-east',
+            ),
+          ),
+        )
+        .painter! as MapGridPainter;
+
+    expect(currentEastPainter().map.id, 'new-target');
+    oldTarget.complete(_oldTargetMap);
+    await tester.pump();
+    await tester.pump();
+    expect(currentEastPainter().map.id, 'new-target');
+  });
 }
 
 const _project = ProjectManifest(
@@ -421,6 +503,97 @@ class _MapRepository implements MapRepository {
   Future<MapData> loadMap(String path) async =>
       mapsByPath[path] ??
       (throw const MapLoadException('Map file does not exist'));
+
+  @override
+  Future<void> deleteMap(String path) async {}
+
+  @override
+  Future<void> renameMap(String oldPath, String newPath) async {}
+
+  @override
+  Future<void> saveMap(
+    MapData map,
+    String path, {
+    ProjectManifest? projectDialogueContext,
+  }) async {}
+}
+
+const _switchProject = ProjectManifest(
+  name: 'Context switch',
+  maps: [
+    ProjectMapEntry(
+      id: 'old-source',
+      name: 'Old source',
+      relativePath: 'maps/old-source.json',
+    ),
+    ProjectMapEntry(
+      id: 'old-target',
+      name: 'Old target',
+      relativePath: 'maps/old-target.json',
+    ),
+    ProjectMapEntry(
+      id: 'new-source',
+      name: 'New source',
+      relativePath: 'maps/new-source.json',
+    ),
+    ProjectMapEntry(
+      id: 'new-target',
+      name: 'New target',
+      relativePath: 'maps/new-target.json',
+    ),
+  ],
+  tilesets: [],
+);
+
+const _oldSource = MapData(
+  id: 'old-source',
+  name: 'Old source',
+  size: GridSize(width: 8, height: 8),
+  connections: [
+    MapConnection(
+      direction: MapConnectionDirection.east,
+      targetMapId: 'old-target',
+      offset: 0,
+    ),
+  ],
+);
+
+const _newSource = MapData(
+  id: 'new-source',
+  name: 'New source',
+  size: GridSize(width: 8, height: 8),
+  connections: [
+    MapConnection(
+      direction: MapConnectionDirection.east,
+      targetMapId: 'new-target',
+      offset: 0,
+    ),
+  ],
+);
+
+const _oldTargetMap = MapData(
+  id: 'old-target',
+  name: 'Old target',
+  size: GridSize(width: 4, height: 4),
+);
+
+const _newTargetMap = MapData(
+  id: 'new-target',
+  name: 'New target',
+  size: GridSize(width: 5, height: 5),
+);
+
+class _DeferredMapRepository implements MapRepository {
+  _DeferredMapRepository(this.mapsByPath);
+
+  final Map<String, Completer<MapData>> mapsByPath;
+
+  @override
+  Future<MapData> loadMap(String path) =>
+      mapsByPath[path]?.future ??
+      Future<MapData>.error(
+        const MapLoadException('Map file does not exist'),
+      );
 
   @override
   Future<void> deleteMap(String path) async {}

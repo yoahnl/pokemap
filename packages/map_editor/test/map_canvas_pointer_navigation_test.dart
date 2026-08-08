@@ -7,8 +7,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/application/models/map_history_snapshot.dart';
 import 'package:map_editor/src/application/services/map_viewport_navigation.dart';
+import 'package:map_editor/src/domain/repositories/repositories.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_activation.dart';
+import 'package:map_editor/src/features/editor/application/world_map_tool_family.dart';
+import 'package:map_editor/src/features/editor/presentation/world_map/world_map_workspace_session.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
@@ -903,6 +908,94 @@ void main() {
       expect(state.panOffset, const Offset(180, -90));
     });
 
+    testWidgets(
+      'connections fit includes neighbors while center and paint stay active-map scoped',
+      (tester) async {
+        final repository = _ViewportMapRepository({
+          '/project/maps/north.json': _connectedNorthMap,
+          '/project/maps/east.json': _connectedEastMap,
+        });
+        final container = _createContainer(mapRepository: repository);
+        final notifier = container.read(editorNotifierProvider.notifier);
+        notifier.state = EditorState(
+          projectRootPath: '/project',
+          project: _connectionProject,
+          activeMap: _connectedSourceMap,
+          activeLayerId: 'ground',
+          savedMapSnapshot: _connectedSourceMap,
+          panOffset: const Offset(160, 90),
+          zoom: 2,
+        );
+        final activation = container
+            .read(worldMapWorkspaceSessionProvider.notifier)
+            .activateConnections(notifier);
+        expect(activation.accepted, isTrue);
+
+        await _pumpCanvas(tester, container);
+        await tester.pumpAndSettle();
+        expect(find.byType(MapConnectionContextLayer), findsOneWidget);
+
+        final canvasSize = tester.getSize(find.byType(MapCanvas));
+        await tester.tap(find.byKey(const ValueKey('map-navigation-fit')));
+        await tester.pump();
+        final settings = _connectionProject.settings;
+        final tileSize = Size(
+          settings.tileWidth * settings.displayScale,
+          settings.tileHeight * settings.displayScale,
+        );
+        final expectedFit = MapViewportNavigation.fitBounds(
+          contentBounds: const Rect.fromLTRB(0, -4, 15, 8),
+          viewportSize: canvasSize,
+          tileSize: tileSize,
+        );
+        var state = container.read(editorNotifierProvider);
+        expect(state.zoom, closeTo(expectedFit.zoom, 0.000001));
+        expect(
+          state.panOffset.dx,
+          closeTo(expectedFit.panOffset.dx, 0.000001),
+        );
+        expect(
+          state.panOffset.dy,
+          closeTo(expectedFit.panOffset.dy, 0.000001),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('map-navigation-center')));
+        await tester.pump();
+        final expectedCenter = MapViewportNavigation.centerMap(
+          mapPixelSize: Size(
+            _connectedSourceMap.size.width * tileSize.width,
+            _connectedSourceMap.size.height * tileSize.height,
+          ),
+          viewportSize: canvasSize,
+          zoom: expectedFit.zoom,
+        );
+        state = container.read(editorNotifierProvider);
+        expect(state.zoom, closeTo(expectedCenter.zoom, 0.000001));
+        expect(
+          state.panOffset.dx,
+          closeTo(expectedCenter.panOffset.dx, 0.000001),
+        );
+        expect(
+          state.panOffset.dy,
+          closeTo(expectedCenter.panOffset.dy, 0.000001),
+        );
+
+        final beforePaint = state;
+        final paintActivation = container
+            .read(worldMapWorkspaceSessionProvider.notifier)
+            .activateTool(
+              notifier,
+              const ActivateWorldMapPaint(WorldMapPaintSubtool.tile),
+            );
+        expect(paintActivation.accepted, isTrue);
+        await tester.pump();
+        expect(find.byType(MapConnectionContextLayer), findsNothing);
+        state = container.read(editorNotifierProvider);
+        expect(state.zoom, beforePaint.zoom);
+        expect(state.panOffset, beforePaint.panOffset);
+      },
+    );
+
     testWidgets('overlay exposes fit, 100 percent, and center controls',
         (tester) async {
       final container = _createContainer();
@@ -1224,8 +1317,13 @@ void main() {
   });
 }
 
-ProviderContainer _createContainer() {
-  final container = ProviderContainer();
+ProviderContainer _createContainer({MapRepository? mapRepository}) {
+  final container = ProviderContainer(
+    overrides: [
+      if (mapRepository != null)
+        mapRepositoryProvider.overrideWithValue(mapRepository),
+    ],
+  );
   final subscription = container.listen<EditorState>(
     editorNotifierProvider,
     (_, __) {},
@@ -1323,3 +1421,86 @@ const _activeMap = MapData(
     ),
   ],
 );
+
+final _connectedSourceMap = MapData(
+  id: 'source',
+  name: 'Source',
+  size: const GridSize(width: 10, height: 8),
+  layers: [
+    TileLayer(
+      id: 'ground',
+      name: 'Ground',
+      cells: List<int>.filled(80, 0),
+    ),
+  ],
+  connections: const [
+    MapConnection(
+      direction: MapConnectionDirection.north,
+      targetMapId: 'north',
+      offset: 0,
+    ),
+    MapConnection(
+      direction: MapConnectionDirection.east,
+      targetMapId: 'east',
+      offset: 0,
+    ),
+  ],
+);
+
+const _connectedNorthMap = MapData(
+  id: 'north',
+  name: 'North',
+  size: GridSize(width: 6, height: 4),
+);
+
+const _connectedEastMap = MapData(
+  id: 'east',
+  name: 'East',
+  size: GridSize(width: 5, height: 6),
+);
+
+const _connectionProject = ProjectManifest(
+  name: 'Connection viewport',
+  maps: [
+    ProjectMapEntry(
+      id: 'source',
+      name: 'Source',
+      relativePath: 'maps/source.json',
+    ),
+    ProjectMapEntry(
+      id: 'north',
+      name: 'North',
+      relativePath: 'maps/north.json',
+    ),
+    ProjectMapEntry(
+      id: 'east',
+      name: 'East',
+      relativePath: 'maps/east.json',
+    ),
+  ],
+  tilesets: [],
+);
+
+class _ViewportMapRepository implements MapRepository {
+  _ViewportMapRepository(this.mapsByPath);
+
+  final Map<String, MapData> mapsByPath;
+
+  @override
+  Future<MapData> loadMap(String path) async =>
+      mapsByPath[path] ??
+      (throw const MapLoadException('Map file does not exist'));
+
+  @override
+  Future<void> deleteMap(String path) async {}
+
+  @override
+  Future<void> renameMap(String oldPath, String newPath) async {}
+
+  @override
+  Future<void> saveMap(
+    MapData map,
+    String path, {
+    ProjectManifest? projectDialogueContext,
+  }) async {}
+}
