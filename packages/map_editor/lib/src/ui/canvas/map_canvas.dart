@@ -41,6 +41,7 @@ import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/editor/application/world_map_connection_context.dart';
 import '../../features/editor/state/environment_generated_placement_add_element_provider.dart';
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/application/map_canvas_interaction_controller.dart';
@@ -49,6 +50,7 @@ import '../../features/editor/application/map_canvas_object_move_planner.dart';
 import '../../features/editor/application/map_placed_element_rotation_planner.dart';
 import '../../features/editor/application/project_element_frame_resolver.dart';
 import '../../features/editor/presentation/world_map/map_placed_element_rotation_preview_controller.dart';
+import '../../features/editor/presentation/world_map/world_map_connection_context_provider.dart';
 import '../../features/editor/presentation/world_map/world_map_layer_hover_preview.dart';
 import '../../features/editor/presentation/world_map/world_map_smart_tile_gesture_mode.dart';
 import '../../features/editor/tools/editor_tool.dart';
@@ -82,6 +84,8 @@ import '../../theme/theme.dart';
 // synchronisation des ressources. Le painter et le cache d'images vivent dans
 // des part files dédiés pour rendre cette surface re-reviewable.
 part 'map_canvas/map_grid_painter.dart';
+part 'map_canvas/map_connection_context_layer.dart';
+part 'map_canvas/map_canvas_tileset_path_collector.dart';
 part 'map_canvas/tile_layer_hover_highlight_painter.dart';
 
 const bool _showMapGrid = bool.fromEnvironment(
@@ -850,13 +854,38 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     final hoveredTileLayerId = ref.watch(worldMapHoveredTileLayerIdProvider);
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
+    WorldMapConnectionContextRequest? connectionContextRequest;
+    final projectRootPath = state.projectRootPath?.trim();
+    if (projectRootPath != null &&
+        projectRootPath.isNotEmpty &&
+        state.project != null &&
+        activeMap != null) {
+      connectionContextRequest = WorldMapConnectionContextRequest(
+        projectRootPath: projectRootPath,
+        project: state.project!,
+        sourceMap: activeMap,
+      );
+    }
+    final connectionContextAsync = connectionContextRequest == null
+        ? null
+        : ref.watch(
+            worldMapConnectionContextProvider(connectionContextRequest),
+          );
+    final connectionContext = connectionContextAsync?.valueOrNull;
+    final selectedConnectionDirection =
+        ref.watch(worldMapConnectionDirectionProvider);
     final connectionLabelsByDirection =
-        _resolveConnectionLabels(activeMap, state.project);
-    final tilesetPathsById = _collectLayerTilesetPaths(
-      activeMap,
-      notifier,
+        resolveMapConnectionLabels(activeMap, state.project);
+    final tilesetPathsById = collectMapCanvasTilesetPaths(
+      maps: [
+        if (activeMap != null) activeMap,
+        ...?connectionContext?.neighbors.values.map((neighbor) => neighbor.map),
+      ],
+      resolveTilesetAbsolutePath: notifier.getTilesetAbsolutePathById,
+      activeBrushTilesetId: notifier.getActiveBrushTilesetId(),
       project: state.project,
       projectRootPath: state.projectRootPath,
+      activeMap: activeMap,
       borderPreview: borderPreviewState.transaction,
     );
     final transparentColorByTilesetId = _collectTilesetTransparentColors(
@@ -1937,6 +1966,24 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                 key: _mapViewportKey,
                 child: Stack(
                   children: [
+                    if (connectionContext case final loadedContext?)
+                      Positioned.fill(
+                        child: MapConnectionContextLayer(
+                          context: loadedContext,
+                          selectedDirection: selectedConnectionDirection,
+                          zoom: state.zoom,
+                          offset: state.panOffset,
+                          tileWidth: tileWidth,
+                          tileHeight: tileHeight,
+                          sourceTileWidth: settings.tileWidth,
+                          sourceTileHeight: settings.tileHeight,
+                          tilesetImagesById: tilesetImagesById,
+                          tilesPerRowById: tilesPerRowById,
+                          project: state.project,
+                          shadowLightPreviewPreset: shadowLightPreviewPreset,
+                          animationClock: _repaintClock,
+                        ),
+                      ),
                     Positioned.fill(
                       child: Focus(
                         key: const ValueKey<String>('map-canvas-focus'),
@@ -3411,130 +3458,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     }
   }
 
-  Map<String, String> _collectLayerTilesetPaths(
-    MapData? map,
-    EditorNotifier notifier, {
-    ProjectManifest? project,
-    required String? projectRootPath,
-    required BorderPreviewTransaction? borderPreview,
-  }) {
-    final result = <String, String>{};
-    if (map != null) {
-      collectTilesetIdsForEntityEditorVisuals(
-        map: map,
-        project: project,
-        onTilesetId: (tilesetId) {
-          if (result.containsKey(tilesetId)) {
-            return;
-          }
-          final p = notifier.getTilesetAbsolutePathById(tilesetId);
-          if (p != null && p.isNotEmpty) {
-            result[tilesetId] = p;
-          }
-        },
-      );
-      final literalVisualTilesetIds = <String>{
-        for (final layer in map.layers.whereType<TileLayer>())
-          for (final entry in layer.palette) entry.tilesetId,
-        for (final layer in map.layers.whereType<ObjectLayer>())
-          for (final object in layer.tileObjects) object.tile.tilesetId,
-      };
-      for (final tilesetId in literalVisualTilesetIds) {
-        ProjectTilesetEntry? tileset;
-        for (final candidate
-            in project?.tilesets ?? const <ProjectTilesetEntry>[]) {
-          if (candidate.id == tilesetId) {
-            tileset = candidate;
-            break;
-          }
-        }
-        final source = tileset?.source;
-        if (source is ProjectImageCollectionTilesetSource &&
-            projectRootPath != null &&
-            projectRootPath.trim().isNotEmpty) {
-          for (final page in source.pages) {
-            result[page.assetId] = p.normalize(
-              p.join(
-                projectRootPath,
-                tileset!.relativePath,
-                '${page.id}.png',
-              ),
-            );
-          }
-          continue;
-        }
-        final path = notifier.getTilesetAbsolutePathById(tilesetId);
-        if (path == null || path.isEmpty) continue;
-        result[tilesetId] = path;
-      }
-      for (final atlas in project?.smartTileCatalog.atlases ??
-          const <ProjectSmartTileAtlas>[]) {
-        final tilesetId = atlas.tilesetId.trim();
-        if (tilesetId.isEmpty || result.containsKey(tilesetId)) continue;
-        final path = notifier.getTilesetAbsolutePathById(tilesetId);
-        if (path != null && path.isNotEmpty) result[tilesetId] = path;
-      }
-    }
-    final brushTilesetId = notifier.getActiveBrushTilesetId();
-    if (brushTilesetId != null && !result.containsKey(brushTilesetId)) {
-      final brushPath = notifier.getTilesetAbsolutePathById(brushTilesetId);
-      if (brushPath != null && brushPath.isNotEmpty) {
-        result[brushTilesetId] = brushPath;
-      }
-    }
-    final borderSnapshotIds = <String>{};
-    if (map != null) {
-      for (final layer in map.layers.whereType<BorderLayer>()) {
-        for (final feature in layer.content.features) {
-          final materialization = feature.materialization;
-          if (materialization == null) continue;
-          borderSnapshotIds.addAll(
-            materialization.ground.map((cell) => cell.visualSnapshotId),
-          );
-          borderSnapshotIds.addAll(
-            materialization.placements
-                .map((placement) => placement.visualSnapshotId),
-          );
-        }
-      }
-    }
-    final previewMaterialization = map == null
-        ? null
-        : editorBorderPreviewMaterializationForMap(
-            map: map,
-            preview: borderPreview,
-          );
-    if (previewMaterialization != null) {
-      borderSnapshotIds.addAll(
-        previewMaterialization.ground.map((cell) => cell.visualSnapshotId),
-      );
-      borderSnapshotIds.addAll(
-        previewMaterialization.placements
-            .map((placement) => placement.visualSnapshotId),
-      );
-    }
-    final borderCatalog = project?.borderCatalog;
-    if (borderCatalog != null) {
-      for (final snapshotId in borderSnapshotIds) {
-        final snapshot = borderCatalog.visualSnapshotById(snapshotId);
-        if (snapshot == null) continue;
-        for (var index = 0; index < snapshot.frames.length; index += 1) {
-          final relativePath = snapshot.frames[index].relativeAssetPath;
-          final absolutePath = p.isAbsolute(relativePath)
-              ? p.normalize(relativePath)
-              : projectRootPath == null || projectRootPath.trim().isEmpty
-                  ? null
-                  : p.normalize(p.join(projectRootPath, relativePath));
-          if (absolutePath != null) {
-            result[editorBorderFrameImageKey(snapshot.id, index)] =
-                absolutePath;
-          }
-        }
-      }
-    }
-    return result;
-  }
-
   Map<String, TilesetTransparentColor> _collectTilesetTransparentColors(
     ProjectManifest? project,
   ) {
@@ -3567,24 +3490,6 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         project: project,
         borderPreview: borderPreview,
       );
-
-  Map<MapConnectionDirection, String> _resolveConnectionLabels(
-    MapData? map,
-    ProjectManifest? project,
-  ) {
-    final result = <MapConnectionDirection, String>{};
-    if (map == null || project == null) {
-      return result;
-    }
-    final projectMapById = <String, ProjectMapEntry>{
-      for (final mapEntry in project.maps) mapEntry.id: mapEntry,
-    };
-    for (final connection in map.connections) {
-      final mapEntry = projectMapById[connection.targetMapId];
-      result[connection.direction] = mapEntry?.name ?? connection.targetMapId;
-    }
-    return result;
-  }
 
   /// Construit un [MapRect] à partir de deux coins opposés (inclusif des deux).
   MapRect _rectFromCorners(GridPos a, GridPos b) {
