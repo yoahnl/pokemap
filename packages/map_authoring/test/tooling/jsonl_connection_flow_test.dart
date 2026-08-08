@@ -97,6 +97,51 @@ void main() {
           .map((item) => item['id']),
       ['alpha:east', 'beta:west'],
     );
+    final preview = await setup.request(
+      'query',
+      args: {
+        'projectHandle': projectHandle.value,
+        'request': AuthoringQueryRequest(
+          resourceKind: 'mapConnection',
+          operation: AuthoringQueryOperation.summary,
+          view: AuthoringQueryView.detail,
+          extensions: const {
+            'actionId': 'connection.preview_alignment',
+            'parameters': {
+              'mapId': 'alpha',
+              'targetMapId': 'beta',
+              'direction': 'east',
+              'offset': 1,
+            },
+          },
+        ).toJson(),
+      },
+    );
+    expect(preview.status, AuthoringResultStatus.success);
+    expect(
+      (preview.data['items']! as List).cast<Map>().single,
+      containsPair('overlapLength', 2),
+    );
+    final validation = await setup.request(
+      'query',
+      args: {
+        'projectHandle': projectHandle.value,
+        'request': AuthoringQueryRequest(
+          resourceKind: 'mapConnection',
+          operation: AuthoringQueryOperation.summary,
+          view: AuthoringQueryView.detail,
+          extensions: const {
+            'actionId': 'connection.validate',
+            'parameters': <String, Object?>{},
+          },
+        ).toJson(),
+      },
+    );
+    expect(validation.status, AuthoringResultStatus.success);
+    expect(
+      (validation.data['items']! as List).cast<Map>().single,
+      containsPair('valid', true),
+    );
 
     final deletePlan = await setup.request(
       'plan',

@@ -7,6 +7,7 @@ import '../contracts/query_page.dart';
 import '../contracts/query_request.dart';
 import '../domains/assets/asset_store.dart';
 import '../domains/maps/map_region_query.dart';
+import '../domains/maps/warp_connection_actions.dart';
 import '../domains/narrative/dialogue_authoring_service.dart';
 import '../domains/narrative/dialogue_source_store.dart';
 import '../domains/narrative/script_authoring_service.dart';
@@ -34,6 +35,8 @@ final class ProjectQueryService {
   ) {
     final regionPage = _queryMapRegion(snapshot, request);
     if (regionPage != null) return regionPage;
+    final connectionActionPage = _queryConnectionAction(snapshot, request);
+    if (connectionActionPage != null) return connectionActionPage;
     var records = _records(snapshot, request.resourceKind);
     records = _applyOperation(records, request);
     records = records
@@ -72,6 +75,186 @@ final class ProjectQueryService {
       nextCursor: nextCursor,
     );
   }
+}
+
+AuthoringQueryPage? _queryConnectionAction(
+  ProjectSnapshot snapshot,
+  AuthoringQueryRequest request,
+) {
+  final actionId = request.extensions['actionId'];
+  if (actionId == null) return null;
+  if (request.resourceKind != 'mapConnection' ||
+      request.operation != AuthoringQueryOperation.summary ||
+      request.ids.isNotEmpty ||
+      request.filters.isNotEmpty ||
+      request.sort.isNotEmpty ||
+      request.cursor != null ||
+      request.extensions.keys.any(
+        (key) => key != 'actionId' && key != 'parameters',
+      )) {
+    throw const AuthoringQueryException(
+      'query.connection_action_contract_invalid',
+      'A connection query action requires one unfiltered mapConnection '
+          'summary request.',
+    );
+  }
+  final parameters = request.extensions['parameters'];
+  if (actionId is! String ||
+      parameters is! Map ||
+      parameters.keys.any((key) => key is! String)) {
+    throw const AuthoringQueryException(
+      'query.connection_action_invalid',
+      'The connection query action and parameters are invalid.',
+    );
+  }
+  final values = Map<String, Object?>.from(parameters);
+  final item = switch (actionId) {
+    'connection.preview_alignment' =>
+      _connectionAlignmentPreview(snapshot, values),
+    'connection.validate' => _connectionValidation(snapshot, values),
+    _ => throw const AuthoringQueryException(
+        'query.connection_action_unsupported',
+        'The requested connection query action is unsupported.',
+      ),
+  };
+  return AuthoringQueryPage(
+    snapshotRevision: snapshot.revision,
+    items: [_applyFieldMask(item, request.fieldMask)],
+    totalAvailable: 1,
+  );
+}
+
+Map<String, Object?> _connectionAlignmentPreview(
+  ProjectSnapshot snapshot,
+  Map<String, Object?> parameters,
+) {
+  _requireExactKeys(
+    parameters,
+    const {'mapId', 'targetMapId', 'direction', 'offset'},
+    code: 'query.connection_preview_parameters_invalid',
+  );
+  final mapId = _requiredStringParameter(parameters, 'mapId');
+  final targetMapId = _requiredStringParameter(parameters, 'targetMapId');
+  final direction = _connectionDirection(parameters['direction']);
+  final offset = parameters['offset'];
+  if (offset is! int || mapId == targetMapId) {
+    throw const AuthoringQueryException(
+      'query.connection_preview_parameters_invalid',
+      'A connection preview requires distinct maps and an integer offset.',
+    );
+  }
+  final source = snapshot.mapById(mapId);
+  final target = snapshot.mapById(targetMapId);
+  if (source == null || target == null) {
+    throw const AuthoringQueryException(
+      'query.resource_not_found',
+      'A map requested by the connection preview was not found.',
+    );
+  }
+  final preview = const WarpConnectionActions().previewAlignment(
+    sourceSize: source.size,
+    targetSize: target.size,
+    direction: direction,
+    offset: offset,
+  );
+  return {
+    'id': '$mapId:${direction.name}:$targetMapId:$offset',
+    'name': '${source.name} — ${_directionLabel(direction)} alignment',
+    'resourceKind': 'mapConnection',
+    'actionId': 'connection.preview_alignment',
+    'mapId': mapId,
+    'targetMapId': targetMapId,
+    ...preview.toJson(),
+  };
+}
+
+Map<String, Object?> _connectionValidation(
+  ProjectSnapshot snapshot,
+  Map<String, Object?> parameters,
+) {
+  if (parameters.keys.any((key) => key != 'mapId' && key != 'direction')) {
+    throw const AuthoringQueryException(
+      'query.connection_validation_parameters_invalid',
+      'Connection validation accepts only mapId and direction filters.',
+    );
+  }
+  final mapId = parameters.containsKey('mapId')
+      ? _requiredStringParameter(parameters, 'mapId')
+      : null;
+  final direction = parameters.containsKey('direction')
+      ? _connectionDirection(parameters['direction'])
+      : null;
+  if (mapId != null && snapshot.mapById(mapId) == null) {
+    throw const AuthoringQueryException(
+      'query.resource_not_found',
+      'The map requested by connection validation was not found.',
+    );
+  }
+  final issues = const WarpConnectionActions()
+      .validateConnections(snapshot)
+      .where(
+        (issue) =>
+            (mapId == null || issue.mapId == mapId) &&
+            (direction == null || issue.sourceId == direction.name),
+      )
+      .toList(growable: false);
+  final connectionCount = snapshot.maps
+      .where((map) => mapId == null || map.id == mapId)
+      .expand((map) => map.connections)
+      .where(
+        (connection) => direction == null || connection.direction == direction,
+      )
+      .length;
+  return {
+    'id': mapId == null && direction == null
+        ? 'connection-validation'
+        : '${mapId ?? 'all'}:${direction?.name ?? 'all'}:validation',
+    'name': 'Connection validation',
+    'resourceKind': 'mapConnection',
+    'actionId': 'connection.validate',
+    if (mapId != null) 'mapId': mapId,
+    if (direction != null) 'direction': direction.name,
+    'connectionCount': connectionCount,
+    'valid': issues.isEmpty,
+    'issues': [for (final issue in issues) issue.toJson()],
+  };
+}
+
+void _requireExactKeys(
+  Map<String, Object?> values,
+  Set<String> expected, {
+  required String code,
+}) {
+  if (values.keys.toSet().difference(expected).isNotEmpty ||
+      expected.difference(values.keys.toSet()).isNotEmpty) {
+    throw AuthoringQueryException(
+      code,
+      'The query action parameters do not match the canonical contract.',
+    );
+  }
+}
+
+String _requiredStringParameter(Map<String, Object?> values, String key) {
+  final value = values[key];
+  if (value is! String || value.trim().isEmpty) {
+    throw const AuthoringQueryException(
+      'query.connection_action_parameters_invalid',
+      'A required connection query parameter is invalid.',
+    );
+  }
+  return value.trim();
+}
+
+MapConnectionDirection _connectionDirection(Object? value) {
+  if (value is String) {
+    for (final direction in MapConnectionDirection.values) {
+      if (direction.name == value) return direction;
+    }
+  }
+  throw const AuthoringQueryException(
+    'query.connection_direction_invalid',
+    'Connection direction must be north, east, south, or west.',
+  );
 }
 
 AuthoringQueryPage? _queryMapRegion(

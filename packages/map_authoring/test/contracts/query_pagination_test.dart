@@ -306,6 +306,69 @@ void main() {
       ]);
     });
 
+    test('previews a hypothetical connection alignment through query actions',
+        () {
+      final page = const ProjectQueryService().query(
+        _snapshot(),
+        AuthoringQueryRequest(
+          resourceKind: 'mapConnection',
+          operation: AuthoringQueryOperation.summary,
+          view: AuthoringQueryView.detail,
+          extensions: const {
+            'actionId': 'connection.preview_alignment',
+            'parameters': {
+              'mapId': 'a-map',
+              'targetMapId': 'b-map',
+              'direction': 'east',
+              'offset': 1,
+            },
+          },
+        ),
+      );
+
+      expect(page.items.single, {
+        'id': 'a-map:east:b-map:1',
+        'name': 'Alpha Field — East alignment',
+        'resourceKind': 'mapConnection',
+        'actionId': 'connection.preview_alignment',
+        'mapId': 'a-map',
+        'targetMapId': 'b-map',
+        'direction': 'east',
+        'offset': 1,
+        'sourceStart': 1,
+        'targetStart': 0,
+        'overlapLength': 1,
+        'hasOverlap': true,
+      });
+    });
+
+    test('validates authored connections through query actions', () {
+      final page = const ProjectQueryService().query(
+        _snapshot(withBrokenConnection: true),
+        AuthoringQueryRequest(
+          resourceKind: 'mapConnection',
+          operation: AuthoringQueryOperation.summary,
+          view: AuthoringQueryView.detail,
+          extensions: const {
+            'actionId': 'connection.validate',
+            'parameters': <String, Object?>{},
+          },
+        ),
+      );
+
+      final item = page.items.single;
+      expect(item['id'], 'connection-validation');
+      expect(item['valid'], isFalse);
+      expect(item['connectionCount'], 1);
+      expect(
+        (item['issues']! as List).cast<Map>().map((issue) => issue['code']),
+        containsAll([
+          'world_graph.connection_no_overlap',
+          'world_graph.connection_reciprocal_mismatch',
+        ]),
+      );
+    });
+
     test('applies filters, descending sort, and dotted field masks', () {
       final page = const ProjectQueryService().query(
         _snapshot(),
@@ -471,6 +534,7 @@ ProjectSnapshot _snapshot({
   String revisionDigit = 'a',
   bool withApiKey = false,
   bool withConnections = false,
+  bool withBrokenConnection = false,
 }) {
   final maps = [
     _map(
@@ -484,21 +548,29 @@ ProjectSnapshot _snapshot({
       name: 'Alpha Field',
       width: 3,
       tiles: const [1, 2, 3, 4, 5, 6],
-      connections: withConnections
+      connections: withBrokenConnection
           ? const [
               MapConnection(
                 direction: MapConnectionDirection.east,
                 targetMapId: 'b-map',
+                offset: 4,
               ),
             ]
-          : const [],
+          : withConnections
+              ? const [
+                  MapConnection(
+                    direction: MapConnectionDirection.east,
+                    targetMapId: 'b-map',
+                  ),
+                ]
+              : const [],
     ),
     _map(
       id: 'b-map',
       name: 'Bravo Field',
       width: 2,
       tiles: const [7, 8, 9, 10],
-      connections: withConnections
+      connections: withConnections && !withBrokenConnection
           ? const [
               MapConnection(
                 direction: MapConnectionDirection.west,

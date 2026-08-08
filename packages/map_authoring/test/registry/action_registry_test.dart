@@ -121,7 +121,12 @@ void main() {
       );
       expect(
         registry.require('mapConnection').extensions['queryActions'],
-        containsAll(['connection.list', 'connection.get']),
+        containsAll([
+          'connection.list',
+          'connection.get',
+          'connection.preview_alignment',
+          'connection.validate',
+        ]),
       );
       expect(registry.find('unknown'), isNull);
     });

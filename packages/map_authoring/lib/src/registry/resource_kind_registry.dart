@@ -131,7 +131,12 @@ final class AuthoringResourceKindRegistry {
         summary: 'Directional physical adjacency between two maps',
         extensions: const {
           'idFormat': 'mapId:direction',
-          'queryActions': ['connection.list', 'connection.get'],
+          'queryActions': [
+            'connection.list',
+            'connection.get',
+            'connection.preview_alignment',
+            'connection.validate',
+          ],
         },
       ),
       AuthoringResourceKindDescriptor(
