@@ -5,6 +5,7 @@ import 'package:map_authoring/map_authoring.dart'
 import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
+import '../../../smart_tiles_studio/application/smart_tile_preset_preview.dart';
 import '../../../smart_tiles_studio/presentation/smart_tile_behavior_action_menu.dart';
 import '../../../smart_tiles_studio/presentation/smart_tile_sprite_preview.dart';
 import '../../application/smart_tile_variant_density.dart';
@@ -448,17 +449,33 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                               key: ValueKey<String>(
                                 'world-map-smart-tile-${_usage.name}-preset-${preset.id}',
                               ),
-                              thumbnail: Icon(
-                                switch (subtool) {
-                                  WorldMapPaintSubtool.terrain =>
-                                    Icons.landscape_outlined,
-                                  WorldMapPaintSubtool.path =>
-                                    Icons.route_outlined,
-                                  WorldMapPaintSubtool.surface =>
-                                    Icons.park_outlined,
-                                  _ => Icons.auto_awesome_mosaic_outlined,
-                                },
-                              ),
+                              thumbnail: switch (
+                                  representativeSmartTileFrameOf(preset)) {
+                                final SmartTileFrameRef frame =>
+                                  SmartTileSpritePreview(
+                                    key: ValueKey<String>(
+                                      'world-map-smart-tile-${_usage.name}-preset-${preset.id}-thumbnail',
+                                    ),
+                                    frame: frame,
+                                    atlases: snapshot
+                                        .project!.smartTileCatalog.atlases,
+                                    tilesets: snapshot.project!.tilesets,
+                                    projectRootPath: snapshot.projectRootPath,
+                                    size: 44,
+                                    semanticLabel: 'Aperçu de ${preset.name}',
+                                  ),
+                                null => Icon(
+                                    switch (subtool) {
+                                      WorldMapPaintSubtool.terrain =>
+                                        Icons.landscape_outlined,
+                                      WorldMapPaintSubtool.path =>
+                                        Icons.route_outlined,
+                                      WorldMapPaintSubtool.surface =>
+                                        Icons.park_outlined,
+                                      _ => Icons.auto_awesome_mosaic_outlined,
+                                    },
+                                  ),
+                              },
                               label: preset.name,
                               description: selected && canEdit
                                   ? 'Prêt à peindre'

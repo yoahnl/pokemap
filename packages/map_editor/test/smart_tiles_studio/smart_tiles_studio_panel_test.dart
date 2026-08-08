@@ -8,6 +8,8 @@ import 'package:map_editor/src/features/smart_tiles_studio/application/smart_til
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_source_asset_import_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_reconstruction_service.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/application/smart_tile_tiled_wang_import_service.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tile_sprite_preview.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tile_preset_library_actions.dart';
 import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tiles_studio_panel.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_asset_card.dart';
 import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
@@ -72,6 +74,25 @@ void main() {
       expect(find.text('Natif v6'), findsOneWidget);
     });
 
+    testWidgets('shows the preset pixels in the permanent library', (
+      tester,
+    ) async {
+      await _pumpPanel(
+        tester,
+        _completeManifest(),
+        projectRootPath: '/virtual/project',
+      );
+
+      final thumbnail = find.byKey(
+        const Key('smart-tiles-library-thumbnail-native:edge'),
+      );
+      expect(thumbnail, findsOneWidget);
+      expect(
+        tester.widget<SmartTileSpritePreview>(thumbnail).frame,
+        const SmartTileFrameRef(atlasId: 'atlas', column: 0, row: 0),
+      );
+    });
+
     testWidgets('opens and submits the guided TSX/Wang import flow',
         (tester) async {
       List<TiledWangSetSelection>? submitted;
@@ -121,6 +142,97 @@ void main() {
 
       expect(submitted, hasLength(1));
       expect(submitted!.single.usage, SmartTileUsage.path);
+    });
+
+    testWidgets('offers publication for an imported Wang draft', (
+      tester,
+    ) async {
+      ProjectSmartTilePreset? published;
+      await _pumpPanel(
+        tester,
+        _manifest(
+          presets: const <ProjectSmartTilePreset>[_importedWangPreset],
+        ),
+        onPublishExistingPreset: (preset) async => published = preset,
+      );
+
+      final publish = find.byKey(
+        const Key('smart-tiles-publish-imported-preset'),
+      );
+      expect(publish, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(publish).onPressed, isNotNull);
+
+      await tester.tap(publish);
+      await tester.pumpAndSettle();
+
+      expect(published, _importedWangPreset);
+    });
+
+    testWidgets('renames a preset through a guided prompt', (tester) async {
+      ProjectSmartTilePreset? updated;
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        onUpdatePreset: (preset) async => updated = preset,
+      );
+
+      await tester.tap(find.byKey(const Key('smart-tiles-rename-preset')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Renommer le Smart Tile'), findsOneWidget);
+      final field = find.byType(EditableText).last;
+      expect(field, findsOneWidget);
+      await tester.enterText(field, 'Chemin principal');
+      await tester.tap(find.text('Renommer').last);
+      await tester.pumpAndSettle();
+
+      expect(updated, isNotNull);
+      expect(updated!.id, 'hanazuki-path');
+      expect(updated!.name, 'Chemin principal');
+      expect(updated!.usage, SmartTileUsage.path);
+    });
+
+    testWidgets('duplicates the complete selected preset', (tester) async {
+      ProjectSmartTilePreset? duplicated;
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        onDuplicatePreset: (preset) async => duplicated = preset,
+      );
+
+      final duplicate = find.byKey(
+        const Key('smart-tiles-duplicate-preset'),
+      );
+      expect(duplicate, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(duplicate).onPressed, isNotNull);
+
+      await tester.tap(duplicate);
+      await tester.pumpAndSettle();
+
+      expect(duplicated, isNotNull);
+      expect(duplicated!.id, 'hanazuki-path');
+      expect(duplicated!.name, 'Chemin Hanazuki');
+      expect(duplicated!.usage, SmartTileUsage.path);
+    });
+
+    testWidgets('confirms before deleting the selected preset', (tester) async {
+      ProjectSmartTilePreset? deleted;
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        onDeletePreset: (preset) async => deleted = preset,
+      );
+
+      await tester.tap(find.byKey(const Key('smart-tiles-delete-preset')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Supprimer ce Smart Tile ?'), findsOneWidget);
+      expect(deleted, isNull);
+      await tester.tap(find.text('Supprimer').last);
+      await tester.pumpAndSettle();
+
+      expect(deleted, isNotNull);
+      expect(deleted!.id, 'hanazuki-path');
     });
 
     testWidgets('opens the reconstruction assistant from a captured map',
@@ -1752,6 +1864,10 @@ Future<void> _pumpPanel(
   SmartTileReconstructionService? reconstructionService,
   Future<void> Function(SmartTileReconstructionResult result)?
       onReconstructionApplied,
+  Future<void> Function(ProjectSmartTilePreset preset)? onPublishExistingPreset,
+  Future<void> Function(ProjectSmartTilePreset preset)? onUpdatePreset,
+  Future<void> Function(ProjectSmartTilePreset preset)? onDuplicatePreset,
+  Future<void> Function(ProjectSmartTilePreset preset)? onDeletePreset,
   Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap,
   Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern,
@@ -1774,7 +1890,13 @@ Future<void> _pumpPanel(
           capturedMap: capturedMap,
           reconstructionService: reconstructionService,
           onReconstructionApplied: onReconstructionApplied,
-          onAddPresetToCapturedMap: onAddPresetToCapturedMap,
+          presetActions: SmartTilePresetLibraryActions(
+            publish: onPublishExistingPreset,
+            update: onUpdatePreset,
+            duplicate: onDuplicatePreset,
+            delete: onDeletePreset,
+            addToMap: onAddPresetToCapturedMap,
+          ),
           onUpsertPattern: onUpsertPattern,
         ),
       ),
@@ -1977,6 +2099,23 @@ ProjectManifest _manifest({
     ),
   );
 }
+
+const _importedWangPreset = ProjectSmartTilePreset(
+  id: 'road-import-w0-preset',
+  name: 'Road',
+  usage: SmartTileUsage.path,
+  topology: SmartTileTopology.cardinal4,
+  templateHint: SmartTileTemplateHint.edge16,
+  status: SmartTilePresetStatus.draft,
+  coveragePolicy: SmartTileCoveragePolicy.sparse,
+  coverageProfile: SmartTileCoverageProfile(
+    mode: SmartTileCoverageMode.explicit,
+  ),
+  transformPolicy: SmartTileTransformPolicy(),
+  defaultMaterialId: 'dirt',
+  allowedMaterialIds: <String>['dirt'],
+  tags: <String>['imported', 'tiled-wang'],
+);
 
 final class _FakeSmartTileAtlasImageLoader
     implements SmartTileAtlasImageLoader {

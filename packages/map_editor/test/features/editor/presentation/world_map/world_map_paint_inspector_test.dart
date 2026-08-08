@@ -17,6 +17,7 @@ import 'package:map_editor/src/features/editor/presentation/world_map/world_map_
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
+import 'package:map_editor/src/features/smart_tiles_studio/presentation/smart_tile_sprite_preview.dart';
 import 'package:map_editor/src/theme/theme.dart';
 import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/browser/map_palette_asset_browser.dart';
@@ -282,6 +283,33 @@ void main() {
     expect(find.text('Chemin'), findsOneWidget);
     expect(find.text('Prairie'), findsNothing);
     expect(find.text('Brouillon'), findsNothing);
+  });
+
+  testWidgets('path palette shows the published preset pixels', (tester) async {
+    final harness = _PaintHarness(
+      'tile',
+      map: _tileOnlyMap,
+      project: _visualPathProject,
+    );
+    addTearDown(harness.dispose);
+    harness.showMissingLayer(WorldMapPaintSubtool.path);
+
+    await harness.pump(tester);
+
+    final thumbnail = find.byKey(
+      const ValueKey<String>(
+        'world-map-smart-tile-path-preset-visual-path-thumbnail',
+      ),
+    );
+    expect(thumbnail, findsOneWidget);
+    expect(
+      tester.widget<SmartTileSpritePreview>(thumbnail).frame,
+      const SmartTileFrameRef(
+        atlasId: 'visual-path-atlas',
+        column: 1,
+        row: 0,
+      ),
+    );
   });
 
   testWidgets(
@@ -875,6 +903,7 @@ class _PaintHarness {
     String activeLayerId, {
     WorldMapWorkspaceSession initialSession = const WorldMapWorkspaceSession(),
     MapData? map,
+    ProjectManifest? project,
     String projectRootPath = '/virtual/project',
     String? activeMapPath,
   })  : map = map ?? _map,
@@ -889,7 +918,7 @@ class _PaintHarness {
     keepAlive = container.listen(editorNotifierProvider, (_, __) {});
     notifier.state = EditorState(
       projectRootPath: projectRootPath,
-      project: _project,
+      project: project ?? _project,
       workspaceMode: EditorWorkspaceMode.map,
       activeMap: this.map,
       activeMapPath: activeMapPath,
@@ -1134,6 +1163,74 @@ final _project = ProjectManifest(
             sortOrder: 0,
           ),
         ),
+      ),
+    ],
+  ),
+);
+
+final _visualPathProject = ProjectManifest(
+  name: 'Visual path palette',
+  maps: const <ProjectMapEntry>[],
+  tilesets: const <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'visual-path-tileset',
+      name: 'Visual path',
+      relativePath: 'tilesets/visual_path.png',
+    ),
+  ],
+  smartTileCatalog: ProjectSmartTileCatalog(
+    atlases: const <ProjectSmartTileAtlas>[
+      ProjectSmartTileAtlas(
+        id: 'visual-path-atlas',
+        name: 'Visual path atlas',
+        tilesetId: 'visual-path-tileset',
+        columns: 2,
+        rows: 1,
+      ),
+    ],
+    materials: const <ProjectSmartTileMaterial>[
+      ProjectSmartTileMaterial(
+        id: 'path',
+        name: 'Chemin',
+        connectionGroupId: 'path',
+      ),
+    ],
+    presets: const <ProjectSmartTilePreset>[
+      ProjectSmartTilePreset(
+        id: 'visual-path',
+        name: 'Chemin visuel',
+        usage: SmartTileUsage.path,
+        topology: SmartTileTopology.cardinal4,
+        coveragePolicy: SmartTileCoveragePolicy.sparse,
+        coverageProfile: SmartTileCoverageProfile(
+          mode: SmartTileCoverageMode.explicit,
+        ),
+        transformPolicy: SmartTileTransformPolicy(),
+        status: SmartTilePresetStatus.published,
+        defaultMaterialId: 'path',
+        allowedMaterialIds: <String>['path'],
+        rules: <SmartTileRule>[
+          SmartTileRule(
+            id: 'visual-rule',
+            centerMatch: SmartTileSlotMatch.any(),
+            candidates: <SmartTileCandidate>[
+              SmartTileCandidate(
+                id: 'visual-candidate',
+                parts: <SmartTileVisualPart>[
+                  SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                        atlasId: 'visual-path-atlas',
+                        column: 1,
+                        row: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   ),

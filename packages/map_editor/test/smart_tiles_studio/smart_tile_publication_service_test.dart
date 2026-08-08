@@ -179,16 +179,17 @@ void main() {
       );
     });
 
-    test('publishPreset envoie la charge preset et renvoie le reçu', () async {
+    test('publishPreset recharge le snapshot canonique publié', () async {
       final gateway = _FakeGateway(before: _snapshot());
       final service = SmartTilePublicationService(gateway: gateway);
 
-      final receipt = await service.publishPreset(
+      final result = await service.publishPreset(
         projectRootPath: '/project',
         preset: _preset(),
       );
 
-      expect(receipt, gateway.after.snapshotRevision);
+      expect(result.manifest, gateway.after.manifest);
+      expect(result.snapshotRevision, gateway.after.snapshotRevision);
       expect(gateway.plannedParameters!.keys, <String>['preset']);
       expect(
         (gateway.plannedParameters!['preset']! as Map<String, Object?>)['id'],
@@ -221,6 +222,51 @@ void main() {
       expect(first, isNotNull);
       expect(gateway.expectedRevision, isNot(firstRevision));
       expect(gateway.lastIdempotencyKey, isNot(first));
+    });
+
+    test('duplicatePreset publie une copie complète avec un id unique',
+        () async {
+      final source = _preset();
+      final existingCopy = source.copyWith(
+        id: 'grass_copy',
+        name: 'Grass — copie',
+      );
+      final duplicate = source.copyWith(
+        id: 'grass_copy_2',
+        name: 'Grass — copie 2',
+      );
+      final gateway = _FakeGateway(
+        before: _snapshot(
+          manifest: _publishedManifest(
+            presets: <ProjectSmartTilePreset>[source, existingCopy],
+          ),
+        ),
+        after: _snapshot(
+          revision: 'revision-2',
+          manifest: _publishedManifest(
+            presets: <ProjectSmartTilePreset>[
+              source,
+              existingCopy,
+              duplicate,
+            ],
+          ),
+        ),
+      );
+      final service = SmartTilePublicationService(gateway: gateway);
+
+      final result = await service.duplicatePreset(
+        projectRootPath: '/project',
+        preset: source,
+      );
+
+      expect(result.preset, duplicate);
+      expect(result.snapshot.manifest, gateway.after.manifest);
+      final payload =
+          gateway.plannedParameters!['preset']! as Map<String, Object?>;
+      expect(payload['id'], 'grass_copy_2');
+      expect(payload['name'], 'Grass — copie 2');
+      expect(payload['usage'], source.toJson()['usage']);
+      expect(payload['defaultMaterialId'], 'grass');
     });
   });
 }
@@ -339,13 +385,14 @@ ProjectManifest _draftManifest() => ProjectManifest(
       ),
     );
 
-ProjectManifest _publishedManifest() => ProjectManifest(
+ProjectManifest _publishedManifest({List<ProjectSmartTilePreset>? presets}) =>
+    ProjectManifest(
       name: 'Publication test',
       version: ProjectVersion.v6,
       maps: const <ProjectMapEntry>[],
       tilesets: const <ProjectTilesetEntry>[],
       smartTileCatalog: ProjectSmartTileCatalog(
-        presets: <ProjectSmartTilePreset>[_preset()],
+        presets: presets ?? <ProjectSmartTilePreset>[_preset()],
       ),
     );
 
