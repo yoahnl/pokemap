@@ -174,6 +174,13 @@ const _manifest = ProjectManifest(
       id: 'nature',
       name: 'Nature',
       relativePath: 'tilesets/nature.png',
+      source: ProjectRegularAtlasTilesetSource(
+        assetId: 'tilesets/nature.png',
+        pixelWidth: 64,
+        pixelHeight: 32,
+        tileWidth: 32,
+        tileHeight: 32,
+      ),
     ),
   ],
   elements: [

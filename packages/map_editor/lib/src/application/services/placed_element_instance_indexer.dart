@@ -1,9 +1,7 @@
 import 'package:map_core/map_core.dart';
 
-const pokemapPlacementOriginProperty = 'pokemapPlacementOrigin';
-const pokemapPlacementOriginAuthored = 'authored';
-const pokemapPlacementOriginTileIndex = 'tile_index';
-const pokemapPlacementOriginEnvironment = 'environment';
+import 'placed_element_placement_origin.dart';
+export 'placed_element_placement_origin.dart';
 
 class PlacedElementInstanceIndexer {
   const PlacedElementInstanceIndexer();
