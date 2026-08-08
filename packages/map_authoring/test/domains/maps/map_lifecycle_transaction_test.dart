@@ -283,6 +283,84 @@ void main() {
         'recovered_map',
       );
     });
+
+    test('rejects history after the project handle expires', () async {
+      var now = DateTime.utc(2026, 8, 8, 12);
+      final setup = await _Setup.create(
+        clock: () => now,
+        handleTtl: const Duration(minutes: 1),
+      );
+      addTearDown(setup.dispose);
+
+      now = now.add(const Duration(minutes: 1));
+
+      await expectLater(
+        () => setup.mutations.history(setup.projectHandle, limit: 10),
+        throwsA(
+          isA<WorkspaceHandleException>().having(
+            (error) => error.code,
+            'code',
+            'workspace.handle_expired',
+          ),
+        ),
+      );
+    });
+
+    test('rejects recovery without promoting after the handle expires',
+        () async {
+      var now = DateTime.utc(2026, 8, 8, 12);
+      var crash = true;
+      final setup = await _Setup.create(
+        clock: () => now,
+        handleTtl: const Duration(minutes: 1),
+        faultInjector: (context) {
+          if (crash &&
+              context.checkpoint ==
+                  AuthoringTransactionCheckpoint.afterResourcePromoted &&
+              context.promotionIndex == 0) {
+            throw const AuthoringTransactionSimulatedCrash();
+          }
+        },
+      );
+      addTearDown(setup.dispose);
+      final request = await setup.requestAsync(
+        actionId: 'map.create',
+        parameters: const {
+          'mapId': 'expired_recovery_map',
+          'width': 2,
+          'height': 2,
+        },
+      );
+      final planned = await setup.mutations.plan(setup.projectHandle, request);
+
+      await expectLater(
+        () => setup.mutations.apply(
+          setup.projectHandle,
+          planId: planned['planId']! as String,
+          operationId: 'operation_expired_recovery',
+        ),
+        throwsA(isA<AuthoringTransactionSimulatedCrash>()),
+      );
+      final manifestFile = File('${setup.root.path}/project.json');
+      final manifestBeforeRecovery = await manifestFile.readAsBytes();
+      crash = false;
+      now = now.add(const Duration(minutes: 1));
+
+      await expectLater(
+        () => setup.mutations.recover(
+          setup.projectHandle,
+          operationId: 'operation_expired_recovery',
+        ),
+        throwsA(
+          isA<WorkspaceHandleException>().having(
+            (error) => error.code,
+            'code',
+            'workspace.handle_expired',
+          ),
+        ),
+      );
+      expect(await manifestFile.readAsBytes(), manifestBeforeRecovery);
+    });
   });
 }
 
@@ -300,6 +378,8 @@ final class _Setup {
     List<MapData> maps = const [],
     AuthoringTransactionFaultInjector? faultInjector,
     bool enableSnapshotCache = false,
+    DateTime Function()? clock,
+    Duration handleTtl = const Duration(minutes: 15),
   }) async {
     final root = await Directory.systemTemp.createTemp('map-lifecycle-');
     final manifest = ProjectManifest(
@@ -334,7 +414,9 @@ final class _Setup {
       fileReader: reader,
     );
     final handles = WorkspaceHandleStore(
+      clock: clock,
       tokenFactory: (prefix) => '${prefix}fixture',
+      ttl: handleTtl,
     );
     final open = ProjectOpenService(
       policy: policy,
@@ -349,6 +431,7 @@ final class _Setup {
     final mutations = LocalMapAuthoringMutationApi(
       policy: policy,
       snapshotLoader: snapshots,
+      clock: clock,
       faultInjector: faultInjector,
     );
     await mutations.attachProject(

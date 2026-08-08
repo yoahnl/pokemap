@@ -209,6 +209,11 @@ final class WorkspaceHandleStore {
     );
   }
 
+  /// Rejects unknown or expired capabilities without reading project data.
+  void requireActiveProject(ProjectHandle handle) {
+    _requireActive(handle);
+  }
+
   bool closeWorkspace(WorkspaceHandle handle) {
     final projectHandle = _projectsByWorkspace.remove(handle);
     if (projectHandle == null) return false;

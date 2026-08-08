@@ -239,6 +239,7 @@ final class LocalMapAuthoringMutationApi
         'The requested mutation session is unknown.',
       );
     }
+    _snapshotLoader.requireActiveProject(projectHandle);
     return session;
   }
 
@@ -363,6 +364,7 @@ final class _LocalMapAuthoringSession {
       idempotency: idempotency,
       clock: clock,
       commitHook: recorder,
+      mutationGuard: () => snapshotLoader.requireActiveProject(projectHandle),
     );
     return _LocalMapAuthoringSession._(
       projectId: projectId,

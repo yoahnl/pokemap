@@ -52,15 +52,18 @@ final class AuthoringRecoveryService {
     required AuthoringIdempotencyLedger idempotency,
     required DateTime Function() clock,
     AuthoringTransactionCommitHook? commitHook,
+    void Function()? mutationGuard,
   })  : _gateway = gateway,
         _idempotency = idempotency,
         _clock = clock,
-        _commitHook = commitHook;
+        _commitHook = commitHook,
+        _mutationGuard = mutationGuard;
 
   final TransactionFileGateway _gateway;
   final AuthoringIdempotencyLedger _idempotency;
   final DateTime Function() _clock;
   final AuthoringTransactionCommitHook? _commitHook;
+  final void Function()? _mutationGuard;
 
   Future<List<AuthoringRecoveryInspection>> inspect() {
     return _gateway.withExclusiveWriteLock(() async {
@@ -75,6 +78,7 @@ final class AuthoringRecoveryService {
 
   Future<AuthoringReceipt> resume(String operationId) {
     return _gateway.withExclusiveWriteLock(() async {
+      _requireMutationAllowed();
       var journal = await _requireJournal(operationId);
       final record = await _requireRecoveryRecord(journal);
       if (record.status == AuthoringIdempotencyStatus.completed) {
@@ -147,6 +151,7 @@ final class AuthoringRecoveryService {
             'A transaction resource has an unexpected recovery revision.',
           );
         }
+        _requireMutationAllowed();
         await _gateway.promoteStaged(
           operationId: operationId,
           storageKey: entry.storageKey,
@@ -183,6 +188,7 @@ final class AuthoringRecoveryService {
 
   Future<AuthoringReceipt> compensate(String operationId) {
     return _gateway.withExclusiveWriteLock(() async {
+      _requireMutationAllowed();
       var journal = await _requireJournal(operationId);
       final record = await _requireRecoveryRecord(journal);
       if (record.status == AuthoringIdempotencyStatus.completed) {
@@ -221,6 +227,7 @@ final class AuthoringRecoveryService {
             'A transaction resource has an unexpected compensation revision.',
           );
         }
+        _requireMutationAllowed();
         await _gateway.promoteStaged(
           operationId: operationId,
           storageKey: entry.storageKey,
@@ -263,6 +270,7 @@ final class AuthoringRecoveryService {
 
   Future<bool> discardUnreserved(String operationId) {
     return _gateway.withExclusiveWriteLock(() async {
+      _requireMutationAllowed();
       final journal = await _requireJournal(operationId);
       final record = await _idempotency.recordForRecovery(journal.scope);
       if (record != null ||
@@ -283,6 +291,10 @@ final class AuthoringRecoveryService {
       await _gateway.deleteTransaction(operationId);
       return true;
     });
+  }
+
+  void _requireMutationAllowed() {
+    _mutationGuard?.call();
   }
 
   Future<AuthoringRecoveryInspection> _inspectJournal(

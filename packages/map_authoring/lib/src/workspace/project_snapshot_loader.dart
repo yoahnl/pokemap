@@ -159,6 +159,10 @@ final class ProjectSnapshotLoader {
   final ProjectSnapshotLoadProfileSink? profileSink;
   final int maxConcurrentSecondObservations;
 
+  void requireActiveProject(ProjectHandle projectHandle) {
+    _handles.requireActiveProject(projectHandle);
+  }
+
   Future<ProjectSnapshot?> adoptAppliedChanges(
     ProjectHandle projectHandle, {
     required String baseRevision,
