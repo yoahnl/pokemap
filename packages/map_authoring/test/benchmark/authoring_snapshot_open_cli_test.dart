@@ -3,7 +3,22 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 
+import '../support/compiled_dart_executable.dart';
+
+late Future<CompiledDartExecutable> _benchmark;
+
 void main() {
+  setUpAll(() {
+    _benchmark = CompiledDartExecutable.build(
+      entrypoint: 'benchmark/authoring_snapshot_open.dart',
+      name: 'authoring_snapshot_open',
+    );
+  });
+
+  tearDownAll(() async {
+    await (await _benchmark).dispose();
+  });
+
   test('opens a deterministic synthetic authoring snapshot', () async {
     final output = await _temporaryOutput('authoring_snapshot');
     final result = await _run(<String>[
@@ -42,7 +57,7 @@ void main() {
           ),
       isTrue,
     );
-  });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('rejects promotion checkpoint, zero samples, and escaped output',
       () async {
@@ -80,8 +95,6 @@ Future<File> _temporaryOutput(String prefix) async {
   return File('${directory.path}/result.json');
 }
 
-Future<ProcessResult> _run(List<String> arguments) => Process.run(
-      Platform.resolvedExecutable,
-      <String>['run', 'benchmark/authoring_snapshot_open.dart', ...arguments],
-      workingDirectory: Directory.current.path,
-    );
+Future<ProcessResult> _run(List<String> arguments) async {
+  return (await _benchmark).run(arguments);
+}

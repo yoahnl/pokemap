@@ -5,7 +5,22 @@ import 'dart:io';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:test/test.dart';
 
+import '../support/compiled_dart_executable.dart';
+
 void main() {
+  late Future<CompiledDartExecutable> cli;
+
+  setUpAll(() {
+    cli = CompiledDartExecutable.build(
+      entrypoint: 'bin/pokemap_authoring.dart',
+      name: 'pokemap_authoring',
+    );
+  });
+
+  tearDownAll(() async {
+    await (await cli).dispose();
+  });
+
   group('pokemap_authoring CLI', () {
     test('runs the real authoring JSONL session with read API parity',
         () async {
@@ -28,8 +43,10 @@ void main() {
         projectQuery,
       );
       final session = await _CliSession.start(
+        executable: await cli,
         root: fixture.parent.path,
       );
+      addTearDown(session.dispose);
 
       final malformed = await session.sendRaw('{');
       final described = await session.send(
@@ -83,55 +100,45 @@ void main() {
         completed.rawResponses.join(),
         isNot(contains(fixture.parent.path)),
       );
-    });
+    }, timeout: const Timeout(Duration(minutes: 2)));
 
     test('requires at least one allowed root without polluting stdout',
         () async {
       expect(File('bin/pokemap_authoring.dart').existsSync(), isTrue);
 
-      final result = await Process.run(
-        Platform.resolvedExecutable,
-        ['bin/pokemap_authoring.dart'],
-        workingDirectory: Directory.current.path,
-      );
+      final result = await (await cli).run(const <String>[]);
 
       expect(result.exitCode, AuthoringCliExitCodes.usage);
       expect(result.stdout, isEmpty);
       expect(result.stderr, contains('--root'));
-    });
+    }, timeout: const Timeout(Duration(minutes: 2)));
 
     test('rejects an option token used as a root value', () async {
-      final result = await Process.run(
-        Platform.resolvedExecutable,
+      final result = await (await cli).run(
         [
-          'bin/pokemap_authoring.dart',
           '--root',
           '--timeout-ms',
         ],
-        workingDirectory: Directory.current.path,
       );
 
       expect(result.exitCode, AuthoringCliExitCodes.usage);
       expect(result.stdout, isEmpty);
       expect(result.stderr, contains('--root requires a value'));
-    });
+    }, timeout: const Timeout(Duration(minutes: 2)));
 
     test('does not echo an unknown machine-local argument', () async {
       const secretArgument = '/Users/secret/project';
-      final result = await Process.run(
-        Platform.resolvedExecutable,
+      final result = await (await cli).run(
         [
-          'bin/pokemap_authoring.dart',
           secretArgument,
         ],
-        workingDirectory: Directory.current.path,
       );
 
       expect(result.exitCode, AuthoringCliExitCodes.usage);
       expect(result.stdout, isEmpty);
       expect(result.stderr, isNot(contains(secretArgument)));
       expect(result.stderr, contains('Unknown command-line option'));
-    });
+    }, timeout: const Timeout(Duration(minutes: 2)));
   });
 }
 
@@ -181,11 +188,12 @@ final class _CliSession {
   final Future<String> _stderr;
   final List<String> _rawResponses = [];
 
-  static Future<_CliSession> start({required String root}) async {
-    final process = await Process.start(
-      Platform.resolvedExecutable,
+  static Future<_CliSession> start({
+    required CompiledDartExecutable executable,
+    required String root,
+  }) async {
+    final process = await executable.start(
       [
-        'bin/pokemap_authoring.dart',
         '--root',
         root,
         '--timeout-ms',
@@ -193,7 +201,6 @@ final class _CliSession {
         '--max-input-bytes',
         '65536',
       ],
-      workingDirectory: Directory.current.path,
     );
     return _CliSession._(
       process: process,
@@ -222,7 +229,7 @@ final class _CliSession {
     _process.stdin.writeln(line);
     await _process.stdin.flush();
     final hasLine = await _stdoutLines.moveNext().timeout(
-          const Duration(seconds: 10),
+          const Duration(seconds: 30),
         );
     if (!hasLine) {
       throw StateError('CLI closed stdout before returning a response.');
@@ -237,14 +244,28 @@ final class _CliSession {
   Future<_CliCompletion> finish() async {
     await _process.stdin.close();
     final exitCode = await _process.exitCode.timeout(
-      const Duration(seconds: 10),
+      const Duration(seconds: 30),
     );
     await _stdoutLines.cancel();
+    _finished = true;
     return _CliCompletion(
       exitCode: exitCode,
       stderr: await _stderr,
       rawResponses: List.unmodifiable(_rawResponses),
     );
+  }
+
+  bool _finished = false;
+
+  Future<void> dispose() async {
+    if (_finished) return;
+    await _stdoutLines.cancel();
+    _process.kill();
+    await _process.exitCode.timeout(
+      const Duration(seconds: 5),
+      onTimeout: () => -1,
+    );
+    _finished = true;
   }
 }
 

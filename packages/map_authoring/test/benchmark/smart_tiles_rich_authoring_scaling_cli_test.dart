@@ -3,7 +3,22 @@ import 'dart:io';
 
 import 'package:test/test.dart';
 
+import '../support/compiled_dart_executable.dart';
+
+late Future<CompiledDartExecutable> _benchmark;
+
 void main() {
+  setUpAll(() {
+    _benchmark = CompiledDartExecutable.build(
+      entrypoint: 'benchmark/smart_tiles_rich_authoring_scaling.dart',
+      name: 'smart_tiles_rich_authoring_scaling',
+    );
+  });
+
+  tearDownAll(() async {
+    await (await _benchmark).dispose();
+  });
+
   test('writes transactional rich import and recovery evidence', () async {
     final output = await _temporaryOutput('smart_tiles_rich_authoring');
     final result = await _run(<String>[
@@ -58,7 +73,7 @@ void main() {
     expect(work['journalBytes'], greaterThan(0));
     expect(work['recoveredResourceCount'], greaterThanOrEqualTo(4));
     expect('${row['reopenedSnapshotChecksum']}', isNotEmpty);
-  });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('rejects unsupported extents and escaped output', () async {
     final unsupported = await _run(const <String>[
@@ -85,7 +100,7 @@ void main() {
       '${escaped.stderr}',
       contains('must stay inside packages/map_authoring'),
     );
-  });
+  }, timeout: const Timeout(Duration(minutes: 2)));
 }
 
 Future<File> _temporaryOutput(String prefix) async {
@@ -95,12 +110,6 @@ Future<File> _temporaryOutput(String prefix) async {
   return File('${directory.path}/result.json');
 }
 
-Future<ProcessResult> _run(List<String> arguments) => Process.run(
-      Platform.resolvedExecutable,
-      <String>[
-        'run',
-        'benchmark/smart_tiles_rich_authoring_scaling.dart',
-        ...arguments,
-      ],
-      workingDirectory: Directory.current.path,
-    );
+Future<ProcessResult> _run(List<String> arguments) async {
+  return (await _benchmark).run(arguments);
+}
