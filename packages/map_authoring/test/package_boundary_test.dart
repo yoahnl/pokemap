@@ -164,6 +164,22 @@ void main() {
         contains("part 'tiled_map_import_support.dart';"),
       );
     });
+
+    test('keeps Smart Tile catalog validation outside the action adapter', () {
+      final actionFile = File(
+        'lib/src/domains/maps/smart_tile_catalog_actions.dart',
+      );
+      final catalogSupport = File(
+        'lib/src/domains/maps/smart_tile_catalog_support.dart',
+      );
+
+      expect(catalogSupport.existsSync(), isTrue);
+      expect(actionFile.readAsLinesSync(), hasLength(lessThan(1000)));
+      expect(
+        actionFile.readAsStringSync(),
+        contains("part 'smart_tile_catalog_support.dart';"),
+      );
+    });
   });
 }
 
