@@ -68,6 +68,20 @@ void main() {
         ['fixture.explicitlyNonUndoable', 'fixture.undoable'],
       );
     });
+
+    test('dispatcher refuses a handler that did not pass admission', () {
+      expect(
+        () => MapMutationDispatcher([
+          MapMutationActionRegistration(
+            descriptor: _descriptor('fixture.dispatchWithoutUndo'),
+            build: (_) => AuthoringMutationDraft(
+              changeSet: _changeSet('dispatcher', 0, 1),
+            ),
+          ),
+        ]),
+        _throwsGate('mutation.undo_policy_missing'),
+      );
+    });
   });
 
   group('AuthoringBatchExecutor', () {

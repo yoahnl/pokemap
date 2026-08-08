@@ -20,6 +20,7 @@ import '../../domains/narrative/scenario_actions.dart';
 import '../../domains/narrative/script_actions.dart';
 import '../../domains/narrative/storyline_actions.dart';
 import '../../ports/artifact_store.dart';
+import '../../registry/mutation_registry.dart';
 import '../../transactions/action_planner.dart';
 import '../../transactions/authoring_plan.dart';
 import 'border_actions.dart';
@@ -43,13 +44,15 @@ typedef MapMutationDraftBuilder = FutureOr<AuthoringMutationDraft> Function(
 );
 
 final class MapMutationActionRegistration {
-  const MapMutationActionRegistration({
+  MapMutationActionRegistration({
     required this.descriptor,
     required this.build,
-  });
+    MutationContractEvidence? evidence,
+  }) : evidence = evidence ?? _journaledEvidence(descriptor);
 
   final AuthoringActionDescriptor descriptor;
   final MapMutationDraftBuilder build;
+  final MutationContractEvidence evidence;
 }
 
 /// Deterministic action-to-domain-handler registry used by direct and JSONL APIs.
@@ -294,6 +297,7 @@ Map<String, MapMutationActionRegistration> _validatedRegistrations(
   Iterable<MapMutationActionRegistration> values,
 ) {
   final registrations = <String, MapMutationActionRegistration>{};
+  final admission = AuthoringMutationRegistry();
   for (final registration in values) {
     final previous = registrations[registration.descriptor.id];
     if (previous != null) {
@@ -303,9 +307,35 @@ Map<String, MapMutationActionRegistration> _validatedRegistrations(
         'map mutation action IDs must be unique',
       );
     }
+    admission.register(
+      descriptor: registration.descriptor,
+      evidence: registration.evidence,
+    );
     registrations[registration.descriptor.id] = registration;
   }
   final ordered = registrations.entries.toList()
     ..sort((left, right) => left.key.compareTo(right.key));
   return Map.unmodifiable(Map.fromEntries(ordered));
+}
+
+MutationContractEvidence _journaledEvidence(
+  AuthoringActionDescriptor descriptor,
+) {
+  final guarantees = descriptor.guarantees.toSet();
+  return MutationContractEvidence(
+    proofs: {
+      MutationContractProof.plan,
+      MutationContractProof.recovery,
+      MutationContractProof.authorization,
+      MutationContractProof.receipt,
+      if (guarantees.contains(AuthoringGuarantee.dryRun))
+        MutationContractProof.dryRun,
+      if (guarantees.contains(AuthoringGuarantee.revisionChecked))
+        MutationContractProof.staleCas,
+      if (guarantees.contains(AuthoringGuarantee.idempotent))
+        MutationContractProof.idempotency,
+      if (guarantees.contains(AuthoringGuarantee.undoable))
+        MutationContractProof.undo,
+    },
+  );
 }
