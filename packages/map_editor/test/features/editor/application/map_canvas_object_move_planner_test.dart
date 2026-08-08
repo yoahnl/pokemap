@@ -822,6 +822,13 @@ const _project = ProjectManifest(
       id: 'tiles',
       name: 'Tiles',
       relativePath: 'assets/tiles.png',
+      source: ProjectRegularAtlasTilesetSource(
+        assetId: 'assets/tiles.png',
+        pixelWidth: 64,
+        pixelHeight: 64,
+        tileWidth: 32,
+        tileHeight: 32,
+      ),
     ),
   ],
   elements: <ProjectElementEntry>[
