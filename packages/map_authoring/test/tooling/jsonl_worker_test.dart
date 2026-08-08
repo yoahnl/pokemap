@@ -56,6 +56,33 @@ void main() {
       );
     });
 
+    test('typed read facade owns contracts before wire serialization',
+        () async {
+      final setup = await _TestSetup.create(clean: true);
+      addTearDown(setup.dispose);
+      final typedApi = setup.api as dynamic;
+
+      final description = typedApi.describeRead();
+      final opened = await typedApi.openProject(setup.fixture.path);
+      final queried = await typedApi.queryProject(
+        opened.projectHandle,
+        AuthoringQueryRequest(
+          resourceKind: 'project',
+          operation: AuthoringQueryOperation.get,
+          view: AuthoringQueryView.summary,
+          ids: const ['project'],
+        ),
+      );
+      final validated = await typedApi.validateProject(opened.projectHandle);
+
+      expect(description.runtimeType.toString(), 'AuthoringReadDescription');
+      expect(opened, isA<OpenedProject>());
+      expect(queried, isA<AuthoringQueryPage>());
+      expect(validated.runtimeType.toString(), 'AuthoringValidationResult');
+      expect(description.toJson(), setup.api.describe());
+      expect(await typedApi.closeWorkspace(opened.workspaceHandle), isTrue);
+    });
+
     test('every described resource kind has an executable query route',
         () async {
       final setup = await _TestSetup.create(clean: true);

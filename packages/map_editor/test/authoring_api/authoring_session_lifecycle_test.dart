@@ -259,7 +259,8 @@ void main() {
         'playable_runtime_host/golden_fangame_slice',
       );
       final candidate = Directory(
-        '${Directory.current.parent.parent.path}/selbrume',
+        '${Directory.current.parent.parent.path}/examples/'
+        'playable_runtime_host/golden_battle_slice',
       );
       final candidateRoot = await candidate.resolveSymbolicLinks();
       final reader = _GatedProjectReader(candidateRoot);

@@ -45,8 +45,9 @@ final class AuthoringQueryAdapter
       );
 
   Future<EditorAuthoringReadSession> open(String projectRootPath) async {
-    final canonicalRoot =
-        await _fileReader.canonicalizeDirectory(projectRootPath);
+    final canonicalRoot = await _fileReader.canonicalizeDirectory(
+      projectRootPath,
+    );
     _requireAllowedRoot(canonicalRoot);
     final existing = _sessions[canonicalRoot];
     if (existing != null) {
@@ -86,8 +87,9 @@ final class AuthoringQueryAdapter
   }
 
   Future<void> invalidate(String projectRootPath) async {
-    final canonicalRoot =
-        await _fileReader.canonicalizeDirectory(projectRootPath);
+    final canonicalRoot = await _fileReader.canonicalizeDirectory(
+      projectRootPath,
+    );
     await closeProject(canonicalRoot);
   }
 
@@ -150,9 +152,7 @@ final class AuthoringQueryAdapter
     }
   }
 
-  Future<EditorAuthoringReadSession> _openTracked(
-    String canonicalRoot,
-  ) async {
+  Future<EditorAuthoringReadSession> _openTracked(String canonicalRoot) async {
     _openingRoots.add(canonicalRoot);
     try {
       return await _openCanonical(canonicalRoot);
@@ -185,10 +185,9 @@ final class AuthoringQueryAdapter
       ),
       snapshotLoader: snapshots,
     );
-    final opened = await api.open(canonicalRoot);
-    final workspaceHandle =
-        WorkspaceHandle(opened['workspaceHandle']! as String);
-    final projectHandle = ProjectHandle(opened['projectHandle']! as String);
+    final opened = await api.openProject(canonicalRoot);
+    final workspaceHandle = opened.workspaceHandle;
+    final projectHandle = opened.projectHandle;
     try {
       final snapshot = await snapshots.load(
         projectHandle,
@@ -212,7 +211,7 @@ final class AuthoringQueryAdapter
 /// Immutable editor view over exactly one Authoring snapshot revision.
 final class EditorAuthoringReadSession {
   EditorAuthoringReadSession._({
-    required AuthoringReadApiPort api,
+    required AuthoringReadServicePort api,
     required WorkspaceHandle workspaceHandle,
     required ProjectHandle projectHandle,
     required ProjectSnapshot snapshot,
@@ -225,7 +224,7 @@ final class EditorAuthoringReadSession {
         _onOperationDelta = onOperationDelta,
         _onClosed = onClosed;
 
-  final AuthoringReadApiPort _api;
+  final AuthoringReadServicePort _api;
   final WorkspaceHandle _workspaceHandle;
   final ProjectHandle _projectHandle;
   final ProjectSnapshot _snapshot;
@@ -291,7 +290,7 @@ final class EditorAuthoringReadSession {
   Future<Map<String, Object?>> validateFresh() async {
     _beginOperation();
     try {
-      return await _api.validate(_projectHandle);
+      return (await _api.validateProject(_projectHandle)).toJson();
     } finally {
       _endOperation();
     }
@@ -336,7 +335,7 @@ final class EditorAuthoringReadSession {
       _operationsDrained ??= Completer<void>();
       await _operationsDrained!.future;
     }
-    await _api.close(_workspaceHandle);
+    await _api.closeWorkspace(_workspaceHandle);
     _onClosed();
   }
 

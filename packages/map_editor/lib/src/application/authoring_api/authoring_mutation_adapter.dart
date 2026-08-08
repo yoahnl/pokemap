@@ -162,15 +162,13 @@ final class AuthoringMutationAdapter
   Future<String> confirm(EditorAuthoringMutationPlan plan) async {
     try {
       final session = await _open(plan.projectRootPath);
-      return await session.use(
-        () async {
-          final response = await session.mutations.confirm(
-            session.projectHandle,
-            planId: plan.planId,
-          );
-          return response['confirmationToken']! as String;
-        },
-      );
+      return await session.use(() async {
+        final response = await session.mutations.confirm(
+          session.projectHandle,
+          planId: plan.planId,
+        );
+        return response['confirmationToken']! as String;
+      });
     } on Object catch (error) {
       throw EditorAuthoringMutationFailure.capture(error);
     }
@@ -203,22 +201,20 @@ final class AuthoringMutationAdapter
   }) async {
     try {
       final session = await _open(projectRootPath);
-      return await session.use(
-        () async {
-          final response = await session.mutations.undo(
-            session.projectHandle,
-            entryId: entryId,
-            idempotencyKey: idempotencyKey,
-          );
-          final result = EditorAuthoringMutationResult(
-            receipt: _receipt(response),
-            snapshotRevision: response['snapshotRevision']! as String,
-          );
-          _lastAppliedReceipt = result.receipt;
-          await _queries.invalidate(session.canonicalRoot);
-          return result;
-        },
-      );
+      return await session.use(() async {
+        final response = await session.mutations.undo(
+          session.projectHandle,
+          entryId: entryId,
+          idempotencyKey: idempotencyKey,
+        );
+        final result = EditorAuthoringMutationResult(
+          receipt: _receipt(response),
+          snapshotRevision: response['snapshotRevision']! as String,
+        );
+        _lastAppliedReceipt = result.receipt;
+        await _queries.invalidate(session.canonicalRoot);
+        return result;
+      });
     } on Object catch (error) {
       throw EditorAuthoringMutationFailure.capture(error);
     }
@@ -230,21 +226,19 @@ final class AuthoringMutationAdapter
   }) async {
     try {
       final session = await _open(projectRootPath);
-      return await session.use(
-        () async {
-          final response = await session.mutations.recover(
-            session.projectHandle,
-            operationId: operationId,
-          );
-          final result = EditorAuthoringMutationResult(
-            receipt: _receipt(response),
-            snapshotRevision: response['snapshotRevision']! as String,
-          );
-          _lastAppliedReceipt = result.receipt;
-          await _queries.invalidate(session.canonicalRoot);
-          return result;
-        },
-      );
+      return await session.use(() async {
+        final response = await session.mutations.recover(
+          session.projectHandle,
+          operationId: operationId,
+        );
+        final result = EditorAuthoringMutationResult(
+          receipt: _receipt(response),
+          snapshotRevision: response['snapshotRevision']! as String,
+        );
+        _lastAppliedReceipt = result.receipt;
+        await _queries.invalidate(session.canonicalRoot);
+        return result;
+      });
     } on Object catch (error) {
       throw EditorAuthoringMutationFailure.capture(error);
     }
@@ -326,46 +320,46 @@ final class AuthoringMutationAdapter
     final root = await _projectRoots.locateForResource(resourcePath);
     try {
       final session = await _open(root);
-      return await session.use(
-        () async {
-          final before = await session.snapshot();
-          final identity = 'map:${map.id}';
-          if (!before.resourceFingerprints.containsKey(identity)) {
-            throw const EditorConflictException(
-              'The map is not declared by the current Authoring snapshot.',
-            );
-          }
-          final liveMapRevision =
-              narrativeEventBytesFingerprint(before.resourceBytes(identity));
-          if (liveMapRevision != expectedMapRevision) {
-            throw const EditorConflictException(
-              'The map changed outside the editor.',
-            );
-          }
-          final key = _identity('editor_map_save');
-          final mutationPlan = await _planInSession(
-            session,
-            actionId: 'map.save',
-            parameters: {'map': _strictJsonMap(map.toJson())},
-            idempotencyKey: key,
-            requestId: key,
-            expectedRevision: before.revision,
+      return await session.use(() async {
+        final before = await session.snapshot();
+        final identity = 'map:${map.id}';
+        if (!before.resourceFingerprints.containsKey(identity)) {
+          throw const EditorConflictException(
+            'The map is not declared by the current Authoring snapshot.',
           );
-          final applied = await _applyInSession(
-            session,
-            mutationPlan,
-            operationId: key,
+        }
+        final liveMapRevision = narrativeEventBytesFingerprint(
+          before.resourceBytes(identity),
+        );
+        if (liveMapRevision != expectedMapRevision) {
+          throw const EditorConflictException(
+            'The map changed outside the editor.',
           );
-          final after = await session.snapshot();
-          final mapRevision =
-              narrativeEventBytesFingerprint(after.resourceBytes(identity));
-          return EditorAuthoringMutationResult(
-            receipt: applied.receipt,
-            snapshotRevision: after.revision,
-            resourceRevision: mapRevision,
-          );
-        },
-      );
+        }
+        final key = _identity('editor_map_save');
+        final mutationPlan = await _planInSession(
+          session,
+          actionId: 'map.save',
+          parameters: {'map': _strictJsonMap(map.toJson())},
+          idempotencyKey: key,
+          requestId: key,
+          expectedRevision: before.revision,
+        );
+        final applied = await _applyInSession(
+          session,
+          mutationPlan,
+          operationId: key,
+        );
+        final after = await session.snapshot();
+        final mapRevision = narrativeEventBytesFingerprint(
+          after.resourceBytes(identity),
+        );
+        return EditorAuthoringMutationResult(
+          receipt: applied.receipt,
+          snapshotRevision: after.revision,
+          resourceRevision: mapRevision,
+        );
+      });
     } on EditorConflictException {
       rethrow;
     } on EditorAuthoringMutationFailure catch (failure) {
@@ -428,8 +422,9 @@ final class AuthoringMutationAdapter
   }
 
   Future<_EditorMutationSession> _open(String projectRootPath) async {
-    final canonicalRoot =
-        await _fileReader.canonicalizeDirectory(projectRootPath);
+    final canonicalRoot = await _fileReader.canonicalizeDirectory(
+      projectRootPath,
+    );
     _requireAllowedRoot(canonicalRoot);
     final current = _sessions[canonicalRoot];
     if (current != null) {
@@ -551,10 +546,9 @@ final class _EditorMutationSession {
       ),
       snapshotLoader: snapshots,
     );
-    final opened = await reads.open(canonicalRoot);
-    final workspaceHandle =
-        WorkspaceHandle(opened['workspaceHandle']! as String);
-    final projectHandle = ProjectHandle(opened['projectHandle']! as String);
+    final opened = await reads.openProject(canonicalRoot);
+    final workspaceHandle = opened.workspaceHandle;
+    final projectHandle = opened.projectHandle;
     final artifactStore = LocalArtifactStore(
       allowedSourceRoots: [canonicalRoot],
       maximumArtifactBytes: 64 << 20,
@@ -585,7 +579,7 @@ final class _EditorMutationSession {
         onClosed: onClosed,
       );
     } on Object {
-      await reads.close(workspaceHandle);
+      await reads.closeWorkspace(workspaceHandle);
       rethrow;
     }
   }
