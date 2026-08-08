@@ -23,6 +23,7 @@ void main() {
     expect(snapshot.isActionEnabled(RuntimePlayerAction.load), isFalse);
     expect(snapshot.isActionEnabled(RuntimePlayerAction.openOptions), isTrue);
     expect(snapshot.isActionEnabled(RuntimePlayerAction.showCredits), isTrue);
+    expect(snapshot.hasDiscoveredSave, isFalse);
     expect(
       snapshot.unavailableReasonFor(RuntimePlayerAction.continueGame),
       isNotEmpty,
@@ -130,6 +131,7 @@ void main() {
       harness.coordinator.snapshot.isActionEnabled(RuntimePlayerAction.load),
       isTrue,
     );
+    expect(harness.coordinator.snapshot.hasDiscoveredSave, isTrue);
   });
 
   test('keeps Options and Credits available for a completed save', () async {

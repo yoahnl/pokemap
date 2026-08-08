@@ -194,6 +194,7 @@ final class RuntimePlayerSnapshot {
     this.activeInputSource,
     this.worldService,
     this.preferences,
+    this.hasDiscoveredSave = false,
     this.activeSaveAddress,
     this.saveReceipt,
     Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot> pauseDetails =
@@ -249,6 +250,7 @@ final class RuntimePlayerSnapshot {
   final PlayerInputSource? activeInputSource;
   final RuntimeWorldServiceSnapshot? worldService;
   final PlayerPreferencesSnapshot? preferences;
+  final bool hasDiscoveredSave;
   final RuntimePlayerSaveAddress? activeSaveAddress;
   final RuntimePlayerSaveReceipt? saveReceipt;
   final Map<RuntimePlayerPauseSection, RuntimePlayerPauseDetailSnapshot>
@@ -289,6 +291,7 @@ final class RuntimePlayerSnapshot {
     RuntimeWorldServiceSnapshot? worldService,
     bool clearWorldService = false,
     PlayerPreferencesSnapshot? preferences,
+    bool? hasDiscoveredSave,
     RuntimePlayerSaveAddress? activeSaveAddress,
     bool clearActiveSaveAddress = false,
     RuntimePlayerSaveReceipt? saveReceipt,
@@ -318,6 +321,7 @@ final class RuntimePlayerSnapshot {
       worldService:
           clearWorldService ? null : worldService ?? this.worldService,
       preferences: preferences ?? this.preferences,
+      hasDiscoveredSave: hasDiscoveredSave ?? this.hasDiscoveredSave,
       activeSaveAddress: clearActiveSaveAddress
           ? null
           : activeSaveAddress ?? this.activeSaveAddress,

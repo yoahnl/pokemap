@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
@@ -98,6 +99,27 @@ void main() {
     expect(find.text('Replay'), findsOneWidget);
     expect(find.text('Continue'), findsOneWidget);
     expect(find.text('Continuer'), findsNothing);
+  });
+
+  testWidgets('media tap, Enter and Space use the primary intro action',
+      (tester) async {
+    var skipped = 0;
+    await tester.pumpWidget(
+      _app(
+        PlayerIntroVideoSurface(
+          media: const SizedBox.expand(),
+          onSkip: () => skipped++,
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('player-intro-primary-hit-area')),
+    );
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+
+    expect(skipped, 3);
   });
 }
 

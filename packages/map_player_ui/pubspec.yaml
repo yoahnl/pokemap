@@ -16,6 +16,7 @@ dependencies:
   gamepads: ^0.1.10+1
   map_runtime:
     path: ../map_runtime
+  video_player: 2.9.5
 
 dev_dependencies:
   flutter_test:
