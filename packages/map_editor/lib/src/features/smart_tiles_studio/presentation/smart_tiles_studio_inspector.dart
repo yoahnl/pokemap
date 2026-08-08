@@ -1,11 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../../application/authoring_api/editor_receipt_presenter.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/smart_tile_studio_library.dart';
 
-class SmartTilesStudioInspector extends StatelessWidget {
+class SmartTilesStudioInspector extends StatefulWidget {
   const SmartTilesStudioInspector({
     super.key,
     required this.isCreating,
@@ -14,10 +17,9 @@ class SmartTilesStudioInspector extends StatelessWidget {
     required this.sourceChoiceLabel,
     required this.selectedItem,
     required this.diagnostics,
-    required this.canAddSelectedPresetToMap,
-    required this.isAddingSelectedPreset,
+    required this.isCapturedMapAvailable,
     this.selectedItemPreview,
-    this.addSelectedPresetDisabledReason,
+    this.onPublishSelectedPreset,
     this.onAddSelectedPresetToMap,
   });
 
@@ -27,15 +29,35 @@ class SmartTilesStudioInspector extends StatelessWidget {
   final String sourceChoiceLabel;
   final SmartTileLibraryItem? selectedItem;
   final List<SmartTileDiagnostic> diagnostics;
+  final bool isCapturedMapAvailable;
   final Widget? selectedItemPreview;
-  final bool canAddSelectedPresetToMap;
-  final bool isAddingSelectedPreset;
-  final String? addSelectedPresetDisabledReason;
-  final VoidCallback? onAddSelectedPresetToMap;
+  final Future<void> Function(ProjectSmartTilePreset preset)?
+      onPublishSelectedPreset;
+  final Future<bool> Function(ProjectSmartTilePreset preset)?
+      onAddSelectedPresetToMap;
+
+  @override
+  State<SmartTilesStudioInspector> createState() =>
+      _SmartTilesStudioInspectorState();
+}
+
+class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
+  bool _publishing = false;
+  bool _adding = false;
+  String? _actionError;
+
+  @override
+  void didUpdateWidget(covariant SmartTilesStudioInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedItem?.key != widget.selectedItem?.key) {
+      _actionError = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final item = selectedItem;
+    final item = widget.selectedItem;
+    final preset = item?.nativePreset;
     return PokeMapPanel(
       expandChild: true,
       padding: const EdgeInsets.all(14),
@@ -48,16 +70,17 @@ class SmartTilesStudioInspector extends StatelessWidget {
       ),
       child: ListView(
         children: <Widget>[
-          if (isCreating) ...[
+          if (widget.isCreating) ...[
             PokeMapBadge(
               key: const Key('smart-tiles-active-draft-kind'),
-              label:
-                  isResumedDraft ? 'Brouillon repris' : 'Brouillon de session',
+              label: widget.isResumedDraft
+                  ? 'Brouillon repris'
+                  : 'Brouillon de session',
               variant: PokeMapBadgeVariant.warning,
             ),
             const SizedBox(height: 12),
-            _InspectorValue(label: 'Étape', value: wizardStepLabel),
-            _InspectorValue(label: 'Source', value: sourceChoiceLabel),
+            _InspectorValue(label: 'Étape', value: widget.wizardStepLabel),
+            _InspectorValue(label: 'Source', value: widget.sourceChoiceLabel),
           ] else if (item != null) ...[
             PokeMapBadge(
               label: item.statusLabel,
@@ -68,7 +91,7 @@ class SmartTilesStudioInspector extends StatelessWidget {
                       : PokeMapBadgeVariant.warning,
             ),
             const SizedBox(height: 12),
-            if (selectedItemPreview case final preview?) ...[
+            if (widget.selectedItemPreview case final preview?) ...[
               Align(alignment: Alignment.centerLeft, child: preview),
               const SizedBox(height: 12),
             ],
@@ -80,17 +103,44 @@ class SmartTilesStudioInspector extends StatelessWidget {
               label: 'Origine',
               value: item.isPattern ? 'Motif natif' : 'Natif v6',
             ),
-            if (item.nativePreset != null) ...[
+            if (preset?.status == SmartTilePresetStatus.draft) ...[
+              const SizedBox(height: 12),
+              PokeMapButton(
+                key: const Key('smart-tiles-publish-imported-preset'),
+                onPressed: widget.onPublishSelectedPreset == null || _publishing
+                    ? null
+                    : () => unawaited(_publish(preset!)),
+                disabledReason: widget.onPublishSelectedPreset == null
+                    ? 'Ouvrez un projet enregistrable pour publier ce preset.'
+                    : _publishing
+                        ? 'Publication en cours.'
+                        : null,
+                leading: _publishing
+                    ? const CupertinoActivityIndicator(radius: 7)
+                    : const Icon(CupertinoIcons.cloud_upload, size: 15),
+                child: const Text('Publier dans la bibliothèque'),
+              ),
+            ],
+            if (preset != null) ...[
               const SizedBox(height: 12),
               PokeMapButton(
                 key: const Key('smart-tiles-add-to-active-map'),
-                onPressed:
-                    canAddSelectedPresetToMap ? onAddSelectedPresetToMap : null,
-                disabledReason: addSelectedPresetDisabledReason,
-                leading: isAddingSelectedPreset
+                onPressed: _canAddToMap(preset)
+                    ? () => unawaited(_addToMap(preset))
+                    : null,
+                disabledReason: _addToMapDisabledReason(preset),
+                leading: _adding
                     ? const CupertinoActivityIndicator(radius: 7)
                     : const Icon(CupertinoIcons.square_grid_3x2, size: 15),
                 child: const Text('Ajouter à la map active'),
+              ),
+            ],
+            if (_actionError case final error?) ...[
+              const SizedBox(height: 8),
+              PokeMapDiagnosticCallout(
+                key: const Key('smart-tiles-selected-preset-action-error'),
+                severity: PokeMapDiagnosticSeverity.error,
+                message: error,
               ),
             ],
           ] else
@@ -101,21 +151,85 @@ class SmartTilesStudioInspector extends StatelessWidget {
           const SizedBox(height: 18),
           PokeMapSectionHeader(
             title: 'Diagnostics du catalogue',
-            description: diagnostics.isEmpty
+            description: widget.diagnostics.isEmpty
                 ? 'Aucune erreur structurelle.'
-                : '${diagnostics.length} diagnostic(s) à examiner.',
+                : '${widget.diagnostics.length} diagnostic(s) à examiner.',
           ),
           PokeMapBadge(
-            label: diagnostics.isEmpty
+            label: widget.diagnostics.isEmpty
                 ? 'Structure valide'
-                : '${diagnostics.length} diagnostic(s)',
-            variant: diagnostics.any((diagnostic) => diagnostic.isError)
+                : '${widget.diagnostics.length} diagnostic(s)',
+            variant: widget.diagnostics.any((diagnostic) => diagnostic.isError)
                 ? PokeMapBadgeVariant.error
                 : PokeMapBadgeVariant.warning,
           ),
         ],
       ),
     );
+  }
+
+  bool _canAddToMap(ProjectSmartTilePreset preset) {
+    return !_adding &&
+        preset.status == SmartTilePresetStatus.published &&
+        widget.isCapturedMapAvailable &&
+        widget.onAddSelectedPresetToMap != null;
+  }
+
+  String? _addToMapDisabledReason(ProjectSmartTilePreset preset) {
+    if (_adding) return 'Ajout de la couche en cours.';
+    if (preset.status != SmartTilePresetStatus.published) {
+      return 'Publiez ce preset avant de l’ajouter à une carte.';
+    }
+    if (!widget.isCapturedMapAvailable) {
+      return 'Ouvrez une carte enregistrée depuis laquelle le Studio a été lancé.';
+    }
+    if (widget.onAddSelectedPresetToMap == null) {
+      return 'La session canonique de la carte n’est pas disponible.';
+    }
+    return null;
+  }
+
+  Future<void> _publish(ProjectSmartTilePreset preset) async {
+    final callback = widget.onPublishSelectedPreset;
+    if (callback == null || _publishing) return;
+    setState(() {
+      _publishing = true;
+      _actionError = null;
+    });
+    try {
+      await callback(preset);
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _actionError = EditorAuthoringMutationFailure.capture(error).message;
+      });
+    } finally {
+      if (mounted) setState(() => _publishing = false);
+    }
+  }
+
+  Future<void> _addToMap(ProjectSmartTilePreset preset) async {
+    final callback = widget.onAddSelectedPresetToMap;
+    if (callback == null || _adding) return;
+    setState(() {
+      _adding = true;
+      _actionError = null;
+    });
+    try {
+      final added = await callback(preset);
+      if (!added && mounted) {
+        setState(() {
+          _actionError = 'La couche n’a pas pu être ajoutée à la carte.';
+        });
+      }
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _actionError = EditorAuthoringMutationFailure.capture(error).message;
+      });
+    } finally {
+      if (mounted) setState(() => _adding = false);
+    }
   }
 }
 

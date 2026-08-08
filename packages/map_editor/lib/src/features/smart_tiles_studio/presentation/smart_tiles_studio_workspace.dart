@@ -133,6 +133,12 @@ class _SmartTilesStudioWorkspaceState
             ),
       onPublicationApplied:
           projectRootPath == null ? null : _acceptPublicationResult,
+      onPublishExistingPreset: projectRootPath == null
+          ? null
+          : (preset) => _publishExistingPreset(
+                projectRootPath,
+                preset,
+              ),
       onAddPresetToCapturedMap: projectRootPath == null ||
               !launch.context.isCapturedMapAvailable(launch.activeMap) ||
               launch.mapIsDirty
@@ -331,6 +337,37 @@ class _SmartTilesStudioWorkspaceState
     ref.read(editorNotifierProvider.notifier).acceptCanonicalProjectManifest(
           result.manifest,
           statusMessage: 'Motif Smart Tile enregistré.',
+        );
+    setState(() {
+      _canonicalDraft = null;
+      _persistenceState = null;
+    });
+  }
+
+  Future<void> _publishExistingPreset(
+    String projectRootPath,
+    ProjectSmartTilePreset preset,
+  ) async {
+    await _flushDraft();
+    await _coordinator?.close();
+    _coordinator = null;
+    _attachedRoot = null;
+    _pendingDraft = null;
+    _pendingRootPath = null;
+    final gateway = CanonicalSmartTilePublicationGateway(
+      mutations: ref.read(authoringMutationAdapterProvider),
+      queries: ref.read(authoringQueryAdapterProvider),
+    );
+    final canonical = await SmartTilePublicationService(
+      gateway: gateway,
+    ).publishPreset(
+      projectRootPath: projectRootPath,
+      preset: preset,
+    );
+    if (!mounted) return;
+    ref.read(editorNotifierProvider.notifier).acceptCanonicalProjectManifest(
+          canonical.manifest,
+          statusMessage: 'Smart Tile « ${preset.name} » publié.',
         );
     setState(() {
       _canonicalDraft = null;

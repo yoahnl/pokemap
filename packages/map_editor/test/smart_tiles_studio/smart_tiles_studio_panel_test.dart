@@ -123,6 +123,30 @@ void main() {
       expect(submitted!.single.usage, SmartTileUsage.path);
     });
 
+    testWidgets('offers publication for an imported Wang draft', (
+      tester,
+    ) async {
+      ProjectSmartTilePreset? published;
+      await _pumpPanel(
+        tester,
+        _manifest(
+          presets: const <ProjectSmartTilePreset>[_importedWangPreset],
+        ),
+        onPublishExistingPreset: (preset) async => published = preset,
+      );
+
+      final publish = find.byKey(
+        const Key('smart-tiles-publish-imported-preset'),
+      );
+      expect(publish, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(publish).onPressed, isNotNull);
+
+      await tester.tap(publish);
+      await tester.pumpAndSettle();
+
+      expect(published, _importedWangPreset);
+    });
+
     testWidgets('opens the reconstruction assistant from a captured map',
         (tester) async {
       await _pumpPanel(
@@ -1752,6 +1776,7 @@ Future<void> _pumpPanel(
   SmartTileReconstructionService? reconstructionService,
   Future<void> Function(SmartTileReconstructionResult result)?
       onReconstructionApplied,
+  Future<void> Function(ProjectSmartTilePreset preset)? onPublishExistingPreset,
   Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap,
   Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern,
@@ -1774,6 +1799,7 @@ Future<void> _pumpPanel(
           capturedMap: capturedMap,
           reconstructionService: reconstructionService,
           onReconstructionApplied: onReconstructionApplied,
+          onPublishExistingPreset: onPublishExistingPreset,
           onAddPresetToCapturedMap: onAddPresetToCapturedMap,
           onUpsertPattern: onUpsertPattern,
         ),
@@ -1977,6 +2003,23 @@ ProjectManifest _manifest({
     ),
   );
 }
+
+const _importedWangPreset = ProjectSmartTilePreset(
+  id: 'road-import-w0-preset',
+  name: 'Road',
+  usage: SmartTileUsage.path,
+  topology: SmartTileTopology.cardinal4,
+  templateHint: SmartTileTemplateHint.edge16,
+  status: SmartTilePresetStatus.draft,
+  coveragePolicy: SmartTileCoveragePolicy.sparse,
+  coverageProfile: SmartTileCoverageProfile(
+    mode: SmartTileCoverageMode.explicit,
+  ),
+  transformPolicy: SmartTileTransformPolicy(),
+  defaultMaterialId: 'dirt',
+  allowedMaterialIds: <String>['dirt'],
+  tags: <String>['imported', 'tiled-wang'],
+);
 
 final class _FakeSmartTileAtlasImageLoader
     implements SmartTileAtlasImageLoader {

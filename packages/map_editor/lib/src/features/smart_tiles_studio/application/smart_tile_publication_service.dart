@@ -360,8 +360,10 @@ final class SmartTilePublicationService {
   /// C'est la seconde forme de `smart_tile.preset.publish` : elle prend le
   /// preset complet au lieu d'un brouillon, et sert à modifier un preset
   /// publié sans repasser par l'assistant — par exemple pour réécrire les
-  /// poids de ses variantes. Renvoie le résultat de l'application du plan.
-  Future<String> publishPreset({
+  /// poids de ses variantes. Renvoie le snapshot canonique rechargé après
+  /// l'application afin que les transports éditeur adoptent exactement l'état
+  /// publié.
+  Future<SmartTilePublicationCanonicalSnapshot> publishPreset({
     required String projectRootPath,
     required ProjectSmartTilePreset preset,
   }) async {
@@ -382,10 +384,18 @@ final class SmartTilePublicationService {
       expectedRevision: snapshot.snapshotRevision,
       idempotencyKey: 'smart-tile-preset-publish-$fingerprint',
     );
-    return _gateway.apply(
+    final appliedRevision = await _gateway.apply(
       plan: plan,
       operationId: 'smart-tile-preset-publish-$fingerprint',
     );
+    final canonical = await _gateway.load(projectRootPath: projectRootPath);
+    if (canonical.snapshotRevision != appliedRevision) {
+      throw const SmartTilePublicationException(
+        'smart_tile.publish.snapshot_stale',
+        'Le snapshot canonique chargé après publication est obsolète.',
+      );
+    }
+    return canonical;
   }
 
   static String suggestLayerId({

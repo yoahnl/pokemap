@@ -179,16 +179,17 @@ void main() {
       );
     });
 
-    test('publishPreset envoie la charge preset et renvoie le reçu', () async {
+    test('publishPreset recharge le snapshot canonique publié', () async {
       final gateway = _FakeGateway(before: _snapshot());
       final service = SmartTilePublicationService(gateway: gateway);
 
-      final receipt = await service.publishPreset(
+      final result = await service.publishPreset(
         projectRootPath: '/project',
         preset: _preset(),
       );
 
-      expect(receipt, gateway.after.snapshotRevision);
+      expect(result.manifest, gateway.after.manifest);
+      expect(result.snapshotRevision, gateway.after.snapshotRevision);
       expect(gateway.plannedParameters!.keys, <String>['preset']);
       expect(
         (gateway.plannedParameters!['preset']! as Map<String, Object?>)['id'],

@@ -73,6 +73,7 @@ class SmartTilesStudioPanel extends StatefulWidget {
     this.onReconstructionApplied,
     this.publicationService,
     this.onPublicationApplied,
+    this.onPublishExistingPreset,
     this.onAddPresetToCapturedMap,
     this.onUpsertPattern,
   });
@@ -103,6 +104,8 @@ class SmartTilesStudioPanel extends StatefulWidget {
   final SmartTilePublicationService? publicationService;
   final Future<void> Function(SmartTilePublicationResult result)?
       onPublicationApplied;
+  final Future<void> Function(ProjectSmartTilePreset preset)?
+      onPublishExistingPreset;
   final Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap;
   final Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern;
@@ -176,7 +179,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
   SmartTilePublicationPlan? _publicationPlan;
   bool _publicationBusy = false;
   bool _publicationApplied = false;
-  bool _addingSelectedPreset = false;
   String? _publicationErrorCode;
   String? _publicationErrorMessage;
   ProjectSmartTilePattern? _editingPattern;
@@ -307,6 +309,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                   _sourceChoiceLabel(_session.state.sourceChoice),
               selectedItem: selectedItem,
               diagnostics: diagnostics,
+              isCapturedMapAvailable: widget.isCapturedMapAvailable,
               selectedItemPreview: inspectorFrame == null
                   ? null
                   : _spritePreview(
@@ -315,15 +318,8 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
                       key: const Key('smart-tiles-inspector-sprite'),
                       semanticLabel: 'Aperçu de ${selectedItem!.name}',
                     ),
-              canAddSelectedPresetToMap: selectedItem != null &&
-                  _canAddSelectedPresetToMap(selectedItem),
-              isAddingSelectedPreset: _addingSelectedPreset,
-              addSelectedPresetDisabledReason: selectedItem == null
-                  ? null
-                  : _addSelectedPresetDisabledReason(selectedItem),
-              onAddSelectedPresetToMap: selectedItem == null
-                  ? null
-                  : () => unawaited(_addSelectedPresetToMap(selectedItem)),
+              onPublishSelectedPreset: widget.onPublishExistingPreset,
+              onAddSelectedPresetToMap: widget.onAddPresetToCapturedMap,
             ),
           ),
         ),
@@ -1766,51 +1762,6 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
           ],
       ],
     );
-  }
-
-  bool _canAddSelectedPresetToMap(SmartTileLibraryItem item) {
-    return !_addingSelectedPreset &&
-        item.nativePreset?.status == SmartTilePresetStatus.published &&
-        widget.isCapturedMapAvailable &&
-        widget.onAddPresetToCapturedMap != null;
-  }
-
-  String? _addSelectedPresetDisabledReason(SmartTileLibraryItem item) {
-    if (_addingSelectedPreset) return 'Ajout de la couche en cours.';
-    if (item.nativePreset?.status != SmartTilePresetStatus.published) {
-      return 'Publiez ce preset avant de l’ajouter à une carte.';
-    }
-    if (!widget.isCapturedMapAvailable) {
-      return 'Ouvrez une carte enregistrée depuis laquelle le Studio a été lancé.';
-    }
-    if (widget.onAddPresetToCapturedMap == null) {
-      return 'La session canonique de la carte n’est pas disponible.';
-    }
-    return null;
-  }
-
-  Future<void> _addSelectedPresetToMap(SmartTileLibraryItem item) async {
-    final preset = item.nativePreset;
-    final callback = widget.onAddPresetToCapturedMap;
-    if (preset == null || callback == null || _addingSelectedPreset) return;
-    setState(() {
-      _addingSelectedPreset = true;
-      _draftMessage = null;
-    });
-    try {
-      final added = await callback(preset);
-      if (!mounted) return;
-      setState(() {
-        _draftMessage = added
-            ? 'Couche « ${preset.name} » ajoutée et sélectionnée.'
-            : 'La couche n’a pas pu être ajoutée à la carte.';
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _draftMessage = 'Échec de l’ajout : $error');
-    } finally {
-      if (mounted) setState(() => _addingSelectedPreset = false);
-    }
   }
 
   Widget _buildAnimationsTab(SmartTileLibraryItem selectedItem) {
