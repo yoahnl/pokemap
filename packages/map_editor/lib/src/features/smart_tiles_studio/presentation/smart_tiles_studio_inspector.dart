@@ -42,6 +42,7 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
   bool _publishing = false;
   bool _updating = false;
   bool _duplicating = false;
+  bool _deleting = false;
   bool _adding = false;
   String? _actionError;
 
@@ -153,6 +154,23 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
                       ? const CupertinoActivityIndicator(radius: 7)
                       : const Icon(CupertinoIcons.square_on_square, size: 15),
                   child: const Text('Dupliquer'),
+                ),
+                const SizedBox(height: 8),
+                PokeMapButton(
+                  key: const Key('smart-tiles-delete-preset'),
+                  variant: PokeMapButtonVariant.danger,
+                  onPressed: widget.actions.delete == null || _deleting
+                      ? null
+                      : () => unawaited(_delete(preset)),
+                  disabledReason: widget.actions.delete == null
+                      ? 'Ouvrez un projet enregistrable pour supprimer ce preset.'
+                      : _deleting
+                          ? 'Suppression en cours.'
+                          : null,
+                  leading: _deleting
+                      ? const CupertinoActivityIndicator(radius: 7)
+                      : const Icon(CupertinoIcons.delete, size: 15),
+                  child: const Text('Supprimer'),
                 ),
               ],
               const SizedBox(height: 8),
@@ -293,6 +311,36 @@ class _SmartTilesStudioInspectorState extends State<SmartTilesStudioInspector> {
       });
     } finally {
       if (mounted) setState(() => _duplicating = false);
+    }
+  }
+
+  Future<void> _delete(ProjectSmartTilePreset preset) async {
+    final callback = widget.actions.delete;
+    if (callback == null || _deleting) return;
+    final confirmed = await showPokeMapBinaryConfirmationDialog(
+      context,
+      title: 'Supprimer ce Smart Tile ?',
+      message:
+          '« ${preset.name} » sera retiré définitivement de la bibliothèque. Cette action est impossible tant qu’une couche l’utilise.',
+      secondaryLabel: 'Annuler',
+      primaryLabel: 'Supprimer',
+      primaryIsDestructive: true,
+      icon: CupertinoIcons.delete,
+    );
+    if (!confirmed || !mounted) return;
+    setState(() {
+      _deleting = true;
+      _actionError = null;
+    });
+    try {
+      await callback(preset);
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _actionError = EditorAuthoringMutationFailure.capture(error).message;
+      });
+    } finally {
+      if (mounted) setState(() => _deleting = false);
     }
   }
 

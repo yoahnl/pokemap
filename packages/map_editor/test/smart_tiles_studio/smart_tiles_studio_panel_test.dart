@@ -215,6 +215,26 @@ void main() {
       expect(duplicated!.usage, SmartTileUsage.path);
     });
 
+    testWidgets('confirms before deleting the selected preset', (tester) async {
+      ProjectSmartTilePreset? deleted;
+      await _pumpPanel(
+        tester,
+        _manifest(),
+        onDeletePreset: (preset) async => deleted = preset,
+      );
+
+      await tester.tap(find.byKey(const Key('smart-tiles-delete-preset')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Supprimer ce Smart Tile ?'), findsOneWidget);
+      expect(deleted, isNull);
+      await tester.tap(find.text('Supprimer').last);
+      await tester.pumpAndSettle();
+
+      expect(deleted, isNotNull);
+      expect(deleted!.id, 'hanazuki-path');
+    });
+
     testWidgets('opens the reconstruction assistant from a captured map',
         (tester) async {
       await _pumpPanel(
@@ -1847,6 +1867,7 @@ Future<void> _pumpPanel(
   Future<void> Function(ProjectSmartTilePreset preset)? onPublishExistingPreset,
   Future<void> Function(ProjectSmartTilePreset preset)? onUpdatePreset,
   Future<void> Function(ProjectSmartTilePreset preset)? onDuplicatePreset,
+  Future<void> Function(ProjectSmartTilePreset preset)? onDeletePreset,
   Future<bool> Function(ProjectSmartTilePreset preset)?
       onAddPresetToCapturedMap,
   Future<void> Function(ProjectSmartTilePattern pattern)? onUpsertPattern,
@@ -1873,6 +1894,7 @@ Future<void> _pumpPanel(
             publish: onPublishExistingPreset,
             update: onUpdatePreset,
             duplicate: onDuplicatePreset,
+            delete: onDeletePreset,
             addToMap: onAddPresetToCapturedMap,
           ),
           onUpsertPattern: onUpsertPattern,

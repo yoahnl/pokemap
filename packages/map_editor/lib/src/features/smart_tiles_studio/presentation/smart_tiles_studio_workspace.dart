@@ -15,6 +15,7 @@ import '../application/smart_tile_atlas_image_loader.dart';
 import '../application/smart_tile_publication_service.dart';
 import '../application/smart_tile_reconstruction_service.dart';
 import '../application/smart_tile_pattern_authoring_service.dart';
+import '../application/smart_tile_preset_deletion_service.dart';
 import '../application/smart_tile_source_asset_import_service.dart';
 import '../application/smart_tile_source_image_picker.dart';
 import '../application/smart_tile_tiled_wang_import_service.dart';
@@ -144,6 +145,9 @@ class _SmartTilesStudioWorkspaceState
         duplicate: projectRootPath == null
             ? null
             : (preset) => _duplicatePreset(projectRootPath, preset),
+        delete: projectRootPath == null
+            ? null
+            : (preset) => _deletePreset(projectRootPath, preset),
         addToMap: projectRootPath == null ||
                 !launch.context.isCapturedMapAvailable(launch.activeMap) ||
                 launch.mapIsDirty
@@ -404,6 +408,36 @@ class _SmartTilesStudioWorkspaceState
     ref.read(editorNotifierProvider.notifier).acceptCanonicalProjectManifest(
           result.snapshot.manifest,
           statusMessage: 'Smart Tile « ${result.preset.name} » créé.',
+        );
+    setState(() {
+      _canonicalDraft = null;
+      _persistenceState = null;
+    });
+  }
+
+  Future<void> _deletePreset(
+    String projectRootPath,
+    ProjectSmartTilePreset preset,
+  ) async {
+    await _flushDraft();
+    await _coordinator?.close();
+    _coordinator = null;
+    _attachedRoot = null;
+    _pendingDraft = null;
+    _pendingRootPath = null;
+    final canonical = await SmartTilePresetDeletionService(
+      gateway: CanonicalSmartTilePresetDeletionGateway(
+        mutations: ref.read(authoringMutationAdapterProvider),
+        queries: ref.read(authoringQueryAdapterProvider),
+      ),
+    ).deletePreset(
+      projectRootPath: projectRootPath,
+      presetId: preset.id,
+    );
+    if (!mounted) return;
+    ref.read(editorNotifierProvider.notifier).acceptCanonicalProjectManifest(
+          canonical.manifest,
+          statusMessage: 'Smart Tile « ${preset.name} » supprimé.',
         );
     setState(() {
       _canonicalDraft = null;
