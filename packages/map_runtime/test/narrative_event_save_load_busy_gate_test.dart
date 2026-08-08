@@ -53,7 +53,9 @@ void main() {
 
       expect(loaded?.saveId, 'save_f1');
       expect(loaded?.currentMapId, 'map_f1');
-      expect(repository.pathLookupCount, 2);
+      // Le chemin est résolu une seule fois puis mémoïsé : le save initial
+      // paie le lookup, le load réutilise le chemin en cache.
+      expect(repository.pathLookupCount, 1);
     });
 
     test('coordinator and repository share one runtime activity gate',

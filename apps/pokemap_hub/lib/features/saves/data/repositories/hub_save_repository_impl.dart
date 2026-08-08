@@ -99,8 +99,11 @@ final class HubSaveStore
   @override
   Future<SaveEnvelope> writeVerified(SaveEnvelope envelope) async {
     _paths.assertAddressScope(envelope.address);
-    final validated = codec.decode(
-      codec.encode(envelope),
+    // Même validation complète (champs + checksum) que l'ancien
+    // decode(encode(...)), sans matérialiser la chaîne JSON indentée ni la
+    // re-parser : le round-trip doublait le coût CPU de chaque checkpoint.
+    final validated = codec.decodeJson(
+      codec.toJson(envelope),
       expectedAddress: envelope.address,
       acceptedSaveFormats: <int>{identity.saveFormat},
     );

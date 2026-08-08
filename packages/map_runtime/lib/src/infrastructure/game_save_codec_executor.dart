@@ -56,7 +56,7 @@ final class GameSaveCodecExecutor {
   Future<String> encodeJson(Map<String, dynamic> json) {
     final ownedJson = Map<String, dynamic>.from(json);
     return _execute(
-      _estimateJsonBytes(ownedJson),
+      _estimateJsonBytes(ownedJson, offloadThresholdBytes),
       () => const JsonEncoder.withIndent('  ').convert(ownedJson),
     );
   }
@@ -93,24 +93,50 @@ GameState _decodeAndNormalizeGameState(List<int> bytes) {
   return normalizeLoadedGameState(GameState.fromJson(json));
 }
 
-int _estimateJsonBytes(Object? value) {
-  if (value == null) return 4;
-  if (value is String) return value.length + 2;
-  if (value is num || value is bool) return value.toString().length;
-  if (value is List) {
-    var total = 2;
-    for (final item in value) {
-      total += _estimateJsonBytes(item) + 1;
+/// Estimation bornée par [budget] : la décision d'offload est uniquement
+/// « estimation < seuil », donc le parcours s'arrête dès que le seuil est
+/// atteint au lieu de traverser tout l'état (avec un `toString` alloué par
+/// scalaire) avant chaque encodage.
+int _estimateJsonBytes(Object? value, int budget) {
+  var total = 0;
+  final stack = <Object?>[value];
+  while (stack.isNotEmpty) {
+    if (total >= budget) {
+      return total;
     }
-    return total;
-  }
-  if (value is Map) {
-    var total = 2;
-    for (final entry in value.entries) {
-      total += entry.key.toString().length + 3;
-      total += _estimateJsonBytes(entry.value) + 1;
+    final current = stack.removeLast();
+    if (current == null) {
+      total += 4;
+    } else if (current is String) {
+      total += current.length + 2;
+    } else if (current is bool) {
+      total += current ? 4 : 5;
+    } else if (current is int) {
+      total += _decimalDigitCount(current);
+    } else if (current is num) {
+      total += 12;
+    } else if (current is List) {
+      total += 2 + current.length;
+      stack.addAll(current);
+    } else if (current is Map) {
+      total += 2;
+      for (final entry in current.entries) {
+        total += entry.key.toString().length + 4;
+        stack.add(entry.value);
+      }
+    } else {
+      total += current.toString().length;
     }
-    return total;
   }
-  return value.toString().length;
+  return total;
+}
+
+int _decimalDigitCount(int value) {
+  var count = value < 0 ? 2 : 1;
+  var magnitude = value.abs();
+  while (magnitude >= 10) {
+    count += 1;
+    magnitude ~/= 10;
+  }
+  return count;
 }

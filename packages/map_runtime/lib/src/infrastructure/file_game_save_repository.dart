@@ -23,6 +23,7 @@ class FileGameSaveRepository implements GameSaveRepository {
   static const String _subDirectory = 'pokemonProject';
   final NarrativeRuntimeActivityGate _activityGate;
   final GameSaveCodecExecutor _codecExecutor;
+  String? _cachedSaveFilePath;
 
   /// Retourne le chemin complet du fichier de sauvegarde.
   @protected
@@ -35,12 +36,18 @@ class FileGameSaveRepository implements GameSaveRepository {
     return '${saveDir.path}/$_saveFileName';
   }
 
+  /// Le répertoire de support ne change pas pendant la vie du process : le
+  /// round-trip platform channel + exists/create n'est payé qu'une fois au
+  /// lieu d'à chaque save/load/exists/delete.
+  Future<String> _saveFilePath() async =>
+      _cachedSaveFilePath ??= await getSaveFilePath();
+
   @override
   Future<void> save(GameState state) => _activityGate.runCheckpoint(
         NarrativeRuntimeCheckpointOperation.save,
         () async {
           try {
-            final filePath = await getSaveFilePath();
+            final filePath = await _saveFilePath();
             final normalizedSaveData = saveDataFromGameState(state);
             final normalizedState = state.copyWith(
               saveId: normalizedSaveData.saveId,
@@ -58,13 +65,16 @@ class FileGameSaveRepository implements GameSaveRepository {
             );
             final json = normalizedState.toJson();
             final encoded = await _codecExecutor.encodeJson(json);
-            final file = File(filePath);
             if (kDebugMode) {
               debugPrint(
                 '[step_studio_trace] save_repo_write_start path=$filePath completedStepIds=${normalizedState.progression.completedStepIds}',
               );
             }
-            await file.writeAsString(encoded);
+            // Écriture atomique : un crash en pleine écriture ne doit jamais
+            // tronquer la sauvegarde courante.
+            final temporary = File('$filePath.tmp');
+            await temporary.writeAsString(encoded, flush: true);
+            await temporary.rename(filePath);
             if (kDebugMode) {
               debugPrint('[save] game saved to $filePath');
               debugPrint(
@@ -83,7 +93,7 @@ class FileGameSaveRepository implements GameSaveRepository {
         NarrativeRuntimeCheckpointOperation.load,
         () async {
           try {
-            final filePath = await getSaveFilePath();
+            final filePath = await _saveFilePath();
             final file = File(filePath);
             if (!await file.exists()) {
               debugPrint('[load] no save file found at $filePath');
@@ -104,7 +114,7 @@ class FileGameSaveRepository implements GameSaveRepository {
   @override
   Future<bool> exists() async {
     try {
-      final filePath = await getSaveFilePath();
+      final filePath = await _saveFilePath();
       final file = File(filePath);
       return await file.exists();
     } catch (e, st) {
@@ -116,7 +126,7 @@ class FileGameSaveRepository implements GameSaveRepository {
   @override
   Future<void> delete() async {
     try {
-      final filePath = await getSaveFilePath();
+      final filePath = await _saveFilePath();
       final file = File(filePath);
       if (await file.exists()) {
         await file.delete();

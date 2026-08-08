@@ -61,6 +61,10 @@ final class SaveEnvelopeCodec {
     return decodeJson(
       signed,
       acceptedSaveFormats: <int>{identity.saveFormat},
+      // Le checksum de `signed` vient d'être calculé quelques lignes plus
+      // haut sur exactement ce contenu : le recalculer pour le comparer à
+      // lui-même doublait le coût de canonicalisation de chaque checkpoint.
+      verifyChecksum: false,
     );
   }
 
@@ -68,15 +72,18 @@ final class SaveEnvelopeCodec {
       const JsonEncoder.withIndent('  ').convert(toJson(envelope));
 
   Uint8List encodeUtf8(SaveEnvelope envelope) =>
-      Uint8List.fromList(utf8.encode(encode(envelope)));
+      utf8.encoder.convert(encode(envelope));
 
   SaveEnvelope decode(
     String source, {
     SaveSlotAddress? expectedAddress,
     Set<int> acceptedSaveFormats = const <int>{currentSaveFormat},
   }) {
-    final bytes = utf8.encode(source).length;
-    if (bytes > maxEncodedBytes) {
+    // Une unité UTF-16 encode entre 1 et 3 octets UTF-8 : les deux bornes
+    // évitent d'allouer une copie UTF-8 complète juste pour lire sa taille.
+    if (source.length > maxEncodedBytes ||
+        (source.length * 3 > maxEncodedBytes &&
+            utf8.encode(source).length > maxEncodedBytes)) {
       throw SaveContractException(
         SaveContractErrorCode.sizeLimitExceeded,
         'Save exceeds the $maxEncodedBytes byte limit.',
@@ -136,6 +143,7 @@ final class SaveEnvelopeCodec {
     Map<String, Object?> json, {
     SaveSlotAddress? expectedAddress,
     Set<int> acceptedSaveFormats = const <int>{currentSaveFormat},
+    bool verifyChecksum = true,
   }) {
     _checkKeys(json, _rootKeys, r'$');
     final schemaVersion = _requiredInt(json, 'schemaVersion');
@@ -242,13 +250,15 @@ final class SaveEnvelopeCodec {
         path: r'$.checksum',
       );
     }
-    final expectedChecksum = computeChecksum(json);
-    if (checksumValue != expectedChecksum) {
-      throw const SaveContractException(
-        SaveContractErrorCode.checksumMismatch,
-        'Save checksum mismatch.',
-        path: r'$.checksum.value',
-      );
+    if (verifyChecksum) {
+      final expectedChecksum = computeChecksum(json);
+      if (checksumValue != expectedChecksum) {
+        throw const SaveContractException(
+          SaveContractErrorCode.checksumMismatch,
+          'Save checksum mismatch.',
+          path: r'$.checksum.value',
+        );
+      }
     }
 
     return SaveEnvelope(
