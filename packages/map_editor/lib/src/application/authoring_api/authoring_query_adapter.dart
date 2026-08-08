@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:map_authoring/map_authoring.dart';
+import 'package:map_authoring/map_authoring_local.dart';
 import 'package:map_core/map_core.dart';
 
 import 'authoring_session_lifecycle.dart';

@@ -79,6 +79,58 @@ void main() {
         isNot(anyOf(contains('domains/assets'), contains('domains/narrative'))),
       );
     });
+
+    test('publishes focused API and local composition entry points', () {
+      final apiBarrel = File('lib/map_authoring_api.dart');
+      final localBarrel = File('lib/map_authoring_local.dart');
+
+      expect(apiBarrel.existsSync(), isTrue);
+      expect(localBarrel.existsSync(), isTrue);
+
+      final apiSource = apiBarrel.readAsStringSync();
+      expect(
+        apiSource,
+        isNot(
+          anyOf(
+            contains("export 'src/domains/"),
+            contains("export 'src/history/"),
+            contains("export 'src/security/"),
+            contains("export 'src/tooling/"),
+            contains('local_map_authoring_mutation_api.dart'),
+          ),
+        ),
+      );
+      expect(
+        localBarrel.readAsStringSync(),
+        contains("export 'map_authoring_api.dart';"),
+      );
+    });
+
+    test('editor application adapters avoid the legacy umbrella barrel', () {
+      final adapterSources = [
+        File(
+          '../map_editor/lib/src/application/authoring_api/'
+          'authoring_query_adapter.dart',
+        ).readAsStringSync(),
+        File(
+          '../map_editor/lib/src/application/authoring_api/'
+          'authoring_mutation_adapter.dart',
+        ).readAsStringSync(),
+      ];
+
+      expect(
+        adapterSources,
+        everyElement(
+          contains('package:map_authoring/map_authoring_local.dart'),
+        ),
+      );
+      expect(
+        adapterSources,
+        everyElement(
+          isNot(contains('package:map_authoring/map_authoring.dart')),
+        ),
+      );
+    });
   });
 }
 

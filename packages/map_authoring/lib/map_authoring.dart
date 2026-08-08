@@ -1,8 +1,9 @@
-/// Canonical pure-Dart authoring contracts for PokeMap.
+/// Legacy compatibility umbrella for PokeMap authoring.
 ///
-/// Platform adapters and MCP protocol translation deliberately live outside
-/// this package. Keeping this barrel free of those dependencies is an
-/// architectural invariant tested by `package_boundary_test.dart`.
+/// New direct consumers should prefer `map_authoring_api.dart`, or
+/// `map_authoring_local.dart` when composing local desktop infrastructure.
+/// This broad barrel remains available while existing feature-level imports
+/// migrate incrementally.
 library;
 
 export 'src/api/authoring_read_api.dart';
