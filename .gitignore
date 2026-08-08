@@ -45,3 +45,4 @@ packages/map_editor/test/**/failures/
 
 # Superpowers brainstorming scratch
 .superpowers/
+/prototypes/
