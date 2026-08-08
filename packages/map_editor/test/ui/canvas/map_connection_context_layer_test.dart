@@ -130,6 +130,24 @@ void main() {
         expect(painter.showEntityEditorChrome, isFalse);
         expect(painter.showEditorOverlays, isFalse);
       }
+      final northOutline = tester.widget<CustomPaint>(
+        find.byKey(
+          const ValueKey<String>('map-connection-context-outline-north'),
+        ),
+      );
+      final eastOutline = tester.widget<CustomPaint>(
+        find.byKey(
+          const ValueKey<String>('map-connection-context-outline-east'),
+        ),
+      );
+      expect(
+        (northOutline.painter! as MapConnectionContextOutlinePainter).color,
+        PokeMapColorTokens.dark.borderStrong,
+      );
+      expect(
+        (eastOutline.painter! as MapConnectionContextOutlinePainter).color,
+        PokeMapColorTokens.dark.mapAccent,
+      );
 
       await tester.tap(
         find.byKey(

@@ -98,6 +98,24 @@ class MapConnectionContextLayer extends StatelessWidget {
                         ),
                       ),
                     ),
+                    Positioned.fill(
+                      child: CustomPaint(
+                        key: ValueKey<String>(
+                          'map-connection-context-outline-'
+                          '${neighbor.direction.name}',
+                        ),
+                        painter: MapConnectionContextOutlinePainter(
+                          tileBounds: neighbor.tileBounds,
+                          zoom: zoom,
+                          offset: offset,
+                          tileWidth: tileWidth,
+                          tileHeight: tileHeight,
+                          color: neighbor.direction == selectedDirection
+                              ? colors.mapAccent
+                              : colors.borderStrong,
+                        ),
+                      ),
+                    ),
                     Positioned(
                       left: _neighborLabelOffset(neighbor).dx,
                       top: _neighborLabelOffset(neighbor).dy,
@@ -187,6 +205,53 @@ class MapConnectionContextLayer extends StatelessWidget {
         MapConnectionDirection.south => 'Sud',
         MapConnectionDirection.west => 'Ouest',
       };
+}
+
+/// Draws the tokenized, screen-space boundary of one visual-only neighbor.
+class MapConnectionContextOutlinePainter extends CustomPainter {
+  const MapConnectionContextOutlinePainter({
+    required this.tileBounds,
+    required this.zoom,
+    required this.offset,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.color,
+  });
+
+  final Rect tileBounds;
+  final double zoom;
+  final Offset offset;
+  final double tileWidth;
+  final double tileHeight;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const strokeWidth = 2.0;
+    final bounds = Rect.fromLTRB(
+      offset.dx + tileBounds.left * tileWidth * zoom,
+      offset.dy + tileBounds.top * tileHeight * zoom,
+      offset.dx + tileBounds.right * tileWidth * zoom,
+      offset.dy + tileBounds.bottom * tileHeight * zoom,
+    ).deflate(strokeWidth / 2);
+    if (bounds.isEmpty) return;
+    canvas.drawRect(
+      bounds,
+      Paint()
+        ..color = color
+        ..strokeWidth = strokeWidth
+        ..style = PaintingStyle.stroke,
+    );
+  }
+
+  @override
+  bool shouldRepaint(MapConnectionContextOutlinePainter oldDelegate) =>
+      tileBounds != oldDelegate.tileBounds ||
+      zoom != oldDelegate.zoom ||
+      offset != oldDelegate.offset ||
+      tileWidth != oldDelegate.tileWidth ||
+      tileHeight != oldDelegate.tileHeight ||
+      color != oldDelegate.color;
 }
 
 Map<MapConnectionDirection, String> resolveMapConnectionLabels(
