@@ -180,6 +180,8 @@ class MapLayersComponent extends PositionComponent {
   final Map<String, BorderRuntimeDrawInstructionCollection>
       _borderInstructionsByLayerId =
       <String, BorderRuntimeDrawInstructionCollection>{};
+  final Map<String, SmartTileLayerVisualPlan> _smartTileVisualPlanByLayerId =
+      <String, SmartTileLayerVisualPlan>{};
   final Map<String, ({double minX, double minY, double maxX, double maxY})>
       _tileLayerMarginsByLayerId =
       <String, ({double minX, double minY, double maxX, double maxY})>{};
@@ -544,24 +546,15 @@ class MapLayersComponent extends PositionComponent {
   void _paintSmartTileLayer(Canvas canvas, SmartTileLayer layer) {
     final catalog = bundle.manifest.smartTileCatalog;
     if (catalog.isEmpty || layer.opacity <= 0) return;
-    final cw = bundle.cellWidth;
-    final ch = bundle.cellHeight;
-    final sourceTileWidth = bundle.manifest.settings.tileWidth;
-    final sourceTileHeight = bundle.manifest.settings.tileHeight;
     final visibleRect = _visibleLocalRect;
-    final batch = resolveSmartTileLayerVisualBatch(
-      map: bundle.map,
-      layer: layer,
-      catalog: catalog,
-      pass: switch (renderPass) {
-        MapLayerRenderPass.background => SmartTileVisualPass.background,
-        MapLayerRenderPass.foreground => SmartTileVisualPass.foreground,
-      },
+    // La résolution Smart Tile est invariante dans le temps hors sélection de
+    // frame d'animation : le plan résout règles/atlas/géométrie une fois par
+    // cellule visitée, l'émission par frame ne fait plus que choisir la
+    // variante active et tester le viewport.
+    final plan = _smartTileVisualPlanByLayerId[layer.id] ??=
+        _buildSmartTileVisualPlan(layer, catalog);
+    final batch = plan.resolveBatch(
       elapsedMs: (_animElapsed * 1000).toInt(),
-      destinationCellWidth: cw,
-      destinationCellHeight: ch,
-      sourceCellWidth: sourceTileWidth > 0 ? sourceTileWidth.toDouble() : cw,
-      sourceCellHeight: sourceTileHeight > 0 ? sourceTileHeight.toDouble() : ch,
       viewportBounds: visibleRect == null
           ? null
           : SmartTileGeometryRect(
@@ -570,7 +563,6 @@ class MapLayersComponent extends PositionComponent {
               width: visibleRect.width,
               height: visibleRect.height,
             ),
-      patternOwnerIndex: _patternOwnerIndicesByLayerId[layer.id],
     );
     final visuals = batch.visuals;
     _activeRenderCounter
@@ -605,6 +597,30 @@ class MapLayersComponent extends PositionComponent {
         paint: paint,
       );
     }
+  }
+
+  SmartTileLayerVisualPlan _buildSmartTileVisualPlan(
+    SmartTileLayer layer,
+    ProjectSmartTileCatalog catalog,
+  ) {
+    final cw = bundle.cellWidth;
+    final ch = bundle.cellHeight;
+    final sourceTileWidth = bundle.manifest.settings.tileWidth;
+    final sourceTileHeight = bundle.manifest.settings.tileHeight;
+    return buildSmartTileLayerVisualPlan(
+      map: bundle.map,
+      layer: layer,
+      catalog: catalog,
+      pass: switch (renderPass) {
+        MapLayerRenderPass.background => SmartTileVisualPass.background,
+        MapLayerRenderPass.foreground => SmartTileVisualPass.foreground,
+      },
+      destinationCellWidth: cw,
+      destinationCellHeight: ch,
+      sourceCellWidth: sourceTileWidth > 0 ? sourceTileWidth.toDouble() : cw,
+      sourceCellHeight: sourceTileHeight > 0 ? sourceTileHeight.toDouble() : ch,
+      patternOwnerIndex: _patternOwnerIndicesByLayerId[layer.id],
+    );
   }
 
   void _drawSmartTileImage({

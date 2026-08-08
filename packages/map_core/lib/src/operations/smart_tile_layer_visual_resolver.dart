@@ -362,73 +362,31 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
             deterministicHash: resolution.deterministicHash ?? 0,
           );
           if (frame == null) continue;
-          final atlas = atlases[frame.atlasId];
-          if (atlas == null) continue;
-          final sampledFrame = _sampleVisualFrame(
+          final visual = _buildPartVisual(
             frame: frame,
-            sampling: part.frameSampling,
+            part: part,
+            atlases: atlases,
             cellX: x,
             cellY: y,
             deterministicHash: resolution.deterministicHash ?? 0,
-          );
-          SmartTileSourceRect sourceRect;
-          try {
-            sourceRect = atlas.sourceRectFor(
-              column: sampledFrame.column,
-              row: sampledFrame.row,
-              columnSpan: sampledFrame.columnSpan,
-              rowSpan: sampledFrame.rowSpan,
-            );
-          } on RangeError {
-            continue;
-          }
-          final transform = composeSmartTileSpriteTransforms(
-            first: part.transform,
-            second: resolution.transform,
-          );
-          final geometry = resolveSmartTileSpriteGeometry(
-            cellX: x,
-            cellY: y,
+            transform: composeSmartTileSpriteTransforms(
+              first: part.transform,
+              second: resolution.transform,
+            ),
+            ruleId: resolution.ruleId!,
+            candidateId: candidate.id,
+            drawOrder: part.drawOrder,
             destinationCellWidth: destinationCellWidth,
             destinationCellHeight: destinationCellHeight,
             sourceCellWidth: sourceCellWidth,
             sourceCellHeight: sourceCellHeight,
-            offsetUnit: part.offsetUnit,
-            offsetX: part.offsetX,
-            offsetY: part.offsetY,
-            atlasPixelOffsetX: atlas.pixelOffsetX,
-            atlasPixelOffsetY: atlas.pixelOffsetY,
-            footprintWidth: part.footprintWidth,
-            footprintHeight: part.footprintHeight,
-            anchorX: part.anchorX,
-            anchorY: part.anchorY,
-            transform: transform,
           );
+          if (visual == null) continue;
           if (requestedViewport != null &&
-              !geometry.visualBounds.intersects(requestedViewport)) {
+              !visual.geometry.visualBounds.intersects(requestedViewport)) {
             continue;
           }
-          visuals.add(
-            SmartTileLayerVisual(
-              cellX: x,
-              cellY: y,
-              ruleId: resolution.ruleId!,
-              candidateId: candidate.id,
-              channel: part.channel,
-              tilesetId: atlas.tilesetId,
-              sourceRect: sourceRect,
-              transform: transform,
-              geometry: geometry,
-              offsetUnit: part.offsetUnit,
-              offsetX: part.offsetX,
-              offsetY: part.offsetY,
-              footprintWidth: part.footprintWidth,
-              footprintHeight: part.footprintHeight,
-              anchorX: part.anchorX,
-              anchorY: part.anchorY,
-              drawOrder: part.drawOrder,
-            ),
-          );
+          visuals.add(visual);
         }
       }
       final patternOwner = patternOwners[y * map.size.width + x];
@@ -452,79 +410,32 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
           deterministicHash: deterministicHash,
         );
         if (frame == null) continue;
-        final atlas = atlases[frame.atlasId];
-        if (atlas == null) continue;
-        final sampledFrame = _sampleVisualFrame(
+        final visual = _buildPartVisual(
           frame: frame,
-          sampling: part.frameSampling,
+          part: part,
+          atlases: atlases,
           cellX: x,
           cellY: y,
           deterministicHash: deterministicHash,
-        );
-        SmartTileSourceRect sourceRect;
-        try {
-          sourceRect = atlas.sourceRectFor(
-            column: sampledFrame.column,
-            row: sampledFrame.row,
-            columnSpan: sampledFrame.columnSpan,
-            rowSpan: sampledFrame.rowSpan,
-          );
-        } on RangeError {
-          continue;
-        }
-        final geometry = resolveSmartTileSpriteGeometry(
-          cellX: x,
-          cellY: y,
+          transform: part.transform,
+          ruleId: 'pattern:${patternOwner.pattern.id}',
+          candidateId: 'pattern-cell-${patternCell.x}-${patternCell.y}',
+          drawOrder: patternOwner.pattern.drawOrder + part.drawOrder,
           destinationCellWidth: destinationCellWidth,
           destinationCellHeight: destinationCellHeight,
           sourceCellWidth: sourceCellWidth,
           sourceCellHeight: sourceCellHeight,
-          offsetUnit: part.offsetUnit,
-          offsetX: part.offsetX,
-          offsetY: part.offsetY,
-          atlasPixelOffsetX: atlas.pixelOffsetX,
-          atlasPixelOffsetY: atlas.pixelOffsetY,
-          footprintWidth: part.footprintWidth,
-          footprintHeight: part.footprintHeight,
-          anchorX: part.anchorX,
-          anchorY: part.anchorY,
-          transform: part.transform,
         );
+        if (visual == null) continue;
         if (requestedViewport != null &&
-            !geometry.visualBounds.intersects(requestedViewport)) {
+            !visual.geometry.visualBounds.intersects(requestedViewport)) {
           continue;
         }
-        visuals.add(
-          SmartTileLayerVisual(
-            cellX: x,
-            cellY: y,
-            ruleId: 'pattern:${patternOwner.pattern.id}',
-            candidateId: 'pattern-cell-${patternCell.x}-${patternCell.y}',
-            channel: part.channel,
-            tilesetId: atlas.tilesetId,
-            sourceRect: sourceRect,
-            transform: part.transform,
-            geometry: geometry,
-            offsetUnit: part.offsetUnit,
-            offsetX: part.offsetX,
-            offsetY: part.offsetY,
-            footprintWidth: part.footprintWidth,
-            footprintHeight: part.footprintHeight,
-            anchorX: part.anchorX,
-            anchorY: part.anchorY,
-            drawOrder: patternOwner.pattern.drawOrder + part.drawOrder,
-          ),
-        );
+        visuals.add(visual);
       }
     }
   }
-  visuals.sort((a, b) {
-    final order = a.drawOrder.compareTo(b.drawOrder);
-    if (order != 0) return order;
-    final y = a.cellY.compareTo(b.cellY);
-    if (y != 0) return y;
-    return a.cellX.compareTo(b.cellX);
-  });
+  visuals.sort(_compareSmartTileVisualPaintOrder);
   return SmartTileLayerVisualBatch(
     visuals: visuals,
     work: SmartTileLayerVisualWorkCounts(
@@ -558,6 +469,39 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
   if (viewport == null) {
     return (startX: 0, startY: 0, endX: mapWidth, endY: mapHeight);
   }
+  final envelope = _layerVisualEnvelope(
+    preset: preset,
+    patterns: patterns,
+    pass: pass,
+    atlases: atlases,
+    animations: animations,
+    destinationCellWidth: destinationCellWidth,
+    destinationCellHeight: destinationCellHeight,
+    sourceCellWidth: sourceCellWidth,
+    sourceCellHeight: sourceCellHeight,
+  );
+  return _scanRangeForViewport(
+    mapWidth: mapWidth,
+    mapHeight: mapHeight,
+    envelope: envelope,
+    viewport: viewport,
+    destinationCellWidth: destinationCellWidth,
+    destinationCellHeight: destinationCellHeight,
+  );
+}
+
+/// Conservative visual envelope of a layer's preset plus its used patterns.
+SmartTileGeometryRect _layerVisualEnvelope({
+  required ProjectSmartTilePreset preset,
+  required Iterable<ProjectSmartTilePattern> patterns,
+  required SmartTileVisualPass pass,
+  required Map<String, ProjectSmartTileAtlas> atlases,
+  required Map<String, ProjectSmartTileAnimation> animations,
+  required double destinationCellWidth,
+  required double destinationCellHeight,
+  required double sourceCellWidth,
+  required double sourceCellHeight,
+}) {
   var envelope = _presetVisualEnvelope(
     preset: preset,
     pass: pass,
@@ -581,6 +525,17 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
     );
     envelope = _unionGeometryRects(envelope, patternEnvelope);
   }
+  return envelope;
+}
+
+({int startX, int startY, int endX, int endY}) _scanRangeForViewport({
+  required int mapWidth,
+  required int mapHeight,
+  required SmartTileGeometryRect envelope,
+  required SmartTileGeometryRect viewport,
+  required double destinationCellWidth,
+  required double destinationCellHeight,
+}) {
   return (
     startX: ((viewport.left - envelope.right) / destinationCellWidth)
         .floor()
@@ -594,6 +549,96 @@ SmartTileLayerVisualBatch resolveSmartTileLayerVisualBatch({
     endY: ((viewport.bottom - envelope.top) / destinationCellHeight)
         .ceil()
         .clamp(0, mapHeight),
+  );
+}
+
+int _compareSmartTileVisualPaintOrder(
+  SmartTileLayerVisual a,
+  SmartTileLayerVisual b,
+) {
+  final order = a.drawOrder.compareTo(b.drawOrder);
+  if (order != 0) return order;
+  final y = a.cellY.compareTo(b.cellY);
+  if (y != 0) return y;
+  return a.cellX.compareTo(b.cellX);
+}
+
+/// Builds one renderer-neutral visual for an already-resolved frame.
+///
+/// Shared by the per-call batch resolver and [SmartTileLayerVisualPlan] so
+/// both paths keep identical sampling, source rectangles, and geometry.
+SmartTileLayerVisual? _buildPartVisual({
+  required SmartTileFrameRef frame,
+  required SmartTileVisualPart part,
+  required Map<String, ProjectSmartTileAtlas> atlases,
+  required int cellX,
+  required int cellY,
+  required int deterministicHash,
+  required SmartTileSpriteTransform transform,
+  required String ruleId,
+  required String candidateId,
+  required int drawOrder,
+  required double destinationCellWidth,
+  required double destinationCellHeight,
+  required double sourceCellWidth,
+  required double sourceCellHeight,
+}) {
+  final atlas = atlases[frame.atlasId];
+  if (atlas == null) return null;
+  final sampledFrame = _sampleVisualFrame(
+    frame: frame,
+    sampling: part.frameSampling,
+    cellX: cellX,
+    cellY: cellY,
+    deterministicHash: deterministicHash,
+  );
+  SmartTileSourceRect sourceRect;
+  try {
+    sourceRect = atlas.sourceRectFor(
+      column: sampledFrame.column,
+      row: sampledFrame.row,
+      columnSpan: sampledFrame.columnSpan,
+      rowSpan: sampledFrame.rowSpan,
+    );
+  } on RangeError {
+    return null;
+  }
+  final geometry = resolveSmartTileSpriteGeometry(
+    cellX: cellX,
+    cellY: cellY,
+    destinationCellWidth: destinationCellWidth,
+    destinationCellHeight: destinationCellHeight,
+    sourceCellWidth: sourceCellWidth,
+    sourceCellHeight: sourceCellHeight,
+    offsetUnit: part.offsetUnit,
+    offsetX: part.offsetX,
+    offsetY: part.offsetY,
+    atlasPixelOffsetX: atlas.pixelOffsetX,
+    atlasPixelOffsetY: atlas.pixelOffsetY,
+    footprintWidth: part.footprintWidth,
+    footprintHeight: part.footprintHeight,
+    anchorX: part.anchorX,
+    anchorY: part.anchorY,
+    transform: transform,
+  );
+  return SmartTileLayerVisual(
+    cellX: cellX,
+    cellY: cellY,
+    ruleId: ruleId,
+    candidateId: candidateId,
+    channel: part.channel,
+    tilesetId: atlas.tilesetId,
+    sourceRect: sourceRect,
+    transform: transform,
+    geometry: geometry,
+    offsetUnit: part.offsetUnit,
+    offsetX: part.offsetX,
+    offsetY: part.offsetY,
+    footprintWidth: part.footprintWidth,
+    footprintHeight: part.footprintHeight,
+    anchorX: part.anchorX,
+    anchorY: part.anchorY,
+    drawOrder: drawOrder,
   );
 }
 
@@ -854,4 +899,422 @@ List<ProjectSmartTileAnimationFrame> _animationTimeline(
     ...animation.frames,
     ...animation.frames.sublist(1, animation.frames.length - 1).reversed,
   ];
+}
+
+/// Builds a [SmartTileLayerVisualPlan] for one layer, pass, and cell metrics.
+///
+/// The plan captures every time-invariant part of
+/// [resolveSmartTileLayerVisualBatch] — preset lookup, catalog index maps,
+/// pattern ownership, the prepared rule resolver, and the culling envelope —
+/// so per-frame emission stops re-deriving them. Cell resolutions themselves
+/// are planned lazily on first visit, which keeps plan construction cheap on
+/// very large maps.
+SmartTileLayerVisualPlan buildSmartTileLayerVisualPlan({
+  required MapData map,
+  required SmartTileLayer layer,
+  required ProjectSmartTileCatalog catalog,
+  required SmartTileVisualPass pass,
+  int projectSeed = 0,
+  double destinationCellWidth = 1,
+  double destinationCellHeight = 1,
+  double sourceCellWidth = 32,
+  double sourceCellHeight = 32,
+  SmartTilePatternOwnerIndex? patternOwnerIndex,
+}) {
+  ProjectSmartTilePreset? preset;
+  for (final candidate in catalog.presets) {
+    if (candidate.id == layer.presetId) {
+      preset = candidate;
+      break;
+    }
+  }
+  if (preset == null ||
+      preset.usage != layer.usage ||
+      destinationCellWidth <= 0 ||
+      destinationCellHeight <= 0 ||
+      sourceCellWidth <= 0 ||
+      sourceCellHeight <= 0) {
+    return SmartTileLayerVisualPlan._inert(map: map);
+  }
+
+  final atlases = <String, ProjectSmartTileAtlas>{
+    for (final atlas in catalog.atlases) atlas.id: atlas,
+  };
+  final animations = <String, ProjectSmartTileAnimation>{
+    for (final animation in catalog.animations) animation.id: animation,
+  };
+  final reusablePatternIndex = patternOwnerIndex != null &&
+      patternOwnerIndex._supports(map: map, layer: layer, catalog: catalog);
+  Map<int, _SmartTilePatternOwner> patternOwners;
+  Iterable<ProjectSmartTilePattern> usedPatterns;
+  if (reusablePatternIndex) {
+    patternOwners = patternOwnerIndex._owners;
+    usedPatterns = patternOwnerIndex._patterns;
+  } else {
+    final patterns = <String, ProjectSmartTilePattern>{
+      for (final pattern in catalog.patterns) pattern.id: pattern,
+    };
+    patternOwners = <int, _SmartTilePatternOwner>{};
+    for (final stroke in layer.patternStrokes) {
+      final pattern = patterns[stroke.patternId];
+      if (pattern == null || pattern.usage != layer.usage) continue;
+      for (final cell in stroke.cells) {
+        if (cell.x < 0 ||
+            cell.y < 0 ||
+            cell.x >= map.size.width ||
+            cell.y >= map.size.height) {
+          continue;
+        }
+        patternOwners[cell.y * map.size.width + cell.x] = (
+          stroke: stroke,
+          pattern: pattern,
+        );
+      }
+    }
+    usedPatterns = patternOwners.values.map((owner) => owner.pattern);
+  }
+  final envelope = _layerVisualEnvelope(
+    preset: preset,
+    patterns: usedPatterns,
+    pass: pass,
+    atlases: atlases,
+    animations: animations,
+    destinationCellWidth: destinationCellWidth,
+    destinationCellHeight: destinationCellHeight,
+    sourceCellWidth: sourceCellWidth,
+    sourceCellHeight: sourceCellHeight,
+  );
+  final resolver = PreparedSmartTileResolver(
+    preset: preset,
+    materials: catalog.materials,
+    mapId: map.id,
+    layerId: layer.id,
+    projectSeed: projectSeed,
+    layerSeed: layer.layerSeed,
+    candidateWeights: layer.candidateWeights,
+  );
+  return SmartTileLayerVisualPlan._(
+    map: map,
+    layer: layer,
+    preset: preset,
+    pass: pass,
+    projectSeed: projectSeed,
+    atlases: atlases,
+    animations: animations,
+    patternOwners: patternOwners,
+    resolver: resolver,
+    envelope: envelope,
+    destinationCellWidth: destinationCellWidth,
+    destinationCellHeight: destinationCellHeight,
+    sourceCellWidth: sourceCellWidth,
+    sourceCellHeight: sourceCellHeight,
+  );
+}
+
+/// Time-invariant smart-tile resolution for one layer, pass and cell metrics.
+///
+/// [resolveBatch] emits the same visuals as [resolveSmartTileLayerVisualBatch]
+/// (both paths share [_buildPartVisual]) but only selects the active animation
+/// variant per planned cell instead of re-running rule matching, atlas
+/// lookups, geometry, and per-cell string hashing on every frame.
+final class SmartTileLayerVisualPlan {
+  SmartTileLayerVisualPlan._({
+    required MapData map,
+    required SmartTileLayer layer,
+    required ProjectSmartTilePreset preset,
+    required this.pass,
+    required int projectSeed,
+    required Map<String, ProjectSmartTileAtlas> atlases,
+    required Map<String, ProjectSmartTileAnimation> animations,
+    required Map<int, _SmartTilePatternOwner> patternOwners,
+    required PreparedSmartTileResolver resolver,
+    required SmartTileGeometryRect envelope,
+    required double destinationCellWidth,
+    required double destinationCellHeight,
+    required double sourceCellWidth,
+    required double sourceCellHeight,
+  })  : _map = map,
+        _layer = layer,
+        _preset = preset,
+        _projectSeed = projectSeed,
+        _atlases = atlases,
+        _animations = animations,
+        _patternOwners = patternOwners,
+        _resolver = resolver,
+        _envelope = envelope,
+        _destinationCellWidth = destinationCellWidth,
+        _destinationCellHeight = destinationCellHeight,
+        _sourceCellWidth = sourceCellWidth,
+        _sourceCellHeight = sourceCellHeight;
+
+  SmartTileLayerVisualPlan._inert({required MapData map})
+      : _map = map,
+        _layer = null,
+        _preset = null,
+        pass = SmartTileVisualPass.background,
+        _projectSeed = 0,
+        _atlases = const <String, ProjectSmartTileAtlas>{},
+        _animations = const <String, ProjectSmartTileAnimation>{},
+        _patternOwners = const <int, _SmartTilePatternOwner>{},
+        _resolver = null,
+        _envelope = null,
+        _destinationCellWidth = 1,
+        _destinationCellHeight = 1,
+        _sourceCellWidth = 1,
+        _sourceCellHeight = 1;
+
+  static const List<_PlannedSmartTileVisual> _emptyCellPlan =
+      <_PlannedSmartTileVisual>[];
+
+  final SmartTileVisualPass pass;
+  final MapData _map;
+  final SmartTileLayer? _layer;
+  final ProjectSmartTilePreset? _preset;
+  final int _projectSeed;
+  final Map<String, ProjectSmartTileAtlas> _atlases;
+  final Map<String, ProjectSmartTileAnimation> _animations;
+  final Map<int, _SmartTilePatternOwner> _patternOwners;
+  final PreparedSmartTileResolver? _resolver;
+  final SmartTileGeometryRect? _envelope;
+  final double _destinationCellWidth;
+  final double _destinationCellHeight;
+  final double _sourceCellWidth;
+  final double _sourceCellHeight;
+
+  /// Lazily planned cells; sparse so huge maps only retain visited cells.
+  final Map<int, List<_PlannedSmartTileVisual>> _plannedByCellIndex =
+      <int, List<_PlannedSmartTileVisual>>{};
+
+  /// Emits the visuals intersecting [viewportBounds] at [elapsedMs].
+  ///
+  /// Work counters mirror [resolveSmartTileLayerVisualBatch]: owner cell
+  /// visits count the scanned envelope range. Pattern stroke visits are
+  /// always zero because ownership is resolved at plan build time.
+  SmartTileLayerVisualBatch resolveBatch({
+    int elapsedMs = 0,
+    SmartTileGeometryRect? viewportBounds,
+  }) {
+    final envelope = _envelope;
+    if (envelope == null) {
+      return const SmartTileLayerVisualBatch.empty();
+    }
+    final mapWidth = _map.size.width;
+    final mapHeight = _map.size.height;
+    final (:startX, :startY, :endX, :endY) = viewportBounds == null
+        ? (startX: 0, startY: 0, endX: mapWidth, endY: mapHeight)
+        : _scanRangeForViewport(
+            mapWidth: mapWidth,
+            mapHeight: mapHeight,
+            envelope: envelope,
+            viewport: viewportBounds,
+            destinationCellWidth: _destinationCellWidth,
+            destinationCellHeight: _destinationCellHeight,
+          );
+    final visuals = <SmartTileLayerVisual>[];
+    var ownerCellVisits = 0;
+    for (var y = startY; y < endY; y++) {
+      final rowBase = y * mapWidth;
+      for (var x = startX; x < endX; x++) {
+        ownerCellVisits += 1;
+        final items = _plannedByCellIndex[rowBase + x] ??= _planCell(x, y);
+        for (final item in items) {
+          final visual = item.visualAt(elapsedMs);
+          if (visual == null) continue;
+          if (viewportBounds != null &&
+              !visual.geometry.visualBounds.intersects(viewportBounds)) {
+            continue;
+          }
+          visuals.add(visual);
+        }
+      }
+    }
+    visuals.sort(_compareSmartTileVisualPaintOrder);
+    return SmartTileLayerVisualBatch(
+      visuals: visuals,
+      work: SmartTileLayerVisualWorkCounts(
+        requestedCellCount: (endX - startX) * (endY - startY),
+        ownerCellVisits: ownerCellVisits,
+        patternStrokeCellVisits: 0,
+        resolvedVisualCount: visuals.length,
+      ),
+    );
+  }
+
+  List<_PlannedSmartTileVisual> _planCell(int x, int y) {
+    final layer = _layer!;
+    final preset = _preset!;
+    final context = smartTileCellContextForLayerCell(
+      layer: layer,
+      map: _map,
+      preset: preset,
+      x: x,
+      y: y,
+    );
+    final resolution = _resolver!.resolve(context: context, x: x, y: y);
+    List<_PlannedSmartTileVisual>? items;
+    final candidate = resolution.candidate;
+    final ruleId = resolution.ruleId;
+    if (candidate != null && ruleId != null) {
+      for (final part in candidate.parts) {
+        if (!_channelBelongsToPass(part.channel, pass)) continue;
+        final planned = _planPartVisual(
+          part: part,
+          cellX: x,
+          cellY: y,
+          deterministicHash: resolution.deterministicHash ?? 0,
+          transform: composeSmartTileSpriteTransforms(
+            first: part.transform,
+            second: resolution.transform,
+          ),
+          ruleId: ruleId,
+          candidateId: candidate.id,
+          drawOrder: part.drawOrder,
+        );
+        if (planned != null) (items ??= []).add(planned);
+      }
+    }
+    final patternOwner = _patternOwners[y * _map.size.width + x];
+    if (patternOwner != null) {
+      final patternCell = smartTilePatternCellAt(
+        pattern: patternOwner.pattern,
+        stroke: patternOwner.stroke,
+        cell: GridPos(x: x, y: y),
+      );
+      if (patternCell != null) {
+        final deterministicHash = stableHash32(
+          '${_map.id}|${layer.id}|${patternOwner.pattern.id}|$x|$y|'
+          '$_projectSeed|${layer.layerSeed}',
+        );
+        for (final part in patternCell.parts) {
+          if (!_channelBelongsToPass(part.channel, pass)) continue;
+          final planned = _planPartVisual(
+            part: part,
+            cellX: x,
+            cellY: y,
+            deterministicHash: deterministicHash,
+            transform: part.transform,
+            ruleId: 'pattern:${patternOwner.pattern.id}',
+            candidateId: 'pattern-cell-${patternCell.x}-${patternCell.y}',
+            drawOrder: patternOwner.pattern.drawOrder + part.drawOrder,
+          );
+          if (planned != null) (items ??= []).add(planned);
+        }
+      }
+    }
+    return items ?? _emptyCellPlan;
+  }
+
+  _PlannedSmartTileVisual? _planPartVisual({
+    required SmartTileVisualPart part,
+    required int cellX,
+    required int cellY,
+    required int deterministicHash,
+    required SmartTileSpriteTransform transform,
+    required String ruleId,
+    required String candidateId,
+    required int drawOrder,
+  }) {
+    SmartTileLayerVisual? build(SmartTileFrameRef frame) => _buildPartVisual(
+          frame: frame,
+          part: part,
+          atlases: _atlases,
+          cellX: cellX,
+          cellY: cellY,
+          deterministicHash: deterministicHash,
+          transform: transform,
+          ruleId: ruleId,
+          candidateId: candidateId,
+          drawOrder: drawOrder,
+          destinationCellWidth: _destinationCellWidth,
+          destinationCellHeight: _destinationCellHeight,
+          sourceCellWidth: _sourceCellWidth,
+          sourceCellHeight: _sourceCellHeight,
+        );
+
+    return part.source.map(
+      frame: (source) {
+        final visual = build(source.frame);
+        return visual == null ? null : _PlannedSmartTileVisual.fixed(visual);
+      },
+      animation: (source) {
+        final animation = _animations[source.animationId];
+        if (animation == null || animation.frames.isEmpty) return null;
+        final timeline = _animationTimeline(animation);
+        final totalDurationMs = timeline.fold<int>(
+          0,
+          (sum, frame) => sum + frame.durationMs,
+        );
+        if (totalDurationMs <= 0) {
+          final visual = build(timeline.first.frame);
+          return visual == null ? null : _PlannedSmartTileVisual.fixed(visual);
+        }
+        final variants = <SmartTileLayerVisual?>[];
+        final cumulativeMs = <int>[];
+        var cursor = 0;
+        var hasAnyVisual = false;
+        for (final entry in timeline) {
+          cursor += entry.durationMs;
+          cumulativeMs.add(cursor);
+          final visual = build(entry.frame);
+          if (visual != null) hasAnyVisual = true;
+          variants.add(visual);
+        }
+        if (!hasAnyVisual) return null;
+        return _PlannedSmartTileVisual.animated(
+          variants: variants,
+          cumulativeMs: cumulativeMs,
+          totalDurationMs: totalDurationMs,
+          syncOffsetMs: animation.sync == SmartTileAnimationSync.perCell
+              ? deterministicHash % totalDurationMs
+              : 0,
+          loopOnce: animation.loop == SmartTileAnimationLoop.once,
+        );
+      },
+    );
+  }
+}
+
+/// One planned cell part: either a fixed visual or prebuilt animation
+/// variants selected by elapsed time, mirroring [_resolveVisualFrame].
+final class _PlannedSmartTileVisual {
+  const _PlannedSmartTileVisual.fixed(SmartTileLayerVisual visual)
+      : _fixed = visual,
+        _variants = null,
+        _cumulativeMs = const <int>[],
+        totalDurationMs = 0,
+        syncOffsetMs = 0,
+        loopOnce = false;
+
+  const _PlannedSmartTileVisual.animated({
+    required List<SmartTileLayerVisual?> variants,
+    required List<int> cumulativeMs,
+    required this.totalDurationMs,
+    required this.syncOffsetMs,
+    required this.loopOnce,
+  })  : _fixed = null,
+        _variants = variants,
+        _cumulativeMs = cumulativeMs;
+
+  final SmartTileLayerVisual? _fixed;
+  final List<SmartTileLayerVisual?>? _variants;
+  final List<int> _cumulativeMs;
+  final int totalDurationMs;
+  final int syncOffsetMs;
+  final bool loopOnce;
+
+  SmartTileLayerVisual? visualAt(int elapsedMs) {
+    final variants = _variants;
+    if (variants == null) return _fixed;
+    var time = elapsedMs < 0 ? 0 : elapsedMs;
+    time += syncOffsetMs;
+    if (loopOnce) {
+      if (time >= totalDurationMs) return variants.last;
+    } else {
+      time %= totalDurationMs;
+    }
+    for (var index = 0; index < _cumulativeMs.length; index += 1) {
+      if (time < _cumulativeMs[index]) return variants[index];
+    }
+    return variants.last;
+  }
 }
