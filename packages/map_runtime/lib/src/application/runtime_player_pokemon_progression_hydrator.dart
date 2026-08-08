@@ -88,6 +88,7 @@ Future<RuntimePlayerPokemonProgressionCatalogs>
   required GameState gameState,
   required String projectRootDirectory,
   required ProjectPokemonConfig pokemonConfig,
+  RuntimeMoveCatalogLoader? moveCatalogLoader,
 }) async {
   final pokemon = <PlayerPokemon>[
     ...gameState.party.members,
@@ -108,7 +109,10 @@ Future<RuntimePlayerPokemonProgressionCatalogs>
   }..remove('');
   final maxPpByMoveId = <String, int>{};
   if (requiredMoveIds.isNotEmpty) {
-    final moveCatalog = await RuntimeMoveCatalogLoader().load(
+    // Un loader partagé par l'appelant réutilise son cache ; l'instance de
+    // repli reconstruite ici re-parse tout le catalogue à chaque appel.
+    final moveCatalog =
+        await (moveCatalogLoader ?? RuntimeMoveCatalogLoader()).load(
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
     );
@@ -197,18 +201,29 @@ Future<Map<String, String>> _loadGrowthRateIds({
 
   // Canonical files usually use either `<id>.json` or `<dex>-<id>.json`.
   // Parsing these candidates first avoids scanning every species at boot.
+  // Le basename n'est extrait qu'une fois par fichier (l'ancienne double
+  // boucle le recalculait espèces × fichiers), et la complétude se vérifie
+  // par comptage au lieu d'un Set reconstruit à chaque itération.
+  final filesByBasename = <String, File>{
+    for (final file in jsonFiles) p.basenameWithoutExtension(file.path): file,
+  };
   for (final speciesId in speciesIds) {
-    for (final file in jsonFiles) {
-      final basename = p.basenameWithoutExtension(file.path);
-      if (basename == speciesId || basename.endsWith('-$speciesId')) {
-        await parseCandidate(file);
+    final exact = filesByBasename[speciesId];
+    if (exact != null) {
+      await parseCandidate(exact);
+    }
+    for (final entry in filesByBasename.entries) {
+      if (entry.key.endsWith('-$speciesId')) {
+        await parseCandidate(entry.value);
       }
     }
   }
-  if (!growthRateIds.keys.toSet().containsAll(speciesIds)) {
+  bool allResolved() =>
+      speciesIds.every((speciesId) => growthRateIds.containsKey(speciesId));
+  if (!allResolved()) {
     for (final file in jsonFiles) {
       await parseCandidate(file);
-      if (growthRateIds.keys.toSet().containsAll(speciesIds)) break;
+      if (allResolved()) break;
     }
   }
 

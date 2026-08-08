@@ -5,6 +5,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_world_service_models.dart';
+import 'runtime_move_catalog_loader.dart';
 import 'runtime_move_machine_loader.dart';
 import 'runtime_player_pokemon_progression_hydrator.dart';
 import 'runtime_pokemon_evolution_loader.dart';
@@ -1818,21 +1819,27 @@ String _bagItemFailureMessage(PlayerItemUseFailure failure) =>
     };
 
 /// Resolves the real HP and PP caps needed by Bag and healing screens.
+///
+/// Un [speciesLoader] partagé par l'appelant réutilise son cache d'espèces ;
+/// l'instance de repli reconstruite ici relit les fichiers à chaque ouverture
+/// d'écran Sac/Soin.
 Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({
   required GameState gameState,
   required String projectRootDirectory,
   required ProjectPokemonConfig pokemonConfig,
+  RuntimePokemonSpeciesLoader? speciesLoader,
+  RuntimeMoveCatalogLoader? moveCatalogLoader,
 }) async {
   if (gameState.party.members.isEmpty) {
     return const RuntimePlayerServiceRecoveryCaps(
       maxHpByPartyIndex: <int, int>{},
     );
   }
-  final speciesLoader = RuntimePokemonSpeciesLoader();
+  final loader = speciesLoader ?? RuntimePokemonSpeciesLoader();
   final maxHpByPartyIndex = <int, int>{};
   for (var index = 0; index < gameState.party.members.length; index++) {
     final pokemon = gameState.party.members[index];
-    final species = await speciesLoader.loadById(
+    final species = await loader.loadById(
       projectRootDirectory: projectRootDirectory,
       pokemonConfig: pokemonConfig,
       speciesId: pokemon.speciesId,
@@ -1858,6 +1865,7 @@ Future<RuntimePlayerServiceRecoveryCaps> loadRuntimePlayerServiceRecoveryCaps({
     gameState: gameState,
     projectRootDirectory: projectRootDirectory,
     pokemonConfig: pokemonConfig,
+    moveCatalogLoader: moveCatalogLoader,
   );
   final maxPpByPartyIndex = <int, Map<String, int>>{};
   for (var index = 0; index < gameState.party.members.length; index++) {

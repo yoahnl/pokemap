@@ -47,73 +47,139 @@ ScriptedNpcAnchorPassabilityResult evaluateScriptedNpcAnchorPassability({
       evaluatedCollisionCells: <GridPos>[],
     );
   }
-  final entity = world.map.entities
-      .where((candidate) => candidate.id == normalizedId)
-      .cast<MapEntity?>()
-      .firstWhere(
-        (candidate) => candidate != null,
-        orElse: () => null,
-      );
-  if (entity == null) {
+  final probe = PreparedScriptedNpcAnchorProbe.forEntity(
+    world: world,
+    entityId: normalizedId,
+  );
+  if (probe == null) {
     return ScriptedNpcAnchorPassabilityResult(
       passable: false,
       reason: 'Unknown entity "$normalizedId".',
       evaluatedCollisionCells: const <GridPos>[],
     );
   }
+  final dynamicBlocked =
+      dynamicBlockedCells is Set<GridPos> ? dynamicBlockedCells : dynamicBlockedCells.toSet();
+  return probe.evaluate(
+    world: world,
+    anchorPos: anchorPos,
+    isDynamicallyBlocked:
+        dynamicBlocked.isEmpty ? null : dynamicBlocked.contains,
+    movementMode: movementMode,
+  );
+}
 
-  final moved = entity.copyWith(pos: anchorPos);
-  final collisionCells =
-      resolveEntityCollisionCells(moved).toList(growable: false);
-  final dynamicBlocked = dynamicBlockedCells.toSet();
-  for (final cell in collisionCells) {
-    if (cell.x < 0 ||
-        cell.y < 0 ||
-        cell.x >= world.map.size.width ||
-        cell.y >= world.map.size.height) {
-      return ScriptedNpcAnchorPassabilityResult(
-        passable: false,
-        reason:
-            'Collision footprint out of bounds at (${cell.x}, ${cell.y}) for anchor (${anchorPos.x}, ${anchorPos.y}).',
-        evaluatedCollisionCells: collisionCells,
-      );
+/// Prédicat de blocage dynamique interrogé cellule par cellule.
+typedef ScriptedNpcDynamicCellBlocked = bool Function(GridPos cell);
+
+/// Sonde de passabilité préparée pour une entité d'un monde donné.
+///
+/// Le callback `isPassable` du pathfinder est appelé une fois par nœud A*
+/// expansé : résoudre l'entité (scan linéaire), la cloner via `copyWith` et
+/// re-résoudre son footprint par nœud dominait le coût de chaque re-path de
+/// patrouille. La footprint collision est translationnelle (offsets constants
+/// par rapport à l'ancre), donc elle se fige ici une seule fois.
+final class PreparedScriptedNpcAnchorProbe {
+  PreparedScriptedNpcAnchorProbe._({
+    required this.entityId,
+    required List<GridPos> collisionCellOffsets,
+  }) : _collisionCellOffsets = collisionCellOffsets;
+
+  static PreparedScriptedNpcAnchorProbe? forEntity({
+    required GameplayWorldState world,
+    required String entityId,
+  }) {
+    final normalizedId = entityId.trim();
+    if (normalizedId.isEmpty) {
+      return null;
     }
-
-    final occupant = world.entityAt(cell.x, cell.y);
-    if (occupant != null && occupant.id == normalizedId) {
-      // Auto-ignore: la case est actuellement occupée par ce NPC. On autorise
-      // ce recouvrement partiel pendant le calcul de chemin.
-      continue;
+    MapEntity? entity;
+    for (final candidate in world.map.entities) {
+      if (candidate.id == normalizedId) {
+        entity = candidate;
+        break;
+      }
     }
-
-    if (dynamicBlocked.contains(cell)) {
-      return ScriptedNpcAnchorPassabilityResult(
-        passable: false,
-        reason:
-            'Dynamic blocker at (${cell.x}, ${cell.y}) for anchor (${anchorPos.x}, ${anchorPos.y}).',
-        evaluatedCollisionCells: collisionCells,
-      );
+    if (entity == null) {
+      return null;
     }
-
-    final movementBlockReason =
-        world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
-      cellX: cell.x,
-      cellY: cell.y,
-      movementMode: movementMode,
+    final anchor = entity.pos;
+    final offsets = <GridPos>[
+      for (final cell in resolveEntityCollisionCells(entity))
+        GridPos(x: cell.x - anchor.x, y: cell.y - anchor.y),
+    ];
+    return PreparedScriptedNpcAnchorProbe._(
+      entityId: normalizedId,
+      collisionCellOffsets: List<GridPos>.unmodifiable(offsets),
     );
-    if (movementBlockReason != null) {
-      return ScriptedNpcAnchorPassabilityResult(
-        passable: false,
-        reason:
-            'Blocked collision cell (${cell.x}, ${cell.y}) for anchor (${anchorPos.x}, ${anchorPos.y}) reason=${movementBlockReason.name}.',
-        evaluatedCollisionCells: collisionCells,
-      );
-    }
   }
 
-  return ScriptedNpcAnchorPassabilityResult(
-    passable: true,
-    reason: 'Anchor is passable.',
-    evaluatedCollisionCells: collisionCells,
-  );
+  final String entityId;
+  final List<GridPos> _collisionCellOffsets;
+
+  ScriptedNpcAnchorPassabilityResult evaluate({
+    required GameplayWorldState world,
+    required GridPos anchorPos,
+    ScriptedNpcDynamicCellBlocked? isDynamicallyBlocked,
+    MovementMode movementMode = MovementMode.walk,
+  }) {
+    final collisionCells = List<GridPos>.generate(
+      _collisionCellOffsets.length,
+      (index) {
+        final offset = _collisionCellOffsets[index];
+        return GridPos(x: anchorPos.x + offset.x, y: anchorPos.y + offset.y);
+      },
+      growable: false,
+    );
+    for (final cell in collisionCells) {
+      if (cell.x < 0 ||
+          cell.y < 0 ||
+          cell.x >= world.map.size.width ||
+          cell.y >= world.map.size.height) {
+        return ScriptedNpcAnchorPassabilityResult(
+          passable: false,
+          reason:
+              'Collision footprint out of bounds at (${cell.x}, ${cell.y}) for anchor (${anchorPos.x}, ${anchorPos.y}).',
+          evaluatedCollisionCells: collisionCells,
+        );
+      }
+
+      final occupant = world.entityAt(cell.x, cell.y);
+      if (occupant != null && occupant.id == entityId) {
+        // Auto-ignore: la case est actuellement occupée par ce NPC. On
+        // autorise ce recouvrement partiel pendant le calcul de chemin.
+        continue;
+      }
+
+      if (isDynamicallyBlocked != null && isDynamicallyBlocked(cell)) {
+        return ScriptedNpcAnchorPassabilityResult(
+          passable: false,
+          reason:
+              'Dynamic blocker at (${cell.x}, ${cell.y}) for anchor (${anchorPos.x}, ${anchorPos.y}).',
+          evaluatedCollisionCells: collisionCells,
+        );
+      }
+
+      final movementBlockReason =
+          world.movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+        cellX: cell.x,
+        cellY: cell.y,
+        movementMode: movementMode,
+      );
+      if (movementBlockReason != null) {
+        return ScriptedNpcAnchorPassabilityResult(
+          passable: false,
+          reason:
+              'Blocked collision cell (${cell.x}, ${cell.y}) for anchor (${anchorPos.x}, ${anchorPos.y}) reason=${movementBlockReason.name}.',
+          evaluatedCollisionCells: collisionCells,
+        );
+      }
+    }
+
+    return ScriptedNpcAnchorPassabilityResult(
+      passable: true,
+      reason: 'Anchor is passable.',
+      evaluatedCollisionCells: collisionCells,
+    );
+  }
 }

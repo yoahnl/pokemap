@@ -513,8 +513,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       RuntimeMoveCatalogLoader();
   final RuntimePokemonSpeciesLoader _battleSpeciesLoader =
       RuntimePokemonSpeciesLoader();
-  final RuntimePokemonLearnsetLoader _battleLearnsetLoader =
-      RuntimePokemonLearnsetLoader();
+  late final RuntimePokemonLearnsetLoader _battleLearnsetLoader =
+      RuntimePokemonLearnsetLoader(
+    moveCatalogLoader: _battleMoveCatalogLoader,
+  );
   late final BattlePokemonSpriteResolver _battleSpriteResolver;
   late final BattleBagItemIconResolver _battleBagItemIconResolver;
   late final RuntimePostBattleDecisionCoordinator
@@ -1422,6 +1424,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _cachedStepStudioWorldRulesManifest = manifest;
     _cachedStepStudioWorldRules =
         buildStepStudioWorldPresenceRuleList(manifest.scenarios);
+  }
+
+  /// Cache de l'index chapitres globalStory (même politique que les règles
+  /// Step Studio) : le construire re-parse le JSON authoring de chaque
+  /// scénario, et il était reconstruit pour chaque PNJ à chaque refresh de
+  /// présence ainsi qu'à chaque résolution de dialogue.
+  GlobalStoryChapterStepIndex? _cachedGlobalStoryChapterIndex;
+  ProjectManifest? _cachedGlobalStoryChapterIndexManifest;
+
+  GlobalStoryChapterStepIndex _globalStoryChapterIndexFor(
+    ProjectManifest manifest,
+  ) {
+    if (!identical(_cachedGlobalStoryChapterIndexManifest, manifest) ||
+        _cachedGlobalStoryChapterIndex == null) {
+      _cachedGlobalStoryChapterIndexManifest = manifest;
+      _cachedGlobalStoryChapterIndex =
+          buildGlobalStoryChapterStepIndex(manifest.scenarios);
+    }
+    return _cachedGlobalStoryChapterIndex!;
   }
 
   late final CutsceneRuntimeRunner _cutsceneRunner =
@@ -2684,6 +2705,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         stepStudioWorldRules: _cachedStepStudioWorldRules,
         mapId: mapId,
         entity: npcEntity,
+        chapterIndex: _globalStoryChapterIndexFor(manifest),
       );
       final projection = _resolveWorldRuleProjectionForMap(
         mapId,
@@ -2733,10 +2755,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     return MapEntityRuntimePredicateEvaluator(
       gameState: _gameState,
-      chapterIndex:
-          buildGlobalStoryChapterStepIndex(_bundle.manifest.scenarios),
+      chapterIndex: _globalStoryChapterIndexFor(_bundle.manifest),
     ).resolveNpcDialogue(npc);
   }
+
+  final Map<String, _WorldRuleProjectionCache> _worldRuleProjectionCacheByMapId =
+      <String, _WorldRuleProjectionCache>{};
 
   RuntimeWorldRuleProjectionState? _resolveWorldRuleProjectionForMap(
     String mapId,
@@ -2751,11 +2775,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (map == null) {
       return null;
     }
-    return const RuntimeWorldRuleProjectionHook().resolve(
+    // La projection était recalculée (résolution complète des effets + 9
+    // copies de collections) pour chaque PNJ dans la closure de présence.
+    // Ses entrées sont immuables et remplacées par identité : un refresh de
+    // présence la calcule une fois par carte, pas une fois par entité.
+    final gameState = gameStateOverride ?? _gameState;
+    final cached = _worldRuleProjectionCacheByMapId[mapId];
+    if (cached != null &&
+        identical(cached.manifest, manifest) &&
+        identical(cached.gameState, gameState) &&
+        identical(cached.map, map)) {
+      return cached.projection;
+    }
+    final projection = const RuntimeWorldRuleProjectionHook().resolve(
       project: manifest,
-      gameState: gameStateOverride ?? _gameState,
+      gameState: gameState,
       map: map,
     );
+    _worldRuleProjectionCacheByMapId[mapId] = _WorldRuleProjectionCache(
+      manifest: manifest,
+      gameState: gameState,
+      map: map,
+      projection: projection,
+    );
+    return projection;
   }
 
   void _refreshWorldNpcPresence() {
@@ -8495,6 +8538,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               gameState: _gameState,
               projectRootDirectory: _bundle.projectRootDirectory,
               pokemonConfig: _bundle.manifest.pokemon,
+              speciesLoader: _battleSpeciesLoader,
+              moveCatalogLoader: _battleMoveCatalogLoader,
             )
           : await capsLoader(_gameState);
       final recovery = applyPlayerDefeatRecovery(
@@ -9067,6 +9112,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         gameState: gameState,
         projectRootDirectory: _bundle.projectRootDirectory,
         pokemonConfig: project.pokemon,
+        speciesLoader: _battleSpeciesLoader,
+        moveCatalogLoader: _battleMoveCatalogLoader,
       );
     }
     return SceneConsequenceRuntimeWriter(
@@ -11897,6 +11944,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _projectedBuildingShadowCollectionByMapId.remove(mapId);
     _staticShadowCollectionByMapId.remove(mapId);
     _mergedShadowCollectionCacheByMapId.remove(mapId);
+    _worldRuleProjectionCacheByMapId.remove(mapId);
   }
 
   Future<_LoadedPlayableMap> _mountLoadedMap({
@@ -12758,36 +12806,93 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           null) {
         return true;
       }
-      for (final cell
-          in _scriptedNpcDynamicBlockedCells(ignoreEntityId: 'player')) {
-        if (cell.x == x && cell.y == y) {
-          return true;
-        }
-      }
-      return false;
+      return _isScriptedNpcDynamicallyBlockedCell(
+        GridPos(x: x, y: y),
+        ignoreEntityId: 'player',
+      );
     }
 
     // Pathfinding anchor validation:
     // - `x,y` est la position logique MapEntity.pos (top-left),
     // - on valide le footprint collision réel (important pour NPC 2x2),
     // - on ignore l'auto-collision de l'entité courante.
-    final probe = evaluateScriptedNpcAnchorPassability(
+    //
+    // Ce callback tourne une fois par nœud A* expansé : l'entité et ses
+    // offsets de collision sont préparés une fois par (entité, monde), et le
+    // blocage dynamique interroge l'état vivant sans matérialiser de Set.
+    final prepared = _npcRoutePlanningProbeFor(normalizedIgnore);
+    if (prepared == null) {
+      return true;
+    }
+    final probe = prepared.probe!.evaluate(
       world: _world,
-      entityId: normalizedIgnore,
       anchorPos: GridPos(x: x, y: y),
       movementMode: MovementMode.walk,
-      dynamicBlockedCells: _scriptedNpcDynamicBlockedCells(
-        ignoreEntityId: normalizedIgnore,
-      ),
+      isDynamicallyBlocked: prepared.isDynamicallyBlocked,
     );
-    // Ce probe est appelé pour chaque nœud A* bloqué : le log (avec sa jointure
-    // de footprint) ne doit exister qu'en debug.
+    // Le log (avec sa jointure de footprint) ne doit exister qu'en debug.
     if (kDebugMode && !probe.passable) {
       debugPrint(
         '[npc_patrol] blocked anchor entity=$normalizedIgnore anchor=($x,$y) reason="${probe.reason}" footprint=${probe.evaluatedCollisionCells.map((c) => '(${c.x},${c.y})').join(',')}',
       );
     }
     return !probe.passable;
+  }
+
+  _PreparedNpcRoutePlanningProbe? _cachedNpcRoutePlanningProbe;
+
+  /// Sonde préparée mémoïsée par (entité, identité du monde). `_world` est
+  /// remplacé par une nouvelle instance à chaque mutation (commits de
+  /// position, warps), donc le test d'identité suffit à invalider.
+  _PreparedNpcRoutePlanningProbe? _npcRoutePlanningProbeFor(String entityId) {
+    final cached = _cachedNpcRoutePlanningProbe;
+    if (cached != null &&
+        cached.entityId == entityId &&
+        identical(cached.world, _world)) {
+      return cached.probe == null ? null : cached;
+    }
+    final probe = PreparedScriptedNpcAnchorProbe.forEntity(
+      world: _world,
+      entityId: entityId,
+    );
+    final prepared = _PreparedNpcRoutePlanningProbe(
+      entityId: entityId,
+      world: _world,
+      probe: probe,
+      isDynamicallyBlocked: (cell) => _isScriptedNpcDynamicallyBlockedCell(
+        cell,
+        ignoreEntityId: entityId,
+      ),
+    );
+    _cachedNpcRoutePlanningProbe = prepared;
+    return probe == null ? null : prepared;
+  }
+
+  /// Équivalent requêtable de [_scriptedNpcDynamicBlockedCells] : interroge
+  /// l'état vivant (position joueur, cellule pieds rendue, réservations) sans
+  /// matérialiser l'énumération — donc jamais périmé, même quand les
+  /// réservations changent au milieu d'un tick.
+  bool _isScriptedNpcDynamicallyBlockedCell(
+    GridPos cell, {
+    String? ignoreEntityId,
+  }) {
+    final activeFollowLeader = _pendingScenarioFollowRequest?.leaderEntityId;
+    final ignorePlayerForLeader = activeFollowLeader != null &&
+        ignoreEntityId != null &&
+        ignoreEntityId == activeFollowLeader;
+    if (!ignorePlayerForLeader) {
+      final canonical = _world.player.pos;
+      if (canonical.x == cell.x && canonical.y == cell.y) {
+        return true;
+      }
+      final rendered = _renderedPlayerFootGridCell();
+      if (rendered != null &&
+          rendered.x == cell.x &&
+          rendered.y == cell.y) {
+        return true;
+      }
+    }
+    return _isCellReservedByScriptedNpc(cell, ignoreEntityId: ignoreEntityId);
   }
 
   String? _validateScriptedNpcStepRuntimeCollision({
@@ -13821,6 +13926,38 @@ class _WarpTransitionSpec {
   final _WarpTransitionStyle style;
   final Duration fadeOut;
   final Duration fadeIn;
+}
+
+/// Projection World Rules mémoïsée avec les entrées identitaires qui l'ont
+/// produite (manifeste, état de jeu, carte).
+class _WorldRuleProjectionCache {
+  const _WorldRuleProjectionCache({
+    required this.manifest,
+    required this.gameState,
+    required this.map,
+    required this.projection,
+  });
+
+  final ProjectManifest manifest;
+  final GameState gameState;
+  final MapData map;
+  final RuntimeWorldRuleProjectionState? projection;
+}
+
+/// Contexte de planification de route préparé pour une entité : sonde de
+/// passabilité (offsets figés) + prédicat de blocage dynamique lié.
+class _PreparedNpcRoutePlanningProbe {
+  const _PreparedNpcRoutePlanningProbe({
+    required this.entityId,
+    required this.world,
+    required this.probe,
+    required this.isDynamicallyBlocked,
+  });
+
+  final String entityId;
+  final GameplayWorldState world;
+  final PreparedScriptedNpcAnchorProbe? probe;
+  final ScriptedNpcDynamicCellBlocked isDynamicallyBlocked;
 }
 
 /// Fusion d'ombres mémoïsée avec les collections sources ayant servi à la

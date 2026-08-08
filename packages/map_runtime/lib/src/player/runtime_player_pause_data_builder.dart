@@ -464,25 +464,58 @@ final class RuntimePlayerPauseDataBuilder {
     if (speciesDirectory == null) {
       return const <_RuntimeSpeciesPresentation>[];
     }
-    final result = <_RuntimeSpeciesPresentation>[];
     try {
       if (!await speciesDirectory.exists()) {
         return const <_RuntimeSpeciesPresentation>[];
       }
+      final files = <File>[];
       await for (final entity in speciesDirectory.list(followLinks: false)) {
-        final presentation = await _readSpeciesPresentation(entity);
-        if (presentation != null) result.add(presentation);
+        if (entity is File &&
+            p.extension(entity.path).toLowerCase() == '.json') {
+          files.add(entity);
+        }
       }
+      files.sort((left, right) => left.path.compareTo(right.path));
+      // Le catalogue complet était relu et re-parsé séquentiellement à chaque
+      // ouverture du menu pause (et après chaque usage d'objet du sac). La
+      // signature (chemin, mtime, taille) de chaque fichier garantit qu'une
+      // édition des données sur disque invalide le cache.
+      final signatureBuffer = StringBuffer();
+      for (final file in files) {
+        final stat = await file.stat();
+        signatureBuffer
+          ..write(file.path)
+          ..write('|')
+          ..write(stat.modified.microsecondsSinceEpoch)
+          ..write('|')
+          ..write(stat.size)
+          ..write(';');
+      }
+      final signature = signatureBuffer.toString();
+      final cached = _speciesCatalogByDirectory[speciesDirectory.path];
+      if (cached != null && cached.signature == signature) {
+        return cached.catalog;
+      }
+      final presentations = await Future.wait(
+        files.map(_readSpeciesPresentation),
+      );
+      final result = <_RuntimeSpeciesPresentation>[
+        for (final presentation in presentations)
+          if (presentation != null) presentation,
+      ];
+      result.sort((left, right) {
+        final leftDex = left.nationalDex ?? 1 << 30;
+        final rightDex = right.nationalDex ?? 1 << 30;
+        final byDex = leftDex.compareTo(rightDex);
+        return byDex != 0 ? byDex : left.id.compareTo(right.id);
+      });
+      final catalog = List<_RuntimeSpeciesPresentation>.unmodifiable(result);
+      _speciesCatalogByDirectory[speciesDirectory.path] =
+          _CachedSpeciesCatalog(signature: signature, catalog: catalog);
+      return catalog;
     } on FileSystemException {
       return const <_RuntimeSpeciesPresentation>[];
     }
-    result.sort((left, right) {
-      final leftDex = left.nationalDex ?? 1 << 30;
-      final rightDex = right.nationalDex ?? 1 << 30;
-      final byDex = leftDex.compareTo(rightDex);
-      return byDex != 0 ? byDex : left.id.compareTo(right.id);
-    });
-    return List<_RuntimeSpeciesPresentation>.unmodifiable(result);
   }
 
   Future<_RuntimeSpeciesPresentation?> _readSpeciesPresentation(
@@ -539,6 +572,21 @@ final class RuntimePlayerPauseDataBuilder {
       return null;
     }
   }
+}
+
+/// Cache process-level du catalogue d'espèces présenté par le menu pause,
+/// clé = dossier, validé par la signature stat de ses fichiers.
+final Map<String, _CachedSpeciesCatalog> _speciesCatalogByDirectory =
+    <String, _CachedSpeciesCatalog>{};
+
+final class _CachedSpeciesCatalog {
+  const _CachedSpeciesCatalog({
+    required this.signature,
+    required this.catalog,
+  });
+
+  final String signature;
+  final List<_RuntimeSpeciesPresentation> catalog;
 }
 
 final class _RuntimeSpeciesPresentation {

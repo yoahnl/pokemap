@@ -7,6 +7,8 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../application/load_runtime_map_bundle.dart';
 import '../application/map_activation.dart';
 import '../application/player_service_runtime_controller.dart';
+import '../application/runtime_move_catalog_loader.dart';
+import '../application/runtime_pokemon_species_loader.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_audio_mixer.dart';
@@ -37,6 +39,13 @@ final class PlayableMapGameSessionRuntime
         RuntimePlayerPauseDataPort,
         RuntimePlayerPauseCommandPort,
         RuntimeWorldServicePort {
+  /// Loaders partagés pour la vie de la session : les caps de soin/Sac
+  /// relisaient sinon les fichiers espèces/attaques à chaque ouverture.
+  final RuntimePokemonSpeciesLoader _recoveryCapsSpeciesLoader =
+      RuntimePokemonSpeciesLoader();
+  final RuntimeMoveCatalogLoader _recoveryCapsMoveCatalogLoader =
+      RuntimeMoveCatalogLoader();
+
   PlayableMapGameSessionRuntime({
     required this.descriptor,
     required SessionProjectFilePathLoader projectFilePath,
@@ -207,6 +216,8 @@ final class PlayableMapGameSessionRuntime
         gameState: state,
         projectRootDirectory: bundle.projectRootDirectory,
         pokemonConfig: bundle.manifest.pokemon,
+        speciesLoader: _recoveryCapsSpeciesLoader,
+        moveCatalogLoader: _recoveryCapsMoveCatalogLoader,
       ),
       conditionContext: ScriptEvaluationContext(
         narrativeFactResolver: NarrativeFactRuntimeResolver.fromFacts(

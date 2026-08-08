@@ -161,19 +161,24 @@ bool entityPassesStepStudioWorldPresence({
   if (normalizedEntity.isEmpty) {
     return true;
   }
-  final completed = completedStepIds
-      .map((e) => e.trim())
-      .where((e) => e.isNotEmpty)
-      .toSet();
-
+  // Les champs des règles sont déjà trimmés et non vides à la construction
+  // ([buildStepStudioWorldPresenceRuleList]) ; et le Set normalisé des steps
+  // complétés n'est construit que si une règle matche — la plupart des PNJ
+  // n'en ont aucune alors que ce chemin tourne pour chaque PNJ à chaque
+  // refresh de présence.
+  Set<String>? completed;
   for (final rule in rules) {
-    if (rule.mapId.trim() != normalizedMap) {
+    if (rule.mapId != normalizedMap) {
       continue;
     }
-    if (rule.entityId.trim() != normalizedEntity) {
+    if (rule.entityId != normalizedEntity) {
       continue;
     }
-    final stepDone = completed.contains(rule.sourceStepId.trim());
+    completed ??= completedStepIds
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toSet();
+    final stepDone = completed.contains(rule.sourceStepId);
     if (!presenceAllowedForStepStudioWorldRule(
       sourceStepCompleted: stepDone,
       kind: rule.presenceRule,

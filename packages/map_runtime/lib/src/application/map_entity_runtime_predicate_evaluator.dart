@@ -25,12 +25,15 @@ class MapEntityRuntimePredicateEvaluator {
   final GameState gameState;
   final GlobalStoryChapterStepIndex chapterIndex;
 
-  Set<String> get _flags => gameState.storyFlags.activeFlags;
+  // `late final` et non des getters : chaque évaluation de prédicat
+  // reconstruisait ces Sets depuis les listes de progression, pour chaque
+  // variante de dialogue et chaque PNJ.
+  late final Set<String> _flags = gameState.storyFlags.activeFlags;
 
-  Set<String> get _completedSteps =>
+  late final Set<String> _completedSteps =
       gameState.progression.completedStepIds.toSet();
 
-  Set<String> get _completedCutscenes =>
+  late final Set<String> _completedCutscenes =
       gameState.progression.completedCutsceneIds.toSet();
 
   /// Évalue un prédicat auteur (une condition atomique).

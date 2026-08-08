@@ -21,6 +21,7 @@ bool isNpcRuntimePresentOnMap({
   required List<StepStudioWorldPresenceRule> stepStudioWorldRules,
   required String mapId,
   required MapEntity entity,
+  GlobalStoryChapterStepIndex? chapterIndex,
 }) {
   if (entity.kind != MapEntityKind.npc) {
     return true;
@@ -33,7 +34,11 @@ bool isNpcRuntimePresentOnMap({
   if (override != null) return override;
   final base = MapEntityRuntimePredicateEvaluator(
     gameState: gameState,
-    chapterIndex: buildGlobalStoryChapterStepIndex(manifest.scenarios),
+    // Construire l'index ici re-parse le JSON authoring de chaque scénario
+    // globalStory : les appelants qui évaluent plusieurs entités doivent le
+    // mettre en cache par manifeste (comme les règles Step Studio).
+    chapterIndex:
+        chapterIndex ?? buildGlobalStoryChapterStepIndex(manifest.scenarios),
   ).isNpcPresentOnMap(entity);
   if (!base) {
     return false;
