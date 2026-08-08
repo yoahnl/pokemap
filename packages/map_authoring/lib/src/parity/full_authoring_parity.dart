@@ -114,21 +114,68 @@ final class AuthoringResourceParity {
 final class AuthoringMutationParityEvidence {
   AuthoringMutationParityEvidence({
     required String actionId,
-    required Iterable<AuthoringTransport> transports,
+    required Iterable<AuthoringTransport> declaredTransports,
+    required Map<AuthoringTransport, String> adapterEvidence,
     required String contractTestPath,
+    Map<AuthoringTransport, String> endToEndEvidence = const {},
   })  : actionId = _required(actionId, 'actionId'),
-        transports = Set.unmodifiable(transports),
-        contractTestPath = _required(contractTestPath, 'contractTestPath');
+        declaredTransports = Set.unmodifiable(declaredTransports),
+        adapterEvidence = Map.unmodifiable({
+          for (final entry in adapterEvidence.entries)
+            entry.key: _required(entry.value, 'adapterEvidence'),
+        }),
+        contractTestPath = _required(contractTestPath, 'contractTestPath'),
+        endToEndEvidence = Map.unmodifiable({
+          for (final entry in endToEndEvidence.entries)
+            entry.key: _required(entry.value, 'endToEndEvidence'),
+        }) {
+    final undeclaredAdapters =
+        this.adapterEvidence.keys.toSet().difference(this.declaredTransports);
+    if (undeclaredAdapters.isNotEmpty) {
+      throw ArgumentError.value(
+        undeclaredAdapters,
+        'adapterEvidence',
+        'must reference declared transports',
+      );
+    }
+    final unadaptedEndToEnd = this
+        .endToEndEvidence
+        .keys
+        .toSet()
+        .difference(this.adapterEvidence.keys.toSet());
+    if (unadaptedEndToEnd.isNotEmpty) {
+      throw ArgumentError.value(
+        unadaptedEndToEnd,
+        'endToEndEvidence',
+        'must reference adapter-capable transports',
+      );
+    }
+  }
 
   final String actionId;
-  final Set<AuthoringTransport> transports;
+  final Set<AuthoringTransport> declaredTransports;
+  final Map<AuthoringTransport, String> adapterEvidence;
   final String contractTestPath;
+  final Map<AuthoringTransport, String> endToEndEvidence;
+
+  Set<AuthoringTransport> get adapterCapableTransports =>
+      Set.unmodifiable(adapterEvidence.keys);
+
+  Set<AuthoringTransport> get endToEndVerifiedTransports =>
+      Set.unmodifiable(endToEndEvidence.keys);
+
+  @Deprecated('Use adapterCapableTransports or endToEndVerifiedTransports.')
+  Set<AuthoringTransport> get transports => adapterCapableTransports;
 
   Map<String, Object?> toJson() => {
         'actionId': actionId,
-        'transports': (transports.map((transport) => transport.name).toList()
-          ..sort()),
+        'declaredTransports': _transportNames(declaredTransports),
+        'adapterCapableTransports': _transportNames(adapterCapableTransports),
+        'adapterEvidence': _transportEvidenceJson(adapterEvidence),
         'contractTestPath': contractTestPath,
+        'endToEndVerifiedTransports':
+            _transportNames(endToEndVerifiedTransports),
+        'endToEndEvidence': _transportEvidenceJson(endToEndEvidence),
       };
 }
 
@@ -166,8 +213,10 @@ final class AuthoringFullParityCatalog {
           in AuthoringMutationDispatcher.canonical().descriptors)
         AuthoringMutationParityEvidence(
           actionId: descriptor.id,
-          transports: AuthoringTransport.values,
+          declaredTransports: AuthoringTransport.values,
+          adapterEvidence: _canonicalAdapterEvidence,
           contractTestPath: _contractTestFor(descriptor.id),
+          endToEndEvidence: _endToEndEvidenceFor(descriptor.id),
         ),
     ];
     return AuthoringFullParityCatalog._(
@@ -206,7 +255,7 @@ final class AuthoringFullParityCatalog {
   }
 
   Map<String, Object?> toJson() => {
-        'formatVersion': 1,
+        'formatVersion': 2,
         'gate': 'PMCP-085',
         'resources': [for (final resource in resources) resource.toJson()],
         'mutationActions': [
@@ -220,9 +269,58 @@ final class AuthoringFullParityCatalog {
           'blockedOrMissingCount': blockedOrMissingCells.length,
           'notApplicableCount': notApplicableCells.length,
           'catalogComplete': blockedOrMissingCells.isEmpty,
+          'endToEndVerifiedMutationActionCount': mutationActions
+              .where((action) => action.endToEndEvidence.isNotEmpty)
+              .length,
+          'fullyEndToEndVerifiedMutationActionCount': mutationActions
+              .where(
+                (action) =>
+                    action.endToEndVerifiedTransports.length ==
+                    action.declaredTransports.length,
+              )
+              .length,
+          'transportCertificationComplete': mutationActions.every(
+            (action) =>
+                action.endToEndVerifiedTransports.length ==
+                action.declaredTransports.length,
+          ),
         },
       };
 }
+
+const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
+  AuthoringTransport.directApi:
+      'lib/src/api/local_map_authoring_mutation_api.dart',
+  AuthoringTransport.cli: 'lib/src/tooling/jsonl_worker.dart',
+  AuthoringTransport.editor:
+      '../map_editor/lib/src/application/authoring_api/authoring_mutation_adapter.dart',
+  AuthoringTransport.mcp: '../../tools/pokemap_mcp/src/authoring_client.ts',
+};
+
+Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId != 'map.create' && actionId != 'presentation.update') {
+    return const {};
+  }
+  return const {
+    AuthoringTransport.directApi: 'test/parity/full_authoring_parity_test.dart',
+    AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
+    AuthoringTransport.mcp:
+        '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+  };
+}
+
+List<String> _transportNames(Iterable<AuthoringTransport> transports) =>
+    transports.map((transport) => transport.name).toList()..sort();
+
+Map<String, String> _transportEvidenceJson(
+  Map<AuthoringTransport, String> evidence,
+) =>
+    Map.fromEntries(
+      evidence.entries
+          .map((entry) => MapEntry(entry.key.name, entry.value))
+          .toList()
+        ..sort((left, right) => left.key.compareTo(right.key)),
+    );
 
 AuthoringResourceParity _resourceParity(
   String kind,

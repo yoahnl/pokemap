@@ -71,10 +71,13 @@ void main() {
           catalog.toJson()['summary'], containsPair('catalogComplete', false));
     });
 
-    test('covers every canonical mutation with contracts and four transports',
-        () {
+    test('separates declared, adapter, contract, and end-to-end evidence', () {
       final catalog = AuthoringFullParityCatalog.canonical();
       final descriptors = AuthoringMutationDispatcher.canonical().descriptors;
+      final allTransports = AuthoringTransport.values
+          .map((transport) => transport.name)
+          .toList()
+        ..sort();
 
       expect(
         catalog.mutationActions.map((action) => action.actionId).toSet(),
@@ -82,11 +85,23 @@ void main() {
       );
       for (final descriptor in descriptors) {
         final evidence = catalog.requireMutationAction(descriptor.id);
+        final json = evidence.toJson();
         expect(
-          evidence.transports,
-          AuthoringTransport.values.toSet(),
+          json['declaredTransports'],
+          allTransports,
           reason: descriptor.id,
         );
+        expect(json['adapterCapableTransports'], allTransports,
+            reason: descriptor.id);
+        expect(json, isNot(contains('transports')), reason: descriptor.id);
+        for (final path in (json['adapterEvidence']! as Map).values) {
+          expect(File(path as String).existsSync(), isTrue,
+              reason: '${descriptor.id}: $path');
+        }
+        for (final path in (json['endToEndEvidence']! as Map).values) {
+          expect(File(path as String).existsSync(), isTrue,
+              reason: '${descriptor.id}: $path');
+        }
         expect(File(evidence.contractTestPath).existsSync(), isTrue,
             reason: descriptor.id);
         expect(descriptor.requiredPermissions, isNotEmpty,
@@ -102,6 +117,29 @@ void main() {
           reason: descriptor.id,
         );
       }
+
+      expect(
+        catalog.requireMutationAction('map.create').toJson(),
+        containsPair(
+          'endToEndVerifiedTransports',
+          ['cli', 'directApi', 'mcp'],
+        ),
+      );
+      expect(
+        catalog.requireMutationAction('presentation.update').toJson(),
+        containsPair(
+          'endToEndVerifiedTransports',
+          ['cli', 'directApi', 'mcp'],
+        ),
+      );
+      expect(
+        catalog.requireMutationAction('asset.delete').toJson(),
+        containsPair('endToEndVerifiedTransports', isEmpty),
+      );
+      expect(
+        catalog.toJson()['summary'],
+        containsPair('transportCertificationComplete', false),
+      );
     });
 
     test('matches runtime and editor consumer inventories automatically', () {
