@@ -72,6 +72,15 @@ final class SmartTileLayerActions {
       risk: AuthoringRiskLevel.high,
     ),
     _smartTileLayerDescriptor(
+      'smart_tile.layer.set_animation_activation',
+      'Choose whether one Smart Tile layer animates continuously or on entry',
+      resourceKinds: const <String>[
+        'map',
+        'smartTileLayer',
+        'smartTileAnimation',
+      ],
+    ),
+    _smartTileLayerDescriptor(
       'smart_tile.layer.set_candidate_weights',
       'Replace one Smart Tile layer\'s per-candidate weight overrides',
       resourceKinds: const <String>[
@@ -90,6 +99,8 @@ final class SmartTileLayerActions {
       'smart_tile.layer.normalize' => _normalize(planning),
       'smart_tile.layer.merge' => _merge(planning),
       'smart_tile.layer.reconstruct' => _reconstruct(planning),
+      'smart_tile.layer.set_animation_activation' =>
+        _setAnimationActivation(planning),
       'smart_tile.layer.set_candidate_weights' =>
         _setCandidateWeights(planning),
       _ => throw semanticFailure(
@@ -527,6 +538,59 @@ final class SmartTileLayerActions {
           'renderPreserved': false,
         },
       ),
+    );
+  }
+
+  AuthoringMutationDraft _setAnimationActivation(
+    AuthoringPlanningContext planning,
+  ) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const <String>{'layerId', 'activation'},
+    );
+    final layerId = context.parameters.string('layerId');
+    _requireNativeSmartTileProject(
+      context,
+      operation: 'smart_tile.layer.set_animation_activation',
+      layerId: layerId,
+    );
+    final layer = _smartTileLayer(context.map, layerId);
+    final activationValue = context.parameters.string('activation');
+    final activation = switch (activationValue) {
+      'always' => SmartTileAnimationActivation.always,
+      'on_enter' => SmartTileAnimationActivation.onEnter,
+      _ => throw semanticFailure(
+          'smart_tile.animation_activation_invalid',
+          'The Smart Tile animation activation policy is unknown.',
+          details: <String, Object?>{'activation': activationValue},
+          remediation: const <String>[
+            'Use "always" or "on_enter".',
+          ],
+        ),
+    };
+    final projected = replaceSmartTileLayer(
+      context.map,
+      layer: layer.copyWith(animationActivation: activation),
+    );
+    preflightNativeSmartTileMutation(
+      snapshot: context.planning.snapshot,
+      projectedManifest: context.manifest,
+      projectedMaps: <String, MapData>{context.map.id: projected},
+    );
+    return context.draftMap(
+      after: projected,
+      operation: 'smart_tile.layer.set_animation_activation',
+      changedItems: layer.animationActivation == activation ? 0 : 1,
+      layerId: layer.id,
+      preview: <String, Object?>{
+        'activation': activationValue,
+        'previousActivation': switch (layer.animationActivation) {
+          SmartTileAnimationActivation.always => 'always',
+          SmartTileAnimationActivation.onEnter => 'on_enter',
+        },
+        'geometryPreserved': true,
+        'renderPreserved': false,
+      },
     );
   }
 

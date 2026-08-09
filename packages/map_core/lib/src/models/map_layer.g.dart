@@ -153,6 +153,12 @@ SmartTileLayer _$SmartTileLayerFromJson(Map<String, dynamic> json) =>
             (k, e) => MapEntry(k, (e as num).toInt()),
           ) ??
           const <String, int>{},
+      animationActivation:
+          $enumDecodeNullable(
+            _$SmartTileAnimationActivationEnumMap,
+            json['animationActivation'],
+          ) ??
+          SmartTileAnimationActivation.always,
       properties:
           (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
@@ -174,6 +180,8 @@ Map<String, dynamic> _$SmartTileLayerToJson(SmartTileLayer instance) =>
       'patternStrokes': instance.patternStrokes.map((e) => e.toJson()).toList(),
       'layerSeed': instance.layerSeed,
       'candidateWeights': ?_candidateWeightsToJson(instance.candidateWeights),
+      'animationActivation':
+          _$SmartTileAnimationActivationEnumMap[instance.animationActivation]!,
       'properties': instance.properties,
       'runtimeType': instance.$type,
     };
@@ -182,6 +190,11 @@ const _$SmartTileUsageEnumMap = {
   SmartTileUsage.terrain: 'terrain',
   SmartTileUsage.path: 'path',
   SmartTileUsage.forestSurface: 'forest_surface',
+};
+
+const _$SmartTileAnimationActivationEnumMap = {
+  SmartTileAnimationActivation.always: 'always',
+  SmartTileAnimationActivation.onEnter: 'on_enter',
 };
 
 ObjectLayer _$ObjectLayerFromJson(Map<String, dynamic> json) => ObjectLayer(

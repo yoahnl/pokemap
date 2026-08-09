@@ -131,6 +131,13 @@ enum SmartTileAnimationLoop {
   once,
 }
 
+enum SmartTileAnimationActivation {
+  @JsonValue('always')
+  always,
+  @JsonValue('on_enter')
+  onEnter,
+}
+
 enum SmartTileMatchKind {
   @JsonValue('any')
   any,

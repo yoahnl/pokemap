@@ -6,6 +6,7 @@ import 'package:flame/components.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
+import 'package:map_runtime/src/presentation/flame/smart_tile_animation_activation_controller.dart';
 import 'package:map_runtime/src/presentation/flame/smart_tile_actor_occlusion_component.dart';
 
 import 'surface/surface_runtime_test_support.dart';
@@ -56,14 +57,15 @@ void main() {
     final row = collection.rows[1];
 
     expect(row.position, Vector2(32, 64));
-    expect(row.priority, 1128);
+    expect(row.priority, 1129);
     expect(1000 + 100, lessThan(row.priority));
+    expect(1000 + 128, lessThan(row.priority));
     expect(1000 + 140, greaterThan(row.priority));
 
     collection.setMapOrigin(Vector2(-64, -96));
 
     expect(row.position, Vector2(-64, -96));
-    expect(row.priority, 968);
+    expect(row.priority, 969);
   });
 
   test('large maps allocate per row and resolve only the visible envelope',
@@ -99,6 +101,35 @@ void main() {
     before.dispose();
     after.dispose();
   });
+
+  test('actor occlusion follows cell-entry animation activation', () async {
+    final image = await _runtimeImage();
+    addTearDown(image.dispose);
+    final map = _map(
+      animationActivation: SmartTileAnimationActivation.onEnter,
+    );
+    final manifest = _manifest(animated: true);
+    final controller = SmartTileAnimationActivationController(
+      map: map,
+      catalog: manifest.smartTileCatalog,
+    );
+    final collection = SmartTileActorOcclusionLayerCollection(
+      bundle: _bundle(manifest, map),
+      tileImagesByTilesetId: <String, RuntimeTilesetImage>{'smart': image},
+      smartTileAnimationController: controller,
+    )..setVisibleLocalRect(const Rect.fromLTWH(0, 0, 96, 96));
+
+    final idle = await _render(collection.rows[1]);
+    controller.onPlayerEnteredCell(const GridPos(x: 0, y: 1));
+    controller.update(0.11);
+    collection.update(0.11);
+    final active = await _render(collection.rows[1]);
+
+    expect(await pixelAt(idle, 16, 48), rgba(255, 0, 0, 255));
+    expect(await pixelAt(active, 16, 48), rgba(0, 0, 255, 255));
+    idle.dispose();
+    active.dispose();
+  });
 }
 
 Future<ui.Image> _render(SmartTileActorOcclusionRowComponent component) {
@@ -115,7 +146,11 @@ RuntimeMapBundle _bundle(ProjectManifest manifest, MapData map) =>
       tilesetAbsolutePathsById: const <String, String>{},
     );
 
-MapData _map() => const MapData(
+MapData _map({
+  SmartTileAnimationActivation animationActivation =
+      SmartTileAnimationActivation.always,
+}) =>
+    MapData(
       id: 'map',
       name: 'Map',
       version: ProjectVersion.v6,
@@ -130,6 +165,7 @@ MapData _map() => const MapData(
           field: SmartTileField.cell(
             semanticCells: <int>[0, 0, 0, 1, 0, 0, 0, 0, 0],
           ),
+          animationActivation: animationActivation,
         ),
       ],
     );

@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
+import 'smart_tile_animation_activation_controller.dart';
 import 'smart_tile_visual_renderer.dart';
 
 @visibleForTesting
@@ -14,15 +15,17 @@ int smartTileActorOcclusionDepthPriority({
   required int ownerRow,
   required double cellHeight,
 }) =>
-    1000 + (mapOriginY + (ownerRow + 1) * cellHeight).round();
+    1001 + (mapOriginY + (ownerRow + 1) * cellHeight).round();
 
 final class SmartTileActorOcclusionLayerCollection {
   SmartTileActorOcclusionLayerCollection({
     required RuntimeMapBundle bundle,
     required Map<String, RuntimeTilesetImage> tileImagesByTilesetId,
+    SmartTileAnimationActivationController? smartTileAnimationController,
   })  : _source = _SmartTileActorOcclusionRenderSource(
           bundle: bundle,
           tileImagesByTilesetId: tileImagesByTilesetId,
+          smartTileAnimationController: smartTileAnimationController,
         ),
         _cellHeight = bundle.cellHeight,
         rows = <SmartTileActorOcclusionRowComponent>[] {
@@ -100,10 +103,12 @@ final class _SmartTileActorOcclusionRenderSource {
   _SmartTileActorOcclusionRenderSource({
     required this.bundle,
     required this.tileImagesByTilesetId,
+    required this.smartTileAnimationController,
   }) : _layers = _buildLayers(bundle);
 
   final RuntimeMapBundle bundle;
   final Map<String, RuntimeTilesetImage> tileImagesByTilesetId;
+  final SmartTileAnimationActivationController? smartTileAnimationController;
   final List<_ActorOcclusionLayerPlan> _layers;
   double _elapsedSeconds = 0;
   Rect? _visibleLocalRect;
@@ -169,6 +174,19 @@ final class _SmartTileActorOcclusionRenderSource {
       final batch = layer.plan.resolveBatch(
         elapsedMs: (_elapsedSeconds * 1000).toInt(),
         viewportBounds: geometryViewport,
+        animationElapsedMsForCell: smartTileAnimationController == null
+            ? null
+            : ({
+                required int cellX,
+                required int cellY,
+                required int elapsedMs,
+              }) =>
+                smartTileAnimationController!.elapsedMsForCell(
+                  layerId: layer.layerId,
+                  cellX: cellX,
+                  cellY: cellY,
+                  globalElapsedMs: elapsedMs,
+                ),
       );
       ownerCellVisits += batch.work.ownerCellVisits;
       for (final visual in batch.visuals) {
@@ -229,6 +247,7 @@ final class _SmartTileActorOcclusionRenderSource {
       final sourceTileHeight = bundle.manifest.settings.tileHeight;
       result.add(
         _ActorOcclusionLayerPlan(
+          layerId: layer.id,
           plan: buildSmartTileLayerVisualPlan(
             map: bundle.map,
             layer: layer,
@@ -262,10 +281,12 @@ bool _isActorOcclusionPart(SmartTileVisualPart part) =>
 
 final class _ActorOcclusionLayerPlan {
   const _ActorOcclusionLayerPlan({
+    required this.layerId,
     required this.plan,
     required this.paint,
   });
 
+  final String layerId;
   final SmartTileLayerVisualPlan plan;
   final Paint paint;
 }

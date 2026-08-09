@@ -74,12 +74,12 @@ void main() {
       expect(find.text('Natif v6'), findsOneWidget);
     });
 
-    testWidgets('shows the preset pixels in the permanent library', (
+    testWidgets('shows an animated preset first frame in the library', (
       tester,
     ) async {
       await _pumpPanel(
         tester,
-        _completeManifest(),
+        _completeManifest(animated: true),
         projectRootPath: '/virtual/project',
       );
 
@@ -1970,7 +1970,7 @@ const _tiledWangTsx = '''
 </tileset>
 ''';
 
-ProjectManifest _completeManifest() {
+ProjectManifest _completeManifest({bool animated = false}) {
   final preset = ProjectSmartTilePreset(
     id: 'edge',
     name: 'Edge 16',
@@ -1994,18 +1994,22 @@ ProjectManifest _completeManifest() {
             mask,
             topology: SmartTileTopology.cardinal4,
           ),
-          candidates: const <SmartTileCandidate>[
+          candidates: <SmartTileCandidate>[
             SmartTileCandidate(
               id: 'visual',
               parts: <SmartTileVisualPart>[
                 SmartTileVisualPart(
-                  source: SmartTileVisualSource.frame(
-                    frame: SmartTileFrameRef(
-                      atlasId: 'atlas',
-                      column: 0,
-                      row: 0,
-                    ),
-                  ),
+                  source: animated
+                      ? const SmartTileVisualSource.animation(
+                          animationId: 'edge-wind',
+                        )
+                      : const SmartTileVisualSource.frame(
+                          frame: SmartTileFrameRef(
+                            atlasId: 'atlas',
+                            column: 0,
+                            row: 0,
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -2040,6 +2044,23 @@ ProjectManifest _completeManifest() {
           name: 'Grass',
           connectionGroupId: 'grass',
         ),
+      ],
+      animations: <ProjectSmartTileAnimation>[
+        if (animated)
+          const ProjectSmartTileAnimation(
+            id: 'edge-wind',
+            name: 'Edge wind',
+            frames: <ProjectSmartTileAnimationFrame>[
+              ProjectSmartTileAnimationFrame(
+                frame: SmartTileFrameRef(
+                  atlasId: 'atlas',
+                  column: 0,
+                  row: 0,
+                ),
+                durationMs: 167,
+              ),
+            ],
+          ),
       ],
       presets: <ProjectSmartTilePreset>[preset],
     ),

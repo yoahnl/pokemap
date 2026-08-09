@@ -1412,18 +1412,30 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         preset.rules.where((rule) => rule.id == _focusedRuleId).firstOrNull;
     if (focusedRule != null) {
       final frame = focusedRule.candidates
-          .map(firstSmartTileFrameOf)
+          .map(
+            (candidate) => firstSmartTileFrameOf(
+              candidate,
+              animations: widget.manifest.smartTileCatalog.animations,
+            ),
+          )
           .nonNulls
           .firstOrNull;
       if (frame != null) return frame;
     }
-    return representativeSmartTileFrameOf(preset);
+    return representativeSmartTileFrameOf(
+      preset,
+      animations: widget.manifest.smartTileCatalog.animations,
+    );
   }
 
   Widget _libraryThumbnail(SmartTileLibraryItem item) {
     final preset = item.nativePreset;
-    final frame =
-        preset == null ? null : representativeSmartTileFrameOf(preset);
+    final frame = preset == null
+        ? null
+        : representativeSmartTileFrameOf(
+            preset,
+            animations: widget.manifest.smartTileCatalog.animations,
+          );
     if (frame != null) {
       return _spritePreview(
         frame,
@@ -1614,7 +1626,15 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
         return PokeMapAssetCard(
           key: Key('smart-tiles-rule-${rule.id}'),
           thumbnail: switch (
-              rule.candidates.map(firstSmartTileFrameOf).nonNulls.firstOrNull) {
+              rule.candidates
+                  .map(
+                    (candidate) => firstSmartTileFrameOf(
+                      candidate,
+                      animations: widget.manifest.smartTileCatalog.animations,
+                    ),
+                  )
+                  .nonNulls
+                  .firstOrNull) {
             final SmartTileFrameRef frame => _spritePreview(
                 frame,
                 size: 30,

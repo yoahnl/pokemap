@@ -19,6 +19,7 @@ void main() {
           'smart_tile.layer.merge',
           'smart_tile.layer.normalize',
           'smart_tile.layer.reconstruct',
+          'smart_tile.layer.set_animation_activation',
           'smart_tile.layer.set_candidate_weights',
         ],
       );
@@ -463,6 +464,7 @@ void main() {
       expect(directResult.actionIds, [
         'smart_tile.layer.normalize',
         'smart_tile.layer.merge',
+        'smart_tile.layer.set_animation_activation',
       ]);
       expect(jsonlResult.actionIds, directResult.actionIds);
       for (final validation in [
@@ -494,6 +496,10 @@ void main() {
       expect(smartTileSemanticCells(merged), [0, 1, 0, 1, 1, 1, 0, 1, 0]);
       expect(merged.name, 'Target path metadata');
       expect(merged.properties, {'role': 'main', 'keep': 'yes'});
+      expect(
+        merged.animationActivation,
+        SmartTileAnimationActivation.onEnter,
+      );
     });
 
     test('direct API and JSONL confirm the same reconstruction plan', () async {
@@ -713,6 +719,149 @@ void main() {
             (error) => error.code,
             'code',
             'smart_tile.rule_without_positive_candidate',
+          ),
+        ),
+      );
+    });
+  });
+
+  group('smart_tile.layer.set_animation_activation', () {
+    final manifest = ProjectManifest(
+      name: 'Animation activation fixture',
+      version: ProjectVersion.v6,
+      maps: const <ProjectMapEntry>[
+        ProjectMapEntry(
+          id: 'map_hanazuki_village',
+          name: 'Map',
+          relativePath: 'maps/map_hanazuki_village.json',
+        ),
+      ],
+      tilesets: const <ProjectTilesetEntry>[
+        ProjectTilesetEntry(
+          id: 'grass-tileset',
+          name: 'Grass',
+          relativePath: 'tilesets/grass.png',
+        ),
+      ],
+      smartTileCatalog: ProjectSmartTileCatalog(
+        atlases: const <ProjectSmartTileAtlas>[
+          ProjectSmartTileAtlas(
+            id: 'grass-atlas',
+            name: 'Grass',
+            tilesetId: 'grass-tileset',
+            columns: 1,
+            rows: 1,
+          ),
+        ],
+        materials: const <ProjectSmartTileMaterial>[
+          ProjectSmartTileMaterial(
+            id: 'grass',
+            name: 'Grass',
+            connectionGroupId: 'grass',
+          ),
+        ],
+        presets: const <ProjectSmartTilePreset>[
+          ProjectSmartTilePreset(
+            id: 'grass-preset',
+            name: 'Tall grass',
+            usage: SmartTileUsage.path,
+            topology: SmartTileTopology.uniform,
+            templateHint: SmartTileTemplateHint.simple,
+            status: SmartTilePresetStatus.published,
+            coveragePolicy: SmartTileCoveragePolicy.complete,
+            coverageProfile: SmartTileCoverageProfile(
+              mode: SmartTileCoverageMode.template,
+            ),
+            transformPolicy: SmartTileTransformPolicy(),
+            defaultMaterialId: 'grass',
+            allowedMaterialIds: <String>['grass'],
+            rules: <SmartTileRule>[
+              SmartTileRule(
+                id: 'fill',
+                centerMatch: SmartTileSlotMatch.material('grass'),
+                candidates: <SmartTileCandidate>[
+                  SmartTileCandidate(
+                    id: 'fill',
+                    parts: <SmartTileVisualPart>[
+                      SmartTileVisualPart(
+                        source: SmartTileVisualSource.frame(
+                          frame: SmartTileFrameRef(
+                            atlasId: 'grass-atlas',
+                            column: 0,
+                            row: 0,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    final map = MapData(
+      id: 'map_hanazuki_village',
+      name: 'Map',
+      version: ProjectVersion.v6,
+      size: const GridSize(width: 2, height: 1),
+      layers: const <MapLayer>[
+        SmartTileLayer(
+          id: 'grass',
+          name: 'Tall grass',
+          presetId: 'grass-preset',
+          usage: SmartTileUsage.path,
+          materialPalette: <String>['', 'grass'],
+          field: SmartTileField.cell(semanticCells: <int>[1, 1]),
+        ),
+      ],
+    );
+
+    test('changes only the layer activation policy', () {
+      final snapshot = _snapshot(manifest, map);
+      final before = map.layers.single as SmartTileLayer;
+      final draft = const SmartTileLayerActions().build(
+        _context(
+          snapshot,
+          actionId: 'smart_tile.layer.set_animation_activation',
+          parameters: const <String, Object?>{
+            'mapId': 'map_hanazuki_village',
+            'layerId': 'grass',
+            'activation': 'on_enter',
+          },
+        ),
+      );
+      final after = _projectedMap(draft).layers.single as SmartTileLayer;
+
+      expect(
+        after,
+        before.copyWith(
+          animationActivation: SmartTileAnimationActivation.onEnter,
+        ),
+      );
+      expect(draft.preview, containsPair('activation', 'on_enter'));
+      expect(draft.preview, containsPair('geometryPreserved', true));
+    });
+
+    test('rejects an unknown activation policy', () {
+      expect(
+        () => const SmartTileLayerActions().build(
+          _context(
+            _snapshot(manifest, map),
+            actionId: 'smart_tile.layer.set_animation_activation',
+            parameters: const <String, Object?>{
+              'mapId': 'map_hanazuki_village',
+              'layerId': 'grass',
+              'activation': 'sometimes_maybe',
+            },
+          ),
+        ),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile.animation_activation_invalid',
           ),
         ),
       );
@@ -948,6 +1097,15 @@ final class _M01TransportHarness {
       _mergeParameters,
       'merge',
     );
+    await apply(
+      'smart_tile.layer.set_animation_activation',
+      const <String, Object?>{
+        'mapId': 'map_hanazuki_village',
+        'layerId': 'l_qc02_path_dirt',
+        'activation': 'on_enter',
+      },
+      'animation_activation',
+    );
     final validation = await readApi.validate(project);
     return (
       map: await _readMap(),
@@ -1004,6 +1162,15 @@ final class _M01TransportHarness {
       'normalize',
     );
     await apply('smart_tile.layer.merge', _mergeParameters, 'merge');
+    await apply(
+      'smart_tile.layer.set_animation_activation',
+      const <String, Object?>{
+        'mapId': 'map_hanazuki_village',
+        'layerId': 'l_qc02_path_dirt',
+        'activation': 'on_enter',
+      },
+      'animation_activation',
+    );
     final validation = await _jsonl(
       'validate',
       {'projectHandle': projectHandle},

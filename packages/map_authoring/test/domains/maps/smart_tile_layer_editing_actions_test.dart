@@ -16,6 +16,7 @@ void main() {
           'smart_tile.layer.merge',
           'smart_tile.layer.normalize',
           'smart_tile.layer.reconstruct',
+          'smart_tile.layer.set_animation_activation',
           'smart_tile.layer.set_candidate_weights',
         ],
       );

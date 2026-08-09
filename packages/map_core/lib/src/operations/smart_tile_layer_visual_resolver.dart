@@ -1095,6 +1095,7 @@ final class SmartTileLayerVisualPlan {
   SmartTileLayerVisualBatch resolveBatch({
     int elapsedMs = 0,
     SmartTileGeometryRect? viewportBounds,
+    SmartTileAnimationElapsedMsForCell? animationElapsedMsForCell,
   }) {
     final envelope = _envelope;
     if (envelope == null) {
@@ -1119,8 +1120,14 @@ final class SmartTileLayerVisualPlan {
       for (var x = startX; x < endX; x++) {
         ownerCellVisits += 1;
         final items = _plannedByCellIndex[rowBase + x] ??= _planCell(x, y);
+        final cellElapsedMs = animationElapsedMsForCell?.call(
+              cellX: x,
+              cellY: y,
+              elapsedMs: elapsedMs,
+            ) ??
+            elapsedMs;
         for (final item in items) {
-          final visual = item.visualAt(elapsedMs);
+          final visual = item.visualAt(cellElapsedMs);
           if (visual == null) continue;
           if (viewportBounds != null &&
               !visual.geometry.visualBounds.intersects(viewportBounds)) {
@@ -1275,6 +1282,12 @@ final class SmartTileLayerVisualPlan {
     );
   }
 }
+
+typedef SmartTileAnimationElapsedMsForCell = int Function({
+  required int cellX,
+  required int cellY,
+  required int elapsedMs,
+});
 
 /// One planned cell part: either a fixed visual or prebuilt animation
 /// variants selected by elapsed time, mirroring [_resolveVisualFrame].

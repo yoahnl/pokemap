@@ -133,6 +133,7 @@ import 'runtime_battle_gender_overrides.dart';
 import 'runtime_trainer_battle_overrides.dart';
 import 'static_placed_element_occlusion_patch_resolution.dart';
 import 'smart_tile_actor_occlusion_component.dart';
+import 'smart_tile_animation_activation_controller.dart';
 import 'warp_transition_overlay_component.dart';
 
 part 'playable_map_game_support.dart';
@@ -2243,6 +2244,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String get debugFlowPhaseName => _flowPhase.name;
 
   @visibleForTesting
+  int debugSmartTileAnimationElapsedMsForCell({
+    required String layerId,
+    required int cellX,
+    required int cellY,
+  }) =>
+      _loadedMapsById[_activeMapId]
+          ?.smartTileAnimationController
+          .elapsedMsForCell(
+            layerId: layerId,
+            cellX: cellX,
+            cellY: cellY,
+            globalElapsedMs: _runtimeClockMs.floor(),
+          ) ??
+      0;
+
+  @visibleForTesting
   bool get debugIsMapActivationDispatchInFlight =>
       _inFlightMapActivationDispatchIds.isNotEmpty;
 
@@ -3827,6 +3844,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void update(double dt) {
     super.update(dt);
     for (final loaded in _loadedMapsById.values) {
+      loaded.smartTileAnimationController.update(dt);
       loaded.actorOcclusionLayers.update(dt);
     }
     _pixelCamera.refreshDevicePixelRatio();
@@ -4529,6 +4547,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required GridPos previousPos,
     required GridPos currentPos,
   }) {
+    _loadedMapsById[_activeMapId]
+        ?.smartTileAnimationController
+        .onPlayerEnteredCell(currentPos);
     // On privilégie l'état mémorisé pour éviter de recalculer l'ancienne
     // couverture à chaque tick. Un fallback de sécurité reste possible.
     final previousIds = _activeScenarioTriggerIds.isEmpty
@@ -10119,6 +10140,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           backgroundLayers: activeLoaded.backgroundLayers,
           foregroundLayers: activeLoaded.foregroundLayers,
           actorOcclusionLayers: activeLoaded.actorOcclusionLayers,
+          smartTileAnimationController:
+              activeLoaded.smartTileAnimationController,
           occlusionPatches: activeLoaded.occlusionPatches,
           npcActors: activeLoaded.npcActors,
           npcActorByEntityId: activeLoaded.npcActorByEntityId,
@@ -11973,6 +11996,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final resolvedBorderAssets =
         borderAssets ?? await _loadBorderRuntimeAssets(preparedBundle);
     final npcPred = _npcPresencePredicateFor(preparedBundle.manifest);
+    final smartTileAnimationController = SmartTileAnimationActivationController(
+      map: preparedBundle.map,
+      catalog: preparedBundle.manifest.smartTileCatalog,
+    );
     final backgroundLayers = MapLayersComponent(
       bundle: preparedBundle,
       tileImagesByTilesetId: tileImagesById,
@@ -11983,6 +12010,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       shadowCollectionProvider:
           _shadowCollectionProviderForMap(preparedBundle.map.id),
       borderAssets: resolvedBorderAssets,
+      smartTileAnimationController: smartTileAnimationController,
     );
     backgroundLayers.position = _originPixels(
       originCellX: originCellX,
@@ -11999,6 +12027,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       npcMapPresencePredicate: npcPred,
       mapEntityPresencePredicate:
           _mapEntityPresencePredicateFor(preparedBundle.manifest),
+      smartTileAnimationController: smartTileAnimationController,
     );
     foregroundLayers.position = _originPixels(
       originCellX: originCellX,
@@ -12010,6 +12039,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final actorOcclusionLayers = SmartTileActorOcclusionLayerCollection(
       bundle: preparedBundle,
       tileImagesByTilesetId: tileImagesById,
+      smartTileAnimationController: smartTileAnimationController,
     );
     actorOcclusionLayers.setMapOrigin(
       _originPixels(
@@ -12095,6 +12125,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       backgroundLayers: backgroundLayers,
       foregroundLayers: foregroundLayers,
       actorOcclusionLayers: actorOcclusionLayers,
+      smartTileAnimationController: smartTileAnimationController,
       occlusionPatches: occlusionPatches,
       npcActors: npcActors,
       npcActorByEntityId: npcActorByEntityId,
@@ -12246,6 +12277,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       backgroundLayers: loaded.backgroundLayers,
       foregroundLayers: loaded.foregroundLayers,
       actorOcclusionLayers: loaded.actorOcclusionLayers,
+      smartTileAnimationController: loaded.smartTileAnimationController,
       occlusionPatches: loaded.occlusionPatches,
       npcActors: loaded.npcActors,
       npcActorByEntityId: loaded.npcActorByEntityId,

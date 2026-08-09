@@ -345,6 +345,74 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
               ],
               if (activePreset != null &&
                   activeLayer != null &&
+                  _presetUsesAnimation(activePreset)) ...[
+                const SizedBox(height: 10),
+                const PokeMapSectionHeader(
+                  title: 'Déclenchement de l’animation',
+                  description: 'Choisissez si tout le calque bouge en continu '
+                      'ou si seule la case traversée réagit une fois.',
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: PokeMapButton(
+                        key: const ValueKey<String>(
+                          'world-map-smart-tile-animation-always',
+                        ),
+                        onPressed: canEdit &&
+                                snapshot.projectRootPath != null &&
+                                !snapshot.mapIsDirty &&
+                                !snapshot.projectIsDirty
+                            ? () => notifier
+                                .applySmartTileLayerAnimationActivation(
+                                  mapId: snapshot.map!.id,
+                                  layerId: activeLayer.id,
+                                  activation:
+                                      SmartTileAnimationActivation.always,
+                                )
+                            : null,
+                        variant: activeLayer.animationActivation ==
+                                SmartTileAnimationActivation.always
+                            ? PokeMapButtonVariant.primary
+                            : PokeMapButtonVariant.secondary,
+                        size: PokeMapButtonSize.compact,
+                        leading: const Icon(Icons.loop_outlined),
+                        child: const Text('Toujours active'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: PokeMapButton(
+                        key: const ValueKey<String>(
+                          'world-map-smart-tile-animation-on-enter',
+                        ),
+                        onPressed: canEdit &&
+                                snapshot.projectRootPath != null &&
+                                !snapshot.mapIsDirty &&
+                                !snapshot.projectIsDirty
+                            ? () => notifier
+                                .applySmartTileLayerAnimationActivation(
+                                  mapId: snapshot.map!.id,
+                                  layerId: activeLayer.id,
+                                  activation:
+                                      SmartTileAnimationActivation.onEnter,
+                                )
+                            : null,
+                        variant: activeLayer.animationActivation ==
+                                SmartTileAnimationActivation.onEnter
+                            ? PokeMapButtonVariant.primary
+                            : PokeMapButtonVariant.secondary,
+                        size: PokeMapButtonSize.compact,
+                        leading: const Icon(Icons.directions_walk_outlined),
+                        child: const Text('Au passage du joueur'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (activePreset != null &&
+                  activeLayer != null &&
                   snapshot.project != null)
                 switch (smartTileFillRuleOf(activePreset)) {
                   null => const SizedBox.shrink(),
@@ -508,7 +576,11 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                                 'world-map-smart-tile-${_usage.name}-preset-${preset.id}',
                               ),
                               thumbnail: switch (
-                                  representativeSmartTileFrameOf(preset)) {
+                                  representativeSmartTileFrameOf(
+                                preset,
+                                animations: snapshot
+                                    .project!.smartTileCatalog.animations,
+                              )) {
                                 final SmartTileFrameRef frame =>
                                   SmartTileSpritePreview(
                                     key: ValueKey<String>(
@@ -566,6 +638,14 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
     );
   }
 }
+
+bool _presetUsesAnimation(ProjectSmartTilePreset preset) => preset.rules.any(
+      (rule) => rule.candidates.any(
+        (candidate) => candidate.parts.any(
+          (part) => part.source is SmartTileAnimationSource,
+        ),
+      ),
+    );
 
 List<ProjectSmartTilePattern> _paintPatterns(
   ProjectManifest project,

@@ -1,24 +1,36 @@
 import 'package:map_core/map_core.dart';
 
-/// Returns the first literal frame carried by [candidate].
-///
-/// Animation sources remain resolved by their dedicated timeline widgets.
-SmartTileFrameRef? firstSmartTileFrameOf(SmartTileCandidate candidate) {
+/// Returns the first frame that can visually represent [candidate].
+SmartTileFrameRef? firstSmartTileFrameOf(
+  SmartTileCandidate candidate, {
+  required Iterable<ProjectSmartTileAnimation> animations,
+}) {
   for (final part in candidate.parts) {
-    if (part.source case SmartTileFrameSource(frame: final frame)) {
-      return frame;
+    switch (part.source) {
+      case SmartTileFrameSource(frame: final frame):
+        return frame;
+      case SmartTileAnimationSource(animationId: final animationId):
+        for (final animation in animations) {
+          if (animation.id == animationId && animation.frames.isNotEmpty) {
+            return animation.frames.first.frame;
+          }
+        }
     }
   }
   return null;
 }
 
-/// Picks a stable literal frame that visually represents [preset].
+/// Picks a stable frame that visually represents [preset].
 SmartTileFrameRef? representativeSmartTileFrameOf(
-  ProjectSmartTilePreset preset,
-) {
+  ProjectSmartTilePreset preset, {
+  required Iterable<ProjectSmartTileAnimation> animations,
+}) {
   for (final rule in preset.rules) {
     for (final candidate in rule.candidates) {
-      final frame = firstSmartTileFrameOf(candidate);
+      final frame = firstSmartTileFrameOf(
+        candidate,
+        animations: animations,
+      );
       if (frame != null) return frame;
     }
   }

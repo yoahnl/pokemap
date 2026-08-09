@@ -350,7 +350,9 @@ void main() {
     expect(find.text('Brouillon'), findsNothing);
   });
 
-  testWidgets('path palette shows the published preset pixels', (tester) async {
+  testWidgets('path palette shows the first animated preset frame', (
+    tester,
+  ) async {
     final harness = _PaintHarness(
       'tile',
       map: _tileOnlyMap,
@@ -370,6 +372,39 @@ void main() {
     expect(
       tester.widget<SmartTileSpritePreview>(thumbnail).frame,
       const SmartTileFrameRef(atlasId: 'visual-path-atlas', column: 1, row: 0),
+    );
+  });
+
+  testWidgets('animated path exposes its per-layer activation policy', (
+    tester,
+  ) async {
+    final harness = _PaintHarness(
+      'smart-visual-path',
+      map: _visualPathMap,
+      project: _visualPathProject,
+      initialSession: const WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.paint,
+        lastPaintSubtool: WorldMapPaintSubtool.path,
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    await harness.pump(tester);
+
+    expect(find.text('Déclenchement de l’animation'), findsOneWidget);
+    expect(find.text('Toujours active'), findsOneWidget);
+    expect(find.text('Au passage du joueur'), findsOneWidget);
+    expect(
+      tester
+          .widget<PokeMapButton>(
+            find.byKey(
+              const ValueKey<String>(
+                'world-map-smart-tile-animation-on-enter',
+              ),
+            ),
+          )
+          .variant,
+      PokeMapButtonVariant.primary,
     );
   });
 
@@ -1188,6 +1223,22 @@ final _visualPathProject = ProjectManifest(
         connectionGroupId: 'path',
       ),
     ],
+    animations: const <ProjectSmartTileAnimation>[
+      ProjectSmartTileAnimation(
+        id: 'visual-path-animation',
+        name: 'Chemin animé',
+        frames: <ProjectSmartTileAnimationFrame>[
+          ProjectSmartTileAnimationFrame(
+            frame: SmartTileFrameRef(
+              atlasId: 'visual-path-atlas',
+              column: 1,
+              row: 0,
+            ),
+            durationMs: 167,
+          ),
+        ],
+      ),
+    ],
     presets: const <ProjectSmartTilePreset>[
       ProjectSmartTilePreset(
         id: 'visual-path',
@@ -1211,12 +1262,8 @@ final _visualPathProject = ProjectManifest(
                 id: 'visual-candidate',
                 parts: <SmartTileVisualPart>[
                   SmartTileVisualPart(
-                    source: SmartTileVisualSource.frame(
-                      frame: SmartTileFrameRef(
-                        atlasId: 'visual-path-atlas',
-                        column: 1,
-                        row: 0,
-                      ),
+                    source: SmartTileVisualSource.animation(
+                      animationId: 'visual-path-animation',
                     ),
                   ),
                 ],
@@ -1227,6 +1274,24 @@ final _visualPathProject = ProjectManifest(
       ),
     ],
   ),
+);
+
+final _visualPathMap = MapData(
+  id: 'map',
+  name: 'Map',
+  version: ProjectVersion.v6,
+  size: const GridSize(width: 2, height: 1),
+  layers: const <MapLayer>[
+    SmartTileLayer(
+      id: 'smart-visual-path',
+      name: 'Herbes hautes',
+      presetId: 'visual-path',
+      usage: SmartTileUsage.path,
+      materialPalette: <String>['', 'path'],
+      field: SmartTileField.cell(semanticCells: <int>[1, 1]),
+      animationActivation: SmartTileAnimationActivation.onEnter,
+    ),
+  ],
 );
 
 const _ruralPathPreset = ProjectSmartTilePreset(

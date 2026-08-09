@@ -193,6 +193,54 @@ void main() {
     );
     expect(notifier.state.canRedoMap, isTrue);
   });
+
+  test('le réglage éditeur persiste le déclenchement au passage', () async {
+    final root = await Directory.systemTemp.createTemp(
+      'pokemap_layer_animation_activation_',
+    );
+    final container = ProviderContainer();
+    addTearDown(() async {
+      container.dispose();
+      if (await root.exists()) await root.delete(recursive: true);
+    });
+    final manifest = _canonicalManifest();
+    final mapPath = p.join(root.path, 'maps', 'map.json');
+    await Directory(p.dirname(mapPath)).create(recursive: true);
+    await FileProjectRepository().saveProject(
+      manifest,
+      p.join(root.path, 'project.json'),
+    );
+    await FileMapRepository().saveMap(
+      _map,
+      mapPath,
+      projectDialogueContext: manifest,
+    );
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.state = EditorState(
+      projectRootPath: root.path,
+      project: manifest,
+      workspaceMode: EditorWorkspaceMode.map,
+    );
+    await notifier.loadMap('maps/map.json');
+
+    await notifier.applySmartTileLayerAnimationActivation(
+      mapId: _map.id,
+      layerId: _layer.id,
+      activation: SmartTileAnimationActivation.onEnter,
+    );
+
+    final activeLayer =
+        notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(
+      activeLayer.animationActivation,
+      SmartTileAnimationActivation.onEnter,
+    );
+    final diskLayer =
+        (await FileMapRepository().loadMap(mapPath)).layers.single
+            as SmartTileLayer;
+    expect(diskLayer.animationActivation, SmartTileAnimationActivation.onEnter);
+    expect(notifier.state.isDirty, isFalse);
+  });
 }
 
 Future<void> _waitUntil(bool Function() condition) async {

@@ -139,6 +139,8 @@ sealed class MapLayer with _$MapLayer {
     @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
     @Default(<String, int>{})
     Map<String, int> candidateWeights,
+    @Default(SmartTileAnimationActivation.always)
+    SmartTileAnimationActivation animationActivation,
     @Default(<String, String>{}) Map<String, String> properties,
   }) = SmartTileLayer;
 

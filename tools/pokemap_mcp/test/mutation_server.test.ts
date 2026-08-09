@@ -2212,6 +2212,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "smart_tile.layer.merge",
       "smart_tile.layer.normalize",
       "smart_tile.layer.reconstruct",
+      "smart_tile.layer.set_animation_activation",
       "smart_tile.material.upsert",
       "smart_tile.pattern.delete",
       "smart_tile.pattern.erase",
@@ -2384,6 +2385,31 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       },
       "merge",
     );
+    await applyAction(
+      "smart_tile.layer.set_animation_activation",
+      {
+        mapId: "map_hanazuki_village",
+        layerId: "path_target",
+        activation: "on_enter",
+      },
+      "animation-activation",
+    );
+    const triggeredLayers = await toolData(
+      fixture.client,
+      "pokemap_query",
+      {
+        projectHandle,
+        resourceKind: "smartTileLayer",
+        operation: "get",
+        view: "detail",
+        ids: ["map_hanazuki_village:path_target"],
+      },
+    );
+    const triggeredLayer = (triggeredLayers.items as JsonRecord[]).find(
+      (item) => item.id === "map_hanazuki_village:path_target",
+    );
+    assert.ok(triggeredLayer);
+    assert.equal(triggeredLayer.animationActivation, "on_enter");
     await applyAction(
       "smart_tile.animation.upsert",
       {

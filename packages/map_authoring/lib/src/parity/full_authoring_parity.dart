@@ -298,6 +298,19 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'smart_tile.layer.set_animation_activation') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/maps/smart_tile_layer_actions_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/smart_tile_layer_actions_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/features/editor/presentation/world_map/'
+              'smart_tile_layer_preset_change_flow_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
   if (actionId == 'smart_tile.layer.change_preset') {
     return const <AuthoringTransport, String>{
       AuthoringTransport.directApi:

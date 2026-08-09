@@ -320,6 +320,7 @@ class _LoadedPlayableMap {
     required this.backgroundLayers,
     required this.foregroundLayers,
     required this.actorOcclusionLayers,
+    required this.smartTileAnimationController,
     required this.occlusionPatches,
     required this.npcActors,
     required this.npcActorByEntityId,
@@ -332,6 +333,7 @@ class _LoadedPlayableMap {
   final MapLayersComponent backgroundLayers;
   final MapLayersComponent foregroundLayers;
   final SmartTileActorOcclusionLayerCollection actorOcclusionLayers;
+  final SmartTileAnimationActivationController smartTileAnimationController;
   final List<PlacedElementOcclusionPatchComponent> occlusionPatches;
   final List<OverworldActorComponent> npcActors;
   final Map<String, OverworldActorComponent> npcActorByEntityId;

@@ -17,6 +17,7 @@ import '../../shadow/shadow_runtime_renderer.dart';
 import 'quarter_turn_pixel_renderer.dart';
 import 'placed_element_collision_clip.dart';
 import 'runtime_map_layer_paint_order.dart';
+import 'smart_tile_animation_activation_controller.dart';
 import 'smart_tile_visual_renderer.dart';
 
 const int _kEntityFrameDurationFallbackMs = 200;
@@ -115,6 +116,7 @@ class MapLayersComponent extends PositionComponent {
     this.borderAssets,
     this.borderRenderer = const BorderRuntimeRenderer(),
     this.debugOnRenderProfile,
+    this.smartTileAnimationController,
   })  : _runtimeLayerPaintOrder = buildRuntimeMapLayerPaintOrder(bundle.map),
         _foregroundTileCellIndicesByLayerId =
             _buildForegroundTileCellIndicesByLayerId(bundle),
@@ -158,6 +160,8 @@ class MapLayersComponent extends PositionComponent {
   final BorderRuntimeAssetBundle? borderAssets;
   final BorderRuntimeRenderer borderRenderer;
   final MapLayersRenderProfileObserver? debugOnRenderProfile;
+  final SmartTileAnimationActivationController?
+      smartTileAnimationController;
   final Map<String, Set<int>> _foregroundTileCellIndicesByLayerId;
   final Map<String, Map<int, _AnimatedPlacedCell>>
       _animatedPlacedCellsByLayerId;
@@ -567,6 +571,19 @@ class MapLayersComponent extends PositionComponent {
         _buildSmartTileVisualPlan(layer, catalog);
     final batch = plan.resolveBatch(
       elapsedMs: (_animElapsed * 1000).toInt(),
+      animationElapsedMsForCell: smartTileAnimationController == null
+          ? null
+          : ({
+              required cellX,
+              required cellY,
+              required elapsedMs,
+            }) =>
+              smartTileAnimationController!.elapsedMsForCell(
+                layerId: layer.id,
+                cellX: cellX,
+                cellY: cellY,
+                globalElapsedMs: elapsedMs,
+              ),
       viewportBounds: visibleRect == null
           ? null
           : SmartTileGeometryRect(

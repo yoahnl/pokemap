@@ -1133,6 +1133,73 @@ class EditorNotifier extends _$EditorNotifier
     }
   }
 
+  Future<void> applySmartTileLayerAnimationActivation({
+    required String mapId,
+    required String layerId,
+    required SmartTileAnimationActivation activation,
+  }) async {
+    final projectRootPath = state.projectRootPath;
+    if (projectRootPath == null) return;
+    final activeMap = state.activeMap;
+    final currentLayer =
+        activeMap == null ? null : _findLayerById(activeMap, layerId);
+    if (currentLayer is! SmartTileLayer ||
+        currentLayer.animationActivation == activation) {
+      return;
+    }
+    final activationValue = switch (activation) {
+      SmartTileAnimationActivation.always => 'always',
+      SmartTileAnimationActivation.onEnter => 'on_enter',
+    };
+    final parameters = <String, Object?>{
+      'mapId': mapId,
+      'layerId': layerId,
+      'activation': activationValue,
+    };
+
+    try {
+      final before =
+          await ref.read(authoringQueryAdapterProvider).open(projectRootPath);
+      final identity = _smartTileEditorMutationIdentity(
+        purpose: 'smart-tile-layer-animation-activation',
+        values: <String, Object?>{
+          ...parameters,
+          'snapshotRevision': before.snapshotRevision,
+        },
+      );
+      final mutations = ref.read(authoringMutationAdapterProvider);
+      final plan = await mutations.plan(
+        projectRootPath,
+        actionId: 'smart_tile.layer.set_animation_activation',
+        parameters: parameters,
+        expectedRevision: before.snapshotRevision,
+        idempotencyKey: identity,
+        requestId: identity,
+      );
+      final applied = await mutations.apply(
+        plan,
+        operationId: '$identity-apply',
+      );
+      await _adoptCanonicalSmartTileSnapshot(
+        projectRootPath: projectRootPath,
+        expectedSnapshotRevision: applied.snapshotRevision,
+        mapId: mapId,
+        layerId: layerId,
+        statusMessage: activation == SmartTileAnimationActivation.onEnter
+            ? 'Animation déclenchée au passage du joueur.'
+            : 'Animation continue activée.',
+      );
+    } on Object catch (error) {
+      debugPrint('EditorNotifier: Smart Tile animation activation failed: '
+          '$error');
+      state = state.copyWith(
+        errorMessage: canonicalSmartTileFailureMessage(
+          EditorAuthoringMutationFailure.capture(error),
+        ),
+      );
+    }
+  }
+
   /// Adopts the authoritative manifest + active map returned by one atomic
   /// Authoring transaction, then focuses the newly-created layer.
   ///
@@ -8901,8 +8968,7 @@ class EditorNotifier extends _$EditorNotifier
       if (tilesetId.isEmpty) {
         if (emitErrors) {
           _setPaintError(
-            'Selected palette brush does not have a valid tileset',
-          );
+              'Selected palette brush does not have a valid tileset');
         }
         return null;
       }
@@ -9032,7 +9098,8 @@ class EditorNotifier extends _$EditorNotifier
       if (tilesetId.isEmpty) {
         if (emitErrors) {
           _setPaintError(
-              'Selected palette brush does not have a valid tileset');
+            'Selected palette brush does not have a valid tileset',
+          );
         }
         return null;
       }
