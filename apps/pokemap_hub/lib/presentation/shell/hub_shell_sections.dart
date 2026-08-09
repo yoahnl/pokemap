@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_preferences.dart';
+import 'package:pokemap_hub/features/appearance/domain/repositories/custom_background_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/settings/pages/avelune_appearance_settings_page.dart';
 import 'package:pokemap_hub/presentation/features/home/widgets/avelune_game_details.dart';
 import 'package:pokemap_hub/presentation/features/home/state/avelune_home_controller.dart';
@@ -125,6 +126,9 @@ class AveluneHomeContent extends StatelessWidget {
         pageBuilder: (_, __, ___) => AveluneGameDetailsScreen(
           game: source,
           referenceTime: referenceTime ?? DateTime.now(),
+          onDelete: actions.onUninstall == null
+              ? null
+              : () => actions.onUninstall!(source),
         ),
         transitionsBuilder: (_, animation, __, child) {
           if (reducedMotion) return child;
@@ -205,7 +209,12 @@ class AvelunePreferencesContent extends StatelessWidget {
         state: ref.watch(aveluneAppearanceNotifierProvider),
         onBackgroundSelected: (id) => controller.selectBackground(id),
         onFurnitureSelected: (id) => controller.selectFurniture(id),
-        onImportCustomBackground: () => controller.importCustomBackground(),
+        onImportFromPhotoLibrary: () => controller.importCustomBackground(
+          AveluneBackgroundSource.photoLibrary,
+        ),
+        onImportFromFiles: () => controller.importCustomBackground(
+          AveluneBackgroundSource.files,
+        ),
         onRemoveCustomBackground: () => controller.removeCustomBackground(),
       ),
     );

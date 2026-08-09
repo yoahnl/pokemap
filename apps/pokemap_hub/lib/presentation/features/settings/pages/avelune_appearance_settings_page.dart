@@ -12,14 +12,16 @@ class AveluneAppearanceSettings extends StatelessWidget {
     required this.state,
     required this.onBackgroundSelected,
     required this.onFurnitureSelected,
-    required this.onImportCustomBackground,
+    required this.onImportFromPhotoLibrary,
+    required this.onImportFromFiles,
     required this.onRemoveCustomBackground,
   });
 
   final AveluneAppearanceState state;
   final ValueChanged<String> onBackgroundSelected;
   final ValueChanged<String> onFurnitureSelected;
-  final VoidCallback onImportCustomBackground;
+  final VoidCallback onImportFromPhotoLibrary;
+  final VoidCallback onImportFromFiles;
   final VoidCallback onRemoveCustomBackground;
 
   @override
@@ -79,7 +81,8 @@ class AveluneAppearanceSettings extends StatelessWidget {
         const SizedBox(height: AveluneSpacing.md),
         _CustomBackgroundSection(
           state: state,
-          onImport: onImportCustomBackground,
+          onImportFromPhotoLibrary: onImportFromPhotoLibrary,
+          onImportFromFiles: onImportFromFiles,
           onRemove: onRemoveCustomBackground,
         ),
       ],
@@ -328,12 +331,14 @@ class _PresetCard extends StatelessWidget {
 class _CustomBackgroundSection extends StatelessWidget {
   const _CustomBackgroundSection({
     required this.state,
-    required this.onImport,
+    required this.onImportFromPhotoLibrary,
+    required this.onImportFromFiles,
     required this.onRemove,
   });
 
   final AveluneAppearanceState state;
-  final VoidCallback onImport;
+  final VoidCallback onImportFromPhotoLibrary;
+  final VoidCallback onImportFromFiles;
   final VoidCallback onRemove;
 
   @override
@@ -386,23 +391,30 @@ class _CustomBackgroundSection extends StatelessWidget {
               style: TextStyle(color: colors.textSecondary, fontSize: 14),
             ),
           const SizedBox(height: AveluneSpacing.sm),
-          Row(
+          Text(
+            french ? 'Choisir depuis' : 'Choose from',
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: AveluneSpacing.xs),
+          Wrap(
+            spacing: AveluneSpacing.sm,
+            runSpacing: AveluneSpacing.sm,
             children: <Widget>[
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: saving ? null : onImport,
-                  icon: Icon(
-                    hasCustom ? AveluneIcons.exchange : AveluneIcons.ownImage,
-                  ),
-                  label: Text(
-                    hasCustom
-                        ? (french ? 'Remplacer' : 'Replace')
-                        : (french ? 'Choisir une image' : 'Choose image'),
-                  ),
-                ),
+              OutlinedButton.icon(
+                onPressed: saving ? null : onImportFromPhotoLibrary,
+                icon: const Icon(AveluneIcons.ownImage),
+                label: Text(french ? 'Photothèque' : 'Photo library'),
               ),
-              if (hasCustom) ...<Widget>[
-                const SizedBox(width: AveluneSpacing.sm),
+              OutlinedButton.icon(
+                onPressed: saving ? null : onImportFromFiles,
+                icon: const Icon(AveluneIcons.files),
+                label: Text(french ? 'Fichiers' : 'Files'),
+              ),
+              if (hasCustom)
                 OutlinedButton.icon(
                   onPressed: saving ? null : onRemove,
                   icon: const Icon(AveluneIcons.remove),
@@ -411,7 +423,6 @@ class _CustomBackgroundSection extends StatelessWidget {
                     foregroundColor: colors.error,
                   ),
                 ),
-              ],
             ],
           ),
           if (isCustomSelected && !hasCustom)

@@ -28,7 +28,7 @@ final customBackgroundGatewayProvider =
   final root = await ref.watch(supportRootProvider.future);
   final processor = ref.watch(backgroundImageProcessorProvider);
   return AveluneCustomBackgroundImporter(
-    picker: const AveluneFilePickerBackgroundPicker(),
+    picker: const AvelunePlatformBackgroundPicker(),
     processor: processor,
     storage: AveluneLocalCustomBackgroundStorage(
       supportRoot: root,

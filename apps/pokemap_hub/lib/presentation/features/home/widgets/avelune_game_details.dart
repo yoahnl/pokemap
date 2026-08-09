@@ -9,10 +9,12 @@ class AveluneGameDetailsScreen extends StatelessWidget {
     super.key,
     required this.game,
     required this.referenceTime,
+    this.onDelete,
   });
 
   final HubGameView game;
   final DateTime referenceTime;
+  final Future<void> Function()? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +131,13 @@ class AveluneGameDetailsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (onDelete case final delete?) ...<Widget>[
+                      const SizedBox(height: AveluneSpacing.xxl),
+                      _AveluneDeleteGameAction(
+                        title: installation.title,
+                        onDelete: delete,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -155,6 +164,126 @@ class AveluneGameDetailsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _AveluneDeleteGameAction extends StatefulWidget {
+  const _AveluneDeleteGameAction({
+    required this.title,
+    required this.onDelete,
+  });
+
+  final String title;
+  final Future<void> Function() onDelete;
+
+  @override
+  State<_AveluneDeleteGameAction> createState() =>
+      _AveluneDeleteGameActionState();
+}
+
+class _AveluneDeleteGameActionState extends State<_AveluneDeleteGameAction> {
+  bool _deleting = false;
+  bool _failed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.aveluneColors;
+    final french = Localizations.localeOf(context).languageCode == 'fr';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        OutlinedButton.icon(
+          key: const ValueKey<String>('avelune-delete-game-button'),
+          onPressed: _deleting ? null : _confirmDelete,
+          icon: _deleting
+              ? SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colors.error,
+                  ),
+                )
+              : const Icon(AveluneIcons.remove),
+          label: Text(
+            _deleting
+                ? (french ? 'Suppression…' : 'Removing…')
+                : (french ? 'Supprimer ce jeu' : 'Remove this game'),
+          ),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: colors.error,
+            minimumSize: const Size.fromHeight(52),
+            side: BorderSide(color: colors.error.withValues(alpha: 0.58)),
+          ),
+        ),
+        if (_failed) ...<Widget>[
+          const SizedBox(height: AveluneSpacing.md),
+          AveluneStateMessage(
+            kind: AveluneStateMessageKind.error,
+            title: french ? 'Suppression impossible' : 'Removal failed',
+            message: french
+                ? 'Le jeu est toujours installé. Réessayez dans quelques instants.'
+                : 'The game is still installed. Try again in a moment.',
+          ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _confirmDelete() async {
+    final french = Localizations.localeOf(context).languageCode == 'fr';
+    final confirmed = await AveluneSheet.show<bool>(
+      context: context,
+      title: french
+          ? 'Supprimer « ${widget.title} » ?'
+          : 'Remove “${widget.title}”?',
+      builder: (sheetContext) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Text(
+            french
+                ? 'Le jeu sera retiré de cet appareil. Vos sauvegardes seront conservées.'
+                : 'The game will be removed from this device. Your saves will be kept.',
+          ),
+          const SizedBox(height: AveluneSpacing.xl),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.of(sheetContext).pop(false),
+                child: Text(french ? 'Annuler' : 'Cancel'),
+              ),
+              const SizedBox(width: AveluneSpacing.sm),
+              OutlinedButton.icon(
+                key: const ValueKey<String>('avelune-confirm-delete-game'),
+                onPressed: () => Navigator.of(sheetContext).pop(true),
+                icon: const Icon(AveluneIcons.remove),
+                label: Text(french ? 'Supprimer' : 'Remove'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: context.aveluneColors.error,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _deleting = true;
+      _failed = false;
+    });
+    try {
+      await widget.onDelete();
+      if (!mounted) return;
+      Navigator.of(context).pop();
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _deleting = false;
+        _failed = true;
+      });
+    }
   }
 }
 

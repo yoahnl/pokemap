@@ -209,8 +209,10 @@ final class AveluneCustomBackgroundImporter
   String get thumbnailPath => storage.thumbnailPath;
 
   @override
-  Future<AveluneCustomBackgroundImportOutcome> pickAndImport() async {
-    final picked = await picker.pick();
+  Future<AveluneCustomBackgroundImportOutcome> pickAndImport(
+    AveluneBackgroundSource source,
+  ) async {
+    final picked = await picker.pick(source);
     if (picked == null) return AveluneCustomBackgroundImportOutcome.cancelled;
     if (picked.bytes.length > kAveluneMaximumCustomBackgroundBytes) {
       throw const AveluneCustomBackgroundException(

@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/app/di/infrastructure_providers.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/editor_export_install_inbox.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/game_package_installer.dart';
+import 'package:pokemap_hub/features/installation/data/repositories/game_maintenance_service.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
 import 'package:pokemap_hub/features/installation/domain/repositories/game_installation_repository_interface.dart';
 import 'package:pokemap_hub/features/saves/data/repositories/game_save_update_preparation.dart';
@@ -26,6 +27,13 @@ final gameInstallationRepositoryProvider =
     prepareSavesForUpdate: saveUpdatePreparation.call,
   );
 });
+
+final gameMaintenanceServiceProvider = FutureProvider<GameMaintenanceService>(
+  (ref) async => GameMaintenanceService(
+    supportRoot: await ref.watch(supportRootProvider.future),
+    installer: await ref.watch(gameInstallationRepositoryProvider.future),
+  ),
+);
 
 /// Drop folder the editor exports into; consumed on every dashboard reload.
 final editorExportInboxProvider = FutureProvider<EditorExportInstallInbox>(

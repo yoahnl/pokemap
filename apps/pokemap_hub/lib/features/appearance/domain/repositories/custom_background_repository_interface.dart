@@ -7,6 +7,8 @@ const int kAveluneThumbnailMaximumDimension = 480;
 
 enum AveluneCustomBackgroundImportOutcome { imported, cancelled }
 
+enum AveluneBackgroundSource { photoLibrary, files }
+
 enum AveluneCustomBackgroundErrorCode {
   fileTooLarge,
   unsupportedFormat,
@@ -57,7 +59,7 @@ final class AveluneProcessedBackground {
 }
 
 abstract interface class AveluneBackgroundPicker {
-  Future<AvelunePickedBackground?> pick();
+  Future<AvelunePickedBackground?> pick(AveluneBackgroundSource source);
 }
 
 abstract interface class AveluneBackgroundImageProcessor {
@@ -83,7 +85,9 @@ abstract interface class AveluneCustomBackgroundGateway {
 
   String get thumbnailPath;
 
-  Future<AveluneCustomBackgroundImportOutcome> pickAndImport();
+  Future<AveluneCustomBackgroundImportOutcome> pickAndImport(
+    AveluneBackgroundSource source,
+  );
 
   Future<bool> isCurrentValid();
 

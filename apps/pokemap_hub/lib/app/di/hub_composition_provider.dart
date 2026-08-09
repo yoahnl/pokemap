@@ -16,6 +16,7 @@ final hubCompositionProvider = FutureProvider<HubAppComposition>((ref) async {
   final composition = await HubComposition.create(
     dashboardNotifier: ref.watch(hubDashboardNotifierProvider.notifier),
     appearanceNotifier: ref.watch(aveluneAppearanceNotifierProvider.notifier),
+    gameMaintenance: await ref.watch(gameMaintenanceServiceProvider.future),
     platformAdapter: ref.watch(hubPlatformAdapterProvider),
     supportRoot: await ref.watch(supportRootProvider.future),
   );

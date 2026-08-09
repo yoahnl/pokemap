@@ -93,7 +93,8 @@ void main() {
     await tester.pump();
     await _scrollToCustomImage(tester);
 
-    expect(find.text('Choisir une image'), findsOneWidget);
+    expect(find.text('Photothèque'), findsOneWidget);
+    expect(find.text('Fichiers'), findsOneWidget);
     expect(find.text('Supprimer'), findsNothing);
 
     await tester.pumpWidget(
@@ -111,8 +112,33 @@ void main() {
     await tester.pump();
     await _scrollToCustomImage(tester);
 
-    expect(find.text('Remplacer'), findsOneWidget);
+    expect(find.text('Photothèque'), findsOneWidget);
+    expect(find.text('Fichiers'), findsOneWidget);
     expect(find.text('Supprimer'), findsOneWidget);
+  });
+
+  testWidgets('custom background exposes photo library and file sources',
+      (tester) async {
+    var source = '';
+    await tester.pumpWidget(
+      _app(
+        _settings(
+          state: _readyState(),
+          onImportFromPhotoLibrary: () => source = 'photos',
+          onImportFromFiles: () => source = 'files',
+        ),
+      ),
+    );
+    await tester.pump();
+    await _scrollToCustomImage(tester);
+
+    expect(find.text('Photothèque'), findsOneWidget);
+    expect(find.text('Fichiers'), findsOneWidget);
+
+    await tester.tap(find.text('Photothèque'));
+    expect(source, 'photos');
+    await tester.tap(find.text('Fichiers'));
+    expect(source, 'files');
   });
 
   testWidgets('remove button forwards the removal callback', (tester) async {
@@ -185,14 +211,16 @@ AveluneAppearanceSettings _settings({
   required AveluneAppearanceState state,
   ValueChanged<String>? onBackgroundSelected,
   ValueChanged<String>? onFurnitureSelected,
-  VoidCallback? onImportCustomBackground,
+  VoidCallback? onImportFromPhotoLibrary,
+  VoidCallback? onImportFromFiles,
   VoidCallback? onRemoveCustomBackground,
 }) =>
     AveluneAppearanceSettings(
       state: state,
       onBackgroundSelected: onBackgroundSelected ?? (_) {},
       onFurnitureSelected: onFurnitureSelected ?? (_) {},
-      onImportCustomBackground: onImportCustomBackground ?? () {},
+      onImportFromPhotoLibrary: onImportFromPhotoLibrary ?? () {},
+      onImportFromFiles: onImportFromFiles ?? () {},
       onRemoveCustomBackground: onRemoveCustomBackground ?? () {},
     );
 

@@ -146,7 +146,7 @@ final class AveluneAppearanceNotifier extends Notifier<AveluneAppearanceState> {
     );
   }
 
-  Future<bool> importCustomBackground() async {
+  Future<bool> importCustomBackground(AveluneBackgroundSource source) async {
     await _wire();
     final previous = state.preferences;
     final previousCustomIsValid = state.customBackgroundPath != null;
@@ -157,7 +157,7 @@ final class AveluneAppearanceNotifier extends Notifier<AveluneAppearanceState> {
       ),
     );
     try {
-      final outcome = await customBackground.pickAndImport();
+      final outcome = await customBackground.pickAndImport(source);
       if (outcome == AveluneCustomBackgroundImportOutcome.cancelled) {
         _emitReady(previous, customIsValid: previousCustomIsValid);
         return false;

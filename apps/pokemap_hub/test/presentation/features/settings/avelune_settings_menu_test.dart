@@ -302,7 +302,9 @@ HubGameView _view({
 
 class _FakeCustomBackground implements AveluneCustomBackgroundGateway {
   @override
-  Future<AveluneCustomBackgroundImportOutcome> pickAndImport() async =>
+  Future<AveluneCustomBackgroundImportOutcome> pickAndImport(
+    AveluneBackgroundSource source,
+  ) async =>
       AveluneCustomBackgroundImportOutcome.cancelled;
 
   @override

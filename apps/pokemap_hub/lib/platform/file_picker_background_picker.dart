@@ -1,57 +1,90 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 
 import 'package:pokemap_hub/features/appearance/domain/repositories/custom_background_repository_interface.dart';
 
-/// Host file picker adapter for custom Avelune backgrounds.
-///
-/// Native integration, so it lives in `platform/` rather than in the
-/// appearance feature's data layer.
-final class AveluneFilePickerBackgroundPicker
+typedef AveluneBackgroundPickDelegate =
+    Future<AvelunePickedBackground?> Function();
+
+final class AvelunePlatformBackgroundPicker
     implements AveluneBackgroundPicker {
-  const AveluneFilePickerBackgroundPicker();
+  const AvelunePlatformBackgroundPicker({
+    this.pickFromPhotoLibrary = _pickFromPhotoLibrary,
+    this.pickFromFiles = _pickFromFiles,
+  });
+
+  final AveluneBackgroundPickDelegate pickFromPhotoLibrary;
+  final AveluneBackgroundPickDelegate pickFromFiles;
 
   @override
-  Future<AvelunePickedBackground?> pick() async {
-    try {
-      final result = await FilePicker.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const <String>['jpg', 'jpeg', 'png', 'webp'],
-        allowMultiple: false,
-        withData: true,
-      );
-      if (result == null || result.files.isEmpty) return null;
-      final selected = result.files.single;
-      final path = selected.path;
-      if (path != null) {
-        final file = File(path);
-        if (await file.length() > kAveluneMaximumCustomBackgroundBytes) {
-          throw const AveluneCustomBackgroundException(
-            AveluneCustomBackgroundErrorCode.fileTooLarge,
-            'L’image dépasse la limite de 12 Mo.',
-          );
-        }
-      }
-      final bytes = selected.bytes ??
-          (path == null ? null : await File(path).readAsBytes());
-      if (bytes == null) {
-        throw const AveluneCustomBackgroundException(
-          AveluneCustomBackgroundErrorCode.readFailed,
-          'L’image sélectionnée n’a pas pu être lue.',
-        );
-      }
-      return AvelunePickedBackground(name: selected.name, bytes: bytes);
-    } on AveluneCustomBackgroundException {
-      rethrow;
-    } on Object {
+  Future<AvelunePickedBackground?> pick(AveluneBackgroundSource source) =>
+      switch (source) {
+        AveluneBackgroundSource.photoLibrary => pickFromPhotoLibrary(),
+        AveluneBackgroundSource.files => pickFromFiles(),
+      };
+}
+
+Future<AvelunePickedBackground?> _pickFromPhotoLibrary() async {
+  try {
+    final selected = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      requestFullMetadata: false,
+    );
+    if (selected == null) return null;
+    final length = await selected.length();
+    _ensureAcceptedSize(length);
+    return AvelunePickedBackground(
+      name: selected.name,
+      bytes: await selected.readAsBytes(),
+    );
+  } on AveluneCustomBackgroundException {
+    rethrow;
+  } on Object {
+    throw const AveluneCustomBackgroundException(
+      AveluneCustomBackgroundErrorCode.readFailed,
+      'L’image sélectionnée n’a pas pu être lue.',
+    );
+  }
+}
+
+Future<AvelunePickedBackground?> _pickFromFiles() async {
+  try {
+    final result = await FilePicker.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>['jpg', 'jpeg', 'png', 'webp'],
+      allowMultiple: false,
+      withData: true,
+    );
+    if (result == null || result.files.isEmpty) return null;
+    final selected = result.files.single;
+    _ensureAcceptedSize(selected.size);
+    final bytes = selected.bytes ??
+        (selected.path == null
+            ? null
+            : await File(selected.path!).readAsBytes());
+    if (bytes == null) {
       throw const AveluneCustomBackgroundException(
         AveluneCustomBackgroundErrorCode.readFailed,
         'L’image sélectionnée n’a pas pu être lue.',
       );
     }
+    return AvelunePickedBackground(name: selected.name, bytes: bytes);
+  } on AveluneCustomBackgroundException {
+    rethrow;
+  } on Object {
+    throw const AveluneCustomBackgroundException(
+      AveluneCustomBackgroundErrorCode.readFailed,
+      'L’image sélectionnée n’a pas pu être lue.',
+    );
   }
 }
 
-/// Performs every decode, orientation and resize operation outside the UI
-/// isolate. Both generated JPEGs are decoded once more before being accepted.
+void _ensureAcceptedSize(int bytes) {
+  if (bytes <= kAveluneMaximumCustomBackgroundBytes) return;
+  throw const AveluneCustomBackgroundException(
+    AveluneCustomBackgroundErrorCode.fileTooLarge,
+    'L’image dépasse la limite de 12 Mo.',
+  );
+}

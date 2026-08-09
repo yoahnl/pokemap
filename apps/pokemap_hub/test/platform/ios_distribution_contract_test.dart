@@ -66,6 +66,13 @@ void main() {
     expect(info, isNot(contains('app.pokemap.game-package')));
     expect(info, contains('<string>avelunegame</string>'));
     expect(info, contains('<string>pokemapgame</string>'));
+    expect(info, contains('<key>NSPhotoLibraryUsageDescription</key>'));
+    expect(
+      info,
+      contains(
+        '<string>Avelune utilise votre photothèque uniquement pour choisir un fond personnalisé.</string>',
+      ),
+    );
     expect(
       RegExp(
         r'PRODUCT_BUNDLE_IDENTIFIER = com\.yoahnl\.avelune\.player;',

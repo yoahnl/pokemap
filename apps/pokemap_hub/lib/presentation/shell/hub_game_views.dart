@@ -22,7 +22,7 @@ final class HubUiActions {
   final ValueChanged<HubGameView>? onUpdate;
   final ValueChanged<HubGameView>? onRepair;
   final ValueChanged<HubGameView>? onManageSaves;
-  final ValueChanged<HubGameView>? onUninstall;
+  final Future<void> Function(HubGameView)? onUninstall;
 }
 
 class HubArtwork extends StatelessWidget {

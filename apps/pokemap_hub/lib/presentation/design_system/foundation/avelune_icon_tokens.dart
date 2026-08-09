@@ -30,6 +30,7 @@ abstract final class AveluneIcons {
   static const IconData background = CupertinoIcons.photo;
   static const IconData furniture = CupertinoIcons.square_grid_2x2;
   static const IconData ownImage = CupertinoIcons.photo_on_rectangle;
+  static const IconData files = CupertinoIcons.folder;
   static const IconData selected = CupertinoIcons.checkmark_alt;
   static const IconData remove = CupertinoIcons.delete;
 

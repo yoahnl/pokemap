@@ -31,7 +31,7 @@
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Avelune n’accède pas à votre position. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Avelune n’accède pas à votre photothèque. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
+	<string>Avelune utilise votre photothèque uniquement pour choisir un fond personnalisé.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

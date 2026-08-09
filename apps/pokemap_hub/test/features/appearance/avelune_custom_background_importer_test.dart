@@ -17,7 +17,9 @@ void main() {
         storage: storage,
       );
 
-      final outcome = await importer.pickAndImport();
+      final outcome = await importer.pickAndImport(
+        AveluneBackgroundSource.files,
+      );
 
       expect(outcome, AveluneCustomBackgroundImportOutcome.cancelled);
       expect(processor.calls, 0);
@@ -38,7 +40,7 @@ void main() {
       );
 
       await expectLater(
-        importer.pickAndImport(),
+        importer.pickAndImport(AveluneBackgroundSource.files),
         throwsA(
           isA<AveluneCustomBackgroundException>().having(
             (error) => error.code,
@@ -64,7 +66,7 @@ void main() {
       );
 
       await expectLater(
-        importer.pickAndImport(),
+        importer.pickAndImport(AveluneBackgroundSource.files),
         throwsA(
           isA<AveluneCustomBackgroundException>().having(
             (error) => error.code,
@@ -85,7 +87,7 @@ void main() {
       );
 
       await expectLater(
-        importer.pickAndImport(),
+        importer.pickAndImport(AveluneBackgroundSource.files),
         throwsA(
           isA<AveluneCustomBackgroundException>().having(
             (error) => error.code,
@@ -204,7 +206,9 @@ final class _Picker implements AveluneBackgroundPicker {
   final AvelunePickedBackground? result;
 
   @override
-  Future<AvelunePickedBackground?> pick() async => result;
+  Future<AvelunePickedBackground?> pick(
+    AveluneBackgroundSource source,
+  ) async => result;
 }
 
 final class _RecordingProcessor implements AveluneBackgroundImageProcessor {

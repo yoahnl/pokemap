@@ -104,6 +104,44 @@ void main() {
     expect(find.text('Selbrume'), findsWidgets);
   });
 
+  testWidgets('game details confirms uninstall before invoking the action',
+      (tester) async {
+    String? uninstalledGameId;
+    await _pumpConsoleShell(
+      tester,
+      size: iphone,
+      insets: iphoneInsets,
+      actions: HubUiActions(
+        onUninstall: (game) async {
+          uninstalledGameId = game.game.gameId;
+        },
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-hero-details-button')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-delete-game-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Supprimer « Selbrume » ?'), findsOneWidget);
+    expect(uninstalledGameId, isNull);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-confirm-delete-game')),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(uninstalledGameId, 'games.example.selbrume');
+    expect(find.byType(AveluneGameDetailsScreen), findsNothing);
+  });
+
   testWidgets('long press flies the cartridge artwork into game details',
       (tester) async {
     final platformCalls = <MethodCall>[];

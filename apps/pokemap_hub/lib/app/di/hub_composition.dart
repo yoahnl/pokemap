@@ -30,14 +30,17 @@ final class HubComposition implements HubAppComposition {
     required this.actions,
     required this.launchResolver,
     required this.appearanceController,
+    required GameMaintenanceService? gameMaintenance,
     required HubPlatformAdapter platformAdapter,
-  }) : _platformAdapter = platformAdapter;
+  })  : _gameMaintenance = gameMaintenance,
+        _platformAdapter = platformAdapter;
 
   final Directory supportRoot;
   final HubDashboardNotifier controller;
   final HubUiActions actions;
   final InstalledGameLaunchResolver launchResolver;
   final AveluneAppearanceNotifier appearanceController;
+  final GameMaintenanceService? _gameMaintenance;
   final HubPlatformAdapter _platformAdapter;
 
   /// Builds the app shell around an already-wired dashboard notifier.
@@ -50,6 +53,7 @@ final class HubComposition implements HubAppComposition {
   static Future<HubComposition> create({
     required HubDashboardNotifier dashboardNotifier,
     required AveluneAppearanceNotifier appearanceNotifier,
+    GameMaintenanceService? gameMaintenance,
     HubPlatformAdapter? platformAdapter,
     Directory? supportRoot,
   }) async {
@@ -68,6 +72,9 @@ final class HubComposition implements HubAppComposition {
         onImportRequested: () {
           unawaited(initializedComposition._pickAndImport());
         },
+        onUninstall: gameMaintenance == null
+            ? null
+            : (game) => initializedComposition._uninstall(game),
       );
       final appearanceController = appearanceNotifier;
       await appearanceController.initialize();
@@ -77,6 +84,7 @@ final class HubComposition implements HubAppComposition {
         actions: actions,
         launchResolver: launchResolver,
         appearanceController: appearanceController,
+        gameMaintenance: gameMaintenance,
         platformAdapter: adapter,
       );
       composition = initializedComposition;
@@ -147,6 +155,11 @@ final class HubComposition implements HubAppComposition {
         stackTrace: stackTrace,
       );
     }
+  }
+
+  Future<void> _uninstall(HubGameView game) async {
+    await _gameMaintenance!.uninstallGame(game.game.gameId);
+    await controller.refresh();
   }
 
   Future<void> _importExternalPackage(

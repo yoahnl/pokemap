@@ -9,7 +9,7 @@ import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/library/data/repositories/game_library_repository_impl.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_diagnostic.dart';
 import 'package:pokemap_hub/core/ports/game_installation_ports.dart';
-import 'package:pokemap_hub/features/installation/data/repositories/game_package_installer.dart';
+import 'package:pokemap_hub/features/installation/domain/repositories/game_installation_repository_interface.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/installed_game_verifier.dart';
 import 'package:pokemap_hub/features/installation/domain/entities/game_installation_result.dart';
 
@@ -23,7 +23,7 @@ final class GameMaintenanceService {
   }) : now = now ?? DateTime.now;
 
   final Directory supportRoot;
-  final GamePackageInstaller installer;
+  final GameInstallationRepositoryInterface installer;
   final RestoreGameSavesForRollback? restoreSavesForRollback;
   final GameLibraryStore? libraryStore;
   final DateTime Function() now;

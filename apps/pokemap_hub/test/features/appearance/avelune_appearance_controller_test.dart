@@ -100,7 +100,9 @@ void main() {
     await controllerHarness.notifier.initialize();
     final statuses = controllerHarness.observeStatuses();
 
-    final imported = await controllerHarness.notifier.importCustomBackground();
+    final imported = await controllerHarness.notifier.importCustomBackground(
+      AveluneBackgroundSource.files,
+    );
 
     expect(imported, isTrue);
     expect(statuses, contains(AveluneAppearanceControllerStatus.saving));
@@ -110,6 +112,23 @@ void main() {
     expect(controllerHarness.state.customBackgroundPath, gateway.imagePath);
     expect((await store.load()).preferences.toJson().values,
         isNot(contains(gateway.imagePath)));
+  });
+
+  test('custom background import forwards the selected native source',
+      () async {
+    final gateway = _CustomBackgroundGateway(valid: true);
+    final controllerHarness = buildAppearanceHarness(
+      store: AveluneAppearanceStore(supportRoot: supportRoot),
+      customBackground: gateway,
+    );
+    addTearDown(controllerHarness.dispose);
+    await controllerHarness.notifier.initialize();
+
+    await controllerHarness.notifier.importCustomBackground(
+      AveluneBackgroundSource.photoLibrary,
+    );
+
+    expect(gateway.lastSource, AveluneBackgroundSource.photoLibrary);
   });
 
   test('cancelled import restores ready state without changing preferences',
@@ -124,7 +143,9 @@ void main() {
     addTearDown(controllerHarness.dispose);
     await controllerHarness.notifier.initialize();
 
-    final imported = await controllerHarness.notifier.importCustomBackground();
+    final imported = await controllerHarness.notifier.importCustomBackground(
+      AveluneBackgroundSource.files,
+    );
 
     expect(imported, isFalse);
     expect(controllerHarness.state.status,
@@ -149,7 +170,9 @@ void main() {
     addTearDown(controllerHarness.dispose);
     await controllerHarness.notifier.initialize();
 
-    await controllerHarness.notifier.importCustomBackground();
+    await controllerHarness.notifier.importCustomBackground(
+      AveluneBackgroundSource.files,
+    );
 
     expect(controllerHarness.state.preferences.backgroundId, 'custom');
     expect(controllerHarness.state.customBackgroundPath, gateway.imagePath);
@@ -234,6 +257,7 @@ final class _CustomBackgroundGateway implements AveluneCustomBackgroundGateway {
   final bool failDelete;
   final AveluneCustomBackgroundImportOutcome outcome;
   int deletes = 0;
+  AveluneBackgroundSource? lastSource;
 
   @override
   String get imagePath => '/support/avelune/appearance/custom-background.jpg';
@@ -253,7 +277,10 @@ final class _CustomBackgroundGateway implements AveluneCustomBackgroundGateway {
   Future<bool> isCurrentValid() async => valid;
 
   @override
-  Future<AveluneCustomBackgroundImportOutcome> pickAndImport() async {
+  Future<AveluneCustomBackgroundImportOutcome> pickAndImport(
+    AveluneBackgroundSource source,
+  ) async {
+    lastSource = source;
     if (outcome == AveluneCustomBackgroundImportOutcome.imported) valid = true;
     return outcome;
   }

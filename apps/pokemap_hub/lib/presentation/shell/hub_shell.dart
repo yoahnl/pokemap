@@ -5,6 +5,7 @@ import 'package:map_player_ui/map_player_ui.dart';
 
 import 'package:pokemap_hub/features/appearance/application/notifiers/avelune_appearance_notifier.dart';
 import 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_catalog.dart';
+import 'package:pokemap_hub/features/appearance/domain/repositories/custom_background_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/settings/pages/avelune_appearance_settings_page.dart';
 import 'package:pokemap_hub/presentation/features/settings/widgets/avelune_motion_panel.dart';
 import 'package:pokemap_hub/presentation/features/settings/pages/avelune_settings_menu.dart';
@@ -301,7 +302,12 @@ class HubShell extends StatelessWidget {
           state: ref.watch(aveluneAppearanceNotifierProvider),
           onBackgroundSelected: controller.selectBackground,
           onFurnitureSelected: controller.selectFurniture,
-          onImportCustomBackground: controller.importCustomBackground,
+          onImportFromPhotoLibrary: () => controller.importCustomBackground(
+            AveluneBackgroundSource.photoLibrary,
+          ),
+          onImportFromFiles: () => controller.importCustomBackground(
+            AveluneBackgroundSource.files,
+          ),
           onRemoveCustomBackground: controller.removeCustomBackground,
         ),
       ),
