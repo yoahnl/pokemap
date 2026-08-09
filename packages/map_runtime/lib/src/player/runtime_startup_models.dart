@@ -89,6 +89,7 @@ final class RuntimeHostSplashBranding {
     this.logoAssetId,
     this.primaryColorHex = '#F2D9B2',
     this.secondaryColorHex = '#9E79D7',
+    this.backgroundColorHex = '#02040A',
     this.minimumDisplayDuration = const Duration(milliseconds: 7200),
   })  : assert(displayName != ''),
         assert(signature != '');
@@ -98,6 +99,7 @@ final class RuntimeHostSplashBranding {
   final String? logoAssetId;
   final String primaryColorHex;
   final String secondaryColorHex;
+  final String backgroundColorHex;
   final Duration minimumDisplayDuration;
 }
 

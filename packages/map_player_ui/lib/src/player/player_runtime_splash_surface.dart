@@ -66,6 +66,10 @@ class PlayerSplashTimeline extends StatelessWidget {
           branding.secondaryColorHex,
         ) ??
         colors.focus;
+    final background = PokeMapPlayerProjectColorResolver.tryOpaqueHex(
+          branding.backgroundColorHex,
+        ) ??
+        colors.background;
     final haloOpacity = _interval(0, .45);
     final markOpacity = _interval(.18, .58);
     final wordmarkOpacity = _interval(.4, .72);
@@ -81,8 +85,8 @@ class PlayerSplashTimeline extends StatelessWidget {
           gradient: RadialGradient(
             radius: 1.25,
             colors: <Color>[
-              Color.lerp(colors.background, primary, .09)!,
-              colors.background,
+              Color.lerp(background, primary, .09)!,
+              background,
             ],
           ),
         ),
@@ -172,7 +176,7 @@ class PlayerSplashTimeline extends StatelessWidget {
               IgnorePointer(
                 child: Opacity(
                   opacity: curtainOpacity,
-                  child: ColoredBox(color: colors.background),
+                  child: ColoredBox(color: background),
                 ),
               ),
             ],

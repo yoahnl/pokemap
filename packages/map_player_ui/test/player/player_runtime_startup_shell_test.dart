@@ -17,6 +17,37 @@ void main() {
     description: 'Une aventure ferroviaire.',
   );
 
+  testWidgets('keeps host loading progress monotonic during bootstrap handoff',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: RuntimeStartupSnapshot(
+            revision: 0,
+            phase: RuntimeStartupPhase.splash,
+            progress: .05,
+            currentStage: RuntimeStartupPreparationStage.manifestAndIdentity,
+            isPreparationReady: false,
+            isMinimumElapsed: false,
+            isLifecycleActive: true,
+          ),
+          splashLoadingProgress: .35,
+          titlePresentation: presentation,
+          onStartupCommand: (_) {},
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      ),
+    );
+
+    final indicator = tester.widget<LinearProgressIndicator>(
+      find.byKey(const ValueKey<String>('startup-splash-progress')),
+    );
+    expect(indicator.value, .35);
+  });
+
   testWidgets('Start and primary consume one title prompt revision',
       (tester) async {
     final controller = PlayerRuntimeStartupShellController();
@@ -335,9 +366,8 @@ void main() {
           branding: branding,
           snapshot: _startup(
             phase,
-            player: phase == RuntimeStartupPhase.titleMenu
-                ? _titlePlayer()
-                : null,
+            player:
+                phase == RuntimeStartupPhase.titleMenu ? _titlePlayer() : null,
           ),
           titlePresentation: presentation,
           titlePromptSource: PlayerIntroVideoSource(

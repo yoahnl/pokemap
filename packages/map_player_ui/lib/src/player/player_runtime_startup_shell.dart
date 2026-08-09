@@ -79,10 +79,15 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
     this.onPreferencesChanged,
     this.reducedMotion = false,
     this.splashAnimationProgress,
+    this.splashLoadingProgress,
     this.sessionBuilder,
-  }) : assert(
+  })  : assert(
           splashAnimationProgress == null ||
               (splashAnimationProgress >= 0 && splashAnimationProgress <= 1),
+        ),
+        assert(
+          splashLoadingProgress == null ||
+              (splashLoadingProgress >= 0 && splashLoadingProgress <= 1),
         );
 
   final RuntimeHostSplashBranding branding;
@@ -108,6 +113,7 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
   final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
   final bool reducedMotion;
   final double? splashAnimationProgress;
+  final double? splashLoadingProgress;
   final Widget Function(
     BuildContext context,
     RuntimePlayerSnapshot? playerSnapshot,
@@ -218,7 +224,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         animation: _splashAnimation,
         builder: (context, _) => PlayerRuntimeSplashSurface(
           branding: widget.branding,
-          progress: widget.snapshot.progress,
+          progress: widget.splashLoadingProgress ?? widget.snapshot.progress,
           animationProgress:
               widget.splashAnimationProgress ?? _splashAnimation.value,
           logo: widget.splashLogo,
