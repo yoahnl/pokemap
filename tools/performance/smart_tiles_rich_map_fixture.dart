@@ -503,6 +503,17 @@ ProjectSmartTileCatalog _richCatalog() => ProjectSmartTileCatalog(
                   ),
                   channel: SmartTileRenderChannel.ground,
                 ),
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: 'rich-atlas',
+                      column: 6,
+                      row: 0,
+                    ),
+                  ),
+                  channel: SmartTileRenderChannel.actorOcclusion,
+                  drawOrder: 20,
+                ),
               ],
             ),
           ],

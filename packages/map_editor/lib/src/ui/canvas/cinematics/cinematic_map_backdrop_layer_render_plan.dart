@@ -631,7 +631,8 @@ int _appendSmartTileInstructions({
       final destination = visual.geometry.destinationRect;
       final isForeground = switch (visual.channel) {
         SmartTileRenderChannel.canopy ||
-        SmartTileRenderChannel.foreground =>
+        SmartTileRenderChannel.foreground ||
+        SmartTileRenderChannel.actorOcclusion =>
           true,
         SmartTileRenderChannel.ground ||
         SmartTileRenderChannel.understory ||

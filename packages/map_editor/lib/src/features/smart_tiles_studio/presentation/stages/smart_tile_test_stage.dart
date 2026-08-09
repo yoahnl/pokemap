@@ -318,5 +318,6 @@ String _channelLabel(SmartTileRenderChannel channel) => switch (channel) {
       SmartTileRenderChannel.understory => 'Sous-bois',
       SmartTileRenderChannel.canopy => 'Canopée',
       SmartTileRenderChannel.foreground => 'Premier plan',
+      SmartTileRenderChannel.actorOcclusion => 'Devant les personnages',
       SmartTileRenderChannel.shadow => 'Ombre',
     };

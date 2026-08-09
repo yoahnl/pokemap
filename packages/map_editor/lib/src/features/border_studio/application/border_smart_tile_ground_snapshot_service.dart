@@ -322,7 +322,8 @@ bool _belongsToGroundSnapshot(SmartTileRenderChannel channel) =>
       SmartTileRenderChannel.shadow =>
         true,
       SmartTileRenderChannel.canopy ||
-      SmartTileRenderChannel.foreground =>
+      SmartTileRenderChannel.foreground ||
+      SmartTileRenderChannel.actorOcclusion =>
         false,
     };
 

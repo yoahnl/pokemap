@@ -317,7 +317,7 @@ void main() {
     });
   }
 
-  test('splits multi-part visuals into stable background and foreground passes',
+  test('splits multi-part visuals into background, foreground and actor passes',
       () {
     const preset = ProjectSmartTilePreset(
       id: 'forest',
@@ -363,6 +363,17 @@ void main() {
                   channel: SmartTileRenderChannel.canopy,
                   drawOrder: 2,
                 ),
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: 'atlas',
+                      column: 0,
+                      row: 0,
+                    ),
+                  ),
+                  channel: SmartTileRenderChannel.actorOcclusion,
+                  drawOrder: 3,
+                ),
               ],
             ),
           ],
@@ -402,6 +413,12 @@ void main() {
       catalog: catalog,
       pass: SmartTileVisualPass.foreground,
     );
+    final actorOcclusion = resolveSmartTileLayerVisuals(
+      map: map,
+      layer: layer,
+      catalog: catalog,
+      pass: SmartTileVisualPass.actorOcclusion,
+    );
 
     expect(background.single.channel, SmartTileRenderChannel.ground);
     expect(background.single.footprintWidth, 2);
@@ -415,6 +432,10 @@ void main() {
     expect(background.single.geometry.visualBounds.width, 3);
     expect(background.single.geometry.visualBounds.height, 2);
     expect(foreground.single.channel, SmartTileRenderChannel.canopy);
+    expect(
+      actorOcclusion.single.channel,
+      SmartTileRenderChannel.actorOcclusion,
+    );
   });
 
   test('composes the generated rule transform with the visual transform', () {

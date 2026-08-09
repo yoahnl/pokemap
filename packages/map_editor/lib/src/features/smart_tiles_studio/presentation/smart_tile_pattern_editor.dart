@@ -810,6 +810,7 @@ String _renderChannelLabel(SmartTileRenderChannel channel) => switch (channel) {
       SmartTileRenderChannel.understory => 'Sous-bois',
       SmartTileRenderChannel.canopy => 'Canopée',
       SmartTileRenderChannel.foreground => 'Premier plan',
+      SmartTileRenderChannel.actorOcclusion => 'Devant les personnages',
       SmartTileRenderChannel.shadow => 'Ombre',
     };
 
@@ -819,6 +820,7 @@ String _renderChannelShortLabel(SmartTileRenderChannel channel) =>
       SmartTileRenderChannel.understory => 'Sous-bois',
       SmartTileRenderChannel.canopy => 'Canopée',
       SmartTileRenderChannel.foreground => 'Avant',
+      SmartTileRenderChannel.actorOcclusion => 'Acteur',
       SmartTileRenderChannel.shadow => 'Ombre',
     };
 

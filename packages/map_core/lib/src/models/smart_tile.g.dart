@@ -281,6 +281,7 @@ const _$SmartTileRenderChannelEnumMap = {
   SmartTileRenderChannel.understory: 'understory',
   SmartTileRenderChannel.canopy: 'canopy',
   SmartTileRenderChannel.foreground: 'foreground',
+  SmartTileRenderChannel.actorOcclusion: 'actor_occlusion',
   SmartTileRenderChannel.shadow: 'shadow',
 };
 

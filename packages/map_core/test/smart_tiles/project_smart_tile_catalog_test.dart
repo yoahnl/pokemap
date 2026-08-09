@@ -4,6 +4,24 @@ import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  test('actor occlusion visual parts round-trip through project JSON', () {
+    const part = SmartTileVisualPart(
+      source: SmartTileVisualSource.frame(
+        frame: SmartTileFrameRef(
+          atlasId: 'grass',
+          column: 4,
+          row: 7,
+        ),
+      ),
+      channel: SmartTileRenderChannel.actorOcclusion,
+    );
+
+    final json = part.toJson();
+
+    expect(json['channel'], 'actor_occlusion');
+    expect(SmartTileVisualPart.fromJson(json), part);
+  });
+
   group('ProjectSmartTileCatalog', () {
     test('round-trips the complete native authoring contract', () {
       final catalog = ProjectSmartTileCatalog(

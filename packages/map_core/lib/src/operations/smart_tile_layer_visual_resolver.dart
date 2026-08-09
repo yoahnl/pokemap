@@ -10,7 +10,7 @@ import 'smart_tile_pattern_operations.dart';
 import 'smart_tile_resolver.dart';
 import 'smart_tile_sprite_geometry.dart';
 
-enum SmartTileVisualPass { background, foreground }
+enum SmartTileVisualPass { background, actorOcclusion, foreground }
 
 @immutable
 final class SmartTileLayerVisual {
@@ -849,6 +849,8 @@ bool _channelBelongsToPass(
     SmartTileVisualPass.foreground =>
       channel == SmartTileRenderChannel.canopy ||
           channel == SmartTileRenderChannel.foreground,
+    SmartTileVisualPass.actorOcclusion =>
+      channel == SmartTileRenderChannel.actorOcclusion,
   };
 }
 

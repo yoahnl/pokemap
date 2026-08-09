@@ -453,6 +453,12 @@ List<CinematicMapBackdropVisualPrimitive> _projectVisualPrimitives(
           map: mapData,
           layer: layer,
           catalog: smartTileCatalog,
+          pass: SmartTileVisualPass.actorOcclusion,
+        ),
+        ...resolveSmartTileLayerVisuals(
+          map: mapData,
+          layer: layer,
+          catalog: smartTileCatalog,
           pass: SmartTileVisualPass.foreground,
         ),
       ];

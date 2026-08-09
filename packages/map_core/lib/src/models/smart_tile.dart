@@ -109,6 +109,8 @@ enum SmartTileRenderChannel {
   canopy,
   @JsonValue('foreground')
   foreground,
+  @JsonValue('actor_occlusion')
+  actorOcclusion,
   @JsonValue('shadow')
   shadow,
 }
