@@ -132,6 +132,7 @@ import 'post_battle_progression_overlay_component.dart';
 import 'runtime_battle_gender_overrides.dart';
 import 'runtime_trainer_battle_overrides.dart';
 import 'static_placed_element_occlusion_patch_resolution.dart';
+import 'smart_tile_actor_occlusion_component.dart';
 import 'warp_transition_overlay_component.dart';
 
 part 'playable_map_game_support.dart';
@@ -3823,6 +3824,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   @override
   void update(double dt) {
     super.update(dt);
+    for (final loaded in _loadedMapsById.values) {
+      loaded.actorOcclusionLayers.update(dt);
+    }
     _pixelCamera.refreshDevicePixelRatio();
     _updateFps(dt);
     _runtimeClockMs += dt * 1000;
@@ -10112,6 +10116,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           originCellY: activeLoaded.originCellY,
           backgroundLayers: activeLoaded.backgroundLayers,
           foregroundLayers: activeLoaded.foregroundLayers,
+          actorOcclusionLayers: activeLoaded.actorOcclusionLayers,
           occlusionPatches: activeLoaded.occlusionPatches,
           npcActors: activeLoaded.npcActors,
           npcActorByEntityId: activeLoaded.npcActorByEntityId,
@@ -11941,6 +11946,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     loaded.backgroundLayers.removeFromParent();
     loaded.foregroundLayers.removeFromParent();
+    loaded.actorOcclusionLayers.removeFromParent();
     for (final patch in loaded.occlusionPatches) {
       patch.removeFromParent();
     }
@@ -11998,6 +12004,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     foregroundLayers.priority = 100000;
     await world.add(foregroundLayers);
+
+    final actorOcclusionLayers = SmartTileActorOcclusionLayerCollection(
+      bundle: preparedBundle,
+      tileImagesByTilesetId: tileImagesById,
+    );
+    actorOcclusionLayers.setMapOrigin(
+      _originPixels(
+        originCellX: originCellX,
+        originCellY: originCellY,
+      ),
+    );
+    for (final row in actorOcclusionLayers.rows) {
+      await world.add(row);
+    }
 
     final occlusionPatches = <PlacedElementOcclusionPatchComponent>[];
     final occlusionInstructions =
@@ -12072,6 +12092,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       originCellY: originCellY,
       backgroundLayers: backgroundLayers,
       foregroundLayers: foregroundLayers,
+      actorOcclusionLayers: actorOcclusionLayers,
       occlusionPatches: occlusionPatches,
       npcActors: npcActors,
       npcActorByEntityId: npcActorByEntityId,
@@ -12197,6 +12218,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final originDelta = originPx - oldOriginPx;
     loaded.backgroundLayers.position = originPx.clone();
     loaded.foregroundLayers.position = originPx.clone();
+    loaded.actorOcclusionLayers.setMapOrigin(originPx);
     for (final patch in loaded.occlusionPatches) {
       patch.translateByMapOriginDelta(originDelta);
     }
@@ -12221,6 +12243,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       originCellY: originCellY,
       backgroundLayers: loaded.backgroundLayers,
       foregroundLayers: loaded.foregroundLayers,
+      actorOcclusionLayers: loaded.actorOcclusionLayers,
       occlusionPatches: loaded.occlusionPatches,
       npcActors: loaded.npcActors,
       npcActorByEntityId: loaded.npcActorByEntityId,
@@ -13246,6 +13269,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
       loaded.backgroundLayers.setVisibleLocalRect(localRect);
       loaded.foregroundLayers.setVisibleLocalRect(localRect);
+      loaded.actorOcclusionLayers.setVisibleLocalRect(localRect);
     }
   }
 }

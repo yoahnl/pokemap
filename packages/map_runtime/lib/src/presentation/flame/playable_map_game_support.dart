@@ -319,6 +319,7 @@ class _LoadedPlayableMap {
     required this.originCellY,
     required this.backgroundLayers,
     required this.foregroundLayers,
+    required this.actorOcclusionLayers,
     required this.occlusionPatches,
     required this.npcActors,
     required this.npcActorByEntityId,
@@ -330,6 +331,7 @@ class _LoadedPlayableMap {
   final int originCellY;
   final MapLayersComponent backgroundLayers;
   final MapLayersComponent foregroundLayers;
+  final SmartTileActorOcclusionLayerCollection actorOcclusionLayers;
   final List<PlacedElementOcclusionPatchComponent> occlusionPatches;
   final List<OverworldActorComponent> npcActors;
   final Map<String, OverworldActorComponent> npcActorByEntityId;

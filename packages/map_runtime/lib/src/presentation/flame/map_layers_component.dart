@@ -17,6 +17,7 @@ import '../../shadow/shadow_runtime_renderer.dart';
 import 'quarter_turn_pixel_renderer.dart';
 import 'placed_element_collision_clip.dart';
 import 'runtime_map_layer_paint_order.dart';
+import 'smart_tile_visual_renderer.dart';
 
 const int _kEntityFrameDurationFallbackMs = 200;
 
@@ -592,18 +593,9 @@ class MapLayersComponent extends PositionComponent {
     for (final visual in visuals) {
       final image = tileImagesByTilesetId[visual.tilesetId];
       if (image == null) continue;
-      final source = visual.sourceRect;
-      final sourceRect = Rect.fromLTWH(
-        source.x.toDouble(),
-        source.y.toDouble(),
-        source.width.toDouble(),
-        source.height.toDouble(),
-      );
-      if (!image.containsSourceRect(sourceRect)) continue;
-      _drawSmartTileImage(
+      drawRuntimeSmartTileVisual(
         canvas: canvas,
         image: image,
-        sourceRect: sourceRect,
         visual: visual,
         paint: paint,
       );
@@ -632,48 +624,6 @@ class MapLayersComponent extends PositionComponent {
       sourceCellHeight: sourceTileHeight > 0 ? sourceTileHeight.toDouble() : ch,
       patternOwnerIndex: _patternOwnerIndicesByLayerId[layer.id],
     );
-  }
-
-  void _drawSmartTileImage({
-    required Canvas canvas,
-    required RuntimeTilesetImage image,
-    required Rect sourceRect,
-    required SmartTileLayerVisual visual,
-    required Paint paint,
-  }) {
-    final destination = visual.geometry.destinationRect;
-    final transform = visual.transform;
-    canvas.save();
-    try {
-      // Keep this transform sequence identical to the editor consumer. The
-      // neutral Core plan is authoritative; runtime adds no Wang decisions.
-      canvas.translate(destination.left, destination.top);
-      switch (transform.quarterTurns) {
-        case 0:
-          break;
-        case 1:
-          canvas.translate(destination.height, 0);
-          canvas.rotate(math.pi / 2);
-        case 2:
-          canvas.translate(destination.width, destination.height);
-          canvas.rotate(math.pi);
-        case 3:
-          canvas.translate(0, destination.width);
-          canvas.rotate(3 * math.pi / 2);
-      }
-      if (transform.flipX) {
-        canvas.translate(destination.width, 0);
-        canvas.scale(-1, 1);
-      }
-      image.drawImageRect(
-        canvas,
-        sourceRect,
-        Rect.fromLTWH(0, 0, destination.width, destination.height),
-        paint,
-      );
-    } finally {
-      canvas.restore();
-    }
   }
 
   void _paintEntities(Canvas canvas) {
