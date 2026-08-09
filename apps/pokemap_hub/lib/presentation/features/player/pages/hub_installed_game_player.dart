@@ -132,6 +132,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   Future<void> _initialize() async {
     RuntimePlayerCoordinator? coordinator;
     RuntimeStartupCoordinator? startupCoordinator;
+    RuntimeSplashJingleController? splashJingleController;
     RuntimeTitleMusicController? titleMusicController;
     HubRuntimeStartupAdapter? startupAdapter;
     StreamSubscription<RuntimeStartupSnapshot>? startupSubscription;
@@ -215,6 +216,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         externalExit: HubRuntimeExternalExit(widget.onHubRequested),
       );
       if (widget.runtimeStartupShellEnabled) {
+        final startupSplashJingle = RuntimeSplashJingleController(
+          mixer: audioMixer,
+        );
+        splashJingleController = startupSplashJingle;
         final startupTitleMusic = RuntimeTitleMusicController(
           mixer: audioMixer,
         );
@@ -229,6 +234,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
           initialMapPreloadPort: initialMapPreloader,
           assetResolver: startupAdapter,
           introController: RuntimeIntroSequenceController(),
+          splashJingleController: startupSplashJingle,
           titleMusicController: startupTitleMusic,
           hostBranding: _aveluneStartupBranding,
           minimumSplashDuration: _remainingSplashDuration,
@@ -260,6 +266,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         if (startupCoordinator != null) {
           await startupCoordinator.dispose();
         } else {
+          await splashJingleController?.dispose();
           await titleMusicController?.dispose();
           await coordinator.dispose();
         }
@@ -296,6 +303,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (startupCoordinator != null) {
         await startupCoordinator.dispose();
       } else {
+        await splashJingleController?.dispose();
         await titleMusicController?.dispose();
         await coordinator?.dispose();
       }

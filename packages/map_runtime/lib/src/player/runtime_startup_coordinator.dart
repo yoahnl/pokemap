@@ -9,6 +9,7 @@ import 'runtime_player_coordinator.dart';
 import 'runtime_player_models.dart';
 import 'runtime_startup_models.dart';
 import 'runtime_startup_preparation.dart';
+import 'runtime_splash_jingle_controller.dart';
 import 'runtime_title_music_controller.dart';
 
 /// Host boundary for work that is not already owned by the player coordinator.
@@ -37,6 +38,7 @@ final class RuntimeStartupCoordinator {
     required RuntimeInitialMapPreloadPort initialMapPreloadPort,
     required RuntimePresentationAssetResolver assetResolver,
     required RuntimeIntroSequenceController introController,
+    required RuntimeSplashJingleController splashJingleController,
     required RuntimeTitleMusicController titleMusicController,
     RuntimeStartupClock clock = const SystemRuntimeStartupClock(),
     RuntimeHostSplashBranding? hostBranding,
@@ -50,6 +52,7 @@ final class RuntimeStartupCoordinator {
         _initialMapPreloadPort = initialMapPreloadPort,
         _assetResolver = assetResolver,
         _intro = introController,
+        _splashJingle = splashJingleController,
         _titleMusic = titleMusicController,
         _clock = clock,
         _hostBranding = hostBranding,
@@ -102,6 +105,7 @@ final class RuntimeStartupCoordinator {
   final RuntimeInitialMapPreloadPort _initialMapPreloadPort;
   final RuntimePresentationAssetResolver _assetResolver;
   final RuntimeIntroSequenceController _intro;
+  final RuntimeSplashJingleController _splashJingle;
   final RuntimeTitleMusicController _titleMusic;
   final RuntimeStartupClock _clock;
   final RuntimeHostSplashBranding? _hostBranding;
@@ -320,6 +324,7 @@ final class RuntimeStartupCoordinator {
     );
     _intro.pauseForLifecycle();
     await Future.wait<void>(<Future<void>>[
+      _splashJingle.pauseForLifecycle(),
       _titleMusic.pauseForLifecycle(),
       _player.pauseForLifecycle(),
     ]);
@@ -330,6 +335,7 @@ final class RuntimeStartupCoordinator {
     if (_snapshot.isLifecycleActive) return;
     _intro.resumeAfterLifecycle();
     await Future.wait<void>(<Future<void>>[
+      _splashJingle.resumeFromLifecycle(),
       _titleMusic.resumeFromLifecycle(),
       _player.resumeFromLifecycle(),
     ]);
@@ -357,6 +363,7 @@ final class RuntimeStartupCoordinator {
     await _playerSubscription.cancel();
     await _stopIntroSafely();
     _intro.skip();
+    await _splashJingle.dispose();
     await _titleMusic.dispose();
     await _player.dispose();
     await _snapshots.close();
@@ -394,6 +401,7 @@ final class RuntimeStartupCoordinator {
         introCanReplay: false,
       ),
     );
+    unawaited(_splashJingle.playOnce());
 
     // Existing player initialization is the canonical preference/save seam.
     // Both weighted units await the same concurrent load without duplicating it.
@@ -789,6 +797,8 @@ final class RuntimeStartupCoordinator {
       await _clock.delay(_finalCurtainDuration);
       if (!_isActiveAttempt(generation, attempt)) return;
     }
+    await _splashJingle.stop();
+    if (!_isActiveAttempt(generation, attempt)) return;
     _intro.start(
       hasVideo: attempt.introVideo != null,
       hasPoster: attempt.introPoster != null,

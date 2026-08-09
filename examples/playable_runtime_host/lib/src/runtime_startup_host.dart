@@ -107,6 +107,7 @@ final class StandaloneRuntimeStartupHost {
     PlayerPreferencesGateway? preferencesGateway,
     Future<void> Function()? onExternalExit,
     Future<void> Function()? stopIntroPlayback,
+    RuntimeSplashJingleController? splashJingleController,
     RuntimeTitleMusicController? titleMusicController,
     RuntimeStartupClock clock = const SystemRuntimeStartupClock(),
     Duration? minimumSplashDuration,
@@ -160,12 +161,16 @@ final class StandaloneRuntimeStartupHost {
     );
     final titleMusic =
         titleMusicController ?? RuntimeTitleMusicController(mixer: audioMixer);
+    final splashJingle =
+        splashJingleController ??
+        RuntimeSplashJingleController(mixer: audioMixer);
     coordinator = RuntimeStartupCoordinator(
       playerCoordinator: playerCoordinator,
       preparationPort: presentation,
       initialMapPreloadPort: initialMapPreloader,
       assetResolver: presentation,
       introController: RuntimeIntroSequenceController(),
+      splashJingleController: splashJingle,
       titleMusicController: titleMusic,
       clock: clock,
       hostBranding: standaloneRuntimeSplashBranding,

@@ -9,6 +9,7 @@ void main() {
       effectsVolume: 0.2,
     );
 
+    expect(mix.volumeFor(RuntimeAudioRoute.splash, sourceVolume: 0.5), 0.1);
     expect(mix.volumeFor(RuntimeAudioRoute.title, sourceVolume: 0.5), 0.1);
     expect(mix.volumeFor(RuntimeAudioRoute.overworld), 0.2);
     expect(mix.volumeFor(RuntimeAudioRoute.battle), 0.2);

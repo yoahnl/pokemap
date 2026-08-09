@@ -3,6 +3,7 @@ typedef RuntimeAudioVolumeSetter = Future<void> Function(double volume);
 /// Runtime-owned audio identities. Routes intentionally stay independent from
 /// file paths so title, map, battle, and cinematic sources share one mixer.
 enum RuntimeAudioRoute {
+  splash,
   title,
   overworld,
   battle,
@@ -15,6 +16,7 @@ enum RuntimeAudioBus { music, effects }
 extension RuntimeAudioRouteBus on RuntimeAudioRoute {
   RuntimeAudioBus get bus => switch (this) {
         RuntimeAudioRoute.title ||
+        RuntimeAudioRoute.splash ||
         RuntimeAudioRoute.overworld ||
         RuntimeAudioRoute.battle ||
         RuntimeAudioRoute.cinematicMusic =>

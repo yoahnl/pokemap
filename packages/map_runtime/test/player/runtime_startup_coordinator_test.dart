@@ -73,6 +73,9 @@ void main() {
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.splash);
 
     await _flushEvents();
+    expect(harness.jingleAudio.played, <String>[
+      runtimePremiumSplashJingleAsset,
+    ]);
     expect(harness.startup.snapshot.progress, 1);
     expect(harness.startup.snapshot.isPreparationReady, isTrue);
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.splash);
@@ -753,6 +756,7 @@ void main() {
 
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
     expect(port.manifestAttempts, 2);
+    expect(harness.jingleAudio.played, hasLength(1));
   });
 
   test('late work from a failed attempt cannot alter the retry snapshot',
@@ -1134,7 +1138,9 @@ final class _RuntimeStartupTestHarness {
     effectiveClock = clock ?? this.clock;
     intro = RuntimeIntroSequenceController();
     audio = _FakeAudioDriver(stopGate: audioStopGate);
+    jingleAudio = _FakeAudioDriver();
     music = RuntimeTitleMusicController(driver: audio);
+    jingle = RuntimeSplashJingleController(driver: jingleAudio);
     startup = RuntimeStartupCoordinator(
       playerCoordinator: player.coordinator,
       preparationPort:
@@ -1144,6 +1150,7 @@ final class _RuntimeStartupTestHarness {
       assetResolver: assetResolver ?? _MemoryPresentationAssetResolver(),
       introController: intro,
       titleMusicController: music,
+      splashJingleController: jingle,
       clock: effectiveClock,
       minimumSplashDuration: const Duration(seconds: 7),
       reducedMotion: reducedMotion,
@@ -1157,7 +1164,9 @@ final class _RuntimeStartupTestHarness {
   late final RuntimeStartupClock effectiveClock;
   late final RuntimeIntroSequenceController intro;
   late final _FakeAudioDriver audio;
+  late final _FakeAudioDriver jingleAudio;
   late final RuntimeTitleMusicController music;
+  late final RuntimeSplashJingleController jingle;
   late final RuntimeStartupCoordinator startup;
 
   Future<void> dispose() => startup.dispose();
