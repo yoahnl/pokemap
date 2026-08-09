@@ -36,10 +36,15 @@ final class SmartTileTiledWangSource {
 }
 
 final class SmartTileTiledWangImportServiceException implements Exception {
-  const SmartTileTiledWangImportServiceException(this.code, this.message);
+  const SmartTileTiledWangImportServiceException(
+    this.code,
+    this.message, {
+    this.relatedPath,
+  });
 
   final String code;
   final String message;
+  final String? relatedPath;
 
   @override
   String toString() =>
@@ -50,22 +55,87 @@ abstract interface class SmartTileTiledWangSourcePicker {
   Future<SmartTileTiledWangSource?> pick();
 }
 
+typedef SmartTileTiledWangTsxPathPicker = Future<String?> Function();
+typedef SmartTileTiledWangDirectoryAuthorizer = Future<String?> Function({
+  required String initialDirectory,
+});
+typedef SmartTileTiledWangSourceLoader = Future<SmartTileTiledWangSource>
+    Function(String tsxPath);
+
 final class FilePickerSmartTileTiledWangSourcePicker
     implements SmartTileTiledWangSourcePicker {
-  const FilePickerSmartTileTiledWangSourcePicker();
+  const FilePickerSmartTileTiledWangSourcePicker({
+    this.pickTsxPath = _pickSmartTileTiledWangTsxPath,
+    this.authorizeDirectory = _authorizeSmartTileTiledWangDirectory,
+    this.loadSource = loadSmartTileTiledWangSource,
+  });
+
+  final SmartTileTiledWangTsxPathPicker pickTsxPath;
+  final SmartTileTiledWangDirectoryAuthorizer authorizeDirectory;
+  final SmartTileTiledWangSourceLoader loadSource;
 
   @override
   Future<SmartTileTiledWangSource?> pick() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const <String>['tsx'],
-      allowMultiple: false,
-      withData: false,
-    );
-    final path = result?.files.singleOrNull?.path;
+    final path = await pickTsxPath();
     if (path == null || path.trim().isEmpty) return null;
-    return loadSmartTileTiledWangSource(path);
+    try {
+      return await loadSource(path);
+    } on SmartTileTiledWangImportServiceException catch (error) {
+      if (error.code != 'smart_tile.tiled_wang.image_access_denied' ||
+          error.relatedPath == null) {
+        rethrow;
+      }
+      final initialDirectory = _commonSourceDirectory(
+        p.dirname(path),
+        p.dirname(error.relatedPath!),
+      );
+      final authorizedDirectory = await authorizeDirectory(
+        initialDirectory: initialDirectory,
+      );
+      if (authorizedDirectory == null || authorizedDirectory.trim().isEmpty) {
+        throw const SmartTileTiledWangImportServiceException(
+          'smart_tile.tiled_wang.source_directory_authorization_cancelled',
+          'Import annulé : PokeMap doit pouvoir autoriser le dossier source '
+              'qui contient le TSX et ses images.',
+        );
+      }
+      return loadSource(path);
+    }
   }
+}
+
+Future<String?> _pickSmartTileTiledWangTsxPath() async {
+  final result = await FilePicker.platform.pickFiles(
+    type: FileType.custom,
+    allowedExtensions: const <String>['tsx'],
+    allowMultiple: false,
+    withData: false,
+  );
+  return result?.files.singleOrNull?.path;
+}
+
+Future<String?> _authorizeSmartTileTiledWangDirectory({
+  required String initialDirectory,
+}) {
+  return FilePicker.platform.getDirectoryPath(
+    dialogTitle: 'Autoriser le dossier source du tileset',
+    initialDirectory: initialDirectory,
+  );
+}
+
+String _commonSourceDirectory(String first, String second) {
+  final firstParts = p.split(p.normalize(p.absolute(first)));
+  final secondParts = p.split(p.normalize(p.absolute(second)));
+  final length = firstParts.length < secondParts.length
+      ? firstParts.length
+      : secondParts.length;
+  var commonLength = 0;
+  while (commonLength < length &&
+      firstParts[commonLength] == secondParts[commonLength]) {
+    commonLength++;
+  }
+  if (commonLength == 0) return p.dirname(first);
+  return p.normalize(p.joinAll(firstParts.take(commonLength)));
 }
 
 Future<SmartTileTiledWangSource> loadSmartTileTiledWangSource(
@@ -118,7 +188,15 @@ Future<SmartTileTiledWangSource> loadSmartTileTiledWangSource(
         throw const FormatException('Unsupported image');
       }
       decodedImage = decoded;
-    } on FileSystemException {
+    } on FileSystemException catch (error) {
+      if (_isFileAccessDenied(error)) {
+        throw SmartTileTiledWangImportServiceException(
+          'smart_tile.tiled_wang.image_access_denied',
+          'PokeMap n’a pas l’autorisation de lire l’image '
+              '${dependency.source}. Autorisez le dossier source du tileset.',
+          relatedPath: imagePath,
+        );
+      }
       throw SmartTileTiledWangImportServiceException(
         'smart_tile.tiled_wang.image_unreadable',
         'L’image ${dependency.source} ne peut pas être lue.',
@@ -150,6 +228,11 @@ Future<SmartTileTiledWangSource> loadSmartTileTiledWangSource(
     tilesetDocument: tilesetDocument,
     document: document,
   );
+}
+
+bool _isFileAccessDenied(FileSystemException error) {
+  final errorCode = error.osError?.errorCode;
+  return errorCode == 1 || errorCode == 13;
 }
 
 final class SmartTileTiledWangImportResult {

@@ -468,6 +468,120 @@ void main() {
       ),
     );
   });
+
+  test('authorizes the common source folder then retries the TSX preview',
+      () async {
+    const tsxPath =
+        '/packs/ERW/TiledMap Editor/Tilesets/terrain-grass.tsx';
+    const imagePath = '/packs/ERW/Tilesets/terrain-grass.png';
+    final expected = _source(tsxPath: tsxPath, imagePath: imagePath);
+    var loadCount = 0;
+    String? authorizedInitialDirectory;
+    final picker = FilePickerSmartTileTiledWangSourcePicker(
+      pickTsxPath: () async => tsxPath,
+      authorizeDirectory: ({required initialDirectory}) async {
+        authorizedInitialDirectory = initialDirectory;
+        return initialDirectory;
+      },
+      loadSource: (path) async {
+        loadCount++;
+        if (loadCount == 1) {
+          throw const SmartTileTiledWangImportServiceException(
+            'smart_tile.tiled_wang.image_access_denied',
+            'PokeMap ne peut pas accéder à une image référencée.',
+            relatedPath: imagePath,
+          );
+        }
+        return expected;
+      },
+    );
+
+    final source = await picker.pick();
+
+    expect(source, same(expected));
+    expect(authorizedInitialDirectory, p.normalize('/packs/ERW'));
+    expect(loadCount, 2);
+  });
+
+  test('reports a cancelled source-folder authorization explicitly',
+      () async {
+    const tsxPath =
+        '/packs/ERW/TiledMap Editor/Tilesets/terrain-grass.tsx';
+    const imagePath = '/packs/ERW/Tilesets/terrain-grass.png';
+    final picker = FilePickerSmartTileTiledWangSourcePicker(
+      pickTsxPath: () async => tsxPath,
+      authorizeDirectory: ({required initialDirectory}) async => null,
+      loadSource: (path) async {
+        throw const SmartTileTiledWangImportServiceException(
+          'smart_tile.tiled_wang.image_access_denied',
+          'PokeMap ne peut pas accéder à une image référencée.',
+          relatedPath: imagePath,
+        );
+      },
+    );
+
+    await expectLater(
+      picker.pick(),
+      throwsA(
+        isA<SmartTileTiledWangImportServiceException>()
+            .having(
+              (error) => error.code,
+              'code',
+              'smart_tile.tiled_wang.source_directory_authorization_cancelled',
+            )
+            .having(
+              (error) => error.message,
+              'message',
+              contains('autoriser le dossier source'),
+            ),
+      ),
+    );
+  });
+
+  test('does not request folder access for a malformed TSX', () async {
+    var authorizationCount = 0;
+    final picker = FilePickerSmartTileTiledWangSourcePicker(
+      pickTsxPath: () async => '/packs/ERW/terrain-grass.tsx',
+      authorizeDirectory: ({required initialDirectory}) async {
+        authorizationCount++;
+        return initialDirectory;
+      },
+      loadSource: (path) async {
+        throw const SmartTileTiledWangImportServiceException(
+          'smart_tile.tiled_wang.xml_invalid',
+          'Le TSX est invalide.',
+        );
+      },
+    );
+
+    await expectLater(
+      picker.pick(),
+      throwsA(
+        isA<SmartTileTiledWangImportServiceException>().having(
+          (error) => error.code,
+          'code',
+          'smart_tile.tiled_wang.xml_invalid',
+        ),
+      ),
+    );
+    expect(authorizationCount, 0);
+  });
+}
+
+SmartTileTiledWangSource _source({
+  required String tsxPath,
+  required String imagePath,
+}) {
+  return SmartTileTiledWangSource(
+    tsxPath: tsxPath,
+    imagePath: imagePath,
+    imagePaths: <String, String>{'road.png': imagePath},
+    displayName: p.basename(tsxPath),
+    tsx: _tsx,
+    importId: 'road-123456789abc',
+    tilesetDocument: parseTiledTileset(_tsx),
+    document: parseTiledWangTileset(_tsx),
+  );
 }
 
 Directory _erwTilesetRoot(String rootPath) {
