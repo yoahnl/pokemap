@@ -4,7 +4,7 @@ part 'geometry.freezed.dart';
 part 'geometry.g.dart';
 
 @freezed
-class GridPos with _$GridPos {
+abstract class GridPos with _$GridPos {
   const factory GridPos({
     required int x,
     required int y,
@@ -15,7 +15,7 @@ class GridPos with _$GridPos {
 }
 
 @freezed
-class GridSize with _$GridSize {
+abstract class GridSize with _$GridSize {
   const factory GridSize({
     required int width,
     required int height,
@@ -26,7 +26,7 @@ class GridSize with _$GridSize {
 }
 
 @freezed
-class MapRect with _$MapRect {
+abstract class MapRect with _$MapRect {
   const factory MapRect({
     required GridPos pos,
     required GridSize size,

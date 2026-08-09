@@ -6,23 +6,23 @@ part of 'map_metadata.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$MapMetadataImpl _$$MapMetadataImplFromJson(Map<String, dynamic> json) =>
-    _$MapMetadataImpl(
-      displayName: json['displayName'] as String? ?? '',
-      mapType: $enumDecodeNullable(_$MapTypeEnumMap, json['mapType']) ??
-          MapType.route,
-      musicId: json['musicId'] as String?,
-      weather: $enumDecodeNullable(_$MapWeatherEnumMap, json['weather']) ??
-          MapWeather.none,
-      isIndoor: json['isIndoor'] as bool? ?? false,
-      allowEscapeRope: json['allowEscapeRope'] as bool? ?? true,
-      defaultSpawnId: json['defaultSpawnId'] as String?,
-      tags:
-          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
-    );
+_MapMetadata _$MapMetadataFromJson(Map<String, dynamic> json) => _MapMetadata(
+  displayName: json['displayName'] as String? ?? '',
+  mapType:
+      $enumDecodeNullable(_$MapTypeEnumMap, json['mapType']) ?? MapType.route,
+  musicId: json['musicId'] as String?,
+  weather:
+      $enumDecodeNullable(_$MapWeatherEnumMap, json['weather']) ??
+      MapWeather.none,
+  isIndoor: json['isIndoor'] as bool? ?? false,
+  allowEscapeRope: json['allowEscapeRope'] as bool? ?? true,
+  defaultSpawnId: json['defaultSpawnId'] as String?,
+  tags:
+      (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
+);
 
-Map<String, dynamic> _$$MapMetadataImplToJson(_$MapMetadataImpl instance) =>
+Map<String, dynamic> _$MapMetadataToJson(_MapMetadata instance) =>
     <String, dynamic>{
       'displayName': instance.displayName,
       'mapType': _$MapTypeEnumMap[instance.mapType]!,

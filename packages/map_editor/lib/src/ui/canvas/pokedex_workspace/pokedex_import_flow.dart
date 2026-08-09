@@ -46,7 +46,7 @@ Future<_CompletedPokedexImportFlowResult?> _showPokedexImportFlowSheet({
 }
 
 Future<String?> _pickPokedexJsonSourceFile() async {
-  final result = await FilePicker.platform.pickFiles(
+  final result = await FilePicker.pickFiles(
     type: FileType.custom,
     allowedExtensions: const ['json'],
     withData: false,

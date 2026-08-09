@@ -1102,7 +1102,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
 
   Future<String?> _pickBattleBackgroundAbsolutePath(
       String projectRootPath) async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const <String>[
         'png',

@@ -166,7 +166,7 @@ enum PokemonMoveEngineSupportLevel {
 /// - elle documente uniquement l'origine et les hooks détectés ;
 /// - elle aidera plus tard le convertisseur enrichi, la validation et le debug.
 @freezed
-class PokemonMoveSourceRefs with _$PokemonMoveSourceRefs {
+abstract class PokemonMoveSourceRefs with _$PokemonMoveSourceRefs {
   @JsonSerializable(explicitToJson: true)
   const factory PokemonMoveSourceRefs({
     String? showdownMoveId,
@@ -207,7 +207,7 @@ class PokemonMoveSourceRefs with _$PokemonMoveSourceRefs {
 /// - elle ne contient ni code Showdown ni logique d'exécution ;
 /// - les comportements de résolution sont décrits dans `effects`.
 @freezed
-class PokemonMove with _$PokemonMove {
+abstract class PokemonMove with _$PokemonMove {
   const PokemonMove._();
 
   @JsonSerializable(explicitToJson: true)

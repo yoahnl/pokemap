@@ -20,7 +20,7 @@ part 'map_data.freezed.dart';
 part 'map_data.g.dart';
 
 @Freezed(fromJson: true, toJson: true)
-class MapData with _$MapData {
+abstract class MapData with _$MapData {
   @JsonSerializable(explicitToJson: true)
   const factory MapData({
     required String id,
@@ -171,7 +171,7 @@ void _preflightSmartTileMapJson(Map<String, dynamic> json) {
 /// Le runtime peut lire ces zones pour décider : tirer une rencontre,
 /// appliquer un effet de déplacement, déclencher un script, etc.
 @freezed
-class MapGameplayZone with _$MapGameplayZone {
+abstract class MapGameplayZone with _$MapGameplayZone {
   @JsonSerializable(explicitToJson: true)
   const factory MapGameplayZone({
     required String id,
@@ -216,7 +216,7 @@ int _mapPlacedElementQuarterTurnsFromJson(Object? value) {
 }
 
 @freezed
-class MapPlacedElement with _$MapPlacedElement {
+abstract class MapPlacedElement with _$MapPlacedElement {
   @JsonSerializable(explicitToJson: true)
   const factory MapPlacedElement({
     required String id,
@@ -266,7 +266,7 @@ enum MapPlacedElementTriggerScope {
 }
 
 @freezed
-class MapPlacedElementBehavior with _$MapPlacedElementBehavior {
+abstract class MapPlacedElementBehavior with _$MapPlacedElementBehavior {
   @JsonSerializable(explicitToJson: true)
   const factory MapPlacedElementBehavior({
     @Default('') String id,
@@ -295,7 +295,7 @@ enum MapPlacedElementEffectType {
 }
 
 @freezed
-class MapPlacedElementEffect with _$MapPlacedElementEffect {
+abstract class MapPlacedElementEffect with _$MapPlacedElementEffect {
   @JsonSerializable(explicitToJson: true)
   const factory MapPlacedElementEffect({
     required MapPlacedElementEffectType type,
@@ -309,7 +309,7 @@ class MapPlacedElementEffect with _$MapPlacedElementEffect {
 }
 
 @freezed
-class MapPlacedElementAnimation with _$MapPlacedElementAnimation {
+abstract class MapPlacedElementAnimation with _$MapPlacedElementAnimation {
   @JsonSerializable(explicitToJson: true)
   const factory MapPlacedElementAnimation({
     @Default(false) bool enabled,
@@ -326,7 +326,7 @@ class MapPlacedElementAnimation with _$MapPlacedElementAnimation {
 }
 
 @freezed
-class MapEntity with _$MapEntity {
+abstract class MapEntity with _$MapEntity {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntity({
     required String id,
@@ -406,7 +406,7 @@ extension MapEntityProjectElementVisualX on MapEntity {
 }
 
 @freezed
-class MapWarp with _$MapWarp {
+abstract class MapWarp with _$MapWarp {
   @JsonSerializable(explicitToJson: true)
   const factory MapWarp({
     required String id,
@@ -430,7 +430,7 @@ enum MapWarpTriggerMode {
 }
 
 @freezed
-class WarpTriggerPadding with _$WarpTriggerPadding {
+abstract class WarpTriggerPadding with _$WarpTriggerPadding {
   @JsonSerializable(explicitToJson: true)
   const factory WarpTriggerPadding({
     @Default(0) int top,
@@ -444,7 +444,7 @@ class WarpTriggerPadding with _$WarpTriggerPadding {
 }
 
 @freezed
-class MapConnection with _$MapConnection {
+abstract class MapConnection with _$MapConnection {
   @JsonSerializable(explicitToJson: true)
   const factory MapConnection({
     required MapConnectionDirection direction,
@@ -457,7 +457,7 @@ class MapConnection with _$MapConnection {
 }
 
 @freezed
-class MapTrigger with _$MapTrigger {
+abstract class MapTrigger with _$MapTrigger {
   @JsonSerializable(explicitToJson: true)
   const factory MapTrigger({
     required String id,

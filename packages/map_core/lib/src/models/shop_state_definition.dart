@@ -14,7 +14,7 @@ int _shopStateIntegerFromJson(Object? value) {
 }
 
 @freezed
-class ShopStateDefinition with _$ShopStateDefinition {
+abstract class ShopStateDefinition with _$ShopStateDefinition {
   const ShopStateDefinition._();
 
   @JsonSerializable(explicitToJson: true)

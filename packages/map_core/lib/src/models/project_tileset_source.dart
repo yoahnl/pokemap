@@ -6,7 +6,7 @@ part 'project_tileset_source.freezed.dart';
 part 'project_tileset_source.g.dart';
 
 @freezed
-class VisualTileProperty with _$VisualTileProperty {
+abstract class VisualTileProperty with _$VisualTileProperty {
   const factory VisualTileProperty({
     required int tileId,
     @Default(true) bool passable,
@@ -51,7 +51,7 @@ enum ProjectTilesetCollisionShape {
 /// This is deliberately format-neutral: importers map their native property
 /// model to these stable value kinds before the data enters a project.
 @freezed
-class ProjectTilesetProperty with _$ProjectTilesetProperty {
+abstract class ProjectTilesetProperty with _$ProjectTilesetProperty {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTilesetProperty({
     required String name,
@@ -65,7 +65,7 @@ class ProjectTilesetProperty with _$ProjectTilesetProperty {
 }
 
 @freezed
-class ProjectTilesetPixelRect with _$ProjectTilesetPixelRect {
+abstract class ProjectTilesetPixelRect with _$ProjectTilesetPixelRect {
   const factory ProjectTilesetPixelRect({
     required int x,
     required int y,
@@ -78,7 +78,7 @@ class ProjectTilesetPixelRect with _$ProjectTilesetPixelRect {
 }
 
 @freezed
-class ProjectTilesetPixelPoint with _$ProjectTilesetPixelPoint {
+abstract class ProjectTilesetPixelPoint with _$ProjectTilesetPixelPoint {
   const factory ProjectTilesetPixelPoint({
     required double x,
     required double y,
@@ -94,7 +94,7 @@ class ProjectTilesetPixelPoint with _$ProjectTilesetPixelPoint {
 /// turns it into gameplay collision. Importing it never changes walkability by
 /// itself.
 @freezed
-class ProjectTilesetCollisionObject with _$ProjectTilesetCollisionObject {
+abstract class ProjectTilesetCollisionObject with _$ProjectTilesetCollisionObject {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTilesetCollisionObject({
     required int id,
@@ -118,7 +118,7 @@ class ProjectTilesetCollisionObject with _$ProjectTilesetCollisionObject {
 }
 
 @freezed
-class ProjectImageCollectionPage with _$ProjectImageCollectionPage {
+abstract class ProjectImageCollectionPage with _$ProjectImageCollectionPage {
   const factory ProjectImageCollectionPage({
     required String id,
     required String assetId,
@@ -131,7 +131,7 @@ class ProjectImageCollectionPage with _$ProjectImageCollectionPage {
 }
 
 @freezed
-class ProjectImageCollectionAnimationFrame
+abstract class ProjectImageCollectionAnimationFrame
     with _$ProjectImageCollectionAnimationFrame {
   const factory ProjectImageCollectionAnimationFrame({
     required int tileId,
@@ -146,7 +146,7 @@ class ProjectImageCollectionAnimationFrame
 
 /// One animation timeline rooted at a regular-atlas local tile identity.
 @freezed
-class ProjectRegularAtlasTileAnimation with _$ProjectRegularAtlasTileAnimation {
+abstract class ProjectRegularAtlasTileAnimation with _$ProjectRegularAtlasTileAnimation {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectRegularAtlasTileAnimation({
     required int tileId,
@@ -160,7 +160,7 @@ class ProjectRegularAtlasTileAnimation with _$ProjectRegularAtlasTileAnimation {
 }
 
 @freezed
-class ProjectImageCollectionTileDefinition
+abstract class ProjectImageCollectionTileDefinition
     with _$ProjectImageCollectionTileDefinition {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectImageCollectionTileDefinition({

@@ -36,7 +36,7 @@ Future<void> showTopToolbarNewProjectDialog(
   if (!ok) return;
   final name = controller.text.trim();
   if (name.isEmpty) return;
-  final baseDir = await FilePicker.platform.getDirectoryPath();
+  final baseDir = await FilePicker.getDirectoryPath();
   if (!context.mounted) return;
   if (baseDir != null) {
     final projectDir = p.join(baseDir, name.replaceAll(' ', '_').toLowerCase());
@@ -55,7 +55,7 @@ Future<void> showTopToolbarOpenProjectDialog(
 ) async {
   String? selectedDirectory;
   try {
-    selectedDirectory = await FilePicker.platform.getDirectoryPath();
+    selectedDirectory = await FilePicker.getDirectoryPath();
   } catch (error, stackTrace) {
     debugPrint('TopToolbar: native project picker failed: $error');
     debugPrintStack(stackTrace: stackTrace);
@@ -489,7 +489,7 @@ Future<void> showTopToolbarGameExportDialog(
       builder: (_) => GamePackageExportDialog(
         controller: controller,
         chooseOutputFile: (suggestedFileName) async {
-          final selectedPath = await FilePicker.platform.saveFile(
+          final selectedPath = await FilePicker.saveFile(
             dialogTitle: 'Exporter le jeu PokeMap',
             fileName: suggestedFileName,
             type: FileType.custom,
@@ -519,7 +519,7 @@ Future<void> showTopToolbarGameExportDialog(
               ],
             GamePackageProjectFileType.text => const <String>['txt', 'md'],
           };
-          final result = await FilePicker.platform.pickFiles(
+          final result = await FilePicker.pickFiles(
             dialogTitle: 'Choisir un fichier du projet',
             type: FileType.custom,
             allowedExtensions: extensions,

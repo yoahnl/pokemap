@@ -1,5 +1,5 @@
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,3813 +9,3706 @@ part of 'map_data.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
-MapData _$MapDataFromJson(Map<String, dynamic> json) {
-  return _MapData.fromJson(json);
-}
 
 /// @nodoc
 mixin _$MapData {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  GridSize get size => throw _privateConstructorUsedError;
-  ProjectVersion get version => throw _privateConstructorUsedError;
-  @JsonKey(includeIfNull: false)
-  MapVisualStackConfig? get visualStack => throw _privateConstructorUsedError;
-  String get tilesetId => throw _privateConstructorUsedError;
-  List<MapLayer> get layers => throw _privateConstructorUsedError;
-  List<MapPlacedElement> get placedElements =>
-      throw _privateConstructorUsedError;
-  List<MapEntity> get entities => throw _privateConstructorUsedError;
-  List<MapConnection> get connections => throw _privateConstructorUsedError;
-  List<MapWarp> get warps => throw _privateConstructorUsedError;
-  List<MapTrigger> get triggers => throw _privateConstructorUsedError;
 
-  /// Zones gameplay (rencontres, déplacement, dangers, etc.).
-  /// Séparées des triggers (logiques scriptées) et des layers visuelles.
-  List<MapGameplayZone> get gameplayZones => throw _privateConstructorUsedError;
-  MapMetadata get mapMetadata => throw _privateConstructorUsedError;
-  Map<String, dynamic> get properties => throw _privateConstructorUsedError;
-  List<MapEventDefinition> get events => throw _privateConstructorUsedError;
+ String get id; String get name; GridSize get size; ProjectVersion get version;@JsonKey(includeIfNull: false) MapVisualStackConfig? get visualStack; String get tilesetId; List<MapLayer> get layers; List<MapPlacedElement> get placedElements; List<MapEntity> get entities; List<MapConnection> get connections; List<MapWarp> get warps; List<MapTrigger> get triggers;/// Zones gameplay (rencontres, déplacement, dangers, etc.).
+/// Séparées des triggers (logiques scriptées) et des layers visuelles.
+ List<MapGameplayZone> get gameplayZones; MapMetadata get mapMetadata; Map<String, dynamic> get properties; List<MapEventDefinition> get events;
+/// Create a copy of MapData
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapDataCopyWith<MapData> get copyWith => _$MapDataCopyWithImpl<MapData>(this as MapData, _$identity);
 
   /// Serializes this MapData to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapData
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapDataCopyWith<MapData> get copyWith => throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.size, size) || other.size == size)&&(identical(other.version, version) || other.version == version)&&(identical(other.visualStack, visualStack) || other.visualStack == visualStack)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&const DeepCollectionEquality().equals(other.layers, layers)&&const DeepCollectionEquality().equals(other.placedElements, placedElements)&&const DeepCollectionEquality().equals(other.entities, entities)&&const DeepCollectionEquality().equals(other.connections, connections)&&const DeepCollectionEquality().equals(other.warps, warps)&&const DeepCollectionEquality().equals(other.triggers, triggers)&&const DeepCollectionEquality().equals(other.gameplayZones, gameplayZones)&&(identical(other.mapMetadata, mapMetadata) || other.mapMetadata == mapMetadata)&&const DeepCollectionEquality().equals(other.properties, properties)&&const DeepCollectionEquality().equals(other.events, events));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,size,version,visualStack,tilesetId,const DeepCollectionEquality().hash(layers),const DeepCollectionEquality().hash(placedElements),const DeepCollectionEquality().hash(entities),const DeepCollectionEquality().hash(connections),const DeepCollectionEquality().hash(warps),const DeepCollectionEquality().hash(triggers),const DeepCollectionEquality().hash(gameplayZones),mapMetadata,const DeepCollectionEquality().hash(properties),const DeepCollectionEquality().hash(events));
+
+@override
+String toString() {
+  return 'MapData(id: $id, name: $name, size: $size, version: $version, visualStack: $visualStack, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapDataCopyWith<$Res> {
-  factory $MapDataCopyWith(MapData value, $Res Function(MapData) then) =
-      _$MapDataCopyWithImpl<$Res, MapData>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      GridSize size,
-      ProjectVersion version,
-      @JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack,
-      String tilesetId,
-      List<MapLayer> layers,
-      List<MapPlacedElement> placedElements,
-      List<MapEntity> entities,
-      List<MapConnection> connections,
-      List<MapWarp> warps,
-      List<MapTrigger> triggers,
-      List<MapGameplayZone> gameplayZones,
-      MapMetadata mapMetadata,
-      Map<String, dynamic> properties,
-      List<MapEventDefinition> events});
+abstract mixin class $MapDataCopyWith<$Res>  {
+  factory $MapDataCopyWith(MapData value, $Res Function(MapData) _then) = _$MapDataCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, GridSize size, ProjectVersion version,@JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack, String tilesetId, List<MapLayer> layers, List<MapPlacedElement> placedElements, List<MapEntity> entities, List<MapConnection> connections, List<MapWarp> warps, List<MapTrigger> triggers, List<MapGameplayZone> gameplayZones, MapMetadata mapMetadata, Map<String, dynamic> properties, List<MapEventDefinition> events
+});
 
-  $GridSizeCopyWith<$Res> get size;
-  $MapMetadataCopyWith<$Res> get mapMetadata;
+
+$GridSizeCopyWith<$Res> get size;$MapMetadataCopyWith<$Res> get mapMetadata;
+
 }
-
 /// @nodoc
-class _$MapDataCopyWithImpl<$Res, $Val extends MapData>
+class _$MapDataCopyWithImpl<$Res>
     implements $MapDataCopyWith<$Res> {
-  _$MapDataCopyWithImpl(this._value, this._then);
+  _$MapDataCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapData _self;
+  final $Res Function(MapData) _then;
 
-  /// Create a copy of MapData
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? size = null,
-    Object? version = null,
-    Object? visualStack = freezed,
-    Object? tilesetId = null,
-    Object? layers = null,
-    Object? placedElements = null,
-    Object? entities = null,
-    Object? connections = null,
-    Object? warps = null,
-    Object? triggers = null,
-    Object? gameplayZones = null,
-    Object? mapMetadata = null,
-    Object? properties = null,
-    Object? events = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      size: null == size
-          ? _value.size
-          : size // ignore: cast_nullable_to_non_nullable
-              as GridSize,
-      version: null == version
-          ? _value.version
-          : version // ignore: cast_nullable_to_non_nullable
-              as ProjectVersion,
-      visualStack: freezed == visualStack
-          ? _value.visualStack
-          : visualStack // ignore: cast_nullable_to_non_nullable
-              as MapVisualStackConfig?,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      layers: null == layers
-          ? _value.layers
-          : layers // ignore: cast_nullable_to_non_nullable
-              as List<MapLayer>,
-      placedElements: null == placedElements
-          ? _value.placedElements
-          : placedElements // ignore: cast_nullable_to_non_nullable
-              as List<MapPlacedElement>,
-      entities: null == entities
-          ? _value.entities
-          : entities // ignore: cast_nullable_to_non_nullable
-              as List<MapEntity>,
-      connections: null == connections
-          ? _value.connections
-          : connections // ignore: cast_nullable_to_non_nullable
-              as List<MapConnection>,
-      warps: null == warps
-          ? _value.warps
-          : warps // ignore: cast_nullable_to_non_nullable
-              as List<MapWarp>,
-      triggers: null == triggers
-          ? _value.triggers
-          : triggers // ignore: cast_nullable_to_non_nullable
-              as List<MapTrigger>,
-      gameplayZones: null == gameplayZones
-          ? _value.gameplayZones
-          : gameplayZones // ignore: cast_nullable_to_non_nullable
-              as List<MapGameplayZone>,
-      mapMetadata: null == mapMetadata
-          ? _value.mapMetadata
-          : mapMetadata // ignore: cast_nullable_to_non_nullable
-              as MapMetadata,
-      properties: null == properties
-          ? _value.properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
-      events: null == events
-          ? _value.events
-          : events // ignore: cast_nullable_to_non_nullable
-              as List<MapEventDefinition>,
-    ) as $Val);
-  }
+/// Create a copy of MapData
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? size = null,Object? version = null,Object? visualStack = freezed,Object? tilesetId = null,Object? layers = null,Object? placedElements = null,Object? entities = null,Object? connections = null,Object? warps = null,Object? triggers = null,Object? gameplayZones = null,Object? mapMetadata = null,Object? properties = null,Object? events = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,size: null == size ? _self.size : size // ignore: cast_nullable_to_non_nullable
+as GridSize,version: null == version ? _self.version : version // ignore: cast_nullable_to_non_nullable
+as ProjectVersion,visualStack: freezed == visualStack ? _self.visualStack : visualStack // ignore: cast_nullable_to_non_nullable
+as MapVisualStackConfig?,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,layers: null == layers ? _self.layers : layers // ignore: cast_nullable_to_non_nullable
+as List<MapLayer>,placedElements: null == placedElements ? _self.placedElements : placedElements // ignore: cast_nullable_to_non_nullable
+as List<MapPlacedElement>,entities: null == entities ? _self.entities : entities // ignore: cast_nullable_to_non_nullable
+as List<MapEntity>,connections: null == connections ? _self.connections : connections // ignore: cast_nullable_to_non_nullable
+as List<MapConnection>,warps: null == warps ? _self.warps : warps // ignore: cast_nullable_to_non_nullable
+as List<MapWarp>,triggers: null == triggers ? _self.triggers : triggers // ignore: cast_nullable_to_non_nullable
+as List<MapTrigger>,gameplayZones: null == gameplayZones ? _self.gameplayZones : gameplayZones // ignore: cast_nullable_to_non_nullable
+as List<MapGameplayZone>,mapMetadata: null == mapMetadata ? _self.mapMetadata : mapMetadata // ignore: cast_nullable_to_non_nullable
+as MapMetadata,properties: null == properties ? _self.properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,events: null == events ? _self.events : events // ignore: cast_nullable_to_non_nullable
+as List<MapEventDefinition>,
+  ));
+}
+/// Create a copy of MapData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridSizeCopyWith<$Res> get size {
 
-  /// Create a copy of MapData
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridSizeCopyWith<$Res> get size {
-    return $GridSizeCopyWith<$Res>(_value.size, (value) {
-      return _then(_value.copyWith(size: value) as $Val);
-    });
-  }
+  return $GridSizeCopyWith<$Res>(_self.size, (value) {
+    return _then(_self.copyWith(size: value));
+  });
+}/// Create a copy of MapData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapMetadataCopyWith<$Res> get mapMetadata {
 
-  /// Create a copy of MapData
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapMetadataCopyWith<$Res> get mapMetadata {
-    return $MapMetadataCopyWith<$Res>(_value.mapMetadata, (value) {
-      return _then(_value.copyWith(mapMetadata: value) as $Val);
-    });
-  }
+  return $MapMetadataCopyWith<$Res>(_self.mapMetadata, (value) {
+    return _then(_self.copyWith(mapMetadata: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapDataImplCopyWith<$Res> implements $MapDataCopyWith<$Res> {
-  factory _$$MapDataImplCopyWith(
-          _$MapDataImpl value, $Res Function(_$MapDataImpl) then) =
-      __$$MapDataImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      GridSize size,
-      ProjectVersion version,
-      @JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack,
-      String tilesetId,
-      List<MapLayer> layers,
-      List<MapPlacedElement> placedElements,
-      List<MapEntity> entities,
-      List<MapConnection> connections,
-      List<MapWarp> warps,
-      List<MapTrigger> triggers,
-      List<MapGameplayZone> gameplayZones,
-      MapMetadata mapMetadata,
-      Map<String, dynamic> properties,
-      List<MapEventDefinition> events});
 
-  @override
-  $GridSizeCopyWith<$Res> get size;
-  @override
-  $MapMetadataCopyWith<$Res> get mapMetadata;
+/// Adds pattern-matching-related methods to [MapData].
+extension MapDataPatterns on MapData {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapData value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapData() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapData value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapData():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapData value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapData() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  GridSize size,  ProjectVersion version, @JsonKey(includeIfNull: false)  MapVisualStackConfig? visualStack,  String tilesetId,  List<MapLayer> layers,  List<MapPlacedElement> placedElements,  List<MapEntity> entities,  List<MapConnection> connections,  List<MapWarp> warps,  List<MapTrigger> triggers,  List<MapGameplayZone> gameplayZones,  MapMetadata mapMetadata,  Map<String, dynamic> properties,  List<MapEventDefinition> events)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapData() when $default != null:
+return $default(_that.id,_that.name,_that.size,_that.version,_that.visualStack,_that.tilesetId,_that.layers,_that.placedElements,_that.entities,_that.connections,_that.warps,_that.triggers,_that.gameplayZones,_that.mapMetadata,_that.properties,_that.events);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  GridSize size,  ProjectVersion version, @JsonKey(includeIfNull: false)  MapVisualStackConfig? visualStack,  String tilesetId,  List<MapLayer> layers,  List<MapPlacedElement> placedElements,  List<MapEntity> entities,  List<MapConnection> connections,  List<MapWarp> warps,  List<MapTrigger> triggers,  List<MapGameplayZone> gameplayZones,  MapMetadata mapMetadata,  Map<String, dynamic> properties,  List<MapEventDefinition> events)  $default,) {final _that = this;
+switch (_that) {
+case _MapData():
+return $default(_that.id,_that.name,_that.size,_that.version,_that.visualStack,_that.tilesetId,_that.layers,_that.placedElements,_that.entities,_that.connections,_that.warps,_that.triggers,_that.gameplayZones,_that.mapMetadata,_that.properties,_that.events);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  GridSize size,  ProjectVersion version, @JsonKey(includeIfNull: false)  MapVisualStackConfig? visualStack,  String tilesetId,  List<MapLayer> layers,  List<MapPlacedElement> placedElements,  List<MapEntity> entities,  List<MapConnection> connections,  List<MapWarp> warps,  List<MapTrigger> triggers,  List<MapGameplayZone> gameplayZones,  MapMetadata mapMetadata,  Map<String, dynamic> properties,  List<MapEventDefinition> events)?  $default,) {final _that = this;
+switch (_that) {
+case _MapData() when $default != null:
+return $default(_that.id,_that.name,_that.size,_that.version,_that.visualStack,_that.tilesetId,_that.layers,_that.placedElements,_that.entities,_that.connections,_that.warps,_that.triggers,_that.gameplayZones,_that.mapMetadata,_that.properties,_that.events);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapDataImplCopyWithImpl<$Res>
-    extends _$MapDataCopyWithImpl<$Res, _$MapDataImpl>
-    implements _$$MapDataImplCopyWith<$Res> {
-  __$$MapDataImplCopyWithImpl(
-      _$MapDataImpl _value, $Res Function(_$MapDataImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapData
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? size = null,
-    Object? version = null,
-    Object? visualStack = freezed,
-    Object? tilesetId = null,
-    Object? layers = null,
-    Object? placedElements = null,
-    Object? entities = null,
-    Object? connections = null,
-    Object? warps = null,
-    Object? triggers = null,
-    Object? gameplayZones = null,
-    Object? mapMetadata = null,
-    Object? properties = null,
-    Object? events = null,
-  }) {
-    return _then(_$MapDataImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      size: null == size
-          ? _value.size
-          : size // ignore: cast_nullable_to_non_nullable
-              as GridSize,
-      version: null == version
-          ? _value.version
-          : version // ignore: cast_nullable_to_non_nullable
-              as ProjectVersion,
-      visualStack: freezed == visualStack
-          ? _value.visualStack
-          : visualStack // ignore: cast_nullable_to_non_nullable
-              as MapVisualStackConfig?,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      layers: null == layers
-          ? _value._layers
-          : layers // ignore: cast_nullable_to_non_nullable
-              as List<MapLayer>,
-      placedElements: null == placedElements
-          ? _value._placedElements
-          : placedElements // ignore: cast_nullable_to_non_nullable
-              as List<MapPlacedElement>,
-      entities: null == entities
-          ? _value._entities
-          : entities // ignore: cast_nullable_to_non_nullable
-              as List<MapEntity>,
-      connections: null == connections
-          ? _value._connections
-          : connections // ignore: cast_nullable_to_non_nullable
-              as List<MapConnection>,
-      warps: null == warps
-          ? _value._warps
-          : warps // ignore: cast_nullable_to_non_nullable
-              as List<MapWarp>,
-      triggers: null == triggers
-          ? _value._triggers
-          : triggers // ignore: cast_nullable_to_non_nullable
-              as List<MapTrigger>,
-      gameplayZones: null == gameplayZones
-          ? _value._gameplayZones
-          : gameplayZones // ignore: cast_nullable_to_non_nullable
-              as List<MapGameplayZone>,
-      mapMetadata: null == mapMetadata
-          ? _value.mapMetadata
-          : mapMetadata // ignore: cast_nullable_to_non_nullable
-              as MapMetadata,
-      properties: null == properties
-          ? _value._properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
-      events: null == events
-          ? _value._events
-          : events // ignore: cast_nullable_to_non_nullable
-              as List<MapEventDefinition>,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapDataImpl implements _MapData {
-  const _$MapDataImpl(
-      {required this.id,
-      required this.name,
-      required this.size,
-      this.version = ProjectVersion.v6,
-      @JsonKey(includeIfNull: false) this.visualStack,
-      this.tilesetId = '',
-      final List<MapLayer> layers = const [],
-      final List<MapPlacedElement> placedElements = const [],
-      final List<MapEntity> entities = const [],
-      final List<MapConnection> connections = const [],
-      final List<MapWarp> warps = const [],
-      final List<MapTrigger> triggers = const [],
-      final List<MapGameplayZone> gameplayZones = const [],
-      this.mapMetadata = const MapMetadata(),
-      final Map<String, dynamic> properties = const {},
-      final List<MapEventDefinition> events = const []})
-      : _layers = layers,
-        _placedElements = placedElements,
-        _entities = entities,
-        _connections = connections,
-        _warps = warps,
-        _triggers = triggers,
-        _gameplayZones = gameplayZones,
-        _properties = properties,
-        _events = events;
+class _MapData implements MapData {
+  const _MapData({required this.id, required this.name, required this.size, this.version = ProjectVersion.v6, @JsonKey(includeIfNull: false) this.visualStack, this.tilesetId = '', final  List<MapLayer> layers = const [], final  List<MapPlacedElement> placedElements = const [], final  List<MapEntity> entities = const [], final  List<MapConnection> connections = const [], final  List<MapWarp> warps = const [], final  List<MapTrigger> triggers = const [], final  List<MapGameplayZone> gameplayZones = const [], this.mapMetadata = const MapMetadata(), final  Map<String, dynamic> properties = const {}, final  List<MapEventDefinition> events = const []}): _layers = layers,_placedElements = placedElements,_entities = entities,_connections = connections,_warps = warps,_triggers = triggers,_gameplayZones = gameplayZones,_properties = properties,_events = events;
+  factory _MapData.fromJson(Map<String, dynamic> json) => _$MapDataFromJson(json);
 
-  factory _$MapDataImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapDataImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final GridSize size;
-  @override
-  @JsonKey()
-  final ProjectVersion version;
-  @override
-  @JsonKey(includeIfNull: false)
-  final MapVisualStackConfig? visualStack;
-  @override
-  @JsonKey()
-  final String tilesetId;
-  final List<MapLayer> _layers;
-  @override
-  @JsonKey()
-  List<MapLayer> get layers {
-    if (_layers is EqualUnmodifiableListView) return _layers;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_layers);
-  }
-
-  final List<MapPlacedElement> _placedElements;
-  @override
-  @JsonKey()
-  List<MapPlacedElement> get placedElements {
-    if (_placedElements is EqualUnmodifiableListView) return _placedElements;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_placedElements);
-  }
-
-  final List<MapEntity> _entities;
-  @override
-  @JsonKey()
-  List<MapEntity> get entities {
-    if (_entities is EqualUnmodifiableListView) return _entities;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_entities);
-  }
-
-  final List<MapConnection> _connections;
-  @override
-  @JsonKey()
-  List<MapConnection> get connections {
-    if (_connections is EqualUnmodifiableListView) return _connections;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_connections);
-  }
-
-  final List<MapWarp> _warps;
-  @override
-  @JsonKey()
-  List<MapWarp> get warps {
-    if (_warps is EqualUnmodifiableListView) return _warps;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_warps);
-  }
-
-  final List<MapTrigger> _triggers;
-  @override
-  @JsonKey()
-  List<MapTrigger> get triggers {
-    if (_triggers is EqualUnmodifiableListView) return _triggers;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_triggers);
-  }
-
-  /// Zones gameplay (rencontres, déplacement, dangers, etc.).
-  /// Séparées des triggers (logiques scriptées) et des layers visuelles.
-  final List<MapGameplayZone> _gameplayZones;
-
-  /// Zones gameplay (rencontres, déplacement, dangers, etc.).
-  /// Séparées des triggers (logiques scriptées) et des layers visuelles.
-  @override
-  @JsonKey()
-  List<MapGameplayZone> get gameplayZones {
-    if (_gameplayZones is EqualUnmodifiableListView) return _gameplayZones;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_gameplayZones);
-  }
-
-  @override
-  @JsonKey()
-  final MapMetadata mapMetadata;
-  final Map<String, dynamic> _properties;
-  @override
-  @JsonKey()
-  Map<String, dynamic> get properties {
-    if (_properties is EqualUnmodifiableMapView) return _properties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_properties);
-  }
-
-  final List<MapEventDefinition> _events;
-  @override
-  @JsonKey()
-  List<MapEventDefinition> get events {
-    if (_events is EqualUnmodifiableListView) return _events;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_events);
-  }
-
-  @override
-  String toString() {
-    return 'MapData(id: $id, name: $name, size: $size, version: $version, visualStack: $visualStack, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapDataImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.size, size) || other.size == size) &&
-            (identical(other.version, version) || other.version == version) &&
-            (identical(other.visualStack, visualStack) ||
-                other.visualStack == visualStack) &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId) &&
-            const DeepCollectionEquality().equals(other._layers, _layers) &&
-            const DeepCollectionEquality()
-                .equals(other._placedElements, _placedElements) &&
-            const DeepCollectionEquality().equals(other._entities, _entities) &&
-            const DeepCollectionEquality()
-                .equals(other._connections, _connections) &&
-            const DeepCollectionEquality().equals(other._warps, _warps) &&
-            const DeepCollectionEquality().equals(other._triggers, _triggers) &&
-            const DeepCollectionEquality()
-                .equals(other._gameplayZones, _gameplayZones) &&
-            (identical(other.mapMetadata, mapMetadata) ||
-                other.mapMetadata == mapMetadata) &&
-            const DeepCollectionEquality()
-                .equals(other._properties, _properties) &&
-            const DeepCollectionEquality().equals(other._events, _events));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      size,
-      version,
-      visualStack,
-      tilesetId,
-      const DeepCollectionEquality().hash(_layers),
-      const DeepCollectionEquality().hash(_placedElements),
-      const DeepCollectionEquality().hash(_entities),
-      const DeepCollectionEquality().hash(_connections),
-      const DeepCollectionEquality().hash(_warps),
-      const DeepCollectionEquality().hash(_triggers),
-      const DeepCollectionEquality().hash(_gameplayZones),
-      mapMetadata,
-      const DeepCollectionEquality().hash(_properties),
-      const DeepCollectionEquality().hash(_events));
-
-  /// Create a copy of MapData
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapDataImplCopyWith<_$MapDataImpl> get copyWith =>
-      __$$MapDataImplCopyWithImpl<_$MapDataImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapDataImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override final  GridSize size;
+@override@JsonKey() final  ProjectVersion version;
+@override@JsonKey(includeIfNull: false) final  MapVisualStackConfig? visualStack;
+@override@JsonKey() final  String tilesetId;
+ final  List<MapLayer> _layers;
+@override@JsonKey() List<MapLayer> get layers {
+  if (_layers is EqualUnmodifiableListView) return _layers;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_layers);
 }
 
-abstract class _MapData implements MapData {
-  const factory _MapData(
-      {required final String id,
-      required final String name,
-      required final GridSize size,
-      final ProjectVersion version,
-      @JsonKey(includeIfNull: false) final MapVisualStackConfig? visualStack,
-      final String tilesetId,
-      final List<MapLayer> layers,
-      final List<MapPlacedElement> placedElements,
-      final List<MapEntity> entities,
-      final List<MapConnection> connections,
-      final List<MapWarp> warps,
-      final List<MapTrigger> triggers,
-      final List<MapGameplayZone> gameplayZones,
-      final MapMetadata mapMetadata,
-      final Map<String, dynamic> properties,
-      final List<MapEventDefinition> events}) = _$MapDataImpl;
-
-  factory _MapData.fromJson(Map<String, dynamic> json) = _$MapDataImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  GridSize get size;
-  @override
-  ProjectVersion get version;
-  @override
-  @JsonKey(includeIfNull: false)
-  MapVisualStackConfig? get visualStack;
-  @override
-  String get tilesetId;
-  @override
-  List<MapLayer> get layers;
-  @override
-  List<MapPlacedElement> get placedElements;
-  @override
-  List<MapEntity> get entities;
-  @override
-  List<MapConnection> get connections;
-  @override
-  List<MapWarp> get warps;
-  @override
-  List<MapTrigger> get triggers;
-
-  /// Zones gameplay (rencontres, déplacement, dangers, etc.).
-  /// Séparées des triggers (logiques scriptées) et des layers visuelles.
-  @override
-  List<MapGameplayZone> get gameplayZones;
-  @override
-  MapMetadata get mapMetadata;
-  @override
-  Map<String, dynamic> get properties;
-  @override
-  List<MapEventDefinition> get events;
-
-  /// Create a copy of MapData
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapDataImplCopyWith<_$MapDataImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+ final  List<MapPlacedElement> _placedElements;
+@override@JsonKey() List<MapPlacedElement> get placedElements {
+  if (_placedElements is EqualUnmodifiableListView) return _placedElements;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_placedElements);
 }
 
-MapGameplayZone _$MapGameplayZoneFromJson(Map<String, dynamic> json) {
-  return _MapGameplayZone.fromJson(json);
+ final  List<MapEntity> _entities;
+@override@JsonKey() List<MapEntity> get entities {
+  if (_entities is EqualUnmodifiableListView) return _entities;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_entities);
 }
+
+ final  List<MapConnection> _connections;
+@override@JsonKey() List<MapConnection> get connections {
+  if (_connections is EqualUnmodifiableListView) return _connections;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_connections);
+}
+
+ final  List<MapWarp> _warps;
+@override@JsonKey() List<MapWarp> get warps {
+  if (_warps is EqualUnmodifiableListView) return _warps;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_warps);
+}
+
+ final  List<MapTrigger> _triggers;
+@override@JsonKey() List<MapTrigger> get triggers {
+  if (_triggers is EqualUnmodifiableListView) return _triggers;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_triggers);
+}
+
+/// Zones gameplay (rencontres, déplacement, dangers, etc.).
+/// Séparées des triggers (logiques scriptées) et des layers visuelles.
+ final  List<MapGameplayZone> _gameplayZones;
+/// Zones gameplay (rencontres, déplacement, dangers, etc.).
+/// Séparées des triggers (logiques scriptées) et des layers visuelles.
+@override@JsonKey() List<MapGameplayZone> get gameplayZones {
+  if (_gameplayZones is EqualUnmodifiableListView) return _gameplayZones;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_gameplayZones);
+}
+
+@override@JsonKey() final  MapMetadata mapMetadata;
+ final  Map<String, dynamic> _properties;
+@override@JsonKey() Map<String, dynamic> get properties {
+  if (_properties is EqualUnmodifiableMapView) return _properties;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_properties);
+}
+
+ final  List<MapEventDefinition> _events;
+@override@JsonKey() List<MapEventDefinition> get events {
+  if (_events is EqualUnmodifiableListView) return _events;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_events);
+}
+
+
+/// Create a copy of MapData
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapDataCopyWith<_MapData> get copyWith => __$MapDataCopyWithImpl<_MapData>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$MapDataToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapData&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.size, size) || other.size == size)&&(identical(other.version, version) || other.version == version)&&(identical(other.visualStack, visualStack) || other.visualStack == visualStack)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&const DeepCollectionEquality().equals(other._layers, _layers)&&const DeepCollectionEquality().equals(other._placedElements, _placedElements)&&const DeepCollectionEquality().equals(other._entities, _entities)&&const DeepCollectionEquality().equals(other._connections, _connections)&&const DeepCollectionEquality().equals(other._warps, _warps)&&const DeepCollectionEquality().equals(other._triggers, _triggers)&&const DeepCollectionEquality().equals(other._gameplayZones, _gameplayZones)&&(identical(other.mapMetadata, mapMetadata) || other.mapMetadata == mapMetadata)&&const DeepCollectionEquality().equals(other._properties, _properties)&&const DeepCollectionEquality().equals(other._events, _events));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,size,version,visualStack,tilesetId,const DeepCollectionEquality().hash(_layers),const DeepCollectionEquality().hash(_placedElements),const DeepCollectionEquality().hash(_entities),const DeepCollectionEquality().hash(_connections),const DeepCollectionEquality().hash(_warps),const DeepCollectionEquality().hash(_triggers),const DeepCollectionEquality().hash(_gameplayZones),mapMetadata,const DeepCollectionEquality().hash(_properties),const DeepCollectionEquality().hash(_events));
+
+@override
+String toString() {
+  return 'MapData(id: $id, name: $name, size: $size, version: $version, visualStack: $visualStack, tilesetId: $tilesetId, layers: $layers, placedElements: $placedElements, entities: $entities, connections: $connections, warps: $warps, triggers: $triggers, gameplayZones: $gameplayZones, mapMetadata: $mapMetadata, properties: $properties, events: $events)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapDataCopyWith<$Res> implements $MapDataCopyWith<$Res> {
+  factory _$MapDataCopyWith(_MapData value, $Res Function(_MapData) _then) = __$MapDataCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, GridSize size, ProjectVersion version,@JsonKey(includeIfNull: false) MapVisualStackConfig? visualStack, String tilesetId, List<MapLayer> layers, List<MapPlacedElement> placedElements, List<MapEntity> entities, List<MapConnection> connections, List<MapWarp> warps, List<MapTrigger> triggers, List<MapGameplayZone> gameplayZones, MapMetadata mapMetadata, Map<String, dynamic> properties, List<MapEventDefinition> events
+});
+
+
+@override $GridSizeCopyWith<$Res> get size;@override $MapMetadataCopyWith<$Res> get mapMetadata;
+
+}
+/// @nodoc
+class __$MapDataCopyWithImpl<$Res>
+    implements _$MapDataCopyWith<$Res> {
+  __$MapDataCopyWithImpl(this._self, this._then);
+
+  final _MapData _self;
+  final $Res Function(_MapData) _then;
+
+/// Create a copy of MapData
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? size = null,Object? version = null,Object? visualStack = freezed,Object? tilesetId = null,Object? layers = null,Object? placedElements = null,Object? entities = null,Object? connections = null,Object? warps = null,Object? triggers = null,Object? gameplayZones = null,Object? mapMetadata = null,Object? properties = null,Object? events = null,}) {
+  return _then(_MapData(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,size: null == size ? _self.size : size // ignore: cast_nullable_to_non_nullable
+as GridSize,version: null == version ? _self.version : version // ignore: cast_nullable_to_non_nullable
+as ProjectVersion,visualStack: freezed == visualStack ? _self.visualStack : visualStack // ignore: cast_nullable_to_non_nullable
+as MapVisualStackConfig?,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,layers: null == layers ? _self._layers : layers // ignore: cast_nullable_to_non_nullable
+as List<MapLayer>,placedElements: null == placedElements ? _self._placedElements : placedElements // ignore: cast_nullable_to_non_nullable
+as List<MapPlacedElement>,entities: null == entities ? _self._entities : entities // ignore: cast_nullable_to_non_nullable
+as List<MapEntity>,connections: null == connections ? _self._connections : connections // ignore: cast_nullable_to_non_nullable
+as List<MapConnection>,warps: null == warps ? _self._warps : warps // ignore: cast_nullable_to_non_nullable
+as List<MapWarp>,triggers: null == triggers ? _self._triggers : triggers // ignore: cast_nullable_to_non_nullable
+as List<MapTrigger>,gameplayZones: null == gameplayZones ? _self._gameplayZones : gameplayZones // ignore: cast_nullable_to_non_nullable
+as List<MapGameplayZone>,mapMetadata: null == mapMetadata ? _self.mapMetadata : mapMetadata // ignore: cast_nullable_to_non_nullable
+as MapMetadata,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,events: null == events ? _self._events : events // ignore: cast_nullable_to_non_nullable
+as List<MapEventDefinition>,
+  ));
+}
+
+/// Create a copy of MapData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridSizeCopyWith<$Res> get size {
+
+  return $GridSizeCopyWith<$Res>(_self.size, (value) {
+    return _then(_self.copyWith(size: value));
+  });
+}/// Create a copy of MapData
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapMetadataCopyWith<$Res> get mapMetadata {
+
+  return $MapMetadataCopyWith<$Res>(_self.mapMetadata, (value) {
+    return _then(_self.copyWith(mapMetadata: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$MapGameplayZone {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  GameplayZoneKind get kind => throw _privateConstructorUsedError;
-  MapRect get area => throw _privateConstructorUsedError;
 
-  /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
-  int get priority => throw _privateConstructorUsedError;
-
-  /// Payload pour [GameplayZoneKind.encounter].
-  EncounterZonePayload? get encounter => throw _privateConstructorUsedError;
-
-  /// Payload pour [GameplayZoneKind.movement].
-  MovementZonePayload? get movement => throw _privateConstructorUsedError;
-
-  /// Payload pour [GameplayZoneKind.movementEffect].
-  MovementEffectZonePayload? get movementEffect =>
-      throw _privateConstructorUsedError;
-
-  /// Payload pour [GameplayZoneKind.hazard].
-  HazardZonePayload? get hazard => throw _privateConstructorUsedError;
-
-  /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
-  SpecialZonePayload? get special => throw _privateConstructorUsedError;
+ String get id; String get name; GameplayZoneKind get kind; MapRect get area;/// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
+ int get priority;/// Payload pour [GameplayZoneKind.encounter].
+ EncounterZonePayload? get encounter;/// Payload pour [GameplayZoneKind.movement].
+ MovementZonePayload? get movement;/// Payload pour [GameplayZoneKind.movementEffect].
+ MovementEffectZonePayload? get movementEffect;/// Payload pour [GameplayZoneKind.hazard].
+ HazardZonePayload? get hazard;/// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
+ SpecialZonePayload? get special;
+/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapGameplayZoneCopyWith<MapGameplayZone> get copyWith => _$MapGameplayZoneCopyWithImpl<MapGameplayZone>(this as MapGameplayZone, _$identity);
 
   /// Serializes this MapGameplayZone to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapGameplayZoneCopyWith<MapGameplayZone> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapGameplayZone&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.area, area) || other.area == area)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.encounter, encounter) || other.encounter == encounter)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.movementEffect, movementEffect) || other.movementEffect == movementEffect)&&(identical(other.hazard, hazard) || other.hazard == hazard)&&(identical(other.special, special) || other.special == special));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,kind,area,priority,encounter,movement,movementEffect,hazard,special);
+
+@override
+String toString() {
+  return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, movementEffect: $movementEffect, hazard: $hazard, special: $special)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapGameplayZoneCopyWith<$Res> {
-  factory $MapGameplayZoneCopyWith(
-          MapGameplayZone value, $Res Function(MapGameplayZone) then) =
-      _$MapGameplayZoneCopyWithImpl<$Res, MapGameplayZone>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      GameplayZoneKind kind,
-      MapRect area,
-      int priority,
-      EncounterZonePayload? encounter,
-      MovementZonePayload? movement,
-      MovementEffectZonePayload? movementEffect,
-      HazardZonePayload? hazard,
-      SpecialZonePayload? special});
+abstract mixin class $MapGameplayZoneCopyWith<$Res>  {
+  factory $MapGameplayZoneCopyWith(MapGameplayZone value, $Res Function(MapGameplayZone) _then) = _$MapGameplayZoneCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, GameplayZoneKind kind, MapRect area, int priority, EncounterZonePayload? encounter, MovementZonePayload? movement, MovementEffectZonePayload? movementEffect, HazardZonePayload? hazard, SpecialZonePayload? special
+});
 
-  $MapRectCopyWith<$Res> get area;
-  $EncounterZonePayloadCopyWith<$Res>? get encounter;
-  $MovementZonePayloadCopyWith<$Res>? get movement;
-  $MovementEffectZonePayloadCopyWith<$Res>? get movementEffect;
-  $HazardZonePayloadCopyWith<$Res>? get hazard;
-  $SpecialZonePayloadCopyWith<$Res>? get special;
+
+$MapRectCopyWith<$Res> get area;$EncounterZonePayloadCopyWith<$Res>? get encounter;$MovementZonePayloadCopyWith<$Res>? get movement;$MovementEffectZonePayloadCopyWith<$Res>? get movementEffect;$HazardZonePayloadCopyWith<$Res>? get hazard;$SpecialZonePayloadCopyWith<$Res>? get special;
+
 }
-
 /// @nodoc
-class _$MapGameplayZoneCopyWithImpl<$Res, $Val extends MapGameplayZone>
+class _$MapGameplayZoneCopyWithImpl<$Res>
     implements $MapGameplayZoneCopyWith<$Res> {
-  _$MapGameplayZoneCopyWithImpl(this._value, this._then);
+  _$MapGameplayZoneCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapGameplayZone _self;
+  final $Res Function(MapGameplayZone) _then;
 
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? kind = null,
-    Object? area = null,
-    Object? priority = null,
-    Object? encounter = freezed,
-    Object? movement = freezed,
-    Object? movementEffect = freezed,
-    Object? hazard = freezed,
-    Object? special = freezed,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      kind: null == kind
-          ? _value.kind
-          : kind // ignore: cast_nullable_to_non_nullable
-              as GameplayZoneKind,
-      area: null == area
-          ? _value.area
-          : area // ignore: cast_nullable_to_non_nullable
-              as MapRect,
-      priority: null == priority
-          ? _value.priority
-          : priority // ignore: cast_nullable_to_non_nullable
-              as int,
-      encounter: freezed == encounter
-          ? _value.encounter
-          : encounter // ignore: cast_nullable_to_non_nullable
-              as EncounterZonePayload?,
-      movement: freezed == movement
-          ? _value.movement
-          : movement // ignore: cast_nullable_to_non_nullable
-              as MovementZonePayload?,
-      movementEffect: freezed == movementEffect
-          ? _value.movementEffect
-          : movementEffect // ignore: cast_nullable_to_non_nullable
-              as MovementEffectZonePayload?,
-      hazard: freezed == hazard
-          ? _value.hazard
-          : hazard // ignore: cast_nullable_to_non_nullable
-              as HazardZonePayload?,
-      special: freezed == special
-          ? _value.special
-          : special // ignore: cast_nullable_to_non_nullable
-              as SpecialZonePayload?,
-    ) as $Val);
+/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? area = null,Object? priority = null,Object? encounter = freezed,Object? movement = freezed,Object? movementEffect = freezed,Object? hazard = freezed,Object? special = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
+as GameplayZoneKind,area: null == area ? _self.area : area // ignore: cast_nullable_to_non_nullable
+as MapRect,priority: null == priority ? _self.priority : priority // ignore: cast_nullable_to_non_nullable
+as int,encounter: freezed == encounter ? _self.encounter : encounter // ignore: cast_nullable_to_non_nullable
+as EncounterZonePayload?,movement: freezed == movement ? _self.movement : movement // ignore: cast_nullable_to_non_nullable
+as MovementZonePayload?,movementEffect: freezed == movementEffect ? _self.movementEffect : movementEffect // ignore: cast_nullable_to_non_nullable
+as MovementEffectZonePayload?,hazard: freezed == hazard ? _self.hazard : hazard // ignore: cast_nullable_to_non_nullable
+as HazardZonePayload?,special: freezed == special ? _self.special : special // ignore: cast_nullable_to_non_nullable
+as SpecialZonePayload?,
+  ));
+}
+/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res> get area {
+
+  return $MapRectCopyWith<$Res>(_self.area, (value) {
+    return _then(_self.copyWith(area: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EncounterZonePayloadCopyWith<$Res>? get encounter {
+    if (_self.encounter == null) {
+    return null;
   }
 
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapRectCopyWith<$Res> get area {
-    return $MapRectCopyWith<$Res>(_value.area, (value) {
-      return _then(_value.copyWith(area: value) as $Val);
-    });
+  return $EncounterZonePayloadCopyWith<$Res>(_self.encounter!, (value) {
+    return _then(_self.copyWith(encounter: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MovementZonePayloadCopyWith<$Res>? get movement {
+    if (_self.movement == null) {
+    return null;
   }
 
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $EncounterZonePayloadCopyWith<$Res>? get encounter {
-    if (_value.encounter == null) {
-      return null;
-    }
-
-    return $EncounterZonePayloadCopyWith<$Res>(_value.encounter!, (value) {
-      return _then(_value.copyWith(encounter: value) as $Val);
-    });
+  return $MovementZonePayloadCopyWith<$Res>(_self.movement!, (value) {
+    return _then(_self.copyWith(movement: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MovementEffectZonePayloadCopyWith<$Res>? get movementEffect {
+    if (_self.movementEffect == null) {
+    return null;
   }
 
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MovementZonePayloadCopyWith<$Res>? get movement {
-    if (_value.movement == null) {
-      return null;
-    }
-
-    return $MovementZonePayloadCopyWith<$Res>(_value.movement!, (value) {
-      return _then(_value.copyWith(movement: value) as $Val);
-    });
+  return $MovementEffectZonePayloadCopyWith<$Res>(_self.movementEffect!, (value) {
+    return _then(_self.copyWith(movementEffect: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$HazardZonePayloadCopyWith<$Res>? get hazard {
+    if (_self.hazard == null) {
+    return null;
   }
 
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MovementEffectZonePayloadCopyWith<$Res>? get movementEffect {
-    if (_value.movementEffect == null) {
-      return null;
-    }
-
-    return $MovementEffectZonePayloadCopyWith<$Res>(_value.movementEffect!,
-        (value) {
-      return _then(_value.copyWith(movementEffect: value) as $Val);
-    });
+  return $HazardZonePayloadCopyWith<$Res>(_self.hazard!, (value) {
+    return _then(_self.copyWith(hazard: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SpecialZonePayloadCopyWith<$Res>? get special {
+    if (_self.special == null) {
+    return null;
   }
 
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $HazardZonePayloadCopyWith<$Res>? get hazard {
-    if (_value.hazard == null) {
-      return null;
-    }
-
-    return $HazardZonePayloadCopyWith<$Res>(_value.hazard!, (value) {
-      return _then(_value.copyWith(hazard: value) as $Val);
-    });
-  }
-
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $SpecialZonePayloadCopyWith<$Res>? get special {
-    if (_value.special == null) {
-      return null;
-    }
-
-    return $SpecialZonePayloadCopyWith<$Res>(_value.special!, (value) {
-      return _then(_value.copyWith(special: value) as $Val);
-    });
-  }
+  return $SpecialZonePayloadCopyWith<$Res>(_self.special!, (value) {
+    return _then(_self.copyWith(special: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapGameplayZoneImplCopyWith<$Res>
-    implements $MapGameplayZoneCopyWith<$Res> {
-  factory _$$MapGameplayZoneImplCopyWith(_$MapGameplayZoneImpl value,
-          $Res Function(_$MapGameplayZoneImpl) then) =
-      __$$MapGameplayZoneImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      GameplayZoneKind kind,
-      MapRect area,
-      int priority,
-      EncounterZonePayload? encounter,
-      MovementZonePayload? movement,
-      MovementEffectZonePayload? movementEffect,
-      HazardZonePayload? hazard,
-      SpecialZonePayload? special});
 
-  @override
-  $MapRectCopyWith<$Res> get area;
-  @override
-  $EncounterZonePayloadCopyWith<$Res>? get encounter;
-  @override
-  $MovementZonePayloadCopyWith<$Res>? get movement;
-  @override
-  $MovementEffectZonePayloadCopyWith<$Res>? get movementEffect;
-  @override
-  $HazardZonePayloadCopyWith<$Res>? get hazard;
-  @override
-  $SpecialZonePayloadCopyWith<$Res>? get special;
+/// Adds pattern-matching-related methods to [MapGameplayZone].
+extension MapGameplayZonePatterns on MapGameplayZone {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapGameplayZone value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapGameplayZone() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapGameplayZone value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapGameplayZone():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapGameplayZone value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapGameplayZone() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  GameplayZoneKind kind,  MapRect area,  int priority,  EncounterZonePayload? encounter,  MovementZonePayload? movement,  MovementEffectZonePayload? movementEffect,  HazardZonePayload? hazard,  SpecialZonePayload? special)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapGameplayZone() when $default != null:
+return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.encounter,_that.movement,_that.movementEffect,_that.hazard,_that.special);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  GameplayZoneKind kind,  MapRect area,  int priority,  EncounterZonePayload? encounter,  MovementZonePayload? movement,  MovementEffectZonePayload? movementEffect,  HazardZonePayload? hazard,  SpecialZonePayload? special)  $default,) {final _that = this;
+switch (_that) {
+case _MapGameplayZone():
+return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.encounter,_that.movement,_that.movementEffect,_that.hazard,_that.special);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  GameplayZoneKind kind,  MapRect area,  int priority,  EncounterZonePayload? encounter,  MovementZonePayload? movement,  MovementEffectZonePayload? movementEffect,  HazardZonePayload? hazard,  SpecialZonePayload? special)?  $default,) {final _that = this;
+switch (_that) {
+case _MapGameplayZone() when $default != null:
+return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.encounter,_that.movement,_that.movementEffect,_that.hazard,_that.special);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapGameplayZoneImplCopyWithImpl<$Res>
-    extends _$MapGameplayZoneCopyWithImpl<$Res, _$MapGameplayZoneImpl>
-    implements _$$MapGameplayZoneImplCopyWith<$Res> {
-  __$$MapGameplayZoneImplCopyWithImpl(
-      _$MapGameplayZoneImpl _value, $Res Function(_$MapGameplayZoneImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? kind = null,
-    Object? area = null,
-    Object? priority = null,
-    Object? encounter = freezed,
-    Object? movement = freezed,
-    Object? movementEffect = freezed,
-    Object? hazard = freezed,
-    Object? special = freezed,
-  }) {
-    return _then(_$MapGameplayZoneImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      kind: null == kind
-          ? _value.kind
-          : kind // ignore: cast_nullable_to_non_nullable
-              as GameplayZoneKind,
-      area: null == area
-          ? _value.area
-          : area // ignore: cast_nullable_to_non_nullable
-              as MapRect,
-      priority: null == priority
-          ? _value.priority
-          : priority // ignore: cast_nullable_to_non_nullable
-              as int,
-      encounter: freezed == encounter
-          ? _value.encounter
-          : encounter // ignore: cast_nullable_to_non_nullable
-              as EncounterZonePayload?,
-      movement: freezed == movement
-          ? _value.movement
-          : movement // ignore: cast_nullable_to_non_nullable
-              as MovementZonePayload?,
-      movementEffect: freezed == movementEffect
-          ? _value.movementEffect
-          : movementEffect // ignore: cast_nullable_to_non_nullable
-              as MovementEffectZonePayload?,
-      hazard: freezed == hazard
-          ? _value.hazard
-          : hazard // ignore: cast_nullable_to_non_nullable
-              as HazardZonePayload?,
-      special: freezed == special
-          ? _value.special
-          : special // ignore: cast_nullable_to_non_nullable
-              as SpecialZonePayload?,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapGameplayZoneImpl implements _MapGameplayZone {
-  const _$MapGameplayZoneImpl(
-      {required this.id,
-      this.name = '',
-      required this.kind,
-      required this.area,
-      this.priority = 0,
-      this.encounter,
-      this.movement,
-      this.movementEffect,
-      this.hazard,
-      this.special});
+class _MapGameplayZone implements MapGameplayZone {
+  const _MapGameplayZone({required this.id, this.name = '', required this.kind, required this.area, this.priority = 0, this.encounter, this.movement, this.movementEffect, this.hazard, this.special});
+  factory _MapGameplayZone.fromJson(Map<String, dynamic> json) => _$MapGameplayZoneFromJson(json);
 
-  factory _$MapGameplayZoneImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapGameplayZoneImplFromJson(json);
+@override final  String id;
+@override@JsonKey() final  String name;
+@override final  GameplayZoneKind kind;
+@override final  MapRect area;
+/// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
+@override@JsonKey() final  int priority;
+/// Payload pour [GameplayZoneKind.encounter].
+@override final  EncounterZonePayload? encounter;
+/// Payload pour [GameplayZoneKind.movement].
+@override final  MovementZonePayload? movement;
+/// Payload pour [GameplayZoneKind.movementEffect].
+@override final  MovementEffectZonePayload? movementEffect;
+/// Payload pour [GameplayZoneKind.hazard].
+@override final  HazardZonePayload? hazard;
+/// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
+@override final  SpecialZonePayload? special;
 
-  @override
-  final String id;
-  @override
-  @JsonKey()
-  final String name;
-  @override
-  final GameplayZoneKind kind;
-  @override
-  final MapRect area;
+/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapGameplayZoneCopyWith<_MapGameplayZone> get copyWith => __$MapGameplayZoneCopyWithImpl<_MapGameplayZone>(this, _$identity);
 
-  /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
-  @override
-  @JsonKey()
-  final int priority;
-
-  /// Payload pour [GameplayZoneKind.encounter].
-  @override
-  final EncounterZonePayload? encounter;
-
-  /// Payload pour [GameplayZoneKind.movement].
-  @override
-  final MovementZonePayload? movement;
-
-  /// Payload pour [GameplayZoneKind.movementEffect].
-  @override
-  final MovementEffectZonePayload? movementEffect;
-
-  /// Payload pour [GameplayZoneKind.hazard].
-  @override
-  final HazardZonePayload? hazard;
-
-  /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
-  @override
-  final SpecialZonePayload? special;
-
-  @override
-  String toString() {
-    return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, movementEffect: $movementEffect, hazard: $hazard, special: $special)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapGameplayZoneImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.kind, kind) || other.kind == kind) &&
-            (identical(other.area, area) || other.area == area) &&
-            (identical(other.priority, priority) ||
-                other.priority == priority) &&
-            (identical(other.encounter, encounter) ||
-                other.encounter == encounter) &&
-            (identical(other.movement, movement) ||
-                other.movement == movement) &&
-            (identical(other.movementEffect, movementEffect) ||
-                other.movementEffect == movementEffect) &&
-            (identical(other.hazard, hazard) || other.hazard == hazard) &&
-            (identical(other.special, special) || other.special == special));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, name, kind, area, priority,
-      encounter, movement, movementEffect, hazard, special);
-
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapGameplayZoneImplCopyWith<_$MapGameplayZoneImpl> get copyWith =>
-      __$$MapGameplayZoneImplCopyWithImpl<_$MapGameplayZoneImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapGameplayZoneImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$MapGameplayZoneToJson(this, );
 }
 
-abstract class _MapGameplayZone implements MapGameplayZone {
-  const factory _MapGameplayZone(
-      {required final String id,
-      final String name,
-      required final GameplayZoneKind kind,
-      required final MapRect area,
-      final int priority,
-      final EncounterZonePayload? encounter,
-      final MovementZonePayload? movement,
-      final MovementEffectZonePayload? movementEffect,
-      final HazardZonePayload? hazard,
-      final SpecialZonePayload? special}) = _$MapGameplayZoneImpl;
-
-  factory _MapGameplayZone.fromJson(Map<String, dynamic> json) =
-      _$MapGameplayZoneImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  GameplayZoneKind get kind;
-  @override
-  MapRect get area;
-
-  /// Priorité de résolution si plusieurs zones se superposent (plus haut = prioritaire).
-  @override
-  int get priority;
-
-  /// Payload pour [GameplayZoneKind.encounter].
-  @override
-  EncounterZonePayload? get encounter;
-
-  /// Payload pour [GameplayZoneKind.movement].
-  @override
-  MovementZonePayload? get movement;
-
-  /// Payload pour [GameplayZoneKind.movementEffect].
-  @override
-  MovementEffectZonePayload? get movementEffect;
-
-  /// Payload pour [GameplayZoneKind.hazard].
-  @override
-  HazardZonePayload? get hazard;
-
-  /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
-  @override
-  SpecialZonePayload? get special;
-
-  /// Create a copy of MapGameplayZone
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapGameplayZoneImplCopyWith<_$MapGameplayZoneImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapGameplayZone&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.area, area) || other.area == area)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.encounter, encounter) || other.encounter == encounter)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.movementEffect, movementEffect) || other.movementEffect == movementEffect)&&(identical(other.hazard, hazard) || other.hazard == hazard)&&(identical(other.special, special) || other.special == special));
 }
 
-MapPlacedElement _$MapPlacedElementFromJson(Map<String, dynamic> json) {
-  return _MapPlacedElement.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,kind,area,priority,encounter,movement,movementEffect,hazard,special);
+
+@override
+String toString() {
+  return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, movementEffect: $movementEffect, hazard: $hazard, special: $special)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapGameplayZoneCopyWith<$Res> implements $MapGameplayZoneCopyWith<$Res> {
+  factory _$MapGameplayZoneCopyWith(_MapGameplayZone value, $Res Function(_MapGameplayZone) _then) = __$MapGameplayZoneCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, GameplayZoneKind kind, MapRect area, int priority, EncounterZonePayload? encounter, MovementZonePayload? movement, MovementEffectZonePayload? movementEffect, HazardZonePayload? hazard, SpecialZonePayload? special
+});
+
+
+@override $MapRectCopyWith<$Res> get area;@override $EncounterZonePayloadCopyWith<$Res>? get encounter;@override $MovementZonePayloadCopyWith<$Res>? get movement;@override $MovementEffectZonePayloadCopyWith<$Res>? get movementEffect;@override $HazardZonePayloadCopyWith<$Res>? get hazard;@override $SpecialZonePayloadCopyWith<$Res>? get special;
+
+}
+/// @nodoc
+class __$MapGameplayZoneCopyWithImpl<$Res>
+    implements _$MapGameplayZoneCopyWith<$Res> {
+  __$MapGameplayZoneCopyWithImpl(this._self, this._then);
+
+  final _MapGameplayZone _self;
+  final $Res Function(_MapGameplayZone) _then;
+
+/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? area = null,Object? priority = null,Object? encounter = freezed,Object? movement = freezed,Object? movementEffect = freezed,Object? hazard = freezed,Object? special = freezed,}) {
+  return _then(_MapGameplayZone(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
+as GameplayZoneKind,area: null == area ? _self.area : area // ignore: cast_nullable_to_non_nullable
+as MapRect,priority: null == priority ? _self.priority : priority // ignore: cast_nullable_to_non_nullable
+as int,encounter: freezed == encounter ? _self.encounter : encounter // ignore: cast_nullable_to_non_nullable
+as EncounterZonePayload?,movement: freezed == movement ? _self.movement : movement // ignore: cast_nullable_to_non_nullable
+as MovementZonePayload?,movementEffect: freezed == movementEffect ? _self.movementEffect : movementEffect // ignore: cast_nullable_to_non_nullable
+as MovementEffectZonePayload?,hazard: freezed == hazard ? _self.hazard : hazard // ignore: cast_nullable_to_non_nullable
+as HazardZonePayload?,special: freezed == special ? _self.special : special // ignore: cast_nullable_to_non_nullable
+as SpecialZonePayload?,
+  ));
+}
+
+/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res> get area {
+
+  return $MapRectCopyWith<$Res>(_self.area, (value) {
+    return _then(_self.copyWith(area: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EncounterZonePayloadCopyWith<$Res>? get encounter {
+    if (_self.encounter == null) {
+    return null;
+  }
+
+  return $EncounterZonePayloadCopyWith<$Res>(_self.encounter!, (value) {
+    return _then(_self.copyWith(encounter: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MovementZonePayloadCopyWith<$Res>? get movement {
+    if (_self.movement == null) {
+    return null;
+  }
+
+  return $MovementZonePayloadCopyWith<$Res>(_self.movement!, (value) {
+    return _then(_self.copyWith(movement: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MovementEffectZonePayloadCopyWith<$Res>? get movementEffect {
+    if (_self.movementEffect == null) {
+    return null;
+  }
+
+  return $MovementEffectZonePayloadCopyWith<$Res>(_self.movementEffect!, (value) {
+    return _then(_self.copyWith(movementEffect: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$HazardZonePayloadCopyWith<$Res>? get hazard {
+    if (_self.hazard == null) {
+    return null;
+  }
+
+  return $HazardZonePayloadCopyWith<$Res>(_self.hazard!, (value) {
+    return _then(_self.copyWith(hazard: value));
+  });
+}/// Create a copy of MapGameplayZone
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SpecialZonePayloadCopyWith<$Res>? get special {
+    if (_self.special == null) {
+    return null;
+  }
+
+  return $SpecialZonePayloadCopyWith<$Res>(_self.special!, (value) {
+    return _then(_self.copyWith(special: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$MapPlacedElement {
-  String get id => throw _privateConstructorUsedError;
-  String get layerId => throw _privateConstructorUsedError;
-  String get elementId => throw _privateConstructorUsedError;
-  GridPos get pos => throw _privateConstructorUsedError;
-  @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
-  int get quarterTurns => throw _privateConstructorUsedError;
-  bool get applyCollision => throw _privateConstructorUsedError;
-  double get opacity => throw _privateConstructorUsedError;
-  MapPlacedElementAnimation? get animation =>
-      throw _privateConstructorUsedError;
-  @MapPlacedElementShadowOverrideJsonConverter()
-  MapPlacedElementShadowOverride? get shadowOverride =>
-      throw _privateConstructorUsedError;
-  List<MapPlacedElementBehavior> get behaviors =>
-      throw _privateConstructorUsedError;
-  Map<String, String> get properties => throw _privateConstructorUsedError;
+
+ String get id; String get layerId; String get elementId; GridPos get pos;@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) int get quarterTurns; bool get applyCollision; double get opacity; MapPlacedElementAnimation? get animation;@MapPlacedElementShadowOverrideJsonConverter() MapPlacedElementShadowOverride? get shadowOverride; List<MapPlacedElementBehavior> get behaviors; Map<String, String> get properties;
+/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapPlacedElementCopyWith<MapPlacedElement> get copyWith => _$MapPlacedElementCopyWithImpl<MapPlacedElement>(this as MapPlacedElement, _$identity);
 
   /// Serializes this MapPlacedElement to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapPlacedElement
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapPlacedElementCopyWith<MapPlacedElement> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapPlacedElement&&(identical(other.id, id) || other.id == id)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.elementId, elementId) || other.elementId == elementId)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.quarterTurns, quarterTurns) || other.quarterTurns == quarterTurns)&&(identical(other.applyCollision, applyCollision) || other.applyCollision == applyCollision)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.animation, animation) || other.animation == animation)&&(identical(other.shadowOverride, shadowOverride) || other.shadowOverride == shadowOverride)&&const DeepCollectionEquality().equals(other.behaviors, behaviors)&&const DeepCollectionEquality().equals(other.properties, properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,layerId,elementId,pos,quarterTurns,applyCollision,opacity,animation,shadowOverride,const DeepCollectionEquality().hash(behaviors),const DeepCollectionEquality().hash(properties));
+
+@override
+String toString() {
+  return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, quarterTurns: $quarterTurns, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapPlacedElementCopyWith<$Res> {
-  factory $MapPlacedElementCopyWith(
-          MapPlacedElement value, $Res Function(MapPlacedElement) then) =
-      _$MapPlacedElementCopyWithImpl<$Res, MapPlacedElement>;
-  @useResult
-  $Res call(
-      {String id,
-      String layerId,
-      String elementId,
-      GridPos pos,
-      @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
-      int quarterTurns,
-      bool applyCollision,
-      double opacity,
-      MapPlacedElementAnimation? animation,
-      @MapPlacedElementShadowOverrideJsonConverter()
-      MapPlacedElementShadowOverride? shadowOverride,
-      List<MapPlacedElementBehavior> behaviors,
-      Map<String, String> properties});
+abstract mixin class $MapPlacedElementCopyWith<$Res>  {
+  factory $MapPlacedElementCopyWith(MapPlacedElement value, $Res Function(MapPlacedElement) _then) = _$MapPlacedElementCopyWithImpl;
+@useResult
+$Res call({
+ String id, String layerId, String elementId, GridPos pos,@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) int quarterTurns, bool applyCollision, double opacity, MapPlacedElementAnimation? animation,@MapPlacedElementShadowOverrideJsonConverter() MapPlacedElementShadowOverride? shadowOverride, List<MapPlacedElementBehavior> behaviors, Map<String, String> properties
+});
 
-  $GridPosCopyWith<$Res> get pos;
-  $MapPlacedElementAnimationCopyWith<$Res>? get animation;
+
+$GridPosCopyWith<$Res> get pos;$MapPlacedElementAnimationCopyWith<$Res>? get animation;
+
 }
-
 /// @nodoc
-class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
+class _$MapPlacedElementCopyWithImpl<$Res>
     implements $MapPlacedElementCopyWith<$Res> {
-  _$MapPlacedElementCopyWithImpl(this._value, this._then);
+  _$MapPlacedElementCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapPlacedElement _self;
+  final $Res Function(MapPlacedElement) _then;
 
-  /// Create a copy of MapPlacedElement
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? layerId = null,
-    Object? elementId = null,
-    Object? pos = null,
-    Object? quarterTurns = null,
-    Object? applyCollision = null,
-    Object? opacity = null,
-    Object? animation = freezed,
-    Object? shadowOverride = freezed,
-    Object? behaviors = null,
-    Object? properties = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      layerId: null == layerId
-          ? _value.layerId
-          : layerId // ignore: cast_nullable_to_non_nullable
-              as String,
-      elementId: null == elementId
-          ? _value.elementId
-          : elementId // ignore: cast_nullable_to_non_nullable
-              as String,
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      quarterTurns: null == quarterTurns
-          ? _value.quarterTurns
-          : quarterTurns // ignore: cast_nullable_to_non_nullable
-              as int,
-      applyCollision: null == applyCollision
-          ? _value.applyCollision
-          : applyCollision // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      animation: freezed == animation
-          ? _value.animation
-          : animation // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementAnimation?,
-      shadowOverride: freezed == shadowOverride
-          ? _value.shadowOverride
-          : shadowOverride // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementShadowOverride?,
-      behaviors: null == behaviors
-          ? _value.behaviors
-          : behaviors // ignore: cast_nullable_to_non_nullable
-              as List<MapPlacedElementBehavior>,
-      properties: null == properties
-          ? _value.properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ) as $Val);
+/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? layerId = null,Object? elementId = null,Object? pos = null,Object? quarterTurns = null,Object? applyCollision = null,Object? opacity = null,Object? animation = freezed,Object? shadowOverride = freezed,Object? behaviors = null,Object? properties = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
+as String,elementId: null == elementId ? _self.elementId : elementId // ignore: cast_nullable_to_non_nullable
+as String,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
+as GridPos,quarterTurns: null == quarterTurns ? _self.quarterTurns : quarterTurns // ignore: cast_nullable_to_non_nullable
+as int,applyCollision: null == applyCollision ? _self.applyCollision : applyCollision // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,animation: freezed == animation ? _self.animation : animation // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementAnimation?,shadowOverride: freezed == shadowOverride ? _self.shadowOverride : shadowOverride // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementShadowOverride?,behaviors: null == behaviors ? _self.behaviors : behaviors // ignore: cast_nullable_to_non_nullable
+as List<MapPlacedElementBehavior>,properties: null == properties ? _self.properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get pos {
+
+  return $GridPosCopyWith<$Res>(_self.pos, (value) {
+    return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapPlacedElementAnimationCopyWith<$Res>? get animation {
+    if (_self.animation == null) {
+    return null;
   }
 
-  /// Create a copy of MapPlacedElement
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridPosCopyWith<$Res> get pos {
-    return $GridPosCopyWith<$Res>(_value.pos, (value) {
-      return _then(_value.copyWith(pos: value) as $Val);
-    });
-  }
-
-  /// Create a copy of MapPlacedElement
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapPlacedElementAnimationCopyWith<$Res>? get animation {
-    if (_value.animation == null) {
-      return null;
-    }
-
-    return $MapPlacedElementAnimationCopyWith<$Res>(_value.animation!, (value) {
-      return _then(_value.copyWith(animation: value) as $Val);
-    });
-  }
+  return $MapPlacedElementAnimationCopyWith<$Res>(_self.animation!, (value) {
+    return _then(_self.copyWith(animation: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapPlacedElementImplCopyWith<$Res>
-    implements $MapPlacedElementCopyWith<$Res> {
-  factory _$$MapPlacedElementImplCopyWith(_$MapPlacedElementImpl value,
-          $Res Function(_$MapPlacedElementImpl) then) =
-      __$$MapPlacedElementImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String layerId,
-      String elementId,
-      GridPos pos,
-      @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
-      int quarterTurns,
-      bool applyCollision,
-      double opacity,
-      MapPlacedElementAnimation? animation,
-      @MapPlacedElementShadowOverrideJsonConverter()
-      MapPlacedElementShadowOverride? shadowOverride,
-      List<MapPlacedElementBehavior> behaviors,
-      Map<String, String> properties});
 
-  @override
-  $GridPosCopyWith<$Res> get pos;
-  @override
-  $MapPlacedElementAnimationCopyWith<$Res>? get animation;
+/// Adds pattern-matching-related methods to [MapPlacedElement].
+extension MapPlacedElementPatterns on MapPlacedElement {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapPlacedElement value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapPlacedElement() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapPlacedElement value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedElement():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapPlacedElement value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedElement() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String layerId,  String elementId,  GridPos pos, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)  int quarterTurns,  bool applyCollision,  double opacity,  MapPlacedElementAnimation? animation, @MapPlacedElementShadowOverrideJsonConverter()  MapPlacedElementShadowOverride? shadowOverride,  List<MapPlacedElementBehavior> behaviors,  Map<String, String> properties)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapPlacedElement() when $default != null:
+return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.quarterTurns,_that.applyCollision,_that.opacity,_that.animation,_that.shadowOverride,_that.behaviors,_that.properties);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String layerId,  String elementId,  GridPos pos, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)  int quarterTurns,  bool applyCollision,  double opacity,  MapPlacedElementAnimation? animation, @MapPlacedElementShadowOverrideJsonConverter()  MapPlacedElementShadowOverride? shadowOverride,  List<MapPlacedElementBehavior> behaviors,  Map<String, String> properties)  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedElement():
+return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.quarterTurns,_that.applyCollision,_that.opacity,_that.animation,_that.shadowOverride,_that.behaviors,_that.properties);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String layerId,  String elementId,  GridPos pos, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)  int quarterTurns,  bool applyCollision,  double opacity,  MapPlacedElementAnimation? animation, @MapPlacedElementShadowOverrideJsonConverter()  MapPlacedElementShadowOverride? shadowOverride,  List<MapPlacedElementBehavior> behaviors,  Map<String, String> properties)?  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedElement() when $default != null:
+return $default(_that.id,_that.layerId,_that.elementId,_that.pos,_that.quarterTurns,_that.applyCollision,_that.opacity,_that.animation,_that.shadowOverride,_that.behaviors,_that.properties);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapPlacedElementImplCopyWithImpl<$Res>
-    extends _$MapPlacedElementCopyWithImpl<$Res, _$MapPlacedElementImpl>
-    implements _$$MapPlacedElementImplCopyWith<$Res> {
-  __$$MapPlacedElementImplCopyWithImpl(_$MapPlacedElementImpl _value,
-      $Res Function(_$MapPlacedElementImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapPlacedElement
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? layerId = null,
-    Object? elementId = null,
-    Object? pos = null,
-    Object? quarterTurns = null,
-    Object? applyCollision = null,
-    Object? opacity = null,
-    Object? animation = freezed,
-    Object? shadowOverride = freezed,
-    Object? behaviors = null,
-    Object? properties = null,
-  }) {
-    return _then(_$MapPlacedElementImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      layerId: null == layerId
-          ? _value.layerId
-          : layerId // ignore: cast_nullable_to_non_nullable
-              as String,
-      elementId: null == elementId
-          ? _value.elementId
-          : elementId // ignore: cast_nullable_to_non_nullable
-              as String,
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      quarterTurns: null == quarterTurns
-          ? _value.quarterTurns
-          : quarterTurns // ignore: cast_nullable_to_non_nullable
-              as int,
-      applyCollision: null == applyCollision
-          ? _value.applyCollision
-          : applyCollision // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      animation: freezed == animation
-          ? _value.animation
-          : animation // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementAnimation?,
-      shadowOverride: freezed == shadowOverride
-          ? _value.shadowOverride
-          : shadowOverride // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementShadowOverride?,
-      behaviors: null == behaviors
-          ? _value._behaviors
-          : behaviors // ignore: cast_nullable_to_non_nullable
-              as List<MapPlacedElementBehavior>,
-      properties: null == properties
-          ? _value._properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapPlacedElementImpl implements _MapPlacedElement {
-  const _$MapPlacedElementImpl(
-      {required this.id,
-      required this.layerId,
-      required this.elementId,
-      required this.pos,
-      @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
-      this.quarterTurns = 0,
-      this.applyCollision = true,
-      this.opacity = 1.0,
-      this.animation,
-      @MapPlacedElementShadowOverrideJsonConverter() this.shadowOverride,
-      final List<MapPlacedElementBehavior> behaviors = const [],
-      final Map<String, String> properties = const {}})
-      : _behaviors = behaviors,
-        _properties = properties;
+class _MapPlacedElement implements MapPlacedElement {
+  const _MapPlacedElement({required this.id, required this.layerId, required this.elementId, required this.pos, @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) this.quarterTurns = 0, this.applyCollision = true, this.opacity = 1.0, this.animation, @MapPlacedElementShadowOverrideJsonConverter() this.shadowOverride, final  List<MapPlacedElementBehavior> behaviors = const [], final  Map<String, String> properties = const {}}): _behaviors = behaviors,_properties = properties;
+  factory _MapPlacedElement.fromJson(Map<String, dynamic> json) => _$MapPlacedElementFromJson(json);
 
-  factory _$MapPlacedElementImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapPlacedElementImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String layerId;
-  @override
-  final String elementId;
-  @override
-  final GridPos pos;
-  @override
-  @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
-  final int quarterTurns;
-  @override
-  @JsonKey()
-  final bool applyCollision;
-  @override
-  @JsonKey()
-  final double opacity;
-  @override
-  final MapPlacedElementAnimation? animation;
-  @override
-  @MapPlacedElementShadowOverrideJsonConverter()
-  final MapPlacedElementShadowOverride? shadowOverride;
-  final List<MapPlacedElementBehavior> _behaviors;
-  @override
-  @JsonKey()
-  List<MapPlacedElementBehavior> get behaviors {
-    if (_behaviors is EqualUnmodifiableListView) return _behaviors;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_behaviors);
-  }
-
-  final Map<String, String> _properties;
-  @override
-  @JsonKey()
-  Map<String, String> get properties {
-    if (_properties is EqualUnmodifiableMapView) return _properties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_properties);
-  }
-
-  @override
-  String toString() {
-    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, quarterTurns: $quarterTurns, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapPlacedElementImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.layerId, layerId) || other.layerId == layerId) &&
-            (identical(other.elementId, elementId) ||
-                other.elementId == elementId) &&
-            (identical(other.pos, pos) || other.pos == pos) &&
-            (identical(other.quarterTurns, quarterTurns) ||
-                other.quarterTurns == quarterTurns) &&
-            (identical(other.applyCollision, applyCollision) ||
-                other.applyCollision == applyCollision) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            (identical(other.animation, animation) ||
-                other.animation == animation) &&
-            (identical(other.shadowOverride, shadowOverride) ||
-                other.shadowOverride == shadowOverride) &&
-            const DeepCollectionEquality()
-                .equals(other._behaviors, _behaviors) &&
-            const DeepCollectionEquality()
-                .equals(other._properties, _properties));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      layerId,
-      elementId,
-      pos,
-      quarterTurns,
-      applyCollision,
-      opacity,
-      animation,
-      shadowOverride,
-      const DeepCollectionEquality().hash(_behaviors),
-      const DeepCollectionEquality().hash(_properties));
-
-  /// Create a copy of MapPlacedElement
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapPlacedElementImplCopyWith<_$MapPlacedElementImpl> get copyWith =>
-      __$$MapPlacedElementImplCopyWithImpl<_$MapPlacedElementImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapPlacedElementImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String layerId;
+@override final  String elementId;
+@override final  GridPos pos;
+@override@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) final  int quarterTurns;
+@override@JsonKey() final  bool applyCollision;
+@override@JsonKey() final  double opacity;
+@override final  MapPlacedElementAnimation? animation;
+@override@MapPlacedElementShadowOverrideJsonConverter() final  MapPlacedElementShadowOverride? shadowOverride;
+ final  List<MapPlacedElementBehavior> _behaviors;
+@override@JsonKey() List<MapPlacedElementBehavior> get behaviors {
+  if (_behaviors is EqualUnmodifiableListView) return _behaviors;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_behaviors);
 }
 
-abstract class _MapPlacedElement implements MapPlacedElement {
-  const factory _MapPlacedElement(
-      {required final String id,
-      required final String layerId,
-      required final String elementId,
-      required final GridPos pos,
-      @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
-      final int quarterTurns,
-      final bool applyCollision,
-      final double opacity,
-      final MapPlacedElementAnimation? animation,
-      @MapPlacedElementShadowOverrideJsonConverter()
-      final MapPlacedElementShadowOverride? shadowOverride,
-      final List<MapPlacedElementBehavior> behaviors,
-      final Map<String, String> properties}) = _$MapPlacedElementImpl;
-
-  factory _MapPlacedElement.fromJson(Map<String, dynamic> json) =
-      _$MapPlacedElementImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get layerId;
-  @override
-  String get elementId;
-  @override
-  GridPos get pos;
-  @override
-  @JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson)
-  int get quarterTurns;
-  @override
-  bool get applyCollision;
-  @override
-  double get opacity;
-  @override
-  MapPlacedElementAnimation? get animation;
-  @override
-  @MapPlacedElementShadowOverrideJsonConverter()
-  MapPlacedElementShadowOverride? get shadowOverride;
-  @override
-  List<MapPlacedElementBehavior> get behaviors;
-  @override
-  Map<String, String> get properties;
-
-  /// Create a copy of MapPlacedElement
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapPlacedElementImplCopyWith<_$MapPlacedElementImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+ final  Map<String, String> _properties;
+@override@JsonKey() Map<String, String> get properties {
+  if (_properties is EqualUnmodifiableMapView) return _properties;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_properties);
 }
 
-MapPlacedElementBehavior _$MapPlacedElementBehaviorFromJson(
-    Map<String, dynamic> json) {
-  return _MapPlacedElementBehavior.fromJson(json);
+
+/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapPlacedElementCopyWith<_MapPlacedElement> get copyWith => __$MapPlacedElementCopyWithImpl<_MapPlacedElement>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$MapPlacedElementToJson(this, );
 }
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapPlacedElement&&(identical(other.id, id) || other.id == id)&&(identical(other.layerId, layerId) || other.layerId == layerId)&&(identical(other.elementId, elementId) || other.elementId == elementId)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.quarterTurns, quarterTurns) || other.quarterTurns == quarterTurns)&&(identical(other.applyCollision, applyCollision) || other.applyCollision == applyCollision)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.animation, animation) || other.animation == animation)&&(identical(other.shadowOverride, shadowOverride) || other.shadowOverride == shadowOverride)&&const DeepCollectionEquality().equals(other._behaviors, _behaviors)&&const DeepCollectionEquality().equals(other._properties, _properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,layerId,elementId,pos,quarterTurns,applyCollision,opacity,animation,shadowOverride,const DeepCollectionEquality().hash(_behaviors),const DeepCollectionEquality().hash(_properties));
+
+@override
+String toString() {
+  return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, quarterTurns: $quarterTurns, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapPlacedElementCopyWith<$Res> implements $MapPlacedElementCopyWith<$Res> {
+  factory _$MapPlacedElementCopyWith(_MapPlacedElement value, $Res Function(_MapPlacedElement) _then) = __$MapPlacedElementCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String layerId, String elementId, GridPos pos,@JsonKey(fromJson: _mapPlacedElementQuarterTurnsFromJson) int quarterTurns, bool applyCollision, double opacity, MapPlacedElementAnimation? animation,@MapPlacedElementShadowOverrideJsonConverter() MapPlacedElementShadowOverride? shadowOverride, List<MapPlacedElementBehavior> behaviors, Map<String, String> properties
+});
+
+
+@override $GridPosCopyWith<$Res> get pos;@override $MapPlacedElementAnimationCopyWith<$Res>? get animation;
+
+}
+/// @nodoc
+class __$MapPlacedElementCopyWithImpl<$Res>
+    implements _$MapPlacedElementCopyWith<$Res> {
+  __$MapPlacedElementCopyWithImpl(this._self, this._then);
+
+  final _MapPlacedElement _self;
+  final $Res Function(_MapPlacedElement) _then;
+
+/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? layerId = null,Object? elementId = null,Object? pos = null,Object? quarterTurns = null,Object? applyCollision = null,Object? opacity = null,Object? animation = freezed,Object? shadowOverride = freezed,Object? behaviors = null,Object? properties = null,}) {
+  return _then(_MapPlacedElement(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,layerId: null == layerId ? _self.layerId : layerId // ignore: cast_nullable_to_non_nullable
+as String,elementId: null == elementId ? _self.elementId : elementId // ignore: cast_nullable_to_non_nullable
+as String,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
+as GridPos,quarterTurns: null == quarterTurns ? _self.quarterTurns : quarterTurns // ignore: cast_nullable_to_non_nullable
+as int,applyCollision: null == applyCollision ? _self.applyCollision : applyCollision // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,animation: freezed == animation ? _self.animation : animation // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementAnimation?,shadowOverride: freezed == shadowOverride ? _self.shadowOverride : shadowOverride // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementShadowOverride?,behaviors: null == behaviors ? _self._behaviors : behaviors // ignore: cast_nullable_to_non_nullable
+as List<MapPlacedElementBehavior>,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+
+/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get pos {
+
+  return $GridPosCopyWith<$Res>(_self.pos, (value) {
+    return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapPlacedElement
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapPlacedElementAnimationCopyWith<$Res>? get animation {
+    if (_self.animation == null) {
+    return null;
+  }
+
+  return $MapPlacedElementAnimationCopyWith<$Res>(_self.animation!, (value) {
+    return _then(_self.copyWith(animation: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$MapPlacedElementBehavior {
-  String get id => throw _privateConstructorUsedError;
-  bool get enabled => throw _privateConstructorUsedError;
-  MapPlacedElementTriggerScope get triggerScope =>
-      throw _privateConstructorUsedError;
-  int? get cooldownMs => throw _privateConstructorUsedError;
-  MapPlacedElementTriggerType get trigger => throw _privateConstructorUsedError;
-  MapPlacedElementEffect get effect => throw _privateConstructorUsedError;
+
+ String get id; bool get enabled; MapPlacedElementTriggerScope get triggerScope; int? get cooldownMs; MapPlacedElementTriggerType get trigger; MapPlacedElementEffect get effect;
+/// Create a copy of MapPlacedElementBehavior
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapPlacedElementBehaviorCopyWith<MapPlacedElementBehavior> get copyWith => _$MapPlacedElementBehaviorCopyWithImpl<MapPlacedElementBehavior>(this as MapPlacedElementBehavior, _$identity);
 
   /// Serializes this MapPlacedElementBehavior to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapPlacedElementBehavior
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapPlacedElementBehaviorCopyWith<MapPlacedElementBehavior> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapPlacedElementBehavior&&(identical(other.id, id) || other.id == id)&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.triggerScope, triggerScope) || other.triggerScope == triggerScope)&&(identical(other.cooldownMs, cooldownMs) || other.cooldownMs == cooldownMs)&&(identical(other.trigger, trigger) || other.trigger == trigger)&&(identical(other.effect, effect) || other.effect == effect));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,enabled,triggerScope,cooldownMs,trigger,effect);
+
+@override
+String toString() {
+  return 'MapPlacedElementBehavior(id: $id, enabled: $enabled, triggerScope: $triggerScope, cooldownMs: $cooldownMs, trigger: $trigger, effect: $effect)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapPlacedElementBehaviorCopyWith<$Res> {
-  factory $MapPlacedElementBehaviorCopyWith(MapPlacedElementBehavior value,
-          $Res Function(MapPlacedElementBehavior) then) =
-      _$MapPlacedElementBehaviorCopyWithImpl<$Res, MapPlacedElementBehavior>;
-  @useResult
-  $Res call(
-      {String id,
-      bool enabled,
-      MapPlacedElementTriggerScope triggerScope,
-      int? cooldownMs,
-      MapPlacedElementTriggerType trigger,
-      MapPlacedElementEffect effect});
+abstract mixin class $MapPlacedElementBehaviorCopyWith<$Res>  {
+  factory $MapPlacedElementBehaviorCopyWith(MapPlacedElementBehavior value, $Res Function(MapPlacedElementBehavior) _then) = _$MapPlacedElementBehaviorCopyWithImpl;
+@useResult
+$Res call({
+ String id, bool enabled, MapPlacedElementTriggerScope triggerScope, int? cooldownMs, MapPlacedElementTriggerType trigger, MapPlacedElementEffect effect
+});
 
-  $MapPlacedElementEffectCopyWith<$Res> get effect;
+
+$MapPlacedElementEffectCopyWith<$Res> get effect;
+
 }
-
 /// @nodoc
-class _$MapPlacedElementBehaviorCopyWithImpl<$Res,
-        $Val extends MapPlacedElementBehavior>
+class _$MapPlacedElementBehaviorCopyWithImpl<$Res>
     implements $MapPlacedElementBehaviorCopyWith<$Res> {
-  _$MapPlacedElementBehaviorCopyWithImpl(this._value, this._then);
+  _$MapPlacedElementBehaviorCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapPlacedElementBehavior _self;
+  final $Res Function(MapPlacedElementBehavior) _then;
 
-  /// Create a copy of MapPlacedElementBehavior
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? enabled = null,
-    Object? triggerScope = null,
-    Object? cooldownMs = freezed,
-    Object? trigger = null,
-    Object? effect = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      enabled: null == enabled
-          ? _value.enabled
-          : enabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      triggerScope: null == triggerScope
-          ? _value.triggerScope
-          : triggerScope // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementTriggerScope,
-      cooldownMs: freezed == cooldownMs
-          ? _value.cooldownMs
-          : cooldownMs // ignore: cast_nullable_to_non_nullable
-              as int?,
-      trigger: null == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementTriggerType,
-      effect: null == effect
-          ? _value.effect
-          : effect // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementEffect,
-    ) as $Val);
-  }
+/// Create a copy of MapPlacedElementBehavior
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? enabled = null,Object? triggerScope = null,Object? cooldownMs = freezed,Object? trigger = null,Object? effect = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
+as bool,triggerScope: null == triggerScope ? _self.triggerScope : triggerScope // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementTriggerScope,cooldownMs: freezed == cooldownMs ? _self.cooldownMs : cooldownMs // ignore: cast_nullable_to_non_nullable
+as int?,trigger: null == trigger ? _self.trigger : trigger // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementTriggerType,effect: null == effect ? _self.effect : effect // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementEffect,
+  ));
+}
+/// Create a copy of MapPlacedElementBehavior
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapPlacedElementEffectCopyWith<$Res> get effect {
 
-  /// Create a copy of MapPlacedElementBehavior
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapPlacedElementEffectCopyWith<$Res> get effect {
-    return $MapPlacedElementEffectCopyWith<$Res>(_value.effect, (value) {
-      return _then(_value.copyWith(effect: value) as $Val);
-    });
-  }
+  return $MapPlacedElementEffectCopyWith<$Res>(_self.effect, (value) {
+    return _then(_self.copyWith(effect: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapPlacedElementBehaviorImplCopyWith<$Res>
-    implements $MapPlacedElementBehaviorCopyWith<$Res> {
-  factory _$$MapPlacedElementBehaviorImplCopyWith(
-          _$MapPlacedElementBehaviorImpl value,
-          $Res Function(_$MapPlacedElementBehaviorImpl) then) =
-      __$$MapPlacedElementBehaviorImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      bool enabled,
-      MapPlacedElementTriggerScope triggerScope,
-      int? cooldownMs,
-      MapPlacedElementTriggerType trigger,
-      MapPlacedElementEffect effect});
 
-  @override
-  $MapPlacedElementEffectCopyWith<$Res> get effect;
+/// Adds pattern-matching-related methods to [MapPlacedElementBehavior].
+extension MapPlacedElementBehaviorPatterns on MapPlacedElementBehavior {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapPlacedElementBehavior value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapPlacedElementBehavior() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapPlacedElementBehavior value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedElementBehavior():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapPlacedElementBehavior value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedElementBehavior() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  bool enabled,  MapPlacedElementTriggerScope triggerScope,  int? cooldownMs,  MapPlacedElementTriggerType trigger,  MapPlacedElementEffect effect)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapPlacedElementBehavior() when $default != null:
+return $default(_that.id,_that.enabled,_that.triggerScope,_that.cooldownMs,_that.trigger,_that.effect);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  bool enabled,  MapPlacedElementTriggerScope triggerScope,  int? cooldownMs,  MapPlacedElementTriggerType trigger,  MapPlacedElementEffect effect)  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedElementBehavior():
+return $default(_that.id,_that.enabled,_that.triggerScope,_that.cooldownMs,_that.trigger,_that.effect);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  bool enabled,  MapPlacedElementTriggerScope triggerScope,  int? cooldownMs,  MapPlacedElementTriggerType trigger,  MapPlacedElementEffect effect)?  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedElementBehavior() when $default != null:
+return $default(_that.id,_that.enabled,_that.triggerScope,_that.cooldownMs,_that.trigger,_that.effect);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapPlacedElementBehaviorImplCopyWithImpl<$Res>
-    extends _$MapPlacedElementBehaviorCopyWithImpl<$Res,
-        _$MapPlacedElementBehaviorImpl>
-    implements _$$MapPlacedElementBehaviorImplCopyWith<$Res> {
-  __$$MapPlacedElementBehaviorImplCopyWithImpl(
-      _$MapPlacedElementBehaviorImpl _value,
-      $Res Function(_$MapPlacedElementBehaviorImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapPlacedElementBehavior
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? enabled = null,
-    Object? triggerScope = null,
-    Object? cooldownMs = freezed,
-    Object? trigger = null,
-    Object? effect = null,
-  }) {
-    return _then(_$MapPlacedElementBehaviorImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      enabled: null == enabled
-          ? _value.enabled
-          : enabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      triggerScope: null == triggerScope
-          ? _value.triggerScope
-          : triggerScope // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementTriggerScope,
-      cooldownMs: freezed == cooldownMs
-          ? _value.cooldownMs
-          : cooldownMs // ignore: cast_nullable_to_non_nullable
-              as int?,
-      trigger: null == trigger
-          ? _value.trigger
-          : trigger // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementTriggerType,
-      effect: null == effect
-          ? _value.effect
-          : effect // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementEffect,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapPlacedElementBehaviorImpl implements _MapPlacedElementBehavior {
-  const _$MapPlacedElementBehaviorImpl(
-      {this.id = '',
-      this.enabled = true,
-      this.triggerScope = MapPlacedElementTriggerScope.defaultScope,
-      this.cooldownMs,
-      this.trigger = MapPlacedElementTriggerType.onAction,
-      required this.effect});
+class _MapPlacedElementBehavior implements MapPlacedElementBehavior {
+  const _MapPlacedElementBehavior({this.id = '', this.enabled = true, this.triggerScope = MapPlacedElementTriggerScope.defaultScope, this.cooldownMs, this.trigger = MapPlacedElementTriggerType.onAction, required this.effect});
+  factory _MapPlacedElementBehavior.fromJson(Map<String, dynamic> json) => _$MapPlacedElementBehaviorFromJson(json);
 
-  factory _$MapPlacedElementBehaviorImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapPlacedElementBehaviorImplFromJson(json);
+@override@JsonKey() final  String id;
+@override@JsonKey() final  bool enabled;
+@override@JsonKey() final  MapPlacedElementTriggerScope triggerScope;
+@override final  int? cooldownMs;
+@override@JsonKey() final  MapPlacedElementTriggerType trigger;
+@override final  MapPlacedElementEffect effect;
 
-  @override
-  @JsonKey()
-  final String id;
-  @override
-  @JsonKey()
-  final bool enabled;
-  @override
-  @JsonKey()
-  final MapPlacedElementTriggerScope triggerScope;
-  @override
-  final int? cooldownMs;
-  @override
-  @JsonKey()
-  final MapPlacedElementTriggerType trigger;
-  @override
-  final MapPlacedElementEffect effect;
+/// Create a copy of MapPlacedElementBehavior
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapPlacedElementBehaviorCopyWith<_MapPlacedElementBehavior> get copyWith => __$MapPlacedElementBehaviorCopyWithImpl<_MapPlacedElementBehavior>(this, _$identity);
 
-  @override
-  String toString() {
-    return 'MapPlacedElementBehavior(id: $id, enabled: $enabled, triggerScope: $triggerScope, cooldownMs: $cooldownMs, trigger: $trigger, effect: $effect)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapPlacedElementBehaviorImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.enabled, enabled) || other.enabled == enabled) &&
-            (identical(other.triggerScope, triggerScope) ||
-                other.triggerScope == triggerScope) &&
-            (identical(other.cooldownMs, cooldownMs) ||
-                other.cooldownMs == cooldownMs) &&
-            (identical(other.trigger, trigger) || other.trigger == trigger) &&
-            (identical(other.effect, effect) || other.effect == effect));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType, id, enabled, triggerScope, cooldownMs, trigger, effect);
-
-  /// Create a copy of MapPlacedElementBehavior
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapPlacedElementBehaviorImplCopyWith<_$MapPlacedElementBehaviorImpl>
-      get copyWith => __$$MapPlacedElementBehaviorImplCopyWithImpl<
-          _$MapPlacedElementBehaviorImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapPlacedElementBehaviorImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$MapPlacedElementBehaviorToJson(this, );
 }
 
-abstract class _MapPlacedElementBehavior implements MapPlacedElementBehavior {
-  const factory _MapPlacedElementBehavior(
-          {final String id,
-          final bool enabled,
-          final MapPlacedElementTriggerScope triggerScope,
-          final int? cooldownMs,
-          final MapPlacedElementTriggerType trigger,
-          required final MapPlacedElementEffect effect}) =
-      _$MapPlacedElementBehaviorImpl;
-
-  factory _MapPlacedElementBehavior.fromJson(Map<String, dynamic> json) =
-      _$MapPlacedElementBehaviorImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  bool get enabled;
-  @override
-  MapPlacedElementTriggerScope get triggerScope;
-  @override
-  int? get cooldownMs;
-  @override
-  MapPlacedElementTriggerType get trigger;
-  @override
-  MapPlacedElementEffect get effect;
-
-  /// Create a copy of MapPlacedElementBehavior
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapPlacedElementBehaviorImplCopyWith<_$MapPlacedElementBehaviorImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapPlacedElementBehavior&&(identical(other.id, id) || other.id == id)&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.triggerScope, triggerScope) || other.triggerScope == triggerScope)&&(identical(other.cooldownMs, cooldownMs) || other.cooldownMs == cooldownMs)&&(identical(other.trigger, trigger) || other.trigger == trigger)&&(identical(other.effect, effect) || other.effect == effect));
 }
 
-MapPlacedElementEffect _$MapPlacedElementEffectFromJson(
-    Map<String, dynamic> json) {
-  return _MapPlacedElementEffect.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,enabled,triggerScope,cooldownMs,trigger,effect);
+
+@override
+String toString() {
+  return 'MapPlacedElementBehavior(id: $id, enabled: $enabled, triggerScope: $triggerScope, cooldownMs: $cooldownMs, trigger: $trigger, effect: $effect)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapPlacedElementBehaviorCopyWith<$Res> implements $MapPlacedElementBehaviorCopyWith<$Res> {
+  factory _$MapPlacedElementBehaviorCopyWith(_MapPlacedElementBehavior value, $Res Function(_MapPlacedElementBehavior) _then) = __$MapPlacedElementBehaviorCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, bool enabled, MapPlacedElementTriggerScope triggerScope, int? cooldownMs, MapPlacedElementTriggerType trigger, MapPlacedElementEffect effect
+});
+
+
+@override $MapPlacedElementEffectCopyWith<$Res> get effect;
+
+}
+/// @nodoc
+class __$MapPlacedElementBehaviorCopyWithImpl<$Res>
+    implements _$MapPlacedElementBehaviorCopyWith<$Res> {
+  __$MapPlacedElementBehaviorCopyWithImpl(this._self, this._then);
+
+  final _MapPlacedElementBehavior _self;
+  final $Res Function(_MapPlacedElementBehavior) _then;
+
+/// Create a copy of MapPlacedElementBehavior
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? enabled = null,Object? triggerScope = null,Object? cooldownMs = freezed,Object? trigger = null,Object? effect = null,}) {
+  return _then(_MapPlacedElementBehavior(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
+as bool,triggerScope: null == triggerScope ? _self.triggerScope : triggerScope // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementTriggerScope,cooldownMs: freezed == cooldownMs ? _self.cooldownMs : cooldownMs // ignore: cast_nullable_to_non_nullable
+as int?,trigger: null == trigger ? _self.trigger : trigger // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementTriggerType,effect: null == effect ? _self.effect : effect // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementEffect,
+  ));
+}
+
+/// Create a copy of MapPlacedElementBehavior
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapPlacedElementEffectCopyWith<$Res> get effect {
+
+  return $MapPlacedElementEffectCopyWith<$Res>(_self.effect, (value) {
+    return _then(_self.copyWith(effect: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$MapPlacedElementEffect {
-  MapPlacedElementEffectType get type => throw _privateConstructorUsedError;
-  String? get message => throw _privateConstructorUsedError;
-  DialogueRef? get dialogue => throw _privateConstructorUsedError;
-  bool? get animationEnabled => throw _privateConstructorUsedError;
+
+ MapPlacedElementEffectType get type; String? get message; DialogueRef? get dialogue; bool? get animationEnabled;
+/// Create a copy of MapPlacedElementEffect
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapPlacedElementEffectCopyWith<MapPlacedElementEffect> get copyWith => _$MapPlacedElementEffectCopyWithImpl<MapPlacedElementEffect>(this as MapPlacedElementEffect, _$identity);
 
   /// Serializes this MapPlacedElementEffect to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapPlacedElementEffect
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapPlacedElementEffectCopyWith<MapPlacedElementEffect> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapPlacedElementEffect&&(identical(other.type, type) || other.type == type)&&(identical(other.message, message) || other.message == message)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.animationEnabled, animationEnabled) || other.animationEnabled == animationEnabled));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,type,message,dialogue,animationEnabled);
+
+@override
+String toString() {
+  return 'MapPlacedElementEffect(type: $type, message: $message, dialogue: $dialogue, animationEnabled: $animationEnabled)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapPlacedElementEffectCopyWith<$Res> {
-  factory $MapPlacedElementEffectCopyWith(MapPlacedElementEffect value,
-          $Res Function(MapPlacedElementEffect) then) =
-      _$MapPlacedElementEffectCopyWithImpl<$Res, MapPlacedElementEffect>;
-  @useResult
-  $Res call(
-      {MapPlacedElementEffectType type,
-      String? message,
-      DialogueRef? dialogue,
-      bool? animationEnabled});
+abstract mixin class $MapPlacedElementEffectCopyWith<$Res>  {
+  factory $MapPlacedElementEffectCopyWith(MapPlacedElementEffect value, $Res Function(MapPlacedElementEffect) _then) = _$MapPlacedElementEffectCopyWithImpl;
+@useResult
+$Res call({
+ MapPlacedElementEffectType type, String? message, DialogueRef? dialogue, bool? animationEnabled
+});
 
-  $DialogueRefCopyWith<$Res>? get dialogue;
+
+$DialogueRefCopyWith<$Res>? get dialogue;
+
 }
-
 /// @nodoc
-class _$MapPlacedElementEffectCopyWithImpl<$Res,
-        $Val extends MapPlacedElementEffect>
+class _$MapPlacedElementEffectCopyWithImpl<$Res>
     implements $MapPlacedElementEffectCopyWith<$Res> {
-  _$MapPlacedElementEffectCopyWithImpl(this._value, this._then);
+  _$MapPlacedElementEffectCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapPlacedElementEffect _self;
+  final $Res Function(MapPlacedElementEffect) _then;
 
-  /// Create a copy of MapPlacedElementEffect
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? type = null,
-    Object? message = freezed,
-    Object? dialogue = freezed,
-    Object? animationEnabled = freezed,
-  }) {
-    return _then(_value.copyWith(
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementEffectType,
-      message: freezed == message
-          ? _value.message
-          : message // ignore: cast_nullable_to_non_nullable
-              as String?,
-      dialogue: freezed == dialogue
-          ? _value.dialogue
-          : dialogue // ignore: cast_nullable_to_non_nullable
-              as DialogueRef?,
-      animationEnabled: freezed == animationEnabled
-          ? _value.animationEnabled
-          : animationEnabled // ignore: cast_nullable_to_non_nullable
-              as bool?,
-    ) as $Val);
+/// Create a copy of MapPlacedElementEffect
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? type = null,Object? message = freezed,Object? dialogue = freezed,Object? animationEnabled = freezed,}) {
+  return _then(_self.copyWith(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementEffectType,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String?,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
+as DialogueRef?,animationEnabled: freezed == animationEnabled ? _self.animationEnabled : animationEnabled // ignore: cast_nullable_to_non_nullable
+as bool?,
+  ));
+}
+/// Create a copy of MapPlacedElementEffect
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DialogueRefCopyWith<$Res>? get dialogue {
+    if (_self.dialogue == null) {
+    return null;
   }
 
-  /// Create a copy of MapPlacedElementEffect
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $DialogueRefCopyWith<$Res>? get dialogue {
-    if (_value.dialogue == null) {
-      return null;
-    }
-
-    return $DialogueRefCopyWith<$Res>(_value.dialogue!, (value) {
-      return _then(_value.copyWith(dialogue: value) as $Val);
-    });
-  }
+  return $DialogueRefCopyWith<$Res>(_self.dialogue!, (value) {
+    return _then(_self.copyWith(dialogue: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapPlacedElementEffectImplCopyWith<$Res>
-    implements $MapPlacedElementEffectCopyWith<$Res> {
-  factory _$$MapPlacedElementEffectImplCopyWith(
-          _$MapPlacedElementEffectImpl value,
-          $Res Function(_$MapPlacedElementEffectImpl) then) =
-      __$$MapPlacedElementEffectImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {MapPlacedElementEffectType type,
-      String? message,
-      DialogueRef? dialogue,
-      bool? animationEnabled});
 
-  @override
-  $DialogueRefCopyWith<$Res>? get dialogue;
+/// Adds pattern-matching-related methods to [MapPlacedElementEffect].
+extension MapPlacedElementEffectPatterns on MapPlacedElementEffect {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapPlacedElementEffect value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapPlacedElementEffect() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapPlacedElementEffect value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedElementEffect():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapPlacedElementEffect value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedElementEffect() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapPlacedElementEffectType type,  String? message,  DialogueRef? dialogue,  bool? animationEnabled)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapPlacedElementEffect() when $default != null:
+return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapPlacedElementEffectType type,  String? message,  DialogueRef? dialogue,  bool? animationEnabled)  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedElementEffect():
+return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapPlacedElementEffectType type,  String? message,  DialogueRef? dialogue,  bool? animationEnabled)?  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedElementEffect() when $default != null:
+return $default(_that.type,_that.message,_that.dialogue,_that.animationEnabled);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapPlacedElementEffectImplCopyWithImpl<$Res>
-    extends _$MapPlacedElementEffectCopyWithImpl<$Res,
-        _$MapPlacedElementEffectImpl>
-    implements _$$MapPlacedElementEffectImplCopyWith<$Res> {
-  __$$MapPlacedElementEffectImplCopyWithImpl(
-      _$MapPlacedElementEffectImpl _value,
-      $Res Function(_$MapPlacedElementEffectImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapPlacedElementEffect
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? type = null,
-    Object? message = freezed,
-    Object? dialogue = freezed,
-    Object? animationEnabled = freezed,
-  }) {
-    return _then(_$MapPlacedElementEffectImpl(
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementEffectType,
-      message: freezed == message
-          ? _value.message
-          : message // ignore: cast_nullable_to_non_nullable
-              as String?,
-      dialogue: freezed == dialogue
-          ? _value.dialogue
-          : dialogue // ignore: cast_nullable_to_non_nullable
-              as DialogueRef?,
-      animationEnabled: freezed == animationEnabled
-          ? _value.animationEnabled
-          : animationEnabled // ignore: cast_nullable_to_non_nullable
-              as bool?,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapPlacedElementEffectImpl implements _MapPlacedElementEffect {
-  const _$MapPlacedElementEffectImpl(
-      {required this.type, this.message, this.dialogue, this.animationEnabled});
+class _MapPlacedElementEffect implements MapPlacedElementEffect {
+  const _MapPlacedElementEffect({required this.type, this.message, this.dialogue, this.animationEnabled});
+  factory _MapPlacedElementEffect.fromJson(Map<String, dynamic> json) => _$MapPlacedElementEffectFromJson(json);
 
-  factory _$MapPlacedElementEffectImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapPlacedElementEffectImplFromJson(json);
+@override final  MapPlacedElementEffectType type;
+@override final  String? message;
+@override final  DialogueRef? dialogue;
+@override final  bool? animationEnabled;
 
-  @override
-  final MapPlacedElementEffectType type;
-  @override
-  final String? message;
-  @override
-  final DialogueRef? dialogue;
-  @override
-  final bool? animationEnabled;
+/// Create a copy of MapPlacedElementEffect
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapPlacedElementEffectCopyWith<_MapPlacedElementEffect> get copyWith => __$MapPlacedElementEffectCopyWithImpl<_MapPlacedElementEffect>(this, _$identity);
 
-  @override
-  String toString() {
-    return 'MapPlacedElementEffect(type: $type, message: $message, dialogue: $dialogue, animationEnabled: $animationEnabled)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapPlacedElementEffectImpl &&
-            (identical(other.type, type) || other.type == type) &&
-            (identical(other.message, message) || other.message == message) &&
-            (identical(other.dialogue, dialogue) ||
-                other.dialogue == dialogue) &&
-            (identical(other.animationEnabled, animationEnabled) ||
-                other.animationEnabled == animationEnabled));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, type, message, dialogue, animationEnabled);
-
-  /// Create a copy of MapPlacedElementEffect
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapPlacedElementEffectImplCopyWith<_$MapPlacedElementEffectImpl>
-      get copyWith => __$$MapPlacedElementEffectImplCopyWithImpl<
-          _$MapPlacedElementEffectImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapPlacedElementEffectImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$MapPlacedElementEffectToJson(this, );
 }
 
-abstract class _MapPlacedElementEffect implements MapPlacedElementEffect {
-  const factory _MapPlacedElementEffect(
-      {required final MapPlacedElementEffectType type,
-      final String? message,
-      final DialogueRef? dialogue,
-      final bool? animationEnabled}) = _$MapPlacedElementEffectImpl;
-
-  factory _MapPlacedElementEffect.fromJson(Map<String, dynamic> json) =
-      _$MapPlacedElementEffectImpl.fromJson;
-
-  @override
-  MapPlacedElementEffectType get type;
-  @override
-  String? get message;
-  @override
-  DialogueRef? get dialogue;
-  @override
-  bool? get animationEnabled;
-
-  /// Create a copy of MapPlacedElementEffect
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapPlacedElementEffectImplCopyWith<_$MapPlacedElementEffectImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapPlacedElementEffect&&(identical(other.type, type) || other.type == type)&&(identical(other.message, message) || other.message == message)&&(identical(other.dialogue, dialogue) || other.dialogue == dialogue)&&(identical(other.animationEnabled, animationEnabled) || other.animationEnabled == animationEnabled));
 }
 
-MapPlacedElementAnimation _$MapPlacedElementAnimationFromJson(
-    Map<String, dynamic> json) {
-  return _MapPlacedElementAnimation.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,type,message,dialogue,animationEnabled);
+
+@override
+String toString() {
+  return 'MapPlacedElementEffect(type: $type, message: $message, dialogue: $dialogue, animationEnabled: $animationEnabled)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapPlacedElementEffectCopyWith<$Res> implements $MapPlacedElementEffectCopyWith<$Res> {
+  factory _$MapPlacedElementEffectCopyWith(_MapPlacedElementEffect value, $Res Function(_MapPlacedElementEffect) _then) = __$MapPlacedElementEffectCopyWithImpl;
+@override @useResult
+$Res call({
+ MapPlacedElementEffectType type, String? message, DialogueRef? dialogue, bool? animationEnabled
+});
+
+
+@override $DialogueRefCopyWith<$Res>? get dialogue;
+
+}
+/// @nodoc
+class __$MapPlacedElementEffectCopyWithImpl<$Res>
+    implements _$MapPlacedElementEffectCopyWith<$Res> {
+  __$MapPlacedElementEffectCopyWithImpl(this._self, this._then);
+
+  final _MapPlacedElementEffect _self;
+  final $Res Function(_MapPlacedElementEffect) _then;
+
+/// Create a copy of MapPlacedElementEffect
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? type = null,Object? message = freezed,Object? dialogue = freezed,Object? animationEnabled = freezed,}) {
+  return _then(_MapPlacedElementEffect(
+type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementEffectType,message: freezed == message ? _self.message : message // ignore: cast_nullable_to_non_nullable
+as String?,dialogue: freezed == dialogue ? _self.dialogue : dialogue // ignore: cast_nullable_to_non_nullable
+as DialogueRef?,animationEnabled: freezed == animationEnabled ? _self.animationEnabled : animationEnabled // ignore: cast_nullable_to_non_nullable
+as bool?,
+  ));
+}
+
+/// Create a copy of MapPlacedElementEffect
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$DialogueRefCopyWith<$Res>? get dialogue {
+    if (_self.dialogue == null) {
+    return null;
+  }
+
+  return $DialogueRefCopyWith<$Res>(_self.dialogue!, (value) {
+    return _then(_self.copyWith(dialogue: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$MapPlacedElementAnimation {
-  bool get enabled => throw _privateConstructorUsedError;
-  MapPlacedElementAnimationMode get mode => throw _privateConstructorUsedError;
-  bool get autoplay => throw _privateConstructorUsedError;
-  double get speed => throw _privateConstructorUsedError;
-  double? get startOffsetMs => throw _privateConstructorUsedError;
-  bool get randomStart => throw _privateConstructorUsedError;
+
+ bool get enabled; MapPlacedElementAnimationMode get mode; bool get autoplay; double get speed; double? get startOffsetMs; bool get randomStart;
+/// Create a copy of MapPlacedElementAnimation
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapPlacedElementAnimationCopyWith<MapPlacedElementAnimation> get copyWith => _$MapPlacedElementAnimationCopyWithImpl<MapPlacedElementAnimation>(this as MapPlacedElementAnimation, _$identity);
 
   /// Serializes this MapPlacedElementAnimation to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapPlacedElementAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapPlacedElementAnimationCopyWith<MapPlacedElementAnimation> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapPlacedElementAnimation&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.autoplay, autoplay) || other.autoplay == autoplay)&&(identical(other.speed, speed) || other.speed == speed)&&(identical(other.startOffsetMs, startOffsetMs) || other.startOffsetMs == startOffsetMs)&&(identical(other.randomStart, randomStart) || other.randomStart == randomStart));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,enabled,mode,autoplay,speed,startOffsetMs,randomStart);
+
+@override
+String toString() {
+  return 'MapPlacedElementAnimation(enabled: $enabled, mode: $mode, autoplay: $autoplay, speed: $speed, startOffsetMs: $startOffsetMs, randomStart: $randomStart)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapPlacedElementAnimationCopyWith<$Res> {
-  factory $MapPlacedElementAnimationCopyWith(MapPlacedElementAnimation value,
-          $Res Function(MapPlacedElementAnimation) then) =
-      _$MapPlacedElementAnimationCopyWithImpl<$Res, MapPlacedElementAnimation>;
-  @useResult
-  $Res call(
-      {bool enabled,
-      MapPlacedElementAnimationMode mode,
-      bool autoplay,
-      double speed,
-      double? startOffsetMs,
-      bool randomStart});
-}
+abstract mixin class $MapPlacedElementAnimationCopyWith<$Res>  {
+  factory $MapPlacedElementAnimationCopyWith(MapPlacedElementAnimation value, $Res Function(MapPlacedElementAnimation) _then) = _$MapPlacedElementAnimationCopyWithImpl;
+@useResult
+$Res call({
+ bool enabled, MapPlacedElementAnimationMode mode, bool autoplay, double speed, double? startOffsetMs, bool randomStart
+});
 
+
+
+
+}
 /// @nodoc
-class _$MapPlacedElementAnimationCopyWithImpl<$Res,
-        $Val extends MapPlacedElementAnimation>
+class _$MapPlacedElementAnimationCopyWithImpl<$Res>
     implements $MapPlacedElementAnimationCopyWith<$Res> {
-  _$MapPlacedElementAnimationCopyWithImpl(this._value, this._then);
+  _$MapPlacedElementAnimationCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapPlacedElementAnimation _self;
+  final $Res Function(MapPlacedElementAnimation) _then;
 
-  /// Create a copy of MapPlacedElementAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? enabled = null,
-    Object? mode = null,
-    Object? autoplay = null,
-    Object? speed = null,
-    Object? startOffsetMs = freezed,
-    Object? randomStart = null,
-  }) {
-    return _then(_value.copyWith(
-      enabled: null == enabled
-          ? _value.enabled
-          : enabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      mode: null == mode
-          ? _value.mode
-          : mode // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementAnimationMode,
-      autoplay: null == autoplay
-          ? _value.autoplay
-          : autoplay // ignore: cast_nullable_to_non_nullable
-              as bool,
-      speed: null == speed
-          ? _value.speed
-          : speed // ignore: cast_nullable_to_non_nullable
-              as double,
-      startOffsetMs: freezed == startOffsetMs
-          ? _value.startOffsetMs
-          : startOffsetMs // ignore: cast_nullable_to_non_nullable
-              as double?,
-      randomStart: null == randomStart
-          ? _value.randomStart
-          : randomStart // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ) as $Val);
-  }
+/// Create a copy of MapPlacedElementAnimation
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? enabled = null,Object? mode = null,Object? autoplay = null,Object? speed = null,Object? startOffsetMs = freezed,Object? randomStart = null,}) {
+  return _then(_self.copyWith(
+enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
+as bool,mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementAnimationMode,autoplay: null == autoplay ? _self.autoplay : autoplay // ignore: cast_nullable_to_non_nullable
+as bool,speed: null == speed ? _self.speed : speed // ignore: cast_nullable_to_non_nullable
+as double,startOffsetMs: freezed == startOffsetMs ? _self.startOffsetMs : startOffsetMs // ignore: cast_nullable_to_non_nullable
+as double?,randomStart: null == randomStart ? _self.randomStart : randomStart // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
 }
 
-/// @nodoc
-abstract class _$$MapPlacedElementAnimationImplCopyWith<$Res>
-    implements $MapPlacedElementAnimationCopyWith<$Res> {
-  factory _$$MapPlacedElementAnimationImplCopyWith(
-          _$MapPlacedElementAnimationImpl value,
-          $Res Function(_$MapPlacedElementAnimationImpl) then) =
-      __$$MapPlacedElementAnimationImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {bool enabled,
-      MapPlacedElementAnimationMode mode,
-      bool autoplay,
-      double speed,
-      double? startOffsetMs,
-      bool randomStart});
 }
 
-/// @nodoc
-class __$$MapPlacedElementAnimationImplCopyWithImpl<$Res>
-    extends _$MapPlacedElementAnimationCopyWithImpl<$Res,
-        _$MapPlacedElementAnimationImpl>
-    implements _$$MapPlacedElementAnimationImplCopyWith<$Res> {
-  __$$MapPlacedElementAnimationImplCopyWithImpl(
-      _$MapPlacedElementAnimationImpl _value,
-      $Res Function(_$MapPlacedElementAnimationImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of MapPlacedElementAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? enabled = null,
-    Object? mode = null,
-    Object? autoplay = null,
-    Object? speed = null,
-    Object? startOffsetMs = freezed,
-    Object? randomStart = null,
-  }) {
-    return _then(_$MapPlacedElementAnimationImpl(
-      enabled: null == enabled
-          ? _value.enabled
-          : enabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      mode: null == mode
-          ? _value.mode
-          : mode // ignore: cast_nullable_to_non_nullable
-              as MapPlacedElementAnimationMode,
-      autoplay: null == autoplay
-          ? _value.autoplay
-          : autoplay // ignore: cast_nullable_to_non_nullable
-              as bool,
-      speed: null == speed
-          ? _value.speed
-          : speed // ignore: cast_nullable_to_non_nullable
-              as double,
-      startOffsetMs: freezed == startOffsetMs
-          ? _value.startOffsetMs
-          : startOffsetMs // ignore: cast_nullable_to_non_nullable
-              as double?,
-      randomStart: null == randomStart
-          ? _value.randomStart
-          : randomStart // ignore: cast_nullable_to_non_nullable
-              as bool,
-    ));
-  }
+/// Adds pattern-matching-related methods to [MapPlacedElementAnimation].
+extension MapPlacedElementAnimationPatterns on MapPlacedElementAnimation {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapPlacedElementAnimation value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapPlacedElementAnimation() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapPlacedElementAnimation value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedElementAnimation():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapPlacedElementAnimation value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedElementAnimation() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enabled,  MapPlacedElementAnimationMode mode,  bool autoplay,  double speed,  double? startOffsetMs,  bool randomStart)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapPlacedElementAnimation() when $default != null:
+return $default(_that.enabled,_that.mode,_that.autoplay,_that.speed,_that.startOffsetMs,_that.randomStart);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enabled,  MapPlacedElementAnimationMode mode,  bool autoplay,  double speed,  double? startOffsetMs,  bool randomStart)  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedElementAnimation():
+return $default(_that.enabled,_that.mode,_that.autoplay,_that.speed,_that.startOffsetMs,_that.randomStart);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enabled,  MapPlacedElementAnimationMode mode,  bool autoplay,  double speed,  double? startOffsetMs,  bool randomStart)?  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedElementAnimation() when $default != null:
+return $default(_that.enabled,_that.mode,_that.autoplay,_that.speed,_that.startOffsetMs,_that.randomStart);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapPlacedElementAnimationImpl implements _MapPlacedElementAnimation {
-  const _$MapPlacedElementAnimationImpl(
-      {this.enabled = false,
-      this.mode = MapPlacedElementAnimationMode.none,
-      this.autoplay = true,
-      this.speed = 1.0,
-      this.startOffsetMs,
-      this.randomStart = false});
+class _MapPlacedElementAnimation implements MapPlacedElementAnimation {
+  const _MapPlacedElementAnimation({this.enabled = false, this.mode = MapPlacedElementAnimationMode.none, this.autoplay = true, this.speed = 1.0, this.startOffsetMs, this.randomStart = false});
+  factory _MapPlacedElementAnimation.fromJson(Map<String, dynamic> json) => _$MapPlacedElementAnimationFromJson(json);
 
-  factory _$MapPlacedElementAnimationImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapPlacedElementAnimationImplFromJson(json);
+@override@JsonKey() final  bool enabled;
+@override@JsonKey() final  MapPlacedElementAnimationMode mode;
+@override@JsonKey() final  bool autoplay;
+@override@JsonKey() final  double speed;
+@override final  double? startOffsetMs;
+@override@JsonKey() final  bool randomStart;
 
-  @override
-  @JsonKey()
-  final bool enabled;
-  @override
-  @JsonKey()
-  final MapPlacedElementAnimationMode mode;
-  @override
-  @JsonKey()
-  final bool autoplay;
-  @override
-  @JsonKey()
-  final double speed;
-  @override
-  final double? startOffsetMs;
-  @override
-  @JsonKey()
-  final bool randomStart;
+/// Create a copy of MapPlacedElementAnimation
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapPlacedElementAnimationCopyWith<_MapPlacedElementAnimation> get copyWith => __$MapPlacedElementAnimationCopyWithImpl<_MapPlacedElementAnimation>(this, _$identity);
 
-  @override
-  String toString() {
-    return 'MapPlacedElementAnimation(enabled: $enabled, mode: $mode, autoplay: $autoplay, speed: $speed, startOffsetMs: $startOffsetMs, randomStart: $randomStart)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapPlacedElementAnimationImpl &&
-            (identical(other.enabled, enabled) || other.enabled == enabled) &&
-            (identical(other.mode, mode) || other.mode == mode) &&
-            (identical(other.autoplay, autoplay) ||
-                other.autoplay == autoplay) &&
-            (identical(other.speed, speed) || other.speed == speed) &&
-            (identical(other.startOffsetMs, startOffsetMs) ||
-                other.startOffsetMs == startOffsetMs) &&
-            (identical(other.randomStart, randomStart) ||
-                other.randomStart == randomStart));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType, enabled, mode, autoplay, speed, startOffsetMs, randomStart);
-
-  /// Create a copy of MapPlacedElementAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapPlacedElementAnimationImplCopyWith<_$MapPlacedElementAnimationImpl>
-      get copyWith => __$$MapPlacedElementAnimationImplCopyWithImpl<
-          _$MapPlacedElementAnimationImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapPlacedElementAnimationImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$MapPlacedElementAnimationToJson(this, );
 }
 
-abstract class _MapPlacedElementAnimation implements MapPlacedElementAnimation {
-  const factory _MapPlacedElementAnimation(
-      {final bool enabled,
-      final MapPlacedElementAnimationMode mode,
-      final bool autoplay,
-      final double speed,
-      final double? startOffsetMs,
-      final bool randomStart}) = _$MapPlacedElementAnimationImpl;
-
-  factory _MapPlacedElementAnimation.fromJson(Map<String, dynamic> json) =
-      _$MapPlacedElementAnimationImpl.fromJson;
-
-  @override
-  bool get enabled;
-  @override
-  MapPlacedElementAnimationMode get mode;
-  @override
-  bool get autoplay;
-  @override
-  double get speed;
-  @override
-  double? get startOffsetMs;
-  @override
-  bool get randomStart;
-
-  /// Create a copy of MapPlacedElementAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapPlacedElementAnimationImplCopyWith<_$MapPlacedElementAnimationImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapPlacedElementAnimation&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.mode, mode) || other.mode == mode)&&(identical(other.autoplay, autoplay) || other.autoplay == autoplay)&&(identical(other.speed, speed) || other.speed == speed)&&(identical(other.startOffsetMs, startOffsetMs) || other.startOffsetMs == startOffsetMs)&&(identical(other.randomStart, randomStart) || other.randomStart == randomStart));
 }
 
-MapEntity _$MapEntityFromJson(Map<String, dynamic> json) {
-  return _MapEntity.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,enabled,mode,autoplay,speed,startOffsetMs,randomStart);
+
+@override
+String toString() {
+  return 'MapPlacedElementAnimation(enabled: $enabled, mode: $mode, autoplay: $autoplay, speed: $speed, startOffsetMs: $startOffsetMs, randomStart: $randomStart)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapPlacedElementAnimationCopyWith<$Res> implements $MapPlacedElementAnimationCopyWith<$Res> {
+  factory _$MapPlacedElementAnimationCopyWith(_MapPlacedElementAnimation value, $Res Function(_MapPlacedElementAnimation) _then) = __$MapPlacedElementAnimationCopyWithImpl;
+@override @useResult
+$Res call({
+ bool enabled, MapPlacedElementAnimationMode mode, bool autoplay, double speed, double? startOffsetMs, bool randomStart
+});
+
+
+
+
+}
+/// @nodoc
+class __$MapPlacedElementAnimationCopyWithImpl<$Res>
+    implements _$MapPlacedElementAnimationCopyWith<$Res> {
+  __$MapPlacedElementAnimationCopyWithImpl(this._self, this._then);
+
+  final _MapPlacedElementAnimation _self;
+  final $Res Function(_MapPlacedElementAnimation) _then;
+
+/// Create a copy of MapPlacedElementAnimation
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? enabled = null,Object? mode = null,Object? autoplay = null,Object? speed = null,Object? startOffsetMs = freezed,Object? randomStart = null,}) {
+  return _then(_MapPlacedElementAnimation(
+enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
+as bool,mode: null == mode ? _self.mode : mode // ignore: cast_nullable_to_non_nullable
+as MapPlacedElementAnimationMode,autoplay: null == autoplay ? _self.autoplay : autoplay // ignore: cast_nullable_to_non_nullable
+as bool,speed: null == speed ? _self.speed : speed // ignore: cast_nullable_to_non_nullable
+as double,startOffsetMs: freezed == startOffsetMs ? _self.startOffsetMs : startOffsetMs // ignore: cast_nullable_to_non_nullable
+as double?,randomStart: null == randomStart ? _self.randomStart : randomStart // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$MapEntity {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  MapEntityKind get kind => throw _privateConstructorUsedError;
-  GridPos get pos => throw _privateConstructorUsedError;
-  GridSize get size => throw _privateConstructorUsedError;
-  MapEntityNpcData? get npc => throw _privateConstructorUsedError;
-  MapEntitySignData? get sign => throw _privateConstructorUsedError;
-  MapEntityItemData? get item => throw _privateConstructorUsedError;
-  MapEntitySpawnData? get spawn => throw _privateConstructorUsedError;
-  MapEntityEditorVisual? get editorVisual => throw _privateConstructorUsedError;
-  bool get blocksMovement => throw _privateConstructorUsedError;
-  Map<String, String> get properties => throw _privateConstructorUsedError;
+
+ String get id; String get name; MapEntityKind get kind; GridPos get pos; GridSize get size; MapEntityNpcData? get npc; MapEntitySignData? get sign; MapEntityItemData? get item; MapEntitySpawnData? get spawn; MapEntityEditorVisual? get editorVisual; bool get blocksMovement; Map<String, String> get properties;
+/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapEntityCopyWith<MapEntity> get copyWith => _$MapEntityCopyWithImpl<MapEntity>(this as MapEntity, _$identity);
 
   /// Serializes this MapEntity to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapEntityCopyWith<MapEntity> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.size, size) || other.size == size)&&(identical(other.npc, npc) || other.npc == npc)&&(identical(other.sign, sign) || other.sign == sign)&&(identical(other.item, item) || other.item == item)&&(identical(other.spawn, spawn) || other.spawn == spawn)&&(identical(other.editorVisual, editorVisual) || other.editorVisual == editorVisual)&&(identical(other.blocksMovement, blocksMovement) || other.blocksMovement == blocksMovement)&&const DeepCollectionEquality().equals(other.properties, properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,kind,pos,size,npc,sign,item,spawn,editorVisual,blocksMovement,const DeepCollectionEquality().hash(properties));
+
+@override
+String toString() {
+  return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, editorVisual: $editorVisual, blocksMovement: $blocksMovement, properties: $properties)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapEntityCopyWith<$Res> {
-  factory $MapEntityCopyWith(MapEntity value, $Res Function(MapEntity) then) =
-      _$MapEntityCopyWithImpl<$Res, MapEntity>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      MapEntityKind kind,
-      GridPos pos,
-      GridSize size,
-      MapEntityNpcData? npc,
-      MapEntitySignData? sign,
-      MapEntityItemData? item,
-      MapEntitySpawnData? spawn,
-      MapEntityEditorVisual? editorVisual,
-      bool blocksMovement,
-      Map<String, String> properties});
+abstract mixin class $MapEntityCopyWith<$Res>  {
+  factory $MapEntityCopyWith(MapEntity value, $Res Function(MapEntity) _then) = _$MapEntityCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, MapEntityKind kind, GridPos pos, GridSize size, MapEntityNpcData? npc, MapEntitySignData? sign, MapEntityItemData? item, MapEntitySpawnData? spawn, MapEntityEditorVisual? editorVisual, bool blocksMovement, Map<String, String> properties
+});
 
-  $GridPosCopyWith<$Res> get pos;
-  $GridSizeCopyWith<$Res> get size;
-  $MapEntityNpcDataCopyWith<$Res>? get npc;
-  $MapEntitySignDataCopyWith<$Res>? get sign;
-  $MapEntityItemDataCopyWith<$Res>? get item;
-  $MapEntitySpawnDataCopyWith<$Res>? get spawn;
-  $MapEntityEditorVisualCopyWith<$Res>? get editorVisual;
+
+$GridPosCopyWith<$Res> get pos;$GridSizeCopyWith<$Res> get size;$MapEntityNpcDataCopyWith<$Res>? get npc;$MapEntitySignDataCopyWith<$Res>? get sign;$MapEntityItemDataCopyWith<$Res>? get item;$MapEntitySpawnDataCopyWith<$Res>? get spawn;$MapEntityEditorVisualCopyWith<$Res>? get editorVisual;
+
 }
-
 /// @nodoc
-class _$MapEntityCopyWithImpl<$Res, $Val extends MapEntity>
+class _$MapEntityCopyWithImpl<$Res>
     implements $MapEntityCopyWith<$Res> {
-  _$MapEntityCopyWithImpl(this._value, this._then);
+  _$MapEntityCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapEntity _self;
+  final $Res Function(MapEntity) _then;
 
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? kind = null,
-    Object? pos = null,
-    Object? size = null,
-    Object? npc = freezed,
-    Object? sign = freezed,
-    Object? item = freezed,
-    Object? spawn = freezed,
-    Object? editorVisual = freezed,
-    Object? blocksMovement = null,
-    Object? properties = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      kind: null == kind
-          ? _value.kind
-          : kind // ignore: cast_nullable_to_non_nullable
-              as MapEntityKind,
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      size: null == size
-          ? _value.size
-          : size // ignore: cast_nullable_to_non_nullable
-              as GridSize,
-      npc: freezed == npc
-          ? _value.npc
-          : npc // ignore: cast_nullable_to_non_nullable
-              as MapEntityNpcData?,
-      sign: freezed == sign
-          ? _value.sign
-          : sign // ignore: cast_nullable_to_non_nullable
-              as MapEntitySignData?,
-      item: freezed == item
-          ? _value.item
-          : item // ignore: cast_nullable_to_non_nullable
-              as MapEntityItemData?,
-      spawn: freezed == spawn
-          ? _value.spawn
-          : spawn // ignore: cast_nullable_to_non_nullable
-              as MapEntitySpawnData?,
-      editorVisual: freezed == editorVisual
-          ? _value.editorVisual
-          : editorVisual // ignore: cast_nullable_to_non_nullable
-              as MapEntityEditorVisual?,
-      blocksMovement: null == blocksMovement
-          ? _value.blocksMovement
-          : blocksMovement // ignore: cast_nullable_to_non_nullable
-              as bool,
-      properties: null == properties
-          ? _value.properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ) as $Val);
+/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? pos = null,Object? size = null,Object? npc = freezed,Object? sign = freezed,Object? item = freezed,Object? spawn = freezed,Object? editorVisual = freezed,Object? blocksMovement = null,Object? properties = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
+as MapEntityKind,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
+as GridPos,size: null == size ? _self.size : size // ignore: cast_nullable_to_non_nullable
+as GridSize,npc: freezed == npc ? _self.npc : npc // ignore: cast_nullable_to_non_nullable
+as MapEntityNpcData?,sign: freezed == sign ? _self.sign : sign // ignore: cast_nullable_to_non_nullable
+as MapEntitySignData?,item: freezed == item ? _self.item : item // ignore: cast_nullable_to_non_nullable
+as MapEntityItemData?,spawn: freezed == spawn ? _self.spawn : spawn // ignore: cast_nullable_to_non_nullable
+as MapEntitySpawnData?,editorVisual: freezed == editorVisual ? _self.editorVisual : editorVisual // ignore: cast_nullable_to_non_nullable
+as MapEntityEditorVisual?,blocksMovement: null == blocksMovement ? _self.blocksMovement : blocksMovement // ignore: cast_nullable_to_non_nullable
+as bool,properties: null == properties ? _self.properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get pos {
+
+  return $GridPosCopyWith<$Res>(_self.pos, (value) {
+    return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridSizeCopyWith<$Res> get size {
+
+  return $GridSizeCopyWith<$Res>(_self.size, (value) {
+    return _then(_self.copyWith(size: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityNpcDataCopyWith<$Res>? get npc {
+    if (_self.npc == null) {
+    return null;
   }
 
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridPosCopyWith<$Res> get pos {
-    return $GridPosCopyWith<$Res>(_value.pos, (value) {
-      return _then(_value.copyWith(pos: value) as $Val);
-    });
+  return $MapEntityNpcDataCopyWith<$Res>(_self.npc!, (value) {
+    return _then(_self.copyWith(npc: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntitySignDataCopyWith<$Res>? get sign {
+    if (_self.sign == null) {
+    return null;
   }
 
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridSizeCopyWith<$Res> get size {
-    return $GridSizeCopyWith<$Res>(_value.size, (value) {
-      return _then(_value.copyWith(size: value) as $Val);
-    });
+  return $MapEntitySignDataCopyWith<$Res>(_self.sign!, (value) {
+    return _then(_self.copyWith(sign: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityItemDataCopyWith<$Res>? get item {
+    if (_self.item == null) {
+    return null;
   }
 
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapEntityNpcDataCopyWith<$Res>? get npc {
-    if (_value.npc == null) {
-      return null;
-    }
-
-    return $MapEntityNpcDataCopyWith<$Res>(_value.npc!, (value) {
-      return _then(_value.copyWith(npc: value) as $Val);
-    });
+  return $MapEntityItemDataCopyWith<$Res>(_self.item!, (value) {
+    return _then(_self.copyWith(item: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntitySpawnDataCopyWith<$Res>? get spawn {
+    if (_self.spawn == null) {
+    return null;
   }
 
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapEntitySignDataCopyWith<$Res>? get sign {
-    if (_value.sign == null) {
-      return null;
-    }
-
-    return $MapEntitySignDataCopyWith<$Res>(_value.sign!, (value) {
-      return _then(_value.copyWith(sign: value) as $Val);
-    });
+  return $MapEntitySpawnDataCopyWith<$Res>(_self.spawn!, (value) {
+    return _then(_self.copyWith(spawn: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityEditorVisualCopyWith<$Res>? get editorVisual {
+    if (_self.editorVisual == null) {
+    return null;
   }
 
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapEntityItemDataCopyWith<$Res>? get item {
-    if (_value.item == null) {
-      return null;
-    }
-
-    return $MapEntityItemDataCopyWith<$Res>(_value.item!, (value) {
-      return _then(_value.copyWith(item: value) as $Val);
-    });
-  }
-
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapEntitySpawnDataCopyWith<$Res>? get spawn {
-    if (_value.spawn == null) {
-      return null;
-    }
-
-    return $MapEntitySpawnDataCopyWith<$Res>(_value.spawn!, (value) {
-      return _then(_value.copyWith(spawn: value) as $Val);
-    });
-  }
-
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapEntityEditorVisualCopyWith<$Res>? get editorVisual {
-    if (_value.editorVisual == null) {
-      return null;
-    }
-
-    return $MapEntityEditorVisualCopyWith<$Res>(_value.editorVisual!, (value) {
-      return _then(_value.copyWith(editorVisual: value) as $Val);
-    });
-  }
+  return $MapEntityEditorVisualCopyWith<$Res>(_self.editorVisual!, (value) {
+    return _then(_self.copyWith(editorVisual: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapEntityImplCopyWith<$Res>
-    implements $MapEntityCopyWith<$Res> {
-  factory _$$MapEntityImplCopyWith(
-          _$MapEntityImpl value, $Res Function(_$MapEntityImpl) then) =
-      __$$MapEntityImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      MapEntityKind kind,
-      GridPos pos,
-      GridSize size,
-      MapEntityNpcData? npc,
-      MapEntitySignData? sign,
-      MapEntityItemData? item,
-      MapEntitySpawnData? spawn,
-      MapEntityEditorVisual? editorVisual,
-      bool blocksMovement,
-      Map<String, String> properties});
 
-  @override
-  $GridPosCopyWith<$Res> get pos;
-  @override
-  $GridSizeCopyWith<$Res> get size;
-  @override
-  $MapEntityNpcDataCopyWith<$Res>? get npc;
-  @override
-  $MapEntitySignDataCopyWith<$Res>? get sign;
-  @override
-  $MapEntityItemDataCopyWith<$Res>? get item;
-  @override
-  $MapEntitySpawnDataCopyWith<$Res>? get spawn;
-  @override
-  $MapEntityEditorVisualCopyWith<$Res>? get editorVisual;
+/// Adds pattern-matching-related methods to [MapEntity].
+extension MapEntityPatterns on MapEntity {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapEntity value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapEntity() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapEntity value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapEntity():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapEntity value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapEntity() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  MapEntityKind kind,  GridPos pos,  GridSize size,  MapEntityNpcData? npc,  MapEntitySignData? sign,  MapEntityItemData? item,  MapEntitySpawnData? spawn,  MapEntityEditorVisual? editorVisual,  bool blocksMovement,  Map<String, String> properties)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapEntity() when $default != null:
+return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_that.sign,_that.item,_that.spawn,_that.editorVisual,_that.blocksMovement,_that.properties);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  MapEntityKind kind,  GridPos pos,  GridSize size,  MapEntityNpcData? npc,  MapEntitySignData? sign,  MapEntityItemData? item,  MapEntitySpawnData? spawn,  MapEntityEditorVisual? editorVisual,  bool blocksMovement,  Map<String, String> properties)  $default,) {final _that = this;
+switch (_that) {
+case _MapEntity():
+return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_that.sign,_that.item,_that.spawn,_that.editorVisual,_that.blocksMovement,_that.properties);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  MapEntityKind kind,  GridPos pos,  GridSize size,  MapEntityNpcData? npc,  MapEntitySignData? sign,  MapEntityItemData? item,  MapEntitySpawnData? spawn,  MapEntityEditorVisual? editorVisual,  bool blocksMovement,  Map<String, String> properties)?  $default,) {final _that = this;
+switch (_that) {
+case _MapEntity() when $default != null:
+return $default(_that.id,_that.name,_that.kind,_that.pos,_that.size,_that.npc,_that.sign,_that.item,_that.spawn,_that.editorVisual,_that.blocksMovement,_that.properties);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapEntityImplCopyWithImpl<$Res>
-    extends _$MapEntityCopyWithImpl<$Res, _$MapEntityImpl>
-    implements _$$MapEntityImplCopyWith<$Res> {
-  __$$MapEntityImplCopyWithImpl(
-      _$MapEntityImpl _value, $Res Function(_$MapEntityImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? kind = null,
-    Object? pos = null,
-    Object? size = null,
-    Object? npc = freezed,
-    Object? sign = freezed,
-    Object? item = freezed,
-    Object? spawn = freezed,
-    Object? editorVisual = freezed,
-    Object? blocksMovement = null,
-    Object? properties = null,
-  }) {
-    return _then(_$MapEntityImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      kind: null == kind
-          ? _value.kind
-          : kind // ignore: cast_nullable_to_non_nullable
-              as MapEntityKind,
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      size: null == size
-          ? _value.size
-          : size // ignore: cast_nullable_to_non_nullable
-              as GridSize,
-      npc: freezed == npc
-          ? _value.npc
-          : npc // ignore: cast_nullable_to_non_nullable
-              as MapEntityNpcData?,
-      sign: freezed == sign
-          ? _value.sign
-          : sign // ignore: cast_nullable_to_non_nullable
-              as MapEntitySignData?,
-      item: freezed == item
-          ? _value.item
-          : item // ignore: cast_nullable_to_non_nullable
-              as MapEntityItemData?,
-      spawn: freezed == spawn
-          ? _value.spawn
-          : spawn // ignore: cast_nullable_to_non_nullable
-              as MapEntitySpawnData?,
-      editorVisual: freezed == editorVisual
-          ? _value.editorVisual
-          : editorVisual // ignore: cast_nullable_to_non_nullable
-              as MapEntityEditorVisual?,
-      blocksMovement: null == blocksMovement
-          ? _value.blocksMovement
-          : blocksMovement // ignore: cast_nullable_to_non_nullable
-              as bool,
-      properties: null == properties
-          ? _value._properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapEntityImpl implements _MapEntity {
-  const _$MapEntityImpl(
-      {required this.id,
-      this.name = '',
-      required this.kind,
-      required this.pos,
-      this.size = const GridSize(width: 1, height: 1),
-      this.npc,
-      this.sign,
-      this.item,
-      this.spawn,
-      this.editorVisual,
-      this.blocksMovement = true,
-      final Map<String, String> properties = const {}})
-      : _properties = properties;
+class _MapEntity implements MapEntity {
+  const _MapEntity({required this.id, this.name = '', required this.kind, required this.pos, this.size = const GridSize(width: 1, height: 1), this.npc, this.sign, this.item, this.spawn, this.editorVisual, this.blocksMovement = true, final  Map<String, String> properties = const {}}): _properties = properties;
+  factory _MapEntity.fromJson(Map<String, dynamic> json) => _$MapEntityFromJson(json);
 
-  factory _$MapEntityImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapEntityImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  @JsonKey()
-  final String name;
-  @override
-  final MapEntityKind kind;
-  @override
-  final GridPos pos;
-  @override
-  @JsonKey()
-  final GridSize size;
-  @override
-  final MapEntityNpcData? npc;
-  @override
-  final MapEntitySignData? sign;
-  @override
-  final MapEntityItemData? item;
-  @override
-  final MapEntitySpawnData? spawn;
-  @override
-  final MapEntityEditorVisual? editorVisual;
-  @override
-  @JsonKey()
-  final bool blocksMovement;
-  final Map<String, String> _properties;
-  @override
-  @JsonKey()
-  Map<String, String> get properties {
-    if (_properties is EqualUnmodifiableMapView) return _properties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_properties);
-  }
-
-  @override
-  String toString() {
-    return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, editorVisual: $editorVisual, blocksMovement: $blocksMovement, properties: $properties)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapEntityImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.kind, kind) || other.kind == kind) &&
-            (identical(other.pos, pos) || other.pos == pos) &&
-            (identical(other.size, size) || other.size == size) &&
-            (identical(other.npc, npc) || other.npc == npc) &&
-            (identical(other.sign, sign) || other.sign == sign) &&
-            (identical(other.item, item) || other.item == item) &&
-            (identical(other.spawn, spawn) || other.spawn == spawn) &&
-            (identical(other.editorVisual, editorVisual) ||
-                other.editorVisual == editorVisual) &&
-            (identical(other.blocksMovement, blocksMovement) ||
-                other.blocksMovement == blocksMovement) &&
-            const DeepCollectionEquality()
-                .equals(other._properties, _properties));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      kind,
-      pos,
-      size,
-      npc,
-      sign,
-      item,
-      spawn,
-      editorVisual,
-      blocksMovement,
-      const DeepCollectionEquality().hash(_properties));
-
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapEntityImplCopyWith<_$MapEntityImpl> get copyWith =>
-      __$$MapEntityImplCopyWithImpl<_$MapEntityImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapEntityImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override@JsonKey() final  String name;
+@override final  MapEntityKind kind;
+@override final  GridPos pos;
+@override@JsonKey() final  GridSize size;
+@override final  MapEntityNpcData? npc;
+@override final  MapEntitySignData? sign;
+@override final  MapEntityItemData? item;
+@override final  MapEntitySpawnData? spawn;
+@override final  MapEntityEditorVisual? editorVisual;
+@override@JsonKey() final  bool blocksMovement;
+ final  Map<String, String> _properties;
+@override@JsonKey() Map<String, String> get properties {
+  if (_properties is EqualUnmodifiableMapView) return _properties;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_properties);
 }
 
-abstract class _MapEntity implements MapEntity {
-  const factory _MapEntity(
-      {required final String id,
-      final String name,
-      required final MapEntityKind kind,
-      required final GridPos pos,
-      final GridSize size,
-      final MapEntityNpcData? npc,
-      final MapEntitySignData? sign,
-      final MapEntityItemData? item,
-      final MapEntitySpawnData? spawn,
-      final MapEntityEditorVisual? editorVisual,
-      final bool blocksMovement,
-      final Map<String, String> properties}) = _$MapEntityImpl;
 
-  factory _MapEntity.fromJson(Map<String, dynamic> json) =
-      _$MapEntityImpl.fromJson;
+/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapEntityCopyWith<_MapEntity> get copyWith => __$MapEntityCopyWithImpl<_MapEntity>(this, _$identity);
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  MapEntityKind get kind;
-  @override
-  GridPos get pos;
-  @override
-  GridSize get size;
-  @override
-  MapEntityNpcData? get npc;
-  @override
-  MapEntitySignData? get sign;
-  @override
-  MapEntityItemData? get item;
-  @override
-  MapEntitySpawnData? get spawn;
-  @override
-  MapEntityEditorVisual? get editorVisual;
-  @override
-  bool get blocksMovement;
-  @override
-  Map<String, String> get properties;
-
-  /// Create a copy of MapEntity
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapEntityImplCopyWith<_$MapEntityImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+Map<String, dynamic> toJson() {
+  return _$MapEntityToJson(this, );
 }
 
-MapWarp _$MapWarpFromJson(Map<String, dynamic> json) {
-  return _MapWarp.fromJson(json);
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapEntity&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.size, size) || other.size == size)&&(identical(other.npc, npc) || other.npc == npc)&&(identical(other.sign, sign) || other.sign == sign)&&(identical(other.item, item) || other.item == item)&&(identical(other.spawn, spawn) || other.spawn == spawn)&&(identical(other.editorVisual, editorVisual) || other.editorVisual == editorVisual)&&(identical(other.blocksMovement, blocksMovement) || other.blocksMovement == blocksMovement)&&const DeepCollectionEquality().equals(other._properties, _properties));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,kind,pos,size,npc,sign,item,spawn,editorVisual,blocksMovement,const DeepCollectionEquality().hash(_properties));
+
+@override
+String toString() {
+  return 'MapEntity(id: $id, name: $name, kind: $kind, pos: $pos, size: $size, npc: $npc, sign: $sign, item: $item, spawn: $spawn, editorVisual: $editorVisual, blocksMovement: $blocksMovement, properties: $properties)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapEntityCopyWith<$Res> implements $MapEntityCopyWith<$Res> {
+  factory _$MapEntityCopyWith(_MapEntity value, $Res Function(_MapEntity) _then) = __$MapEntityCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, MapEntityKind kind, GridPos pos, GridSize size, MapEntityNpcData? npc, MapEntitySignData? sign, MapEntityItemData? item, MapEntitySpawnData? spawn, MapEntityEditorVisual? editorVisual, bool blocksMovement, Map<String, String> properties
+});
+
+
+@override $GridPosCopyWith<$Res> get pos;@override $GridSizeCopyWith<$Res> get size;@override $MapEntityNpcDataCopyWith<$Res>? get npc;@override $MapEntitySignDataCopyWith<$Res>? get sign;@override $MapEntityItemDataCopyWith<$Res>? get item;@override $MapEntitySpawnDataCopyWith<$Res>? get spawn;@override $MapEntityEditorVisualCopyWith<$Res>? get editorVisual;
+
+}
+/// @nodoc
+class __$MapEntityCopyWithImpl<$Res>
+    implements _$MapEntityCopyWith<$Res> {
+  __$MapEntityCopyWithImpl(this._self, this._then);
+
+  final _MapEntity _self;
+  final $Res Function(_MapEntity) _then;
+
+/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? pos = null,Object? size = null,Object? npc = freezed,Object? sign = freezed,Object? item = freezed,Object? spawn = freezed,Object? editorVisual = freezed,Object? blocksMovement = null,Object? properties = null,}) {
+  return _then(_MapEntity(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,kind: null == kind ? _self.kind : kind // ignore: cast_nullable_to_non_nullable
+as MapEntityKind,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
+as GridPos,size: null == size ? _self.size : size // ignore: cast_nullable_to_non_nullable
+as GridSize,npc: freezed == npc ? _self.npc : npc // ignore: cast_nullable_to_non_nullable
+as MapEntityNpcData?,sign: freezed == sign ? _self.sign : sign // ignore: cast_nullable_to_non_nullable
+as MapEntitySignData?,item: freezed == item ? _self.item : item // ignore: cast_nullable_to_non_nullable
+as MapEntityItemData?,spawn: freezed == spawn ? _self.spawn : spawn // ignore: cast_nullable_to_non_nullable
+as MapEntitySpawnData?,editorVisual: freezed == editorVisual ? _self.editorVisual : editorVisual // ignore: cast_nullable_to_non_nullable
+as MapEntityEditorVisual?,blocksMovement: null == blocksMovement ? _self.blocksMovement : blocksMovement // ignore: cast_nullable_to_non_nullable
+as bool,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+
+/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get pos {
+
+  return $GridPosCopyWith<$Res>(_self.pos, (value) {
+    return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridSizeCopyWith<$Res> get size {
+
+  return $GridSizeCopyWith<$Res>(_self.size, (value) {
+    return _then(_self.copyWith(size: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityNpcDataCopyWith<$Res>? get npc {
+    if (_self.npc == null) {
+    return null;
+  }
+
+  return $MapEntityNpcDataCopyWith<$Res>(_self.npc!, (value) {
+    return _then(_self.copyWith(npc: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntitySignDataCopyWith<$Res>? get sign {
+    if (_self.sign == null) {
+    return null;
+  }
+
+  return $MapEntitySignDataCopyWith<$Res>(_self.sign!, (value) {
+    return _then(_self.copyWith(sign: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityItemDataCopyWith<$Res>? get item {
+    if (_self.item == null) {
+    return null;
+  }
+
+  return $MapEntityItemDataCopyWith<$Res>(_self.item!, (value) {
+    return _then(_self.copyWith(item: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntitySpawnDataCopyWith<$Res>? get spawn {
+    if (_self.spawn == null) {
+    return null;
+  }
+
+  return $MapEntitySpawnDataCopyWith<$Res>(_self.spawn!, (value) {
+    return _then(_self.copyWith(spawn: value));
+  });
+}/// Create a copy of MapEntity
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapEntityEditorVisualCopyWith<$Res>? get editorVisual {
+    if (_self.editorVisual == null) {
+    return null;
+  }
+
+  return $MapEntityEditorVisualCopyWith<$Res>(_self.editorVisual!, (value) {
+    return _then(_self.copyWith(editorVisual: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$MapWarp {
-  String get id => throw _privateConstructorUsedError;
-  GridPos get pos => throw _privateConstructorUsedError;
-  String get targetMapId => throw _privateConstructorUsedError;
-  GridPos get targetPos => throw _privateConstructorUsedError;
-  MapWarpTriggerMode get triggerMode => throw _privateConstructorUsedError;
-  List<EntityFacing> get allowedApproachFacings =>
-      throw _privateConstructorUsedError;
-  WarpTriggerPadding get triggerPadding => throw _privateConstructorUsedError;
+
+ String get id; GridPos get pos; String get targetMapId; GridPos get targetPos; MapWarpTriggerMode get triggerMode; List<EntityFacing> get allowedApproachFacings; WarpTriggerPadding get triggerPadding;
+/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapWarpCopyWith<MapWarp> get copyWith => _$MapWarpCopyWithImpl<MapWarp>(this as MapWarp, _$identity);
 
   /// Serializes this MapWarp to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapWarp
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapWarpCopyWith<MapWarp> get copyWith => throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapWarp&&(identical(other.id, id) || other.id == id)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.targetPos, targetPos) || other.targetPos == targetPos)&&(identical(other.triggerMode, triggerMode) || other.triggerMode == triggerMode)&&const DeepCollectionEquality().equals(other.allowedApproachFacings, allowedApproachFacings)&&(identical(other.triggerPadding, triggerPadding) || other.triggerPadding == triggerPadding));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,pos,targetMapId,targetPos,triggerMode,const DeepCollectionEquality().hash(allowedApproachFacings),triggerPadding);
+
+@override
+String toString() {
+  return 'MapWarp(id: $id, pos: $pos, targetMapId: $targetMapId, targetPos: $targetPos, triggerMode: $triggerMode, allowedApproachFacings: $allowedApproachFacings, triggerPadding: $triggerPadding)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapWarpCopyWith<$Res> {
-  factory $MapWarpCopyWith(MapWarp value, $Res Function(MapWarp) then) =
-      _$MapWarpCopyWithImpl<$Res, MapWarp>;
-  @useResult
-  $Res call(
-      {String id,
-      GridPos pos,
-      String targetMapId,
-      GridPos targetPos,
-      MapWarpTriggerMode triggerMode,
-      List<EntityFacing> allowedApproachFacings,
-      WarpTriggerPadding triggerPadding});
+abstract mixin class $MapWarpCopyWith<$Res>  {
+  factory $MapWarpCopyWith(MapWarp value, $Res Function(MapWarp) _then) = _$MapWarpCopyWithImpl;
+@useResult
+$Res call({
+ String id, GridPos pos, String targetMapId, GridPos targetPos, MapWarpTriggerMode triggerMode, List<EntityFacing> allowedApproachFacings, WarpTriggerPadding triggerPadding
+});
 
-  $GridPosCopyWith<$Res> get pos;
-  $GridPosCopyWith<$Res> get targetPos;
-  $WarpTriggerPaddingCopyWith<$Res> get triggerPadding;
+
+$GridPosCopyWith<$Res> get pos;$GridPosCopyWith<$Res> get targetPos;$WarpTriggerPaddingCopyWith<$Res> get triggerPadding;
+
 }
-
 /// @nodoc
-class _$MapWarpCopyWithImpl<$Res, $Val extends MapWarp>
+class _$MapWarpCopyWithImpl<$Res>
     implements $MapWarpCopyWith<$Res> {
-  _$MapWarpCopyWithImpl(this._value, this._then);
+  _$MapWarpCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapWarp _self;
+  final $Res Function(MapWarp) _then;
 
-  /// Create a copy of MapWarp
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? pos = null,
-    Object? targetMapId = null,
-    Object? targetPos = null,
-    Object? triggerMode = null,
-    Object? allowedApproachFacings = null,
-    Object? triggerPadding = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      targetMapId: null == targetMapId
-          ? _value.targetMapId
-          : targetMapId // ignore: cast_nullable_to_non_nullable
-              as String,
-      targetPos: null == targetPos
-          ? _value.targetPos
-          : targetPos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      triggerMode: null == triggerMode
-          ? _value.triggerMode
-          : triggerMode // ignore: cast_nullable_to_non_nullable
-              as MapWarpTriggerMode,
-      allowedApproachFacings: null == allowedApproachFacings
-          ? _value.allowedApproachFacings
-          : allowedApproachFacings // ignore: cast_nullable_to_non_nullable
-              as List<EntityFacing>,
-      triggerPadding: null == triggerPadding
-          ? _value.triggerPadding
-          : triggerPadding // ignore: cast_nullable_to_non_nullable
-              as WarpTriggerPadding,
-    ) as $Val);
-  }
+/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? pos = null,Object? targetMapId = null,Object? targetPos = null,Object? triggerMode = null,Object? allowedApproachFacings = null,Object? triggerPadding = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
+as GridPos,targetMapId: null == targetMapId ? _self.targetMapId : targetMapId // ignore: cast_nullable_to_non_nullable
+as String,targetPos: null == targetPos ? _self.targetPos : targetPos // ignore: cast_nullable_to_non_nullable
+as GridPos,triggerMode: null == triggerMode ? _self.triggerMode : triggerMode // ignore: cast_nullable_to_non_nullable
+as MapWarpTriggerMode,allowedApproachFacings: null == allowedApproachFacings ? _self.allowedApproachFacings : allowedApproachFacings // ignore: cast_nullable_to_non_nullable
+as List<EntityFacing>,triggerPadding: null == triggerPadding ? _self.triggerPadding : triggerPadding // ignore: cast_nullable_to_non_nullable
+as WarpTriggerPadding,
+  ));
+}
+/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get pos {
 
-  /// Create a copy of MapWarp
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridPosCopyWith<$Res> get pos {
-    return $GridPosCopyWith<$Res>(_value.pos, (value) {
-      return _then(_value.copyWith(pos: value) as $Val);
-    });
-  }
+  return $GridPosCopyWith<$Res>(_self.pos, (value) {
+    return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get targetPos {
 
-  /// Create a copy of MapWarp
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridPosCopyWith<$Res> get targetPos {
-    return $GridPosCopyWith<$Res>(_value.targetPos, (value) {
-      return _then(_value.copyWith(targetPos: value) as $Val);
-    });
-  }
+  return $GridPosCopyWith<$Res>(_self.targetPos, (value) {
+    return _then(_self.copyWith(targetPos: value));
+  });
+}/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
 
-  /// Create a copy of MapWarp
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
-    return $WarpTriggerPaddingCopyWith<$Res>(_value.triggerPadding, (value) {
-      return _then(_value.copyWith(triggerPadding: value) as $Val);
-    });
-  }
+  return $WarpTriggerPaddingCopyWith<$Res>(_self.triggerPadding, (value) {
+    return _then(_self.copyWith(triggerPadding: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapWarpImplCopyWith<$Res> implements $MapWarpCopyWith<$Res> {
-  factory _$$MapWarpImplCopyWith(
-          _$MapWarpImpl value, $Res Function(_$MapWarpImpl) then) =
-      __$$MapWarpImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      GridPos pos,
-      String targetMapId,
-      GridPos targetPos,
-      MapWarpTriggerMode triggerMode,
-      List<EntityFacing> allowedApproachFacings,
-      WarpTriggerPadding triggerPadding});
 
-  @override
-  $GridPosCopyWith<$Res> get pos;
-  @override
-  $GridPosCopyWith<$Res> get targetPos;
-  @override
-  $WarpTriggerPaddingCopyWith<$Res> get triggerPadding;
+/// Adds pattern-matching-related methods to [MapWarp].
+extension MapWarpPatterns on MapWarp {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapWarp value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapWarp() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapWarp value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapWarp():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapWarp value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapWarp() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  GridPos pos,  String targetMapId,  GridPos targetPos,  MapWarpTriggerMode triggerMode,  List<EntityFacing> allowedApproachFacings,  WarpTriggerPadding triggerPadding)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapWarp() when $default != null:
+return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.triggerMode,_that.allowedApproachFacings,_that.triggerPadding);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  GridPos pos,  String targetMapId,  GridPos targetPos,  MapWarpTriggerMode triggerMode,  List<EntityFacing> allowedApproachFacings,  WarpTriggerPadding triggerPadding)  $default,) {final _that = this;
+switch (_that) {
+case _MapWarp():
+return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.triggerMode,_that.allowedApproachFacings,_that.triggerPadding);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  GridPos pos,  String targetMapId,  GridPos targetPos,  MapWarpTriggerMode triggerMode,  List<EntityFacing> allowedApproachFacings,  WarpTriggerPadding triggerPadding)?  $default,) {final _that = this;
+switch (_that) {
+case _MapWarp() when $default != null:
+return $default(_that.id,_that.pos,_that.targetMapId,_that.targetPos,_that.triggerMode,_that.allowedApproachFacings,_that.triggerPadding);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapWarpImplCopyWithImpl<$Res>
-    extends _$MapWarpCopyWithImpl<$Res, _$MapWarpImpl>
-    implements _$$MapWarpImplCopyWith<$Res> {
-  __$$MapWarpImplCopyWithImpl(
-      _$MapWarpImpl _value, $Res Function(_$MapWarpImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapWarp
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? pos = null,
-    Object? targetMapId = null,
-    Object? targetPos = null,
-    Object? triggerMode = null,
-    Object? allowedApproachFacings = null,
-    Object? triggerPadding = null,
-  }) {
-    return _then(_$MapWarpImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      targetMapId: null == targetMapId
-          ? _value.targetMapId
-          : targetMapId // ignore: cast_nullable_to_non_nullable
-              as String,
-      targetPos: null == targetPos
-          ? _value.targetPos
-          : targetPos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      triggerMode: null == triggerMode
-          ? _value.triggerMode
-          : triggerMode // ignore: cast_nullable_to_non_nullable
-              as MapWarpTriggerMode,
-      allowedApproachFacings: null == allowedApproachFacings
-          ? _value._allowedApproachFacings
-          : allowedApproachFacings // ignore: cast_nullable_to_non_nullable
-              as List<EntityFacing>,
-      triggerPadding: null == triggerPadding
-          ? _value.triggerPadding
-          : triggerPadding // ignore: cast_nullable_to_non_nullable
-              as WarpTriggerPadding,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapWarpImpl implements _MapWarp {
-  const _$MapWarpImpl(
-      {required this.id,
-      required this.pos,
-      required this.targetMapId,
-      required this.targetPos,
-      this.triggerMode = MapWarpTriggerMode.onEnter,
-      final List<EntityFacing> allowedApproachFacings = const [],
-      this.triggerPadding = const WarpTriggerPadding()})
-      : _allowedApproachFacings = allowedApproachFacings;
+class _MapWarp implements MapWarp {
+  const _MapWarp({required this.id, required this.pos, required this.targetMapId, required this.targetPos, this.triggerMode = MapWarpTriggerMode.onEnter, final  List<EntityFacing> allowedApproachFacings = const [], this.triggerPadding = const WarpTriggerPadding()}): _allowedApproachFacings = allowedApproachFacings;
+  factory _MapWarp.fromJson(Map<String, dynamic> json) => _$MapWarpFromJson(json);
 
-  factory _$MapWarpImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapWarpImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final GridPos pos;
-  @override
-  final String targetMapId;
-  @override
-  final GridPos targetPos;
-  @override
-  @JsonKey()
-  final MapWarpTriggerMode triggerMode;
-  final List<EntityFacing> _allowedApproachFacings;
-  @override
-  @JsonKey()
-  List<EntityFacing> get allowedApproachFacings {
-    if (_allowedApproachFacings is EqualUnmodifiableListView)
-      return _allowedApproachFacings;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_allowedApproachFacings);
-  }
-
-  @override
-  @JsonKey()
-  final WarpTriggerPadding triggerPadding;
-
-  @override
-  String toString() {
-    return 'MapWarp(id: $id, pos: $pos, targetMapId: $targetMapId, targetPos: $targetPos, triggerMode: $triggerMode, allowedApproachFacings: $allowedApproachFacings, triggerPadding: $triggerPadding)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapWarpImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.pos, pos) || other.pos == pos) &&
-            (identical(other.targetMapId, targetMapId) ||
-                other.targetMapId == targetMapId) &&
-            (identical(other.targetPos, targetPos) ||
-                other.targetPos == targetPos) &&
-            (identical(other.triggerMode, triggerMode) ||
-                other.triggerMode == triggerMode) &&
-            const DeepCollectionEquality().equals(
-                other._allowedApproachFacings, _allowedApproachFacings) &&
-            (identical(other.triggerPadding, triggerPadding) ||
-                other.triggerPadding == triggerPadding));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      pos,
-      targetMapId,
-      targetPos,
-      triggerMode,
-      const DeepCollectionEquality().hash(_allowedApproachFacings),
-      triggerPadding);
-
-  /// Create a copy of MapWarp
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapWarpImplCopyWith<_$MapWarpImpl> get copyWith =>
-      __$$MapWarpImplCopyWithImpl<_$MapWarpImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapWarpImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  GridPos pos;
+@override final  String targetMapId;
+@override final  GridPos targetPos;
+@override@JsonKey() final  MapWarpTriggerMode triggerMode;
+ final  List<EntityFacing> _allowedApproachFacings;
+@override@JsonKey() List<EntityFacing> get allowedApproachFacings {
+  if (_allowedApproachFacings is EqualUnmodifiableListView) return _allowedApproachFacings;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_allowedApproachFacings);
 }
 
-abstract class _MapWarp implements MapWarp {
-  const factory _MapWarp(
-      {required final String id,
-      required final GridPos pos,
-      required final String targetMapId,
-      required final GridPos targetPos,
-      final MapWarpTriggerMode triggerMode,
-      final List<EntityFacing> allowedApproachFacings,
-      final WarpTriggerPadding triggerPadding}) = _$MapWarpImpl;
+@override@JsonKey() final  WarpTriggerPadding triggerPadding;
 
-  factory _MapWarp.fromJson(Map<String, dynamic> json) = _$MapWarpImpl.fromJson;
+/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapWarpCopyWith<_MapWarp> get copyWith => __$MapWarpCopyWithImpl<_MapWarp>(this, _$identity);
 
-  @override
-  String get id;
-  @override
-  GridPos get pos;
-  @override
-  String get targetMapId;
-  @override
-  GridPos get targetPos;
-  @override
-  MapWarpTriggerMode get triggerMode;
-  @override
-  List<EntityFacing> get allowedApproachFacings;
-  @override
-  WarpTriggerPadding get triggerPadding;
-
-  /// Create a copy of MapWarp
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapWarpImplCopyWith<_$MapWarpImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+Map<String, dynamic> toJson() {
+  return _$MapWarpToJson(this, );
 }
 
-WarpTriggerPadding _$WarpTriggerPaddingFromJson(Map<String, dynamic> json) {
-  return _WarpTriggerPadding.fromJson(json);
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapWarp&&(identical(other.id, id) || other.id == id)&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.targetPos, targetPos) || other.targetPos == targetPos)&&(identical(other.triggerMode, triggerMode) || other.triggerMode == triggerMode)&&const DeepCollectionEquality().equals(other._allowedApproachFacings, _allowedApproachFacings)&&(identical(other.triggerPadding, triggerPadding) || other.triggerPadding == triggerPadding));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,pos,targetMapId,targetPos,triggerMode,const DeepCollectionEquality().hash(_allowedApproachFacings),triggerPadding);
+
+@override
+String toString() {
+  return 'MapWarp(id: $id, pos: $pos, targetMapId: $targetMapId, targetPos: $targetPos, triggerMode: $triggerMode, allowedApproachFacings: $allowedApproachFacings, triggerPadding: $triggerPadding)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapWarpCopyWith<$Res> implements $MapWarpCopyWith<$Res> {
+  factory _$MapWarpCopyWith(_MapWarp value, $Res Function(_MapWarp) _then) = __$MapWarpCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, GridPos pos, String targetMapId, GridPos targetPos, MapWarpTriggerMode triggerMode, List<EntityFacing> allowedApproachFacings, WarpTriggerPadding triggerPadding
+});
+
+
+@override $GridPosCopyWith<$Res> get pos;@override $GridPosCopyWith<$Res> get targetPos;@override $WarpTriggerPaddingCopyWith<$Res> get triggerPadding;
+
+}
+/// @nodoc
+class __$MapWarpCopyWithImpl<$Res>
+    implements _$MapWarpCopyWith<$Res> {
+  __$MapWarpCopyWithImpl(this._self, this._then);
+
+  final _MapWarp _self;
+  final $Res Function(_MapWarp) _then;
+
+/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? pos = null,Object? targetMapId = null,Object? targetPos = null,Object? triggerMode = null,Object? allowedApproachFacings = null,Object? triggerPadding = null,}) {
+  return _then(_MapWarp(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
+as GridPos,targetMapId: null == targetMapId ? _self.targetMapId : targetMapId // ignore: cast_nullable_to_non_nullable
+as String,targetPos: null == targetPos ? _self.targetPos : targetPos // ignore: cast_nullable_to_non_nullable
+as GridPos,triggerMode: null == triggerMode ? _self.triggerMode : triggerMode // ignore: cast_nullable_to_non_nullable
+as MapWarpTriggerMode,allowedApproachFacings: null == allowedApproachFacings ? _self._allowedApproachFacings : allowedApproachFacings // ignore: cast_nullable_to_non_nullable
+as List<EntityFacing>,triggerPadding: null == triggerPadding ? _self.triggerPadding : triggerPadding // ignore: cast_nullable_to_non_nullable
+as WarpTriggerPadding,
+  ));
+}
+
+/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get pos {
+
+  return $GridPosCopyWith<$Res>(_self.pos, (value) {
+    return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get targetPos {
+
+  return $GridPosCopyWith<$Res>(_self.targetPos, (value) {
+    return _then(_self.copyWith(targetPos: value));
+  });
+}/// Create a copy of MapWarp
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$WarpTriggerPaddingCopyWith<$Res> get triggerPadding {
+
+  return $WarpTriggerPaddingCopyWith<$Res>(_self.triggerPadding, (value) {
+    return _then(_self.copyWith(triggerPadding: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$WarpTriggerPadding {
-  int get top => throw _privateConstructorUsedError;
-  int get right => throw _privateConstructorUsedError;
-  int get bottom => throw _privateConstructorUsedError;
-  int get left => throw _privateConstructorUsedError;
+
+ int get top; int get right; int get bottom; int get left;
+/// Create a copy of WarpTriggerPadding
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$WarpTriggerPaddingCopyWith<WarpTriggerPadding> get copyWith => _$WarpTriggerPaddingCopyWithImpl<WarpTriggerPadding>(this as WarpTriggerPadding, _$identity);
 
   /// Serializes this WarpTriggerPadding to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of WarpTriggerPadding
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $WarpTriggerPaddingCopyWith<WarpTriggerPadding> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WarpTriggerPadding&&(identical(other.top, top) || other.top == top)&&(identical(other.right, right) || other.right == right)&&(identical(other.bottom, bottom) || other.bottom == bottom)&&(identical(other.left, left) || other.left == left));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,top,right,bottom,left);
+
+@override
+String toString() {
+  return 'WarpTriggerPadding(top: $top, right: $right, bottom: $bottom, left: $left)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $WarpTriggerPaddingCopyWith<$Res> {
-  factory $WarpTriggerPaddingCopyWith(
-          WarpTriggerPadding value, $Res Function(WarpTriggerPadding) then) =
-      _$WarpTriggerPaddingCopyWithImpl<$Res, WarpTriggerPadding>;
-  @useResult
-  $Res call({int top, int right, int bottom, int left});
-}
+abstract mixin class $WarpTriggerPaddingCopyWith<$Res>  {
+  factory $WarpTriggerPaddingCopyWith(WarpTriggerPadding value, $Res Function(WarpTriggerPadding) _then) = _$WarpTriggerPaddingCopyWithImpl;
+@useResult
+$Res call({
+ int top, int right, int bottom, int left
+});
 
+
+
+
+}
 /// @nodoc
-class _$WarpTriggerPaddingCopyWithImpl<$Res, $Val extends WarpTriggerPadding>
+class _$WarpTriggerPaddingCopyWithImpl<$Res>
     implements $WarpTriggerPaddingCopyWith<$Res> {
-  _$WarpTriggerPaddingCopyWithImpl(this._value, this._then);
+  _$WarpTriggerPaddingCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final WarpTriggerPadding _self;
+  final $Res Function(WarpTriggerPadding) _then;
 
-  /// Create a copy of WarpTriggerPadding
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? top = null,
-    Object? right = null,
-    Object? bottom = null,
-    Object? left = null,
-  }) {
-    return _then(_value.copyWith(
-      top: null == top
-          ? _value.top
-          : top // ignore: cast_nullable_to_non_nullable
-              as int,
-      right: null == right
-          ? _value.right
-          : right // ignore: cast_nullable_to_non_nullable
-              as int,
-      bottom: null == bottom
-          ? _value.bottom
-          : bottom // ignore: cast_nullable_to_non_nullable
-              as int,
-      left: null == left
-          ? _value.left
-          : left // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of WarpTriggerPadding
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? top = null,Object? right = null,Object? bottom = null,Object? left = null,}) {
+  return _then(_self.copyWith(
+top: null == top ? _self.top : top // ignore: cast_nullable_to_non_nullable
+as int,right: null == right ? _self.right : right // ignore: cast_nullable_to_non_nullable
+as int,bottom: null == bottom ? _self.bottom : bottom // ignore: cast_nullable_to_non_nullable
+as int,left: null == left ? _self.left : left // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$WarpTriggerPaddingImplCopyWith<$Res>
-    implements $WarpTriggerPaddingCopyWith<$Res> {
-  factory _$$WarpTriggerPaddingImplCopyWith(_$WarpTriggerPaddingImpl value,
-          $Res Function(_$WarpTriggerPaddingImpl) then) =
-      __$$WarpTriggerPaddingImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({int top, int right, int bottom, int left});
 }
 
-/// @nodoc
-class __$$WarpTriggerPaddingImplCopyWithImpl<$Res>
-    extends _$WarpTriggerPaddingCopyWithImpl<$Res, _$WarpTriggerPaddingImpl>
-    implements _$$WarpTriggerPaddingImplCopyWith<$Res> {
-  __$$WarpTriggerPaddingImplCopyWithImpl(_$WarpTriggerPaddingImpl _value,
-      $Res Function(_$WarpTriggerPaddingImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of WarpTriggerPadding
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? top = null,
-    Object? right = null,
-    Object? bottom = null,
-    Object? left = null,
-  }) {
-    return _then(_$WarpTriggerPaddingImpl(
-      top: null == top
-          ? _value.top
-          : top // ignore: cast_nullable_to_non_nullable
-              as int,
-      right: null == right
-          ? _value.right
-          : right // ignore: cast_nullable_to_non_nullable
-              as int,
-      bottom: null == bottom
-          ? _value.bottom
-          : bottom // ignore: cast_nullable_to_non_nullable
-              as int,
-      left: null == left
-          ? _value.left
-          : left // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [WarpTriggerPadding].
+extension WarpTriggerPaddingPatterns on WarpTriggerPadding {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _WarpTriggerPadding value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _WarpTriggerPadding() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _WarpTriggerPadding value)  $default,){
+final _that = this;
+switch (_that) {
+case _WarpTriggerPadding():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _WarpTriggerPadding value)?  $default,){
+final _that = this;
+switch (_that) {
+case _WarpTriggerPadding() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int top,  int right,  int bottom,  int left)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _WarpTriggerPadding() when $default != null:
+return $default(_that.top,_that.right,_that.bottom,_that.left);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int top,  int right,  int bottom,  int left)  $default,) {final _that = this;
+switch (_that) {
+case _WarpTriggerPadding():
+return $default(_that.top,_that.right,_that.bottom,_that.left);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int top,  int right,  int bottom,  int left)?  $default,) {final _that = this;
+switch (_that) {
+case _WarpTriggerPadding() when $default != null:
+return $default(_that.top,_that.right,_that.bottom,_that.left);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$WarpTriggerPaddingImpl implements _WarpTriggerPadding {
-  const _$WarpTriggerPaddingImpl(
-      {this.top = 0, this.right = 0, this.bottom = 0, this.left = 0});
+class _WarpTriggerPadding implements WarpTriggerPadding {
+  const _WarpTriggerPadding({this.top = 0, this.right = 0, this.bottom = 0, this.left = 0});
+  factory _WarpTriggerPadding.fromJson(Map<String, dynamic> json) => _$WarpTriggerPaddingFromJson(json);
 
-  factory _$WarpTriggerPaddingImpl.fromJson(Map<String, dynamic> json) =>
-      _$$WarpTriggerPaddingImplFromJson(json);
+@override@JsonKey() final  int top;
+@override@JsonKey() final  int right;
+@override@JsonKey() final  int bottom;
+@override@JsonKey() final  int left;
 
-  @override
-  @JsonKey()
-  final int top;
-  @override
-  @JsonKey()
-  final int right;
-  @override
-  @JsonKey()
-  final int bottom;
-  @override
-  @JsonKey()
-  final int left;
+/// Create a copy of WarpTriggerPadding
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$WarpTriggerPaddingCopyWith<_WarpTriggerPadding> get copyWith => __$WarpTriggerPaddingCopyWithImpl<_WarpTriggerPadding>(this, _$identity);
 
-  @override
-  String toString() {
-    return 'WarpTriggerPadding(top: $top, right: $right, bottom: $bottom, left: $left)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$WarpTriggerPaddingImpl &&
-            (identical(other.top, top) || other.top == top) &&
-            (identical(other.right, right) || other.right == right) &&
-            (identical(other.bottom, bottom) || other.bottom == bottom) &&
-            (identical(other.left, left) || other.left == left));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, top, right, bottom, left);
-
-  /// Create a copy of WarpTriggerPadding
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$WarpTriggerPaddingImplCopyWith<_$WarpTriggerPaddingImpl> get copyWith =>
-      __$$WarpTriggerPaddingImplCopyWithImpl<_$WarpTriggerPaddingImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$WarpTriggerPaddingImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$WarpTriggerPaddingToJson(this, );
 }
 
-abstract class _WarpTriggerPadding implements WarpTriggerPadding {
-  const factory _WarpTriggerPadding(
-      {final int top,
-      final int right,
-      final int bottom,
-      final int left}) = _$WarpTriggerPaddingImpl;
-
-  factory _WarpTriggerPadding.fromJson(Map<String, dynamic> json) =
-      _$WarpTriggerPaddingImpl.fromJson;
-
-  @override
-  int get top;
-  @override
-  int get right;
-  @override
-  int get bottom;
-  @override
-  int get left;
-
-  /// Create a copy of WarpTriggerPadding
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$WarpTriggerPaddingImplCopyWith<_$WarpTriggerPaddingImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WarpTriggerPadding&&(identical(other.top, top) || other.top == top)&&(identical(other.right, right) || other.right == right)&&(identical(other.bottom, bottom) || other.bottom == bottom)&&(identical(other.left, left) || other.left == left));
 }
 
-MapConnection _$MapConnectionFromJson(Map<String, dynamic> json) {
-  return _MapConnection.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,top,right,bottom,left);
+
+@override
+String toString() {
+  return 'WarpTriggerPadding(top: $top, right: $right, bottom: $bottom, left: $left)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$WarpTriggerPaddingCopyWith<$Res> implements $WarpTriggerPaddingCopyWith<$Res> {
+  factory _$WarpTriggerPaddingCopyWith(_WarpTriggerPadding value, $Res Function(_WarpTriggerPadding) _then) = __$WarpTriggerPaddingCopyWithImpl;
+@override @useResult
+$Res call({
+ int top, int right, int bottom, int left
+});
+
+
+
+
+}
+/// @nodoc
+class __$WarpTriggerPaddingCopyWithImpl<$Res>
+    implements _$WarpTriggerPaddingCopyWith<$Res> {
+  __$WarpTriggerPaddingCopyWithImpl(this._self, this._then);
+
+  final _WarpTriggerPadding _self;
+  final $Res Function(_WarpTriggerPadding) _then;
+
+/// Create a copy of WarpTriggerPadding
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? top = null,Object? right = null,Object? bottom = null,Object? left = null,}) {
+  return _then(_WarpTriggerPadding(
+top: null == top ? _self.top : top // ignore: cast_nullable_to_non_nullable
+as int,right: null == right ? _self.right : right // ignore: cast_nullable_to_non_nullable
+as int,bottom: null == bottom ? _self.bottom : bottom // ignore: cast_nullable_to_non_nullable
+as int,left: null == left ? _self.left : left // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$MapConnection {
-  MapConnectionDirection get direction => throw _privateConstructorUsedError;
-  String get targetMapId => throw _privateConstructorUsedError;
-  int get offset => throw _privateConstructorUsedError;
+
+ MapConnectionDirection get direction; String get targetMapId; int get offset;
+/// Create a copy of MapConnection
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapConnectionCopyWith<MapConnection> get copyWith => _$MapConnectionCopyWithImpl<MapConnection>(this as MapConnection, _$identity);
 
   /// Serializes this MapConnection to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapConnection
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapConnectionCopyWith<MapConnection> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapConnection&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.offset, offset) || other.offset == offset));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,direction,targetMapId,offset);
+
+@override
+String toString() {
+  return 'MapConnection(direction: $direction, targetMapId: $targetMapId, offset: $offset)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapConnectionCopyWith<$Res> {
-  factory $MapConnectionCopyWith(
-          MapConnection value, $Res Function(MapConnection) then) =
-      _$MapConnectionCopyWithImpl<$Res, MapConnection>;
-  @useResult
-  $Res call({MapConnectionDirection direction, String targetMapId, int offset});
-}
+abstract mixin class $MapConnectionCopyWith<$Res>  {
+  factory $MapConnectionCopyWith(MapConnection value, $Res Function(MapConnection) _then) = _$MapConnectionCopyWithImpl;
+@useResult
+$Res call({
+ MapConnectionDirection direction, String targetMapId, int offset
+});
 
+
+
+
+}
 /// @nodoc
-class _$MapConnectionCopyWithImpl<$Res, $Val extends MapConnection>
+class _$MapConnectionCopyWithImpl<$Res>
     implements $MapConnectionCopyWith<$Res> {
-  _$MapConnectionCopyWithImpl(this._value, this._then);
+  _$MapConnectionCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapConnection _self;
+  final $Res Function(MapConnection) _then;
 
-  /// Create a copy of MapConnection
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? direction = null,
-    Object? targetMapId = null,
-    Object? offset = null,
-  }) {
-    return _then(_value.copyWith(
-      direction: null == direction
-          ? _value.direction
-          : direction // ignore: cast_nullable_to_non_nullable
-              as MapConnectionDirection,
-      targetMapId: null == targetMapId
-          ? _value.targetMapId
-          : targetMapId // ignore: cast_nullable_to_non_nullable
-              as String,
-      offset: null == offset
-          ? _value.offset
-          : offset // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of MapConnection
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? direction = null,Object? targetMapId = null,Object? offset = null,}) {
+  return _then(_self.copyWith(
+direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as MapConnectionDirection,targetMapId: null == targetMapId ? _self.targetMapId : targetMapId // ignore: cast_nullable_to_non_nullable
+as String,offset: null == offset ? _self.offset : offset // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$MapConnectionImplCopyWith<$Res>
-    implements $MapConnectionCopyWith<$Res> {
-  factory _$$MapConnectionImplCopyWith(
-          _$MapConnectionImpl value, $Res Function(_$MapConnectionImpl) then) =
-      __$$MapConnectionImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({MapConnectionDirection direction, String targetMapId, int offset});
 }
 
-/// @nodoc
-class __$$MapConnectionImplCopyWithImpl<$Res>
-    extends _$MapConnectionCopyWithImpl<$Res, _$MapConnectionImpl>
-    implements _$$MapConnectionImplCopyWith<$Res> {
-  __$$MapConnectionImplCopyWithImpl(
-      _$MapConnectionImpl _value, $Res Function(_$MapConnectionImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of MapConnection
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? direction = null,
-    Object? targetMapId = null,
-    Object? offset = null,
-  }) {
-    return _then(_$MapConnectionImpl(
-      direction: null == direction
-          ? _value.direction
-          : direction // ignore: cast_nullable_to_non_nullable
-              as MapConnectionDirection,
-      targetMapId: null == targetMapId
-          ? _value.targetMapId
-          : targetMapId // ignore: cast_nullable_to_non_nullable
-              as String,
-      offset: null == offset
-          ? _value.offset
-          : offset // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [MapConnection].
+extension MapConnectionPatterns on MapConnection {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapConnection value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapConnection() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapConnection value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapConnection():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapConnection value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapConnection() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( MapConnectionDirection direction,  String targetMapId,  int offset)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapConnection() when $default != null:
+return $default(_that.direction,_that.targetMapId,_that.offset);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( MapConnectionDirection direction,  String targetMapId,  int offset)  $default,) {final _that = this;
+switch (_that) {
+case _MapConnection():
+return $default(_that.direction,_that.targetMapId,_that.offset);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( MapConnectionDirection direction,  String targetMapId,  int offset)?  $default,) {final _that = this;
+switch (_that) {
+case _MapConnection() when $default != null:
+return $default(_that.direction,_that.targetMapId,_that.offset);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapConnectionImpl implements _MapConnection {
-  const _$MapConnectionImpl(
-      {required this.direction, required this.targetMapId, this.offset = 0});
+class _MapConnection implements MapConnection {
+  const _MapConnection({required this.direction, required this.targetMapId, this.offset = 0});
+  factory _MapConnection.fromJson(Map<String, dynamic> json) => _$MapConnectionFromJson(json);
 
-  factory _$MapConnectionImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapConnectionImplFromJson(json);
+@override final  MapConnectionDirection direction;
+@override final  String targetMapId;
+@override@JsonKey() final  int offset;
 
-  @override
-  final MapConnectionDirection direction;
-  @override
-  final String targetMapId;
-  @override
-  @JsonKey()
-  final int offset;
+/// Create a copy of MapConnection
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapConnectionCopyWith<_MapConnection> get copyWith => __$MapConnectionCopyWithImpl<_MapConnection>(this, _$identity);
 
-  @override
-  String toString() {
-    return 'MapConnection(direction: $direction, targetMapId: $targetMapId, offset: $offset)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapConnectionImpl &&
-            (identical(other.direction, direction) ||
-                other.direction == direction) &&
-            (identical(other.targetMapId, targetMapId) ||
-                other.targetMapId == targetMapId) &&
-            (identical(other.offset, offset) || other.offset == offset));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, direction, targetMapId, offset);
-
-  /// Create a copy of MapConnection
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapConnectionImplCopyWith<_$MapConnectionImpl> get copyWith =>
-      __$$MapConnectionImplCopyWithImpl<_$MapConnectionImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapConnectionImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$MapConnectionToJson(this, );
 }
 
-abstract class _MapConnection implements MapConnection {
-  const factory _MapConnection(
-      {required final MapConnectionDirection direction,
-      required final String targetMapId,
-      final int offset}) = _$MapConnectionImpl;
-
-  factory _MapConnection.fromJson(Map<String, dynamic> json) =
-      _$MapConnectionImpl.fromJson;
-
-  @override
-  MapConnectionDirection get direction;
-  @override
-  String get targetMapId;
-  @override
-  int get offset;
-
-  /// Create a copy of MapConnection
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapConnectionImplCopyWith<_$MapConnectionImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapConnection&&(identical(other.direction, direction) || other.direction == direction)&&(identical(other.targetMapId, targetMapId) || other.targetMapId == targetMapId)&&(identical(other.offset, offset) || other.offset == offset));
 }
 
-MapTrigger _$MapTriggerFromJson(Map<String, dynamic> json) {
-  return _MapTrigger.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,direction,targetMapId,offset);
+
+@override
+String toString() {
+  return 'MapConnection(direction: $direction, targetMapId: $targetMapId, offset: $offset)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapConnectionCopyWith<$Res> implements $MapConnectionCopyWith<$Res> {
+  factory _$MapConnectionCopyWith(_MapConnection value, $Res Function(_MapConnection) _then) = __$MapConnectionCopyWithImpl;
+@override @useResult
+$Res call({
+ MapConnectionDirection direction, String targetMapId, int offset
+});
+
+
+
+
+}
+/// @nodoc
+class __$MapConnectionCopyWithImpl<$Res>
+    implements _$MapConnectionCopyWith<$Res> {
+  __$MapConnectionCopyWithImpl(this._self, this._then);
+
+  final _MapConnection _self;
+  final $Res Function(_MapConnection) _then;
+
+/// Create a copy of MapConnection
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? direction = null,Object? targetMapId = null,Object? offset = null,}) {
+  return _then(_MapConnection(
+direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as MapConnectionDirection,targetMapId: null == targetMapId ? _self.targetMapId : targetMapId // ignore: cast_nullable_to_non_nullable
+as String,offset: null == offset ? _self.offset : offset // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$MapTrigger {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  TriggerType get type => throw _privateConstructorUsedError;
-  MapRect get area => throw _privateConstructorUsedError;
-  Map<String, String> get properties => throw _privateConstructorUsedError;
+
+ String get id; String get name; TriggerType get type; MapRect get area; Map<String, String> get properties;
+/// Create a copy of MapTrigger
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapTriggerCopyWith<MapTrigger> get copyWith => _$MapTriggerCopyWithImpl<MapTrigger>(this as MapTrigger, _$identity);
 
   /// Serializes this MapTrigger to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapTrigger
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapTriggerCopyWith<MapTrigger> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapTrigger&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.area, area) || other.area == area)&&const DeepCollectionEquality().equals(other.properties, properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,type,area,const DeepCollectionEquality().hash(properties));
+
+@override
+String toString() {
+  return 'MapTrigger(id: $id, name: $name, type: $type, area: $area, properties: $properties)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapTriggerCopyWith<$Res> {
-  factory $MapTriggerCopyWith(
-          MapTrigger value, $Res Function(MapTrigger) then) =
-      _$MapTriggerCopyWithImpl<$Res, MapTrigger>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      TriggerType type,
-      MapRect area,
-      Map<String, String> properties});
+abstract mixin class $MapTriggerCopyWith<$Res>  {
+  factory $MapTriggerCopyWith(MapTrigger value, $Res Function(MapTrigger) _then) = _$MapTriggerCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, TriggerType type, MapRect area, Map<String, String> properties
+});
 
-  $MapRectCopyWith<$Res> get area;
+
+$MapRectCopyWith<$Res> get area;
+
 }
-
 /// @nodoc
-class _$MapTriggerCopyWithImpl<$Res, $Val extends MapTrigger>
+class _$MapTriggerCopyWithImpl<$Res>
     implements $MapTriggerCopyWith<$Res> {
-  _$MapTriggerCopyWithImpl(this._value, this._then);
+  _$MapTriggerCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapTrigger _self;
+  final $Res Function(MapTrigger) _then;
 
-  /// Create a copy of MapTrigger
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? type = null,
-    Object? area = null,
-    Object? properties = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as TriggerType,
-      area: null == area
-          ? _value.area
-          : area // ignore: cast_nullable_to_non_nullable
-              as MapRect,
-      properties: null == properties
-          ? _value.properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ) as $Val);
-  }
+/// Create a copy of MapTrigger
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? area = null,Object? properties = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as TriggerType,area: null == area ? _self.area : area // ignore: cast_nullable_to_non_nullable
+as MapRect,properties: null == properties ? _self.properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+/// Create a copy of MapTrigger
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res> get area {
 
-  /// Create a copy of MapTrigger
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapRectCopyWith<$Res> get area {
-    return $MapRectCopyWith<$Res>(_value.area, (value) {
-      return _then(_value.copyWith(area: value) as $Val);
-    });
-  }
+  return $MapRectCopyWith<$Res>(_self.area, (value) {
+    return _then(_self.copyWith(area: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapTriggerImplCopyWith<$Res>
-    implements $MapTriggerCopyWith<$Res> {
-  factory _$$MapTriggerImplCopyWith(
-          _$MapTriggerImpl value, $Res Function(_$MapTriggerImpl) then) =
-      __$$MapTriggerImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      TriggerType type,
-      MapRect area,
-      Map<String, String> properties});
 
-  @override
-  $MapRectCopyWith<$Res> get area;
+/// Adds pattern-matching-related methods to [MapTrigger].
+extension MapTriggerPatterns on MapTrigger {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapTrigger value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapTrigger() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapTrigger value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapTrigger():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapTrigger value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapTrigger() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  TriggerType type,  MapRect area,  Map<String, String> properties)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapTrigger() when $default != null:
+return $default(_that.id,_that.name,_that.type,_that.area,_that.properties);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  TriggerType type,  MapRect area,  Map<String, String> properties)  $default,) {final _that = this;
+switch (_that) {
+case _MapTrigger():
+return $default(_that.id,_that.name,_that.type,_that.area,_that.properties);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  TriggerType type,  MapRect area,  Map<String, String> properties)?  $default,) {final _that = this;
+switch (_that) {
+case _MapTrigger() when $default != null:
+return $default(_that.id,_that.name,_that.type,_that.area,_that.properties);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapTriggerImplCopyWithImpl<$Res>
-    extends _$MapTriggerCopyWithImpl<$Res, _$MapTriggerImpl>
-    implements _$$MapTriggerImplCopyWith<$Res> {
-  __$$MapTriggerImplCopyWithImpl(
-      _$MapTriggerImpl _value, $Res Function(_$MapTriggerImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapTrigger
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? type = null,
-    Object? area = null,
-    Object? properties = null,
-  }) {
-    return _then(_$MapTriggerImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as TriggerType,
-      area: null == area
-          ? _value.area
-          : area // ignore: cast_nullable_to_non_nullable
-              as MapRect,
-      properties: null == properties
-          ? _value._properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapTriggerImpl implements _MapTrigger {
-  const _$MapTriggerImpl(
-      {required this.id,
-      this.name = '',
-      required this.type,
-      required this.area,
-      final Map<String, String> properties = const {}})
-      : _properties = properties;
+class _MapTrigger implements MapTrigger {
+  const _MapTrigger({required this.id, this.name = '', required this.type, required this.area, final  Map<String, String> properties = const {}}): _properties = properties;
+  factory _MapTrigger.fromJson(Map<String, dynamic> json) => _$MapTriggerFromJson(json);
 
-  factory _$MapTriggerImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapTriggerImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  @JsonKey()
-  final String name;
-  @override
-  final TriggerType type;
-  @override
-  final MapRect area;
-  final Map<String, String> _properties;
-  @override
-  @JsonKey()
-  Map<String, String> get properties {
-    if (_properties is EqualUnmodifiableMapView) return _properties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_properties);
-  }
-
-  @override
-  String toString() {
-    return 'MapTrigger(id: $id, name: $name, type: $type, area: $area, properties: $properties)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapTriggerImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.type, type) || other.type == type) &&
-            (identical(other.area, area) || other.area == area) &&
-            const DeepCollectionEquality()
-                .equals(other._properties, _properties));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, name, type, area,
-      const DeepCollectionEquality().hash(_properties));
-
-  /// Create a copy of MapTrigger
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapTriggerImplCopyWith<_$MapTriggerImpl> get copyWith =>
-      __$$MapTriggerImplCopyWithImpl<_$MapTriggerImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapTriggerImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override@JsonKey() final  String name;
+@override final  TriggerType type;
+@override final  MapRect area;
+ final  Map<String, String> _properties;
+@override@JsonKey() Map<String, String> get properties {
+  if (_properties is EqualUnmodifiableMapView) return _properties;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_properties);
 }
 
-abstract class _MapTrigger implements MapTrigger {
-  const factory _MapTrigger(
-      {required final String id,
-      final String name,
-      required final TriggerType type,
-      required final MapRect area,
-      final Map<String, String> properties}) = _$MapTriggerImpl;
 
-  factory _MapTrigger.fromJson(Map<String, dynamic> json) =
-      _$MapTriggerImpl.fromJson;
+/// Create a copy of MapTrigger
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapTriggerCopyWith<_MapTrigger> get copyWith => __$MapTriggerCopyWithImpl<_MapTrigger>(this, _$identity);
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  TriggerType get type;
-  @override
-  MapRect get area;
-  @override
-  Map<String, String> get properties;
-
-  /// Create a copy of MapTrigger
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapTriggerImplCopyWith<_$MapTriggerImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+Map<String, dynamic> toJson() {
+  return _$MapTriggerToJson(this, );
 }
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapTrigger&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.area, area) || other.area == area)&&const DeepCollectionEquality().equals(other._properties, _properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,type,area,const DeepCollectionEquality().hash(_properties));
+
+@override
+String toString() {
+  return 'MapTrigger(id: $id, name: $name, type: $type, area: $area, properties: $properties)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapTriggerCopyWith<$Res> implements $MapTriggerCopyWith<$Res> {
+  factory _$MapTriggerCopyWith(_MapTrigger value, $Res Function(_MapTrigger) _then) = __$MapTriggerCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, TriggerType type, MapRect area, Map<String, String> properties
+});
+
+
+@override $MapRectCopyWith<$Res> get area;
+
+}
+/// @nodoc
+class __$MapTriggerCopyWithImpl<$Res>
+    implements _$MapTriggerCopyWith<$Res> {
+  __$MapTriggerCopyWithImpl(this._self, this._then);
+
+  final _MapTrigger _self;
+  final $Res Function(_MapTrigger) _then;
+
+/// Create a copy of MapTrigger
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? area = null,Object? properties = null,}) {
+  return _then(_MapTrigger(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as TriggerType,area: null == area ? _self.area : area // ignore: cast_nullable_to_non_nullable
+as MapRect,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+
+/// Create a copy of MapTrigger
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res> get area {
+
+  return $MapRectCopyWith<$Res>(_self.area, (value) {
+    return _then(_self.copyWith(area: value));
+  });
+}
+}
+
+// dart format on

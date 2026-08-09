@@ -12,7 +12,7 @@ part 'map_gameplay_zone_payloads.g.dart';
 /// Payload d'une zone [GameplayZoneKind.encounter].
 /// Lie la zone à une [ProjectEncounterTable] et précise le type de rencontre.
 @freezed
-class EncounterZonePayload with _$EncounterZonePayload {
+abstract class EncounterZonePayload with _$EncounterZonePayload {
   @JsonSerializable(explicitToJson: true)
   const factory EncounterZonePayload({
     /// ID de la [ProjectEncounterTable] du projet (optionnel — zone sans table = inerte).
@@ -41,7 +41,7 @@ class EncounterZonePayload with _$EncounterZonePayload {
 /// séparés dans [MovementEffectZonePayload] pour éviter de transformer ce
 /// payload de gate en fourre-tout.
 @freezed
-class MovementZonePayload with _$MovementZonePayload {
+abstract class MovementZonePayload with _$MovementZonePayload {
   @JsonSerializable(explicitToJson: true)
   const factory MovementZonePayload({
     /// Mode de déplacement requis pour traverser la zone.
@@ -60,7 +60,7 @@ class MovementZonePayload with _$MovementZonePayload {
 /// Le payload décrit une source persistante typée. `map_gameplay` décidera
 /// plus tard comment la transformer en `GameplayMovementEffect`.
 @freezed
-class MovementEffectZonePayload with _$MovementEffectZonePayload {
+abstract class MovementEffectZonePayload with _$MovementEffectZonePayload {
   @JsonSerializable(explicitToJson: true)
   const factory MovementEffectZonePayload({
     @Default(MovementEffectZoneKind.slide) MovementEffectZoneKind effectKind,
@@ -79,7 +79,7 @@ class MovementEffectZonePayload with _$MovementEffectZonePayload {
 /// Payload d'une zone [GameplayZoneKind.hazard].
 /// Définit le type de danger et son effet sur le personnage.
 @freezed
-class HazardZonePayload with _$HazardZonePayload {
+abstract class HazardZonePayload with _$HazardZonePayload {
   @JsonSerializable(explicitToJson: true)
   const factory HazardZonePayload({
     @Default(HazardKind.other) HazardKind hazardKind,
@@ -95,7 +95,7 @@ class HazardZonePayload with _$HazardZonePayload {
 /// Payload d'une zone [GameplayZoneKind.special] (et `custom`).
 /// Données libres pour les comportements scriptés ou les extensions.
 @freezed
-class SpecialZonePayload with _$SpecialZonePayload {
+abstract class SpecialZonePayload with _$SpecialZonePayload {
   @JsonSerializable(explicitToJson: true)
   const factory SpecialZonePayload({
     /// Clé de script rattachée à cette zone (ex. identifiant Yarn / EventGraph).

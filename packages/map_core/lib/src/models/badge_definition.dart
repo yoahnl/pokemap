@@ -6,7 +6,7 @@ part 'badge_definition.freezed.dart';
 part 'badge_definition.g.dart';
 
 @freezed
-class BadgeDefinition with _$BadgeDefinition {
+abstract class BadgeDefinition with _$BadgeDefinition {
   const BadgeDefinition._();
 
   const factory BadgeDefinition({

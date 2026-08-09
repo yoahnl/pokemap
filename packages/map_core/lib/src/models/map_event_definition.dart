@@ -18,7 +18,7 @@ part 'map_event_definition.g.dart';
 /// - Acteur qui devient visible/invisible selon un flag
 /// - Porte qui s'ouvre après un événement
 @freezed
-class MapEventDefinition with _$MapEventDefinition {
+abstract class MapEventDefinition with _$MapEventDefinition {
   @JsonSerializable(explicitToJson: true)
   const factory MapEventDefinition({
     /// Identifiant unique de l'événement.
@@ -47,7 +47,7 @@ class MapEventDefinition with _$MapEventDefinition {
 
 /// Position d'un événement sur la map.
 @freezed
-class EventPosition with _$EventPosition {
+abstract class EventPosition with _$EventPosition {
   const factory EventPosition({
     /// Layer ID où placer l'événement.
     required String layerId,
@@ -87,7 +87,7 @@ enum MapEventType {
 /// Ce contrat ne lance rien en runtime. Il dit seulement que la page active de
 /// l'event pointe vers une [SceneAsset] existante dans le manifest projet.
 @freezed
-class MapEventSceneTarget with _$MapEventSceneTarget {
+abstract class MapEventSceneTarget with _$MapEventSceneTarget {
   @JsonSerializable(explicitToJson: true)
   const factory MapEventSceneTarget({
     /// Identifiant de la Scene V1 cible.
@@ -108,7 +108,7 @@ class MapEventSceneTarget with _$MapEventSceneTarget {
 /// Les pages sont évaluées dans l'ordre.
 /// La première page valide est active.
 @freezed
-class MapEventPage with _$MapEventPage {
+abstract class MapEventPage with _$MapEventPage {
   @JsonSerializable(explicitToJson: true)
   const factory MapEventPage({
     /// Numéro de page (0-based, pour référence).
@@ -148,7 +148,7 @@ class MapEventPage with _$MapEventPage {
 
 /// Référence à un script.
 @freezed
-class ScriptRef with _$ScriptRef {
+abstract class ScriptRef with _$ScriptRef {
   @JsonSerializable(explicitToJson: true)
   const factory ScriptRef({
     /// ID du script asset.
@@ -165,7 +165,7 @@ class ScriptRef with _$ScriptRef {
 
 /// Résultat de la résolution de page active.
 @freezed
-class ActiveEventPage with _$ActiveEventPage {
+abstract class ActiveEventPage with _$ActiveEventPage {
   const factory ActiveEventPage({
     /// ID de l'événement.
     required String eventId,

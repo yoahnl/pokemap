@@ -1,5 +1,5 @@
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,3655 +9,1460 @@ part of 'map_layer.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
-TileLayerPaletteEntry _$TileLayerPaletteEntryFromJson(
-    Map<String, dynamic> json) {
-  return _TileLayerPaletteEntry.fromJson(json);
-}
 
 /// @nodoc
 mixin _$TileLayerPaletteEntry {
-  String get tilesetId => throw _privateConstructorUsedError;
-  int get localTileId => throw _privateConstructorUsedError;
-  SmartTileSpriteTransform get transform => throw _privateConstructorUsedError;
+
+ String get tilesetId; int get localTileId; SmartTileSpriteTransform get transform;
+/// Create a copy of TileLayerPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TileLayerPaletteEntryCopyWith<TileLayerPaletteEntry> get copyWith => _$TileLayerPaletteEntryCopyWithImpl<TileLayerPaletteEntry>(this as TileLayerPaletteEntry, _$identity);
 
   /// Serializes this TileLayerPaletteEntry to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of TileLayerPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $TileLayerPaletteEntryCopyWith<TileLayerPaletteEntry> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TileLayerPaletteEntry&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.localTileId, localTileId) || other.localTileId == localTileId)&&(identical(other.transform, transform) || other.transform == transform));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,tilesetId,localTileId,transform);
+
+@override
+String toString() {
+  return 'TileLayerPaletteEntry(tilesetId: $tilesetId, localTileId: $localTileId, transform: $transform)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $TileLayerPaletteEntryCopyWith<$Res> {
-  factory $TileLayerPaletteEntryCopyWith(TileLayerPaletteEntry value,
-          $Res Function(TileLayerPaletteEntry) then) =
-      _$TileLayerPaletteEntryCopyWithImpl<$Res, TileLayerPaletteEntry>;
-  @useResult
-  $Res call(
-      {String tilesetId, int localTileId, SmartTileSpriteTransform transform});
+abstract mixin class $TileLayerPaletteEntryCopyWith<$Res>  {
+  factory $TileLayerPaletteEntryCopyWith(TileLayerPaletteEntry value, $Res Function(TileLayerPaletteEntry) _then) = _$TileLayerPaletteEntryCopyWithImpl;
+@useResult
+$Res call({
+ String tilesetId, int localTileId, SmartTileSpriteTransform transform
+});
 
-  $SmartTileSpriteTransformCopyWith<$Res> get transform;
+
+$SmartTileSpriteTransformCopyWith<$Res> get transform;
+
 }
-
 /// @nodoc
-class _$TileLayerPaletteEntryCopyWithImpl<$Res,
-        $Val extends TileLayerPaletteEntry>
+class _$TileLayerPaletteEntryCopyWithImpl<$Res>
     implements $TileLayerPaletteEntryCopyWith<$Res> {
-  _$TileLayerPaletteEntryCopyWithImpl(this._value, this._then);
+  _$TileLayerPaletteEntryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final TileLayerPaletteEntry _self;
+  final $Res Function(TileLayerPaletteEntry) _then;
 
-  /// Create a copy of TileLayerPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? tilesetId = null,
-    Object? localTileId = null,
-    Object? transform = null,
-  }) {
-    return _then(_value.copyWith(
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      localTileId: null == localTileId
-          ? _value.localTileId
-          : localTileId // ignore: cast_nullable_to_non_nullable
-              as int,
-      transform: null == transform
-          ? _value.transform
-          : transform // ignore: cast_nullable_to_non_nullable
-              as SmartTileSpriteTransform,
-    ) as $Val);
-  }
+/// Create a copy of TileLayerPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? tilesetId = null,Object? localTileId = null,Object? transform = null,}) {
+  return _then(_self.copyWith(
+tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,localTileId: null == localTileId ? _self.localTileId : localTileId // ignore: cast_nullable_to_non_nullable
+as int,transform: null == transform ? _self.transform : transform // ignore: cast_nullable_to_non_nullable
+as SmartTileSpriteTransform,
+  ));
+}
+/// Create a copy of TileLayerPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SmartTileSpriteTransformCopyWith<$Res> get transform {
 
-  /// Create a copy of TileLayerPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $SmartTileSpriteTransformCopyWith<$Res> get transform {
-    return $SmartTileSpriteTransformCopyWith<$Res>(_value.transform, (value) {
-      return _then(_value.copyWith(transform: value) as $Val);
-    });
-  }
+  return $SmartTileSpriteTransformCopyWith<$Res>(_self.transform, (value) {
+    return _then(_self.copyWith(transform: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$TileLayerPaletteEntryImplCopyWith<$Res>
-    implements $TileLayerPaletteEntryCopyWith<$Res> {
-  factory _$$TileLayerPaletteEntryImplCopyWith(
-          _$TileLayerPaletteEntryImpl value,
-          $Res Function(_$TileLayerPaletteEntryImpl) then) =
-      __$$TileLayerPaletteEntryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String tilesetId, int localTileId, SmartTileSpriteTransform transform});
 
-  @override
-  $SmartTileSpriteTransformCopyWith<$Res> get transform;
+/// Adds pattern-matching-related methods to [TileLayerPaletteEntry].
+extension TileLayerPaletteEntryPatterns on TileLayerPaletteEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TileLayerPaletteEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TileLayerPaletteEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TileLayerPaletteEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _TileLayerPaletteEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TileLayerPaletteEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TileLayerPaletteEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String tilesetId,  int localTileId,  SmartTileSpriteTransform transform)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TileLayerPaletteEntry() when $default != null:
+return $default(_that.tilesetId,_that.localTileId,_that.transform);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String tilesetId,  int localTileId,  SmartTileSpriteTransform transform)  $default,) {final _that = this;
+switch (_that) {
+case _TileLayerPaletteEntry():
+return $default(_that.tilesetId,_that.localTileId,_that.transform);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String tilesetId,  int localTileId,  SmartTileSpriteTransform transform)?  $default,) {final _that = this;
+switch (_that) {
+case _TileLayerPaletteEntry() when $default != null:
+return $default(_that.tilesetId,_that.localTileId,_that.transform);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$TileLayerPaletteEntryImplCopyWithImpl<$Res>
-    extends _$TileLayerPaletteEntryCopyWithImpl<$Res,
-        _$TileLayerPaletteEntryImpl>
-    implements _$$TileLayerPaletteEntryImplCopyWith<$Res> {
-  __$$TileLayerPaletteEntryImplCopyWithImpl(_$TileLayerPaletteEntryImpl _value,
-      $Res Function(_$TileLayerPaletteEntryImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of TileLayerPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? tilesetId = null,
-    Object? localTileId = null,
-    Object? transform = null,
-  }) {
-    return _then(_$TileLayerPaletteEntryImpl(
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      localTileId: null == localTileId
-          ? _value.localTileId
-          : localTileId // ignore: cast_nullable_to_non_nullable
-              as int,
-      transform: null == transform
-          ? _value.transform
-          : transform // ignore: cast_nullable_to_non_nullable
-              as SmartTileSpriteTransform,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$TileLayerPaletteEntryImpl implements _TileLayerPaletteEntry {
-  const _$TileLayerPaletteEntryImpl(
-      {required this.tilesetId,
-      required this.localTileId,
-      this.transform = const SmartTileSpriteTransform()});
+class _TileLayerPaletteEntry implements TileLayerPaletteEntry {
+  const _TileLayerPaletteEntry({required this.tilesetId, required this.localTileId, this.transform = const SmartTileSpriteTransform()});
+  factory _TileLayerPaletteEntry.fromJson(Map<String, dynamic> json) => _$TileLayerPaletteEntryFromJson(json);
 
-  factory _$TileLayerPaletteEntryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TileLayerPaletteEntryImplFromJson(json);
+@override final  String tilesetId;
+@override final  int localTileId;
+@override@JsonKey() final  SmartTileSpriteTransform transform;
 
-  @override
-  final String tilesetId;
-  @override
-  final int localTileId;
-  @override
-  @JsonKey()
-  final SmartTileSpriteTransform transform;
+/// Create a copy of TileLayerPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TileLayerPaletteEntryCopyWith<_TileLayerPaletteEntry> get copyWith => __$TileLayerPaletteEntryCopyWithImpl<_TileLayerPaletteEntry>(this, _$identity);
 
-  @override
-  String toString() {
-    return 'TileLayerPaletteEntry(tilesetId: $tilesetId, localTileId: $localTileId, transform: $transform)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TileLayerPaletteEntryImpl &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId) &&
-            (identical(other.localTileId, localTileId) ||
-                other.localTileId == localTileId) &&
-            (identical(other.transform, transform) ||
-                other.transform == transform));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, tilesetId, localTileId, transform);
-
-  /// Create a copy of TileLayerPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TileLayerPaletteEntryImplCopyWith<_$TileLayerPaletteEntryImpl>
-      get copyWith => __$$TileLayerPaletteEntryImplCopyWithImpl<
-          _$TileLayerPaletteEntryImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TileLayerPaletteEntryImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$TileLayerPaletteEntryToJson(this, );
 }
 
-abstract class _TileLayerPaletteEntry implements TileLayerPaletteEntry {
-  const factory _TileLayerPaletteEntry(
-      {required final String tilesetId,
-      required final int localTileId,
-      final SmartTileSpriteTransform transform}) = _$TileLayerPaletteEntryImpl;
-
-  factory _TileLayerPaletteEntry.fromJson(Map<String, dynamic> json) =
-      _$TileLayerPaletteEntryImpl.fromJson;
-
-  @override
-  String get tilesetId;
-  @override
-  int get localTileId;
-  @override
-  SmartTileSpriteTransform get transform;
-
-  /// Create a copy of TileLayerPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TileLayerPaletteEntryImplCopyWith<_$TileLayerPaletteEntryImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TileLayerPaletteEntry&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.localTileId, localTileId) || other.localTileId == localTileId)&&(identical(other.transform, transform) || other.transform == transform));
 }
 
-MapPlacedTile _$MapPlacedTileFromJson(Map<String, dynamic> json) {
-  return _MapPlacedTile.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,tilesetId,localTileId,transform);
+
+@override
+String toString() {
+  return 'TileLayerPaletteEntry(tilesetId: $tilesetId, localTileId: $localTileId, transform: $transform)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TileLayerPaletteEntryCopyWith<$Res> implements $TileLayerPaletteEntryCopyWith<$Res> {
+  factory _$TileLayerPaletteEntryCopyWith(_TileLayerPaletteEntry value, $Res Function(_TileLayerPaletteEntry) _then) = __$TileLayerPaletteEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String tilesetId, int localTileId, SmartTileSpriteTransform transform
+});
+
+
+@override $SmartTileSpriteTransformCopyWith<$Res> get transform;
+
+}
+/// @nodoc
+class __$TileLayerPaletteEntryCopyWithImpl<$Res>
+    implements _$TileLayerPaletteEntryCopyWith<$Res> {
+  __$TileLayerPaletteEntryCopyWithImpl(this._self, this._then);
+
+  final _TileLayerPaletteEntry _self;
+  final $Res Function(_TileLayerPaletteEntry) _then;
+
+/// Create a copy of TileLayerPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? tilesetId = null,Object? localTileId = null,Object? transform = null,}) {
+  return _then(_TileLayerPaletteEntry(
+tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,localTileId: null == localTileId ? _self.localTileId : localTileId // ignore: cast_nullable_to_non_nullable
+as int,transform: null == transform ? _self.transform : transform // ignore: cast_nullable_to_non_nullable
+as SmartTileSpriteTransform,
+  ));
+}
+
+/// Create a copy of TileLayerPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SmartTileSpriteTransformCopyWith<$Res> get transform {
+
+  return $SmartTileSpriteTransformCopyWith<$Res>(_self.transform, (value) {
+    return _then(_self.copyWith(transform: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$MapPlacedTile {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String get className => throw _privateConstructorUsedError;
-  TileLayerPaletteEntry get tile => throw _privateConstructorUsedError;
-  double get anchorX => throw _privateConstructorUsedError;
-  double get anchorY => throw _privateConstructorUsedError;
-  double get width => throw _privateConstructorUsedError;
-  double get height => throw _privateConstructorUsedError;
-  int get quarterTurns => throw _privateConstructorUsedError;
-  bool get isVisible => throw _privateConstructorUsedError;
-  double get opacity => throw _privateConstructorUsedError;
-  Map<String, Object?> get importMetadata => throw _privateConstructorUsedError;
+
+ String get id; String get name; String get className; TileLayerPaletteEntry get tile; double get anchorX; double get anchorY; double get width; double get height; int get quarterTurns; bool get isVisible; double get opacity; Map<String, Object?> get importMetadata;
+/// Create a copy of MapPlacedTile
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapPlacedTileCopyWith<MapPlacedTile> get copyWith => _$MapPlacedTileCopyWithImpl<MapPlacedTile>(this as MapPlacedTile, _$identity);
 
   /// Serializes this MapPlacedTile to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapPlacedTile
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapPlacedTileCopyWith<MapPlacedTile> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapPlacedTile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.className, className) || other.className == className)&&(identical(other.tile, tile) || other.tile == tile)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.quarterTurns, quarterTurns) || other.quarterTurns == quarterTurns)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&const DeepCollectionEquality().equals(other.importMetadata, importMetadata));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,className,tile,anchorX,anchorY,width,height,quarterTurns,isVisible,opacity,const DeepCollectionEquality().hash(importMetadata));
+
+@override
+String toString() {
+  return 'MapPlacedTile(id: $id, name: $name, className: $className, tile: $tile, anchorX: $anchorX, anchorY: $anchorY, width: $width, height: $height, quarterTurns: $quarterTurns, isVisible: $isVisible, opacity: $opacity, importMetadata: $importMetadata)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapPlacedTileCopyWith<$Res> {
-  factory $MapPlacedTileCopyWith(
-          MapPlacedTile value, $Res Function(MapPlacedTile) then) =
-      _$MapPlacedTileCopyWithImpl<$Res, MapPlacedTile>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String className,
-      TileLayerPaletteEntry tile,
-      double anchorX,
-      double anchorY,
-      double width,
-      double height,
-      int quarterTurns,
-      bool isVisible,
-      double opacity,
-      Map<String, Object?> importMetadata});
+abstract mixin class $MapPlacedTileCopyWith<$Res>  {
+  factory $MapPlacedTileCopyWith(MapPlacedTile value, $Res Function(MapPlacedTile) _then) = _$MapPlacedTileCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String className, TileLayerPaletteEntry tile, double anchorX, double anchorY, double width, double height, int quarterTurns, bool isVisible, double opacity, Map<String, Object?> importMetadata
+});
 
-  $TileLayerPaletteEntryCopyWith<$Res> get tile;
+
+$TileLayerPaletteEntryCopyWith<$Res> get tile;
+
 }
-
 /// @nodoc
-class _$MapPlacedTileCopyWithImpl<$Res, $Val extends MapPlacedTile>
+class _$MapPlacedTileCopyWithImpl<$Res>
     implements $MapPlacedTileCopyWith<$Res> {
-  _$MapPlacedTileCopyWithImpl(this._value, this._then);
+  _$MapPlacedTileCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapPlacedTile _self;
+  final $Res Function(MapPlacedTile) _then;
 
-  /// Create a copy of MapPlacedTile
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? className = null,
-    Object? tile = null,
-    Object? anchorX = null,
-    Object? anchorY = null,
-    Object? width = null,
-    Object? height = null,
-    Object? quarterTurns = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? importMetadata = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      className: null == className
-          ? _value.className
-          : className // ignore: cast_nullable_to_non_nullable
-              as String,
-      tile: null == tile
-          ? _value.tile
-          : tile // ignore: cast_nullable_to_non_nullable
-              as TileLayerPaletteEntry,
-      anchorX: null == anchorX
-          ? _value.anchorX
-          : anchorX // ignore: cast_nullable_to_non_nullable
-              as double,
-      anchorY: null == anchorY
-          ? _value.anchorY
-          : anchorY // ignore: cast_nullable_to_non_nullable
-              as double,
-      width: null == width
-          ? _value.width
-          : width // ignore: cast_nullable_to_non_nullable
-              as double,
-      height: null == height
-          ? _value.height
-          : height // ignore: cast_nullable_to_non_nullable
-              as double,
-      quarterTurns: null == quarterTurns
-          ? _value.quarterTurns
-          : quarterTurns // ignore: cast_nullable_to_non_nullable
-              as int,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      importMetadata: null == importMetadata
-          ? _value.importMetadata
-          : importMetadata // ignore: cast_nullable_to_non_nullable
-              as Map<String, Object?>,
-    ) as $Val);
-  }
+/// Create a copy of MapPlacedTile
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? className = null,Object? tile = null,Object? anchorX = null,Object? anchorY = null,Object? width = null,Object? height = null,Object? quarterTurns = null,Object? isVisible = null,Object? opacity = null,Object? importMetadata = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,className: null == className ? _self.className : className // ignore: cast_nullable_to_non_nullable
+as String,tile: null == tile ? _self.tile : tile // ignore: cast_nullable_to_non_nullable
+as TileLayerPaletteEntry,anchorX: null == anchorX ? _self.anchorX : anchorX // ignore: cast_nullable_to_non_nullable
+as double,anchorY: null == anchorY ? _self.anchorY : anchorY // ignore: cast_nullable_to_non_nullable
+as double,width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as double,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as double,quarterTurns: null == quarterTurns ? _self.quarterTurns : quarterTurns // ignore: cast_nullable_to_non_nullable
+as int,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,importMetadata: null == importMetadata ? _self.importMetadata : importMetadata // ignore: cast_nullable_to_non_nullable
+as Map<String, Object?>,
+  ));
+}
+/// Create a copy of MapPlacedTile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TileLayerPaletteEntryCopyWith<$Res> get tile {
 
-  /// Create a copy of MapPlacedTile
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $TileLayerPaletteEntryCopyWith<$Res> get tile {
-    return $TileLayerPaletteEntryCopyWith<$Res>(_value.tile, (value) {
-      return _then(_value.copyWith(tile: value) as $Val);
-    });
-  }
+  return $TileLayerPaletteEntryCopyWith<$Res>(_self.tile, (value) {
+    return _then(_self.copyWith(tile: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapPlacedTileImplCopyWith<$Res>
-    implements $MapPlacedTileCopyWith<$Res> {
-  factory _$$MapPlacedTileImplCopyWith(
-          _$MapPlacedTileImpl value, $Res Function(_$MapPlacedTileImpl) then) =
-      __$$MapPlacedTileImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String className,
-      TileLayerPaletteEntry tile,
-      double anchorX,
-      double anchorY,
-      double width,
-      double height,
-      int quarterTurns,
-      bool isVisible,
-      double opacity,
-      Map<String, Object?> importMetadata});
 
-  @override
-  $TileLayerPaletteEntryCopyWith<$Res> get tile;
+/// Adds pattern-matching-related methods to [MapPlacedTile].
+extension MapPlacedTilePatterns on MapPlacedTile {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapPlacedTile value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapPlacedTile() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapPlacedTile value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedTile():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapPlacedTile value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapPlacedTile() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String className,  TileLayerPaletteEntry tile,  double anchorX,  double anchorY,  double width,  double height,  int quarterTurns,  bool isVisible,  double opacity,  Map<String, Object?> importMetadata)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapPlacedTile() when $default != null:
+return $default(_that.id,_that.name,_that.className,_that.tile,_that.anchorX,_that.anchorY,_that.width,_that.height,_that.quarterTurns,_that.isVisible,_that.opacity,_that.importMetadata);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String className,  TileLayerPaletteEntry tile,  double anchorX,  double anchorY,  double width,  double height,  int quarterTurns,  bool isVisible,  double opacity,  Map<String, Object?> importMetadata)  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedTile():
+return $default(_that.id,_that.name,_that.className,_that.tile,_that.anchorX,_that.anchorY,_that.width,_that.height,_that.quarterTurns,_that.isVisible,_that.opacity,_that.importMetadata);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String className,  TileLayerPaletteEntry tile,  double anchorX,  double anchorY,  double width,  double height,  int quarterTurns,  bool isVisible,  double opacity,  Map<String, Object?> importMetadata)?  $default,) {final _that = this;
+switch (_that) {
+case _MapPlacedTile() when $default != null:
+return $default(_that.id,_that.name,_that.className,_that.tile,_that.anchorX,_that.anchorY,_that.width,_that.height,_that.quarterTurns,_that.isVisible,_that.opacity,_that.importMetadata);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapPlacedTileImplCopyWithImpl<$Res>
-    extends _$MapPlacedTileCopyWithImpl<$Res, _$MapPlacedTileImpl>
-    implements _$$MapPlacedTileImplCopyWith<$Res> {
-  __$$MapPlacedTileImplCopyWithImpl(
-      _$MapPlacedTileImpl _value, $Res Function(_$MapPlacedTileImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapPlacedTile
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? className = null,
-    Object? tile = null,
-    Object? anchorX = null,
-    Object? anchorY = null,
-    Object? width = null,
-    Object? height = null,
-    Object? quarterTurns = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? importMetadata = null,
-  }) {
-    return _then(_$MapPlacedTileImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      className: null == className
-          ? _value.className
-          : className // ignore: cast_nullable_to_non_nullable
-              as String,
-      tile: null == tile
-          ? _value.tile
-          : tile // ignore: cast_nullable_to_non_nullable
-              as TileLayerPaletteEntry,
-      anchorX: null == anchorX
-          ? _value.anchorX
-          : anchorX // ignore: cast_nullable_to_non_nullable
-              as double,
-      anchorY: null == anchorY
-          ? _value.anchorY
-          : anchorY // ignore: cast_nullable_to_non_nullable
-              as double,
-      width: null == width
-          ? _value.width
-          : width // ignore: cast_nullable_to_non_nullable
-              as double,
-      height: null == height
-          ? _value.height
-          : height // ignore: cast_nullable_to_non_nullable
-              as double,
-      quarterTurns: null == quarterTurns
-          ? _value.quarterTurns
-          : quarterTurns // ignore: cast_nullable_to_non_nullable
-              as int,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      importMetadata: null == importMetadata
-          ? _value._importMetadata
-          : importMetadata // ignore: cast_nullable_to_non_nullable
-              as Map<String, Object?>,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$MapPlacedTileImpl implements _MapPlacedTile {
-  const _$MapPlacedTileImpl(
-      {required this.id,
-      this.name = '',
-      this.className = '',
-      required this.tile,
-      required this.anchorX,
-      required this.anchorY,
-      required this.width,
-      required this.height,
-      this.quarterTurns = 0,
-      this.isVisible = true,
-      this.opacity = 1.0,
-      final Map<String, Object?> importMetadata = const <String, Object?>{}})
-      : _importMetadata = importMetadata;
+class _MapPlacedTile implements MapPlacedTile {
+  const _MapPlacedTile({required this.id, this.name = '', this.className = '', required this.tile, required this.anchorX, required this.anchorY, required this.width, required this.height, this.quarterTurns = 0, this.isVisible = true, this.opacity = 1.0, final  Map<String, Object?> importMetadata = const <String, Object?>{}}): _importMetadata = importMetadata;
+  factory _MapPlacedTile.fromJson(Map<String, dynamic> json) => _$MapPlacedTileFromJson(json);
 
-  factory _$MapPlacedTileImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapPlacedTileImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  @JsonKey()
-  final String name;
-  @override
-  @JsonKey()
-  final String className;
-  @override
-  final TileLayerPaletteEntry tile;
-  @override
-  final double anchorX;
-  @override
-  final double anchorY;
-  @override
-  final double width;
-  @override
-  final double height;
-  @override
-  @JsonKey()
-  final int quarterTurns;
-  @override
-  @JsonKey()
-  final bool isVisible;
-  @override
-  @JsonKey()
-  final double opacity;
-  final Map<String, Object?> _importMetadata;
-  @override
-  @JsonKey()
-  Map<String, Object?> get importMetadata {
-    if (_importMetadata is EqualUnmodifiableMapView) return _importMetadata;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_importMetadata);
-  }
-
-  @override
-  String toString() {
-    return 'MapPlacedTile(id: $id, name: $name, className: $className, tile: $tile, anchorX: $anchorX, anchorY: $anchorY, width: $width, height: $height, quarterTurns: $quarterTurns, isVisible: $isVisible, opacity: $opacity, importMetadata: $importMetadata)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapPlacedTileImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.className, className) ||
-                other.className == className) &&
-            (identical(other.tile, tile) || other.tile == tile) &&
-            (identical(other.anchorX, anchorX) || other.anchorX == anchorX) &&
-            (identical(other.anchorY, anchorY) || other.anchorY == anchorY) &&
-            (identical(other.width, width) || other.width == width) &&
-            (identical(other.height, height) || other.height == height) &&
-            (identical(other.quarterTurns, quarterTurns) ||
-                other.quarterTurns == quarterTurns) &&
-            (identical(other.isVisible, isVisible) ||
-                other.isVisible == isVisible) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            const DeepCollectionEquality()
-                .equals(other._importMetadata, _importMetadata));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      className,
-      tile,
-      anchorX,
-      anchorY,
-      width,
-      height,
-      quarterTurns,
-      isVisible,
-      opacity,
-      const DeepCollectionEquality().hash(_importMetadata));
-
-  /// Create a copy of MapPlacedTile
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapPlacedTileImplCopyWith<_$MapPlacedTileImpl> get copyWith =>
-      __$$MapPlacedTileImplCopyWithImpl<_$MapPlacedTileImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapPlacedTileImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override@JsonKey() final  String name;
+@override@JsonKey() final  String className;
+@override final  TileLayerPaletteEntry tile;
+@override final  double anchorX;
+@override final  double anchorY;
+@override final  double width;
+@override final  double height;
+@override@JsonKey() final  int quarterTurns;
+@override@JsonKey() final  bool isVisible;
+@override@JsonKey() final  double opacity;
+ final  Map<String, Object?> _importMetadata;
+@override@JsonKey() Map<String, Object?> get importMetadata {
+  if (_importMetadata is EqualUnmodifiableMapView) return _importMetadata;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_importMetadata);
 }
 
-abstract class _MapPlacedTile implements MapPlacedTile {
-  const factory _MapPlacedTile(
-      {required final String id,
-      final String name,
-      final String className,
-      required final TileLayerPaletteEntry tile,
-      required final double anchorX,
-      required final double anchorY,
-      required final double width,
-      required final double height,
-      final int quarterTurns,
-      final bool isVisible,
-      final double opacity,
-      final Map<String, Object?> importMetadata}) = _$MapPlacedTileImpl;
 
-  factory _MapPlacedTile.fromJson(Map<String, dynamic> json) =
-      _$MapPlacedTileImpl.fromJson;
+/// Create a copy of MapPlacedTile
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapPlacedTileCopyWith<_MapPlacedTile> get copyWith => __$MapPlacedTileCopyWithImpl<_MapPlacedTile>(this, _$identity);
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String get className;
-  @override
-  TileLayerPaletteEntry get tile;
-  @override
-  double get anchorX;
-  @override
-  double get anchorY;
-  @override
-  double get width;
-  @override
-  double get height;
-  @override
-  int get quarterTurns;
-  @override
-  bool get isVisible;
-  @override
-  double get opacity;
-  @override
-  Map<String, Object?> get importMetadata;
-
-  /// Create a copy of MapPlacedTile
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapPlacedTileImplCopyWith<_$MapPlacedTileImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+Map<String, dynamic> toJson() {
+  return _$MapPlacedTileToJson(this, );
 }
 
-MapLayer _$MapLayerFromJson(Map<String, dynamic> json) {
-  switch (json['runtimeType']) {
-    case 'tile':
-      return TileLayer.fromJson(json);
-    case 'collision':
-      return CollisionLayer.fromJson(json);
-    case 'smart_tile':
-      return SmartTileLayer.fromJson(json);
-    case 'object':
-      return ObjectLayer.fromJson(json);
-    case 'environment':
-      return EnvironmentLayer.fromJson(json);
-    case 'border':
-      return BorderLayer.fromJson(json);
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapPlacedTile&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.className, className) || other.className == className)&&(identical(other.tile, tile) || other.tile == tile)&&(identical(other.anchorX, anchorX) || other.anchorX == anchorX)&&(identical(other.anchorY, anchorY) || other.anchorY == anchorY)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.quarterTurns, quarterTurns) || other.quarterTurns == quarterTurns)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&const DeepCollectionEquality().equals(other._importMetadata, _importMetadata));
+}
 
-    default:
-      throw CheckedFromJsonException(json, 'runtimeType', 'MapLayer',
-          'Invalid union type "${json['runtimeType']}"!');
-  }
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,className,tile,anchorX,anchorY,width,height,quarterTurns,isVisible,opacity,const DeepCollectionEquality().hash(_importMetadata));
+
+@override
+String toString() {
+  return 'MapPlacedTile(id: $id, name: $name, className: $className, tile: $tile, anchorX: $anchorX, anchorY: $anchorY, width: $width, height: $height, quarterTurns: $quarterTurns, isVisible: $isVisible, opacity: $opacity, importMetadata: $importMetadata)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapPlacedTileCopyWith<$Res> implements $MapPlacedTileCopyWith<$Res> {
+  factory _$MapPlacedTileCopyWith(_MapPlacedTile value, $Res Function(_MapPlacedTile) _then) = __$MapPlacedTileCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String className, TileLayerPaletteEntry tile, double anchorX, double anchorY, double width, double height, int quarterTurns, bool isVisible, double opacity, Map<String, Object?> importMetadata
+});
+
+
+@override $TileLayerPaletteEntryCopyWith<$Res> get tile;
+
+}
+/// @nodoc
+class __$MapPlacedTileCopyWithImpl<$Res>
+    implements _$MapPlacedTileCopyWith<$Res> {
+  __$MapPlacedTileCopyWithImpl(this._self, this._then);
+
+  final _MapPlacedTile _self;
+  final $Res Function(_MapPlacedTile) _then;
+
+/// Create a copy of MapPlacedTile
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? className = null,Object? tile = null,Object? anchorX = null,Object? anchorY = null,Object? width = null,Object? height = null,Object? quarterTurns = null,Object? isVisible = null,Object? opacity = null,Object? importMetadata = null,}) {
+  return _then(_MapPlacedTile(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,className: null == className ? _self.className : className // ignore: cast_nullable_to_non_nullable
+as String,tile: null == tile ? _self.tile : tile // ignore: cast_nullable_to_non_nullable
+as TileLayerPaletteEntry,anchorX: null == anchorX ? _self.anchorX : anchorX // ignore: cast_nullable_to_non_nullable
+as double,anchorY: null == anchorY ? _self.anchorY : anchorY // ignore: cast_nullable_to_non_nullable
+as double,width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as double,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as double,quarterTurns: null == quarterTurns ? _self.quarterTurns : quarterTurns // ignore: cast_nullable_to_non_nullable
+as int,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,importMetadata: null == importMetadata ? _self._importMetadata : importMetadata // ignore: cast_nullable_to_non_nullable
+as Map<String, Object?>,
+  ));
+}
+
+/// Create a copy of MapPlacedTile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TileLayerPaletteEntryCopyWith<$Res> get tile {
+
+  return $TileLayerPaletteEntryCopyWith<$Res>(_self.tile, (value) {
+    return _then(_self.copyWith(tile: value));
+  });
+}
+}
+
+MapLayer _$MapLayerFromJson(
+  Map<String, dynamic> json
+) {
+        switch (json['runtimeType']) {
+                  case 'tile':
+          return TileLayer.fromJson(
+            json
+          );
+                case 'collision':
+          return CollisionLayer.fromJson(
+            json
+          );
+                case 'smart_tile':
+          return SmartTileLayer.fromJson(
+            json
+          );
+                case 'object':
+          return ObjectLayer.fromJson(
+            json
+          );
+                case 'environment':
+          return EnvironmentLayer.fromJson(
+            json
+          );
+                case 'border':
+          return BorderLayer.fromJson(
+            json
+          );
+
+          default:
+            throw CheckedFromJsonException(
+  json,
+  'runtimeType',
+  'MapLayer',
+  'Invalid union type "${json['runtimeType']}"!'
+);
+        }
+
 }
 
 /// @nodoc
 mixin _$MapLayer {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  bool get isVisible => throw _privateConstructorUsedError;
-  double get opacity => throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)
-        tile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<bool> collisions)
-        collision,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)
-        smartTile,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<MapPlacedTile> tileObjects)
-        object,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)
-        environment,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)
-        border,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(TileLayer value) tile,
-    required TResult Function(CollisionLayer value) collision,
-    required TResult Function(SmartTileLayer value) smartTile,
-    required TResult Function(ObjectLayer value) object,
-    required TResult Function(EnvironmentLayer value) environment,
-    required TResult Function(BorderLayer value) border,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(TileLayer value)? tile,
-    TResult? Function(CollisionLayer value)? collision,
-    TResult? Function(SmartTileLayer value)? smartTile,
-    TResult? Function(ObjectLayer value)? object,
-    TResult? Function(EnvironmentLayer value)? environment,
-    TResult? Function(BorderLayer value)? border,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(TileLayer value)? tile,
-    TResult Function(CollisionLayer value)? collision,
-    TResult Function(SmartTileLayer value)? smartTile,
-    TResult Function(ObjectLayer value)? object,
-    TResult Function(EnvironmentLayer value)? environment,
-    TResult Function(BorderLayer value)? border,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
+
+ String get id; String get name; bool get isVisible; double get opacity;
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapLayerCopyWith<MapLayer> get copyWith => _$MapLayerCopyWithImpl<MapLayer>(this as MapLayer, _$identity);
 
   /// Serializes this MapLayer to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapLayerCopyWith<MapLayer> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,isVisible,opacity);
+
+@override
+String toString() {
+  return 'MapLayer(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapLayerCopyWith<$Res> {
-  factory $MapLayerCopyWith(MapLayer value, $Res Function(MapLayer) then) =
-      _$MapLayerCopyWithImpl<$Res, MapLayer>;
-  @useResult
-  $Res call({String id, String name, bool isVisible, double opacity});
-}
+abstract mixin class $MapLayerCopyWith<$Res>  {
+  factory $MapLayerCopyWith(MapLayer value, $Res Function(MapLayer) _then) = _$MapLayerCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, bool isVisible, double opacity
+});
 
+
+
+
+}
 /// @nodoc
-class _$MapLayerCopyWithImpl<$Res, $Val extends MapLayer>
+class _$MapLayerCopyWithImpl<$Res>
     implements $MapLayerCopyWith<$Res> {
-  _$MapLayerCopyWithImpl(this._value, this._then);
+  _$MapLayerCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapLayer _self;
+  final $Res Function(MapLayer) _then;
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-    ) as $Val);
-  }
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? isVisible = null,Object? opacity = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,
+  ));
 }
 
-/// @nodoc
-abstract class _$$TileLayerImplCopyWith<$Res>
-    implements $MapLayerCopyWith<$Res> {
-  factory _$$TileLayerImplCopyWith(
-          _$TileLayerImpl value, $Res Function(_$TileLayerImpl) then) =
-      __$$TileLayerImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      bool isVisible,
-      double opacity,
-      MapLayerPurpose purpose,
-      List<TileLayerPaletteEntry> palette,
-      List<int> cells});
 }
 
-/// @nodoc
-class __$$TileLayerImplCopyWithImpl<$Res>
-    extends _$MapLayerCopyWithImpl<$Res, _$TileLayerImpl>
-    implements _$$TileLayerImplCopyWith<$Res> {
-  __$$TileLayerImplCopyWithImpl(
-      _$TileLayerImpl _value, $Res Function(_$TileLayerImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? purpose = null,
-    Object? palette = null,
-    Object? cells = null,
-  }) {
-    return _then(_$TileLayerImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      purpose: null == purpose
-          ? _value.purpose
-          : purpose // ignore: cast_nullable_to_non_nullable
-              as MapLayerPurpose,
-      palette: null == palette
-          ? _value._palette
-          : palette // ignore: cast_nullable_to_non_nullable
-              as List<TileLayerPaletteEntry>,
-      cells: null == cells
-          ? _value._cells
-          : cells // ignore: cast_nullable_to_non_nullable
-              as List<int>,
-    ));
-  }
+/// Adds pattern-matching-related methods to [MapLayer].
+extension MapLayerPatterns on MapLayer {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( TileLayer value)?  tile,TResult Function( CollisionLayer value)?  collision,TResult Function( SmartTileLayer value)?  smartTile,TResult Function( ObjectLayer value)?  object,TResult Function( EnvironmentLayer value)?  environment,TResult Function( BorderLayer value)?  border,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case TileLayer() when tile != null:
+return tile(_that);case CollisionLayer() when collision != null:
+return collision(_that);case SmartTileLayer() when smartTile != null:
+return smartTile(_that);case ObjectLayer() when object != null:
+return object(_that);case EnvironmentLayer() when environment != null:
+return environment(_that);case BorderLayer() when border != null:
+return border(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( TileLayer value)  tile,required TResult Function( CollisionLayer value)  collision,required TResult Function( SmartTileLayer value)  smartTile,required TResult Function( ObjectLayer value)  object,required TResult Function( EnvironmentLayer value)  environment,required TResult Function( BorderLayer value)  border,}){
+final _that = this;
+switch (_that) {
+case TileLayer():
+return tile(_that);case CollisionLayer():
+return collision(_that);case SmartTileLayer():
+return smartTile(_that);case ObjectLayer():
+return object(_that);case EnvironmentLayer():
+return environment(_that);case BorderLayer():
+return border(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( TileLayer value)?  tile,TResult? Function( CollisionLayer value)?  collision,TResult? Function( SmartTileLayer value)?  smartTile,TResult? Function( ObjectLayer value)?  object,TResult? Function( EnvironmentLayer value)?  environment,TResult? Function( BorderLayer value)?  border,}){
+final _that = this;
+switch (_that) {
+case TileLayer() when tile != null:
+return tile(_that);case CollisionLayer() when collision != null:
+return collision(_that);case SmartTileLayer() when smartTile != null:
+return smartTile(_that);case ObjectLayer() when object != null:
+return object(_that);case EnvironmentLayer() when environment != null:
+return environment(_that);case BorderLayer() when border != null:
+return border(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<TileLayerPaletteEntry> palette,  List<int> cells)?  tile,TResult Function( String id,  String name,  bool isVisible,  double opacity,  List<bool> collisions)?  collision,TResult Function( String id,  String name,  bool isVisible,  double opacity,  String presetId,  SmartTileUsage usage,  List<String> materialPalette,  SmartTileField field,  List<SmartTilePatternStroke> patternStrokes,  int layerSeed, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)  Map<String, int> candidateWeights,  Map<String, String> properties)?  smartTile,TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<MapPlacedTile> tileObjects)?  object,TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent)  EnvironmentLayerContent content,  Map<String, String> properties)?  environment,TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson)  BorderLayerContent content,  Map<String, String> properties)?  border,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case TileLayer() when tile != null:
+return tile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.palette,_that.cells);case CollisionLayer() when collision != null:
+return collision(_that.id,_that.name,_that.isVisible,_that.opacity,_that.collisions);case SmartTileLayer() when smartTile != null:
+return smartTile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.presetId,_that.usage,_that.materialPalette,_that.field,_that.patternStrokes,_that.layerSeed,_that.candidateWeights,_that.properties);case ObjectLayer() when object != null:
+return object(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.tileObjects);case EnvironmentLayer() when environment != null:
+return environment(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case BorderLayer() when border != null:
+return border(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<TileLayerPaletteEntry> palette,  List<int> cells)  tile,required TResult Function( String id,  String name,  bool isVisible,  double opacity,  List<bool> collisions)  collision,required TResult Function( String id,  String name,  bool isVisible,  double opacity,  String presetId,  SmartTileUsage usage,  List<String> materialPalette,  SmartTileField field,  List<SmartTilePatternStroke> patternStrokes,  int layerSeed, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)  Map<String, int> candidateWeights,  Map<String, String> properties)  smartTile,required TResult Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<MapPlacedTile> tileObjects)  object,required TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent)  EnvironmentLayerContent content,  Map<String, String> properties)  environment,required TResult Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson)  BorderLayerContent content,  Map<String, String> properties)  border,}) {final _that = this;
+switch (_that) {
+case TileLayer():
+return tile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.palette,_that.cells);case CollisionLayer():
+return collision(_that.id,_that.name,_that.isVisible,_that.opacity,_that.collisions);case SmartTileLayer():
+return smartTile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.presetId,_that.usage,_that.materialPalette,_that.field,_that.patternStrokes,_that.layerSeed,_that.candidateWeights,_that.properties);case ObjectLayer():
+return object(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.tileObjects);case EnvironmentLayer():
+return environment(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case BorderLayer():
+return border(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<TileLayerPaletteEntry> palette,  List<int> cells)?  tile,TResult? Function( String id,  String name,  bool isVisible,  double opacity,  List<bool> collisions)?  collision,TResult? Function( String id,  String name,  bool isVisible,  double opacity,  String presetId,  SmartTileUsage usage,  List<String> materialPalette,  SmartTileField field,  List<SmartTilePatternStroke> patternStrokes,  int layerSeed, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)  Map<String, int> candidateWeights,  Map<String, String> properties)?  smartTile,TResult? Function( String id,  String name,  bool isVisible,  double opacity,  MapLayerPurpose purpose,  List<MapPlacedTile> tileObjects)?  object,TResult? Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent)  EnvironmentLayerContent content,  Map<String, String> properties)?  environment,TResult? Function( String id,  String name,  bool isVisible,  double opacity, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson)  BorderLayerContent content,  Map<String, String> properties)?  border,}) {final _that = this;
+switch (_that) {
+case TileLayer() when tile != null:
+return tile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.palette,_that.cells);case CollisionLayer() when collision != null:
+return collision(_that.id,_that.name,_that.isVisible,_that.opacity,_that.collisions);case SmartTileLayer() when smartTile != null:
+return smartTile(_that.id,_that.name,_that.isVisible,_that.opacity,_that.presetId,_that.usage,_that.materialPalette,_that.field,_that.patternStrokes,_that.layerSeed,_that.candidateWeights,_that.properties);case ObjectLayer() when object != null:
+return object(_that.id,_that.name,_that.isVisible,_that.opacity,_that.purpose,_that.tileObjects);case EnvironmentLayer() when environment != null:
+return environment(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case BorderLayer() when border != null:
+return border(_that.id,_that.name,_that.isVisible,_that.opacity,_that.content,_that.properties);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$TileLayerImpl extends TileLayer {
-  const _$TileLayerImpl(
-      {required this.id,
-      required this.name,
-      this.isVisible = true,
-      this.opacity = 1.0,
-      this.purpose = MapLayerPurpose.visual,
-      final List<TileLayerPaletteEntry> palette =
-          const <TileLayerPaletteEntry>[],
-      final List<int> cells = const <int>[],
-      final String? $type})
-      : _palette = palette,
-        _cells = cells,
-        $type = $type ?? 'tile',
-        super._();
+class TileLayer extends MapLayer {
+  const TileLayer({required this.id, required this.name, this.isVisible = true, this.opacity = 1.0, this.purpose = MapLayerPurpose.visual, final  List<TileLayerPaletteEntry> palette = const <TileLayerPaletteEntry>[], final  List<int> cells = const <int>[], final  String? $type}): _palette = palette,_cells = cells,$type = $type ?? 'tile',super._();
+  factory TileLayer.fromJson(Map<String, dynamic> json) => _$TileLayerFromJson(json);
 
-  factory _$TileLayerImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TileLayerImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  @JsonKey()
-  final bool isVisible;
-  @override
-  @JsonKey()
-  final double opacity;
-  @override
-  @JsonKey()
-  final MapLayerPurpose purpose;
-  final List<TileLayerPaletteEntry> _palette;
-  @override
-  @JsonKey()
-  List<TileLayerPaletteEntry> get palette {
-    if (_palette is EqualUnmodifiableListView) return _palette;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_palette);
-  }
-
-  final List<int> _cells;
-  @override
-  @JsonKey()
-  List<int> get cells {
-    if (_cells is EqualUnmodifiableListView) return _cells;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_cells);
-  }
-
-  @JsonKey(name: 'runtimeType')
-  final String $type;
-
-  @override
-  String toString() {
-    return 'MapLayer.tile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, purpose: $purpose, palette: $palette, cells: $cells)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TileLayerImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.isVisible, isVisible) ||
-                other.isVisible == isVisible) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            (identical(other.purpose, purpose) || other.purpose == purpose) &&
-            const DeepCollectionEquality().equals(other._palette, _palette) &&
-            const DeepCollectionEquality().equals(other._cells, _cells));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      isVisible,
-      opacity,
-      purpose,
-      const DeepCollectionEquality().hash(_palette),
-      const DeepCollectionEquality().hash(_cells));
-
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TileLayerImplCopyWith<_$TileLayerImpl> get copyWith =>
-      __$$TileLayerImplCopyWithImpl<_$TileLayerImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)
-        tile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<bool> collisions)
-        collision,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)
-        smartTile,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<MapPlacedTile> tileObjects)
-        object,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)
-        environment,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)
-        border,
-  }) {
-    return tile(id, name, isVisible, opacity, purpose, palette, cells);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-  }) {
-    return tile?.call(id, name, isVisible, opacity, purpose, palette, cells);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-    required TResult orElse(),
-  }) {
-    if (tile != null) {
-      return tile(id, name, isVisible, opacity, purpose, palette, cells);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(TileLayer value) tile,
-    required TResult Function(CollisionLayer value) collision,
-    required TResult Function(SmartTileLayer value) smartTile,
-    required TResult Function(ObjectLayer value) object,
-    required TResult Function(EnvironmentLayer value) environment,
-    required TResult Function(BorderLayer value) border,
-  }) {
-    return tile(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(TileLayer value)? tile,
-    TResult? Function(CollisionLayer value)? collision,
-    TResult? Function(SmartTileLayer value)? smartTile,
-    TResult? Function(ObjectLayer value)? object,
-    TResult? Function(EnvironmentLayer value)? environment,
-    TResult? Function(BorderLayer value)? border,
-  }) {
-    return tile?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(TileLayer value)? tile,
-    TResult Function(CollisionLayer value)? collision,
-    TResult Function(SmartTileLayer value)? smartTile,
-    TResult Function(ObjectLayer value)? object,
-    TResult Function(EnvironmentLayer value)? environment,
-    TResult Function(BorderLayer value)? border,
-    required TResult orElse(),
-  }) {
-    if (tile != null) {
-      return tile(this);
-    }
-    return orElse();
-  }
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TileLayerImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override@JsonKey() final  bool isVisible;
+@override@JsonKey() final  double opacity;
+@JsonKey() final  MapLayerPurpose purpose;
+ final  List<TileLayerPaletteEntry> _palette;
+@JsonKey() List<TileLayerPaletteEntry> get palette {
+  if (_palette is EqualUnmodifiableListView) return _palette;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_palette);
 }
 
-abstract class TileLayer extends MapLayer {
-  const factory TileLayer(
-      {required final String id,
-      required final String name,
-      final bool isVisible,
-      final double opacity,
-      final MapLayerPurpose purpose,
-      final List<TileLayerPaletteEntry> palette,
-      final List<int> cells}) = _$TileLayerImpl;
-  const TileLayer._() : super._();
+ final  List<int> _cells;
+@JsonKey() List<int> get cells {
+  if (_cells is EqualUnmodifiableListView) return _cells;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_cells);
+}
 
-  factory TileLayer.fromJson(Map<String, dynamic> json) =
-      _$TileLayerImpl.fromJson;
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  bool get isVisible;
-  @override
-  double get opacity;
-  MapLayerPurpose get purpose;
-  List<TileLayerPaletteEntry> get palette;
-  List<int> get cells;
+@JsonKey(name: 'runtimeType')
+final String $type;
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TileLayerImplCopyWith<_$TileLayerImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TileLayerCopyWith<TileLayer> get copyWith => _$TileLayerCopyWithImpl<TileLayer>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$TileLayerToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TileLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.purpose, purpose) || other.purpose == purpose)&&const DeepCollectionEquality().equals(other._palette, _palette)&&const DeepCollectionEquality().equals(other._cells, _cells));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,isVisible,opacity,purpose,const DeepCollectionEquality().hash(_palette),const DeepCollectionEquality().hash(_cells));
+
+@override
+String toString() {
+  return 'MapLayer.tile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, purpose: $purpose, palette: $palette, cells: $cells)';
+}
+
+
 }
 
 /// @nodoc
-abstract class _$$CollisionLayerImplCopyWith<$Res>
-    implements $MapLayerCopyWith<$Res> {
-  factory _$$CollisionLayerImplCopyWith(_$CollisionLayerImpl value,
-          $Res Function(_$CollisionLayerImpl) then) =
-      __$$CollisionLayerImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      bool isVisible,
-      double opacity,
-      List<bool> collisions});
+abstract mixin class $TileLayerCopyWith<$Res> implements $MapLayerCopyWith<$Res> {
+  factory $TileLayerCopyWith(TileLayer value, $Res Function(TileLayer) _then) = _$TileLayerCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, bool isVisible, double opacity, MapLayerPurpose purpose, List<TileLayerPaletteEntry> palette, List<int> cells
+});
+
+
+
+
+}
+/// @nodoc
+class _$TileLayerCopyWithImpl<$Res>
+    implements $TileLayerCopyWith<$Res> {
+  _$TileLayerCopyWithImpl(this._self, this._then);
+
+  final TileLayer _self;
+  final $Res Function(TileLayer) _then;
+
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isVisible = null,Object? opacity = null,Object? purpose = null,Object? palette = null,Object? cells = null,}) {
+  return _then(TileLayer(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,purpose: null == purpose ? _self.purpose : purpose // ignore: cast_nullable_to_non_nullable
+as MapLayerPurpose,palette: null == palette ? _self._palette : palette // ignore: cast_nullable_to_non_nullable
+as List<TileLayerPaletteEntry>,cells: null == cells ? _self._cells : cells // ignore: cast_nullable_to_non_nullable
+as List<int>,
+  ));
 }
 
-/// @nodoc
-class __$$CollisionLayerImplCopyWithImpl<$Res>
-    extends _$MapLayerCopyWithImpl<$Res, _$CollisionLayerImpl>
-    implements _$$CollisionLayerImplCopyWith<$Res> {
-  __$$CollisionLayerImplCopyWithImpl(
-      _$CollisionLayerImpl _value, $Res Function(_$CollisionLayerImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? collisions = null,
-  }) {
-    return _then(_$CollisionLayerImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      collisions: null == collisions
-          ? _value._collisions
-          : collisions // ignore: cast_nullable_to_non_nullable
-              as List<bool>,
-    ));
-  }
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$CollisionLayerImpl extends CollisionLayer {
-  const _$CollisionLayerImpl(
-      {required this.id,
-      required this.name,
-      this.isVisible = true,
-      this.opacity = 1.0,
-      final List<bool> collisions = const [],
-      final String? $type})
-      : _collisions = collisions,
-        $type = $type ?? 'collision',
-        super._();
 
-  factory _$CollisionLayerImpl.fromJson(Map<String, dynamic> json) =>
-      _$$CollisionLayerImplFromJson(json);
+class CollisionLayer extends MapLayer {
+  const CollisionLayer({required this.id, required this.name, this.isVisible = true, this.opacity = 1.0, final  List<bool> collisions = const [], final  String? $type}): _collisions = collisions,$type = $type ?? 'collision',super._();
+  factory CollisionLayer.fromJson(Map<String, dynamic> json) => _$CollisionLayerFromJson(json);
 
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  @JsonKey()
-  final bool isVisible;
-  @override
-  @JsonKey()
-  final double opacity;
-  final List<bool> _collisions;
-  @override
-  @JsonKey()
-  List<bool> get collisions {
-    if (_collisions is EqualUnmodifiableListView) return _collisions;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_collisions);
-  }
-
-  @JsonKey(name: 'runtimeType')
-  final String $type;
-
-  @override
-  String toString() {
-    return 'MapLayer.collision(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, collisions: $collisions)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$CollisionLayerImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.isVisible, isVisible) ||
-                other.isVisible == isVisible) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            const DeepCollectionEquality()
-                .equals(other._collisions, _collisions));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, name, isVisible, opacity,
-      const DeepCollectionEquality().hash(_collisions));
-
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$CollisionLayerImplCopyWith<_$CollisionLayerImpl> get copyWith =>
-      __$$CollisionLayerImplCopyWithImpl<_$CollisionLayerImpl>(
-          this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)
-        tile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<bool> collisions)
-        collision,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)
-        smartTile,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<MapPlacedTile> tileObjects)
-        object,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)
-        environment,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)
-        border,
-  }) {
-    return collision(id, name, isVisible, opacity, collisions);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-  }) {
-    return collision?.call(id, name, isVisible, opacity, collisions);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-    required TResult orElse(),
-  }) {
-    if (collision != null) {
-      return collision(id, name, isVisible, opacity, collisions);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(TileLayer value) tile,
-    required TResult Function(CollisionLayer value) collision,
-    required TResult Function(SmartTileLayer value) smartTile,
-    required TResult Function(ObjectLayer value) object,
-    required TResult Function(EnvironmentLayer value) environment,
-    required TResult Function(BorderLayer value) border,
-  }) {
-    return collision(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(TileLayer value)? tile,
-    TResult? Function(CollisionLayer value)? collision,
-    TResult? Function(SmartTileLayer value)? smartTile,
-    TResult? Function(ObjectLayer value)? object,
-    TResult? Function(EnvironmentLayer value)? environment,
-    TResult? Function(BorderLayer value)? border,
-  }) {
-    return collision?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(TileLayer value)? tile,
-    TResult Function(CollisionLayer value)? collision,
-    TResult Function(SmartTileLayer value)? smartTile,
-    TResult Function(ObjectLayer value)? object,
-    TResult Function(EnvironmentLayer value)? environment,
-    TResult Function(BorderLayer value)? border,
-    required TResult orElse(),
-  }) {
-    if (collision != null) {
-      return collision(this);
-    }
-    return orElse();
-  }
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$CollisionLayerImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override@JsonKey() final  bool isVisible;
+@override@JsonKey() final  double opacity;
+ final  List<bool> _collisions;
+@JsonKey() List<bool> get collisions {
+  if (_collisions is EqualUnmodifiableListView) return _collisions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_collisions);
 }
 
-abstract class CollisionLayer extends MapLayer {
-  const factory CollisionLayer(
-      {required final String id,
-      required final String name,
-      final bool isVisible,
-      final double opacity,
-      final List<bool> collisions}) = _$CollisionLayerImpl;
-  const CollisionLayer._() : super._();
 
-  factory CollisionLayer.fromJson(Map<String, dynamic> json) =
-      _$CollisionLayerImpl.fromJson;
+@JsonKey(name: 'runtimeType')
+final String $type;
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  bool get isVisible;
-  @override
-  double get opacity;
-  List<bool> get collisions;
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CollisionLayerImplCopyWith<_$CollisionLayerImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CollisionLayerCopyWith<CollisionLayer> get copyWith => _$CollisionLayerCopyWithImpl<CollisionLayer>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$CollisionLayerToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CollisionLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&const DeepCollectionEquality().equals(other._collisions, _collisions));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,isVisible,opacity,const DeepCollectionEquality().hash(_collisions));
+
+@override
+String toString() {
+  return 'MapLayer.collision(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, collisions: $collisions)';
+}
+
+
 }
 
 /// @nodoc
-abstract class _$$SmartTileLayerImplCopyWith<$Res>
-    implements $MapLayerCopyWith<$Res> {
-  factory _$$SmartTileLayerImplCopyWith(_$SmartTileLayerImpl value,
-          $Res Function(_$SmartTileLayerImpl) then) =
-      __$$SmartTileLayerImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      bool isVisible,
-      double opacity,
-      String presetId,
-      SmartTileUsage usage,
-      List<String> materialPalette,
-      SmartTileField field,
-      List<SmartTilePatternStroke> patternStrokes,
-      int layerSeed,
-      @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-      Map<String, int> candidateWeights,
-      Map<String, String> properties});
+abstract mixin class $CollisionLayerCopyWith<$Res> implements $MapLayerCopyWith<$Res> {
+  factory $CollisionLayerCopyWith(CollisionLayer value, $Res Function(CollisionLayer) _then) = _$CollisionLayerCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, bool isVisible, double opacity, List<bool> collisions
+});
 
-  $SmartTileFieldCopyWith<$Res> get field;
+
+
+
+}
+/// @nodoc
+class _$CollisionLayerCopyWithImpl<$Res>
+    implements $CollisionLayerCopyWith<$Res> {
+  _$CollisionLayerCopyWithImpl(this._self, this._then);
+
+  final CollisionLayer _self;
+  final $Res Function(CollisionLayer) _then;
+
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isVisible = null,Object? opacity = null,Object? collisions = null,}) {
+  return _then(CollisionLayer(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,collisions: null == collisions ? _self._collisions : collisions // ignore: cast_nullable_to_non_nullable
+as List<bool>,
+  ));
 }
 
-/// @nodoc
-class __$$SmartTileLayerImplCopyWithImpl<$Res>
-    extends _$MapLayerCopyWithImpl<$Res, _$SmartTileLayerImpl>
-    implements _$$SmartTileLayerImplCopyWith<$Res> {
-  __$$SmartTileLayerImplCopyWithImpl(
-      _$SmartTileLayerImpl _value, $Res Function(_$SmartTileLayerImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? presetId = null,
-    Object? usage = null,
-    Object? materialPalette = null,
-    Object? field = null,
-    Object? patternStrokes = null,
-    Object? layerSeed = null,
-    Object? candidateWeights = null,
-    Object? properties = null,
-  }) {
-    return _then(_$SmartTileLayerImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      presetId: null == presetId
-          ? _value.presetId
-          : presetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      usage: null == usage
-          ? _value.usage
-          : usage // ignore: cast_nullable_to_non_nullable
-              as SmartTileUsage,
-      materialPalette: null == materialPalette
-          ? _value._materialPalette
-          : materialPalette // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      field: null == field
-          ? _value.field
-          : field // ignore: cast_nullable_to_non_nullable
-              as SmartTileField,
-      patternStrokes: null == patternStrokes
-          ? _value._patternStrokes
-          : patternStrokes // ignore: cast_nullable_to_non_nullable
-              as List<SmartTilePatternStroke>,
-      layerSeed: null == layerSeed
-          ? _value.layerSeed
-          : layerSeed // ignore: cast_nullable_to_non_nullable
-              as int,
-      candidateWeights: null == candidateWeights
-          ? _value._candidateWeights
-          : candidateWeights // ignore: cast_nullable_to_non_nullable
-              as Map<String, int>,
-      properties: null == properties
-          ? _value._properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ));
-  }
-
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $SmartTileFieldCopyWith<$Res> get field {
-    return $SmartTileFieldCopyWith<$Res>(_value.field, (value) {
-      return _then(_value.copyWith(field: value));
-    });
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$SmartTileLayerImpl extends SmartTileLayer {
-  const _$SmartTileLayerImpl(
-      {required this.id,
-      required this.name,
-      this.isVisible = true,
-      this.opacity = 1.0,
-      required this.presetId,
-      required this.usage,
-      final List<String> materialPalette = const <String>[''],
-      required this.field,
-      final List<SmartTilePatternStroke> patternStrokes =
-          const <SmartTilePatternStroke>[],
-      this.layerSeed = 0,
-      @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-      final Map<String, int> candidateWeights = const <String, int>{},
-      final Map<String, String> properties = const <String, String>{},
-      final String? $type})
-      : _materialPalette = materialPalette,
-        _patternStrokes = patternStrokes,
-        _candidateWeights = candidateWeights,
-        _properties = properties,
-        $type = $type ?? 'smart_tile',
-        super._();
+class SmartTileLayer extends MapLayer {
+  const SmartTileLayer({required this.id, required this.name, this.isVisible = true, this.opacity = 1.0, required this.presetId, required this.usage, final  List<String> materialPalette = const <String>[''], required this.field, final  List<SmartTilePatternStroke> patternStrokes = const <SmartTilePatternStroke>[], this.layerSeed = 0, @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false) final  Map<String, int> candidateWeights = const <String, int>{}, final  Map<String, String> properties = const <String, String>{}, final  String? $type}): _materialPalette = materialPalette,_patternStrokes = patternStrokes,_candidateWeights = candidateWeights,_properties = properties,$type = $type ?? 'smart_tile',super._();
+  factory SmartTileLayer.fromJson(Map<String, dynamic> json) => _$SmartTileLayerFromJson(json);
 
-  factory _$SmartTileLayerImpl.fromJson(Map<String, dynamic> json) =>
-      _$$SmartTileLayerImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  @JsonKey()
-  final bool isVisible;
-  @override
-  @JsonKey()
-  final double opacity;
-  @override
-  final String presetId;
-  @override
-  final SmartTileUsage usage;
-  final List<String> _materialPalette;
-  @override
-  @JsonKey()
-  List<String> get materialPalette {
-    if (_materialPalette is EqualUnmodifiableListView) return _materialPalette;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_materialPalette);
-  }
-
-  @override
-  final SmartTileField field;
-  final List<SmartTilePatternStroke> _patternStrokes;
-  @override
-  @JsonKey()
-  List<SmartTilePatternStroke> get patternStrokes {
-    if (_patternStrokes is EqualUnmodifiableListView) return _patternStrokes;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_patternStrokes);
-  }
-
-  @override
-  @JsonKey()
-  final int layerSeed;
-
-  /// Surcharge locale des poids de variantes du preset, par identifiant de
-  /// candidat. Une clé absente prend le poids du preset ; `0` exclut le
-  /// candidat du tirage sur ce calque. Table vide : le calque suit le
-  /// preset, et la clé n'est pas sérialisée.
-  final Map<String, int> _candidateWeights;
-
-  /// Surcharge locale des poids de variantes du preset, par identifiant de
-  /// candidat. Une clé absente prend le poids du preset ; `0` exclut le
-  /// candidat du tirage sur ce calque. Table vide : le calque suit le
-  /// preset, et la clé n'est pas sérialisée.
-  @override
-  @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-  Map<String, int> get candidateWeights {
-    if (_candidateWeights is EqualUnmodifiableMapView) return _candidateWeights;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_candidateWeights);
-  }
-
-  final Map<String, String> _properties;
-  @override
-  @JsonKey()
-  Map<String, String> get properties {
-    if (_properties is EqualUnmodifiableMapView) return _properties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_properties);
-  }
-
-  @JsonKey(name: 'runtimeType')
-  final String $type;
-
-  @override
-  String toString() {
-    return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, field: $field, patternStrokes: $patternStrokes, layerSeed: $layerSeed, candidateWeights: $candidateWeights, properties: $properties)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$SmartTileLayerImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.isVisible, isVisible) ||
-                other.isVisible == isVisible) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            (identical(other.presetId, presetId) ||
-                other.presetId == presetId) &&
-            (identical(other.usage, usage) || other.usage == usage) &&
-            const DeepCollectionEquality()
-                .equals(other._materialPalette, _materialPalette) &&
-            (identical(other.field, field) || other.field == field) &&
-            const DeepCollectionEquality()
-                .equals(other._patternStrokes, _patternStrokes) &&
-            (identical(other.layerSeed, layerSeed) ||
-                other.layerSeed == layerSeed) &&
-            const DeepCollectionEquality()
-                .equals(other._candidateWeights, _candidateWeights) &&
-            const DeepCollectionEquality()
-                .equals(other._properties, _properties));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      isVisible,
-      opacity,
-      presetId,
-      usage,
-      const DeepCollectionEquality().hash(_materialPalette),
-      field,
-      const DeepCollectionEquality().hash(_patternStrokes),
-      layerSeed,
-      const DeepCollectionEquality().hash(_candidateWeights),
-      const DeepCollectionEquality().hash(_properties));
-
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$SmartTileLayerImplCopyWith<_$SmartTileLayerImpl> get copyWith =>
-      __$$SmartTileLayerImplCopyWithImpl<_$SmartTileLayerImpl>(
-          this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)
-        tile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<bool> collisions)
-        collision,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)
-        smartTile,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<MapPlacedTile> tileObjects)
-        object,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)
-        environment,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)
-        border,
-  }) {
-    return smartTile(
-        id,
-        name,
-        isVisible,
-        opacity,
-        presetId,
-        usage,
-        materialPalette,
-        field,
-        patternStrokes,
-        layerSeed,
-        candidateWeights,
-        properties);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-  }) {
-    return smartTile?.call(
-        id,
-        name,
-        isVisible,
-        opacity,
-        presetId,
-        usage,
-        materialPalette,
-        field,
-        patternStrokes,
-        layerSeed,
-        candidateWeights,
-        properties);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-    required TResult orElse(),
-  }) {
-    if (smartTile != null) {
-      return smartTile(
-          id,
-          name,
-          isVisible,
-          opacity,
-          presetId,
-          usage,
-          materialPalette,
-          field,
-          patternStrokes,
-          layerSeed,
-          candidateWeights,
-          properties);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(TileLayer value) tile,
-    required TResult Function(CollisionLayer value) collision,
-    required TResult Function(SmartTileLayer value) smartTile,
-    required TResult Function(ObjectLayer value) object,
-    required TResult Function(EnvironmentLayer value) environment,
-    required TResult Function(BorderLayer value) border,
-  }) {
-    return smartTile(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(TileLayer value)? tile,
-    TResult? Function(CollisionLayer value)? collision,
-    TResult? Function(SmartTileLayer value)? smartTile,
-    TResult? Function(ObjectLayer value)? object,
-    TResult? Function(EnvironmentLayer value)? environment,
-    TResult? Function(BorderLayer value)? border,
-  }) {
-    return smartTile?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(TileLayer value)? tile,
-    TResult Function(CollisionLayer value)? collision,
-    TResult Function(SmartTileLayer value)? smartTile,
-    TResult Function(ObjectLayer value)? object,
-    TResult Function(EnvironmentLayer value)? environment,
-    TResult Function(BorderLayer value)? border,
-    required TResult orElse(),
-  }) {
-    if (smartTile != null) {
-      return smartTile(this);
-    }
-    return orElse();
-  }
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$SmartTileLayerImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override@JsonKey() final  bool isVisible;
+@override@JsonKey() final  double opacity;
+ final  String presetId;
+ final  SmartTileUsage usage;
+ final  List<String> _materialPalette;
+@JsonKey() List<String> get materialPalette {
+  if (_materialPalette is EqualUnmodifiableListView) return _materialPalette;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_materialPalette);
 }
 
-abstract class SmartTileLayer extends MapLayer {
-  const factory SmartTileLayer(
-      {required final String id,
-      required final String name,
-      final bool isVisible,
-      final double opacity,
-      required final String presetId,
-      required final SmartTileUsage usage,
-      final List<String> materialPalette,
-      required final SmartTileField field,
-      final List<SmartTilePatternStroke> patternStrokes,
-      final int layerSeed,
-      @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-      final Map<String, int> candidateWeights,
-      final Map<String, String> properties}) = _$SmartTileLayerImpl;
-  const SmartTileLayer._() : super._();
+ final  SmartTileField field;
+ final  List<SmartTilePatternStroke> _patternStrokes;
+@JsonKey() List<SmartTilePatternStroke> get patternStrokes {
+  if (_patternStrokes is EqualUnmodifiableListView) return _patternStrokes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_patternStrokes);
+}
 
-  factory SmartTileLayer.fromJson(Map<String, dynamic> json) =
-      _$SmartTileLayerImpl.fromJson;
+@JsonKey() final  int layerSeed;
+/// Surcharge locale des poids de variantes du preset, par identifiant de
+/// candidat. Une clé absente prend le poids du preset ; `0` exclut le
+/// candidat du tirage sur ce calque. Table vide : le calque suit le
+/// preset, et la clé n'est pas sérialisée.
+ final  Map<String, int> _candidateWeights;
+/// Surcharge locale des poids de variantes du preset, par identifiant de
+/// candidat. Une clé absente prend le poids du preset ; `0` exclut le
+/// candidat du tirage sur ce calque. Table vide : le calque suit le
+/// preset, et la clé n'est pas sérialisée.
+@JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false) Map<String, int> get candidateWeights {
+  if (_candidateWeights is EqualUnmodifiableMapView) return _candidateWeights;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_candidateWeights);
+}
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  bool get isVisible;
-  @override
-  double get opacity;
-  String get presetId;
-  SmartTileUsage get usage;
-  List<String> get materialPalette;
-  SmartTileField get field;
-  List<SmartTilePatternStroke> get patternStrokes;
-  int get layerSeed;
+ final  Map<String, String> _properties;
+@JsonKey() Map<String, String> get properties {
+  if (_properties is EqualUnmodifiableMapView) return _properties;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_properties);
+}
 
-  /// Surcharge locale des poids de variantes du preset, par identifiant de
-  /// candidat. Une clé absente prend le poids du preset ; `0` exclut le
-  /// candidat du tirage sur ce calque. Table vide : le calque suit le
-  /// preset, et la clé n'est pas sérialisée.
-  @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-  Map<String, int> get candidateWeights;
-  Map<String, String> get properties;
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$SmartTileLayerImplCopyWith<_$SmartTileLayerImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@JsonKey(name: 'runtimeType')
+final String $type;
+
+
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SmartTileLayerCopyWith<SmartTileLayer> get copyWith => _$SmartTileLayerCopyWithImpl<SmartTileLayer>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$SmartTileLayerToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SmartTileLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.presetId, presetId) || other.presetId == presetId)&&(identical(other.usage, usage) || other.usage == usage)&&const DeepCollectionEquality().equals(other._materialPalette, _materialPalette)&&(identical(other.field, field) || other.field == field)&&const DeepCollectionEquality().equals(other._patternStrokes, _patternStrokes)&&(identical(other.layerSeed, layerSeed) || other.layerSeed == layerSeed)&&const DeepCollectionEquality().equals(other._candidateWeights, _candidateWeights)&&const DeepCollectionEquality().equals(other._properties, _properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,isVisible,opacity,presetId,usage,const DeepCollectionEquality().hash(_materialPalette),field,const DeepCollectionEquality().hash(_patternStrokes),layerSeed,const DeepCollectionEquality().hash(_candidateWeights),const DeepCollectionEquality().hash(_properties));
+
+@override
+String toString() {
+  return 'MapLayer.smartTile(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, presetId: $presetId, usage: $usage, materialPalette: $materialPalette, field: $field, patternStrokes: $patternStrokes, layerSeed: $layerSeed, candidateWeights: $candidateWeights, properties: $properties)';
+}
+
+
 }
 
 /// @nodoc
-abstract class _$$ObjectLayerImplCopyWith<$Res>
-    implements $MapLayerCopyWith<$Res> {
-  factory _$$ObjectLayerImplCopyWith(
-          _$ObjectLayerImpl value, $Res Function(_$ObjectLayerImpl) then) =
-      __$$ObjectLayerImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      bool isVisible,
-      double opacity,
-      MapLayerPurpose purpose,
-      List<MapPlacedTile> tileObjects});
+abstract mixin class $SmartTileLayerCopyWith<$Res> implements $MapLayerCopyWith<$Res> {
+  factory $SmartTileLayerCopyWith(SmartTileLayer value, $Res Function(SmartTileLayer) _then) = _$SmartTileLayerCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, bool isVisible, double opacity, String presetId, SmartTileUsage usage, List<String> materialPalette, SmartTileField field, List<SmartTilePatternStroke> patternStrokes, int layerSeed,@JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false) Map<String, int> candidateWeights, Map<String, String> properties
+});
+
+
+$SmartTileFieldCopyWith<$Res> get field;
+
+}
+/// @nodoc
+class _$SmartTileLayerCopyWithImpl<$Res>
+    implements $SmartTileLayerCopyWith<$Res> {
+  _$SmartTileLayerCopyWithImpl(this._self, this._then);
+
+  final SmartTileLayer _self;
+  final $Res Function(SmartTileLayer) _then;
+
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isVisible = null,Object? opacity = null,Object? presetId = null,Object? usage = null,Object? materialPalette = null,Object? field = null,Object? patternStrokes = null,Object? layerSeed = null,Object? candidateWeights = null,Object? properties = null,}) {
+  return _then(SmartTileLayer(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,presetId: null == presetId ? _self.presetId : presetId // ignore: cast_nullable_to_non_nullable
+as String,usage: null == usage ? _self.usage : usage // ignore: cast_nullable_to_non_nullable
+as SmartTileUsage,materialPalette: null == materialPalette ? _self._materialPalette : materialPalette // ignore: cast_nullable_to_non_nullable
+as List<String>,field: null == field ? _self.field : field // ignore: cast_nullable_to_non_nullable
+as SmartTileField,patternStrokes: null == patternStrokes ? _self._patternStrokes : patternStrokes // ignore: cast_nullable_to_non_nullable
+as List<SmartTilePatternStroke>,layerSeed: null == layerSeed ? _self.layerSeed : layerSeed // ignore: cast_nullable_to_non_nullable
+as int,candidateWeights: null == candidateWeights ? _self._candidateWeights : candidateWeights // ignore: cast_nullable_to_non_nullable
+as Map<String, int>,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
 }
 
-/// @nodoc
-class __$$ObjectLayerImplCopyWithImpl<$Res>
-    extends _$MapLayerCopyWithImpl<$Res, _$ObjectLayerImpl>
-    implements _$$ObjectLayerImplCopyWith<$Res> {
-  __$$ObjectLayerImplCopyWithImpl(
-      _$ObjectLayerImpl _value, $Res Function(_$ObjectLayerImpl) _then)
-      : super(_value, _then);
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$SmartTileFieldCopyWith<$Res> get field {
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? purpose = null,
-    Object? tileObjects = null,
-  }) {
-    return _then(_$ObjectLayerImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      purpose: null == purpose
-          ? _value.purpose
-          : purpose // ignore: cast_nullable_to_non_nullable
-              as MapLayerPurpose,
-      tileObjects: null == tileObjects
-          ? _value._tileObjects
-          : tileObjects // ignore: cast_nullable_to_non_nullable
-              as List<MapPlacedTile>,
-    ));
-  }
+  return $SmartTileFieldCopyWith<$Res>(_self.field, (value) {
+    return _then(_self.copyWith(field: value));
+  });
+}
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ObjectLayerImpl extends ObjectLayer {
-  const _$ObjectLayerImpl(
-      {required this.id,
-      required this.name,
-      this.isVisible = true,
-      this.opacity = 1.0,
-      this.purpose = MapLayerPurpose.visual,
-      final List<MapPlacedTile> tileObjects = const <MapPlacedTile>[],
-      final String? $type})
-      : _tileObjects = tileObjects,
-        $type = $type ?? 'object',
-        super._();
+class ObjectLayer extends MapLayer {
+  const ObjectLayer({required this.id, required this.name, this.isVisible = true, this.opacity = 1.0, this.purpose = MapLayerPurpose.visual, final  List<MapPlacedTile> tileObjects = const <MapPlacedTile>[], final  String? $type}): _tileObjects = tileObjects,$type = $type ?? 'object',super._();
+  factory ObjectLayer.fromJson(Map<String, dynamic> json) => _$ObjectLayerFromJson(json);
 
-  factory _$ObjectLayerImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ObjectLayerImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  @JsonKey()
-  final bool isVisible;
-  @override
-  @JsonKey()
-  final double opacity;
-  @override
-  @JsonKey()
-  final MapLayerPurpose purpose;
-  final List<MapPlacedTile> _tileObjects;
-  @override
-  @JsonKey()
-  List<MapPlacedTile> get tileObjects {
-    if (_tileObjects is EqualUnmodifiableListView) return _tileObjects;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tileObjects);
-  }
-
-  @JsonKey(name: 'runtimeType')
-  final String $type;
-
-  @override
-  String toString() {
-    return 'MapLayer.object(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, purpose: $purpose, tileObjects: $tileObjects)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ObjectLayerImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.isVisible, isVisible) ||
-                other.isVisible == isVisible) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            (identical(other.purpose, purpose) || other.purpose == purpose) &&
-            const DeepCollectionEquality()
-                .equals(other._tileObjects, _tileObjects));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, name, isVisible, opacity,
-      purpose, const DeepCollectionEquality().hash(_tileObjects));
-
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ObjectLayerImplCopyWith<_$ObjectLayerImpl> get copyWith =>
-      __$$ObjectLayerImplCopyWithImpl<_$ObjectLayerImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)
-        tile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<bool> collisions)
-        collision,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)
-        smartTile,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<MapPlacedTile> tileObjects)
-        object,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)
-        environment,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)
-        border,
-  }) {
-    return object(id, name, isVisible, opacity, purpose, tileObjects);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-  }) {
-    return object?.call(id, name, isVisible, opacity, purpose, tileObjects);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-    required TResult orElse(),
-  }) {
-    if (object != null) {
-      return object(id, name, isVisible, opacity, purpose, tileObjects);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(TileLayer value) tile,
-    required TResult Function(CollisionLayer value) collision,
-    required TResult Function(SmartTileLayer value) smartTile,
-    required TResult Function(ObjectLayer value) object,
-    required TResult Function(EnvironmentLayer value) environment,
-    required TResult Function(BorderLayer value) border,
-  }) {
-    return object(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(TileLayer value)? tile,
-    TResult? Function(CollisionLayer value)? collision,
-    TResult? Function(SmartTileLayer value)? smartTile,
-    TResult? Function(ObjectLayer value)? object,
-    TResult? Function(EnvironmentLayer value)? environment,
-    TResult? Function(BorderLayer value)? border,
-  }) {
-    return object?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(TileLayer value)? tile,
-    TResult Function(CollisionLayer value)? collision,
-    TResult Function(SmartTileLayer value)? smartTile,
-    TResult Function(ObjectLayer value)? object,
-    TResult Function(EnvironmentLayer value)? environment,
-    TResult Function(BorderLayer value)? border,
-    required TResult orElse(),
-  }) {
-    if (object != null) {
-      return object(this);
-    }
-    return orElse();
-  }
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ObjectLayerImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override@JsonKey() final  bool isVisible;
+@override@JsonKey() final  double opacity;
+@JsonKey() final  MapLayerPurpose purpose;
+ final  List<MapPlacedTile> _tileObjects;
+@JsonKey() List<MapPlacedTile> get tileObjects {
+  if (_tileObjects is EqualUnmodifiableListView) return _tileObjects;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tileObjects);
 }
 
-abstract class ObjectLayer extends MapLayer {
-  const factory ObjectLayer(
-      {required final String id,
-      required final String name,
-      final bool isVisible,
-      final double opacity,
-      final MapLayerPurpose purpose,
-      final List<MapPlacedTile> tileObjects}) = _$ObjectLayerImpl;
-  const ObjectLayer._() : super._();
 
-  factory ObjectLayer.fromJson(Map<String, dynamic> json) =
-      _$ObjectLayerImpl.fromJson;
+@JsonKey(name: 'runtimeType')
+final String $type;
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  bool get isVisible;
-  @override
-  double get opacity;
-  MapLayerPurpose get purpose;
-  List<MapPlacedTile> get tileObjects;
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ObjectLayerImplCopyWith<_$ObjectLayerImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ObjectLayerCopyWith<ObjectLayer> get copyWith => _$ObjectLayerCopyWithImpl<ObjectLayer>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ObjectLayerToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ObjectLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.purpose, purpose) || other.purpose == purpose)&&const DeepCollectionEquality().equals(other._tileObjects, _tileObjects));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,isVisible,opacity,purpose,const DeepCollectionEquality().hash(_tileObjects));
+
+@override
+String toString() {
+  return 'MapLayer.object(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, purpose: $purpose, tileObjects: $tileObjects)';
+}
+
+
 }
 
 /// @nodoc
-abstract class _$$EnvironmentLayerImplCopyWith<$Res>
-    implements $MapLayerCopyWith<$Res> {
-  factory _$$EnvironmentLayerImplCopyWith(_$EnvironmentLayerImpl value,
-          $Res Function(_$EnvironmentLayerImpl) then) =
-      __$$EnvironmentLayerImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      bool isVisible,
-      double opacity,
-      @JsonKey(
-          fromJson: decodeEnvironmentLayerContent,
-          toJson: encodeEnvironmentLayerContent)
-      EnvironmentLayerContent content,
-      Map<String, String> properties});
+abstract mixin class $ObjectLayerCopyWith<$Res> implements $MapLayerCopyWith<$Res> {
+  factory $ObjectLayerCopyWith(ObjectLayer value, $Res Function(ObjectLayer) _then) = _$ObjectLayerCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, bool isVisible, double opacity, MapLayerPurpose purpose, List<MapPlacedTile> tileObjects
+});
+
+
+
+
+}
+/// @nodoc
+class _$ObjectLayerCopyWithImpl<$Res>
+    implements $ObjectLayerCopyWith<$Res> {
+  _$ObjectLayerCopyWithImpl(this._self, this._then);
+
+  final ObjectLayer _self;
+  final $Res Function(ObjectLayer) _then;
+
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isVisible = null,Object? opacity = null,Object? purpose = null,Object? tileObjects = null,}) {
+  return _then(ObjectLayer(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,purpose: null == purpose ? _self.purpose : purpose // ignore: cast_nullable_to_non_nullable
+as MapLayerPurpose,tileObjects: null == tileObjects ? _self._tileObjects : tileObjects // ignore: cast_nullable_to_non_nullable
+as List<MapPlacedTile>,
+  ));
 }
 
-/// @nodoc
-class __$$EnvironmentLayerImplCopyWithImpl<$Res>
-    extends _$MapLayerCopyWithImpl<$Res, _$EnvironmentLayerImpl>
-    implements _$$EnvironmentLayerImplCopyWith<$Res> {
-  __$$EnvironmentLayerImplCopyWithImpl(_$EnvironmentLayerImpl _value,
-      $Res Function(_$EnvironmentLayerImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? content = null,
-    Object? properties = null,
-  }) {
-    return _then(_$EnvironmentLayerImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as EnvironmentLayerContent,
-      properties: null == properties
-          ? _value._properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$EnvironmentLayerImpl extends EnvironmentLayer {
-  const _$EnvironmentLayerImpl(
-      {required this.id,
-      required this.name,
-      this.isVisible = true,
-      this.opacity = 1.0,
-      @JsonKey(
-          fromJson: decodeEnvironmentLayerContent,
-          toJson: encodeEnvironmentLayerContent)
-      this.content = EnvironmentLayerContent.emptyContent,
-      final Map<String, String> properties = const <String, String>{},
-      final String? $type})
-      : _properties = properties,
-        $type = $type ?? 'environment',
-        super._();
+class EnvironmentLayer extends MapLayer {
+  const EnvironmentLayer({required this.id, required this.name, this.isVisible = true, this.opacity = 1.0, @JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent) this.content = EnvironmentLayerContent.emptyContent, final  Map<String, String> properties = const <String, String>{}, final  String? $type}): _properties = properties,$type = $type ?? 'environment',super._();
+  factory EnvironmentLayer.fromJson(Map<String, dynamic> json) => _$EnvironmentLayerFromJson(json);
 
-  factory _$EnvironmentLayerImpl.fromJson(Map<String, dynamic> json) =>
-      _$$EnvironmentLayerImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  @JsonKey()
-  final bool isVisible;
-  @override
-  @JsonKey()
-  final double opacity;
-  @override
-  @JsonKey(
-      fromJson: decodeEnvironmentLayerContent,
-      toJson: encodeEnvironmentLayerContent)
-  final EnvironmentLayerContent content;
-  final Map<String, String> _properties;
-  @override
-  @JsonKey()
-  Map<String, String> get properties {
-    if (_properties is EqualUnmodifiableMapView) return _properties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_properties);
-  }
-
-  @JsonKey(name: 'runtimeType')
-  final String $type;
-
-  @override
-  String toString() {
-    return 'MapLayer.environment(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, content: $content, properties: $properties)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$EnvironmentLayerImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.isVisible, isVisible) ||
-                other.isVisible == isVisible) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            (identical(other.content, content) || other.content == content) &&
-            const DeepCollectionEquality()
-                .equals(other._properties, _properties));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, name, isVisible, opacity,
-      content, const DeepCollectionEquality().hash(_properties));
-
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$EnvironmentLayerImplCopyWith<_$EnvironmentLayerImpl> get copyWith =>
-      __$$EnvironmentLayerImplCopyWithImpl<_$EnvironmentLayerImpl>(
-          this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)
-        tile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<bool> collisions)
-        collision,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)
-        smartTile,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<MapPlacedTile> tileObjects)
-        object,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)
-        environment,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)
-        border,
-  }) {
-    return environment(id, name, isVisible, opacity, content, properties);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-  }) {
-    return environment?.call(id, name, isVisible, opacity, content, properties);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-    required TResult orElse(),
-  }) {
-    if (environment != null) {
-      return environment(id, name, isVisible, opacity, content, properties);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(TileLayer value) tile,
-    required TResult Function(CollisionLayer value) collision,
-    required TResult Function(SmartTileLayer value) smartTile,
-    required TResult Function(ObjectLayer value) object,
-    required TResult Function(EnvironmentLayer value) environment,
-    required TResult Function(BorderLayer value) border,
-  }) {
-    return environment(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(TileLayer value)? tile,
-    TResult? Function(CollisionLayer value)? collision,
-    TResult? Function(SmartTileLayer value)? smartTile,
-    TResult? Function(ObjectLayer value)? object,
-    TResult? Function(EnvironmentLayer value)? environment,
-    TResult? Function(BorderLayer value)? border,
-  }) {
-    return environment?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(TileLayer value)? tile,
-    TResult Function(CollisionLayer value)? collision,
-    TResult Function(SmartTileLayer value)? smartTile,
-    TResult Function(ObjectLayer value)? object,
-    TResult Function(EnvironmentLayer value)? environment,
-    TResult Function(BorderLayer value)? border,
-    required TResult orElse(),
-  }) {
-    if (environment != null) {
-      return environment(this);
-    }
-    return orElse();
-  }
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$EnvironmentLayerImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override@JsonKey() final  bool isVisible;
+@override@JsonKey() final  double opacity;
+@JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent) final  EnvironmentLayerContent content;
+ final  Map<String, String> _properties;
+@JsonKey() Map<String, String> get properties {
+  if (_properties is EqualUnmodifiableMapView) return _properties;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_properties);
 }
 
-abstract class EnvironmentLayer extends MapLayer {
-  const factory EnvironmentLayer(
-      {required final String id,
-      required final String name,
-      final bool isVisible,
-      final double opacity,
-      @JsonKey(
-          fromJson: decodeEnvironmentLayerContent,
-          toJson: encodeEnvironmentLayerContent)
-      final EnvironmentLayerContent content,
-      final Map<String, String> properties}) = _$EnvironmentLayerImpl;
-  const EnvironmentLayer._() : super._();
 
-  factory EnvironmentLayer.fromJson(Map<String, dynamic> json) =
-      _$EnvironmentLayerImpl.fromJson;
+@JsonKey(name: 'runtimeType')
+final String $type;
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  bool get isVisible;
-  @override
-  double get opacity;
-  @JsonKey(
-      fromJson: decodeEnvironmentLayerContent,
-      toJson: encodeEnvironmentLayerContent)
-  EnvironmentLayerContent get content;
-  Map<String, String> get properties;
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$EnvironmentLayerImplCopyWith<_$EnvironmentLayerImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$EnvironmentLayerCopyWith<EnvironmentLayer> get copyWith => _$EnvironmentLayerCopyWithImpl<EnvironmentLayer>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$EnvironmentLayerToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EnvironmentLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.content, content) || other.content == content)&&const DeepCollectionEquality().equals(other._properties, _properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,isVisible,opacity,content,const DeepCollectionEquality().hash(_properties));
+
+@override
+String toString() {
+  return 'MapLayer.environment(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, content: $content, properties: $properties)';
+}
+
+
 }
 
 /// @nodoc
-abstract class _$$BorderLayerImplCopyWith<$Res>
-    implements $MapLayerCopyWith<$Res> {
-  factory _$$BorderLayerImplCopyWith(
-          _$BorderLayerImpl value, $Res Function(_$BorderLayerImpl) then) =
-      __$$BorderLayerImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      bool isVisible,
-      double opacity,
-      @JsonKey(
-          readValue: _readBorderLayerContent,
-          fromJson: _borderLayerContentFromJson,
-          toJson: _borderLayerContentToJson)
-      BorderLayerContent content,
-      Map<String, String> properties});
+abstract mixin class $EnvironmentLayerCopyWith<$Res> implements $MapLayerCopyWith<$Res> {
+  factory $EnvironmentLayerCopyWith(EnvironmentLayer value, $Res Function(EnvironmentLayer) _then) = _$EnvironmentLayerCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, bool isVisible, double opacity,@JsonKey(fromJson: decodeEnvironmentLayerContent, toJson: encodeEnvironmentLayerContent) EnvironmentLayerContent content, Map<String, String> properties
+});
+
+
+
+
+}
+/// @nodoc
+class _$EnvironmentLayerCopyWithImpl<$Res>
+    implements $EnvironmentLayerCopyWith<$Res> {
+  _$EnvironmentLayerCopyWithImpl(this._self, this._then);
+
+  final EnvironmentLayer _self;
+  final $Res Function(EnvironmentLayer) _then;
+
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isVisible = null,Object? opacity = null,Object? content = null,Object? properties = null,}) {
+  return _then(EnvironmentLayer(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
+as EnvironmentLayerContent,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
 }
 
-/// @nodoc
-class __$$BorderLayerImplCopyWithImpl<$Res>
-    extends _$MapLayerCopyWithImpl<$Res, _$BorderLayerImpl>
-    implements _$$BorderLayerImplCopyWith<$Res> {
-  __$$BorderLayerImplCopyWithImpl(
-      _$BorderLayerImpl _value, $Res Function(_$BorderLayerImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? isVisible = null,
-    Object? opacity = null,
-    Object? content = null,
-    Object? properties = null,
-  }) {
-    return _then(_$BorderLayerImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      isVisible: null == isVisible
-          ? _value.isVisible
-          : isVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      opacity: null == opacity
-          ? _value.opacity
-          : opacity // ignore: cast_nullable_to_non_nullable
-              as double,
-      content: null == content
-          ? _value.content
-          : content // ignore: cast_nullable_to_non_nullable
-              as BorderLayerContent,
-      properties: null == properties
-          ? _value._properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$BorderLayerImpl extends BorderLayer {
-  const _$BorderLayerImpl(
-      {required this.id,
-      required this.name,
-      this.isVisible = true,
-      this.opacity = 1.0,
-      @JsonKey(
-          readValue: _readBorderLayerContent,
-          fromJson: _borderLayerContentFromJson,
-          toJson: _borderLayerContentToJson)
-      this.content = BorderLayerContent.emptyContent,
-      final Map<String, String> properties = const <String, String>{},
-      final String? $type})
-      : _properties = properties,
-        $type = $type ?? 'border',
-        super._();
+class BorderLayer extends MapLayer {
+  const BorderLayer({required this.id, required this.name, this.isVisible = true, this.opacity = 1.0, @JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson) this.content = BorderLayerContent.emptyContent, final  Map<String, String> properties = const <String, String>{}, final  String? $type}): _properties = properties,$type = $type ?? 'border',super._();
+  factory BorderLayer.fromJson(Map<String, dynamic> json) => _$BorderLayerFromJson(json);
 
-  factory _$BorderLayerImpl.fromJson(Map<String, dynamic> json) =>
-      _$$BorderLayerImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  @JsonKey()
-  final bool isVisible;
-  @override
-  @JsonKey()
-  final double opacity;
-  @override
-  @JsonKey(
-      readValue: _readBorderLayerContent,
-      fromJson: _borderLayerContentFromJson,
-      toJson: _borderLayerContentToJson)
-  final BorderLayerContent content;
-  final Map<String, String> _properties;
-  @override
-  @JsonKey()
-  Map<String, String> get properties {
-    if (_properties is EqualUnmodifiableMapView) return _properties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_properties);
-  }
-
-  @JsonKey(name: 'runtimeType')
-  final String $type;
-
-  @override
-  String toString() {
-    return 'MapLayer.border(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, content: $content, properties: $properties)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$BorderLayerImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.isVisible, isVisible) ||
-                other.isVisible == isVisible) &&
-            (identical(other.opacity, opacity) || other.opacity == opacity) &&
-            (identical(other.content, content) || other.content == content) &&
-            const DeepCollectionEquality()
-                .equals(other._properties, _properties));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, name, isVisible, opacity,
-      content, const DeepCollectionEquality().hash(_properties));
-
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$BorderLayerImplCopyWith<_$BorderLayerImpl> get copyWith =>
-      __$$BorderLayerImplCopyWithImpl<_$BorderLayerImpl>(this, _$identity);
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)
-        tile,
-    required TResult Function(String id, String name, bool isVisible,
-            double opacity, List<bool> collisions)
-        collision,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)
-        smartTile,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<MapPlacedTile> tileObjects)
-        object,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)
-        environment,
-    required TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)
-        border,
-  }) {
-    return border(id, name, isVisible, opacity, content, properties);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult? Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult? Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-  }) {
-    return border?.call(id, name, isVisible, opacity, content, properties);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            MapLayerPurpose purpose,
-            List<TileLayerPaletteEntry> palette,
-            List<int> cells)?
-        tile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            List<bool> collisions)?
-        collision,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            String presetId,
-            SmartTileUsage usage,
-            List<String> materialPalette,
-            SmartTileField field,
-            List<SmartTilePatternStroke> patternStrokes,
-            int layerSeed,
-            @JsonKey(toJson: _candidateWeightsToJson, includeIfNull: false)
-            Map<String, int> candidateWeights,
-            Map<String, String> properties)?
-        smartTile,
-    TResult Function(String id, String name, bool isVisible, double opacity,
-            MapLayerPurpose purpose, List<MapPlacedTile> tileObjects)?
-        object,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                fromJson: decodeEnvironmentLayerContent,
-                toJson: encodeEnvironmentLayerContent)
-            EnvironmentLayerContent content,
-            Map<String, String> properties)?
-        environment,
-    TResult Function(
-            String id,
-            String name,
-            bool isVisible,
-            double opacity,
-            @JsonKey(
-                readValue: _readBorderLayerContent,
-                fromJson: _borderLayerContentFromJson,
-                toJson: _borderLayerContentToJson)
-            BorderLayerContent content,
-            Map<String, String> properties)?
-        border,
-    required TResult orElse(),
-  }) {
-    if (border != null) {
-      return border(id, name, isVisible, opacity, content, properties);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(TileLayer value) tile,
-    required TResult Function(CollisionLayer value) collision,
-    required TResult Function(SmartTileLayer value) smartTile,
-    required TResult Function(ObjectLayer value) object,
-    required TResult Function(EnvironmentLayer value) environment,
-    required TResult Function(BorderLayer value) border,
-  }) {
-    return border(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(TileLayer value)? tile,
-    TResult? Function(CollisionLayer value)? collision,
-    TResult? Function(SmartTileLayer value)? smartTile,
-    TResult? Function(ObjectLayer value)? object,
-    TResult? Function(EnvironmentLayer value)? environment,
-    TResult? Function(BorderLayer value)? border,
-  }) {
-    return border?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(TileLayer value)? tile,
-    TResult Function(CollisionLayer value)? collision,
-    TResult Function(SmartTileLayer value)? smartTile,
-    TResult Function(ObjectLayer value)? object,
-    TResult Function(EnvironmentLayer value)? environment,
-    TResult Function(BorderLayer value)? border,
-    required TResult orElse(),
-  }) {
-    if (border != null) {
-      return border(this);
-    }
-    return orElse();
-  }
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$BorderLayerImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override@JsonKey() final  bool isVisible;
+@override@JsonKey() final  double opacity;
+@JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson) final  BorderLayerContent content;
+ final  Map<String, String> _properties;
+@JsonKey() Map<String, String> get properties {
+  if (_properties is EqualUnmodifiableMapView) return _properties;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_properties);
 }
 
-abstract class BorderLayer extends MapLayer {
-  const factory BorderLayer(
-      {required final String id,
-      required final String name,
-      final bool isVisible,
-      final double opacity,
-      @JsonKey(
-          readValue: _readBorderLayerContent,
-          fromJson: _borderLayerContentFromJson,
-          toJson: _borderLayerContentToJson)
-      final BorderLayerContent content,
-      final Map<String, String> properties}) = _$BorderLayerImpl;
-  const BorderLayer._() : super._();
 
-  factory BorderLayer.fromJson(Map<String, dynamic> json) =
-      _$BorderLayerImpl.fromJson;
+@JsonKey(name: 'runtimeType')
+final String $type;
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  bool get isVisible;
-  @override
-  double get opacity;
-  @JsonKey(
-      readValue: _readBorderLayerContent,
-      fromJson: _borderLayerContentFromJson,
-      toJson: _borderLayerContentToJson)
-  BorderLayerContent get content;
-  Map<String, String> get properties;
 
-  /// Create a copy of MapLayer
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$BorderLayerImplCopyWith<_$BorderLayerImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$BorderLayerCopyWith<BorderLayer> get copyWith => _$BorderLayerCopyWithImpl<BorderLayer>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$BorderLayerToJson(this, );
 }
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BorderLayer&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible)&&(identical(other.opacity, opacity) || other.opacity == opacity)&&(identical(other.content, content) || other.content == content)&&const DeepCollectionEquality().equals(other._properties, _properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,isVisible,opacity,content,const DeepCollectionEquality().hash(_properties));
+
+@override
+String toString() {
+  return 'MapLayer.border(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, content: $content, properties: $properties)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $BorderLayerCopyWith<$Res> implements $MapLayerCopyWith<$Res> {
+  factory $BorderLayerCopyWith(BorderLayer value, $Res Function(BorderLayer) _then) = _$BorderLayerCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, bool isVisible, double opacity,@JsonKey(readValue: _readBorderLayerContent, fromJson: _borderLayerContentFromJson, toJson: _borderLayerContentToJson) BorderLayerContent content, Map<String, String> properties
+});
+
+
+
+
+}
+/// @nodoc
+class _$BorderLayerCopyWithImpl<$Res>
+    implements $BorderLayerCopyWith<$Res> {
+  _$BorderLayerCopyWithImpl(this._self, this._then);
+
+  final BorderLayer _self;
+  final $Res Function(BorderLayer) _then;
+
+/// Create a copy of MapLayer
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? isVisible = null,Object? opacity = null,Object? content = null,Object? properties = null,}) {
+  return _then(BorderLayer(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,isVisible: null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
+as bool,opacity: null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+as double,content: null == content ? _self.content : content // ignore: cast_nullable_to_non_nullable
+as BorderLayerContent,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+
+
+}
+
+// dart format on

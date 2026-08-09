@@ -6,24 +6,23 @@ part of 'map_gameplay_zone_payloads.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$EncounterZonePayloadImpl _$$EncounterZonePayloadImplFromJson(
-        Map<String, dynamic> json) =>
-    _$EncounterZonePayloadImpl(
-      encounterTableId: json['encounterTableId'] as String?,
-      encounterKind:
-          $enumDecodeNullable(_$EncounterKindEnumMap, json['encounterKind']) ??
-              EncounterKind.walk,
-      battleBackgroundRelativePath:
-          json['battleBackgroundRelativePath'] as String?,
-    );
+_EncounterZonePayload _$EncounterZonePayloadFromJson(
+  Map<String, dynamic> json,
+) => _EncounterZonePayload(
+  encounterTableId: json['encounterTableId'] as String?,
+  encounterKind:
+      $enumDecodeNullable(_$EncounterKindEnumMap, json['encounterKind']) ??
+      EncounterKind.walk,
+  battleBackgroundRelativePath: json['battleBackgroundRelativePath'] as String?,
+);
 
-Map<String, dynamic> _$$EncounterZonePayloadImplToJson(
-        _$EncounterZonePayloadImpl instance) =>
-    <String, dynamic>{
-      'encounterTableId': instance.encounterTableId,
-      'encounterKind': _$EncounterKindEnumMap[instance.encounterKind]!,
-      'battleBackgroundRelativePath': instance.battleBackgroundRelativePath,
-    };
+Map<String, dynamic> _$EncounterZonePayloadToJson(
+  _EncounterZonePayload instance,
+) => <String, dynamic>{
+  'encounterTableId': instance.encounterTableId,
+  'encounterKind': _$EncounterKindEnumMap[instance.encounterKind]!,
+  'battleBackgroundRelativePath': instance.battleBackgroundRelativePath,
+};
 
 const _$EncounterKindEnumMap = {
   EncounterKind.walk: 'walk',
@@ -36,25 +35,26 @@ const _$EncounterKindEnumMap = {
   EncounterKind.special: 'special',
 };
 
-_$MovementZonePayloadImpl _$$MovementZonePayloadImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MovementZonePayloadImpl(
+_MovementZonePayload _$MovementZonePayloadFromJson(Map<String, dynamic> json) =>
+    _MovementZonePayload(
       requiredMode:
           $enumDecodeNullable(_$MovementModeEnumMap, json['requiredMode']) ??
-              MovementMode.walk,
-      allowedModes: (json['allowedModes'] as List<dynamic>?)
+          MovementMode.walk,
+      allowedModes:
+          (json['allowedModes'] as List<dynamic>?)
               ?.map((e) => $enumDecode(_$MovementModeEnumMap, e))
               .toList() ??
           const [],
     );
 
-Map<String, dynamic> _$$MovementZonePayloadImplToJson(
-        _$MovementZonePayloadImpl instance) =>
-    <String, dynamic>{
-      'requiredMode': _$MovementModeEnumMap[instance.requiredMode]!,
-      'allowedModes':
-          instance.allowedModes.map((e) => _$MovementModeEnumMap[e]!).toList(),
-    };
+Map<String, dynamic> _$MovementZonePayloadToJson(
+  _MovementZonePayload instance,
+) => <String, dynamic>{
+  'requiredMode': _$MovementModeEnumMap[instance.requiredMode]!,
+  'allowedModes': instance.allowedModes
+      .map((e) => _$MovementModeEnumMap[e]!)
+      .toList(),
+};
 
 const _$MovementModeEnumMap = {
   MovementMode.walk: 'walk',
@@ -65,38 +65,39 @@ const _$MovementModeEnumMap = {
   MovementMode.rockSmash: 'rock_smash',
 };
 
-_$MovementEffectZonePayloadImpl _$$MovementEffectZonePayloadImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MovementEffectZonePayloadImpl(
-      effectKind: $enumDecodeNullable(
-              _$MovementEffectZoneKindEnumMap, json['effectKind']) ??
-          MovementEffectZoneKind.slide,
-      movementCost: (json['movementCost'] as num?)?.toInt() ?? 1,
-    );
+_MovementEffectZonePayload _$MovementEffectZonePayloadFromJson(
+  Map<String, dynamic> json,
+) => _MovementEffectZonePayload(
+  effectKind:
+      $enumDecodeNullable(
+        _$MovementEffectZoneKindEnumMap,
+        json['effectKind'],
+      ) ??
+      MovementEffectZoneKind.slide,
+  movementCost: (json['movementCost'] as num?)?.toInt() ?? 1,
+);
 
-Map<String, dynamic> _$$MovementEffectZonePayloadImplToJson(
-        _$MovementEffectZonePayloadImpl instance) =>
-    <String, dynamic>{
-      'effectKind': _$MovementEffectZoneKindEnumMap[instance.effectKind]!,
-      'movementCost': instance.movementCost,
-    };
+Map<String, dynamic> _$MovementEffectZonePayloadToJson(
+  _MovementEffectZonePayload instance,
+) => <String, dynamic>{
+  'effectKind': _$MovementEffectZoneKindEnumMap[instance.effectKind]!,
+  'movementCost': instance.movementCost,
+};
 
 const _$MovementEffectZoneKindEnumMap = {
   MovementEffectZoneKind.slide: 'slide',
   MovementEffectZoneKind.movementCost: 'movementCost',
 };
 
-_$HazardZonePayloadImpl _$$HazardZonePayloadImplFromJson(
-        Map<String, dynamic> json) =>
-    _$HazardZonePayloadImpl(
+_HazardZonePayload _$HazardZonePayloadFromJson(Map<String, dynamic> json) =>
+    _HazardZonePayload(
       hazardKind:
           $enumDecodeNullable(_$HazardKindEnumMap, json['hazardKind']) ??
-              HazardKind.other,
+          HazardKind.other,
       damagePerStep: (json['damagePerStep'] as num?)?.toInt() ?? 0,
     );
 
-Map<String, dynamic> _$$HazardZonePayloadImplToJson(
-        _$HazardZonePayloadImpl instance) =>
+Map<String, dynamic> _$HazardZonePayloadToJson(_HazardZonePayload instance) =>
     <String, dynamic>{
       'hazardKind': _$HazardKindEnumMap[instance.hazardKind]!,
       'damagePerStep': instance.damagePerStep,
@@ -110,18 +111,17 @@ const _$HazardKindEnumMap = {
   HazardKind.other: 'other',
 };
 
-_$SpecialZonePayloadImpl _$$SpecialZonePayloadImplFromJson(
-        Map<String, dynamic> json) =>
-    _$SpecialZonePayloadImpl(
+_SpecialZonePayload _$SpecialZonePayloadFromJson(Map<String, dynamic> json) =>
+    _SpecialZonePayload(
       scriptKey: json['scriptKey'] as String?,
-      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+      properties:
+          (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
           const {},
     );
 
-Map<String, dynamic> _$$SpecialZonePayloadImplToJson(
-        _$SpecialZonePayloadImpl instance) =>
+Map<String, dynamic> _$SpecialZonePayloadToJson(_SpecialZonePayload instance) =>
     <String, dynamic>{
       'scriptKey': instance.scriptKey,
       'properties': instance.properties,

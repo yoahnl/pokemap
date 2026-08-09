@@ -52,7 +52,7 @@ enum MapLayerPurpose {
 /// tileset. [transform] spans the eight D4 symmetries through quarter turns
 /// and one reflection, matching Tiled without retaining Tiled flags.
 @freezed
-class TileLayerPaletteEntry with _$TileLayerPaletteEntry {
+abstract class TileLayerPaletteEntry with _$TileLayerPaletteEntry {
   @JsonSerializable(explicitToJson: true)
   const factory TileLayerPaletteEntry({
     required String tilesetId,
@@ -71,7 +71,7 @@ class TileLayerPaletteEntry with _$TileLayerPaletteEntry {
 /// visual object can never make a cell impassable without a separate explicit
 /// authoring action.
 @freezed
-class MapPlacedTile with _$MapPlacedTile {
+abstract class MapPlacedTile with _$MapPlacedTile {
   @JsonSerializable(explicitToJson: true)
   const factory MapPlacedTile({
     required String id,

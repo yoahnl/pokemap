@@ -64,7 +64,7 @@ final class PlatformPersonalizationStudioFilePickerBackend
   Future<List<String>?> pick(
     PersonalizationStudioFilePickerRequest request,
   ) async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       dialogTitle: request.dialogTitle,
       type: FileType.custom,
       allowedExtensions: request.allowedExtensions,

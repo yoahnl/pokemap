@@ -197,7 +197,7 @@ void _requireStrictJsonIntegers(
 }
 
 @freezed
-class SmartTileSourceRect with _$SmartTileSourceRect {
+abstract class SmartTileSourceRect with _$SmartTileSourceRect {
   @Assert('x >= 0', 'x must not be negative')
   @Assert('y >= 0', 'y must not be negative')
   @Assert('width > 0', 'width must be positive')
@@ -226,7 +226,7 @@ SmartTileSourceRect _smartTileSourceRectFromJson(
 }
 
 @freezed
-class SmartTileFrameRef with _$SmartTileFrameRef {
+abstract class SmartTileFrameRef with _$SmartTileFrameRef {
   @Assert('atlasId != ""', 'atlasId must not be blank')
   @Assert('column >= 0', 'column must not be negative')
   @Assert('row >= 0', 'row must not be negative')
@@ -365,7 +365,7 @@ String _smartTileMatchKindToJson(SmartTileMatchKind kind) {
 }
 
 @freezed
-class SmartTileSignature with _$SmartTileSignature {
+abstract class SmartTileSignature with _$SmartTileSignature {
   @JsonSerializable(explicitToJson: true)
   const factory SmartTileSignature({
     @Default(SmartTileSlotMatch.any()) SmartTileSlotMatch northWestCorner,
@@ -383,7 +383,7 @@ class SmartTileSignature with _$SmartTileSignature {
 }
 
 @freezed
-class SmartTileExactSignature with _$SmartTileExactSignature {
+abstract class SmartTileExactSignature with _$SmartTileExactSignature {
   @JsonSerializable(explicitToJson: true)
   const factory SmartTileExactSignature({
     String? northEdge,
@@ -401,7 +401,7 @@ class SmartTileExactSignature with _$SmartTileExactSignature {
 }
 
 @freezed
-class SmartTileCoverageScenario with _$SmartTileCoverageScenario {
+abstract class SmartTileCoverageScenario with _$SmartTileCoverageScenario {
   @JsonSerializable(explicitToJson: true)
   const factory SmartTileCoverageScenario({
     required String id,
@@ -414,7 +414,7 @@ class SmartTileCoverageScenario with _$SmartTileCoverageScenario {
 }
 
 @freezed
-class SmartTileCoverageProfile with _$SmartTileCoverageProfile {
+abstract class SmartTileCoverageProfile with _$SmartTileCoverageProfile {
   @JsonSerializable(explicitToJson: true)
   const factory SmartTileCoverageProfile({
     required SmartTileCoverageMode mode,
@@ -428,7 +428,7 @@ class SmartTileCoverageProfile with _$SmartTileCoverageProfile {
 }
 
 @freezed
-class SmartTileTransformPolicy with _$SmartTileTransformPolicy {
+abstract class SmartTileTransformPolicy with _$SmartTileTransformPolicy {
   const factory SmartTileTransformPolicy({
     @Default(false) bool allowHFlip,
     @Default(false) bool allowVFlip,
@@ -441,7 +441,7 @@ class SmartTileTransformPolicy with _$SmartTileTransformPolicy {
 }
 
 @freezed
-class SmartTileSpriteTransform with _$SmartTileSpriteTransform {
+abstract class SmartTileSpriteTransform with _$SmartTileSpriteTransform {
   @Assert(
     'quarterTurns >= 0 && quarterTurns <= 3',
     'quarterTurns must be between 0 and 3',
@@ -478,7 +478,7 @@ sealed class SmartTileVisualSource with _$SmartTileVisualSource {
 }
 
 @freezed
-class SmartTileVisualPart with _$SmartTileVisualPart {
+abstract class SmartTileVisualPart with _$SmartTileVisualPart {
   @Assert('footprintWidth > 0', 'footprintWidth must be positive')
   @Assert('footprintHeight > 0', 'footprintHeight must be positive')
   @JsonSerializable(explicitToJson: true)
@@ -518,7 +518,7 @@ SmartTileVisualPart _smartTileVisualPartFromJson(
 }
 
 @freezed
-class SmartTilePatternCell with _$SmartTilePatternCell {
+abstract class SmartTilePatternCell with _$SmartTilePatternCell {
   @Assert('x >= 0', 'x must not be negative')
   @Assert('y >= 0', 'y must not be negative')
   @JsonSerializable(explicitToJson: true)
@@ -541,7 +541,7 @@ SmartTilePatternCell _smartTilePatternCellFromJson(Map<String, dynamic> json) {
 }
 
 @freezed
-class ProjectSmartTilePattern with _$ProjectSmartTilePattern {
+abstract class ProjectSmartTilePattern with _$ProjectSmartTilePattern {
   @Assert('id != ""', 'id must not be blank')
   @Assert('name != ""', 'name must not be blank')
   @Assert('width > 0 && width <= 64', 'width must be between 1 and 64')
@@ -585,7 +585,7 @@ ProjectSmartTilePattern _projectSmartTilePatternFromJson(
 }
 
 @freezed
-class SmartTilePatternStroke with _$SmartTilePatternStroke {
+abstract class SmartTilePatternStroke with _$SmartTilePatternStroke {
   @Assert('id != ""', 'id must not be blank')
   @Assert('patternId != ""', 'patternId must not be blank')
   @JsonSerializable(explicitToJson: true)
@@ -609,7 +609,7 @@ SmartTilePatternStroke _smartTilePatternStrokeFromJson(
 }
 
 @freezed
-class SmartTileCandidate with _$SmartTileCandidate {
+abstract class SmartTileCandidate with _$SmartTileCandidate {
   @Assert('id != ""', 'id must not be blank')
   @JsonSerializable(explicitToJson: true)
   const factory SmartTileCandidate({
@@ -628,7 +628,7 @@ SmartTileCandidate _smartTileCandidateFromJson(Map<String, dynamic> json) {
 }
 
 @freezed
-class SmartTileRule with _$SmartTileRule {
+abstract class SmartTileRule with _$SmartTileRule {
   @Assert('id != ""', 'id must not be blank')
   @JsonSerializable(explicitToJson: true)
   const factory SmartTileRule({
@@ -643,7 +643,7 @@ class SmartTileRule with _$SmartTileRule {
 }
 
 @freezed
-class ProjectSmartTileCategory with _$ProjectSmartTileCategory {
+abstract class ProjectSmartTileCategory with _$ProjectSmartTileCategory {
   @Assert('id != ""', 'id must not be blank')
   @Assert('name != ""', 'name must not be blank')
   const factory ProjectSmartTileCategory({
@@ -664,7 +664,7 @@ ProjectSmartTileCategory _projectSmartTileCategoryFromJson(
 }
 
 @freezed
-class ProjectSmartTileAtlas with _$ProjectSmartTileAtlas {
+abstract class ProjectSmartTileAtlas with _$ProjectSmartTileAtlas {
   @Assert('id != ""', 'id must not be blank')
   @Assert('name != ""', 'name must not be blank')
   @Assert('tilesetId != ""', 'tilesetId must not be blank')
@@ -745,7 +745,7 @@ ProjectSmartTileAtlas _projectSmartTileAtlasFromJson(
 }
 
 @freezed
-class ProjectSmartTileMaterial with _$ProjectSmartTileMaterial {
+abstract class ProjectSmartTileMaterial with _$ProjectSmartTileMaterial {
   @Assert('id != ""', 'id must not be blank')
   @Assert('name != ""', 'name must not be blank')
   @Assert(
@@ -780,7 +780,7 @@ ProjectSmartTileMaterial _projectSmartTileMaterialFromJson(
 }
 
 @freezed
-class ProjectSmartTileAnimationFrame with _$ProjectSmartTileAnimationFrame {
+abstract class ProjectSmartTileAnimationFrame with _$ProjectSmartTileAnimationFrame {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectSmartTileAnimationFrame({
     required SmartTileFrameRef frame,
@@ -801,7 +801,7 @@ ProjectSmartTileAnimationFrame _projectSmartTileAnimationFrameFromJson(
 }
 
 @freezed
-class ProjectSmartTileAnimation with _$ProjectSmartTileAnimation {
+abstract class ProjectSmartTileAnimation with _$ProjectSmartTileAnimation {
   @Assert('id != ""', 'id must not be blank')
   @Assert('name != ""', 'name must not be blank')
   @JsonSerializable(explicitToJson: true)
@@ -818,7 +818,7 @@ class ProjectSmartTileAnimation with _$ProjectSmartTileAnimation {
 }
 
 @freezed
-class ProjectSmartTilePreset with _$ProjectSmartTilePreset {
+abstract class ProjectSmartTilePreset with _$ProjectSmartTilePreset {
   @Assert('id != ""', 'id must not be blank')
   @Assert('name != ""', 'name must not be blank')
   @Assert(
@@ -864,7 +864,7 @@ ProjectSmartTilePreset _projectSmartTilePresetFromJson(
 /// Draft resources remain private until the publication compiler projects
 /// them into the canonical catalog. Runtime resolution never reads this type.
 @freezed
-class ProjectSmartTileAuthoringDraft with _$ProjectSmartTileAuthoringDraft {
+abstract class ProjectSmartTileAuthoringDraft with _$ProjectSmartTileAuthoringDraft {
   @Assert('id != ""', 'id must not be blank')
   @Assert('targetPresetId != ""', 'targetPresetId must not be blank')
   @Assert('name != ""', 'name must not be blank')

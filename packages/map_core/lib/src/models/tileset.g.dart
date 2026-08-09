@@ -6,13 +6,14 @@ part of 'tileset.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$TilesetConfigImpl _$$TilesetConfigImplFromJson(Map<String, dynamic> json) =>
-    _$TilesetConfigImpl(
+_TilesetConfig _$TilesetConfigFromJson(Map<String, dynamic> json) =>
+    _TilesetConfig(
       id: json['id'] as String,
       name: json['name'] as String,
       relativePath: json['relativePath'] as String,
       tileSize: (json['tileSize'] as num?)?.toInt() ?? 32,
-      tileProperties: (json['tileProperties'] as List<dynamic>?)
+      tileProperties:
+          (json['tileProperties'] as List<dynamic>?)
               ?.map((e) => TileProperties.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
@@ -20,7 +21,7 @@ _$TilesetConfigImpl _$$TilesetConfigImplFromJson(Map<String, dynamic> json) =>
           json['customProperties'] as Map<String, dynamic>? ?? const {},
     );
 
-Map<String, dynamic> _$$TilesetConfigImplToJson(_$TilesetConfigImpl instance) =>
+Map<String, dynamic> _$TilesetConfigToJson(_TilesetConfig instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
@@ -30,15 +31,14 @@ Map<String, dynamic> _$$TilesetConfigImplToJson(_$TilesetConfigImpl instance) =>
       'customProperties': instance.customProperties,
     };
 
-_$TilePropertiesImpl _$$TilePropertiesImplFromJson(Map<String, dynamic> json) =>
-    _$TilePropertiesImpl(
+_TileProperties _$TilePropertiesFromJson(Map<String, dynamic> json) =>
+    _TileProperties(
       tileId: (json['tileId'] as num).toInt(),
       isPassable: json['isPassable'] as bool? ?? true,
       properties: json['properties'] as Map<String, dynamic>? ?? const {},
     );
 
-Map<String, dynamic> _$$TilePropertiesImplToJson(
-        _$TilePropertiesImpl instance) =>
+Map<String, dynamic> _$TilePropertiesToJson(_TileProperties instance) =>
     <String, dynamic>{
       'tileId': instance.tileId,
       'isPassable': instance.isPassable,

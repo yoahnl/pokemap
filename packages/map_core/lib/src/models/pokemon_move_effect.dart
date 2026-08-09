@@ -53,7 +53,7 @@ enum PokemonMoveStatId {
 /// - il doit rester simple à sérialiser ;
 /// - il ne doit pas dépendre d'une clé texte magique.
 @freezed
-class PokemonMoveStatStageChange with _$PokemonMoveStatStageChange {
+abstract class PokemonMoveStatStageChange with _$PokemonMoveStatStageChange {
   @JsonSerializable(explicitToJson: true)
   const factory PokemonMoveStatStageChange({
     required PokemonMoveStatId stat,
@@ -78,7 +78,7 @@ class PokemonMoveStatStageChange with _$PokemonMoveStatStageChange {
 /// - ce n'est pas encore un moteur d'exécution ;
 /// - chaque variant embarque seulement le payload nécessaire à la donnée.
 @Freezed(unionKey: 'kind', unionValueCase: FreezedUnionCase.snake)
-class PokemonMoveEffect with _$PokemonMoveEffect {
+abstract class PokemonMoveEffect with _$PokemonMoveEffect {
   const PokemonMoveEffect._();
 
   @JsonSerializable(explicitToJson: true)

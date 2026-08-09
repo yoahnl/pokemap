@@ -15,7 +15,7 @@ part 'game_state.g.dart';
 /// Le double est exclu volontairement pour éviter les problèmes de précision
 /// dans les comparaisons de conditions.
 @freezed
-class ScriptVariableValue with _$ScriptVariableValue {
+abstract class ScriptVariableValue with _$ScriptVariableValue {
   const factory ScriptVariableValue.bool(bool value) = ScriptVariableValueBool;
   const factory ScriptVariableValue.int(int value) = ScriptVariableValueInt;
   const factory ScriptVariableValue.string(String value) =
@@ -30,7 +30,7 @@ class ScriptVariableValue with _$ScriptVariableValue {
 /// Clés : identifiants alphanumériques (ex: "rival_defeated", "starter_chosen").
 /// Valeurs : [ScriptVariableValue] (bool/int/string).
 @freezed
-class ScriptVariables with _$ScriptVariables {
+abstract class ScriptVariables with _$ScriptVariables {
   @JsonSerializable(explicitToJson: true)
   const factory ScriptVariables({
     @Default({}) Map<String, ScriptVariableValue> values,
@@ -47,7 +47,7 @@ class ScriptVariables with _$ScriptVariables {
 ///
 /// Exemples : "professor_met", "starter_received", "surf_unlocked".
 @freezed
-class StoryFlags with _$StoryFlags {
+abstract class StoryFlags with _$StoryFlags {
   const factory StoryFlags({
     @Default({}) Set<String> activeFlags,
   }) = _StoryFlags;
@@ -67,7 +67,7 @@ class StoryFlags with _$StoryFlags {
 ///
 /// Immutable, sérialisable JSON, indépendant du runtime.
 @freezed
-class GameState with _$GameState {
+abstract class GameState with _$GameState {
   @JsonSerializable(explicitToJson: true)
   const factory GameState({
     /// Identifiant unique de la sauvegarde.

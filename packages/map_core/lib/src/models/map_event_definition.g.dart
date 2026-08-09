@@ -6,26 +6,27 @@ part of 'map_event_definition.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$MapEventDefinitionImpl _$$MapEventDefinitionImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MapEventDefinitionImpl(
+_MapEventDefinition _$MapEventDefinitionFromJson(Map<String, dynamic> json) =>
+    _MapEventDefinition(
       id: json['id'] as String,
       title: json['title'] as String? ?? '',
       pages: (json['pages'] as List<dynamic>)
           .map((e) => MapEventPage.fromJson(e as Map<String, dynamic>))
           .toList(),
-      position:
-          EventPosition.fromJson(json['position'] as Map<String, dynamic>),
-      type: $enumDecodeNullable(_$MapEventTypeEnumMap, json['type']) ??
+      position: EventPosition.fromJson(
+        json['position'] as Map<String, dynamic>,
+      ),
+      type:
+          $enumDecodeNullable(_$MapEventTypeEnumMap, json['type']) ??
           MapEventType.actor,
-      metadata: (json['metadata'] as Map<String, dynamic>?)?.map(
+      metadata:
+          (json['metadata'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
           const {},
     );
 
-Map<String, dynamic> _$$MapEventDefinitionImplToJson(
-        _$MapEventDefinitionImpl instance) =>
+Map<String, dynamic> _$MapEventDefinitionToJson(_MapEventDefinition instance) =>
     <String, dynamic>{
       'id': instance.id,
       'title': instance.title,
@@ -42,34 +43,29 @@ const _$MapEventTypeEnumMap = {
   MapEventType.effect: 'effect',
 };
 
-_$EventPositionImpl _$$EventPositionImplFromJson(Map<String, dynamic> json) =>
-    _$EventPositionImpl(
+_EventPosition _$EventPositionFromJson(Map<String, dynamic> json) =>
+    _EventPosition(
       layerId: json['layerId'] as String,
       x: (json['x'] as num).toInt(),
       y: (json['y'] as num).toInt(),
     );
 
-Map<String, dynamic> _$$EventPositionImplToJson(_$EventPositionImpl instance) =>
+Map<String, dynamic> _$EventPositionToJson(_EventPosition instance) =>
     <String, dynamic>{
       'layerId': instance.layerId,
       'x': instance.x,
       'y': instance.y,
     };
 
-_$MapEventSceneTargetImpl _$$MapEventSceneTargetImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MapEventSceneTargetImpl(
-      sceneId: json['sceneId'] as String,
-    );
+_MapEventSceneTarget _$MapEventSceneTargetFromJson(Map<String, dynamic> json) =>
+    _MapEventSceneTarget(sceneId: json['sceneId'] as String);
 
-Map<String, dynamic> _$$MapEventSceneTargetImplToJson(
-        _$MapEventSceneTargetImpl instance) =>
-    <String, dynamic>{
-      'sceneId': instance.sceneId,
-    };
+Map<String, dynamic> _$MapEventSceneTargetToJson(
+  _MapEventSceneTarget instance,
+) => <String, dynamic>{'sceneId': instance.sceneId};
 
-_$MapEventPageImpl _$$MapEventPageImplFromJson(Map<String, dynamic> json) =>
-    _$MapEventPageImpl(
+_MapEventPage _$MapEventPageFromJson(Map<String, dynamic> json) =>
+    _MapEventPage(
       pageNumber: (json['pageNumber'] as num).toInt(),
       condition: json['condition'] == null
           ? null
@@ -82,51 +78,49 @@ _$MapEventPageImpl _$$MapEventPageImplFromJson(Map<String, dynamic> json) =>
       sceneTarget: json['sceneTarget'] == null
           ? null
           : MapEventSceneTarget.fromJson(
-              json['sceneTarget'] as Map<String, dynamic>),
+              json['sceneTarget'] as Map<String, dynamic>,
+            ),
       isHidden: json['isHidden'] as bool? ?? false,
       isDisabled: json['isDisabled'] as bool? ?? false,
-      metadata: (json['metadata'] as Map<String, dynamic>?)?.map(
+      metadata:
+          (json['metadata'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
           const {},
     );
 
-Map<String, dynamic> _$$MapEventPageImplToJson(_$MapEventPageImpl instance) =>
+Map<String, dynamic> _$MapEventPageToJson(_MapEventPage instance) =>
     <String, dynamic>{
       'pageNumber': instance.pageNumber,
       'condition': instance.condition?.toJson(),
       'script': instance.script?.toJson(),
       'spriteId': instance.spriteId,
       'message': instance.message,
-      if (instance.sceneTarget?.toJson() case final value?)
-        'sceneTarget': value,
+      'sceneTarget': ?instance.sceneTarget?.toJson(),
       'isHidden': instance.isHidden,
       'isDisabled': instance.isDisabled,
       'metadata': instance.metadata,
     };
 
-_$ScriptRefImpl _$$ScriptRefImplFromJson(Map<String, dynamic> json) =>
-    _$ScriptRefImpl(
-      scriptId: json['scriptId'] as String,
-      startNode: json['startNode'] as String?,
-    );
+_ScriptRef _$ScriptRefFromJson(Map<String, dynamic> json) => _ScriptRef(
+  scriptId: json['scriptId'] as String,
+  startNode: json['startNode'] as String?,
+);
 
-Map<String, dynamic> _$$ScriptRefImplToJson(_$ScriptRefImpl instance) =>
+Map<String, dynamic> _$ScriptRefToJson(_ScriptRef instance) =>
     <String, dynamic>{
       'scriptId': instance.scriptId,
       'startNode': instance.startNode,
     };
 
-_$ActiveEventPageImpl _$$ActiveEventPageImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ActiveEventPageImpl(
+_ActiveEventPage _$ActiveEventPageFromJson(Map<String, dynamic> json) =>
+    _ActiveEventPage(
       eventId: json['eventId'] as String,
       page: MapEventPage.fromJson(json['page'] as Map<String, dynamic>),
       pageIndex: (json['pageIndex'] as num).toInt(),
     );
 
-Map<String, dynamic> _$$ActiveEventPageImplToJson(
-        _$ActiveEventPageImpl instance) =>
+Map<String, dynamic> _$ActiveEventPageToJson(_ActiveEventPage instance) =>
     <String, dynamic>{
       'eventId': instance.eventId,
       'page': instance.page,

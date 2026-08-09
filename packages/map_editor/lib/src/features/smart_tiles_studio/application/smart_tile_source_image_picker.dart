@@ -20,7 +20,7 @@ final class FilePickerSmartTileSourceImagePicker
 
   @override
   Future<SmartTilePickedSourceImage?> pick() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.image,
       allowMultiple: false,
       withData: false,

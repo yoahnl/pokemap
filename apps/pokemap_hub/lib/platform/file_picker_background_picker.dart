@@ -15,7 +15,7 @@ final class AveluneFilePickerBackgroundPicker
   @override
   Future<AvelunePickedBackground?> pick() async {
     try {
-      final result = await FilePicker.platform.pickFiles(
+      final result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: const <String>['jpg', 'jpeg', 'png', 'webp'],
         allowMultiple: false,

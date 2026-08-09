@@ -1,5 +1,5 @@
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,525 +9,840 @@ part of 'geometry.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
-GridPos _$GridPosFromJson(Map<String, dynamic> json) {
-  return _GridPos.fromJson(json);
-}
 
 /// @nodoc
 mixin _$GridPos {
-  int get x => throw _privateConstructorUsedError;
-  int get y => throw _privateConstructorUsedError;
+
+ int get x; int get y;
+/// Create a copy of GridPos
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<GridPos> get copyWith => _$GridPosCopyWithImpl<GridPos>(this as GridPos, _$identity);
 
   /// Serializes this GridPos to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of GridPos
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $GridPosCopyWith<GridPos> get copyWith => throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GridPos&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,x,y);
+
+@override
+String toString() {
+  return 'GridPos(x: $x, y: $y)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $GridPosCopyWith<$Res> {
-  factory $GridPosCopyWith(GridPos value, $Res Function(GridPos) then) =
-      _$GridPosCopyWithImpl<$Res, GridPos>;
-  @useResult
-  $Res call({int x, int y});
-}
+abstract mixin class $GridPosCopyWith<$Res>  {
+  factory $GridPosCopyWith(GridPos value, $Res Function(GridPos) _then) = _$GridPosCopyWithImpl;
+@useResult
+$Res call({
+ int x, int y
+});
 
+
+
+
+}
 /// @nodoc
-class _$GridPosCopyWithImpl<$Res, $Val extends GridPos>
+class _$GridPosCopyWithImpl<$Res>
     implements $GridPosCopyWith<$Res> {
-  _$GridPosCopyWithImpl(this._value, this._then);
+  _$GridPosCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final GridPos _self;
+  final $Res Function(GridPos) _then;
 
-  /// Create a copy of GridPos
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? x = null,
-    Object? y = null,
-  }) {
-    return _then(_value.copyWith(
-      x: null == x
-          ? _value.x
-          : x // ignore: cast_nullable_to_non_nullable
-              as int,
-      y: null == y
-          ? _value.y
-          : y // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of GridPos
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? x = null,Object? y = null,}) {
+  return _then(_self.copyWith(
+x: null == x ? _self.x : x // ignore: cast_nullable_to_non_nullable
+as int,y: null == y ? _self.y : y // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$GridPosImplCopyWith<$Res> implements $GridPosCopyWith<$Res> {
-  factory _$$GridPosImplCopyWith(
-          _$GridPosImpl value, $Res Function(_$GridPosImpl) then) =
-      __$$GridPosImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({int x, int y});
 }
 
-/// @nodoc
-class __$$GridPosImplCopyWithImpl<$Res>
-    extends _$GridPosCopyWithImpl<$Res, _$GridPosImpl>
-    implements _$$GridPosImplCopyWith<$Res> {
-  __$$GridPosImplCopyWithImpl(
-      _$GridPosImpl _value, $Res Function(_$GridPosImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of GridPos
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? x = null,
-    Object? y = null,
-  }) {
-    return _then(_$GridPosImpl(
-      x: null == x
-          ? _value.x
-          : x // ignore: cast_nullable_to_non_nullable
-              as int,
-      y: null == y
-          ? _value.y
-          : y // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [GridPos].
+extension GridPosPatterns on GridPos {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _GridPos value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _GridPos() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _GridPos value)  $default,){
+final _that = this;
+switch (_that) {
+case _GridPos():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _GridPos value)?  $default,){
+final _that = this;
+switch (_that) {
+case _GridPos() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int x,  int y)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _GridPos() when $default != null:
+return $default(_that.x,_that.y);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int x,  int y)  $default,) {final _that = this;
+switch (_that) {
+case _GridPos():
+return $default(_that.x,_that.y);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int x,  int y)?  $default,) {final _that = this;
+switch (_that) {
+case _GridPos() when $default != null:
+return $default(_that.x,_that.y);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$GridPosImpl implements _GridPos {
-  const _$GridPosImpl({required this.x, required this.y});
 
-  factory _$GridPosImpl.fromJson(Map<String, dynamic> json) =>
-      _$$GridPosImplFromJson(json);
+class _GridPos implements GridPos {
+  const _GridPos({required this.x, required this.y});
+  factory _GridPos.fromJson(Map<String, dynamic> json) => _$GridPosFromJson(json);
 
-  @override
-  final int x;
-  @override
-  final int y;
+@override final  int x;
+@override final  int y;
 
-  @override
-  String toString() {
-    return 'GridPos(x: $x, y: $y)';
-  }
+/// Create a copy of GridPos
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$GridPosCopyWith<_GridPos> get copyWith => __$GridPosCopyWithImpl<_GridPos>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$GridPosImpl &&
-            (identical(other.x, x) || other.x == x) &&
-            (identical(other.y, y) || other.y == y));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, x, y);
-
-  /// Create a copy of GridPos
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$GridPosImplCopyWith<_$GridPosImpl> get copyWith =>
-      __$$GridPosImplCopyWithImpl<_$GridPosImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$GridPosImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$GridPosToJson(this, );
 }
 
-abstract class _GridPos implements GridPos {
-  const factory _GridPos({required final int x, required final int y}) =
-      _$GridPosImpl;
-
-  factory _GridPos.fromJson(Map<String, dynamic> json) = _$GridPosImpl.fromJson;
-
-  @override
-  int get x;
-  @override
-  int get y;
-
-  /// Create a copy of GridPos
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$GridPosImplCopyWith<_$GridPosImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GridPos&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y));
 }
 
-GridSize _$GridSizeFromJson(Map<String, dynamic> json) {
-  return _GridSize.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,x,y);
+
+@override
+String toString() {
+  return 'GridPos(x: $x, y: $y)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$GridPosCopyWith<$Res> implements $GridPosCopyWith<$Res> {
+  factory _$GridPosCopyWith(_GridPos value, $Res Function(_GridPos) _then) = __$GridPosCopyWithImpl;
+@override @useResult
+$Res call({
+ int x, int y
+});
+
+
+
+
+}
+/// @nodoc
+class __$GridPosCopyWithImpl<$Res>
+    implements _$GridPosCopyWith<$Res> {
+  __$GridPosCopyWithImpl(this._self, this._then);
+
+  final _GridPos _self;
+  final $Res Function(_GridPos) _then;
+
+/// Create a copy of GridPos
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? x = null,Object? y = null,}) {
+  return _then(_GridPos(
+x: null == x ? _self.x : x // ignore: cast_nullable_to_non_nullable
+as int,y: null == y ? _self.y : y // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$GridSize {
-  int get width => throw _privateConstructorUsedError;
-  int get height => throw _privateConstructorUsedError;
+
+ int get width; int get height;
+/// Create a copy of GridSize
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$GridSizeCopyWith<GridSize> get copyWith => _$GridSizeCopyWithImpl<GridSize>(this as GridSize, _$identity);
 
   /// Serializes this GridSize to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of GridSize
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $GridSizeCopyWith<GridSize> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GridSize&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,width,height);
+
+@override
+String toString() {
+  return 'GridSize(width: $width, height: $height)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $GridSizeCopyWith<$Res> {
-  factory $GridSizeCopyWith(GridSize value, $Res Function(GridSize) then) =
-      _$GridSizeCopyWithImpl<$Res, GridSize>;
-  @useResult
-  $Res call({int width, int height});
-}
+abstract mixin class $GridSizeCopyWith<$Res>  {
+  factory $GridSizeCopyWith(GridSize value, $Res Function(GridSize) _then) = _$GridSizeCopyWithImpl;
+@useResult
+$Res call({
+ int width, int height
+});
 
+
+
+
+}
 /// @nodoc
-class _$GridSizeCopyWithImpl<$Res, $Val extends GridSize>
+class _$GridSizeCopyWithImpl<$Res>
     implements $GridSizeCopyWith<$Res> {
-  _$GridSizeCopyWithImpl(this._value, this._then);
+  _$GridSizeCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final GridSize _self;
+  final $Res Function(GridSize) _then;
 
-  /// Create a copy of GridSize
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? width = null,
-    Object? height = null,
-  }) {
-    return _then(_value.copyWith(
-      width: null == width
-          ? _value.width
-          : width // ignore: cast_nullable_to_non_nullable
-              as int,
-      height: null == height
-          ? _value.height
-          : height // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of GridSize
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? width = null,Object? height = null,}) {
+  return _then(_self.copyWith(
+width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as int,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$GridSizeImplCopyWith<$Res>
-    implements $GridSizeCopyWith<$Res> {
-  factory _$$GridSizeImplCopyWith(
-          _$GridSizeImpl value, $Res Function(_$GridSizeImpl) then) =
-      __$$GridSizeImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({int width, int height});
 }
 
-/// @nodoc
-class __$$GridSizeImplCopyWithImpl<$Res>
-    extends _$GridSizeCopyWithImpl<$Res, _$GridSizeImpl>
-    implements _$$GridSizeImplCopyWith<$Res> {
-  __$$GridSizeImplCopyWithImpl(
-      _$GridSizeImpl _value, $Res Function(_$GridSizeImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of GridSize
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? width = null,
-    Object? height = null,
-  }) {
-    return _then(_$GridSizeImpl(
-      width: null == width
-          ? _value.width
-          : width // ignore: cast_nullable_to_non_nullable
-              as int,
-      height: null == height
-          ? _value.height
-          : height // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [GridSize].
+extension GridSizePatterns on GridSize {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _GridSize value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _GridSize() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _GridSize value)  $default,){
+final _that = this;
+switch (_that) {
+case _GridSize():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _GridSize value)?  $default,){
+final _that = this;
+switch (_that) {
+case _GridSize() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int width,  int height)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _GridSize() when $default != null:
+return $default(_that.width,_that.height);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int width,  int height)  $default,) {final _that = this;
+switch (_that) {
+case _GridSize():
+return $default(_that.width,_that.height);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int width,  int height)?  $default,) {final _that = this;
+switch (_that) {
+case _GridSize() when $default != null:
+return $default(_that.width,_that.height);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$GridSizeImpl implements _GridSize {
-  const _$GridSizeImpl({required this.width, required this.height});
 
-  factory _$GridSizeImpl.fromJson(Map<String, dynamic> json) =>
-      _$$GridSizeImplFromJson(json);
+class _GridSize implements GridSize {
+  const _GridSize({required this.width, required this.height});
+  factory _GridSize.fromJson(Map<String, dynamic> json) => _$GridSizeFromJson(json);
 
-  @override
-  final int width;
-  @override
-  final int height;
+@override final  int width;
+@override final  int height;
 
-  @override
-  String toString() {
-    return 'GridSize(width: $width, height: $height)';
-  }
+/// Create a copy of GridSize
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$GridSizeCopyWith<_GridSize> get copyWith => __$GridSizeCopyWithImpl<_GridSize>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$GridSizeImpl &&
-            (identical(other.width, width) || other.width == width) &&
-            (identical(other.height, height) || other.height == height));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, width, height);
-
-  /// Create a copy of GridSize
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$GridSizeImplCopyWith<_$GridSizeImpl> get copyWith =>
-      __$$GridSizeImplCopyWithImpl<_$GridSizeImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$GridSizeImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$GridSizeToJson(this, );
 }
 
-abstract class _GridSize implements GridSize {
-  const factory _GridSize(
-      {required final int width, required final int height}) = _$GridSizeImpl;
-
-  factory _GridSize.fromJson(Map<String, dynamic> json) =
-      _$GridSizeImpl.fromJson;
-
-  @override
-  int get width;
-  @override
-  int get height;
-
-  /// Create a copy of GridSize
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$GridSizeImplCopyWith<_$GridSizeImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _GridSize&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height));
 }
 
-MapRect _$MapRectFromJson(Map<String, dynamic> json) {
-  return _MapRect.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,width,height);
+
+@override
+String toString() {
+  return 'GridSize(width: $width, height: $height)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$GridSizeCopyWith<$Res> implements $GridSizeCopyWith<$Res> {
+  factory _$GridSizeCopyWith(_GridSize value, $Res Function(_GridSize) _then) = __$GridSizeCopyWithImpl;
+@override @useResult
+$Res call({
+ int width, int height
+});
+
+
+
+
+}
+/// @nodoc
+class __$GridSizeCopyWithImpl<$Res>
+    implements _$GridSizeCopyWith<$Res> {
+  __$GridSizeCopyWithImpl(this._self, this._then);
+
+  final _GridSize _self;
+  final $Res Function(_GridSize) _then;
+
+/// Create a copy of GridSize
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? width = null,Object? height = null,}) {
+  return _then(_GridSize(
+width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as int,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$MapRect {
-  GridPos get pos => throw _privateConstructorUsedError;
-  GridSize get size => throw _privateConstructorUsedError;
+
+ GridPos get pos; GridSize get size;
+/// Create a copy of MapRect
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<MapRect> get copyWith => _$MapRectCopyWithImpl<MapRect>(this as MapRect, _$identity);
 
   /// Serializes this MapRect to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of MapRect
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $MapRectCopyWith<MapRect> get copyWith => throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapRect&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.size, size) || other.size == size));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,pos,size);
+
+@override
+String toString() {
+  return 'MapRect(pos: $pos, size: $size)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $MapRectCopyWith<$Res> {
-  factory $MapRectCopyWith(MapRect value, $Res Function(MapRect) then) =
-      _$MapRectCopyWithImpl<$Res, MapRect>;
-  @useResult
-  $Res call({GridPos pos, GridSize size});
+abstract mixin class $MapRectCopyWith<$Res>  {
+  factory $MapRectCopyWith(MapRect value, $Res Function(MapRect) _then) = _$MapRectCopyWithImpl;
+@useResult
+$Res call({
+ GridPos pos, GridSize size
+});
 
-  $GridPosCopyWith<$Res> get pos;
-  $GridSizeCopyWith<$Res> get size;
+
+$GridPosCopyWith<$Res> get pos;$GridSizeCopyWith<$Res> get size;
+
 }
-
 /// @nodoc
-class _$MapRectCopyWithImpl<$Res, $Val extends MapRect>
+class _$MapRectCopyWithImpl<$Res>
     implements $MapRectCopyWith<$Res> {
-  _$MapRectCopyWithImpl(this._value, this._then);
+  _$MapRectCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final MapRect _self;
+  final $Res Function(MapRect) _then;
 
-  /// Create a copy of MapRect
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? pos = null,
-    Object? size = null,
-  }) {
-    return _then(_value.copyWith(
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      size: null == size
-          ? _value.size
-          : size // ignore: cast_nullable_to_non_nullable
-              as GridSize,
-    ) as $Val);
-  }
+/// Create a copy of MapRect
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? pos = null,Object? size = null,}) {
+  return _then(_self.copyWith(
+pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
+as GridPos,size: null == size ? _self.size : size // ignore: cast_nullable_to_non_nullable
+as GridSize,
+  ));
+}
+/// Create a copy of MapRect
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get pos {
 
-  /// Create a copy of MapRect
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridPosCopyWith<$Res> get pos {
-    return $GridPosCopyWith<$Res>(_value.pos, (value) {
-      return _then(_value.copyWith(pos: value) as $Val);
-    });
-  }
+  return $GridPosCopyWith<$Res>(_self.pos, (value) {
+    return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapRect
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridSizeCopyWith<$Res> get size {
 
-  /// Create a copy of MapRect
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridSizeCopyWith<$Res> get size {
-    return $GridSizeCopyWith<$Res>(_value.size, (value) {
-      return _then(_value.copyWith(size: value) as $Val);
-    });
-  }
+  return $GridSizeCopyWith<$Res>(_self.size, (value) {
+    return _then(_self.copyWith(size: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$MapRectImplCopyWith<$Res> implements $MapRectCopyWith<$Res> {
-  factory _$$MapRectImplCopyWith(
-          _$MapRectImpl value, $Res Function(_$MapRectImpl) then) =
-      __$$MapRectImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({GridPos pos, GridSize size});
 
-  @override
-  $GridPosCopyWith<$Res> get pos;
-  @override
-  $GridSizeCopyWith<$Res> get size;
+/// Adds pattern-matching-related methods to [MapRect].
+extension MapRectPatterns on MapRect {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _MapRect value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _MapRect() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _MapRect value)  $default,){
+final _that = this;
+switch (_that) {
+case _MapRect():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _MapRect value)?  $default,){
+final _that = this;
+switch (_that) {
+case _MapRect() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( GridPos pos,  GridSize size)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _MapRect() when $default != null:
+return $default(_that.pos,_that.size);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( GridPos pos,  GridSize size)  $default,) {final _that = this;
+switch (_that) {
+case _MapRect():
+return $default(_that.pos,_that.size);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( GridPos pos,  GridSize size)?  $default,) {final _that = this;
+switch (_that) {
+case _MapRect() when $default != null:
+return $default(_that.pos,_that.size);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$MapRectImplCopyWithImpl<$Res>
-    extends _$MapRectCopyWithImpl<$Res, _$MapRectImpl>
-    implements _$$MapRectImplCopyWith<$Res> {
-  __$$MapRectImplCopyWithImpl(
-      _$MapRectImpl _value, $Res Function(_$MapRectImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of MapRect
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? pos = null,
-    Object? size = null,
-  }) {
-    return _then(_$MapRectImpl(
-      pos: null == pos
-          ? _value.pos
-          : pos // ignore: cast_nullable_to_non_nullable
-              as GridPos,
-      size: null == size
-          ? _value.size
-          : size // ignore: cast_nullable_to_non_nullable
-              as GridSize,
-    ));
-  }
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$MapRectImpl implements _MapRect {
-  const _$MapRectImpl({required this.pos, required this.size});
 
-  factory _$MapRectImpl.fromJson(Map<String, dynamic> json) =>
-      _$$MapRectImplFromJson(json);
+class _MapRect implements MapRect {
+  const _MapRect({required this.pos, required this.size});
+  factory _MapRect.fromJson(Map<String, dynamic> json) => _$MapRectFromJson(json);
 
-  @override
-  final GridPos pos;
-  @override
-  final GridSize size;
+@override final  GridPos pos;
+@override final  GridSize size;
 
-  @override
-  String toString() {
-    return 'MapRect(pos: $pos, size: $size)';
-  }
+/// Create a copy of MapRect
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$MapRectCopyWith<_MapRect> get copyWith => __$MapRectCopyWithImpl<_MapRect>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$MapRectImpl &&
-            (identical(other.pos, pos) || other.pos == pos) &&
-            (identical(other.size, size) || other.size == size));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, pos, size);
-
-  /// Create a copy of MapRect
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$MapRectImplCopyWith<_$MapRectImpl> get copyWith =>
-      __$$MapRectImplCopyWithImpl<_$MapRectImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$MapRectImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$MapRectToJson(this, );
 }
 
-abstract class _MapRect implements MapRect {
-  const factory _MapRect(
-      {required final GridPos pos,
-      required final GridSize size}) = _$MapRectImpl;
-
-  factory _MapRect.fromJson(Map<String, dynamic> json) = _$MapRectImpl.fromJson;
-
-  @override
-  GridPos get pos;
-  @override
-  GridSize get size;
-
-  /// Create a copy of MapRect
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$MapRectImplCopyWith<_$MapRectImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapRect&&(identical(other.pos, pos) || other.pos == pos)&&(identical(other.size, size) || other.size == size));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,pos,size);
+
+@override
+String toString() {
+  return 'MapRect(pos: $pos, size: $size)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$MapRectCopyWith<$Res> implements $MapRectCopyWith<$Res> {
+  factory _$MapRectCopyWith(_MapRect value, $Res Function(_MapRect) _then) = __$MapRectCopyWithImpl;
+@override @useResult
+$Res call({
+ GridPos pos, GridSize size
+});
+
+
+@override $GridPosCopyWith<$Res> get pos;@override $GridSizeCopyWith<$Res> get size;
+
+}
+/// @nodoc
+class __$MapRectCopyWithImpl<$Res>
+    implements _$MapRectCopyWith<$Res> {
+  __$MapRectCopyWithImpl(this._self, this._then);
+
+  final _MapRect _self;
+  final $Res Function(_MapRect) _then;
+
+/// Create a copy of MapRect
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? pos = null,Object? size = null,}) {
+  return _then(_MapRect(
+pos: null == pos ? _self.pos : pos // ignore: cast_nullable_to_non_nullable
+as GridPos,size: null == size ? _self.size : size // ignore: cast_nullable_to_non_nullable
+as GridSize,
+  ));
+}
+
+/// Create a copy of MapRect
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res> get pos {
+
+  return $GridPosCopyWith<$Res>(_self.pos, (value) {
+    return _then(_self.copyWith(pos: value));
+  });
+}/// Create a copy of MapRect
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridSizeCopyWith<$Res> get size {
+
+  return $GridSizeCopyWith<$Res>(_self.size, (value) {
+    return _then(_self.copyWith(size: value));
+  });
+}
+}
+
+// dart format on

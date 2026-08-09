@@ -6,197 +6,208 @@ part of 'project_manifest.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ProjectManifestImpl _$$ProjectManifestImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectManifestImpl(
-      name: json['name'] as String,
-      version: $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
-          ProjectVersion.v6,
-      maps: (json['maps'] as List<dynamic>)
-          .map((e) => ProjectMapEntry.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      groups: (json['groups'] as List<dynamic>?)
-              ?.map((e) => ProjectMapGroup.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      tilesetFolders: (json['tilesetFolders'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectTilesetFolder.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      tilesets: (json['tilesets'] as List<dynamic>)
-          .map((e) => ProjectTilesetEntry.fromJson(e as Map<String, dynamic>))
-          .toList(),
-      elementCategories: (json['elementCategories'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectElementCategory.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      elements: (json['elements'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectElementEntry.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      environmentPresets: json['environmentPresets'] == null
-          ? const []
-          : decodeEnvironmentPresets(json['environmentPresets']),
-      encounterTables: (json['encounterTables'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectEncounterTable.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      dialogueFolders: (json['dialogueFolders'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectDialogueFolder.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      dialogues: (json['dialogues'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectDialogueEntry.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      scripts: (json['scripts'] as List<dynamic>?)
-              ?.map(
-                  (e) => ProjectScriptEntry.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      scenarios: (json['scenarios'] as List<dynamic>?)
-              ?.map((e) => ScenarioAsset.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      cinematics: json['cinematics'] == null
-          ? const []
-          : _cinematicsFromJson(json['cinematics']),
-      cinematicMediaAssets: json['cinematicMediaAssets'] == null
-          ? const []
-          : _cinematicMediaAssetsFromJson(json['cinematicMediaAssets']),
-      facts: json['facts'] == null ? const [] : _factsFromJson(json['facts']),
-      worldRules: json['worldRules'] == null
-          ? const []
-          : _worldRulesFromJson(json['worldRules']),
-      narrativeDiagnosticSuppressions:
-          (json['narrativeDiagnosticSuppressions'] as List<dynamic>?)
-                  ?.map((e) => NarrativeDiagnosticSuppression.fromJson(
-                      e as Map<String, dynamic>))
-                  .toList() ??
-              const [],
-      eventRegistry: json['eventRegistry'] == null
-          ? null
-          : NarrativeEventRegistry.fromJson(json['eventRegistry']),
-      scenes:
-          json['scenes'] == null ? const [] : _scenesFromJson(json['scenes']),
-      storylines: json['storylines'] == null
-          ? const []
-          : _storylinesFromJson(json['storylines']),
-      shops: (json['shops'] as List<dynamic>?)
-              ?.map((e) => ShopDefinition.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      badges: (json['badges'] as List<dynamic>?)
-              ?.map((e) => BadgeDefinition.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      trainers: (json['trainers'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectTrainerEntry.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      characters: (json['characters'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectCharacterEntry.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      settings: json['settings'] == null
-          ? const ProjectSettings()
-          : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
-      pokemon: json['pokemon'] == null
-          ? const ProjectPokemonConfig()
-          : ProjectPokemonConfig.fromJson(
-              json['pokemon'] as Map<String, dynamic>),
-      newGame: json['newGame'] == null
-          ? const ProjectNewGameConfig()
-          : ProjectNewGameConfig.fromJson(
-              json['newGame'] as Map<String, dynamic>),
-      presentation: json['presentation'] == null
-          ? null
-          : ProjectPresentationProfile.fromJson(
-              json['presentation'] as Map<String, dynamic>),
-      globalProperties:
-          json['globalProperties'] as Map<String, dynamic>? ?? const {},
-      smartTileCatalog: json['smartTileCatalog'] == null
-          ? const ProjectSmartTileCatalog.empty()
-          : _projectSmartTileCatalogFromJson(json['smartTileCatalog']),
-      borderCatalog: _readProjectBorderCatalog(json, 'borderCatalog') == null
-          ? const ProjectBorderCatalog.empty()
-          : _projectBorderCatalogFromJson(
-              _readProjectBorderCatalog(json, 'borderCatalog')),
-      shadowCatalog: json['shadowCatalog'] == null
-          ? const ProjectShadowCatalog.empty()
-          : const ProjectShadowCatalogJsonConverter()
-              .fromJson(json['shadowCatalog']),
-      projectedBuildingShadowCatalog:
-          json['projectedBuildingShadowCatalog'] == null
-              ? const ProjectBuildingShadowPresetCatalog.empty()
-              : _projectedBuildingShadowCatalogFromJson(
-                  json['projectedBuildingShadowCatalog']),
-    );
+_ProjectManifest _$ProjectManifestFromJson(
+  Map<String, dynamic> json,
+) => _ProjectManifest(
+  name: json['name'] as String,
+  version:
+      $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
+      ProjectVersion.v6,
+  maps: (json['maps'] as List<dynamic>)
+      .map((e) => ProjectMapEntry.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  groups:
+      (json['groups'] as List<dynamic>?)
+          ?.map((e) => ProjectMapGroup.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  tilesetFolders:
+      (json['tilesetFolders'] as List<dynamic>?)
+          ?.map((e) => ProjectTilesetFolder.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  tilesets: (json['tilesets'] as List<dynamic>)
+      .map((e) => ProjectTilesetEntry.fromJson(e as Map<String, dynamic>))
+      .toList(),
+  elementCategories:
+      (json['elementCategories'] as List<dynamic>?)
+          ?.map(
+            (e) => ProjectElementCategory.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
+  elements:
+      (json['elements'] as List<dynamic>?)
+          ?.map((e) => ProjectElementEntry.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  environmentPresets: json['environmentPresets'] == null
+      ? const []
+      : decodeEnvironmentPresets(json['environmentPresets']),
+  encounterTables:
+      (json['encounterTables'] as List<dynamic>?)
+          ?.map(
+            (e) => ProjectEncounterTable.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
+  dialogueFolders:
+      (json['dialogueFolders'] as List<dynamic>?)
+          ?.map(
+            (e) => ProjectDialogueFolder.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
+  dialogues:
+      (json['dialogues'] as List<dynamic>?)
+          ?.map((e) => ProjectDialogueEntry.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  scripts:
+      (json['scripts'] as List<dynamic>?)
+          ?.map((e) => ProjectScriptEntry.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  scenarios:
+      (json['scenarios'] as List<dynamic>?)
+          ?.map((e) => ScenarioAsset.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  cinematics: json['cinematics'] == null
+      ? const []
+      : _cinematicsFromJson(json['cinematics']),
+  cinematicMediaAssets: json['cinematicMediaAssets'] == null
+      ? const []
+      : _cinematicMediaAssetsFromJson(json['cinematicMediaAssets']),
+  facts: json['facts'] == null ? const [] : _factsFromJson(json['facts']),
+  worldRules: json['worldRules'] == null
+      ? const []
+      : _worldRulesFromJson(json['worldRules']),
+  narrativeDiagnosticSuppressions:
+      (json['narrativeDiagnosticSuppressions'] as List<dynamic>?)
+          ?.map(
+            (e) => NarrativeDiagnosticSuppression.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList() ??
+      const [],
+  eventRegistry: json['eventRegistry'] == null
+      ? null
+      : NarrativeEventRegistry.fromJson(json['eventRegistry']),
+  scenes: json['scenes'] == null ? const [] : _scenesFromJson(json['scenes']),
+  storylines: json['storylines'] == null
+      ? const []
+      : _storylinesFromJson(json['storylines']),
+  shops:
+      (json['shops'] as List<dynamic>?)
+          ?.map((e) => ShopDefinition.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  badges:
+      (json['badges'] as List<dynamic>?)
+          ?.map((e) => BadgeDefinition.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  trainers:
+      (json['trainers'] as List<dynamic>?)
+          ?.map((e) => ProjectTrainerEntry.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  characters:
+      (json['characters'] as List<dynamic>?)
+          ?.map(
+            (e) => ProjectCharacterEntry.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
+  settings: json['settings'] == null
+      ? const ProjectSettings()
+      : ProjectSettings.fromJson(json['settings'] as Map<String, dynamic>),
+  pokemon: json['pokemon'] == null
+      ? const ProjectPokemonConfig()
+      : ProjectPokemonConfig.fromJson(json['pokemon'] as Map<String, dynamic>),
+  newGame: json['newGame'] == null
+      ? const ProjectNewGameConfig()
+      : ProjectNewGameConfig.fromJson(json['newGame'] as Map<String, dynamic>),
+  presentation: json['presentation'] == null
+      ? null
+      : ProjectPresentationProfile.fromJson(
+          json['presentation'] as Map<String, dynamic>,
+        ),
+  globalProperties:
+      json['globalProperties'] as Map<String, dynamic>? ?? const {},
+  smartTileCatalog: json['smartTileCatalog'] == null
+      ? const ProjectSmartTileCatalog.empty()
+      : _projectSmartTileCatalogFromJson(json['smartTileCatalog']),
+  borderCatalog: _readProjectBorderCatalog(json, 'borderCatalog') == null
+      ? const ProjectBorderCatalog.empty()
+      : _projectBorderCatalogFromJson(
+          _readProjectBorderCatalog(json, 'borderCatalog'),
+        ),
+  shadowCatalog: json['shadowCatalog'] == null
+      ? const ProjectShadowCatalog.empty()
+      : const ProjectShadowCatalogJsonConverter().fromJson(
+          json['shadowCatalog'],
+        ),
+  projectedBuildingShadowCatalog: json['projectedBuildingShadowCatalog'] == null
+      ? const ProjectBuildingShadowPresetCatalog.empty()
+      : _projectedBuildingShadowCatalogFromJson(
+          json['projectedBuildingShadowCatalog'],
+        ),
+);
 
-Map<String, dynamic> _$$ProjectManifestImplToJson(
-        _$ProjectManifestImpl instance) =>
-    <String, dynamic>{
-      'name': instance.name,
-      'version': _$ProjectVersionEnumMap[instance.version]!,
-      'maps': instance.maps.map((e) => e.toJson()).toList(),
-      'groups': instance.groups.map((e) => e.toJson()).toList(),
-      'tilesetFolders': instance.tilesetFolders.map((e) => e.toJson()).toList(),
-      'tilesets': instance.tilesets.map((e) => e.toJson()).toList(),
-      'elementCategories':
-          instance.elementCategories.map((e) => e.toJson()).toList(),
-      'elements': instance.elements.map((e) => e.toJson()).toList(),
-      'environmentPresets':
-          encodeEnvironmentPresets(instance.environmentPresets),
-      'encounterTables':
-          instance.encounterTables.map((e) => e.toJson()).toList(),
-      'dialogueFolders':
-          instance.dialogueFolders.map((e) => e.toJson()).toList(),
-      'dialogues': instance.dialogues.map((e) => e.toJson()).toList(),
-      'scripts': instance.scripts.map((e) => e.toJson()).toList(),
-      'scenarios': instance.scenarios.map((e) => e.toJson()).toList(),
-      'cinematics': _cinematicsToJson(instance.cinematics),
-      'cinematicMediaAssets':
-          _cinematicMediaAssetsToJson(instance.cinematicMediaAssets),
-      'facts': _factsToJson(instance.facts),
-      'worldRules': _worldRulesToJson(instance.worldRules),
-      'narrativeDiagnosticSuppressions': instance
-          .narrativeDiagnosticSuppressions
-          .map((e) => e.toJson())
-          .toList(),
-      if (instance.eventRegistry?.toJson() case final value?)
-        'eventRegistry': value,
-      'scenes': _scenesToJson(instance.scenes),
-      'storylines': _storylinesToJson(instance.storylines),
-      'shops': instance.shops.map((e) => e.toJson()).toList(),
-      'badges': instance.badges.map((e) => e.toJson()).toList(),
-      'trainers': instance.trainers.map((e) => e.toJson()).toList(),
-      'characters': instance.characters.map((e) => e.toJson()).toList(),
-      'settings': instance.settings.toJson(),
-      'pokemon': instance.pokemon.toJson(),
-      'newGame': instance.newGame.toJson(),
-      if (instance.presentation?.toJson() case final value?)
-        'presentation': value,
-      'globalProperties': instance.globalProperties,
-      if (_projectSmartTileCatalogToJson(instance.smartTileCatalog)
-          case final value?)
-        'smartTileCatalog': value,
-      if (_projectBorderCatalogToJson(instance.borderCatalog) case final value?)
-        'borderCatalog': value,
-      'shadowCatalog': const ProjectShadowCatalogJsonConverter()
-          .toJson(instance.shadowCatalog),
-      if (_projectedBuildingShadowCatalogToJson(
-              instance.projectedBuildingShadowCatalog)
-          case final value?)
-        'projectedBuildingShadowCatalog': value,
-    };
+Map<String, dynamic> _$ProjectManifestToJson(
+  _ProjectManifest instance,
+) => <String, dynamic>{
+  'name': instance.name,
+  'version': _$ProjectVersionEnumMap[instance.version]!,
+  'maps': instance.maps.map((e) => e.toJson()).toList(),
+  'groups': instance.groups.map((e) => e.toJson()).toList(),
+  'tilesetFolders': instance.tilesetFolders.map((e) => e.toJson()).toList(),
+  'tilesets': instance.tilesets.map((e) => e.toJson()).toList(),
+  'elementCategories': instance.elementCategories
+      .map((e) => e.toJson())
+      .toList(),
+  'elements': instance.elements.map((e) => e.toJson()).toList(),
+  'environmentPresets': encodeEnvironmentPresets(instance.environmentPresets),
+  'encounterTables': instance.encounterTables.map((e) => e.toJson()).toList(),
+  'dialogueFolders': instance.dialogueFolders.map((e) => e.toJson()).toList(),
+  'dialogues': instance.dialogues.map((e) => e.toJson()).toList(),
+  'scripts': instance.scripts.map((e) => e.toJson()).toList(),
+  'scenarios': instance.scenarios.map((e) => e.toJson()).toList(),
+  'cinematics': _cinematicsToJson(instance.cinematics),
+  'cinematicMediaAssets': _cinematicMediaAssetsToJson(
+    instance.cinematicMediaAssets,
+  ),
+  'facts': _factsToJson(instance.facts),
+  'worldRules': _worldRulesToJson(instance.worldRules),
+  'narrativeDiagnosticSuppressions': instance.narrativeDiagnosticSuppressions
+      .map((e) => e.toJson())
+      .toList(),
+  'eventRegistry': ?instance.eventRegistry?.toJson(),
+  'scenes': _scenesToJson(instance.scenes),
+  'storylines': _storylinesToJson(instance.storylines),
+  'shops': instance.shops.map((e) => e.toJson()).toList(),
+  'badges': instance.badges.map((e) => e.toJson()).toList(),
+  'trainers': instance.trainers.map((e) => e.toJson()).toList(),
+  'characters': instance.characters.map((e) => e.toJson()).toList(),
+  'settings': instance.settings.toJson(),
+  'pokemon': instance.pokemon.toJson(),
+  'newGame': instance.newGame.toJson(),
+  'presentation': ?instance.presentation?.toJson(),
+  'globalProperties': instance.globalProperties,
+  'smartTileCatalog': ?_projectSmartTileCatalogToJson(
+    instance.smartTileCatalog,
+  ),
+  'borderCatalog': ?_projectBorderCatalogToJson(instance.borderCatalog),
+  'shadowCatalog': const ProjectShadowCatalogJsonConverter().toJson(
+    instance.shadowCatalog,
+  ),
+  'projectedBuildingShadowCatalog': ?_projectedBuildingShadowCatalogToJson(
+    instance.projectedBuildingShadowCatalog,
+  ),
+};
 
 const _$ProjectVersionEnumMap = {
   ProjectVersion.v1: 'v1',
@@ -207,37 +218,36 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v6: 'v6',
 };
 
-_$ProjectPokemonConfigImpl _$$ProjectPokemonConfigImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectPokemonConfigImpl(
-      enabled: json['enabled'] as bool? ?? true,
-      dataRoot: json['dataRoot'] as String? ?? 'data/pokemon',
-      speciesDir: json['speciesDir'] as String? ?? 'data/pokemon/species',
-      learnsetsDir: json['learnsetsDir'] as String? ?? 'data/pokemon/learnsets',
-      evolutionsDir:
-          json['evolutionsDir'] as String? ?? 'data/pokemon/evolutions',
-      mediaDir: json['mediaDir'] as String? ?? 'data/pokemon/media',
-      catalogFiles: (json['catalogFiles'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, e as String),
-          ) ??
-          _defaultPokemonCatalogFiles,
-    );
+_ProjectPokemonConfig _$ProjectPokemonConfigFromJson(
+  Map<String, dynamic> json,
+) => _ProjectPokemonConfig(
+  enabled: json['enabled'] as bool? ?? true,
+  dataRoot: json['dataRoot'] as String? ?? 'data/pokemon',
+  speciesDir: json['speciesDir'] as String? ?? 'data/pokemon/species',
+  learnsetsDir: json['learnsetsDir'] as String? ?? 'data/pokemon/learnsets',
+  evolutionsDir: json['evolutionsDir'] as String? ?? 'data/pokemon/evolutions',
+  mediaDir: json['mediaDir'] as String? ?? 'data/pokemon/media',
+  catalogFiles:
+      (json['catalogFiles'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      _defaultPokemonCatalogFiles,
+);
 
-Map<String, dynamic> _$$ProjectPokemonConfigImplToJson(
-        _$ProjectPokemonConfigImpl instance) =>
-    <String, dynamic>{
-      'enabled': instance.enabled,
-      'dataRoot': instance.dataRoot,
-      'speciesDir': instance.speciesDir,
-      'learnsetsDir': instance.learnsetsDir,
-      'evolutionsDir': instance.evolutionsDir,
-      'mediaDir': instance.mediaDir,
-      'catalogFiles': instance.catalogFiles,
-    };
+Map<String, dynamic> _$ProjectPokemonConfigToJson(
+  _ProjectPokemonConfig instance,
+) => <String, dynamic>{
+  'enabled': instance.enabled,
+  'dataRoot': instance.dataRoot,
+  'speciesDir': instance.speciesDir,
+  'learnsetsDir': instance.learnsetsDir,
+  'evolutionsDir': instance.evolutionsDir,
+  'mediaDir': instance.mediaDir,
+  'catalogFiles': instance.catalogFiles,
+};
 
-_$ProjectSettingsImpl _$$ProjectSettingsImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectSettingsImpl(
+_ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) =>
+    _ProjectSettings(
       tileWidth: (json['tileWidth'] as num?)?.toInt() ?? 16,
       tileHeight: (json['tileHeight'] as num?)?.toInt() ?? 16,
       displayScale: (json['displayScale'] as num?)?.toDouble() ?? 2.0,
@@ -249,8 +259,7 @@ _$ProjectSettingsImpl _$$ProjectSettingsImplFromJson(
       mistralApiKey: json['mistralApiKey'] as String?,
     );
 
-Map<String, dynamic> _$$ProjectSettingsImplToJson(
-        _$ProjectSettingsImpl instance) =>
+Map<String, dynamic> _$ProjectSettingsToJson(_ProjectSettings instance) =>
     <String, dynamic>{
       'tileWidth': instance.tileWidth,
       'tileHeight': instance.tileHeight,
@@ -258,12 +267,11 @@ Map<String, dynamic> _$$ProjectSettingsImplToJson(
       'defaultMapWidth': instance.defaultMapWidth,
       'defaultMapHeight': instance.defaultMapHeight,
       'defaultPlayerCharacterId': instance.defaultPlayerCharacterId,
-      if (instance.mistralApiKey case final value?) 'mistralApiKey': value,
+      'mistralApiKey': ?instance.mistralApiKey,
     };
 
-_$ProjectMapGroupImpl _$$ProjectMapGroupImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectMapGroupImpl(
+_ProjectMapGroup _$ProjectMapGroupFromJson(Map<String, dynamic> json) =>
+    _ProjectMapGroup(
       id: json['id'] as String,
       name: json['name'] as String,
       type: $enumDecode(_$MapGroupTypeEnumMap, json['type']),
@@ -271,12 +279,11 @@ _$ProjectMapGroupImpl _$$ProjectMapGroupImplFromJson(
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
       tags:
           (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
+          const [],
       properties: json['properties'] as Map<String, dynamic>? ?? const {},
     );
 
-Map<String, dynamic> _$$ProjectMapGroupImplToJson(
-        _$ProjectMapGroupImpl instance) =>
+Map<String, dynamic> _$ProjectMapGroupToJson(_ProjectMapGroup instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
@@ -299,20 +306,18 @@ const _$MapGroupTypeEnumMap = {
   MapGroupType.special: 'special',
 };
 
-_$ProjectMapEntryImpl _$$ProjectMapEntryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectMapEntryImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      relativePath: json['relativePath'] as String,
-      groupId: json['groupId'] as String?,
-      role: $enumDecodeNullable(_$MapRoleEnumMap, json['role']) ??
-          MapRole.exterior,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
+_ProjectMapEntry _$ProjectMapEntryFromJson(
+  Map<String, dynamic> json,
+) => _ProjectMapEntry(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  relativePath: json['relativePath'] as String,
+  groupId: json['groupId'] as String?,
+  role: $enumDecodeNullable(_$MapRoleEnumMap, json['role']) ?? MapRole.exterior,
+  sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+);
 
-Map<String, dynamic> _$$ProjectMapEntryImplToJson(
-        _$ProjectMapEntryImpl instance) =>
+Map<String, dynamic> _$ProjectMapEntryToJson(_ProjectMapEntry instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
@@ -334,168 +339,164 @@ const _$MapRoleEnumMap = {
   MapRole.sub_area: 'sub_area',
 };
 
-_$ProjectDialogueFolderImpl _$$ProjectDialogueFolderImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectDialogueFolderImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      parentFolderId: json['parentFolderId'] as String?,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
+_ProjectDialogueFolder _$ProjectDialogueFolderFromJson(
+  Map<String, dynamic> json,
+) => _ProjectDialogueFolder(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  parentFolderId: json['parentFolderId'] as String?,
+  sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+);
 
-Map<String, dynamic> _$$ProjectDialogueFolderImplToJson(
-        _$ProjectDialogueFolderImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'parentFolderId': instance.parentFolderId,
-      'sortOrder': instance.sortOrder,
-    };
+Map<String, dynamic> _$ProjectDialogueFolderToJson(
+  _ProjectDialogueFolder instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'parentFolderId': instance.parentFolderId,
+  'sortOrder': instance.sortOrder,
+};
 
-_$DialogueDeclaredOutcomeImpl _$$DialogueDeclaredOutcomeImplFromJson(
-        Map<String, dynamic> json) =>
-    _$DialogueDeclaredOutcomeImpl(
-      id: json['id'] as String,
-      label: json['label'] as String,
-    );
+_DialogueDeclaredOutcome _$DialogueDeclaredOutcomeFromJson(
+  Map<String, dynamic> json,
+) => _DialogueDeclaredOutcome(
+  id: json['id'] as String,
+  label: json['label'] as String,
+);
 
-Map<String, dynamic> _$$DialogueDeclaredOutcomeImplToJson(
-        _$DialogueDeclaredOutcomeImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'label': instance.label,
-    };
+Map<String, dynamic> _$DialogueDeclaredOutcomeToJson(
+  _DialogueDeclaredOutcome instance,
+) => <String, dynamic>{'id': instance.id, 'label': instance.label};
 
-_$ProjectDialogueEntryImpl _$$ProjectDialogueEntryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectDialogueEntryImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      relativePath: json['relativePath'] as String,
-      tags:
-          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
-      description: json['description'] as String? ?? '',
-      declaredOutcomes: (json['declaredOutcomes'] as List<dynamic>?)
-              ?.map((e) =>
-                  DialogueDeclaredOutcome.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      defaultStartNode: json['defaultStartNode'] as String?,
-      folderId: json['folderId'] as String?,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
+_ProjectDialogueEntry _$ProjectDialogueEntryFromJson(
+  Map<String, dynamic> json,
+) => _ProjectDialogueEntry(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  relativePath: json['relativePath'] as String,
+  tags:
+      (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
+  description: json['description'] as String? ?? '',
+  declaredOutcomes:
+      (json['declaredOutcomes'] as List<dynamic>?)
+          ?.map(
+            (e) => DialogueDeclaredOutcome.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
+  defaultStartNode: json['defaultStartNode'] as String?,
+  folderId: json['folderId'] as String?,
+  sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+);
 
-Map<String, dynamic> _$$ProjectDialogueEntryImplToJson(
-        _$ProjectDialogueEntryImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'relativePath': instance.relativePath,
-      'tags': instance.tags,
-      'description': instance.description,
-      'declaredOutcomes':
-          instance.declaredOutcomes.map((e) => e.toJson()).toList(),
-      'defaultStartNode': instance.defaultStartNode,
-      'folderId': instance.folderId,
-      'sortOrder': instance.sortOrder,
-    };
+Map<String, dynamic> _$ProjectDialogueEntryToJson(
+  _ProjectDialogueEntry instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'relativePath': instance.relativePath,
+  'tags': instance.tags,
+  'description': instance.description,
+  'declaredOutcomes': instance.declaredOutcomes.map((e) => e.toJson()).toList(),
+  'defaultStartNode': instance.defaultStartNode,
+  'folderId': instance.folderId,
+  'sortOrder': instance.sortOrder,
+};
 
-_$ProjectTilesetFolderImpl _$$ProjectTilesetFolderImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectTilesetFolderImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      parentFolderId: json['parentFolderId'] as String?,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
+_ProjectTilesetFolder _$ProjectTilesetFolderFromJson(
+  Map<String, dynamic> json,
+) => _ProjectTilesetFolder(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  parentFolderId: json['parentFolderId'] as String?,
+  sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+);
 
-Map<String, dynamic> _$$ProjectTilesetFolderImplToJson(
-        _$ProjectTilesetFolderImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'parentFolderId': instance.parentFolderId,
-      'sortOrder': instance.sortOrder,
-    };
+Map<String, dynamic> _$ProjectTilesetFolderToJson(
+  _ProjectTilesetFolder instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'parentFolderId': instance.parentFolderId,
+  'sortOrder': instance.sortOrder,
+};
 
-_$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectTilesetEntryImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      relativePath: json['relativePath'] as String,
-      source: json['source'] == null
-          ? null
-          : ProjectTilesetSource.fromJson(
-              json['source'] as Map<String, dynamic>),
-      scope: $enumDecodeNullable(_$TilesetScopeEnumMap, json['scope']) ??
-          TilesetScope.global,
-      groupId: json['groupId'] as String?,
-      folderId: json['folderId'] as String?,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-      isWorldTileset: json['isWorldTileset'] as bool? ?? false,
-      transparentColor:
-          _tilesetTransparentColorFromJson(json['transparentColor']),
-      elementGroups: (json['elementGroups'] as List<dynamic>?)
-              ?.map((e) =>
-                  TilesetElementGroup.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      paletteEntries: (json['paletteEntries'] as List<dynamic>?)
-              ?.map((e) =>
-                  TilesetPaletteEntry.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-    );
+_ProjectTilesetEntry _$ProjectTilesetEntryFromJson(
+  Map<String, dynamic> json,
+) => _ProjectTilesetEntry(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  relativePath: json['relativePath'] as String,
+  source: json['source'] == null
+      ? null
+      : ProjectTilesetSource.fromJson(json['source'] as Map<String, dynamic>),
+  scope:
+      $enumDecodeNullable(_$TilesetScopeEnumMap, json['scope']) ??
+      TilesetScope.global,
+  groupId: json['groupId'] as String?,
+  folderId: json['folderId'] as String?,
+  sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+  isWorldTileset: json['isWorldTileset'] as bool? ?? false,
+  transparentColor: _tilesetTransparentColorFromJson(json['transparentColor']),
+  elementGroups:
+      (json['elementGroups'] as List<dynamic>?)
+          ?.map((e) => TilesetElementGroup.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  paletteEntries:
+      (json['paletteEntries'] as List<dynamic>?)
+          ?.map((e) => TilesetPaletteEntry.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+);
 
-Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
-        _$ProjectTilesetEntryImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'relativePath': instance.relativePath,
-      if (instance.source?.toJson() case final value?) 'source': value,
-      'scope': _$TilesetScopeEnumMap[instance.scope]!,
-      'groupId': instance.groupId,
-      'folderId': instance.folderId,
-      'sortOrder': instance.sortOrder,
-      'isWorldTileset': instance.isWorldTileset,
-      if (_tilesetTransparentColorToJson(instance.transparentColor)
-          case final value?)
-        'transparentColor': value,
-      'elementGroups': instance.elementGroups.map((e) => e.toJson()).toList(),
-      'paletteEntries': instance.paletteEntries.map((e) => e.toJson()).toList(),
-    };
+Map<String, dynamic> _$ProjectTilesetEntryToJson(
+  _ProjectTilesetEntry instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'relativePath': instance.relativePath,
+  'source': ?instance.source?.toJson(),
+  'scope': _$TilesetScopeEnumMap[instance.scope]!,
+  'groupId': instance.groupId,
+  'folderId': instance.folderId,
+  'sortOrder': instance.sortOrder,
+  'isWorldTileset': instance.isWorldTileset,
+  'transparentColor': ?_tilesetTransparentColorToJson(
+    instance.transparentColor,
+  ),
+  'elementGroups': instance.elementGroups.map((e) => e.toJson()).toList(),
+  'paletteEntries': instance.paletteEntries.map((e) => e.toJson()).toList(),
+};
 
 const _$TilesetScopeEnumMap = {
   TilesetScope.global: 'global',
   TilesetScope.group: 'group',
 };
 
-_$TilesetPaletteEntryImpl _$$TilesetPaletteEntryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$TilesetPaletteEntryImpl(
+_TilesetPaletteEntry _$TilesetPaletteEntryFromJson(Map<String, dynamic> json) =>
+    _TilesetPaletteEntry(
       id: json['id'] as String,
       name: json['name'] as String? ?? '',
       category:
           $enumDecodeNullable(_$PaletteCategoryEnumMap, json['category']) ??
-              PaletteCategory.uncategorized,
+          PaletteCategory.uncategorized,
       frames: (json['frames'] as List<dynamic>)
           .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
           .toList(),
       recommendedLayerId: json['recommendedLayerId'] as String?,
     );
 
-Map<String, dynamic> _$$TilesetPaletteEntryImplToJson(
-        _$TilesetPaletteEntryImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'category': _$PaletteCategoryEnumMap[instance.category]!,
-      'frames': instance.frames.map((e) => e.toJson()).toList(),
-      'recommendedLayerId': instance.recommendedLayerId,
-    };
+Map<String, dynamic> _$TilesetPaletteEntryToJson(
+  _TilesetPaletteEntry instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'category': _$PaletteCategoryEnumMap[instance.category]!,
+  'frames': instance.frames.map((e) => e.toJson()).toList(),
+  'recommendedLayerId': instance.recommendedLayerId,
+};
 
 const _$PaletteCategoryEnumMap = {
   PaletteCategory.floors: 'floors',
@@ -512,17 +513,15 @@ const _$PaletteCategoryEnumMap = {
   PaletteCategory.uncategorized: 'uncategorized',
 };
 
-_$TilesetSourceRectImpl _$$TilesetSourceRectImplFromJson(
-        Map<String, dynamic> json) =>
-    _$TilesetSourceRectImpl(
+_TilesetSourceRect _$TilesetSourceRectFromJson(Map<String, dynamic> json) =>
+    _TilesetSourceRect(
       x: (json['x'] as num).toInt(),
       y: (json['y'] as num).toInt(),
       width: (json['width'] as num?)?.toInt() ?? 1,
       height: (json['height'] as num?)?.toInt() ?? 1,
     );
 
-Map<String, dynamic> _$$TilesetSourceRectImplToJson(
-        _$TilesetSourceRectImpl instance) =>
+Map<String, dynamic> _$TilesetSourceRectToJson(_TilesetSourceRect instance) =>
     <String, dynamic>{
       'x': instance.x,
       'y': instance.y,
@@ -530,62 +529,59 @@ Map<String, dynamic> _$$TilesetSourceRectImplToJson(
       'height': instance.height,
     };
 
-_$TilesetVisualFrameImpl _$$TilesetVisualFrameImplFromJson(
-        Map<String, dynamic> json) =>
-    _$TilesetVisualFrameImpl(
+_TilesetVisualFrame _$TilesetVisualFrameFromJson(Map<String, dynamic> json) =>
+    _TilesetVisualFrame(
       tilesetId: json['tilesetId'] as String? ?? '',
-      source:
-          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+      source: TilesetSourceRect.fromJson(
+        json['source'] as Map<String, dynamic>,
+      ),
       durationMs: (json['durationMs'] as num?)?.toInt(),
     );
 
-Map<String, dynamic> _$$TilesetVisualFrameImplToJson(
-        _$TilesetVisualFrameImpl instance) =>
+Map<String, dynamic> _$TilesetVisualFrameToJson(_TilesetVisualFrame instance) =>
     <String, dynamic>{
       'tilesetId': instance.tilesetId,
       'source': instance.source.toJson(),
       'durationMs': instance.durationMs,
     };
 
-_$TilesetElementGroupImpl _$$TilesetElementGroupImplFromJson(
-        Map<String, dynamic> json) =>
-    _$TilesetElementGroupImpl(
+_TilesetElementGroup _$TilesetElementGroupFromJson(Map<String, dynamic> json) =>
+    _TilesetElementGroup(
       id: json['id'] as String,
       name: json['name'] as String,
       parentGroupId: json['parentGroupId'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
     );
 
-Map<String, dynamic> _$$TilesetElementGroupImplToJson(
-        _$TilesetElementGroupImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'parentGroupId': instance.parentGroupId,
-      'sortOrder': instance.sortOrder,
-    };
+Map<String, dynamic> _$TilesetElementGroupToJson(
+  _TilesetElementGroup instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'parentGroupId': instance.parentGroupId,
+  'sortOrder': instance.sortOrder,
+};
 
-_$ProjectElementCategoryImpl _$$ProjectElementCategoryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectElementCategoryImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      parentCategoryId: json['parentCategoryId'] as String?,
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
+_ProjectElementCategory _$ProjectElementCategoryFromJson(
+  Map<String, dynamic> json,
+) => _ProjectElementCategory(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  parentCategoryId: json['parentCategoryId'] as String?,
+  sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+);
 
-Map<String, dynamic> _$$ProjectElementCategoryImplToJson(
-        _$ProjectElementCategoryImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'parentCategoryId': instance.parentCategoryId,
-      'sortOrder': instance.sortOrder,
-    };
+Map<String, dynamic> _$ProjectElementCategoryToJson(
+  _ProjectElementCategory instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'parentCategoryId': instance.parentCategoryId,
+  'sortOrder': instance.sortOrder,
+};
 
-_$ProjectElementEntryImpl _$$ProjectElementEntryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectElementEntryImpl(
+_ProjectElementEntry _$ProjectElementEntryFromJson(Map<String, dynamic> json) =>
+    _ProjectElementEntry(
       id: json['id'] as String,
       name: json['name'] as String,
       tilesetId: json['tilesetId'] as String,
@@ -596,44 +592,48 @@ _$ProjectElementEntryImpl _$$ProjectElementEntryImplFromJson(
           .toList(),
       presetKind:
           $enumDecodeNullable(_$ElementPresetKindEnumMap, json['presetKind']) ??
-              ElementPresetKind.generic,
+          ElementPresetKind.generic,
       collisionProfile: json['collisionProfile'] == null
           ? null
           : ElementCollisionProfile.fromJson(
-              json['collisionProfile'] as Map<String, dynamic>),
-      shadow: const ProjectElementShadowConfigJsonConverter()
-          .fromJson(json['shadow']),
+              json['collisionProfile'] as Map<String, dynamic>,
+            ),
+      shadow: const ProjectElementShadowConfigJsonConverter().fromJson(
+        json['shadow'],
+      ),
       projectedBuildingShadow: _projectedBuildingShadowConfigFromJson(
-          json['projectedBuildingShadow']),
+        json['projectedBuildingShadow'],
+      ),
       groupId: json['groupId'] as String?,
       recommendedLayerId: json['recommendedLayerId'] as String?,
       tags:
           (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
+          const [],
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
     );
 
-Map<String, dynamic> _$$ProjectElementEntryImplToJson(
-        _$ProjectElementEntryImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'tilesetId': instance.tilesetId,
-      'categoryId': instance.categoryId,
-      'tilesetGroupId': instance.tilesetGroupId,
-      'frames': instance.frames.map((e) => e.toJson()).toList(),
-      'presetKind': _$ElementPresetKindEnumMap[instance.presetKind]!,
-      'collisionProfile': instance.collisionProfile?.toJson(),
-      'shadow': const ProjectElementShadowConfigJsonConverter()
-          .toJson(instance.shadow),
-      if (_projectedBuildingShadowConfigToJson(instance.projectedBuildingShadow)
-          case final value?)
-        'projectedBuildingShadow': value,
-      'groupId': instance.groupId,
-      'recommendedLayerId': instance.recommendedLayerId,
-      'tags': instance.tags,
-      'sortOrder': instance.sortOrder,
-    };
+Map<String, dynamic> _$ProjectElementEntryToJson(
+  _ProjectElementEntry instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'tilesetId': instance.tilesetId,
+  'categoryId': instance.categoryId,
+  'tilesetGroupId': instance.tilesetGroupId,
+  'frames': instance.frames.map((e) => e.toJson()).toList(),
+  'presetKind': _$ElementPresetKindEnumMap[instance.presetKind]!,
+  'collisionProfile': instance.collisionProfile?.toJson(),
+  'shadow': const ProjectElementShadowConfigJsonConverter().toJson(
+    instance.shadow,
+  ),
+  'projectedBuildingShadow': ?_projectedBuildingShadowConfigToJson(
+    instance.projectedBuildingShadow,
+  ),
+  'groupId': instance.groupId,
+  'recommendedLayerId': instance.recommendedLayerId,
+  'tags': instance.tags,
+  'sortOrder': instance.sortOrder,
+};
 
 const _$ElementPresetKindEnumMap = {
   ElementPresetKind.generic: 'generic',
@@ -644,57 +644,61 @@ const _$ElementPresetKindEnumMap = {
   ElementPresetKind.tallDecoration: 'tall_decoration',
 };
 
-_$ProjectEncounterEntryImpl _$$ProjectEncounterEntryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectEncounterEntryImpl(
-      speciesId: json['speciesId'] as String,
-      minLevel: (json['minLevel'] as num).toInt(),
-      maxLevel: (json['maxLevel'] as num).toInt(),
-      weight: (json['weight'] as num?)?.toInt() ?? 1,
-    );
+_ProjectEncounterEntry _$ProjectEncounterEntryFromJson(
+  Map<String, dynamic> json,
+) => _ProjectEncounterEntry(
+  speciesId: json['speciesId'] as String,
+  minLevel: (json['minLevel'] as num).toInt(),
+  maxLevel: (json['maxLevel'] as num).toInt(),
+  weight: (json['weight'] as num?)?.toInt() ?? 1,
+);
 
-Map<String, dynamic> _$$ProjectEncounterEntryImplToJson(
-        _$ProjectEncounterEntryImpl instance) =>
-    <String, dynamic>{
-      'speciesId': instance.speciesId,
-      'minLevel': instance.minLevel,
-      'maxLevel': instance.maxLevel,
-      'weight': instance.weight,
-    };
+Map<String, dynamic> _$ProjectEncounterEntryToJson(
+  _ProjectEncounterEntry instance,
+) => <String, dynamic>{
+  'speciesId': instance.speciesId,
+  'minLevel': instance.minLevel,
+  'maxLevel': instance.maxLevel,
+  'weight': instance.weight,
+};
 
-_$ProjectEncounterTableImpl _$$ProjectEncounterTableImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectEncounterTableImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      encounterKind: $enumDecode(_$EncounterKindEnumMap, json['encounterKind']),
-      chancePerStep: (json['chancePerStep'] as num?)?.toDouble() ??
-          defaultEncounterChancePerStep,
-      conditions: (json['conditions'] as List<dynamic>?)
-              ?.map((e) => ScriptCondition.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      entries: (json['entries'] as List<dynamic>?)
-              ?.map((e) =>
-                  ProjectEncounterEntry.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      tags:
-          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
-    );
+_ProjectEncounterTable _$ProjectEncounterTableFromJson(
+  Map<String, dynamic> json,
+) => _ProjectEncounterTable(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  encounterKind: $enumDecode(_$EncounterKindEnumMap, json['encounterKind']),
+  chancePerStep:
+      (json['chancePerStep'] as num?)?.toDouble() ??
+      defaultEncounterChancePerStep,
+  conditions:
+      (json['conditions'] as List<dynamic>?)
+          ?.map((e) => ScriptCondition.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  entries:
+      (json['entries'] as List<dynamic>?)
+          ?.map(
+            (e) => ProjectEncounterEntry.fromJson(e as Map<String, dynamic>),
+          )
+          .toList() ??
+      const [],
+  tags:
+      (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
+);
 
-Map<String, dynamic> _$$ProjectEncounterTableImplToJson(
-        _$ProjectEncounterTableImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'encounterKind': _$EncounterKindEnumMap[instance.encounterKind]!,
-      'chancePerStep': instance.chancePerStep,
-      'conditions': instance.conditions.map((e) => e.toJson()).toList(),
-      'entries': instance.entries.map((e) => e.toJson()).toList(),
-      'tags': instance.tags,
-    };
+Map<String, dynamic> _$ProjectEncounterTableToJson(
+  _ProjectEncounterTable instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'encounterKind': _$EncounterKindEnumMap[instance.encounterKind]!,
+  'chancePerStep': instance.chancePerStep,
+  'conditions': instance.conditions.map((e) => e.toJson()).toList(),
+  'entries': instance.entries.map((e) => e.toJson()).toList(),
+  'tags': instance.tags,
+};
 
 const _$EncounterKindEnumMap = {
   EncounterKind.walk: 'walk',
@@ -707,19 +711,17 @@ const _$EncounterKindEnumMap = {
   EncounterKind.special: 'special',
 };
 
-_$ProjectScriptEntryImpl _$$ProjectScriptEntryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectScriptEntryImpl(
+_ProjectScriptEntry _$ProjectScriptEntryFromJson(Map<String, dynamic> json) =>
+    _ProjectScriptEntry(
       id: json['id'] as String,
       name: json['name'] as String,
       asset: ScriptAsset.fromJson(json['asset'] as Map<String, dynamic>),
       tags:
           (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
+          const [],
     );
 
-Map<String, dynamic> _$$ProjectScriptEntryImplToJson(
-        _$ProjectScriptEntryImpl instance) =>
+Map<String, dynamic> _$ProjectScriptEntryToJson(_ProjectScriptEntry instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
@@ -727,52 +729,53 @@ Map<String, dynamic> _$$ProjectScriptEntryImplToJson(
       'tags': instance.tags,
     };
 
-_$ProjectCharacterEntryImpl _$$ProjectCharacterEntryImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ProjectCharacterEntryImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      tilesetId: json['tilesetId'] as String,
-      frameWidth: (json['frameWidth'] as num?)?.toInt() ?? 1,
-      frameHeight: (json['frameHeight'] as num?)?.toInt() ?? 2,
-      animations: (json['animations'] as List<dynamic>?)
-              ?.map(
-                  (e) => CharacterAnimation.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      tags:
-          (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
-              const [],
-      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
-    );
+_ProjectCharacterEntry _$ProjectCharacterEntryFromJson(
+  Map<String, dynamic> json,
+) => _ProjectCharacterEntry(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  tilesetId: json['tilesetId'] as String,
+  frameWidth: (json['frameWidth'] as num?)?.toInt() ?? 1,
+  frameHeight: (json['frameHeight'] as num?)?.toInt() ?? 2,
+  animations:
+      (json['animations'] as List<dynamic>?)
+          ?.map((e) => CharacterAnimation.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  tags:
+      (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+      const [],
+  sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+);
 
-Map<String, dynamic> _$$ProjectCharacterEntryImplToJson(
-        _$ProjectCharacterEntryImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'tilesetId': instance.tilesetId,
-      'frameWidth': instance.frameWidth,
-      'frameHeight': instance.frameHeight,
-      'animations': instance.animations.map((e) => e.toJson()).toList(),
-      'tags': instance.tags,
-      'sortOrder': instance.sortOrder,
-    };
+Map<String, dynamic> _$ProjectCharacterEntryToJson(
+  _ProjectCharacterEntry instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'tilesetId': instance.tilesetId,
+  'frameWidth': instance.frameWidth,
+  'frameHeight': instance.frameHeight,
+  'animations': instance.animations.map((e) => e.toJson()).toList(),
+  'tags': instance.tags,
+  'sortOrder': instance.sortOrder,
+};
 
-_$CharacterAnimationImpl _$$CharacterAnimationImplFromJson(
-        Map<String, dynamic> json) =>
-    _$CharacterAnimationImpl(
+_CharacterAnimation _$CharacterAnimationFromJson(Map<String, dynamic> json) =>
+    _CharacterAnimation(
       state: $enumDecode(_$CharacterAnimationStateEnumMap, json['state']),
       direction: $enumDecode(_$EntityFacingEnumMap, json['direction']),
-      frames: (json['frames'] as List<dynamic>?)
-              ?.map((e) =>
-                  CharacterAnimationFrame.fromJson(e as Map<String, dynamic>))
+      frames:
+          (json['frames'] as List<dynamic>?)
+              ?.map(
+                (e) =>
+                    CharacterAnimationFrame.fromJson(e as Map<String, dynamic>),
+              )
               .toList() ??
           const [],
     );
 
-Map<String, dynamic> _$$CharacterAnimationImplToJson(
-        _$CharacterAnimationImpl instance) =>
+Map<String, dynamic> _$CharacterAnimationToJson(_CharacterAnimation instance) =>
     <String, dynamic>{
       'state': _$CharacterAnimationStateEnumMap[instance.state]!,
       'direction': _$EntityFacingEnumMap[instance.direction]!,
@@ -792,17 +795,16 @@ const _$EntityFacingEnumMap = {
   EntityFacing.west: 'west',
 };
 
-_$CharacterAnimationFrameImpl _$$CharacterAnimationFrameImplFromJson(
-        Map<String, dynamic> json) =>
-    _$CharacterAnimationFrameImpl(
-      source:
-          TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
-      durationMs: (json['durationMs'] as num?)?.toInt() ?? 150,
-    );
+_CharacterAnimationFrame _$CharacterAnimationFrameFromJson(
+  Map<String, dynamic> json,
+) => _CharacterAnimationFrame(
+  source: TilesetSourceRect.fromJson(json['source'] as Map<String, dynamic>),
+  durationMs: (json['durationMs'] as num?)?.toInt() ?? 150,
+);
 
-Map<String, dynamic> _$$CharacterAnimationFrameImplToJson(
-        _$CharacterAnimationFrameImpl instance) =>
-    <String, dynamic>{
-      'source': instance.source.toJson(),
-      'durationMs': instance.durationMs,
-    };
+Map<String, dynamic> _$CharacterAnimationFrameToJson(
+  _CharacterAnimationFrame instance,
+) => <String, dynamic>{
+  'source': instance.source.toJson(),
+  'durationMs': instance.durationMs,
+};

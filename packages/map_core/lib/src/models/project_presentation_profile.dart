@@ -23,7 +23,7 @@ enum ProjectPresentationDiagnosticSeverity {
 enum ProjectTypographyRole { display, body, dialogue, numbers }
 
 @freezed
-class ProjectPresentationDiagnostic with _$ProjectPresentationDiagnostic {
+abstract class ProjectPresentationDiagnostic with _$ProjectPresentationDiagnostic {
   const factory ProjectPresentationDiagnostic({
     required String code,
     required ProjectPresentationCategory category,
@@ -34,7 +34,7 @@ class ProjectPresentationDiagnostic with _$ProjectPresentationDiagnostic {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectBrandingProfile with _$ProjectBrandingProfile {
+abstract class ProjectBrandingProfile with _$ProjectBrandingProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectBrandingProfile({
     @JsonKey(includeIfNull: false) String? iconPath,
@@ -50,7 +50,7 @@ class ProjectBrandingProfile with _$ProjectBrandingProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectVideoVariantProfile with _$ProjectVideoVariantProfile {
+abstract class ProjectVideoVariantProfile with _$ProjectVideoVariantProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectVideoVariantProfile({
     required String videoPath,
@@ -72,7 +72,7 @@ class ProjectVideoVariantProfile with _$ProjectVideoVariantProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectResponsiveVideoProfile with _$ProjectResponsiveVideoProfile {
+abstract class ProjectResponsiveVideoProfile with _$ProjectResponsiveVideoProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectResponsiveVideoProfile({
     required ProjectVideoVariantProfile landscape,
@@ -84,7 +84,7 @@ class ProjectResponsiveVideoProfile with _$ProjectResponsiveVideoProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
+abstract class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
   const ProjectIntroVideoProfile._();
 
   @JsonSerializable(explicitToJson: true)
@@ -151,7 +151,7 @@ class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectTitleMotionProfile with _$ProjectTitleMotionProfile {
+abstract class ProjectTitleMotionProfile with _$ProjectTitleMotionProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTitleMotionProfile({
     @JsonKey(includeIfNull: false) ProjectResponsiveVideoProfile? promptLoop,
@@ -163,7 +163,7 @@ class ProjectTitleMotionProfile with _$ProjectTitleMotionProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectTypographyRoleProfile with _$ProjectTypographyRoleProfile {
+abstract class ProjectTypographyRoleProfile with _$ProjectTypographyRoleProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTypographyRoleProfile({
     @JsonKey(includeIfNull: false) String? fontPath,
@@ -179,7 +179,7 @@ class ProjectTypographyRoleProfile with _$ProjectTypographyRoleProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectTypographyProfile with _$ProjectTypographyProfile {
+abstract class ProjectTypographyProfile with _$ProjectTypographyProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTypographyProfile({
     @Default(ProjectTypographyRoleProfile())
@@ -196,7 +196,7 @@ class ProjectTypographyProfile with _$ProjectTypographyProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectSemanticThemeProfile with _$ProjectSemanticThemeProfile {
+abstract class ProjectSemanticThemeProfile with _$ProjectSemanticThemeProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectSemanticThemeProfile({
     required String primary,
@@ -222,7 +222,7 @@ class ProjectSemanticThemeProfile with _$ProjectSemanticThemeProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectPresentationProfile with _$ProjectPresentationProfile {
+abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
   const ProjectPresentationProfile._();
 
   @JsonSerializable(explicitToJson: true)

@@ -19,7 +19,7 @@ Future<void> showImportTilesetDialog(
   final project = snapshot.project;
   if (project == null) return;
 
-  final picked = await FilePicker.platform.pickFiles(
+  final picked = await FilePicker.pickFiles(
     type: FileType.custom,
     allowedExtensions: const ['png', 'jpg', 'jpeg', 'webp', 'bmp'],
     withData: false,

@@ -905,7 +905,7 @@ class _GameplayZonePropertiesPanelState
       return;
     }
 
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const <String>[
         'png',

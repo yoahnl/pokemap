@@ -6,139 +6,129 @@ part of 'game_state.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ScriptVariableValueBoolImpl _$$ScriptVariableValueBoolImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ScriptVariableValueBoolImpl(
-      json['value'] as bool,
-      $type: json['runtimeType'] as String?,
-    );
+ScriptVariableValueBool _$ScriptVariableValueBoolFromJson(
+  Map<String, dynamic> json,
+) => ScriptVariableValueBool(
+  json['value'] as bool,
+  $type: json['runtimeType'] as String?,
+);
 
-Map<String, dynamic> _$$ScriptVariableValueBoolImplToJson(
-        _$ScriptVariableValueBoolImpl instance) =>
-    <String, dynamic>{
-      'value': instance.value,
-      'runtimeType': instance.$type,
-    };
+Map<String, dynamic> _$ScriptVariableValueBoolToJson(
+  ScriptVariableValueBool instance,
+) => <String, dynamic>{'value': instance.value, 'runtimeType': instance.$type};
 
-_$ScriptVariableValueIntImpl _$$ScriptVariableValueIntImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ScriptVariableValueIntImpl(
-      (json['value'] as num).toInt(),
-      $type: json['runtimeType'] as String?,
-    );
+ScriptVariableValueInt _$ScriptVariableValueIntFromJson(
+  Map<String, dynamic> json,
+) => ScriptVariableValueInt(
+  (json['value'] as num).toInt(),
+  $type: json['runtimeType'] as String?,
+);
 
-Map<String, dynamic> _$$ScriptVariableValueIntImplToJson(
-        _$ScriptVariableValueIntImpl instance) =>
-    <String, dynamic>{
-      'value': instance.value,
-      'runtimeType': instance.$type,
-    };
+Map<String, dynamic> _$ScriptVariableValueIntToJson(
+  ScriptVariableValueInt instance,
+) => <String, dynamic>{'value': instance.value, 'runtimeType': instance.$type};
 
-_$ScriptVariableValueStringImpl _$$ScriptVariableValueStringImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ScriptVariableValueStringImpl(
-      json['value'] as String,
-      $type: json['runtimeType'] as String?,
-    );
+ScriptVariableValueString _$ScriptVariableValueStringFromJson(
+  Map<String, dynamic> json,
+) => ScriptVariableValueString(
+  json['value'] as String,
+  $type: json['runtimeType'] as String?,
+);
 
-Map<String, dynamic> _$$ScriptVariableValueStringImplToJson(
-        _$ScriptVariableValueStringImpl instance) =>
-    <String, dynamic>{
-      'value': instance.value,
-      'runtimeType': instance.$type,
-    };
+Map<String, dynamic> _$ScriptVariableValueStringToJson(
+  ScriptVariableValueString instance,
+) => <String, dynamic>{'value': instance.value, 'runtimeType': instance.$type};
 
-_$ScriptVariablesImpl _$$ScriptVariablesImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ScriptVariablesImpl(
-      values: (json['values'] as Map<String, dynamic>?)?.map(
+_ScriptVariables _$ScriptVariablesFromJson(Map<String, dynamic> json) =>
+    _ScriptVariables(
+      values:
+          (json['values'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(
-                k, ScriptVariableValue.fromJson(e as Map<String, dynamic>)),
+              k,
+              ScriptVariableValue.fromJson(e as Map<String, dynamic>),
+            ),
           ) ??
           const {},
     );
 
-Map<String, dynamic> _$$ScriptVariablesImplToJson(
-        _$ScriptVariablesImpl instance) =>
+Map<String, dynamic> _$ScriptVariablesToJson(_ScriptVariables instance) =>
     <String, dynamic>{
       'values': instance.values.map((k, e) => MapEntry(k, e.toJson())),
     };
 
-_$StoryFlagsImpl _$$StoryFlagsImplFromJson(Map<String, dynamic> json) =>
-    _$StoryFlagsImpl(
-      activeFlags: (json['activeFlags'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toSet() ??
-          const {},
-    );
+_StoryFlags _$StoryFlagsFromJson(Map<String, dynamic> json) => _StoryFlags(
+  activeFlags:
+      (json['activeFlags'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toSet() ??
+      const {},
+);
 
-Map<String, dynamic> _$$StoryFlagsImplToJson(_$StoryFlagsImpl instance) =>
-    <String, dynamic>{
-      'activeFlags': instance.activeFlags.toList(),
-    };
+Map<String, dynamic> _$StoryFlagsToJson(_StoryFlags instance) =>
+    <String, dynamic>{'activeFlags': instance.activeFlags.toList()};
 
-_$GameStateImpl _$$GameStateImplFromJson(Map<String, dynamic> json) =>
-    _$GameStateImpl(
-      saveId: json['saveId'] as String,
-      currentMapId: json['currentMapId'] as String? ?? '',
-      playerPosition: json['playerPosition'] == null
-          ? const GridPos(x: 0, y: 0)
-          : GridPos.fromJson(json['playerPosition'] as Map<String, dynamic>),
-      playerFacing:
-          $enumDecodeNullable(_$EntityFacingEnumMap, json['playerFacing']) ??
-              EntityFacing.south,
-      playerMovementMode: $enumDecodeNullable(
-              _$MovementModeEnumMap, json['playerMovementMode']) ??
-          MovementMode.walk,
-      party: json['party'] == null
-          ? const PlayerParty()
-          : PlayerParty.fromJson(json['party'] as Map<String, dynamic>),
-      pokemonStorage: json['pokemonStorage'] == null
-          ? const PokemonStorage()
-          : PokemonStorage.fromJson(
-              json['pokemonStorage'] as Map<String, dynamic>),
-      trainerProfile: json['trainerProfile'] == null
-          ? const TrainerProfile(name: 'Player')
-          : TrainerProfile.fromJson(
-              json['trainerProfile'] as Map<String, dynamic>),
-      bag: json['bag'] == null
-          ? const Bag()
-          : Bag.fromJson(json['bag'] as Map<String, dynamic>),
-      progression: json['progression'] == null
-          ? const PlayerProgression()
-          : PlayerProgression.fromJson(
-              json['progression'] as Map<String, dynamic>),
-      scriptVariables: json['scriptVariables'] == null
-          ? const ScriptVariables()
-          : ScriptVariables.fromJson(
-              json['scriptVariables'] as Map<String, dynamic>),
-      storyFlags: json['storyFlags'] == null
-          ? const StoryFlags()
-          : StoryFlags.fromJson(json['storyFlags'] as Map<String, dynamic>),
-      narrativeFactRuntimeState: readNarrativeFactRuntimeStateJson(
-                  json, 'narrativeFactRuntimeState') ==
-              null
-          ? const NarrativeFactRuntimeState.empty()
-          : NarrativeFactRuntimeState.fromJson(
-              readNarrativeFactRuntimeStateJson(
-                  json, 'narrativeFactRuntimeState') as Map<String, dynamic>),
-      narrativeEventProgress: readNarrativeEventProgressJson(
-                  json, 'narrativeEventProgress') ==
-              null
-          ? const NarrativeEventProgress.empty()
-          : NarrativeEventProgress.fromJson(
-              readNarrativeEventProgressJson(json, 'narrativeEventProgress')),
-      consumedEventIds: (json['consumedEventIds'] as List<dynamic>?)
-              ?.map((e) => e as String)
-              .toSet() ??
-          const {},
-      metadata: (json['metadata'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, e as String),
-          ) ??
-          const {},
-    );
+_GameState _$GameStateFromJson(Map<String, dynamic> json) => _GameState(
+  saveId: json['saveId'] as String,
+  currentMapId: json['currentMapId'] as String? ?? '',
+  playerPosition: json['playerPosition'] == null
+      ? const GridPos(x: 0, y: 0)
+      : GridPos.fromJson(json['playerPosition'] as Map<String, dynamic>),
+  playerFacing:
+      $enumDecodeNullable(_$EntityFacingEnumMap, json['playerFacing']) ??
+      EntityFacing.south,
+  playerMovementMode:
+      $enumDecodeNullable(_$MovementModeEnumMap, json['playerMovementMode']) ??
+      MovementMode.walk,
+  party: json['party'] == null
+      ? const PlayerParty()
+      : PlayerParty.fromJson(json['party'] as Map<String, dynamic>),
+  pokemonStorage: json['pokemonStorage'] == null
+      ? const PokemonStorage()
+      : PokemonStorage.fromJson(json['pokemonStorage'] as Map<String, dynamic>),
+  trainerProfile: json['trainerProfile'] == null
+      ? const TrainerProfile(name: 'Player')
+      : TrainerProfile.fromJson(json['trainerProfile'] as Map<String, dynamic>),
+  bag: json['bag'] == null
+      ? const Bag()
+      : Bag.fromJson(json['bag'] as Map<String, dynamic>),
+  progression: json['progression'] == null
+      ? const PlayerProgression()
+      : PlayerProgression.fromJson(json['progression'] as Map<String, dynamic>),
+  scriptVariables: json['scriptVariables'] == null
+      ? const ScriptVariables()
+      : ScriptVariables.fromJson(
+          json['scriptVariables'] as Map<String, dynamic>,
+        ),
+  storyFlags: json['storyFlags'] == null
+      ? const StoryFlags()
+      : StoryFlags.fromJson(json['storyFlags'] as Map<String, dynamic>),
+  narrativeFactRuntimeState:
+      readNarrativeFactRuntimeStateJson(json, 'narrativeFactRuntimeState') ==
+          null
+      ? const NarrativeFactRuntimeState.empty()
+      : NarrativeFactRuntimeState.fromJson(
+          readNarrativeFactRuntimeStateJson(json, 'narrativeFactRuntimeState')
+              as Map<String, dynamic>,
+        ),
+  narrativeEventProgress:
+      readNarrativeEventProgressJson(json, 'narrativeEventProgress') == null
+      ? const NarrativeEventProgress.empty()
+      : NarrativeEventProgress.fromJson(
+          readNarrativeEventProgressJson(json, 'narrativeEventProgress'),
+        ),
+  consumedEventIds:
+      (json['consumedEventIds'] as List<dynamic>?)
+          ?.map((e) => e as String)
+          .toSet() ??
+      const {},
+  metadata:
+      (json['metadata'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
+);
 
-Map<String, dynamic> _$$GameStateImplToJson(_$GameStateImpl instance) =>
+Map<String, dynamic> _$GameStateToJson(_GameState instance) =>
     <String, dynamic>{
       'saveId': instance.saveId,
       'currentMapId': instance.currentMapId,
@@ -153,8 +143,9 @@ Map<String, dynamic> _$$GameStateImplToJson(_$GameStateImpl instance) =>
       'scriptVariables': instance.scriptVariables.toJson(),
       'storyFlags': instance.storyFlags.toJson(),
       'narrativeFactRuntimeState': instance.narrativeFactRuntimeState.toJson(),
-      'narrativeEventProgress':
-          narrativeEventProgressToJson(instance.narrativeEventProgress),
+      'narrativeEventProgress': narrativeEventProgressToJson(
+        instance.narrativeEventProgress,
+      ),
       'consumedEventIds': instance.consumedEventIds.toList(),
       'metadata': instance.metadata,
     };

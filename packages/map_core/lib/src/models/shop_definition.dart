@@ -18,7 +18,7 @@ int? _shopNullableIntegerFromJson(Object? value) {
 }
 
 @freezed
-class ShopEntryDefinition with _$ShopEntryDefinition {
+abstract class ShopEntryDefinition with _$ShopEntryDefinition {
   const ShopEntryDefinition._();
 
   const factory ShopEntryDefinition({
@@ -55,7 +55,7 @@ class ShopEntryDefinition with _$ShopEntryDefinition {
 }
 
 @freezed
-class ShopDefinition with _$ShopDefinition {
+abstract class ShopDefinition with _$ShopDefinition {
   const ShopDefinition._();
 
   @JsonSerializable(explicitToJson: true)

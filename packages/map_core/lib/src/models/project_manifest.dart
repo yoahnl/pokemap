@@ -358,7 +358,7 @@ const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
 };
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectManifest with _$ProjectManifest {
+abstract class ProjectManifest with _$ProjectManifest {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectManifest({
     required String name,
@@ -607,7 +607,7 @@ void _assertUniqueDefinitionIds({
 }
 
 @freezed
-class ProjectPokemonConfig with _$ProjectPokemonConfig {
+abstract class ProjectPokemonConfig with _$ProjectPokemonConfig {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectPokemonConfig({
     @Default(true) bool enabled,
@@ -624,7 +624,7 @@ class ProjectPokemonConfig with _$ProjectPokemonConfig {
 }
 
 @freezed
-class ProjectSettings with _$ProjectSettings {
+abstract class ProjectSettings with _$ProjectSettings {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectSettings({
     @Default(16) int tileWidth,
@@ -650,7 +650,7 @@ class ProjectSettings with _$ProjectSettings {
 }
 
 @freezed
-class ProjectMapGroup with _$ProjectMapGroup {
+abstract class ProjectMapGroup with _$ProjectMapGroup {
   const factory ProjectMapGroup({
     required String id,
     required String name,
@@ -666,7 +666,7 @@ class ProjectMapGroup with _$ProjectMapGroup {
 }
 
 @freezed
-class ProjectMapEntry with _$ProjectMapEntry {
+abstract class ProjectMapEntry with _$ProjectMapEntry {
   const factory ProjectMapEntry({
     required String id,
     required String name,
@@ -681,7 +681,7 @@ class ProjectMapEntry with _$ProjectMapEntry {
 }
 
 @freezed
-class ProjectDialogueFolder with _$ProjectDialogueFolder {
+abstract class ProjectDialogueFolder with _$ProjectDialogueFolder {
   const factory ProjectDialogueFolder({
     required String id,
     required String name,
@@ -694,7 +694,7 @@ class ProjectDialogueFolder with _$ProjectDialogueFolder {
 }
 
 @freezed
-class DialogueDeclaredOutcome with _$DialogueDeclaredOutcome {
+abstract class DialogueDeclaredOutcome with _$DialogueDeclaredOutcome {
   const factory DialogueDeclaredOutcome({
     required String id,
     required String label,
@@ -705,7 +705,7 @@ class DialogueDeclaredOutcome with _$DialogueDeclaredOutcome {
 }
 
 @freezed
-class ProjectDialogueEntry with _$ProjectDialogueEntry {
+abstract class ProjectDialogueEntry with _$ProjectDialogueEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectDialogueEntry({
     required String id,
@@ -730,7 +730,7 @@ class ProjectDialogueEntry with _$ProjectDialogueEntry {
 }
 
 @freezed
-class ProjectTilesetFolder with _$ProjectTilesetFolder {
+abstract class ProjectTilesetFolder with _$ProjectTilesetFolder {
   const factory ProjectTilesetFolder({
     required String id,
     required String name,
@@ -743,7 +743,7 @@ class ProjectTilesetFolder with _$ProjectTilesetFolder {
 }
 
 @freezed
-class ProjectTilesetEntry with _$ProjectTilesetEntry {
+abstract class ProjectTilesetEntry with _$ProjectTilesetEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTilesetEntry({
     required String id,
@@ -772,7 +772,7 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
 }
 
 @freezed
-class TilesetPaletteEntry with _$TilesetPaletteEntry {
+abstract class TilesetPaletteEntry with _$TilesetPaletteEntry {
   @JsonSerializable(explicitToJson: true)
   const factory TilesetPaletteEntry({
     required String id,
@@ -789,7 +789,7 @@ class TilesetPaletteEntry with _$TilesetPaletteEntry {
 }
 
 @freezed
-class TilesetSourceRect with _$TilesetSourceRect {
+abstract class TilesetSourceRect with _$TilesetSourceRect {
   const factory TilesetSourceRect({
     required int x,
     required int y,
@@ -805,7 +805,7 @@ class TilesetSourceRect with _$TilesetSourceRect {
 ///
 /// [tilesetId] vide = utiliser le tileset du contexte parent (élément, preset, entrée palette).
 @freezed
-class TilesetVisualFrame with _$TilesetVisualFrame {
+abstract class TilesetVisualFrame with _$TilesetVisualFrame {
   @JsonSerializable(explicitToJson: true)
   const factory TilesetVisualFrame({
     @Default('') String tilesetId,
@@ -820,7 +820,7 @@ class TilesetVisualFrame with _$TilesetVisualFrame {
 }
 
 @freezed
-class TilesetElementGroup with _$TilesetElementGroup {
+abstract class TilesetElementGroup with _$TilesetElementGroup {
   const factory TilesetElementGroup({
     required String id,
     required String name,
@@ -833,7 +833,7 @@ class TilesetElementGroup with _$TilesetElementGroup {
 }
 
 @freezed
-class ProjectElementCategory with _$ProjectElementCategory {
+abstract class ProjectElementCategory with _$ProjectElementCategory {
   const factory ProjectElementCategory({
     required String id,
     required String name,
@@ -846,7 +846,7 @@ class ProjectElementCategory with _$ProjectElementCategory {
 }
 
 @freezed
-class ProjectElementEntry with _$ProjectElementEntry {
+abstract class ProjectElementEntry with _$ProjectElementEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectElementEntry({
     required String id,
@@ -888,7 +888,7 @@ const double defaultEncounterChancePerStep = 0.12;
 
 /// Entrée pondérée dans une table de rencontres.
 @freezed
-class ProjectEncounterEntry with _$ProjectEncounterEntry {
+abstract class ProjectEncounterEntry with _$ProjectEncounterEntry {
   const factory ProjectEncounterEntry({
     /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
     required String speciesId,
@@ -908,7 +908,7 @@ class ProjectEncounterEntry with _$ProjectEncounterEntry {
 /// Une [MapGameplayZone] peut y faire référence via [MapGameplayZone.encounterTableId].
 /// Le runtime choisit une entrée au tirage pondéré et déclenche le système de combat.
 @freezed
-class ProjectEncounterTable with _$ProjectEncounterTable {
+abstract class ProjectEncounterTable with _$ProjectEncounterTable {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectEncounterTable({
     required String id,
@@ -945,7 +945,7 @@ extension TilesetVisualFrameListX on List<TilesetVisualFrame> {
 }
 
 @freezed
-class ProjectScriptEntry with _$ProjectScriptEntry {
+abstract class ProjectScriptEntry with _$ProjectScriptEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectScriptEntry({
     required String id,
@@ -959,7 +959,7 @@ class ProjectScriptEntry with _$ProjectScriptEntry {
 }
 
 @freezed
-class ProjectCharacterEntry with _$ProjectCharacterEntry {
+abstract class ProjectCharacterEntry with _$ProjectCharacterEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectCharacterEntry({
     required String id,
@@ -977,7 +977,7 @@ class ProjectCharacterEntry with _$ProjectCharacterEntry {
 }
 
 @freezed
-class CharacterAnimation with _$CharacterAnimation {
+abstract class CharacterAnimation with _$CharacterAnimation {
   @JsonSerializable(explicitToJson: true)
   const factory CharacterAnimation({
     required CharacterAnimationState state,
@@ -990,7 +990,7 @@ class CharacterAnimation with _$CharacterAnimation {
 }
 
 @freezed
-class CharacterAnimationFrame with _$CharacterAnimationFrame {
+abstract class CharacterAnimationFrame with _$CharacterAnimationFrame {
   @JsonSerializable(explicitToJson: true)
   const factory CharacterAnimationFrame({
     required TilesetSourceRect source,

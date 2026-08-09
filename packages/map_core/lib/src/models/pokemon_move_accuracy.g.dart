@@ -6,28 +6,21 @@ part of 'pokemon_move_accuracy.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$PokemonMoveAccuracyPercentImpl _$$PokemonMoveAccuracyPercentImplFromJson(
-        Map<String, dynamic> json) =>
-    _$PokemonMoveAccuracyPercentImpl(
-      value: (json['value'] as num).toInt(),
-      $type: json['kind'] as String?,
-    );
+PokemonMoveAccuracyPercent _$PokemonMoveAccuracyPercentFromJson(
+  Map<String, dynamic> json,
+) => PokemonMoveAccuracyPercent(
+  value: (json['value'] as num).toInt(),
+  $type: json['kind'] as String?,
+);
 
-Map<String, dynamic> _$$PokemonMoveAccuracyPercentImplToJson(
-        _$PokemonMoveAccuracyPercentImpl instance) =>
-    <String, dynamic>{
-      'value': instance.value,
-      'kind': instance.$type,
-    };
+Map<String, dynamic> _$PokemonMoveAccuracyPercentToJson(
+  PokemonMoveAccuracyPercent instance,
+) => <String, dynamic>{'value': instance.value, 'kind': instance.$type};
 
-_$PokemonMoveAccuracyAlwaysHitsImpl
-    _$$PokemonMoveAccuracyAlwaysHitsImplFromJson(Map<String, dynamic> json) =>
-        _$PokemonMoveAccuracyAlwaysHitsImpl(
-          $type: json['kind'] as String?,
-        );
+PokemonMoveAccuracyAlwaysHits _$PokemonMoveAccuracyAlwaysHitsFromJson(
+  Map<String, dynamic> json,
+) => PokemonMoveAccuracyAlwaysHits($type: json['kind'] as String?);
 
-Map<String, dynamic> _$$PokemonMoveAccuracyAlwaysHitsImplToJson(
-        _$PokemonMoveAccuracyAlwaysHitsImpl instance) =>
-    <String, dynamic>{
-      'kind': instance.$type,
-    };
+Map<String, dynamic> _$PokemonMoveAccuracyAlwaysHitsToJson(
+  PokemonMoveAccuracyAlwaysHits instance,
+) => <String, dynamic>{'kind': instance.$type};

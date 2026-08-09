@@ -6,22 +6,22 @@ part of 'script_conditions.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ScriptConditionImpl _$$ScriptConditionImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ScriptConditionImpl(
+_ScriptCondition _$ScriptConditionFromJson(Map<String, dynamic> json) =>
+    _ScriptCondition(
       type: $enumDecode(_$ScriptConditionTypeEnumMap, json['type']),
-      params: (json['params'] as Map<String, dynamic>?)?.map(
+      params:
+          (json['params'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
           const {},
-      children: (json['children'] as List<dynamic>?)
+      children:
+          (json['children'] as List<dynamic>?)
               ?.map((e) => ScriptCondition.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const [],
     );
 
-Map<String, dynamic> _$$ScriptConditionImplToJson(
-        _$ScriptConditionImpl instance) =>
+Map<String, dynamic> _$ScriptConditionToJson(_ScriptCondition instance) =>
     <String, dynamic>{
       'type': _$ScriptConditionTypeEnumMap[instance.type]!,
       'params': instance.params,

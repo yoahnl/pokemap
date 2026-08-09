@@ -6,18 +6,18 @@ part of 'badge_definition.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$BadgeDefinitionImpl _$$BadgeDefinitionImplFromJson(
-        Map<String, dynamic> json) =>
-    _$BadgeDefinitionImpl(
+_BadgeDefinition _$BadgeDefinitionFromJson(Map<String, dynamic> json) =>
+    _BadgeDefinition(
       id: json['id'] as String,
       label: json['label'] as String,
       iconRelativePath: json['iconRelativePath'] as String?,
       fieldAbilityUnlock: $enumDecodeNullable(
-          _$FieldAbilityEnumMap, json['fieldAbilityUnlock']),
+        _$FieldAbilityEnumMap,
+        json['fieldAbilityUnlock'],
+      ),
     );
 
-Map<String, dynamic> _$$BadgeDefinitionImplToJson(
-        _$BadgeDefinitionImpl instance) =>
+Map<String, dynamic> _$BadgeDefinitionToJson(_BadgeDefinition instance) =>
     <String, dynamic>{
       'id': instance.id,
       'label': instance.label,

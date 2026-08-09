@@ -44,7 +44,7 @@ enum MapWeather {
 }
 
 @freezed
-class MapMetadata with _$MapMetadata {
+abstract class MapMetadata with _$MapMetadata {
   @JsonSerializable(explicitToJson: true)
   const factory MapMetadata({
     @Default('') String displayName,

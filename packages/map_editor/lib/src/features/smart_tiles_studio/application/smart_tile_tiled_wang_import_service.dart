@@ -105,7 +105,7 @@ final class FilePickerSmartTileTiledWangSourcePicker
 }
 
 Future<String?> _pickSmartTileTiledWangTsxPath() async {
-  final result = await FilePicker.platform.pickFiles(
+  final result = await FilePicker.pickFiles(
     type: FileType.custom,
     allowedExtensions: const <String>['tsx'],
     allowMultiple: false,
@@ -117,7 +117,7 @@ Future<String?> _pickSmartTileTiledWangTsxPath() async {
 Future<String?> _authorizeSmartTileTiledWangDirectory({
   required String initialDirectory,
 }) {
-  return FilePicker.platform.getDirectoryPath(
+  return FilePicker.getDirectoryPath(
     dialogTitle: 'Autoriser le dossier source du tileset',
     initialDirectory: initialDirectory,
   );

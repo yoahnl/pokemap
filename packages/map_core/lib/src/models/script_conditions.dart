@@ -11,7 +11,7 @@ part 'script_conditions.g.dart';
 /// Une condition retourne true/false lors de l'évaluation.
 /// Peut être combinée avec allOf/anyOf/not.
 @freezed
-class ScriptCondition with _$ScriptCondition {
+abstract class ScriptCondition with _$ScriptCondition {
   @JsonSerializable(explicitToJson: true)
   const factory ScriptCondition({
     required ScriptConditionType type,

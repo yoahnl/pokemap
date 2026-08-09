@@ -1,5 +1,5 @@
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,7190 +9,6619 @@ part of 'project_manifest.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
-ProjectManifest _$ProjectManifestFromJson(Map<String, dynamic> json) {
-  return _ProjectManifest.fromJson(json);
-}
 
 /// @nodoc
 mixin _$ProjectManifest {
-  String get name => throw _privateConstructorUsedError;
-  ProjectVersion get version => throw _privateConstructorUsedError;
-  List<ProjectMapEntry> get maps => throw _privateConstructorUsedError;
-  List<ProjectMapGroup> get groups => throw _privateConstructorUsedError;
-  List<ProjectTilesetFolder> get tilesetFolders =>
-      throw _privateConstructorUsedError;
-  List<ProjectTilesetEntry> get tilesets => throw _privateConstructorUsedError;
-  List<ProjectElementCategory> get elementCategories =>
-      throw _privateConstructorUsedError;
-  List<ProjectElementEntry> get elements => throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'environmentPresets',
-      fromJson: decodeEnvironmentPresets,
-      toJson: encodeEnvironmentPresets)
-  List<EnvironmentPreset> get environmentPresets =>
-      throw _privateConstructorUsedError;
-  List<ProjectEncounterTable> get encounterTables =>
-      throw _privateConstructorUsedError;
-  List<ProjectDialogueFolder> get dialogueFolders =>
-      throw _privateConstructorUsedError;
-  List<ProjectDialogueEntry> get dialogues =>
-      throw _privateConstructorUsedError;
-  List<ProjectScriptEntry> get scripts => throw _privateConstructorUsedError;
-  List<ScenarioAsset> get scenarios => throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'cinematics',
-      fromJson: _cinematicsFromJson,
-      toJson: _cinematicsToJson)
-  List<CinematicAsset> get cinematics => throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'cinematicMediaAssets',
-      fromJson: _cinematicMediaAssetsFromJson,
-      toJson: _cinematicMediaAssetsToJson)
-  List<CinematicMediaAsset> get cinematicMediaAssets =>
-      throw _privateConstructorUsedError;
-  @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
-  List<NarrativeFactDefinition> get facts => throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'worldRules',
-      fromJson: _worldRulesFromJson,
-      toJson: _worldRulesToJson)
-  List<WorldRuleDefinition> get worldRules =>
-      throw _privateConstructorUsedError;
-  List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions =>
-      throw _privateConstructorUsedError;
-  @JsonKey(includeIfNull: false)
-  NarrativeEventRegistry? get eventRegistry =>
-      throw _privateConstructorUsedError;
-  @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
-  List<SceneAsset> get scenes => throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'storylines',
-      fromJson: _storylinesFromJson,
-      toJson: _storylinesToJson)
-  List<StorylineAsset> get storylines => throw _privateConstructorUsedError;
-  List<ShopDefinition> get shops => throw _privateConstructorUsedError;
-  List<BadgeDefinition> get badges => throw _privateConstructorUsedError;
-  List<ProjectTrainerEntry> get trainers => throw _privateConstructorUsedError;
-  List<ProjectCharacterEntry> get characters =>
-      throw _privateConstructorUsedError;
-  ProjectSettings get settings => throw _privateConstructorUsedError;
-  ProjectPokemonConfig get pokemon => throw _privateConstructorUsedError;
-  ProjectNewGameConfig get newGame => throw _privateConstructorUsedError;
-  @JsonKey(includeIfNull: false)
-  ProjectPresentationProfile? get presentation =>
-      throw _privateConstructorUsedError;
-  Map<String, dynamic> get globalProperties =>
-      throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'smartTileCatalog',
-      fromJson: _projectSmartTileCatalogFromJson,
-      toJson: _projectSmartTileCatalogToJson,
-      includeIfNull: false)
-  ProjectSmartTileCatalog get smartTileCatalog =>
-      throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'borderCatalog',
-      readValue: _readProjectBorderCatalog,
-      fromJson: _projectBorderCatalogFromJson,
-      toJson: _projectBorderCatalogToJson,
-      includeIfNull: false)
-  ProjectBorderCatalog get borderCatalog => throw _privateConstructorUsedError;
-  @ProjectShadowCatalogJsonConverter()
-  ProjectShadowCatalog get shadowCatalog => throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'projectedBuildingShadowCatalog',
-      fromJson: _projectedBuildingShadowCatalogFromJson,
-      toJson: _projectedBuildingShadowCatalogToJson,
-      includeIfNull: false)
-  ProjectBuildingShadowPresetCatalog get projectedBuildingShadowCatalog =>
-      throw _privateConstructorUsedError;
+
+ String get name; ProjectVersion get version; List<ProjectMapEntry> get maps; List<ProjectMapGroup> get groups; List<ProjectTilesetFolder> get tilesetFolders; List<ProjectTilesetEntry> get tilesets; List<ProjectElementCategory> get elementCategories; List<ProjectElementEntry> get elements;@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> get environmentPresets; List<ProjectEncounterTable> get encounterTables; List<ProjectDialogueFolder> get dialogueFolders; List<ProjectDialogueEntry> get dialogues; List<ProjectScriptEntry> get scripts; List<ScenarioAsset> get scenarios;@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> get cinematics;@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> get cinematicMediaAssets;@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> get facts;@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> get worldRules; List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions;@JsonKey(includeIfNull: false) NarrativeEventRegistry? get eventRegistry;@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> get scenes;@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> get storylines; List<ShopDefinition> get shops; List<BadgeDefinition> get badges; List<ProjectTrainerEntry> get trainers; List<ProjectCharacterEntry> get characters; ProjectSettings get settings; ProjectPokemonConfig get pokemon; ProjectNewGameConfig get newGame;@JsonKey(includeIfNull: false) ProjectPresentationProfile? get presentation; Map<String, dynamic> get globalProperties;@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) ProjectSmartTileCatalog get smartTileCatalog;@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) ProjectBorderCatalog get borderCatalog;@ProjectShadowCatalogJsonConverter() ProjectShadowCatalog get shadowCatalog;@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) ProjectBuildingShadowPresetCatalog get projectedBuildingShadowCatalog;
+/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectManifestCopyWith<ProjectManifest> get copyWith => _$ProjectManifestCopyWithImpl<ProjectManifest>(this as ProjectManifest, _$identity);
 
   /// Serializes this ProjectManifest to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectManifest
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectManifestCopyWith<ProjectManifest> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectManifest&&(identical(other.name, name) || other.name == name)&&(identical(other.version, version) || other.version == version)&&const DeepCollectionEquality().equals(other.maps, maps)&&const DeepCollectionEquality().equals(other.groups, groups)&&const DeepCollectionEquality().equals(other.tilesetFolders, tilesetFolders)&&const DeepCollectionEquality().equals(other.tilesets, tilesets)&&const DeepCollectionEquality().equals(other.elementCategories, elementCategories)&&const DeepCollectionEquality().equals(other.elements, elements)&&const DeepCollectionEquality().equals(other.environmentPresets, environmentPresets)&&const DeepCollectionEquality().equals(other.encounterTables, encounterTables)&&const DeepCollectionEquality().equals(other.dialogueFolders, dialogueFolders)&&const DeepCollectionEquality().equals(other.dialogues, dialogues)&&const DeepCollectionEquality().equals(other.scripts, scripts)&&const DeepCollectionEquality().equals(other.scenarios, scenarios)&&const DeepCollectionEquality().equals(other.cinematics, cinematics)&&const DeepCollectionEquality().equals(other.cinematicMediaAssets, cinematicMediaAssets)&&const DeepCollectionEquality().equals(other.facts, facts)&&const DeepCollectionEquality().equals(other.worldRules, worldRules)&&const DeepCollectionEquality().equals(other.narrativeDiagnosticSuppressions, narrativeDiagnosticSuppressions)&&(identical(other.eventRegistry, eventRegistry) || other.eventRegistry == eventRegistry)&&const DeepCollectionEquality().equals(other.scenes, scenes)&&const DeepCollectionEquality().equals(other.storylines, storylines)&&const DeepCollectionEquality().equals(other.shops, shops)&&const DeepCollectionEquality().equals(other.badges, badges)&&const DeepCollectionEquality().equals(other.trainers, trainers)&&const DeepCollectionEquality().equals(other.characters, characters)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.pokemon, pokemon) || other.pokemon == pokemon)&&(identical(other.newGame, newGame) || other.newGame == newGame)&&(identical(other.presentation, presentation) || other.presentation == presentation)&&const DeepCollectionEquality().equals(other.globalProperties, globalProperties)&&(identical(other.smartTileCatalog, smartTileCatalog) || other.smartTileCatalog == smartTileCatalog)&&(identical(other.borderCatalog, borderCatalog) || other.borderCatalog == borderCatalog)&&(identical(other.shadowCatalog, shadowCatalog) || other.shadowCatalog == shadowCatalog)&&(identical(other.projectedBuildingShadowCatalog, projectedBuildingShadowCatalog) || other.projectedBuildingShadowCatalog == projectedBuildingShadowCatalog));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hashAll([runtimeType,name,version,const DeepCollectionEquality().hash(maps),const DeepCollectionEquality().hash(groups),const DeepCollectionEquality().hash(tilesetFolders),const DeepCollectionEquality().hash(tilesets),const DeepCollectionEquality().hash(elementCategories),const DeepCollectionEquality().hash(elements),const DeepCollectionEquality().hash(environmentPresets),const DeepCollectionEquality().hash(encounterTables),const DeepCollectionEquality().hash(dialogueFolders),const DeepCollectionEquality().hash(dialogues),const DeepCollectionEquality().hash(scripts),const DeepCollectionEquality().hash(scenarios),const DeepCollectionEquality().hash(cinematics),const DeepCollectionEquality().hash(cinematicMediaAssets),const DeepCollectionEquality().hash(facts),const DeepCollectionEquality().hash(worldRules),const DeepCollectionEquality().hash(narrativeDiagnosticSuppressions),eventRegistry,const DeepCollectionEquality().hash(scenes),const DeepCollectionEquality().hash(storylines),const DeepCollectionEquality().hash(shops),const DeepCollectionEquality().hash(badges),const DeepCollectionEquality().hash(trainers),const DeepCollectionEquality().hash(characters),settings,pokemon,newGame,presentation,const DeepCollectionEquality().hash(globalProperties),smartTileCatalog,borderCatalog,shadowCatalog,projectedBuildingShadowCatalog]);
+
+@override
+String toString() {
+  return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, globalProperties: $globalProperties, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectManifestCopyWith<$Res> {
-  factory $ProjectManifestCopyWith(
-          ProjectManifest value, $Res Function(ProjectManifest) then) =
-      _$ProjectManifestCopyWithImpl<$Res, ProjectManifest>;
-  @useResult
-  $Res call(
-      {String name,
-      ProjectVersion version,
-      List<ProjectMapEntry> maps,
-      List<ProjectMapGroup> groups,
-      List<ProjectTilesetFolder> tilesetFolders,
-      List<ProjectTilesetEntry> tilesets,
-      List<ProjectElementCategory> elementCategories,
-      List<ProjectElementEntry> elements,
-      @JsonKey(
-          name: 'environmentPresets',
-          fromJson: decodeEnvironmentPresets,
-          toJson: encodeEnvironmentPresets)
-      List<EnvironmentPreset> environmentPresets,
-      List<ProjectEncounterTable> encounterTables,
-      List<ProjectDialogueFolder> dialogueFolders,
-      List<ProjectDialogueEntry> dialogues,
-      List<ProjectScriptEntry> scripts,
-      List<ScenarioAsset> scenarios,
-      @JsonKey(
-          name: 'cinematics',
-          fromJson: _cinematicsFromJson,
-          toJson: _cinematicsToJson)
-      List<CinematicAsset> cinematics,
-      @JsonKey(
-          name: 'cinematicMediaAssets',
-          fromJson: _cinematicMediaAssetsFromJson,
-          toJson: _cinematicMediaAssetsToJson)
-      List<CinematicMediaAsset> cinematicMediaAssets,
-      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
-      List<NarrativeFactDefinition> facts,
-      @JsonKey(
-          name: 'worldRules',
-          fromJson: _worldRulesFromJson,
-          toJson: _worldRulesToJson)
-      List<WorldRuleDefinition> worldRules,
-      List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
-      @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
-      @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
-      List<SceneAsset> scenes,
-      @JsonKey(
-          name: 'storylines',
-          fromJson: _storylinesFromJson,
-          toJson: _storylinesToJson)
-      List<StorylineAsset> storylines,
-      List<ShopDefinition> shops,
-      List<BadgeDefinition> badges,
-      List<ProjectTrainerEntry> trainers,
-      List<ProjectCharacterEntry> characters,
-      ProjectSettings settings,
-      ProjectPokemonConfig pokemon,
-      ProjectNewGameConfig newGame,
-      @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
-      Map<String, dynamic> globalProperties,
-      @JsonKey(
-          name: 'smartTileCatalog',
-          fromJson: _projectSmartTileCatalogFromJson,
-          toJson: _projectSmartTileCatalogToJson,
-          includeIfNull: false)
-      ProjectSmartTileCatalog smartTileCatalog,
-      @JsonKey(
-          name: 'borderCatalog',
-          readValue: _readProjectBorderCatalog,
-          fromJson: _projectBorderCatalogFromJson,
-          toJson: _projectBorderCatalogToJson,
-          includeIfNull: false)
-      ProjectBorderCatalog borderCatalog,
-      @ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,
-      @JsonKey(
-          name: 'projectedBuildingShadowCatalog',
-          fromJson: _projectedBuildingShadowCatalogFromJson,
-          toJson: _projectedBuildingShadowCatalogToJson,
-          includeIfNull: false)
-      ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog});
+abstract mixin class $ProjectManifestCopyWith<$Res>  {
+  factory $ProjectManifestCopyWith(ProjectManifest value, $Res Function(ProjectManifest) _then) = _$ProjectManifestCopyWithImpl;
+@useResult
+$Res call({
+ String name, ProjectVersion version, List<ProjectMapEntry> maps, List<ProjectMapGroup> groups, List<ProjectTilesetFolder> tilesetFolders, List<ProjectTilesetEntry> tilesets, List<ProjectElementCategory> elementCategories, List<ProjectElementEntry> elements,@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> environmentPresets, List<ProjectEncounterTable> encounterTables, List<ProjectDialogueFolder> dialogueFolders, List<ProjectDialogueEntry> dialogues, List<ProjectScriptEntry> scripts, List<ScenarioAsset> scenarios,@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> cinematics,@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> cinematicMediaAssets,@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> facts,@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> worldRules, List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,@JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> scenes,@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> storylines, List<ShopDefinition> shops, List<BadgeDefinition> badges, List<ProjectTrainerEntry> trainers, List<ProjectCharacterEntry> characters, ProjectSettings settings, ProjectPokemonConfig pokemon, ProjectNewGameConfig newGame,@JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation, Map<String, dynamic> globalProperties,@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) ProjectSmartTileCatalog smartTileCatalog,@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) ProjectBorderCatalog borderCatalog,@ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog
+});
 
-  $ProjectSettingsCopyWith<$Res> get settings;
-  $ProjectPokemonConfigCopyWith<$Res> get pokemon;
-  $ProjectPresentationProfileCopyWith<$Res>? get presentation;
+
+$ProjectSettingsCopyWith<$Res> get settings;$ProjectPokemonConfigCopyWith<$Res> get pokemon;$ProjectPresentationProfileCopyWith<$Res>? get presentation;
+
 }
-
 /// @nodoc
-class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
+class _$ProjectManifestCopyWithImpl<$Res>
     implements $ProjectManifestCopyWith<$Res> {
-  _$ProjectManifestCopyWithImpl(this._value, this._then);
+  _$ProjectManifestCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectManifest _self;
+  final $Res Function(ProjectManifest) _then;
 
-  /// Create a copy of ProjectManifest
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? name = null,
-    Object? version = null,
-    Object? maps = null,
-    Object? groups = null,
-    Object? tilesetFolders = null,
-    Object? tilesets = null,
-    Object? elementCategories = null,
-    Object? elements = null,
-    Object? environmentPresets = null,
-    Object? encounterTables = null,
-    Object? dialogueFolders = null,
-    Object? dialogues = null,
-    Object? scripts = null,
-    Object? scenarios = null,
-    Object? cinematics = null,
-    Object? cinematicMediaAssets = null,
-    Object? facts = null,
-    Object? worldRules = null,
-    Object? narrativeDiagnosticSuppressions = null,
-    Object? eventRegistry = freezed,
-    Object? scenes = null,
-    Object? storylines = null,
-    Object? shops = null,
-    Object? badges = null,
-    Object? trainers = null,
-    Object? characters = null,
-    Object? settings = null,
-    Object? pokemon = null,
-    Object? newGame = null,
-    Object? presentation = freezed,
-    Object? globalProperties = null,
-    Object? smartTileCatalog = null,
-    Object? borderCatalog = null,
-    Object? shadowCatalog = null,
-    Object? projectedBuildingShadowCatalog = null,
-  }) {
-    return _then(_value.copyWith(
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      version: null == version
-          ? _value.version
-          : version // ignore: cast_nullable_to_non_nullable
-              as ProjectVersion,
-      maps: null == maps
-          ? _value.maps
-          : maps // ignore: cast_nullable_to_non_nullable
-              as List<ProjectMapEntry>,
-      groups: null == groups
-          ? _value.groups
-          : groups // ignore: cast_nullable_to_non_nullable
-              as List<ProjectMapGroup>,
-      tilesetFolders: null == tilesetFolders
-          ? _value.tilesetFolders
-          : tilesetFolders // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTilesetFolder>,
-      tilesets: null == tilesets
-          ? _value.tilesets
-          : tilesets // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTilesetEntry>,
-      elementCategories: null == elementCategories
-          ? _value.elementCategories
-          : elementCategories // ignore: cast_nullable_to_non_nullable
-              as List<ProjectElementCategory>,
-      elements: null == elements
-          ? _value.elements
-          : elements // ignore: cast_nullable_to_non_nullable
-              as List<ProjectElementEntry>,
-      environmentPresets: null == environmentPresets
-          ? _value.environmentPresets
-          : environmentPresets // ignore: cast_nullable_to_non_nullable
-              as List<EnvironmentPreset>,
-      encounterTables: null == encounterTables
-          ? _value.encounterTables
-          : encounterTables // ignore: cast_nullable_to_non_nullable
-              as List<ProjectEncounterTable>,
-      dialogueFolders: null == dialogueFolders
-          ? _value.dialogueFolders
-          : dialogueFolders // ignore: cast_nullable_to_non_nullable
-              as List<ProjectDialogueFolder>,
-      dialogues: null == dialogues
-          ? _value.dialogues
-          : dialogues // ignore: cast_nullable_to_non_nullable
-              as List<ProjectDialogueEntry>,
-      scripts: null == scripts
-          ? _value.scripts
-          : scripts // ignore: cast_nullable_to_non_nullable
-              as List<ProjectScriptEntry>,
-      scenarios: null == scenarios
-          ? _value.scenarios
-          : scenarios // ignore: cast_nullable_to_non_nullable
-              as List<ScenarioAsset>,
-      cinematics: null == cinematics
-          ? _value.cinematics
-          : cinematics // ignore: cast_nullable_to_non_nullable
-              as List<CinematicAsset>,
-      cinematicMediaAssets: null == cinematicMediaAssets
-          ? _value.cinematicMediaAssets
-          : cinematicMediaAssets // ignore: cast_nullable_to_non_nullable
-              as List<CinematicMediaAsset>,
-      facts: null == facts
-          ? _value.facts
-          : facts // ignore: cast_nullable_to_non_nullable
-              as List<NarrativeFactDefinition>,
-      worldRules: null == worldRules
-          ? _value.worldRules
-          : worldRules // ignore: cast_nullable_to_non_nullable
-              as List<WorldRuleDefinition>,
-      narrativeDiagnosticSuppressions: null == narrativeDiagnosticSuppressions
-          ? _value.narrativeDiagnosticSuppressions
-          : narrativeDiagnosticSuppressions // ignore: cast_nullable_to_non_nullable
-              as List<NarrativeDiagnosticSuppression>,
-      eventRegistry: freezed == eventRegistry
-          ? _value.eventRegistry
-          : eventRegistry // ignore: cast_nullable_to_non_nullable
-              as NarrativeEventRegistry?,
-      scenes: null == scenes
-          ? _value.scenes
-          : scenes // ignore: cast_nullable_to_non_nullable
-              as List<SceneAsset>,
-      storylines: null == storylines
-          ? _value.storylines
-          : storylines // ignore: cast_nullable_to_non_nullable
-              as List<StorylineAsset>,
-      shops: null == shops
-          ? _value.shops
-          : shops // ignore: cast_nullable_to_non_nullable
-              as List<ShopDefinition>,
-      badges: null == badges
-          ? _value.badges
-          : badges // ignore: cast_nullable_to_non_nullable
-              as List<BadgeDefinition>,
-      trainers: null == trainers
-          ? _value.trainers
-          : trainers // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTrainerEntry>,
-      characters: null == characters
-          ? _value.characters
-          : characters // ignore: cast_nullable_to_non_nullable
-              as List<ProjectCharacterEntry>,
-      settings: null == settings
-          ? _value.settings
-          : settings // ignore: cast_nullable_to_non_nullable
-              as ProjectSettings,
-      pokemon: null == pokemon
-          ? _value.pokemon
-          : pokemon // ignore: cast_nullable_to_non_nullable
-              as ProjectPokemonConfig,
-      newGame: null == newGame
-          ? _value.newGame
-          : newGame // ignore: cast_nullable_to_non_nullable
-              as ProjectNewGameConfig,
-      presentation: freezed == presentation
-          ? _value.presentation
-          : presentation // ignore: cast_nullable_to_non_nullable
-              as ProjectPresentationProfile?,
-      globalProperties: null == globalProperties
-          ? _value.globalProperties
-          : globalProperties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
-      smartTileCatalog: null == smartTileCatalog
-          ? _value.smartTileCatalog
-          : smartTileCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectSmartTileCatalog,
-      borderCatalog: null == borderCatalog
-          ? _value.borderCatalog
-          : borderCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectBorderCatalog,
-      shadowCatalog: null == shadowCatalog
-          ? _value.shadowCatalog
-          : shadowCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectShadowCatalog,
-      projectedBuildingShadowCatalog: null == projectedBuildingShadowCatalog
-          ? _value.projectedBuildingShadowCatalog
-          : projectedBuildingShadowCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectBuildingShadowPresetCatalog,
-    ) as $Val);
+/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? name = null,Object? version = null,Object? maps = null,Object? groups = null,Object? tilesetFolders = null,Object? tilesets = null,Object? elementCategories = null,Object? elements = null,Object? environmentPresets = null,Object? encounterTables = null,Object? dialogueFolders = null,Object? dialogues = null,Object? scripts = null,Object? scenarios = null,Object? cinematics = null,Object? cinematicMediaAssets = null,Object? facts = null,Object? worldRules = null,Object? narrativeDiagnosticSuppressions = null,Object? eventRegistry = freezed,Object? scenes = null,Object? storylines = null,Object? shops = null,Object? badges = null,Object? trainers = null,Object? characters = null,Object? settings = null,Object? pokemon = null,Object? newGame = null,Object? presentation = freezed,Object? globalProperties = null,Object? smartTileCatalog = null,Object? borderCatalog = null,Object? shadowCatalog = null,Object? projectedBuildingShadowCatalog = null,}) {
+  return _then(_self.copyWith(
+name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,version: null == version ? _self.version : version // ignore: cast_nullable_to_non_nullable
+as ProjectVersion,maps: null == maps ? _self.maps : maps // ignore: cast_nullable_to_non_nullable
+as List<ProjectMapEntry>,groups: null == groups ? _self.groups : groups // ignore: cast_nullable_to_non_nullable
+as List<ProjectMapGroup>,tilesetFolders: null == tilesetFolders ? _self.tilesetFolders : tilesetFolders // ignore: cast_nullable_to_non_nullable
+as List<ProjectTilesetFolder>,tilesets: null == tilesets ? _self.tilesets : tilesets // ignore: cast_nullable_to_non_nullable
+as List<ProjectTilesetEntry>,elementCategories: null == elementCategories ? _self.elementCategories : elementCategories // ignore: cast_nullable_to_non_nullable
+as List<ProjectElementCategory>,elements: null == elements ? _self.elements : elements // ignore: cast_nullable_to_non_nullable
+as List<ProjectElementEntry>,environmentPresets: null == environmentPresets ? _self.environmentPresets : environmentPresets // ignore: cast_nullable_to_non_nullable
+as List<EnvironmentPreset>,encounterTables: null == encounterTables ? _self.encounterTables : encounterTables // ignore: cast_nullable_to_non_nullable
+as List<ProjectEncounterTable>,dialogueFolders: null == dialogueFolders ? _self.dialogueFolders : dialogueFolders // ignore: cast_nullable_to_non_nullable
+as List<ProjectDialogueFolder>,dialogues: null == dialogues ? _self.dialogues : dialogues // ignore: cast_nullable_to_non_nullable
+as List<ProjectDialogueEntry>,scripts: null == scripts ? _self.scripts : scripts // ignore: cast_nullable_to_non_nullable
+as List<ProjectScriptEntry>,scenarios: null == scenarios ? _self.scenarios : scenarios // ignore: cast_nullable_to_non_nullable
+as List<ScenarioAsset>,cinematics: null == cinematics ? _self.cinematics : cinematics // ignore: cast_nullable_to_non_nullable
+as List<CinematicAsset>,cinematicMediaAssets: null == cinematicMediaAssets ? _self.cinematicMediaAssets : cinematicMediaAssets // ignore: cast_nullable_to_non_nullable
+as List<CinematicMediaAsset>,facts: null == facts ? _self.facts : facts // ignore: cast_nullable_to_non_nullable
+as List<NarrativeFactDefinition>,worldRules: null == worldRules ? _self.worldRules : worldRules // ignore: cast_nullable_to_non_nullable
+as List<WorldRuleDefinition>,narrativeDiagnosticSuppressions: null == narrativeDiagnosticSuppressions ? _self.narrativeDiagnosticSuppressions : narrativeDiagnosticSuppressions // ignore: cast_nullable_to_non_nullable
+as List<NarrativeDiagnosticSuppression>,eventRegistry: freezed == eventRegistry ? _self.eventRegistry : eventRegistry // ignore: cast_nullable_to_non_nullable
+as NarrativeEventRegistry?,scenes: null == scenes ? _self.scenes : scenes // ignore: cast_nullable_to_non_nullable
+as List<SceneAsset>,storylines: null == storylines ? _self.storylines : storylines // ignore: cast_nullable_to_non_nullable
+as List<StorylineAsset>,shops: null == shops ? _self.shops : shops // ignore: cast_nullable_to_non_nullable
+as List<ShopDefinition>,badges: null == badges ? _self.badges : badges // ignore: cast_nullable_to_non_nullable
+as List<BadgeDefinition>,trainers: null == trainers ? _self.trainers : trainers // ignore: cast_nullable_to_non_nullable
+as List<ProjectTrainerEntry>,characters: null == characters ? _self.characters : characters // ignore: cast_nullable_to_non_nullable
+as List<ProjectCharacterEntry>,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
+as ProjectSettings,pokemon: null == pokemon ? _self.pokemon : pokemon // ignore: cast_nullable_to_non_nullable
+as ProjectPokemonConfig,newGame: null == newGame ? _self.newGame : newGame // ignore: cast_nullable_to_non_nullable
+as ProjectNewGameConfig,presentation: freezed == presentation ? _self.presentation : presentation // ignore: cast_nullable_to_non_nullable
+as ProjectPresentationProfile?,globalProperties: null == globalProperties ? _self.globalProperties : globalProperties // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,smartTileCatalog: null == smartTileCatalog ? _self.smartTileCatalog : smartTileCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectSmartTileCatalog,borderCatalog: null == borderCatalog ? _self.borderCatalog : borderCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectBorderCatalog,shadowCatalog: null == shadowCatalog ? _self.shadowCatalog : shadowCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectShadowCatalog,projectedBuildingShadowCatalog: null == projectedBuildingShadowCatalog ? _self.projectedBuildingShadowCatalog : projectedBuildingShadowCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectBuildingShadowPresetCatalog,
+  ));
+}
+/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectSettingsCopyWith<$Res> get settings {
+
+  return $ProjectSettingsCopyWith<$Res>(_self.settings, (value) {
+    return _then(_self.copyWith(settings: value));
+  });
+}/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectPokemonConfigCopyWith<$Res> get pokemon {
+
+  return $ProjectPokemonConfigCopyWith<$Res>(_self.pokemon, (value) {
+    return _then(_self.copyWith(pokemon: value));
+  });
+}/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectPresentationProfileCopyWith<$Res>? get presentation {
+    if (_self.presentation == null) {
+    return null;
   }
 
-  /// Create a copy of ProjectManifest
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $ProjectSettingsCopyWith<$Res> get settings {
-    return $ProjectSettingsCopyWith<$Res>(_value.settings, (value) {
-      return _then(_value.copyWith(settings: value) as $Val);
-    });
-  }
-
-  /// Create a copy of ProjectManifest
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $ProjectPokemonConfigCopyWith<$Res> get pokemon {
-    return $ProjectPokemonConfigCopyWith<$Res>(_value.pokemon, (value) {
-      return _then(_value.copyWith(pokemon: value) as $Val);
-    });
-  }
-
-  /// Create a copy of ProjectManifest
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $ProjectPresentationProfileCopyWith<$Res>? get presentation {
-    if (_value.presentation == null) {
-      return null;
-    }
-
-    return $ProjectPresentationProfileCopyWith<$Res>(_value.presentation!,
-        (value) {
-      return _then(_value.copyWith(presentation: value) as $Val);
-    });
-  }
+  return $ProjectPresentationProfileCopyWith<$Res>(_self.presentation!, (value) {
+    return _then(_self.copyWith(presentation: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$ProjectManifestImplCopyWith<$Res>
-    implements $ProjectManifestCopyWith<$Res> {
-  factory _$$ProjectManifestImplCopyWith(_$ProjectManifestImpl value,
-          $Res Function(_$ProjectManifestImpl) then) =
-      __$$ProjectManifestImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String name,
-      ProjectVersion version,
-      List<ProjectMapEntry> maps,
-      List<ProjectMapGroup> groups,
-      List<ProjectTilesetFolder> tilesetFolders,
-      List<ProjectTilesetEntry> tilesets,
-      List<ProjectElementCategory> elementCategories,
-      List<ProjectElementEntry> elements,
-      @JsonKey(
-          name: 'environmentPresets',
-          fromJson: decodeEnvironmentPresets,
-          toJson: encodeEnvironmentPresets)
-      List<EnvironmentPreset> environmentPresets,
-      List<ProjectEncounterTable> encounterTables,
-      List<ProjectDialogueFolder> dialogueFolders,
-      List<ProjectDialogueEntry> dialogues,
-      List<ProjectScriptEntry> scripts,
-      List<ScenarioAsset> scenarios,
-      @JsonKey(
-          name: 'cinematics',
-          fromJson: _cinematicsFromJson,
-          toJson: _cinematicsToJson)
-      List<CinematicAsset> cinematics,
-      @JsonKey(
-          name: 'cinematicMediaAssets',
-          fromJson: _cinematicMediaAssetsFromJson,
-          toJson: _cinematicMediaAssetsToJson)
-      List<CinematicMediaAsset> cinematicMediaAssets,
-      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
-      List<NarrativeFactDefinition> facts,
-      @JsonKey(
-          name: 'worldRules',
-          fromJson: _worldRulesFromJson,
-          toJson: _worldRulesToJson)
-      List<WorldRuleDefinition> worldRules,
-      List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,
-      @JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,
-      @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
-      List<SceneAsset> scenes,
-      @JsonKey(
-          name: 'storylines',
-          fromJson: _storylinesFromJson,
-          toJson: _storylinesToJson)
-      List<StorylineAsset> storylines,
-      List<ShopDefinition> shops,
-      List<BadgeDefinition> badges,
-      List<ProjectTrainerEntry> trainers,
-      List<ProjectCharacterEntry> characters,
-      ProjectSettings settings,
-      ProjectPokemonConfig pokemon,
-      ProjectNewGameConfig newGame,
-      @JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation,
-      Map<String, dynamic> globalProperties,
-      @JsonKey(
-          name: 'smartTileCatalog',
-          fromJson: _projectSmartTileCatalogFromJson,
-          toJson: _projectSmartTileCatalogToJson,
-          includeIfNull: false)
-      ProjectSmartTileCatalog smartTileCatalog,
-      @JsonKey(
-          name: 'borderCatalog',
-          readValue: _readProjectBorderCatalog,
-          fromJson: _projectBorderCatalogFromJson,
-          toJson: _projectBorderCatalogToJson,
-          includeIfNull: false)
-      ProjectBorderCatalog borderCatalog,
-      @ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,
-      @JsonKey(
-          name: 'projectedBuildingShadowCatalog',
-          fromJson: _projectedBuildingShadowCatalogFromJson,
-          toJson: _projectedBuildingShadowCatalogToJson,
-          includeIfNull: false)
-      ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog});
 
-  @override
-  $ProjectSettingsCopyWith<$Res> get settings;
-  @override
-  $ProjectPokemonConfigCopyWith<$Res> get pokemon;
-  @override
-  $ProjectPresentationProfileCopyWith<$Res>? get presentation;
+/// Adds pattern-matching-related methods to [ProjectManifest].
+extension ProjectManifestPatterns on ProjectManifest {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectManifest value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectManifest() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectManifest value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectManifest():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectManifest value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectManifest() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String name,  ProjectVersion version,  List<ProjectMapEntry> maps,  List<ProjectMapGroup> groups,  List<ProjectTilesetFolder> tilesetFolders,  List<ProjectTilesetEntry> tilesets,  List<ProjectElementCategory> elementCategories,  List<ProjectElementEntry> elements, @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)  List<EnvironmentPreset> environmentPresets,  List<ProjectEncounterTable> encounterTables,  List<ProjectDialogueFolder> dialogueFolders,  List<ProjectDialogueEntry> dialogues,  List<ProjectScriptEntry> scripts,  List<ScenarioAsset> scenarios, @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)  List<CinematicAsset> cinematics, @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)  List<CinematicMediaAsset> cinematicMediaAssets, @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)  List<NarrativeFactDefinition> facts, @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)  List<WorldRuleDefinition> worldRules,  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions, @JsonKey(includeIfNull: false)  NarrativeEventRegistry? eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)  List<SceneAsset> scenes, @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)  List<StorylineAsset> storylines,  List<ShopDefinition> shops,  List<BadgeDefinition> badges,  List<ProjectTrainerEntry> trainers,  List<ProjectCharacterEntry> characters,  ProjectSettings settings,  ProjectPokemonConfig pokemon,  ProjectNewGameConfig newGame, @JsonKey(includeIfNull: false)  ProjectPresentationProfile? presentation,  Map<String, dynamic> globalProperties, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)  ProjectSmartTileCatalog smartTileCatalog, @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false)  ProjectBorderCatalog borderCatalog, @ProjectShadowCatalogJsonConverter()  ProjectShadowCatalog shadowCatalog, @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectManifest() when $default != null:
+return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFolders,_that.tilesets,_that.elementCategories,_that.elements,_that.environmentPresets,_that.encounterTables,_that.dialogueFolders,_that.dialogues,_that.scripts,_that.scenarios,_that.cinematics,_that.cinematicMediaAssets,_that.facts,_that.worldRules,_that.narrativeDiagnosticSuppressions,_that.eventRegistry,_that.scenes,_that.storylines,_that.shops,_that.badges,_that.trainers,_that.characters,_that.settings,_that.pokemon,_that.newGame,_that.presentation,_that.globalProperties,_that.smartTileCatalog,_that.borderCatalog,_that.shadowCatalog,_that.projectedBuildingShadowCatalog);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String name,  ProjectVersion version,  List<ProjectMapEntry> maps,  List<ProjectMapGroup> groups,  List<ProjectTilesetFolder> tilesetFolders,  List<ProjectTilesetEntry> tilesets,  List<ProjectElementCategory> elementCategories,  List<ProjectElementEntry> elements, @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)  List<EnvironmentPreset> environmentPresets,  List<ProjectEncounterTable> encounterTables,  List<ProjectDialogueFolder> dialogueFolders,  List<ProjectDialogueEntry> dialogues,  List<ProjectScriptEntry> scripts,  List<ScenarioAsset> scenarios, @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)  List<CinematicAsset> cinematics, @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)  List<CinematicMediaAsset> cinematicMediaAssets, @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)  List<NarrativeFactDefinition> facts, @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)  List<WorldRuleDefinition> worldRules,  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions, @JsonKey(includeIfNull: false)  NarrativeEventRegistry? eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)  List<SceneAsset> scenes, @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)  List<StorylineAsset> storylines,  List<ShopDefinition> shops,  List<BadgeDefinition> badges,  List<ProjectTrainerEntry> trainers,  List<ProjectCharacterEntry> characters,  ProjectSettings settings,  ProjectPokemonConfig pokemon,  ProjectNewGameConfig newGame, @JsonKey(includeIfNull: false)  ProjectPresentationProfile? presentation,  Map<String, dynamic> globalProperties, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)  ProjectSmartTileCatalog smartTileCatalog, @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false)  ProjectBorderCatalog borderCatalog, @ProjectShadowCatalogJsonConverter()  ProjectShadowCatalog shadowCatalog, @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectManifest():
+return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFolders,_that.tilesets,_that.elementCategories,_that.elements,_that.environmentPresets,_that.encounterTables,_that.dialogueFolders,_that.dialogues,_that.scripts,_that.scenarios,_that.cinematics,_that.cinematicMediaAssets,_that.facts,_that.worldRules,_that.narrativeDiagnosticSuppressions,_that.eventRegistry,_that.scenes,_that.storylines,_that.shops,_that.badges,_that.trainers,_that.characters,_that.settings,_that.pokemon,_that.newGame,_that.presentation,_that.globalProperties,_that.smartTileCatalog,_that.borderCatalog,_that.shadowCatalog,_that.projectedBuildingShadowCatalog);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String name,  ProjectVersion version,  List<ProjectMapEntry> maps,  List<ProjectMapGroup> groups,  List<ProjectTilesetFolder> tilesetFolders,  List<ProjectTilesetEntry> tilesets,  List<ProjectElementCategory> elementCategories,  List<ProjectElementEntry> elements, @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)  List<EnvironmentPreset> environmentPresets,  List<ProjectEncounterTable> encounterTables,  List<ProjectDialogueFolder> dialogueFolders,  List<ProjectDialogueEntry> dialogues,  List<ProjectScriptEntry> scripts,  List<ScenarioAsset> scenarios, @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)  List<CinematicAsset> cinematics, @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)  List<CinematicMediaAsset> cinematicMediaAssets, @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)  List<NarrativeFactDefinition> facts, @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)  List<WorldRuleDefinition> worldRules,  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions, @JsonKey(includeIfNull: false)  NarrativeEventRegistry? eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)  List<SceneAsset> scenes, @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)  List<StorylineAsset> storylines,  List<ShopDefinition> shops,  List<BadgeDefinition> badges,  List<ProjectTrainerEntry> trainers,  List<ProjectCharacterEntry> characters,  ProjectSettings settings,  ProjectPokemonConfig pokemon,  ProjectNewGameConfig newGame, @JsonKey(includeIfNull: false)  ProjectPresentationProfile? presentation,  Map<String, dynamic> globalProperties, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)  ProjectSmartTileCatalog smartTileCatalog, @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false)  ProjectBorderCatalog borderCatalog, @ProjectShadowCatalogJsonConverter()  ProjectShadowCatalog shadowCatalog, @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false)  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectManifest() when $default != null:
+return $default(_that.name,_that.version,_that.maps,_that.groups,_that.tilesetFolders,_that.tilesets,_that.elementCategories,_that.elements,_that.environmentPresets,_that.encounterTables,_that.dialogueFolders,_that.dialogues,_that.scripts,_that.scenarios,_that.cinematics,_that.cinematicMediaAssets,_that.facts,_that.worldRules,_that.narrativeDiagnosticSuppressions,_that.eventRegistry,_that.scenes,_that.storylines,_that.shops,_that.badges,_that.trainers,_that.characters,_that.settings,_that.pokemon,_that.newGame,_that.presentation,_that.globalProperties,_that.smartTileCatalog,_that.borderCatalog,_that.shadowCatalog,_that.projectedBuildingShadowCatalog);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$ProjectManifestImplCopyWithImpl<$Res>
-    extends _$ProjectManifestCopyWithImpl<$Res, _$ProjectManifestImpl>
-    implements _$$ProjectManifestImplCopyWith<$Res> {
-  __$$ProjectManifestImplCopyWithImpl(
-      _$ProjectManifestImpl _value, $Res Function(_$ProjectManifestImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of ProjectManifest
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? name = null,
-    Object? version = null,
-    Object? maps = null,
-    Object? groups = null,
-    Object? tilesetFolders = null,
-    Object? tilesets = null,
-    Object? elementCategories = null,
-    Object? elements = null,
-    Object? environmentPresets = null,
-    Object? encounterTables = null,
-    Object? dialogueFolders = null,
-    Object? dialogues = null,
-    Object? scripts = null,
-    Object? scenarios = null,
-    Object? cinematics = null,
-    Object? cinematicMediaAssets = null,
-    Object? facts = null,
-    Object? worldRules = null,
-    Object? narrativeDiagnosticSuppressions = null,
-    Object? eventRegistry = freezed,
-    Object? scenes = null,
-    Object? storylines = null,
-    Object? shops = null,
-    Object? badges = null,
-    Object? trainers = null,
-    Object? characters = null,
-    Object? settings = null,
-    Object? pokemon = null,
-    Object? newGame = null,
-    Object? presentation = freezed,
-    Object? globalProperties = null,
-    Object? smartTileCatalog = null,
-    Object? borderCatalog = null,
-    Object? shadowCatalog = null,
-    Object? projectedBuildingShadowCatalog = null,
-  }) {
-    return _then(_$ProjectManifestImpl(
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      version: null == version
-          ? _value.version
-          : version // ignore: cast_nullable_to_non_nullable
-              as ProjectVersion,
-      maps: null == maps
-          ? _value._maps
-          : maps // ignore: cast_nullable_to_non_nullable
-              as List<ProjectMapEntry>,
-      groups: null == groups
-          ? _value._groups
-          : groups // ignore: cast_nullable_to_non_nullable
-              as List<ProjectMapGroup>,
-      tilesetFolders: null == tilesetFolders
-          ? _value._tilesetFolders
-          : tilesetFolders // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTilesetFolder>,
-      tilesets: null == tilesets
-          ? _value._tilesets
-          : tilesets // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTilesetEntry>,
-      elementCategories: null == elementCategories
-          ? _value._elementCategories
-          : elementCategories // ignore: cast_nullable_to_non_nullable
-              as List<ProjectElementCategory>,
-      elements: null == elements
-          ? _value._elements
-          : elements // ignore: cast_nullable_to_non_nullable
-              as List<ProjectElementEntry>,
-      environmentPresets: null == environmentPresets
-          ? _value._environmentPresets
-          : environmentPresets // ignore: cast_nullable_to_non_nullable
-              as List<EnvironmentPreset>,
-      encounterTables: null == encounterTables
-          ? _value._encounterTables
-          : encounterTables // ignore: cast_nullable_to_non_nullable
-              as List<ProjectEncounterTable>,
-      dialogueFolders: null == dialogueFolders
-          ? _value._dialogueFolders
-          : dialogueFolders // ignore: cast_nullable_to_non_nullable
-              as List<ProjectDialogueFolder>,
-      dialogues: null == dialogues
-          ? _value._dialogues
-          : dialogues // ignore: cast_nullable_to_non_nullable
-              as List<ProjectDialogueEntry>,
-      scripts: null == scripts
-          ? _value._scripts
-          : scripts // ignore: cast_nullable_to_non_nullable
-              as List<ProjectScriptEntry>,
-      scenarios: null == scenarios
-          ? _value._scenarios
-          : scenarios // ignore: cast_nullable_to_non_nullable
-              as List<ScenarioAsset>,
-      cinematics: null == cinematics
-          ? _value._cinematics
-          : cinematics // ignore: cast_nullable_to_non_nullable
-              as List<CinematicAsset>,
-      cinematicMediaAssets: null == cinematicMediaAssets
-          ? _value._cinematicMediaAssets
-          : cinematicMediaAssets // ignore: cast_nullable_to_non_nullable
-              as List<CinematicMediaAsset>,
-      facts: null == facts
-          ? _value._facts
-          : facts // ignore: cast_nullable_to_non_nullable
-              as List<NarrativeFactDefinition>,
-      worldRules: null == worldRules
-          ? _value._worldRules
-          : worldRules // ignore: cast_nullable_to_non_nullable
-              as List<WorldRuleDefinition>,
-      narrativeDiagnosticSuppressions: null == narrativeDiagnosticSuppressions
-          ? _value._narrativeDiagnosticSuppressions
-          : narrativeDiagnosticSuppressions // ignore: cast_nullable_to_non_nullable
-              as List<NarrativeDiagnosticSuppression>,
-      eventRegistry: freezed == eventRegistry
-          ? _value.eventRegistry
-          : eventRegistry // ignore: cast_nullable_to_non_nullable
-              as NarrativeEventRegistry?,
-      scenes: null == scenes
-          ? _value._scenes
-          : scenes // ignore: cast_nullable_to_non_nullable
-              as List<SceneAsset>,
-      storylines: null == storylines
-          ? _value._storylines
-          : storylines // ignore: cast_nullable_to_non_nullable
-              as List<StorylineAsset>,
-      shops: null == shops
-          ? _value._shops
-          : shops // ignore: cast_nullable_to_non_nullable
-              as List<ShopDefinition>,
-      badges: null == badges
-          ? _value._badges
-          : badges // ignore: cast_nullable_to_non_nullable
-              as List<BadgeDefinition>,
-      trainers: null == trainers
-          ? _value._trainers
-          : trainers // ignore: cast_nullable_to_non_nullable
-              as List<ProjectTrainerEntry>,
-      characters: null == characters
-          ? _value._characters
-          : characters // ignore: cast_nullable_to_non_nullable
-              as List<ProjectCharacterEntry>,
-      settings: null == settings
-          ? _value.settings
-          : settings // ignore: cast_nullable_to_non_nullable
-              as ProjectSettings,
-      pokemon: null == pokemon
-          ? _value.pokemon
-          : pokemon // ignore: cast_nullable_to_non_nullable
-              as ProjectPokemonConfig,
-      newGame: null == newGame
-          ? _value.newGame
-          : newGame // ignore: cast_nullable_to_non_nullable
-              as ProjectNewGameConfig,
-      presentation: freezed == presentation
-          ? _value.presentation
-          : presentation // ignore: cast_nullable_to_non_nullable
-              as ProjectPresentationProfile?,
-      globalProperties: null == globalProperties
-          ? _value._globalProperties
-          : globalProperties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
-      smartTileCatalog: null == smartTileCatalog
-          ? _value.smartTileCatalog
-          : smartTileCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectSmartTileCatalog,
-      borderCatalog: null == borderCatalog
-          ? _value.borderCatalog
-          : borderCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectBorderCatalog,
-      shadowCatalog: null == shadowCatalog
-          ? _value.shadowCatalog
-          : shadowCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectShadowCatalog,
-      projectedBuildingShadowCatalog: null == projectedBuildingShadowCatalog
-          ? _value.projectedBuildingShadowCatalog
-          : projectedBuildingShadowCatalog // ignore: cast_nullable_to_non_nullable
-              as ProjectBuildingShadowPresetCatalog,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectManifestImpl implements _ProjectManifest {
-  const _$ProjectManifestImpl(
-      {required this.name,
-      this.version = ProjectVersion.v6,
-      required final List<ProjectMapEntry> maps,
-      final List<ProjectMapGroup> groups = const [],
-      final List<ProjectTilesetFolder> tilesetFolders = const [],
-      required final List<ProjectTilesetEntry> tilesets,
-      final List<ProjectElementCategory> elementCategories = const [],
-      final List<ProjectElementEntry> elements = const [],
-      @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets)
-      final List<EnvironmentPreset> environmentPresets = const [],
-      final List<ProjectEncounterTable> encounterTables = const [],
-      final List<ProjectDialogueFolder> dialogueFolders = const [],
-      final List<ProjectDialogueEntry> dialogues = const [],
-      final List<ProjectScriptEntry> scripts = const [],
-      final List<ScenarioAsset> scenarios = const [],
-      @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)
-      final List<CinematicAsset> cinematics = const [],
-      @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson)
-      final List<CinematicMediaAsset> cinematicMediaAssets = const [],
-      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
-      final List<NarrativeFactDefinition> facts = const [],
-      @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
-      final List<WorldRuleDefinition> worldRules = const [],
-      final List<NarrativeDiagnosticSuppression>
-          narrativeDiagnosticSuppressions = const [],
-      @JsonKey(includeIfNull: false) this.eventRegistry,
-      @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
-      final List<SceneAsset> scenes = const [],
-      @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson)
-      final List<StorylineAsset> storylines = const [],
-      final List<ShopDefinition> shops = const [],
-      final List<BadgeDefinition> badges = const [],
-      final List<ProjectTrainerEntry> trainers = const [],
-      final List<ProjectCharacterEntry> characters = const [],
-      this.settings = const ProjectSettings(),
-      this.pokemon = const ProjectPokemonConfig(),
-      this.newGame = const ProjectNewGameConfig(),
-      @JsonKey(includeIfNull: false) this.presentation,
-      final Map<String, dynamic> globalProperties = const {},
-      @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false)
-      this.smartTileCatalog = const ProjectSmartTileCatalog.empty(),
-      @JsonKey(
-          name: 'borderCatalog',
-          readValue: _readProjectBorderCatalog,
-          fromJson: _projectBorderCatalogFromJson,
-          toJson: _projectBorderCatalogToJson,
-          includeIfNull: false)
-      this.borderCatalog = const ProjectBorderCatalog.empty(),
-      @ProjectShadowCatalogJsonConverter()
-      this.shadowCatalog = const ProjectShadowCatalog.empty(),
-      @JsonKey(
-          name: 'projectedBuildingShadowCatalog',
-          fromJson: _projectedBuildingShadowCatalogFromJson,
-          toJson: _projectedBuildingShadowCatalogToJson,
-          includeIfNull: false)
-      this.projectedBuildingShadowCatalog = const ProjectBuildingShadowPresetCatalog.empty()})
-      : _maps = maps,
-        _groups = groups,
-        _tilesetFolders = tilesetFolders,
-        _tilesets = tilesets,
-        _elementCategories = elementCategories,
-        _elements = elements,
-        _environmentPresets = environmentPresets,
-        _encounterTables = encounterTables,
-        _dialogueFolders = dialogueFolders,
-        _dialogues = dialogues,
-        _scripts = scripts,
-        _scenarios = scenarios,
-        _cinematics = cinematics,
-        _cinematicMediaAssets = cinematicMediaAssets,
-        _facts = facts,
-        _worldRules = worldRules,
-        _narrativeDiagnosticSuppressions = narrativeDiagnosticSuppressions,
-        _scenes = scenes,
-        _storylines = storylines,
-        _shops = shops,
-        _badges = badges,
-        _trainers = trainers,
-        _characters = characters,
-        _globalProperties = globalProperties;
+class _ProjectManifest implements ProjectManifest {
+  const _ProjectManifest({required this.name, this.version = ProjectVersion.v6, required final  List<ProjectMapEntry> maps, final  List<ProjectMapGroup> groups = const [], final  List<ProjectTilesetFolder> tilesetFolders = const [], required final  List<ProjectTilesetEntry> tilesets, final  List<ProjectElementCategory> elementCategories = const [], final  List<ProjectElementEntry> elements = const [], @JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) final  List<EnvironmentPreset> environmentPresets = const [], final  List<ProjectEncounterTable> encounterTables = const [], final  List<ProjectDialogueFolder> dialogueFolders = const [], final  List<ProjectDialogueEntry> dialogues = const [], final  List<ProjectScriptEntry> scripts = const [], final  List<ScenarioAsset> scenarios = const [], @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) final  List<CinematicAsset> cinematics = const [], @JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) final  List<CinematicMediaAsset> cinematicMediaAssets = const [], @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) final  List<NarrativeFactDefinition> facts = const [], @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) final  List<WorldRuleDefinition> worldRules = const [], final  List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions = const [], @JsonKey(includeIfNull: false) this.eventRegistry, @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) final  List<SceneAsset> scenes = const [], @JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) final  List<StorylineAsset> storylines = const [], final  List<ShopDefinition> shops = const [], final  List<BadgeDefinition> badges = const [], final  List<ProjectTrainerEntry> trainers = const [], final  List<ProjectCharacterEntry> characters = const [], this.settings = const ProjectSettings(), this.pokemon = const ProjectPokemonConfig(), this.newGame = const ProjectNewGameConfig(), @JsonKey(includeIfNull: false) this.presentation, final  Map<String, dynamic> globalProperties = const {}, @JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) this.smartTileCatalog = const ProjectSmartTileCatalog.empty(), @JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) this.borderCatalog = const ProjectBorderCatalog.empty(), @ProjectShadowCatalogJsonConverter() this.shadowCatalog = const ProjectShadowCatalog.empty(), @JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) this.projectedBuildingShadowCatalog = const ProjectBuildingShadowPresetCatalog.empty()}): _maps = maps,_groups = groups,_tilesetFolders = tilesetFolders,_tilesets = tilesets,_elementCategories = elementCategories,_elements = elements,_environmentPresets = environmentPresets,_encounterTables = encounterTables,_dialogueFolders = dialogueFolders,_dialogues = dialogues,_scripts = scripts,_scenarios = scenarios,_cinematics = cinematics,_cinematicMediaAssets = cinematicMediaAssets,_facts = facts,_worldRules = worldRules,_narrativeDiagnosticSuppressions = narrativeDiagnosticSuppressions,_scenes = scenes,_storylines = storylines,_shops = shops,_badges = badges,_trainers = trainers,_characters = characters,_globalProperties = globalProperties;
+  factory _ProjectManifest.fromJson(Map<String, dynamic> json) => _$ProjectManifestFromJson(json);
 
-  factory _$ProjectManifestImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectManifestImplFromJson(json);
-
-  @override
-  final String name;
-  @override
-  @JsonKey()
-  final ProjectVersion version;
-  final List<ProjectMapEntry> _maps;
-  @override
-  List<ProjectMapEntry> get maps {
-    if (_maps is EqualUnmodifiableListView) return _maps;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_maps);
-  }
-
-  final List<ProjectMapGroup> _groups;
-  @override
-  @JsonKey()
-  List<ProjectMapGroup> get groups {
-    if (_groups is EqualUnmodifiableListView) return _groups;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_groups);
-  }
-
-  final List<ProjectTilesetFolder> _tilesetFolders;
-  @override
-  @JsonKey()
-  List<ProjectTilesetFolder> get tilesetFolders {
-    if (_tilesetFolders is EqualUnmodifiableListView) return _tilesetFolders;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tilesetFolders);
-  }
-
-  final List<ProjectTilesetEntry> _tilesets;
-  @override
-  List<ProjectTilesetEntry> get tilesets {
-    if (_tilesets is EqualUnmodifiableListView) return _tilesets;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tilesets);
-  }
-
-  final List<ProjectElementCategory> _elementCategories;
-  @override
-  @JsonKey()
-  List<ProjectElementCategory> get elementCategories {
-    if (_elementCategories is EqualUnmodifiableListView)
-      return _elementCategories;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_elementCategories);
-  }
-
-  final List<ProjectElementEntry> _elements;
-  @override
-  @JsonKey()
-  List<ProjectElementEntry> get elements {
-    if (_elements is EqualUnmodifiableListView) return _elements;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_elements);
-  }
-
-  final List<EnvironmentPreset> _environmentPresets;
-  @override
-  @JsonKey(
-      name: 'environmentPresets',
-      fromJson: decodeEnvironmentPresets,
-      toJson: encodeEnvironmentPresets)
-  List<EnvironmentPreset> get environmentPresets {
-    if (_environmentPresets is EqualUnmodifiableListView)
-      return _environmentPresets;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_environmentPresets);
-  }
-
-  final List<ProjectEncounterTable> _encounterTables;
-  @override
-  @JsonKey()
-  List<ProjectEncounterTable> get encounterTables {
-    if (_encounterTables is EqualUnmodifiableListView) return _encounterTables;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_encounterTables);
-  }
-
-  final List<ProjectDialogueFolder> _dialogueFolders;
-  @override
-  @JsonKey()
-  List<ProjectDialogueFolder> get dialogueFolders {
-    if (_dialogueFolders is EqualUnmodifiableListView) return _dialogueFolders;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_dialogueFolders);
-  }
-
-  final List<ProjectDialogueEntry> _dialogues;
-  @override
-  @JsonKey()
-  List<ProjectDialogueEntry> get dialogues {
-    if (_dialogues is EqualUnmodifiableListView) return _dialogues;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_dialogues);
-  }
-
-  final List<ProjectScriptEntry> _scripts;
-  @override
-  @JsonKey()
-  List<ProjectScriptEntry> get scripts {
-    if (_scripts is EqualUnmodifiableListView) return _scripts;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_scripts);
-  }
-
-  final List<ScenarioAsset> _scenarios;
-  @override
-  @JsonKey()
-  List<ScenarioAsset> get scenarios {
-    if (_scenarios is EqualUnmodifiableListView) return _scenarios;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_scenarios);
-  }
-
-  final List<CinematicAsset> _cinematics;
-  @override
-  @JsonKey(
-      name: 'cinematics',
-      fromJson: _cinematicsFromJson,
-      toJson: _cinematicsToJson)
-  List<CinematicAsset> get cinematics {
-    if (_cinematics is EqualUnmodifiableListView) return _cinematics;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_cinematics);
-  }
-
-  final List<CinematicMediaAsset> _cinematicMediaAssets;
-  @override
-  @JsonKey(
-      name: 'cinematicMediaAssets',
-      fromJson: _cinematicMediaAssetsFromJson,
-      toJson: _cinematicMediaAssetsToJson)
-  List<CinematicMediaAsset> get cinematicMediaAssets {
-    if (_cinematicMediaAssets is EqualUnmodifiableListView)
-      return _cinematicMediaAssets;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_cinematicMediaAssets);
-  }
-
-  final List<NarrativeFactDefinition> _facts;
-  @override
-  @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
-  List<NarrativeFactDefinition> get facts {
-    if (_facts is EqualUnmodifiableListView) return _facts;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_facts);
-  }
-
-  final List<WorldRuleDefinition> _worldRules;
-  @override
-  @JsonKey(
-      name: 'worldRules',
-      fromJson: _worldRulesFromJson,
-      toJson: _worldRulesToJson)
-  List<WorldRuleDefinition> get worldRules {
-    if (_worldRules is EqualUnmodifiableListView) return _worldRules;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_worldRules);
-  }
-
-  final List<NarrativeDiagnosticSuppression> _narrativeDiagnosticSuppressions;
-  @override
-  @JsonKey()
-  List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions {
-    if (_narrativeDiagnosticSuppressions is EqualUnmodifiableListView)
-      return _narrativeDiagnosticSuppressions;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_narrativeDiagnosticSuppressions);
-  }
-
-  @override
-  @JsonKey(includeIfNull: false)
-  final NarrativeEventRegistry? eventRegistry;
-  final List<SceneAsset> _scenes;
-  @override
-  @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
-  List<SceneAsset> get scenes {
-    if (_scenes is EqualUnmodifiableListView) return _scenes;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_scenes);
-  }
-
-  final List<StorylineAsset> _storylines;
-  @override
-  @JsonKey(
-      name: 'storylines',
-      fromJson: _storylinesFromJson,
-      toJson: _storylinesToJson)
-  List<StorylineAsset> get storylines {
-    if (_storylines is EqualUnmodifiableListView) return _storylines;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_storylines);
-  }
-
-  final List<ShopDefinition> _shops;
-  @override
-  @JsonKey()
-  List<ShopDefinition> get shops {
-    if (_shops is EqualUnmodifiableListView) return _shops;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_shops);
-  }
-
-  final List<BadgeDefinition> _badges;
-  @override
-  @JsonKey()
-  List<BadgeDefinition> get badges {
-    if (_badges is EqualUnmodifiableListView) return _badges;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_badges);
-  }
-
-  final List<ProjectTrainerEntry> _trainers;
-  @override
-  @JsonKey()
-  List<ProjectTrainerEntry> get trainers {
-    if (_trainers is EqualUnmodifiableListView) return _trainers;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_trainers);
-  }
-
-  final List<ProjectCharacterEntry> _characters;
-  @override
-  @JsonKey()
-  List<ProjectCharacterEntry> get characters {
-    if (_characters is EqualUnmodifiableListView) return _characters;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_characters);
-  }
-
-  @override
-  @JsonKey()
-  final ProjectSettings settings;
-  @override
-  @JsonKey()
-  final ProjectPokemonConfig pokemon;
-  @override
-  @JsonKey()
-  final ProjectNewGameConfig newGame;
-  @override
-  @JsonKey(includeIfNull: false)
-  final ProjectPresentationProfile? presentation;
-  final Map<String, dynamic> _globalProperties;
-  @override
-  @JsonKey()
-  Map<String, dynamic> get globalProperties {
-    if (_globalProperties is EqualUnmodifiableMapView) return _globalProperties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_globalProperties);
-  }
-
-  @override
-  @JsonKey(
-      name: 'smartTileCatalog',
-      fromJson: _projectSmartTileCatalogFromJson,
-      toJson: _projectSmartTileCatalogToJson,
-      includeIfNull: false)
-  final ProjectSmartTileCatalog smartTileCatalog;
-  @override
-  @JsonKey(
-      name: 'borderCatalog',
-      readValue: _readProjectBorderCatalog,
-      fromJson: _projectBorderCatalogFromJson,
-      toJson: _projectBorderCatalogToJson,
-      includeIfNull: false)
-  final ProjectBorderCatalog borderCatalog;
-  @override
-  @JsonKey()
-  @ProjectShadowCatalogJsonConverter()
-  final ProjectShadowCatalog shadowCatalog;
-  @override
-  @JsonKey(
-      name: 'projectedBuildingShadowCatalog',
-      fromJson: _projectedBuildingShadowCatalogFromJson,
-      toJson: _projectedBuildingShadowCatalogToJson,
-      includeIfNull: false)
-  final ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog;
-
-  @override
-  String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, globalProperties: $globalProperties, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectManifestImpl &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.version, version) || other.version == version) &&
-            const DeepCollectionEquality().equals(other._maps, _maps) &&
-            const DeepCollectionEquality().equals(other._groups, _groups) &&
-            const DeepCollectionEquality()
-                .equals(other._tilesetFolders, _tilesetFolders) &&
-            const DeepCollectionEquality().equals(other._tilesets, _tilesets) &&
-            const DeepCollectionEquality()
-                .equals(other._elementCategories, _elementCategories) &&
-            const DeepCollectionEquality().equals(other._elements, _elements) &&
-            const DeepCollectionEquality()
-                .equals(other._environmentPresets, _environmentPresets) &&
-            const DeepCollectionEquality()
-                .equals(other._encounterTables, _encounterTables) &&
-            const DeepCollectionEquality()
-                .equals(other._dialogueFolders, _dialogueFolders) &&
-            const DeepCollectionEquality()
-                .equals(other._dialogues, _dialogues) &&
-            const DeepCollectionEquality().equals(other._scripts, _scripts) &&
-            const DeepCollectionEquality()
-                .equals(other._scenarios, _scenarios) &&
-            const DeepCollectionEquality()
-                .equals(other._cinematics, _cinematics) &&
-            const DeepCollectionEquality()
-                .equals(other._cinematicMediaAssets, _cinematicMediaAssets) &&
-            const DeepCollectionEquality().equals(other._facts, _facts) &&
-            const DeepCollectionEquality()
-                .equals(other._worldRules, _worldRules) &&
-            const DeepCollectionEquality().equals(
-                other._narrativeDiagnosticSuppressions,
-                _narrativeDiagnosticSuppressions) &&
-            (identical(other.eventRegistry, eventRegistry) ||
-                other.eventRegistry == eventRegistry) &&
-            const DeepCollectionEquality().equals(other._scenes, _scenes) &&
-            const DeepCollectionEquality()
-                .equals(other._storylines, _storylines) &&
-            const DeepCollectionEquality().equals(other._shops, _shops) &&
-            const DeepCollectionEquality().equals(other._badges, _badges) &&
-            const DeepCollectionEquality().equals(other._trainers, _trainers) &&
-            const DeepCollectionEquality()
-                .equals(other._characters, _characters) &&
-            (identical(other.settings, settings) ||
-                other.settings == settings) &&
-            (identical(other.pokemon, pokemon) || other.pokemon == pokemon) &&
-            (identical(other.newGame, newGame) || other.newGame == newGame) &&
-            (identical(other.presentation, presentation) ||
-                other.presentation == presentation) &&
-            const DeepCollectionEquality()
-                .equals(other._globalProperties, _globalProperties) &&
-            (identical(other.smartTileCatalog, smartTileCatalog) ||
-                other.smartTileCatalog == smartTileCatalog) &&
-            (identical(other.borderCatalog, borderCatalog) ||
-                other.borderCatalog == borderCatalog) &&
-            (identical(other.shadowCatalog, shadowCatalog) ||
-                other.shadowCatalog == shadowCatalog) &&
-            (identical(other.projectedBuildingShadowCatalog,
-                    projectedBuildingShadowCatalog) ||
-                other.projectedBuildingShadowCatalog ==
-                    projectedBuildingShadowCatalog));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hashAll([
-        runtimeType,
-        name,
-        version,
-        const DeepCollectionEquality().hash(_maps),
-        const DeepCollectionEquality().hash(_groups),
-        const DeepCollectionEquality().hash(_tilesetFolders),
-        const DeepCollectionEquality().hash(_tilesets),
-        const DeepCollectionEquality().hash(_elementCategories),
-        const DeepCollectionEquality().hash(_elements),
-        const DeepCollectionEquality().hash(_environmentPresets),
-        const DeepCollectionEquality().hash(_encounterTables),
-        const DeepCollectionEquality().hash(_dialogueFolders),
-        const DeepCollectionEquality().hash(_dialogues),
-        const DeepCollectionEquality().hash(_scripts),
-        const DeepCollectionEquality().hash(_scenarios),
-        const DeepCollectionEquality().hash(_cinematics),
-        const DeepCollectionEquality().hash(_cinematicMediaAssets),
-        const DeepCollectionEquality().hash(_facts),
-        const DeepCollectionEquality().hash(_worldRules),
-        const DeepCollectionEquality().hash(_narrativeDiagnosticSuppressions),
-        eventRegistry,
-        const DeepCollectionEquality().hash(_scenes),
-        const DeepCollectionEquality().hash(_storylines),
-        const DeepCollectionEquality().hash(_shops),
-        const DeepCollectionEquality().hash(_badges),
-        const DeepCollectionEquality().hash(_trainers),
-        const DeepCollectionEquality().hash(_characters),
-        settings,
-        pokemon,
-        newGame,
-        presentation,
-        const DeepCollectionEquality().hash(_globalProperties),
-        smartTileCatalog,
-        borderCatalog,
-        shadowCatalog,
-        projectedBuildingShadowCatalog
-      ]);
-
-  /// Create a copy of ProjectManifest
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectManifestImplCopyWith<_$ProjectManifestImpl> get copyWith =>
-      __$$ProjectManifestImplCopyWithImpl<_$ProjectManifestImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectManifestImplToJson(
-      this,
-    );
-  }
+@override final  String name;
+@override@JsonKey() final  ProjectVersion version;
+ final  List<ProjectMapEntry> _maps;
+@override List<ProjectMapEntry> get maps {
+  if (_maps is EqualUnmodifiableListView) return _maps;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_maps);
 }
 
-abstract class _ProjectManifest implements ProjectManifest {
-  const factory _ProjectManifest(
-      {required final String name,
-      final ProjectVersion version,
-      required final List<ProjectMapEntry> maps,
-      final List<ProjectMapGroup> groups,
-      final List<ProjectTilesetFolder> tilesetFolders,
-      required final List<ProjectTilesetEntry> tilesets,
-      final List<ProjectElementCategory> elementCategories,
-      final List<ProjectElementEntry> elements,
-      @JsonKey(
-          name: 'environmentPresets',
-          fromJson: decodeEnvironmentPresets,
-          toJson: encodeEnvironmentPresets)
-      final List<EnvironmentPreset> environmentPresets,
-      final List<ProjectEncounterTable> encounterTables,
-      final List<ProjectDialogueFolder> dialogueFolders,
-      final List<ProjectDialogueEntry> dialogues,
-      final List<ProjectScriptEntry> scripts,
-      final List<ScenarioAsset> scenarios,
-      @JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson)
-      final List<CinematicAsset> cinematics,
-      @JsonKey(
-          name: 'cinematicMediaAssets',
-          fromJson: _cinematicMediaAssetsFromJson,
-          toJson: _cinematicMediaAssetsToJson)
-      final List<CinematicMediaAsset> cinematicMediaAssets,
-      @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
-      final List<NarrativeFactDefinition> facts,
-      @JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson)
-      final List<WorldRuleDefinition> worldRules,
-      final List<NarrativeDiagnosticSuppression>
-          narrativeDiagnosticSuppressions,
-      @JsonKey(includeIfNull: false)
-      final NarrativeEventRegistry? eventRegistry,
-      @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
-      final List<SceneAsset> scenes,
-      @JsonKey(
-          name: 'storylines',
-          fromJson: _storylinesFromJson,
-          toJson: _storylinesToJson)
-      final List<StorylineAsset> storylines,
-      final List<ShopDefinition> shops,
-      final List<BadgeDefinition> badges,
-      final List<ProjectTrainerEntry> trainers,
-      final List<ProjectCharacterEntry> characters,
-      final ProjectSettings settings,
-      final ProjectPokemonConfig pokemon,
-      final ProjectNewGameConfig newGame,
-      @JsonKey(includeIfNull: false)
-      final ProjectPresentationProfile? presentation,
-      final Map<String, dynamic> globalProperties,
-      @JsonKey(
-          name: 'smartTileCatalog',
-          fromJson: _projectSmartTileCatalogFromJson,
-          toJson: _projectSmartTileCatalogToJson,
-          includeIfNull: false)
-      final ProjectSmartTileCatalog smartTileCatalog,
-      @JsonKey(
-          name: 'borderCatalog',
-          readValue: _readProjectBorderCatalog,
-          fromJson: _projectBorderCatalogFromJson,
-          toJson: _projectBorderCatalogToJson,
-          includeIfNull: false)
-      final ProjectBorderCatalog borderCatalog,
-      @ProjectShadowCatalogJsonConverter()
-      final ProjectShadowCatalog shadowCatalog,
-      @JsonKey(
-          name: 'projectedBuildingShadowCatalog',
-          fromJson: _projectedBuildingShadowCatalogFromJson,
-          toJson: _projectedBuildingShadowCatalogToJson,
-          includeIfNull: false)
-      final ProjectBuildingShadowPresetCatalog
-          projectedBuildingShadowCatalog}) = _$ProjectManifestImpl;
-
-  factory _ProjectManifest.fromJson(Map<String, dynamic> json) =
-      _$ProjectManifestImpl.fromJson;
-
-  @override
-  String get name;
-  @override
-  ProjectVersion get version;
-  @override
-  List<ProjectMapEntry> get maps;
-  @override
-  List<ProjectMapGroup> get groups;
-  @override
-  List<ProjectTilesetFolder> get tilesetFolders;
-  @override
-  List<ProjectTilesetEntry> get tilesets;
-  @override
-  List<ProjectElementCategory> get elementCategories;
-  @override
-  List<ProjectElementEntry> get elements;
-  @override
-  @JsonKey(
-      name: 'environmentPresets',
-      fromJson: decodeEnvironmentPresets,
-      toJson: encodeEnvironmentPresets)
-  List<EnvironmentPreset> get environmentPresets;
-  @override
-  List<ProjectEncounterTable> get encounterTables;
-  @override
-  List<ProjectDialogueFolder> get dialogueFolders;
-  @override
-  List<ProjectDialogueEntry> get dialogues;
-  @override
-  List<ProjectScriptEntry> get scripts;
-  @override
-  List<ScenarioAsset> get scenarios;
-  @override
-  @JsonKey(
-      name: 'cinematics',
-      fromJson: _cinematicsFromJson,
-      toJson: _cinematicsToJson)
-  List<CinematicAsset> get cinematics;
-  @override
-  @JsonKey(
-      name: 'cinematicMediaAssets',
-      fromJson: _cinematicMediaAssetsFromJson,
-      toJson: _cinematicMediaAssetsToJson)
-  List<CinematicMediaAsset> get cinematicMediaAssets;
-  @override
-  @JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson)
-  List<NarrativeFactDefinition> get facts;
-  @override
-  @JsonKey(
-      name: 'worldRules',
-      fromJson: _worldRulesFromJson,
-      toJson: _worldRulesToJson)
-  List<WorldRuleDefinition> get worldRules;
-  @override
-  List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions;
-  @override
-  @JsonKey(includeIfNull: false)
-  NarrativeEventRegistry? get eventRegistry;
-  @override
-  @JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson)
-  List<SceneAsset> get scenes;
-  @override
-  @JsonKey(
-      name: 'storylines',
-      fromJson: _storylinesFromJson,
-      toJson: _storylinesToJson)
-  List<StorylineAsset> get storylines;
-  @override
-  List<ShopDefinition> get shops;
-  @override
-  List<BadgeDefinition> get badges;
-  @override
-  List<ProjectTrainerEntry> get trainers;
-  @override
-  List<ProjectCharacterEntry> get characters;
-  @override
-  ProjectSettings get settings;
-  @override
-  ProjectPokemonConfig get pokemon;
-  @override
-  ProjectNewGameConfig get newGame;
-  @override
-  @JsonKey(includeIfNull: false)
-  ProjectPresentationProfile? get presentation;
-  @override
-  Map<String, dynamic> get globalProperties;
-  @override
-  @JsonKey(
-      name: 'smartTileCatalog',
-      fromJson: _projectSmartTileCatalogFromJson,
-      toJson: _projectSmartTileCatalogToJson,
-      includeIfNull: false)
-  ProjectSmartTileCatalog get smartTileCatalog;
-  @override
-  @JsonKey(
-      name: 'borderCatalog',
-      readValue: _readProjectBorderCatalog,
-      fromJson: _projectBorderCatalogFromJson,
-      toJson: _projectBorderCatalogToJson,
-      includeIfNull: false)
-  ProjectBorderCatalog get borderCatalog;
-  @override
-  @ProjectShadowCatalogJsonConverter()
-  ProjectShadowCatalog get shadowCatalog;
-  @override
-  @JsonKey(
-      name: 'projectedBuildingShadowCatalog',
-      fromJson: _projectedBuildingShadowCatalogFromJson,
-      toJson: _projectedBuildingShadowCatalogToJson,
-      includeIfNull: false)
-  ProjectBuildingShadowPresetCatalog get projectedBuildingShadowCatalog;
-
-  /// Create a copy of ProjectManifest
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectManifestImplCopyWith<_$ProjectManifestImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+ final  List<ProjectMapGroup> _groups;
+@override@JsonKey() List<ProjectMapGroup> get groups {
+  if (_groups is EqualUnmodifiableListView) return _groups;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_groups);
 }
 
-ProjectPokemonConfig _$ProjectPokemonConfigFromJson(Map<String, dynamic> json) {
-  return _ProjectPokemonConfig.fromJson(json);
+ final  List<ProjectTilesetFolder> _tilesetFolders;
+@override@JsonKey() List<ProjectTilesetFolder> get tilesetFolders {
+  if (_tilesetFolders is EqualUnmodifiableListView) return _tilesetFolders;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tilesetFolders);
 }
+
+ final  List<ProjectTilesetEntry> _tilesets;
+@override List<ProjectTilesetEntry> get tilesets {
+  if (_tilesets is EqualUnmodifiableListView) return _tilesets;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tilesets);
+}
+
+ final  List<ProjectElementCategory> _elementCategories;
+@override@JsonKey() List<ProjectElementCategory> get elementCategories {
+  if (_elementCategories is EqualUnmodifiableListView) return _elementCategories;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_elementCategories);
+}
+
+ final  List<ProjectElementEntry> _elements;
+@override@JsonKey() List<ProjectElementEntry> get elements {
+  if (_elements is EqualUnmodifiableListView) return _elements;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_elements);
+}
+
+ final  List<EnvironmentPreset> _environmentPresets;
+@override@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> get environmentPresets {
+  if (_environmentPresets is EqualUnmodifiableListView) return _environmentPresets;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_environmentPresets);
+}
+
+ final  List<ProjectEncounterTable> _encounterTables;
+@override@JsonKey() List<ProjectEncounterTable> get encounterTables {
+  if (_encounterTables is EqualUnmodifiableListView) return _encounterTables;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_encounterTables);
+}
+
+ final  List<ProjectDialogueFolder> _dialogueFolders;
+@override@JsonKey() List<ProjectDialogueFolder> get dialogueFolders {
+  if (_dialogueFolders is EqualUnmodifiableListView) return _dialogueFolders;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_dialogueFolders);
+}
+
+ final  List<ProjectDialogueEntry> _dialogues;
+@override@JsonKey() List<ProjectDialogueEntry> get dialogues {
+  if (_dialogues is EqualUnmodifiableListView) return _dialogues;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_dialogues);
+}
+
+ final  List<ProjectScriptEntry> _scripts;
+@override@JsonKey() List<ProjectScriptEntry> get scripts {
+  if (_scripts is EqualUnmodifiableListView) return _scripts;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_scripts);
+}
+
+ final  List<ScenarioAsset> _scenarios;
+@override@JsonKey() List<ScenarioAsset> get scenarios {
+  if (_scenarios is EqualUnmodifiableListView) return _scenarios;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_scenarios);
+}
+
+ final  List<CinematicAsset> _cinematics;
+@override@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> get cinematics {
+  if (_cinematics is EqualUnmodifiableListView) return _cinematics;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_cinematics);
+}
+
+ final  List<CinematicMediaAsset> _cinematicMediaAssets;
+@override@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> get cinematicMediaAssets {
+  if (_cinematicMediaAssets is EqualUnmodifiableListView) return _cinematicMediaAssets;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_cinematicMediaAssets);
+}
+
+ final  List<NarrativeFactDefinition> _facts;
+@override@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> get facts {
+  if (_facts is EqualUnmodifiableListView) return _facts;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_facts);
+}
+
+ final  List<WorldRuleDefinition> _worldRules;
+@override@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> get worldRules {
+  if (_worldRules is EqualUnmodifiableListView) return _worldRules;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_worldRules);
+}
+
+ final  List<NarrativeDiagnosticSuppression> _narrativeDiagnosticSuppressions;
+@override@JsonKey() List<NarrativeDiagnosticSuppression> get narrativeDiagnosticSuppressions {
+  if (_narrativeDiagnosticSuppressions is EqualUnmodifiableListView) return _narrativeDiagnosticSuppressions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_narrativeDiagnosticSuppressions);
+}
+
+@override@JsonKey(includeIfNull: false) final  NarrativeEventRegistry? eventRegistry;
+ final  List<SceneAsset> _scenes;
+@override@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> get scenes {
+  if (_scenes is EqualUnmodifiableListView) return _scenes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_scenes);
+}
+
+ final  List<StorylineAsset> _storylines;
+@override@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> get storylines {
+  if (_storylines is EqualUnmodifiableListView) return _storylines;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_storylines);
+}
+
+ final  List<ShopDefinition> _shops;
+@override@JsonKey() List<ShopDefinition> get shops {
+  if (_shops is EqualUnmodifiableListView) return _shops;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_shops);
+}
+
+ final  List<BadgeDefinition> _badges;
+@override@JsonKey() List<BadgeDefinition> get badges {
+  if (_badges is EqualUnmodifiableListView) return _badges;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_badges);
+}
+
+ final  List<ProjectTrainerEntry> _trainers;
+@override@JsonKey() List<ProjectTrainerEntry> get trainers {
+  if (_trainers is EqualUnmodifiableListView) return _trainers;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_trainers);
+}
+
+ final  List<ProjectCharacterEntry> _characters;
+@override@JsonKey() List<ProjectCharacterEntry> get characters {
+  if (_characters is EqualUnmodifiableListView) return _characters;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_characters);
+}
+
+@override@JsonKey() final  ProjectSettings settings;
+@override@JsonKey() final  ProjectPokemonConfig pokemon;
+@override@JsonKey() final  ProjectNewGameConfig newGame;
+@override@JsonKey(includeIfNull: false) final  ProjectPresentationProfile? presentation;
+ final  Map<String, dynamic> _globalProperties;
+@override@JsonKey() Map<String, dynamic> get globalProperties {
+  if (_globalProperties is EqualUnmodifiableMapView) return _globalProperties;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_globalProperties);
+}
+
+@override@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) final  ProjectSmartTileCatalog smartTileCatalog;
+@override@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) final  ProjectBorderCatalog borderCatalog;
+@override@JsonKey()@ProjectShadowCatalogJsonConverter() final  ProjectShadowCatalog shadowCatalog;
+@override@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) final  ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog;
+
+/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectManifestCopyWith<_ProjectManifest> get copyWith => __$ProjectManifestCopyWithImpl<_ProjectManifest>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectManifestToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectManifest&&(identical(other.name, name) || other.name == name)&&(identical(other.version, version) || other.version == version)&&const DeepCollectionEquality().equals(other._maps, _maps)&&const DeepCollectionEquality().equals(other._groups, _groups)&&const DeepCollectionEquality().equals(other._tilesetFolders, _tilesetFolders)&&const DeepCollectionEquality().equals(other._tilesets, _tilesets)&&const DeepCollectionEquality().equals(other._elementCategories, _elementCategories)&&const DeepCollectionEquality().equals(other._elements, _elements)&&const DeepCollectionEquality().equals(other._environmentPresets, _environmentPresets)&&const DeepCollectionEquality().equals(other._encounterTables, _encounterTables)&&const DeepCollectionEquality().equals(other._dialogueFolders, _dialogueFolders)&&const DeepCollectionEquality().equals(other._dialogues, _dialogues)&&const DeepCollectionEquality().equals(other._scripts, _scripts)&&const DeepCollectionEquality().equals(other._scenarios, _scenarios)&&const DeepCollectionEquality().equals(other._cinematics, _cinematics)&&const DeepCollectionEquality().equals(other._cinematicMediaAssets, _cinematicMediaAssets)&&const DeepCollectionEquality().equals(other._facts, _facts)&&const DeepCollectionEquality().equals(other._worldRules, _worldRules)&&const DeepCollectionEquality().equals(other._narrativeDiagnosticSuppressions, _narrativeDiagnosticSuppressions)&&(identical(other.eventRegistry, eventRegistry) || other.eventRegistry == eventRegistry)&&const DeepCollectionEquality().equals(other._scenes, _scenes)&&const DeepCollectionEquality().equals(other._storylines, _storylines)&&const DeepCollectionEquality().equals(other._shops, _shops)&&const DeepCollectionEquality().equals(other._badges, _badges)&&const DeepCollectionEquality().equals(other._trainers, _trainers)&&const DeepCollectionEquality().equals(other._characters, _characters)&&(identical(other.settings, settings) || other.settings == settings)&&(identical(other.pokemon, pokemon) || other.pokemon == pokemon)&&(identical(other.newGame, newGame) || other.newGame == newGame)&&(identical(other.presentation, presentation) || other.presentation == presentation)&&const DeepCollectionEquality().equals(other._globalProperties, _globalProperties)&&(identical(other.smartTileCatalog, smartTileCatalog) || other.smartTileCatalog == smartTileCatalog)&&(identical(other.borderCatalog, borderCatalog) || other.borderCatalog == borderCatalog)&&(identical(other.shadowCatalog, shadowCatalog) || other.shadowCatalog == shadowCatalog)&&(identical(other.projectedBuildingShadowCatalog, projectedBuildingShadowCatalog) || other.projectedBuildingShadowCatalog == projectedBuildingShadowCatalog));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hashAll([runtimeType,name,version,const DeepCollectionEquality().hash(_maps),const DeepCollectionEquality().hash(_groups),const DeepCollectionEquality().hash(_tilesetFolders),const DeepCollectionEquality().hash(_tilesets),const DeepCollectionEquality().hash(_elementCategories),const DeepCollectionEquality().hash(_elements),const DeepCollectionEquality().hash(_environmentPresets),const DeepCollectionEquality().hash(_encounterTables),const DeepCollectionEquality().hash(_dialogueFolders),const DeepCollectionEquality().hash(_dialogues),const DeepCollectionEquality().hash(_scripts),const DeepCollectionEquality().hash(_scenarios),const DeepCollectionEquality().hash(_cinematics),const DeepCollectionEquality().hash(_cinematicMediaAssets),const DeepCollectionEquality().hash(_facts),const DeepCollectionEquality().hash(_worldRules),const DeepCollectionEquality().hash(_narrativeDiagnosticSuppressions),eventRegistry,const DeepCollectionEquality().hash(_scenes),const DeepCollectionEquality().hash(_storylines),const DeepCollectionEquality().hash(_shops),const DeepCollectionEquality().hash(_badges),const DeepCollectionEquality().hash(_trainers),const DeepCollectionEquality().hash(_characters),settings,pokemon,newGame,presentation,const DeepCollectionEquality().hash(_globalProperties),smartTileCatalog,borderCatalog,shadowCatalog,projectedBuildingShadowCatalog]);
+
+@override
+String toString() {
+  return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, environmentPresets: $environmentPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, cinematics: $cinematics, cinematicMediaAssets: $cinematicMediaAssets, facts: $facts, worldRules: $worldRules, narrativeDiagnosticSuppressions: $narrativeDiagnosticSuppressions, eventRegistry: $eventRegistry, scenes: $scenes, storylines: $storylines, shops: $shops, badges: $badges, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, newGame: $newGame, presentation: $presentation, globalProperties: $globalProperties, smartTileCatalog: $smartTileCatalog, borderCatalog: $borderCatalog, shadowCatalog: $shadowCatalog, projectedBuildingShadowCatalog: $projectedBuildingShadowCatalog)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectManifestCopyWith<$Res> implements $ProjectManifestCopyWith<$Res> {
+  factory _$ProjectManifestCopyWith(_ProjectManifest value, $Res Function(_ProjectManifest) _then) = __$ProjectManifestCopyWithImpl;
+@override @useResult
+$Res call({
+ String name, ProjectVersion version, List<ProjectMapEntry> maps, List<ProjectMapGroup> groups, List<ProjectTilesetFolder> tilesetFolders, List<ProjectTilesetEntry> tilesets, List<ProjectElementCategory> elementCategories, List<ProjectElementEntry> elements,@JsonKey(name: 'environmentPresets', fromJson: decodeEnvironmentPresets, toJson: encodeEnvironmentPresets) List<EnvironmentPreset> environmentPresets, List<ProjectEncounterTable> encounterTables, List<ProjectDialogueFolder> dialogueFolders, List<ProjectDialogueEntry> dialogues, List<ProjectScriptEntry> scripts, List<ScenarioAsset> scenarios,@JsonKey(name: 'cinematics', fromJson: _cinematicsFromJson, toJson: _cinematicsToJson) List<CinematicAsset> cinematics,@JsonKey(name: 'cinematicMediaAssets', fromJson: _cinematicMediaAssetsFromJson, toJson: _cinematicMediaAssetsToJson) List<CinematicMediaAsset> cinematicMediaAssets,@JsonKey(name: 'facts', fromJson: _factsFromJson, toJson: _factsToJson) List<NarrativeFactDefinition> facts,@JsonKey(name: 'worldRules', fromJson: _worldRulesFromJson, toJson: _worldRulesToJson) List<WorldRuleDefinition> worldRules, List<NarrativeDiagnosticSuppression> narrativeDiagnosticSuppressions,@JsonKey(includeIfNull: false) NarrativeEventRegistry? eventRegistry,@JsonKey(name: 'scenes', fromJson: _scenesFromJson, toJson: _scenesToJson) List<SceneAsset> scenes,@JsonKey(name: 'storylines', fromJson: _storylinesFromJson, toJson: _storylinesToJson) List<StorylineAsset> storylines, List<ShopDefinition> shops, List<BadgeDefinition> badges, List<ProjectTrainerEntry> trainers, List<ProjectCharacterEntry> characters, ProjectSettings settings, ProjectPokemonConfig pokemon, ProjectNewGameConfig newGame,@JsonKey(includeIfNull: false) ProjectPresentationProfile? presentation, Map<String, dynamic> globalProperties,@JsonKey(name: 'smartTileCatalog', fromJson: _projectSmartTileCatalogFromJson, toJson: _projectSmartTileCatalogToJson, includeIfNull: false) ProjectSmartTileCatalog smartTileCatalog,@JsonKey(name: 'borderCatalog', readValue: _readProjectBorderCatalog, fromJson: _projectBorderCatalogFromJson, toJson: _projectBorderCatalogToJson, includeIfNull: false) ProjectBorderCatalog borderCatalog,@ProjectShadowCatalogJsonConverter() ProjectShadowCatalog shadowCatalog,@JsonKey(name: 'projectedBuildingShadowCatalog', fromJson: _projectedBuildingShadowCatalogFromJson, toJson: _projectedBuildingShadowCatalogToJson, includeIfNull: false) ProjectBuildingShadowPresetCatalog projectedBuildingShadowCatalog
+});
+
+
+@override $ProjectSettingsCopyWith<$Res> get settings;@override $ProjectPokemonConfigCopyWith<$Res> get pokemon;@override $ProjectPresentationProfileCopyWith<$Res>? get presentation;
+
+}
+/// @nodoc
+class __$ProjectManifestCopyWithImpl<$Res>
+    implements _$ProjectManifestCopyWith<$Res> {
+  __$ProjectManifestCopyWithImpl(this._self, this._then);
+
+  final _ProjectManifest _self;
+  final $Res Function(_ProjectManifest) _then;
+
+/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? name = null,Object? version = null,Object? maps = null,Object? groups = null,Object? tilesetFolders = null,Object? tilesets = null,Object? elementCategories = null,Object? elements = null,Object? environmentPresets = null,Object? encounterTables = null,Object? dialogueFolders = null,Object? dialogues = null,Object? scripts = null,Object? scenarios = null,Object? cinematics = null,Object? cinematicMediaAssets = null,Object? facts = null,Object? worldRules = null,Object? narrativeDiagnosticSuppressions = null,Object? eventRegistry = freezed,Object? scenes = null,Object? storylines = null,Object? shops = null,Object? badges = null,Object? trainers = null,Object? characters = null,Object? settings = null,Object? pokemon = null,Object? newGame = null,Object? presentation = freezed,Object? globalProperties = null,Object? smartTileCatalog = null,Object? borderCatalog = null,Object? shadowCatalog = null,Object? projectedBuildingShadowCatalog = null,}) {
+  return _then(_ProjectManifest(
+name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,version: null == version ? _self.version : version // ignore: cast_nullable_to_non_nullable
+as ProjectVersion,maps: null == maps ? _self._maps : maps // ignore: cast_nullable_to_non_nullable
+as List<ProjectMapEntry>,groups: null == groups ? _self._groups : groups // ignore: cast_nullable_to_non_nullable
+as List<ProjectMapGroup>,tilesetFolders: null == tilesetFolders ? _self._tilesetFolders : tilesetFolders // ignore: cast_nullable_to_non_nullable
+as List<ProjectTilesetFolder>,tilesets: null == tilesets ? _self._tilesets : tilesets // ignore: cast_nullable_to_non_nullable
+as List<ProjectTilesetEntry>,elementCategories: null == elementCategories ? _self._elementCategories : elementCategories // ignore: cast_nullable_to_non_nullable
+as List<ProjectElementCategory>,elements: null == elements ? _self._elements : elements // ignore: cast_nullable_to_non_nullable
+as List<ProjectElementEntry>,environmentPresets: null == environmentPresets ? _self._environmentPresets : environmentPresets // ignore: cast_nullable_to_non_nullable
+as List<EnvironmentPreset>,encounterTables: null == encounterTables ? _self._encounterTables : encounterTables // ignore: cast_nullable_to_non_nullable
+as List<ProjectEncounterTable>,dialogueFolders: null == dialogueFolders ? _self._dialogueFolders : dialogueFolders // ignore: cast_nullable_to_non_nullable
+as List<ProjectDialogueFolder>,dialogues: null == dialogues ? _self._dialogues : dialogues // ignore: cast_nullable_to_non_nullable
+as List<ProjectDialogueEntry>,scripts: null == scripts ? _self._scripts : scripts // ignore: cast_nullable_to_non_nullable
+as List<ProjectScriptEntry>,scenarios: null == scenarios ? _self._scenarios : scenarios // ignore: cast_nullable_to_non_nullable
+as List<ScenarioAsset>,cinematics: null == cinematics ? _self._cinematics : cinematics // ignore: cast_nullable_to_non_nullable
+as List<CinematicAsset>,cinematicMediaAssets: null == cinematicMediaAssets ? _self._cinematicMediaAssets : cinematicMediaAssets // ignore: cast_nullable_to_non_nullable
+as List<CinematicMediaAsset>,facts: null == facts ? _self._facts : facts // ignore: cast_nullable_to_non_nullable
+as List<NarrativeFactDefinition>,worldRules: null == worldRules ? _self._worldRules : worldRules // ignore: cast_nullable_to_non_nullable
+as List<WorldRuleDefinition>,narrativeDiagnosticSuppressions: null == narrativeDiagnosticSuppressions ? _self._narrativeDiagnosticSuppressions : narrativeDiagnosticSuppressions // ignore: cast_nullable_to_non_nullable
+as List<NarrativeDiagnosticSuppression>,eventRegistry: freezed == eventRegistry ? _self.eventRegistry : eventRegistry // ignore: cast_nullable_to_non_nullable
+as NarrativeEventRegistry?,scenes: null == scenes ? _self._scenes : scenes // ignore: cast_nullable_to_non_nullable
+as List<SceneAsset>,storylines: null == storylines ? _self._storylines : storylines // ignore: cast_nullable_to_non_nullable
+as List<StorylineAsset>,shops: null == shops ? _self._shops : shops // ignore: cast_nullable_to_non_nullable
+as List<ShopDefinition>,badges: null == badges ? _self._badges : badges // ignore: cast_nullable_to_non_nullable
+as List<BadgeDefinition>,trainers: null == trainers ? _self._trainers : trainers // ignore: cast_nullable_to_non_nullable
+as List<ProjectTrainerEntry>,characters: null == characters ? _self._characters : characters // ignore: cast_nullable_to_non_nullable
+as List<ProjectCharacterEntry>,settings: null == settings ? _self.settings : settings // ignore: cast_nullable_to_non_nullable
+as ProjectSettings,pokemon: null == pokemon ? _self.pokemon : pokemon // ignore: cast_nullable_to_non_nullable
+as ProjectPokemonConfig,newGame: null == newGame ? _self.newGame : newGame // ignore: cast_nullable_to_non_nullable
+as ProjectNewGameConfig,presentation: freezed == presentation ? _self.presentation : presentation // ignore: cast_nullable_to_non_nullable
+as ProjectPresentationProfile?,globalProperties: null == globalProperties ? _self._globalProperties : globalProperties // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,smartTileCatalog: null == smartTileCatalog ? _self.smartTileCatalog : smartTileCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectSmartTileCatalog,borderCatalog: null == borderCatalog ? _self.borderCatalog : borderCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectBorderCatalog,shadowCatalog: null == shadowCatalog ? _self.shadowCatalog : shadowCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectShadowCatalog,projectedBuildingShadowCatalog: null == projectedBuildingShadowCatalog ? _self.projectedBuildingShadowCatalog : projectedBuildingShadowCatalog // ignore: cast_nullable_to_non_nullable
+as ProjectBuildingShadowPresetCatalog,
+  ));
+}
+
+/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectSettingsCopyWith<$Res> get settings {
+
+  return $ProjectSettingsCopyWith<$Res>(_self.settings, (value) {
+    return _then(_self.copyWith(settings: value));
+  });
+}/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectPokemonConfigCopyWith<$Res> get pokemon {
+
+  return $ProjectPokemonConfigCopyWith<$Res>(_self.pokemon, (value) {
+    return _then(_self.copyWith(pokemon: value));
+  });
+}/// Create a copy of ProjectManifest
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectPresentationProfileCopyWith<$Res>? get presentation {
+    if (_self.presentation == null) {
+    return null;
+  }
+
+  return $ProjectPresentationProfileCopyWith<$Res>(_self.presentation!, (value) {
+    return _then(_self.copyWith(presentation: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$ProjectPokemonConfig {
-  bool get enabled => throw _privateConstructorUsedError;
-  String get dataRoot => throw _privateConstructorUsedError;
-  String get speciesDir => throw _privateConstructorUsedError;
-  String get learnsetsDir => throw _privateConstructorUsedError;
-  String get evolutionsDir => throw _privateConstructorUsedError;
-  String get mediaDir => throw _privateConstructorUsedError;
-  Map<String, String> get catalogFiles => throw _privateConstructorUsedError;
+
+ bool get enabled; String get dataRoot; String get speciesDir; String get learnsetsDir; String get evolutionsDir; String get mediaDir; Map<String, String> get catalogFiles;
+/// Create a copy of ProjectPokemonConfig
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectPokemonConfigCopyWith<ProjectPokemonConfig> get copyWith => _$ProjectPokemonConfigCopyWithImpl<ProjectPokemonConfig>(this as ProjectPokemonConfig, _$identity);
 
   /// Serializes this ProjectPokemonConfig to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectPokemonConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectPokemonConfigCopyWith<ProjectPokemonConfig> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other.catalogFiles, catalogFiles));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,enabled,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(catalogFiles));
+
+@override
+String toString() {
+  return 'ProjectPokemonConfig(enabled: $enabled, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectPokemonConfigCopyWith<$Res> {
-  factory $ProjectPokemonConfigCopyWith(ProjectPokemonConfig value,
-          $Res Function(ProjectPokemonConfig) then) =
-      _$ProjectPokemonConfigCopyWithImpl<$Res, ProjectPokemonConfig>;
-  @useResult
-  $Res call(
-      {bool enabled,
-      String dataRoot,
-      String speciesDir,
-      String learnsetsDir,
-      String evolutionsDir,
-      String mediaDir,
-      Map<String, String> catalogFiles});
-}
+abstract mixin class $ProjectPokemonConfigCopyWith<$Res>  {
+  factory $ProjectPokemonConfigCopyWith(ProjectPokemonConfig value, $Res Function(ProjectPokemonConfig) _then) = _$ProjectPokemonConfigCopyWithImpl;
+@useResult
+$Res call({
+ bool enabled, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectPokemonConfigCopyWithImpl<$Res,
-        $Val extends ProjectPokemonConfig>
+class _$ProjectPokemonConfigCopyWithImpl<$Res>
     implements $ProjectPokemonConfigCopyWith<$Res> {
-  _$ProjectPokemonConfigCopyWithImpl(this._value, this._then);
+  _$ProjectPokemonConfigCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectPokemonConfig _self;
+  final $Res Function(ProjectPokemonConfig) _then;
 
-  /// Create a copy of ProjectPokemonConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? enabled = null,
-    Object? dataRoot = null,
-    Object? speciesDir = null,
-    Object? learnsetsDir = null,
-    Object? evolutionsDir = null,
-    Object? mediaDir = null,
-    Object? catalogFiles = null,
-  }) {
-    return _then(_value.copyWith(
-      enabled: null == enabled
-          ? _value.enabled
-          : enabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      dataRoot: null == dataRoot
-          ? _value.dataRoot
-          : dataRoot // ignore: cast_nullable_to_non_nullable
-              as String,
-      speciesDir: null == speciesDir
-          ? _value.speciesDir
-          : speciesDir // ignore: cast_nullable_to_non_nullable
-              as String,
-      learnsetsDir: null == learnsetsDir
-          ? _value.learnsetsDir
-          : learnsetsDir // ignore: cast_nullable_to_non_nullable
-              as String,
-      evolutionsDir: null == evolutionsDir
-          ? _value.evolutionsDir
-          : evolutionsDir // ignore: cast_nullable_to_non_nullable
-              as String,
-      mediaDir: null == mediaDir
-          ? _value.mediaDir
-          : mediaDir // ignore: cast_nullable_to_non_nullable
-              as String,
-      catalogFiles: null == catalogFiles
-          ? _value.catalogFiles
-          : catalogFiles // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ) as $Val);
-  }
+/// Create a copy of ProjectPokemonConfig
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? enabled = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
+  return _then(_self.copyWith(
+enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
+as bool,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
+as String,speciesDir: null == speciesDir ? _self.speciesDir : speciesDir // ignore: cast_nullable_to_non_nullable
+as String,learnsetsDir: null == learnsetsDir ? _self.learnsetsDir : learnsetsDir // ignore: cast_nullable_to_non_nullable
+as String,evolutionsDir: null == evolutionsDir ? _self.evolutionsDir : evolutionsDir // ignore: cast_nullable_to_non_nullable
+as String,mediaDir: null == mediaDir ? _self.mediaDir : mediaDir // ignore: cast_nullable_to_non_nullable
+as String,catalogFiles: null == catalogFiles ? _self.catalogFiles : catalogFiles // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectPokemonConfigImplCopyWith<$Res>
-    implements $ProjectPokemonConfigCopyWith<$Res> {
-  factory _$$ProjectPokemonConfigImplCopyWith(_$ProjectPokemonConfigImpl value,
-          $Res Function(_$ProjectPokemonConfigImpl) then) =
-      __$$ProjectPokemonConfigImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {bool enabled,
-      String dataRoot,
-      String speciesDir,
-      String learnsetsDir,
-      String evolutionsDir,
-      String mediaDir,
-      Map<String, String> catalogFiles});
 }
 
-/// @nodoc
-class __$$ProjectPokemonConfigImplCopyWithImpl<$Res>
-    extends _$ProjectPokemonConfigCopyWithImpl<$Res, _$ProjectPokemonConfigImpl>
-    implements _$$ProjectPokemonConfigImplCopyWith<$Res> {
-  __$$ProjectPokemonConfigImplCopyWithImpl(_$ProjectPokemonConfigImpl _value,
-      $Res Function(_$ProjectPokemonConfigImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectPokemonConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? enabled = null,
-    Object? dataRoot = null,
-    Object? speciesDir = null,
-    Object? learnsetsDir = null,
-    Object? evolutionsDir = null,
-    Object? mediaDir = null,
-    Object? catalogFiles = null,
-  }) {
-    return _then(_$ProjectPokemonConfigImpl(
-      enabled: null == enabled
-          ? _value.enabled
-          : enabled // ignore: cast_nullable_to_non_nullable
-              as bool,
-      dataRoot: null == dataRoot
-          ? _value.dataRoot
-          : dataRoot // ignore: cast_nullable_to_non_nullable
-              as String,
-      speciesDir: null == speciesDir
-          ? _value.speciesDir
-          : speciesDir // ignore: cast_nullable_to_non_nullable
-              as String,
-      learnsetsDir: null == learnsetsDir
-          ? _value.learnsetsDir
-          : learnsetsDir // ignore: cast_nullable_to_non_nullable
-              as String,
-      evolutionsDir: null == evolutionsDir
-          ? _value.evolutionsDir
-          : evolutionsDir // ignore: cast_nullable_to_non_nullable
-              as String,
-      mediaDir: null == mediaDir
-          ? _value.mediaDir
-          : mediaDir // ignore: cast_nullable_to_non_nullable
-              as String,
-      catalogFiles: null == catalogFiles
-          ? _value._catalogFiles
-          : catalogFiles // ignore: cast_nullable_to_non_nullable
-              as Map<String, String>,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectPokemonConfig].
+extension ProjectPokemonConfigPatterns on ProjectPokemonConfig {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectPokemonConfig value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectPokemonConfig() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectPokemonConfig value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectPokemonConfig():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectPokemonConfig value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectPokemonConfig() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enabled,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectPokemonConfig() when $default != null:
+return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enabled,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectPokemonConfig():
+return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enabled,  String dataRoot,  String speciesDir,  String learnsetsDir,  String evolutionsDir,  String mediaDir,  Map<String, String> catalogFiles)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectPokemonConfig() when $default != null:
+return $default(_that.enabled,_that.dataRoot,_that.speciesDir,_that.learnsetsDir,_that.evolutionsDir,_that.mediaDir,_that.catalogFiles);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectPokemonConfigImpl implements _ProjectPokemonConfig {
-  const _$ProjectPokemonConfigImpl(
-      {this.enabled = true,
-      this.dataRoot = 'data/pokemon',
-      this.speciesDir = 'data/pokemon/species',
-      this.learnsetsDir = 'data/pokemon/learnsets',
-      this.evolutionsDir = 'data/pokemon/evolutions',
-      this.mediaDir = 'data/pokemon/media',
-      final Map<String, String> catalogFiles = _defaultPokemonCatalogFiles})
-      : _catalogFiles = catalogFiles;
+class _ProjectPokemonConfig implements ProjectPokemonConfig {
+  const _ProjectPokemonConfig({this.enabled = true, this.dataRoot = 'data/pokemon', this.speciesDir = 'data/pokemon/species', this.learnsetsDir = 'data/pokemon/learnsets', this.evolutionsDir = 'data/pokemon/evolutions', this.mediaDir = 'data/pokemon/media', final  Map<String, String> catalogFiles = _defaultPokemonCatalogFiles}): _catalogFiles = catalogFiles;
+  factory _ProjectPokemonConfig.fromJson(Map<String, dynamic> json) => _$ProjectPokemonConfigFromJson(json);
 
-  factory _$ProjectPokemonConfigImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectPokemonConfigImplFromJson(json);
-
-  @override
-  @JsonKey()
-  final bool enabled;
-  @override
-  @JsonKey()
-  final String dataRoot;
-  @override
-  @JsonKey()
-  final String speciesDir;
-  @override
-  @JsonKey()
-  final String learnsetsDir;
-  @override
-  @JsonKey()
-  final String evolutionsDir;
-  @override
-  @JsonKey()
-  final String mediaDir;
-  final Map<String, String> _catalogFiles;
-  @override
-  @JsonKey()
-  Map<String, String> get catalogFiles {
-    if (_catalogFiles is EqualUnmodifiableMapView) return _catalogFiles;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_catalogFiles);
-  }
-
-  @override
-  String toString() {
-    return 'ProjectPokemonConfig(enabled: $enabled, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectPokemonConfigImpl &&
-            (identical(other.enabled, enabled) || other.enabled == enabled) &&
-            (identical(other.dataRoot, dataRoot) ||
-                other.dataRoot == dataRoot) &&
-            (identical(other.speciesDir, speciesDir) ||
-                other.speciesDir == speciesDir) &&
-            (identical(other.learnsetsDir, learnsetsDir) ||
-                other.learnsetsDir == learnsetsDir) &&
-            (identical(other.evolutionsDir, evolutionsDir) ||
-                other.evolutionsDir == evolutionsDir) &&
-            (identical(other.mediaDir, mediaDir) ||
-                other.mediaDir == mediaDir) &&
-            const DeepCollectionEquality()
-                .equals(other._catalogFiles, _catalogFiles));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      enabled,
-      dataRoot,
-      speciesDir,
-      learnsetsDir,
-      evolutionsDir,
-      mediaDir,
-      const DeepCollectionEquality().hash(_catalogFiles));
-
-  /// Create a copy of ProjectPokemonConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectPokemonConfigImplCopyWith<_$ProjectPokemonConfigImpl>
-      get copyWith =>
-          __$$ProjectPokemonConfigImplCopyWithImpl<_$ProjectPokemonConfigImpl>(
-              this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectPokemonConfigImplToJson(
-      this,
-    );
-  }
+@override@JsonKey() final  bool enabled;
+@override@JsonKey() final  String dataRoot;
+@override@JsonKey() final  String speciesDir;
+@override@JsonKey() final  String learnsetsDir;
+@override@JsonKey() final  String evolutionsDir;
+@override@JsonKey() final  String mediaDir;
+ final  Map<String, String> _catalogFiles;
+@override@JsonKey() Map<String, String> get catalogFiles {
+  if (_catalogFiles is EqualUnmodifiableMapView) return _catalogFiles;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_catalogFiles);
 }
 
-abstract class _ProjectPokemonConfig implements ProjectPokemonConfig {
-  const factory _ProjectPokemonConfig(
-      {final bool enabled,
-      final String dataRoot,
-      final String speciesDir,
-      final String learnsetsDir,
-      final String evolutionsDir,
-      final String mediaDir,
-      final Map<String, String> catalogFiles}) = _$ProjectPokemonConfigImpl;
 
-  factory _ProjectPokemonConfig.fromJson(Map<String, dynamic> json) =
-      _$ProjectPokemonConfigImpl.fromJson;
+/// Create a copy of ProjectPokemonConfig
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectPokemonConfigCopyWith<_ProjectPokemonConfig> get copyWith => __$ProjectPokemonConfigCopyWithImpl<_ProjectPokemonConfig>(this, _$identity);
 
-  @override
-  bool get enabled;
-  @override
-  String get dataRoot;
-  @override
-  String get speciesDir;
-  @override
-  String get learnsetsDir;
-  @override
-  String get evolutionsDir;
-  @override
-  String get mediaDir;
-  @override
-  Map<String, String> get catalogFiles;
-
-  /// Create a copy of ProjectPokemonConfig
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectPokemonConfigImplCopyWith<_$ProjectPokemonConfigImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectPokemonConfigToJson(this, );
 }
 
-ProjectSettings _$ProjectSettingsFromJson(Map<String, dynamic> json) {
-  return _ProjectSettings.fromJson(json);
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPokemonConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.dataRoot, dataRoot) || other.dataRoot == dataRoot)&&(identical(other.speciesDir, speciesDir) || other.speciesDir == speciesDir)&&(identical(other.learnsetsDir, learnsetsDir) || other.learnsetsDir == learnsetsDir)&&(identical(other.evolutionsDir, evolutionsDir) || other.evolutionsDir == evolutionsDir)&&(identical(other.mediaDir, mediaDir) || other.mediaDir == mediaDir)&&const DeepCollectionEquality().equals(other._catalogFiles, _catalogFiles));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,enabled,dataRoot,speciesDir,learnsetsDir,evolutionsDir,mediaDir,const DeepCollectionEquality().hash(_catalogFiles));
+
+@override
+String toString() {
+  return 'ProjectPokemonConfig(enabled: $enabled, dataRoot: $dataRoot, speciesDir: $speciesDir, learnsetsDir: $learnsetsDir, evolutionsDir: $evolutionsDir, mediaDir: $mediaDir, catalogFiles: $catalogFiles)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectPokemonConfigCopyWith<$Res> implements $ProjectPokemonConfigCopyWith<$Res> {
+  factory _$ProjectPokemonConfigCopyWith(_ProjectPokemonConfig value, $Res Function(_ProjectPokemonConfig) _then) = __$ProjectPokemonConfigCopyWithImpl;
+@override @useResult
+$Res call({
+ bool enabled, String dataRoot, String speciesDir, String learnsetsDir, String evolutionsDir, String mediaDir, Map<String, String> catalogFiles
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectPokemonConfigCopyWithImpl<$Res>
+    implements _$ProjectPokemonConfigCopyWith<$Res> {
+  __$ProjectPokemonConfigCopyWithImpl(this._self, this._then);
+
+  final _ProjectPokemonConfig _self;
+  final $Res Function(_ProjectPokemonConfig) _then;
+
+/// Create a copy of ProjectPokemonConfig
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? enabled = null,Object? dataRoot = null,Object? speciesDir = null,Object? learnsetsDir = null,Object? evolutionsDir = null,Object? mediaDir = null,Object? catalogFiles = null,}) {
+  return _then(_ProjectPokemonConfig(
+enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
+as bool,dataRoot: null == dataRoot ? _self.dataRoot : dataRoot // ignore: cast_nullable_to_non_nullable
+as String,speciesDir: null == speciesDir ? _self.speciesDir : speciesDir // ignore: cast_nullable_to_non_nullable
+as String,learnsetsDir: null == learnsetsDir ? _self.learnsetsDir : learnsetsDir // ignore: cast_nullable_to_non_nullable
+as String,evolutionsDir: null == evolutionsDir ? _self.evolutionsDir : evolutionsDir // ignore: cast_nullable_to_non_nullable
+as String,mediaDir: null == mediaDir ? _self.mediaDir : mediaDir // ignore: cast_nullable_to_non_nullable
+as String,catalogFiles: null == catalogFiles ? _self._catalogFiles : catalogFiles // ignore: cast_nullable_to_non_nullable
+as Map<String, String>,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectSettings {
-  int get tileWidth => throw _privateConstructorUsedError;
-  int get tileHeight => throw _privateConstructorUsedError;
-  double get displayScale => throw _privateConstructorUsedError;
-  int get defaultMapWidth => throw _privateConstructorUsedError;
-  int get defaultMapHeight => throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'defaultPlayerCharacterId',
-      readValue: _readDefaultPlayerCharacterId)
-  String? get defaultPlayerCharacterId => throw _privateConstructorUsedError;
 
-  /// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
-  ///
-  /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
-  /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
-  @JsonKey(name: 'mistralApiKey', includeIfNull: false)
-  String? get mistralApiKey => throw _privateConstructorUsedError;
+ int get tileWidth; int get tileHeight; double get displayScale; int get defaultMapWidth; int get defaultMapHeight;@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? get defaultPlayerCharacterId;/// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
+///
+/// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
+/// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
+@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? get mistralApiKey;
+/// Create a copy of ProjectSettings
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectSettingsCopyWith<ProjectSettings> get copyWith => _$ProjectSettingsCopyWithImpl<ProjectSettings>(this as ProjectSettings, _$identity);
 
   /// Serializes this ProjectSettings to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectSettings
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectSettingsCopyWith<ProjectSettings> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectSettings&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
+
+@override
+String toString() {
+  return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectSettingsCopyWith<$Res> {
-  factory $ProjectSettingsCopyWith(
-          ProjectSettings value, $Res Function(ProjectSettings) then) =
-      _$ProjectSettingsCopyWithImpl<$Res, ProjectSettings>;
-  @useResult
-  $Res call(
-      {int tileWidth,
-      int tileHeight,
-      double displayScale,
-      int defaultMapWidth,
-      int defaultMapHeight,
-      @JsonKey(
-          name: 'defaultPlayerCharacterId',
-          readValue: _readDefaultPlayerCharacterId)
-      String? defaultPlayerCharacterId,
-      @JsonKey(name: 'mistralApiKey', includeIfNull: false)
-      String? mistralApiKey});
-}
+abstract mixin class $ProjectSettingsCopyWith<$Res>  {
+  factory $ProjectSettingsCopyWith(ProjectSettings value, $Res Function(ProjectSettings) _then) = _$ProjectSettingsCopyWithImpl;
+@useResult
+$Res call({
+ int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectSettingsCopyWithImpl<$Res, $Val extends ProjectSettings>
+class _$ProjectSettingsCopyWithImpl<$Res>
     implements $ProjectSettingsCopyWith<$Res> {
-  _$ProjectSettingsCopyWithImpl(this._value, this._then);
+  _$ProjectSettingsCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectSettings _self;
+  final $Res Function(ProjectSettings) _then;
 
-  /// Create a copy of ProjectSettings
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? tileWidth = null,
-    Object? tileHeight = null,
-    Object? displayScale = null,
-    Object? defaultMapWidth = null,
-    Object? defaultMapHeight = null,
-    Object? defaultPlayerCharacterId = freezed,
-    Object? mistralApiKey = freezed,
-  }) {
-    return _then(_value.copyWith(
-      tileWidth: null == tileWidth
-          ? _value.tileWidth
-          : tileWidth // ignore: cast_nullable_to_non_nullable
-              as int,
-      tileHeight: null == tileHeight
-          ? _value.tileHeight
-          : tileHeight // ignore: cast_nullable_to_non_nullable
-              as int,
-      displayScale: null == displayScale
-          ? _value.displayScale
-          : displayScale // ignore: cast_nullable_to_non_nullable
-              as double,
-      defaultMapWidth: null == defaultMapWidth
-          ? _value.defaultMapWidth
-          : defaultMapWidth // ignore: cast_nullable_to_non_nullable
-              as int,
-      defaultMapHeight: null == defaultMapHeight
-          ? _value.defaultMapHeight
-          : defaultMapHeight // ignore: cast_nullable_to_non_nullable
-              as int,
-      defaultPlayerCharacterId: freezed == defaultPlayerCharacterId
-          ? _value.defaultPlayerCharacterId
-          : defaultPlayerCharacterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      mistralApiKey: freezed == mistralApiKey
-          ? _value.mistralApiKey
-          : mistralApiKey // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
-  }
+/// Create a copy of ProjectSettings
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
+  return _then(_self.copyWith(
+tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
+as int,tileHeight: null == tileHeight ? _self.tileHeight : tileHeight // ignore: cast_nullable_to_non_nullable
+as int,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
+as double,defaultMapWidth: null == defaultMapWidth ? _self.defaultMapWidth : defaultMapWidth // ignore: cast_nullable_to_non_nullable
+as int,defaultMapHeight: null == defaultMapHeight ? _self.defaultMapHeight : defaultMapHeight // ignore: cast_nullable_to_non_nullable
+as int,defaultPlayerCharacterId: freezed == defaultPlayerCharacterId ? _self.defaultPlayerCharacterId : defaultPlayerCharacterId // ignore: cast_nullable_to_non_nullable
+as String?,mistralApiKey: freezed == mistralApiKey ? _self.mistralApiKey : mistralApiKey // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectSettingsImplCopyWith<$Res>
-    implements $ProjectSettingsCopyWith<$Res> {
-  factory _$$ProjectSettingsImplCopyWith(_$ProjectSettingsImpl value,
-          $Res Function(_$ProjectSettingsImpl) then) =
-      __$$ProjectSettingsImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {int tileWidth,
-      int tileHeight,
-      double displayScale,
-      int defaultMapWidth,
-      int defaultMapHeight,
-      @JsonKey(
-          name: 'defaultPlayerCharacterId',
-          readValue: _readDefaultPlayerCharacterId)
-      String? defaultPlayerCharacterId,
-      @JsonKey(name: 'mistralApiKey', includeIfNull: false)
-      String? mistralApiKey});
 }
 
-/// @nodoc
-class __$$ProjectSettingsImplCopyWithImpl<$Res>
-    extends _$ProjectSettingsCopyWithImpl<$Res, _$ProjectSettingsImpl>
-    implements _$$ProjectSettingsImplCopyWith<$Res> {
-  __$$ProjectSettingsImplCopyWithImpl(
-      _$ProjectSettingsImpl _value, $Res Function(_$ProjectSettingsImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectSettings
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? tileWidth = null,
-    Object? tileHeight = null,
-    Object? displayScale = null,
-    Object? defaultMapWidth = null,
-    Object? defaultMapHeight = null,
-    Object? defaultPlayerCharacterId = freezed,
-    Object? mistralApiKey = freezed,
-  }) {
-    return _then(_$ProjectSettingsImpl(
-      tileWidth: null == tileWidth
-          ? _value.tileWidth
-          : tileWidth // ignore: cast_nullable_to_non_nullable
-              as int,
-      tileHeight: null == tileHeight
-          ? _value.tileHeight
-          : tileHeight // ignore: cast_nullable_to_non_nullable
-              as int,
-      displayScale: null == displayScale
-          ? _value.displayScale
-          : displayScale // ignore: cast_nullable_to_non_nullable
-              as double,
-      defaultMapWidth: null == defaultMapWidth
-          ? _value.defaultMapWidth
-          : defaultMapWidth // ignore: cast_nullable_to_non_nullable
-              as int,
-      defaultMapHeight: null == defaultMapHeight
-          ? _value.defaultMapHeight
-          : defaultMapHeight // ignore: cast_nullable_to_non_nullable
-              as int,
-      defaultPlayerCharacterId: freezed == defaultPlayerCharacterId
-          ? _value.defaultPlayerCharacterId
-          : defaultPlayerCharacterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      mistralApiKey: freezed == mistralApiKey
-          ? _value.mistralApiKey
-          : mistralApiKey // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectSettings].
+extension ProjectSettingsPatterns on ProjectSettings {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectSettings value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectSettings() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectSettings value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectSettings():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectSettings value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectSettings() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectSettings() when $default != null:
+return $default(_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectSettings():
+return $default(_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int tileWidth,  int tileHeight,  double displayScale,  int defaultMapWidth,  int defaultMapHeight, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId)  String? defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false)  String? mistralApiKey)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectSettings() when $default != null:
+return $default(_that.tileWidth,_that.tileHeight,_that.displayScale,_that.defaultMapWidth,_that.defaultMapHeight,_that.defaultPlayerCharacterId,_that.mistralApiKey);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectSettingsImpl implements _ProjectSettings {
-  const _$ProjectSettingsImpl(
-      {this.tileWidth = 16,
-      this.tileHeight = 16,
-      this.displayScale = 2.0,
-      this.defaultMapWidth = 20,
-      this.defaultMapHeight = 15,
-      @JsonKey(
-          name: 'defaultPlayerCharacterId',
-          readValue: _readDefaultPlayerCharacterId)
-      this.defaultPlayerCharacterId,
-      @JsonKey(name: 'mistralApiKey', includeIfNull: false)
-      this.mistralApiKey});
+class _ProjectSettings implements ProjectSettings {
+  const _ProjectSettings({this.tileWidth = 16, this.tileHeight = 16, this.displayScale = 2.0, this.defaultMapWidth = 20, this.defaultMapHeight = 15, @JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) this.defaultPlayerCharacterId, @JsonKey(name: 'mistralApiKey', includeIfNull: false) this.mistralApiKey});
+  factory _ProjectSettings.fromJson(Map<String, dynamic> json) => _$ProjectSettingsFromJson(json);
 
-  factory _$ProjectSettingsImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectSettingsImplFromJson(json);
+@override@JsonKey() final  int tileWidth;
+@override@JsonKey() final  int tileHeight;
+@override@JsonKey() final  double displayScale;
+@override@JsonKey() final  int defaultMapWidth;
+@override@JsonKey() final  int defaultMapHeight;
+@override@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) final  String? defaultPlayerCharacterId;
+/// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
+///
+/// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
+/// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
+@override@JsonKey(name: 'mistralApiKey', includeIfNull: false) final  String? mistralApiKey;
 
-  @override
-  @JsonKey()
-  final int tileWidth;
-  @override
-  @JsonKey()
-  final int tileHeight;
-  @override
-  @JsonKey()
-  final double displayScale;
-  @override
-  @JsonKey()
-  final int defaultMapWidth;
-  @override
-  @JsonKey()
-  final int defaultMapHeight;
-  @override
-  @JsonKey(
-      name: 'defaultPlayerCharacterId',
-      readValue: _readDefaultPlayerCharacterId)
-  final String? defaultPlayerCharacterId;
+/// Create a copy of ProjectSettings
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectSettingsCopyWith<_ProjectSettings> get copyWith => __$ProjectSettingsCopyWithImpl<_ProjectSettings>(this, _$identity);
 
-  /// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
-  ///
-  /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
-  /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
-  @override
-  @JsonKey(name: 'mistralApiKey', includeIfNull: false)
-  final String? mistralApiKey;
-
-  @override
-  String toString() {
-    return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectSettingsImpl &&
-            (identical(other.tileWidth, tileWidth) ||
-                other.tileWidth == tileWidth) &&
-            (identical(other.tileHeight, tileHeight) ||
-                other.tileHeight == tileHeight) &&
-            (identical(other.displayScale, displayScale) ||
-                other.displayScale == displayScale) &&
-            (identical(other.defaultMapWidth, defaultMapWidth) ||
-                other.defaultMapWidth == defaultMapWidth) &&
-            (identical(other.defaultMapHeight, defaultMapHeight) ||
-                other.defaultMapHeight == defaultMapHeight) &&
-            (identical(
-                    other.defaultPlayerCharacterId, defaultPlayerCharacterId) ||
-                other.defaultPlayerCharacterId == defaultPlayerCharacterId) &&
-            (identical(other.mistralApiKey, mistralApiKey) ||
-                other.mistralApiKey == mistralApiKey));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      tileWidth,
-      tileHeight,
-      displayScale,
-      defaultMapWidth,
-      defaultMapHeight,
-      defaultPlayerCharacterId,
-      mistralApiKey);
-
-  /// Create a copy of ProjectSettings
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectSettingsImplCopyWith<_$ProjectSettingsImpl> get copyWith =>
-      __$$ProjectSettingsImplCopyWithImpl<_$ProjectSettingsImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectSettingsImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectSettingsToJson(this, );
 }
 
-abstract class _ProjectSettings implements ProjectSettings {
-  const factory _ProjectSettings(
-      {final int tileWidth,
-      final int tileHeight,
-      final double displayScale,
-      final int defaultMapWidth,
-      final int defaultMapHeight,
-      @JsonKey(
-          name: 'defaultPlayerCharacterId',
-          readValue: _readDefaultPlayerCharacterId)
-      final String? defaultPlayerCharacterId,
-      @JsonKey(name: 'mistralApiKey', includeIfNull: false)
-      final String? mistralApiKey}) = _$ProjectSettingsImpl;
-
-  factory _ProjectSettings.fromJson(Map<String, dynamic> json) =
-      _$ProjectSettingsImpl.fromJson;
-
-  @override
-  int get tileWidth;
-  @override
-  int get tileHeight;
-  @override
-  double get displayScale;
-  @override
-  int get defaultMapWidth;
-  @override
-  int get defaultMapHeight;
-  @override
-  @JsonKey(
-      name: 'defaultPlayerCharacterId',
-      readValue: _readDefaultPlayerCharacterId)
-  String? get defaultPlayerCharacterId;
-
-  /// Clé API Mistral pour les fonctions IA de l’éditeur (Dialogue Studio, etc.).
-  ///
-  /// Stockée dans `project.json` : penser au risque de fuite si le dépôt est public ;
-  /// l’environnement `MISTRAL_API_KEY` reste un repli sans persistance projet.
-  @override
-  @JsonKey(name: 'mistralApiKey', includeIfNull: false)
-  String? get mistralApiKey;
-
-  /// Create a copy of ProjectSettings
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectSettingsImplCopyWith<_$ProjectSettingsImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectSettings&&(identical(other.tileWidth, tileWidth) || other.tileWidth == tileWidth)&&(identical(other.tileHeight, tileHeight) || other.tileHeight == tileHeight)&&(identical(other.displayScale, displayScale) || other.displayScale == displayScale)&&(identical(other.defaultMapWidth, defaultMapWidth) || other.defaultMapWidth == defaultMapWidth)&&(identical(other.defaultMapHeight, defaultMapHeight) || other.defaultMapHeight == defaultMapHeight)&&(identical(other.defaultPlayerCharacterId, defaultPlayerCharacterId) || other.defaultPlayerCharacterId == defaultPlayerCharacterId)&&(identical(other.mistralApiKey, mistralApiKey) || other.mistralApiKey == mistralApiKey));
 }
 
-ProjectMapGroup _$ProjectMapGroupFromJson(Map<String, dynamic> json) {
-  return _ProjectMapGroup.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,tileWidth,tileHeight,displayScale,defaultMapWidth,defaultMapHeight,defaultPlayerCharacterId,mistralApiKey);
+
+@override
+String toString() {
+  return 'ProjectSettings(tileWidth: $tileWidth, tileHeight: $tileHeight, displayScale: $displayScale, defaultMapWidth: $defaultMapWidth, defaultMapHeight: $defaultMapHeight, defaultPlayerCharacterId: $defaultPlayerCharacterId, mistralApiKey: $mistralApiKey)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectSettingsCopyWith<$Res> implements $ProjectSettingsCopyWith<$Res> {
+  factory _$ProjectSettingsCopyWith(_ProjectSettings value, $Res Function(_ProjectSettings) _then) = __$ProjectSettingsCopyWithImpl;
+@override @useResult
+$Res call({
+ int tileWidth, int tileHeight, double displayScale, int defaultMapWidth, int defaultMapHeight,@JsonKey(name: 'defaultPlayerCharacterId', readValue: _readDefaultPlayerCharacterId) String? defaultPlayerCharacterId,@JsonKey(name: 'mistralApiKey', includeIfNull: false) String? mistralApiKey
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectSettingsCopyWithImpl<$Res>
+    implements _$ProjectSettingsCopyWith<$Res> {
+  __$ProjectSettingsCopyWithImpl(this._self, this._then);
+
+  final _ProjectSettings _self;
+  final $Res Function(_ProjectSettings) _then;
+
+/// Create a copy of ProjectSettings
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? tileWidth = null,Object? tileHeight = null,Object? displayScale = null,Object? defaultMapWidth = null,Object? defaultMapHeight = null,Object? defaultPlayerCharacterId = freezed,Object? mistralApiKey = freezed,}) {
+  return _then(_ProjectSettings(
+tileWidth: null == tileWidth ? _self.tileWidth : tileWidth // ignore: cast_nullable_to_non_nullable
+as int,tileHeight: null == tileHeight ? _self.tileHeight : tileHeight // ignore: cast_nullable_to_non_nullable
+as int,displayScale: null == displayScale ? _self.displayScale : displayScale // ignore: cast_nullable_to_non_nullable
+as double,defaultMapWidth: null == defaultMapWidth ? _self.defaultMapWidth : defaultMapWidth // ignore: cast_nullable_to_non_nullable
+as int,defaultMapHeight: null == defaultMapHeight ? _self.defaultMapHeight : defaultMapHeight // ignore: cast_nullable_to_non_nullable
+as int,defaultPlayerCharacterId: freezed == defaultPlayerCharacterId ? _self.defaultPlayerCharacterId : defaultPlayerCharacterId // ignore: cast_nullable_to_non_nullable
+as String?,mistralApiKey: freezed == mistralApiKey ? _self.mistralApiKey : mistralApiKey // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectMapGroup {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  MapGroupType get type => throw _privateConstructorUsedError;
-  String? get parentGroupId => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
-  List<String> get tags => throw _privateConstructorUsedError;
-  Map<String, dynamic> get properties => throw _privateConstructorUsedError;
+
+ String get id; String get name; MapGroupType get type; String? get parentGroupId; int get sortOrder; List<String> get tags; Map<String, dynamic> get properties;
+/// Create a copy of ProjectMapGroup
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectMapGroupCopyWith<ProjectMapGroup> get copyWith => _$ProjectMapGroupCopyWithImpl<ProjectMapGroup>(this as ProjectMapGroup, _$identity);
 
   /// Serializes this ProjectMapGroup to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectMapGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectMapGroupCopyWith<ProjectMapGroup> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectMapGroup&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.parentGroupId, parentGroupId) || other.parentGroupId == parentGroupId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&const DeepCollectionEquality().equals(other.tags, tags)&&const DeepCollectionEquality().equals(other.properties, properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,type,parentGroupId,sortOrder,const DeepCollectionEquality().hash(tags),const DeepCollectionEquality().hash(properties));
+
+@override
+String toString() {
+  return 'ProjectMapGroup(id: $id, name: $name, type: $type, parentGroupId: $parentGroupId, sortOrder: $sortOrder, tags: $tags, properties: $properties)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectMapGroupCopyWith<$Res> {
-  factory $ProjectMapGroupCopyWith(
-          ProjectMapGroup value, $Res Function(ProjectMapGroup) then) =
-      _$ProjectMapGroupCopyWithImpl<$Res, ProjectMapGroup>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      MapGroupType type,
-      String? parentGroupId,
-      int sortOrder,
-      List<String> tags,
-      Map<String, dynamic> properties});
-}
+abstract mixin class $ProjectMapGroupCopyWith<$Res>  {
+  factory $ProjectMapGroupCopyWith(ProjectMapGroup value, $Res Function(ProjectMapGroup) _then) = _$ProjectMapGroupCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, MapGroupType type, String? parentGroupId, int sortOrder, List<String> tags, Map<String, dynamic> properties
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectMapGroupCopyWithImpl<$Res, $Val extends ProjectMapGroup>
+class _$ProjectMapGroupCopyWithImpl<$Res>
     implements $ProjectMapGroupCopyWith<$Res> {
-  _$ProjectMapGroupCopyWithImpl(this._value, this._then);
+  _$ProjectMapGroupCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectMapGroup _self;
+  final $Res Function(ProjectMapGroup) _then;
 
-  /// Create a copy of ProjectMapGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? type = null,
-    Object? parentGroupId = freezed,
-    Object? sortOrder = null,
-    Object? tags = null,
-    Object? properties = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as MapGroupType,
-      parentGroupId: freezed == parentGroupId
-          ? _value.parentGroupId
-          : parentGroupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      tags: null == tags
-          ? _value.tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      properties: null == properties
-          ? _value.properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
-    ) as $Val);
-  }
+/// Create a copy of ProjectMapGroup
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? type = null,Object? parentGroupId = freezed,Object? sortOrder = null,Object? tags = null,Object? properties = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as MapGroupType,parentGroupId: freezed == parentGroupId ? _self.parentGroupId : parentGroupId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,properties: null == properties ? _self.properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectMapGroupImplCopyWith<$Res>
-    implements $ProjectMapGroupCopyWith<$Res> {
-  factory _$$ProjectMapGroupImplCopyWith(_$ProjectMapGroupImpl value,
-          $Res Function(_$ProjectMapGroupImpl) then) =
-      __$$ProjectMapGroupImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      MapGroupType type,
-      String? parentGroupId,
-      int sortOrder,
-      List<String> tags,
-      Map<String, dynamic> properties});
 }
 
-/// @nodoc
-class __$$ProjectMapGroupImplCopyWithImpl<$Res>
-    extends _$ProjectMapGroupCopyWithImpl<$Res, _$ProjectMapGroupImpl>
-    implements _$$ProjectMapGroupImplCopyWith<$Res> {
-  __$$ProjectMapGroupImplCopyWithImpl(
-      _$ProjectMapGroupImpl _value, $Res Function(_$ProjectMapGroupImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectMapGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? type = null,
-    Object? parentGroupId = freezed,
-    Object? sortOrder = null,
-    Object? tags = null,
-    Object? properties = null,
-  }) {
-    return _then(_$ProjectMapGroupImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      type: null == type
-          ? _value.type
-          : type // ignore: cast_nullable_to_non_nullable
-              as MapGroupType,
-      parentGroupId: freezed == parentGroupId
-          ? _value.parentGroupId
-          : parentGroupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      tags: null == tags
-          ? _value._tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      properties: null == properties
-          ? _value._properties
-          : properties // ignore: cast_nullable_to_non_nullable
-              as Map<String, dynamic>,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectMapGroup].
+extension ProjectMapGroupPatterns on ProjectMapGroup {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectMapGroup value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectMapGroup() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectMapGroup value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectMapGroup():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectMapGroup value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectMapGroup() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  MapGroupType type,  String? parentGroupId,  int sortOrder,  List<String> tags,  Map<String, dynamic> properties)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectMapGroup() when $default != null:
+return $default(_that.id,_that.name,_that.type,_that.parentGroupId,_that.sortOrder,_that.tags,_that.properties);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  MapGroupType type,  String? parentGroupId,  int sortOrder,  List<String> tags,  Map<String, dynamic> properties)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectMapGroup():
+return $default(_that.id,_that.name,_that.type,_that.parentGroupId,_that.sortOrder,_that.tags,_that.properties);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  MapGroupType type,  String? parentGroupId,  int sortOrder,  List<String> tags,  Map<String, dynamic> properties)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectMapGroup() when $default != null:
+return $default(_that.id,_that.name,_that.type,_that.parentGroupId,_that.sortOrder,_that.tags,_that.properties);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$ProjectMapGroupImpl implements _ProjectMapGroup {
-  const _$ProjectMapGroupImpl(
-      {required this.id,
-      required this.name,
-      required this.type,
-      this.parentGroupId,
-      this.sortOrder = 0,
-      final List<String> tags = const [],
-      final Map<String, dynamic> properties = const {}})
-      : _tags = tags,
-        _properties = properties;
 
-  factory _$ProjectMapGroupImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectMapGroupImplFromJson(json);
+class _ProjectMapGroup implements ProjectMapGroup {
+  const _ProjectMapGroup({required this.id, required this.name, required this.type, this.parentGroupId, this.sortOrder = 0, final  List<String> tags = const [], final  Map<String, dynamic> properties = const {}}): _tags = tags,_properties = properties;
+  factory _ProjectMapGroup.fromJson(Map<String, dynamic> json) => _$ProjectMapGroupFromJson(json);
 
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final MapGroupType type;
-  @override
-  final String? parentGroupId;
-  @override
-  @JsonKey()
-  final int sortOrder;
-  final List<String> _tags;
-  @override
-  @JsonKey()
-  List<String> get tags {
-    if (_tags is EqualUnmodifiableListView) return _tags;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tags);
-  }
-
-  final Map<String, dynamic> _properties;
-  @override
-  @JsonKey()
-  Map<String, dynamic> get properties {
-    if (_properties is EqualUnmodifiableMapView) return _properties;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_properties);
-  }
-
-  @override
-  String toString() {
-    return 'ProjectMapGroup(id: $id, name: $name, type: $type, parentGroupId: $parentGroupId, sortOrder: $sortOrder, tags: $tags, properties: $properties)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectMapGroupImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.type, type) || other.type == type) &&
-            (identical(other.parentGroupId, parentGroupId) ||
-                other.parentGroupId == parentGroupId) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder) &&
-            const DeepCollectionEquality().equals(other._tags, _tags) &&
-            const DeepCollectionEquality()
-                .equals(other._properties, _properties));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      type,
-      parentGroupId,
-      sortOrder,
-      const DeepCollectionEquality().hash(_tags),
-      const DeepCollectionEquality().hash(_properties));
-
-  /// Create a copy of ProjectMapGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectMapGroupImplCopyWith<_$ProjectMapGroupImpl> get copyWith =>
-      __$$ProjectMapGroupImplCopyWithImpl<_$ProjectMapGroupImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectMapGroupImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override final  MapGroupType type;
+@override final  String? parentGroupId;
+@override@JsonKey() final  int sortOrder;
+ final  List<String> _tags;
+@override@JsonKey() List<String> get tags {
+  if (_tags is EqualUnmodifiableListView) return _tags;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tags);
 }
 
-abstract class _ProjectMapGroup implements ProjectMapGroup {
-  const factory _ProjectMapGroup(
-      {required final String id,
-      required final String name,
-      required final MapGroupType type,
-      final String? parentGroupId,
-      final int sortOrder,
-      final List<String> tags,
-      final Map<String, dynamic> properties}) = _$ProjectMapGroupImpl;
-
-  factory _ProjectMapGroup.fromJson(Map<String, dynamic> json) =
-      _$ProjectMapGroupImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  MapGroupType get type;
-  @override
-  String? get parentGroupId;
-  @override
-  int get sortOrder;
-  @override
-  List<String> get tags;
-  @override
-  Map<String, dynamic> get properties;
-
-  /// Create a copy of ProjectMapGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectMapGroupImplCopyWith<_$ProjectMapGroupImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+ final  Map<String, dynamic> _properties;
+@override@JsonKey() Map<String, dynamic> get properties {
+  if (_properties is EqualUnmodifiableMapView) return _properties;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_properties);
 }
 
-ProjectMapEntry _$ProjectMapEntryFromJson(Map<String, dynamic> json) {
-  return _ProjectMapEntry.fromJson(json);
+
+/// Create a copy of ProjectMapGroup
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectMapGroupCopyWith<_ProjectMapGroup> get copyWith => __$ProjectMapGroupCopyWithImpl<_ProjectMapGroup>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectMapGroupToJson(this, );
 }
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectMapGroup&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.type, type) || other.type == type)&&(identical(other.parentGroupId, parentGroupId) || other.parentGroupId == parentGroupId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&const DeepCollectionEquality().equals(other._tags, _tags)&&const DeepCollectionEquality().equals(other._properties, _properties));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,type,parentGroupId,sortOrder,const DeepCollectionEquality().hash(_tags),const DeepCollectionEquality().hash(_properties));
+
+@override
+String toString() {
+  return 'ProjectMapGroup(id: $id, name: $name, type: $type, parentGroupId: $parentGroupId, sortOrder: $sortOrder, tags: $tags, properties: $properties)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectMapGroupCopyWith<$Res> implements $ProjectMapGroupCopyWith<$Res> {
+  factory _$ProjectMapGroupCopyWith(_ProjectMapGroup value, $Res Function(_ProjectMapGroup) _then) = __$ProjectMapGroupCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, MapGroupType type, String? parentGroupId, int sortOrder, List<String> tags, Map<String, dynamic> properties
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectMapGroupCopyWithImpl<$Res>
+    implements _$ProjectMapGroupCopyWith<$Res> {
+  __$ProjectMapGroupCopyWithImpl(this._self, this._then);
+
+  final _ProjectMapGroup _self;
+  final $Res Function(_ProjectMapGroup) _then;
+
+/// Create a copy of ProjectMapGroup
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? type = null,Object? parentGroupId = freezed,Object? sortOrder = null,Object? tags = null,Object? properties = null,}) {
+  return _then(_ProjectMapGroup(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
+as MapGroupType,parentGroupId: freezed == parentGroupId ? _self.parentGroupId : parentGroupId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,properties: null == properties ? _self._properties : properties // ignore: cast_nullable_to_non_nullable
+as Map<String, dynamic>,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectMapEntry {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String get relativePath => throw _privateConstructorUsedError;
-  String? get groupId => throw _privateConstructorUsedError;
-  MapRole get role => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
+
+ String get id; String get name; String get relativePath; String? get groupId; MapRole get role; int get sortOrder;
+/// Create a copy of ProjectMapEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectMapEntryCopyWith<ProjectMapEntry> get copyWith => _$ProjectMapEntryCopyWithImpl<ProjectMapEntry>(this as ProjectMapEntry, _$identity);
 
   /// Serializes this ProjectMapEntry to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectMapEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectMapEntryCopyWith<ProjectMapEntry> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectMapEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.role, role) || other.role == role)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,relativePath,groupId,role,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectMapEntry(id: $id, name: $name, relativePath: $relativePath, groupId: $groupId, role: $role, sortOrder: $sortOrder)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectMapEntryCopyWith<$Res> {
-  factory $ProjectMapEntryCopyWith(
-          ProjectMapEntry value, $Res Function(ProjectMapEntry) then) =
-      _$ProjectMapEntryCopyWithImpl<$Res, ProjectMapEntry>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String relativePath,
-      String? groupId,
-      MapRole role,
-      int sortOrder});
-}
+abstract mixin class $ProjectMapEntryCopyWith<$Res>  {
+  factory $ProjectMapEntryCopyWith(ProjectMapEntry value, $Res Function(ProjectMapEntry) _then) = _$ProjectMapEntryCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String relativePath, String? groupId, MapRole role, int sortOrder
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectMapEntryCopyWithImpl<$Res, $Val extends ProjectMapEntry>
+class _$ProjectMapEntryCopyWithImpl<$Res>
     implements $ProjectMapEntryCopyWith<$Res> {
-  _$ProjectMapEntryCopyWithImpl(this._value, this._then);
+  _$ProjectMapEntryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectMapEntry _self;
+  final $Res Function(ProjectMapEntry) _then;
 
-  /// Create a copy of ProjectMapEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? relativePath = null,
-    Object? groupId = freezed,
-    Object? role = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      relativePath: null == relativePath
-          ? _value.relativePath
-          : relativePath // ignore: cast_nullable_to_non_nullable
-              as String,
-      groupId: freezed == groupId
-          ? _value.groupId
-          : groupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      role: null == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as MapRole,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of ProjectMapEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? groupId = freezed,Object? role = null,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,relativePath: null == relativePath ? _self.relativePath : relativePath // ignore: cast_nullable_to_non_nullable
+as String,groupId: freezed == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
+as String?,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
+as MapRole,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectMapEntryImplCopyWith<$Res>
-    implements $ProjectMapEntryCopyWith<$Res> {
-  factory _$$ProjectMapEntryImplCopyWith(_$ProjectMapEntryImpl value,
-          $Res Function(_$ProjectMapEntryImpl) then) =
-      __$$ProjectMapEntryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String relativePath,
-      String? groupId,
-      MapRole role,
-      int sortOrder});
 }
 
-/// @nodoc
-class __$$ProjectMapEntryImplCopyWithImpl<$Res>
-    extends _$ProjectMapEntryCopyWithImpl<$Res, _$ProjectMapEntryImpl>
-    implements _$$ProjectMapEntryImplCopyWith<$Res> {
-  __$$ProjectMapEntryImplCopyWithImpl(
-      _$ProjectMapEntryImpl _value, $Res Function(_$ProjectMapEntryImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectMapEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? relativePath = null,
-    Object? groupId = freezed,
-    Object? role = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectMapEntryImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      relativePath: null == relativePath
-          ? _value.relativePath
-          : relativePath // ignore: cast_nullable_to_non_nullable
-              as String,
-      groupId: freezed == groupId
-          ? _value.groupId
-          : groupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      role: null == role
-          ? _value.role
-          : role // ignore: cast_nullable_to_non_nullable
-              as MapRole,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectMapEntry].
+extension ProjectMapEntryPatterns on ProjectMapEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectMapEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectMapEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectMapEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectMapEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectMapEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectMapEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath,  String? groupId,  MapRole role,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectMapEntry() when $default != null:
+return $default(_that.id,_that.name,_that.relativePath,_that.groupId,_that.role,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath,  String? groupId,  MapRole role,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectMapEntry():
+return $default(_that.id,_that.name,_that.relativePath,_that.groupId,_that.role,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String relativePath,  String? groupId,  MapRole role,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectMapEntry() when $default != null:
+return $default(_that.id,_that.name,_that.relativePath,_that.groupId,_that.role,_that.sortOrder);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$ProjectMapEntryImpl implements _ProjectMapEntry {
-  const _$ProjectMapEntryImpl(
-      {required this.id,
-      required this.name,
-      required this.relativePath,
-      this.groupId,
-      this.role = MapRole.exterior,
-      this.sortOrder = 0});
 
-  factory _$ProjectMapEntryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectMapEntryImplFromJson(json);
+class _ProjectMapEntry implements ProjectMapEntry {
+  const _ProjectMapEntry({required this.id, required this.name, required this.relativePath, this.groupId, this.role = MapRole.exterior, this.sortOrder = 0});
+  factory _ProjectMapEntry.fromJson(Map<String, dynamic> json) => _$ProjectMapEntryFromJson(json);
 
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String relativePath;
-  @override
-  final String? groupId;
-  @override
-  @JsonKey()
-  final MapRole role;
-  @override
-  @JsonKey()
-  final int sortOrder;
+@override final  String id;
+@override final  String name;
+@override final  String relativePath;
+@override final  String? groupId;
+@override@JsonKey() final  MapRole role;
+@override@JsonKey() final  int sortOrder;
 
-  @override
-  String toString() {
-    return 'ProjectMapEntry(id: $id, name: $name, relativePath: $relativePath, groupId: $groupId, role: $role, sortOrder: $sortOrder)';
-  }
+/// Create a copy of ProjectMapEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectMapEntryCopyWith<_ProjectMapEntry> get copyWith => __$ProjectMapEntryCopyWithImpl<_ProjectMapEntry>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectMapEntryImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.relativePath, relativePath) ||
-                other.relativePath == relativePath) &&
-            (identical(other.groupId, groupId) || other.groupId == groupId) &&
-            (identical(other.role, role) || other.role == role) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType, id, name, relativePath, groupId, role, sortOrder);
-
-  /// Create a copy of ProjectMapEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectMapEntryImplCopyWith<_$ProjectMapEntryImpl> get copyWith =>
-      __$$ProjectMapEntryImplCopyWithImpl<_$ProjectMapEntryImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectMapEntryImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectMapEntryToJson(this, );
 }
 
-abstract class _ProjectMapEntry implements ProjectMapEntry {
-  const factory _ProjectMapEntry(
-      {required final String id,
-      required final String name,
-      required final String relativePath,
-      final String? groupId,
-      final MapRole role,
-      final int sortOrder}) = _$ProjectMapEntryImpl;
-
-  factory _ProjectMapEntry.fromJson(Map<String, dynamic> json) =
-      _$ProjectMapEntryImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String get relativePath;
-  @override
-  String? get groupId;
-  @override
-  MapRole get role;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectMapEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectMapEntryImplCopyWith<_$ProjectMapEntryImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectMapEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.role, role) || other.role == role)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
-ProjectDialogueFolder _$ProjectDialogueFolderFromJson(
-    Map<String, dynamic> json) {
-  return _ProjectDialogueFolder.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,relativePath,groupId,role,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectMapEntry(id: $id, name: $name, relativePath: $relativePath, groupId: $groupId, role: $role, sortOrder: $sortOrder)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectMapEntryCopyWith<$Res> implements $ProjectMapEntryCopyWith<$Res> {
+  factory _$ProjectMapEntryCopyWith(_ProjectMapEntry value, $Res Function(_ProjectMapEntry) _then) = __$ProjectMapEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String relativePath, String? groupId, MapRole role, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectMapEntryCopyWithImpl<$Res>
+    implements _$ProjectMapEntryCopyWith<$Res> {
+  __$ProjectMapEntryCopyWithImpl(this._self, this._then);
+
+  final _ProjectMapEntry _self;
+  final $Res Function(_ProjectMapEntry) _then;
+
+/// Create a copy of ProjectMapEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? groupId = freezed,Object? role = null,Object? sortOrder = null,}) {
+  return _then(_ProjectMapEntry(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,relativePath: null == relativePath ? _self.relativePath : relativePath // ignore: cast_nullable_to_non_nullable
+as String,groupId: freezed == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
+as String?,role: null == role ? _self.role : role // ignore: cast_nullable_to_non_nullable
+as MapRole,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectDialogueFolder {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String? get parentFolderId => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
+
+ String get id; String get name; String? get parentFolderId; int get sortOrder;
+/// Create a copy of ProjectDialogueFolder
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectDialogueFolderCopyWith<ProjectDialogueFolder> get copyWith => _$ProjectDialogueFolderCopyWithImpl<ProjectDialogueFolder>(this as ProjectDialogueFolder, _$identity);
 
   /// Serializes this ProjectDialogueFolder to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectDialogueFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectDialogueFolderCopyWith<ProjectDialogueFolder> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectDialogueFolder&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentFolderId, parentFolderId) || other.parentFolderId == parentFolderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,parentFolderId,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectDialogueFolder(id: $id, name: $name, parentFolderId: $parentFolderId, sortOrder: $sortOrder)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectDialogueFolderCopyWith<$Res> {
-  factory $ProjectDialogueFolderCopyWith(ProjectDialogueFolder value,
-          $Res Function(ProjectDialogueFolder) then) =
-      _$ProjectDialogueFolderCopyWithImpl<$Res, ProjectDialogueFolder>;
-  @useResult
-  $Res call({String id, String name, String? parentFolderId, int sortOrder});
-}
+abstract mixin class $ProjectDialogueFolderCopyWith<$Res>  {
+  factory $ProjectDialogueFolderCopyWith(ProjectDialogueFolder value, $Res Function(ProjectDialogueFolder) _then) = _$ProjectDialogueFolderCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String? parentFolderId, int sortOrder
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectDialogueFolderCopyWithImpl<$Res,
-        $Val extends ProjectDialogueFolder>
+class _$ProjectDialogueFolderCopyWithImpl<$Res>
     implements $ProjectDialogueFolderCopyWith<$Res> {
-  _$ProjectDialogueFolderCopyWithImpl(this._value, this._then);
+  _$ProjectDialogueFolderCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectDialogueFolder _self;
+  final $Res Function(ProjectDialogueFolder) _then;
 
-  /// Create a copy of ProjectDialogueFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentFolderId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentFolderId: freezed == parentFolderId
-          ? _value.parentFolderId
-          : parentFolderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of ProjectDialogueFolder
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? parentFolderId = freezed,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,parentFolderId: freezed == parentFolderId ? _self.parentFolderId : parentFolderId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectDialogueFolderImplCopyWith<$Res>
-    implements $ProjectDialogueFolderCopyWith<$Res> {
-  factory _$$ProjectDialogueFolderImplCopyWith(
-          _$ProjectDialogueFolderImpl value,
-          $Res Function(_$ProjectDialogueFolderImpl) then) =
-      __$$ProjectDialogueFolderImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({String id, String name, String? parentFolderId, int sortOrder});
 }
 
-/// @nodoc
-class __$$ProjectDialogueFolderImplCopyWithImpl<$Res>
-    extends _$ProjectDialogueFolderCopyWithImpl<$Res,
-        _$ProjectDialogueFolderImpl>
-    implements _$$ProjectDialogueFolderImplCopyWith<$Res> {
-  __$$ProjectDialogueFolderImplCopyWithImpl(_$ProjectDialogueFolderImpl _value,
-      $Res Function(_$ProjectDialogueFolderImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectDialogueFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentFolderId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectDialogueFolderImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentFolderId: freezed == parentFolderId
-          ? _value.parentFolderId
-          : parentFolderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectDialogueFolder].
+extension ProjectDialogueFolderPatterns on ProjectDialogueFolder {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectDialogueFolder value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectDialogueFolder() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectDialogueFolder value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectDialogueFolder():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectDialogueFolder value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectDialogueFolder() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? parentFolderId,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectDialogueFolder() when $default != null:
+return $default(_that.id,_that.name,_that.parentFolderId,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? parentFolderId,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectDialogueFolder():
+return $default(_that.id,_that.name,_that.parentFolderId,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? parentFolderId,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectDialogueFolder() when $default != null:
+return $default(_that.id,_that.name,_that.parentFolderId,_that.sortOrder);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$ProjectDialogueFolderImpl implements _ProjectDialogueFolder {
-  const _$ProjectDialogueFolderImpl(
-      {required this.id,
-      required this.name,
-      this.parentFolderId,
-      this.sortOrder = 0});
 
-  factory _$ProjectDialogueFolderImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectDialogueFolderImplFromJson(json);
+class _ProjectDialogueFolder implements ProjectDialogueFolder {
+  const _ProjectDialogueFolder({required this.id, required this.name, this.parentFolderId, this.sortOrder = 0});
+  factory _ProjectDialogueFolder.fromJson(Map<String, dynamic> json) => _$ProjectDialogueFolderFromJson(json);
 
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String? parentFolderId;
-  @override
-  @JsonKey()
-  final int sortOrder;
+@override final  String id;
+@override final  String name;
+@override final  String? parentFolderId;
+@override@JsonKey() final  int sortOrder;
 
-  @override
-  String toString() {
-    return 'ProjectDialogueFolder(id: $id, name: $name, parentFolderId: $parentFolderId, sortOrder: $sortOrder)';
-  }
+/// Create a copy of ProjectDialogueFolder
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectDialogueFolderCopyWith<_ProjectDialogueFolder> get copyWith => __$ProjectDialogueFolderCopyWithImpl<_ProjectDialogueFolder>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectDialogueFolderImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.parentFolderId, parentFolderId) ||
-                other.parentFolderId == parentFolderId) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, parentFolderId, sortOrder);
-
-  /// Create a copy of ProjectDialogueFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectDialogueFolderImplCopyWith<_$ProjectDialogueFolderImpl>
-      get copyWith => __$$ProjectDialogueFolderImplCopyWithImpl<
-          _$ProjectDialogueFolderImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectDialogueFolderImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectDialogueFolderToJson(this, );
 }
 
-abstract class _ProjectDialogueFolder implements ProjectDialogueFolder {
-  const factory _ProjectDialogueFolder(
-      {required final String id,
-      required final String name,
-      final String? parentFolderId,
-      final int sortOrder}) = _$ProjectDialogueFolderImpl;
-
-  factory _ProjectDialogueFolder.fromJson(Map<String, dynamic> json) =
-      _$ProjectDialogueFolderImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String? get parentFolderId;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectDialogueFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectDialogueFolderImplCopyWith<_$ProjectDialogueFolderImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectDialogueFolder&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentFolderId, parentFolderId) || other.parentFolderId == parentFolderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
-DialogueDeclaredOutcome _$DialogueDeclaredOutcomeFromJson(
-    Map<String, dynamic> json) {
-  return _DialogueDeclaredOutcome.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,parentFolderId,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectDialogueFolder(id: $id, name: $name, parentFolderId: $parentFolderId, sortOrder: $sortOrder)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectDialogueFolderCopyWith<$Res> implements $ProjectDialogueFolderCopyWith<$Res> {
+  factory _$ProjectDialogueFolderCopyWith(_ProjectDialogueFolder value, $Res Function(_ProjectDialogueFolder) _then) = __$ProjectDialogueFolderCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String? parentFolderId, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectDialogueFolderCopyWithImpl<$Res>
+    implements _$ProjectDialogueFolderCopyWith<$Res> {
+  __$ProjectDialogueFolderCopyWithImpl(this._self, this._then);
+
+  final _ProjectDialogueFolder _self;
+  final $Res Function(_ProjectDialogueFolder) _then;
+
+/// Create a copy of ProjectDialogueFolder
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? parentFolderId = freezed,Object? sortOrder = null,}) {
+  return _then(_ProjectDialogueFolder(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,parentFolderId: freezed == parentFolderId ? _self.parentFolderId : parentFolderId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$DialogueDeclaredOutcome {
-  String get id => throw _privateConstructorUsedError;
-  String get label => throw _privateConstructorUsedError;
+
+ String get id; String get label;
+/// Create a copy of DialogueDeclaredOutcome
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$DialogueDeclaredOutcomeCopyWith<DialogueDeclaredOutcome> get copyWith => _$DialogueDeclaredOutcomeCopyWithImpl<DialogueDeclaredOutcome>(this as DialogueDeclaredOutcome, _$identity);
 
   /// Serializes this DialogueDeclaredOutcome to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of DialogueDeclaredOutcome
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $DialogueDeclaredOutcomeCopyWith<DialogueDeclaredOutcome> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DialogueDeclaredOutcome&&(identical(other.id, id) || other.id == id)&&(identical(other.label, label) || other.label == label));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,label);
+
+@override
+String toString() {
+  return 'DialogueDeclaredOutcome(id: $id, label: $label)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $DialogueDeclaredOutcomeCopyWith<$Res> {
-  factory $DialogueDeclaredOutcomeCopyWith(DialogueDeclaredOutcome value,
-          $Res Function(DialogueDeclaredOutcome) then) =
-      _$DialogueDeclaredOutcomeCopyWithImpl<$Res, DialogueDeclaredOutcome>;
-  @useResult
-  $Res call({String id, String label});
-}
+abstract mixin class $DialogueDeclaredOutcomeCopyWith<$Res>  {
+  factory $DialogueDeclaredOutcomeCopyWith(DialogueDeclaredOutcome value, $Res Function(DialogueDeclaredOutcome) _then) = _$DialogueDeclaredOutcomeCopyWithImpl;
+@useResult
+$Res call({
+ String id, String label
+});
 
+
+
+
+}
 /// @nodoc
-class _$DialogueDeclaredOutcomeCopyWithImpl<$Res,
-        $Val extends DialogueDeclaredOutcome>
+class _$DialogueDeclaredOutcomeCopyWithImpl<$Res>
     implements $DialogueDeclaredOutcomeCopyWith<$Res> {
-  _$DialogueDeclaredOutcomeCopyWithImpl(this._value, this._then);
+  _$DialogueDeclaredOutcomeCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final DialogueDeclaredOutcome _self;
+  final $Res Function(DialogueDeclaredOutcome) _then;
 
-  /// Create a copy of DialogueDeclaredOutcome
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? label = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      label: null == label
-          ? _value.label
-          : label // ignore: cast_nullable_to_non_nullable
-              as String,
-    ) as $Val);
-  }
+/// Create a copy of DialogueDeclaredOutcome
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? label = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
 }
 
-/// @nodoc
-abstract class _$$DialogueDeclaredOutcomeImplCopyWith<$Res>
-    implements $DialogueDeclaredOutcomeCopyWith<$Res> {
-  factory _$$DialogueDeclaredOutcomeImplCopyWith(
-          _$DialogueDeclaredOutcomeImpl value,
-          $Res Function(_$DialogueDeclaredOutcomeImpl) then) =
-      __$$DialogueDeclaredOutcomeImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({String id, String label});
 }
 
-/// @nodoc
-class __$$DialogueDeclaredOutcomeImplCopyWithImpl<$Res>
-    extends _$DialogueDeclaredOutcomeCopyWithImpl<$Res,
-        _$DialogueDeclaredOutcomeImpl>
-    implements _$$DialogueDeclaredOutcomeImplCopyWith<$Res> {
-  __$$DialogueDeclaredOutcomeImplCopyWithImpl(
-      _$DialogueDeclaredOutcomeImpl _value,
-      $Res Function(_$DialogueDeclaredOutcomeImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of DialogueDeclaredOutcome
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? label = null,
-  }) {
-    return _then(_$DialogueDeclaredOutcomeImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      label: null == label
-          ? _value.label
-          : label // ignore: cast_nullable_to_non_nullable
-              as String,
-    ));
-  }
+/// Adds pattern-matching-related methods to [DialogueDeclaredOutcome].
+extension DialogueDeclaredOutcomePatterns on DialogueDeclaredOutcome {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _DialogueDeclaredOutcome value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _DialogueDeclaredOutcome() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _DialogueDeclaredOutcome value)  $default,){
+final _that = this;
+switch (_that) {
+case _DialogueDeclaredOutcome():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _DialogueDeclaredOutcome value)?  $default,){
+final _that = this;
+switch (_that) {
+case _DialogueDeclaredOutcome() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String label)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _DialogueDeclaredOutcome() when $default != null:
+return $default(_that.id,_that.label);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String label)  $default,) {final _that = this;
+switch (_that) {
+case _DialogueDeclaredOutcome():
+return $default(_that.id,_that.label);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String label)?  $default,) {final _that = this;
+switch (_that) {
+case _DialogueDeclaredOutcome() when $default != null:
+return $default(_that.id,_that.label);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$DialogueDeclaredOutcomeImpl implements _DialogueDeclaredOutcome {
-  const _$DialogueDeclaredOutcomeImpl({required this.id, required this.label});
 
-  factory _$DialogueDeclaredOutcomeImpl.fromJson(Map<String, dynamic> json) =>
-      _$$DialogueDeclaredOutcomeImplFromJson(json);
+class _DialogueDeclaredOutcome implements DialogueDeclaredOutcome {
+  const _DialogueDeclaredOutcome({required this.id, required this.label});
+  factory _DialogueDeclaredOutcome.fromJson(Map<String, dynamic> json) => _$DialogueDeclaredOutcomeFromJson(json);
 
-  @override
-  final String id;
-  @override
-  final String label;
+@override final  String id;
+@override final  String label;
 
-  @override
-  String toString() {
-    return 'DialogueDeclaredOutcome(id: $id, label: $label)';
-  }
+/// Create a copy of DialogueDeclaredOutcome
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$DialogueDeclaredOutcomeCopyWith<_DialogueDeclaredOutcome> get copyWith => __$DialogueDeclaredOutcomeCopyWithImpl<_DialogueDeclaredOutcome>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$DialogueDeclaredOutcomeImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.label, label) || other.label == label));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, label);
-
-  /// Create a copy of DialogueDeclaredOutcome
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$DialogueDeclaredOutcomeImplCopyWith<_$DialogueDeclaredOutcomeImpl>
-      get copyWith => __$$DialogueDeclaredOutcomeImplCopyWithImpl<
-          _$DialogueDeclaredOutcomeImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$DialogueDeclaredOutcomeImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$DialogueDeclaredOutcomeToJson(this, );
 }
 
-abstract class _DialogueDeclaredOutcome implements DialogueDeclaredOutcome {
-  const factory _DialogueDeclaredOutcome(
-      {required final String id,
-      required final String label}) = _$DialogueDeclaredOutcomeImpl;
-
-  factory _DialogueDeclaredOutcome.fromJson(Map<String, dynamic> json) =
-      _$DialogueDeclaredOutcomeImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get label;
-
-  /// Create a copy of DialogueDeclaredOutcome
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$DialogueDeclaredOutcomeImplCopyWith<_$DialogueDeclaredOutcomeImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _DialogueDeclaredOutcome&&(identical(other.id, id) || other.id == id)&&(identical(other.label, label) || other.label == label));
 }
 
-ProjectDialogueEntry _$ProjectDialogueEntryFromJson(Map<String, dynamic> json) {
-  return _ProjectDialogueEntry.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,label);
+
+@override
+String toString() {
+  return 'DialogueDeclaredOutcome(id: $id, label: $label)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$DialogueDeclaredOutcomeCopyWith<$Res> implements $DialogueDeclaredOutcomeCopyWith<$Res> {
+  factory _$DialogueDeclaredOutcomeCopyWith(_DialogueDeclaredOutcome value, $Res Function(_DialogueDeclaredOutcome) _then) = __$DialogueDeclaredOutcomeCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String label
+});
+
+
+
+
+}
+/// @nodoc
+class __$DialogueDeclaredOutcomeCopyWithImpl<$Res>
+    implements _$DialogueDeclaredOutcomeCopyWith<$Res> {
+  __$DialogueDeclaredOutcomeCopyWithImpl(this._self, this._then);
+
+  final _DialogueDeclaredOutcome _self;
+  final $Res Function(_DialogueDeclaredOutcome) _then;
+
+/// Create a copy of DialogueDeclaredOutcome
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? label = null,}) {
+  return _then(_DialogueDeclaredOutcome(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,label: null == label ? _self.label : label // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectDialogueEntry {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
 
-  /// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
-  String get relativePath => throw _privateConstructorUsedError;
-  List<String> get tags => throw _privateConstructorUsedError;
-  String get description => throw _privateConstructorUsedError;
-  List<DialogueDeclaredOutcome> get declaredOutcomes =>
-      throw _privateConstructorUsedError;
-
-  /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
-  String? get defaultStartNode => throw _privateConstructorUsedError;
-
-  /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
-  String? get folderId => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
+ String get id; String get name;/// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
+ String get relativePath; List<String> get tags; String get description; List<DialogueDeclaredOutcome> get declaredOutcomes;/// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
+ String? get defaultStartNode;/// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
+ String? get folderId; int get sortOrder;
+/// Create a copy of ProjectDialogueEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectDialogueEntryCopyWith<ProjectDialogueEntry> get copyWith => _$ProjectDialogueEntryCopyWithImpl<ProjectDialogueEntry>(this as ProjectDialogueEntry, _$identity);
 
   /// Serializes this ProjectDialogueEntry to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectDialogueEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectDialogueEntryCopyWith<ProjectDialogueEntry> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectDialogueEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other.declaredOutcomes, declaredOutcomes)&&(identical(other.defaultStartNode, defaultStartNode) || other.defaultStartNode == defaultStartNode)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,relativePath,const DeepCollectionEquality().hash(tags),description,const DeepCollectionEquality().hash(declaredOutcomes),defaultStartNode,folderId,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, declaredOutcomes: $declaredOutcomes, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectDialogueEntryCopyWith<$Res> {
-  factory $ProjectDialogueEntryCopyWith(ProjectDialogueEntry value,
-          $Res Function(ProjectDialogueEntry) then) =
-      _$ProjectDialogueEntryCopyWithImpl<$Res, ProjectDialogueEntry>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String relativePath,
-      List<String> tags,
-      String description,
-      List<DialogueDeclaredOutcome> declaredOutcomes,
-      String? defaultStartNode,
-      String? folderId,
-      int sortOrder});
-}
+abstract mixin class $ProjectDialogueEntryCopyWith<$Res>  {
+  factory $ProjectDialogueEntryCopyWith(ProjectDialogueEntry value, $Res Function(ProjectDialogueEntry) _then) = _$ProjectDialogueEntryCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String relativePath, List<String> tags, String description, List<DialogueDeclaredOutcome> declaredOutcomes, String? defaultStartNode, String? folderId, int sortOrder
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectDialogueEntryCopyWithImpl<$Res,
-        $Val extends ProjectDialogueEntry>
+class _$ProjectDialogueEntryCopyWithImpl<$Res>
     implements $ProjectDialogueEntryCopyWith<$Res> {
-  _$ProjectDialogueEntryCopyWithImpl(this._value, this._then);
+  _$ProjectDialogueEntryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectDialogueEntry _self;
+  final $Res Function(ProjectDialogueEntry) _then;
 
-  /// Create a copy of ProjectDialogueEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? relativePath = null,
-    Object? tags = null,
-    Object? description = null,
-    Object? declaredOutcomes = null,
-    Object? defaultStartNode = freezed,
-    Object? folderId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      relativePath: null == relativePath
-          ? _value.relativePath
-          : relativePath // ignore: cast_nullable_to_non_nullable
-              as String,
-      tags: null == tags
-          ? _value.tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      declaredOutcomes: null == declaredOutcomes
-          ? _value.declaredOutcomes
-          : declaredOutcomes // ignore: cast_nullable_to_non_nullable
-              as List<DialogueDeclaredOutcome>,
-      defaultStartNode: freezed == defaultStartNode
-          ? _value.defaultStartNode
-          : defaultStartNode // ignore: cast_nullable_to_non_nullable
-              as String?,
-      folderId: freezed == folderId
-          ? _value.folderId
-          : folderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of ProjectDialogueEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? tags = null,Object? description = null,Object? declaredOutcomes = null,Object? defaultStartNode = freezed,Object? folderId = freezed,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,relativePath: null == relativePath ? _self.relativePath : relativePath // ignore: cast_nullable_to_non_nullable
+as String,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String,declaredOutcomes: null == declaredOutcomes ? _self.declaredOutcomes : declaredOutcomes // ignore: cast_nullable_to_non_nullable
+as List<DialogueDeclaredOutcome>,defaultStartNode: freezed == defaultStartNode ? _self.defaultStartNode : defaultStartNode // ignore: cast_nullable_to_non_nullable
+as String?,folderId: freezed == folderId ? _self.folderId : folderId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectDialogueEntryImplCopyWith<$Res>
-    implements $ProjectDialogueEntryCopyWith<$Res> {
-  factory _$$ProjectDialogueEntryImplCopyWith(_$ProjectDialogueEntryImpl value,
-          $Res Function(_$ProjectDialogueEntryImpl) then) =
-      __$$ProjectDialogueEntryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String relativePath,
-      List<String> tags,
-      String description,
-      List<DialogueDeclaredOutcome> declaredOutcomes,
-      String? defaultStartNode,
-      String? folderId,
-      int sortOrder});
 }
 
-/// @nodoc
-class __$$ProjectDialogueEntryImplCopyWithImpl<$Res>
-    extends _$ProjectDialogueEntryCopyWithImpl<$Res, _$ProjectDialogueEntryImpl>
-    implements _$$ProjectDialogueEntryImplCopyWith<$Res> {
-  __$$ProjectDialogueEntryImplCopyWithImpl(_$ProjectDialogueEntryImpl _value,
-      $Res Function(_$ProjectDialogueEntryImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectDialogueEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? relativePath = null,
-    Object? tags = null,
-    Object? description = null,
-    Object? declaredOutcomes = null,
-    Object? defaultStartNode = freezed,
-    Object? folderId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectDialogueEntryImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      relativePath: null == relativePath
-          ? _value.relativePath
-          : relativePath // ignore: cast_nullable_to_non_nullable
-              as String,
-      tags: null == tags
-          ? _value._tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      description: null == description
-          ? _value.description
-          : description // ignore: cast_nullable_to_non_nullable
-              as String,
-      declaredOutcomes: null == declaredOutcomes
-          ? _value._declaredOutcomes
-          : declaredOutcomes // ignore: cast_nullable_to_non_nullable
-              as List<DialogueDeclaredOutcome>,
-      defaultStartNode: freezed == defaultStartNode
-          ? _value.defaultStartNode
-          : defaultStartNode // ignore: cast_nullable_to_non_nullable
-              as String?,
-      folderId: freezed == folderId
-          ? _value.folderId
-          : folderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectDialogueEntry].
+extension ProjectDialogueEntryPatterns on ProjectDialogueEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectDialogueEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectDialogueEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectDialogueEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectDialogueEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectDialogueEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectDialogueEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath,  List<String> tags,  String description,  List<DialogueDeclaredOutcome> declaredOutcomes,  String? defaultStartNode,  String? folderId,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectDialogueEntry() when $default != null:
+return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.description,_that.declaredOutcomes,_that.defaultStartNode,_that.folderId,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath,  List<String> tags,  String description,  List<DialogueDeclaredOutcome> declaredOutcomes,  String? defaultStartNode,  String? folderId,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectDialogueEntry():
+return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.description,_that.declaredOutcomes,_that.defaultStartNode,_that.folderId,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String relativePath,  List<String> tags,  String description,  List<DialogueDeclaredOutcome> declaredOutcomes,  String? defaultStartNode,  String? folderId,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectDialogueEntry() when $default != null:
+return $default(_that.id,_that.name,_that.relativePath,_that.tags,_that.description,_that.declaredOutcomes,_that.defaultStartNode,_that.folderId,_that.sortOrder);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectDialogueEntryImpl implements _ProjectDialogueEntry {
-  const _$ProjectDialogueEntryImpl(
-      {required this.id,
-      required this.name,
-      required this.relativePath,
-      final List<String> tags = const [],
-      this.description = '',
-      final List<DialogueDeclaredOutcome> declaredOutcomes = const [],
-      this.defaultStartNode,
-      this.folderId,
-      this.sortOrder = 0})
-      : _tags = tags,
-        _declaredOutcomes = declaredOutcomes;
+class _ProjectDialogueEntry implements ProjectDialogueEntry {
+  const _ProjectDialogueEntry({required this.id, required this.name, required this.relativePath, final  List<String> tags = const [], this.description = '', final  List<DialogueDeclaredOutcome> declaredOutcomes = const [], this.defaultStartNode, this.folderId, this.sortOrder = 0}): _tags = tags,_declaredOutcomes = declaredOutcomes;
+  factory _ProjectDialogueEntry.fromJson(Map<String, dynamic> json) => _$ProjectDialogueEntryFromJson(json);
 
-  factory _$ProjectDialogueEntryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectDialogueEntryImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-
-  /// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
-  @override
-  final String relativePath;
-  final List<String> _tags;
-  @override
-  @JsonKey()
-  List<String> get tags {
-    if (_tags is EqualUnmodifiableListView) return _tags;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tags);
-  }
-
-  @override
-  @JsonKey()
-  final String description;
-  final List<DialogueDeclaredOutcome> _declaredOutcomes;
-  @override
-  @JsonKey()
-  List<DialogueDeclaredOutcome> get declaredOutcomes {
-    if (_declaredOutcomes is EqualUnmodifiableListView)
-      return _declaredOutcomes;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_declaredOutcomes);
-  }
-
-  /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
-  @override
-  final String? defaultStartNode;
-
-  /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
-  @override
-  final String? folderId;
-  @override
-  @JsonKey()
-  final int sortOrder;
-
-  @override
-  String toString() {
-    return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, declaredOutcomes: $declaredOutcomes, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectDialogueEntryImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.relativePath, relativePath) ||
-                other.relativePath == relativePath) &&
-            const DeepCollectionEquality().equals(other._tags, _tags) &&
-            (identical(other.description, description) ||
-                other.description == description) &&
-            const DeepCollectionEquality()
-                .equals(other._declaredOutcomes, _declaredOutcomes) &&
-            (identical(other.defaultStartNode, defaultStartNode) ||
-                other.defaultStartNode == defaultStartNode) &&
-            (identical(other.folderId, folderId) ||
-                other.folderId == folderId) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      relativePath,
-      const DeepCollectionEquality().hash(_tags),
-      description,
-      const DeepCollectionEquality().hash(_declaredOutcomes),
-      defaultStartNode,
-      folderId,
-      sortOrder);
-
-  /// Create a copy of ProjectDialogueEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectDialogueEntryImplCopyWith<_$ProjectDialogueEntryImpl>
-      get copyWith =>
-          __$$ProjectDialogueEntryImplCopyWithImpl<_$ProjectDialogueEntryImpl>(
-              this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectDialogueEntryImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+/// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
+@override final  String relativePath;
+ final  List<String> _tags;
+@override@JsonKey() List<String> get tags {
+  if (_tags is EqualUnmodifiableListView) return _tags;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tags);
 }
 
-abstract class _ProjectDialogueEntry implements ProjectDialogueEntry {
-  const factory _ProjectDialogueEntry(
-      {required final String id,
-      required final String name,
-      required final String relativePath,
-      final List<String> tags,
-      final String description,
-      final List<DialogueDeclaredOutcome> declaredOutcomes,
-      final String? defaultStartNode,
-      final String? folderId,
-      final int sortOrder}) = _$ProjectDialogueEntryImpl;
-
-  factory _ProjectDialogueEntry.fromJson(Map<String, dynamic> json) =
-      _$ProjectDialogueEntryImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-
-  /// Chemin relatif à la racine projet, ex. `dialogues/mon_id.yarn`.
-  @override
-  String get relativePath;
-  @override
-  List<String> get tags;
-  @override
-  String get description;
-  @override
-  List<DialogueDeclaredOutcome> get declaredOutcomes;
-
-  /// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
-  @override
-  String? get defaultStartNode;
-
-  /// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
-  @override
-  String? get folderId;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectDialogueEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectDialogueEntryImplCopyWith<_$ProjectDialogueEntryImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override@JsonKey() final  String description;
+ final  List<DialogueDeclaredOutcome> _declaredOutcomes;
+@override@JsonKey() List<DialogueDeclaredOutcome> get declaredOutcomes {
+  if (_declaredOutcomes is EqualUnmodifiableListView) return _declaredOutcomes;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_declaredOutcomes);
 }
 
-ProjectTilesetFolder _$ProjectTilesetFolderFromJson(Map<String, dynamic> json) {
-  return _ProjectTilesetFolder.fromJson(json);
+/// Nœud Yarn (ou autre) suggéré par défaut dans l'éditeur ; l'entité peut surcharger via [DialogueRef.startNode].
+@override final  String? defaultStartNode;
+/// Dossier dans [ProjectManifest.dialogueFolders] (bibliothèque scripts) ; null = racine.
+@override final  String? folderId;
+@override@JsonKey() final  int sortOrder;
+
+/// Create a copy of ProjectDialogueEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectDialogueEntryCopyWith<_ProjectDialogueEntry> get copyWith => __$ProjectDialogueEntryCopyWithImpl<_ProjectDialogueEntry>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectDialogueEntryToJson(this, );
 }
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectDialogueEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.description, description) || other.description == description)&&const DeepCollectionEquality().equals(other._declaredOutcomes, _declaredOutcomes)&&(identical(other.defaultStartNode, defaultStartNode) || other.defaultStartNode == defaultStartNode)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,relativePath,const DeepCollectionEquality().hash(_tags),description,const DeepCollectionEquality().hash(_declaredOutcomes),defaultStartNode,folderId,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectDialogueEntry(id: $id, name: $name, relativePath: $relativePath, tags: $tags, description: $description, declaredOutcomes: $declaredOutcomes, defaultStartNode: $defaultStartNode, folderId: $folderId, sortOrder: $sortOrder)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectDialogueEntryCopyWith<$Res> implements $ProjectDialogueEntryCopyWith<$Res> {
+  factory _$ProjectDialogueEntryCopyWith(_ProjectDialogueEntry value, $Res Function(_ProjectDialogueEntry) _then) = __$ProjectDialogueEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String relativePath, List<String> tags, String description, List<DialogueDeclaredOutcome> declaredOutcomes, String? defaultStartNode, String? folderId, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectDialogueEntryCopyWithImpl<$Res>
+    implements _$ProjectDialogueEntryCopyWith<$Res> {
+  __$ProjectDialogueEntryCopyWithImpl(this._self, this._then);
+
+  final _ProjectDialogueEntry _self;
+  final $Res Function(_ProjectDialogueEntry) _then;
+
+/// Create a copy of ProjectDialogueEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? tags = null,Object? description = null,Object? declaredOutcomes = null,Object? defaultStartNode = freezed,Object? folderId = freezed,Object? sortOrder = null,}) {
+  return _then(_ProjectDialogueEntry(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,relativePath: null == relativePath ? _self.relativePath : relativePath // ignore: cast_nullable_to_non_nullable
+as String,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,description: null == description ? _self.description : description // ignore: cast_nullable_to_non_nullable
+as String,declaredOutcomes: null == declaredOutcomes ? _self._declaredOutcomes : declaredOutcomes // ignore: cast_nullable_to_non_nullable
+as List<DialogueDeclaredOutcome>,defaultStartNode: freezed == defaultStartNode ? _self.defaultStartNode : defaultStartNode // ignore: cast_nullable_to_non_nullable
+as String?,folderId: freezed == folderId ? _self.folderId : folderId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectTilesetFolder {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String? get parentFolderId => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
+
+ String get id; String get name; String? get parentFolderId; int get sortOrder;
+/// Create a copy of ProjectTilesetFolder
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectTilesetFolderCopyWith<ProjectTilesetFolder> get copyWith => _$ProjectTilesetFolderCopyWithImpl<ProjectTilesetFolder>(this as ProjectTilesetFolder, _$identity);
 
   /// Serializes this ProjectTilesetFolder to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectTilesetFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectTilesetFolderCopyWith<ProjectTilesetFolder> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectTilesetFolder&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentFolderId, parentFolderId) || other.parentFolderId == parentFolderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,parentFolderId,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectTilesetFolder(id: $id, name: $name, parentFolderId: $parentFolderId, sortOrder: $sortOrder)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectTilesetFolderCopyWith<$Res> {
-  factory $ProjectTilesetFolderCopyWith(ProjectTilesetFolder value,
-          $Res Function(ProjectTilesetFolder) then) =
-      _$ProjectTilesetFolderCopyWithImpl<$Res, ProjectTilesetFolder>;
-  @useResult
-  $Res call({String id, String name, String? parentFolderId, int sortOrder});
-}
+abstract mixin class $ProjectTilesetFolderCopyWith<$Res>  {
+  factory $ProjectTilesetFolderCopyWith(ProjectTilesetFolder value, $Res Function(ProjectTilesetFolder) _then) = _$ProjectTilesetFolderCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String? parentFolderId, int sortOrder
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectTilesetFolderCopyWithImpl<$Res,
-        $Val extends ProjectTilesetFolder>
+class _$ProjectTilesetFolderCopyWithImpl<$Res>
     implements $ProjectTilesetFolderCopyWith<$Res> {
-  _$ProjectTilesetFolderCopyWithImpl(this._value, this._then);
+  _$ProjectTilesetFolderCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectTilesetFolder _self;
+  final $Res Function(ProjectTilesetFolder) _then;
 
-  /// Create a copy of ProjectTilesetFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentFolderId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentFolderId: freezed == parentFolderId
-          ? _value.parentFolderId
-          : parentFolderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of ProjectTilesetFolder
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? parentFolderId = freezed,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,parentFolderId: freezed == parentFolderId ? _self.parentFolderId : parentFolderId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectTilesetFolderImplCopyWith<$Res>
-    implements $ProjectTilesetFolderCopyWith<$Res> {
-  factory _$$ProjectTilesetFolderImplCopyWith(_$ProjectTilesetFolderImpl value,
-          $Res Function(_$ProjectTilesetFolderImpl) then) =
-      __$$ProjectTilesetFolderImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({String id, String name, String? parentFolderId, int sortOrder});
 }
 
-/// @nodoc
-class __$$ProjectTilesetFolderImplCopyWithImpl<$Res>
-    extends _$ProjectTilesetFolderCopyWithImpl<$Res, _$ProjectTilesetFolderImpl>
-    implements _$$ProjectTilesetFolderImplCopyWith<$Res> {
-  __$$ProjectTilesetFolderImplCopyWithImpl(_$ProjectTilesetFolderImpl _value,
-      $Res Function(_$ProjectTilesetFolderImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectTilesetFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentFolderId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectTilesetFolderImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentFolderId: freezed == parentFolderId
-          ? _value.parentFolderId
-          : parentFolderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectTilesetFolder].
+extension ProjectTilesetFolderPatterns on ProjectTilesetFolder {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectTilesetFolder value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectTilesetFolder() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectTilesetFolder value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectTilesetFolder():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectTilesetFolder value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectTilesetFolder() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? parentFolderId,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectTilesetFolder() when $default != null:
+return $default(_that.id,_that.name,_that.parentFolderId,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? parentFolderId,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectTilesetFolder():
+return $default(_that.id,_that.name,_that.parentFolderId,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? parentFolderId,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectTilesetFolder() when $default != null:
+return $default(_that.id,_that.name,_that.parentFolderId,_that.sortOrder);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$ProjectTilesetFolderImpl implements _ProjectTilesetFolder {
-  const _$ProjectTilesetFolderImpl(
-      {required this.id,
-      required this.name,
-      this.parentFolderId,
-      this.sortOrder = 0});
 
-  factory _$ProjectTilesetFolderImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectTilesetFolderImplFromJson(json);
+class _ProjectTilesetFolder implements ProjectTilesetFolder {
+  const _ProjectTilesetFolder({required this.id, required this.name, this.parentFolderId, this.sortOrder = 0});
+  factory _ProjectTilesetFolder.fromJson(Map<String, dynamic> json) => _$ProjectTilesetFolderFromJson(json);
 
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String? parentFolderId;
-  @override
-  @JsonKey()
-  final int sortOrder;
+@override final  String id;
+@override final  String name;
+@override final  String? parentFolderId;
+@override@JsonKey() final  int sortOrder;
 
-  @override
-  String toString() {
-    return 'ProjectTilesetFolder(id: $id, name: $name, parentFolderId: $parentFolderId, sortOrder: $sortOrder)';
-  }
+/// Create a copy of ProjectTilesetFolder
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectTilesetFolderCopyWith<_ProjectTilesetFolder> get copyWith => __$ProjectTilesetFolderCopyWithImpl<_ProjectTilesetFolder>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectTilesetFolderImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.parentFolderId, parentFolderId) ||
-                other.parentFolderId == parentFolderId) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, parentFolderId, sortOrder);
-
-  /// Create a copy of ProjectTilesetFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectTilesetFolderImplCopyWith<_$ProjectTilesetFolderImpl>
-      get copyWith =>
-          __$$ProjectTilesetFolderImplCopyWithImpl<_$ProjectTilesetFolderImpl>(
-              this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectTilesetFolderImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectTilesetFolderToJson(this, );
 }
 
-abstract class _ProjectTilesetFolder implements ProjectTilesetFolder {
-  const factory _ProjectTilesetFolder(
-      {required final String id,
-      required final String name,
-      final String? parentFolderId,
-      final int sortOrder}) = _$ProjectTilesetFolderImpl;
-
-  factory _ProjectTilesetFolder.fromJson(Map<String, dynamic> json) =
-      _$ProjectTilesetFolderImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String? get parentFolderId;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectTilesetFolder
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectTilesetFolderImplCopyWith<_$ProjectTilesetFolderImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectTilesetFolder&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentFolderId, parentFolderId) || other.parentFolderId == parentFolderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
-ProjectTilesetEntry _$ProjectTilesetEntryFromJson(Map<String, dynamic> json) {
-  return _ProjectTilesetEntry.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,parentFolderId,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectTilesetFolder(id: $id, name: $name, parentFolderId: $parentFolderId, sortOrder: $sortOrder)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectTilesetFolderCopyWith<$Res> implements $ProjectTilesetFolderCopyWith<$Res> {
+  factory _$ProjectTilesetFolderCopyWith(_ProjectTilesetFolder value, $Res Function(_ProjectTilesetFolder) _then) = __$ProjectTilesetFolderCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String? parentFolderId, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectTilesetFolderCopyWithImpl<$Res>
+    implements _$ProjectTilesetFolderCopyWith<$Res> {
+  __$ProjectTilesetFolderCopyWithImpl(this._self, this._then);
+
+  final _ProjectTilesetFolder _self;
+  final $Res Function(_ProjectTilesetFolder) _then;
+
+/// Create a copy of ProjectTilesetFolder
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? parentFolderId = freezed,Object? sortOrder = null,}) {
+  return _then(_ProjectTilesetFolder(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,parentFolderId: freezed == parentFolderId ? _self.parentFolderId : parentFolderId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectTilesetEntry {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String get relativePath => throw _privateConstructorUsedError;
-  @JsonKey(includeIfNull: false)
-  ProjectTilesetSource? get source => throw _privateConstructorUsedError;
-  TilesetScope get scope => throw _privateConstructorUsedError;
-  String? get groupId => throw _privateConstructorUsedError;
 
-  /// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
-  String? get folderId => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
-  bool get isWorldTileset => throw _privateConstructorUsedError;
-  @JsonKey(
-      fromJson: _tilesetTransparentColorFromJson,
-      toJson: _tilesetTransparentColorToJson,
-      includeIfNull: false)
-  TilesetTransparentColor? get transparentColor =>
-      throw _privateConstructorUsedError;
-  List<TilesetElementGroup> get elementGroups =>
-      throw _privateConstructorUsedError;
-  List<TilesetPaletteEntry> get paletteEntries =>
-      throw _privateConstructorUsedError;
+ String get id; String get name; String get relativePath;@JsonKey(includeIfNull: false) ProjectTilesetSource? get source; TilesetScope get scope; String? get groupId;/// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
+ String? get folderId; int get sortOrder; bool get isWorldTileset;@JsonKey(fromJson: _tilesetTransparentColorFromJson, toJson: _tilesetTransparentColorToJson, includeIfNull: false) TilesetTransparentColor? get transparentColor; List<TilesetElementGroup> get elementGroups; List<TilesetPaletteEntry> get paletteEntries;
+/// Create a copy of ProjectTilesetEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectTilesetEntryCopyWith<ProjectTilesetEntry> get copyWith => _$ProjectTilesetEntryCopyWithImpl<ProjectTilesetEntry>(this as ProjectTilesetEntry, _$identity);
 
   /// Serializes this ProjectTilesetEntry to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectTilesetEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectTilesetEntryCopyWith<ProjectTilesetEntry> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectTilesetEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&(identical(other.source, source) || other.source == source)&&(identical(other.scope, scope) || other.scope == scope)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.isWorldTileset, isWorldTileset) || other.isWorldTileset == isWorldTileset)&&(identical(other.transparentColor, transparentColor) || other.transparentColor == transparentColor)&&const DeepCollectionEquality().equals(other.elementGroups, elementGroups)&&const DeepCollectionEquality().equals(other.paletteEntries, paletteEntries));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,relativePath,source,scope,groupId,folderId,sortOrder,isWorldTileset,transparentColor,const DeepCollectionEquality().hash(elementGroups),const DeepCollectionEquality().hash(paletteEntries));
+
+@override
+String toString() {
+  return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, source: $source, scope: $scope, groupId: $groupId, folderId: $folderId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, transparentColor: $transparentColor, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectTilesetEntryCopyWith<$Res> {
-  factory $ProjectTilesetEntryCopyWith(
-          ProjectTilesetEntry value, $Res Function(ProjectTilesetEntry) then) =
-      _$ProjectTilesetEntryCopyWithImpl<$Res, ProjectTilesetEntry>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String relativePath,
-      @JsonKey(includeIfNull: false) ProjectTilesetSource? source,
-      TilesetScope scope,
-      String? groupId,
-      String? folderId,
-      int sortOrder,
-      bool isWorldTileset,
-      @JsonKey(
-          fromJson: _tilesetTransparentColorFromJson,
-          toJson: _tilesetTransparentColorToJson,
-          includeIfNull: false)
-      TilesetTransparentColor? transparentColor,
-      List<TilesetElementGroup> elementGroups,
-      List<TilesetPaletteEntry> paletteEntries});
-}
+abstract mixin class $ProjectTilesetEntryCopyWith<$Res>  {
+  factory $ProjectTilesetEntryCopyWith(ProjectTilesetEntry value, $Res Function(ProjectTilesetEntry) _then) = _$ProjectTilesetEntryCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String relativePath,@JsonKey(includeIfNull: false) ProjectTilesetSource? source, TilesetScope scope, String? groupId, String? folderId, int sortOrder, bool isWorldTileset,@JsonKey(fromJson: _tilesetTransparentColorFromJson, toJson: _tilesetTransparentColorToJson, includeIfNull: false) TilesetTransparentColor? transparentColor, List<TilesetElementGroup> elementGroups, List<TilesetPaletteEntry> paletteEntries
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
+class _$ProjectTilesetEntryCopyWithImpl<$Res>
     implements $ProjectTilesetEntryCopyWith<$Res> {
-  _$ProjectTilesetEntryCopyWithImpl(this._value, this._then);
+  _$ProjectTilesetEntryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectTilesetEntry _self;
+  final $Res Function(ProjectTilesetEntry) _then;
 
-  /// Create a copy of ProjectTilesetEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? relativePath = null,
-    Object? source = freezed,
-    Object? scope = null,
-    Object? groupId = freezed,
-    Object? folderId = freezed,
-    Object? sortOrder = null,
-    Object? isWorldTileset = null,
-    Object? transparentColor = freezed,
-    Object? elementGroups = null,
-    Object? paletteEntries = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      relativePath: null == relativePath
-          ? _value.relativePath
-          : relativePath // ignore: cast_nullable_to_non_nullable
-              as String,
-      source: freezed == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as ProjectTilesetSource?,
-      scope: null == scope
-          ? _value.scope
-          : scope // ignore: cast_nullable_to_non_nullable
-              as TilesetScope,
-      groupId: freezed == groupId
-          ? _value.groupId
-          : groupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      folderId: freezed == folderId
-          ? _value.folderId
-          : folderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      isWorldTileset: null == isWorldTileset
-          ? _value.isWorldTileset
-          : isWorldTileset // ignore: cast_nullable_to_non_nullable
-              as bool,
-      transparentColor: freezed == transparentColor
-          ? _value.transparentColor
-          : transparentColor // ignore: cast_nullable_to_non_nullable
-              as TilesetTransparentColor?,
-      elementGroups: null == elementGroups
-          ? _value.elementGroups
-          : elementGroups // ignore: cast_nullable_to_non_nullable
-              as List<TilesetElementGroup>,
-      paletteEntries: null == paletteEntries
-          ? _value.paletteEntries
-          : paletteEntries // ignore: cast_nullable_to_non_nullable
-              as List<TilesetPaletteEntry>,
-    ) as $Val);
-  }
+/// Create a copy of ProjectTilesetEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? source = freezed,Object? scope = null,Object? groupId = freezed,Object? folderId = freezed,Object? sortOrder = null,Object? isWorldTileset = null,Object? transparentColor = freezed,Object? elementGroups = null,Object? paletteEntries = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,relativePath: null == relativePath ? _self.relativePath : relativePath // ignore: cast_nullable_to_non_nullable
+as String,source: freezed == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as ProjectTilesetSource?,scope: null == scope ? _self.scope : scope // ignore: cast_nullable_to_non_nullable
+as TilesetScope,groupId: freezed == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
+as String?,folderId: freezed == folderId ? _self.folderId : folderId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,isWorldTileset: null == isWorldTileset ? _self.isWorldTileset : isWorldTileset // ignore: cast_nullable_to_non_nullable
+as bool,transparentColor: freezed == transparentColor ? _self.transparentColor : transparentColor // ignore: cast_nullable_to_non_nullable
+as TilesetTransparentColor?,elementGroups: null == elementGroups ? _self.elementGroups : elementGroups // ignore: cast_nullable_to_non_nullable
+as List<TilesetElementGroup>,paletteEntries: null == paletteEntries ? _self.paletteEntries : paletteEntries // ignore: cast_nullable_to_non_nullable
+as List<TilesetPaletteEntry>,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectTilesetEntryImplCopyWith<$Res>
-    implements $ProjectTilesetEntryCopyWith<$Res> {
-  factory _$$ProjectTilesetEntryImplCopyWith(_$ProjectTilesetEntryImpl value,
-          $Res Function(_$ProjectTilesetEntryImpl) then) =
-      __$$ProjectTilesetEntryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String relativePath,
-      @JsonKey(includeIfNull: false) ProjectTilesetSource? source,
-      TilesetScope scope,
-      String? groupId,
-      String? folderId,
-      int sortOrder,
-      bool isWorldTileset,
-      @JsonKey(
-          fromJson: _tilesetTransparentColorFromJson,
-          toJson: _tilesetTransparentColorToJson,
-          includeIfNull: false)
-      TilesetTransparentColor? transparentColor,
-      List<TilesetElementGroup> elementGroups,
-      List<TilesetPaletteEntry> paletteEntries});
 }
 
-/// @nodoc
-class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
-    extends _$ProjectTilesetEntryCopyWithImpl<$Res, _$ProjectTilesetEntryImpl>
-    implements _$$ProjectTilesetEntryImplCopyWith<$Res> {
-  __$$ProjectTilesetEntryImplCopyWithImpl(_$ProjectTilesetEntryImpl _value,
-      $Res Function(_$ProjectTilesetEntryImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectTilesetEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? relativePath = null,
-    Object? source = freezed,
-    Object? scope = null,
-    Object? groupId = freezed,
-    Object? folderId = freezed,
-    Object? sortOrder = null,
-    Object? isWorldTileset = null,
-    Object? transparentColor = freezed,
-    Object? elementGroups = null,
-    Object? paletteEntries = null,
-  }) {
-    return _then(_$ProjectTilesetEntryImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      relativePath: null == relativePath
-          ? _value.relativePath
-          : relativePath // ignore: cast_nullable_to_non_nullable
-              as String,
-      source: freezed == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as ProjectTilesetSource?,
-      scope: null == scope
-          ? _value.scope
-          : scope // ignore: cast_nullable_to_non_nullable
-              as TilesetScope,
-      groupId: freezed == groupId
-          ? _value.groupId
-          : groupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      folderId: freezed == folderId
-          ? _value.folderId
-          : folderId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-      isWorldTileset: null == isWorldTileset
-          ? _value.isWorldTileset
-          : isWorldTileset // ignore: cast_nullable_to_non_nullable
-              as bool,
-      transparentColor: freezed == transparentColor
-          ? _value.transparentColor
-          : transparentColor // ignore: cast_nullable_to_non_nullable
-              as TilesetTransparentColor?,
-      elementGroups: null == elementGroups
-          ? _value._elementGroups
-          : elementGroups // ignore: cast_nullable_to_non_nullable
-              as List<TilesetElementGroup>,
-      paletteEntries: null == paletteEntries
-          ? _value._paletteEntries
-          : paletteEntries // ignore: cast_nullable_to_non_nullable
-              as List<TilesetPaletteEntry>,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectTilesetEntry].
+extension ProjectTilesetEntryPatterns on ProjectTilesetEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectTilesetEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectTilesetEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectTilesetEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectTilesetEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectTilesetEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectTilesetEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath, @JsonKey(includeIfNull: false)  ProjectTilesetSource? source,  TilesetScope scope,  String? groupId,  String? folderId,  int sortOrder,  bool isWorldTileset, @JsonKey(fromJson: _tilesetTransparentColorFromJson, toJson: _tilesetTransparentColorToJson, includeIfNull: false)  TilesetTransparentColor? transparentColor,  List<TilesetElementGroup> elementGroups,  List<TilesetPaletteEntry> paletteEntries)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectTilesetEntry() when $default != null:
+return $default(_that.id,_that.name,_that.relativePath,_that.source,_that.scope,_that.groupId,_that.folderId,_that.sortOrder,_that.isWorldTileset,_that.transparentColor,_that.elementGroups,_that.paletteEntries);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String relativePath, @JsonKey(includeIfNull: false)  ProjectTilesetSource? source,  TilesetScope scope,  String? groupId,  String? folderId,  int sortOrder,  bool isWorldTileset, @JsonKey(fromJson: _tilesetTransparentColorFromJson, toJson: _tilesetTransparentColorToJson, includeIfNull: false)  TilesetTransparentColor? transparentColor,  List<TilesetElementGroup> elementGroups,  List<TilesetPaletteEntry> paletteEntries)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectTilesetEntry():
+return $default(_that.id,_that.name,_that.relativePath,_that.source,_that.scope,_that.groupId,_that.folderId,_that.sortOrder,_that.isWorldTileset,_that.transparentColor,_that.elementGroups,_that.paletteEntries);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String relativePath, @JsonKey(includeIfNull: false)  ProjectTilesetSource? source,  TilesetScope scope,  String? groupId,  String? folderId,  int sortOrder,  bool isWorldTileset, @JsonKey(fromJson: _tilesetTransparentColorFromJson, toJson: _tilesetTransparentColorToJson, includeIfNull: false)  TilesetTransparentColor? transparentColor,  List<TilesetElementGroup> elementGroups,  List<TilesetPaletteEntry> paletteEntries)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectTilesetEntry() when $default != null:
+return $default(_that.id,_that.name,_that.relativePath,_that.source,_that.scope,_that.groupId,_that.folderId,_that.sortOrder,_that.isWorldTileset,_that.transparentColor,_that.elementGroups,_that.paletteEntries);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
-  const _$ProjectTilesetEntryImpl(
-      {required this.id,
-      required this.name,
-      required this.relativePath,
-      @JsonKey(includeIfNull: false) this.source,
-      this.scope = TilesetScope.global,
-      this.groupId,
-      this.folderId,
-      this.sortOrder = 0,
-      this.isWorldTileset = false,
-      @JsonKey(
-          fromJson: _tilesetTransparentColorFromJson,
-          toJson: _tilesetTransparentColorToJson,
-          includeIfNull: false)
-      this.transparentColor,
-      final List<TilesetElementGroup> elementGroups = const [],
-      final List<TilesetPaletteEntry> paletteEntries = const []})
-      : _elementGroups = elementGroups,
-        _paletteEntries = paletteEntries;
+class _ProjectTilesetEntry implements ProjectTilesetEntry {
+  const _ProjectTilesetEntry({required this.id, required this.name, required this.relativePath, @JsonKey(includeIfNull: false) this.source, this.scope = TilesetScope.global, this.groupId, this.folderId, this.sortOrder = 0, this.isWorldTileset = false, @JsonKey(fromJson: _tilesetTransparentColorFromJson, toJson: _tilesetTransparentColorToJson, includeIfNull: false) this.transparentColor, final  List<TilesetElementGroup> elementGroups = const [], final  List<TilesetPaletteEntry> paletteEntries = const []}): _elementGroups = elementGroups,_paletteEntries = paletteEntries;
+  factory _ProjectTilesetEntry.fromJson(Map<String, dynamic> json) => _$ProjectTilesetEntryFromJson(json);
 
-  factory _$ProjectTilesetEntryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectTilesetEntryImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String relativePath;
-  @override
-  @JsonKey(includeIfNull: false)
-  final ProjectTilesetSource? source;
-  @override
-  @JsonKey()
-  final TilesetScope scope;
-  @override
-  final String? groupId;
-
-  /// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
-  @override
-  final String? folderId;
-  @override
-  @JsonKey()
-  final int sortOrder;
-  @override
-  @JsonKey()
-  final bool isWorldTileset;
-  @override
-  @JsonKey(
-      fromJson: _tilesetTransparentColorFromJson,
-      toJson: _tilesetTransparentColorToJson,
-      includeIfNull: false)
-  final TilesetTransparentColor? transparentColor;
-  final List<TilesetElementGroup> _elementGroups;
-  @override
-  @JsonKey()
-  List<TilesetElementGroup> get elementGroups {
-    if (_elementGroups is EqualUnmodifiableListView) return _elementGroups;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_elementGroups);
-  }
-
-  final List<TilesetPaletteEntry> _paletteEntries;
-  @override
-  @JsonKey()
-  List<TilesetPaletteEntry> get paletteEntries {
-    if (_paletteEntries is EqualUnmodifiableListView) return _paletteEntries;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_paletteEntries);
-  }
-
-  @override
-  String toString() {
-    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, source: $source, scope: $scope, groupId: $groupId, folderId: $folderId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, transparentColor: $transparentColor, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectTilesetEntryImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.relativePath, relativePath) ||
-                other.relativePath == relativePath) &&
-            (identical(other.source, source) || other.source == source) &&
-            (identical(other.scope, scope) || other.scope == scope) &&
-            (identical(other.groupId, groupId) || other.groupId == groupId) &&
-            (identical(other.folderId, folderId) ||
-                other.folderId == folderId) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder) &&
-            (identical(other.isWorldTileset, isWorldTileset) ||
-                other.isWorldTileset == isWorldTileset) &&
-            (identical(other.transparentColor, transparentColor) ||
-                other.transparentColor == transparentColor) &&
-            const DeepCollectionEquality()
-                .equals(other._elementGroups, _elementGroups) &&
-            const DeepCollectionEquality()
-                .equals(other._paletteEntries, _paletteEntries));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      relativePath,
-      source,
-      scope,
-      groupId,
-      folderId,
-      sortOrder,
-      isWorldTileset,
-      transparentColor,
-      const DeepCollectionEquality().hash(_elementGroups),
-      const DeepCollectionEquality().hash(_paletteEntries));
-
-  /// Create a copy of ProjectTilesetEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectTilesetEntryImplCopyWith<_$ProjectTilesetEntryImpl> get copyWith =>
-      __$$ProjectTilesetEntryImplCopyWithImpl<_$ProjectTilesetEntryImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectTilesetEntryImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override final  String relativePath;
+@override@JsonKey(includeIfNull: false) final  ProjectTilesetSource? source;
+@override@JsonKey() final  TilesetScope scope;
+@override final  String? groupId;
+/// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
+@override final  String? folderId;
+@override@JsonKey() final  int sortOrder;
+@override@JsonKey() final  bool isWorldTileset;
+@override@JsonKey(fromJson: _tilesetTransparentColorFromJson, toJson: _tilesetTransparentColorToJson, includeIfNull: false) final  TilesetTransparentColor? transparentColor;
+ final  List<TilesetElementGroup> _elementGroups;
+@override@JsonKey() List<TilesetElementGroup> get elementGroups {
+  if (_elementGroups is EqualUnmodifiableListView) return _elementGroups;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_elementGroups);
 }
 
-abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
-  const factory _ProjectTilesetEntry(
-          {required final String id,
-          required final String name,
-          required final String relativePath,
-          @JsonKey(includeIfNull: false) final ProjectTilesetSource? source,
-          final TilesetScope scope,
-          final String? groupId,
-          final String? folderId,
-          final int sortOrder,
-          final bool isWorldTileset,
-          @JsonKey(
-              fromJson: _tilesetTransparentColorFromJson,
-              toJson: _tilesetTransparentColorToJson,
-              includeIfNull: false)
-          final TilesetTransparentColor? transparentColor,
-          final List<TilesetElementGroup> elementGroups,
-          final List<TilesetPaletteEntry> paletteEntries}) =
-      _$ProjectTilesetEntryImpl;
-
-  factory _ProjectTilesetEntry.fromJson(Map<String, dynamic> json) =
-      _$ProjectTilesetEntryImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String get relativePath;
-  @override
-  @JsonKey(includeIfNull: false)
-  ProjectTilesetSource? get source;
-  @override
-  TilesetScope get scope;
-  @override
-  String? get groupId;
-
-  /// Dossier de la bibliothèque tilesets (hiérarchie dédiée, distincte des groupes de carte).
-  @override
-  String? get folderId;
-  @override
-  int get sortOrder;
-  @override
-  bool get isWorldTileset;
-  @override
-  @JsonKey(
-      fromJson: _tilesetTransparentColorFromJson,
-      toJson: _tilesetTransparentColorToJson,
-      includeIfNull: false)
-  TilesetTransparentColor? get transparentColor;
-  @override
-  List<TilesetElementGroup> get elementGroups;
-  @override
-  List<TilesetPaletteEntry> get paletteEntries;
-
-  /// Create a copy of ProjectTilesetEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectTilesetEntryImplCopyWith<_$ProjectTilesetEntryImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+ final  List<TilesetPaletteEntry> _paletteEntries;
+@override@JsonKey() List<TilesetPaletteEntry> get paletteEntries {
+  if (_paletteEntries is EqualUnmodifiableListView) return _paletteEntries;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_paletteEntries);
 }
 
-TilesetPaletteEntry _$TilesetPaletteEntryFromJson(Map<String, dynamic> json) {
-  return _TilesetPaletteEntry.fromJson(json);
+
+/// Create a copy of ProjectTilesetEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectTilesetEntryCopyWith<_ProjectTilesetEntry> get copyWith => __$ProjectTilesetEntryCopyWithImpl<_ProjectTilesetEntry>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectTilesetEntryToJson(this, );
 }
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectTilesetEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.relativePath, relativePath) || other.relativePath == relativePath)&&(identical(other.source, source) || other.source == source)&&(identical(other.scope, scope) || other.scope == scope)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.folderId, folderId) || other.folderId == folderId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder)&&(identical(other.isWorldTileset, isWorldTileset) || other.isWorldTileset == isWorldTileset)&&(identical(other.transparentColor, transparentColor) || other.transparentColor == transparentColor)&&const DeepCollectionEquality().equals(other._elementGroups, _elementGroups)&&const DeepCollectionEquality().equals(other._paletteEntries, _paletteEntries));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,relativePath,source,scope,groupId,folderId,sortOrder,isWorldTileset,transparentColor,const DeepCollectionEquality().hash(_elementGroups),const DeepCollectionEquality().hash(_paletteEntries));
+
+@override
+String toString() {
+  return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, source: $source, scope: $scope, groupId: $groupId, folderId: $folderId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, transparentColor: $transparentColor, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectTilesetEntryCopyWith<$Res> implements $ProjectTilesetEntryCopyWith<$Res> {
+  factory _$ProjectTilesetEntryCopyWith(_ProjectTilesetEntry value, $Res Function(_ProjectTilesetEntry) _then) = __$ProjectTilesetEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String relativePath,@JsonKey(includeIfNull: false) ProjectTilesetSource? source, TilesetScope scope, String? groupId, String? folderId, int sortOrder, bool isWorldTileset,@JsonKey(fromJson: _tilesetTransparentColorFromJson, toJson: _tilesetTransparentColorToJson, includeIfNull: false) TilesetTransparentColor? transparentColor, List<TilesetElementGroup> elementGroups, List<TilesetPaletteEntry> paletteEntries
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectTilesetEntryCopyWithImpl<$Res>
+    implements _$ProjectTilesetEntryCopyWith<$Res> {
+  __$ProjectTilesetEntryCopyWithImpl(this._self, this._then);
+
+  final _ProjectTilesetEntry _self;
+  final $Res Function(_ProjectTilesetEntry) _then;
+
+/// Create a copy of ProjectTilesetEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? relativePath = null,Object? source = freezed,Object? scope = null,Object? groupId = freezed,Object? folderId = freezed,Object? sortOrder = null,Object? isWorldTileset = null,Object? transparentColor = freezed,Object? elementGroups = null,Object? paletteEntries = null,}) {
+  return _then(_ProjectTilesetEntry(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,relativePath: null == relativePath ? _self.relativePath : relativePath // ignore: cast_nullable_to_non_nullable
+as String,source: freezed == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as ProjectTilesetSource?,scope: null == scope ? _self.scope : scope // ignore: cast_nullable_to_non_nullable
+as TilesetScope,groupId: freezed == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
+as String?,folderId: freezed == folderId ? _self.folderId : folderId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,isWorldTileset: null == isWorldTileset ? _self.isWorldTileset : isWorldTileset // ignore: cast_nullable_to_non_nullable
+as bool,transparentColor: freezed == transparentColor ? _self.transparentColor : transparentColor // ignore: cast_nullable_to_non_nullable
+as TilesetTransparentColor?,elementGroups: null == elementGroups ? _self._elementGroups : elementGroups // ignore: cast_nullable_to_non_nullable
+as List<TilesetElementGroup>,paletteEntries: null == paletteEntries ? _self._paletteEntries : paletteEntries // ignore: cast_nullable_to_non_nullable
+as List<TilesetPaletteEntry>,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$TilesetPaletteEntry {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  PaletteCategory get category => throw _privateConstructorUsedError;
 
-  /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
-  List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
-  String? get recommendedLayerId => throw _privateConstructorUsedError;
+ String get id; String get name; PaletteCategory get category;/// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
+ List<TilesetVisualFrame> get frames; String? get recommendedLayerId;
+/// Create a copy of TilesetPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TilesetPaletteEntryCopyWith<TilesetPaletteEntry> get copyWith => _$TilesetPaletteEntryCopyWithImpl<TilesetPaletteEntry>(this as TilesetPaletteEntry, _$identity);
 
   /// Serializes this TilesetPaletteEntry to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of TilesetPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $TilesetPaletteEntryCopyWith<TilesetPaletteEntry> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TilesetPaletteEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other.frames, frames)&&(identical(other.recommendedLayerId, recommendedLayerId) || other.recommendedLayerId == recommendedLayerId));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,category,const DeepCollectionEquality().hash(frames),recommendedLayerId);
+
+@override
+String toString() {
+  return 'TilesetPaletteEntry(id: $id, name: $name, category: $category, frames: $frames, recommendedLayerId: $recommendedLayerId)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $TilesetPaletteEntryCopyWith<$Res> {
-  factory $TilesetPaletteEntryCopyWith(
-          TilesetPaletteEntry value, $Res Function(TilesetPaletteEntry) then) =
-      _$TilesetPaletteEntryCopyWithImpl<$Res, TilesetPaletteEntry>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      PaletteCategory category,
-      List<TilesetVisualFrame> frames,
-      String? recommendedLayerId});
-}
+abstract mixin class $TilesetPaletteEntryCopyWith<$Res>  {
+  factory $TilesetPaletteEntryCopyWith(TilesetPaletteEntry value, $Res Function(TilesetPaletteEntry) _then) = _$TilesetPaletteEntryCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, PaletteCategory category, List<TilesetVisualFrame> frames, String? recommendedLayerId
+});
 
+
+
+
+}
 /// @nodoc
-class _$TilesetPaletteEntryCopyWithImpl<$Res, $Val extends TilesetPaletteEntry>
+class _$TilesetPaletteEntryCopyWithImpl<$Res>
     implements $TilesetPaletteEntryCopyWith<$Res> {
-  _$TilesetPaletteEntryCopyWithImpl(this._value, this._then);
+  _$TilesetPaletteEntryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final TilesetPaletteEntry _self;
+  final $Res Function(TilesetPaletteEntry) _then;
 
-  /// Create a copy of TilesetPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? category = null,
-    Object? frames = null,
-    Object? recommendedLayerId = freezed,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      category: null == category
-          ? _value.category
-          : category // ignore: cast_nullable_to_non_nullable
-              as PaletteCategory,
-      frames: null == frames
-          ? _value.frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<TilesetVisualFrame>,
-      recommendedLayerId: freezed == recommendedLayerId
-          ? _value.recommendedLayerId
-          : recommendedLayerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
-  }
+/// Create a copy of TilesetPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? category = null,Object? frames = null,Object? recommendedLayerId = freezed,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as PaletteCategory,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
+as List<TilesetVisualFrame>,recommendedLayerId: freezed == recommendedLayerId ? _self.recommendedLayerId : recommendedLayerId // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
 }
 
-/// @nodoc
-abstract class _$$TilesetPaletteEntryImplCopyWith<$Res>
-    implements $TilesetPaletteEntryCopyWith<$Res> {
-  factory _$$TilesetPaletteEntryImplCopyWith(_$TilesetPaletteEntryImpl value,
-          $Res Function(_$TilesetPaletteEntryImpl) then) =
-      __$$TilesetPaletteEntryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      PaletteCategory category,
-      List<TilesetVisualFrame> frames,
-      String? recommendedLayerId});
 }
 
-/// @nodoc
-class __$$TilesetPaletteEntryImplCopyWithImpl<$Res>
-    extends _$TilesetPaletteEntryCopyWithImpl<$Res, _$TilesetPaletteEntryImpl>
-    implements _$$TilesetPaletteEntryImplCopyWith<$Res> {
-  __$$TilesetPaletteEntryImplCopyWithImpl(_$TilesetPaletteEntryImpl _value,
-      $Res Function(_$TilesetPaletteEntryImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of TilesetPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? category = null,
-    Object? frames = null,
-    Object? recommendedLayerId = freezed,
-  }) {
-    return _then(_$TilesetPaletteEntryImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      category: null == category
-          ? _value.category
-          : category // ignore: cast_nullable_to_non_nullable
-              as PaletteCategory,
-      frames: null == frames
-          ? _value._frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<TilesetVisualFrame>,
-      recommendedLayerId: freezed == recommendedLayerId
-          ? _value.recommendedLayerId
-          : recommendedLayerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
-  }
+/// Adds pattern-matching-related methods to [TilesetPaletteEntry].
+extension TilesetPaletteEntryPatterns on TilesetPaletteEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TilesetPaletteEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TilesetPaletteEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TilesetPaletteEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _TilesetPaletteEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TilesetPaletteEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TilesetPaletteEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  PaletteCategory category,  List<TilesetVisualFrame> frames,  String? recommendedLayerId)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TilesetPaletteEntry() when $default != null:
+return $default(_that.id,_that.name,_that.category,_that.frames,_that.recommendedLayerId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  PaletteCategory category,  List<TilesetVisualFrame> frames,  String? recommendedLayerId)  $default,) {final _that = this;
+switch (_that) {
+case _TilesetPaletteEntry():
+return $default(_that.id,_that.name,_that.category,_that.frames,_that.recommendedLayerId);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  PaletteCategory category,  List<TilesetVisualFrame> frames,  String? recommendedLayerId)?  $default,) {final _that = this;
+switch (_that) {
+case _TilesetPaletteEntry() when $default != null:
+return $default(_that.id,_that.name,_that.category,_that.frames,_that.recommendedLayerId);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$TilesetPaletteEntryImpl implements _TilesetPaletteEntry {
-  const _$TilesetPaletteEntryImpl(
-      {required this.id,
-      this.name = '',
-      this.category = PaletteCategory.uncategorized,
-      required final List<TilesetVisualFrame> frames,
-      this.recommendedLayerId})
-      : _frames = frames;
+class _TilesetPaletteEntry implements TilesetPaletteEntry {
+  const _TilesetPaletteEntry({required this.id, this.name = '', this.category = PaletteCategory.uncategorized, required final  List<TilesetVisualFrame> frames, this.recommendedLayerId}): _frames = frames;
+  factory _TilesetPaletteEntry.fromJson(Map<String, dynamic> json) => _$TilesetPaletteEntryFromJson(json);
 
-  factory _$TilesetPaletteEntryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TilesetPaletteEntryImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  @JsonKey()
-  final String name;
-  @override
-  @JsonKey()
-  final PaletteCategory category;
-
-  /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
-  final List<TilesetVisualFrame> _frames;
-
-  /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
-  @override
-  List<TilesetVisualFrame> get frames {
-    if (_frames is EqualUnmodifiableListView) return _frames;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_frames);
-  }
-
-  @override
-  final String? recommendedLayerId;
-
-  @override
-  String toString() {
-    return 'TilesetPaletteEntry(id: $id, name: $name, category: $category, frames: $frames, recommendedLayerId: $recommendedLayerId)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TilesetPaletteEntryImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.category, category) ||
-                other.category == category) &&
-            const DeepCollectionEquality().equals(other._frames, _frames) &&
-            (identical(other.recommendedLayerId, recommendedLayerId) ||
-                other.recommendedLayerId == recommendedLayerId));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, id, name, category,
-      const DeepCollectionEquality().hash(_frames), recommendedLayerId);
-
-  /// Create a copy of TilesetPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TilesetPaletteEntryImplCopyWith<_$TilesetPaletteEntryImpl> get copyWith =>
-      __$$TilesetPaletteEntryImplCopyWithImpl<_$TilesetPaletteEntryImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TilesetPaletteEntryImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override@JsonKey() final  String name;
+@override@JsonKey() final  PaletteCategory category;
+/// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
+ final  List<TilesetVisualFrame> _frames;
+/// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
+@override List<TilesetVisualFrame> get frames {
+  if (_frames is EqualUnmodifiableListView) return _frames;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_frames);
 }
 
-abstract class _TilesetPaletteEntry implements TilesetPaletteEntry {
-  const factory _TilesetPaletteEntry(
-      {required final String id,
-      final String name,
-      final PaletteCategory category,
-      required final List<TilesetVisualFrame> frames,
-      final String? recommendedLayerId}) = _$TilesetPaletteEntryImpl;
+@override final  String? recommendedLayerId;
 
-  factory _TilesetPaletteEntry.fromJson(Map<String, dynamic> json) =
-      _$TilesetPaletteEntryImpl.fromJson;
+/// Create a copy of TilesetPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TilesetPaletteEntryCopyWith<_TilesetPaletteEntry> get copyWith => __$TilesetPaletteEntryCopyWithImpl<_TilesetPaletteEntry>(this, _$identity);
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  PaletteCategory get category;
-
-  /// Au moins une frame ; l'éditeur n'affiche pour l'instant que la première.
-  @override
-  List<TilesetVisualFrame> get frames;
-  @override
-  String? get recommendedLayerId;
-
-  /// Create a copy of TilesetPaletteEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TilesetPaletteEntryImplCopyWith<_$TilesetPaletteEntryImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+Map<String, dynamic> toJson() {
+  return _$TilesetPaletteEntryToJson(this, );
 }
 
-TilesetSourceRect _$TilesetSourceRectFromJson(Map<String, dynamic> json) {
-  return _TilesetSourceRect.fromJson(json);
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TilesetPaletteEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.category, category) || other.category == category)&&const DeepCollectionEquality().equals(other._frames, _frames)&&(identical(other.recommendedLayerId, recommendedLayerId) || other.recommendedLayerId == recommendedLayerId));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,category,const DeepCollectionEquality().hash(_frames),recommendedLayerId);
+
+@override
+String toString() {
+  return 'TilesetPaletteEntry(id: $id, name: $name, category: $category, frames: $frames, recommendedLayerId: $recommendedLayerId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TilesetPaletteEntryCopyWith<$Res> implements $TilesetPaletteEntryCopyWith<$Res> {
+  factory _$TilesetPaletteEntryCopyWith(_TilesetPaletteEntry value, $Res Function(_TilesetPaletteEntry) _then) = __$TilesetPaletteEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, PaletteCategory category, List<TilesetVisualFrame> frames, String? recommendedLayerId
+});
+
+
+
+
+}
+/// @nodoc
+class __$TilesetPaletteEntryCopyWithImpl<$Res>
+    implements _$TilesetPaletteEntryCopyWith<$Res> {
+  __$TilesetPaletteEntryCopyWithImpl(this._self, this._then);
+
+  final _TilesetPaletteEntry _self;
+  final $Res Function(_TilesetPaletteEntry) _then;
+
+/// Create a copy of TilesetPaletteEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? category = null,Object? frames = null,Object? recommendedLayerId = freezed,}) {
+  return _then(_TilesetPaletteEntry(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,category: null == category ? _self.category : category // ignore: cast_nullable_to_non_nullable
+as PaletteCategory,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
+as List<TilesetVisualFrame>,recommendedLayerId: freezed == recommendedLayerId ? _self.recommendedLayerId : recommendedLayerId // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$TilesetSourceRect {
-  int get x => throw _privateConstructorUsedError;
-  int get y => throw _privateConstructorUsedError;
-  int get width => throw _privateConstructorUsedError;
-  int get height => throw _privateConstructorUsedError;
+
+ int get x; int get y; int get width; int get height;
+/// Create a copy of TilesetSourceRect
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TilesetSourceRectCopyWith<TilesetSourceRect> get copyWith => _$TilesetSourceRectCopyWithImpl<TilesetSourceRect>(this as TilesetSourceRect, _$identity);
 
   /// Serializes this TilesetSourceRect to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of TilesetSourceRect
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $TilesetSourceRectCopyWith<TilesetSourceRect> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TilesetSourceRect&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,x,y,width,height);
+
+@override
+String toString() {
+  return 'TilesetSourceRect(x: $x, y: $y, width: $width, height: $height)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $TilesetSourceRectCopyWith<$Res> {
-  factory $TilesetSourceRectCopyWith(
-          TilesetSourceRect value, $Res Function(TilesetSourceRect) then) =
-      _$TilesetSourceRectCopyWithImpl<$Res, TilesetSourceRect>;
-  @useResult
-  $Res call({int x, int y, int width, int height});
-}
+abstract mixin class $TilesetSourceRectCopyWith<$Res>  {
+  factory $TilesetSourceRectCopyWith(TilesetSourceRect value, $Res Function(TilesetSourceRect) _then) = _$TilesetSourceRectCopyWithImpl;
+@useResult
+$Res call({
+ int x, int y, int width, int height
+});
 
+
+
+
+}
 /// @nodoc
-class _$TilesetSourceRectCopyWithImpl<$Res, $Val extends TilesetSourceRect>
+class _$TilesetSourceRectCopyWithImpl<$Res>
     implements $TilesetSourceRectCopyWith<$Res> {
-  _$TilesetSourceRectCopyWithImpl(this._value, this._then);
+  _$TilesetSourceRectCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final TilesetSourceRect _self;
+  final $Res Function(TilesetSourceRect) _then;
 
-  /// Create a copy of TilesetSourceRect
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? x = null,
-    Object? y = null,
-    Object? width = null,
-    Object? height = null,
-  }) {
-    return _then(_value.copyWith(
-      x: null == x
-          ? _value.x
-          : x // ignore: cast_nullable_to_non_nullable
-              as int,
-      y: null == y
-          ? _value.y
-          : y // ignore: cast_nullable_to_non_nullable
-              as int,
-      width: null == width
-          ? _value.width
-          : width // ignore: cast_nullable_to_non_nullable
-              as int,
-      height: null == height
-          ? _value.height
-          : height // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of TilesetSourceRect
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? x = null,Object? y = null,Object? width = null,Object? height = null,}) {
+  return _then(_self.copyWith(
+x: null == x ? _self.x : x // ignore: cast_nullable_to_non_nullable
+as int,y: null == y ? _self.y : y // ignore: cast_nullable_to_non_nullable
+as int,width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as int,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$TilesetSourceRectImplCopyWith<$Res>
-    implements $TilesetSourceRectCopyWith<$Res> {
-  factory _$$TilesetSourceRectImplCopyWith(_$TilesetSourceRectImpl value,
-          $Res Function(_$TilesetSourceRectImpl) then) =
-      __$$TilesetSourceRectImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({int x, int y, int width, int height});
 }
 
-/// @nodoc
-class __$$TilesetSourceRectImplCopyWithImpl<$Res>
-    extends _$TilesetSourceRectCopyWithImpl<$Res, _$TilesetSourceRectImpl>
-    implements _$$TilesetSourceRectImplCopyWith<$Res> {
-  __$$TilesetSourceRectImplCopyWithImpl(_$TilesetSourceRectImpl _value,
-      $Res Function(_$TilesetSourceRectImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of TilesetSourceRect
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? x = null,
-    Object? y = null,
-    Object? width = null,
-    Object? height = null,
-  }) {
-    return _then(_$TilesetSourceRectImpl(
-      x: null == x
-          ? _value.x
-          : x // ignore: cast_nullable_to_non_nullable
-              as int,
-      y: null == y
-          ? _value.y
-          : y // ignore: cast_nullable_to_non_nullable
-              as int,
-      width: null == width
-          ? _value.width
-          : width // ignore: cast_nullable_to_non_nullable
-              as int,
-      height: null == height
-          ? _value.height
-          : height // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [TilesetSourceRect].
+extension TilesetSourceRectPatterns on TilesetSourceRect {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TilesetSourceRect value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TilesetSourceRect() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TilesetSourceRect value)  $default,){
+final _that = this;
+switch (_that) {
+case _TilesetSourceRect():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TilesetSourceRect value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TilesetSourceRect() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int x,  int y,  int width,  int height)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TilesetSourceRect() when $default != null:
+return $default(_that.x,_that.y,_that.width,_that.height);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int x,  int y,  int width,  int height)  $default,) {final _that = this;
+switch (_that) {
+case _TilesetSourceRect():
+return $default(_that.x,_that.y,_that.width,_that.height);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int x,  int y,  int width,  int height)?  $default,) {final _that = this;
+switch (_that) {
+case _TilesetSourceRect() when $default != null:
+return $default(_that.x,_that.y,_that.width,_that.height);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$TilesetSourceRectImpl implements _TilesetSourceRect {
-  const _$TilesetSourceRectImpl(
-      {required this.x, required this.y, this.width = 1, this.height = 1});
 
-  factory _$TilesetSourceRectImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TilesetSourceRectImplFromJson(json);
+class _TilesetSourceRect implements TilesetSourceRect {
+  const _TilesetSourceRect({required this.x, required this.y, this.width = 1, this.height = 1});
+  factory _TilesetSourceRect.fromJson(Map<String, dynamic> json) => _$TilesetSourceRectFromJson(json);
 
-  @override
-  final int x;
-  @override
-  final int y;
-  @override
-  @JsonKey()
-  final int width;
-  @override
-  @JsonKey()
-  final int height;
+@override final  int x;
+@override final  int y;
+@override@JsonKey() final  int width;
+@override@JsonKey() final  int height;
 
-  @override
-  String toString() {
-    return 'TilesetSourceRect(x: $x, y: $y, width: $width, height: $height)';
-  }
+/// Create a copy of TilesetSourceRect
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TilesetSourceRectCopyWith<_TilesetSourceRect> get copyWith => __$TilesetSourceRectCopyWithImpl<_TilesetSourceRect>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TilesetSourceRectImpl &&
-            (identical(other.x, x) || other.x == x) &&
-            (identical(other.y, y) || other.y == y) &&
-            (identical(other.width, width) || other.width == width) &&
-            (identical(other.height, height) || other.height == height));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, x, y, width, height);
-
-  /// Create a copy of TilesetSourceRect
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TilesetSourceRectImplCopyWith<_$TilesetSourceRectImpl> get copyWith =>
-      __$$TilesetSourceRectImplCopyWithImpl<_$TilesetSourceRectImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TilesetSourceRectImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$TilesetSourceRectToJson(this, );
 }
 
-abstract class _TilesetSourceRect implements TilesetSourceRect {
-  const factory _TilesetSourceRect(
-      {required final int x,
-      required final int y,
-      final int width,
-      final int height}) = _$TilesetSourceRectImpl;
-
-  factory _TilesetSourceRect.fromJson(Map<String, dynamic> json) =
-      _$TilesetSourceRectImpl.fromJson;
-
-  @override
-  int get x;
-  @override
-  int get y;
-  @override
-  int get width;
-  @override
-  int get height;
-
-  /// Create a copy of TilesetSourceRect
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TilesetSourceRectImplCopyWith<_$TilesetSourceRectImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TilesetSourceRect&&(identical(other.x, x) || other.x == x)&&(identical(other.y, y) || other.y == y)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height));
 }
 
-TilesetVisualFrame _$TilesetVisualFrameFromJson(Map<String, dynamic> json) {
-  return _TilesetVisualFrame.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,x,y,width,height);
+
+@override
+String toString() {
+  return 'TilesetSourceRect(x: $x, y: $y, width: $width, height: $height)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TilesetSourceRectCopyWith<$Res> implements $TilesetSourceRectCopyWith<$Res> {
+  factory _$TilesetSourceRectCopyWith(_TilesetSourceRect value, $Res Function(_TilesetSourceRect) _then) = __$TilesetSourceRectCopyWithImpl;
+@override @useResult
+$Res call({
+ int x, int y, int width, int height
+});
+
+
+
+
+}
+/// @nodoc
+class __$TilesetSourceRectCopyWithImpl<$Res>
+    implements _$TilesetSourceRectCopyWith<$Res> {
+  __$TilesetSourceRectCopyWithImpl(this._self, this._then);
+
+  final _TilesetSourceRect _self;
+  final $Res Function(_TilesetSourceRect) _then;
+
+/// Create a copy of TilesetSourceRect
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? x = null,Object? y = null,Object? width = null,Object? height = null,}) {
+  return _then(_TilesetSourceRect(
+x: null == x ? _self.x : x // ignore: cast_nullable_to_non_nullable
+as int,y: null == y ? _self.y : y // ignore: cast_nullable_to_non_nullable
+as int,width: null == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
+as int,height: null == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$TilesetVisualFrame {
-  String get tilesetId => throw _privateConstructorUsedError;
-  TilesetSourceRect get source => throw _privateConstructorUsedError;
 
-  /// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
-  int? get durationMs => throw _privateConstructorUsedError;
+ String get tilesetId; TilesetSourceRect get source;/// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
+ int? get durationMs;
+/// Create a copy of TilesetVisualFrame
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TilesetVisualFrameCopyWith<TilesetVisualFrame> get copyWith => _$TilesetVisualFrameCopyWithImpl<TilesetVisualFrame>(this as TilesetVisualFrame, _$identity);
 
   /// Serializes this TilesetVisualFrame to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of TilesetVisualFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $TilesetVisualFrameCopyWith<TilesetVisualFrame> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TilesetVisualFrame&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.source, source) || other.source == source)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,tilesetId,source,durationMs);
+
+@override
+String toString() {
+  return 'TilesetVisualFrame(tilesetId: $tilesetId, source: $source, durationMs: $durationMs)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $TilesetVisualFrameCopyWith<$Res> {
-  factory $TilesetVisualFrameCopyWith(
-          TilesetVisualFrame value, $Res Function(TilesetVisualFrame) then) =
-      _$TilesetVisualFrameCopyWithImpl<$Res, TilesetVisualFrame>;
-  @useResult
-  $Res call({String tilesetId, TilesetSourceRect source, int? durationMs});
+abstract mixin class $TilesetVisualFrameCopyWith<$Res>  {
+  factory $TilesetVisualFrameCopyWith(TilesetVisualFrame value, $Res Function(TilesetVisualFrame) _then) = _$TilesetVisualFrameCopyWithImpl;
+@useResult
+$Res call({
+ String tilesetId, TilesetSourceRect source, int? durationMs
+});
 
-  $TilesetSourceRectCopyWith<$Res> get source;
+
+$TilesetSourceRectCopyWith<$Res> get source;
+
 }
-
 /// @nodoc
-class _$TilesetVisualFrameCopyWithImpl<$Res, $Val extends TilesetVisualFrame>
+class _$TilesetVisualFrameCopyWithImpl<$Res>
     implements $TilesetVisualFrameCopyWith<$Res> {
-  _$TilesetVisualFrameCopyWithImpl(this._value, this._then);
+  _$TilesetVisualFrameCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final TilesetVisualFrame _self;
+  final $Res Function(TilesetVisualFrame) _then;
 
-  /// Create a copy of TilesetVisualFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? tilesetId = null,
-    Object? source = null,
-    Object? durationMs = freezed,
-  }) {
-    return _then(_value.copyWith(
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
-      durationMs: freezed == durationMs
-          ? _value.durationMs
-          : durationMs // ignore: cast_nullable_to_non_nullable
-              as int?,
-    ) as $Val);
-  }
+/// Create a copy of TilesetVisualFrame
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? tilesetId = null,Object? source = null,Object? durationMs = freezed,}) {
+  return _then(_self.copyWith(
+tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as TilesetSourceRect,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int?,
+  ));
+}
+/// Create a copy of TilesetVisualFrame
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TilesetSourceRectCopyWith<$Res> get source {
 
-  /// Create a copy of TilesetVisualFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $TilesetSourceRectCopyWith<$Res> get source {
-    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
-      return _then(_value.copyWith(source: value) as $Val);
-    });
-  }
+  return $TilesetSourceRectCopyWith<$Res>(_self.source, (value) {
+    return _then(_self.copyWith(source: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$TilesetVisualFrameImplCopyWith<$Res>
-    implements $TilesetVisualFrameCopyWith<$Res> {
-  factory _$$TilesetVisualFrameImplCopyWith(_$TilesetVisualFrameImpl value,
-          $Res Function(_$TilesetVisualFrameImpl) then) =
-      __$$TilesetVisualFrameImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({String tilesetId, TilesetSourceRect source, int? durationMs});
 
-  @override
-  $TilesetSourceRectCopyWith<$Res> get source;
+/// Adds pattern-matching-related methods to [TilesetVisualFrame].
+extension TilesetVisualFramePatterns on TilesetVisualFrame {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TilesetVisualFrame value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TilesetVisualFrame() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TilesetVisualFrame value)  $default,){
+final _that = this;
+switch (_that) {
+case _TilesetVisualFrame():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TilesetVisualFrame value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TilesetVisualFrame() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String tilesetId,  TilesetSourceRect source,  int? durationMs)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TilesetVisualFrame() when $default != null:
+return $default(_that.tilesetId,_that.source,_that.durationMs);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String tilesetId,  TilesetSourceRect source,  int? durationMs)  $default,) {final _that = this;
+switch (_that) {
+case _TilesetVisualFrame():
+return $default(_that.tilesetId,_that.source,_that.durationMs);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String tilesetId,  TilesetSourceRect source,  int? durationMs)?  $default,) {final _that = this;
+switch (_that) {
+case _TilesetVisualFrame() when $default != null:
+return $default(_that.tilesetId,_that.source,_that.durationMs);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$TilesetVisualFrameImplCopyWithImpl<$Res>
-    extends _$TilesetVisualFrameCopyWithImpl<$Res, _$TilesetVisualFrameImpl>
-    implements _$$TilesetVisualFrameImplCopyWith<$Res> {
-  __$$TilesetVisualFrameImplCopyWithImpl(_$TilesetVisualFrameImpl _value,
-      $Res Function(_$TilesetVisualFrameImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of TilesetVisualFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? tilesetId = null,
-    Object? source = null,
-    Object? durationMs = freezed,
-  }) {
-    return _then(_$TilesetVisualFrameImpl(
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
-      durationMs: freezed == durationMs
-          ? _value.durationMs
-          : durationMs // ignore: cast_nullable_to_non_nullable
-              as int?,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$TilesetVisualFrameImpl implements _TilesetVisualFrame {
-  const _$TilesetVisualFrameImpl(
-      {this.tilesetId = '', required this.source, this.durationMs});
+class _TilesetVisualFrame implements TilesetVisualFrame {
+  const _TilesetVisualFrame({this.tilesetId = '', required this.source, this.durationMs});
+  factory _TilesetVisualFrame.fromJson(Map<String, dynamic> json) => _$TilesetVisualFrameFromJson(json);
 
-  factory _$TilesetVisualFrameImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TilesetVisualFrameImplFromJson(json);
+@override@JsonKey() final  String tilesetId;
+@override final  TilesetSourceRect source;
+/// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
+@override final  int? durationMs;
 
-  @override
-  @JsonKey()
-  final String tilesetId;
-  @override
-  final TilesetSourceRect source;
+/// Create a copy of TilesetVisualFrame
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TilesetVisualFrameCopyWith<_TilesetVisualFrame> get copyWith => __$TilesetVisualFrameCopyWithImpl<_TilesetVisualFrame>(this, _$identity);
 
-  /// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
-  @override
-  final int? durationMs;
-
-  @override
-  String toString() {
-    return 'TilesetVisualFrame(tilesetId: $tilesetId, source: $source, durationMs: $durationMs)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TilesetVisualFrameImpl &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId) &&
-            (identical(other.source, source) || other.source == source) &&
-            (identical(other.durationMs, durationMs) ||
-                other.durationMs == durationMs));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, tilesetId, source, durationMs);
-
-  /// Create a copy of TilesetVisualFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TilesetVisualFrameImplCopyWith<_$TilesetVisualFrameImpl> get copyWith =>
-      __$$TilesetVisualFrameImplCopyWithImpl<_$TilesetVisualFrameImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TilesetVisualFrameImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$TilesetVisualFrameToJson(this, );
 }
 
-abstract class _TilesetVisualFrame implements TilesetVisualFrame {
-  const factory _TilesetVisualFrame(
-      {final String tilesetId,
-      required final TilesetSourceRect source,
-      final int? durationMs}) = _$TilesetVisualFrameImpl;
-
-  factory _TilesetVisualFrame.fromJson(Map<String, dynamic> json) =
-      _$TilesetVisualFrameImpl.fromJson;
-
-  @override
-  String get tilesetId;
-  @override
-  TilesetSourceRect get source;
-
-  /// Millisecondes d'affichage pour le futur lecteur ; null = statique / défaut moteur.
-  @override
-  int? get durationMs;
-
-  /// Create a copy of TilesetVisualFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TilesetVisualFrameImplCopyWith<_$TilesetVisualFrameImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TilesetVisualFrame&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.source, source) || other.source == source)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
 }
 
-TilesetElementGroup _$TilesetElementGroupFromJson(Map<String, dynamic> json) {
-  return _TilesetElementGroup.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,tilesetId,source,durationMs);
+
+@override
+String toString() {
+  return 'TilesetVisualFrame(tilesetId: $tilesetId, source: $source, durationMs: $durationMs)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TilesetVisualFrameCopyWith<$Res> implements $TilesetVisualFrameCopyWith<$Res> {
+  factory _$TilesetVisualFrameCopyWith(_TilesetVisualFrame value, $Res Function(_TilesetVisualFrame) _then) = __$TilesetVisualFrameCopyWithImpl;
+@override @useResult
+$Res call({
+ String tilesetId, TilesetSourceRect source, int? durationMs
+});
+
+
+@override $TilesetSourceRectCopyWith<$Res> get source;
+
+}
+/// @nodoc
+class __$TilesetVisualFrameCopyWithImpl<$Res>
+    implements _$TilesetVisualFrameCopyWith<$Res> {
+  __$TilesetVisualFrameCopyWithImpl(this._self, this._then);
+
+  final _TilesetVisualFrame _self;
+  final $Res Function(_TilesetVisualFrame) _then;
+
+/// Create a copy of TilesetVisualFrame
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? tilesetId = null,Object? source = null,Object? durationMs = freezed,}) {
+  return _then(_TilesetVisualFrame(
+tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as TilesetSourceRect,durationMs: freezed == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int?,
+  ));
+}
+
+/// Create a copy of TilesetVisualFrame
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TilesetSourceRectCopyWith<$Res> get source {
+
+  return $TilesetSourceRectCopyWith<$Res>(_self.source, (value) {
+    return _then(_self.copyWith(source: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$TilesetElementGroup {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String? get parentGroupId => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
+
+ String get id; String get name; String? get parentGroupId; int get sortOrder;
+/// Create a copy of TilesetElementGroup
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TilesetElementGroupCopyWith<TilesetElementGroup> get copyWith => _$TilesetElementGroupCopyWithImpl<TilesetElementGroup>(this as TilesetElementGroup, _$identity);
 
   /// Serializes this TilesetElementGroup to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of TilesetElementGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $TilesetElementGroupCopyWith<TilesetElementGroup> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TilesetElementGroup&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentGroupId, parentGroupId) || other.parentGroupId == parentGroupId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,parentGroupId,sortOrder);
+
+@override
+String toString() {
+  return 'TilesetElementGroup(id: $id, name: $name, parentGroupId: $parentGroupId, sortOrder: $sortOrder)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $TilesetElementGroupCopyWith<$Res> {
-  factory $TilesetElementGroupCopyWith(
-          TilesetElementGroup value, $Res Function(TilesetElementGroup) then) =
-      _$TilesetElementGroupCopyWithImpl<$Res, TilesetElementGroup>;
-  @useResult
-  $Res call({String id, String name, String? parentGroupId, int sortOrder});
-}
+abstract mixin class $TilesetElementGroupCopyWith<$Res>  {
+  factory $TilesetElementGroupCopyWith(TilesetElementGroup value, $Res Function(TilesetElementGroup) _then) = _$TilesetElementGroupCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String? parentGroupId, int sortOrder
+});
 
+
+
+
+}
 /// @nodoc
-class _$TilesetElementGroupCopyWithImpl<$Res, $Val extends TilesetElementGroup>
+class _$TilesetElementGroupCopyWithImpl<$Res>
     implements $TilesetElementGroupCopyWith<$Res> {
-  _$TilesetElementGroupCopyWithImpl(this._value, this._then);
+  _$TilesetElementGroupCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final TilesetElementGroup _self;
+  final $Res Function(TilesetElementGroup) _then;
 
-  /// Create a copy of TilesetElementGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentGroupId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentGroupId: freezed == parentGroupId
-          ? _value.parentGroupId
-          : parentGroupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of TilesetElementGroup
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? parentGroupId = freezed,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,parentGroupId: freezed == parentGroupId ? _self.parentGroupId : parentGroupId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$TilesetElementGroupImplCopyWith<$Res>
-    implements $TilesetElementGroupCopyWith<$Res> {
-  factory _$$TilesetElementGroupImplCopyWith(_$TilesetElementGroupImpl value,
-          $Res Function(_$TilesetElementGroupImpl) then) =
-      __$$TilesetElementGroupImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({String id, String name, String? parentGroupId, int sortOrder});
 }
 
-/// @nodoc
-class __$$TilesetElementGroupImplCopyWithImpl<$Res>
-    extends _$TilesetElementGroupCopyWithImpl<$Res, _$TilesetElementGroupImpl>
-    implements _$$TilesetElementGroupImplCopyWith<$Res> {
-  __$$TilesetElementGroupImplCopyWithImpl(_$TilesetElementGroupImpl _value,
-      $Res Function(_$TilesetElementGroupImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of TilesetElementGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentGroupId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$TilesetElementGroupImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentGroupId: freezed == parentGroupId
-          ? _value.parentGroupId
-          : parentGroupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [TilesetElementGroup].
+extension TilesetElementGroupPatterns on TilesetElementGroup {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _TilesetElementGroup value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _TilesetElementGroup() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _TilesetElementGroup value)  $default,){
+final _that = this;
+switch (_that) {
+case _TilesetElementGroup():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _TilesetElementGroup value)?  $default,){
+final _that = this;
+switch (_that) {
+case _TilesetElementGroup() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? parentGroupId,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _TilesetElementGroup() when $default != null:
+return $default(_that.id,_that.name,_that.parentGroupId,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? parentGroupId,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _TilesetElementGroup():
+return $default(_that.id,_that.name,_that.parentGroupId,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? parentGroupId,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _TilesetElementGroup() when $default != null:
+return $default(_that.id,_that.name,_that.parentGroupId,_that.sortOrder);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$TilesetElementGroupImpl implements _TilesetElementGroup {
-  const _$TilesetElementGroupImpl(
-      {required this.id,
-      required this.name,
-      this.parentGroupId,
-      this.sortOrder = 0});
 
-  factory _$TilesetElementGroupImpl.fromJson(Map<String, dynamic> json) =>
-      _$$TilesetElementGroupImplFromJson(json);
+class _TilesetElementGroup implements TilesetElementGroup {
+  const _TilesetElementGroup({required this.id, required this.name, this.parentGroupId, this.sortOrder = 0});
+  factory _TilesetElementGroup.fromJson(Map<String, dynamic> json) => _$TilesetElementGroupFromJson(json);
 
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String? parentGroupId;
-  @override
-  @JsonKey()
-  final int sortOrder;
+@override final  String id;
+@override final  String name;
+@override final  String? parentGroupId;
+@override@JsonKey() final  int sortOrder;
 
-  @override
-  String toString() {
-    return 'TilesetElementGroup(id: $id, name: $name, parentGroupId: $parentGroupId, sortOrder: $sortOrder)';
-  }
+/// Create a copy of TilesetElementGroup
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$TilesetElementGroupCopyWith<_TilesetElementGroup> get copyWith => __$TilesetElementGroupCopyWithImpl<_TilesetElementGroup>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TilesetElementGroupImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.parentGroupId, parentGroupId) ||
-                other.parentGroupId == parentGroupId) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, parentGroupId, sortOrder);
-
-  /// Create a copy of TilesetElementGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TilesetElementGroupImplCopyWith<_$TilesetElementGroupImpl> get copyWith =>
-      __$$TilesetElementGroupImplCopyWithImpl<_$TilesetElementGroupImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$TilesetElementGroupImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$TilesetElementGroupToJson(this, );
 }
 
-abstract class _TilesetElementGroup implements TilesetElementGroup {
-  const factory _TilesetElementGroup(
-      {required final String id,
-      required final String name,
-      final String? parentGroupId,
-      final int sortOrder}) = _$TilesetElementGroupImpl;
-
-  factory _TilesetElementGroup.fromJson(Map<String, dynamic> json) =
-      _$TilesetElementGroupImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String? get parentGroupId;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of TilesetElementGroup
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TilesetElementGroupImplCopyWith<_$TilesetElementGroupImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _TilesetElementGroup&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentGroupId, parentGroupId) || other.parentGroupId == parentGroupId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
-ProjectElementCategory _$ProjectElementCategoryFromJson(
-    Map<String, dynamic> json) {
-  return _ProjectElementCategory.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,parentGroupId,sortOrder);
+
+@override
+String toString() {
+  return 'TilesetElementGroup(id: $id, name: $name, parentGroupId: $parentGroupId, sortOrder: $sortOrder)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$TilesetElementGroupCopyWith<$Res> implements $TilesetElementGroupCopyWith<$Res> {
+  factory _$TilesetElementGroupCopyWith(_TilesetElementGroup value, $Res Function(_TilesetElementGroup) _then) = __$TilesetElementGroupCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String? parentGroupId, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class __$TilesetElementGroupCopyWithImpl<$Res>
+    implements _$TilesetElementGroupCopyWith<$Res> {
+  __$TilesetElementGroupCopyWithImpl(this._self, this._then);
+
+  final _TilesetElementGroup _self;
+  final $Res Function(_TilesetElementGroup) _then;
+
+/// Create a copy of TilesetElementGroup
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? parentGroupId = freezed,Object? sortOrder = null,}) {
+  return _then(_TilesetElementGroup(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,parentGroupId: freezed == parentGroupId ? _self.parentGroupId : parentGroupId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectElementCategory {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String? get parentCategoryId => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
+
+ String get id; String get name; String? get parentCategoryId; int get sortOrder;
+/// Create a copy of ProjectElementCategory
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectElementCategoryCopyWith<ProjectElementCategory> get copyWith => _$ProjectElementCategoryCopyWithImpl<ProjectElementCategory>(this as ProjectElementCategory, _$identity);
 
   /// Serializes this ProjectElementCategory to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectElementCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectElementCategoryCopyWith<ProjectElementCategory> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectElementCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentCategoryId, parentCategoryId) || other.parentCategoryId == parentCategoryId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,parentCategoryId,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectElementCategory(id: $id, name: $name, parentCategoryId: $parentCategoryId, sortOrder: $sortOrder)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectElementCategoryCopyWith<$Res> {
-  factory $ProjectElementCategoryCopyWith(ProjectElementCategory value,
-          $Res Function(ProjectElementCategory) then) =
-      _$ProjectElementCategoryCopyWithImpl<$Res, ProjectElementCategory>;
-  @useResult
-  $Res call({String id, String name, String? parentCategoryId, int sortOrder});
-}
+abstract mixin class $ProjectElementCategoryCopyWith<$Res>  {
+  factory $ProjectElementCategoryCopyWith(ProjectElementCategory value, $Res Function(ProjectElementCategory) _then) = _$ProjectElementCategoryCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String? parentCategoryId, int sortOrder
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectElementCategoryCopyWithImpl<$Res,
-        $Val extends ProjectElementCategory>
+class _$ProjectElementCategoryCopyWithImpl<$Res>
     implements $ProjectElementCategoryCopyWith<$Res> {
-  _$ProjectElementCategoryCopyWithImpl(this._value, this._then);
+  _$ProjectElementCategoryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectElementCategory _self;
+  final $Res Function(ProjectElementCategory) _then;
 
-  /// Create a copy of ProjectElementCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentCategoryId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentCategoryId: freezed == parentCategoryId
-          ? _value.parentCategoryId
-          : parentCategoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of ProjectElementCategory
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? parentCategoryId = freezed,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,parentCategoryId: freezed == parentCategoryId ? _self.parentCategoryId : parentCategoryId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectElementCategoryImplCopyWith<$Res>
-    implements $ProjectElementCategoryCopyWith<$Res> {
-  factory _$$ProjectElementCategoryImplCopyWith(
-          _$ProjectElementCategoryImpl value,
-          $Res Function(_$ProjectElementCategoryImpl) then) =
-      __$$ProjectElementCategoryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({String id, String name, String? parentCategoryId, int sortOrder});
 }
 
-/// @nodoc
-class __$$ProjectElementCategoryImplCopyWithImpl<$Res>
-    extends _$ProjectElementCategoryCopyWithImpl<$Res,
-        _$ProjectElementCategoryImpl>
-    implements _$$ProjectElementCategoryImplCopyWith<$Res> {
-  __$$ProjectElementCategoryImplCopyWithImpl(
-      _$ProjectElementCategoryImpl _value,
-      $Res Function(_$ProjectElementCategoryImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectElementCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? parentCategoryId = freezed,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectElementCategoryImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      parentCategoryId: freezed == parentCategoryId
-          ? _value.parentCategoryId
-          : parentCategoryId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectElementCategory].
+extension ProjectElementCategoryPatterns on ProjectElementCategory {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectElementCategory value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectElementCategory() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectElementCategory value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectElementCategory():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectElementCategory value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectElementCategory() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String? parentCategoryId,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectElementCategory() when $default != null:
+return $default(_that.id,_that.name,_that.parentCategoryId,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String? parentCategoryId,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectElementCategory():
+return $default(_that.id,_that.name,_that.parentCategoryId,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String? parentCategoryId,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectElementCategory() when $default != null:
+return $default(_that.id,_that.name,_that.parentCategoryId,_that.sortOrder);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$ProjectElementCategoryImpl implements _ProjectElementCategory {
-  const _$ProjectElementCategoryImpl(
-      {required this.id,
-      required this.name,
-      this.parentCategoryId,
-      this.sortOrder = 0});
 
-  factory _$ProjectElementCategoryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectElementCategoryImplFromJson(json);
+class _ProjectElementCategory implements ProjectElementCategory {
+  const _ProjectElementCategory({required this.id, required this.name, this.parentCategoryId, this.sortOrder = 0});
+  factory _ProjectElementCategory.fromJson(Map<String, dynamic> json) => _$ProjectElementCategoryFromJson(json);
 
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String? parentCategoryId;
-  @override
-  @JsonKey()
-  final int sortOrder;
+@override final  String id;
+@override final  String name;
+@override final  String? parentCategoryId;
+@override@JsonKey() final  int sortOrder;
 
-  @override
-  String toString() {
-    return 'ProjectElementCategory(id: $id, name: $name, parentCategoryId: $parentCategoryId, sortOrder: $sortOrder)';
-  }
+/// Create a copy of ProjectElementCategory
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectElementCategoryCopyWith<_ProjectElementCategory> get copyWith => __$ProjectElementCategoryCopyWithImpl<_ProjectElementCategory>(this, _$identity);
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectElementCategoryImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.parentCategoryId, parentCategoryId) ||
-                other.parentCategoryId == parentCategoryId) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, id, name, parentCategoryId, sortOrder);
-
-  /// Create a copy of ProjectElementCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectElementCategoryImplCopyWith<_$ProjectElementCategoryImpl>
-      get copyWith => __$$ProjectElementCategoryImplCopyWithImpl<
-          _$ProjectElementCategoryImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectElementCategoryImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectElementCategoryToJson(this, );
 }
 
-abstract class _ProjectElementCategory implements ProjectElementCategory {
-  const factory _ProjectElementCategory(
-      {required final String id,
-      required final String name,
-      final String? parentCategoryId,
-      final int sortOrder}) = _$ProjectElementCategoryImpl;
-
-  factory _ProjectElementCategory.fromJson(Map<String, dynamic> json) =
-      _$ProjectElementCategoryImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String? get parentCategoryId;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectElementCategory
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectElementCategoryImplCopyWith<_$ProjectElementCategoryImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectElementCategory&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.parentCategoryId, parentCategoryId) || other.parentCategoryId == parentCategoryId)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
 }
 
-ProjectElementEntry _$ProjectElementEntryFromJson(Map<String, dynamic> json) {
-  return _ProjectElementEntry.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,parentCategoryId,sortOrder);
+
+@override
+String toString() {
+  return 'ProjectElementCategory(id: $id, name: $name, parentCategoryId: $parentCategoryId, sortOrder: $sortOrder)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectElementCategoryCopyWith<$Res> implements $ProjectElementCategoryCopyWith<$Res> {
+  factory _$ProjectElementCategoryCopyWith(_ProjectElementCategory value, $Res Function(_ProjectElementCategory) _then) = __$ProjectElementCategoryCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String? parentCategoryId, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectElementCategoryCopyWithImpl<$Res>
+    implements _$ProjectElementCategoryCopyWith<$Res> {
+  __$ProjectElementCategoryCopyWithImpl(this._self, this._then);
+
+  final _ProjectElementCategory _self;
+  final $Res Function(_ProjectElementCategory) _then;
+
+/// Create a copy of ProjectElementCategory
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? parentCategoryId = freezed,Object? sortOrder = null,}) {
+  return _then(_ProjectElementCategory(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,parentCategoryId: freezed == parentCategoryId ? _self.parentCategoryId : parentCategoryId // ignore: cast_nullable_to_non_nullable
+as String?,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectElementEntry {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String get tilesetId => throw _privateConstructorUsedError;
-  String get categoryId => throw _privateConstructorUsedError;
-  String? get tilesetGroupId => throw _privateConstructorUsedError;
 
-  /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
-  List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
-  ElementPresetKind get presetKind => throw _privateConstructorUsedError;
-  ElementCollisionProfile? get collisionProfile =>
-      throw _privateConstructorUsedError;
-  @ProjectElementShadowConfigJsonConverter()
-  ProjectElementShadowConfig? get shadow => throw _privateConstructorUsedError;
-  @JsonKey(
-      name: 'projectedBuildingShadow',
-      fromJson: _projectedBuildingShadowConfigFromJson,
-      toJson: _projectedBuildingShadowConfigToJson,
-      includeIfNull: false)
-  ProjectElementProjectedBuildingShadowConfig? get projectedBuildingShadow =>
-      throw _privateConstructorUsedError;
-  String? get groupId => throw _privateConstructorUsedError;
-  String? get recommendedLayerId => throw _privateConstructorUsedError;
-  List<String> get tags => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
+ String get id; String get name; String get tilesetId; String get categoryId; String? get tilesetGroupId;/// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
+ List<TilesetVisualFrame> get frames; ElementPresetKind get presetKind; ElementCollisionProfile? get collisionProfile;@ProjectElementShadowConfigJsonConverter() ProjectElementShadowConfig? get shadow;@JsonKey(name: 'projectedBuildingShadow', fromJson: _projectedBuildingShadowConfigFromJson, toJson: _projectedBuildingShadowConfigToJson, includeIfNull: false) ProjectElementProjectedBuildingShadowConfig? get projectedBuildingShadow; String? get groupId; String? get recommendedLayerId; List<String> get tags; int get sortOrder;
+/// Create a copy of ProjectElementEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectElementEntryCopyWith<ProjectElementEntry> get copyWith => _$ProjectElementEntryCopyWithImpl<ProjectElementEntry>(this as ProjectElementEntry, _$identity);
 
   /// Serializes this ProjectElementEntry to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectElementEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectElementEntryCopyWith<ProjectElementEntry> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectElementEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.tilesetGroupId, tilesetGroupId) || other.tilesetGroupId == tilesetGroupId)&&const DeepCollectionEquality().equals(other.frames, frames)&&(identical(other.presetKind, presetKind) || other.presetKind == presetKind)&&(identical(other.collisionProfile, collisionProfile) || other.collisionProfile == collisionProfile)&&(identical(other.shadow, shadow) || other.shadow == shadow)&&(identical(other.projectedBuildingShadow, projectedBuildingShadow) || other.projectedBuildingShadow == projectedBuildingShadow)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.recommendedLayerId, recommendedLayerId) || other.recommendedLayerId == recommendedLayerId)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,categoryId,tilesetGroupId,const DeepCollectionEquality().hash(frames),presetKind,collisionProfile,shadow,projectedBuildingShadow,groupId,recommendedLayerId,const DeepCollectionEquality().hash(tags),sortOrder);
+
+@override
+String toString() {
+  return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, frames: $frames, presetKind: $presetKind, collisionProfile: $collisionProfile, shadow: $shadow, projectedBuildingShadow: $projectedBuildingShadow, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectElementEntryCopyWith<$Res> {
-  factory $ProjectElementEntryCopyWith(
-          ProjectElementEntry value, $Res Function(ProjectElementEntry) then) =
-      _$ProjectElementEntryCopyWithImpl<$Res, ProjectElementEntry>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String tilesetId,
-      String categoryId,
-      String? tilesetGroupId,
-      List<TilesetVisualFrame> frames,
-      ElementPresetKind presetKind,
-      ElementCollisionProfile? collisionProfile,
-      @ProjectElementShadowConfigJsonConverter()
-      ProjectElementShadowConfig? shadow,
-      @JsonKey(
-          name: 'projectedBuildingShadow',
-          fromJson: _projectedBuildingShadowConfigFromJson,
-          toJson: _projectedBuildingShadowConfigToJson,
-          includeIfNull: false)
-      ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,
-      String? groupId,
-      String? recommendedLayerId,
-      List<String> tags,
-      int sortOrder});
+abstract mixin class $ProjectElementEntryCopyWith<$Res>  {
+  factory $ProjectElementEntryCopyWith(ProjectElementEntry value, $Res Function(ProjectElementEntry) _then) = _$ProjectElementEntryCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String tilesetId, String categoryId, String? tilesetGroupId, List<TilesetVisualFrame> frames, ElementPresetKind presetKind, ElementCollisionProfile? collisionProfile,@ProjectElementShadowConfigJsonConverter() ProjectElementShadowConfig? shadow,@JsonKey(name: 'projectedBuildingShadow', fromJson: _projectedBuildingShadowConfigFromJson, toJson: _projectedBuildingShadowConfigToJson, includeIfNull: false) ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow, String? groupId, String? recommendedLayerId, List<String> tags, int sortOrder
+});
 
-  $ElementCollisionProfileCopyWith<$Res>? get collisionProfile;
+
+$ElementCollisionProfileCopyWith<$Res>? get collisionProfile;
+
 }
-
 /// @nodoc
-class _$ProjectElementEntryCopyWithImpl<$Res, $Val extends ProjectElementEntry>
+class _$ProjectElementEntryCopyWithImpl<$Res>
     implements $ProjectElementEntryCopyWith<$Res> {
-  _$ProjectElementEntryCopyWithImpl(this._value, this._then);
+  _$ProjectElementEntryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectElementEntry _self;
+  final $Res Function(ProjectElementEntry) _then;
 
-  /// Create a copy of ProjectElementEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? tilesetId = null,
-    Object? categoryId = null,
-    Object? tilesetGroupId = freezed,
-    Object? frames = null,
-    Object? presetKind = null,
-    Object? collisionProfile = freezed,
-    Object? shadow = freezed,
-    Object? projectedBuildingShadow = freezed,
-    Object? groupId = freezed,
-    Object? recommendedLayerId = freezed,
-    Object? tags = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      categoryId: null == categoryId
-          ? _value.categoryId
-          : categoryId // ignore: cast_nullable_to_non_nullable
-              as String,
-      tilesetGroupId: freezed == tilesetGroupId
-          ? _value.tilesetGroupId
-          : tilesetGroupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      frames: null == frames
-          ? _value.frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<TilesetVisualFrame>,
-      presetKind: null == presetKind
-          ? _value.presetKind
-          : presetKind // ignore: cast_nullable_to_non_nullable
-              as ElementPresetKind,
-      collisionProfile: freezed == collisionProfile
-          ? _value.collisionProfile
-          : collisionProfile // ignore: cast_nullable_to_non_nullable
-              as ElementCollisionProfile?,
-      shadow: freezed == shadow
-          ? _value.shadow
-          : shadow // ignore: cast_nullable_to_non_nullable
-              as ProjectElementShadowConfig?,
-      projectedBuildingShadow: freezed == projectedBuildingShadow
-          ? _value.projectedBuildingShadow
-          : projectedBuildingShadow // ignore: cast_nullable_to_non_nullable
-              as ProjectElementProjectedBuildingShadowConfig?,
-      groupId: freezed == groupId
-          ? _value.groupId
-          : groupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      recommendedLayerId: freezed == recommendedLayerId
-          ? _value.recommendedLayerId
-          : recommendedLayerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      tags: null == tags
-          ? _value.tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
+/// Create a copy of ProjectElementEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? categoryId = null,Object? tilesetGroupId = freezed,Object? frames = null,Object? presetKind = null,Object? collisionProfile = freezed,Object? shadow = freezed,Object? projectedBuildingShadow = freezed,Object? groupId = freezed,Object? recommendedLayerId = freezed,Object? tags = null,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,categoryId: null == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
+as String,tilesetGroupId: freezed == tilesetGroupId ? _self.tilesetGroupId : tilesetGroupId // ignore: cast_nullable_to_non_nullable
+as String?,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
+as List<TilesetVisualFrame>,presetKind: null == presetKind ? _self.presetKind : presetKind // ignore: cast_nullable_to_non_nullable
+as ElementPresetKind,collisionProfile: freezed == collisionProfile ? _self.collisionProfile : collisionProfile // ignore: cast_nullable_to_non_nullable
+as ElementCollisionProfile?,shadow: freezed == shadow ? _self.shadow : shadow // ignore: cast_nullable_to_non_nullable
+as ProjectElementShadowConfig?,projectedBuildingShadow: freezed == projectedBuildingShadow ? _self.projectedBuildingShadow : projectedBuildingShadow // ignore: cast_nullable_to_non_nullable
+as ProjectElementProjectedBuildingShadowConfig?,groupId: freezed == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
+as String?,recommendedLayerId: freezed == recommendedLayerId ? _self.recommendedLayerId : recommendedLayerId // ignore: cast_nullable_to_non_nullable
+as String?,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+/// Create a copy of ProjectElementEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ElementCollisionProfileCopyWith<$Res>? get collisionProfile {
+    if (_self.collisionProfile == null) {
+    return null;
   }
 
-  /// Create a copy of ProjectElementEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $ElementCollisionProfileCopyWith<$Res>? get collisionProfile {
-    if (_value.collisionProfile == null) {
-      return null;
-    }
-
-    return $ElementCollisionProfileCopyWith<$Res>(_value.collisionProfile!,
-        (value) {
-      return _then(_value.copyWith(collisionProfile: value) as $Val);
-    });
-  }
+  return $ElementCollisionProfileCopyWith<$Res>(_self.collisionProfile!, (value) {
+    return _then(_self.copyWith(collisionProfile: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$ProjectElementEntryImplCopyWith<$Res>
-    implements $ProjectElementEntryCopyWith<$Res> {
-  factory _$$ProjectElementEntryImplCopyWith(_$ProjectElementEntryImpl value,
-          $Res Function(_$ProjectElementEntryImpl) then) =
-      __$$ProjectElementEntryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String tilesetId,
-      String categoryId,
-      String? tilesetGroupId,
-      List<TilesetVisualFrame> frames,
-      ElementPresetKind presetKind,
-      ElementCollisionProfile? collisionProfile,
-      @ProjectElementShadowConfigJsonConverter()
-      ProjectElementShadowConfig? shadow,
-      @JsonKey(
-          name: 'projectedBuildingShadow',
-          fromJson: _projectedBuildingShadowConfigFromJson,
-          toJson: _projectedBuildingShadowConfigToJson,
-          includeIfNull: false)
-      ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,
-      String? groupId,
-      String? recommendedLayerId,
-      List<String> tags,
-      int sortOrder});
 
-  @override
-  $ElementCollisionProfileCopyWith<$Res>? get collisionProfile;
+/// Adds pattern-matching-related methods to [ProjectElementEntry].
+extension ProjectElementEntryPatterns on ProjectElementEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectElementEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectElementEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectElementEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectElementEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectElementEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectElementEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  String categoryId,  String? tilesetGroupId,  List<TilesetVisualFrame> frames,  ElementPresetKind presetKind,  ElementCollisionProfile? collisionProfile, @ProjectElementShadowConfigJsonConverter()  ProjectElementShadowConfig? shadow, @JsonKey(name: 'projectedBuildingShadow', fromJson: _projectedBuildingShadowConfigFromJson, toJson: _projectedBuildingShadowConfigToJson, includeIfNull: false)  ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,  String? groupId,  String? recommendedLayerId,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectElementEntry() when $default != null:
+return $default(_that.id,_that.name,_that.tilesetId,_that.categoryId,_that.tilesetGroupId,_that.frames,_that.presetKind,_that.collisionProfile,_that.shadow,_that.projectedBuildingShadow,_that.groupId,_that.recommendedLayerId,_that.tags,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  String categoryId,  String? tilesetGroupId,  List<TilesetVisualFrame> frames,  ElementPresetKind presetKind,  ElementCollisionProfile? collisionProfile, @ProjectElementShadowConfigJsonConverter()  ProjectElementShadowConfig? shadow, @JsonKey(name: 'projectedBuildingShadow', fromJson: _projectedBuildingShadowConfigFromJson, toJson: _projectedBuildingShadowConfigToJson, includeIfNull: false)  ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,  String? groupId,  String? recommendedLayerId,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectElementEntry():
+return $default(_that.id,_that.name,_that.tilesetId,_that.categoryId,_that.tilesetGroupId,_that.frames,_that.presetKind,_that.collisionProfile,_that.shadow,_that.projectedBuildingShadow,_that.groupId,_that.recommendedLayerId,_that.tags,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String tilesetId,  String categoryId,  String? tilesetGroupId,  List<TilesetVisualFrame> frames,  ElementPresetKind presetKind,  ElementCollisionProfile? collisionProfile, @ProjectElementShadowConfigJsonConverter()  ProjectElementShadowConfig? shadow, @JsonKey(name: 'projectedBuildingShadow', fromJson: _projectedBuildingShadowConfigFromJson, toJson: _projectedBuildingShadowConfigToJson, includeIfNull: false)  ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow,  String? groupId,  String? recommendedLayerId,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectElementEntry() when $default != null:
+return $default(_that.id,_that.name,_that.tilesetId,_that.categoryId,_that.tilesetGroupId,_that.frames,_that.presetKind,_that.collisionProfile,_that.shadow,_that.projectedBuildingShadow,_that.groupId,_that.recommendedLayerId,_that.tags,_that.sortOrder);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$ProjectElementEntryImplCopyWithImpl<$Res>
-    extends _$ProjectElementEntryCopyWithImpl<$Res, _$ProjectElementEntryImpl>
-    implements _$$ProjectElementEntryImplCopyWith<$Res> {
-  __$$ProjectElementEntryImplCopyWithImpl(_$ProjectElementEntryImpl _value,
-      $Res Function(_$ProjectElementEntryImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of ProjectElementEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? tilesetId = null,
-    Object? categoryId = null,
-    Object? tilesetGroupId = freezed,
-    Object? frames = null,
-    Object? presetKind = null,
-    Object? collisionProfile = freezed,
-    Object? shadow = freezed,
-    Object? projectedBuildingShadow = freezed,
-    Object? groupId = freezed,
-    Object? recommendedLayerId = freezed,
-    Object? tags = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectElementEntryImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      categoryId: null == categoryId
-          ? _value.categoryId
-          : categoryId // ignore: cast_nullable_to_non_nullable
-              as String,
-      tilesetGroupId: freezed == tilesetGroupId
-          ? _value.tilesetGroupId
-          : tilesetGroupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      frames: null == frames
-          ? _value._frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<TilesetVisualFrame>,
-      presetKind: null == presetKind
-          ? _value.presetKind
-          : presetKind // ignore: cast_nullable_to_non_nullable
-              as ElementPresetKind,
-      collisionProfile: freezed == collisionProfile
-          ? _value.collisionProfile
-          : collisionProfile // ignore: cast_nullable_to_non_nullable
-              as ElementCollisionProfile?,
-      shadow: freezed == shadow
-          ? _value.shadow
-          : shadow // ignore: cast_nullable_to_non_nullable
-              as ProjectElementShadowConfig?,
-      projectedBuildingShadow: freezed == projectedBuildingShadow
-          ? _value.projectedBuildingShadow
-          : projectedBuildingShadow // ignore: cast_nullable_to_non_nullable
-              as ProjectElementProjectedBuildingShadowConfig?,
-      groupId: freezed == groupId
-          ? _value.groupId
-          : groupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      recommendedLayerId: freezed == recommendedLayerId
-          ? _value.recommendedLayerId
-          : recommendedLayerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      tags: null == tags
-          ? _value._tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectElementEntryImpl implements _ProjectElementEntry {
-  const _$ProjectElementEntryImpl(
-      {required this.id,
-      required this.name,
-      required this.tilesetId,
-      required this.categoryId,
-      this.tilesetGroupId,
-      required final List<TilesetVisualFrame> frames,
-      this.presetKind = ElementPresetKind.generic,
-      this.collisionProfile,
-      @ProjectElementShadowConfigJsonConverter() this.shadow,
-      @JsonKey(
-          name: 'projectedBuildingShadow',
-          fromJson: _projectedBuildingShadowConfigFromJson,
-          toJson: _projectedBuildingShadowConfigToJson,
-          includeIfNull: false)
-      this.projectedBuildingShadow,
-      this.groupId,
-      this.recommendedLayerId,
-      final List<String> tags = const [],
-      this.sortOrder = 0})
-      : _frames = frames,
-        _tags = tags;
+class _ProjectElementEntry implements ProjectElementEntry {
+  const _ProjectElementEntry({required this.id, required this.name, required this.tilesetId, required this.categoryId, this.tilesetGroupId, required final  List<TilesetVisualFrame> frames, this.presetKind = ElementPresetKind.generic, this.collisionProfile, @ProjectElementShadowConfigJsonConverter() this.shadow, @JsonKey(name: 'projectedBuildingShadow', fromJson: _projectedBuildingShadowConfigFromJson, toJson: _projectedBuildingShadowConfigToJson, includeIfNull: false) this.projectedBuildingShadow, this.groupId, this.recommendedLayerId, final  List<String> tags = const [], this.sortOrder = 0}): _frames = frames,_tags = tags;
+  factory _ProjectElementEntry.fromJson(Map<String, dynamic> json) => _$ProjectElementEntryFromJson(json);
 
-  factory _$ProjectElementEntryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectElementEntryImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String tilesetId;
-  @override
-  final String categoryId;
-  @override
-  final String? tilesetGroupId;
-
-  /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
-  final List<TilesetVisualFrame> _frames;
-
-  /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
-  @override
-  List<TilesetVisualFrame> get frames {
-    if (_frames is EqualUnmodifiableListView) return _frames;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_frames);
-  }
-
-  @override
-  @JsonKey()
-  final ElementPresetKind presetKind;
-  @override
-  final ElementCollisionProfile? collisionProfile;
-  @override
-  @ProjectElementShadowConfigJsonConverter()
-  final ProjectElementShadowConfig? shadow;
-  @override
-  @JsonKey(
-      name: 'projectedBuildingShadow',
-      fromJson: _projectedBuildingShadowConfigFromJson,
-      toJson: _projectedBuildingShadowConfigToJson,
-      includeIfNull: false)
-  final ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow;
-  @override
-  final String? groupId;
-  @override
-  final String? recommendedLayerId;
-  final List<String> _tags;
-  @override
-  @JsonKey()
-  List<String> get tags {
-    if (_tags is EqualUnmodifiableListView) return _tags;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tags);
-  }
-
-  @override
-  @JsonKey()
-  final int sortOrder;
-
-  @override
-  String toString() {
-    return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, frames: $frames, presetKind: $presetKind, collisionProfile: $collisionProfile, shadow: $shadow, projectedBuildingShadow: $projectedBuildingShadow, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectElementEntryImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId) &&
-            (identical(other.categoryId, categoryId) ||
-                other.categoryId == categoryId) &&
-            (identical(other.tilesetGroupId, tilesetGroupId) ||
-                other.tilesetGroupId == tilesetGroupId) &&
-            const DeepCollectionEquality().equals(other._frames, _frames) &&
-            (identical(other.presetKind, presetKind) ||
-                other.presetKind == presetKind) &&
-            (identical(other.collisionProfile, collisionProfile) ||
-                other.collisionProfile == collisionProfile) &&
-            (identical(other.shadow, shadow) || other.shadow == shadow) &&
-            (identical(
-                    other.projectedBuildingShadow, projectedBuildingShadow) ||
-                other.projectedBuildingShadow == projectedBuildingShadow) &&
-            (identical(other.groupId, groupId) || other.groupId == groupId) &&
-            (identical(other.recommendedLayerId, recommendedLayerId) ||
-                other.recommendedLayerId == recommendedLayerId) &&
-            const DeepCollectionEquality().equals(other._tags, _tags) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      tilesetId,
-      categoryId,
-      tilesetGroupId,
-      const DeepCollectionEquality().hash(_frames),
-      presetKind,
-      collisionProfile,
-      shadow,
-      projectedBuildingShadow,
-      groupId,
-      recommendedLayerId,
-      const DeepCollectionEquality().hash(_tags),
-      sortOrder);
-
-  /// Create a copy of ProjectElementEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectElementEntryImplCopyWith<_$ProjectElementEntryImpl> get copyWith =>
-      __$$ProjectElementEntryImplCopyWithImpl<_$ProjectElementEntryImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectElementEntryImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override final  String tilesetId;
+@override final  String categoryId;
+@override final  String? tilesetGroupId;
+/// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
+ final  List<TilesetVisualFrame> _frames;
+/// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
+@override List<TilesetVisualFrame> get frames {
+  if (_frames is EqualUnmodifiableListView) return _frames;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_frames);
 }
 
-abstract class _ProjectElementEntry implements ProjectElementEntry {
-  const factory _ProjectElementEntry(
-      {required final String id,
-      required final String name,
-      required final String tilesetId,
-      required final String categoryId,
-      final String? tilesetGroupId,
-      required final List<TilesetVisualFrame> frames,
-      final ElementPresetKind presetKind,
-      final ElementCollisionProfile? collisionProfile,
-      @ProjectElementShadowConfigJsonConverter()
-      final ProjectElementShadowConfig? shadow,
-      @JsonKey(
-          name: 'projectedBuildingShadow',
-          fromJson: _projectedBuildingShadowConfigFromJson,
-          toJson: _projectedBuildingShadowConfigToJson,
-          includeIfNull: false)
-      final ProjectElementProjectedBuildingShadowConfig?
-          projectedBuildingShadow,
-      final String? groupId,
-      final String? recommendedLayerId,
-      final List<String> tags,
-      final int sortOrder}) = _$ProjectElementEntryImpl;
-
-  factory _ProjectElementEntry.fromJson(Map<String, dynamic> json) =
-      _$ProjectElementEntryImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String get tilesetId;
-  @override
-  String get categoryId;
-  @override
-  String? get tilesetGroupId;
-
-  /// Au moins une frame ; le canvas map_editor anime les entités qui référencent cet élément via toutes les frames (durées `durationMs` ou fallback) ; autres usages éditeur (pinceau, etc.) = première frame.
-  @override
-  List<TilesetVisualFrame> get frames;
-  @override
-  ElementPresetKind get presetKind;
-  @override
-  ElementCollisionProfile? get collisionProfile;
-  @override
-  @ProjectElementShadowConfigJsonConverter()
-  ProjectElementShadowConfig? get shadow;
-  @override
-  @JsonKey(
-      name: 'projectedBuildingShadow',
-      fromJson: _projectedBuildingShadowConfigFromJson,
-      toJson: _projectedBuildingShadowConfigToJson,
-      includeIfNull: false)
-  ProjectElementProjectedBuildingShadowConfig? get projectedBuildingShadow;
-  @override
-  String? get groupId;
-  @override
-  String? get recommendedLayerId;
-  @override
-  List<String> get tags;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectElementEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectElementEntryImplCopyWith<_$ProjectElementEntryImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override@JsonKey() final  ElementPresetKind presetKind;
+@override final  ElementCollisionProfile? collisionProfile;
+@override@ProjectElementShadowConfigJsonConverter() final  ProjectElementShadowConfig? shadow;
+@override@JsonKey(name: 'projectedBuildingShadow', fromJson: _projectedBuildingShadowConfigFromJson, toJson: _projectedBuildingShadowConfigToJson, includeIfNull: false) final  ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow;
+@override final  String? groupId;
+@override final  String? recommendedLayerId;
+ final  List<String> _tags;
+@override@JsonKey() List<String> get tags {
+  if (_tags is EqualUnmodifiableListView) return _tags;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tags);
 }
 
-ProjectEncounterEntry _$ProjectEncounterEntryFromJson(
-    Map<String, dynamic> json) {
-  return _ProjectEncounterEntry.fromJson(json);
+@override@JsonKey() final  int sortOrder;
+
+/// Create a copy of ProjectElementEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectElementEntryCopyWith<_ProjectElementEntry> get copyWith => __$ProjectElementEntryCopyWithImpl<_ProjectElementEntry>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectElementEntryToJson(this, );
 }
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectElementEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.categoryId, categoryId) || other.categoryId == categoryId)&&(identical(other.tilesetGroupId, tilesetGroupId) || other.tilesetGroupId == tilesetGroupId)&&const DeepCollectionEquality().equals(other._frames, _frames)&&(identical(other.presetKind, presetKind) || other.presetKind == presetKind)&&(identical(other.collisionProfile, collisionProfile) || other.collisionProfile == collisionProfile)&&(identical(other.shadow, shadow) || other.shadow == shadow)&&(identical(other.projectedBuildingShadow, projectedBuildingShadow) || other.projectedBuildingShadow == projectedBuildingShadow)&&(identical(other.groupId, groupId) || other.groupId == groupId)&&(identical(other.recommendedLayerId, recommendedLayerId) || other.recommendedLayerId == recommendedLayerId)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,categoryId,tilesetGroupId,const DeepCollectionEquality().hash(_frames),presetKind,collisionProfile,shadow,projectedBuildingShadow,groupId,recommendedLayerId,const DeepCollectionEquality().hash(_tags),sortOrder);
+
+@override
+String toString() {
+  return 'ProjectElementEntry(id: $id, name: $name, tilesetId: $tilesetId, categoryId: $categoryId, tilesetGroupId: $tilesetGroupId, frames: $frames, presetKind: $presetKind, collisionProfile: $collisionProfile, shadow: $shadow, projectedBuildingShadow: $projectedBuildingShadow, groupId: $groupId, recommendedLayerId: $recommendedLayerId, tags: $tags, sortOrder: $sortOrder)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectElementEntryCopyWith<$Res> implements $ProjectElementEntryCopyWith<$Res> {
+  factory _$ProjectElementEntryCopyWith(_ProjectElementEntry value, $Res Function(_ProjectElementEntry) _then) = __$ProjectElementEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String tilesetId, String categoryId, String? tilesetGroupId, List<TilesetVisualFrame> frames, ElementPresetKind presetKind, ElementCollisionProfile? collisionProfile,@ProjectElementShadowConfigJsonConverter() ProjectElementShadowConfig? shadow,@JsonKey(name: 'projectedBuildingShadow', fromJson: _projectedBuildingShadowConfigFromJson, toJson: _projectedBuildingShadowConfigToJson, includeIfNull: false) ProjectElementProjectedBuildingShadowConfig? projectedBuildingShadow, String? groupId, String? recommendedLayerId, List<String> tags, int sortOrder
+});
+
+
+@override $ElementCollisionProfileCopyWith<$Res>? get collisionProfile;
+
+}
+/// @nodoc
+class __$ProjectElementEntryCopyWithImpl<$Res>
+    implements _$ProjectElementEntryCopyWith<$Res> {
+  __$ProjectElementEntryCopyWithImpl(this._self, this._then);
+
+  final _ProjectElementEntry _self;
+  final $Res Function(_ProjectElementEntry) _then;
+
+/// Create a copy of ProjectElementEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? categoryId = null,Object? tilesetGroupId = freezed,Object? frames = null,Object? presetKind = null,Object? collisionProfile = freezed,Object? shadow = freezed,Object? projectedBuildingShadow = freezed,Object? groupId = freezed,Object? recommendedLayerId = freezed,Object? tags = null,Object? sortOrder = null,}) {
+  return _then(_ProjectElementEntry(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,categoryId: null == categoryId ? _self.categoryId : categoryId // ignore: cast_nullable_to_non_nullable
+as String,tilesetGroupId: freezed == tilesetGroupId ? _self.tilesetGroupId : tilesetGroupId // ignore: cast_nullable_to_non_nullable
+as String?,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
+as List<TilesetVisualFrame>,presetKind: null == presetKind ? _self.presetKind : presetKind // ignore: cast_nullable_to_non_nullable
+as ElementPresetKind,collisionProfile: freezed == collisionProfile ? _self.collisionProfile : collisionProfile // ignore: cast_nullable_to_non_nullable
+as ElementCollisionProfile?,shadow: freezed == shadow ? _self.shadow : shadow // ignore: cast_nullable_to_non_nullable
+as ProjectElementShadowConfig?,projectedBuildingShadow: freezed == projectedBuildingShadow ? _self.projectedBuildingShadow : projectedBuildingShadow // ignore: cast_nullable_to_non_nullable
+as ProjectElementProjectedBuildingShadowConfig?,groupId: freezed == groupId ? _self.groupId : groupId // ignore: cast_nullable_to_non_nullable
+as String?,recommendedLayerId: freezed == recommendedLayerId ? _self.recommendedLayerId : recommendedLayerId // ignore: cast_nullable_to_non_nullable
+as String?,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+/// Create a copy of ProjectElementEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ElementCollisionProfileCopyWith<$Res>? get collisionProfile {
+    if (_self.collisionProfile == null) {
+    return null;
+  }
+
+  return $ElementCollisionProfileCopyWith<$Res>(_self.collisionProfile!, (value) {
+    return _then(_self.copyWith(collisionProfile: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$ProjectEncounterEntry {
-  /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
-  String get speciesId => throw _privateConstructorUsedError;
-  int get minLevel => throw _privateConstructorUsedError;
-  int get maxLevel => throw _privateConstructorUsedError;
 
-  /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
-  int get weight => throw _privateConstructorUsedError;
+/// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
+ String get speciesId; int get minLevel; int get maxLevel;/// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
+ int get weight;
+/// Create a copy of ProjectEncounterEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectEncounterEntryCopyWith<ProjectEncounterEntry> get copyWith => _$ProjectEncounterEntryCopyWithImpl<ProjectEncounterEntry>(this as ProjectEncounterEntry, _$identity);
 
   /// Serializes this ProjectEncounterEntry to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectEncounterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectEncounterEntryCopyWith<ProjectEncounterEntry> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectEncounterEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.minLevel, minLevel) || other.minLevel == minLevel)&&(identical(other.maxLevel, maxLevel) || other.maxLevel == maxLevel)&&(identical(other.weight, weight) || other.weight == weight));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,speciesId,minLevel,maxLevel,weight);
+
+@override
+String toString() {
+  return 'ProjectEncounterEntry(speciesId: $speciesId, minLevel: $minLevel, maxLevel: $maxLevel, weight: $weight)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectEncounterEntryCopyWith<$Res> {
-  factory $ProjectEncounterEntryCopyWith(ProjectEncounterEntry value,
-          $Res Function(ProjectEncounterEntry) then) =
-      _$ProjectEncounterEntryCopyWithImpl<$Res, ProjectEncounterEntry>;
-  @useResult
-  $Res call({String speciesId, int minLevel, int maxLevel, int weight});
-}
+abstract mixin class $ProjectEncounterEntryCopyWith<$Res>  {
+  factory $ProjectEncounterEntryCopyWith(ProjectEncounterEntry value, $Res Function(ProjectEncounterEntry) _then) = _$ProjectEncounterEntryCopyWithImpl;
+@useResult
+$Res call({
+ String speciesId, int minLevel, int maxLevel, int weight
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectEncounterEntryCopyWithImpl<$Res,
-        $Val extends ProjectEncounterEntry>
+class _$ProjectEncounterEntryCopyWithImpl<$Res>
     implements $ProjectEncounterEntryCopyWith<$Res> {
-  _$ProjectEncounterEntryCopyWithImpl(this._value, this._then);
+  _$ProjectEncounterEntryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectEncounterEntry _self;
+  final $Res Function(ProjectEncounterEntry) _then;
 
-  /// Create a copy of ProjectEncounterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? speciesId = null,
-    Object? minLevel = null,
-    Object? maxLevel = null,
-    Object? weight = null,
-  }) {
-    return _then(_value.copyWith(
-      speciesId: null == speciesId
-          ? _value.speciesId
-          : speciesId // ignore: cast_nullable_to_non_nullable
-              as String,
-      minLevel: null == minLevel
-          ? _value.minLevel
-          : minLevel // ignore: cast_nullable_to_non_nullable
-              as int,
-      maxLevel: null == maxLevel
-          ? _value.maxLevel
-          : maxLevel // ignore: cast_nullable_to_non_nullable
-              as int,
-      weight: null == weight
-          ? _value.weight
-          : weight // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of ProjectEncounterEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? speciesId = null,Object? minLevel = null,Object? maxLevel = null,Object? weight = null,}) {
+  return _then(_self.copyWith(
+speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
+as String,minLevel: null == minLevel ? _self.minLevel : minLevel // ignore: cast_nullable_to_non_nullable
+as int,maxLevel: null == maxLevel ? _self.maxLevel : maxLevel // ignore: cast_nullable_to_non_nullable
+as int,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectEncounterEntryImplCopyWith<$Res>
-    implements $ProjectEncounterEntryCopyWith<$Res> {
-  factory _$$ProjectEncounterEntryImplCopyWith(
-          _$ProjectEncounterEntryImpl value,
-          $Res Function(_$ProjectEncounterEntryImpl) then) =
-      __$$ProjectEncounterEntryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({String speciesId, int minLevel, int maxLevel, int weight});
 }
 
-/// @nodoc
-class __$$ProjectEncounterEntryImplCopyWithImpl<$Res>
-    extends _$ProjectEncounterEntryCopyWithImpl<$Res,
-        _$ProjectEncounterEntryImpl>
-    implements _$$ProjectEncounterEntryImplCopyWith<$Res> {
-  __$$ProjectEncounterEntryImplCopyWithImpl(_$ProjectEncounterEntryImpl _value,
-      $Res Function(_$ProjectEncounterEntryImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectEncounterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? speciesId = null,
-    Object? minLevel = null,
-    Object? maxLevel = null,
-    Object? weight = null,
-  }) {
-    return _then(_$ProjectEncounterEntryImpl(
-      speciesId: null == speciesId
-          ? _value.speciesId
-          : speciesId // ignore: cast_nullable_to_non_nullable
-              as String,
-      minLevel: null == minLevel
-          ? _value.minLevel
-          : minLevel // ignore: cast_nullable_to_non_nullable
-              as int,
-      maxLevel: null == maxLevel
-          ? _value.maxLevel
-          : maxLevel // ignore: cast_nullable_to_non_nullable
-              as int,
-      weight: null == weight
-          ? _value.weight
-          : weight // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectEncounterEntry].
+extension ProjectEncounterEntryPatterns on ProjectEncounterEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectEncounterEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectEncounterEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectEncounterEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectEncounterEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectEncounterEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectEncounterEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String speciesId,  int minLevel,  int maxLevel,  int weight)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectEncounterEntry() when $default != null:
+return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String speciesId,  int minLevel,  int maxLevel,  int weight)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectEncounterEntry():
+return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String speciesId,  int minLevel,  int maxLevel,  int weight)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectEncounterEntry() when $default != null:
+return $default(_that.speciesId,_that.minLevel,_that.maxLevel,_that.weight);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 @JsonSerializable()
-class _$ProjectEncounterEntryImpl implements _ProjectEncounterEntry {
-  const _$ProjectEncounterEntryImpl(
-      {required this.speciesId,
-      required this.minLevel,
-      required this.maxLevel,
-      this.weight = 1});
 
-  factory _$ProjectEncounterEntryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectEncounterEntryImplFromJson(json);
+class _ProjectEncounterEntry implements ProjectEncounterEntry {
+  const _ProjectEncounterEntry({required this.speciesId, required this.minLevel, required this.maxLevel, this.weight = 1});
+  factory _ProjectEncounterEntry.fromJson(Map<String, dynamic> json) => _$ProjectEncounterEntryFromJson(json);
 
-  /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
-  @override
-  final String speciesId;
-  @override
-  final int minLevel;
-  @override
-  final int maxLevel;
+/// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
+@override final  String speciesId;
+@override final  int minLevel;
+@override final  int maxLevel;
+/// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
+@override@JsonKey() final  int weight;
 
-  /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
-  @override
-  @JsonKey()
-  final int weight;
+/// Create a copy of ProjectEncounterEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectEncounterEntryCopyWith<_ProjectEncounterEntry> get copyWith => __$ProjectEncounterEntryCopyWithImpl<_ProjectEncounterEntry>(this, _$identity);
 
-  @override
-  String toString() {
-    return 'ProjectEncounterEntry(speciesId: $speciesId, minLevel: $minLevel, maxLevel: $maxLevel, weight: $weight)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectEncounterEntryImpl &&
-            (identical(other.speciesId, speciesId) ||
-                other.speciesId == speciesId) &&
-            (identical(other.minLevel, minLevel) ||
-                other.minLevel == minLevel) &&
-            (identical(other.maxLevel, maxLevel) ||
-                other.maxLevel == maxLevel) &&
-            (identical(other.weight, weight) || other.weight == weight));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode =>
-      Object.hash(runtimeType, speciesId, minLevel, maxLevel, weight);
-
-  /// Create a copy of ProjectEncounterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectEncounterEntryImplCopyWith<_$ProjectEncounterEntryImpl>
-      get copyWith => __$$ProjectEncounterEntryImplCopyWithImpl<
-          _$ProjectEncounterEntryImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectEncounterEntryImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectEncounterEntryToJson(this, );
 }
 
-abstract class _ProjectEncounterEntry implements ProjectEncounterEntry {
-  const factory _ProjectEncounterEntry(
-      {required final String speciesId,
-      required final int minLevel,
-      required final int maxLevel,
-      final int weight}) = _$ProjectEncounterEntryImpl;
-
-  factory _ProjectEncounterEntry.fromJson(Map<String, dynamic> json) =
-      _$ProjectEncounterEntryImpl.fromJson;
-
-  /// Identifiant de l'espèce (string libre — sans Pokédex intégré pour l'instant).
-  @override
-  String get speciesId;
-  @override
-  int get minLevel;
-  @override
-  int get maxLevel;
-
-  /// Poids relatif d'apparition (entier positif ; plus élevé = plus fréquent).
-  @override
-  int get weight;
-
-  /// Create a copy of ProjectEncounterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectEncounterEntryImplCopyWith<_$ProjectEncounterEntryImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectEncounterEntry&&(identical(other.speciesId, speciesId) || other.speciesId == speciesId)&&(identical(other.minLevel, minLevel) || other.minLevel == minLevel)&&(identical(other.maxLevel, maxLevel) || other.maxLevel == maxLevel)&&(identical(other.weight, weight) || other.weight == weight));
 }
 
-ProjectEncounterTable _$ProjectEncounterTableFromJson(
-    Map<String, dynamic> json) {
-  return _ProjectEncounterTable.fromJson(json);
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,speciesId,minLevel,maxLevel,weight);
+
+@override
+String toString() {
+  return 'ProjectEncounterEntry(speciesId: $speciesId, minLevel: $minLevel, maxLevel: $maxLevel, weight: $weight)';
 }
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectEncounterEntryCopyWith<$Res> implements $ProjectEncounterEntryCopyWith<$Res> {
+  factory _$ProjectEncounterEntryCopyWith(_ProjectEncounterEntry value, $Res Function(_ProjectEncounterEntry) _then) = __$ProjectEncounterEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String speciesId, int minLevel, int maxLevel, int weight
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectEncounterEntryCopyWithImpl<$Res>
+    implements _$ProjectEncounterEntryCopyWith<$Res> {
+  __$ProjectEncounterEntryCopyWithImpl(this._self, this._then);
+
+  final _ProjectEncounterEntry _self;
+  final $Res Function(_ProjectEncounterEntry) _then;
+
+/// Create a copy of ProjectEncounterEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? speciesId = null,Object? minLevel = null,Object? maxLevel = null,Object? weight = null,}) {
+  return _then(_ProjectEncounterEntry(
+speciesId: null == speciesId ? _self.speciesId : speciesId // ignore: cast_nullable_to_non_nullable
+as String,minLevel: null == minLevel ? _self.minLevel : minLevel // ignore: cast_nullable_to_non_nullable
+as int,maxLevel: null == maxLevel ? _self.maxLevel : maxLevel // ignore: cast_nullable_to_non_nullable
+as int,weight: null == weight ? _self.weight : weight // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectEncounterTable {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  EncounterKind get encounterKind => throw _privateConstructorUsedError;
 
-  /// Probability of attempting this table after one eligible movement step.
-  ///
-  /// The runtime consumes this authored value. Tests may still provide an
-  /// explicit policy override, but production must not replace it with a
-  /// hard-coded rate.
-  double get chancePerStep => throw _privateConstructorUsedError;
-
-  /// All conditions must evaluate against the current persisted [GameState]
-  /// before a roll can occur.
-  List<ScriptCondition> get conditions => throw _privateConstructorUsedError;
-  List<ProjectEncounterEntry> get entries => throw _privateConstructorUsedError;
-  List<String> get tags => throw _privateConstructorUsedError;
+ String get id; String get name; EncounterKind get encounterKind;/// Probability of attempting this table after one eligible movement step.
+///
+/// The runtime consumes this authored value. Tests may still provide an
+/// explicit policy override, but production must not replace it with a
+/// hard-coded rate.
+ double get chancePerStep;/// All conditions must evaluate against the current persisted [GameState]
+/// before a roll can occur.
+ List<ScriptCondition> get conditions; List<ProjectEncounterEntry> get entries; List<String> get tags;
+/// Create a copy of ProjectEncounterTable
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectEncounterTableCopyWith<ProjectEncounterTable> get copyWith => _$ProjectEncounterTableCopyWithImpl<ProjectEncounterTable>(this as ProjectEncounterTable, _$identity);
 
   /// Serializes this ProjectEncounterTable to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectEncounterTable
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectEncounterTableCopyWith<ProjectEncounterTable> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectEncounterTable&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.chancePerStep, chancePerStep) || other.chancePerStep == chancePerStep)&&const DeepCollectionEquality().equals(other.conditions, conditions)&&const DeepCollectionEquality().equals(other.entries, entries)&&const DeepCollectionEquality().equals(other.tags, tags));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,encounterKind,chancePerStep,const DeepCollectionEquality().hash(conditions),const DeepCollectionEquality().hash(entries),const DeepCollectionEquality().hash(tags));
+
+@override
+String toString() {
+  return 'ProjectEncounterTable(id: $id, name: $name, encounterKind: $encounterKind, chancePerStep: $chancePerStep, conditions: $conditions, entries: $entries, tags: $tags)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectEncounterTableCopyWith<$Res> {
-  factory $ProjectEncounterTableCopyWith(ProjectEncounterTable value,
-          $Res Function(ProjectEncounterTable) then) =
-      _$ProjectEncounterTableCopyWithImpl<$Res, ProjectEncounterTable>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      EncounterKind encounterKind,
-      double chancePerStep,
-      List<ScriptCondition> conditions,
-      List<ProjectEncounterEntry> entries,
-      List<String> tags});
-}
+abstract mixin class $ProjectEncounterTableCopyWith<$Res>  {
+  factory $ProjectEncounterTableCopyWith(ProjectEncounterTable value, $Res Function(ProjectEncounterTable) _then) = _$ProjectEncounterTableCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, EncounterKind encounterKind, double chancePerStep, List<ScriptCondition> conditions, List<ProjectEncounterEntry> entries, List<String> tags
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectEncounterTableCopyWithImpl<$Res,
-        $Val extends ProjectEncounterTable>
+class _$ProjectEncounterTableCopyWithImpl<$Res>
     implements $ProjectEncounterTableCopyWith<$Res> {
-  _$ProjectEncounterTableCopyWithImpl(this._value, this._then);
+  _$ProjectEncounterTableCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectEncounterTable _self;
+  final $Res Function(ProjectEncounterTable) _then;
 
-  /// Create a copy of ProjectEncounterTable
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? encounterKind = null,
-    Object? chancePerStep = null,
-    Object? conditions = null,
-    Object? entries = null,
-    Object? tags = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      encounterKind: null == encounterKind
-          ? _value.encounterKind
-          : encounterKind // ignore: cast_nullable_to_non_nullable
-              as EncounterKind,
-      chancePerStep: null == chancePerStep
-          ? _value.chancePerStep
-          : chancePerStep // ignore: cast_nullable_to_non_nullable
-              as double,
-      conditions: null == conditions
-          ? _value.conditions
-          : conditions // ignore: cast_nullable_to_non_nullable
-              as List<ScriptCondition>,
-      entries: null == entries
-          ? _value.entries
-          : entries // ignore: cast_nullable_to_non_nullable
-              as List<ProjectEncounterEntry>,
-      tags: null == tags
-          ? _value.tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-    ) as $Val);
-  }
+/// Create a copy of ProjectEncounterTable
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? encounterKind = null,Object? chancePerStep = null,Object? conditions = null,Object? entries = null,Object? tags = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,encounterKind: null == encounterKind ? _self.encounterKind : encounterKind // ignore: cast_nullable_to_non_nullable
+as EncounterKind,chancePerStep: null == chancePerStep ? _self.chancePerStep : chancePerStep // ignore: cast_nullable_to_non_nullable
+as double,conditions: null == conditions ? _self.conditions : conditions // ignore: cast_nullable_to_non_nullable
+as List<ScriptCondition>,entries: null == entries ? _self.entries : entries // ignore: cast_nullable_to_non_nullable
+as List<ProjectEncounterEntry>,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectEncounterTableImplCopyWith<$Res>
-    implements $ProjectEncounterTableCopyWith<$Res> {
-  factory _$$ProjectEncounterTableImplCopyWith(
-          _$ProjectEncounterTableImpl value,
-          $Res Function(_$ProjectEncounterTableImpl) then) =
-      __$$ProjectEncounterTableImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      EncounterKind encounterKind,
-      double chancePerStep,
-      List<ScriptCondition> conditions,
-      List<ProjectEncounterEntry> entries,
-      List<String> tags});
 }
 
-/// @nodoc
-class __$$ProjectEncounterTableImplCopyWithImpl<$Res>
-    extends _$ProjectEncounterTableCopyWithImpl<$Res,
-        _$ProjectEncounterTableImpl>
-    implements _$$ProjectEncounterTableImplCopyWith<$Res> {
-  __$$ProjectEncounterTableImplCopyWithImpl(_$ProjectEncounterTableImpl _value,
-      $Res Function(_$ProjectEncounterTableImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectEncounterTable
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? encounterKind = null,
-    Object? chancePerStep = null,
-    Object? conditions = null,
-    Object? entries = null,
-    Object? tags = null,
-  }) {
-    return _then(_$ProjectEncounterTableImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      encounterKind: null == encounterKind
-          ? _value.encounterKind
-          : encounterKind // ignore: cast_nullable_to_non_nullable
-              as EncounterKind,
-      chancePerStep: null == chancePerStep
-          ? _value.chancePerStep
-          : chancePerStep // ignore: cast_nullable_to_non_nullable
-              as double,
-      conditions: null == conditions
-          ? _value._conditions
-          : conditions // ignore: cast_nullable_to_non_nullable
-              as List<ScriptCondition>,
-      entries: null == entries
-          ? _value._entries
-          : entries // ignore: cast_nullable_to_non_nullable
-              as List<ProjectEncounterEntry>,
-      tags: null == tags
-          ? _value._tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectEncounterTable].
+extension ProjectEncounterTablePatterns on ProjectEncounterTable {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectEncounterTable value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectEncounterTable() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectEncounterTable value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectEncounterTable():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectEncounterTable value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectEncounterTable() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  EncounterKind encounterKind,  double chancePerStep,  List<ScriptCondition> conditions,  List<ProjectEncounterEntry> entries,  List<String> tags)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectEncounterTable() when $default != null:
+return $default(_that.id,_that.name,_that.encounterKind,_that.chancePerStep,_that.conditions,_that.entries,_that.tags);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  EncounterKind encounterKind,  double chancePerStep,  List<ScriptCondition> conditions,  List<ProjectEncounterEntry> entries,  List<String> tags)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectEncounterTable():
+return $default(_that.id,_that.name,_that.encounterKind,_that.chancePerStep,_that.conditions,_that.entries,_that.tags);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  EncounterKind encounterKind,  double chancePerStep,  List<ScriptCondition> conditions,  List<ProjectEncounterEntry> entries,  List<String> tags)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectEncounterTable() when $default != null:
+return $default(_that.id,_that.name,_that.encounterKind,_that.chancePerStep,_that.conditions,_that.entries,_that.tags);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectEncounterTableImpl implements _ProjectEncounterTable {
-  const _$ProjectEncounterTableImpl(
-      {required this.id,
-      required this.name,
-      required this.encounterKind,
-      this.chancePerStep = defaultEncounterChancePerStep,
-      final List<ScriptCondition> conditions = const [],
-      final List<ProjectEncounterEntry> entries = const [],
-      final List<String> tags = const []})
-      : _conditions = conditions,
-        _entries = entries,
-        _tags = tags;
+class _ProjectEncounterTable implements ProjectEncounterTable {
+  const _ProjectEncounterTable({required this.id, required this.name, required this.encounterKind, this.chancePerStep = defaultEncounterChancePerStep, final  List<ScriptCondition> conditions = const [], final  List<ProjectEncounterEntry> entries = const [], final  List<String> tags = const []}): _conditions = conditions,_entries = entries,_tags = tags;
+  factory _ProjectEncounterTable.fromJson(Map<String, dynamic> json) => _$ProjectEncounterTableFromJson(json);
 
-  factory _$ProjectEncounterTableImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectEncounterTableImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final EncounterKind encounterKind;
-
-  /// Probability of attempting this table after one eligible movement step.
-  ///
-  /// The runtime consumes this authored value. Tests may still provide an
-  /// explicit policy override, but production must not replace it with a
-  /// hard-coded rate.
-  @override
-  @JsonKey()
-  final double chancePerStep;
-
-  /// All conditions must evaluate against the current persisted [GameState]
-  /// before a roll can occur.
-  final List<ScriptCondition> _conditions;
-
-  /// All conditions must evaluate against the current persisted [GameState]
-  /// before a roll can occur.
-  @override
-  @JsonKey()
-  List<ScriptCondition> get conditions {
-    if (_conditions is EqualUnmodifiableListView) return _conditions;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_conditions);
-  }
-
-  final List<ProjectEncounterEntry> _entries;
-  @override
-  @JsonKey()
-  List<ProjectEncounterEntry> get entries {
-    if (_entries is EqualUnmodifiableListView) return _entries;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_entries);
-  }
-
-  final List<String> _tags;
-  @override
-  @JsonKey()
-  List<String> get tags {
-    if (_tags is EqualUnmodifiableListView) return _tags;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tags);
-  }
-
-  @override
-  String toString() {
-    return 'ProjectEncounterTable(id: $id, name: $name, encounterKind: $encounterKind, chancePerStep: $chancePerStep, conditions: $conditions, entries: $entries, tags: $tags)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectEncounterTableImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.encounterKind, encounterKind) ||
-                other.encounterKind == encounterKind) &&
-            (identical(other.chancePerStep, chancePerStep) ||
-                other.chancePerStep == chancePerStep) &&
-            const DeepCollectionEquality()
-                .equals(other._conditions, _conditions) &&
-            const DeepCollectionEquality().equals(other._entries, _entries) &&
-            const DeepCollectionEquality().equals(other._tags, _tags));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      encounterKind,
-      chancePerStep,
-      const DeepCollectionEquality().hash(_conditions),
-      const DeepCollectionEquality().hash(_entries),
-      const DeepCollectionEquality().hash(_tags));
-
-  /// Create a copy of ProjectEncounterTable
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectEncounterTableImplCopyWith<_$ProjectEncounterTableImpl>
-      get copyWith => __$$ProjectEncounterTableImplCopyWithImpl<
-          _$ProjectEncounterTableImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectEncounterTableImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override final  EncounterKind encounterKind;
+/// Probability of attempting this table after one eligible movement step.
+///
+/// The runtime consumes this authored value. Tests may still provide an
+/// explicit policy override, but production must not replace it with a
+/// hard-coded rate.
+@override@JsonKey() final  double chancePerStep;
+/// All conditions must evaluate against the current persisted [GameState]
+/// before a roll can occur.
+ final  List<ScriptCondition> _conditions;
+/// All conditions must evaluate against the current persisted [GameState]
+/// before a roll can occur.
+@override@JsonKey() List<ScriptCondition> get conditions {
+  if (_conditions is EqualUnmodifiableListView) return _conditions;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_conditions);
 }
 
-abstract class _ProjectEncounterTable implements ProjectEncounterTable {
-  const factory _ProjectEncounterTable(
-      {required final String id,
-      required final String name,
-      required final EncounterKind encounterKind,
-      final double chancePerStep,
-      final List<ScriptCondition> conditions,
-      final List<ProjectEncounterEntry> entries,
-      final List<String> tags}) = _$ProjectEncounterTableImpl;
-
-  factory _ProjectEncounterTable.fromJson(Map<String, dynamic> json) =
-      _$ProjectEncounterTableImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  EncounterKind get encounterKind;
-
-  /// Probability of attempting this table after one eligible movement step.
-  ///
-  /// The runtime consumes this authored value. Tests may still provide an
-  /// explicit policy override, but production must not replace it with a
-  /// hard-coded rate.
-  @override
-  double get chancePerStep;
-
-  /// All conditions must evaluate against the current persisted [GameState]
-  /// before a roll can occur.
-  @override
-  List<ScriptCondition> get conditions;
-  @override
-  List<ProjectEncounterEntry> get entries;
-  @override
-  List<String> get tags;
-
-  /// Create a copy of ProjectEncounterTable
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectEncounterTableImplCopyWith<_$ProjectEncounterTableImpl>
-      get copyWith => throw _privateConstructorUsedError;
+ final  List<ProjectEncounterEntry> _entries;
+@override@JsonKey() List<ProjectEncounterEntry> get entries {
+  if (_entries is EqualUnmodifiableListView) return _entries;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_entries);
 }
 
-ProjectScriptEntry _$ProjectScriptEntryFromJson(Map<String, dynamic> json) {
-  return _ProjectScriptEntry.fromJson(json);
+ final  List<String> _tags;
+@override@JsonKey() List<String> get tags {
+  if (_tags is EqualUnmodifiableListView) return _tags;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tags);
 }
+
+
+/// Create a copy of ProjectEncounterTable
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectEncounterTableCopyWith<_ProjectEncounterTable> get copyWith => __$ProjectEncounterTableCopyWithImpl<_ProjectEncounterTable>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectEncounterTableToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectEncounterTable&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.encounterKind, encounterKind) || other.encounterKind == encounterKind)&&(identical(other.chancePerStep, chancePerStep) || other.chancePerStep == chancePerStep)&&const DeepCollectionEquality().equals(other._conditions, _conditions)&&const DeepCollectionEquality().equals(other._entries, _entries)&&const DeepCollectionEquality().equals(other._tags, _tags));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,encounterKind,chancePerStep,const DeepCollectionEquality().hash(_conditions),const DeepCollectionEquality().hash(_entries),const DeepCollectionEquality().hash(_tags));
+
+@override
+String toString() {
+  return 'ProjectEncounterTable(id: $id, name: $name, encounterKind: $encounterKind, chancePerStep: $chancePerStep, conditions: $conditions, entries: $entries, tags: $tags)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectEncounterTableCopyWith<$Res> implements $ProjectEncounterTableCopyWith<$Res> {
+  factory _$ProjectEncounterTableCopyWith(_ProjectEncounterTable value, $Res Function(_ProjectEncounterTable) _then) = __$ProjectEncounterTableCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, EncounterKind encounterKind, double chancePerStep, List<ScriptCondition> conditions, List<ProjectEncounterEntry> entries, List<String> tags
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectEncounterTableCopyWithImpl<$Res>
+    implements _$ProjectEncounterTableCopyWith<$Res> {
+  __$ProjectEncounterTableCopyWithImpl(this._self, this._then);
+
+  final _ProjectEncounterTable _self;
+  final $Res Function(_ProjectEncounterTable) _then;
+
+/// Create a copy of ProjectEncounterTable
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? encounterKind = null,Object? chancePerStep = null,Object? conditions = null,Object? entries = null,Object? tags = null,}) {
+  return _then(_ProjectEncounterTable(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,encounterKind: null == encounterKind ? _self.encounterKind : encounterKind // ignore: cast_nullable_to_non_nullable
+as EncounterKind,chancePerStep: null == chancePerStep ? _self.chancePerStep : chancePerStep // ignore: cast_nullable_to_non_nullable
+as double,conditions: null == conditions ? _self._conditions : conditions // ignore: cast_nullable_to_non_nullable
+as List<ScriptCondition>,entries: null == entries ? _self._entries : entries // ignore: cast_nullable_to_non_nullable
+as List<ProjectEncounterEntry>,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$ProjectScriptEntry {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  ScriptAsset get asset => throw _privateConstructorUsedError;
-  List<String> get tags => throw _privateConstructorUsedError;
+
+ String get id; String get name; ScriptAsset get asset; List<String> get tags;
+/// Create a copy of ProjectScriptEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectScriptEntryCopyWith<ProjectScriptEntry> get copyWith => _$ProjectScriptEntryCopyWithImpl<ProjectScriptEntry>(this as ProjectScriptEntry, _$identity);
 
   /// Serializes this ProjectScriptEntry to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectScriptEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectScriptEntryCopyWith<ProjectScriptEntry> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectScriptEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.asset, asset) || other.asset == asset)&&const DeepCollectionEquality().equals(other.tags, tags));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,asset,const DeepCollectionEquality().hash(tags));
+
+@override
+String toString() {
+  return 'ProjectScriptEntry(id: $id, name: $name, asset: $asset, tags: $tags)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectScriptEntryCopyWith<$Res> {
-  factory $ProjectScriptEntryCopyWith(
-          ProjectScriptEntry value, $Res Function(ProjectScriptEntry) then) =
-      _$ProjectScriptEntryCopyWithImpl<$Res, ProjectScriptEntry>;
-  @useResult
-  $Res call({String id, String name, ScriptAsset asset, List<String> tags});
+abstract mixin class $ProjectScriptEntryCopyWith<$Res>  {
+  factory $ProjectScriptEntryCopyWith(ProjectScriptEntry value, $Res Function(ProjectScriptEntry) _then) = _$ProjectScriptEntryCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, ScriptAsset asset, List<String> tags
+});
 
-  $ScriptAssetCopyWith<$Res> get asset;
+
+$ScriptAssetCopyWith<$Res> get asset;
+
 }
-
 /// @nodoc
-class _$ProjectScriptEntryCopyWithImpl<$Res, $Val extends ProjectScriptEntry>
+class _$ProjectScriptEntryCopyWithImpl<$Res>
     implements $ProjectScriptEntryCopyWith<$Res> {
-  _$ProjectScriptEntryCopyWithImpl(this._value, this._then);
+  _$ProjectScriptEntryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectScriptEntry _self;
+  final $Res Function(ProjectScriptEntry) _then;
 
-  /// Create a copy of ProjectScriptEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? asset = null,
-    Object? tags = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      asset: null == asset
-          ? _value.asset
-          : asset // ignore: cast_nullable_to_non_nullable
-              as ScriptAsset,
-      tags: null == tags
-          ? _value.tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-    ) as $Val);
-  }
+/// Create a copy of ProjectScriptEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? asset = null,Object? tags = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,asset: null == asset ? _self.asset : asset // ignore: cast_nullable_to_non_nullable
+as ScriptAsset,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
+}
+/// Create a copy of ProjectScriptEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ScriptAssetCopyWith<$Res> get asset {
 
-  /// Create a copy of ProjectScriptEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $ScriptAssetCopyWith<$Res> get asset {
-    return $ScriptAssetCopyWith<$Res>(_value.asset, (value) {
-      return _then(_value.copyWith(asset: value) as $Val);
-    });
-  }
+  return $ScriptAssetCopyWith<$Res>(_self.asset, (value) {
+    return _then(_self.copyWith(asset: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$ProjectScriptEntryImplCopyWith<$Res>
-    implements $ProjectScriptEntryCopyWith<$Res> {
-  factory _$$ProjectScriptEntryImplCopyWith(_$ProjectScriptEntryImpl value,
-          $Res Function(_$ProjectScriptEntryImpl) then) =
-      __$$ProjectScriptEntryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({String id, String name, ScriptAsset asset, List<String> tags});
 
-  @override
-  $ScriptAssetCopyWith<$Res> get asset;
+/// Adds pattern-matching-related methods to [ProjectScriptEntry].
+extension ProjectScriptEntryPatterns on ProjectScriptEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectScriptEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectScriptEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectScriptEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectScriptEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectScriptEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectScriptEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  ScriptAsset asset,  List<String> tags)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectScriptEntry() when $default != null:
+return $default(_that.id,_that.name,_that.asset,_that.tags);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  ScriptAsset asset,  List<String> tags)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectScriptEntry():
+return $default(_that.id,_that.name,_that.asset,_that.tags);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  ScriptAsset asset,  List<String> tags)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectScriptEntry() when $default != null:
+return $default(_that.id,_that.name,_that.asset,_that.tags);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$ProjectScriptEntryImplCopyWithImpl<$Res>
-    extends _$ProjectScriptEntryCopyWithImpl<$Res, _$ProjectScriptEntryImpl>
-    implements _$$ProjectScriptEntryImplCopyWith<$Res> {
-  __$$ProjectScriptEntryImplCopyWithImpl(_$ProjectScriptEntryImpl _value,
-      $Res Function(_$ProjectScriptEntryImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of ProjectScriptEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? asset = null,
-    Object? tags = null,
-  }) {
-    return _then(_$ProjectScriptEntryImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      asset: null == asset
-          ? _value.asset
-          : asset // ignore: cast_nullable_to_non_nullable
-              as ScriptAsset,
-      tags: null == tags
-          ? _value._tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectScriptEntryImpl implements _ProjectScriptEntry {
-  const _$ProjectScriptEntryImpl(
-      {required this.id,
-      required this.name,
-      required this.asset,
-      final List<String> tags = const []})
-      : _tags = tags;
+class _ProjectScriptEntry implements ProjectScriptEntry {
+  const _ProjectScriptEntry({required this.id, required this.name, required this.asset, final  List<String> tags = const []}): _tags = tags;
+  factory _ProjectScriptEntry.fromJson(Map<String, dynamic> json) => _$ProjectScriptEntryFromJson(json);
 
-  factory _$ProjectScriptEntryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectScriptEntryImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final ScriptAsset asset;
-  final List<String> _tags;
-  @override
-  @JsonKey()
-  List<String> get tags {
-    if (_tags is EqualUnmodifiableListView) return _tags;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tags);
-  }
-
-  @override
-  String toString() {
-    return 'ProjectScriptEntry(id: $id, name: $name, asset: $asset, tags: $tags)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectScriptEntryImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.asset, asset) || other.asset == asset) &&
-            const DeepCollectionEquality().equals(other._tags, _tags));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType, id, name, asset, const DeepCollectionEquality().hash(_tags));
-
-  /// Create a copy of ProjectScriptEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectScriptEntryImplCopyWith<_$ProjectScriptEntryImpl> get copyWith =>
-      __$$ProjectScriptEntryImplCopyWithImpl<_$ProjectScriptEntryImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectScriptEntryImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override final  ScriptAsset asset;
+ final  List<String> _tags;
+@override@JsonKey() List<String> get tags {
+  if (_tags is EqualUnmodifiableListView) return _tags;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tags);
 }
 
-abstract class _ProjectScriptEntry implements ProjectScriptEntry {
-  const factory _ProjectScriptEntry(
-      {required final String id,
-      required final String name,
-      required final ScriptAsset asset,
-      final List<String> tags}) = _$ProjectScriptEntryImpl;
 
-  factory _ProjectScriptEntry.fromJson(Map<String, dynamic> json) =
-      _$ProjectScriptEntryImpl.fromJson;
+/// Create a copy of ProjectScriptEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectScriptEntryCopyWith<_ProjectScriptEntry> get copyWith => __$ProjectScriptEntryCopyWithImpl<_ProjectScriptEntry>(this, _$identity);
 
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  ScriptAsset get asset;
-  @override
-  List<String> get tags;
-
-  /// Create a copy of ProjectScriptEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectScriptEntryImplCopyWith<_$ProjectScriptEntryImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectScriptEntryToJson(this, );
 }
 
-ProjectCharacterEntry _$ProjectCharacterEntryFromJson(
-    Map<String, dynamic> json) {
-  return _ProjectCharacterEntry.fromJson(json);
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectScriptEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.asset, asset) || other.asset == asset)&&const DeepCollectionEquality().equals(other._tags, _tags));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,asset,const DeepCollectionEquality().hash(_tags));
+
+@override
+String toString() {
+  return 'ProjectScriptEntry(id: $id, name: $name, asset: $asset, tags: $tags)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectScriptEntryCopyWith<$Res> implements $ProjectScriptEntryCopyWith<$Res> {
+  factory _$ProjectScriptEntryCopyWith(_ProjectScriptEntry value, $Res Function(_ProjectScriptEntry) _then) = __$ProjectScriptEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, ScriptAsset asset, List<String> tags
+});
+
+
+@override $ScriptAssetCopyWith<$Res> get asset;
+
+}
+/// @nodoc
+class __$ProjectScriptEntryCopyWithImpl<$Res>
+    implements _$ProjectScriptEntryCopyWith<$Res> {
+  __$ProjectScriptEntryCopyWithImpl(this._self, this._then);
+
+  final _ProjectScriptEntry _self;
+  final $Res Function(_ProjectScriptEntry) _then;
+
+/// Create a copy of ProjectScriptEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? asset = null,Object? tags = null,}) {
+  return _then(_ProjectScriptEntry(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,asset: null == asset ? _self.asset : asset // ignore: cast_nullable_to_non_nullable
+as ScriptAsset,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,
+  ));
+}
+
+/// Create a copy of ProjectScriptEntry
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ScriptAssetCopyWith<$Res> get asset {
+
+  return $ScriptAssetCopyWith<$Res>(_self.asset, (value) {
+    return _then(_self.copyWith(asset: value));
+  });
+}
+}
+
 
 /// @nodoc
 mixin _$ProjectCharacterEntry {
-  String get id => throw _privateConstructorUsedError;
-  String get name => throw _privateConstructorUsedError;
-  String get tilesetId => throw _privateConstructorUsedError;
-  int get frameWidth => throw _privateConstructorUsedError;
-  int get frameHeight => throw _privateConstructorUsedError;
-  List<CharacterAnimation> get animations => throw _privateConstructorUsedError;
-  List<String> get tags => throw _privateConstructorUsedError;
-  int get sortOrder => throw _privateConstructorUsedError;
+
+ String get id; String get name; String get tilesetId; int get frameWidth; int get frameHeight; List<CharacterAnimation> get animations; List<String> get tags; int get sortOrder;
+/// Create a copy of ProjectCharacterEntry
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectCharacterEntryCopyWith<ProjectCharacterEntry> get copyWith => _$ProjectCharacterEntryCopyWithImpl<ProjectCharacterEntry>(this as ProjectCharacterEntry, _$identity);
 
   /// Serializes this ProjectCharacterEntry to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of ProjectCharacterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectCharacterEntryCopyWith<ProjectCharacterEntry> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other.animations, animations)&&const DeepCollectionEquality().equals(other.tags, tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,frameWidth,frameHeight,const DeepCollectionEquality().hash(animations),const DeepCollectionEquality().hash(tags),sortOrder);
+
+@override
+String toString() {
+  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, animations: $animations, tags: $tags, sortOrder: $sortOrder)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $ProjectCharacterEntryCopyWith<$Res> {
-  factory $ProjectCharacterEntryCopyWith(ProjectCharacterEntry value,
-          $Res Function(ProjectCharacterEntry) then) =
-      _$ProjectCharacterEntryCopyWithImpl<$Res, ProjectCharacterEntry>;
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String tilesetId,
-      int frameWidth,
-      int frameHeight,
-      List<CharacterAnimation> animations,
-      List<String> tags,
-      int sortOrder});
-}
+abstract mixin class $ProjectCharacterEntryCopyWith<$Res>  {
+  factory $ProjectCharacterEntryCopyWith(ProjectCharacterEntry value, $Res Function(ProjectCharacterEntry) _then) = _$ProjectCharacterEntryCopyWithImpl;
+@useResult
+$Res call({
+ String id, String name, String tilesetId, int frameWidth, int frameHeight, List<CharacterAnimation> animations, List<String> tags, int sortOrder
+});
 
+
+
+
+}
 /// @nodoc
-class _$ProjectCharacterEntryCopyWithImpl<$Res,
-        $Val extends ProjectCharacterEntry>
+class _$ProjectCharacterEntryCopyWithImpl<$Res>
     implements $ProjectCharacterEntryCopyWith<$Res> {
-  _$ProjectCharacterEntryCopyWithImpl(this._value, this._then);
+  _$ProjectCharacterEntryCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final ProjectCharacterEntry _self;
+  final $Res Function(ProjectCharacterEntry) _then;
 
-  /// Create a copy of ProjectCharacterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? tilesetId = null,
-    Object? frameWidth = null,
-    Object? frameHeight = null,
-    Object? animations = null,
-    Object? tags = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_value.copyWith(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      frameWidth: null == frameWidth
-          ? _value.frameWidth
-          : frameWidth // ignore: cast_nullable_to_non_nullable
-              as int,
-      frameHeight: null == frameHeight
-          ? _value.frameHeight
-          : frameHeight // ignore: cast_nullable_to_non_nullable
-              as int,
-      animations: null == animations
-          ? _value.animations
-          : animations // ignore: cast_nullable_to_non_nullable
-              as List<CharacterAnimation>,
-      tags: null == tags
-          ? _value.tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of ProjectCharacterEntry
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? frameWidth = null,Object? frameHeight = null,Object? animations = null,Object? tags = null,Object? sortOrder = null,}) {
+  return _then(_self.copyWith(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
+as int,frameHeight: null == frameHeight ? _self.frameHeight : frameHeight // ignore: cast_nullable_to_non_nullable
+as int,animations: null == animations ? _self.animations : animations // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimation>,tags: null == tags ? _self.tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
 }
 
-/// @nodoc
-abstract class _$$ProjectCharacterEntryImplCopyWith<$Res>
-    implements $ProjectCharacterEntryCopyWith<$Res> {
-  factory _$$ProjectCharacterEntryImplCopyWith(
-          _$ProjectCharacterEntryImpl value,
-          $Res Function(_$ProjectCharacterEntryImpl) then) =
-      __$$ProjectCharacterEntryImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String id,
-      String name,
-      String tilesetId,
-      int frameWidth,
-      int frameHeight,
-      List<CharacterAnimation> animations,
-      List<String> tags,
-      int sortOrder});
 }
 
-/// @nodoc
-class __$$ProjectCharacterEntryImplCopyWithImpl<$Res>
-    extends _$ProjectCharacterEntryCopyWithImpl<$Res,
-        _$ProjectCharacterEntryImpl>
-    implements _$$ProjectCharacterEntryImplCopyWith<$Res> {
-  __$$ProjectCharacterEntryImplCopyWithImpl(_$ProjectCharacterEntryImpl _value,
-      $Res Function(_$ProjectCharacterEntryImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of ProjectCharacterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? id = null,
-    Object? name = null,
-    Object? tilesetId = null,
-    Object? frameWidth = null,
-    Object? frameHeight = null,
-    Object? animations = null,
-    Object? tags = null,
-    Object? sortOrder = null,
-  }) {
-    return _then(_$ProjectCharacterEntryImpl(
-      id: null == id
-          ? _value.id
-          : id // ignore: cast_nullable_to_non_nullable
-              as String,
-      name: null == name
-          ? _value.name
-          : name // ignore: cast_nullable_to_non_nullable
-              as String,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-      frameWidth: null == frameWidth
-          ? _value.frameWidth
-          : frameWidth // ignore: cast_nullable_to_non_nullable
-              as int,
-      frameHeight: null == frameHeight
-          ? _value.frameHeight
-          : frameHeight // ignore: cast_nullable_to_non_nullable
-              as int,
-      animations: null == animations
-          ? _value._animations
-          : animations // ignore: cast_nullable_to_non_nullable
-              as List<CharacterAnimation>,
-      tags: null == tags
-          ? _value._tags
-          : tags // ignore: cast_nullable_to_non_nullable
-              as List<String>,
-      sortOrder: null == sortOrder
-          ? _value.sortOrder
-          : sortOrder // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
+/// Adds pattern-matching-related methods to [ProjectCharacterEntry].
+extension ProjectCharacterEntryPatterns on ProjectCharacterEntry {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectCharacterEntry value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectCharacterEntry() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectCharacterEntry value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectCharacterEntry():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectCharacterEntry value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectCharacterEntry() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight,  List<CharacterAnimation> animations,  List<String> tags,  int sortOrder)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectCharacterEntry() when $default != null:
+return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.animations,_that.tags,_that.sortOrder);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight,  List<CharacterAnimation> animations,  List<String> tags,  int sortOrder)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectCharacterEntry():
+return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.animations,_that.tags,_that.sortOrder);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  String tilesetId,  int frameWidth,  int frameHeight,  List<CharacterAnimation> animations,  List<String> tags,  int sortOrder)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectCharacterEntry() when $default != null:
+return $default(_that.id,_that.name,_that.tilesetId,_that.frameWidth,_that.frameHeight,_that.animations,_that.tags,_that.sortOrder);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectCharacterEntryImpl implements _ProjectCharacterEntry {
-  const _$ProjectCharacterEntryImpl(
-      {required this.id,
-      required this.name,
-      required this.tilesetId,
-      this.frameWidth = 1,
-      this.frameHeight = 2,
-      final List<CharacterAnimation> animations = const [],
-      final List<String> tags = const [],
-      this.sortOrder = 0})
-      : _animations = animations,
-        _tags = tags;
+class _ProjectCharacterEntry implements ProjectCharacterEntry {
+  const _ProjectCharacterEntry({required this.id, required this.name, required this.tilesetId, this.frameWidth = 1, this.frameHeight = 2, final  List<CharacterAnimation> animations = const [], final  List<String> tags = const [], this.sortOrder = 0}): _animations = animations,_tags = tags;
+  factory _ProjectCharacterEntry.fromJson(Map<String, dynamic> json) => _$ProjectCharacterEntryFromJson(json);
 
-  factory _$ProjectCharacterEntryImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectCharacterEntryImplFromJson(json);
-
-  @override
-  final String id;
-  @override
-  final String name;
-  @override
-  final String tilesetId;
-  @override
-  @JsonKey()
-  final int frameWidth;
-  @override
-  @JsonKey()
-  final int frameHeight;
-  final List<CharacterAnimation> _animations;
-  @override
-  @JsonKey()
-  List<CharacterAnimation> get animations {
-    if (_animations is EqualUnmodifiableListView) return _animations;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_animations);
-  }
-
-  final List<String> _tags;
-  @override
-  @JsonKey()
-  List<String> get tags {
-    if (_tags is EqualUnmodifiableListView) return _tags;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_tags);
-  }
-
-  @override
-  @JsonKey()
-  final int sortOrder;
-
-  @override
-  String toString() {
-    return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, animations: $animations, tags: $tags, sortOrder: $sortOrder)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectCharacterEntryImpl &&
-            (identical(other.id, id) || other.id == id) &&
-            (identical(other.name, name) || other.name == name) &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId) &&
-            (identical(other.frameWidth, frameWidth) ||
-                other.frameWidth == frameWidth) &&
-            (identical(other.frameHeight, frameHeight) ||
-                other.frameHeight == frameHeight) &&
-            const DeepCollectionEquality()
-                .equals(other._animations, _animations) &&
-            const DeepCollectionEquality().equals(other._tags, _tags) &&
-            (identical(other.sortOrder, sortOrder) ||
-                other.sortOrder == sortOrder));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      id,
-      name,
-      tilesetId,
-      frameWidth,
-      frameHeight,
-      const DeepCollectionEquality().hash(_animations),
-      const DeepCollectionEquality().hash(_tags),
-      sortOrder);
-
-  /// Create a copy of ProjectCharacterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectCharacterEntryImplCopyWith<_$ProjectCharacterEntryImpl>
-      get copyWith => __$$ProjectCharacterEntryImplCopyWithImpl<
-          _$ProjectCharacterEntryImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$ProjectCharacterEntryImplToJson(
-      this,
-    );
-  }
+@override final  String id;
+@override final  String name;
+@override final  String tilesetId;
+@override@JsonKey() final  int frameWidth;
+@override@JsonKey() final  int frameHeight;
+ final  List<CharacterAnimation> _animations;
+@override@JsonKey() List<CharacterAnimation> get animations {
+  if (_animations is EqualUnmodifiableListView) return _animations;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_animations);
 }
 
-abstract class _ProjectCharacterEntry implements ProjectCharacterEntry {
-  const factory _ProjectCharacterEntry(
-      {required final String id,
-      required final String name,
-      required final String tilesetId,
-      final int frameWidth,
-      final int frameHeight,
-      final List<CharacterAnimation> animations,
-      final List<String> tags,
-      final int sortOrder}) = _$ProjectCharacterEntryImpl;
-
-  factory _ProjectCharacterEntry.fromJson(Map<String, dynamic> json) =
-      _$ProjectCharacterEntryImpl.fromJson;
-
-  @override
-  String get id;
-  @override
-  String get name;
-  @override
-  String get tilesetId;
-  @override
-  int get frameWidth;
-  @override
-  int get frameHeight;
-  @override
-  List<CharacterAnimation> get animations;
-  @override
-  List<String> get tags;
-  @override
-  int get sortOrder;
-
-  /// Create a copy of ProjectCharacterEntry
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectCharacterEntryImplCopyWith<_$ProjectCharacterEntryImpl>
-      get copyWith => throw _privateConstructorUsedError;
+ final  List<String> _tags;
+@override@JsonKey() List<String> get tags {
+  if (_tags is EqualUnmodifiableListView) return _tags;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_tags);
 }
 
-CharacterAnimation _$CharacterAnimationFromJson(Map<String, dynamic> json) {
-  return _CharacterAnimation.fromJson(json);
+@override@JsonKey() final  int sortOrder;
+
+/// Create a copy of ProjectCharacterEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectCharacterEntryCopyWith<_ProjectCharacterEntry> get copyWith => __$ProjectCharacterEntryCopyWithImpl<_ProjectCharacterEntry>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectCharacterEntryToJson(this, );
 }
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectCharacterEntry&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId)&&(identical(other.frameWidth, frameWidth) || other.frameWidth == frameWidth)&&(identical(other.frameHeight, frameHeight) || other.frameHeight == frameHeight)&&const DeepCollectionEquality().equals(other._animations, _animations)&&const DeepCollectionEquality().equals(other._tags, _tags)&&(identical(other.sortOrder, sortOrder) || other.sortOrder == sortOrder));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,id,name,tilesetId,frameWidth,frameHeight,const DeepCollectionEquality().hash(_animations),const DeepCollectionEquality().hash(_tags),sortOrder);
+
+@override
+String toString() {
+  return 'ProjectCharacterEntry(id: $id, name: $name, tilesetId: $tilesetId, frameWidth: $frameWidth, frameHeight: $frameHeight, animations: $animations, tags: $tags, sortOrder: $sortOrder)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectCharacterEntryCopyWith<$Res> implements $ProjectCharacterEntryCopyWith<$Res> {
+  factory _$ProjectCharacterEntryCopyWith(_ProjectCharacterEntry value, $Res Function(_ProjectCharacterEntry) _then) = __$ProjectCharacterEntryCopyWithImpl;
+@override @useResult
+$Res call({
+ String id, String name, String tilesetId, int frameWidth, int frameHeight, List<CharacterAnimation> animations, List<String> tags, int sortOrder
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectCharacterEntryCopyWithImpl<$Res>
+    implements _$ProjectCharacterEntryCopyWith<$Res> {
+  __$ProjectCharacterEntryCopyWithImpl(this._self, this._then);
+
+  final _ProjectCharacterEntry _self;
+  final $Res Function(_ProjectCharacterEntry) _then;
+
+/// Create a copy of ProjectCharacterEntry
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? tilesetId = null,Object? frameWidth = null,Object? frameHeight = null,Object? animations = null,Object? tags = null,Object? sortOrder = null,}) {
+  return _then(_ProjectCharacterEntry(
+id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
+as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
+as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,frameWidth: null == frameWidth ? _self.frameWidth : frameWidth // ignore: cast_nullable_to_non_nullable
+as int,frameHeight: null == frameHeight ? _self.frameHeight : frameHeight // ignore: cast_nullable_to_non_nullable
+as int,animations: null == animations ? _self._animations : animations // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimation>,tags: null == tags ? _self._tags : tags // ignore: cast_nullable_to_non_nullable
+as List<String>,sortOrder: null == sortOrder ? _self.sortOrder : sortOrder // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$CharacterAnimation {
-  CharacterAnimationState get state => throw _privateConstructorUsedError;
-  EntityFacing get direction => throw _privateConstructorUsedError;
-  List<CharacterAnimationFrame> get frames =>
-      throw _privateConstructorUsedError;
+
+ CharacterAnimationState get state; EntityFacing get direction; List<CharacterAnimationFrame> get frames;
+/// Create a copy of CharacterAnimation
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CharacterAnimationCopyWith<CharacterAnimation> get copyWith => _$CharacterAnimationCopyWithImpl<CharacterAnimation>(this as CharacterAnimation, _$identity);
 
   /// Serializes this CharacterAnimation to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of CharacterAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $CharacterAnimationCopyWith<CharacterAnimation> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&const DeepCollectionEquality().equals(other.frames, frames));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,state,direction,const DeepCollectionEquality().hash(frames));
+
+@override
+String toString() {
+  return 'CharacterAnimation(state: $state, direction: $direction, frames: $frames)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $CharacterAnimationCopyWith<$Res> {
-  factory $CharacterAnimationCopyWith(
-          CharacterAnimation value, $Res Function(CharacterAnimation) then) =
-      _$CharacterAnimationCopyWithImpl<$Res, CharacterAnimation>;
-  @useResult
-  $Res call(
-      {CharacterAnimationState state,
-      EntityFacing direction,
-      List<CharacterAnimationFrame> frames});
-}
+abstract mixin class $CharacterAnimationCopyWith<$Res>  {
+  factory $CharacterAnimationCopyWith(CharacterAnimation value, $Res Function(CharacterAnimation) _then) = _$CharacterAnimationCopyWithImpl;
+@useResult
+$Res call({
+ CharacterAnimationState state, EntityFacing direction, List<CharacterAnimationFrame> frames
+});
 
+
+
+
+}
 /// @nodoc
-class _$CharacterAnimationCopyWithImpl<$Res, $Val extends CharacterAnimation>
+class _$CharacterAnimationCopyWithImpl<$Res>
     implements $CharacterAnimationCopyWith<$Res> {
-  _$CharacterAnimationCopyWithImpl(this._value, this._then);
+  _$CharacterAnimationCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final CharacterAnimation _self;
+  final $Res Function(CharacterAnimation) _then;
 
-  /// Create a copy of CharacterAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? state = null,
-    Object? direction = null,
-    Object? frames = null,
-  }) {
-    return _then(_value.copyWith(
-      state: null == state
-          ? _value.state
-          : state // ignore: cast_nullable_to_non_nullable
-              as CharacterAnimationState,
-      direction: null == direction
-          ? _value.direction
-          : direction // ignore: cast_nullable_to_non_nullable
-              as EntityFacing,
-      frames: null == frames
-          ? _value.frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<CharacterAnimationFrame>,
-    ) as $Val);
-  }
+/// Create a copy of CharacterAnimation
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? state = null,Object? direction = null,Object? frames = null,}) {
+  return _then(_self.copyWith(
+state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
+as CharacterAnimationState,direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as EntityFacing,frames: null == frames ? _self.frames : frames // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimationFrame>,
+  ));
 }
 
-/// @nodoc
-abstract class _$$CharacterAnimationImplCopyWith<$Res>
-    implements $CharacterAnimationCopyWith<$Res> {
-  factory _$$CharacterAnimationImplCopyWith(_$CharacterAnimationImpl value,
-          $Res Function(_$CharacterAnimationImpl) then) =
-      __$$CharacterAnimationImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {CharacterAnimationState state,
-      EntityFacing direction,
-      List<CharacterAnimationFrame> frames});
 }
 
-/// @nodoc
-class __$$CharacterAnimationImplCopyWithImpl<$Res>
-    extends _$CharacterAnimationCopyWithImpl<$Res, _$CharacterAnimationImpl>
-    implements _$$CharacterAnimationImplCopyWith<$Res> {
-  __$$CharacterAnimationImplCopyWithImpl(_$CharacterAnimationImpl _value,
-      $Res Function(_$CharacterAnimationImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of CharacterAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? state = null,
-    Object? direction = null,
-    Object? frames = null,
-  }) {
-    return _then(_$CharacterAnimationImpl(
-      state: null == state
-          ? _value.state
-          : state // ignore: cast_nullable_to_non_nullable
-              as CharacterAnimationState,
-      direction: null == direction
-          ? _value.direction
-          : direction // ignore: cast_nullable_to_non_nullable
-              as EntityFacing,
-      frames: null == frames
-          ? _value._frames
-          : frames // ignore: cast_nullable_to_non_nullable
-              as List<CharacterAnimationFrame>,
-    ));
-  }
+/// Adds pattern-matching-related methods to [CharacterAnimation].
+extension CharacterAnimationPatterns on CharacterAnimation {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CharacterAnimation value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CharacterAnimation() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CharacterAnimation value)  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterAnimation():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CharacterAnimation value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterAnimation() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction,  List<CharacterAnimationFrame> frames)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CharacterAnimation() when $default != null:
+return $default(_that.state,_that.direction,_that.frames);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( CharacterAnimationState state,  EntityFacing direction,  List<CharacterAnimationFrame> frames)  $default,) {final _that = this;
+switch (_that) {
+case _CharacterAnimation():
+return $default(_that.state,_that.direction,_that.frames);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( CharacterAnimationState state,  EntityFacing direction,  List<CharacterAnimationFrame> frames)?  $default,) {final _that = this;
+switch (_that) {
+case _CharacterAnimation() when $default != null:
+return $default(_that.state,_that.direction,_that.frames);case _:
+  return null;
+
+}
+}
+
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$CharacterAnimationImpl implements _CharacterAnimation {
-  const _$CharacterAnimationImpl(
-      {required this.state,
-      required this.direction,
-      final List<CharacterAnimationFrame> frames = const []})
-      : _frames = frames;
+class _CharacterAnimation implements CharacterAnimation {
+  const _CharacterAnimation({required this.state, required this.direction, final  List<CharacterAnimationFrame> frames = const []}): _frames = frames;
+  factory _CharacterAnimation.fromJson(Map<String, dynamic> json) => _$CharacterAnimationFromJson(json);
 
-  factory _$CharacterAnimationImpl.fromJson(Map<String, dynamic> json) =>
-      _$$CharacterAnimationImplFromJson(json);
-
-  @override
-  final CharacterAnimationState state;
-  @override
-  final EntityFacing direction;
-  final List<CharacterAnimationFrame> _frames;
-  @override
-  @JsonKey()
-  List<CharacterAnimationFrame> get frames {
-    if (_frames is EqualUnmodifiableListView) return _frames;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_frames);
-  }
-
-  @override
-  String toString() {
-    return 'CharacterAnimation(state: $state, direction: $direction, frames: $frames)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$CharacterAnimationImpl &&
-            (identical(other.state, state) || other.state == state) &&
-            (identical(other.direction, direction) ||
-                other.direction == direction) &&
-            const DeepCollectionEquality().equals(other._frames, _frames));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, state, direction,
-      const DeepCollectionEquality().hash(_frames));
-
-  /// Create a copy of CharacterAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$CharacterAnimationImplCopyWith<_$CharacterAnimationImpl> get copyWith =>
-      __$$CharacterAnimationImplCopyWithImpl<_$CharacterAnimationImpl>(
-          this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$CharacterAnimationImplToJson(
-      this,
-    );
-  }
+@override final  CharacterAnimationState state;
+@override final  EntityFacing direction;
+ final  List<CharacterAnimationFrame> _frames;
+@override@JsonKey() List<CharacterAnimationFrame> get frames {
+  if (_frames is EqualUnmodifiableListView) return _frames;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_frames);
 }
 
-abstract class _CharacterAnimation implements CharacterAnimation {
-  const factory _CharacterAnimation(
-      {required final CharacterAnimationState state,
-      required final EntityFacing direction,
-      final List<CharacterAnimationFrame> frames}) = _$CharacterAnimationImpl;
 
-  factory _CharacterAnimation.fromJson(Map<String, dynamic> json) =
-      _$CharacterAnimationImpl.fromJson;
+/// Create a copy of CharacterAnimation
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CharacterAnimationCopyWith<_CharacterAnimation> get copyWith => __$CharacterAnimationCopyWithImpl<_CharacterAnimation>(this, _$identity);
 
-  @override
-  CharacterAnimationState get state;
-  @override
-  EntityFacing get direction;
-  @override
-  List<CharacterAnimationFrame> get frames;
-
-  /// Create a copy of CharacterAnimation
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CharacterAnimationImplCopyWith<_$CharacterAnimationImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+Map<String, dynamic> toJson() {
+  return _$CharacterAnimationToJson(this, );
 }
 
-CharacterAnimationFrame _$CharacterAnimationFrameFromJson(
-    Map<String, dynamic> json) {
-  return _CharacterAnimationFrame.fromJson(json);
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterAnimation&&(identical(other.state, state) || other.state == state)&&(identical(other.direction, direction) || other.direction == direction)&&const DeepCollectionEquality().equals(other._frames, _frames));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,state,direction,const DeepCollectionEquality().hash(_frames));
+
+@override
+String toString() {
+  return 'CharacterAnimation(state: $state, direction: $direction, frames: $frames)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CharacterAnimationCopyWith<$Res> implements $CharacterAnimationCopyWith<$Res> {
+  factory _$CharacterAnimationCopyWith(_CharacterAnimation value, $Res Function(_CharacterAnimation) _then) = __$CharacterAnimationCopyWithImpl;
+@override @useResult
+$Res call({
+ CharacterAnimationState state, EntityFacing direction, List<CharacterAnimationFrame> frames
+});
+
+
+
+
+}
+/// @nodoc
+class __$CharacterAnimationCopyWithImpl<$Res>
+    implements _$CharacterAnimationCopyWith<$Res> {
+  __$CharacterAnimationCopyWithImpl(this._self, this._then);
+
+  final _CharacterAnimation _self;
+  final $Res Function(_CharacterAnimation) _then;
+
+/// Create a copy of CharacterAnimation
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? state = null,Object? direction = null,Object? frames = null,}) {
+  return _then(_CharacterAnimation(
+state: null == state ? _self.state : state // ignore: cast_nullable_to_non_nullable
+as CharacterAnimationState,direction: null == direction ? _self.direction : direction // ignore: cast_nullable_to_non_nullable
+as EntityFacing,frames: null == frames ? _self._frames : frames // ignore: cast_nullable_to_non_nullable
+as List<CharacterAnimationFrame>,
+  ));
+}
+
+
+}
+
 
 /// @nodoc
 mixin _$CharacterAnimationFrame {
-  TilesetSourceRect get source => throw _privateConstructorUsedError;
-  int get durationMs => throw _privateConstructorUsedError;
+
+ TilesetSourceRect get source; int get durationMs;
+/// Create a copy of CharacterAnimationFrame
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CharacterAnimationFrameCopyWith<CharacterAnimationFrame> get copyWith => _$CharacterAnimationFrameCopyWithImpl<CharacterAnimationFrame>(this as CharacterAnimationFrame, _$identity);
 
   /// Serializes this CharacterAnimationFrame to a JSON map.
-  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+  Map<String, dynamic> toJson();
 
-  /// Create a copy of CharacterAnimationFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $CharacterAnimationFrameCopyWith<CharacterAnimationFrame> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CharacterAnimationFrame&&(identical(other.source, source) || other.source == source)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,source,durationMs);
+
+@override
+String toString() {
+  return 'CharacterAnimationFrame(source: $source, durationMs: $durationMs)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $CharacterAnimationFrameCopyWith<$Res> {
-  factory $CharacterAnimationFrameCopyWith(CharacterAnimationFrame value,
-          $Res Function(CharacterAnimationFrame) then) =
-      _$CharacterAnimationFrameCopyWithImpl<$Res, CharacterAnimationFrame>;
-  @useResult
-  $Res call({TilesetSourceRect source, int durationMs});
+abstract mixin class $CharacterAnimationFrameCopyWith<$Res>  {
+  factory $CharacterAnimationFrameCopyWith(CharacterAnimationFrame value, $Res Function(CharacterAnimationFrame) _then) = _$CharacterAnimationFrameCopyWithImpl;
+@useResult
+$Res call({
+ TilesetSourceRect source, int durationMs
+});
 
-  $TilesetSourceRectCopyWith<$Res> get source;
+
+$TilesetSourceRectCopyWith<$Res> get source;
+
 }
-
 /// @nodoc
-class _$CharacterAnimationFrameCopyWithImpl<$Res,
-        $Val extends CharacterAnimationFrame>
+class _$CharacterAnimationFrameCopyWithImpl<$Res>
     implements $CharacterAnimationFrameCopyWith<$Res> {
-  _$CharacterAnimationFrameCopyWithImpl(this._value, this._then);
+  _$CharacterAnimationFrameCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final CharacterAnimationFrame _self;
+  final $Res Function(CharacterAnimationFrame) _then;
 
-  /// Create a copy of CharacterAnimationFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? source = null,
-    Object? durationMs = null,
-  }) {
-    return _then(_value.copyWith(
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
-      durationMs: null == durationMs
-          ? _value.durationMs
-          : durationMs // ignore: cast_nullable_to_non_nullable
-              as int,
-    ) as $Val);
-  }
+/// Create a copy of CharacterAnimationFrame
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? source = null,Object? durationMs = null,}) {
+  return _then(_self.copyWith(
+source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as TilesetSourceRect,durationMs: null == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+/// Create a copy of CharacterAnimationFrame
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TilesetSourceRectCopyWith<$Res> get source {
 
-  /// Create a copy of CharacterAnimationFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $TilesetSourceRectCopyWith<$Res> get source {
-    return $TilesetSourceRectCopyWith<$Res>(_value.source, (value) {
-      return _then(_value.copyWith(source: value) as $Val);
-    });
-  }
+  return $TilesetSourceRectCopyWith<$Res>(_self.source, (value) {
+    return _then(_self.copyWith(source: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$CharacterAnimationFrameImplCopyWith<$Res>
-    implements $CharacterAnimationFrameCopyWith<$Res> {
-  factory _$$CharacterAnimationFrameImplCopyWith(
-          _$CharacterAnimationFrameImpl value,
-          $Res Function(_$CharacterAnimationFrameImpl) then) =
-      __$$CharacterAnimationFrameImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call({TilesetSourceRect source, int durationMs});
 
-  @override
-  $TilesetSourceRectCopyWith<$Res> get source;
+/// Adds pattern-matching-related methods to [CharacterAnimationFrame].
+extension CharacterAnimationFramePatterns on CharacterAnimationFrame {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _CharacterAnimationFrame value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _CharacterAnimationFrame() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _CharacterAnimationFrame value)  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterAnimationFrame():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _CharacterAnimationFrame value)?  $default,){
+final _that = this;
+switch (_that) {
+case _CharacterAnimationFrame() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( TilesetSourceRect source,  int durationMs)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _CharacterAnimationFrame() when $default != null:
+return $default(_that.source,_that.durationMs);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( TilesetSourceRect source,  int durationMs)  $default,) {final _that = this;
+switch (_that) {
+case _CharacterAnimationFrame():
+return $default(_that.source,_that.durationMs);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( TilesetSourceRect source,  int durationMs)?  $default,) {final _that = this;
+switch (_that) {
+case _CharacterAnimationFrame() when $default != null:
+return $default(_that.source,_that.durationMs);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$CharacterAnimationFrameImplCopyWithImpl<$Res>
-    extends _$CharacterAnimationFrameCopyWithImpl<$Res,
-        _$CharacterAnimationFrameImpl>
-    implements _$$CharacterAnimationFrameImplCopyWith<$Res> {
-  __$$CharacterAnimationFrameImplCopyWithImpl(
-      _$CharacterAnimationFrameImpl _value,
-      $Res Function(_$CharacterAnimationFrameImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of CharacterAnimationFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? source = null,
-    Object? durationMs = null,
-  }) {
-    return _then(_$CharacterAnimationFrameImpl(
-      source: null == source
-          ? _value.source
-          : source // ignore: cast_nullable_to_non_nullable
-              as TilesetSourceRect,
-      durationMs: null == durationMs
-          ? _value.durationMs
-          : durationMs // ignore: cast_nullable_to_non_nullable
-              as int,
-    ));
-  }
 }
 
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$CharacterAnimationFrameImpl implements _CharacterAnimationFrame {
-  const _$CharacterAnimationFrameImpl(
-      {required this.source, this.durationMs = 150});
+class _CharacterAnimationFrame implements CharacterAnimationFrame {
+  const _CharacterAnimationFrame({required this.source, this.durationMs = 150});
+  factory _CharacterAnimationFrame.fromJson(Map<String, dynamic> json) => _$CharacterAnimationFrameFromJson(json);
 
-  factory _$CharacterAnimationFrameImpl.fromJson(Map<String, dynamic> json) =>
-      _$$CharacterAnimationFrameImplFromJson(json);
+@override final  TilesetSourceRect source;
+@override@JsonKey() final  int durationMs;
 
-  @override
-  final TilesetSourceRect source;
-  @override
-  @JsonKey()
-  final int durationMs;
+/// Create a copy of CharacterAnimationFrame
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$CharacterAnimationFrameCopyWith<_CharacterAnimationFrame> get copyWith => __$CharacterAnimationFrameCopyWithImpl<_CharacterAnimationFrame>(this, _$identity);
 
-  @override
-  String toString() {
-    return 'CharacterAnimationFrame(source: $source, durationMs: $durationMs)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$CharacterAnimationFrameImpl &&
-            (identical(other.source, source) || other.source == source) &&
-            (identical(other.durationMs, durationMs) ||
-                other.durationMs == durationMs));
-  }
-
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  int get hashCode => Object.hash(runtimeType, source, durationMs);
-
-  /// Create a copy of CharacterAnimationFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$CharacterAnimationFrameImplCopyWith<_$CharacterAnimationFrameImpl>
-      get copyWith => __$$CharacterAnimationFrameImplCopyWithImpl<
-          _$CharacterAnimationFrameImpl>(this, _$identity);
-
-  @override
-  Map<String, dynamic> toJson() {
-    return _$$CharacterAnimationFrameImplToJson(
-      this,
-    );
-  }
+@override
+Map<String, dynamic> toJson() {
+  return _$CharacterAnimationFrameToJson(this, );
 }
 
-abstract class _CharacterAnimationFrame implements CharacterAnimationFrame {
-  const factory _CharacterAnimationFrame(
-      {required final TilesetSourceRect source,
-      final int durationMs}) = _$CharacterAnimationFrameImpl;
-
-  factory _CharacterAnimationFrame.fromJson(Map<String, dynamic> json) =
-      _$CharacterAnimationFrameImpl.fromJson;
-
-  @override
-  TilesetSourceRect get source;
-  @override
-  int get durationMs;
-
-  /// Create a copy of CharacterAnimationFrame
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CharacterAnimationFrameImplCopyWith<_$CharacterAnimationFrameImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _CharacterAnimationFrame&&(identical(other.source, source) || other.source == source)&&(identical(other.durationMs, durationMs) || other.durationMs == durationMs));
 }
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,source,durationMs);
+
+@override
+String toString() {
+  return 'CharacterAnimationFrame(source: $source, durationMs: $durationMs)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$CharacterAnimationFrameCopyWith<$Res> implements $CharacterAnimationFrameCopyWith<$Res> {
+  factory _$CharacterAnimationFrameCopyWith(_CharacterAnimationFrame value, $Res Function(_CharacterAnimationFrame) _then) = __$CharacterAnimationFrameCopyWithImpl;
+@override @useResult
+$Res call({
+ TilesetSourceRect source, int durationMs
+});
+
+
+@override $TilesetSourceRectCopyWith<$Res> get source;
+
+}
+/// @nodoc
+class __$CharacterAnimationFrameCopyWithImpl<$Res>
+    implements _$CharacterAnimationFrameCopyWith<$Res> {
+  __$CharacterAnimationFrameCopyWithImpl(this._self, this._then);
+
+  final _CharacterAnimationFrame _self;
+  final $Res Function(_CharacterAnimationFrame) _then;
+
+/// Create a copy of CharacterAnimationFrame
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? source = null,Object? durationMs = null,}) {
+  return _then(_CharacterAnimationFrame(
+source: null == source ? _self.source : source // ignore: cast_nullable_to_non_nullable
+as TilesetSourceRect,durationMs: null == durationMs ? _self.durationMs : durationMs // ignore: cast_nullable_to_non_nullable
+as int,
+  ));
+}
+
+/// Create a copy of CharacterAnimationFrame
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$TilesetSourceRectCopyWith<$Res> get source {
+
+  return $TilesetSourceRectCopyWith<$Res>(_self.source, (value) {
+    return _then(_self.copyWith(source: value));
+  });
+}
+}
+
+// dart format on

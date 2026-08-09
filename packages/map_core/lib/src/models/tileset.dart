@@ -4,7 +4,7 @@ part 'tileset.freezed.dart';
 part 'tileset.g.dart';
 
 @freezed
-class TilesetConfig with _$TilesetConfig {
+abstract class TilesetConfig with _$TilesetConfig {
   @JsonSerializable(explicitToJson: true)
   const factory TilesetConfig({
     required String id,
@@ -20,7 +20,7 @@ class TilesetConfig with _$TilesetConfig {
 }
 
 @freezed
-class TileProperties with _$TileProperties {
+abstract class TileProperties with _$TileProperties {
   const factory TileProperties({
     required int tileId,
     @Default(true) bool isPassable,

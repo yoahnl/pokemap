@@ -6,37 +6,43 @@ part of 'scenario_asset.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$ScenarioAssetImpl _$$ScenarioAssetImplFromJson(Map<String, dynamic> json) =>
-    _$ScenarioAssetImpl(
+_ScenarioAsset _$ScenarioAssetFromJson(Map<String, dynamic> json) =>
+    _ScenarioAsset(
       id: json['id'] as String,
       name: json['name'] as String,
       description: json['description'] as String? ?? '',
-      scope: $enumDecodeNullable(_$ScenarioScopeEnumMap, json['scope']) ??
+      scope:
+          $enumDecodeNullable(_$ScenarioScopeEnumMap, json['scope']) ??
           ScenarioScope.localEventFlow,
       entryNodeId: json['entryNodeId'] as String,
-      declaredOutcomes: (json['declaredOutcomes'] as List<dynamic>?)
+      declaredOutcomes:
+          (json['declaredOutcomes'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const <String>[],
       activationCondition: json['activationCondition'] == null
           ? null
           : ScriptCondition.fromJson(
-              json['activationCondition'] as Map<String, dynamic>),
-      nodes: (json['nodes'] as List<dynamic>?)
+              json['activationCondition'] as Map<String, dynamic>,
+            ),
+      nodes:
+          (json['nodes'] as List<dynamic>?)
               ?.map((e) => ScenarioNode.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const <ScenarioNode>[],
-      edges: (json['edges'] as List<dynamic>?)
+      edges:
+          (json['edges'] as List<dynamic>?)
               ?.map((e) => ScenarioEdge.fromJson(e as Map<String, dynamic>))
               .toList() ??
           const <ScenarioEdge>[],
-      metadata: (json['metadata'] as Map<String, dynamic>?)?.map(
+      metadata:
+          (json['metadata'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
           const {},
     );
 
-Map<String, dynamic> _$$ScenarioAssetImplToJson(_$ScenarioAssetImpl instance) =>
+Map<String, dynamic> _$ScenarioAssetToJson(_ScenarioAsset instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
@@ -55,32 +61,32 @@ const _$ScenarioScopeEnumMap = {
   ScenarioScope.localEventFlow: 'localEventFlow',
 };
 
-_$ScenarioNodeImpl _$$ScenarioNodeImplFromJson(Map<String, dynamic> json) =>
-    _$ScenarioNodeImpl(
-      id: json['id'] as String,
-      type: $enumDecodeNullable(_$ScenarioNodeTypeEnumMap, json['type']) ??
-          ScenarioNodeType.action,
-      title: json['title'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      position: json['position'] == null
-          ? const ScenarioNodePosition(x: 0, y: 0)
-          : ScenarioNodePosition.fromJson(
-              json['position'] as Map<String, dynamic>),
-      binding: json['binding'] == null
-          ? const ScenarioNodeBinding()
-          : ScenarioNodeBinding.fromJson(
-              json['binding'] as Map<String, dynamic>),
-      payload: json['payload'] == null
-          ? const ScenarioNodePayload()
-          : ScenarioNodePayload.fromJson(
-              json['payload'] as Map<String, dynamic>),
-      metadata: (json['metadata'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, e as String),
-          ) ??
-          const {},
-    );
+_ScenarioNode _$ScenarioNodeFromJson(
+  Map<String, dynamic> json,
+) => _ScenarioNode(
+  id: json['id'] as String,
+  type:
+      $enumDecodeNullable(_$ScenarioNodeTypeEnumMap, json['type']) ??
+      ScenarioNodeType.action,
+  title: json['title'] as String? ?? '',
+  description: json['description'] as String? ?? '',
+  position: json['position'] == null
+      ? const ScenarioNodePosition(x: 0, y: 0)
+      : ScenarioNodePosition.fromJson(json['position'] as Map<String, dynamic>),
+  binding: json['binding'] == null
+      ? const ScenarioNodeBinding()
+      : ScenarioNodeBinding.fromJson(json['binding'] as Map<String, dynamic>),
+  payload: json['payload'] == null
+      ? const ScenarioNodePayload()
+      : ScenarioNodePayload.fromJson(json['payload'] as Map<String, dynamic>),
+  metadata:
+      (json['metadata'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
+);
 
-Map<String, dynamic> _$$ScenarioNodeImplToJson(_$ScenarioNodeImpl instance) =>
+Map<String, dynamic> _$ScenarioNodeToJson(_ScenarioNode instance) =>
     <String, dynamic>{
       'id': instance.id,
       'type': _$ScenarioNodeTypeEnumMap[instance.type]!,
@@ -102,23 +108,19 @@ const _$ScenarioNodeTypeEnumMap = {
   ScenarioNodeType.end: 'end',
 };
 
-_$ScenarioNodePositionImpl _$$ScenarioNodePositionImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ScenarioNodePositionImpl(
-      x: (json['x'] as num).toDouble(),
-      y: (json['y'] as num).toDouble(),
-    );
+_ScenarioNodePosition _$ScenarioNodePositionFromJson(
+  Map<String, dynamic> json,
+) => _ScenarioNodePosition(
+  x: (json['x'] as num).toDouble(),
+  y: (json['y'] as num).toDouble(),
+);
 
-Map<String, dynamic> _$$ScenarioNodePositionImplToJson(
-        _$ScenarioNodePositionImpl instance) =>
-    <String, dynamic>{
-      'x': instance.x,
-      'y': instance.y,
-    };
+Map<String, dynamic> _$ScenarioNodePositionToJson(
+  _ScenarioNodePosition instance,
+) => <String, dynamic>{'x': instance.x, 'y': instance.y};
 
-_$ScenarioNodeBindingImpl _$$ScenarioNodeBindingImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ScenarioNodeBindingImpl(
+_ScenarioNodeBinding _$ScenarioNodeBindingFromJson(Map<String, dynamic> json) =>
+    _ScenarioNodeBinding(
       mapId: json['mapId'] as String?,
       eventId: json['eventId'] as String?,
       entityId: json['entityId'] as String?,
@@ -132,66 +134,69 @@ _$ScenarioNodeBindingImpl _$$ScenarioNodeBindingImplFromJson(
       variableName: json['variableName'] as String?,
     );
 
-Map<String, dynamic> _$$ScenarioNodeBindingImplToJson(
-        _$ScenarioNodeBindingImpl instance) =>
-    <String, dynamic>{
-      'mapId': instance.mapId,
-      'eventId': instance.eventId,
-      'entityId': instance.entityId,
-      'warpId': instance.warpId,
-      'triggerId': instance.triggerId,
-      'trainerId': instance.trainerId,
-      'dialogueId': instance.dialogueId,
-      'scriptId': instance.scriptId,
-      'outcomeId': instance.outcomeId,
-      'flagName': instance.flagName,
-      'variableName': instance.variableName,
-    };
+Map<String, dynamic> _$ScenarioNodeBindingToJson(
+  _ScenarioNodeBinding instance,
+) => <String, dynamic>{
+  'mapId': instance.mapId,
+  'eventId': instance.eventId,
+  'entityId': instance.entityId,
+  'warpId': instance.warpId,
+  'triggerId': instance.triggerId,
+  'trainerId': instance.trainerId,
+  'dialogueId': instance.dialogueId,
+  'scriptId': instance.scriptId,
+  'outcomeId': instance.outcomeId,
+  'flagName': instance.flagName,
+  'variableName': instance.variableName,
+};
 
-_$ScenarioNodePayloadImpl _$$ScenarioNodePayloadImplFromJson(
-        Map<String, dynamic> json) =>
-    _$ScenarioNodePayloadImpl(
+_ScenarioNodePayload _$ScenarioNodePayloadFromJson(Map<String, dynamic> json) =>
+    _ScenarioNodePayload(
       actionKind: json['actionKind'] as String?,
       message: json['message'] as String?,
       condition: json['condition'] == null
           ? null
           : ScriptCondition.fromJson(json['condition'] as Map<String, dynamic>),
-      choiceLabels: (json['choiceLabels'] as List<dynamic>?)
+      choiceLabels:
+          (json['choiceLabels'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           const <String>[],
-      params: (json['params'] as Map<String, dynamic>?)?.map(
+      params:
+          (json['params'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
           const {},
     );
 
-Map<String, dynamic> _$$ScenarioNodePayloadImplToJson(
-        _$ScenarioNodePayloadImpl instance) =>
-    <String, dynamic>{
-      'actionKind': instance.actionKind,
-      'message': instance.message,
-      'condition': instance.condition?.toJson(),
-      'choiceLabels': instance.choiceLabels,
-      'params': instance.params,
-    };
+Map<String, dynamic> _$ScenarioNodePayloadToJson(
+  _ScenarioNodePayload instance,
+) => <String, dynamic>{
+  'actionKind': instance.actionKind,
+  'message': instance.message,
+  'condition': instance.condition?.toJson(),
+  'choiceLabels': instance.choiceLabels,
+  'params': instance.params,
+};
 
-_$ScenarioEdgeImpl _$$ScenarioEdgeImplFromJson(Map<String, dynamic> json) =>
-    _$ScenarioEdgeImpl(
+_ScenarioEdge _$ScenarioEdgeFromJson(Map<String, dynamic> json) =>
+    _ScenarioEdge(
       id: json['id'] as String,
       fromNodeId: json['fromNodeId'] as String,
       toNodeId: json['toNodeId'] as String,
       label: json['label'] as String? ?? '',
-      kind: $enumDecodeNullable(_$ScenarioEdgeKindEnumMap, json['kind']) ??
+      kind:
+          $enumDecodeNullable(_$ScenarioEdgeKindEnumMap, json['kind']) ??
           ScenarioEdgeKind.next,
       order: (json['order'] as num?)?.toInt() ?? 0,
-      metadata: (json['metadata'] as Map<String, dynamic>?)?.map(
+      metadata:
+          (json['metadata'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
           const {},
     );
 
-Map<String, dynamic> _$$ScenarioEdgeImplToJson(_$ScenarioEdgeImpl instance) =>
+Map<String, dynamic> _$ScenarioEdgeToJson(_ScenarioEdge instance) =>
     <String, dynamic>{
       'id': instance.id,
       'fromNodeId': instance.fromNodeId,

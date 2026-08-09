@@ -10,7 +10,7 @@ part 'script_asset.g.dart';
 ///
 /// Le script peut être démarré depuis n'importe quel noeud.
 @freezed
-class ScriptAsset with _$ScriptAsset {
+abstract class ScriptAsset with _$ScriptAsset {
   @JsonSerializable(explicitToJson: true)
   const factory ScriptAsset({
     /// Identifiant unique du script.
@@ -38,7 +38,7 @@ class ScriptAsset with _$ScriptAsset {
 /// - sauter à un noeud spécifique (via commande goto)
 /// - se terminer (end)
 @freezed
-class ScriptNode with _$ScriptNode {
+abstract class ScriptNode with _$ScriptNode {
   @JsonSerializable(explicitToJson: true)
   const factory ScriptNode({
     /// Identifiant unique dans le script.
@@ -67,7 +67,7 @@ class ScriptNode with _$ScriptNode {
 /// - Dialogue : openDialogue
 /// - Gameplay : warpPlayer, giveItem, unlockFieldAbility
 @freezed
-class ScriptCommand with _$ScriptCommand {
+abstract class ScriptCommand with _$ScriptCommand {
   @JsonSerializable(explicitToJson: true)
   const factory ScriptCommand({
     required ScriptCommandType type,
@@ -133,7 +133,7 @@ enum ScriptCommandType {
 
 /// Référence à un dialogue Yarn.
 @freezed
-class YarnDialogueRef with _$YarnDialogueRef {
+abstract class YarnDialogueRef with _$YarnDialogueRef {
   @JsonSerializable(explicitToJson: true)
   const factory YarnDialogueRef({
     /// Chemin du fichier .yarn (relatif au projet).

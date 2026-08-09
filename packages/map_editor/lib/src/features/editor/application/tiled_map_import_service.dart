@@ -29,7 +29,7 @@ final class FilePickerTiledMapSourcePicker implements TiledMapSourcePicker {
 
   @override
   Future<String?> pickTmxPath() async {
-    final result = await FilePicker.platform.pickFiles(
+    final result = await FilePicker.pickFiles(
       type: FileType.custom,
       allowedExtensions: const <String>['tmx'],
       allowMultiple: false,

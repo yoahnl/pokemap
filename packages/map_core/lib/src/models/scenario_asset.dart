@@ -6,7 +6,7 @@ part 'scenario_asset.freezed.dart';
 part 'scenario_asset.g.dart';
 
 @freezed
-class ScenarioAsset with _$ScenarioAsset {
+abstract class ScenarioAsset with _$ScenarioAsset {
   @JsonSerializable(explicitToJson: true)
   const factory ScenarioAsset({
     required String id,
@@ -46,7 +46,7 @@ class ScenarioAsset with _$ScenarioAsset {
 }
 
 @freezed
-class ScenarioNode with _$ScenarioNode {
+abstract class ScenarioNode with _$ScenarioNode {
   @JsonSerializable(explicitToJson: true)
   const factory ScenarioNode({
     required String id,
@@ -64,7 +64,7 @@ class ScenarioNode with _$ScenarioNode {
 }
 
 @freezed
-class ScenarioNodePosition with _$ScenarioNodePosition {
+abstract class ScenarioNodePosition with _$ScenarioNodePosition {
   const factory ScenarioNodePosition({
     required double x,
     required double y,
@@ -75,7 +75,7 @@ class ScenarioNodePosition with _$ScenarioNodePosition {
 }
 
 @freezed
-class ScenarioNodeBinding with _$ScenarioNodeBinding {
+abstract class ScenarioNodeBinding with _$ScenarioNodeBinding {
   const factory ScenarioNodeBinding({
     String? mapId,
     String? eventId,
@@ -101,7 +101,7 @@ class ScenarioNodeBinding with _$ScenarioNodeBinding {
 }
 
 @freezed
-class ScenarioNodePayload with _$ScenarioNodePayload {
+abstract class ScenarioNodePayload with _$ScenarioNodePayload {
   @JsonSerializable(explicitToJson: true)
   const factory ScenarioNodePayload({
     String? actionKind,
@@ -116,7 +116,7 @@ class ScenarioNodePayload with _$ScenarioNodePayload {
 }
 
 @freezed
-class ScenarioEdge with _$ScenarioEdge {
+abstract class ScenarioEdge with _$ScenarioEdge {
   const factory ScenarioEdge({
     required String id,
     required String fromNodeId,

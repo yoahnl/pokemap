@@ -60,7 +60,7 @@ Map<String, dynamic> _rejectExplicitNullInteger(
 
 /// Item accordé par un trainer vaincu.
 @freezed
-class ProjectTrainerItemGrant with _$ProjectTrainerItemGrant {
+abstract class ProjectTrainerItemGrant with _$ProjectTrainerItemGrant {
   const factory ProjectTrainerItemGrant({
     required String itemId,
     @JsonKey(fromJson: _projectTrainerItemQuantityFromJson)
@@ -80,7 +80,7 @@ class ProjectTrainerItemGrant with _$ProjectTrainerItemGrant {
 
 /// Entrée Pokémon dans l'équipe d'un [ProjectTrainerEntry].
 @freezed
-class ProjectTrainerPokemonEntry with _$ProjectTrainerPokemonEntry {
+abstract class ProjectTrainerPokemonEntry with _$ProjectTrainerPokemonEntry {
   const factory ProjectTrainerPokemonEntry({
     required String speciesId,
     required int level,
@@ -101,7 +101,7 @@ class ProjectTrainerPokemonEntry with _$ProjectTrainerPokemonEntry {
 
 /// Fiche projet d'un dresseur, référencé depuis [MapEntityNpcData.trainerId].
 @freezed
-class ProjectTrainerEntry with _$ProjectTrainerEntry {
+abstract class ProjectTrainerEntry with _$ProjectTrainerEntry {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTrainerEntry({
     required String id,

@@ -6,77 +6,83 @@ part of 'map_data.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$MapDataImpl _$$MapDataImplFromJson(Map<String, dynamic> json) =>
-    _$MapDataImpl(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      size: GridSize.fromJson(json['size'] as Map<String, dynamic>),
-      version: $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
-          ProjectVersion.v6,
-      visualStack: json['visualStack'] == null
-          ? null
-          : MapVisualStackConfig.fromJson(
-              json['visualStack'] as Map<String, dynamic>),
-      tilesetId: json['tilesetId'] as String? ?? '',
-      layers: (json['layers'] as List<dynamic>?)
-              ?.map((e) => MapLayer.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      placedElements: (json['placedElements'] as List<dynamic>?)
-              ?.map((e) => MapPlacedElement.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      entities: (json['entities'] as List<dynamic>?)
-              ?.map((e) => MapEntity.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      connections: (json['connections'] as List<dynamic>?)
-              ?.map((e) => MapConnection.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      warps: (json['warps'] as List<dynamic>?)
-              ?.map((e) => MapWarp.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      triggers: (json['triggers'] as List<dynamic>?)
-              ?.map((e) => MapTrigger.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      gameplayZones: (json['gameplayZones'] as List<dynamic>?)
-              ?.map((e) => MapGameplayZone.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-      mapMetadata: json['mapMetadata'] == null
-          ? const MapMetadata()
-          : MapMetadata.fromJson(json['mapMetadata'] as Map<String, dynamic>),
-      properties: json['properties'] as Map<String, dynamic>? ?? const {},
-      events: (json['events'] as List<dynamic>?)
-              ?.map(
-                  (e) => MapEventDefinition.fromJson(e as Map<String, dynamic>))
-              .toList() ??
-          const [],
-    );
+_MapData _$MapDataFromJson(Map<String, dynamic> json) => _MapData(
+  id: json['id'] as String,
+  name: json['name'] as String,
+  size: GridSize.fromJson(json['size'] as Map<String, dynamic>),
+  version:
+      $enumDecodeNullable(_$ProjectVersionEnumMap, json['version']) ??
+      ProjectVersion.v6,
+  visualStack: json['visualStack'] == null
+      ? null
+      : MapVisualStackConfig.fromJson(
+          json['visualStack'] as Map<String, dynamic>,
+        ),
+  tilesetId: json['tilesetId'] as String? ?? '',
+  layers:
+      (json['layers'] as List<dynamic>?)
+          ?.map((e) => MapLayer.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  placedElements:
+      (json['placedElements'] as List<dynamic>?)
+          ?.map((e) => MapPlacedElement.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  entities:
+      (json['entities'] as List<dynamic>?)
+          ?.map((e) => MapEntity.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  connections:
+      (json['connections'] as List<dynamic>?)
+          ?.map((e) => MapConnection.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  warps:
+      (json['warps'] as List<dynamic>?)
+          ?.map((e) => MapWarp.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  triggers:
+      (json['triggers'] as List<dynamic>?)
+          ?.map((e) => MapTrigger.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  gameplayZones:
+      (json['gameplayZones'] as List<dynamic>?)
+          ?.map((e) => MapGameplayZone.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+  mapMetadata: json['mapMetadata'] == null
+      ? const MapMetadata()
+      : MapMetadata.fromJson(json['mapMetadata'] as Map<String, dynamic>),
+  properties: json['properties'] as Map<String, dynamic>? ?? const {},
+  events:
+      (json['events'] as List<dynamic>?)
+          ?.map((e) => MapEventDefinition.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [],
+);
 
-Map<String, dynamic> _$$MapDataImplToJson(_$MapDataImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'name': instance.name,
-      'size': instance.size.toJson(),
-      'version': _$ProjectVersionEnumMap[instance.version]!,
-      if (instance.visualStack?.toJson() case final value?)
-        'visualStack': value,
-      'tilesetId': instance.tilesetId,
-      'layers': instance.layers.map((e) => e.toJson()).toList(),
-      'placedElements': instance.placedElements.map((e) => e.toJson()).toList(),
-      'entities': instance.entities.map((e) => e.toJson()).toList(),
-      'connections': instance.connections.map((e) => e.toJson()).toList(),
-      'warps': instance.warps.map((e) => e.toJson()).toList(),
-      'triggers': instance.triggers.map((e) => e.toJson()).toList(),
-      'gameplayZones': instance.gameplayZones.map((e) => e.toJson()).toList(),
-      'mapMetadata': instance.mapMetadata.toJson(),
-      'properties': instance.properties,
-      'events': instance.events.map((e) => e.toJson()).toList(),
-    };
+Map<String, dynamic> _$MapDataToJson(_MapData instance) => <String, dynamic>{
+  'id': instance.id,
+  'name': instance.name,
+  'size': instance.size.toJson(),
+  'version': _$ProjectVersionEnumMap[instance.version]!,
+  'visualStack': ?instance.visualStack?.toJson(),
+  'tilesetId': instance.tilesetId,
+  'layers': instance.layers.map((e) => e.toJson()).toList(),
+  'placedElements': instance.placedElements.map((e) => e.toJson()).toList(),
+  'entities': instance.entities.map((e) => e.toJson()).toList(),
+  'connections': instance.connections.map((e) => e.toJson()).toList(),
+  'warps': instance.warps.map((e) => e.toJson()).toList(),
+  'triggers': instance.triggers.map((e) => e.toJson()).toList(),
+  'gameplayZones': instance.gameplayZones.map((e) => e.toJson()).toList(),
+  'mapMetadata': instance.mapMetadata.toJson(),
+  'properties': instance.properties,
+  'events': instance.events.map((e) => e.toJson()).toList(),
+};
 
 const _$ProjectVersionEnumMap = {
   ProjectVersion.v1: 'v1',
@@ -87,37 +93,36 @@ const _$ProjectVersionEnumMap = {
   ProjectVersion.v6: 'v6',
 };
 
-_$MapGameplayZoneImpl _$$MapGameplayZoneImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MapGameplayZoneImpl(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      kind: $enumDecode(_$GameplayZoneKindEnumMap, json['kind']),
-      area: MapRect.fromJson(json['area'] as Map<String, dynamic>),
-      priority: (json['priority'] as num?)?.toInt() ?? 0,
-      encounter: json['encounter'] == null
-          ? null
-          : EncounterZonePayload.fromJson(
-              json['encounter'] as Map<String, dynamic>),
-      movement: json['movement'] == null
-          ? null
-          : MovementZonePayload.fromJson(
-              json['movement'] as Map<String, dynamic>),
-      movementEffect: json['movementEffect'] == null
-          ? null
-          : MovementEffectZonePayload.fromJson(
-              json['movementEffect'] as Map<String, dynamic>),
-      hazard: json['hazard'] == null
-          ? null
-          : HazardZonePayload.fromJson(json['hazard'] as Map<String, dynamic>),
-      special: json['special'] == null
-          ? null
-          : SpecialZonePayload.fromJson(
-              json['special'] as Map<String, dynamic>),
-    );
+_MapGameplayZone _$MapGameplayZoneFromJson(
+  Map<String, dynamic> json,
+) => _MapGameplayZone(
+  id: json['id'] as String,
+  name: json['name'] as String? ?? '',
+  kind: $enumDecode(_$GameplayZoneKindEnumMap, json['kind']),
+  area: MapRect.fromJson(json['area'] as Map<String, dynamic>),
+  priority: (json['priority'] as num?)?.toInt() ?? 0,
+  encounter: json['encounter'] == null
+      ? null
+      : EncounterZonePayload.fromJson(
+          json['encounter'] as Map<String, dynamic>,
+        ),
+  movement: json['movement'] == null
+      ? null
+      : MovementZonePayload.fromJson(json['movement'] as Map<String, dynamic>),
+  movementEffect: json['movementEffect'] == null
+      ? null
+      : MovementEffectZonePayload.fromJson(
+          json['movementEffect'] as Map<String, dynamic>,
+        ),
+  hazard: json['hazard'] == null
+      ? null
+      : HazardZonePayload.fromJson(json['hazard'] as Map<String, dynamic>),
+  special: json['special'] == null
+      ? null
+      : SpecialZonePayload.fromJson(json['special'] as Map<String, dynamic>),
+);
 
-Map<String, dynamic> _$$MapGameplayZoneImplToJson(
-        _$MapGameplayZoneImpl instance) =>
+Map<String, dynamic> _$MapGameplayZoneToJson(_MapGameplayZone instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
@@ -140,9 +145,8 @@ const _$GameplayZoneKindEnumMap = {
   GameplayZoneKind.custom: 'custom',
 };
 
-_$MapPlacedElementImpl _$$MapPlacedElementImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MapPlacedElementImpl(
+_MapPlacedElement _$MapPlacedElementFromJson(Map<String, dynamic> json) =>
+    _MapPlacedElement(
       id: json['id'] as String,
       layerId: json['layerId'] as String,
       elementId: json['elementId'] as String,
@@ -155,22 +159,27 @@ _$MapPlacedElementImpl _$$MapPlacedElementImplFromJson(
       animation: json['animation'] == null
           ? null
           : MapPlacedElementAnimation.fromJson(
-              json['animation'] as Map<String, dynamic>),
+              json['animation'] as Map<String, dynamic>,
+            ),
       shadowOverride: const MapPlacedElementShadowOverrideJsonConverter()
           .fromJson(json['shadowOverride']),
-      behaviors: (json['behaviors'] as List<dynamic>?)
-              ?.map((e) =>
-                  MapPlacedElementBehavior.fromJson(e as Map<String, dynamic>))
+      behaviors:
+          (json['behaviors'] as List<dynamic>?)
+              ?.map(
+                (e) => MapPlacedElementBehavior.fromJson(
+                  e as Map<String, dynamic>,
+                ),
+              )
               .toList() ??
           const [],
-      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+      properties:
+          (json['properties'] as Map<String, dynamic>?)?.map(
             (k, e) => MapEntry(k, e as String),
           ) ??
           const {},
     );
 
-Map<String, dynamic> _$$MapPlacedElementImplToJson(
-        _$MapPlacedElementImpl instance) =>
+Map<String, dynamic> _$MapPlacedElementToJson(_MapPlacedElement instance) =>
     <String, dynamic>{
       'id': instance.id,
       'layerId': instance.layerId,
@@ -186,33 +195,39 @@ Map<String, dynamic> _$$MapPlacedElementImplToJson(
       'properties': instance.properties,
     };
 
-_$MapPlacedElementBehaviorImpl _$$MapPlacedElementBehaviorImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MapPlacedElementBehaviorImpl(
-      id: json['id'] as String? ?? '',
-      enabled: json['enabled'] as bool? ?? true,
-      triggerScope: $enumDecodeNullable(
-              _$MapPlacedElementTriggerScopeEnumMap, json['triggerScope']) ??
-          MapPlacedElementTriggerScope.defaultScope,
-      cooldownMs: (json['cooldownMs'] as num?)?.toInt(),
-      trigger: $enumDecodeNullable(
-              _$MapPlacedElementTriggerTypeEnumMap, json['trigger']) ??
-          MapPlacedElementTriggerType.onAction,
-      effect: MapPlacedElementEffect.fromJson(
-          json['effect'] as Map<String, dynamic>),
-    );
+_MapPlacedElementBehavior _$MapPlacedElementBehaviorFromJson(
+  Map<String, dynamic> json,
+) => _MapPlacedElementBehavior(
+  id: json['id'] as String? ?? '',
+  enabled: json['enabled'] as bool? ?? true,
+  triggerScope:
+      $enumDecodeNullable(
+        _$MapPlacedElementTriggerScopeEnumMap,
+        json['triggerScope'],
+      ) ??
+      MapPlacedElementTriggerScope.defaultScope,
+  cooldownMs: (json['cooldownMs'] as num?)?.toInt(),
+  trigger:
+      $enumDecodeNullable(
+        _$MapPlacedElementTriggerTypeEnumMap,
+        json['trigger'],
+      ) ??
+      MapPlacedElementTriggerType.onAction,
+  effect: MapPlacedElementEffect.fromJson(
+    json['effect'] as Map<String, dynamic>,
+  ),
+);
 
-Map<String, dynamic> _$$MapPlacedElementBehaviorImplToJson(
-        _$MapPlacedElementBehaviorImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'enabled': instance.enabled,
-      'triggerScope':
-          _$MapPlacedElementTriggerScopeEnumMap[instance.triggerScope]!,
-      'cooldownMs': instance.cooldownMs,
-      'trigger': _$MapPlacedElementTriggerTypeEnumMap[instance.trigger]!,
-      'effect': instance.effect.toJson(),
-    };
+Map<String, dynamic> _$MapPlacedElementBehaviorToJson(
+  _MapPlacedElementBehavior instance,
+) => <String, dynamic>{
+  'id': instance.id,
+  'enabled': instance.enabled,
+  'triggerScope': _$MapPlacedElementTriggerScopeEnumMap[instance.triggerScope]!,
+  'cooldownMs': instance.cooldownMs,
+  'trigger': _$MapPlacedElementTriggerTypeEnumMap[instance.trigger]!,
+  'effect': instance.effect.toJson(),
+};
 
 const _$MapPlacedElementTriggerScopeEnumMap = {
   MapPlacedElementTriggerScope.defaultScope: 'default',
@@ -231,25 +246,25 @@ const _$MapPlacedElementTriggerTypeEnumMap = {
   MapPlacedElementTriggerType.onNear: 'on_near',
 };
 
-_$MapPlacedElementEffectImpl _$$MapPlacedElementEffectImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MapPlacedElementEffectImpl(
-      type: $enumDecode(_$MapPlacedElementEffectTypeEnumMap, json['type']),
-      message: json['message'] as String?,
-      dialogue: json['dialogue'] == null
-          ? null
-          : DialogueRef.fromJson(json['dialogue'] as Map<String, dynamic>),
-      animationEnabled: json['animationEnabled'] as bool?,
-    );
+_MapPlacedElementEffect _$MapPlacedElementEffectFromJson(
+  Map<String, dynamic> json,
+) => _MapPlacedElementEffect(
+  type: $enumDecode(_$MapPlacedElementEffectTypeEnumMap, json['type']),
+  message: json['message'] as String?,
+  dialogue: json['dialogue'] == null
+      ? null
+      : DialogueRef.fromJson(json['dialogue'] as Map<String, dynamic>),
+  animationEnabled: json['animationEnabled'] as bool?,
+);
 
-Map<String, dynamic> _$$MapPlacedElementEffectImplToJson(
-        _$MapPlacedElementEffectImpl instance) =>
-    <String, dynamic>{
-      'type': _$MapPlacedElementEffectTypeEnumMap[instance.type]!,
-      'message': instance.message,
-      'dialogue': instance.dialogue?.toJson(),
-      'animationEnabled': instance.animationEnabled,
-    };
+Map<String, dynamic> _$MapPlacedElementEffectToJson(
+  _MapPlacedElementEffect instance,
+) => <String, dynamic>{
+  'type': _$MapPlacedElementEffectTypeEnumMap[instance.type]!,
+  'message': instance.message,
+  'dialogue': instance.dialogue?.toJson(),
+  'animationEnabled': instance.animationEnabled,
+};
 
 const _$MapPlacedElementEffectTypeEnumMap = {
   MapPlacedElementEffectType.showMessage: 'show_message',
@@ -258,29 +273,32 @@ const _$MapPlacedElementEffectTypeEnumMap = {
   MapPlacedElementEffectType.playAnimationOnce: 'play_animation_once',
 };
 
-_$MapPlacedElementAnimationImpl _$$MapPlacedElementAnimationImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MapPlacedElementAnimationImpl(
-      enabled: json['enabled'] as bool? ?? false,
-      mode: $enumDecodeNullable(
-              _$MapPlacedElementAnimationModeEnumMap, json['mode']) ??
-          MapPlacedElementAnimationMode.none,
-      autoplay: json['autoplay'] as bool? ?? true,
-      speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
-      startOffsetMs: (json['startOffsetMs'] as num?)?.toDouble(),
-      randomStart: json['randomStart'] as bool? ?? false,
-    );
+_MapPlacedElementAnimation _$MapPlacedElementAnimationFromJson(
+  Map<String, dynamic> json,
+) => _MapPlacedElementAnimation(
+  enabled: json['enabled'] as bool? ?? false,
+  mode:
+      $enumDecodeNullable(
+        _$MapPlacedElementAnimationModeEnumMap,
+        json['mode'],
+      ) ??
+      MapPlacedElementAnimationMode.none,
+  autoplay: json['autoplay'] as bool? ?? true,
+  speed: (json['speed'] as num?)?.toDouble() ?? 1.0,
+  startOffsetMs: (json['startOffsetMs'] as num?)?.toDouble(),
+  randomStart: json['randomStart'] as bool? ?? false,
+);
 
-Map<String, dynamic> _$$MapPlacedElementAnimationImplToJson(
-        _$MapPlacedElementAnimationImpl instance) =>
-    <String, dynamic>{
-      'enabled': instance.enabled,
-      'mode': _$MapPlacedElementAnimationModeEnumMap[instance.mode]!,
-      'autoplay': instance.autoplay,
-      'speed': instance.speed,
-      'startOffsetMs': instance.startOffsetMs,
-      'randomStart': instance.randomStart,
-    };
+Map<String, dynamic> _$MapPlacedElementAnimationToJson(
+  _MapPlacedElementAnimation instance,
+) => <String, dynamic>{
+  'enabled': instance.enabled,
+  'mode': _$MapPlacedElementAnimationModeEnumMap[instance.mode]!,
+  'autoplay': instance.autoplay,
+  'speed': instance.speed,
+  'startOffsetMs': instance.startOffsetMs,
+  'randomStart': instance.randomStart,
+};
 
 const _$MapPlacedElementAnimationModeEnumMap = {
   MapPlacedElementAnimationMode.none: 'none',
@@ -288,39 +306,40 @@ const _$MapPlacedElementAnimationModeEnumMap = {
   MapPlacedElementAnimationMode.pingPong: 'ping_pong',
 };
 
-_$MapEntityImpl _$$MapEntityImplFromJson(Map<String, dynamic> json) =>
-    _$MapEntityImpl(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      kind: $enumDecode(_$MapEntityKindEnumMap, json['kind']),
-      pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
-      size: json['size'] == null
-          ? const GridSize(width: 1, height: 1)
-          : GridSize.fromJson(json['size'] as Map<String, dynamic>),
-      npc: json['npc'] == null
-          ? null
-          : MapEntityNpcData.fromJson(json['npc'] as Map<String, dynamic>),
-      sign: json['sign'] == null
-          ? null
-          : MapEntitySignData.fromJson(json['sign'] as Map<String, dynamic>),
-      item: json['item'] == null
-          ? null
-          : MapEntityItemData.fromJson(json['item'] as Map<String, dynamic>),
-      spawn: json['spawn'] == null
-          ? null
-          : MapEntitySpawnData.fromJson(json['spawn'] as Map<String, dynamic>),
-      editorVisual: json['editorVisual'] == null
-          ? null
-          : MapEntityEditorVisual.fromJson(
-              json['editorVisual'] as Map<String, dynamic>),
-      blocksMovement: json['blocksMovement'] as bool? ?? true,
-      properties: (json['properties'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, e as String),
-          ) ??
-          const {},
-    );
+_MapEntity _$MapEntityFromJson(Map<String, dynamic> json) => _MapEntity(
+  id: json['id'] as String,
+  name: json['name'] as String? ?? '',
+  kind: $enumDecode(_$MapEntityKindEnumMap, json['kind']),
+  pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
+  size: json['size'] == null
+      ? const GridSize(width: 1, height: 1)
+      : GridSize.fromJson(json['size'] as Map<String, dynamic>),
+  npc: json['npc'] == null
+      ? null
+      : MapEntityNpcData.fromJson(json['npc'] as Map<String, dynamic>),
+  sign: json['sign'] == null
+      ? null
+      : MapEntitySignData.fromJson(json['sign'] as Map<String, dynamic>),
+  item: json['item'] == null
+      ? null
+      : MapEntityItemData.fromJson(json['item'] as Map<String, dynamic>),
+  spawn: json['spawn'] == null
+      ? null
+      : MapEntitySpawnData.fromJson(json['spawn'] as Map<String, dynamic>),
+  editorVisual: json['editorVisual'] == null
+      ? null
+      : MapEntityEditorVisual.fromJson(
+          json['editorVisual'] as Map<String, dynamic>,
+        ),
+  blocksMovement: json['blocksMovement'] as bool? ?? true,
+  properties:
+      (json['properties'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
+);
 
-Map<String, dynamic> _$$MapEntityImplToJson(_$MapEntityImpl instance) =>
+Map<String, dynamic> _$MapEntityToJson(_MapEntity instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
@@ -344,37 +363,37 @@ const _$MapEntityKindEnumMap = {
   MapEntityKind.custom: 'custom',
 };
 
-_$MapWarpImpl _$$MapWarpImplFromJson(Map<String, dynamic> json) =>
-    _$MapWarpImpl(
-      id: json['id'] as String,
-      pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
-      targetMapId: json['targetMapId'] as String,
-      targetPos: GridPos.fromJson(json['targetPos'] as Map<String, dynamic>),
-      triggerMode: $enumDecodeNullable(
-              _$MapWarpTriggerModeEnumMap, json['triggerMode']) ??
-          MapWarpTriggerMode.onEnter,
-      allowedApproachFacings: (json['allowedApproachFacings'] as List<dynamic>?)
-              ?.map((e) => $enumDecode(_$EntityFacingEnumMap, e))
-              .toList() ??
-          const [],
-      triggerPadding: json['triggerPadding'] == null
-          ? const WarpTriggerPadding()
-          : WarpTriggerPadding.fromJson(
-              json['triggerPadding'] as Map<String, dynamic>),
-    );
+_MapWarp _$MapWarpFromJson(Map<String, dynamic> json) => _MapWarp(
+  id: json['id'] as String,
+  pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
+  targetMapId: json['targetMapId'] as String,
+  targetPos: GridPos.fromJson(json['targetPos'] as Map<String, dynamic>),
+  triggerMode:
+      $enumDecodeNullable(_$MapWarpTriggerModeEnumMap, json['triggerMode']) ??
+      MapWarpTriggerMode.onEnter,
+  allowedApproachFacings:
+      (json['allowedApproachFacings'] as List<dynamic>?)
+          ?.map((e) => $enumDecode(_$EntityFacingEnumMap, e))
+          .toList() ??
+      const [],
+  triggerPadding: json['triggerPadding'] == null
+      ? const WarpTriggerPadding()
+      : WarpTriggerPadding.fromJson(
+          json['triggerPadding'] as Map<String, dynamic>,
+        ),
+);
 
-Map<String, dynamic> _$$MapWarpImplToJson(_$MapWarpImpl instance) =>
-    <String, dynamic>{
-      'id': instance.id,
-      'pos': instance.pos.toJson(),
-      'targetMapId': instance.targetMapId,
-      'targetPos': instance.targetPos.toJson(),
-      'triggerMode': _$MapWarpTriggerModeEnumMap[instance.triggerMode]!,
-      'allowedApproachFacings': instance.allowedApproachFacings
-          .map((e) => _$EntityFacingEnumMap[e]!)
-          .toList(),
-      'triggerPadding': instance.triggerPadding.toJson(),
-    };
+Map<String, dynamic> _$MapWarpToJson(_MapWarp instance) => <String, dynamic>{
+  'id': instance.id,
+  'pos': instance.pos.toJson(),
+  'targetMapId': instance.targetMapId,
+  'targetPos': instance.targetPos.toJson(),
+  'triggerMode': _$MapWarpTriggerModeEnumMap[instance.triggerMode]!,
+  'allowedApproachFacings': instance.allowedApproachFacings
+      .map((e) => _$EntityFacingEnumMap[e]!)
+      .toList(),
+  'triggerPadding': instance.triggerPadding.toJson(),
+};
 
 const _$MapWarpTriggerModeEnumMap = {
   MapWarpTriggerMode.onEnter: 'on_enter',
@@ -388,17 +407,15 @@ const _$EntityFacingEnumMap = {
   EntityFacing.west: 'west',
 };
 
-_$WarpTriggerPaddingImpl _$$WarpTriggerPaddingImplFromJson(
-        Map<String, dynamic> json) =>
-    _$WarpTriggerPaddingImpl(
+_WarpTriggerPadding _$WarpTriggerPaddingFromJson(Map<String, dynamic> json) =>
+    _WarpTriggerPadding(
       top: (json['top'] as num?)?.toInt() ?? 0,
       right: (json['right'] as num?)?.toInt() ?? 0,
       bottom: (json['bottom'] as num?)?.toInt() ?? 0,
       left: (json['left'] as num?)?.toInt() ?? 0,
     );
 
-Map<String, dynamic> _$$WarpTriggerPaddingImplToJson(
-        _$WarpTriggerPaddingImpl instance) =>
+Map<String, dynamic> _$WarpTriggerPaddingToJson(_WarpTriggerPadding instance) =>
     <String, dynamic>{
       'top': instance.top,
       'right': instance.right,
@@ -406,15 +423,17 @@ Map<String, dynamic> _$$WarpTriggerPaddingImplToJson(
       'left': instance.left,
     };
 
-_$MapConnectionImpl _$$MapConnectionImplFromJson(Map<String, dynamic> json) =>
-    _$MapConnectionImpl(
-      direction:
-          $enumDecode(_$MapConnectionDirectionEnumMap, json['direction']),
+_MapConnection _$MapConnectionFromJson(Map<String, dynamic> json) =>
+    _MapConnection(
+      direction: $enumDecode(
+        _$MapConnectionDirectionEnumMap,
+        json['direction'],
+      ),
       targetMapId: json['targetMapId'] as String,
       offset: (json['offset'] as num?)?.toInt() ?? 0,
     );
 
-Map<String, dynamic> _$$MapConnectionImplToJson(_$MapConnectionImpl instance) =>
+Map<String, dynamic> _$MapConnectionToJson(_MapConnection instance) =>
     <String, dynamic>{
       'direction': _$MapConnectionDirectionEnumMap[instance.direction]!,
       'targetMapId': instance.targetMapId,
@@ -428,19 +447,19 @@ const _$MapConnectionDirectionEnumMap = {
   MapConnectionDirection.west: 'west',
 };
 
-_$MapTriggerImpl _$$MapTriggerImplFromJson(Map<String, dynamic> json) =>
-    _$MapTriggerImpl(
-      id: json['id'] as String,
-      name: json['name'] as String? ?? '',
-      type: $enumDecode(_$TriggerTypeEnumMap, json['type']),
-      area: MapRect.fromJson(json['area'] as Map<String, dynamic>),
-      properties: (json['properties'] as Map<String, dynamic>?)?.map(
-            (k, e) => MapEntry(k, e as String),
-          ) ??
-          const {},
-    );
+_MapTrigger _$MapTriggerFromJson(Map<String, dynamic> json) => _MapTrigger(
+  id: json['id'] as String,
+  name: json['name'] as String? ?? '',
+  type: $enumDecode(_$TriggerTypeEnumMap, json['type']),
+  area: MapRect.fromJson(json['area'] as Map<String, dynamic>),
+  properties:
+      (json['properties'] as Map<String, dynamic>?)?.map(
+        (k, e) => MapEntry(k, e as String),
+      ) ??
+      const {},
+);
 
-Map<String, dynamic> _$$MapTriggerImplToJson(_$MapTriggerImpl instance) =>
+Map<String, dynamic> _$MapTriggerToJson(_MapTrigger instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,

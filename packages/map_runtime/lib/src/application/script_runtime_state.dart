@@ -11,7 +11,7 @@ part 'script_runtime_state.freezed.dart';
 /// - l'état de progression dans le noeud (index de commande)
 /// - l'état de suspension (en attente de dialogue, etc.)
 @freezed
-class ScriptExecutionState with _$ScriptExecutionState {
+abstract class ScriptExecutionState with _$ScriptExecutionState {
   const factory ScriptExecutionState({
     /// Script en cours d'exécution.
     required ScriptAsset script,
@@ -50,7 +50,7 @@ enum ScriptSuspendReason {
 
 /// Résultat de l'exécution d'une commande.
 @freezed
-class ScriptCommandResult with _$ScriptCommandResult {
+abstract class ScriptCommandResult with _$ScriptCommandResult {
   const factory ScriptCommandResult.completed() =
       ScriptCommandResultCompleted;
 

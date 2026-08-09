@@ -10,7 +10,7 @@ part 'element_collision_profile.freezed.dart';
 part 'element_collision_profile.g.dart';
 
 @freezed
-class ElementCollisionPixelMask with _$ElementCollisionPixelMask {
+abstract class ElementCollisionPixelMask with _$ElementCollisionPixelMask {
   @JsonSerializable(explicitToJson: true)
   const factory ElementCollisionPixelMask({
     required int widthPx,
@@ -25,7 +25,7 @@ class ElementCollisionPixelMask with _$ElementCollisionPixelMask {
 }
 
 @freezed
-class ElementCollisionProfile with _$ElementCollisionProfile {
+abstract class ElementCollisionProfile with _$ElementCollisionProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ElementCollisionProfile({
     @Default(ElementCollisionProfileSource.generated)

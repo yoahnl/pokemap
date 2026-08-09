@@ -16,12 +16,12 @@ dependencies:
   gamepads: ^0.1.10+1
   map_runtime:
     path: ../map_runtime
-  video_player: 2.9.5
+  video_player: ^2.13.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^3.0.1
+  flutter_lints: ^6.0.0
   map_core:
     path: ../map_core
 

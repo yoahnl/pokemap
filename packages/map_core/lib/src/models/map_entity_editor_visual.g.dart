@@ -6,16 +6,16 @@ part of 'map_entity_editor_visual.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$MapEntityEditorVisualImpl _$$MapEntityEditorVisualImplFromJson(
-        Map<String, dynamic> json) =>
-    _$MapEntityEditorVisualImpl(
-      elementId: json['elementId'] as String,
-      renderInForeground: json['renderInForeground'] as bool? ?? false,
-    );
+_MapEntityEditorVisual _$MapEntityEditorVisualFromJson(
+  Map<String, dynamic> json,
+) => _MapEntityEditorVisual(
+  elementId: json['elementId'] as String,
+  renderInForeground: json['renderInForeground'] as bool? ?? false,
+);
 
-Map<String, dynamic> _$$MapEntityEditorVisualImplToJson(
-        _$MapEntityEditorVisualImpl instance) =>
-    <String, dynamic>{
-      'elementId': instance.elementId,
-      'renderInForeground': instance.renderInForeground,
-    };
+Map<String, dynamic> _$MapEntityEditorVisualToJson(
+  _MapEntityEditorVisual instance,
+) => <String, dynamic>{
+  'elementId': instance.elementId,
+  'renderInForeground': instance.renderInForeground,
+};

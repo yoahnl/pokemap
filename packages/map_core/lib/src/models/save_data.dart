@@ -77,7 +77,7 @@ Map<String, dynamic> _migrateLegacyPlayerPokemonJson(
 }
 
 @freezed
-class PokemonStatSpread with _$PokemonStatSpread {
+abstract class PokemonStatSpread with _$PokemonStatSpread {
   const PokemonStatSpread._();
 
   @JsonSerializable(explicitToJson: true)
@@ -116,7 +116,7 @@ enum PlayerPokemonOriginKind {
 }
 
 @freezed
-class PlayerPokemonProvenance with _$PlayerPokemonProvenance {
+abstract class PlayerPokemonProvenance with _$PlayerPokemonProvenance {
   const PlayerPokemonProvenance._();
 
   const factory PlayerPokemonProvenance({
@@ -145,7 +145,7 @@ class PlayerPokemonProvenance with _$PlayerPokemonProvenance {
 }
 
 @freezed
-class PlayerPokemon with _$PlayerPokemon {
+abstract class PlayerPokemon with _$PlayerPokemon {
   const PlayerPokemon._();
 
   @JsonSerializable(explicitToJson: true)
@@ -280,7 +280,7 @@ class PlayerPokemon with _$PlayerPokemon {
 }
 
 @freezed
-class PlayerParty with _$PlayerParty {
+abstract class PlayerParty with _$PlayerParty {
   const PlayerParty._();
 
   @JsonSerializable(explicitToJson: true)
@@ -309,7 +309,7 @@ const int pokemonBoxCapacity = 30;
 const int defaultPokemonBoxCount = 8;
 
 @freezed
-class PokemonBox with _$PokemonBox {
+abstract class PokemonBox with _$PokemonBox {
   const PokemonBox._();
 
   @JsonSerializable(explicitToJson: true)
@@ -484,7 +484,7 @@ bool _listsEqual<T>(List<T> left, List<T> right) {
 }
 
 @freezed
-class PlayerProgression with _$PlayerProgression {
+abstract class PlayerProgression with _$PlayerProgression {
   const PlayerProgression._();
 
   @JsonSerializable(explicitToJson: true)
@@ -549,7 +549,7 @@ class PlayerProgression with _$PlayerProgression {
 }
 
 @freezed
-class TrainerProfile with _$TrainerProfile {
+abstract class TrainerProfile with _$TrainerProfile {
   const TrainerProfile._();
 
   @JsonSerializable(explicitToJson: true)
@@ -595,7 +595,7 @@ class TrainerProfile with _$TrainerProfile {
 }
 
 @freezed
-class BagEntry with _$BagEntry {
+abstract class BagEntry with _$BagEntry {
   const BagEntry._();
 
   @JsonSerializable(explicitToJson: true)
@@ -650,7 +650,7 @@ List<BagEntry> _normalizeBagEntries(List<BagEntry> entries) {
 }
 
 @freezed
-class Bag with _$Bag {
+abstract class Bag with _$Bag {
   const Bag._();
 
   @JsonSerializable(explicitToJson: true)
@@ -664,7 +664,7 @@ class Bag with _$Bag {
 }
 
 @freezed
-class SaveData with _$SaveData {
+abstract class SaveData with _$SaveData {
   const SaveData._();
 
   @JsonSerializable(explicitToJson: true)

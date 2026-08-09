@@ -16,7 +16,7 @@ part 'pokemon_move_accuracy.g.dart';
 /// - il suffit pour le futur convertisseur, le seed et le runtime loader ;
 /// - il n'embarque encore aucune logique moteur.
 @Freezed(unionKey: 'kind', unionValueCase: FreezedUnionCase.snake)
-class PokemonMoveAccuracy with _$PokemonMoveAccuracy {
+abstract class PokemonMoveAccuracy with _$PokemonMoveAccuracy {
   const PokemonMoveAccuracy._();
 
   @JsonSerializable(explicitToJson: true)

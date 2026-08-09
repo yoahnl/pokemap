@@ -6,7 +6,7 @@ part 'map_entity_editor_visual.freezed.dart';
 part 'map_entity_editor_visual.g.dart';
 
 @freezed
-class MapEntityEditorVisual with _$MapEntityEditorVisual {
+abstract class MapEntityEditorVisual with _$MapEntityEditorVisual {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntityEditorVisual({
     required String elementId,

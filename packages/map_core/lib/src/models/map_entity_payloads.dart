@@ -10,7 +10,7 @@ part 'map_entity_payloads.g.dart';
 ///
 /// Sans dépendance Yarn ou autre moteur dans `map_core`.
 @freezed
-class DialogueRef with _$DialogueRef {
+abstract class DialogueRef with _$DialogueRef {
   @JsonSerializable(explicitToJson: true)
   const factory DialogueRef({
     /// Identifiant stable : typiquement [ProjectDialogueEntry.id] lorsque [scriptPathRelative] est vide.
@@ -71,7 +71,7 @@ enum MapEntityRuntimePredicateKind {
 }
 
 @freezed
-class MapEntityRuntimePredicate with _$MapEntityRuntimePredicate {
+abstract class MapEntityRuntimePredicate with _$MapEntityRuntimePredicate {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntityRuntimePredicate({
     required MapEntityRuntimePredicateKind kind,
@@ -86,7 +86,7 @@ class MapEntityRuntimePredicate with _$MapEntityRuntimePredicate {
 }
 
 @freezed
-class MapEntityNpcVisibilityRule with _$MapEntityNpcVisibilityRule {
+abstract class MapEntityNpcVisibilityRule with _$MapEntityNpcVisibilityRule {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntityNpcVisibilityRule({
     required MapEntityNpcVisibilityMode mode,
@@ -99,7 +99,7 @@ class MapEntityNpcVisibilityRule with _$MapEntityNpcVisibilityRule {
 
 /// Une ligne de la chaîne « premier match gagne » pour le dialogue PNJ.
 @freezed
-class MapEntityConditionalDialogue with _$MapEntityConditionalDialogue {
+abstract class MapEntityConditionalDialogue with _$MapEntityConditionalDialogue {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntityConditionalDialogue({
     required MapEntityRuntimePredicate when,
@@ -111,7 +111,7 @@ class MapEntityConditionalDialogue with _$MapEntityConditionalDialogue {
 }
 
 @freezed
-class MapEntityNpcData with _$MapEntityNpcData {
+abstract class MapEntityNpcData with _$MapEntityNpcData {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntityNpcData({
     @Default('') String displayName,
@@ -146,7 +146,7 @@ enum MapEntityNpcMovementMode {
 }
 
 @freezed
-class MapEntityNpcMovementConfig with _$MapEntityNpcMovementConfig {
+abstract class MapEntityNpcMovementConfig with _$MapEntityNpcMovementConfig {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntityNpcMovementConfig({
     @Default(MapEntityNpcMovementMode.idle) MapEntityNpcMovementMode mode,
@@ -161,7 +161,7 @@ class MapEntityNpcMovementConfig with _$MapEntityNpcMovementConfig {
 }
 
 @freezed
-class MapEntitySignData with _$MapEntitySignData {
+abstract class MapEntitySignData with _$MapEntitySignData {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntitySignData({
     @Default('') String title,
@@ -176,7 +176,7 @@ class MapEntitySignData with _$MapEntitySignData {
 }
 
 @freezed
-class MapEntityItemData with _$MapEntityItemData {
+abstract class MapEntityItemData with _$MapEntityItemData {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntityItemData({
     @Default('') String gameItemId,
@@ -190,7 +190,7 @@ class MapEntityItemData with _$MapEntityItemData {
 }
 
 @freezed
-class MapEntitySpawnData with _$MapEntitySpawnData {
+abstract class MapEntitySpawnData with _$MapEntitySpawnData {
   @JsonSerializable(explicitToJson: true)
   const factory MapEntitySpawnData({
     @Default('') String spawnKey,
