@@ -777,6 +777,14 @@ function completeMultiMaterialSmartTileDraft(input: {
                 anchorY: 5,
                 drawOrder: 6,
               },
+              {
+                source: {
+                  kind: "frame",
+                  frame: { atlasId, column: 0, row: 0 },
+                },
+                channel: "actor_occlusion",
+                drawOrder: 7,
+              },
             ],
           },
         ],
@@ -2401,6 +2409,9 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     const queriedMultiPart = record(
       (queriedMultiCandidate.parts as unknown[])[0],
     );
+    const queriedActorOcclusionPart = record(
+      (queriedMultiCandidate.parts as unknown[])[1],
+    );
     assert.equal(
       record(queriedMultiSignature.northEdge).materialId,
       "mcp-library-draft-water",
@@ -2418,6 +2429,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
     assert.equal(queriedMultiPart.anchorX, 4);
     assert.equal(queriedMultiPart.anchorY, 5);
     assert.equal(queriedMultiPart.drawOrder, 6);
+    assert.equal(queriedActorOcclusionPart.channel, "actor_occlusion");
 
     await applyAction(
       "smart_tile.preset.publish",
@@ -2433,6 +2445,28 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       (libraryPresets.items as JsonRecord[]).some(
         (item) => item.id === "mcp-library-preset",
       ),
+    );
+    const publishedLibraryPreset = await toolData(
+      fixture.client,
+      "pokemap_query",
+      {
+        projectHandle,
+        resourceKind: "smartTilePreset",
+        operation: "get",
+        view: "detail",
+        ids: ["mcp-library-preset"],
+      },
+    );
+    const publishedRule = record(
+      (record((publishedLibraryPreset.items as JsonRecord[])[0]).rules as
+        unknown[])[0],
+    );
+    const publishedCandidate = record(
+      (publishedRule.candidates as unknown[])[0],
+    );
+    assert.equal(
+      record((publishedCandidate.parts as unknown[])[1]).channel,
+      "actor_occlusion",
     );
 
     await applyAction(

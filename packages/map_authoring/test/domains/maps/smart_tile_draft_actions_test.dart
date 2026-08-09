@@ -122,6 +122,72 @@ void main() {
       expect(projected.smartTileCatalog.materials.single.id, 'draft-grass');
     });
 
+    test('actor occlusion survives canonical draft upsert and publication', () {
+      final base = _completeDraft();
+      final candidate = base.rules.single.candidates.single;
+      final draft = base.copyWith(
+        usage: SmartTileUsage.path,
+        rules: <SmartTileRule>[
+          base.rules.single.copyWith(
+            candidates: <SmartTileCandidate>[
+              candidate.copyWith(
+                parts: <SmartTileVisualPart>[
+                  ...candidate.parts,
+                  const SmartTileVisualPart(
+                    source: SmartTileVisualSource.frame(
+                      frame: SmartTileFrameRef(
+                        atlasId: 'draft-atlas',
+                        column: 0,
+                        row: 0,
+                      ),
+                    ),
+                    channel: SmartTileRenderChannel.actorOcclusion,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      );
+      final initial = _fixture();
+      final upsert = _build(
+        initial,
+        actionId: 'smart_tile.preset.draft.upsert',
+        parameters: <String, Object?>{'draft': draft.toJson()},
+      );
+      final persistedDraft = _projectedManifest(upsert)
+          .smartTileCatalog
+          .drafts
+          .single;
+      final publishFixture = _fixture(
+        drafts: <ProjectSmartTileAuthoringDraft>[persistedDraft],
+      );
+      final publish = _build(
+        publishFixture,
+        actionId: 'smart_tile.preset.publish',
+        parameters: const <String, Object?>{'draftId': 'draft-grass'},
+      );
+
+      expect(
+        persistedDraft.rules.single.candidates.single.parts.last.channel,
+        SmartTileRenderChannel.actorOcclusion,
+      );
+      expect(
+        _projectedManifest(publish)
+            .smartTileCatalog
+            .presets
+            .single
+            .rules
+            .single
+            .candidates
+            .single
+            .parts
+            .last
+            .channel,
+        SmartTileRenderChannel.actorOcclusion,
+      );
+    });
+
     test('publication can create a layer in the same change set', () {
       final fixture = _fixture(
         drafts: <ProjectSmartTileAuthoringDraft>[_completeDraft()],
