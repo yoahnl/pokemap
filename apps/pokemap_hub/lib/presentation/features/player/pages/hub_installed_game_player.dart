@@ -94,6 +94,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   PlayerLaunchFailure? _failure;
   HubSaveSelection? _saveSelection;
   HubLoadedTitlePresentation? _titlePresentation;
+  Locale? _playerLocale;
   player_ui.PokeMapPlayerTypography _playerTypography =
       const player_ui.PokeMapPlayerTypography();
   RuntimeAudioMixer? _audioMixer;
@@ -174,14 +175,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         defaultSlotDisplayName: 'Slot 1',
       );
       _advanceStartupLoading(.24);
-      final newGameIdentityPresentation = await loadNewGameIdentityPresentation(
-        launch,
-      );
       _advanceStartupLoading(.28);
-      final titlePresentation = await HubTitlePresentationLoader(
-        manifest: launch.manifest,
-        resolveFile: launch.assets.resolveFile,
-      ).load(newGameIdentity: newGameIdentityPresentation);
+      final titlePresentation =
+          await HubTitlePresentationLoader(
+            manifest: launch.manifest,
+            resolveFile: launch.assets.resolveFile,
+          ).load();
       _advanceStartupLoading(.32);
       final loadedTypography = await loadPlayerTypography(titlePresentation);
       _advanceStartupLoading(.35);
@@ -276,6 +275,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         _startupSubscription = startupSubscription;
         _saveSelection = saveSelection;
         _titlePresentation = titlePresentation;
+        _playerLocale = Locale(
+          playerLocale.split(RegExp('[-_]')).first.toLowerCase(),
+        );
         _playerTypography = loadedTypography;
         _audioMixer = audioMixer;
         _controlProfileStore = controlProfileStore;
@@ -645,7 +647,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                   ) ??
                   1,
             );
-    return Theme(
+    final player = Theme(
       data: startupTheme,
       child: PopScope<Object?>(
         canPop: false,
@@ -741,6 +743,13 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                 )
                 : _buildSessionView(viewController!, titlePresentation!.title),
       ),
+    );
+    final playerLocale = _playerLocale;
+    if (playerLocale == null) return player;
+    return Localizations.override(
+      context: context,
+      locale: playerLocale,
+      child: player,
     );
   }
 

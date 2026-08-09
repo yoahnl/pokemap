@@ -72,14 +72,16 @@ void main() {
       final harness = buildDashboardHarness(
         supportRoot: root,
         libraryStore: libraryStore,
-        activityReader: InstalledHubGameActivityReader(
-          supportRoot: supportRoot,
-          launchResolver: launchResolver,
-          saveRepositoryFactory: (supportRoot, identity) => HubSaveStore(
-            supportRoot: supportRoot,
-            identity: identity,
-          ),
-        ).call,
+        activityReader:
+            InstalledHubGameActivityReader(
+              supportRoot: supportRoot,
+              launchResolver: launchResolver,
+              saveRepositoryFactory:
+                  (supportRoot, identity) => HubSaveStore(
+                    supportRoot: supportRoot,
+                    identity: identity,
+                  ),
+            ).call,
         preferencesStore: preferencesStore,
       );
       final controller = harness.notifier;
@@ -90,21 +92,21 @@ void main() {
           PokeMapHubApp(
             controller: controller,
             initializeController: false,
-            playerBuilder: (_, game, intent, onHubRequested) =>
-                HubInstalledGamePlayer(
-              supportRoot: supportRoot,
-              saveRepositoryFactory: (root, identity) => HubSaveStore(
-                supportRoot: root,
-                identity: identity,
-              ),
-              preferencesRepository: preferencesStore,
-              controlProfileRepository:
-                  HubControlProfileStore(supportRoot: supportRoot),
-              launchResolver: launchResolver,
-              game: game.game,
-              initialLaunchIntent: intent,
-              onHubRequested: onHubRequested,
-            ),
+            playerBuilder:
+                (_, game, intent, onHubRequested) => HubInstalledGamePlayer(
+                  supportRoot: supportRoot,
+                  saveRepositoryFactory:
+                      (root, identity) =>
+                          HubSaveStore(supportRoot: root, identity: identity),
+                  preferencesRepository: preferencesStore,
+                  controlProfileRepository: HubControlProfileStore(
+                    supportRoot: supportRoot,
+                  ),
+                  launchResolver: launchResolver,
+                  game: game.game,
+                  initialLaunchIntent: intent,
+                  onHubRequested: onHubRequested,
+                ),
           ),
         ),
       );
@@ -125,9 +127,7 @@ void main() {
       await tester.tap(find.text('Nouvelle partie'));
       await _pumpUntilFound(
         tester,
-        find.byKey(
-          const ValueKey<String>('pokemap-runtime-player-view'),
-        ),
+        find.byKey(const ValueKey<String>('pokemap-runtime-player-view')),
       );
       await _pumpUntilFound(tester, find.text('Nouvelle partie'));
       expect(find.text('FPS'), findsNothing);
@@ -135,33 +135,15 @@ void main() {
       expect(find.textContaining('seed'), findsNothing);
 
       await tester.tap(find.text('Nouvelle partie'));
-      final identityDialog = find.byKey(
-        const ValueKey<String>('player-new-game-identity-dialog'),
+      expect(
+        find.byKey(const ValueKey<String>('player-new-game-identity-dialog')),
+        findsNothing,
       );
-      await _pumpUntilFound(tester, identityDialog);
-      // The dialog key is mounted before the route transition stops ignoring
-      // pointer events on a real simulator.
-      await tester.pump(const Duration(milliseconds: 500));
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('player-identity-name')),
-        'Camille',
-      );
-      FocusManager.instance.primaryFocus?.unfocus();
-      await SystemChannels.textInput.invokeMethod<void>('TextInput.hide');
-      await tester.pump(const Duration(milliseconds: 500));
-      final identityConfirm = find.byKey(
-        const ValueKey<String>('player-identity-confirm'),
-      );
-      await tester.ensureVisible(identityConfirm);
-      final hitTestableIdentityConfirm = identityConfirm.hitTestable();
-      await _pumpUntilFound(tester, hitTestableIdentityConfirm);
-      await tester.tap(hitTestableIdentityConfirm);
-      await _pumpUntilGone(tester, identityDialog);
       await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.playing));
       final game = _mountedGame(tester);
       await _pumpUntilGameReady(tester, game);
       expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 2));
-      expect(game.gameStateSnapshot.trainerProfile.name, 'Camille');
+      expect(game.gameStateSnapshot.trainerProfile.name, 'Joueur');
 
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
       await _pumpUntilFound(tester, find.text('Boutique du Rivage'));
@@ -235,16 +217,15 @@ void main() {
       await _pumpUntilGameReady(tester, restoredGame);
       expect(restoredGame.debugPlayerGridPosition, const GridPos(x: 2, y: 2));
       expect(
-        restoredGame.gameStateSnapshot.narrativeFactRuntimeState
+        restoredGame
+            .gameStateSnapshot
+            .narrativeFactRuntimeState
             .overridesByFactId['fact_mist_source_resolved'],
         isTrue,
       );
 
       await _moveOneTileDown(tester, restoredGame);
-      await _pumpUntilFound(
-        tester,
-        _playerSurface(RuntimePlayerPhase.result),
-      );
+      await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.result));
       expect(find.text('Selbrume est sauvée'), findsOneWidget);
       expect(
         find.text(
@@ -261,9 +242,9 @@ void main() {
       final completed = await saveStore.read(completedAddress);
       expect(completed.envelope?.status, SaveStatus.completed);
       expect(
-        (await HubPlayerSaveGateway(store: saveStore)
-                .readSummary(completedAddress))
-            ?.canContinue,
+        (await HubPlayerSaveGateway(
+          store: saveStore,
+        ).readSummary(completedAddress))?.canContinue,
         isFalse,
       );
       expect(
@@ -275,25 +256,14 @@ void main() {
       );
 
       await tester.tap(find.text('Voir les crédits'));
-      await _pumpUntilFound(
-        tester,
-        _playerSurface(RuntimePlayerPhase.credits),
-      );
+      await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.credits));
       expect(find.text('Crédits — Selbrume'), findsOneWidget);
       expect(find.text('Selbrume'), findsOneWidget);
-      expect(
-        find.text('Fin principale — Selbrume sauvée'),
-        findsOneWidget,
-      );
+      expect(find.text('Fin principale — Selbrume sauvée'), findsOneWidget);
       await _tapPlayerAction(tester, 'Retour au Hub');
-      await _pumpUntilFound(
-        tester,
-        find.text('Installation vérifiée'),
-      );
+      await _pumpUntilFound(tester, find.text('Installation vérifiée'));
       expect(
-        find.byKey(
-          const ValueKey<String>('pokemap-runtime-player-view'),
-        ),
+        find.byKey(const ValueKey<String>('pokemap-runtime-player-view')),
         findsNothing,
       );
       expect(find.text(_gameTitle), findsWidgets);
@@ -306,9 +276,7 @@ void main() {
       await tester.tap(find.text('Nouvelle partie'));
       await _pumpUntilFound(
         tester,
-        find.byKey(
-          const ValueKey<String>('pokemap-runtime-player-view'),
-        ),
+        find.byKey(const ValueKey<String>('pokemap-runtime-player-view')),
       );
       await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.title));
       final continueAction = tester.widget<PlayerActionButton>(
@@ -341,8 +309,8 @@ GamePackageHostCompatibility _hostCompatibility() =>
         'overworld.menu@1',
         'world.shop@1',
       },
-      supportedProjectFormats: const <String>{'v1', 'v2'},
-      currentProjectFormat: 'v2',
+      supportedProjectFormats: const <String>{'v6'},
+      currentProjectFormat: 'v6',
       supportedSaveFormats: const <int>{1},
     );
 
@@ -357,13 +325,10 @@ Future<File> _buildFixturePackage(Directory root) async {
     compatibility: GamePackageCompatibility(
       minHubVersion: Version.parse('0.1.0'),
       runtimeApiExpression: '>=1.4.0 <2.0.0',
-      projectFormat: 'v1',
+      projectFormat: 'v6',
       saveFormat: 1,
-      compatibilityId: 'runtime-player-v1',
-      requiredCapabilities: const <String>[
-        'overworld.menu@1',
-        'world.shop@1',
-      ],
+      compatibilityId: 'runtime-player-v6',
+      requiredCapabilities: const <String>['overworld.menu@1', 'world.shop@1'],
     ),
     locales: GamePackageLocales(
       defaultLocale: 'fr',
@@ -410,9 +375,8 @@ PlayableMapGame _mountedGame(WidgetTester tester) {
   return widget.game!;
 }
 
-Finder _playerSurface(RuntimePlayerPhase phase) => find.byKey(
-      ValueKey<String>('runtime-player-surface-${phase.name}'),
-    );
+Finder _playerSurface(RuntimePlayerPhase phase) =>
+    find.byKey(ValueKey<String>('runtime-player-surface-${phase.name}'));
 
 Future<void> _pumpUntilGameReady(
   WidgetTester tester,
@@ -445,10 +409,7 @@ Future<void> _moveOneTileRight(
   await tester.pump(const Duration(milliseconds: 150));
 }
 
-Future<void> _moveOneTileDown(
-  WidgetTester tester,
-  PlayableMapGame game,
-) async {
+Future<void> _moveOneTileDown(WidgetTester tester, PlayableMapGame game) async {
   final start = game.debugPlayerGridPosition;
   await tester.sendKeyDownEvent(LogicalKeyboardKey.arrowDown);
   final deadline = DateTime.now().add(const Duration(seconds: 3));
@@ -466,7 +427,9 @@ Future<void> _pumpUntilFact(
   String factId,
 ) async {
   final deadline = DateTime.now().add(const Duration(seconds: 20));
-  while (game.gameStateSnapshot.narrativeFactRuntimeState
+  while (game
+          .gameStateSnapshot
+          .narrativeFactRuntimeState
           .overridesByFactId[factId] !=
       true) {
     if (DateTime.now().isAfter(deadline)) {
@@ -479,9 +442,7 @@ Future<void> _pumpUntilFact(
 Future<void> _pumpUntilSaveCompleted(WidgetTester tester) async {
   final savingSurface = _playerSurface(RuntimePlayerPhase.saving);
   final pausedSurface = _playerSurface(RuntimePlayerPhase.paused);
-  final receipt = find.byKey(
-    const ValueKey<String>('runtime-save-receipt'),
-  );
+  final receipt = find.byKey(const ValueKey<String>('runtime-save-receipt'));
   final deadline = DateTime.now().add(const Duration(seconds: 20));
   var observedSaving = false;
   while (true) {
@@ -545,16 +506,11 @@ Future<void> _dragUntilFound(
     await tester.pump(const Duration(milliseconds: 100));
   }
   if (target.evaluate().isEmpty) {
-    fail(
-      'Timed out scrolling to ${target.describeMatch(Plurality.one)}.',
-    );
+    fail('Timed out scrolling to ${target.describeMatch(Plurality.one)}.');
   }
 }
 
-Future<void> _tapVisible(
-  WidgetTester tester,
-  Finder target,
-) async {
+Future<void> _tapVisible(WidgetTester tester, Finder target) async {
   final targetRect = tester.getRect(target.first);
   final logicalViewSize =
       tester.view.physicalSize / tester.view.devicePixelRatio;
@@ -572,18 +528,12 @@ Future<void> _tapPlayerAction(WidgetTester tester, String label) async {
   await _tapVisible(tester, action);
 }
 
-Future<void> _scrollPauseUntilFound(
-  WidgetTester tester,
-  Finder target,
-) async {
-  if (_playerSurface(RuntimePlayerPhase.lifecyclePaused)
-      .evaluate()
-      .isNotEmpty) {
+Future<void> _scrollPauseUntilFound(WidgetTester tester, Finder target) async {
+  if (_playerSurface(
+    RuntimePlayerPhase.lifecyclePaused,
+  ).evaluate().isNotEmpty) {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await _pumpUntilFound(
-      tester,
-      _playerSurface(RuntimePlayerPhase.paused),
-    );
+    await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.paused));
   }
   // A keyed pause action can already exist in the tree while remaining below
   // the viewport (or behind the save receipt). Always scroll it into a
@@ -598,16 +548,13 @@ Future<void> _scrollPauseUntilFound(
       list.evaluate().isEmpty) {
     fail('The paused player exposes no responsive pause scroll view.');
   }
-  final scrollView = navigation.evaluate().isNotEmpty
-      ? navigation
-      : grid.evaluate().isNotEmpty
+  final scrollView =
+      navigation.evaluate().isNotEmpty
+          ? navigation
+          : grid.evaluate().isNotEmpty
           ? grid
           : list;
-  await _dragUntilFound(
-    tester,
-    target: target,
-    scrollView: scrollView,
-  );
+  await _dragUntilFound(tester, target: target, scrollView: scrollView);
 }
 
 Future<void> _pumpUntilGone(

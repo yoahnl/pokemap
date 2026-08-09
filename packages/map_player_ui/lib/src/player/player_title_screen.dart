@@ -8,7 +8,6 @@ import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_cinematic_stage.dart';
-import 'player_new_game_identity.dart';
 import 'runtime_player_focus_controller.dart';
 
 enum PlayerTitleMenuAction {
@@ -44,7 +43,6 @@ final class RuntimePlayerTitlePresentation {
     this.logo,
     this.accentColor,
     this.layoutVariant = PlayerTitleLayoutVariant.standard,
-    this.newGameIdentity,
   });
 
   final String author;
@@ -53,7 +51,6 @@ final class RuntimePlayerTitlePresentation {
   final ImageProvider? logo;
   final Color? accentColor;
   final PlayerTitleLayoutVariant layoutVariant;
-  final PlayerNewGameIdentityPresentation? newGameIdentity;
 }
 
 @immutable
@@ -288,6 +285,7 @@ class PlayerTitleScreen extends StatelessWidget {
           );
           return Row(
             key: const ValueKey<String>('player-title-startup-expanded'),
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               SizedBox(
                 width: panelWidth,
@@ -408,6 +406,11 @@ class PlayerTitleScreen extends StatelessWidget {
                     child: PlayerActionButton(
                       label: _label(context, action),
                       icon: _icon(action),
+                      quiet: !_isStartupHighlighted(
+                        action,
+                        firstEnabledAction,
+                      ),
+                      expandContent: true,
                       autofocus: focusController?.logicalSelectionId == null
                           ? action == firstEnabledAction
                           : _isSelected(action),
@@ -419,7 +422,10 @@ class PlayerTitleScreen extends StatelessWidget {
                       focusNode: _focusNode(action),
                       showFocusHighlight:
                           focusController?.showFocusHighlight ?? true,
-                      selected: _isSelected(action),
+                      selected: _isStartupHighlighted(
+                        action,
+                        firstEnabledAction,
+                      ),
                       onPressed: _availability(context, action).isEnabled
                           ? () => _select(action)
                           : null,
@@ -472,6 +478,16 @@ class PlayerTitleScreen extends StatelessWidget {
 
   bool _isSelected(PlayerTitleMenuAction action) =>
       focusController?.logicalSelectionId == _logicalId(action);
+
+  bool _isStartupHighlighted(
+    PlayerTitleMenuAction action,
+    PlayerTitleMenuAction? fallback,
+  ) {
+    final selection = focusController?.logicalSelectionId;
+    return selection == null
+        ? action == fallback
+        : selection == _logicalId(action);
+  }
 
   void _select(PlayerTitleMenuAction action) {
     focusController?.select(

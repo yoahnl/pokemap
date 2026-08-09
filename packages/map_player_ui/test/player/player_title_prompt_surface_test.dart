@@ -58,6 +58,7 @@ void main() {
       eyebrow: 'Une aventure PokeMap',
       footer: 'Avelune',
       onStart: () {},
+      onReplayIntro: () {},
     );
 
     await tester.pumpWidget(_app(prompt));
@@ -67,12 +68,33 @@ void main() {
       ),
       const Size(1440, 810),
     );
+    expect(
+      tester
+          .getSize(
+            find.byKey(const ValueKey<String>('player-title-replay-action')),
+          )
+          .width,
+      170,
+    );
+    expect(
+      find.byKey(const ValueKey<String>('player-title-press-start-pill')),
+      findsOneWidget,
+    );
+    expect(find.text('ENTER'), findsOneWidget);
 
     tester.view.physicalSize = const Size(390, 844);
     await tester.pumpWidget(_app(prompt));
     expect(
       find.byKey(const ValueKey<String>('player-cinematic-stage')),
       findsNothing,
+    );
+    expect(
+      tester
+          .getSize(
+            find.byKey(const ValueKey<String>('player-title-replay-action')),
+          )
+          .width,
+      180,
     );
     expect(tester.takeException(), isNull);
   });

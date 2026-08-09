@@ -33,6 +33,10 @@ class PlayerTitlePromptSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.playerColors;
     final strings = PlayerStartupStrings.of(context);
+    final onMedia = colors.background.computeLuminance() >=
+            colors.textPrimary.computeLuminance()
+        ? colors.background
+        : colors.textPrimary;
     final content = CallbackShortcuts(
       bindings: <ShortcutActivator, VoidCallback>{
         const SingleActivator(LogicalKeyboardKey.enter): onStart,
@@ -94,7 +98,7 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                                           .textTheme
                                           .labelLarge
                                           ?.copyWith(
-                                            color: colors.textPrimary,
+                                            color: onMedia,
                                             letterSpacing: 3.2,
                                           ),
                                     ),
@@ -124,10 +128,11 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                                           : TextAlign.start,
                                       style:
                                           context.playerTypography.displayStyle(
-                                        Theme.of(context)
-                                                .textTheme
-                                                .displayLarge ??
-                                            const TextStyle(),
+                                        (Theme.of(context)
+                                                    .textTheme
+                                                    .displayLarge ??
+                                                const TextStyle())
+                                            .copyWith(color: onMedia),
                                       ),
                                     ),
                                 ],
@@ -140,11 +145,17 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                               padding: const EdgeInsets.all(PlayerSpacing.lg),
                               child: onReplayIntro == null
                                   ? const SizedBox.shrink()
-                                  : PlayerActionButton(
-                                      label: strings.replayIntro,
-                                      icon: Icons.replay_rounded,
-                                      secondary: true,
-                                      onPressed: onReplayIntro,
+                                  : SizedBox(
+                                      key: const ValueKey<String>(
+                                        'player-title-replay-action',
+                                      ),
+                                      width: compact ? 180 : 170,
+                                      child: PlayerActionButton(
+                                        label: strings.replayIntro,
+                                        icon: Icons.replay_rounded,
+                                        secondary: true,
+                                        onPressed: onReplayIntro,
+                                      ),
                                     ),
                             ),
                           ),
@@ -162,16 +173,73 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                                 children: <Widget>[
                                   Semantics(
                                     liveRegion: true,
-                                    child: PlayerPanel(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: PlayerSpacing.lg,
-                                        vertical: PlayerSpacing.sm,
+                                    child: DecoratedBox(
+                                      key: const ValueKey<String>(
+                                        'player-title-press-start-pill',
                                       ),
-                                      child: Text(
-                                        strings.pressStart,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium,
+                                      decoration: BoxDecoration(
+                                        color: colors.scrim.withValues(
+                                          alpha: .72,
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          PlayerRadii.pill,
+                                        ),
+                                        border: Border.all(
+                                          color: onMedia.withValues(alpha: .22),
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: PlayerSpacing.sm,
+                                          vertical: PlayerSpacing.xs,
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: <Widget>[
+                                            DecoratedBox(
+                                              decoration: BoxDecoration(
+                                                color: onMedia.withValues(
+                                                  alpha: .92,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                  PlayerRadii.pill,
+                                                ),
+                                              ),
+                                              child: Padding(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                  horizontal: PlayerSpacing.sm,
+                                                  vertical: PlayerSpacing.xxs,
+                                                ),
+                                                child: Text(
+                                                  'ENTER',
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .labelSmall
+                                                      ?.copyWith(
+                                                        color: colors.scrim,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                      ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              width: PlayerSpacing.sm,
+                                            ),
+                                            Flexible(
+                                              child: Text(
+                                                strings.pressStart,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .titleMedium
+                                                    ?.copyWith(color: onMedia),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -184,7 +252,9 @@ class PlayerTitlePromptSurface extends StatelessWidget {
                                           .textTheme
                                           .labelSmall
                                           ?.copyWith(
-                                            color: colors.textSecondary,
+                                            color: onMedia.withValues(
+                                              alpha: .68,
+                                            ),
                                             letterSpacing: 1.6,
                                           ),
                                     ),

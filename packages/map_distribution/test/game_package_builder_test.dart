@@ -119,6 +119,25 @@ void main() {
       );
     });
 
+    test('accepts a text license in the canonical PokeMap asset store', () {
+      const digest =
+          'a8f8775886afcb9aa653505c31f339a5c8950d1c9124819310f873683702e37f';
+      final built = builder.build(
+        manifest: _draftManifest(),
+        payloadFiles: <String, List<int>>{
+          'project/project.json': _validProjectBytes(),
+          'project/assets/.pokemap-store/$digest.blob': utf8.encode(
+            'SIL Open Font License 1.1\n',
+          ),
+        },
+      );
+
+      expect(
+        built.manifest.content.files.map((entry) => entry.path),
+        contains('project/assets/.pokemap-store/$digest.blob'),
+      );
+    });
+
     test('does not allow a stale signature to cover changed content', () {
       final unsigned = builder.build(
         manifest: _draftManifest(),

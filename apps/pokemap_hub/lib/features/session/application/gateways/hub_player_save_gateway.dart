@@ -12,7 +12,7 @@ final class HubPlayerSaveGateway implements PlayerSaveGateway {
     required this.store,
     HubSessionCheckpointCommitter? checkpointCommitter,
   }) : _checkpointCommitter =
-            checkpointCommitter ?? HubSessionCheckpointCommitter(store: store);
+           checkpointCommitter ?? HubSessionCheckpointCommitter(store: store);
 
   final SaveRepositoryInterface store;
   final HubSessionCheckpointCommitter _checkpointCommitter;
@@ -83,9 +83,10 @@ final class HubPlayerSaveGateway implements PlayerSaveGateway {
       playTimeSeconds: envelope?.playTimeSeconds ?? 0,
       status: envelope?.status ?? SaveStatus.active,
       canContinue: canContinue,
-      safeUnavailableReason: canContinue
-          ? null
-          : envelope?.status == SaveStatus.completed
+      safeUnavailableReason:
+          canContinue
+              ? null
+              : envelope?.status == SaveStatus.completed
               ? 'This ending does not allow post-game continuation.'
               : _safeReason(read.status),
     );
@@ -99,22 +100,22 @@ bool _canContinue(SaveSlotRead read, SaveEnvelope? envelope) {
 }
 
 String _safeReason(SaveSlotReadStatus status) => switch (status) {
-      SaveSlotReadStatus.migrationRequired =>
-        'This save must be migrated before it can be loaded.',
-      SaveSlotReadStatus.incompatible =>
-        'This save is not compatible with the installed game version.',
-      SaveSlotReadStatus.corrupt =>
-        'This save is damaged and could not be recovered from its backup.',
-      SaveSlotReadStatus.missing => 'No save exists in this slot.',
-      SaveSlotReadStatus.valid ||
-      SaveSlotReadStatus.recoveredFromBackup =>
-        'This save is temporarily unavailable.',
-    };
+  SaveSlotReadStatus.migrationRequired =>
+    'This save must be migrated before it can be loaded.',
+  SaveSlotReadStatus.incompatible =>
+    'This save is not compatible with the installed game version.',
+  SaveSlotReadStatus.corrupt =>
+    'This save is damaged and could not be recovered from its backup.',
+  SaveSlotReadStatus.missing => 'No save exists in this slot.',
+  SaveSlotReadStatus.valid || SaveSlotReadStatus.recoveredFromBackup =>
+    'This save is temporarily unavailable.',
+};
 
-typedef _CheckpointCommitKey = ({
-  GameIdentity identity,
-  SaveSlotAddress address,
-  GameSessionCheckpoint checkpoint,
-  SaveStatus status,
-  DateTime? completedAt,
-});
+typedef _CheckpointCommitKey =
+    ({
+      GameIdentity identity,
+      SaveSlotAddress address,
+      GameSessionCheckpoint checkpoint,
+      SaveStatus status,
+      DateTime? completedAt,
+    });

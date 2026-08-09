@@ -186,14 +186,14 @@ void main() {
       const Size(1440, 810),
     );
     expect(
-      tester
-          .getSize(
-            find.byKey(const ValueKey<String>('player-title-startup-menu')),
-          )
-          .width,
-      619.2,
+      tester.getSize(
+        find.byKey(const ValueKey<String>('player-title-startup-menu')),
+      ),
+      const Size(619.2, 810),
     );
     expect(find.text('01:46 · Vallée d’Hisui'), findsOneWidget);
+    expect(find.byType(FilledButton), findsOneWidget);
+    expect(find.byType(TextButton), findsNWidgets(2));
 
     tester.view.physicalSize = const Size(390, 844);
     await tester.pumpWidget(

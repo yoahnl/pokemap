@@ -74,19 +74,14 @@ final class HubTitlePresentationLoader {
   final GamePackageManifest manifest;
   final HubPresentationFileResolver resolveFile;
 
-  Future<HubLoadedTitlePresentation> load({
-    PlayerNewGameIdentityPresentation? newGameIdentity,
-  }) async {
+  Future<HubLoadedTitlePresentation> load() async {
     final branding = manifest.branding;
     final unavailable = <String>[];
-    final logo = await _image(
-      branding?.icon,
-      unavailable: unavailable,
-    );
-    final background = await _firstImage(
-      <String?>[branding?.hero, branding?.cover],
-      unavailable: unavailable,
-    );
+    final logo = await _image(branding?.icon, unavailable: unavailable);
+    final background = await _firstImage(<String?>[
+      branding?.hero,
+      branding?.cover,
+    ], unavailable: unavailable);
     final titleMusicPath = await _path(
       branding?.titleMusic,
       unavailable: unavailable,
@@ -111,7 +106,6 @@ final class HubTitlePresentationLoader {
         layoutVariant: PlayerTitleLayoutVariant.fromManifest(
           branding?.layoutVariant,
         ),
-        newGameIdentity: newGameIdentity,
       ),
       titleMusicPath: titleMusicPath,
       intro: intro,
@@ -121,9 +115,7 @@ final class HubTitlePresentationLoader {
     );
   }
 
-  PokeMapPlayerSemanticTheme? _semanticTheme(
-    GamePackageSemanticTheme? source,
-  ) {
+  PokeMapPlayerSemanticTheme? _semanticTheme(GamePackageSemanticTheme? source) {
     if (source == null) return null;
     return PokeMapPlayerSemanticTheme.tryFromHex(
       primary: source.primary,
@@ -159,10 +151,7 @@ final class HubTitlePresentationLoader {
     final roles = <ProjectTypographyRole, HubLoadedFontRole>{};
     for (final entry in sources.entries) {
       final fontPath = entry.value.font;
-      final resolvedPath = await _path(
-        fontPath,
-        unavailable: unavailable,
-      );
+      final resolvedPath = await _path(fontPath, unavailable: unavailable);
       roles[entry.key] = HubLoadedFontRole(
         file: resolvedPath == null ? null : File(resolvedPath),
         family: entry.value.family,
@@ -204,10 +193,7 @@ final class HubTitlePresentationLoader {
     String? packagePath, {
     required List<String> unavailable,
   }) async {
-    final filePath = await _path(
-      packagePath,
-      unavailable: unavailable,
-    );
+    final filePath = await _path(packagePath, unavailable: unavailable);
     return filePath == null ? null : FileImage(File(filePath));
   }
 

@@ -15,7 +15,6 @@ import 'player_title_screen.dart';
 import 'player_dialogue_overlay.dart';
 import 'player_control_profile.dart';
 import 'player_heal_confirmation.dart';
-import 'player_new_game_identity.dart';
 import 'player_pc_overlay.dart';
 import 'player_shop_overlay.dart';
 import 'runtime_player_actions.dart';
@@ -380,36 +379,8 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
   Future<RuntimePlayerCommandResult> _dispatchSurfaceAction(
     RuntimePlayerAction action,
     RuntimePlayerSnapshot snapshot,
-  ) async {
-    final identityPresentation = widget.titlePresentation.newGameIdentity;
-    if (action != RuntimePlayerAction.newGame || identityPresentation == null) {
-      return _dispatchCommand(action, snapshot);
-    }
-    final slot = widget.payloadForAction?.call(action);
-    if (slot is! RuntimePlayerLoadSlot) {
-      return const RuntimePlayerCommandResult(
-        status: RuntimePlayerCommandStatus.unavailable,
-        safeMessage: 'A profile and slot are required for a new game.',
-      );
-    }
-    final identity = await showDialog<GameSessionPlayerIdentity>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => PlayerNewGameIdentityDialog(
-        presentation: identityPresentation,
-      ),
-    );
-    if (identity == null) {
-      return const RuntimePlayerCommandResult(
-        status: RuntimePlayerCommandStatus.cancelled,
-      );
-    }
-    return _dispatchCommand(
-      action,
-      snapshot,
-      payload: RuntimePlayerNewGameSetup(slot: slot, identity: identity),
-    );
-  }
+  ) =>
+      _dispatchCommand(action, snapshot);
 
   Future<RuntimePlayerCommandResult> _dispatchCommand(
     RuntimePlayerAction action,

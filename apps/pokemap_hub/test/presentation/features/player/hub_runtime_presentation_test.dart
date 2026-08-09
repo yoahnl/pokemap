@@ -3,65 +3,72 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('Hub mounts the canonical runtime-owned player view exactly once',
-      () async {
-    final installedPlayer = await File(
-      'lib/presentation/features/player/pages/hub_installed_game_player.dart',
-    ).readAsString();
-    final uiBarrel = await File('lib/pokemap_hub_ui.dart').readAsString();
-    final playerBarrel =
-        await File('lib/pokemap_hub_player.dart').readAsString();
+  test(
+    'Hub mounts the canonical runtime-owned player view exactly once',
+    () async {
+      final installedPlayer =
+          await File(
+            'lib/presentation/features/player/pages/hub_installed_game_player.dart',
+          ).readAsString();
+      final uiBarrel = await File('lib/pokemap_hub_ui.dart').readAsString();
+      final playerBarrel =
+          await File('lib/pokemap_hub_player.dart').readAsString();
 
-    expect(installedPlayer, contains('GameWidget('));
-    expect(installedPlayer, contains('RuntimePlayerCoordinator('));
-    expect(installedPlayer, contains('RuntimeStartupCoordinator('));
-    expect(installedPlayer, contains('HubRuntimeStartupAdapter('));
-    expect(installedPlayer, contains('PlayerRuntimeStartupShell('));
-    expect(installedPlayer, contains('runtimeStartupShellEnabled'));
-    expect(installedPlayer, contains('stopIntroPlayback'));
-    expect(installedPlayer, contains('PokeMapPlayerSessionView('));
-    expect(
-      installedPlayer,
-      contains('gameplayInputRoute: _sessions?.handleInput'),
-    );
-    expect(
-      installedPlayer,
-      contains('autofocus: false'),
-      reason: 'Hosted GameWidget input must enter through the player router.',
-    );
-    expect(
-      installedPlayer,
-      isNot(contains('_routeMenuKey')),
-      reason: 'The Hub must not own a second keyboard Menu route.',
-    );
-    expect(
-      'PokeMapPlayerSessionView('.allMatches(installedPlayer),
-      hasLength(1),
-    );
-    expect(
-      'PlayerRuntimeStartupShell('.allMatches(installedPlayer),
-      hasLength(1),
-    );
-    expect(
-      installedPlayer,
-      isNot(contains('HubIntroVideoPlayer(')),
-      reason: 'Concrete intro playback must now live in map_player_ui.',
-    );
-    expect(installedPlayer, contains('HubRuntimeGameSource('));
-    expect(installedPlayer, contains('HubPlayerSaveGateway('));
-    expect(installedPlayer, contains('HubPlayerPreferencesGateway('));
-    expect(installedPlayer, contains('HubRuntimeExternalExit('));
-    expect(installedPlayer, contains('PopScope<Object?>('));
-    expect(installedPlayer, contains('pauseForLifecycle()'));
-    expect(installedPlayer, contains('resumeFromLifecycle()'));
-    expect(
-      installedPlayer,
-      isNot(contains('PlayableMapGamePresentationController')),
-    );
-    expect(installedPlayer, isNot(contains('PlayerShellController')));
-    expect(installedPlayer, isNot(contains('HubPlayerShellView')));
-    expect(installedPlayer, isNot(contains('HubRuntimePresentation')));
-    expect(uiBarrel, isNot(contains('hub_runtime_presentation.dart')));
-    expect(playerBarrel, isNot(contains('hub_runtime_presentation.dart')));
-  });
+      expect(installedPlayer, contains('GameWidget('));
+      expect(installedPlayer, contains('RuntimePlayerCoordinator('));
+      expect(installedPlayer, contains('RuntimeStartupCoordinator('));
+      expect(installedPlayer, contains('HubRuntimeStartupAdapter('));
+      expect(installedPlayer, contains('RuntimeInitialMapPreloader('));
+      expect(installedPlayer, contains('initialMapPreloadPort:'));
+      expect(installedPlayer, contains('preloadedInitialMap:'));
+      expect(installedPlayer, contains('PlayerRuntimeStartupShell('));
+      expect(installedPlayer, contains('runtimeStartupShellEnabled'));
+      expect(installedPlayer, contains('stopIntroPlayback'));
+      expect(installedPlayer, contains('PokeMapPlayerSessionView('));
+      expect(installedPlayer, contains('Localizations.override('));
+      expect(
+        installedPlayer,
+        contains('gameplayInputRoute: _sessions?.handleInput'),
+      );
+      expect(
+        installedPlayer,
+        contains('autofocus: false'),
+        reason: 'Hosted GameWidget input must enter through the player router.',
+      );
+      expect(
+        installedPlayer,
+        isNot(contains('_routeMenuKey')),
+        reason: 'The Hub must not own a second keyboard Menu route.',
+      );
+      expect(
+        'PokeMapPlayerSessionView('.allMatches(installedPlayer),
+        hasLength(1),
+      );
+      expect(
+        'PlayerRuntimeStartupShell('.allMatches(installedPlayer),
+        hasLength(1),
+      );
+      expect(
+        installedPlayer,
+        isNot(contains('HubIntroVideoPlayer(')),
+        reason: 'Concrete intro playback must now live in map_player_ui.',
+      );
+      expect(installedPlayer, contains('HubRuntimeGameSource('));
+      expect(installedPlayer, contains('HubPlayerSaveGateway('));
+      expect(installedPlayer, contains('HubPlayerPreferencesGateway('));
+      expect(installedPlayer, contains('HubRuntimeExternalExit('));
+      expect(installedPlayer, contains('PopScope<Object?>('));
+      expect(installedPlayer, contains('pauseForLifecycle()'));
+      expect(installedPlayer, contains('resumeFromLifecycle()'));
+      expect(
+        installedPlayer,
+        isNot(contains('PlayableMapGamePresentationController')),
+      );
+      expect(installedPlayer, isNot(contains('PlayerShellController')));
+      expect(installedPlayer, isNot(contains('HubPlayerShellView')));
+      expect(installedPlayer, isNot(contains('HubRuntimePresentation')));
+      expect(uiBarrel, isNot(contains('hub_runtime_presentation.dart')));
+      expect(playerBarrel, isNot(contains('hub_runtime_presentation.dart')));
+    },
+  );
 }

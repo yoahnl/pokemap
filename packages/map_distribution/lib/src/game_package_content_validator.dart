@@ -299,7 +299,20 @@ final class GamePackageContentValidator {
     }) {
       if (_matchesMediaMagic(extension, bytes)) return extension;
     }
+    if (_looksLikeText(bytes)) return '.txt';
     return null;
+  }
+
+  bool _looksLikeText(Uint8List bytes) {
+    if (bytes.isEmpty) return true;
+    try {
+      final text = utf8.decode(bytes, allowMalformed: false);
+      return text.codeUnits.every(
+        (unit) => unit >= 0x20 || unit == 0x09 || unit == 0x0a || unit == 0x0d,
+      );
+    } on FormatException {
+      return false;
+    }
   }
 
   ({int width, int height})? _imageDimensions(

@@ -90,6 +90,8 @@ class PlayerActionButton extends StatefulWidget {
     this.disabledReason,
     this.autofocus = false,
     this.secondary = false,
+    this.quiet = false,
+    this.expandContent = false,
     this.trailing,
     this.focusNode,
     this.showFocusHighlight = true,
@@ -103,6 +105,8 @@ class PlayerActionButton extends StatefulWidget {
   final String? disabledReason;
   final bool autofocus;
   final bool secondary;
+  final bool quiet;
+  final bool expandContent;
   final Widget? trailing;
   final FocusNode? focusNode;
   final bool showFocusHighlight;
@@ -144,39 +148,62 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
     final colors = context.playerColors;
     final motion = context.playerMotion;
     final buttonChild = Row(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisSize: widget.expandContent ? MainAxisSize.max : MainAxisSize.min,
       children: <Widget>[
         Icon(widget.icon),
         const SizedBox(width: PlayerSpacing.sm),
-        Flexible(
-          child: Text(
-            widget.label,
-            overflow: TextOverflow.ellipsis,
-            style: context.playerTypography.bodyStyle(
-              Theme.of(context).textTheme.labelLarge ??
-                  DefaultTextStyle.of(context).style,
+        if (widget.expandContent)
+          Expanded(
+            child: Text(
+              widget.label,
+              overflow: TextOverflow.ellipsis,
+              style: context.playerTypography.bodyStyle(
+                Theme.of(context).textTheme.labelLarge ??
+                    DefaultTextStyle.of(context).style,
+              ),
+            ),
+          )
+        else
+          Flexible(
+            child: Text(
+              widget.label,
+              overflow: TextOverflow.ellipsis,
+              style: context.playerTypography.bodyStyle(
+                Theme.of(context).textTheme.labelLarge ??
+                    DefaultTextStyle.of(context).style,
+              ),
             ),
           ),
-        ),
         if (widget.trailing != null) ...<Widget>[
           const SizedBox(width: PlayerSpacing.sm),
           Flexible(child: widget.trailing!),
         ],
       ],
     );
-    final button = widget.secondary
-        ? OutlinedButton(
+    final button = widget.quiet
+        ? TextButton(
             onPressed: widget.onPressed,
             focusNode: _focusNode,
             autofocus: widget.autofocus,
+            style: TextButton.styleFrom(
+              alignment: Alignment.centerLeft,
+              foregroundColor: colors.textSecondary,
+            ),
             child: buttonChild,
           )
-        : FilledButton(
-            onPressed: widget.onPressed,
-            focusNode: _focusNode,
-            autofocus: widget.autofocus,
-            child: buttonChild,
-          );
+        : widget.secondary
+            ? OutlinedButton(
+                onPressed: widget.onPressed,
+                focusNode: _focusNode,
+                autofocus: widget.autofocus,
+                child: buttonChild,
+              )
+            : FilledButton(
+                onPressed: widget.onPressed,
+                focusNode: _focusNode,
+                autofocus: widget.autofocus,
+                child: buttonChild,
+              );
     return Semantics(
       key: ValueKey<String>('player-action-semantics-${widget.label}'),
       button: true,

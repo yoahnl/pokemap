@@ -11,10 +11,25 @@ void main() {
       final projectPath = Platform.environment['POKEMAP_EXTERNAL_PROJECT']!;
       final outputPath = Platform.environment['POKEMAP_EXTERNAL_OUTPUT']!;
       final projectRoot = Directory(projectPath);
-      final profile = await GamePackageExportProfileStore(
+      final profileStore = GamePackageExportProfileStore(
         projectRoot: projectRoot,
-      ).load();
+      );
+      var profile = await profileStore.load();
       expect(profile, isNotNull);
+      final requestedVersion = Platform
+          .environment['POKEMAP_EXTERNAL_GAME_VERSION']
+          ?.trim();
+      final requestedAuthor = Platform
+          .environment['POKEMAP_EXTERNAL_GAME_AUTHOR']
+          ?.trim();
+      if ((requestedVersion != null && requestedVersion.isNotEmpty) ||
+          (requestedAuthor != null && requestedAuthor.isNotEmpty)) {
+        profile = profile!.copyWith(
+          gameVersion: requestedVersion,
+          authorName: requestedAuthor,
+        );
+        await profileStore.save(profile);
+      }
 
       final artifact = await const GamePackageExportService().exportToFile(
         projectRoot: projectRoot,

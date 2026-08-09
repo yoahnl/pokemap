@@ -16,12 +16,12 @@ topics:
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
-  flutter: '>=3.10.0'
+  flutter: '>=3.41.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  flame: ^1.35.0
+  flame: ^1.38.0
   flame_audio: ^2.12.1
   image: ^4.2.0
   path: ^1.8.3

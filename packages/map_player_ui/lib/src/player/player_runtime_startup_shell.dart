@@ -8,7 +8,6 @@ import '../foundation/player_components.dart';
 import '../theme/pokemap_player_theme.dart';
 import 'player_intro_video_player.dart';
 import 'player_intro_video_surface.dart';
-import 'player_new_game_identity.dart';
 import 'player_runtime_splash_surface.dart';
 import 'player_startup_media.dart';
 import 'player_startup_strings.dart';
@@ -464,21 +463,9 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       ),
     );
     if (confirmed != true || !mounted) return;
-    Object? payload = widget.payloadForAction?.call(
+    final payload = widget.payloadForAction?.call(
       RuntimePlayerAction.newGame,
     );
-    final identityPresentation = widget.titlePresentation.newGameIdentity;
-    if (identityPresentation != null && payload is RuntimePlayerLoadSlot) {
-      final identity = await showDialog<GameSessionPlayerIdentity>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => PlayerNewGameIdentityDialog(
-          presentation: identityPresentation,
-        ),
-      );
-      if (identity == null || !mounted) return;
-      payload = RuntimePlayerNewGameSetup(slot: payload, identity: identity);
-    }
     _dispatchPlayer(RuntimePlayerAction.newGame, player, payload: payload);
   }
 

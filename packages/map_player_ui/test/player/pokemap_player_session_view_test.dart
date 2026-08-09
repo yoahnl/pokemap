@@ -375,7 +375,7 @@ void main() {
   });
 
   testWidgets(
-    'guides identity selection before dispatching New Game at 200% text scale',
+    'dispatches New Game without a host identity dialog',
     (tester) async {
       final controller = _FakeRuntimePlayerCoordinator(
         _snapshot(
@@ -398,20 +398,6 @@ void main() {
             ),
             child: _view(
               controller,
-              titlePresentation: PlayerNewGameIdentityPresentation(
-                defaultName: 'Alex',
-                defaultAvatarCharacterId: 'hero_a',
-                avatarOptions: const <PlayerNewGameAvatarOption>[
-                  PlayerNewGameAvatarOption(
-                    characterId: 'hero_a',
-                    label: 'Héroïne A',
-                  ),
-                  PlayerNewGameAvatarOption(
-                    characterId: 'hero_b',
-                    label: 'Héros B',
-                  ),
-                ],
-              ),
               payloadForAction: (_) => const RuntimePlayerLoadSlot(
                 profileId: 'player',
                 slotId: 'slot_1',
@@ -427,40 +413,16 @@ void main() {
         find.byKey(
           const ValueKey<String>('player-new-game-identity-dialog'),
         ),
-        findsOneWidget,
+        findsNothing,
       );
-
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('player-identity-name')),
-        'Camille',
-      );
-      await tester.tap(
-        find.byKey(const ValueKey<String>('player-identity-avatar')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Héros B').last);
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('player-identity-pronouns')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Féminins — elle').last);
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('player-identity-confirm')),
-      );
-      await tester.pumpAndSettle();
 
       expect(controller.commands, hasLength(1));
       final command = controller.commands.single;
       expect(command.action, RuntimePlayerAction.newGame);
       expect(command.snapshotRevision, 9);
-      final setup = command.payload! as RuntimePlayerNewGameSetup;
-      expect(setup.slot.profileId, 'player');
-      expect(setup.slot.slotId, 'slot_1');
-      expect(setup.identity.name, 'Camille');
-      expect(setup.identity.avatarCharacterId, 'hero_b');
-      expect(setup.identity.pronounSet, PlayerPronounSet.feminine);
+      final slot = command.payload! as RuntimePlayerLoadSlot;
+      expect(slot.profileId, 'player');
+      expect(slot.slotId, 'slot_1');
       expect(tester.takeException(), isNull);
     },
   );
@@ -1359,17 +1321,15 @@ PokeMapPlayerSessionView _view(
   ValueListenable<DialoguePresentationSnapshot?>? dialoguePresentation,
   ValueChanged<DialoguePresentationCommand>? onDialogueCommand,
   bool? controllerInputEnabled,
-  PlayerNewGameIdentityPresentation? titlePresentation,
   RuntimePlayerActionPayloadBuilder? payloadForAction,
   Future<void> Function()? hapticFeedback,
   PlayerControlProfile? controlProfile,
 }) {
   return PokeMapPlayerSessionView(
     controller: controller,
-    titlePresentation: RuntimePlayerTitlePresentation(
+    titlePresentation: const RuntimePlayerTitlePresentation(
       author: 'Studio Test',
       description: 'Une aventure de test.',
-      newGameIdentity: titlePresentation,
     ),
     payloadForAction: payloadForAction,
     gameSceneBuilder: (_) => _SceneProbe(

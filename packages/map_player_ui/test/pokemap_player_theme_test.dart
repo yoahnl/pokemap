@@ -106,6 +106,7 @@ void main() {
       theme.extension<PokeMapPlayerSemanticTheme>()!.titleSurface,
       semantic.titleSurface,
     );
+    expect(theme.textTheme.headlineLarge?.color, semantic.textPrimary);
     expect(
       PokeMapPlayerSemanticTheme.tryFromHex(
         primary: 'navy',

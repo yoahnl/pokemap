@@ -557,6 +557,8 @@ abstract final class PokeMapPlayerTheme {
       surfaceTint: colors.primary,
     );
     final textTheme = theme.textTheme.copyWith(
+      headlineLarge:
+          theme.textTheme.headlineLarge?.copyWith(color: colors.textPrimary),
       displaySmall:
           theme.textTheme.displaySmall?.copyWith(color: colors.textPrimary),
       headlineMedium:
