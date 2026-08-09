@@ -273,14 +273,14 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   void _handleStartupSnapshot(RuntimeStartupSnapshot snapshot) {
     if (!mounted) return;
     setState(() => _startupSnapshot = snapshot);
-    if (widget.initialLaunchIntent.skipsIntro) {
+    if (widget.initialLaunchIntent.skipsStartup) {
       unawaited(_driveInitialLaunchIntent(snapshot));
     }
   }
 
-  /// Dashboard Continue remains a shortcut, but every skipped startup phase is
-  /// still committed through the same revisioned runtime commands as a human
-  /// press. One in-flight guard prevents a fast stream from double-launching.
+  /// An explicit host quick-resume shortcut still commits every skipped phase
+  /// through the same revisioned commands as a human press. Ordinary dashboard
+  /// Continue uses [HubPlayerLaunchIntent.title] and never enters this path.
   Future<void> _driveInitialLaunchIntent(
     RuntimeStartupSnapshot snapshot,
   ) async {

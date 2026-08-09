@@ -4,7 +4,7 @@ import 'package:pokemap_hub/pokemap_hub_ui.dart';
 
 void main() {
   test(
-      'continue intent dispatches the runtime continue action at this revision',
+      'explicit quick resume dispatches continue without changing cold launch',
       () async {
     RuntimePlayerCommand? command;
     final snapshot = RuntimePlayerSnapshot(
@@ -19,7 +19,7 @@ void main() {
     );
 
     final result = await dispatchHubInitialLaunchIntent(
-      intent: HubPlayerLaunchIntent.continueGame,
+      intent: HubPlayerLaunchIntent.quickResume,
       snapshot: snapshot,
       dispatch: (value) async {
         command = value;
@@ -33,7 +33,7 @@ void main() {
     expect(command?.action, RuntimePlayerAction.continueGame);
     expect(command?.snapshotRevision, 7);
     expect(command?.payload, isNull);
-    expect(HubPlayerLaunchIntent.continueGame.skipsIntro, isTrue);
+    expect(HubPlayerLaunchIntent.quickResume.skipsStartup, isTrue);
   });
 
   test('title intent preserves the existing guided player flow', () async {
@@ -55,6 +55,6 @@ void main() {
 
     expect(result, isNull);
     expect(dispatches, 0);
-    expect(HubPlayerLaunchIntent.title.skipsIntro, isFalse);
+    expect(HubPlayerLaunchIntent.title.skipsStartup, isFalse);
   });
 }

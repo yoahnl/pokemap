@@ -148,7 +148,7 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
       onImportRequested: actions.onImportRequested,
       onContinue: (game) => _openPlayer(
         game,
-        intent: HubPlayerLaunchIntent.continueGame,
+        intent: HubPlayerLaunchIntent.title,
       ),
       onNewGame: (game) => _openPlayer(
         game,

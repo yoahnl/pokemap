@@ -102,7 +102,7 @@ void main() {
   );
 
   testWidgets(
-    'mobile Continue forwards an explicit resume intent to the real player',
+    'mobile Continue preserves the complete cold-launch flow',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
@@ -144,7 +144,11 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(launchIntent, HubPlayerLaunchIntent.continueGame);
+      expect(
+        launchIntent,
+        HubPlayerLaunchIntent.title,
+        reason: 'A saved game still enters the complete cold-launch sequence.',
+      );
       expect(find.text('Lecteur Aube'), findsOneWidget);
     },
   );
