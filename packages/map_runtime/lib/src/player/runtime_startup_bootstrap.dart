@@ -5,6 +5,7 @@ import 'runtime_intro_sequence_controller.dart';
 import 'runtime_player_coordinator.dart';
 import 'runtime_player_models.dart';
 import 'runtime_presentation_media_selection.dart';
+import 'runtime_project_typography_loader.dart';
 import 'runtime_splash_jingle_controller.dart';
 import 'runtime_startup_coordinator.dart';
 import 'runtime_startup_models.dart';
@@ -65,6 +66,8 @@ final class RuntimeStartupPreparedGraph {
     required this.introController,
     required this.splashJingleController,
     required this.titleMusicController,
+    this.presentationMetadata = const RuntimeStartupPresentationMetadata(),
+    this.typographyLoader = const RuntimeProjectTypographyLoader(),
     this.reducedMotion = false,
     Future<void> Function()? stopIntroPlayback,
   }) : stopIntroPlayback = stopIntroPlayback ?? _noOp;
@@ -76,6 +79,8 @@ final class RuntimeStartupPreparedGraph {
   final RuntimeIntroSequenceController introController;
   final RuntimeSplashJingleController splashJingleController;
   final RuntimeTitleMusicController titleMusicController;
+  final RuntimeStartupPresentationMetadata presentationMetadata;
+  final RuntimeProjectTypographyLoader typographyLoader;
   final bool reducedMotion;
   final Future<void> Function() stopIntroPlayback;
   bool _disposed = false;
@@ -408,6 +413,8 @@ final class RuntimeStartupBootstrapCoordinator<T> {
         titleMusicController: result.graph.titleMusicController,
         clock: _clock,
         hostBranding: _hostBranding,
+        presentationMetadata: result.graph.presentationMetadata,
+        typographyLoader: result.graph.typographyLoader,
         minimumSplashDuration: _minimumSplashDuration,
         reducedMotion: result.graph.reducedMotion,
         presentationOrientation: _presentationOrientation,

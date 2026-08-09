@@ -34,9 +34,20 @@ final class HubRuntimeStartupAdapter
   @override
   Future<ProjectPresentationProfile?> loadPresentationProfile() async {
     final branding = manifest.branding;
-    final intro = manifest.presentation?.intro;
-    final titleMotion = manifest.presentation?.titleMotion;
-    if (branding == null && intro == null && titleMotion == null) return null;
+    final presentation = manifest.presentation;
+    final intro = presentation?.intro;
+    final titleMotion = presentation?.titleMotion;
+    final typography = presentation?.typography;
+    final theme = presentation?.theme;
+    final menuLabels = presentation?.menuLabels;
+    if (branding == null &&
+        intro == null &&
+        titleMotion == null &&
+        typography == null &&
+        theme == null &&
+        menuLabels == null) {
+      return null;
+    }
     return ProjectPresentationProfile(
       schemaVersion: ProjectPresentationProfile.supportedSchemaVersion,
       branding: ProjectBrandingProfile(
@@ -64,8 +75,57 @@ final class HubRuntimeStartupAdapter
                   ? null
                   : _projectMedia(titleMotion.menuLoop!),
             ),
+      typography: typography == null
+          ? null
+          : ProjectTypographyProfile(
+              display: _projectFontRole(typography.display),
+              body: _projectFontRole(typography.body),
+              dialogue: _projectFontRole(typography.dialogue),
+              numbers: _projectFontRole(typography.numbers),
+            ),
+      theme: theme == null
+          ? null
+          : ProjectSemanticThemeProfile(
+              primary: theme.primary,
+              onPrimary: theme.onPrimary,
+              background: theme.background,
+              surface: theme.surface,
+              surfaceElevated: theme.surfaceElevated,
+              textPrimary: theme.textPrimary,
+              textSecondary: theme.textSecondary,
+              outline: theme.outline,
+              success: theme.success,
+              warning: theme.warning,
+              danger: theme.danger,
+              titleSurface: theme.titleSurface,
+              dialogueSurface: theme.dialogueSurface,
+              menuSurface: theme.menuSurface,
+              overworldHudSurface: theme.overworldHudSurface,
+              battleHudSurface: theme.battleHudSurface,
+            ),
+      menuLabels: menuLabels == null
+          ? null
+          : ProjectMenuLabelsProfile(
+              pauseTitle: menuLabels.pauseTitle,
+              resume: menuLabels.resume,
+              party: menuLabels.party,
+              bag: menuLabels.bag,
+              pokedex: menuLabels.pokedex,
+              map: menuLabels.map,
+              save: menuLabels.save,
+              options: menuLabels.options,
+              returnToTitle: menuLabels.returnToTitle,
+            ),
     );
   }
+
+  ProjectTypographyRoleProfile _projectFontRole(GamePackageFontRole role) =>
+      ProjectTypographyRoleProfile(
+        fontPath: role.font,
+        family: role.family,
+        licensePath: role.license,
+        fallbackFamilies: role.fallbackFamilies,
+      );
 
   ProjectResponsiveVideoProfile _projectMedia(
     GamePackageResponsiveVideo media,

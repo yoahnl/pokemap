@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -602,6 +604,56 @@ void main() {
       harness.startup.snapshot.diagnostics.map((item) => item.code),
       contains('titleHeroUnavailable'),
     );
+  });
+
+  test('runtime resolves title identity, logo and project typography', () async {
+    final root = await Directory.systemTemp.createTemp('runtime-presentation-');
+    addTearDown(() => root.delete(recursive: true));
+    final font = await File('${root.path}/display.ttf').writeAsBytes(<int>[1, 2]);
+    final registrar = _RecordingFontRegistrar();
+    final harness = _RuntimeStartupTestHarness(
+      profile: const ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(iconPath: 'assets/logo.png'),
+        typography: ProjectTypographyProfile(
+          display: ProjectTypographyRoleProfile(
+            fontPath: 'assets/display.ttf',
+            family: 'Train Display',
+            fallbackFamilies: <String>['serif'],
+          ),
+        ),
+      ),
+      presentationMetadata: const RuntimeStartupPresentationMetadata(
+        author: 'Studio Brume',
+        description: 'Une aventure ferroviaire.',
+      ),
+      typographyLoader: RuntimeProjectTypographyLoader(registrar: registrar),
+      assetResolver: _MemoryPresentationAssetResolver(
+        resolvedFiles: <String, File>{'assets/display.ttf': font},
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+    for (var attempt = 0;
+        attempt < 50 && harness.startup.snapshot.presentation == null;
+        attempt++) {
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+
+    final presentation = harness.startup.snapshot.presentation;
+    expect(presentation?.metadata.author, 'Studio Brume');
+    expect(presentation?.metadata.description, 'Une aventure ferroviaire.');
+    expect(presentation?.titleLogo?.assetId, 'assets/logo.png');
+    expect(
+      presentation
+          ?.typography
+          ?.roles[ProjectTypographyRole.display]
+          ?.registeredFamily,
+      'Train Display',
+    );
+    expect(registrar.families, <String>['Train Display']);
   });
 
   test('optional poster failure preserves the playable intro video', () async {
@@ -1261,6 +1313,10 @@ final class _RuntimeStartupTestHarness {
     Future<void>? descriptorGate,
     RuntimePresentationOrientation presentationOrientation =
         RuntimePresentationOrientation.landscape,
+    RuntimeStartupPresentationMetadata presentationMetadata =
+        const RuntimeStartupPresentationMetadata(),
+    RuntimeProjectTypographyLoader typographyLoader =
+        const RuntimeProjectTypographyLoader(),
   })  : player = RuntimePlayerTestHarness(
           latestSave: latestSave,
           descriptorGate: descriptorGate,
@@ -1290,6 +1346,8 @@ final class _RuntimeStartupTestHarness {
       minimumSplashDuration: const Duration(seconds: 7),
       reducedMotion: reducedMotion,
       presentationOrientation: presentationOrientation,
+      presentationMetadata: presentationMetadata,
+      typographyLoader: typographyLoader,
       stopIntroPlayback: stopIntroPlayback,
     );
   }
@@ -1465,12 +1523,14 @@ final class _MemoryPresentationAssetResolver
     this.mediaAssetIds = const <String>[],
     this.failingImages = const <String>{},
     this.failingMedia = const <String>{},
+    this.resolvedFiles = const <String, File>{},
   });
 
   final List<Future<void>> mediaGates;
   final List<String> mediaAssetIds;
   final Set<String> failingImages;
   final Set<String> failingMedia;
+  final Map<String, File> resolvedFiles;
   int mediaCalls = 0;
   final List<String> resolvedMediaPaths = <String>[];
 
@@ -1504,10 +1564,20 @@ final class _MemoryPresentationAssetResolver
       assetId: callIndex < mediaAssetIds.length
           ? mediaAssetIds[callIndex]
           : projectRelativePath,
-      resolvedUri: Uri.file('/project/${projectRelativePath.split('/').last}'),
+      resolvedUri: resolvedFiles[projectRelativePath]?.uri ??
+          Uri.file('/project/${projectRelativePath.split('/').last}'),
       mediaType:
           projectRelativePath.endsWith('.mp4') ? 'video/mp4' : 'audio/ogg',
     );
+  }
+}
+
+final class _RecordingFontRegistrar implements RuntimeFontRegistrar {
+  final List<String> families = <String>[];
+
+  @override
+  Future<void> register(String family, Uint8List bytes) async {
+    families.add(family);
   }
 }
 

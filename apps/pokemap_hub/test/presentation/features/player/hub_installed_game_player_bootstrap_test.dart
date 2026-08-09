@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
@@ -28,6 +29,11 @@ void main() {
           controlProfileRepository: _UnusedControlProfileRepository(),
           launchResolver: _PendingLaunchResolver(launch.future),
           game: _game(),
+          hostBranding: const RuntimeHostSplashBranding(
+            displayName: 'TEST',
+            signature: 'RUNTIME',
+          ),
+          splashLogo: null,
           onHubRequested: () async {},
           diagnosticLogFile: File('/dev/null'),
         ),

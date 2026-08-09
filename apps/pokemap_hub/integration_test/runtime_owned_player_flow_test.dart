@@ -104,6 +104,11 @@ void main() {
                   ),
                   launchResolver: launchResolver,
                   game: game.game,
+                  hostBranding: const RuntimeHostSplashBranding(
+                    displayName: 'TEST',
+                    signature: 'RUNTIME',
+                  ),
+                  splashLogo: null,
                   onHubRequested: onHubRequested,
                 ),
           ),
@@ -112,28 +117,21 @@ void main() {
       await _pumpUntilFound(tester, find.text(_gameTitle));
 
       final gameCard = find.byKey(
-        const ValueKey<String>('hub-game-card-$_gameId'),
+        const ValueKey<String>('avelune-room-hero-cartridge'),
       );
       await tester.ensureVisible(gameCard);
       await tester.tap(gameCard);
       await tester.pump();
-      expect(controller.snapshot.selectedGameId, _gameId);
-      await _dragUntilFound(
-        tester,
-        target: find.text('Nouvelle partie'),
-        scrollView: find.byType(CustomScrollView).last,
+      await _pumpUntilFound(tester, find.text('Appuyer sur Start'));
+      await tester.tap(
+        find.byKey(const ValueKey<String>('player-title-prompt-hit-area')),
       );
-      await tester.tap(find.text('Nouvelle partie'));
-      await _pumpUntilFound(
-        tester,
-        find.byKey(const ValueKey<String>('pokemap-runtime-player-view')),
-      );
-      await _pumpUntilFound(tester, find.text('Nouvelle partie'));
+      await _pumpUntilFound(tester, find.text('Nouveau jeu'));
       expect(find.text('FPS'), findsNothing);
       expect(find.textContaining('collision'), findsNothing);
       expect(find.textContaining('seed'), findsNothing);
 
-      await tester.tap(find.text('Nouvelle partie'));
+      await tester.tap(find.text('Nouveau jeu'));
       expect(
         find.byKey(const ValueKey<String>('player-new-game-identity-dialog')),
         findsNothing,
@@ -159,7 +157,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey<String>('pause.party')));
       await _pumpUntilFound(
         tester,
-        find.text('Aucun compagnon dans l’équipe.'),
+        find.text('Aucun Pokémon dans l’équipe.'),
       );
 
       final resume = find.byKey(const ValueKey<String>('pause.resume'));
@@ -171,10 +169,10 @@ void main() {
       await _pumpUntilFact(tester, game, 'fact_mist_source_resolved');
 
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await _pumpUntilFound(tester, find.text('Maison des soins'));
+      await _pumpUntilFound(tester, find.text('Centre Pokémon'));
       expect(find.byKey(const ValueKey<String>('heal-cancel')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey<String>('heal-cancel')));
-      await _pumpUntilGone(tester, find.text('Maison des soins'));
+      await _pumpUntilGone(tester, find.text('Centre Pokémon'));
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.paused));
@@ -210,7 +208,7 @@ void main() {
         tester,
         find.byKey(const ValueKey<String>('pause.returnToTitle')),
       );
-      await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.title));
+      await _pumpUntilFound(tester, find.text('Continuer'));
       expect(find.text('Continuer'), findsOneWidget);
 
       await tester.tap(find.text('Continuer'));
@@ -263,30 +261,33 @@ void main() {
       expect(find.text('Selbrume'), findsOneWidget);
       expect(find.text('Fin principale — Selbrume sauvée'), findsOneWidget);
       await _tapPlayerAction(tester, 'Retour au Hub');
-      await _pumpUntilFound(tester, find.text('Installation vérifiée'));
+      await _pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey<String>('avelune-home-screen')),
+      );
       expect(
         find.byKey(const ValueKey<String>('pokemap-runtime-player-view')),
         findsNothing,
       );
       expect(find.text(_gameTitle), findsWidgets);
 
-      await _dragUntilFound(
-        tester,
-        target: find.text('Nouvelle partie'),
-        scrollView: find.byType(CustomScrollView).last,
+      await tester.tap(
+        find.byKey(const ValueKey<String>('avelune-room-hero-cartridge')),
       );
-      await tester.tap(find.text('Nouvelle partie'));
-      await _pumpUntilFound(
-        tester,
-        find.byKey(const ValueKey<String>('pokemap-runtime-player-view')),
+      await _pumpUntilFound(tester, find.text('Appuyer sur Start'));
+      await tester.tap(
+        find.byKey(const ValueKey<String>('player-title-prompt-hit-area')),
       );
-      await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.title));
+      await _pumpUntilFound(tester, find.text('Nouveau jeu'));
       final continueAction = tester.widget<PlayerActionButton>(
         find.widgetWithText(PlayerActionButton, 'Continuer'),
       );
       expect(continueAction.onPressed, isNull);
       await _tapPlayerAction(tester, 'Retour au Hub');
-      await _pumpUntilFound(tester, find.text('Installation vérifiée'));
+      await _pumpUntilFound(
+        tester,
+        find.byKey(const ValueKey<String>('avelune-home-screen')),
+      );
       expect(
         runtimeLogs.where(
           (message) =>

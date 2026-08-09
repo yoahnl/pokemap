@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
@@ -10,7 +11,7 @@ import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 import 'package:pokemap_hub/pokemap_hub_player.dart';
-import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
 import 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 import 'package:pub_semver/pub_semver.dart';
 
@@ -101,14 +102,53 @@ void main() {
         supportRoot: supportRoot,
         hostCompatibility: compatibility,
       ).resolve(installed.game);
-      final presentation =
-          await HubTitlePresentationLoader(
-            manifest: launch.manifest,
-            resolveFile:
-                (packagePath) => launch.assets.resolveReference(
-                  launch.assets.reference(packagePath),
-                ),
-          ).load();
+      final startupAdapter = HubRuntimeStartupAdapter(
+        manifest: launch.manifest,
+        assets: launch.assets,
+      );
+      final runtimeProfile = (await startupAdapter.loadPresentationProfile())!;
+      final resolvedAssets = <String, RuntimeResolvedAsset?>{
+        for (final path in <String>[
+          'presentation/icon.png',
+          'presentation/intro/video.mp4',
+          'presentation/intro/poster.png',
+          'project/assets/title.ogg',
+          'presentation/fonts/display.ttf',
+        ])
+          path: path.endsWith('.png')
+              ? await startupAdapter.resolveImage(path)
+              : await startupAdapter.resolveMedia(path),
+      };
+      final unavailableAssets = <String>[
+        for (final entry in resolvedAssets.entries)
+          if (entry.value == null) entry.key,
+      ];
+      final resolvedPresentation = RuntimeStartupResolvedPresentation(
+        metadata: RuntimeStartupPresentationMetadata(
+          author: launch.manifest.author.name,
+          description: launch.manifest.description,
+        ),
+        profile: runtimeProfile,
+        titleLogo:
+            resolvedAssets['presentation/icon.png']?.presentationAsset,
+        titleMusic:
+            resolvedAssets['project/assets/title.ogg']?.presentationAsset,
+        introVideo: resolvedAssets['presentation/intro/video.mp4']
+            ?.presentationAsset,
+        introPoster: resolvedAssets['presentation/intro/poster.png']
+            ?.presentationAsset,
+        typography: _loadedTypography(runtimeProfile.typography!),
+      );
+      final presentation = RuntimePlayerPresentation.fromRuntime(
+        resolvedPresentation,
+        imageForAsset: (asset) {
+          final resolved =
+              asset == null ? null : startupAdapter.resolvedAsset(asset.assetId);
+          return resolved == null
+              ? null
+              : FileImage(File.fromUri(resolved.resolvedUri));
+        },
+      );
 
       expect(installSmokePassed, isTrue);
       expect(preflight.packageSha256, inspection.receipt.packageSha256);
@@ -127,21 +167,21 @@ void main() {
         presentation.title.layoutVariant,
         PlayerTitleLayoutVariant.cinematic,
       );
-      expect(presentation.intro, isNotNull);
+      expect(runtimeProfile.intro, isNotNull);
       expect(
-        presentation.typography?.roles[ProjectTypographyRole.display]?.family,
+        presentation.typography.displayFamily,
         'Aube Display',
       );
       expect(presentation.semanticTheme, isNotNull);
-      expect(presentation.unavailableAssets, isEmpty);
+      expect(unavailableAssets, isEmpty);
 
       final introSequence =
           RuntimeIntroSequenceController()..start(
             hasVideo: true,
-            hasPoster: presentation.intro!.poster != null,
+            hasPoster: resolvedPresentation.introPoster != null,
             reducedMotion: false,
             reducedMotionBehavior: RuntimeIntroReducedMotionBehavior.poster,
-            allowReplay: presentation.intro!.allowReplay,
+            allowReplay: runtimeProfile.intro!.allowReplay,
           );
       expect(introSequence.phase, RuntimeIntroPhase.playing);
       introSequence.playbackCompleted();
@@ -238,14 +278,11 @@ void main() {
           },
           'resolvedPresentation': <String, Object?>{
             'titleLayoutVariant': presentation.title.layoutVariant.name,
-            'introAvailable': presentation.intro != null,
+            'introAvailable': runtimeProfile.intro != null,
             'displayFontFamily':
-                presentation
-                    .typography
-                    ?.roles[ProjectTypographyRole.display]
-                    ?.family,
+                presentation.typography.displayFamily,
             'semanticThemeAvailable': presentation.semanticTheme != null,
-            'unavailableAssets': presentation.unavailableAssets,
+            'unavailableAssets': unavailableAssets,
           },
           'flow': <String, Object?>{
             'introFinishedCount': introFinishedCount,
@@ -466,6 +503,29 @@ GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
       menuSurface: theme.menuSurface,
       overworldHudSurface: theme.overworldHudSurface,
       battleHudSurface: theme.battleHudSurface,
+    );
+
+RuntimeLoadedTypography _loadedTypography(ProjectTypographyProfile source) =>
+    RuntimeLoadedTypography(
+      roles: <ProjectTypographyRole, RuntimeLoadedFontRole>{
+        ProjectTypographyRole.display: RuntimeLoadedFontRole(
+          registeredFamily: source.display.family,
+          fallbackFamilies: source.display.fallbackFamilies,
+        ),
+        ProjectTypographyRole.body: RuntimeLoadedFontRole(
+          registeredFamily: source.body.family,
+          fallbackFamilies: source.body.fallbackFamilies,
+        ),
+        ProjectTypographyRole.dialogue: RuntimeLoadedFontRole(
+          registeredFamily: source.dialogue.family,
+          fallbackFamilies: source.dialogue.fallbackFamilies,
+        ),
+        ProjectTypographyRole.numbers: RuntimeLoadedFontRole(
+          registeredFamily: source.numbers.family,
+          fallbackFamilies: source.numbers.fallbackFamilies,
+        ),
+      },
+      unavailableRoles: const <ProjectTypographyRole>[],
     );
 
 List<int> _onePixelPngHeader() {

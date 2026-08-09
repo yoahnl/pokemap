@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:map_core/map_core.dart';
 
@@ -7,6 +8,7 @@ import 'runtime_initial_map_preloader.dart';
 import 'runtime_presentation_media_selection.dart';
 import 'runtime_player_coordinator.dart';
 import 'runtime_player_models.dart';
+import 'runtime_project_typography_loader.dart';
 import 'runtime_startup_models.dart';
 import 'runtime_startup_preparation.dart';
 import 'runtime_splash_jingle_controller.dart';
@@ -42,6 +44,10 @@ final class RuntimeStartupCoordinator {
     required RuntimeTitleMusicController titleMusicController,
     RuntimeStartupClock clock = const SystemRuntimeStartupClock(),
     RuntimeHostSplashBranding? hostBranding,
+    RuntimeStartupPresentationMetadata presentationMetadata =
+        const RuntimeStartupPresentationMetadata(),
+    RuntimeProjectTypographyLoader typographyLoader =
+        const RuntimeProjectTypographyLoader(),
     Duration? minimumSplashDuration,
     bool reducedMotion = false,
     RuntimePresentationOrientation presentationOrientation =
@@ -57,6 +63,8 @@ final class RuntimeStartupCoordinator {
         _titleMusic = titleMusicController,
         _clock = clock,
         _hostBranding = hostBranding,
+        _presentationMetadata = presentationMetadata,
+        _typographyLoader = typographyLoader,
         _minimumSplashDuration = minimumSplashDuration ??
             hostBranding?.minimumDisplayDuration ??
             const Duration(milliseconds: 7200),
@@ -111,6 +119,8 @@ final class RuntimeStartupCoordinator {
   final RuntimeTitleMusicController _titleMusic;
   final RuntimeStartupClock _clock;
   final RuntimeHostSplashBranding? _hostBranding;
+  final RuntimeStartupPresentationMetadata _presentationMetadata;
+  final RuntimeProjectTypographyLoader _typographyLoader;
   final Duration _minimumSplashDuration;
   final Duration _splashExitDuration;
   final Duration _finalCurtainDuration;
@@ -414,6 +424,9 @@ final class RuntimeStartupCoordinator {
     // Both weighted units await the same concurrent load without duplicating it.
     final playerPreparation = _player.initialize();
     final presentationPreparation = _loadPresentationSafely(attempt);
+    final typographyPreparation = presentationPreparation.then(
+      (_) => _prepareTypography(attempt),
+    );
     _watchSplashHold(
       generation,
       attempt,
@@ -487,9 +500,7 @@ final class RuntimeStartupCoordinator {
               ),
             );
           }
-          return attempt.profile == null
-              ? const RuntimeStartupPreparationStepResult.absent()
-              : const RuntimeStartupPreparationStepResult.completed();
+          return typographyPreparation;
         },
         RuntimeStartupPreparationStage.splashBranding: () =>
             _prepareSplashBranding(attempt),
@@ -673,6 +684,10 @@ final class RuntimeStartupCoordinator {
       final String path => _resolveImageSafely(path),
       null => Future<RuntimeResolvedAsset?>.value(),
     };
+    final logo = switch (branding.iconPath) {
+      final String path => _resolveImageSafely(path),
+      null => Future<RuntimeResolvedAsset?>.value(),
+    };
     final music = switch (branding.titleMusicPath) {
       final String path => _resolveMediaSafely(path),
       null => Future<RuntimeResolvedAsset?>.value(),
@@ -692,6 +707,7 @@ final class RuntimeStartupCoordinator {
     final assets = await Future.wait<
         RuntimeResolvedAsset?>(<Future<RuntimeResolvedAsset?>>[
       hero,
+      logo,
       music,
       promptVideo,
       promptPoster,
@@ -699,11 +715,12 @@ final class RuntimeStartupCoordinator {
       menuPoster,
     ]);
     attempt.titleHero = assets[0];
-    attempt.titleMusic = assets[1];
-    attempt.titlePromptVideo = assets[2];
-    attempt.titlePromptPoster = assets[3];
-    attempt.titleMenuVideo = assets[4];
-    attempt.titleMenuPoster = assets[5];
+    attempt.titleLogo = assets[1];
+    attempt.titleMusic = assets[2];
+    attempt.titlePromptVideo = assets[3];
+    attempt.titlePromptPoster = assets[4];
+    attempt.titleMenuVideo = assets[5];
+    attempt.titleMenuPoster = assets[6];
     final diagnostics = <RuntimeStartupDiagnostic>[];
     if (branding.titleMusicPath != null && attempt.titleMusic == null) {
       diagnostics.add(
@@ -718,6 +735,14 @@ final class RuntimeStartupCoordinator {
         const RuntimeStartupDiagnostic(
           code: 'titleHeroUnavailable',
           safeMessage: 'The title artwork is unavailable.',
+        ),
+      );
+    }
+    if (branding.iconPath != null && attempt.titleLogo == null) {
+      diagnostics.add(
+        const RuntimeStartupDiagnostic(
+          code: 'titleLogoUnavailable',
+          safeMessage: 'The title logo is unavailable.',
         ),
       );
     }
@@ -756,6 +781,58 @@ final class RuntimeStartupCoordinator {
     return diagnostics.isEmpty
         ? const RuntimeStartupPreparationStepResult.completed()
         : RuntimeStartupPreparationStepResult.nonBlockingFailures(diagnostics);
+  }
+
+  Future<RuntimeStartupPreparationStepResult> _prepareTypography(
+    _RuntimeStartupAttemptContext attempt,
+  ) async {
+    final source = attempt.profile?.typography;
+    if (source == null) {
+      return attempt.profile == null
+          ? const RuntimeStartupPreparationStepResult.absent()
+          : const RuntimeStartupPreparationStepResult.completed();
+    }
+    final roles = <ProjectTypographyRole, ProjectTypographyRoleProfile>{
+      ProjectTypographyRole.display: source.display,
+      ProjectTypographyRole.body: source.body,
+      ProjectTypographyRole.dialogue: source.dialogue,
+      ProjectTypographyRole.numbers: source.numbers,
+    };
+    final requests = <ProjectTypographyRole, RuntimeProjectFontRequest>{};
+    final unavailable = <ProjectTypographyRole>{};
+    for (final entry in roles.entries) {
+      final profile = entry.value;
+      File? file;
+      final fontPath = profile.fontPath;
+      if (fontPath != null) {
+        final resolved = await _resolveMediaSafely(fontPath);
+        if (resolved?.resolvedUri.scheme == 'file') {
+          file = File.fromUri(resolved!.resolvedUri);
+        } else {
+          unavailable.add(entry.key);
+        }
+      }
+      requests[entry.key] = RuntimeProjectFontRequest(
+        file: file,
+        family: profile.family,
+        fallbackFamilies: profile.fallbackFamilies,
+      );
+    }
+    final loaded = await _typographyLoader.load(requests);
+    attempt.typography = loaded;
+    unavailable.addAll(loaded.unavailableRoles);
+    if (unavailable.isEmpty) {
+      return const RuntimeStartupPreparationStepResult.completed();
+    }
+    return RuntimeStartupPreparationStepResult.nonBlockingFailures(
+      <RuntimeStartupDiagnostic>[
+        for (final role in unavailable)
+          RuntimeStartupDiagnostic(
+            code: 'typography${_capitalized(role.name)}Unavailable',
+            safeMessage: 'A project font is unavailable.',
+          ),
+      ],
+    );
   }
 
   Future<void> _handlePreparationResult(
@@ -879,17 +956,20 @@ final class RuntimeStartupCoordinator {
     _RuntimeStartupAttemptContext attempt,
   ) =>
       RuntimeStartupResolvedPresentation(
+        metadata: _presentationMetadata,
         orientation: attempt.orientation,
         profile: attempt.profile,
         hostLogo: attempt.hostLogo?.presentationAsset,
         introVideo: attempt.introVideo?.presentationAsset,
         introPoster: attempt.introPoster?.presentationAsset,
         titleHero: attempt.titleHero?.presentationAsset,
+        titleLogo: attempt.titleLogo?.presentationAsset,
         titleMusic: attempt.titleMusic?.presentationAsset,
         titlePromptVideo: attempt.titlePromptVideo?.presentationAsset,
         titlePromptPoster: attempt.titlePromptPoster?.presentationAsset,
         titleMenuVideo: attempt.titleMenuVideo?.presentationAsset,
         titleMenuPoster: attempt.titleMenuPoster?.presentationAsset,
+        typography: attempt.typography,
       );
 
   List<RuntimeStartupDiagnostic> _uniqueDiagnostics(
@@ -1139,9 +1219,14 @@ final class _RuntimeStartupAttemptContext {
   RuntimeResolvedAsset? introVideo;
   RuntimeResolvedAsset? introPoster;
   RuntimeResolvedAsset? titleHero;
+  RuntimeResolvedAsset? titleLogo;
   RuntimeResolvedAsset? titleMusic;
   RuntimeResolvedAsset? titlePromptVideo;
   RuntimeResolvedAsset? titlePromptPoster;
   RuntimeResolvedAsset? titleMenuVideo;
   RuntimeResolvedAsset? titleMenuPoster;
+  RuntimeLoadedTypography? typography;
 }
+
+String _capitalized(String value) =>
+    value.isEmpty ? value : '${value[0].toUpperCase()}${value.substring(1)}';

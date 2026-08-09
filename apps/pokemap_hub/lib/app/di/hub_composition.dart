@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/widgets.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
 import 'package:pokemap_hub/pokemap_hub_ui.dart';
@@ -12,6 +13,17 @@ import 'package:pokemap_hub/core/config/public_product_identity.dart';
 import 'package:pokemap_hub/core/error/hub_failure.dart';
 import 'package:pokemap_hub/platform/path_provider_support_root_adapter.dart';
 import 'package:pokemap_hub/features/session/data/repositories/control_profile_repository_impl.dart';
+
+const _aveluneRuntimeSplashBranding = RuntimeHostSplashBranding(
+  displayName: 'AVELUNE',
+  signature: 'UNE EXPÉRIENCE DE JEU',
+  primaryColorHex: '#F2D9B2',
+  secondaryColorHex: '#9E79D7',
+);
+
+const _aveluneRuntimeSplashLogo = AssetImage(
+  'assets/avelune/logo/avelune_mark.webp',
+);
 
 abstract interface class HubAppComposition {
   Widget buildApp();
@@ -123,6 +135,8 @@ final class HubComposition implements HubAppComposition {
           ),
           launchResolver: launchResolver,
           game: game.game,
+          hostBranding: _aveluneRuntimeSplashBranding,
+          splashLogo: _aveluneRuntimeSplashLogo,
           preferences: controller.snapshot.preferences,
           diagnosticLogFile: File(
             p.join(supportRoot.path, 'logs', 'hub-player.log'),

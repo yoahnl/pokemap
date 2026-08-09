@@ -13,14 +13,11 @@ import 'package:pokemap_hub/features/session/application/gateways/hub_player_sav
 import 'package:pokemap_hub/features/session/application/services/hub_in_process_session_factory.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_game_source.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
-import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
 import 'package:pokemap_hub/features/session/application/services/player_launch_failure.dart';
 import 'package:pokemap_hub/features/session/domain/entities/hub_runtime_external_exit.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
-
-import 'player_typography_loader.dart';
 
 final class HubRuntimeStartupPreparedData {
   const HubRuntimeStartupPreparedData({
@@ -28,9 +25,7 @@ final class HubRuntimeStartupPreparedData {
     required this.coordinator,
     required this.startupAdapter,
     required this.saveSelection,
-    required this.titlePresentation,
     required this.playerLocale,
-    required this.playerTypography,
     required this.audioMixer,
     required this.controlProfileStore,
     required this.controlProfile,
@@ -41,9 +36,7 @@ final class HubRuntimeStartupPreparedData {
   final RuntimePlayerCoordinator coordinator;
   final HubRuntimeStartupAdapter startupAdapter;
   final HubSaveSelection saveSelection;
-  final HubLoadedTitlePresentation titlePresentation;
   final String playerLocale;
-  final player_ui.PokeMapPlayerTypography playerTypography;
   final RuntimeAudioMixer audioMixer;
   final ControlProfileRepositoryInterface controlProfileStore;
   final player_ui.PlayerControlProfile controlProfile;
@@ -123,12 +116,10 @@ final class HubRuntimeStartupBootstrap
       );
       onStageCompleted(RuntimeStartupBootstrapStage.hostStorage);
 
-      final titlePresentation =
-          await HubTitlePresentationLoader(
-            manifest: launch.manifest,
-            resolveFile: launch.assets.resolveFile,
-          ).load();
-      final playerTypography = await loadPlayerTypography(titlePresentation);
+      final startupAdapter = HubRuntimeStartupAdapter(
+        manifest: launch.manifest,
+        assets: launch.assets,
+      );
       onStageCompleted(RuntimeStartupBootstrapStage.presentationBinding);
 
       final gameSource = HubRuntimeGameSource(
@@ -161,10 +152,6 @@ final class HubRuntimeStartupBootstrap
         sessionController: sessions,
         externalExit: HubRuntimeExternalExit(onHubRequested),
       );
-      final startupAdapter = HubRuntimeStartupAdapter(
-        manifest: launch.manifest,
-        assets: launch.assets,
-      );
       final graph = RuntimeStartupPreparedGraph(
         playerCoordinator: coordinator,
         preparationPort: startupAdapter,
@@ -175,6 +162,10 @@ final class HubRuntimeStartupBootstrap
           mixer: audioMixer,
         ),
         titleMusicController: RuntimeTitleMusicController(mixer: audioMixer),
+        presentationMetadata: RuntimeStartupPresentationMetadata(
+          author: launch.manifest.author.name,
+          description: launch.manifest.description,
+        ),
         reducedMotion: preferences.reducedMotion,
         stopIntroPlayback: stopIntroPlayback,
       );
@@ -186,9 +177,7 @@ final class HubRuntimeStartupBootstrap
           coordinator: coordinator,
           startupAdapter: startupAdapter,
           saveSelection: saveSelection,
-          titlePresentation: titlePresentation,
           playerLocale: playerLocale,
-          playerTypography: playerTypography,
           audioMixer: audioMixer,
           controlProfileStore: controlProfileRepository,
           controlProfile: controlProfile,

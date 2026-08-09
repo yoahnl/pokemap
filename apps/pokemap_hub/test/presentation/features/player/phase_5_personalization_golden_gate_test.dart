@@ -6,8 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
-import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
+import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
+import 'package:pokemap_hub/features/session/domain/repositories/package_asset_port.dart';
 import 'package:pub_semver/pub_semver.dart';
 
 void main() {
@@ -30,21 +32,48 @@ void main() {
               .writeAsBytes(<int>[1]);
     }
 
-    final loaded = await HubTitlePresentationLoader(
+    final adapter = HubRuntimeStartupAdapter(
       manifest: _manifest(profile),
-      resolveFile: (path) async => files[path]!,
-    ).load();
+      assets: _MemoryPackageAssets(files),
+    );
+    final runtimeProfile = await adapter.loadPresentationProfile();
+    final logo = await adapter.resolveImage('presentation/icon.png');
+    final hero = await adapter.resolveImage('presentation/hero.png');
+    final intro = await adapter.resolveMedia('presentation/intro/video.mp4');
+    final presentation = RuntimePlayerPresentation.fromRuntime(
+      RuntimeStartupResolvedPresentation(
+        metadata: const RuntimeStartupPresentationMetadata(
+          author: 'Studio Brume',
+          description: 'Golden personalization slice',
+        ),
+        profile: runtimeProfile,
+        titleLogo: logo?.presentationAsset,
+        titleHero: hero?.presentationAsset,
+        typography: _loadedTypography(runtimeProfile!.typography!),
+      ),
+      imageForAsset: (asset) {
+        final resolved = asset == null ? null : adapter.resolvedAsset(asset.assetId);
+        return resolved == null ? null : FileImage(File.fromUri(resolved.resolvedUri));
+      },
+    );
 
-    expect(loaded.title.layoutVariant, PlayerTitleLayoutVariant.cinematic);
-    expect(loaded.title.logo, isA<FileImage>());
     expect(
-        loaded.intro?.videoPath, files['presentation/intro/video.mp4']!.path);
+      presentation.title.layoutVariant,
+      PlayerTitleLayoutVariant.cinematic,
+    );
+    expect(presentation.title.logo, isA<FileImage>());
     expect(
-      loaded.typography?.roles[ProjectTypographyRole.display]?.family,
+      intro?.resolvedUri.toFilePath(),
+      files['presentation/intro/video.mp4']!.path,
+    );
+    expect(
+      presentation.typography.displayFamily,
       'Aube Display',
     );
-    expect(loaded.semanticTheme?.titleSurface, const Color(0xFFD9F4F6));
-    expect(loaded.unavailableAssets, isEmpty);
+    expect(
+      presentation.semanticTheme?.titleSurface,
+      const Color(0xFFD9F4F6),
+    );
   });
 
   testWidgets(
@@ -264,3 +293,50 @@ GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
       overworldHudSurface: theme.overworldHudSurface,
       battleHudSurface: theme.battleHudSurface,
     );
+
+RuntimeLoadedTypography _loadedTypography(ProjectTypographyProfile source) =>
+    RuntimeLoadedTypography(
+      roles: <ProjectTypographyRole, RuntimeLoadedFontRole>{
+        ProjectTypographyRole.display: RuntimeLoadedFontRole(
+          registeredFamily: source.display.family,
+          fallbackFamilies: source.display.fallbackFamilies,
+        ),
+        ProjectTypographyRole.body: RuntimeLoadedFontRole(
+          registeredFamily: source.body.family,
+          fallbackFamilies: source.body.fallbackFamilies,
+        ),
+        ProjectTypographyRole.dialogue: RuntimeLoadedFontRole(
+          registeredFamily: source.dialogue.family,
+          fallbackFamilies: source.dialogue.fallbackFamilies,
+        ),
+        ProjectTypographyRole.numbers: RuntimeLoadedFontRole(
+          registeredFamily: source.numbers.family,
+          fallbackFamilies: source.numbers.fallbackFamilies,
+        ),
+      },
+      unavailableRoles: const <ProjectTypographyRole>[],
+    );
+
+final class _MemoryPackageAssets implements PackageAssetPort {
+  const _MemoryPackageAssets(this.files);
+
+  final Map<String, File> files;
+
+  @override
+  PackageAssetReferencePort reference(String packagePath) =>
+      _MemoryPackageAssetReference(packagePath);
+
+  @override
+  Future<File> resolveFile(String packagePath) async => files[packagePath]!;
+
+  @override
+  Future<File> resolveReference(PackageAssetReferencePort reference) =>
+      resolveFile(reference.packagePath);
+}
+
+final class _MemoryPackageAssetReference implements PackageAssetReferencePort {
+  const _MemoryPackageAssetReference(this.packagePath);
+
+  @override
+  final String packagePath;
+}

@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 import 'runtime_intro_sequence_controller.dart';
 import 'runtime_presentation_media_selection.dart';
 import 'runtime_player_models.dart';
+import 'runtime_project_typography_loader.dart';
 
 /// The startup shell is deliberately separate from [RuntimePlayerPhase].
 ///
@@ -147,32 +148,49 @@ final class RuntimeStartupPresentationAsset {
 }
 
 /// Immutable media metadata prepared before the title is shown.
+final class RuntimeStartupPresentationMetadata {
+  const RuntimeStartupPresentationMetadata({
+    this.author = '',
+    this.description,
+  });
+
+  final String author;
+  final String? description;
+}
+
+/// Immutable media metadata prepared before the title is shown.
 final class RuntimeStartupResolvedPresentation {
   const RuntimeStartupResolvedPresentation({
+    this.metadata = const RuntimeStartupPresentationMetadata(),
     this.orientation = RuntimePresentationOrientation.landscape,
     this.profile,
     this.hostLogo,
     this.introVideo,
     this.introPoster,
     this.titleHero,
+    this.titleLogo,
     this.titleMusic,
     this.titlePromptVideo,
     this.titlePromptPoster,
     this.titleMenuVideo,
     this.titleMenuPoster,
+    this.typography,
   });
 
+  final RuntimeStartupPresentationMetadata metadata;
   final RuntimePresentationOrientation orientation;
   final ProjectPresentationProfile? profile;
   final RuntimeStartupPresentationAsset? hostLogo;
   final RuntimeStartupPresentationAsset? introVideo;
   final RuntimeStartupPresentationAsset? introPoster;
   final RuntimeStartupPresentationAsset? titleHero;
+  final RuntimeStartupPresentationAsset? titleLogo;
   final RuntimeStartupPresentationAsset? titleMusic;
   final RuntimeStartupPresentationAsset? titlePromptVideo;
   final RuntimeStartupPresentationAsset? titlePromptPoster;
   final RuntimeStartupPresentationAsset? titleMenuVideo;
   final RuntimeStartupPresentationAsset? titleMenuPoster;
+  final RuntimeLoadedTypography? typography;
 }
 
 /// Immutable state consumed by the future generic player UI shell.

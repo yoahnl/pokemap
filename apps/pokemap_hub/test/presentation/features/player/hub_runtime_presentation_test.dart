@@ -17,6 +17,8 @@ void main() {
       final uiBarrel = await File('lib/pokemap_hub_ui.dart').readAsString();
       final playerBarrel =
           await File('lib/pokemap_hub_player.dart').readAsString();
+      final composition =
+          await File('lib/app/di/hub_composition.dart').readAsString();
 
       expect(installedPlayer, contains('GameWidget('));
       expect(installedPlayer, contains('RuntimeStartupBootstrapCoordinator'));
@@ -30,6 +32,15 @@ void main() {
       expect(installedPlayer, isNot(contains('PlayerLoadingSurface(')));
       expect(installedPlayer, contains('stopIntroPlayback'));
       expect(installedPlayer, contains('PokeMapPlayerSessionView('));
+      expect(installedPlayer, contains('RuntimePlayerPresentation.fromRuntime'));
+      expect(installedPlayer, contains('branding: widget.hostBranding'));
+      expect(installedPlayer, contains('splashLogo: widget.splashLogo'));
+      expect(installedPlayer, isNot(contains('AVELUNE')));
+      expect(installedPlayer, isNot(contains('assets/avelune/')));
+      expect(startupBootstrap, contains('RuntimeStartupPresentationMetadata('));
+      expect(startupBootstrap, isNot(contains('HubTitlePresentationLoader')));
+      expect(composition, contains('_aveluneRuntimeSplashBranding'));
+      expect(composition, contains('_aveluneRuntimeSplashLogo'));
       expect(installedPlayer, contains('Localizations.override('));
       expect(
         installedPlayer,

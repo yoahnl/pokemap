@@ -10,7 +10,6 @@ import 'package:map_runtime/map_runtime.dart';
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
 import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
-import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
 import 'package:pokemap_hub/presentation/features/player/state/hub_runtime_startup_bootstrap.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
@@ -18,13 +17,6 @@ import 'package:pokemap_hub/features/preferences/domain/repositories/player_pref
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 
 typedef HubPlayerReturnRequest = Future<void> Function();
-
-const _aveluneStartupBranding = RuntimeHostSplashBranding(
-  displayName: 'AVELUNE',
-  signature: 'UNE EXPÉRIENCE DE JEU',
-  primaryColorHex: '#F2D9B2',
-  secondaryColorHex: '#9E79D7',
-);
 
 /// Production in-process composition for one verified installed game.
 ///
@@ -41,6 +33,8 @@ class HubInstalledGamePlayer extends StatefulWidget {
     required this.launchResolver,
     required this.game,
     required this.onHubRequested,
+    required this.hostBranding,
+    required this.splashLogo,
     this.diagnosticLogFile,
     player_ui.PlayerPreferences? preferences,
   });
@@ -56,6 +50,8 @@ class HubInstalledGamePlayer extends StatefulWidget {
   final SessionLaunchRepositoryInterface launchResolver;
   final InstalledGame game;
   final HubPlayerReturnRequest onHubRequested;
+  final RuntimeHostSplashBranding hostBranding;
+  final ImageProvider? splashLogo;
   final File? diagnosticLogFile;
 
   @override
@@ -75,10 +71,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   GameSessionController? _sessions;
   PlayableMapGame? _mountedGame;
   HubSaveSelection? _saveSelection;
-  HubLoadedTitlePresentation? _titlePresentation;
   Locale? _playerLocale;
-  player_ui.PokeMapPlayerTypography _playerTypography =
-      const player_ui.PokeMapPlayerTypography();
   RuntimeAudioMixer? _audioMixer;
   ControlProfileRepositoryInterface? _controlProfileStore;
   player_ui.PlayerControlProfile _controlProfile =
@@ -110,7 +103,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             stopIntroPlayback: _startupShellController.stopIntroPlayback,
             diagnosticLogFile: widget.diagnosticLogFile,
           ),
-          hostBranding: _aveluneStartupBranding,
+          hostBranding: widget.hostBranding,
           onPrepared: _acceptRuntimeBootstrap,
         );
     _startupCoordinator = startup;
@@ -126,11 +119,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       _coordinator = prepared.coordinator;
       _startupAdapter = prepared.startupAdapter;
       _saveSelection = prepared.saveSelection;
-      _titlePresentation = prepared.titlePresentation;
       _playerLocale = Locale(
         prepared.playerLocale.split(RegExp('[-_]')).first.toLowerCase(),
       );
-      _playerTypography = prepared.playerTypography;
       _audioMixer = prepared.audioMixer;
       _controlProfileStore = prepared.controlProfileStore;
       _controlProfile = prepared.controlProfile;
@@ -261,32 +252,27 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   @override
   Widget build(BuildContext context) {
     final viewController = _viewController;
-    final titlePresentation = _titlePresentation;
     final startup = _startupCoordinator!;
     final effectiveSnapshot = _startupSnapshot ?? startup.snapshot;
-    var personalizedTheme = Theme.of(context);
-    if (titlePresentation != null) {
-      personalizedTheme = player_ui.PokeMapPlayerTheme.withTypography(
-        personalizedTheme,
-        _playerTypography,
-      );
-    }
-    if (titlePresentation?.semanticTheme case final semanticTheme?) {
-      personalizedTheme = player_ui.PokeMapPlayerTheme.withSemanticTheme(
-        personalizedTheme,
-        semanticTheme,
-      );
-    }
     final visiblePhase =
         effectiveSnapshot.phase == RuntimeStartupPhase.lifecyclePaused
             ? effectiveSnapshot.suspendedPhase ?? RuntimeStartupPhase.splash
             : effectiveSnapshot.phase;
+    final resolvedPresentation = effectiveSnapshot.presentation;
+    final playerPresentation = resolvedPresentation == null
+        ? const player_ui.RuntimePlayerPresentation(
+            title: player_ui.RuntimePlayerTitlePresentation(author: ''),
+          )
+        : player_ui.RuntimePlayerPresentation.fromRuntime(
+            resolvedPresentation,
+            imageForAsset: _startupImage,
+          );
+    final personalizedTheme = playerPresentation.applyTo(Theme.of(context));
     final startupTheme =
         visiblePhase == RuntimeStartupPhase.preparing ||
                 visiblePhase == RuntimeStartupPhase.splash
             ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
             : personalizedTheme;
-    final resolvedPresentation = effectiveSnapshot.presentation;
     final presentationProfile = resolvedPresentation?.profile;
     final orientation =
         resolvedPresentation?.orientation ??
@@ -325,13 +311,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         child: player_ui.PlayerRuntimeStartupShell(
           key: const ValueKey<String>('pokemap-runtime-startup-shell'),
           controller: _startupShellController,
-          branding: _aveluneStartupBranding,
+          branding: widget.hostBranding,
           snapshot: effectiveSnapshot,
           titlePresentation:
-              titlePresentation?.title ??
-              player_ui.RuntimePlayerTitlePresentation(
-                author: widget.game.authorName,
-              ),
+              playerPresentation.title,
           introSource: introSource,
           introPoster: _startupImage(resolvedPresentation?.introPoster),
           titlePromptSource: _startupVideo(
@@ -350,7 +333,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             volume: 0,
           ),
           titleMenuPoster: _startupImage(resolvedPresentation?.titleMenuPoster),
-          splashLogo: const AssetImage('assets/avelune/logo/avelune_mark.webp'),
+          splashLogo: widget.splashLogo,
           reducedMotion: _reducedMotion,
           onPresentationOrientationChanged: (nextOrientation) {
             unawaited(startup.updatePresentationOrientation(nextOrientation));
@@ -381,10 +364,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             );
           },
           sessionBuilder:
-              viewController == null || titlePresentation == null
+              viewController == null
                   ? (_, _) => const SizedBox.expand()
                   : (_, _) =>
-                      _buildSessionView(viewController, titlePresentation),
+                      _buildSessionView(viewController, playerPresentation),
         ),
       ),
     );
@@ -399,12 +382,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   Widget _buildSessionView(
     player_ui.RuntimePlayerCoordinatorViewController viewController,
-    HubLoadedTitlePresentation titlePresentation,
+    player_ui.RuntimePlayerPresentation presentation,
   ) => player_ui.PokeMapPlayerSessionView(
     key: const ValueKey<String>('pokemap-runtime-player-view'),
     controller: viewController,
-    titlePresentation: titlePresentation.title,
-    pauseMenuLabels: titlePresentation.pauseMenuLabels,
+    titlePresentation: presentation.title,
+    pauseMenuLabels: presentation.pauseMenuLabels,
     payloadForAction: _payloadForAction,
     gameplayInputRoute: _sessions?.handleInput,
     gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,

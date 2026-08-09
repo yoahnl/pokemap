@@ -1261,31 +1261,27 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         RuntimeAudioRoute.cinematicMusic,
       ),
     );
-    final titlePresentation = player_ui.RuntimePlayerTitlePresentation(
-      author: 'PokeMap',
-      description: 'Projet local · host développeur',
-      background: _startupImage(
-        host,
-        snapshot.presentation?.titleHero,
-      ),
-      accentColor: player_ui.PokeMapPlayerProjectColorResolver.tryHex(
-        profile?.branding.accentColor,
-      ),
-      layoutVariant: player_ui.PlayerTitleLayoutVariant.runtimeStartup,
-    );
+    final playerPresentation = snapshot.presentation == null
+        ? const player_ui.RuntimePlayerPresentation(
+            title: player_ui.RuntimePlayerTitlePresentation(author: ''),
+          )
+        : player_ui.RuntimePlayerPresentation.fromRuntime(
+            snapshot.presentation!,
+            imageForAsset: (asset) => _startupImage(host, asset),
+          );
     final reducedMotion =
         snapshot.playerSnapshot?.preferences?.accessibility.reducedMotion ??
             false;
     return Theme(
-      data: player_ui.PokeMapPlayerTheme.dark(
-        reducedMotion: reducedMotion,
+      data: playerPresentation.applyTo(
+        player_ui.PokeMapPlayerTheme.dark(reducedMotion: reducedMotion),
       ),
       child: player_ui.PlayerRuntimeStartupShell(
         key: const ValueKey<String>('standalone-runtime-startup-shell'),
         controller: _startupShellController,
         branding: standaloneRuntimeSplashBranding,
         snapshot: snapshot,
-        titlePresentation: titlePresentation,
+        titlePresentation: playerPresentation.title,
         introSource: introSource,
         introPoster: _startupImage(
           host,

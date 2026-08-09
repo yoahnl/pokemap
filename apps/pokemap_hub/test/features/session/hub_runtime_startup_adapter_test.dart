@@ -32,6 +32,11 @@ void main() {
     expect(profile?.branding.titleMusicPath, 'presentation/title.ogg');
     expect(profile?.intro?.videoPath, 'presentation/intro/video.mp4');
     expect(profile?.intro?.allowReplay, isTrue);
+    expect(profile?.typography?.display.fontPath, 'presentation/display.ttf');
+    expect(profile?.typography?.display.family, 'Train Display');
+    expect(profile?.theme?.titleSurface, '#D9F4F6');
+    expect(profile?.menuLabels?.pauseTitle, 'Interlude');
+    expect(profile?.menuLabels?.pokedex, 'Carnet');
     expect(resolvedVideo?.resolvedUri, video.uri);
     expect(resolvedVideo?.mediaType, 'video/mp4');
     expect(resolvedPoster?.resolvedUri, poster.uri);
@@ -119,6 +124,35 @@ final _manifest = GamePackageManifest(
       audioCodec: 'aac',
       reducedMotionBehavior: 'poster',
       allowReplay: true,
+    ),
+    typography: GamePackageTypography(
+      display: GamePackageFontRole(
+        font: 'presentation/display.ttf',
+        family: 'Train Display',
+        fallbackFamilies: <String>['serif'],
+      ),
+    ),
+    theme: GamePackageSemanticTheme(
+      primary: '#003A44',
+      onPrimary: '#FFFFFF',
+      background: '#F4F7FB',
+      surface: '#FFFFFF',
+      surfaceElevated: '#EAF0F8',
+      textPrimary: '#101827',
+      textSecondary: '#526176',
+      outline: '#65758B',
+      success: '#16794B',
+      warning: '#8A5100',
+      danger: '#B4233C',
+      titleSurface: '#D9F4F6',
+      dialogueSurface: '#FFFFFF',
+      menuSurface: '#EAF0F8',
+      overworldHudSurface: '#FFFFFF',
+      battleHudSurface: '#FFFFFF',
+    ),
+    menuLabels: GamePackageMenuLabels(
+      pauseTitle: 'Interlude',
+      pokedex: 'Carnet',
     ),
   ),
   content: GamePackageContent(

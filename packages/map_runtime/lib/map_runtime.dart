@@ -1,7 +1,11 @@
 library map_runtime;
 
 export 'package:map_core/map_core.dart'
-    show PlayerPronounSet, ProjectTypographyRole;
+    show
+        PlayerPronounSet,
+        ProjectMenuLabelsProfile,
+        ProjectSemanticThemeProfile,
+        ProjectTypographyRole;
 export 'package:map_authoring/map_authoring.dart'
     show
         ArtifactAssertion,
@@ -65,6 +69,7 @@ export 'src/player/runtime_startup_models.dart'
         RuntimeHostSplashBranding,
         RuntimeResolvedAsset,
         RuntimeStartupPresentationAsset,
+        RuntimeStartupPresentationMetadata,
         RuntimeStartupResolvedPresentation,
         RuntimeStartupSnapshot;
 export 'src/player/runtime_presentation_media_selection.dart'
