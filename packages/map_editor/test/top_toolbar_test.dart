@@ -140,18 +140,19 @@ void main() {
       expect(find.text('Map saved'), findsOneWidget);
     });
 
-    testWidgets('shows the trainer studio label for the trainer workspace',
+    testWidgets('shows the encounter studio label for the encounter workspace',
         (tester) async {
       await pumpTopToolbarHarness(
         tester,
         initialState: EditorState(
           projectRootPath: '/tmp/top_toolbar_trainer',
           project: buildShellChromeProject(name: 'Pokemon Map'),
-          workspaceMode: EditorWorkspaceMode.trainer,
+          workspaceMode: EditorWorkspaceMode.encounter,
         ),
       );
 
-      expect(find.text('Pokemon Map  •  Trainer Studio'), findsOneWidget);
+      expect(find.text('Pokemon Map  •  Encounter Studio'), findsOneWidget);
+      expect(find.textContaining('Trainer Studio'), findsNothing);
     });
 
     testWidgets('uses the French Narrative Studio overview chrome label',

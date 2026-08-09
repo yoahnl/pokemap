@@ -7,11 +7,11 @@ import '../../features/environment_studio/environment_studio_workspace.dart';
 import '../../features/smart_tiles_studio/presentation/smart_tiles_studio_workspace.dart';
 import '../../features/border_studio/border_studio_workspace.dart';
 import '../../features/personalization/presentation/personalization_studio_workspace.dart';
+import 'encounter_studio_panel.dart';
 import 'map_canvas.dart';
 import 'narrative_workspace_canvas.dart';
 import 'pokemon_catalogs_workspace.dart';
 import 'tileset_editor_canvas.dart';
-import '../panels/trainer_library_panel.dart';
 
 class EditorCanvasHost extends ConsumerWidget {
   const EditorCanvasHost({super.key});
@@ -23,7 +23,7 @@ class EditorCanvasHost extends ConsumerWidget {
     return switch (workspaceMode) {
       EditorWorkspaceMode.map => const MapCanvas(),
       EditorWorkspaceMode.tileset => const TilesetEditorCanvas(),
-      EditorWorkspaceMode.trainer => const TrainerLibraryPanel(),
+      EditorWorkspaceMode.encounter => const EncounterStudioPanel(),
       EditorWorkspaceMode.pokedex => const PokemonCatalogsWorkspace(),
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||

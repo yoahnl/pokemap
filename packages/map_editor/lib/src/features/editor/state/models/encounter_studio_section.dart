@@ -1,0 +1,4 @@
+enum EncounterStudioSection {
+  wildEncounters,
+  trainers,
+}

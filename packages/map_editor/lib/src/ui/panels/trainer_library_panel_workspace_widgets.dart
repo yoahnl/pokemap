@@ -1,6 +1,6 @@
 part of 'trainer_library_panel.dart';
 
-// Trainer Studio lot 8-2 keeps a single source of truth:
+// The trainer workspace keeps a single source of truth:
 // - the sidebar (`embedded: true`) is now only a launcher / summary surface;
 // - the central workspace (`embedded: false`) owns the real authoring UI;
 // - both views still reuse the same local state, notifier calls and lookup
@@ -32,10 +32,11 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
       children: [
         EditorSidebarListRow(
           key: const Key('trainer-library-studio-entry'),
-          selected: state.workspaceMode == EditorWorkspaceMode.trainer,
+          selected: state.workspaceMode == EditorWorkspaceMode.encounter &&
+              state.encounterStudioSection == EncounterStudioSection.trainers,
           onTap: openStudio,
           leading: const MacosIcon(CupertinoIcons.person_3_fill),
-          title: const Text('Trainer Studio'),
+          title: const Text('Dresseurs'),
           subtitle: const Text(
             'Ouvrez le workspace central pour créer des dresseurs et des équipes de combat.',
             maxLines: 2,
@@ -66,7 +67,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
                 const SizedBox(height: 6),
                 Text(
                   selectedTrainer == null
-                      ? 'Aucun dresseur sélectionné pour le moment. Ouvrez le Trainer Studio pour créer votre premier dresseur.'
+                      ? 'Aucun dresseur sélectionné pour le moment. Ouvrez Encounter Studio pour créer votre premier dresseur.'
                       : 'Sélection actuelle : ${selectedTrainer.name} • ${selectedTrainer.trainerClass}\n'
                           '${_buildRosterPreview(selectedTrainer, references)}',
                   style: TextStyle(
@@ -85,7 +86,7 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
           key: const Key('trainer-library-open-studio-button'),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           onPressed: openStudio,
-          child: const Text('Ouvrir le Trainer Studio'),
+          child: const Text('Ouvrir Encounter Studio'),
         ),
         const SizedBox(height: 8),
         Text(

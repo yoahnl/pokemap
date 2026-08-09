@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../theme/theme.dart';
 import 'pokemap_card.dart';
@@ -461,14 +462,24 @@ class PokeMapSegmentedTabs extends StatelessWidget {
   }
 }
 
-class _PokeMapSegmentedTabButton extends StatelessWidget {
+class _PokeMapSegmentedTabButton extends StatefulWidget {
   _PokeMapSegmentedTabButton({required this.tab}) : super(key: tab.key);
 
   final PokeMapSegmentedTab tab;
 
   @override
+  State<_PokeMapSegmentedTabButton> createState() =>
+      _PokeMapSegmentedTabButtonState();
+}
+
+class _PokeMapSegmentedTabButtonState
+    extends State<_PokeMapSegmentedTabButton> {
+  bool _focused = false;
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
+    final tab = widget.tab;
     final active = tab.selected;
     final enabled = tab.onTap != null;
     final foreground = active
@@ -478,36 +489,62 @@ class _PokeMapSegmentedTabButton extends StatelessWidget {
             : colors.textDisabled;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 1),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: enabled ? tab.onTap : null,
-        child: Container(
-          decoration: BoxDecoration(
-            color: active ? colors.cardSelected : colors.controlSurface,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: active ? colors.brandPrimaryBorder : colors.controlSurface,
-            ),
+      child: FocusableActionDetector(
+        enabled: enabled,
+        onShowFocusHighlight: (focused) => setState(() => _focused = focused),
+        shortcuts: <ShortcutActivator, Intent>{
+          SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+          SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+        },
+        actions: <Type, Action<Intent>>{
+          ActivateIntent: CallbackAction<ActivateIntent>(
+            onInvoke: (_) {
+              tab.onTap?.call();
+              return null;
+            },
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (tab.icon != null) ...[
-                Icon(tab.icon, size: 14, color: foreground),
-                const SizedBox(width: 6),
-              ],
-              Text(
-                tab.label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: foreground,
-                  fontSize: 12,
-                  fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+        },
+        child: Semantics(
+          button: true,
+          selected: active,
+          enabled: enabled,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: enabled ? tab.onTap : null,
+            child: Container(
+              decoration: BoxDecoration(
+                color: active ? colors.cardSelected : colors.controlSurface,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: _focused
+                      ? colors.focusRing
+                      : active
+                          ? colors.brandPrimaryBorder
+                          : colors.controlSurface,
+                  width: _focused ? 1.5 : 1,
                 ),
               ),
-            ],
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (tab.icon != null) ...[
+                    Icon(tab.icon, size: 14, color: foreground),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(
+                    tab.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: foreground,
+                      fontSize: 12,
+                      fontWeight: active ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

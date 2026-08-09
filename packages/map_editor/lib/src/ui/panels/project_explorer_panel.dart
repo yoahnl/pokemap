@@ -446,13 +446,13 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           onTap: notifier.selectPersonalizationStudioWorkspace,
         ),
         ProjectExplorerModuleCard(
-          title: 'Trainer Studio',
+          title: 'Encounter Studio',
           description:
-              'Équipes et dresseurs de combat (ouvre l\'espace de travail central)',
+              'Rencontres sauvages, équipes et dresseurs de combat',
           icon: CupertinoIcons.person_2_fill,
           accentColor: colors.combat,
           count: project.trainers.length,
-          selected: snapshot.workspaceMode == EditorWorkspaceMode.trainer,
+          selected: snapshot.workspaceMode == EditorWorkspaceMode.encounter,
           expanded: _expandTrainers,
           onExpandToggle: () =>
               setState(() => _expandTrainers = !_expandTrainers),

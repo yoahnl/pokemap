@@ -46,7 +46,7 @@ class _TrainerReferencesBanner extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Références Trainer Studio · $speciesState · $moveState · $itemState',
+                    'Références Dresseurs · $speciesState · $moveState · $itemState',
                     style: TextStyle(
                       color: label,
                       fontSize: 12,

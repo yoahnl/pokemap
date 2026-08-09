@@ -598,10 +598,10 @@ class TopToolbar extends ConsumerWidget {
             ),
             ToolbarCapsuleButton(
               icon: CupertinoIcons.person_3_fill,
-              tooltip: 'Switch to Trainer Studio',
-              selected: toolbar.workspaceMode == EditorWorkspaceMode.trainer,
+              tooltip: 'Switch to Encounter Studio',
+              selected: toolbar.workspaceMode == EditorWorkspaceMode.encounter,
               onPressed: toolbar.project != null
-                  ? notifier.selectTrainerWorkspace
+                  ? notifier.selectEncounterWorkspace
                   : null,
             ),
             ToolbarCapsuleButton(
@@ -706,7 +706,7 @@ class TopToolbar extends ConsumerWidget {
               workspaceLabel: switch (toolbar.workspaceMode) {
                 EditorWorkspaceMode.map => 'World Editor',
                 EditorWorkspaceMode.tileset => 'Tileset Studio',
-                EditorWorkspaceMode.trainer => 'Trainer Studio',
+                EditorWorkspaceMode.encounter => 'Encounter Studio',
                 EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
                 EditorWorkspaceMode.narrativeOverview =>
                   'Narrative Studio / Aperçu',

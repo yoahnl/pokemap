@@ -4144,7 +4144,18 @@ class EditorNotifier extends _$EditorNotifier
     );
   }
 
-  /// Ouvre le workspace central "Trainer Studio".
+  void selectEncounterWorkspace() {
+    state = _editorWorkspaceController.selectEncounterWorkspace(state);
+  }
+
+  void selectEncounterStudioSection(EncounterStudioSection section) {
+    state = _editorWorkspaceController.selectEncounterStudioSection(
+      state,
+      section,
+    );
+  }
+
+  /// Ouvre la section Dresseurs du workspace central Encounter Studio.
   ///
   /// Cette navigation reste volontairement minimale :
   /// - aucun pipeline trainer parallèle n'est créé ici ;
@@ -4153,6 +4164,10 @@ class EditorNotifier extends _$EditorNotifier
   ///   via les méthodes existantes du notifier.
   void selectTrainerWorkspace() {
     state = _editorWorkspaceController.selectTrainerWorkspace(state);
+  }
+
+  void selectWildEncounterWorkspace() {
+    state = _editorWorkspaceController.selectWildEncounterWorkspace(state);
   }
 
   /// Ouvre le workspace central "Aperçu" du Narrative Studio.

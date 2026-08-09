@@ -29,7 +29,7 @@ void main() {
         initialState: EditorState(
           project: buildShellChromeProject(),
           projectRootPath: '/tmp/editor-update-classic',
-          workspaceMode: EditorWorkspaceMode.trainer,
+          workspaceMode: EditorWorkspaceMode.encounter,
         ),
         overrides: _overrides(catalog, updater),
       );

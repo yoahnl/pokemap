@@ -127,6 +127,7 @@ typedef EditorProjectExplorerSnapshot = ({
   ProjectManifest? project,
   ProjectSettings settings,
   EditorWorkspaceMode workspaceMode,
+  EncounterStudioSection encounterStudioSection,
   PokemonCatalogSection pokemonCatalogSection,
   ProjectTilesetEntry? selectedTilesetEntry,
   String? activeMapId,
@@ -159,6 +160,13 @@ typedef EditorMapPaletteAssetBrowserSnapshot = ({
 
 final editorWorkspaceModeProvider = Provider<EditorWorkspaceMode>((ref) {
   return ref.watch(editorNotifierProvider.select((s) => s.workspaceMode));
+});
+
+final editorEncounterStudioSectionProvider =
+    Provider<EncounterStudioSection>((ref) {
+  return ref.watch(
+    editorNotifierProvider.select((s) => s.encounterStudioSection),
+  );
 });
 
 final editorProjectManifestProvider = Provider<ProjectManifest?>((ref) {
@@ -290,7 +298,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
   final workspaceTitle = switch (workspaceMode) {
     EditorWorkspaceMode.map => activeMap?.name ?? 'Espace carte',
     EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
-    EditorWorkspaceMode.trainer => 'Trainer Studio',
+    EditorWorkspaceMode.encounter => 'Encounter Studio',
     EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
     EditorWorkspaceMode.narrativeOverview => 'Narrative Studio / Aperçu',
     EditorWorkspaceMode.globalStory => 'Global Story Workspace',
@@ -316,8 +324,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.tileset => selectedTileset == null
         ? 'Sélectionnez un tileset pour parcourir et organiser votre bibliothèque.'
         : 'Bibliothèque visuelle pour éditer les tuiles, éléments et groupes.',
-    EditorWorkspaceMode.trainer =>
-      'Créez des dresseurs, des équipes et des listes prêtes au combat sans éditer de JSON brut.',
+    EditorWorkspaceMode.encounter =>
+      'Organisez les rencontres sauvages et les dresseurs depuis un espace guidé unique.',
     EditorWorkspaceMode.pokedex =>
       'Pokédex, Moves et Items réunis dans un même pôle de catalogues Pokémon.',
     EditorWorkspaceMode.narrativeOverview =>
@@ -477,6 +485,7 @@ final editorProjectExplorerSnapshotProvider =
         project: project,
         settings: project?.settings ?? const ProjectSettings(),
         workspaceMode: state.workspaceMode,
+        encounterStudioSection: state.encounterStudioSection,
         pokemonCatalogSection: state.pokemonCatalogSection,
         selectedTilesetEntry: _resolveSelectedTilesetEntryFromState(state),
         activeMapId: state.activeMap?.id,

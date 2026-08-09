@@ -328,7 +328,7 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(editorNotifierProvider.notifier).state = const EditorState(
-        workspaceMode: EditorWorkspaceMode.trainer,
+        workspaceMode: EditorWorkspaceMode.encounter,
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
@@ -337,10 +337,10 @@ void main() {
       );
 
       final shell = container.read(editorShellSnapshotProvider);
-      expect(shell.workspaceTitle, 'Trainer Studio');
+      expect(shell.workspaceTitle, 'Encounter Studio');
       expect(
         shell.workspaceSubtitle,
-        contains('prêtes au combat'),
+        contains('rencontres sauvages'),
       );
     });
 

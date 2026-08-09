@@ -407,7 +407,7 @@ const _worldExplorerWorkspaceNavigationInventory =
   'workspace.tileset':
       _WorldMapControlSignature.capsuleTooltip('Switch to tileset workspace'),
   'workspace.trainer':
-      _WorldMapControlSignature.capsuleTooltip('Switch to Trainer Studio'),
+      _WorldMapControlSignature.capsuleTooltip('Switch to Encounter Studio'),
   'workspace.pokemonCatalogs': _WorldMapControlSignature.capsuleTooltip(
     'Switch to Catalogues Pokémon',
   ),

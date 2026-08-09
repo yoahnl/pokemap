@@ -453,19 +453,24 @@ void main() {
       expect(find.byType(EditorCanvasHost), findsOneWidget);
     });
 
-    testWidgets('renders the trainer studio workspace chrome', (tester) async {
+    testWidgets('renders the Encounter Studio workspace chrome', (tester) async {
       await pumpEditorShellPage(
         tester,
         initialState: EditorState(
           projectRootPath: '/tmp/editor_shell_trainer',
           project: buildShellChromeProject(),
-          workspaceMode: EditorWorkspaceMode.trainer,
+          workspaceMode: EditorWorkspaceMode.encounter,
+          encounterStudioSection: EncounterStudioSection.trainers,
         ),
       );
 
-      expect(find.text('Trainer Studio'), findsWidgets);
+      expect(find.text('Encounter Studio'), findsWidgets);
       expect(
-        find.textContaining('listes prêtes au combat'),
+        find.textContaining('rencontres sauvages'),
+        findsAtLeastNWidgets(1),
+      );
+      expect(
+        find.byKey(const Key('encounter-studio-panel')),
         findsOneWidget,
       );
       expect(

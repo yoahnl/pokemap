@@ -6,7 +6,7 @@
 enum EditorWorkspaceMode {
   map,
   tileset,
-  trainer,
+  encounter,
 
   // Workspace Pokédex minimal branché dans l'éditeur.
   //

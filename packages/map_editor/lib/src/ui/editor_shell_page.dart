@@ -1429,7 +1429,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
-                                                                .trainer =>
+                                                                .encounter =>
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
@@ -1505,7 +1505,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                 .tileset =>
                                                               const TilesetPalettePanel(),
                                                             EditorWorkspaceMode
-                                                                .trainer =>
+                                                                .encounter =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                 .pokedex =>
@@ -1903,7 +1903,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
     final chipAccent = switch (workspaceMode) {
       EditorWorkspaceMode.map => colors.brandPrimary,
       EditorWorkspaceMode.tileset => colors.brandCyan,
-      EditorWorkspaceMode.trainer => colors.combat,
+      EditorWorkspaceMode.encounter => colors.combat,
       EditorWorkspaceMode.pokedex => colors.reward,
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
@@ -1925,7 +1925,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
     final badgeVariant = switch (workspaceMode) {
       EditorWorkspaceMode.map => PokeMapBadgeVariant.mapAccent,
       EditorWorkspaceMode.tileset => PokeMapBadgeVariant.neutral,
-      EditorWorkspaceMode.trainer => PokeMapBadgeVariant.combat,
+      EditorWorkspaceMode.encounter => PokeMapBadgeVariant.combat,
       EditorWorkspaceMode.pokedex => PokeMapBadgeVariant.info,
       EditorWorkspaceMode.narrativeOverview ||
       EditorWorkspaceMode.globalStory ||
@@ -1944,7 +1944,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
     final badgeLabel = switch (workspaceMode) {
       EditorWorkspaceMode.map => 'Scène',
       EditorWorkspaceMode.tileset => 'Bibliothèque',
-      EditorWorkspaceMode.trainer => 'Dresseurs',
+      EditorWorkspaceMode.encounter => 'Rencontres',
       EditorWorkspaceMode.pokedex => 'Catalogues',
       EditorWorkspaceMode.narrativeOverview => 'Aperçu',
       EditorWorkspaceMode.globalStory => 'Macro-Récit',
@@ -2087,7 +2087,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
             switch (workspaceMode) {
               EditorWorkspaceMode.map => CupertinoIcons.map,
               EditorWorkspaceMode.tileset => CupertinoIcons.square_grid_2x2,
-              EditorWorkspaceMode.trainer => CupertinoIcons.person_3_fill,
+              EditorWorkspaceMode.encounter => CupertinoIcons.person_3_fill,
               EditorWorkspaceMode.pokedex => CupertinoIcons.book,
               EditorWorkspaceMode.narrativeOverview => CupertinoIcons.house,
               EditorWorkspaceMode.globalStory => CupertinoIcons.link,
@@ -2132,8 +2132,8 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                                           EditorWorkspaceMode.borderStudio
                                       ? const Key('border-studio-title')
                                       : (workspaceMode ==
-                                                EditorWorkspaceMode.trainer
-                                            ? const Key('trainer-studio-title')
+                                                EditorWorkspaceMode.encounter
+                                            ? const Key('encounter-studio-title')
                                             : null)))),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

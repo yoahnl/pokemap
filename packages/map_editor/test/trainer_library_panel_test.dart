@@ -153,7 +153,7 @@ void main() {
     await settleTrainerUi(tester);
   }
 
-  testWidgets('embedded mode acts as a launcher for the main Trainer Studio',
+  testWidgets('embedded mode opens the trainer section of Encounter Studio',
       (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -182,7 +182,7 @@ void main() {
         findsOneWidget);
     expect(find.byKey(const Key('trainer-library-new-trainer-button')),
         findsNothing);
-    expect(find.text('Trainer Studio'), findsWidgets);
+    expect(find.text('Dresseurs'), findsWidgets);
 
     await tester
         .tap(find.byKey(const Key('trainer-library-open-studio-button')));
@@ -190,7 +190,11 @@ void main() {
 
     expect(
       container.read(editorNotifierProvider).workspaceMode,
-      EditorWorkspaceMode.trainer,
+      EditorWorkspaceMode.encounter,
+    );
+    expect(
+      container.read(editorNotifierProvider).encounterStudioSection,
+      EncounterStudioSection.trainers,
     );
     expect(
       container.read(editorNotifierProvider).selectedTrainerId,

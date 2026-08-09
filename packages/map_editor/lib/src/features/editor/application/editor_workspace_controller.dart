@@ -39,8 +39,32 @@ class EditorWorkspaceController {
     );
   }
 
+  EditorState selectEncounterWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.encounter);
+  }
+
+  EditorState selectEncounterStudioSection(
+    EditorState current,
+    EncounterStudioSection section,
+  ) {
+    return _openWorkspace(
+      current.copyWith(encounterStudioSection: section),
+      EditorWorkspaceMode.encounter,
+    );
+  }
+
   EditorState selectTrainerWorkspace(EditorState current) {
-    return _openWorkspace(current, EditorWorkspaceMode.trainer);
+    return selectEncounterStudioSection(
+      current,
+      EncounterStudioSection.trainers,
+    );
+  }
+
+  EditorState selectWildEncounterWorkspace(EditorState current) {
+    return selectEncounterStudioSection(
+      current,
+      EncounterStudioSection.wildEncounters,
+    );
   }
 
   EditorState selectNarrativeOverviewWorkspace(EditorState current) {

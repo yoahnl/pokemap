@@ -21,17 +21,57 @@ void main() {
       expect(next.statusMessage, current.statusMessage);
     });
 
-    test('selectTrainerWorkspace switches mode and clears stale errors', () {
+    test('selectEncounterWorkspace defaults to wild encounters', () {
       const current = EditorState(
         workspaceMode: EditorWorkspaceMode.map,
         errorMessage: 'Old failure',
       );
 
-      final next = controller.selectTrainerWorkspace(current);
+      final next = controller.selectEncounterWorkspace(current);
 
-      expect(next.workspaceMode, EditorWorkspaceMode.trainer);
+      expect(next.workspaceMode, EditorWorkspaceMode.encounter);
+      expect(
+        next.encounterStudioSection,
+        EncounterStudioSection.wildEncounters,
+      );
       expect(next.errorMessage, isNull);
       expect(next.statusMessage, current.statusMessage);
+    });
+
+    test('selectEncounterWorkspace restores the last active section', () {
+      const current = EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        encounterStudioSection: EncounterStudioSection.trainers,
+      );
+
+      final next = controller.selectEncounterWorkspace(current);
+
+      expect(next.workspaceMode, EditorWorkspaceMode.encounter);
+      expect(next.encounterStudioSection, EncounterStudioSection.trainers);
+    });
+
+    test('selectTrainerWorkspace opens the trainer section', () {
+      const current = EditorState(workspaceMode: EditorWorkspaceMode.map);
+
+      final next = controller.selectTrainerWorkspace(current);
+
+      expect(next.workspaceMode, EditorWorkspaceMode.encounter);
+      expect(next.encounterStudioSection, EncounterStudioSection.trainers);
+    });
+
+    test('selectWildEncounterWorkspace opens wild encounters', () {
+      const current = EditorState(
+        workspaceMode: EditorWorkspaceMode.encounter,
+        encounterStudioSection: EncounterStudioSection.trainers,
+      );
+
+      final next = controller.selectWildEncounterWorkspace(current);
+
+      expect(next.workspaceMode, EditorWorkspaceMode.encounter);
+      expect(
+        next.encounterStudioSection,
+        EncounterStudioSection.wildEncounters,
+      );
     });
 
     test('selectDialogueWorkspace keeps project session and only changes mode',

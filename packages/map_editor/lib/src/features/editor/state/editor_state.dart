@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../application/models/map_history_snapshot.dart';
 import '../../smart_tiles_studio/application/smart_tile_studio_launch_context.dart';
+import 'models/encounter_studio_section.dart';
 import 'models/editor_ui_modes.dart';
 import 'models/editor_palette_session.dart';
 import 'models/editor_workspace_mode.dart';
@@ -11,6 +12,7 @@ import 'models/pokemon_catalog_section.dart';
 import '../tools/editor_tool.dart';
 
 export 'models/editor_state_groups.dart';
+export 'models/encounter_studio_section.dart';
 export 'models/editor_ui_modes.dart';
 export 'models/editor_palette_session.dart';
 export 'models/editor_workspace_mode.dart';
@@ -64,6 +66,8 @@ abstract class EditorState with _$EditorState {
     String? projectRootPath,
     ProjectManifest? project,
     @Default(EditorWorkspaceMode.map) EditorWorkspaceMode workspaceMode,
+    @Default(EncounterStudioSection.wildEncounters)
+    EncounterStudioSection encounterStudioSection,
     @Default(SmartTilesStudioLaunchContext.library())
     SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,
     @Default(PokemonCatalogSection.pokedex)

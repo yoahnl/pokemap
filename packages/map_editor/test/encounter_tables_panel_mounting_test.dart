@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('the legacy map inspector is the only encounter table panel host', () {
+  test('encounter tables are hosted by the studio and legacy inspector', () {
     final hosts =
         Directory('lib/src')
             .listSync(recursive: true)
@@ -19,6 +19,9 @@ void main() {
             .toList()
           ..sort();
 
-    expect(hosts, <String>['lib/src/ui/panels/map_inspector_panel.dart']);
+    expect(hosts, <String>[
+      'lib/src/ui/canvas/encounter_studio_panel.dart',
+      'lib/src/ui/panels/map_inspector_panel.dart',
+    ]);
   });
 }

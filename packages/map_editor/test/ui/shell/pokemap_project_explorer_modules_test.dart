@@ -218,7 +218,7 @@ void main() {
       expect(find.text('Path Library'), findsNothing);
       expect(find.text('Environment Studio'), findsAtLeastNWidgets(1));
       expect(find.text('Personalization Studio'), findsOneWidget);
-      expect(find.text('Trainer Studio'), findsAtLeastNWidgets(1));
+      expect(find.text('Encounter Studio'), findsAtLeastNWidgets(1));
       expect(find.text('Character Library'), findsAtLeastNWidgets(1));
       final moduleCards = tester.widgetList<ProjectExplorerModuleCard>(
         find.byType(ProjectExplorerModuleCard),
