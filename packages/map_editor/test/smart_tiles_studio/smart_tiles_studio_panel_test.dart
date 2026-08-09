@@ -902,7 +902,11 @@ void main() {
       );
 
       final viewport = find.byKey(const Key('smart-tiles-atlas-viewport'));
-      await tester.ensureVisible(viewport);
+      await _ensureWorkbenchTapTargetVisible(
+        tester,
+        viewport,
+        localOffset: const Offset(3, 3),
+      );
       await tester.tapAt(tester.getTopLeft(viewport) + const Offset(3, 3));
       await tester.pump();
 
@@ -1336,7 +1340,7 @@ void main() {
       final rectangle = find.byKey(
         const Key('smart-tiles-atlas-selection-rectangle'),
       );
-      await tester.ensureVisible(rectangle);
+      await _ensureWorkbenchTapTargetVisible(tester, rectangle);
       await tester.tap(rectangle);
       await tester.pump();
 
@@ -1810,9 +1814,14 @@ Future<void> _tapVisibleValidAnchor(
   WidgetTester tester,
   Finder viewport,
 ) async {
-  final topLeft = tester.getTopLeft(viewport);
   final size = tester.getSize(viewport);
-  await tester.tapAt(topLeft + Offset(size.width / 2, 80));
+  final localOffset = Offset(size.width / 2, 80);
+  await _ensureWorkbenchTapTargetVisible(
+    tester,
+    viewport,
+    localOffset: localOffset,
+  );
+  await tester.tapAt(tester.getTopLeft(viewport) + localOffset);
 }
 
 Future<void> _tapAtlasDisplay(
@@ -1820,8 +1829,50 @@ Future<void> _tapAtlasDisplay(
   Finder viewport,
   Offset localOffset,
 ) async {
+  await _ensureWorkbenchTapTargetVisible(
+    tester,
+    viewport,
+    localOffset: localOffset,
+  );
   await tester.tapAt(tester.getTopLeft(viewport) + localOffset);
   await tester.pump();
+}
+
+Future<void> _ensureWorkbenchTapTargetVisible(
+  WidgetTester tester,
+  Finder target, {
+  Offset? localOffset,
+}) async {
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
+  final list = find
+      .descendant(
+        of: find.byKey(const Key('smart-tiles-workbench-column')),
+        matching: find.byType(ListView),
+      )
+      .first;
+  final targetRect = tester.getRect(target);
+  final listRect = tester.getRect(list);
+  final point = targetRect.topLeft +
+      (localOffset ?? Offset(targetRect.width / 2, targetRect.height / 2));
+  final safeTop = listRect.top + 8;
+  final safeBottom = listRect.bottom - 8;
+  final dragY = point.dy < safeTop
+      ? safeTop - point.dy
+      : point.dy > safeBottom
+          ? safeBottom - point.dy
+          : 0.0;
+  if (dragY != 0) {
+    await tester.drag(list, Offset(0, dragY));
+    await tester.pumpAndSettle();
+  }
+  final size = tester.getSize(target);
+  final offset = localOffset ?? Offset(size.width / 2, size.height / 2);
+  final alignment = Alignment(
+    offset.dx / size.width * 2 - 1,
+    offset.dy / size.height * 2 - 1,
+  );
+  expect(target.hitTestable(at: alignment), findsOneWidget);
 }
 
 Future<void> _jumpWorkbenchToTop(WidgetTester tester) async {

@@ -529,6 +529,7 @@ class _SmartTilesStudioPanelState extends State<SmartTilesStudioPanel> {
 
   Widget _buildWizard() {
     return ListView(
+      key: ValueKey<SmartTileStudioWizardStep>(_session.state.wizardStep),
       padding: const EdgeInsets.all(18),
       children: <Widget>[
         if (_session.state.wizardStep == SmartTileStudioWizardStep.usage)
