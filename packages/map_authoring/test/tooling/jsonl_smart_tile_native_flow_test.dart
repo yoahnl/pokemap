@@ -46,6 +46,53 @@ void main() {
       expect(await direct.mapBytes(), await jsonl.mapBytes());
     });
 
+    test('rejects unavailable cell materials identically without mutation',
+        () async {
+      final direct = await _Harness.create('material_rejection_direct');
+      final jsonl = await _Harness.create('material_rejection_jsonl');
+      addTearDown(direct.dispose);
+      addTearDown(jsonl.dispose);
+
+      await direct.applyDirectFlow();
+      await jsonl.applyJsonlFlow();
+      final directBefore = await direct.mapBytes();
+      final jsonlBefore = await jsonl.mapBytes();
+      const parameters = <String, Object?>{
+        'mapId': 'map',
+        'layerId': 'terrain',
+        'materialId': 'water',
+        'cells': <Map<String, int>>[
+          <String, int>{'x': 0, 'y': 0},
+        ],
+      };
+
+      await expectLater(
+        direct.planDirect(
+          actionId: 'smart_tile.cell.paint',
+          parameters: parameters,
+          sequence: 'material-rejection',
+        ),
+        throwsA(
+          isA<MapAuthoringException>().having(
+            (error) => error.code,
+            'code',
+            'smart_tile.cell.material_not_allowed',
+          ),
+        ),
+      );
+      final failure = await jsonl.planJsonlFailure(
+        actionId: 'smart_tile.cell.paint',
+        parameters: parameters,
+        sequence: 'material-rejection',
+      );
+      expect(
+        failure.error?.details['domainCode'],
+        'smart_tile.cell.material_not_allowed',
+      );
+      expect(await direct.mapBytes(), directBefore);
+      expect(await jsonl.mapBytes(), jsonlBefore);
+    });
+
     test('applies animation and atomic publish/create with stable receipts',
         () async {
       final direct = await _Harness.create('direct');

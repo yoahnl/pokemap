@@ -327,6 +327,26 @@ void main() {
       await notifier.createCanonicalSmartTileLayer(preset: preset),
       isTrue,
     );
+    final layerId = notifier.state.activeLayerId!;
+    final mutations = container.read(authoringMutationAdapterProvider);
+    final queries = container.read(authoringQueryAdapterProvider);
+    await notifier.applySmartTileLayerVariantWeights(
+      mapId: 'map',
+      layerId: layerId,
+      weights: const <String, int>{'base': 7},
+    );
+    await _waitUntil(
+      () =>
+          mutations.lastAppliedReceipt?.actionId ==
+              'smart_tile.layer.set_candidate_weights' &&
+          (notifier.state.activeMap!.layers.single as SmartTileLayer)
+                  .candidateWeights['base'] ==
+              7,
+      failure: () => notifier.state.errorMessage,
+    );
+    final canonicalSession = await queries.open(root.path);
+    final revisionBeforeRejection = canonicalSession.snapshotRevision;
+    final receiptBeforeRejection = mutations.lastAppliedReceipt!;
     final catalog = notifier.state.project!.smartTileCatalog;
     notifier.state = notifier.state.copyWith(
       project: manifest.copyWith(
@@ -352,6 +372,15 @@ void main() {
       ),
     );
     final baseline = notifier.state.activeMap!;
+    final baselineLayer = baseline.layers.single as SmartTileLayer;
+    final baselineUndoStack = notifier.state.mapUndoStack;
+    final baselineRedoStack = notifier.state.mapRedoStack;
+    final baselineCanUndo = notifier.state.canUndoMap;
+    final baselineCanRedo = notifier.state.canRedoMap;
+    final baselineSavedMapSnapshot = notifier.state.savedMapSnapshot;
+    expect(baselineLayer.candidateWeights, const <String, int>{'base': 7});
+    expect(baselineCanUndo, isFalse);
+    expect(baselineCanRedo, isFalse);
 
     notifier.beginMapStroke();
     notifier.paintSmartTileMaterialAt(
@@ -359,21 +388,73 @@ void main() {
       materialId: 'not_allowed',
     );
     expect(notifier.state.activeMap, isNot(baseline));
+    final optimisticLayer =
+        notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(
+      smartTileSemanticCells(optimisticLayer),
+      isNot(smartTileSemanticCells(baselineLayer)),
+    );
+    expect(optimisticLayer.materialPalette, contains('not_allowed'));
+    expect(optimisticLayer.candidateWeights, baselineLayer.candidateWeights);
     notifier.endMapStroke();
 
     await _waitUntil(
       () =>
-          notifier.state.errorMessage ==
-              'smart_tile.cell.material_not_allowed' &&
+          notifier.state.errorMessage != null &&
           notifier.state.activeMap == baseline,
-      failure: () => notifier.state.errorMessage,
+      failure: () => null,
     );
+    expect(
+      notifier.state.errorMessage,
+      'Le matériau choisi n’est pas disponible dans ce calque Smart Tile.',
+    );
+    expect(
+      notifier.state.errorMessage,
+      isNot('smart_tile.cell.material_not_allowed'),
+    );
+    final restored = notifier.state.activeMap!;
+    final restoredLayer = restored.layers.single as SmartTileLayer;
+    expect(restored.toJson(), baseline.toJson());
+    expect(restored.mapMetadata, baseline.mapMetadata);
+    expect(restoredLayer.field, baselineLayer.field);
+    expect(restoredLayer.materialPalette, baselineLayer.materialPalette);
+    expect(restoredLayer.candidateWeights, baselineLayer.candidateWeights);
+    expect(restoredLayer.properties, baselineLayer.properties);
+    expect(notifier.state.activeLayerId, layerId);
+    expect(notifier.state.savedMapSnapshot, baselineSavedMapSnapshot);
     expect(notifier.state.isDirty, isFalse);
-    expect(notifier.state.mapUndoStack, isEmpty);
-    expect(notifier.state.mapRedoStack, isEmpty);
+    expect(notifier.state.mapStrokeStart, isNull);
+    expect(notifier.state.mapUndoStack, orderedEquals(baselineUndoStack));
+    expect(notifier.state.mapRedoStack, orderedEquals(baselineRedoStack));
+    expect(notifier.state.canUndoMap, baselineCanUndo);
+    expect(notifier.state.canRedoMap, baselineCanRedo);
+    expect(
+      mutations.lastAppliedReceipt?.receiptId,
+      receiptBeforeRejection.receiptId,
+    );
+    expect(
+      mutations.lastAppliedReceipt?.actionId,
+      receiptBeforeRejection.actionId,
+    );
+    expect(
+      (await canonicalSession.validateFresh())['snapshotRevision'],
+      revisionBeforeRejection,
+    );
     expect(
       (await FileMapRepository().loadMap(mapPath)).toJson(),
       baseline.toJson(),
+    );
+
+    notifier.undoMap();
+    notifier.redoMap();
+    expect(notifier.state.activeMap!.toJson(), baseline.toJson());
+    expect(notifier.state.mapUndoStack, orderedEquals(baselineUndoStack));
+    expect(notifier.state.mapRedoStack, orderedEquals(baselineRedoStack));
+    expect(notifier.state.canUndoMap, baselineCanUndo);
+    expect(notifier.state.canRedoMap, baselineCanRedo);
+    expect(
+      mutations.lastAppliedReceipt?.receiptId,
+      receiptBeforeRejection.receiptId,
     );
   });
 }

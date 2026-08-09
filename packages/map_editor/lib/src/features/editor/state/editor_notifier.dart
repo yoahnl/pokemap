@@ -315,6 +315,9 @@ const String editorSmartTileCommitInProgressMessage =
     'Modification précédente en cours d’enregistrement. Relâchez une seconde, '
     'puis reprenez : rien n’est perdu.';
 
+const String editorSmartTileMaterialUnavailableMessage =
+    'Le matériau choisi n’est pas disponible dans ce calque Smart Tile.';
+
 /// Turns a canonical Smart Tile failure into something an author can act on,
 /// instead of surfacing the raw authoring code.
 String canonicalSmartTileFailureMessage(
@@ -324,6 +327,8 @@ String canonicalSmartTileFailureMessage(
     case 'plan.stale':
       return 'Le projet a changé pendant l’ajout du calque. '
           'Réessayez : la nouvelle révision sera prise en compte.';
+    case 'smart_tile.cell.material_not_allowed':
+      return editorSmartTileMaterialUnavailableMessage;
     // `authoring.unexpected_failure` is the untyped fallback. In practice the
     // canonical write path only reaches it once the session and the stored
     // document have diverged, so point at the recovery instead of the code.

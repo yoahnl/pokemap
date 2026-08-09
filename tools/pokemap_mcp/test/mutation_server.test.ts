@@ -1381,6 +1381,45 @@ test("MCP applies Smart Tile cell edits through the canonical transport", async 
     const smartLayer = record(smartLayerValue);
     const field = record(smartLayer.field);
     assert.deepEqual(field.semanticCells, [0, 0, 1, 1]);
+
+    const mapBeforeRejection = await readFile(
+      join(fixture.root, "maps/native_v5.json"),
+    );
+    const rejected = await fixture.client.callTool({
+      name: "pokemap_plan",
+      arguments: {
+        projectHandle,
+        request: {
+          requestId: "native-v5-material-rejection",
+          actionId: "smart_tile.cell.paint",
+          actionVersion: 1,
+          workspaceHandle: opened.workspaceHandle,
+          parameters: {
+            mapId: "native_v5",
+            layerId: "smart",
+            materialId: "water",
+            cells: [{ x: 0, y: 0 }],
+          },
+          expectedRevision: revision,
+          idempotencyKey: "idem-native-v5-material-rejection",
+          dryRun: false,
+        },
+      },
+    });
+    assert.equal(rejected.isError, true);
+    const rejection = record(record(rejected.structuredContent).error);
+    assert.equal(
+      rejection.domainCode,
+      "smart_tile.cell.material_not_allowed",
+    );
+    const afterRejection = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle,
+    });
+    assert.equal(afterRejection.snapshotRevision, revision);
+    assert.deepEqual(
+      await readFile(join(fixture.root, "maps/native_v5.json")),
+      mapBeforeRejection,
+    );
   } finally {
     await fixture.client.close();
     await fixture.server.close();
