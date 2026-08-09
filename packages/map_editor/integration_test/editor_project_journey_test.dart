@@ -12,6 +12,7 @@ import 'package:map_editor/main.dart' show MapEditorApp;
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
+import 'package:map_editor/src/infrastructure/riverpod_retry_policy.dart';
 import 'package:path/path.dart' as p;
 
 const _requestedOutputPath = String.fromEnvironment('POKEMAP_PERF_OUTPUT');
@@ -29,7 +30,7 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final fixture = await _EditorPerformanceFixture.create();
     addTearDown(fixture.dispose);
-    final container = ProviderContainer();
+    final container = ProviderContainer(retry: disableAutomaticProviderRetry);
     addTearDown(container.dispose);
     final notifier = container.read(editorNotifierProvider.notifier);
     final timings = <FrameTiming>[];

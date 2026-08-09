@@ -603,6 +603,70 @@ void main() {
     );
 
     test(
+      'disposing the provider during confirm suppresses late memory adoption',
+      () async {
+        final fixture = await createPersistenceFixture(map: _sourceMap());
+        addTearDown(fixture.dispose);
+        final prepared = Completer<NarrativeEventAuthoringSession>();
+        final gateway = _RecordingGateway();
+        final useCase = CreateNarrativeEventFromMapSourceUseCase(
+          persistenceGateway: gateway,
+          prepareSession: (_) => prepared.future,
+          eventIdGeneratorFactory: () => NarrativeEventIdGenerator(
+            rawUuidFactory: () => _createdEvent.substring(4),
+          ),
+          operationIdFactory: () => 'riverpod_3_disposed_confirm',
+        );
+        final container = ProviderContainer(
+          overrides: [
+            narrativeEventMapBridgeControllerProvider.overrideWith(
+              () => NarrativeEventMapBridgeController(
+                useCase: useCase,
+                projectRootPath: fixture.root.path,
+              ),
+            ),
+          ],
+        );
+        final controller = container.read(
+          narrativeEventMapBridgeControllerProvider.notifier,
+        );
+        controller.request(
+          NarrativeEventMapCreationIntent(
+            source: NarrativeEventSourceRef.entityInteract('map_a', 'entity_a'),
+            humanName: 'Réponse après disposal',
+          ),
+          projectRootPath: fixture.root.path,
+        );
+        var memoryAdoptionCalls = 0;
+
+        final confirmation = controller.confirm(
+          projectRootPath: fixture.root.path,
+          mapDirty: false,
+          projectDirty: false,
+          saving: false,
+          applyPersistedRegistry:
+              ({
+                required String expectedProjectRootPath,
+                required NarrativeEventRegistry? expectedPreviousRegistry,
+                required NarrativeEventRegistry nextRegistry,
+              }) {
+                memoryAdoptionCalls++;
+                return true;
+              },
+        );
+        await Future<void>.delayed(Duration.zero);
+        expect(controller.state.isSubmitting, isTrue);
+
+        container.dispose();
+        prepared.complete(fixture.session);
+
+        await expectLater(confirmation, completes);
+        expect(gateway.persistCalls, 1);
+        expect(memoryAdoptionCalls, 0);
+      },
+    );
+
+    test(
       'same-root replacement after a durable V2-23 commit enters explicit recovery',
       () async {
         final fixture = await createPersistenceFixture(map: _sourceMap());
@@ -719,6 +783,12 @@ void main() {
         final gateway = _RecordingGateway();
         final container = ProviderContainer();
         addTearDown(container.dispose);
+        final editorSubscription = container.listen(
+          editorNotifierProvider,
+          (_, __) {},
+          fireImmediately: true,
+        );
+        addTearDown(editorSubscription.close);
         final notifier = container.read(editorNotifierProvider.notifier);
         notifier.state = EditorState(
           projectRootPath: fixture.root.path,

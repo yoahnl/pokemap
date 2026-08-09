@@ -334,7 +334,7 @@ String canonicalSmartTileFailureMessage(
   }
 }
 
-@Riverpod(name: 'editorNotifierProvider')
+@Riverpod(keepAlive: true, name: 'editorNotifierProvider')
 class EditorNotifier extends _$EditorNotifier
     with
         _EditorNotifierMapConnections,

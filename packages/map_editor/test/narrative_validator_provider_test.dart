@@ -42,10 +42,15 @@ void main() {
     );
     final container = ProviderContainer();
     addTearDown(container.dispose);
-
-    final report = await container.read(
-      narrativeValidatorReportProvider(request).future,
+    final provider = narrativeValidatorReportProvider(request);
+    final subscription = container.listen(
+      provider,
+      (_, __) {},
+      fireImmediately: true,
     );
+    addTearDown(subscription.close);
+
+    final report = await container.read(provider.future);
 
     expect(
       report.byCode('storylineMissingBeginning').single.storylineId,
@@ -152,10 +157,15 @@ void main() {
     );
     final container = ProviderContainer();
     addTearDown(container.dispose);
-
-    final report = await container.read(
-      narrativeValidatorReportProvider(request).future,
+    final provider = narrativeValidatorReportProvider(request);
+    final subscription = container.listen(
+      provider,
+      (_, __) {},
+      fireImmediately: true,
     );
+    addTearDown(subscription.close);
+
+    final report = await container.read(provider.future);
 
     final entry = report.mapEventViews.single.events.single;
     expect(entry.eventId, eventId);
@@ -279,10 +289,15 @@ void main() {
     );
     final container = ProviderContainer();
     addTearDown(container.dispose);
-
-    final report = await container.read(
-      narrativeValidatorReportProvider(request).future,
+    final provider = narrativeValidatorReportProvider(request);
+    final subscription = container.listen(
+      provider,
+      (_, __) {},
+      fireImmediately: true,
     );
+    addTearDown(subscription.close);
+
+    final report = await container.read(provider.future);
 
     expect(
       report.byCode('sceneBattleTrainerPokemonSpeciesUnknown'),
@@ -580,8 +595,15 @@ void main() {
       project: project,
     );
 
-    final reportFuture =
-        container.read(narrativeValidatorReportProvider(request).future);
+    final provider = narrativeValidatorReportProvider(request);
+    final subscription = container.listen(
+      provider,
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+
+    final reportFuture = container.read(provider.future);
     await executor.waitForExecutions(1);
     final validationId = executor.works.single.validationId;
     executor.complete(
@@ -625,9 +647,15 @@ void main() {
       project: project,
     );
 
-    final reportFuture = container.read(
-      narrativeStudioValidationReportProvider(request).future,
+    final provider = narrativeStudioValidationReportProvider(request);
+    final subscription = container.listen(
+      provider,
+      (_, __) {},
+      fireImmediately: true,
     );
+    addTearDown(subscription.close);
+
+    final reportFuture = container.read(provider.future);
     await executor.waitForExecutions(1);
     executor.complete(
       executor.works.first.validationId,
@@ -674,9 +702,23 @@ void main() {
       project: project,
     );
 
-    final multidimensionalFuture = container.read(
-      narrativeStudioValidationReportProvider(request).future,
+    final baseProvider = narrativeValidatorReportProvider(request);
+    final baseSubscription = container.listen(
+      baseProvider,
+      (_, __) {},
+      fireImmediately: true,
     );
+    addTearDown(baseSubscription.close);
+    final provider = narrativeStudioValidationReportProvider(request);
+    final subscription = container.listen(
+      provider,
+      (_, __) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+
+    final multidimensionalFuture = container.read(provider.future);
+    final baseFuture = container.read(baseProvider.future);
     await executor.waitForExecutions(1);
     executor.complete(
       executor.works.first.validationId,
@@ -685,9 +727,7 @@ void main() {
         mapEventViews: const [],
       ),
     );
-    final baseReport = await container.read(
-      narrativeValidatorReportProvider(request).future,
-    );
+    final baseReport = await baseFuture;
     await executor.waitForExecutions(2);
     executor.fail(
       executor.works.last.validationId,

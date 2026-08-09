@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'l10n/app_localizations.dart';
 import 'src/features/editor_updates/presentation/editor_update_host.dart';
+import 'src/infrastructure/riverpod_retry_policy.dart';
 import 'src/theme/theme.dart';
 import 'src/ui/editor_shell_page.dart';
 
@@ -12,6 +13,7 @@ Future<void> main() async {
 
   runApp(
     const ProviderScope(
+      retry: disableAutomaticProviderRetry,
       child: MapEditorApp(),
     ),
   );

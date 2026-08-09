@@ -269,7 +269,7 @@ final narrativeValidatorPokemonCatalogSnapshotProvider =
     FutureProvider.autoDispose.family<NarrativeValidatorPokemonCatalogSnapshot,
         NarrativeValidatorPokemonCatalogRequest>((ref, request) {
   return ref.watch(narrativeValidatorPokemonCatalogLoaderProvider)(request);
-});
+}, retry: _disableAutomaticRetry);
 
 final narrativeValidatorExecutorProvider =
     Provider<NarrativeValidatorExecutor>((ref) {
@@ -360,7 +360,7 @@ final narrativeValidatorExecutionProvider = FutureProvider.autoDispose.family<
   } finally {
     keepAliveLink.close();
   }
-});
+}, retry: _disableAutomaticRetry);
 
 final narrativeValidatorReportProvider = FutureProvider.autoDispose.family<
     NarrativeProjectValidationReport,
@@ -378,7 +378,7 @@ final narrativeValidatorReportProvider = FutureProvider.autoDispose.family<
   } finally {
     keepAliveLink.close();
   }
-});
+}, retry: _disableAutomaticRetry);
 
 var _narrativeValidationExecutionSequence = 0;
 
@@ -447,7 +447,12 @@ final narrativeStudioValidationReportProvider = FutureProvider.autoDispose
   } finally {
     keepAliveLink.close();
   }
-});
+}, retry: _disableAutomaticRetry);
+
+/// Riverpod 2 surfaced validation failures immediately. Preserve that
+/// contract instead of adopting Riverpod 3's automatic retry for these
+/// user-triggered, potentially expensive worker operations.
+Duration? _disableAutomaticRetry(int retryCount, Object error) => null;
 
 Future<Set<String>?> _loadSpeciesIds(
   PokemonProjectDataReader reader,

@@ -20,7 +20,7 @@ final class EditorNotifierProvider
         argument: null,
         retry: null,
         name: r'editorNotifierProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -41,7 +41,7 @@ final class EditorNotifierProvider
   }
 }
 
-String _$editorNotifierHash() => r'484a52cb1b0d41209092bbf882068324646c6a65';
+String _$editorNotifierHash() => r'ba1a489cfb8fe3057f1ccd4d283d507a7054f36e';
 
 abstract class _$EditorNotifier extends $Notifier<EditorState> {
   EditorState build();

@@ -21,6 +21,7 @@ import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_selectors.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
+import 'package:map_editor/src/infrastructure/riverpod_retry_policy.dart';
 import 'package:marionette_flutter/marionette_flutter.dart';
 
 Map<String, Object?> openPersonalizationStudioForMarionette({
@@ -49,6 +50,7 @@ void main() {
   final bootstrap = MarionetteProjectBootstrap.load(configuredProjectPath);
   final initialState = bootstrap.createInitialState();
   final container = ProviderContainer(
+    retry: disableAutomaticProviderRetry,
     overrides: <Override>[
       editorNotifierProvider.overrideWith(
         () => _MarionetteSeededEditorNotifier(initialState),
