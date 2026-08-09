@@ -11,6 +11,7 @@ void main() {
         SmartTileLayerActions.descriptors.map((item) => item.id),
         <String>[
           'smart_tile.layer.create',
+          'smart_tile.layer.change_preset',
           'smart_tile.layer.delete',
           'smart_tile.layer.merge',
           'smart_tile.layer.normalize',

@@ -133,6 +133,15 @@ void main() {
         ),
       );
       expect(
+        catalog
+            .requireMutationAction('smart_tile.layer.change_preset')
+            .toJson(),
+        containsPair(
+          'endToEndVerifiedTransports',
+          <String>['cli', 'directApi'],
+        ),
+      );
+      expect(
         catalog.requireMutationAction('asset.delete').toJson(),
         containsPair('endToEndVerifiedTransports', isEmpty),
       );

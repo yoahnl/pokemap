@@ -298,6 +298,14 @@ const Map<AuthoringTransport, String> _canonicalAdapterEvidence = {
 };
 
 Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
+  if (actionId == 'smart_tile.layer.change_preset') {
+    return const <AuthoringTransport, String>{
+      AuthoringTransport.directApi:
+          'test/domains/maps/smart_tile_layer_preset_change_action_test.dart',
+      AuthoringTransport.cli:
+          'test/domains/maps/smart_tile_layer_preset_change_action_test.dart',
+    };
+  }
   if (actionId != 'map.create' && actionId != 'presentation.update') {
     return const {};
   }
@@ -501,6 +509,10 @@ const _contractEvidenceRules = <_ContractEvidenceRule>[
   _ContractEvidenceRule(
     ['smart_tile.cell.'],
     'test/domains/maps/smart_tile_cell_actions_test.dart',
+  ),
+  _ContractEvidenceRule(
+    ['smart_tile.layer.change_preset'],
+    'test/domains/maps/smart_tile_layer_preset_change_action_test.dart',
   ),
   _ContractEvidenceRule(
     ['smart_tile.layer.create', 'smart_tile.layer.delete'],

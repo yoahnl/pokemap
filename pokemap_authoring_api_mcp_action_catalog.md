@@ -1017,6 +1017,7 @@ smart_tile.animation.upsert
 smart_tile.atlas.upsert
 smart_tile.cell.erase
 smart_tile.cell.paint
+smart_tile.layer.change_preset
 smart_tile.layer.create
 smart_tile.layer.delete
 smart_tile.layer.merge

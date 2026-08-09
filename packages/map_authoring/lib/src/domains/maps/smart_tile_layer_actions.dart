@@ -28,6 +28,15 @@ final class SmartTileLayerActions {
       ],
     ),
     _smartTileLayerDescriptor(
+      'smart_tile.layer.change_preset',
+      'Change one Smart Tile layer preset without changing its geometry',
+      resourceKinds: const <String>[
+        'map',
+        'smartTileLayer',
+        'smartTilePreset',
+      ],
+    ),
+    _smartTileLayerDescriptor(
       'smart_tile.layer.delete',
       'Delete one revision-checked Smart Tile layer',
       resourceKinds: const <String>['map', 'smartTileLayer'],
@@ -76,6 +85,7 @@ final class SmartTileLayerActions {
   AuthoringMutationDraft build(AuthoringPlanningContext planning) {
     return switch (planning.request.actionId) {
       'smart_tile.layer.create' => _create(planning),
+      'smart_tile.layer.change_preset' => _changePreset(planning),
       'smart_tile.layer.delete' => _delete(planning),
       'smart_tile.layer.normalize' => _normalize(planning),
       'smart_tile.layer.merge' => _merge(planning),
@@ -88,6 +98,90 @@ final class SmartTileLayerActions {
           details: {'actionId': planning.request.actionId},
         ),
     };
+  }
+
+  AuthoringMutationDraft _changePreset(AuthoringPlanningContext planning) {
+    final context = SemanticMapActionContext.read(
+      planning,
+      allowedParameters: const <String>{
+        'layerId',
+        'targetPresetId',
+        'materialMappings',
+      },
+    );
+    final layerId = context.parameters.string('layerId');
+    _requireNativeSmartTileProject(
+      context,
+      operation: 'smart_tile.layer.change_preset',
+      layerId: layerId,
+    );
+    final layer = _smartTileLayer(context.map, layerId);
+    final sourcePreset = _smartTilePreset(context.manifest, layer.presetId);
+    final targetPresetId = context.parameters.string('targetPresetId');
+    final targetPreset = _smartTilePreset(context.manifest, targetPresetId);
+    final materialMappings = context.parameters.contains('materialMappings')
+        ? _presetMaterialMappings(
+            context.parameters.object('materialMappings'),
+          )
+        : const <String, String>{};
+    final result = planSmartTileLayerPresetChange(
+      map: context.map,
+      layer: layer,
+      sourcePreset: sourcePreset,
+      targetPreset: targetPreset,
+      catalog: context.manifest.smartTileCatalog,
+      materialMappings: materialMappings,
+    );
+    if (result is SmartTileLayerPresetChangeFailure) {
+      throw semanticFailure(
+        result.code,
+        result.message,
+        details: <String, Object?>{
+          'layerId': layer.id,
+          'sourcePresetId': sourcePreset.id,
+          'targetPresetId': targetPreset.id,
+          if (result.requiredMaterialIds.isNotEmpty)
+            'requiredMaterialIds': result.requiredMaterialIds,
+        },
+        remediation: result.requiredMaterialIds.isEmpty
+            ? const <String>[
+                'Choose a published preset compatible with this layer.',
+              ]
+            : const <String>[
+                'Map every listed source material to one material allowed by '
+                    'the target preset.',
+              ],
+      );
+    }
+    final success = result as SmartTileLayerPresetChangeSuccess;
+    final projected = replaceSmartTileLayer(
+      context.map,
+      layer: success.layer,
+    );
+    preflightNativeSmartTileMutation(
+      snapshot: context.planning.snapshot,
+      projectedManifest: context.manifest,
+      projectedMaps: <String, MapData>{context.map.id: projected},
+    );
+    return context.draftMap(
+      after: projected,
+      operation: 'smart_tile.layer.change_preset',
+      changedItems:
+          success.remappedEntryCount + success.clearedCandidateWeightCount + 1,
+      layerId: layer.id,
+      preview: <String, Object?>{
+        'sourcePresetId': sourcePreset.id,
+        'targetPresetId': targetPreset.id,
+        'usage': layer.usage.name,
+        'remappedEntryCount': success.remappedEntryCount,
+        'clearedCandidateWeightCount': success.clearedCandidateWeightCount,
+        'materialMappings': success.materialMappings,
+        'geometryPreserved': true,
+        'patternStrokesPreserved': true,
+        'batchAtomicity': 'all_or_nothing',
+        'projectWidePreflight': 'passed',
+      },
+    );
   }
 
   AuthoringMutationDraft _create(AuthoringPlanningContext planning) {
@@ -808,6 +902,25 @@ Map<String, Map<String, String>> _materialMappings(
       mapping[sourceMaterialId] = targetMaterialId;
     }
     mappings[entry.key] = Map.unmodifiable(mapping);
+  }
+  return Map.unmodifiable(mappings);
+}
+
+Map<String, String> _presetMaterialMappings(Map<String, Object?> raw) {
+  final mappings = <String, String>{};
+  for (final entry in raw.entries) {
+    final targetMaterialId = entry.value;
+    if (entry.key.trim() != entry.key ||
+        entry.key.isEmpty ||
+        targetMaterialId is! String ||
+        targetMaterialId.trim() != targetMaterialId ||
+        targetMaterialId.isEmpty) {
+      throw invalidSemanticField(
+        'materialMappings',
+        'nonblank trimmed material ID pairs',
+      );
+    }
+    mappings[entry.key] = targetMaterialId;
   }
   return Map.unmodifiable(mappings);
 }

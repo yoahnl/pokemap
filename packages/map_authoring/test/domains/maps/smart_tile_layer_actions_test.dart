@@ -14,6 +14,7 @@ void main() {
         descriptors.map((descriptor) => descriptor.id),
         [
           'smart_tile.layer.create',
+          'smart_tile.layer.change_preset',
           'smart_tile.layer.delete',
           'smart_tile.layer.merge',
           'smart_tile.layer.normalize',
