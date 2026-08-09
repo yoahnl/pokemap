@@ -367,9 +367,6 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       eyebrow: widget.branding.signature,
       footer: widget.branding.displayName,
       onStart: () => _dispatchStartup(RuntimeStartupAction.pressStart),
-      onReplayIntro: widget.snapshot.canReplayIntro
-          ? () => _dispatchStartup(RuntimeStartupAction.replayIntro)
-          : null,
     );
   }
 
@@ -659,6 +656,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         RuntimePlayerAction.continueGame => PlayerTitleMenuAction.continueGame,
         RuntimePlayerAction.newGame => PlayerTitleMenuAction.newGame,
         RuntimePlayerAction.openOptions => PlayerTitleMenuAction.options,
+        RuntimePlayerAction.returnToHost => PlayerTitleMenuAction.returnToHub,
         _ => throw ArgumentError.value(action, 'action'),
       };
 

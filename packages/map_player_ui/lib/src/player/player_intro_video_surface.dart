@@ -6,7 +6,7 @@ import '../theme/pokemap_player_theme.dart';
 import 'player_intro_video_strings.dart';
 
 /// Player-safe presentation surface for intro video, poster, and fallbacks.
-class PlayerIntroVideoSurface extends StatelessWidget {
+class PlayerIntroVideoSurface extends StatefulWidget {
   const PlayerIntroVideoSurface({
     super.key,
     required this.media,
@@ -35,6 +35,22 @@ class PlayerIntroVideoSurface extends StatelessWidget {
   final String? continueLabel;
 
   @override
+  State<PlayerIntroVideoSurface> createState() =>
+      _PlayerIntroVideoSurfaceState();
+}
+
+class _PlayerIntroVideoSurfaceState extends State<PlayerIntroVideoSurface> {
+  bool _skipVisible = false;
+
+  @override
+  void didUpdateWidget(PlayerIntroVideoSurface oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isPoster != widget.isPoster) {
+      _skipVisible = false;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.playerColors;
     final strings = PlayerIntroVideoStrings.of(context);
@@ -46,27 +62,27 @@ class PlayerIntroVideoSurface extends StatelessWidget {
       child: Focus(
         autofocus: true,
         child: GestureDetector(
-          key: const ValueKey<String>('player-intro-primary-hit-area'),
           behavior: HitTestBehavior.opaque,
-          onTap: _primaryAction,
+          onTap: widget.isPoster ? _primaryAction : null,
           child: Stack(
             fit: StackFit.expand,
             children: <Widget>[
               ColoredBox(
                 color: colors.background,
-                child: media ??
+                child: widget.media ??
                     _UnavailableMedia(
-                      message: failureMessage ?? strings.unavailable,
+                      message: widget.failureMessage ?? strings.unavailable,
                     ),
               ),
-              if (isBuffering)
+              if (widget.isBuffering)
                 ColoredBox(
                   color: colors.scrim,
                   child: Center(
                     child: CircularProgressIndicator(color: colors.primary),
                   ),
                 ),
-              if (caption case final caption? when caption.trim().isNotEmpty)
+              if (widget.caption case final caption?
+                  when caption.trim().isNotEmpty)
                 SafeArea(
                   child: Align(
                     alignment: Alignment.bottomCenter,
@@ -91,41 +107,84 @@ class PlayerIntroVideoSurface extends StatelessWidget {
                     ),
                   ),
                 ),
-              SafeArea(
-                child: Align(
-                  alignment: Alignment.topRight,
-                  child: Padding(
-                    padding: const EdgeInsets.all(PlayerSpacing.md),
-                    child: Wrap(
-                      alignment: WrapAlignment.end,
-                      spacing: PlayerSpacing.sm,
-                      runSpacing: PlayerSpacing.sm,
-                      children: <Widget>[
-                        if (onReplay != null)
-                          PlayerActionButton(
-                            label: replayLabel ?? strings.replay,
-                            icon: Icons.replay_outlined,
-                            secondary: true,
-                            onPressed: onReplay,
-                          ),
-                        if (isPoster && onContinue != null)
-                          PlayerActionButton(
-                            label: continueLabel ?? strings.continueAction,
-                            icon: Icons.play_arrow_rounded,
-                            onPressed: onContinue,
-                          )
-                        else
-                          PlayerActionButton(
-                            label: skipLabel ?? strings.skip,
-                            icon: Icons.skip_next_outlined,
-                            secondary: true,
-                            onPressed: onSkip,
-                          ),
-                      ],
+              if (widget.isPoster)
+                SafeArea(
+                  child: Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(PlayerSpacing.md),
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: PlayerSpacing.sm,
+                        runSpacing: PlayerSpacing.sm,
+                        children: <Widget>[
+                          if (widget.onReplay != null)
+                            SizedBox(
+                              width: 132,
+                              child: PlayerActionButton(
+                                label: widget.replayLabel ?? strings.replay,
+                                icon: Icons.replay_outlined,
+                                secondary: true,
+                                onPressed: widget.onReplay,
+                              ),
+                            ),
+                          if (widget.onContinue != null)
+                            SizedBox(
+                              width: 136,
+                              child: PlayerActionButton(
+                                label: widget.continueLabel ??
+                                    strings.continueAction,
+                                icon: Icons.play_arrow_rounded,
+                                onPressed: widget.onContinue,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                )
+              else ...<Widget>[
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  width: 144,
+                  height: 112,
+                  child: Semantics(
+                    button: true,
+                    label: widget.skipLabel ?? strings.skip,
+                    onTap: _revealSkip,
+                    child: GestureDetector(
+                      key: const ValueKey<String>(
+                        'player-intro-skip-reveal-hit-area',
+                      ),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _revealSkip,
                     ),
                   ),
                 ),
-              ),
+                if (_skipVisible)
+                  SafeArea(
+                    child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: Padding(
+                        padding: const EdgeInsets.all(PlayerSpacing.md),
+                        child: SizedBox(
+                          key: const ValueKey<String>(
+                            'player-intro-skip-action',
+                          ),
+                          width: 112,
+                          height: 54,
+                          child: PlayerActionButton(
+                            label: widget.skipLabel ?? strings.skip,
+                            icon: Icons.skip_next_outlined,
+                            secondary: true,
+                            onPressed: widget.onSkip,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
@@ -134,11 +193,15 @@ class PlayerIntroVideoSurface extends StatelessWidget {
   }
 
   void _primaryAction() {
-    if (isPoster && onContinue != null) {
-      onContinue!();
+    if (widget.isPoster && widget.onContinue != null) {
+      widget.onContinue!();
     } else {
-      onSkip();
+      widget.onSkip();
     }
+  }
+
+  void _revealSkip() {
+    if (!_skipVisible) setState(() => _skipVisible = true);
   }
 }
 

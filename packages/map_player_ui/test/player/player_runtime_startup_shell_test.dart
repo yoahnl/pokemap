@@ -294,7 +294,7 @@ void main() {
     expect(commands.single.snapshotRevision, 12);
   });
 
-  testWidgets('projects only three actions in mobile and desktop layouts',
+  testWidgets('projects four runtime actions in mobile and desktop layouts',
       (tester) async {
     for (final size in <Size>[const Size(390, 844), const Size(1280, 720)]) {
       tester.view.physicalSize = size;
@@ -321,6 +321,7 @@ void main() {
       expect(find.text('Continuer'), findsOneWidget);
       expect(find.text('Nouveau jeu'), findsOneWidget);
       expect(find.text('Options'), findsOneWidget);
+      expect(find.text('Retour au Hub'), findsOneWidget);
       expect(find.text('Charger'), findsNothing);
       expect(find.text('Crédits & à propos'), findsNothing);
       expect(
@@ -337,6 +338,76 @@ void main() {
     }
     tester.view.resetPhysicalSize();
     tester.view.resetDevicePixelRatio();
+  });
+
+  testWidgets('dispatches Return to Hub from the mobile runtime menu',
+      (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final commands = <RuntimePlayerCommand>[];
+
+    await tester.pumpWidget(
+      _app(
+        PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: _startup(
+            RuntimeStartupPhase.titleMenu,
+            player: _titlePlayer(),
+          ),
+          titlePresentation: const RuntimePlayerTitlePresentation(
+            author: 'Avelune',
+            layoutVariant: PlayerTitleLayoutVariant.cinematic,
+          ),
+          onStartupCommand: (_) {},
+          onPlayerCommand: commands.add,
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('player-title-startup-menu')),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('Retour au Hub'));
+
+    expect(commands, hasLength(1));
+    expect(commands.single.action, RuntimePlayerAction.returnToHost);
+  });
+
+  testWidgets('title prompt hides replay even when the runtime allows it',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: RuntimeStartupSnapshot(
+            revision: 8,
+            phase: RuntimeStartupPhase.titlePrompt,
+            progress: 1,
+            currentStage: RuntimeStartupPreparationStage.titleMenuAndMusic,
+            isPreparationReady: true,
+            isMinimumElapsed: true,
+            isLifecycleActive: true,
+            introPhase: RuntimeIntroPhase.completed,
+            introCanReplay: true,
+          ),
+          titlePresentation: presentation,
+          onStartupCommand: (_) {},
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      ),
+    );
+
+    expect(find.text('Rejouer l’intro'), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('player-title-press-start-pill')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('preserves authored cinematic layout in the startup menu',
@@ -731,6 +802,9 @@ RuntimePlayerSnapshot _titlePlayer() => RuntimePlayerSnapshot(
         ),
         RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.load,
+        ),
+        RuntimePlayerActionAvailability.enabled(
+          RuntimePlayerAction.returnToHost,
         ),
       ],
     );

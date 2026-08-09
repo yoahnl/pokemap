@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -61,6 +63,34 @@ void main() {
     expect(failures, hasLength(1));
     expect(failures.single, 'Intro video playback failed.');
     expect(find.text('La vidéo ne peut pas être lue.'), findsOneWidget);
+  });
+
+  testWidgets('decoder initialization never exposes the failure fallback',
+      (tester) async {
+    final initialization = Completer<void>();
+    final driver = _FakeDriver()..initializeGate = initialization;
+
+    await tester.pumpWidget(
+      _app(
+        PlayerIntroVideoPlayer(
+          source: source,
+          phase: RuntimeIntroPhase.playing,
+          driverFactory: (_) => driver,
+          onPlaybackCompleted: () {},
+          onPlaybackFailed: (_) {},
+          onSkip: () {},
+          onContinue: () {},
+          onReplay: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.text('La vidéo ne peut pas être lue.'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    initialization.complete();
+    await tester.pump();
   });
 
   testWidgets('completion, buffering, captions and disposal are deterministic',
@@ -175,6 +205,7 @@ class _FakeDriver implements PlayerIntroPlaybackDriver {
     const PlayerIntroPlaybackSnapshot(),
   );
   Object? initializeError;
+  Completer<void>? initializeGate;
   int playCalls = 0;
   int pauseCalls = 0;
   int disposeCalls = 0;
@@ -191,6 +222,7 @@ class _FakeDriver implements PlayerIntroPlaybackDriver {
   @override
   Future<void> initialize() async {
     if (initializeError case final error?) throw error;
+    await initializeGate?.future;
     snapshot.value = const PlayerIntroPlaybackSnapshot(isInitialized: true);
   }
 

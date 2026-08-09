@@ -173,6 +173,7 @@ void main() {
         PlayerTitleMenuAction.continueGame: PlayerActionAvailability.enabled,
         PlayerTitleMenuAction.newGame: PlayerActionAvailability.enabled,
         PlayerTitleMenuAction.options: PlayerActionAvailability.enabled,
+        PlayerTitleMenuAction.returnToHub: PlayerActionAvailability.enabled,
       },
     );
 
@@ -203,6 +204,7 @@ void main() {
     expect(find.text('Le Train\nde 17h42'), findsOneWidget);
     expect(find.text('01:46 · Vallée d’Hisui'), findsOneWidget);
     expect(find.text('Nouveau jeu'), findsOneWidget);
+    expect(find.text('Retour au Hub'), findsOneWidget);
     expect(find.text('Choisir'), findsOneWidget);
     expect(find.text('ENTER'), findsOneWidget);
     expect(find.text('Valider'), findsOneWidget);
@@ -233,6 +235,7 @@ void main() {
         PlayerTitleMenuAction.continueGame,
         PlayerTitleMenuAction.newGame,
         PlayerTitleMenuAction.options,
+        PlayerTitleMenuAction.returnToHub,
       ])
         action: tester.getCenter(
           find.byKey(

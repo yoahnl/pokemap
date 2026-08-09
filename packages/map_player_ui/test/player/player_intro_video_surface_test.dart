@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
-  testWidgets('keeps captions and skip reachable on a narrow player surface',
+  testWidgets('reveals a compact skip action from the bottom-right corner',
       (tester) async {
     tester.view.physicalSize = const Size(320, 520);
     tester.view.devicePixelRatio = 1;
@@ -26,13 +26,30 @@ void main() {
     );
 
     expect(find.text('Une nouvelle aventure commence.'), findsOneWidget);
-    expect(find.text('Passer'), findsOneWidget);
+    expect(find.text('Passer'), findsNothing);
     expect(find.byType(PlayerSurface), findsNothing);
     expect(
       tester.getSize(find.byKey(const ValueKey<String>('video-frame'))),
       const Size(320, 520),
     );
     expect(tester.takeException(), isNull);
+
+    await tester.tapAt(const Offset(40, 40));
+    await tester.pump();
+    expect(find.text('Passer'), findsNothing);
+    expect(skipped, isFalse);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('player-intro-skip-reveal-hit-area')),
+    );
+    await tester.pump();
+    expect(find.text('Passer'), findsOneWidget);
+    expect(
+      tester.getSize(
+        find.byKey(const ValueKey<String>('player-intro-skip-action')),
+      ),
+      const Size(112, 54),
+    );
 
     await tester.tap(find.text('Passer'));
     expect(skipped, isTrue);
@@ -106,7 +123,7 @@ void main() {
     expect(find.text('Continuer'), findsNothing);
   });
 
-  testWidgets('media tap, Enter and Space use the primary intro action',
+  testWidgets('only keyboard shortcuts skip immediately during playback',
       (tester) async {
     var skipped = 0;
     await tester.pumpWidget(
@@ -118,13 +135,10 @@ void main() {
       ),
     );
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('player-intro-primary-hit-area')),
-    );
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
 
-    expect(skipped, 3);
+    expect(skipped, 2);
   });
 }
 

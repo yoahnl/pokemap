@@ -3,7 +3,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   group('RuntimeTitleMenuPolicy.singleSave', () {
-    test('projects exactly Continue, New Game, and Options in that order', () {
+    test('projects the four runtime-owned title actions in order', () {
       final projection = const RuntimeTitleMenuPolicy.singleSave().project(
         RuntimePlayerSnapshot(
           revision: 3,
@@ -26,6 +26,9 @@ void main() {
             const RuntimePlayerActionAvailability.enabled(
               RuntimePlayerAction.load,
             ),
+            const RuntimePlayerActionAvailability.enabled(
+              RuntimePlayerAction.returnToHost,
+            ),
           ],
         ),
       );
@@ -36,6 +39,7 @@ void main() {
           RuntimePlayerAction.continueGame,
           RuntimePlayerAction.newGame,
           RuntimePlayerAction.openOptions,
+          RuntimePlayerAction.returnToHost,
         ],
       );
       expect(
@@ -87,7 +91,7 @@ void main() {
         ),
       );
 
-      expect(projection.actions, hasLength(3));
+      expect(projection.actions, hasLength(4));
       expect(projection.actions,
           everyElement(isA<RuntimePlayerActionAvailability>()));
       expect(

@@ -23,6 +23,7 @@ final class RuntimeTitleMenuPolicy {
     RuntimePlayerAction.continueGame,
     RuntimePlayerAction.newGame,
     RuntimePlayerAction.openOptions,
+    RuntimePlayerAction.returnToHost,
   ];
 
   RuntimeTitleMenuProjection project(RuntimePlayerSnapshot snapshot) {

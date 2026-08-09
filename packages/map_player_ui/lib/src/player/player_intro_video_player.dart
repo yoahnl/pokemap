@@ -196,8 +196,11 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
   Widget build(BuildContext context) {
     final posterMode =
         widget.phase == RuntimeIntroPhase.poster || _failureMessage != null;
+    final media = posterMode
+        ? _poster()
+        : _video() ?? _poster() ?? const SizedBox.expand();
     return PlayerIntroVideoSurface(
-      media: posterMode ? _poster() : _video(),
+      media: media,
       caption: posterMode ? null : _snapshot.caption,
       isPoster: posterMode,
       isBuffering:
