@@ -13,8 +13,9 @@ import 'package:path/path.dart' as p;
 import '../game_export/game_export_test_fixture.dart';
 
 void main() {
-  testWidgets('Phase 5 golden fixture renders the editor preview',
-      (tester) async {
+  testWidgets('Phase 5 golden fixture renders the editor preview', (
+    tester,
+  ) async {
     final presentationJson = await tester.runAsync(_readGoldenPresentation);
     final presentation = ProjectPresentationProfile.fromJson(presentationJson!);
     expect(validateProjectPresentationProfile(presentation), isEmpty);
@@ -39,9 +40,7 @@ void main() {
 
   test('Phase 5 golden fixture packages every presentation category', () async {
     final presentationJson = await _readGoldenPresentation();
-    final presentation = ProjectPresentationProfile.fromJson(
-      presentationJson,
-    );
+    final presentation = ProjectPresentationProfile.fromJson(presentationJson);
     final root = await createAuthorProject(withDialogue: false);
     addTearDown(() => root.delete(recursive: true));
     final assets = Directory(p.join(root.path, 'assets', 'presentation'));
@@ -52,8 +51,9 @@ void main() {
     for (final name in <String>['icon.png', 'cover.png', 'hero.png']) {
       await File(p.join(assets.path, name)).writeAsBytes(onePixelPng);
     }
-    await File(p.join(assets.path, 'title.ogg'))
-        .writeAsBytes(utf8.encode('OggS phase-5-title'));
+    await File(
+      p.join(assets.path, 'title.ogg'),
+    ).writeAsBytes(utf8.encode('OggS phase-5-title'));
     final introBytes = <int>[
       0,
       0,
@@ -68,13 +68,15 @@ void main() {
     ];
     await File(p.join(intro.path, 'intro.mp4')).writeAsBytes(introBytes);
     await File(p.join(intro.path, 'poster.png')).writeAsBytes(onePixelPng);
-    await File(p.join(intro.path, 'captions.vtt')).writeAsString(
-      'WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue à Aube.\n',
-    );
-    await File(p.join(fonts.path, 'display.ttf'))
-        .writeAsBytes(<int>[0, 1, 0, 0, 0, 0, 0, 0]);
-    await File(p.join(fonts.path, 'display-license.txt'))
-        .writeAsString('Redistribution permitted.');
+    await File(
+      p.join(intro.path, 'captions.vtt'),
+    ).writeAsString('WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue à Aube.\n');
+    await File(
+      p.join(fonts.path, 'display.ttf'),
+    ).writeAsBytes(<int>[0, 1, 0, 0, 0, 0, 0, 0]);
+    await File(
+      p.join(fonts.path, 'display-license.txt'),
+    ).writeAsString('Redistribution permitted.');
 
     final projectFile = File(p.join(root.path, 'project.json'));
     final project =
@@ -87,18 +89,23 @@ void main() {
       profile: neutralExportProfile(),
     );
 
-    expect(
-      built.manifest.presentation?.branding.layoutVariant,
-      'cinematic',
-    );
+    expect(built.manifest.presentation?.branding.layoutVariant, 'cinematic');
     expect(built.manifest.presentation?.intro?.allowReplay, isTrue);
     expect(
       built.manifest.presentation?.typography?.display.family,
       'Aube Display',
     );
+    expect(built.manifest.presentation?.theme?.overworldHudSurface, '#FFFFFF');
+    expect(built.manifest.presentation?.schemaVersion, 3);
     expect(
-      built.manifest.presentation?.theme?.overworldHudSurface,
-      '#FFFFFF',
+      built.manifest.presentation?.windows?.pauseMenuStyleId,
+      'pause-menu',
+    );
+    expect(
+      built.manifest.presentation?.windows?.styles
+          .singleWhere((style) => style.id == 'dialogue')
+          .cornerRadius,
+      8,
     );
     expect(
       built.inspection.payloadPaths,
@@ -128,16 +135,10 @@ void main() {
       built.manifest.presentation?.titleMotion?.promptLoop?.landscape.video,
       'presentation/title/prompt/landscape/video.mp4',
     );
-    expect(
-      built.personalizationPreflight.packageSha256,
-      built.packageSha256,
-    );
+    expect(built.personalizationPreflight.packageSha256, built.packageSha256);
     expect(
       built.personalizationPreflight.assetSha256,
-      containsPair(
-        'presentation/fonts/display-license.txt',
-        isA<String>(),
-      ),
+      containsPair('presentation/fonts/display-license.txt', isA<String>()),
     );
 
     final preview = PersonalizationPreviewProjection(presentation);

@@ -74,6 +74,12 @@ void main() {
       presentation.semanticTheme?.titleSurface,
       const Color(0xFFD9F4F6),
     );
+    expect(
+      presentation.windowProfile
+          ?.resolve(ProjectWindowRole.pauseMenu)
+          .cornerRadius,
+      24,
+    );
   });
 
   testWidgets(
@@ -81,7 +87,7 @@ void main() {
       (tester) async {
     final profile = await tester.runAsync(_readGoldenPresentation);
     final semantic = _playerTheme(profile!.theme!);
-    final theme = PokeMapPlayerTheme.withSemanticTheme(
+    final semanticTheme = PokeMapPlayerTheme.withSemanticTheme(
       PokeMapPlayerTheme.withTypography(
         PokeMapPlayerTheme.light(),
         PokeMapPlayerTypography(
@@ -90,6 +96,10 @@ void main() {
         ),
       ),
       semantic,
+    );
+    final theme = PokeMapPlayerTheme.withWindowProfile(
+      semanticTheme,
+      profile.windows!,
     );
 
     await tester.pumpWidget(
@@ -134,6 +144,15 @@ void main() {
       semantic.dialogueSurface,
     );
     expect(_materialColor(tester, 'golden-menu'), semantic.menuSurface);
+    final menuMaterial = tester.widget<Material>(
+      find.descendant(
+        of: find.byKey(const ValueKey<String>('golden-menu')),
+        matching: find.byType(Material),
+      ),
+    );
+    final menuShape = menuMaterial.shape! as RoundedRectangleBorder;
+    expect(menuShape.borderRadius, BorderRadius.circular(24));
+    expect(menuShape.side.width, 2);
     expect(
       _materialColor(tester, 'golden-overworld-hud'),
       semantic.overworldHudSurface,
@@ -225,6 +244,7 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
       supported: const <String>['fr'],
     ),
     presentation: GamePackagePresentation(
+      schemaVersion: 3,
       branding: GamePackageBranding(
         icon: 'presentation/icon.png',
         hero: 'presentation/hero.png',
@@ -264,6 +284,7 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
         ),
       ),
       theme: _packageTheme(profile.theme!),
+      windows: _packageWindows(profile.windows!),
     ),
     content: GamePackageContent(
       fileCount: 0,
@@ -293,6 +314,27 @@ GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
       overworldHudSurface: theme.overworldHudSurface,
       battleHudSurface: theme.battleHudSurface,
     );
+
+GamePackagePresentationWindows _packageWindows(
+  ProjectPresentationWindowsProfile windows,
+) => GamePackagePresentationWindows(
+  styles: <GamePackageWindowStyle>[
+    for (final style in windows.styles)
+      GamePackageWindowStyle(
+        id: style.id,
+        fillToken: style.fillToken,
+        borderToken: style.borderToken,
+        borderWidth: style.borderWidth,
+        cornerRadius: style.cornerRadius,
+        contentPadding: style.contentPadding,
+        shadowElevation: style.shadowElevation,
+      ),
+  ],
+  defaultStyleId: windows.defaultStyleId,
+  pauseMenuStyleId: windows.pauseMenuStyleId,
+  dialogueStyleId: windows.dialogueStyleId,
+  pauseBackdropOpacity: windows.pauseBackdropOpacity,
+);
 
 RuntimeLoadedTypography _loadedTypography(ProjectTypographyProfile source) =>
     RuntimeLoadedTypography(

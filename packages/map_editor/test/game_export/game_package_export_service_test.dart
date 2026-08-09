@@ -48,6 +48,7 @@ void main() {
           accentColor: '#126E78',
         ),
         menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+        windows: legacyProjectPresentationWindows,
       ).toJson();
       await projectFile.writeAsString(jsonEncode(project), flush: true);
       const service = GamePackageExportService();
@@ -61,11 +62,23 @@ void main() {
       expect(first.certification.gameplayReadinessReport.isPlayable, isTrue);
       expect(first.manifest.gameId, profile.gameId);
       expect(first.manifest.title, profile.title);
-      expect(first.manifest.presentation?.schemaVersion, 2);
+      expect(first.manifest.presentation?.schemaVersion, 3);
       expect(first.manifest.usesLegacyBranding, isFalse);
       expect(first.manifest.branding?.icon, 'presentation/icon.png');
       expect(first.manifest.branding?.accentColor, '#126E78');
       expect(first.manifest.presentation?.menuLabels?.pokedex, 'Carnet');
+      expect(
+        first.manifest.presentation?.windows?.pauseMenuStyleId,
+        'pause-menu',
+      );
+      expect(
+        first.manifest.presentation?.windows?.dialogueStyleId,
+        'dialogue',
+      );
+      expect(
+        first.manifest.presentation?.windows?.pauseBackdropOpacity,
+        .7,
+      );
       expect(
         first.manifest.compatibility.requiredCapabilities,
         contains('map@1'),

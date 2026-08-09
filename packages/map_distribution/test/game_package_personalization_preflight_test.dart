@@ -69,6 +69,36 @@ void main() {
       expect(receipt.audioCodec, 'aac');
     });
 
+    test('certifies a window-only profile and binds style changes to its hash',
+        () {
+      final first = const GamePackageBuilder().build(
+        manifest: _windowOnlyManifest(cornerRadius: 16),
+        payloadFiles: _windowOnlyPayload(),
+      );
+      final second = const GamePackageBuilder().build(
+        manifest: _windowOnlyManifest(cornerRadius: 24),
+        payloadFiles: _windowOnlyPayload(),
+      );
+
+      final firstReceipt = preflight.certify(
+        const GamePackageInspector().inspect(first.packageBytes),
+      );
+      final secondReceipt = preflight.certify(
+        const GamePackageInspector().inspect(second.packageBytes),
+      );
+
+      expect(
+        firstReceipt.configuredCategories,
+        <GamePackagePersonalizationCategory>[
+          GamePackagePersonalizationCategory.theme,
+        ],
+      );
+      expect(
+        firstReceipt.presentationSha256,
+        isNot(secondReceipt.presentationSha256),
+      );
+    });
+
     test('rejects an embedded font without its redistribution license', () {
       final valid = _validInspection();
       final manifest = _manifest(
@@ -236,6 +266,59 @@ Map<String, List<int>> _validPayload() => <String, List<int>>{
       'presentation/fonts/display-license.txt':
           utf8.encode('Redistribution permitted.'),
     };
+
+Map<String, List<int>> _windowOnlyPayload() => <String, List<int>>{
+      'project/project.json': utf8.encode(
+        jsonEncode(<String, Object?>{
+          'name': 'Window-only fixture',
+          'version': 'v6',
+          'maps': <Object?>[],
+          'tilesets': <Object?>[],
+        }),
+      ),
+    };
+
+GamePackageManifest _windowOnlyManifest({required int cornerRadius}) =>
+    GamePackageManifest(
+      packageFormat: 1,
+      gameId: 'games.example.windows',
+      gameVersion: Version(1, 0, 0),
+      title: 'Window-only fixture',
+      author: const GamePackageParty(name: 'PokeMap'),
+      compatibility: GamePackageCompatibility(
+        minHubVersion: Version(1, 0, 0),
+        runtimeApiExpression: '>=1.0.0 <2.0.0',
+        projectFormat: 'v6',
+        saveFormat: 1,
+        compatibilityId: 'main',
+        requiredCapabilities: const <String>[],
+      ),
+      locales: GamePackageLocales(
+        defaultLocale: 'fr',
+        supported: const <String>['fr'],
+      ),
+      presentation: GamePackagePresentation(
+        schemaVersion: 3,
+        windows: GamePackagePresentationWindows(
+          styles: <GamePackageWindowStyle>[
+            GamePackageWindowStyle(
+              id: 'window',
+              fillToken: 'menuSurface',
+              borderToken: 'outline',
+              borderWidth: 1,
+              cornerRadius: cornerRadius,
+              contentPadding: 16,
+              shadowElevation: 8,
+            ),
+          ],
+          defaultStyleId: 'window',
+          pauseMenuStyleId: 'window',
+          dialogueStyleId: 'window',
+          pauseBackdropOpacity: .7,
+        ),
+      ),
+      content: _emptyContent,
+    );
 
 Map<String, List<int>> _validPayloadV2() {
   final payload = _validPayload()

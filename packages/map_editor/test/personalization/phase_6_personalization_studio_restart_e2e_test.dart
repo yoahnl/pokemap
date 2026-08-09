@@ -29,6 +29,7 @@ void main() {
           layoutVariant: 'cinematic',
         ),
         theme: safeProjectSemanticTheme,
+        windows: legacyProjectPresentationWindows,
       );
 
       final firstContainer = ProviderContainer();

@@ -40,6 +40,7 @@ void main() {
           pauseTitle: 'Interlude',
           pokedex: 'Carnet',
         ),
+        windows: legacyProjectPresentationWindows,
       ),
       titleHero: const RuntimeStartupPresentationAsset(
         assetId: 'hero',
@@ -85,6 +86,17 @@ void main() {
     expect(presentation.typography.displayFamily, 'Aube Display');
     expect(presentation.typography.displayFallback, <String>['serif']);
     expect(presentation.semanticTheme?.titleSurface, const Color(0xFFD9F4F6));
+    expect(
+      presentation.windowProfile?.resolve(ProjectWindowRole.pauseMenu),
+      legacyProjectPresentationWindows.resolve(ProjectWindowRole.pauseMenu),
+    );
+    expect(
+      presentation
+          .applyTo(PokeMapPlayerTheme.light())
+          .extension<PokeMapPlayerWindowTheme>()
+          ?.profile,
+      legacyProjectPresentationWindows,
+    );
     expect(presentation.pauseMenuLabels.pauseTitle, 'Interlude');
     expect(presentation.pauseMenuLabels.pokedex, 'Carnet');
   });
@@ -120,6 +132,7 @@ void main() {
     expect(presentation.title.author, isEmpty);
     expect(presentation.title.background, isNull);
     expect(presentation.semanticTheme, isNull);
+    expect(presentation.windowProfile, isNull);
     expect(presentation.typography.displayFamily, isNull);
     expect(presentation.pauseMenuLabels.pauseTitle, isNull);
   });

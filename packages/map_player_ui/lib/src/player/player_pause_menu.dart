@@ -4,6 +4,7 @@ import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_window_theme.dart';
 import 'runtime_player_focus_controller.dart';
 
 enum PlayerPauseAction {
@@ -78,7 +79,8 @@ class PlayerPauseMenu extends StatelessWidget {
         .where((action) => _availability(context, action).isEnabled)
         .firstOrNull;
     return Material(
-      color: context.playerColors.scrim,
+      key: const ValueKey<String>('player-pause-backdrop'),
+      color: context.playerPauseBackdropColor,
       child: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {

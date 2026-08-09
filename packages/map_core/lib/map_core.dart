@@ -26,6 +26,7 @@ export 'src/models/map_visual_stack_config.dart';
 export 'src/models/project_manifest.dart';
 export 'src/models/project_tileset_source.dart';
 export 'src/models/project_presentation_profile.dart';
+export 'src/models/project_presentation_window_profile.dart';
 export 'src/models/shop_definition.dart';
 export 'src/models/shop_state_definition.dart';
 export 'src/models/badge_definition.dart';

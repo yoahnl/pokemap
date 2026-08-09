@@ -30,17 +30,19 @@ import 'project_semantic_theme_editor.dart';
 import 'project_menu_labels_editor.dart';
 import 'project_theme_token_dialog.dart';
 import 'project_typography_editor.dart';
+import 'project_window_studio.dart';
 
-typedef PersonalizationStudioExportLauncher = Future<void> Function(
-  BuildContext context, {
-  required String projectRootPath,
-  required String projectName,
-});
+typedef PersonalizationStudioExportLauncher =
+    Future<void> Function(
+      BuildContext context, {
+      required String projectRootPath,
+      required String projectName,
+    });
 
 final personalizationStudioExportLauncherProvider =
     Provider<PersonalizationStudioExportLauncher>((ref) {
-  return showTopToolbarGameExportDialog;
-});
+      return showTopToolbarGameExportDialog;
+    });
 
 /// Adapts the current editor project to the reusable Personalization Hub.
 ///
@@ -109,11 +111,9 @@ class _PersonalizationStudioWorkspaceState
       _preflightError = null;
     });
     try {
-      final result =
-          await ref.read(projectPresentationPreflightProvider).inspect(
-                projectRoot: Directory(projectRootPath),
-                profile: profile,
-              );
+      final result = await ref
+          .read(projectPresentationPreflightProvider)
+          .inspect(projectRoot: Directory(projectRootPath), profile: profile);
       if (!mounted || requestId != _preflightRequestId) return;
       setState(() {
         _preflightResult = result;
@@ -311,10 +311,12 @@ class _PersonalizationStudioWorkspaceState
   ProjectTitleMusicPreviewController _ensureTitleMusicPreviewController() {
     final current = _titleMusicPreviewController;
     if (current != null) return current;
-    final controller =
-        ref.read(projectTitleMusicPreviewControllerFactoryProvider)();
-    _titleMusicPreviewSubscription =
-        controller.playingChanges.listen((isPlaying) {
+    final controller = ref.read(
+      projectTitleMusicPreviewControllerFactoryProvider,
+    )();
+    _titleMusicPreviewSubscription = controller.playingChanges.listen((
+      isPlaying,
+    ) {
       if (!mounted || _isTitleMusicPreviewPlaying == isPlaying) return;
       setState(() => _isTitleMusicPreviewPlaying = isPlaying);
     });
@@ -342,7 +344,8 @@ class _PersonalizationStudioWorkspaceState
     final confirmed = await showPokeMapBinaryConfirmationDialog(
       context,
       title: 'Droit de redistribution',
-      message: 'Confirmez que la licence choisie autorise l’intégration et la '
+      message:
+          'Confirmez que la licence choisie autorise l’intégration et la '
           'redistribution de cette fonte avec le jeu exporté.',
       secondaryLabel: 'Annuler',
       primaryLabel: 'Je confirme',
@@ -368,22 +371,27 @@ class _PersonalizationStudioWorkspaceState
       }
       final typography = profile.typography ?? const ProjectTypographyProfile();
       final currentRole = _typographyRoleProfile(typography, role);
-      final imported =
-          await ref.read(projectFontImportServiceProvider).importIntoProject(
-                projectRoot: Directory(projectRootPath),
-                role: role,
-                fontFile: File(selection.fontPath),
-                licenseFile: File(selection.licensePath),
-                redistributionConfirmed: true,
-                fallbackFamilies: currentRole.fallbackFamilies,
-              );
-      final previewFamily =
-          await ref.read(projectFontPreviewLoaderProvider).load(
-                fontFile: File('$projectRootPath/${imported.fontPath}'),
-                role: role,
-              );
-      final updatedTypography =
-          _replaceTypographyRole(typography, role, imported);
+      final imported = await ref
+          .read(projectFontImportServiceProvider)
+          .importIntoProject(
+            projectRoot: Directory(projectRootPath),
+            role: role,
+            fontFile: File(selection.fontPath),
+            licenseFile: File(selection.licensePath),
+            redistributionConfirmed: true,
+            fallbackFamilies: currentRole.fallbackFamilies,
+          );
+      final previewFamily = await ref
+          .read(projectFontPreviewLoaderProvider)
+          .load(
+            fontFile: File('$projectRootPath/${imported.fontPath}'),
+            role: role,
+          );
+      final updatedTypography = _replaceTypographyRole(
+        typography,
+        role,
+        imported,
+      );
       final applied = await notifier.applyPersonalizationStudioProfile(
         profile.copyWith(typography: updatedTypography),
         label: 'Importer la fonte ${_typographyRoleName(role)}',
@@ -459,9 +467,7 @@ class _PersonalizationStudioWorkspaceState
       return;
     }
     await notifier.applyPersonalizationStudioProfile(
-      profile.copyWith(
-        branding: profile.branding.copyWith(accentColor: value),
-      ),
+      profile.copyWith(branding: profile.branding.copyWith(accentColor: value)),
       label: 'Modifier la couleur de cartouche et d’accent',
     );
   }
@@ -558,9 +564,7 @@ class _PersonalizationStudioWorkspaceState
       ],
       if (_assetFeedback != null) ...<Widget>[
         PokeMapDiagnosticCallout(
-          key: const ValueKey<String>(
-            'personalization-studio-asset-feedback',
-          ),
+          key: const ValueKey<String>('personalization-studio-asset-feedback'),
           severity: _assetFeedbackIsError
               ? PokeMapDiagnosticSeverity.error
               : PokeMapDiagnosticSeverity.info,
@@ -660,10 +664,7 @@ class _PersonalizationStudioWorkspaceState
                   ? null
                   : () {
                       unawaited(
-                        _removeTitleMusic(
-                          profile: profile,
-                          notifier: notifier,
-                        ),
+                        _removeTitleMusic(profile: profile, notifier: notifier),
                       );
                     },
               isTitleMusicPreviewPlaying: _isTitleMusicPreviewPlaying,
@@ -743,8 +744,11 @@ class _PersonalizationStudioWorkspaceState
                 unawaited(
                   notifier.applyPersonalizationStudioProfile(
                     profile.copyWith(
-                      typography:
-                          _replaceTypographyRole(typography, role, systemRole),
+                      typography: _replaceTypographyRole(
+                        typography,
+                        role,
+                        systemRole,
+                      ),
                     ),
                     label: 'Utiliser le fallback ${_typographyRoleName(role)}',
                   ),
@@ -764,13 +768,26 @@ class _PersonalizationStudioWorkspaceState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             ProjectMenuLabelsEditor(
-              profile: profile.menuLabels ??
-                  const ProjectMenuLabelsProfile(),
+              profile: profile.menuLabels ?? const ProjectMenuLabelsProfile(),
               onChanged: (menuLabels) {
                 unawaited(
                   notifier.applyPersonalizationStudioProfile(
                     profile.copyWith(menuLabels: menuLabels),
                     label: 'Modifier les libellés du menu Pause',
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            ProjectWindowStudio(
+              profile: profile.windows ?? legacyProjectPresentationWindows,
+              onChanged: (windows) {
+                unawaited(
+                  notifier.applyPersonalizationStudioProfile(
+                    profile.copyWith(windows: windows),
+                    label: windows == null
+                        ? 'Réinitialiser les fenêtres du jeu'
+                        : 'Modifier les fenêtres du jeu',
                   ),
                 );
               },
@@ -801,9 +818,7 @@ class _PersonalizationStudioWorkspaceState
         ),
       );
     }
-    return Text(
-      'Les réglages ${_categoryName(category)} apparaîtront ici.',
-    );
+    return Text('Les réglages ${_categoryName(category)} apparaîtront ici.');
   }
 
   @override
@@ -845,14 +860,16 @@ class _PersonalizationStudioWorkspaceState
     _ensureSession(projectRootPath);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final studioSession = notifier.personalizationStudioSessionState;
-    final canEdit = studioSession?.isInitialized == true &&
+    final canEdit =
+        studioSession?.isInitialized == true &&
         studioSession?.hasFailed == false &&
         studioSession?.isConflicted == false &&
         studioSession?.isSaving == false;
     final profile =
         studioSession?.draftProfile ?? project.effectivePresentation;
     final baselineProfile = studioSession?.savedProfile;
-    final isPreflightStale = _preflightResult != null &&
+    final isPreflightStale =
+        _preflightResult != null &&
         (_preflightProjectRootPath != projectRootPath ||
             _preflightProfile != profile);
     final activePreflightResult = isPreflightStale ? null : _preflightResult;
@@ -892,33 +909,25 @@ class _PersonalizationStudioWorkspaceState
                       variant: PokeMapBadgeVariant.success,
                     ),
                   PokeMapButton(
-                    key: const ValueKey<String>(
-                      'personalization-studio-undo',
-                    ),
+                    key: const ValueKey<String>('personalization-studio-undo'),
                     variant: PokeMapButtonVariant.ghost,
                     size: PokeMapButtonSize.compact,
                     leading: const Icon(Icons.undo_rounded),
                     onPressed: studioSession?.canUndo == true && canEdit
                         ? () {
-                            unawaited(
-                              notifier.undoPersonalizationStudio(),
-                            );
+                            unawaited(notifier.undoPersonalizationStudio());
                           }
                         : null,
                     child: const Text('Annuler'),
                   ),
                   PokeMapButton(
-                    key: const ValueKey<String>(
-                      'personalization-studio-redo',
-                    ),
+                    key: const ValueKey<String>('personalization-studio-redo'),
                     variant: PokeMapButtonVariant.ghost,
                     size: PokeMapButtonSize.compact,
                     leading: const Icon(Icons.redo_rounded),
                     onPressed: studioSession?.canRedo == true && canEdit
                         ? () {
-                            unawaited(
-                              notifier.redoPersonalizationStudio(),
-                            );
+                            unawaited(notifier.redoPersonalizationStudio());
                           }
                         : null,
                     child: const Text('Rétablir'),
@@ -941,9 +950,7 @@ class _PersonalizationStudioWorkspaceState
                     ),
                   ),
                   PokeMapButton(
-                    key: const ValueKey<String>(
-                      'personalization-studio-save',
-                    ),
+                    key: const ValueKey<String>('personalization-studio-save'),
                     size: PokeMapButtonSize.compact,
                     leading: const Icon(Icons.save_outlined),
                     isLoading: studioSession?.isSaving == true,
@@ -960,9 +967,7 @@ class _PersonalizationStudioWorkspaceState
           ),
           Expanded(
             child: PersonalizationHubShell(
-              key: const ValueKey<String>(
-                'personalization-studio-workspace',
-              ),
+              key: const ValueKey<String>('personalization-studio-workspace'),
               profile: profile,
               baselineProfile: baselineProfile,
               projectName: project.name,
@@ -989,13 +994,15 @@ class _PersonalizationStudioWorkspaceState
                       unawaited(notifier.savePersonalizationStudio());
                     }
                   : null,
-              canContinueToExport: activePreflightResult != null &&
+              canContinueToExport:
+                  activePreflightResult != null &&
                   activePreflightResult.report.isReadyToExport &&
                   studioSession?.isDirty != true &&
                   !_isPreflightRunning &&
                   _preflightError == null &&
                   canEdit,
-              onContinueToExport: activePreflightResult != null &&
+              onContinueToExport:
+                  activePreflightResult != null &&
                       activePreflightResult.report.isReadyToExport &&
                       studioSession?.isDirty != true &&
                       !_isPreflightRunning &&
@@ -1050,32 +1057,30 @@ String _categoryName(ProjectPresentationCategory category) =>
 ProjectTypographyRoleProfile _typographyRoleProfile(
   ProjectTypographyProfile profile,
   ProjectTypographyRole role,
-) =>
-    switch (role) {
-      ProjectTypographyRole.display => profile.display,
-      ProjectTypographyRole.body => profile.body,
-      ProjectTypographyRole.dialogue => profile.dialogue,
-      ProjectTypographyRole.numbers => profile.numbers,
-    };
+) => switch (role) {
+  ProjectTypographyRole.display => profile.display,
+  ProjectTypographyRole.body => profile.body,
+  ProjectTypographyRole.dialogue => profile.dialogue,
+  ProjectTypographyRole.numbers => profile.numbers,
+};
 
 ProjectTypographyProfile _replaceTypographyRole(
   ProjectTypographyProfile profile,
   ProjectTypographyRole role,
   ProjectTypographyRoleProfile replacement,
-) =>
-    switch (role) {
-      ProjectTypographyRole.display => profile.copyWith(display: replacement),
-      ProjectTypographyRole.body => profile.copyWith(body: replacement),
-      ProjectTypographyRole.dialogue => profile.copyWith(dialogue: replacement),
-      ProjectTypographyRole.numbers => profile.copyWith(numbers: replacement),
-    };
+) => switch (role) {
+  ProjectTypographyRole.display => profile.copyWith(display: replacement),
+  ProjectTypographyRole.body => profile.copyWith(body: replacement),
+  ProjectTypographyRole.dialogue => profile.copyWith(dialogue: replacement),
+  ProjectTypographyRole.numbers => profile.copyWith(numbers: replacement),
+};
 
 String _typographyRoleName(ProjectTypographyRole role) => switch (role) {
-      ProjectTypographyRole.display => 'Titres & affichage',
-      ProjectTypographyRole.body => 'Texte courant',
-      ProjectTypographyRole.dialogue => 'Dialogues',
-      ProjectTypographyRole.numbers => 'Nombres',
-    };
+  ProjectTypographyRole.display => 'Titres & affichage',
+  ProjectTypographyRole.body => 'Texte courant',
+  ProjectTypographyRole.dialogue => 'Dialogues',
+  ProjectTypographyRole.numbers => 'Nombres',
+};
 
 String _themeTokenValue(ProjectSemanticThemeProfile profile, String token) =>
     switch (token) {
@@ -1102,103 +1107,97 @@ ProjectSemanticThemeProfile _replaceThemeToken(
   ProjectSemanticThemeProfile profile,
   String token,
   String value,
-) =>
-    switch (token) {
-      'primary' => profile.copyWith(primary: value),
-      'onPrimary' => profile.copyWith(onPrimary: value),
-      'background' => profile.copyWith(background: value),
-      'surface' => profile.copyWith(surface: value),
-      'surfaceElevated' => profile.copyWith(surfaceElevated: value),
-      'textPrimary' => profile.copyWith(textPrimary: value),
-      'textSecondary' => profile.copyWith(textSecondary: value),
-      'outline' => profile.copyWith(outline: value),
-      'success' => profile.copyWith(success: value),
-      'warning' => profile.copyWith(warning: value),
-      'danger' => profile.copyWith(danger: value),
-      'titleSurface' => profile.copyWith(titleSurface: value),
-      'dialogueSurface' => profile.copyWith(dialogueSurface: value),
-      'menuSurface' => profile.copyWith(menuSurface: value),
-      'overworldHudSurface' => profile.copyWith(overworldHudSurface: value),
-      'battleHudSurface' => profile.copyWith(battleHudSurface: value),
-      _ => throw ArgumentError.value(token, 'token', 'Unknown theme token'),
-    };
+) => switch (token) {
+  'primary' => profile.copyWith(primary: value),
+  'onPrimary' => profile.copyWith(onPrimary: value),
+  'background' => profile.copyWith(background: value),
+  'surface' => profile.copyWith(surface: value),
+  'surfaceElevated' => profile.copyWith(surfaceElevated: value),
+  'textPrimary' => profile.copyWith(textPrimary: value),
+  'textSecondary' => profile.copyWith(textSecondary: value),
+  'outline' => profile.copyWith(outline: value),
+  'success' => profile.copyWith(success: value),
+  'warning' => profile.copyWith(warning: value),
+  'danger' => profile.copyWith(danger: value),
+  'titleSurface' => profile.copyWith(titleSurface: value),
+  'dialogueSurface' => profile.copyWith(dialogueSurface: value),
+  'menuSurface' => profile.copyWith(menuSurface: value),
+  'overworldHudSurface' => profile.copyWith(overworldHudSurface: value),
+  'battleHudSurface' => profile.copyWith(battleHudSurface: value),
+  _ => throw ArgumentError.value(token, 'token', 'Unknown theme token'),
+};
 
 String _themeTokenName(String token) => switch (token) {
-      'primary' => 'Action principale',
-      'onPrimary' => 'Texte sur action',
-      'background' => 'Fond global',
-      'surface' => 'Surface',
-      'surfaceElevated' => 'Surface élevée',
-      'textPrimary' => 'Texte principal',
-      'textSecondary' => 'Texte secondaire',
-      'outline' => 'Contours',
-      'success' => 'Succès',
-      'warning' => 'Avertissement',
-      'danger' => 'Danger',
-      'titleSurface' => 'Fond du titre',
-      'dialogueSurface' => 'Fond des dialogues',
-      'menuSurface' => 'Fond des menus',
-      'overworldHudSurface' => 'Fond du HUD exploration',
-      'battleHudSurface' => 'Fond du HUD combat',
-      _ => token,
-    };
+  'primary' => 'Action principale',
+  'onPrimary' => 'Texte sur action',
+  'background' => 'Fond global',
+  'surface' => 'Surface',
+  'surfaceElevated' => 'Surface élevée',
+  'textPrimary' => 'Texte principal',
+  'textSecondary' => 'Texte secondaire',
+  'outline' => 'Contours',
+  'success' => 'Succès',
+  'warning' => 'Avertissement',
+  'danger' => 'Danger',
+  'titleSurface' => 'Fond du titre',
+  'dialogueSurface' => 'Fond des dialogues',
+  'menuSurface' => 'Fond des menus',
+  'overworldHudSurface' => 'Fond du HUD exploration',
+  'battleHudSurface' => 'Fond du HUD combat',
+  _ => token,
+};
 
 ProjectBrandingProfile _replaceBrandingImagePath(
   ProjectBrandingProfile profile,
   ProjectBrandingImageRole role,
   String? path,
-) =>
-    switch (role) {
-      ProjectBrandingImageRole.icon => profile.copyWith(iconPath: path),
-      ProjectBrandingImageRole.cover => profile.copyWith(coverPath: path),
-      ProjectBrandingImageRole.hero => profile.copyWith(heroPath: path),
-    };
+) => switch (role) {
+  ProjectBrandingImageRole.icon => profile.copyWith(iconPath: path),
+  ProjectBrandingImageRole.cover => profile.copyWith(coverPath: path),
+  ProjectBrandingImageRole.hero => profile.copyWith(heroPath: path),
+};
 
 String _brandingImageRoleName(ProjectBrandingImageRole role) => switch (role) {
-      ProjectBrandingImageRole.icon => 'l’icône du jeu',
-      ProjectBrandingImageRole.cover => 'la cover de bibliothèque',
-      ProjectBrandingImageRole.hero => 'le logo / hero du titre',
-    };
+  ProjectBrandingImageRole.icon => 'l’icône du jeu',
+  ProjectBrandingImageRole.cover => 'la cover de bibliothèque',
+  ProjectBrandingImageRole.hero => 'le logo / hero du titre',
+};
 
 String _localizedBrandingImageImportError(
   ProjectBrandingImageImportException error,
-) =>
-    switch (error.code) {
-      'brandingImageMissing' => 'L’image sélectionnée est introuvable.',
-      'brandingImageFormatUnsupported' =>
-        'Choisissez une image PNG, JPEG ou WebP.',
-      'brandingImageCorrupt' =>
-        'L’image sélectionnée ne peut pas être décodée.',
-      'brandingImageSizeExceeded' => 'L’image dépasse la limite de 10 Mio.',
-      'brandingImageDimensionsExceeded' =>
-        'L’image dépasse 4096 pixels sur au moins un côté.',
-      'brandingIconMustBeSquare' => 'L’icône du jeu doit être carrée.',
-      'brandingIconDimensionsUnsupported' =>
-        'L’icône doit mesurer entre 64 × 64 et 1024 × 1024 pixels.',
-      'brandingCoverDimensionsUnsupported' =>
-        'La cover doit mesurer au minimum 640 × 360 pixels.',
-      'brandingHeroDimensionsUnsupported' =>
-        'Le logo / hero doit mesurer au minimum 256 × 128 pixels.',
-      'brandingImageWriteFailed' =>
-        'L’image validée n’a pas pu être copiée dans le projet.',
-      _ => error.message,
-    };
+) => switch (error.code) {
+  'brandingImageMissing' => 'L’image sélectionnée est introuvable.',
+  'brandingImageFormatUnsupported' => 'Choisissez une image PNG, JPEG ou WebP.',
+  'brandingImageCorrupt' => 'L’image sélectionnée ne peut pas être décodée.',
+  'brandingImageSizeExceeded' => 'L’image dépasse la limite de 10 Mio.',
+  'brandingImageDimensionsExceeded' =>
+    'L’image dépasse 4096 pixels sur au moins un côté.',
+  'brandingIconMustBeSquare' => 'L’icône du jeu doit être carrée.',
+  'brandingIconDimensionsUnsupported' =>
+    'L’icône doit mesurer entre 64 × 64 et 1024 × 1024 pixels.',
+  'brandingCoverDimensionsUnsupported' =>
+    'La cover doit mesurer au minimum 640 × 360 pixels.',
+  'brandingHeroDimensionsUnsupported' =>
+    'Le logo / hero doit mesurer au minimum 256 × 128 pixels.',
+  'brandingImageWriteFailed' =>
+    'L’image validée n’a pas pu être copiée dans le projet.',
+  _ => error.message,
+};
 
 String _localizedTitleMusicImportError(
   ProjectTitleMusicImportException error,
-) =>
-    switch (error.code) {
-      'titleMusicMissing' => 'La musique sélectionnée est introuvable.',
-      'titleMusicFormatUnsupported' =>
-        'Choisissez un fichier OGG, WAV, MP3, FLAC ou M4A.',
-      'titleMusicSignatureInvalid' =>
-        'La signature audio ne correspond pas à l’extension du fichier.',
-      'titleMusicSizeExceeded' =>
-        'La musique du titre dépasse la limite de 30 Mio.',
-      'titleMusicWriteFailed' =>
-        'La musique validée n’a pas pu être copiée dans le projet.',
-      _ => error.message,
-    };
+) => switch (error.code) {
+  'titleMusicMissing' => 'La musique sélectionnée est introuvable.',
+  'titleMusicFormatUnsupported' =>
+    'Choisissez un fichier OGG, WAV, MP3, FLAC ou M4A.',
+  'titleMusicSignatureInvalid' =>
+    'La signature audio ne correspond pas à l’extension du fichier.',
+  'titleMusicSizeExceeded' =>
+    'La musique du titre dépasse la limite de 30 Mio.',
+  'titleMusicWriteFailed' =>
+    'La musique validée n’a pas pu être copiée dans le projet.',
+  _ => error.message,
+};
 
 String _localizedIntroImportError(ProjectIntroVideoImportException error) =>
     switch (error.code) {

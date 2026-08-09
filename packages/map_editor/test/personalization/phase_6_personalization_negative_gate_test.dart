@@ -91,6 +91,25 @@ void main() {
         PersonalizationCorrectionKind.useSafeTheme,
       );
     });
+
+    test('blocks an out-of-range authored window', () async {
+      final broken = legacyProjectPresentationWindows.copyWith(
+        styles: legacyProjectPresentationWindows.styles
+            .map(
+              (style) => style.id == 'pause-menu'
+                  ? style.copyWith(cornerRadius: 33)
+                  : style,
+            )
+            .toList(growable: false),
+      );
+
+      final result = await _inspect(
+        root,
+        ProjectPresentationProfile(windows: broken),
+      );
+
+      _expectBlockedBy(result, 'windowCornerRadiusOutOfRange');
+    });
   });
 }
 

@@ -292,6 +292,11 @@ _ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
       : ProjectMenuLabelsProfile.fromJson(
           json['menuLabels'] as Map<String, dynamic>,
         ),
+  windows: json['windows'] == null
+      ? null
+      : ProjectPresentationWindowsProfile.fromJson(
+          json['windows'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectPresentationProfileToJson(
@@ -304,4 +309,5 @@ Map<String, dynamic> _$ProjectPresentationProfileToJson(
   'typography': ?instance.typography?.toJson(),
   'theme': ?instance.theme?.toJson(),
   'menuLabels': ?instance.menuLabels?.toJson(),
+  'windows': ?instance.windows?.toJson(),
 };

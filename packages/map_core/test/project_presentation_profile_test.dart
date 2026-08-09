@@ -15,14 +15,14 @@ void main() {
 
       final profile = ProjectPresentationProfile.fromJson(source);
 
-      expect(profile.schemaVersion, 2);
+      expect(profile.schemaVersion, 3);
       expect(profile.intro!.media.landscape.videoPath,
           'assets/presentation/intro/landscape.mp4');
       expect(profile.intro!.media.landscape.focalX, 0.5);
       expect(profile.intro!.media.portrait, isNull);
       expect(profile.titleMotion, isNull);
       final encoded = profile.toJson();
-      expect(encoded['schemaVersion'], 2);
+      expect(encoded['schemaVersion'], 3);
       expect((encoded['intro']! as Map<String, dynamic>), contains('media'));
       expect((encoded['intro']! as Map<String, dynamic>),
           isNot(contains('videoPath')));

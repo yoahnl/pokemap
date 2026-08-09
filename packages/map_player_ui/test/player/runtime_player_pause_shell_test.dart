@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -221,6 +222,35 @@ void main() {
     expect(find.text('Carnet'), findsNWidgets(2));
     expect(find.text('Pokédex'), findsNothing);
   });
+
+  testWidgets('installed runtime shell consumes authored window styling',
+      (tester) async {
+    await _setSurface(tester, const Size(1280, 800));
+    final windows = legacyProjectPresentationWindows.copyWith(
+      pauseBackdropOpacity: .82,
+    );
+
+    await tester.pumpWidget(_app(
+      RuntimePlayerPauseShell(
+        gameTitle: 'Aube',
+        pauseSection: RuntimePlayerPauseSection.root,
+        actions: _actions(),
+        onSelected: (_) {},
+        onBackToRoot: () {},
+        detail: const SizedBox.shrink(),
+      ),
+      theme: PokeMapPlayerTheme.withWindowProfile(
+        PokeMapPlayerTheme.dark(),
+        windows,
+      ),
+    ));
+
+    final backdrop = tester.widget<Material>(
+      find.byKey(const ValueKey<String>('runtime-pause-backdrop')),
+    );
+    expect(backdrop.color?.a, closeTo(.82, .01));
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Map<PlayerPauseAction, PlayerActionAvailability> _actions() =>
@@ -238,12 +268,13 @@ Future<void> _setSurface(WidgetTester tester, Size size) async {
 Widget _app(
   Widget child, {
   TextScaler textScaler = TextScaler.noScaling,
+  ThemeData? theme,
 }) =>
     MaterialApp(
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.dark(),
+      theme: theme ?? PokeMapPlayerTheme.dark(),
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(context).copyWith(textScaler: textScaler),
         child: child!,

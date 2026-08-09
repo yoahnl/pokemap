@@ -471,7 +471,8 @@ String _categoryDescription(ProjectPresentationCategory category) =>
       ProjectPresentationCategory.branding => 'Logo, visuels et titre',
       ProjectPresentationCategory.intro => 'Vidéo, poster et accessibilité',
       ProjectPresentationCategory.typography => 'Polices et rôles de texte',
-      ProjectPresentationCategory.theme => 'Libellés, couleurs et HUD',
+      ProjectPresentationCategory.theme =>
+        'Libellés, fenêtres, couleurs et HUD',
     };
 
 String _emptyCategoryMessage(ProjectPresentationCategory category) =>

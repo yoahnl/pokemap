@@ -54,82 +54,82 @@ void main() {
 Widget _surface(_Surface surface, ProjectPresentationProfile profile) =>
     switch (surface) {
       _Surface.intro => PlayerIntroVideoSurface(
-        media: const ColoredBox(
-          color: Color(0xffd9f4f6),
-          child: Center(child: Icon(Icons.train_rounded, size: 96)),
+          media: const ColoredBox(
+            color: Color(0xffd9f4f6),
+            child: Center(child: Icon(Icons.train_rounded, size: 96)),
+          ),
+          isPoster: true,
+          caption: 'Le train entre en gare de Hanazuki.',
+          onSkip: () {},
+          onReplay: () {},
+          onContinue: () {},
         ),
-        isPoster: true,
-        caption: 'Le train entre en gare de Hanazuki.',
-        onSkip: () {},
-        onReplay: () {},
-        onContinue: () {},
-      ),
       _Surface.title => PlayerTitleScreen(
-        data: PlayerTitleViewData(
+          data: PlayerTitleViewData(
+            gameTitle: 'Le train de 17h42',
+            author: 'POKÉMAP',
+            description: 'Une aventure ferroviaire à travers Hanazuki.',
+            accentColor: PokeMapPlayerProjectColorResolver.tryHex(
+              profile.branding.accentColor,
+            ),
+            layoutVariant: PlayerTitleLayoutVariant.fromManifest(
+              profile.branding.layoutVariant,
+            ),
+            actions: {
+              for (final action in PlayerTitleMenuAction.values)
+                action: PlayerActionAvailability.enabled,
+            },
+          ),
+          onSelected: (_) {},
+        ),
+      _Surface.dialogue => PlayerDialogueOverlay(
+          snapshot: _dialogueSnapshot,
+          onCommand: (_) {},
+        ),
+      _Surface.menu => PlayerPauseMenu(
           gameTitle: 'Le train de 17h42',
-          author: 'POKÉMAP',
-          description: 'Une aventure ferroviaire à travers Hanazuki.',
-          accentColor: PokeMapPlayerProjectColorResolver.tryHex(
-            profile.branding.accentColor,
-          ),
-          layoutVariant: PlayerTitleLayoutVariant.fromManifest(
-            profile.branding.layoutVariant,
-          ),
+          labels: _pauseLabels(profile.menuLabels),
           actions: {
-            for (final action in PlayerTitleMenuAction.values)
+            for (final action in PlayerPauseAction.values)
               action: PlayerActionAvailability.enabled,
           },
+          onSelected: (_) {},
         ),
-        onSelected: (_) {},
-      ),
-      _Surface.dialogue => PlayerDialogueOverlay(
-        snapshot: _dialogueSnapshot,
-        onCommand: (_) {},
-      ),
-      _Surface.menu => PlayerPauseMenu(
-        gameTitle: 'Le train de 17h42',
-        labels: _pauseLabels(profile.menuLabels),
-        actions: {
-          for (final action in PlayerPauseAction.values)
-            action: PlayerActionAvailability.enabled,
-        },
-        onSelected: (_) {},
-      ),
       _Surface.overworldHud => Scaffold(
-        body: Stack(
-          children: <Widget>[
-            const ColoredBox(
-              color: Color(0xffd9f4f6),
-              child: Center(child: Icon(Icons.map_rounded, size: 160)),
-            ),
-            SafeArea(
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(PlayerSpacing.md),
-                  child: PlayerPanel(
-                    role: PlayerPanelRole.overworldHud,
-                    elevated: true,
-                    child: const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        Text('Route des Brumes'),
-                        SizedBox(height: PlayerSpacing.xs),
-                        Text('Rejoins le quai avant 17h42.'),
-                      ],
+          body: Stack(
+            children: <Widget>[
+              const ColoredBox(
+                color: Color(0xffd9f4f6),
+                child: Center(child: Icon(Icons.map_rounded, size: 160)),
+              ),
+              SafeArea(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(PlayerSpacing.md),
+                    child: PlayerPanel(
+                      role: PlayerPanelRole.overworldHud,
+                      elevated: true,
+                      child: const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Text('Route des Brumes'),
+                          SizedBox(height: PlayerSpacing.xs),
+                          Text('Rejoins le quai avant 17h42.'),
+                        ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       _Surface.battleHud => PlayerBattleOverlay(
-        snapshot: _battleSnapshot(),
-        onCommand: (_) {},
-      ),
+          snapshot: _battleSnapshot(),
+          onCommand: (_) {},
+        ),
     };
 
 const _dialogueSnapshot = DialoguePresentationSnapshot(
@@ -145,40 +145,40 @@ const _dialogueSnapshot = DialoguePresentationSnapshot(
 );
 
 BattleCommandOverlaySnapshot _battleSnapshot() => BattleCommandOverlaySnapshot(
-  revision: 1,
-  phase: BattlePresentationPhase.choosingCommand,
-  forcedReplacement: false,
-  mode: BattleCommandOverlayMode.fight,
-  panelRect: const Rect.fromLTWH(12, 300, 366, 270),
-  enemyHud: _hud('ENNEMI', 'ROUCARNAGE', 23, 80, false),
-  playerHud: _hud('JOUEUR', 'BRINDIBOU', 42, 55, true),
-  battleLabel: 'COMBAT SAUVAGE',
-  title: 'CAPACITÉS',
-  prompt: 'Choisissez une capacité.',
-  narrationLines: const <String>[],
-  entries: const <BattleCommandOverlayEntry>[
-    BattleCommandOverlayEntry(
-      index: 0,
-      kind: BattleCommandOverlayEntryKind.move,
-      primaryLabel: 'Feuillage',
-      secondaryLabel: 'PLANTE · PP 12/15',
-      enabled: true,
-      selected: true,
-      tone: BattleCommandOverlayEntryTone.special,
-    ),
-    BattleCommandOverlayEntry(
-      index: 1,
-      kind: BattleCommandOverlayEntryKind.move,
-      primaryLabel: 'Picpic',
-      secondaryLabel: 'VOL · PP 20/20',
-      enabled: true,
-      selected: false,
-      tone: BattleCommandOverlayEntryTone.neutral,
-    ),
-  ],
-  interactionsEnabled: true,
-  canGoBack: true,
-);
+      revision: 1,
+      phase: BattlePresentationPhase.choosingCommand,
+      forcedReplacement: false,
+      mode: BattleCommandOverlayMode.fight,
+      panelRect: const Rect.fromLTWH(12, 300, 366, 270),
+      enemyHud: _hud('ENNEMI', 'ROUCARNAGE', 23, 80, false),
+      playerHud: _hud('JOUEUR', 'BRINDIBOU', 42, 55, true),
+      battleLabel: 'COMBAT SAUVAGE',
+      title: 'CAPACITÉS',
+      prompt: 'Choisissez une capacité.',
+      narrationLines: const <String>[],
+      entries: const <BattleCommandOverlayEntry>[
+        BattleCommandOverlayEntry(
+          index: 0,
+          kind: BattleCommandOverlayEntryKind.move,
+          primaryLabel: 'Feuillage',
+          secondaryLabel: 'PLANTE · PP 12/15',
+          enabled: true,
+          selected: true,
+          tone: BattleCommandOverlayEntryTone.special,
+        ),
+        BattleCommandOverlayEntry(
+          index: 1,
+          kind: BattleCommandOverlayEntryKind.move,
+          primaryLabel: 'Picpic',
+          secondaryLabel: 'VOL · PP 20/20',
+          enabled: true,
+          selected: false,
+          tone: BattleCommandOverlayEntryTone.neutral,
+        ),
+      ],
+      interactionsEnabled: true,
+      canGoBack: true,
+    );
 
 BattleCommandOverlayHudSnapshot _hud(
   String owner,
@@ -186,15 +186,16 @@ BattleCommandOverlayHudSnapshot _hud(
   int hp,
   int maxHp,
   bool player,
-) => BattleCommandOverlayHudSnapshot(
-  rect: const Rect.fromLTWH(12, 12, 160, 64),
-  ownerLabel: owner,
-  speciesLabel: species,
-  level: 18,
-  currentHp: hp,
-  maxHp: maxHp,
-  isPlayerSide: player,
-);
+) =>
+    BattleCommandOverlayHudSnapshot(
+      rect: const Rect.fromLTWH(12, 12, 160, 64),
+      ownerLabel: owner,
+      speciesLabel: species,
+      level: 18,
+      currentHp: hp,
+      maxHp: maxHp,
+      isPlayerSide: player,
+    );
 
 PlayerPauseMenuLabels _pauseLabels(ProjectMenuLabelsProfile? labels) =>
     PlayerPauseMenuLabels(
@@ -248,6 +249,9 @@ ThemeData _playerTheme(ProjectPresentationProfile profile) {
         battleHudSurface: semantic.battleHudSurface,
       )!,
     );
+  }
+  if (profile.windows case final windows?) {
+    theme = PokeMapPlayerTheme.withWindowProfile(theme, windows);
   }
   return theme;
 }

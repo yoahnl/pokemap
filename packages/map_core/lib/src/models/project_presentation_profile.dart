@@ -4,26 +4,21 @@ import 'dart:math' as math;
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import 'project_presentation_window_profile.dart';
+
 part 'project_presentation_profile.freezed.dart';
 part 'project_presentation_profile.g.dart';
 
 /// Stable sections exposed by the no-code Personalization Hub.
-enum ProjectPresentationCategory {
-  branding,
-  intro,
-  typography,
-  theme,
-}
+enum ProjectPresentationCategory { branding, intro, typography, theme }
 
-enum ProjectPresentationDiagnosticSeverity {
-  warning,
-  error,
-}
+enum ProjectPresentationDiagnosticSeverity { warning, error }
 
 enum ProjectTypographyRole { display, body, dialogue, numbers }
 
 @freezed
-abstract class ProjectPresentationDiagnostic with _$ProjectPresentationDiagnostic {
+abstract class ProjectPresentationDiagnostic
+    with _$ProjectPresentationDiagnostic {
   const factory ProjectPresentationDiagnostic({
     required String code,
     required ProjectPresentationCategory category,
@@ -72,7 +67,8 @@ abstract class ProjectVideoVariantProfile with _$ProjectVideoVariantProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-abstract class ProjectResponsiveVideoProfile with _$ProjectResponsiveVideoProfile {
+abstract class ProjectResponsiveVideoProfile
+    with _$ProjectResponsiveVideoProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectResponsiveVideoProfile({
     required ProjectVideoVariantProfile landscape,
@@ -114,27 +110,26 @@ abstract class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
     double focalY = 0.5,
     String reducedMotionBehavior = 'poster',
     bool allowReplay = true,
-  }) =>
-      ProjectIntroVideoProfile(
-        media: ProjectResponsiveVideoProfile(
-          landscape: ProjectVideoVariantProfile(
-            videoPath: videoPath,
-            posterPath: posterPath ?? '',
-            captionsPath: captionsPath,
-            durationMilliseconds: durationMilliseconds,
-            width: width,
-            height: height,
-            bitrateKbps: bitrateKbps,
-            sizeBytes: sizeBytes,
-            videoCodec: videoCodec,
-            audioCodec: audioCodec,
-            focalX: focalX,
-            focalY: focalY,
-          ),
-        ),
-        reducedMotionBehavior: reducedMotionBehavior,
-        allowReplay: allowReplay,
-      );
+  }) => ProjectIntroVideoProfile(
+    media: ProjectResponsiveVideoProfile(
+      landscape: ProjectVideoVariantProfile(
+        videoPath: videoPath,
+        posterPath: posterPath ?? '',
+        captionsPath: captionsPath,
+        durationMilliseconds: durationMilliseconds,
+        width: width,
+        height: height,
+        bitrateKbps: bitrateKbps,
+        sizeBytes: sizeBytes,
+        videoCodec: videoCodec,
+        audioCodec: audioCodec,
+        focalX: focalX,
+        focalY: focalY,
+      ),
+    ),
+    reducedMotionBehavior: reducedMotionBehavior,
+    allowReplay: allowReplay,
+  );
 
   /// Landscape compatibility projection for pre-V2 consumers.
   ProjectVideoVariantProfile get landscape => media.landscape;
@@ -163,7 +158,8 @@ abstract class ProjectTitleMotionProfile with _$ProjectTitleMotionProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-abstract class ProjectTypographyRoleProfile with _$ProjectTypographyRoleProfile {
+abstract class ProjectTypographyRoleProfile
+    with _$ProjectTypographyRoleProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ProjectTypographyRoleProfile({
     @JsonKey(includeIfNull: false) String? fontPath,
@@ -254,6 +250,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
     @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
     @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,
     @JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,
+    @JsonKey(includeIfNull: false) ProjectPresentationWindowsProfile? windows,
   }) = _ProjectPresentationProfile;
 
   factory ProjectPresentationProfile.fromJson(Map<String, dynamic> json) =>
@@ -261,7 +258,10 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
         _migrateProjectPresentationProfileJson(json),
       );
 
-  static const int supportedSchemaVersion = 2;
+  static const int supportedSchemaVersion = 3;
+
+  ProjectPresentationWindowsProfile get effectiveWindows =>
+      windows ?? legacyProjectPresentationWindows;
 
   Set<ProjectPresentationCategory> get configuredCategories =>
       <ProjectPresentationCategory>{
@@ -269,7 +269,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
           ProjectPresentationCategory.branding,
         if (intro != null) ProjectPresentationCategory.intro,
         if (typography != null) ProjectPresentationCategory.typography,
-        if (theme != null || menuLabels != null)
+        if (theme != null || menuLabels != null || windows != null)
           ProjectPresentationCategory.theme,
       };
 }
@@ -304,23 +304,23 @@ const int projectMenuLabelMaxLength = 32;
 
 const ProjectSemanticThemeProfile safeProjectSemanticTheme =
     ProjectSemanticThemeProfile(
-  primary: '#003A44',
-  onPrimary: '#FFFFFF',
-  background: '#F4F7FB',
-  surface: '#FFFFFF',
-  surfaceElevated: '#EAF0F8',
-  textPrimary: '#101827',
-  textSecondary: '#526176',
-  outline: '#65758B',
-  success: '#16794B',
-  warning: '#8A5100',
-  danger: '#B4233C',
-  titleSurface: '#D9F4F6',
-  dialogueSurface: '#FFFFFF',
-  menuSurface: '#EAF0F8',
-  overworldHudSurface: '#FFFFFF',
-  battleHudSurface: '#FFFFFF',
-);
+      primary: '#003A44',
+      onPrimary: '#FFFFFF',
+      background: '#F4F7FB',
+      surface: '#FFFFFF',
+      surfaceElevated: '#EAF0F8',
+      textPrimary: '#101827',
+      textSecondary: '#526176',
+      outline: '#65758B',
+      success: '#16794B',
+      warning: '#8A5100',
+      danger: '#B4233C',
+      titleSurface: '#D9F4F6',
+      dialogueSurface: '#FFFFFF',
+      menuSurface: '#EAF0F8',
+      overworldHudSurface: '#FFFFFF',
+      battleHudSurface: '#FFFFFF',
+    );
 
 List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
   ProjectPresentationProfile profile,
@@ -393,7 +393,186 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
     diagnostics.addAll(validateProjectSemanticTheme(theme));
   }
   _validateMenuLabels(profile.menuLabels, diagnostics);
+  _validateWindows(
+    profile.windows,
+    profile.theme ?? safeProjectSemanticTheme,
+    diagnostics,
+  );
   return List<ProjectPresentationDiagnostic>.unmodifiable(diagnostics);
+}
+
+void _validateWindows(
+  ProjectPresentationWindowsProfile? windows,
+  ProjectSemanticThemeProfile theme,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (windows == null) return;
+  final ids = <String>{};
+  if (windows.styles.isEmpty || windows.styles.length > 16) {
+    _presentationError(
+      diagnostics,
+      'windowStyleCountOutOfRange',
+      ProjectPresentationCategory.theme,
+      r'$.presentation.windows.styles',
+      'Configure between one and sixteen window styles.',
+    );
+  }
+  for (var index = 0; index < windows.styles.length; index++) {
+    final style = windows.styles[index];
+    final path = '\$.presentation.windows.styles[$index]';
+    if (!RegExp(r'^[a-z][a-z0-9-]{0,31}$').hasMatch(style.id)) {
+      _presentationError(
+        diagnostics,
+        'windowStyleIdInvalid',
+        ProjectPresentationCategory.theme,
+        '$path.id',
+        'Window style identifiers must use lowercase letters and dashes.',
+      );
+    }
+    if (!ids.add(style.id)) {
+      _presentationError(
+        diagnostics,
+        'windowStyleIdDuplicate',
+        ProjectPresentationCategory.theme,
+        '$path.id',
+        'Window style identifiers must be unique.',
+      );
+    }
+    if (!supportedProjectWindowFillTokens.contains(style.fillToken)) {
+      _presentationError(
+        diagnostics,
+        'windowFillTokenUnsupported',
+        ProjectPresentationCategory.theme,
+        '$path.fillToken',
+        'Choose a semantic surface token.',
+      );
+    }
+    if (!supportedProjectWindowBorderTokens.contains(style.borderToken)) {
+      _presentationError(
+        diagnostics,
+        'windowBorderTokenUnsupported',
+        ProjectPresentationCategory.theme,
+        '$path.borderToken',
+        'Choose a semantic border token.',
+      );
+    }
+    if (style.borderWidth > 0 &&
+        supportedProjectWindowFillTokens.contains(style.fillToken) &&
+        supportedProjectWindowBorderTokens.contains(style.borderToken)) {
+      final fill = _parseOpaqueProjectColor(
+        _projectThemeToken(theme, style.fillToken),
+      );
+      final border = _parseOpaqueProjectColor(
+        _projectThemeToken(theme, style.borderToken),
+      );
+      if (fill != null &&
+          border != null &&
+          _contrastRatio(border, fill) < projectSemanticNonTextContrastRatio) {
+        _presentationError(
+          diagnostics,
+          'windowContrastInsufficient',
+          ProjectPresentationCategory.theme,
+          '$path.borderToken',
+          'Window borders must remain distinct from their surface.',
+        );
+      }
+    }
+    _validateWindowRange(
+      diagnostics,
+      value: style.borderWidth,
+      minimum: projectWindowMinBorderWidth,
+      maximum: projectWindowMaxBorderWidth,
+      code: 'windowBorderWidthOutOfRange',
+      path: '$path.borderWidth',
+      message: 'Border width is outside the supported range.',
+    );
+    _validateWindowRange(
+      diagnostics,
+      value: style.cornerRadius,
+      minimum: projectWindowMinCornerRadius,
+      maximum: projectWindowMaxCornerRadius,
+      code: 'windowCornerRadiusOutOfRange',
+      path: '$path.cornerRadius',
+      message: 'Corner radius is outside the supported range.',
+    );
+    _validateWindowRange(
+      diagnostics,
+      value: style.contentPadding,
+      minimum: projectWindowMinContentPadding,
+      maximum: projectWindowMaxContentPadding,
+      code: 'windowContentPaddingOutOfRange',
+      path: '$path.contentPadding',
+      message: 'Content padding is outside the supported range.',
+    );
+    _validateWindowRange(
+      diagnostics,
+      value: style.shadowElevation,
+      minimum: projectWindowMinShadowElevation,
+      maximum: projectWindowMaxShadowElevation,
+      code: 'windowShadowElevationOutOfRange',
+      path: '$path.shadowElevation',
+      message: 'Shadow elevation is outside the supported range.',
+    );
+  }
+  _validateWindowRange(
+    diagnostics,
+    value: windows.pauseBackdropOpacity,
+    minimum: projectWindowMinBackdropOpacity,
+    maximum: projectWindowMaxBackdropOpacity,
+    code: 'windowBackdropOpacityOutOfRange',
+    path: r'$.presentation.windows.pauseBackdropOpacity',
+    message: 'Pause backdrop opacity is outside the supported range.',
+  );
+  for (final reference in <({String field, String id})>[
+    (field: 'defaultStyleId', id: windows.defaultStyleId),
+    (field: 'pauseMenuStyleId', id: windows.pauseMenuStyleId),
+    (field: 'dialogueStyleId', id: windows.dialogueStyleId),
+  ]) {
+    if (ids.contains(reference.id)) continue;
+    _presentationError(
+      diagnostics,
+      'windowStyleReferenceMissing',
+      ProjectPresentationCategory.theme,
+      '\$.presentation.windows.${reference.field}',
+      'Choose a window style that exists in this profile.',
+    );
+  }
+}
+
+String _projectThemeToken(ProjectSemanticThemeProfile theme, String token) =>
+    switch (token) {
+      'surface' => theme.surface,
+      'surfaceElevated' => theme.surfaceElevated,
+      'titleSurface' => theme.titleSurface,
+      'dialogueSurface' => theme.dialogueSurface,
+      'menuSurface' => theme.menuSurface,
+      'overworldHudSurface' => theme.overworldHudSurface,
+      'battleHudSurface' => theme.battleHudSurface,
+      'outline' => theme.outline,
+      'primary' => theme.primary,
+      'success' => theme.success,
+      'warning' => theme.warning,
+      'danger' => theme.danger,
+      _ => throw ArgumentError.value(token, 'token'),
+    };
+
+void _validateWindowRange(
+  List<ProjectPresentationDiagnostic> diagnostics, {
+  required num value,
+  required num minimum,
+  required num maximum,
+  required String code,
+  required String path,
+  required String message,
+}) {
+  if (value.isFinite && value >= minimum && value <= maximum) return;
+  _presentationError(
+    diagnostics,
+    code,
+    ProjectPresentationCategory.theme,
+    path,
+    message,
+  );
 }
 
 void _validateMenuLabels(
@@ -487,53 +666,50 @@ List<ProjectPresentationDiagnostic> validateProjectSemanticTheme(
     }
   }
 
-  final contrastPairs = <({
-    String foreground,
-    String background,
-    double minimum,
-  })>[
-    (
-      foreground: 'onPrimary',
-      background: 'primary',
-      minimum: projectSemanticTextContrastRatio,
-    ),
-    for (final background in <String>[
-      'background',
-      'surface',
-      'surfaceElevated',
-      'titleSurface',
-      'dialogueSurface',
-      'menuSurface',
-      'overworldHudSurface',
-      'battleHudSurface',
-    ])
-      (
-        foreground: 'textPrimary',
-        background: background,
-        minimum: projectSemanticTextContrastRatio,
-      ),
-    for (final background in <String>[
-      'background',
-      'surface',
-      'surfaceElevated',
-    ])
-      (
-        foreground: 'textSecondary',
-        background: background,
-        minimum: projectSemanticTextContrastRatio,
-      ),
-    for (final foreground in <String>[
-      'outline',
-      'success',
-      'warning',
-      'danger',
-    ])
-      (
-        foreground: foreground,
-        background: 'surface',
-        minimum: projectSemanticNonTextContrastRatio,
-      ),
-  ];
+  final contrastPairs =
+      <({String foreground, String background, double minimum})>[
+        (
+          foreground: 'onPrimary',
+          background: 'primary',
+          minimum: projectSemanticTextContrastRatio,
+        ),
+        for (final background in <String>[
+          'background',
+          'surface',
+          'surfaceElevated',
+          'titleSurface',
+          'dialogueSurface',
+          'menuSurface',
+          'overworldHudSurface',
+          'battleHudSurface',
+        ])
+          (
+            foreground: 'textPrimary',
+            background: background,
+            minimum: projectSemanticTextContrastRatio,
+          ),
+        for (final background in <String>[
+          'background',
+          'surface',
+          'surfaceElevated',
+        ])
+          (
+            foreground: 'textSecondary',
+            background: background,
+            minimum: projectSemanticTextContrastRatio,
+          ),
+        for (final foreground in <String>[
+          'outline',
+          'success',
+          'warning',
+          'danger',
+        ])
+          (
+            foreground: foreground,
+            background: 'surface',
+            minimum: projectSemanticNonTextContrastRatio,
+          ),
+      ];
   for (final pair in contrastPairs) {
     final foreground = parsed[pair.foreground];
     final background = parsed[pair.background];
@@ -621,7 +797,8 @@ void _validateIntroVideo(
           code: 'introCaptionsRecommended',
           category: ProjectPresentationCategory.intro,
           severity: ProjectPresentationDiagnosticSeverity.warning,
-          path: r'$.presentation.intro.media.' +
+          path:
+              r'$.presentation.intro.media.' +
               entry.orientation +
               '.captionsPath',
           message: 'Add WebVTT captions for spoken or meaningful audio.',
@@ -649,10 +826,7 @@ void _validateTitleMotion(
   List<ProjectPresentationDiagnostic> diagnostics,
 ) {
   if (motion == null) return;
-  for (final loop in <({
-    String name,
-    ProjectResponsiveVideoProfile? media,
-  })>[
+  for (final loop in <({String name, ProjectResponsiveVideoProfile? media})>[
     (name: 'promptLoop', media: motion.promptLoop),
     (name: 'menuLoop', media: motion.menuLoop),
   ]) {
@@ -661,7 +835,8 @@ void _validateTitleMotion(
     for (final entry in _responsiveVariants(media)) {
       _validateVideoVariant(
         entry.variant,
-        path: r'$.presentation.titleMotion.' +
+        path:
+            r'$.presentation.titleMotion.' +
             loop.name +
             '.${entry.orientation}',
         category: ProjectPresentationCategory.branding,
@@ -675,10 +850,9 @@ void _validateTitleMotion(
       );
     }
   }
-  final combinedSize = _titleMotionVariants(motion).fold<int>(
-    0,
-    (sum, variant) => sum + variant.sizeBytes,
-  );
+  final combinedSize = _titleMotionVariants(
+    motion,
+  ).fold<int>(0, (sum, variant) => sum + variant.sizeBytes);
   if (combinedSize > projectTitleMotionMaxSizeBytes) {
     _presentationError(
       diagnostics,
@@ -696,16 +870,14 @@ void _validateCombinedPresentationMediaBudget(
 ) {
   final introBytes = profile.intro == null
       ? 0
-      : _responsiveVariants(profile.intro!.media).fold<int>(
-          0,
-          (sum, entry) => sum + entry.variant.sizeBytes,
-        );
+      : _responsiveVariants(
+          profile.intro!.media,
+        ).fold<int>(0, (sum, entry) => sum + entry.variant.sizeBytes);
   final titleBytes = profile.titleMotion == null
       ? 0
-      : _titleMotionVariants(profile.titleMotion!).fold<int>(
-          0,
-          (sum, variant) => sum + variant.sizeBytes,
-        );
+      : _titleMotionVariants(
+          profile.titleMotion!,
+        ).fold<int>(0, (sum, variant) => sum + variant.sizeBytes);
   if (introBytes + titleBytes > projectPresentationMediaMaxSizeBytes) {
     _presentationError(
       diagnostics,
@@ -730,13 +902,8 @@ void _validateVideoVariant(
   required List<ProjectPresentationDiagnostic> diagnostics,
 }) {
   final isIntro = category == ProjectPresentationCategory.intro;
-  void error(String code, String field, String message) => _presentationError(
-        diagnostics,
-        code,
-        category,
-        '$path.$field',
-        message,
-      );
+  void error(String code, String field, String message) =>
+      _presentationError(diagnostics, code, category, '$path.$field', message);
 
   for (final asset in <({String field, String? value})>[
     (field: 'videoPath', value: variant.videoPath),
@@ -769,8 +936,12 @@ void _validateVideoVariant(
     );
   }
   final posterPath = variant.posterPath.toLowerCase();
-  if (!const <String>['.png', '.jpg', '.jpeg', '.webp']
-      .any(posterPath.endsWith)) {
+  if (!const <String>[
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.webp',
+  ].any(posterPath.endsWith)) {
     error(
       isIntro
           ? 'introPosterFormatUnsupported'
@@ -870,7 +1041,7 @@ void _validateVideoVariant(
 }
 
 Iterable<({String orientation, ProjectVideoVariantProfile variant})>
-    _responsiveVariants(ProjectResponsiveVideoProfile media) sync* {
+_responsiveVariants(ProjectResponsiveVideoProfile media) sync* {
   yield (orientation: 'landscape', variant: media.landscape);
   if (media.portrait case final portrait?) {
     yield (orientation: 'portrait', variant: portrait);
@@ -988,8 +1159,8 @@ void _validateTypography(
       );
     }
     if (!role.glyphCoverage.toSet().containsAll(
-          requiredProjectFontGlyphCoverage,
-        )) {
+      requiredProjectFontGlyphCoverage,
+    )) {
       error(
         'typographyGlyphCoverageIncomplete',
         'glyphCoverage',
@@ -1007,15 +1178,25 @@ bool _hasBranding(ProjectBrandingProfile branding) =>
     branding.titleMusicPath != null ||
     branding.layoutVariant != 'standard';
 
-/// Normalizes the one released presentation schema before generated decoding.
+/// Normalizes released presentation schemas before generated decoding.
 ///
 /// Keeping migration here means every transport (project load, direct API,
-/// JSONL, editor and package export) observes the exact same V2 document. The
-/// source map is never mutated, and the next serialization is always V2.
+/// JSONL, editor and package export) observes the exact same V3 document. The
+/// source map is never mutated, and the next serialization is always V3.
 Map<String, dynamic> _migrateProjectPresentationProfileJson(
   Map<String, dynamic> source,
 ) {
   final schemaVersion = source['schemaVersion'] ?? 1;
+  if (schemaVersion != ProjectPresentationProfile.supportedSchemaVersion &&
+      source.containsKey('windows')) {
+    throw const FormatException(
+      'Presentation windows require schema version 3.',
+    );
+  }
+  if (schemaVersion == 2) {
+    return Map<String, dynamic>.from(source)
+      ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion;
+  }
   if (schemaVersion != 1) return Map<String, dynamic>.from(source);
 
   final migrated = Map<String, dynamic>.from(source)

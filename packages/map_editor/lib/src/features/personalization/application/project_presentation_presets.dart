@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:map_core/map_core.dart';
 
+import 'project_window_style_presets.dart';
+
 final class ProjectPresentationPreset {
   const ProjectPresentationPreset({
     required this.id,
@@ -30,19 +32,22 @@ final class ProjectPresentationPreset {
         branding: profile.branding,
         titleMotion: profile.titleMotion,
       ),
-      ProjectPresentationCategory.intro =>
-        current.copyWith(intro: profile.intro),
-      ProjectPresentationCategory.typography =>
-        current.copyWith(typography: profile.typography),
+      ProjectPresentationCategory.intro => current.copyWith(
+        intro: profile.intro,
+      ),
+      ProjectPresentationCategory.typography => current.copyWith(
+        typography: profile.typography,
+      ),
       ProjectPresentationCategory.theme => current.copyWith(
         theme: profile.theme,
         menuLabels: profile.menuLabels,
+        windows: profile.windows,
       ),
     };
   }
 }
 
-const cinematicPresentationPreset = ProjectPresentationPreset(
+final cinematicPresentationPreset = ProjectPresentationPreset(
   id: 'cinematic',
   label: 'Cinématique',
   description: 'Titre immersif et HUD sombre à fort contraste.',
@@ -73,10 +78,11 @@ const cinematicPresentationPreset = ProjectPresentationPreset(
       overworldHudSurface: '#10182B',
       battleHudSurface: '#171F33',
     ),
+    windows: softProjectWindowStylePreset.profile,
   ),
 );
 
-const classicPresentationPreset = ProjectPresentationPreset(
+final classicPresentationPreset = ProjectPresentationPreset(
   id: 'classic',
   label: 'Aventure classique',
   description: 'Présentation claire, centrée et lisible.',
@@ -92,20 +98,22 @@ const classicPresentationPreset = ProjectPresentationPreset(
     ),
     typography: ProjectTypographyProfile(),
     theme: safeProjectSemanticTheme,
+    windows: legacyProjectPresentationWindows,
   ),
 );
 
-const accessiblePresentationPreset = ProjectPresentationPreset(
+final accessiblePresentationPreset = ProjectPresentationPreset(
   id: 'accessible',
   label: 'Contraste renforcé',
   description: 'Palette claire avec repères très distincts.',
-  categories: <ProjectPresentationCategory>{
-    ProjectPresentationCategory.theme,
-  },
-  profile: ProjectPresentationProfile(theme: safeProjectSemanticTheme),
+  categories: <ProjectPresentationCategory>{ProjectPresentationCategory.theme},
+  profile: ProjectPresentationProfile(
+    theme: safeProjectSemanticTheme,
+    windows: outlinedProjectWindowStylePreset.profile,
+  ),
 );
 
-const projectPresentationPresets = <ProjectPresentationPreset>[
+final projectPresentationPresets = <ProjectPresentationPreset>[
   classicPresentationPreset,
   cinematicPresentationPreset,
   accessiblePresentationPreset,
@@ -114,20 +122,19 @@ const projectPresentationPresets = <ProjectPresentationPreset>[
 ProjectPresentationProfile resetProjectPresentationCategory(
   ProjectPresentationProfile current,
   ProjectPresentationCategory category,
-) =>
-    switch (category) {
-      ProjectPresentationCategory.branding => current.copyWith(
-        branding: const ProjectBrandingProfile(),
-        titleMotion: null,
-      ),
-      ProjectPresentationCategory.intro => current.copyWith(intro: null),
-      ProjectPresentationCategory.typography =>
-        current.copyWith(typography: null),
-      ProjectPresentationCategory.theme => current.copyWith(
-        theme: null,
-        menuLabels: null,
-      ),
-    };
+) => switch (category) {
+  ProjectPresentationCategory.branding => current.copyWith(
+    branding: const ProjectBrandingProfile(),
+    titleMotion: null,
+  ),
+  ProjectPresentationCategory.intro => current.copyWith(intro: null),
+  ProjectPresentationCategory.typography => current.copyWith(typography: null),
+  ProjectPresentationCategory.theme => current.copyWith(
+    theme: null,
+    menuLabels: null,
+    windows: null,
+  ),
+};
 
 final class ProjectPresentationComparison {
   const ProjectPresentationComparison({required this.changedPaths});
@@ -174,6 +181,9 @@ ProjectPresentationComparison compareProjectPresentation(
     current.menuLabels?.toJson(),
   )) {
     changed.add(r'$.menuLabels');
+  }
+  if (!_jsonEqual(baseline.windows?.toJson(), current.windows?.toJson())) {
+    changed.add(r'$.windows');
   }
   return ProjectPresentationComparison(
     changedPaths: List<String>.unmodifiable(changed),

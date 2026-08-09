@@ -234,6 +234,9 @@ final class GamePackageExportService {
                   returnToTitle:
                       projection.presentation.menuLabels!.returnToTitle,
                 ),
+          windows: projection.presentation.windows == null
+              ? null
+              : _packageWindows(projection.presentation.windows!),
         ),
         content: emptyContent,
       );
@@ -520,6 +523,27 @@ final class GamePackageExportService {
     menuSurface: theme.menuSurface,
     overworldHudSurface: theme.overworldHudSurface,
     battleHudSurface: theme.battleHudSurface,
+  );
+
+  static GamePackagePresentationWindows _packageWindows(
+    ProjectPresentationWindowsProfile windows,
+  ) => GamePackagePresentationWindows(
+    styles: <GamePackageWindowStyle>[
+      for (final style in windows.styles)
+        GamePackageWindowStyle(
+          id: style.id,
+          fillToken: style.fillToken,
+          borderToken: style.borderToken,
+          borderWidth: style.borderWidth,
+          cornerRadius: style.cornerRadius,
+          contentPadding: style.contentPadding,
+          shadowElevation: style.shadowElevation,
+        ),
+    ],
+    defaultStyleId: windows.defaultStyleId,
+    pauseMenuStyleId: windows.pauseMenuStyleId,
+    dialogueStyleId: windows.dialogueStyleId,
+    pauseBackdropOpacity: windows.pauseBackdropOpacity,
   );
 
   static String _gameplayReadinessCreatorMessage(

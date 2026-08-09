@@ -834,7 +834,7 @@ async function applyMutation(
   return String(validation.snapshotRevision);
 }
 
-test("MCP applies and rereads the authored Avelune cartridge color", async () => {
+test("MCP applies and rereads the authored presentation profile", async () => {
   const fixture = await mutationFixture();
   try {
     const opened = await toolData(fixture.client, "pokemap_workspace", {
@@ -848,6 +848,19 @@ test("MCP applies and rereads the authored Avelune cartridge color", async () =>
       (action) => String(action.id),
     );
     assert.ok(actionIds.includes("presentation.update"));
+    const presentationKind = (described.resourceKinds as JsonRecord[]).find(
+      (kind) => String(kind.id) === "projectPresentationProfile",
+    );
+    assert.equal(Number(presentationKind?.version), 3);
+    const presentationAction = (
+      record(described.fullParity).mutationActions as JsonRecord[]
+    ).find((action) => String(action.actionId) === "presentation.update");
+    assert.deepEqual(record(presentationAction).endToEndVerifiedTransports, [
+      "cli",
+      "directApi",
+      "editor",
+      "mcp",
+    ]);
 
     const validated = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,
@@ -859,11 +872,46 @@ test("MCP applies and rereads the authored Avelune cartridge color", async () =>
       actionId: "presentation.update",
       parameters: {
         profile: {
-          schemaVersion: 1,
+          schemaVersion: 3,
           branding: { accentColor: "#126E78" },
           menuLabels: {
             pauseTitle: "Escale",
             pokedex: "Carnet de voyage",
+          },
+          windows: {
+            styles: [
+              {
+                id: "default",
+                fillToken: "surface",
+                borderToken: "outline",
+                borderWidth: 1,
+                cornerRadius: 16,
+                contentPadding: 24,
+                shadowElevation: 8,
+              },
+              {
+                id: "pause-menu",
+                fillToken: "menuSurface",
+                borderToken: "primary",
+                borderWidth: 2,
+                cornerRadius: 24,
+                contentPadding: 20,
+                shadowElevation: 12,
+              },
+              {
+                id: "dialogue",
+                fillToken: "dialogueSurface",
+                borderToken: "outline",
+                borderWidth: 1,
+                cornerRadius: 8,
+                contentPadding: 12,
+                shadowElevation: 4,
+              },
+            ],
+            defaultStyleId: "default",
+            pauseMenuStyleId: "pause-menu",
+            dialogueStyleId: "dialogue",
+            pauseBackdropOpacity: 0.8,
           },
         },
       },
@@ -886,6 +934,10 @@ test("MCP applies and rereads the authored Avelune cartridge color", async () =>
       record(record(project.presentation).menuLabels).pokedex,
       "Carnet de voyage",
     );
+    assert.equal(
+      record(record(project.presentation).windows).pauseMenuStyleId,
+      "pause-menu",
+    );
     const persisted = record(
       JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
     );
@@ -896,6 +948,27 @@ test("MCP applies and rereads the authored Avelune cartridge color", async () =>
     assert.equal(
       record(record(persisted.presentation).menuLabels).pauseTitle,
       "Escale",
+    );
+    assert.equal(
+      record(record(persisted.presentation).windows).dialogueStyleId,
+      "dialogue",
+    );
+    const presentationResource = await toolData(
+      fixture.client,
+      "pokemap_query",
+      {
+        projectHandle,
+        resourceKind: "projectPresentationProfile",
+        operation: "list",
+        view: "detail",
+      },
+    );
+    const presentationItem = record(
+      (presentationResource.items as unknown[])[0],
+    );
+    assert.equal(
+      record(record(presentationItem.profile).windows).pauseBackdropOpacity,
+      0.8,
     );
     const finalValidation = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,

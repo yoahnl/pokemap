@@ -161,6 +161,82 @@ void main() {
     expect(battleNumbers.style?.fontFamily, 'Aurore Numbers');
   });
 
+  testWidgets('window styling is visible on Dialogue and Pause previews', (
+    tester,
+  ) async {
+    const windows = ProjectPresentationWindowsProfile(
+      styles: <ProjectWindowStyleProfile>[
+        ProjectWindowStyleProfile(
+          id: 'default',
+          fillToken: 'surface',
+          borderToken: 'outline',
+          borderWidth: 1,
+          cornerRadius: 16,
+          contentPadding: 24,
+          shadowElevation: 8,
+        ),
+        ProjectWindowStyleProfile(
+          id: 'pause-menu',
+          fillToken: 'menuSurface',
+          borderToken: 'primary',
+          borderWidth: 3,
+          cornerRadius: 24,
+          contentPadding: 20,
+          shadowElevation: 12,
+        ),
+        ProjectWindowStyleProfile(
+          id: 'dialogue',
+          fillToken: 'dialogueSurface',
+          borderToken: 'warning',
+          borderWidth: 2,
+          cornerRadius: 8,
+          contentPadding: 12,
+          shadowElevation: 4,
+        ),
+      ],
+      defaultStyleId: 'default',
+      pauseMenuStyleId: 'pause-menu',
+      dialogueStyleId: 'dialogue',
+      pauseBackdropOpacity: .8,
+    );
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          profile: ProjectPresentationProfile(
+            theme: safeProjectSemanticTheme,
+            windows: windows,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-preview-dialogue')),
+    );
+    await tester.pumpAndSettle();
+    final dialogue = tester.widget<Container>(
+      find.byKey(const ValueKey<String>('personalization-dialogue-window')),
+    );
+    final dialogueDecoration = dialogue.decoration! as BoxDecoration;
+    expect(dialogue.padding, const EdgeInsets.all(12));
+    expect(dialogueDecoration.borderRadius, BorderRadius.circular(8));
+    expect((dialogueDecoration.border! as Border).top.width, 2);
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('personalization-preview-menu')),
+    );
+    await tester.pumpAndSettle();
+    final menu = tester.widget<Container>(
+      find.byKey(const ValueKey<String>('personalization-menu-window')),
+    );
+    final menuDecoration = menu.decoration! as BoxDecoration;
+    expect(menu.padding, const EdgeInsets.all(20));
+    expect(menuDecoration.borderRadius, BorderRadius.circular(24));
+    expect((menuDecoration.border! as Border).top.width, 3);
+  });
+
   testWidgets('PST-043 previews portrait intro poster and reduced motion', (
     tester,
   ) async {

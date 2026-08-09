@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 
 void main() {
@@ -93,6 +94,29 @@ void main() {
     expect(find.text('Pokédex'), findsNothing);
     expect(find.text('Équipe'), findsOneWidget);
   });
+
+  testWidgets('project window profile controls the Pause backdrop',
+      (tester) async {
+    final windows = legacyProjectPresentationWindows.copyWith(
+      pauseBackdropOpacity: .85,
+    );
+    await tester.pumpWidget(_app(
+      PlayerPauseMenu(
+        gameTitle: 'Aube',
+        actions: _actions(),
+        onSelected: (_) {},
+      ),
+      theme: PokeMapPlayerTheme.withWindowProfile(
+        PokeMapPlayerTheme.dark(),
+        windows,
+      ),
+    ));
+
+    final backdrop = tester.widget<Material>(
+      find.byKey(const ValueKey<String>('player-pause-backdrop')),
+    );
+    expect(backdrop.color?.a, closeTo(.85, .01));
+  });
 }
 
 Map<PlayerPauseAction, PlayerActionAvailability> _actions() =>
@@ -101,10 +125,10 @@ Map<PlayerPauseAction, PlayerActionAvailability> _actions() =>
         action: PlayerActionAvailability.enabled,
     };
 
-Widget _app(Widget child) => MaterialApp(
+Widget _app(Widget child, {ThemeData? theme}) => MaterialApp(
       locale: const Locale('fr'),
       supportedLocales: PokeMapPlayerLocalizations.supportedLocales,
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
-      theme: PokeMapPlayerTheme.dark(),
+      theme: theme ?? PokeMapPlayerTheme.dark(),
       home: child,
     );

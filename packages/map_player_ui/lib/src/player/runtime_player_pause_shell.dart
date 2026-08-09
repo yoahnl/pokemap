@@ -6,6 +6,7 @@ import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_window_theme.dart';
 import 'player_pause_menu.dart';
 import 'runtime_player_actions.dart';
 import 'runtime_player_focus_controller.dart';
@@ -136,7 +137,8 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
             _focusController.noteInputSource(source);
           },
           child: Material(
-            color: context.playerColors.scrim,
+            key: const ValueKey<String>('runtime-pause-backdrop'),
+            color: context.playerPauseBackdropColor,
             child: SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {

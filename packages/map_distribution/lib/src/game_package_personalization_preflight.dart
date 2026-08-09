@@ -204,7 +204,7 @@ final class GamePackagePersonalizationPreflight {
       }
     }
 
-    if (presentation?.theme != null) {
+    if (presentation?.theme != null || presentation?.windows != null) {
       categories.add(GamePackagePersonalizationCategory.theme);
     }
 

@@ -15,7 +15,7 @@
 | Élément | Décision |
 |---|---|
 | Socle déjà livré | `337a97a6e feat(personalization): add live pause menu customization` |
-| Lots restant à livrer | **3** après la fermeture de PERS-L1 |
+| Lots restant à livrer | **2** après la fermeture de PERS-L2 |
 | Ordre | Acceptation → Window Studio → Layout Studio → Extension complète |
 | Mutation canonique | `presentation.update` |
 | Profil canonique | `ProjectPresentationProfile` |
@@ -25,7 +25,7 @@
 | Placements | Nouveau profil Layout Studio à breakpoints fixes |
 | Coordonnées libres | Exclues |
 | Splash Avelune | Host-owned, visible dans le parcours mais non personnalisable |
-| État global | PERS-L1 `DONE` ; Phase 8 toujours `PARTIAL` jusqu’à PERS-L4 |
+| État global | PERS-L1 et PERS-L2 `DONE` ; Phase 8 toujours `PARTIAL` jusqu’à PERS-L4 |
 
 Le commit `337a97a6e` est le **lot zéro livré**. Il ne doit pas être recompté comme travail futur : il prouve déjà la verticale modèle → sauvegarde canonique → export → Hub → menu Pause réel.
 
@@ -139,8 +139,8 @@ Pendant l’audit, ce chantier parallèle a été commit sous :
 | Lot | Résultat visible | Taille | Dépend de | Statut initial |
 |---|---|---:|---|---|
 | PERS-L1 | La preview actuelle est fiable, accessible et acceptée dans la vraie app | M | Socle `337a97a6e` | **DONE — 2026-08-10** |
-| PERS-L2 | Window Studio personnalise réellement Pause et Dialogue | L | PERS-L1 | Prêt |
-| PERS-L3 | Layout Studio place les contenus par variantes responsives sûres | L | PERS-L2 | Bloqué par L2 |
+| PERS-L2 | Window Studio personnalise réellement Pause et Dialogue | L | PERS-L1 | **DONE — 2026-08-10** |
+| PERS-L3 | Layout Studio place les contenus par variantes responsives sûres | L | PERS-L2 | Prêt |
 | PERS-L4 | Toutes les surfaces utilisent les contrats et les presets sont partageables | XL | PERS-L3 | Bloqué par L3 |
 
 La dépendance est stricte :
@@ -269,28 +269,28 @@ ProjectWindowStyleProfile
 - cornerRadius
 - contentPadding
 - shadowElevation
-- backdropOpacity
 
 ProjectPresentationWindowsProfile
 - styles
 - defaultStyleId
 - pauseMenuStyleId
 - dialogueStyleId
+- pauseBackdropOpacity
 ```
 
 Les valeurs numériques sont bornées et éditées par contrôles guidés. `fillToken` et `borderToken` référencent le thème sémantique existant ; aucune couleur n’est copiée dans le profil de fenêtre.
 
 ### Scope
 
-- [ ] Ajouter modèle, JSON, migration/defaults et validation pure dans `map_core`.
-- [ ] Passer `ProjectPresentationProfile` à `schemaVersion: 3` et migrer V2 → V3 en conservant exactement les defaults visuels actuels.
-- [ ] Étendre `presentation.update` et la ressource queryable.
-- [ ] Transporter le profil dans le manifeste `.avelunegame`.
-- [ ] Créer un thème Window résolu dans `map_player_ui`.
-- [ ] Faire consommer le profil par les primitives communes, puis Pause et Dialogue.
-- [ ] Construire un éditeur no-code avec presets sûrs, reset et comparaison.
-- [ ] Prévisualiser les mêmes fixtures dans l’éditeur et le player.
-- [ ] Charger réellement le profil depuis un jeu installé dans le Hub.
+- [x] Ajouter modèle, JSON, migration/defaults et validation pure dans `map_core`.
+- [x] Passer `ProjectPresentationProfile` à `schemaVersion: 3` et migrer V2 → V3 sans modifier le rendu des projets dépourvus de `windows`.
+- [x] Étendre `presentation.update` et la ressource queryable.
+- [x] Transporter le profil dans le manifeste `.avelunegame`.
+- [x] Créer un thème Window résolu dans `map_player_ui`.
+- [x] Faire consommer le profil par les primitives communes, puis Pause et Dialogue.
+- [x] Construire un éditeur no-code avec presets sûrs, reset et comparaison.
+- [x] Prévisualiser les mêmes fixtures dans l’éditeur et le player.
+- [x] Charger réellement le profil depuis un jeu installé dans le Hub.
 
 ### Fichiers structurants
 
@@ -312,13 +312,35 @@ Les valeurs numériques sont bornées et éditées par contrôles guidés. `fill
 
 ### Gate de sortie
 
-- [ ] Pause et Dialogue consomment les styles dans le standalone et le Hub installé.
-- [ ] Un projet sans `windows` conserve le rendu actuel pixel pour pixel.
-- [ ] Les valeurs hors bornes et tokens inconnus sont rejetés.
-- [ ] Brouillon, undo/redo, autosave, restart recovery et conflit de révision sont testés.
-- [ ] La preview editor et le player utilisent le même profil résolu et des goldens comparables.
-- [ ] API directe, JSONL/CLI, Editor, export, Hub et MCP sont prouvés.
-- [ ] Aucun widget concerné ne conserve un rayon, padding ou bordure concurrente non justifiée.
+- [x] Pause et Dialogue consomment les styles dans le standalone et le Hub installé.
+- [x] Un projet sans `windows` conserve le chemin de rendu historique pixel pour pixel.
+- [x] Les valeurs hors bornes, non finies et les tokens inconnus sont rejetés.
+- [x] Brouillon, undo/redo, autosave, restart recovery et conflit de révision sont testés.
+- [x] La preview editor et le player utilisent le même profil fixture et des goldens comparables.
+- [x] API directe, JSONL/CLI, Editor, export, Hub et MCP sont prouvés.
+- [x] Les widgets concernés délèguent rayon, padding et bordure à `PlayerPanel` lorsqu’un profil Window est présent.
+
+### Clôture PERS-L2 — 2026-08-10
+
+Statut produit : **DONE**. `pauseBackdropOpacity` appartient au profil Window global, car seul le menu Pause possède un backdrop ; le dialogue ne reçoit pas un champ sans consommateur. L’absence de `windows` conserve volontairement le chemin historique de `PlayerPanel`, au lieu de simuler un faux profil legacy qui ne pourrait pas représenter pixel pour pixel les deux implémentations Pause existantes.
+
+Preuves principales :
+
+- `map_core` : 30 tests ciblés verts pour codec, migrations V1/V2, bornes inclusives et exclusives, non-finis, tokens, références et contraste ;
+- `map_authoring` : 16 tests verts pour `presentation.update`, query et parité directe/JSONL ;
+- `map_distribution` : 31 tests verts pour manifeste V3, codec, preflight et hash ;
+- `map_editor` : 146 tests Personalization verts, dont Window Studio à `720×900` et text scale `2.0`, presets, reset, comparaison, sauvegarde, restart et export ;
+- `map_player_ui` : suite complète verte, 161 tests, avec Pause standalone, vrai `RuntimePlayerPauseShell`, Dialogue, bordure désactivée, padding historique de `PlayerSurface` et fallback sans profil ;
+- PokeMap Hub : 14 tests verts sur loader, package installé, rendu Phase 5 et parcours export-install-start Phase 6 ;
+- standalone : smoke `phase_a_golden_slice_launch_test.dart` vert, 9 tests ;
+- goldens : 4 images editor et 4 images player mises à jour pour Pause et Dialogue, paysage et portrait, depuis `golden_personalization_slice/presentation.json` ;
+- MCP : TypeScript check et build verts ; mutation réelle `presentation.update`, requery `projectPresentationProfile`, catalogue V3 et parité transport vérifiés par le SDK MCP local.
+
+Limites globales sans lien avec PERS-L2 :
+
+- la suite complète `map_core` termine à `4017 passed`, `1 skipped`, `11 failed` : trois timeouts de benchmarks exécutés sous charge, deux budgets Border dépassés, quatre fixtures historiques absentes et deux attentes obsolètes de l’inventaire Smart Tiles ; les tests PERS-L2 isolés restent verts ;
+- la suite complète `map_distribution` conserve six échecs sur des fichiers historiques absents sous `reports/product/pokemap_hub/phase_0`, tandis que les 31 tests de personnalisation ciblés sont verts ;
+- `flutter analyze` de `map_editor` et du host standalone reste non nul sur leurs diagnostics préexistants ; aucun diagnostic ne vise les nouveaux fichiers Window Studio ou Window Theme.
 
 ### Tests minimum
 

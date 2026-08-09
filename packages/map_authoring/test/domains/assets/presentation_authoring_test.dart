@@ -161,6 +161,47 @@ void main() {
       );
     });
 
+    test('presentation.update carries validated project window styles', () {
+      const profile = ProjectPresentationProfile(
+        windows: legacyProjectPresentationWindows,
+      );
+      final snapshot = _snapshot();
+      final request = AuthoringRequest(
+        requestId: 'request_presentation_windows',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: 'ws_test',
+        parameters: <String, Object?>{'profile': profile.toJson()},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'presentation-windows',
+        dryRun: true,
+      );
+
+      final draft = const PresentationActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: request,
+          planId: 'plan_presentation_windows',
+          seed: 42,
+        ),
+      );
+
+      expect(
+        draft.preview['profile'],
+        containsPair(
+          'windows',
+          containsPair('pauseMenuStyleId', 'pause-menu'),
+        ),
+      );
+      expect(
+        draft.changeSet.diff.entries.single.after,
+        containsPair(
+          'windows',
+          containsPair('dialogueStyleId', 'dialogue'),
+        ),
+      );
+    });
+
     test('validates every authored responsive intro and title loop asset', () {
       final profile = _profile().copyWith(
         titleMotion: const ProjectTitleMotionProfile(

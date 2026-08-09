@@ -128,6 +128,7 @@ void main() {
       );
       const profile = ProjectPresentationProfile(
         menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+        windows: legacyProjectPresentationWindows,
       );
 
       final result = await fixture.mutations.savePresentation(
@@ -143,6 +144,14 @@ void main() {
       expect(result.receipt.actionId, 'presentation.update');
       expect(result.receipt.status, AuthoringReceiptStatus.applied);
       expect(durable.presentation?.menuLabels?.pokedex, 'Carnet');
+      expect(
+        durable.presentation?.windows?.pauseMenuStyleId,
+        'pause-menu',
+      );
+      expect(
+        durable.presentation?.windows?.dialogueStyleId,
+        'dialogue',
+      );
     });
 
     test('plans without writing, applies once, and replays idempotently',

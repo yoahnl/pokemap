@@ -14,6 +14,8 @@ dependencies:
     sdk: flutter
   flutter_joystick: ^0.2.2
   gamepads: ^0.1.10+1
+  map_core:
+    path: ../map_core
   map_runtime:
     path: ../map_runtime
   video_player: ^2.13.0
@@ -22,8 +24,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
-  map_core:
-    path: ../map_core
 
 flutter:
   uses-material-design: true

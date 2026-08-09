@@ -15,6 +15,7 @@ final class RuntimePlayerPresentation {
     required this.title,
     this.typography = const PokeMapPlayerTypography(),
     this.semanticTheme,
+    this.windowProfile,
     this.pauseMenuLabels = const PlayerPauseMenuLabels(),
   });
 
@@ -38,6 +39,7 @@ final class RuntimePlayerPresentation {
       ),
       typography: _typography(source.typography),
       semanticTheme: _semanticTheme(profile?.theme),
+      windowProfile: profile?.windows,
       pauseMenuLabels: _pauseMenuLabels(profile?.menuLabels),
     );
   }
@@ -45,6 +47,7 @@ final class RuntimePlayerPresentation {
   final RuntimePlayerTitlePresentation title;
   final PokeMapPlayerTypography typography;
   final PokeMapPlayerSemanticTheme? semanticTheme;
+  final ProjectPresentationWindowsProfile? windowProfile;
   final PlayerPauseMenuLabels pauseMenuLabels;
 
   ThemeData applyTo(ThemeData theme) {
@@ -52,6 +55,9 @@ final class RuntimePlayerPresentation {
     final semantic = semanticTheme;
     if (semantic != null) {
       resolved = PokeMapPlayerTheme.withSemanticTheme(resolved, semantic);
+    }
+    if (windowProfile case final windows?) {
+      resolved = PokeMapPlayerTheme.withWindowProfile(resolved, windows);
     }
     return resolved;
   }

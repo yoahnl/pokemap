@@ -135,10 +135,10 @@ final class AuthoringResourceKindRegistry {
       ),
       AuthoringResourceKindDescriptor(
         id: 'projectPresentationProfile',
-        version: 2,
+        version: 3,
         displayName: 'Project presentation profile',
         summary:
-            'Responsive intro, title motion, branding, typography and theme',
+            'Responsive intro, title motion, branding, typography, theme and window styles',
       ),
       AuthoringResourceKindDescriptor(
         id: 'map',

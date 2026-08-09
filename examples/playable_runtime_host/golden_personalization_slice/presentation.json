@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "branding": {
     "iconPath": "assets/presentation/icon.png",
     "coverPath": "assets/presentation/cover.png",
@@ -105,5 +105,40 @@
     "save": "Consigner",
     "options": "Réglages",
     "returnToTitle": "Quitter le train"
+  },
+  "windows": {
+    "styles": [
+      {
+        "id": "default",
+        "fillToken": "surfaceElevated",
+        "borderToken": "outline",
+        "borderWidth": 1,
+        "cornerRadius": 18,
+        "contentPadding": 20,
+        "shadowElevation": 6
+      },
+      {
+        "id": "pause-menu",
+        "fillToken": "menuSurface",
+        "borderToken": "primary",
+        "borderWidth": 2,
+        "cornerRadius": 24,
+        "contentPadding": 20,
+        "shadowElevation": 12
+      },
+      {
+        "id": "dialogue",
+        "fillToken": "dialogueSurface",
+        "borderToken": "primary",
+        "borderWidth": 2,
+        "cornerRadius": 8,
+        "contentPadding": 12,
+        "shadowElevation": 4
+      }
+    ],
+    "defaultStyleId": "default",
+    "pauseMenuStyleId": "pause-menu",
+    "dialogueStyleId": "dialogue",
+    "pauseBackdropOpacity": 0.8
   }
 }

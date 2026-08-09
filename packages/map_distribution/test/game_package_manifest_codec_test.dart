@@ -178,6 +178,100 @@ void main() {
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 
+    test('round-trips V3 project window styles', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 3,
+          'branding': <String, Object?>{},
+          'windows': <String, Object?>{
+            'styles': <Object?>[
+              <String, Object?>{
+                'id': 'pause-menu',
+                'fillToken': 'menuSurface',
+                'borderToken': 'outline',
+                'borderWidth': 2,
+                'cornerRadius': 24,
+                'contentPadding': 16,
+                'shadowElevation': 12,
+              },
+              <String, Object?>{
+                'id': 'dialogue',
+                'fillToken': 'dialogueSurface',
+                'borderToken': 'primary',
+                'borderWidth': 1,
+                'cornerRadius': 10,
+                'contentPadding': 20,
+                'shadowElevation': 4,
+              },
+            ],
+            'defaultStyleId': 'pause-menu',
+            'pauseMenuStyleId': 'pause-menu',
+            'dialogueStyleId': 'dialogue',
+            'pauseBackdropOpacityPermille': 850,
+          },
+        };
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation?.windows?.styles, hasLength(2));
+      expect(manifest.presentation?.windows?.pauseMenuStyleId, 'pause-menu');
+      expect(manifest.presentation?.windows?.dialogueStyleId, 'dialogue');
+      expect(manifest.presentation?.windows?.pauseBackdropOpacity, .85);
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects V3 window styles with unknown semantic tokens', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 3,
+          'branding': <String, Object?>{},
+          'windows': <String, Object?>{
+            'styles': <Object?>[
+              <String, Object?>{
+                'id': 'pause-menu',
+                'fillToken': 'rawPink',
+                'borderToken': 'outline',
+                'borderWidth': 1,
+                'cornerRadius': 16,
+                'contentPadding': 16,
+                'shadowElevation': 8,
+              },
+            ],
+            'defaultStyleId': 'pause-menu',
+            'pauseMenuStyleId': 'pause-menu',
+            'dialogueStyleId': 'pause-menu',
+            'pauseBackdropOpacityPermille': 700,
+          },
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'invalidWindowStyle',
+        r'$.presentation.windows.styles[0].fillToken',
+      );
+    });
+
+    test('rejects windows declared before presentation schema V3', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 2,
+          'branding': <String, Object?>{},
+          'windows': <String, Object?>{
+            'styles': <Object?>[],
+            'defaultStyleId': 'default',
+            'pauseMenuStyleId': 'default',
+            'dialogueStyleId': 'default',
+            'pauseBackdropOpacityPermille': 700,
+          },
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'presentationVersionUnsupported',
+        r'$.presentation.windows',
+      );
+    });
+
     test('rejects invalid packaged menu labels', () {
       final json = _minimalManifestJson()
         ..['presentation'] = <String, Object?>{

@@ -236,7 +236,7 @@ void main() {
 
       expect(directEvidence, cliEvidence);
       expect(directEvidence['accentColor'], '#126E78');
-      expect(directEvidence['schemaVersion'], 2);
+      expect(directEvidence['schemaVersion'], 3);
       expect(
         directEvidence['introLandscape'],
         'presentation/intro-landscape.mp4',
@@ -246,6 +246,9 @@ void main() {
         'presentation/prompt-portrait.mp4',
       );
       expect(directEvidence['pokedexLabel'], 'Carnet de voyage');
+      expect(directEvidence['pauseWindowStyle'], 'pause-menu');
+      expect(directEvidence['dialogueWindowStyle'], 'dialogue');
+      expect(directEvidence['pauseBackdropOpacity'], .7);
     });
 
     test('projectPresentationProfile is a first-class query resource', () {
@@ -582,6 +585,10 @@ final class _GoldenHarness {
       'promptPortrait':
           manifest.presentation?.titleMotion?.promptLoop?.portrait?.videoPath,
       'pokedexLabel': manifest.presentation?.menuLabels?.pokedex,
+      'pauseWindowStyle': manifest.presentation?.windows?.pauseMenuStyleId,
+      'dialogueWindowStyle': manifest.presentation?.windows?.dialogueStyleId,
+      'pauseBackdropOpacity':
+          manifest.presentation?.windows?.pauseBackdropOpacity,
     };
   }
 
@@ -660,6 +667,7 @@ const ProjectPresentationProfile _responsivePresentationProfile =
     pauseTitle: 'Escale',
     pokedex: 'Carnet de voyage',
   ),
+  windows: legacyProjectPresentationWindows,
 );
 
 AssetRecord _catalogAsset(

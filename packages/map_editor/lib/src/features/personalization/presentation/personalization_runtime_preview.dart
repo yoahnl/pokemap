@@ -186,12 +186,14 @@ class _PersonalizationRuntimePreviewState
       PersonalizationPreviewSurface.dialogue => _DialogueRuntimePreview(
         projection: projection,
         theme: theme,
+        windows: profile.windows,
         aspectRatio: aspectRatio,
       ),
       PersonalizationPreviewSurface.menu => _MenuRuntimePreview(
         projection: projection,
         theme: theme,
         labels: profile.menuLabels,
+        windows: profile.windows,
         projectName: widget.projectName,
         aspectRatio: aspectRatio,
       ),
@@ -270,11 +272,13 @@ class _DialogueRuntimePreview extends StatelessWidget {
   const _DialogueRuntimePreview({
     required this.projection,
     required this.theme,
+    required this.windows,
     required this.aspectRatio,
   });
 
   final PersonalizationPreviewSurfaceProjection projection;
   final ProjectSemanticThemeProfile theme;
+  final ProjectPresentationWindowsProfile? windows;
   final double aspectRatio;
 
   @override
@@ -286,6 +290,13 @@ class _DialogueRuntimePreview extends StatelessWidget {
     final secondary = _previewColor(theme.textSecondary, colors.textSecondary);
     final outline = _previewColor(theme.outline, colors.borderStrong);
     final primary = _previewColor(theme.primary, colors.brandPrimary);
+    final windowStyle = windows?.resolve(ProjectWindowRole.dialogue);
+    final windowOutline = windowStyle == null
+        ? outline
+        : _previewColor(
+            _semanticThemeToken(theme, windowStyle.borderToken),
+            outline,
+          );
 
     return _RuntimeFrame(
       key: const ValueKey<String>('personalization-dialogue-composition'),
@@ -304,14 +315,43 @@ class _DialogueRuntimePreview extends StatelessWidget {
             child: Icon(Icons.home_outlined, size: 48, color: secondary),
           ),
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
+            left: windowStyle == null ? 0 : 8,
+            right: windowStyle == null ? 0 : 8,
+            bottom: windowStyle == null ? 0 : 8,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+              key: const ValueKey<String>('personalization-dialogue-window'),
+              padding: windowStyle == null
+                  ? const EdgeInsets.fromLTRB(16, 12, 16, 14)
+                  : EdgeInsets.all(windowStyle.contentPadding.toDouble()),
               decoration: BoxDecoration(
                 color: surface,
-                border: Border(top: BorderSide(color: outline, width: 2)),
+                border: windowStyle == null
+                    ? Border(top: BorderSide(color: outline, width: 2))
+                    : windowStyle.borderWidth == 0
+                    ? null
+                    : Border.all(
+                        color: windowOutline,
+                        width: windowStyle.borderWidth.toDouble(),
+                      ),
+                borderRadius: windowStyle == null
+                    ? null
+                    : BorderRadius.circular(
+                        windowStyle.cornerRadius.toDouble(),
+                      ),
+                boxShadow:
+                    windowStyle == null || windowStyle.shadowElevation == 0
+                    ? null
+                    : <BoxShadow>[
+                        BoxShadow(
+                          color: background.withValues(alpha: .28),
+                          blurRadius:
+                              windowStyle.shadowElevation.toDouble() * 1.5,
+                          offset: Offset(
+                            0,
+                            windowStyle.shadowElevation.toDouble() / 2,
+                          ),
+                        ),
+                      ],
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -377,6 +417,7 @@ class _MenuRuntimePreview extends StatelessWidget {
     required this.projection,
     required this.theme,
     required this.labels,
+    required this.windows,
     required this.projectName,
     required this.aspectRatio,
   });
@@ -384,13 +425,14 @@ class _MenuRuntimePreview extends StatelessWidget {
   final PersonalizationPreviewSurfaceProjection projection;
   final ProjectSemanticThemeProfile theme;
   final ProjectMenuLabelsProfile? labels;
+  final ProjectPresentationWindowsProfile? windows;
   final String projectName;
   final double aspectRatio;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
-    final background = _previewColor(
+    final panelSurface = _previewColor(
       projection.backgroundHex,
       colors.surfaceSubtle,
     );
@@ -400,6 +442,19 @@ class _MenuRuntimePreview extends StatelessWidget {
     final primary = _previewColor(theme.primary, colors.brandPrimary);
     final onPrimary = _previewColor(theme.onPrimary, colors.textInverse);
     final outline = _previewColor(theme.outline, colors.borderStrong);
+    final windowStyle = windows?.resolve(ProjectWindowRole.pauseMenu);
+    final windowOutline = windowStyle == null
+        ? outline
+        : _previewColor(
+            _semanticThemeToken(theme, windowStyle.borderToken),
+            outline,
+          );
+    final frameBackground = windows == null
+        ? panelSurface
+        : Color.alphaBlend(
+            colors.textPrimary.withValues(alpha: windows!.pauseBackdropOpacity),
+            _previewColor(theme.background, colors.surfaceSubtle),
+          );
 
     final entries = <(IconData, String)>[
       (Icons.play_arrow_rounded, labels?.resume ?? 'Reprendre'),
@@ -413,7 +468,7 @@ class _MenuRuntimePreview extends StatelessWidget {
     ];
     return _RuntimeFrame(
       key: const ValueKey<String>('personalization-menu-composition'),
-      background: background,
+      background: frameBackground,
       aspectRatio: aspectRatio,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -425,6 +480,9 @@ class _MenuRuntimePreview extends StatelessWidget {
             headingForeground: foreground,
             foreground: onPrimary,
             outline: outline,
+            windowBackground: panelSurface,
+            windowStyle: windowStyle,
+            windowOutline: windowOutline,
             fontFamily: projection.fontFamily,
           );
           if (aspectRatio < 1.3) {
@@ -444,33 +502,52 @@ class _MenuRuntimePreview extends StatelessWidget {
                   flex: 7,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      color: elevated,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: outline),
+                      color: windowStyle == null ? elevated : panelSurface,
+                      borderRadius: BorderRadius.circular(
+                        windowStyle?.cornerRadius.toDouble() ?? 12,
+                      ),
+                      border: windowStyle?.borderWidth == 0
+                          ? null
+                          : Border.all(
+                              color: windowOutline,
+                              width: windowStyle?.borderWidth.toDouble() ?? 1,
+                            ),
+                      boxShadow: _windowShadow(windowStyle, frameBackground),
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: <Widget>[
-                        Icon(Icons.gamepad_rounded, color: secondary, size: 36),
-                        const SizedBox(height: 8),
-                        Text(
-                          labels?.pauseTitle ?? 'Pause',
-                          style: TextStyle(
-                            color: foreground,
-                            fontFamily: projection.fontFamily,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 18,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Sélectionnez une rubrique',
-                          style: TextStyle(
+                    child: Padding(
+                      padding: windowStyle == null
+                          ? EdgeInsets.zero
+                          : EdgeInsets.all(
+                              windowStyle.contentPadding.toDouble(),
+                            ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: <Widget>[
+                          Icon(
+                            Icons.gamepad_rounded,
                             color: secondary,
-                            fontFamily: projection.fontFamily,
+                            size: 36,
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 8),
+                          Text(
+                            labels?.pauseTitle ?? 'Pause',
+                            style: TextStyle(
+                              color: foreground,
+                              fontFamily: projection.fontFamily,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Sélectionnez une rubrique',
+                            style: TextStyle(
+                              color: secondary,
+                              fontFamily: projection.fontFamily,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -492,6 +569,9 @@ class _PausePreviewNavigation extends StatelessWidget {
     required this.headingForeground,
     required this.foreground,
     required this.outline,
+    required this.windowBackground,
+    required this.windowStyle,
+    required this.windowOutline,
     required this.fontFamily,
   });
 
@@ -502,11 +582,14 @@ class _PausePreviewNavigation extends StatelessWidget {
   final Color headingForeground;
   final Color foreground;
   final Color outline;
+  final Color windowBackground;
+  final ProjectWindowStyleProfile? windowStyle;
+  final Color windowOutline;
   final String fontFamily;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    final content = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         Text(
@@ -578,6 +661,25 @@ class _PausePreviewNavigation extends StatelessWidget {
           ),
         ),
       ],
+    );
+    if (windowStyle == null) return content;
+    return Container(
+      key: const ValueKey<String>('personalization-menu-window'),
+      padding: EdgeInsets.all(windowStyle!.contentPadding.toDouble()),
+      decoration: BoxDecoration(
+        color: windowBackground,
+        borderRadius: BorderRadius.circular(
+          windowStyle!.cornerRadius.toDouble(),
+        ),
+        border: windowStyle!.borderWidth == 0
+            ? null
+            : Border.all(
+                color: windowOutline,
+                width: windowStyle!.borderWidth.toDouble(),
+              ),
+        boxShadow: _windowShadow(windowStyle, windowBackground),
+      ),
+      child: content,
     );
   }
 }
@@ -1090,6 +1192,38 @@ Color _previewColor(String value, Color fallback) {
   final normalized = value.trim();
   if (!RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(normalized)) return fallback;
   return Color(0xff000000 | int.parse(normalized.substring(1), radix: 16));
+}
+
+String _semanticThemeToken(ProjectSemanticThemeProfile theme, String token) =>
+    switch (token) {
+      'surface' => theme.surface,
+      'surfaceElevated' => theme.surfaceElevated,
+      'titleSurface' => theme.titleSurface,
+      'dialogueSurface' => theme.dialogueSurface,
+      'menuSurface' => theme.menuSurface,
+      'overworldHudSurface' => theme.overworldHudSurface,
+      'battleHudSurface' => theme.battleHudSurface,
+      'outline' => theme.outline,
+      'primary' => theme.primary,
+      'success' => theme.success,
+      'warning' => theme.warning,
+      'danger' => theme.danger,
+      _ => throw ArgumentError.value(token, 'token'),
+    };
+
+List<BoxShadow>? _windowShadow(
+  ProjectWindowStyleProfile? style,
+  Color shadowColor,
+) {
+  if (style == null || style.shadowElevation == 0) return null;
+  final elevation = style.shadowElevation.toDouble();
+  return <BoxShadow>[
+    BoxShadow(
+      color: shadowColor.withValues(alpha: .28),
+      blurRadius: elevation * 1.5,
+      offset: Offset(0, elevation / 2),
+    ),
+  ];
 }
 
 String _introOrientationLabel(int width, int height) {

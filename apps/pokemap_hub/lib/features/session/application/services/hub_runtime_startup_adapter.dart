@@ -40,12 +40,14 @@ final class HubRuntimeStartupAdapter
     final typography = presentation?.typography;
     final theme = presentation?.theme;
     final menuLabels = presentation?.menuLabels;
+    final windows = presentation?.windows;
     if (branding == null &&
         intro == null &&
         titleMotion == null &&
         typography == null &&
         theme == null &&
-        menuLabels == null) {
+        menuLabels == null &&
+        windows == null) {
       return null;
     }
     return ProjectPresentationProfile(
@@ -115,6 +117,26 @@ final class HubRuntimeStartupAdapter
               save: menuLabels.save,
               options: menuLabels.options,
               returnToTitle: menuLabels.returnToTitle,
+            ),
+      windows: windows == null
+          ? null
+          : ProjectPresentationWindowsProfile(
+              styles: <ProjectWindowStyleProfile>[
+                for (final style in windows.styles)
+                  ProjectWindowStyleProfile(
+                    id: style.id,
+                    fillToken: style.fillToken,
+                    borderToken: style.borderToken,
+                    borderWidth: style.borderWidth,
+                    cornerRadius: style.cornerRadius,
+                    contentPadding: style.contentPadding,
+                    shadowElevation: style.shadowElevation,
+                  ),
+              ],
+              defaultStyleId: windows.defaultStyleId,
+              pauseMenuStyleId: windows.pauseMenuStyleId,
+              dialogueStyleId: windows.dialogueStyleId,
+              pauseBackdropOpacity: windows.pauseBackdropOpacity,
             ),
     );
   }

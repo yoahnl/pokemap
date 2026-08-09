@@ -1,10 +1,10 @@
 # Phase 5 personalization golden slice
 
 `presentation.json` is the shared authoring fixture for the Phase 5
-Personalization Hub gate. Its schema V2 profile covers branding, responsive
+Personalization Hub gate. Its schema V3 profile covers branding, responsive
 intro and title motion metadata, menu labels, typography roles and licensing
-evidence, plus semantic theme tokens for the title, dialogue, menu, overworld
-HUD and battle HUD.
+evidence, semantic theme tokens, and the authored geometry of Pause and
+Dialogue windows.
 
 The editor gate validates and previews this project-owned contract before
 export, then verifies its package projection and assets. The Hub gate resolves

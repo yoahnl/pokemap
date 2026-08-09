@@ -157,6 +157,15 @@ void main() {
         artifact.manifest.presentation?.theme?.titleSurface,
         profile.theme?.titleSurface,
       );
+      expect(artifact.manifest.presentation?.schemaVersion, 3);
+      expect(
+        artifact.manifest.presentation?.windows?.pauseMenuStyleId,
+        profile.windows?.pauseMenuStyleId,
+      );
+      expect(
+        artifact.manifest.presentation?.windows?.pauseBackdropOpacity,
+        profile.windows?.pauseBackdropOpacity,
+      );
     },
   );
 }

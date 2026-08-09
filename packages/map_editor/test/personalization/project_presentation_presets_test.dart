@@ -98,6 +98,17 @@ void main() {
     expect(comparison.changedPaths, contains(r'$.titleMotion'));
   });
 
+  test('comparison detects authored window changes', () {
+    const baseline = ProjectPresentationProfile();
+    const current = ProjectPresentationProfile(
+      windows: legacyProjectPresentationWindows,
+    );
+
+    final comparison = compareProjectPresentation(baseline, current);
+
+    expect(comparison.changedPaths, contains(r'$.windows'));
+  });
+
   test('branding preset replaces branding and title motion together', () {
     const preset = ProjectPresentationPreset(
       id: 'animated-branding',
@@ -159,6 +170,7 @@ void main() {
       profile: ProjectPresentationProfile(
         theme: safeProjectSemanticTheme,
         menuLabels: _menuLabels,
+        windows: legacyProjectPresentationWindows,
       ),
       categories: <ProjectPresentationCategory>{
         ProjectPresentationCategory.theme,
@@ -173,6 +185,7 @@ void main() {
 
     expect(updated.theme, safeProjectSemanticTheme);
     expect(updated.menuLabels, _menuLabels);
+    expect(updated.windows, legacyProjectPresentationWindows);
     expect(
       updated.branding,
       const ProjectBrandingProfile(layoutVariant: 'cinematic'),
@@ -186,6 +199,7 @@ void main() {
       titleMotion: _titleMotion,
       theme: safeProjectSemanticTheme,
       menuLabels: _menuLabels,
+      windows: legacyProjectPresentationWindows,
     );
 
     final updated = resetProjectPresentationCategory(
@@ -195,6 +209,7 @@ void main() {
 
     expect(updated.theme, isNull);
     expect(updated.menuLabels, isNull);
+    expect(updated.windows, isNull);
     expect(
       updated.branding,
       const ProjectBrandingProfile(layoutVariant: 'cinematic'),

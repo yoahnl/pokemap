@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -64,6 +65,45 @@ void main() {
       'Aube Dialogue',
     );
   });
+
+  testWidgets('dialogue consumes its authored window geometry', (tester) async {
+    final windows = legacyProjectPresentationWindows.copyWith(
+      styles: legacyProjectPresentationWindows.styles
+          .map(
+            (style) => style.id == 'dialogue'
+                ? style.copyWith(
+                    cornerRadius: 8,
+                    contentPadding: 12,
+                    shadowElevation: 3,
+                  )
+                : style,
+          )
+          .toList(growable: false),
+    );
+    await _pump(
+      tester,
+      snapshot: _lineSnapshot(),
+      windows: windows,
+      onCommand: (_) {},
+    );
+
+    final material = tester.widget<Material>(
+      find.descendant(
+        of: find.byType(PlayerPanel),
+        matching: find.byType(Material),
+      ),
+    );
+    final shape = material.shape! as RoundedRectangleBorder;
+    final padding = tester.widget<Padding>(
+      find.descendant(
+        of: find.byType(PlayerPanel),
+        matching: find.byType(Padding),
+      ),
+    );
+    expect(shape.borderRadius, BorderRadius.circular(8));
+    expect(material.elevation, 3);
+    expect(padding.padding, const EdgeInsets.all(12));
+  });
 }
 
 Future<void> _pump(
@@ -72,13 +112,17 @@ Future<void> _pump(
   required ValueChanged<DialoguePresentationCommand> onCommand,
   TextScaler textScaler = TextScaler.noScaling,
   PokeMapPlayerTypography? typography,
+  ProjectPresentationWindowsProfile? windows,
 }) {
-  final theme = typography == null
+  var theme = typography == null
       ? PokeMapPlayerTheme.dark()
       : PokeMapPlayerTheme.withTypography(
           PokeMapPlayerTheme.dark(),
           typography,
         );
+  if (windows != null) {
+    theme = PokeMapPlayerTheme.withWindowProfile(theme, windows);
+  }
   return tester.pumpWidget(
     MaterialApp(
       theme: theme,

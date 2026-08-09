@@ -132,6 +132,7 @@ final class GamePackagePresentation {
     this.typography,
     this.theme,
     this.menuLabels,
+    this.windows,
   });
 
   final int schemaVersion;
@@ -141,6 +142,7 @@ final class GamePackagePresentation {
   final GamePackageTypography? typography;
   final GamePackageSemanticTheme? theme;
   final GamePackageMenuLabels? menuLabels;
+  final GamePackagePresentationWindows? windows;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
@@ -151,6 +153,61 @@ final class GamePackagePresentation {
         if (typography != null) 'typography': typography!.toJson(),
         if (theme != null) 'theme': theme!.toJson(),
         if (menuLabels != null) 'menuLabels': menuLabels!.toJson(),
+        if (schemaVersion >= 3 && windows != null) 'windows': windows!.toJson(),
+      };
+}
+
+final class GamePackageWindowStyle {
+  const GamePackageWindowStyle({
+    required this.id,
+    required this.fillToken,
+    required this.borderToken,
+    required this.borderWidth,
+    required this.cornerRadius,
+    required this.contentPadding,
+    required this.shadowElevation,
+  });
+
+  final String id;
+  final String fillToken;
+  final String borderToken;
+  final int borderWidth;
+  final int cornerRadius;
+  final int contentPadding;
+  final int shadowElevation;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'id': id,
+        'fillToken': fillToken,
+        'borderToken': borderToken,
+        'borderWidth': borderWidth,
+        'cornerRadius': cornerRadius,
+        'contentPadding': contentPadding,
+        'shadowElevation': shadowElevation,
+      };
+}
+
+final class GamePackagePresentationWindows {
+  GamePackagePresentationWindows({
+    required Iterable<GamePackageWindowStyle> styles,
+    required this.defaultStyleId,
+    required this.pauseMenuStyleId,
+    required this.dialogueStyleId,
+    required this.pauseBackdropOpacity,
+  }) : styles = List<GamePackageWindowStyle>.unmodifiable(styles);
+
+  final List<GamePackageWindowStyle> styles;
+  final String defaultStyleId;
+  final String pauseMenuStyleId;
+  final String dialogueStyleId;
+  final double pauseBackdropOpacity;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'styles': <Object?>[for (final style in styles) style.toJson()],
+        'defaultStyleId': defaultStyleId,
+        'pauseMenuStyleId': pauseMenuStyleId,
+        'dialogueStyleId': dialogueStyleId,
+        'pauseBackdropOpacityPermille': (pauseBackdropOpacity * 1000).round(),
       };
 }
 

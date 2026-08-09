@@ -842,8 +842,22 @@ void main() {
     final editPrimary = find.byKey(
       const ValueKey<String>('theme-edit-primary'),
     );
-    await tester.ensureVisible(editPrimary);
-    await tester.tap(editPrimary);
+    final detailScrollable = find
+        .descendant(
+          of: find.byKey(
+            const ValueKey<String>('personalization-category-detail-theme'),
+          ),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      editPrimary,
+      500,
+      scrollable: detailScrollable,
+    );
+    await tester.pumpAndSettle();
+    expect(editPrimary.hitTestable(), findsOneWidget);
+    await tester.tap(editPrimary.hitTestable());
     await tester.pumpAndSettle();
 
     expect(

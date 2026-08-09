@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/package_asset_port.dart';
@@ -37,6 +38,11 @@ void main() {
     expect(profile?.theme?.titleSurface, '#D9F4F6');
     expect(profile?.menuLabels?.pauseTitle, 'Interlude');
     expect(profile?.menuLabels?.pokedex, 'Carnet');
+    expect(
+      profile?.windows?.resolve(ProjectWindowRole.pauseMenu).cornerRadius,
+      24,
+    );
+    expect(profile?.windows?.pauseBackdropOpacity, .8);
     expect(resolvedVideo?.resolvedUri, video.uri);
     expect(resolvedVideo?.mediaType, 'video/mp4');
     expect(resolvedPoster?.resolvedUri, poster.uri);
@@ -105,14 +111,15 @@ final _manifest = GamePackageManifest(
     defaultLocale: 'fr',
     supported: const <String>['fr'],
   ),
-  presentation: const GamePackagePresentation(
-    branding: GamePackageBranding(
+  presentation: GamePackagePresentation(
+    schemaVersion: 3,
+    branding: const GamePackageBranding(
       icon: 'presentation/icon.png',
       hero: 'presentation/hero.png',
       titleMusic: 'presentation/title.ogg',
       layoutVariant: 'cinematic',
     ),
-    intro: GamePackageIntroVideo(
+    intro: const GamePackageIntroVideo(
       video: 'presentation/intro/video.mp4',
       poster: 'presentation/intro/poster.png',
       durationMilliseconds: 1200,
@@ -125,14 +132,14 @@ final _manifest = GamePackageManifest(
       reducedMotionBehavior: 'poster',
       allowReplay: true,
     ),
-    typography: GamePackageTypography(
+    typography: const GamePackageTypography(
       display: GamePackageFontRole(
         font: 'presentation/display.ttf',
         family: 'Train Display',
         fallbackFamilies: <String>['serif'],
       ),
     ),
-    theme: GamePackageSemanticTheme(
+    theme: const GamePackageSemanticTheme(
       primary: '#003A44',
       onPrimary: '#FFFFFF',
       background: '#F4F7FB',
@@ -150,9 +157,44 @@ final _manifest = GamePackageManifest(
       overworldHudSurface: '#FFFFFF',
       battleHudSurface: '#FFFFFF',
     ),
-    menuLabels: GamePackageMenuLabels(
+    menuLabels: const GamePackageMenuLabels(
       pauseTitle: 'Interlude',
       pokedex: 'Carnet',
+    ),
+    windows: GamePackagePresentationWindows(
+      styles: const <GamePackageWindowStyle>[
+        GamePackageWindowStyle(
+          id: 'default',
+          fillToken: 'surface',
+          borderToken: 'outline',
+          borderWidth: 1,
+          cornerRadius: 16,
+          contentPadding: 24,
+          shadowElevation: 8,
+        ),
+        GamePackageWindowStyle(
+          id: 'pause-menu',
+          fillToken: 'menuSurface',
+          borderToken: 'primary',
+          borderWidth: 2,
+          cornerRadius: 24,
+          contentPadding: 20,
+          shadowElevation: 12,
+        ),
+        GamePackageWindowStyle(
+          id: 'dialogue',
+          fillToken: 'dialogueSurface',
+          borderToken: 'outline',
+          borderWidth: 1,
+          cornerRadius: 8,
+          contentPadding: 12,
+          shadowElevation: 4,
+        ),
+      ],
+      defaultStyleId: 'default',
+      pauseMenuStyleId: 'pause-menu',
+      dialogueStyleId: 'dialogue',
+      pauseBackdropOpacity: .8,
     ),
   ),
   content: GamePackageContent(

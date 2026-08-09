@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
+
+import 'pokemap_player_window_theme.dart';
 
 abstract final class PokeMapPlayerProjectColorResolver {
   static Color? tryHex(String? source) {
@@ -588,6 +591,17 @@ abstract final class PokeMapPlayerTheme {
         indicatorColor: colors.primary.withValues(alpha: 0.18),
       ),
     );
+  }
+
+  static ThemeData withWindowProfile(
+    ThemeData theme,
+    ProjectPresentationWindowsProfile windows,
+  ) {
+    final extensions = theme.extensions.values
+        .where((extension) => extension is! PokeMapPlayerWindowTheme)
+        .toList(growable: true)
+      ..add(PokeMapPlayerWindowTheme(windows));
+    return theme.copyWith(extensions: extensions);
   }
 
   static ThemeData _theme({

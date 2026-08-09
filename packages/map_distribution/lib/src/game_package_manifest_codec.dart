@@ -3,7 +3,10 @@ import 'dart:typed_data';
 
 import 'package:map_core/map_core.dart'
     show
+        ProjectPresentationProfile,
+        ProjectPresentationWindowsProfile,
         ProjectSemanticThemeProfile,
+        ProjectWindowStyleProfile,
         projectIntroVideoMaxBitrateKbps,
         projectIntroVideoMaxDurationMilliseconds,
         projectIntroVideoMaxHeight,
@@ -12,6 +15,7 @@ import 'package:map_core/map_core.dart'
         projectTitleLoopMaxDurationMilliseconds,
         projectTitleLoopMaxSizeBytes,
         projectTitleMotionMaxSizeBytes,
+        validateProjectPresentationProfile,
         validateProjectSemanticTheme;
 import 'package:pub_semver/pub_semver.dart';
 
@@ -478,15 +482,16 @@ final class GamePackageManifestCodec {
         'typography',
         'theme',
         'menuLabels',
+        'windows',
       },
     );
     final schemaVersion =
         _integer(json['schemaVersion'], '$path.schemaVersion');
-    if (schemaVersion != 1 && schemaVersion != 2) {
+    if (schemaVersion != 1 && schemaVersion != 2 && schemaVersion != 3) {
       _fail(
         'presentationVersionUnsupported',
         '$path.schemaVersion',
-        'Only presentation schema versions 1 and 2 are supported.',
+        'Only presentation schema versions 1, 2 and 3 are supported.',
       );
     }
     if (schemaVersion == 1 && json.containsKey('titleMotion')) {
@@ -501,6 +506,13 @@ final class GamePackageManifestCodec {
         'presentationVersionUnsupported',
         '$path.menuLabels',
         'Menu label overrides require presentation schema version 2.',
+      );
+    }
+    if (schemaVersion < 3 && json.containsKey('windows')) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.windows',
+        'Window styles require presentation schema version 3.',
       );
     }
     return GamePackagePresentation(
@@ -528,6 +540,127 @@ final class GamePackageManifestCodec {
       menuLabels: json.containsKey('menuLabels')
           ? _menuLabels(json['menuLabels'], path: '$path.menuLabels')
           : null,
+      windows: json.containsKey('windows')
+          ? _windows(json['windows'], path: '$path.windows')
+          : null,
+    );
+  }
+
+  GamePackagePresentationWindows _windows(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{
+        'styles',
+        'defaultStyleId',
+        'pauseMenuStyleId',
+        'dialogueStyleId',
+        'pauseBackdropOpacityPermille',
+      },
+      optional: const <String>{},
+    );
+    final styles = <GamePackageWindowStyle>[];
+    final projectStyles = <ProjectWindowStyleProfile>[];
+    final rawStyles = _list(json['styles'], '$path.styles');
+    for (var index = 0; index < rawStyles.length; index++) {
+      final stylePath = '$path.styles[$index]';
+      final styleJson = _object(
+        rawStyles[index],
+        stylePath,
+        required: const <String>{
+          'id',
+          'fillToken',
+          'borderToken',
+          'borderWidth',
+          'cornerRadius',
+          'contentPadding',
+          'shadowElevation',
+        },
+        optional: const <String>{},
+      );
+      final style = GamePackageWindowStyle(
+        id: _string(styleJson['id'], '$stylePath.id'),
+        fillToken: _string(
+          styleJson['fillToken'],
+          '$stylePath.fillToken',
+        ),
+        borderToken: _string(
+          styleJson['borderToken'],
+          '$stylePath.borderToken',
+        ),
+        borderWidth: _integer(
+          styleJson['borderWidth'],
+          '$stylePath.borderWidth',
+        ),
+        cornerRadius: _integer(
+          styleJson['cornerRadius'],
+          '$stylePath.cornerRadius',
+        ),
+        contentPadding: _integer(
+          styleJson['contentPadding'],
+          '$stylePath.contentPadding',
+        ),
+        shadowElevation: _integer(
+          styleJson['shadowElevation'],
+          '$stylePath.shadowElevation',
+        ),
+      );
+      styles.add(style);
+      projectStyles.add(
+        ProjectWindowStyleProfile(
+          id: style.id,
+          fillToken: style.fillToken,
+          borderToken: style.borderToken,
+          borderWidth: style.borderWidth,
+          cornerRadius: style.cornerRadius,
+          contentPadding: style.contentPadding,
+          shadowElevation: style.shadowElevation,
+        ),
+      );
+    }
+    final defaultStyleId = _string(
+      json['defaultStyleId'],
+      '$path.defaultStyleId',
+    );
+    final pauseMenuStyleId = _string(
+      json['pauseMenuStyleId'],
+      '$path.pauseMenuStyleId',
+    );
+    final dialogueStyleId = _string(
+      json['dialogueStyleId'],
+      '$path.dialogueStyleId',
+    );
+    final pauseBackdropOpacity = _integer(
+          json['pauseBackdropOpacityPermille'],
+          '$path.pauseBackdropOpacityPermille',
+        ) /
+        1000;
+    final projectWindows = ProjectPresentationWindowsProfile(
+      styles: projectStyles,
+      defaultStyleId: defaultStyleId,
+      pauseMenuStyleId: pauseMenuStyleId,
+      dialogueStyleId: dialogueStyleId,
+      pauseBackdropOpacity: pauseBackdropOpacity,
+    );
+    final diagnostic = validateProjectPresentationProfile(
+      ProjectPresentationProfile(windows: projectWindows),
+    ).firstOrNull;
+    if (diagnostic != null) {
+      _fail(
+        'invalidWindowStyle',
+        diagnostic.path.replaceFirst(r'$.presentation.windows', path),
+        diagnostic.message,
+      );
+    }
+    return GamePackagePresentationWindows(
+      styles: styles,
+      defaultStyleId: defaultStyleId,
+      pauseMenuStyleId: pauseMenuStyleId,
+      dialogueStyleId: dialogueStyleId,
+      pauseBackdropOpacity: pauseBackdropOpacity,
     );
   }
 
@@ -585,7 +718,7 @@ final class GamePackageManifestCodec {
     required String path,
     required int schemaVersion,
   }) {
-    if (schemaVersion == 2) {
+    if (schemaVersion >= 2) {
       final json = _object(
         value,
         path,

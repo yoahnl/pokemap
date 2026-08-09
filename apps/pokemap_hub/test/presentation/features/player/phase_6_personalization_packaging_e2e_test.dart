@@ -173,6 +173,12 @@ void main() {
         'Aube Display',
       );
       expect(presentation.semanticTheme, isNotNull);
+      expect(
+        presentation.windowProfile
+            ?.resolve(ProjectWindowRole.pauseMenu)
+            .cornerRadius,
+        24,
+      );
       expect(unavailableAssets, isEmpty);
 
       final introSequence =
@@ -282,6 +288,7 @@ void main() {
             'displayFontFamily':
                 presentation.typography.displayFamily,
             'semanticThemeAvailable': presentation.semanticTheme != null,
+            'windowThemeAvailable': presentation.windowProfile != null,
             'unavailableAssets': unavailableAssets,
           },
           'flow': <String, Object?>{
@@ -437,6 +444,7 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
       supported: const <String>['fr', 'en'],
     ),
     presentation: GamePackagePresentation(
+      schemaVersion: 3,
       branding: GamePackageBranding(
         icon: 'presentation/icon.png',
         accentColor: profile.branding.accentColor,
@@ -475,6 +483,7 @@ GamePackageManifest _manifest(ProjectPresentationProfile profile) {
         ),
       ),
       theme: _packageTheme(profile.theme!),
+      windows: _packageWindows(profile.windows!),
     ),
     content: GamePackageContent(
       fileCount: 0,
@@ -504,6 +513,27 @@ GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
       overworldHudSurface: theme.overworldHudSurface,
       battleHudSurface: theme.battleHudSurface,
     );
+
+GamePackagePresentationWindows _packageWindows(
+  ProjectPresentationWindowsProfile windows,
+) => GamePackagePresentationWindows(
+  styles: <GamePackageWindowStyle>[
+    for (final style in windows.styles)
+      GamePackageWindowStyle(
+        id: style.id,
+        fillToken: style.fillToken,
+        borderToken: style.borderToken,
+        borderWidth: style.borderWidth,
+        cornerRadius: style.cornerRadius,
+        contentPadding: style.contentPadding,
+        shadowElevation: style.shadowElevation,
+      ),
+  ],
+  defaultStyleId: windows.defaultStyleId,
+  pauseMenuStyleId: windows.pauseMenuStyleId,
+  dialogueStyleId: windows.dialogueStyleId,
+  pauseBackdropOpacity: windows.pauseBackdropOpacity,
+);
 
 RuntimeLoadedTypography _loadedTypography(ProjectTypographyProfile source) =>
     RuntimeLoadedTypography(

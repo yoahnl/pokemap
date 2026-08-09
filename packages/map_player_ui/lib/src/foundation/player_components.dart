@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:map_core/map_core.dart';
 
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import '../theme/pokemap_player_window_theme.dart';
 
 class PlayerSurface extends StatelessWidget {
   const PlayerSurface({
@@ -50,6 +52,15 @@ class PlayerPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.playerColors;
     final semantic = context.playerSemanticTheme;
+    final windowTheme = context.playerWindowTheme;
+    final windowRole = switch (role) {
+      PlayerPanelRole.dialogue => ProjectWindowRole.dialogue,
+      PlayerPanelRole.menu => ProjectWindowRole.pauseMenu,
+      _ => null,
+    };
+    final windowStyle = windowTheme == null || windowRole == null
+        ? null
+        : windowTheme.style(windowRole);
     final surface = switch (role) {
       PlayerPanelRole.standard =>
         elevated ? colors.surfaceElevated : colors.surface,
@@ -60,14 +71,35 @@ class PlayerPanel extends StatelessWidget {
       PlayerPanelRole.battleHud => semantic.battleHudSurface,
     };
     return Material(
-      color: surface,
-      elevation: elevated ? 8 : 0,
+      color: windowStyle == null
+          ? surface
+          : windowTheme!.resolveToken(windowStyle.fillToken, semantic),
+      elevation: windowStyle == null
+          ? (elevated ? 8 : 0)
+          : windowStyle.shadowElevation.toDouble(),
       shadowColor: Theme.of(context).colorScheme.shadow,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(PlayerRadii.md),
-        side: BorderSide(color: colors.outline),
+        borderRadius: BorderRadius.circular(
+          windowStyle?.cornerRadius.toDouble() ?? PlayerRadii.md,
+        ),
+        side: windowStyle?.borderWidth == 0
+            ? BorderSide.none
+            : BorderSide(
+                color: windowStyle == null
+                    ? colors.outline
+                    : windowTheme!.resolveToken(
+                        windowStyle.borderToken,
+                        semantic,
+                      ),
+                width: windowStyle?.borderWidth.toDouble() ?? 1,
+              ),
       ),
-      child: Padding(padding: padding, child: child),
+      child: Padding(
+        padding: windowStyle == null
+            ? padding
+            : EdgeInsets.all(windowStyle.contentPadding.toDouble()),
+        child: child,
+      ),
     );
   }
 }
