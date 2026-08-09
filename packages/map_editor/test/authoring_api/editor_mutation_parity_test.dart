@@ -118,6 +118,33 @@ void main() {
       expect(fixture.countingReader!.byteReads, 1);
     });
 
+    test('saves presentation menu labels through the canonical action',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final projectFile = File(p.join(fixture.root.path, 'project.json'));
+      final expectedProjectRevision = narrativeEventBytesFingerprint(
+        await projectFile.readAsBytes(),
+      );
+      const profile = ProjectPresentationProfile(
+        menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+      );
+
+      final result = await fixture.mutations.savePresentation(
+        profile,
+        fixture.root.path,
+        expectedProjectRevision: expectedProjectRevision,
+        operationId: 'editor_presentation_labels_01',
+      );
+
+      final durable = ProjectManifest.fromJson(
+        jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>,
+      );
+      expect(result.receipt.actionId, 'presentation.update');
+      expect(result.receipt.status, AuthoringReceiptStatus.applied);
+      expect(durable.presentation?.menuLabels?.pokedex, 'Carnet');
+    });
+
     test('plans without writing, applies once, and replays idempotently',
         () async {
       final fixture = await _MutationFixture.create();

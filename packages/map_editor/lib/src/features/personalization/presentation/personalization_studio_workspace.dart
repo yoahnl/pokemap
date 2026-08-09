@@ -27,6 +27,7 @@ import 'personalization_hub_shell.dart';
 import 'project_branding_editor.dart';
 import 'project_intro_video_editor.dart';
 import 'project_semantic_theme_editor.dart';
+import 'project_menu_labels_editor.dart';
 import 'project_theme_token_dialog.dart';
 import 'project_typography_editor.dart';
 
@@ -759,26 +760,44 @@ class _PersonalizationStudioWorkspaceState
       final theme = profile.theme ?? safeProjectSemanticTheme;
       return IgnorePointer(
         ignoring: !canEdit,
-        child: ProjectSemanticThemeEditor(
-          profile: theme,
-          onEditToken: (token) {
-            unawaited(
-              _editThemeToken(
-                context: context,
-                token: token,
-                profile: profile,
-                notifier: notifier,
-              ),
-            );
-          },
-          onUseSafeFallback: () {
-            unawaited(
-              notifier.applyPersonalizationStudioProfile(
-                profile.copyWith(theme: safeProjectSemanticTheme),
-                label: 'Appliquer la palette sûre',
-              ),
-            );
-          },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            ProjectMenuLabelsEditor(
+              profile: profile.menuLabels ??
+                  const ProjectMenuLabelsProfile(),
+              onChanged: (menuLabels) {
+                unawaited(
+                  notifier.applyPersonalizationStudioProfile(
+                    profile.copyWith(menuLabels: menuLabels),
+                    label: 'Modifier les libellés du menu Pause',
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+            ProjectSemanticThemeEditor(
+              profile: theme,
+              onEditToken: (token) {
+                unawaited(
+                  _editThemeToken(
+                    context: context,
+                    token: token,
+                    profile: profile,
+                    notifier: notifier,
+                  ),
+                );
+              },
+              onUseSafeFallback: () {
+                unawaited(
+                  notifier.applyPersonalizationStudioProfile(
+                    profile.copyWith(theme: safeProjectSemanticTheme),
+                    label: 'Appliquer la palette sûre',
+                  ),
+                );
+              },
+            ),
+          ],
         ),
       );
     }

@@ -25,6 +25,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
     this.logicalSelectionId,
     this.focusController,
     this.saveMessage,
+    this.labels = const PlayerPauseMenuLabels(),
   });
 
   final String gameTitle;
@@ -38,6 +39,7 @@ class RuntimePlayerPauseShell extends StatefulWidget {
   final String? logicalSelectionId;
   final RuntimePlayerFocusController? focusController;
   final String? saveMessage;
+  final PlayerPauseMenuLabels labels;
 
   @override
   State<RuntimePlayerPauseShell> createState() =>
@@ -330,6 +332,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
         ),
       ),
       focusController: _focusController,
+      labels: widget.labels,
     );
   }
 
@@ -358,7 +361,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
               child: Text(
                 hasDetail
                     ? _sectionLabel(context, widget.pauseSection)
-                    : context.playerL10n.pause,
+                    : widget.labels.title(context.playerL10n),
                 style: Theme.of(context).textTheme.titleLarge,
               ),
             ),
@@ -378,7 +381,7 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
                 ? widget.detail
                 : PlayerEmptyState(
                     icon: Icons.gamepad_rounded,
-                    title: context.playerL10n.pause,
+                    title: widget.labels.title(context.playerL10n),
                     message: context.playerL10n.actionUnavailable,
                   ),
           ),
@@ -438,12 +441,17 @@ class _RuntimePlayerPauseShellState extends State<RuntimePlayerPauseShell> {
   ) {
     final l10n = context.playerL10n;
     return switch (section) {
-      RuntimePlayerPauseSection.root => l10n.pause,
-      RuntimePlayerPauseSection.party => l10n.party,
-      RuntimePlayerPauseSection.bag => l10n.bag,
-      RuntimePlayerPauseSection.pokedex => l10n.pokedex,
-      RuntimePlayerPauseSection.map => l10n.map,
-      RuntimePlayerPauseSection.options => l10n.options,
+      RuntimePlayerPauseSection.root => widget.labels.title(l10n),
+      RuntimePlayerPauseSection.party =>
+        widget.labels.action(PlayerPauseAction.party, l10n),
+      RuntimePlayerPauseSection.bag =>
+        widget.labels.action(PlayerPauseAction.bag, l10n),
+      RuntimePlayerPauseSection.pokedex =>
+        widget.labels.action(PlayerPauseAction.pokedex, l10n),
+      RuntimePlayerPauseSection.map =>
+        widget.labels.action(PlayerPauseAction.map, l10n),
+      RuntimePlayerPauseSection.options =>
+        widget.labels.action(PlayerPauseAction.options, l10n),
     };
   }
 }

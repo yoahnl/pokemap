@@ -74,6 +74,25 @@ void main() {
       reason: 'Focus skips unavailable actions.',
     );
   });
+
+  testWidgets('project menu labels replace localized defaults', (tester) async {
+    await tester.pumpWidget(_app(
+      PlayerPauseMenu(
+        gameTitle: 'Aube',
+        actions: _actions(),
+        labels: const PlayerPauseMenuLabels(
+          pauseTitle: 'Interlude',
+          pokedex: 'Carnet',
+        ),
+        onSelected: (_) {},
+      ),
+    ));
+
+    expect(find.text('Interlude'), findsOneWidget);
+    expect(find.text('Carnet'), findsOneWidget);
+    expect(find.text('Pokédex'), findsNothing);
+    expect(find.text('Équipe'), findsOneWidget);
+  });
 }
 
 Map<PlayerPauseAction, PlayerActionAvailability> _actions() =>

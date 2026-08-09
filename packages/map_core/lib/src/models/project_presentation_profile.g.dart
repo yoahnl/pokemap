@@ -228,6 +228,34 @@ Map<String, dynamic> _$ProjectSemanticThemeProfileToJson(
   'battleHudSurface': instance.battleHudSurface,
 };
 
+_ProjectMenuLabelsProfile _$ProjectMenuLabelsProfileFromJson(
+  Map<String, dynamic> json,
+) => _ProjectMenuLabelsProfile(
+  pauseTitle: json['pauseTitle'] as String?,
+  resume: json['resume'] as String?,
+  party: json['party'] as String?,
+  bag: json['bag'] as String?,
+  pokedex: json['pokedex'] as String?,
+  map: json['map'] as String?,
+  save: json['save'] as String?,
+  options: json['options'] as String?,
+  returnToTitle: json['returnToTitle'] as String?,
+);
+
+Map<String, dynamic> _$ProjectMenuLabelsProfileToJson(
+  _ProjectMenuLabelsProfile instance,
+) => <String, dynamic>{
+  'pauseTitle': ?instance.pauseTitle,
+  'resume': ?instance.resume,
+  'party': ?instance.party,
+  'bag': ?instance.bag,
+  'pokedex': ?instance.pokedex,
+  'map': ?instance.map,
+  'save': ?instance.save,
+  'options': ?instance.options,
+  'returnToTitle': ?instance.returnToTitle,
+};
+
 _ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
   Map<String, dynamic> json,
 ) => _ProjectPresentationProfile(
@@ -259,6 +287,11 @@ _ProjectPresentationProfile _$ProjectPresentationProfileFromJson(
       : ProjectSemanticThemeProfile.fromJson(
           json['theme'] as Map<String, dynamic>,
         ),
+  menuLabels: json['menuLabels'] == null
+      ? null
+      : ProjectMenuLabelsProfile.fromJson(
+          json['menuLabels'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$ProjectPresentationProfileToJson(
@@ -270,4 +303,5 @@ Map<String, dynamic> _$ProjectPresentationProfileToJson(
   'titleMotion': ?instance.titleMotion?.toJson(),
   'typography': ?instance.typography?.toJson(),
   'theme': ?instance.theme?.toJson(),
+  'menuLabels': ?instance.menuLabels?.toJson(),
 };

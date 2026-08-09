@@ -199,6 +199,28 @@ void main() {
     );
     expect(resumeCalls, 1);
   });
+
+  testWidgets('project labels apply to navigation and detail titles',
+      (tester) async {
+    await _setSurface(tester, const Size(1280, 800));
+
+    await tester.pumpWidget(_app(RuntimePlayerPauseShell(
+      gameTitle: 'Aube',
+      pauseSection: RuntimePlayerPauseSection.pokedex,
+      actions: _actions(),
+      labels: const PlayerPauseMenuLabels(
+        pauseTitle: 'Interlude',
+        pokedex: 'Carnet',
+      ),
+      onSelected: (_) {},
+      onBackToRoot: () {},
+      detail: const Text('DÉTAIL CARNET'),
+    )));
+
+    expect(find.text('Interlude'), findsOneWidget);
+    expect(find.text('Carnet'), findsNWidgets(2));
+    expect(find.text('Pokédex'), findsNothing);
+  });
 }
 
 Map<PlayerPauseAction, PlayerActionAvailability> _actions() =>

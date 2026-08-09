@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -116,6 +117,50 @@ void main() {
       expect(ids, containsAll({'presentation.update', 'presentation.delete'}));
     });
 
+    test('presentation.update carries project-owned menu labels', () {
+      const profile = ProjectPresentationProfile(
+        menuLabels: ProjectMenuLabelsProfile(
+          pauseTitle: 'Interlude',
+          pokedex: 'Carnet',
+        ),
+      );
+      final snapshot = _snapshot();
+      final request = AuthoringRequest(
+        requestId: 'request_presentation_labels',
+        actionId: 'presentation.update',
+        actionVersion: 1,
+        workspaceHandle: 'ws_test',
+        parameters: <String, Object?>{'profile': profile.toJson()},
+        expectedRevision: snapshot.revision,
+        idempotencyKey: 'presentation-labels',
+        dryRun: true,
+      );
+
+      final draft = const PresentationActions().build(
+        AuthoringPlanningContext(
+          snapshot: snapshot,
+          request: request,
+          planId: 'plan_presentation_labels',
+          seed: 42,
+        ),
+      );
+
+      expect(
+        draft.preview['profile'],
+        containsPair(
+          'menuLabels',
+          containsPair('pokedex', 'Carnet'),
+        ),
+      );
+      expect(
+        draft.changeSet.diff.entries.single.after,
+        containsPair(
+          'menuLabels',
+          containsPair('pauseTitle', 'Interlude'),
+        ),
+      );
+    });
+
     test('validates every authored responsive intro and title loop asset', () {
       final profile = _profile().copyWith(
         titleMotion: const ProjectTitleMotionProfile(
@@ -210,6 +255,30 @@ ProjectPresentationProfile _profile({ProjectBrandingProfile? branding}) =>
       ),
       theme: safeProjectSemanticTheme,
     );
+
+ProjectSnapshot _snapshot() {
+  final manifest = ProjectManifest(
+    name: 'Presentation fixture',
+    maps: const [],
+    tilesets: const [],
+  );
+  final bytes = utf8.encode(jsonEncode(manifest.toJson()));
+  final revision =
+      computeNarrativeProjectFingerprint(<NarrativeProjectFingerprintEntry>[
+    NarrativeProjectFingerprintEntry(
+      relativePath: 'project.json',
+      bytes: bytes,
+    ),
+  ]);
+  return ProjectSnapshot(
+    projectHandle: const ProjectHandle('prj_test'),
+    revision: revision,
+    manifest: manifest,
+    maps: const [],
+    resourceFingerprints: <String, String>{'project': revision},
+    resourceBytes: <String, List<int>>{'project': bytes},
+  );
+}
 
 AssetCatalog _catalog({
   bool includeLicense = false,

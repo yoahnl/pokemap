@@ -47,6 +47,7 @@ void main() {
           iconPath: 'assets/icon.png',
           accentColor: '#126E78',
         ),
+        menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
       ).toJson();
       await projectFile.writeAsString(jsonEncode(project), flush: true);
       const service = GamePackageExportService();
@@ -64,6 +65,7 @@ void main() {
       expect(first.manifest.usesLegacyBranding, isFalse);
       expect(first.manifest.branding?.icon, 'presentation/icon.png');
       expect(first.manifest.branding?.accentColor, '#126E78');
+      expect(first.manifest.presentation?.menuLabels?.pokedex, 'Carnet');
       expect(
         first.manifest.compatibility.requiredCapabilities,
         contains('map@1'),

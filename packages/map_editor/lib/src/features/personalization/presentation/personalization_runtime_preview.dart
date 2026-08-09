@@ -23,12 +23,14 @@ class PersonalizationRuntimePreview extends StatefulWidget {
     required this.projectName,
     required this.projectRootPath,
     this.baselineProfile,
+    this.initialSurface = PersonalizationPreviewSurface.title,
   });
 
   final ProjectPresentationProfile profile;
   final ProjectPresentationProfile? baselineProfile;
   final String projectName;
   final String projectRootPath;
+  final PersonalizationPreviewSurface initialSurface;
 
   @override
   State<PersonalizationRuntimePreview> createState() =>
@@ -37,17 +39,33 @@ class PersonalizationRuntimePreview extends StatefulWidget {
 
 class _PersonalizationRuntimePreviewState
     extends State<PersonalizationRuntimePreview> {
-  PersonalizationPreviewSurface _surface = PersonalizationPreviewSurface.title;
+  late PersonalizationPreviewSurface _surface;
   PersonalizationPreviewSimulation _simulation =
       const PersonalizationPreviewSimulation();
   bool _comparisonEnabled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _surface = widget.initialSurface;
+  }
+
+  @override
+  void didUpdateWidget(covariant PersonalizationRuntimePreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialSurface != widget.initialSurface) {
+      _surface = widget.initialSurface;
+      _comparisonEnabled = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final projection = PersonalizationPreviewProjection(widget.profile);
     final surfaceProjection = projection.surface(_surface);
     final baseline = widget.baselineProfile;
-    final canCompare = baseline != null &&
+    final canCompare =
+        baseline != null &&
         !compareProjectPresentation(baseline, widget.profile).isIdentical;
     final showComparison = canCompare && _comparisonEnabled;
     return PokeMapPanel(
@@ -182,41 +200,43 @@ class _PersonalizationRuntimePreviewState
     final aspectRatio = _simulation.viewport.aspectRatio;
     return switch (surface) {
       PersonalizationPreviewSurface.intro => _IntroRuntimePreview(
-          profile: profile.intro,
-          projectRootPath: widget.projectRootPath,
-          theme: theme,
-          aspectRatio: aspectRatio,
-          simulateReducedMotion: _simulation.reducedMotion,
-        ),
+        profile: profile.intro,
+        projectRootPath: widget.projectRootPath,
+        theme: theme,
+        aspectRatio: aspectRatio,
+        simulateReducedMotion: _simulation.reducedMotion,
+      ),
       PersonalizationPreviewSurface.title => ProjectBrandingTitlePreview(
-          key: const ValueKey<String>('personalization-title-composition'),
-          projectName: widget.projectName,
-          projectRootPath: widget.projectRootPath,
-          branding: profile.branding,
-          theme: theme,
-          typography: profile.typography,
-          aspectRatio: aspectRatio,
-        ),
+        key: const ValueKey<String>('personalization-title-composition'),
+        projectName: widget.projectName,
+        projectRootPath: widget.projectRootPath,
+        branding: profile.branding,
+        theme: theme,
+        typography: profile.typography,
+        aspectRatio: aspectRatio,
+      ),
       PersonalizationPreviewSurface.dialogue => _DialogueRuntimePreview(
-          projection: projection,
-          theme: theme,
-          aspectRatio: aspectRatio,
-        ),
+        projection: projection,
+        theme: theme,
+        aspectRatio: aspectRatio,
+      ),
       PersonalizationPreviewSurface.menu => _MenuRuntimePreview(
-          projection: projection,
-          theme: theme,
-          aspectRatio: aspectRatio,
-        ),
+        projection: projection,
+        theme: theme,
+        labels: profile.menuLabels,
+        projectName: widget.projectName,
+        aspectRatio: aspectRatio,
+      ),
       PersonalizationPreviewSurface.overworldHud => _OverworldHudRuntimePreview(
-          projection: projection,
-          theme: theme,
-          aspectRatio: aspectRatio,
-        ),
+        projection: projection,
+        theme: theme,
+        aspectRatio: aspectRatio,
+      ),
       PersonalizationPreviewSurface.battleHud => _BattleHudRuntimePreview(
-          projection: projection,
-          theme: theme,
-          aspectRatio: aspectRatio,
-        ),
+        projection: projection,
+        theme: theme,
+        aspectRatio: aspectRatio,
+      ),
     };
   }
 }
@@ -265,9 +285,8 @@ class _PreviewSimulationControls extends StatelessWidget {
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
                   isSelected: simulation.viewport == viewport,
-                  onPressed: () => onChanged(
-                    simulation.copyWith(viewport: viewport),
-                  ),
+                  onPressed: () =>
+                      onChanged(simulation.copyWith(viewport: viewport)),
                   leading: Icon(_viewportIcon(viewport)),
                   child: Text(_viewportLabel(viewport)),
                 ),
@@ -279,9 +298,8 @@ class _PreviewSimulationControls extends StatelessWidget {
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
                   isSelected: simulation.textScale == entry.$2,
-                  onPressed: () => onChanged(
-                    simulation.copyWith(textScale: entry.$2),
-                  ),
+                  onPressed: () =>
+                      onChanged(simulation.copyWith(textScale: entry.$2)),
                   child: Text('${entry.$1} %'),
                 ),
               PokeMapButton(
@@ -292,9 +310,7 @@ class _PreviewSimulationControls extends StatelessWidget {
                 variant: PokeMapButtonVariant.secondary,
                 isSelected: simulation.reducedMotion,
                 onPressed: () => onChanged(
-                  simulation.copyWith(
-                    reducedMotion: !simulation.reducedMotion,
-                  ),
+                  simulation.copyWith(reducedMotion: !simulation.reducedMotion),
                 ),
                 leading: const Icon(Icons.motion_photos_off_outlined),
                 child: const Text('Mouvement réduit'),
@@ -371,11 +387,7 @@ class _ComparisonPreview extends StatelessWidget {
 }
 
 class _LabeledPreview extends StatelessWidget {
-  const _LabeledPreview({
-    super.key,
-    required this.label,
-    required this.child,
-  });
+  const _LabeledPreview({super.key, required this.label, required this.child});
 
   final String label;
   final Widget child;
@@ -387,10 +399,7 @@ class _LabeledPreview extends StatelessWidget {
       children: <Widget>[
         Align(
           alignment: Alignment.centerLeft,
-          child: PokeMapBadge(
-            label: label,
-            variant: PokeMapBadgeVariant.info,
-          ),
+          child: PokeMapBadge(label: label, variant: PokeMapBadgeVariant.info),
         ),
         const SizedBox(height: 8),
         child,
@@ -414,14 +423,8 @@ class _DialogueRuntimePreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final background = _previewColor(theme.background, colors.surfaceSubtle);
-    final surface = _previewColor(
-      projection.backgroundHex,
-      colors.surfaceBase,
-    );
-    final foreground = _previewColor(
-      projection.textHex,
-      colors.textPrimary,
-    );
+    final surface = _previewColor(projection.backgroundHex, colors.surfaceBase);
+    final foreground = _previewColor(projection.textHex, colors.textPrimary);
     final secondary = _previewColor(theme.textSecondary, colors.textSecondary);
     final outline = _previewColor(theme.outline, colors.borderStrong);
     final primary = _previewColor(theme.primary, colors.brandPrimary);
@@ -464,10 +467,7 @@ class _DialogueRuntimePreview extends StatelessWidget {
                     ),
                     child: Icon(
                       Icons.person_outline,
-                      color: _previewColor(
-                        theme.onPrimary,
-                        colors.textInverse,
-                      ),
+                      color: _previewColor(theme.onPrimary, colors.textInverse),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -518,11 +518,15 @@ class _MenuRuntimePreview extends StatelessWidget {
   const _MenuRuntimePreview({
     required this.projection,
     required this.theme,
+    required this.labels,
+    required this.projectName,
     required this.aspectRatio,
   });
 
   final PersonalizationPreviewSurfaceProjection projection;
   final ProjectSemanticThemeProfile theme;
+  final ProjectMenuLabelsProfile? labels;
+  final String projectName;
   final double aspectRatio;
 
   @override
@@ -532,107 +536,190 @@ class _MenuRuntimePreview extends StatelessWidget {
       projection.backgroundHex,
       colors.surfaceSubtle,
     );
-    final foreground = _previewColor(
-      projection.textHex,
-      colors.textPrimary,
-    );
+    final foreground = _previewColor(projection.textHex, colors.textPrimary);
     final secondary = _previewColor(theme.textSecondary, colors.textSecondary);
-    final elevated = _previewColor(
-      theme.surfaceElevated,
-      colors.surfaceRaised,
-    );
+    final elevated = _previewColor(theme.surfaceElevated, colors.surfaceRaised);
     final primary = _previewColor(theme.primary, colors.brandPrimary);
+    final onPrimary = _previewColor(theme.onPrimary, colors.textInverse);
     final outline = _previewColor(theme.outline, colors.borderStrong);
 
-    const entries = <(IconData, String)>[
-      (Icons.catching_pokemon_outlined, 'ÉQUIPE'),
-      (Icons.backpack_outlined, 'SAC'),
-      (Icons.map_outlined, 'CARTE'),
-      (Icons.settings_outlined, 'OPTIONS'),
+    final entries = <(IconData, String)>[
+      (Icons.play_arrow_rounded, labels?.resume ?? 'Reprendre'),
+      (Icons.groups_rounded, labels?.party ?? 'Équipe'),
+      (Icons.backpack_rounded, labels?.bag ?? 'Sac'),
+      (Icons.menu_book_rounded, labels?.pokedex ?? 'Pokédex'),
+      (Icons.map_rounded, labels?.map ?? 'Carte'),
+      (Icons.save_rounded, labels?.save ?? 'Sauvegarder'),
+      (Icons.tune_rounded, labels?.options ?? 'Options'),
+      (Icons.logout_rounded, labels?.returnToTitle ?? 'Retour au titre'),
     ];
     return _RuntimeFrame(
       key: const ValueKey<String>('personalization-menu-composition'),
       background: background,
       aspectRatio: aspectRatio,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final navigation = _PausePreviewNavigation(
+            title: labels?.pauseTitle ?? 'Pause',
+            projectName: projectName,
+            entries: entries,
+            background: primary,
+            headingForeground: foreground,
+            foreground: onPrimary,
+            outline: outline,
+            fontFamily: projection.fontFamily,
+          );
+          if (aspectRatio < 1.3) {
+            return Padding(
+              padding: const EdgeInsets.all(14),
+              child: navigation,
+            );
+          }
+          return Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: <Widget>[
-                Icon(Icons.menu_book_outlined, color: primary),
-                const SizedBox(width: 8),
-                Text(
-                  'MENU',
-                  style: TextStyle(
-                    color: foreground,
-                    fontFamily: projection.fontFamily,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  '12:34',
-                  style: TextStyle(
-                    color: secondary,
-                    fontFamily: projection.fontFamily,
+                Expanded(flex: 4, child: navigation),
+                const SizedBox(width: 14),
+                Expanded(
+                  flex: 7,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: elevated,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: outline),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Icon(Icons.gamepad_rounded, color: secondary, size: 36),
+                        const SizedBox(height: 8),
+                        Text(
+                          labels?.pauseTitle ?? 'Pause',
+                          style: TextStyle(
+                            color: foreground,
+                            fontFamily: projection.fontFamily,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Sélectionnez une rubrique',
+                          style: TextStyle(
+                            color: secondary,
+                            fontFamily: projection.fontFamily,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            Expanded(
-              child: GridView.count(
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisCount: 2,
-                childAspectRatio: 3.2,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                children: <Widget>[
-                  for (var index = 0; index < entries.length; index++)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: elevated,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: index == 0 ? primary : outline,
-                          width: index == 0 ? 2 : 1,
-                        ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _PausePreviewNavigation extends StatelessWidget {
+  const _PausePreviewNavigation({
+    required this.title,
+    required this.projectName,
+    required this.entries,
+    required this.background,
+    required this.headingForeground,
+    required this.foreground,
+    required this.outline,
+    required this.fontFamily,
+  });
+
+  final String title;
+  final String projectName;
+  final List<(IconData, String)> entries;
+  final Color background;
+  final Color headingForeground;
+  final Color foreground;
+  final Color outline;
+  final String fontFamily;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Text(
+          title,
+          style: TextStyle(
+            color: headingForeground,
+            fontFamily: fontFamily,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        Text(
+          projectName,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: headingForeground,
+            fontFamily: fontFamily,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: Column(
+            children: <Widget>[
+              for (var index = 0; index < entries.length; index++) ...<Widget>[
+                Expanded(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: background,
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                        color: index == entries.length - 1
+                            ? outline
+                            : background,
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Icon(
-                            entries[index].$1,
-                            color: index == 0 ? primary : secondary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
+                    ),
+                    child: Row(
+                      children: <Widget>[
+                        const SizedBox(width: 10),
+                        Icon(entries[index].$1, color: foreground, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
                             entries[index].$2,
                             key: index == 0
                                 ? const ValueKey<String>(
                                     'personalization-menu-sample-text',
                                   )
                                 : null,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: foreground,
-                              fontFamily: projection.fontFamily,
+                              fontFamily: fontFamily,
                               fontWeight: FontWeight.w700,
-                              fontSize: 12,
+                              fontSize: 11,
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                     ),
-                ],
-              ),
-            ),
-          ],
+                  ),
+                ),
+                if (index != entries.length - 1) const SizedBox(height: 5),
+              ],
+            ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -652,22 +739,14 @@ class _OverworldHudRuntimePreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final world = _previewColor(theme.background, colors.surfaceSubtle);
-    final surface = _previewColor(
-      projection.backgroundHex,
-      colors.surfaceBase,
-    );
-    final foreground = _previewColor(
-      projection.textHex,
-      colors.textPrimary,
-    );
+    final surface = _previewColor(projection.backgroundHex, colors.surfaceBase);
+    final foreground = _previewColor(projection.textHex, colors.textPrimary);
     final secondary = _previewColor(theme.textSecondary, colors.textSecondary);
     final primary = _previewColor(theme.primary, colors.brandPrimary);
     final outline = _previewColor(theme.outline, colors.borderStrong);
 
     return _RuntimeFrame(
-      key: const ValueKey<String>(
-        'personalization-overworld-hud-composition',
-      ),
+      key: const ValueKey<String>('personalization-overworld-hud-composition'),
       background: world,
       aspectRatio: aspectRatio,
       child: Stack(
@@ -781,14 +860,8 @@ class _BattleHudRuntimePreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final arena = _previewColor(theme.background, colors.surfaceSubtle);
-    final surface = _previewColor(
-      projection.backgroundHex,
-      colors.surfaceBase,
-    );
-    final foreground = _previewColor(
-      projection.textHex,
-      colors.textPrimary,
-    );
+    final surface = _previewColor(projection.backgroundHex, colors.surfaceBase);
+    final foreground = _previewColor(projection.textHex, colors.textPrimary);
     final secondary = _previewColor(theme.textSecondary, colors.textSecondary);
     final outline = _previewColor(theme.outline, colors.borderStrong);
     final success = _previewColor(theme.success, colors.success);
@@ -1052,7 +1125,8 @@ class _IntroRuntimePreview extends StatelessWidget {
             right: 10,
             top: 10,
             child: PokeMapBadge(
-              label: 'Mouvement réduit : '
+              label:
+                  'Mouvement réduit : '
                   '${intro.reducedMotionBehavior == 'skip' ? 'passer' : 'poster'}',
               variant: PokeMapBadgeVariant.info,
             ),
@@ -1097,8 +1171,11 @@ class _ProjectIntroPoster extends StatelessWidget {
             ),
             color: background,
             child: Center(
-              child:
-                  Icon(Icons.play_circle_outline, color: foreground, size: 50),
+              child: Icon(
+                Icons.play_circle_outline,
+                color: foreground,
+                size: 50,
+              ),
             ),
           );
         }
@@ -1154,9 +1231,7 @@ class _RuntimeFrame extends StatelessWidget {
 Color _previewColor(String value, Color fallback) {
   final normalized = value.trim();
   if (!RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(normalized)) return fallback;
-  return Color(
-    0xff000000 | int.parse(normalized.substring(1), radix: 16),
-  );
+  return Color(0xff000000 | int.parse(normalized.substring(1), radix: 16));
 }
 
 String _viewportLabel(PersonalizationPreviewViewport viewport) =>

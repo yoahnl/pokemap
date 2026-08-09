@@ -8,6 +8,13 @@ import '../../application/services/narrative_document_session.dart';
 import '../../features/personalization/application/project_presentation_asset_lifecycle.dart';
 import 'atomic_project_manifest_persistence.dart';
 
+typedef ProjectPresentationCanonicalSave =
+    Future<void> Function({
+      required ProjectPresentationProfile profile,
+      required String expectedProjectRevision,
+      required String operationId,
+    });
+
 /// Project-manifest document gateway dedicated to presentation-only sessions.
 ///
 final class ProjectPresentationDocumentGateway
@@ -16,14 +23,17 @@ final class ProjectPresentationDocumentGateway
     required String projectPath,
     AtomicProjectManifestPersistence? persistence,
     ProjectPresentationAssetCleaner? assetCleaner,
-  })  : projectPath = _requiredPath(projectPath),
-        _persistence = persistence ?? const AtomicProjectManifestPersistence(),
-        _assetCleaner =
-            assetCleaner ?? const ProjectPresentationAssetLifecycle();
+    ProjectPresentationCanonicalSave? canonicalSave,
+  }) : projectPath = _requiredPath(projectPath),
+       _persistence = persistence ?? const AtomicProjectManifestPersistence(),
+       _assetCleaner =
+           assetCleaner ?? const ProjectPresentationAssetLifecycle(),
+       _canonicalSave = canonicalSave;
 
   final String projectPath;
   final AtomicProjectManifestPersistence _persistence;
   final ProjectPresentationAssetCleaner _assetCleaner;
+  final ProjectPresentationCanonicalSave? _canonicalSave;
 
   ProjectPresentationAssetCleanupResult? lastAssetCleanupResult;
 
@@ -63,6 +73,33 @@ final class ProjectPresentationDocumentGateway
       );
     }
 
+    if (_canonicalSave case final canonicalSave?) {
+      try {
+        await canonicalSave(
+          profile: after.effectivePresentation,
+          expectedProjectRevision: expectedRevision,
+          operationId: operationId,
+        );
+      } on Object catch (error) {
+        final external = await _readOrFailure();
+        if (external case NarrativeDocumentVersion<ProjectManifest>()) {
+          if (external.revision != expectedRevision ||
+              external.document != before) {
+            return NarrativeDocumentSaveResult<ProjectManifest>.conflicted(
+              code: 'staleProjectRevision',
+              message: 'The project changed while the presentation was saved.',
+              external: external,
+            );
+          }
+        }
+        return NarrativeDocumentSaveResult<ProjectManifest>.failed(
+          code: 'canonicalPresentationUpdateFailed',
+          message: 'The canonical presentation update failed: $error',
+        );
+      }
+      return _finishCommittedSave(before: before, after: after);
+    }
+
     late final NarrativeAuthoringPersistenceResult persistenceResult;
     try {
       persistenceResult = await _persistence.persistProjectDocument(
@@ -80,29 +117,7 @@ final class ProjectPresentationDocumentGateway
 
     if (persistenceResult.status ==
         NarrativeAuthoringPersistenceStatus.committed) {
-      final durable = await _readOrFailure();
-      if (durable case NarrativeDocumentSaveFailed<ProjectManifest>()) {
-        return durable;
-      }
-      final version = durable as NarrativeDocumentVersion<ProjectManifest>;
-      if (version.document != after) {
-        return const NarrativeDocumentSaveResult<ProjectManifest>.failed(
-          code: 'durableDocumentMismatch',
-          message: 'Persistence completed but the durable document does not '
-              'match the requested presentation update.',
-        );
-      }
-      try {
-        lastAssetCleanupResult = await _assetCleaner.cleanStaleAssets(
-          projectRoot: File(projectPath).parent,
-          previousProfile: before.effectivePresentation,
-          currentProfile: after.effectivePresentation,
-        );
-      } on Object catch (error) {
-        lastAssetCleanupResult =
-            ProjectPresentationAssetCleanupResult.failed(error);
-      }
-      return NarrativeDocumentSaveResult<ProjectManifest>.saved(version);
+      return _finishCommittedSave(before: before, after: after);
     }
 
     if (_isConflictCode(persistenceResult.code)) {
@@ -120,6 +135,37 @@ final class ProjectPresentationDocumentGateway
       code: persistenceResult.code,
       message: persistenceResult.message,
     );
+  }
+
+  Future<NarrativeDocumentSaveResult<ProjectManifest>> _finishCommittedSave({
+    required ProjectManifest before,
+    required ProjectManifest after,
+  }) async {
+    final durable = await _readOrFailure();
+    if (durable case NarrativeDocumentSaveFailed<ProjectManifest>()) {
+      return durable;
+    }
+    final version = durable as NarrativeDocumentVersion<ProjectManifest>;
+    if (version.document != after) {
+      return const NarrativeDocumentSaveResult<ProjectManifest>.failed(
+        code: 'durableDocumentMismatch',
+        message:
+            'Persistence completed but the durable document does not '
+            'match the requested presentation update.',
+      );
+    }
+    try {
+      lastAssetCleanupResult = await _assetCleaner.cleanStaleAssets(
+        projectRoot: File(projectPath).parent,
+        previousProfile: before.effectivePresentation,
+        currentProfile: after.effectivePresentation,
+      );
+    } on Object catch (error) {
+      lastAssetCleanupResult = ProjectPresentationAssetCleanupResult.failed(
+        error,
+      );
+    }
+    return NarrativeDocumentSaveResult<ProjectManifest>.saved(version);
   }
 
   Future<Object> _readOrFailure() async {

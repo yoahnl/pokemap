@@ -14,6 +14,7 @@ final class HubLoadedTitlePresentation {
     required this.intro,
     required this.typography,
     required this.semanticTheme,
+    required this.pauseMenuLabels,
     required List<String> unavailableAssets,
   }) : unavailableAssets = List<String>.unmodifiable(unavailableAssets);
 
@@ -22,6 +23,7 @@ final class HubLoadedTitlePresentation {
   final HubLoadedIntroVideo? intro;
   final HubLoadedTypography? typography;
   final PokeMapPlayerSemanticTheme? semanticTheme;
+  final PlayerPauseMenuLabels pauseMenuLabels;
   final List<String> unavailableAssets;
 }
 
@@ -111,9 +113,23 @@ final class HubTitlePresentationLoader {
       intro: intro,
       typography: typography,
       semanticTheme: _semanticTheme(manifest.presentation?.theme),
+      pauseMenuLabels: _pauseMenuLabels(manifest.presentation?.menuLabels),
       unavailableAssets: unavailable,
     );
   }
+
+  PlayerPauseMenuLabels _pauseMenuLabels(GamePackageMenuLabels? source) =>
+      PlayerPauseMenuLabels(
+        pauseTitle: source?.pauseTitle,
+        resume: source?.resume,
+        party: source?.party,
+        bag: source?.bag,
+        pokedex: source?.pokedex,
+        map: source?.map,
+        save: source?.save,
+        options: source?.options,
+        returnToTitle: source?.returnToTitle,
+      );
 
   PokeMapPlayerSemanticTheme? _semanticTheme(GamePackageSemanticTheme? source) {
     if (source == null) return null;

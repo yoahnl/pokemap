@@ -33,6 +33,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
     this.onPauseCommand,
     this.controlProfile,
     this.onControlProfileChanged,
+    this.pauseMenuLabels = const PlayerPauseMenuLabels(),
   });
 
   final RuntimePlayerSnapshot snapshot;
@@ -46,6 +47,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
   final ValueChanged<RuntimePlayerPauseCommand>? onPauseCommand;
   final PlayerControlProfile? controlProfile;
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
+  final PlayerPauseMenuLabels pauseMenuLabels;
 
   @override
   Widget build(BuildContext context) {
@@ -133,6 +135,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
           onTouchMenu: _callbackFor(RuntimePlayerAction.resume),
           activeInputSource: snapshot.activeInputSource,
           logicalSelectionId: snapshot.logicalSelectionId,
+          labels: pauseMenuLabels,
           saveMessage: snapshot.saveReceipt == null
               ? null
               : PlayerSaveStrings.of(context).saved(snapshot.saveReceipt!),

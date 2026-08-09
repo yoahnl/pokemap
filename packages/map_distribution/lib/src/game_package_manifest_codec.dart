@@ -477,6 +477,7 @@ final class GamePackageManifestCodec {
         'titleMotion',
         'typography',
         'theme',
+        'menuLabels',
       },
     );
     final schemaVersion =
@@ -493,6 +494,13 @@ final class GamePackageManifestCodec {
         'presentationVersionUnsupported',
         '$path.titleMotion',
         'Title motion requires presentation schema version 2.',
+      );
+    }
+    if (schemaVersion == 1 && json.containsKey('menuLabels')) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.menuLabels',
+        'Menu label overrides require presentation schema version 2.',
       );
     }
     return GamePackagePresentation(
@@ -517,6 +525,58 @@ final class GamePackageManifestCodec {
       theme: json.containsKey('theme')
           ? _semanticTheme(json['theme'], path: '$path.theme')
           : null,
+      menuLabels: json.containsKey('menuLabels')
+          ? _menuLabels(json['menuLabels'], path: '$path.menuLabels')
+          : null,
+    );
+  }
+
+  GamePackageMenuLabels _menuLabels(
+    Object? value, {
+    required String path,
+  }) {
+    const fields = <String>{
+      'pauseTitle',
+      'resume',
+      'party',
+      'bag',
+      'pokedex',
+      'map',
+      'save',
+      'options',
+      'returnToTitle',
+    };
+    final json = _object(
+      value,
+      path,
+      required: const <String>{},
+      optional: fields,
+    );
+    String? label(String field) {
+      if (!json.containsKey(field)) return null;
+      final label = _string(json[field], '$path.$field');
+      if (label.trim().isEmpty ||
+          label.runes.length > 32 ||
+          RegExp(r'[\u0000-\u001F\u007F]').hasMatch(label)) {
+        _fail(
+          'invalidMenuLabel',
+          '$path.$field',
+          'Menu labels must use one to 32 readable characters.',
+        );
+      }
+      return label;
+    }
+
+    return GamePackageMenuLabels(
+      pauseTitle: label('pauseTitle'),
+      resume: label('resume'),
+      party: label('party'),
+      bag: label('bag'),
+      pokedex: label('pokedex'),
+      map: label('map'),
+      save: label('save'),
+      options: label('options'),
+      returnToTitle: label('returnToTitle'),
     );
   }
 

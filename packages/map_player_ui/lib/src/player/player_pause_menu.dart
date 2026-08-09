@@ -17,17 +17,60 @@ enum PlayerPauseAction {
   returnToTitle,
 }
 
+final class PlayerPauseMenuLabels {
+  const PlayerPauseMenuLabels({
+    this.pauseTitle,
+    this.resume,
+    this.party,
+    this.bag,
+    this.pokedex,
+    this.map,
+    this.save,
+    this.options,
+    this.returnToTitle,
+  });
+
+  final String? pauseTitle;
+  final String? resume;
+  final String? party;
+  final String? bag;
+  final String? pokedex;
+  final String? map;
+  final String? save;
+  final String? options;
+  final String? returnToTitle;
+
+  String title(PokeMapPlayerLocalizations l10n) => pauseTitle ?? l10n.pause;
+
+  String action(
+    PlayerPauseAction action,
+    PokeMapPlayerLocalizations l10n,
+  ) =>
+      switch (action) {
+        PlayerPauseAction.resume => resume ?? l10n.resume,
+        PlayerPauseAction.party => party ?? l10n.party,
+        PlayerPauseAction.bag => bag ?? l10n.bag,
+        PlayerPauseAction.pokedex => pokedex ?? l10n.pokedex,
+        PlayerPauseAction.map => map ?? l10n.map,
+        PlayerPauseAction.save => save ?? l10n.save,
+        PlayerPauseAction.options => options ?? l10n.options,
+        PlayerPauseAction.returnToTitle => returnToTitle ?? l10n.returnToTitle,
+      };
+}
+
 class PlayerPauseMenu extends StatelessWidget {
   const PlayerPauseMenu({
     super.key,
     required this.gameTitle,
     required this.actions,
     required this.onSelected,
+    this.labels = const PlayerPauseMenuLabels(),
   });
 
   final String gameTitle;
   final Map<PlayerPauseAction, PlayerActionAvailability> actions;
   final ValueChanged<PlayerPauseAction> onSelected;
+  final PlayerPauseMenuLabels labels;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +87,7 @@ class PlayerPauseMenu extends StatelessWidget {
               Semantics(
                 header: true,
                 child: Text(
-                  context.playerL10n.pause,
+                  labels.title(context.playerL10n),
                   style: Theme.of(context).textTheme.headlineMedium,
                 ),
               ),
@@ -133,19 +176,8 @@ class PlayerPauseMenu extends StatelessWidget {
         context.playerL10n.actionUnavailable,
       );
 
-  String _label(BuildContext context, PlayerPauseAction action) {
-    final l10n = context.playerL10n;
-    return switch (action) {
-      PlayerPauseAction.resume => l10n.resume,
-      PlayerPauseAction.party => l10n.party,
-      PlayerPauseAction.bag => l10n.bag,
-      PlayerPauseAction.pokedex => l10n.pokedex,
-      PlayerPauseAction.map => l10n.map,
-      PlayerPauseAction.save => l10n.save,
-      PlayerPauseAction.options => l10n.options,
-      PlayerPauseAction.returnToTitle => l10n.returnToTitle,
-    };
-  }
+  String _label(BuildContext context, PlayerPauseAction action) =>
+      labels.action(action, context.playerL10n);
 
   IconData _icon(PlayerPauseAction action) => switch (action) {
         PlayerPauseAction.resume => Icons.play_arrow_rounded,
@@ -170,6 +202,7 @@ class PlayerPauseNavigation extends StatelessWidget {
     this.scrollKey,
     this.scrollController,
     this.focusController,
+    this.labels = const PlayerPauseMenuLabels(),
   });
 
   final String gameTitle;
@@ -179,6 +212,7 @@ class PlayerPauseNavigation extends StatelessWidget {
   final Key? scrollKey;
   final ScrollController? scrollController;
   final RuntimePlayerFocusController? focusController;
+  final PlayerPauseMenuLabels labels;
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +232,7 @@ class PlayerPauseNavigation extends StatelessWidget {
           Semantics(
             header: true,
             child: Text(
-              context.playerL10n.pause,
+              labels.title(context.playerL10n),
               style: Theme.of(context).textTheme.headlineMedium,
             ),
           ),
@@ -283,19 +317,8 @@ class PlayerPauseNavigation extends StatelessWidget {
         context.playerL10n.actionUnavailable,
       );
 
-  String _label(BuildContext context, PlayerPauseAction action) {
-    final l10n = context.playerL10n;
-    return switch (action) {
-      PlayerPauseAction.resume => l10n.resume,
-      PlayerPauseAction.party => l10n.party,
-      PlayerPauseAction.bag => l10n.bag,
-      PlayerPauseAction.pokedex => l10n.pokedex,
-      PlayerPauseAction.map => l10n.map,
-      PlayerPauseAction.save => l10n.save,
-      PlayerPauseAction.options => l10n.options,
-      PlayerPauseAction.returnToTitle => l10n.returnToTitle,
-    };
-  }
+  String _label(BuildContext context, PlayerPauseAction action) =>
+      labels.action(action, context.playerL10n);
 
   IconData _icon(PlayerPauseAction action) => switch (action) {
         PlayerPauseAction.resume => Icons.play_arrow_rounded,

@@ -81,6 +81,45 @@ void main() {
       },
     );
 
+    test('uses the canonical presentation mutation when configured', () async {
+      final fixture = _GatewayFixture.create();
+      addTearDown(fixture.dispose);
+      var canonicalSaveCalls = 0;
+      final gateway = ProjectPresentationDocumentGateway(
+        projectPath: fixture.projectFile.path,
+        canonicalSave:
+            ({
+              required profile,
+              required expectedProjectRevision,
+              required operationId,
+            }) async {
+              canonicalSaveCalls++;
+              expect(expectedProjectRevision, isNotEmpty);
+              expect(operationId, 'canonical-presentation-save');
+              final current = ProjectManifest.fromJson(
+                jsonDecode(fixture.projectFile.readAsStringSync())
+                    as Map<String, dynamic>,
+              );
+              fixture.writeProject(current.copyWith(presentation: profile));
+            },
+      );
+      final before = await gateway.read();
+      const profile = ProjectPresentationProfile(
+        menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+      );
+
+      final result = await gateway.save(
+        expectedRevision: before.revision,
+        before: before.document,
+        after: before.document.copyWith(presentation: profile),
+        operationId: 'canonical-presentation-save',
+      );
+
+      expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+      expect(canonicalSaveCalls, 1);
+      expect((await gateway.read()).document.presentation, profile);
+    });
+
     test('rejects a mutation outside the presentation profile', () async {
       final fixture = _GatewayFixture.create();
       addTearDown(fixture.dispose);

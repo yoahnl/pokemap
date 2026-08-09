@@ -59,6 +59,10 @@ void main() {
               body: ProjectTypographyRoleProfile(family: 'Aurore Body'),
               dialogue: ProjectTypographyRoleProfile(family: 'Aurore Dialogue'),
             ),
+            menuLabels: ProjectMenuLabelsProfile(
+              pauseTitle: 'Interlude',
+              pokedex: 'Carnet',
+            ),
             theme: safeProjectSemanticTheme,
           ),
         ),
@@ -92,8 +96,10 @@ void main() {
       find.byKey(const ValueKey<String>('personalization-menu-composition')),
       findsOneWidget,
     );
-    expect(find.text('ÉQUIPE'), findsOneWidget);
-    expect(find.text('SAC'), findsOneWidget);
+    expect(find.text('Interlude'), findsNWidgets(2));
+    expect(find.text('Équipe'), findsOneWidget);
+    expect(find.text('Carnet'), findsOneWidget);
+    expect(find.text('Pokédex'), findsNothing);
     final menuText = tester.widget<Text>(
       find.byKey(const ValueKey<String>('personalization-menu-sample-text')),
     );

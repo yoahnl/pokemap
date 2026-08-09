@@ -26,10 +26,10 @@ void main() {
     );
 
     expect(find.text('Personalization Hub'), findsOneWidget);
-    expect(find.text('Branding'), findsWidgets);
-    expect(find.text('Intro vidéo'), findsOneWidget);
+    expect(find.text('Identité & écran titre'), findsWidgets);
+    expect(find.text('Intro du jeu'), findsOneWidget);
     expect(find.text('Typographie'), findsOneWidget);
-    expect(find.text('Thème & HUD'), findsOneWidget);
+    expect(find.text('Menus & interface'), findsOneWidget);
     expect(find.text('1 erreur'), findsOneWidget);
     expect(
         find.text('Use a hexadecimal color such as #6750A4.'), findsOneWidget);
@@ -58,7 +58,7 @@ void main() {
     expect(find.text('Prêt à configurer'), findsOneWidget);
   });
 
-  testWidgets('searches categories and renders canonical multi-screen previews',
+  testWidgets('uses accessible navigation and opens the contextual preview',
       (tester) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -76,31 +76,33 @@ void main() {
     );
 
     expect(
-      find.byKey(const ValueKey<String>('personalization-preview-title')),
-      findsOneWidget,
-    );
-    expect(
       find.byKey(const ValueKey<String>('personalization-preview-battleHud')),
       findsOneWidget,
     );
-
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('personalization-category-search')),
-      'typo',
-    );
-    await tester.pump();
-
     expect(
       find.byKey(
-        const ValueKey<String>('personalization-category-typography'),
+        const ValueKey<String>('personalization-menu-composition'),
       ),
       findsOneWidget,
     );
     expect(
       find.byKey(
-        const ValueKey<String>('personalization-category-branding'),
+        const ValueKey<String>('personalization-category-search'),
       ),
       findsNothing,
+    );
+    expect(
+      tester.getSemantics(
+        find.byKey(const ValueKey<String>('personalization-category-theme')),
+      ),
+      matchesSemantics(
+        hasTapAction: true,
+        isButton: true,
+        hasSelectedState: true,
+        isSelected: true,
+        hasEnabledState: true,
+        isEnabled: true,
+      ),
     );
   });
 
@@ -198,7 +200,14 @@ void main() {
         const ValueKey<String>('personalization-readiness-correction-0'),
       ),
       400,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: find
+          .descendant(
+            of: find.byKey(
+              const ValueKey<String>('personalization-category-detail-theme'),
+            ),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     await tester.pumpAndSettle();
     await tester.tap(

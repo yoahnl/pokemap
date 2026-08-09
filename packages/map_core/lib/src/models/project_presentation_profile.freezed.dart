@@ -2707,9 +2707,296 @@ as String,
 
 
 /// @nodoc
+mixin _$ProjectMenuLabelsProfile {
+
+@JsonKey(includeIfNull: false) String? get pauseTitle;@JsonKey(includeIfNull: false) String? get resume;@JsonKey(includeIfNull: false) String? get party;@JsonKey(includeIfNull: false) String? get bag;@JsonKey(includeIfNull: false) String? get pokedex;@JsonKey(includeIfNull: false) String? get map;@JsonKey(includeIfNull: false) String? get save;@JsonKey(includeIfNull: false) String? get options;@JsonKey(includeIfNull: false) String? get returnToTitle;
+/// Create a copy of ProjectMenuLabelsProfile
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectMenuLabelsProfileCopyWith<ProjectMenuLabelsProfile> get copyWith => _$ProjectMenuLabelsProfileCopyWithImpl<ProjectMenuLabelsProfile>(this as ProjectMenuLabelsProfile, _$identity);
+
+  /// Serializes this ProjectMenuLabelsProfile to a JSON map.
+  Map<String, dynamic> toJson();
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectMenuLabelsProfile&&(identical(other.pauseTitle, pauseTitle) || other.pauseTitle == pauseTitle)&&(identical(other.resume, resume) || other.resume == resume)&&(identical(other.party, party) || other.party == party)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.pokedex, pokedex) || other.pokedex == pokedex)&&(identical(other.map, map) || other.map == map)&&(identical(other.save, save) || other.save == save)&&(identical(other.options, options) || other.options == options)&&(identical(other.returnToTitle, returnToTitle) || other.returnToTitle == returnToTitle));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,pauseTitle,resume,party,bag,pokedex,map,save,options,returnToTitle);
+
+@override
+String toString() {
+  return 'ProjectMenuLabelsProfile(pauseTitle: $pauseTitle, resume: $resume, party: $party, bag: $bag, pokedex: $pokedex, map: $map, save: $save, options: $options, returnToTitle: $returnToTitle)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectMenuLabelsProfileCopyWith<$Res>  {
+  factory $ProjectMenuLabelsProfileCopyWith(ProjectMenuLabelsProfile value, $Res Function(ProjectMenuLabelsProfile) _then) = _$ProjectMenuLabelsProfileCopyWithImpl;
+@useResult
+$Res call({
+@JsonKey(includeIfNull: false) String? pauseTitle,@JsonKey(includeIfNull: false) String? resume,@JsonKey(includeIfNull: false) String? party,@JsonKey(includeIfNull: false) String? bag,@JsonKey(includeIfNull: false) String? pokedex,@JsonKey(includeIfNull: false) String? map,@JsonKey(includeIfNull: false) String? save,@JsonKey(includeIfNull: false) String? options,@JsonKey(includeIfNull: false) String? returnToTitle
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectMenuLabelsProfileCopyWithImpl<$Res>
+    implements $ProjectMenuLabelsProfileCopyWith<$Res> {
+  _$ProjectMenuLabelsProfileCopyWithImpl(this._self, this._then);
+
+  final ProjectMenuLabelsProfile _self;
+  final $Res Function(ProjectMenuLabelsProfile) _then;
+
+/// Create a copy of ProjectMenuLabelsProfile
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? pauseTitle = freezed,Object? resume = freezed,Object? party = freezed,Object? bag = freezed,Object? pokedex = freezed,Object? map = freezed,Object? save = freezed,Object? options = freezed,Object? returnToTitle = freezed,}) {
+  return _then(_self.copyWith(
+pauseTitle: freezed == pauseTitle ? _self.pauseTitle : pauseTitle // ignore: cast_nullable_to_non_nullable
+as String?,resume: freezed == resume ? _self.resume : resume // ignore: cast_nullable_to_non_nullable
+as String?,party: freezed == party ? _self.party : party // ignore: cast_nullable_to_non_nullable
+as String?,bag: freezed == bag ? _self.bag : bag // ignore: cast_nullable_to_non_nullable
+as String?,pokedex: freezed == pokedex ? _self.pokedex : pokedex // ignore: cast_nullable_to_non_nullable
+as String?,map: freezed == map ? _self.map : map // ignore: cast_nullable_to_non_nullable
+as String?,save: freezed == save ? _self.save : save // ignore: cast_nullable_to_non_nullable
+as String?,options: freezed == options ? _self.options : options // ignore: cast_nullable_to_non_nullable
+as String?,returnToTitle: freezed == returnToTitle ? _self.returnToTitle : returnToTitle // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+}
+
+
+/// Adds pattern-matching-related methods to [ProjectMenuLabelsProfile].
+extension ProjectMenuLabelsProfilePatterns on ProjectMenuLabelsProfile {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _ProjectMenuLabelsProfile value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _ProjectMenuLabelsProfile() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _ProjectMenuLabelsProfile value)  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectMenuLabelsProfile():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _ProjectMenuLabelsProfile value)?  $default,){
+final _that = this;
+switch (_that) {
+case _ProjectMenuLabelsProfile() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? pauseTitle, @JsonKey(includeIfNull: false)  String? resume, @JsonKey(includeIfNull: false)  String? party, @JsonKey(includeIfNull: false)  String? bag, @JsonKey(includeIfNull: false)  String? pokedex, @JsonKey(includeIfNull: false)  String? map, @JsonKey(includeIfNull: false)  String? save, @JsonKey(includeIfNull: false)  String? options, @JsonKey(includeIfNull: false)  String? returnToTitle)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _ProjectMenuLabelsProfile() when $default != null:
+return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokedex,_that.map,_that.save,_that.options,_that.returnToTitle);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(includeIfNull: false)  String? pauseTitle, @JsonKey(includeIfNull: false)  String? resume, @JsonKey(includeIfNull: false)  String? party, @JsonKey(includeIfNull: false)  String? bag, @JsonKey(includeIfNull: false)  String? pokedex, @JsonKey(includeIfNull: false)  String? map, @JsonKey(includeIfNull: false)  String? save, @JsonKey(includeIfNull: false)  String? options, @JsonKey(includeIfNull: false)  String? returnToTitle)  $default,) {final _that = this;
+switch (_that) {
+case _ProjectMenuLabelsProfile():
+return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokedex,_that.map,_that.save,_that.options,_that.returnToTitle);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(includeIfNull: false)  String? pauseTitle, @JsonKey(includeIfNull: false)  String? resume, @JsonKey(includeIfNull: false)  String? party, @JsonKey(includeIfNull: false)  String? bag, @JsonKey(includeIfNull: false)  String? pokedex, @JsonKey(includeIfNull: false)  String? map, @JsonKey(includeIfNull: false)  String? save, @JsonKey(includeIfNull: false)  String? options, @JsonKey(includeIfNull: false)  String? returnToTitle)?  $default,) {final _that = this;
+switch (_that) {
+case _ProjectMenuLabelsProfile() when $default != null:
+return $default(_that.pauseTitle,_that.resume,_that.party,_that.bag,_that.pokedex,_that.map,_that.save,_that.options,_that.returnToTitle);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _ProjectMenuLabelsProfile implements ProjectMenuLabelsProfile {
+  const _ProjectMenuLabelsProfile({@JsonKey(includeIfNull: false) this.pauseTitle, @JsonKey(includeIfNull: false) this.resume, @JsonKey(includeIfNull: false) this.party, @JsonKey(includeIfNull: false) this.bag, @JsonKey(includeIfNull: false) this.pokedex, @JsonKey(includeIfNull: false) this.map, @JsonKey(includeIfNull: false) this.save, @JsonKey(includeIfNull: false) this.options, @JsonKey(includeIfNull: false) this.returnToTitle});
+  factory _ProjectMenuLabelsProfile.fromJson(Map<String, dynamic> json) => _$ProjectMenuLabelsProfileFromJson(json);
+
+@override@JsonKey(includeIfNull: false) final  String? pauseTitle;
+@override@JsonKey(includeIfNull: false) final  String? resume;
+@override@JsonKey(includeIfNull: false) final  String? party;
+@override@JsonKey(includeIfNull: false) final  String? bag;
+@override@JsonKey(includeIfNull: false) final  String? pokedex;
+@override@JsonKey(includeIfNull: false) final  String? map;
+@override@JsonKey(includeIfNull: false) final  String? save;
+@override@JsonKey(includeIfNull: false) final  String? options;
+@override@JsonKey(includeIfNull: false) final  String? returnToTitle;
+
+/// Create a copy of ProjectMenuLabelsProfile
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$ProjectMenuLabelsProfileCopyWith<_ProjectMenuLabelsProfile> get copyWith => __$ProjectMenuLabelsProfileCopyWithImpl<_ProjectMenuLabelsProfile>(this, _$identity);
+
+@override
+Map<String, dynamic> toJson() {
+  return _$ProjectMenuLabelsProfileToJson(this, );
+}
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectMenuLabelsProfile&&(identical(other.pauseTitle, pauseTitle) || other.pauseTitle == pauseTitle)&&(identical(other.resume, resume) || other.resume == resume)&&(identical(other.party, party) || other.party == party)&&(identical(other.bag, bag) || other.bag == bag)&&(identical(other.pokedex, pokedex) || other.pokedex == pokedex)&&(identical(other.map, map) || other.map == map)&&(identical(other.save, save) || other.save == save)&&(identical(other.options, options) || other.options == options)&&(identical(other.returnToTitle, returnToTitle) || other.returnToTitle == returnToTitle));
+}
+
+@JsonKey(includeFromJson: false, includeToJson: false)
+@override
+int get hashCode => Object.hash(runtimeType,pauseTitle,resume,party,bag,pokedex,map,save,options,returnToTitle);
+
+@override
+String toString() {
+  return 'ProjectMenuLabelsProfile(pauseTitle: $pauseTitle, resume: $resume, party: $party, bag: $bag, pokedex: $pokedex, map: $map, save: $save, options: $options, returnToTitle: $returnToTitle)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$ProjectMenuLabelsProfileCopyWith<$Res> implements $ProjectMenuLabelsProfileCopyWith<$Res> {
+  factory _$ProjectMenuLabelsProfileCopyWith(_ProjectMenuLabelsProfile value, $Res Function(_ProjectMenuLabelsProfile) _then) = __$ProjectMenuLabelsProfileCopyWithImpl;
+@override @useResult
+$Res call({
+@JsonKey(includeIfNull: false) String? pauseTitle,@JsonKey(includeIfNull: false) String? resume,@JsonKey(includeIfNull: false) String? party,@JsonKey(includeIfNull: false) String? bag,@JsonKey(includeIfNull: false) String? pokedex,@JsonKey(includeIfNull: false) String? map,@JsonKey(includeIfNull: false) String? save,@JsonKey(includeIfNull: false) String? options,@JsonKey(includeIfNull: false) String? returnToTitle
+});
+
+
+
+
+}
+/// @nodoc
+class __$ProjectMenuLabelsProfileCopyWithImpl<$Res>
+    implements _$ProjectMenuLabelsProfileCopyWith<$Res> {
+  __$ProjectMenuLabelsProfileCopyWithImpl(this._self, this._then);
+
+  final _ProjectMenuLabelsProfile _self;
+  final $Res Function(_ProjectMenuLabelsProfile) _then;
+
+/// Create a copy of ProjectMenuLabelsProfile
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? pauseTitle = freezed,Object? resume = freezed,Object? party = freezed,Object? bag = freezed,Object? pokedex = freezed,Object? map = freezed,Object? save = freezed,Object? options = freezed,Object? returnToTitle = freezed,}) {
+  return _then(_ProjectMenuLabelsProfile(
+pauseTitle: freezed == pauseTitle ? _self.pauseTitle : pauseTitle // ignore: cast_nullable_to_non_nullable
+as String?,resume: freezed == resume ? _self.resume : resume // ignore: cast_nullable_to_non_nullable
+as String?,party: freezed == party ? _self.party : party // ignore: cast_nullable_to_non_nullable
+as String?,bag: freezed == bag ? _self.bag : bag // ignore: cast_nullable_to_non_nullable
+as String?,pokedex: freezed == pokedex ? _self.pokedex : pokedex // ignore: cast_nullable_to_non_nullable
+as String?,map: freezed == map ? _self.map : map // ignore: cast_nullable_to_non_nullable
+as String?,save: freezed == save ? _self.save : save // ignore: cast_nullable_to_non_nullable
+as String?,options: freezed == options ? _self.options : options // ignore: cast_nullable_to_non_nullable
+as String?,returnToTitle: freezed == returnToTitle ? _self.returnToTitle : returnToTitle // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+
+}
+
+
+/// @nodoc
 mixin _$ProjectPresentationProfile {
 
- int get schemaVersion; ProjectBrandingProfile get branding;@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? get intro;@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? get titleMotion;@JsonKey(includeIfNull: false) ProjectTypographyProfile? get typography;@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? get theme;
+ int get schemaVersion; ProjectBrandingProfile get branding;@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? get intro;@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? get titleMotion;@JsonKey(includeIfNull: false) ProjectTypographyProfile? get typography;@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? get theme;@JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? get menuLabels;
 /// Create a copy of ProjectPresentationProfile
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -2722,16 +3009,16 @@ $ProjectPresentationProfileCopyWith<ProjectPresentationProfile> get copyWith => 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPresentationProfile&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.intro, intro) || other.intro == intro)&&(identical(other.titleMotion, titleMotion) || other.titleMotion == titleMotion)&&(identical(other.typography, typography) || other.typography == typography)&&(identical(other.theme, theme) || other.theme == theme));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectPresentationProfile&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.intro, intro) || other.intro == intro)&&(identical(other.titleMotion, titleMotion) || other.titleMotion == titleMotion)&&(identical(other.typography, typography) || other.typography == typography)&&(identical(other.theme, theme) || other.theme == theme)&&(identical(other.menuLabels, menuLabels) || other.menuLabels == menuLabels));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,schemaVersion,branding,intro,titleMotion,typography,theme);
+int get hashCode => Object.hash(runtimeType,schemaVersion,branding,intro,titleMotion,typography,theme,menuLabels);
 
 @override
 String toString() {
-  return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro, titleMotion: $titleMotion, typography: $typography, theme: $theme)';
+  return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro, titleMotion: $titleMotion, typography: $typography, theme: $theme, menuLabels: $menuLabels)';
 }
 
 
@@ -2742,11 +3029,11 @@ abstract mixin class $ProjectPresentationProfileCopyWith<$Res>  {
   factory $ProjectPresentationProfileCopyWith(ProjectPresentationProfile value, $Res Function(ProjectPresentationProfile) _then) = _$ProjectPresentationProfileCopyWithImpl;
 @useResult
 $Res call({
- int schemaVersion, ProjectBrandingProfile branding,@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,@JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme
+ int schemaVersion, ProjectBrandingProfile branding,@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,@JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,@JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels
 });
 
 
-$ProjectBrandingProfileCopyWith<$Res> get branding;$ProjectIntroVideoProfileCopyWith<$Res>? get intro;$ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;$ProjectTypographyProfileCopyWith<$Res>? get typography;$ProjectSemanticThemeProfileCopyWith<$Res>? get theme;
+$ProjectBrandingProfileCopyWith<$Res> get branding;$ProjectIntroVideoProfileCopyWith<$Res>? get intro;$ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;$ProjectTypographyProfileCopyWith<$Res>? get typography;$ProjectSemanticThemeProfileCopyWith<$Res>? get theme;$ProjectMenuLabelsProfileCopyWith<$Res>? get menuLabels;
 
 }
 /// @nodoc
@@ -2759,7 +3046,7 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPresentationProfile
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? schemaVersion = null,Object? branding = null,Object? intro = freezed,Object? titleMotion = freezed,Object? typography = freezed,Object? theme = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? schemaVersion = null,Object? branding = null,Object? intro = freezed,Object? titleMotion = freezed,Object? typography = freezed,Object? theme = freezed,Object? menuLabels = freezed,}) {
   return _then(_self.copyWith(
 schemaVersion: null == schemaVersion ? _self.schemaVersion : schemaVersion // ignore: cast_nullable_to_non_nullable
 as int,branding: null == branding ? _self.branding : branding // ignore: cast_nullable_to_non_nullable
@@ -2767,7 +3054,8 @@ as ProjectBrandingProfile,intro: freezed == intro ? _self.intro : intro // ignor
 as ProjectIntroVideoProfile?,titleMotion: freezed == titleMotion ? _self.titleMotion : titleMotion // ignore: cast_nullable_to_non_nullable
 as ProjectTitleMotionProfile?,typography: freezed == typography ? _self.typography : typography // ignore: cast_nullable_to_non_nullable
 as ProjectTypographyProfile?,theme: freezed == theme ? _self.theme : theme // ignore: cast_nullable_to_non_nullable
-as ProjectSemanticThemeProfile?,
+as ProjectSemanticThemeProfile?,menuLabels: freezed == menuLabels ? _self.menuLabels : menuLabels // ignore: cast_nullable_to_non_nullable
+as ProjectMenuLabelsProfile?,
   ));
 }
 /// Create a copy of ProjectPresentationProfile
@@ -2826,6 +3114,18 @@ $ProjectSemanticThemeProfileCopyWith<$Res>? get theme {
 
   return $ProjectSemanticThemeProfileCopyWith<$Res>(_self.theme!, (value) {
     return _then(_self.copyWith(theme: value));
+  });
+}/// Create a copy of ProjectPresentationProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectMenuLabelsProfileCopyWith<$Res>? get menuLabels {
+    if (_self.menuLabels == null) {
+    return null;
+  }
+
+  return $ProjectMenuLabelsProfileCopyWith<$Res>(_self.menuLabels!, (value) {
+    return _then(_self.copyWith(menuLabels: value));
   });
 }
 }
@@ -2909,10 +3209,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme, @JsonKey(includeIfNull: false)  ProjectMenuLabelsProfile? menuLabels)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProjectPresentationProfile() when $default != null:
-return $default(_that.schemaVersion,_that.branding,_that.intro,_that.titleMotion,_that.typography,_that.theme);case _:
+return $default(_that.schemaVersion,_that.branding,_that.intro,_that.titleMotion,_that.typography,_that.theme,_that.menuLabels);case _:
   return orElse();
 
 }
@@ -2930,10 +3230,10 @@ return $default(_that.schemaVersion,_that.branding,_that.intro,_that.titleMotion
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme, @JsonKey(includeIfNull: false)  ProjectMenuLabelsProfile? menuLabels)  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPresentationProfile():
-return $default(_that.schemaVersion,_that.branding,_that.intro,_that.titleMotion,_that.typography,_that.theme);case _:
+return $default(_that.schemaVersion,_that.branding,_that.intro,_that.titleMotion,_that.typography,_that.theme,_that.menuLabels);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -2950,10 +3250,10 @@ return $default(_that.schemaVersion,_that.branding,_that.intro,_that.titleMotion
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int schemaVersion,  ProjectBrandingProfile branding, @JsonKey(includeIfNull: false)  ProjectIntroVideoProfile? intro, @JsonKey(includeIfNull: false)  ProjectTitleMotionProfile? titleMotion, @JsonKey(includeIfNull: false)  ProjectTypographyProfile? typography, @JsonKey(includeIfNull: false)  ProjectSemanticThemeProfile? theme, @JsonKey(includeIfNull: false)  ProjectMenuLabelsProfile? menuLabels)?  $default,) {final _that = this;
 switch (_that) {
 case _ProjectPresentationProfile() when $default != null:
-return $default(_that.schemaVersion,_that.branding,_that.intro,_that.titleMotion,_that.typography,_that.theme);case _:
+return $default(_that.schemaVersion,_that.branding,_that.intro,_that.titleMotion,_that.typography,_that.theme,_that.menuLabels);case _:
   return null;
 
 }
@@ -2965,7 +3265,7 @@ return $default(_that.schemaVersion,_that.branding,_that.intro,_that.titleMotion
 
 @JsonSerializable(explicitToJson: true)
 class _ProjectPresentationProfile extends ProjectPresentationProfile {
-  const _ProjectPresentationProfile({this.schemaVersion = ProjectPresentationProfile.supportedSchemaVersion, this.branding = const ProjectBrandingProfile(), @JsonKey(includeIfNull: false) this.intro, @JsonKey(includeIfNull: false) this.titleMotion, @JsonKey(includeIfNull: false) this.typography, @JsonKey(includeIfNull: false) this.theme}): super._();
+  const _ProjectPresentationProfile({this.schemaVersion = ProjectPresentationProfile.supportedSchemaVersion, this.branding = const ProjectBrandingProfile(), @JsonKey(includeIfNull: false) this.intro, @JsonKey(includeIfNull: false) this.titleMotion, @JsonKey(includeIfNull: false) this.typography, @JsonKey(includeIfNull: false) this.theme, @JsonKey(includeIfNull: false) this.menuLabels}): super._();
   factory _ProjectPresentationProfile.fromJson(Map<String, dynamic> json) => _$ProjectPresentationProfileFromJson(json);
 
 @override@JsonKey() final  int schemaVersion;
@@ -2974,6 +3274,7 @@ class _ProjectPresentationProfile extends ProjectPresentationProfile {
 @override@JsonKey(includeIfNull: false) final  ProjectTitleMotionProfile? titleMotion;
 @override@JsonKey(includeIfNull: false) final  ProjectTypographyProfile? typography;
 @override@JsonKey(includeIfNull: false) final  ProjectSemanticThemeProfile? theme;
+@override@JsonKey(includeIfNull: false) final  ProjectMenuLabelsProfile? menuLabels;
 
 /// Create a copy of ProjectPresentationProfile
 /// with the given fields replaced by the non-null parameter values.
@@ -2988,16 +3289,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPresentationProfile&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.intro, intro) || other.intro == intro)&&(identical(other.titleMotion, titleMotion) || other.titleMotion == titleMotion)&&(identical(other.typography, typography) || other.typography == typography)&&(identical(other.theme, theme) || other.theme == theme));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProjectPresentationProfile&&(identical(other.schemaVersion, schemaVersion) || other.schemaVersion == schemaVersion)&&(identical(other.branding, branding) || other.branding == branding)&&(identical(other.intro, intro) || other.intro == intro)&&(identical(other.titleMotion, titleMotion) || other.titleMotion == titleMotion)&&(identical(other.typography, typography) || other.typography == typography)&&(identical(other.theme, theme) || other.theme == theme)&&(identical(other.menuLabels, menuLabels) || other.menuLabels == menuLabels));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,schemaVersion,branding,intro,titleMotion,typography,theme);
+int get hashCode => Object.hash(runtimeType,schemaVersion,branding,intro,titleMotion,typography,theme,menuLabels);
 
 @override
 String toString() {
-  return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro, titleMotion: $titleMotion, typography: $typography, theme: $theme)';
+  return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro, titleMotion: $titleMotion, typography: $typography, theme: $theme, menuLabels: $menuLabels)';
 }
 
 
@@ -3008,11 +3309,11 @@ abstract mixin class _$ProjectPresentationProfileCopyWith<$Res> implements $Proj
   factory _$ProjectPresentationProfileCopyWith(_ProjectPresentationProfile value, $Res Function(_ProjectPresentationProfile) _then) = __$ProjectPresentationProfileCopyWithImpl;
 @override @useResult
 $Res call({
- int schemaVersion, ProjectBrandingProfile branding,@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,@JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme
+ int schemaVersion, ProjectBrandingProfile branding,@JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,@JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,@JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,@JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,@JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels
 });
 
 
-@override $ProjectBrandingProfileCopyWith<$Res> get branding;@override $ProjectIntroVideoProfileCopyWith<$Res>? get intro;@override $ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;@override $ProjectTypographyProfileCopyWith<$Res>? get typography;@override $ProjectSemanticThemeProfileCopyWith<$Res>? get theme;
+@override $ProjectBrandingProfileCopyWith<$Res> get branding;@override $ProjectIntroVideoProfileCopyWith<$Res>? get intro;@override $ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;@override $ProjectTypographyProfileCopyWith<$Res>? get typography;@override $ProjectSemanticThemeProfileCopyWith<$Res>? get theme;@override $ProjectMenuLabelsProfileCopyWith<$Res>? get menuLabels;
 
 }
 /// @nodoc
@@ -3025,7 +3326,7 @@ class __$ProjectPresentationProfileCopyWithImpl<$Res>
 
 /// Create a copy of ProjectPresentationProfile
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? schemaVersion = null,Object? branding = null,Object? intro = freezed,Object? titleMotion = freezed,Object? typography = freezed,Object? theme = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? schemaVersion = null,Object? branding = null,Object? intro = freezed,Object? titleMotion = freezed,Object? typography = freezed,Object? theme = freezed,Object? menuLabels = freezed,}) {
   return _then(_ProjectPresentationProfile(
 schemaVersion: null == schemaVersion ? _self.schemaVersion : schemaVersion // ignore: cast_nullable_to_non_nullable
 as int,branding: null == branding ? _self.branding : branding // ignore: cast_nullable_to_non_nullable
@@ -3033,7 +3334,8 @@ as ProjectBrandingProfile,intro: freezed == intro ? _self.intro : intro // ignor
 as ProjectIntroVideoProfile?,titleMotion: freezed == titleMotion ? _self.titleMotion : titleMotion // ignore: cast_nullable_to_non_nullable
 as ProjectTitleMotionProfile?,typography: freezed == typography ? _self.typography : typography // ignore: cast_nullable_to_non_nullable
 as ProjectTypographyProfile?,theme: freezed == theme ? _self.theme : theme // ignore: cast_nullable_to_non_nullable
-as ProjectSemanticThemeProfile?,
+as ProjectSemanticThemeProfile?,menuLabels: freezed == menuLabels ? _self.menuLabels : menuLabels // ignore: cast_nullable_to_non_nullable
+as ProjectMenuLabelsProfile?,
   ));
 }
 
@@ -3093,6 +3395,18 @@ $ProjectSemanticThemeProfileCopyWith<$Res>? get theme {
 
   return $ProjectSemanticThemeProfileCopyWith<$Res>(_self.theme!, (value) {
     return _then(_self.copyWith(theme: value));
+  });
+}/// Create a copy of ProjectPresentationProfile
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectMenuLabelsProfileCopyWith<$Res>? get menuLabels {
+    if (_self.menuLabels == null) {
+    return null;
+  }
+
+  return $ProjectMenuLabelsProfileCopyWith<$Res>(_self.menuLabels!, (value) {
+    return _then(_self.copyWith(menuLabels: value));
   });
 }
 }

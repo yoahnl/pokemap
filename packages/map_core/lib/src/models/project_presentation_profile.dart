@@ -222,6 +222,25 @@ abstract class ProjectSemanticThemeProfile with _$ProjectSemanticThemeProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
+abstract class ProjectMenuLabelsProfile with _$ProjectMenuLabelsProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectMenuLabelsProfile({
+    @JsonKey(includeIfNull: false) String? pauseTitle,
+    @JsonKey(includeIfNull: false) String? resume,
+    @JsonKey(includeIfNull: false) String? party,
+    @JsonKey(includeIfNull: false) String? bag,
+    @JsonKey(includeIfNull: false) String? pokedex,
+    @JsonKey(includeIfNull: false) String? map,
+    @JsonKey(includeIfNull: false) String? save,
+    @JsonKey(includeIfNull: false) String? options,
+    @JsonKey(includeIfNull: false) String? returnToTitle,
+  }) = _ProjectMenuLabelsProfile;
+
+  factory ProjectMenuLabelsProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectMenuLabelsProfileFromJson(json);
+}
+
+@Freezed(fromJson: true, toJson: true)
 abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
   const ProjectPresentationProfile._();
 
@@ -234,6 +253,7 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
     @JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,
     @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
     @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,
+    @JsonKey(includeIfNull: false) ProjectMenuLabelsProfile? menuLabels,
   }) = _ProjectPresentationProfile;
 
   factory ProjectPresentationProfile.fromJson(Map<String, dynamic> json) =>
@@ -249,7 +269,8 @@ abstract class ProjectPresentationProfile with _$ProjectPresentationProfile {
           ProjectPresentationCategory.branding,
         if (intro != null) ProjectPresentationCategory.intro,
         if (typography != null) ProjectPresentationCategory.typography,
-        if (theme != null) ProjectPresentationCategory.theme,
+        if (theme != null || menuLabels != null)
+          ProjectPresentationCategory.theme,
       };
 }
 
@@ -279,6 +300,7 @@ const Set<String> requiredProjectFontGlyphCoverage = <String>{
 
 const double projectSemanticTextContrastRatio = 4.5;
 const double projectSemanticNonTextContrastRatio = 3;
+const int projectMenuLabelMaxLength = 32;
 
 const ProjectSemanticThemeProfile safeProjectSemanticTheme =
     ProjectSemanticThemeProfile(
@@ -370,7 +392,59 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
   if (profile.theme case final theme?) {
     diagnostics.addAll(validateProjectSemanticTheme(theme));
   }
+  _validateMenuLabels(profile.menuLabels, diagnostics);
   return List<ProjectPresentationDiagnostic>.unmodifiable(diagnostics);
+}
+
+void _validateMenuLabels(
+  ProjectMenuLabelsProfile? labels,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (labels == null) return;
+  final values = <String, String?>{
+    'pauseTitle': labels.pauseTitle,
+    'resume': labels.resume,
+    'party': labels.party,
+    'bag': labels.bag,
+    'pokedex': labels.pokedex,
+    'map': labels.map,
+    'save': labels.save,
+    'options': labels.options,
+    'returnToTitle': labels.returnToTitle,
+  };
+  final controlCharacters = RegExp(r'[\u0000-\u001F\u007F]');
+  for (final entry in values.entries) {
+    final value = entry.value;
+    if (value == null) continue;
+    final path = '\$.presentation.menuLabels.${entry.key}';
+    if (value.trim().isEmpty) {
+      _presentationError(
+        diagnostics,
+        'menuLabelEmpty',
+        ProjectPresentationCategory.theme,
+        path,
+        'Menu labels must not be empty.',
+      );
+    }
+    if (value.runes.length > projectMenuLabelMaxLength) {
+      _presentationError(
+        diagnostics,
+        'menuLabelTooLong',
+        ProjectPresentationCategory.theme,
+        path,
+        'Menu labels must use at most $projectMenuLabelMaxLength characters.',
+      );
+    }
+    if (controlCharacters.hasMatch(value)) {
+      _presentationError(
+        diagnostics,
+        'menuLabelContainsControlCharacters',
+        ProjectPresentationCategory.theme,
+        path,
+        'Menu labels must remain on one readable line.',
+      );
+    }
+  }
 }
 
 List<ProjectPresentationDiagnostic> validateProjectSemanticTheme(

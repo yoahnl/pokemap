@@ -20,4 +20,5 @@ export 'src/features/personalization/presentation/project_branding_editor.dart';
 export 'src/features/personalization/presentation/project_branding_title_preview.dart';
 export 'src/features/personalization/presentation/project_intro_video_editor.dart';
 export 'src/features/personalization/presentation/project_semantic_theme_editor.dart';
+export 'src/features/personalization/presentation/project_menu_labels_editor.dart';
 export 'src/features/personalization/presentation/project_typography_editor.dart';

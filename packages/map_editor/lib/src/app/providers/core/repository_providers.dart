@@ -200,6 +200,7 @@ final personalizationStudioSessionControllerFactoryProvider =
       final persistence = ref
           .watch(fileProjectRepositoryProvider)
           .narrativeAuthoringPersistence;
+      final authoringMutations = ref.watch(authoringMutationAdapterProvider);
       return ({
         required String projectPath,
         required ProjectManifest initialDocument,
@@ -217,6 +218,19 @@ final personalizationStudioSessionControllerFactoryProvider =
             gateway: ProjectPresentationDocumentGateway(
               projectPath: projectPath,
               persistence: persistence,
+              canonicalSave:
+                  ({
+                    required profile,
+                    required expectedProjectRevision,
+                    required operationId,
+                  }) async {
+                    await authoringMutations.savePresentation(
+                      profile,
+                      p.dirname(projectPath),
+                      expectedProjectRevision: expectedProjectRevision,
+                      operationId: operationId,
+                    );
+                  },
             ),
             recoveryStore: FileNarrativeDocumentRecoveryStore<ProjectManifest>(
               journalPath: journalPath,

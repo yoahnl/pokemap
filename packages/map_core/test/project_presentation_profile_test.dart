@@ -152,6 +152,49 @@ void main() {
       expect(validateProjectPresentationProfile(profile), isEmpty);
     });
 
+    test('round-trips project-owned pause menu label overrides', () {
+      const profile = ProjectPresentationProfile(
+        menuLabels: ProjectMenuLabelsProfile(
+          pauseTitle: 'Interruption',
+          resume: 'Continuer',
+          party: 'Compagnons',
+          bag: 'Inventaire',
+          pokedex: 'Carnet de voyage',
+          map: 'Région',
+          save: 'Mémoriser',
+          options: 'Réglages',
+          returnToTitle: 'Quitter la partie',
+        ),
+      );
+
+      expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile);
+      expect(
+        profile.configuredCategories,
+        contains(ProjectPresentationCategory.theme),
+      );
+      expect(validateProjectPresentationProfile(profile), isEmpty);
+    });
+
+    test('rejects empty, oversized and control-character menu labels', () {
+      final profile = ProjectPresentationProfile(
+        menuLabels: ProjectMenuLabelsProfile(
+          resume: List<String>.filled(33, 'a').join(),
+          pokedex: '   ',
+          options: 'Options\navancées',
+        ),
+      );
+
+      expect(
+        validateProjectPresentationProfile(profile)
+            .map((diagnostic) => diagnostic.code),
+        containsAll(<String>[
+          'menuLabelTooLong',
+          'menuLabelEmpty',
+          'menuLabelContainsControlCharacters',
+        ]),
+      );
+    });
+
     test('accepts canonical RGB and RGBA hexadecimal accent colors', () {
       for (final accentColor in <String>['#126E78', '#126E78CC']) {
         final profile = ProjectPresentationProfile(

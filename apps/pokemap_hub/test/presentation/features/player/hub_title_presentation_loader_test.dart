@@ -177,6 +177,23 @@ void main() {
     expect(loaded.title.author, 'Studio Brume');
     expect(loaded.unavailableAssets, isEmpty);
   });
+
+  test('loads project-owned pause menu labels', () async {
+    final loaded = await HubTitlePresentationLoader(
+      manifest: _manifest(
+        const GamePackageBranding(),
+        menuLabels: const GamePackageMenuLabels(
+          pauseTitle: 'Interlude',
+          pokedex: 'Carnet',
+        ),
+      ),
+      resolveFile: (_) async => throw const FileSystemException('unused'),
+    ).load();
+
+    expect(loaded.pauseMenuLabels.pauseTitle, 'Interlude');
+    expect(loaded.pauseMenuLabels.pokedex, 'Carnet');
+    expect(loaded.pauseMenuLabels.party, isNull);
+  });
 }
 
 const _intro = GamePackageIntroVideo(
@@ -249,6 +266,7 @@ GamePackageManifest _manifest(
   GamePackageIntroVideo? intro,
   GamePackageTypography? typography,
   GamePackageSemanticTheme? theme,
+  GamePackageMenuLabels? menuLabels,
 }) =>
     GamePackageManifest(
       packageFormat: 1,
@@ -269,16 +287,23 @@ GamePackageManifest _manifest(
         defaultLocale: 'fr',
         supported: const <String>['fr'],
       ),
-      branding: intro == null && typography == null && theme == null
+      branding: intro == null &&
+              typography == null &&
+              theme == null &&
+              menuLabels == null
           ? branding
           : null,
-      presentation: intro == null && typography == null && theme == null
+      presentation: intro == null &&
+              typography == null &&
+              theme == null &&
+              menuLabels == null
           ? null
           : GamePackagePresentation(
               branding: branding,
               intro: intro,
               typography: typography,
               theme: theme,
+              menuLabels: menuLabels,
             ),
       content: GamePackageContent(
         fileCount: 0,

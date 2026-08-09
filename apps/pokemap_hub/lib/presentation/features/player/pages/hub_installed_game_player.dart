@@ -746,10 +746,10 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                           ? (_, _) => const SizedBox.expand()
                           : (_, _) => _buildSessionView(
                             viewController,
-                            titlePresentation.title,
+                            titlePresentation,
                           ),
                 )
-                : _buildSessionView(viewController!, titlePresentation!.title),
+                : _buildSessionView(viewController!, titlePresentation!),
       ),
     );
     final playerLocale = _playerLocale;
@@ -763,11 +763,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
 
   Widget _buildSessionView(
     player_ui.RuntimePlayerCoordinatorViewController viewController,
-    player_ui.RuntimePlayerTitlePresentation titlePresentation,
+    HubLoadedTitlePresentation titlePresentation,
   ) => player_ui.PokeMapPlayerSessionView(
     key: const ValueKey<String>('pokemap-runtime-player-view'),
     controller: viewController,
-    titlePresentation: titlePresentation,
+    titlePresentation: titlePresentation.title,
+    pauseMenuLabels: titlePresentation.pauseMenuLabels,
     payloadForAction: _payloadForAction,
     gameplayInputRoute: _sessions?.handleInput,
     gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,

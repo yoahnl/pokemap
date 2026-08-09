@@ -83,6 +83,42 @@ final class GamePackageBranding {
       };
 }
 
+final class GamePackageMenuLabels {
+  const GamePackageMenuLabels({
+    this.pauseTitle,
+    this.resume,
+    this.party,
+    this.bag,
+    this.pokedex,
+    this.map,
+    this.save,
+    this.options,
+    this.returnToTitle,
+  });
+
+  final String? pauseTitle;
+  final String? resume;
+  final String? party;
+  final String? bag;
+  final String? pokedex;
+  final String? map;
+  final String? save;
+  final String? options;
+  final String? returnToTitle;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        if (pauseTitle != null) 'pauseTitle': pauseTitle,
+        if (resume != null) 'resume': resume,
+        if (party != null) 'party': party,
+        if (bag != null) 'bag': bag,
+        if (pokedex != null) 'pokedex': pokedex,
+        if (map != null) 'map': map,
+        if (save != null) 'save': save,
+        if (options != null) 'options': options,
+        if (returnToTitle != null) 'returnToTitle': returnToTitle,
+      };
+}
+
 /// Runtime-facing projection of the project-owned presentation contract.
 ///
 /// Package paths replace authoring paths here; the project manifest remains
@@ -95,6 +131,7 @@ final class GamePackagePresentation {
     this.titleMotion,
     this.typography,
     this.theme,
+    this.menuLabels,
   });
 
   final int schemaVersion;
@@ -103,6 +140,7 @@ final class GamePackagePresentation {
   final GamePackageTitleMotion? titleMotion;
   final GamePackageTypography? typography;
   final GamePackageSemanticTheme? theme;
+  final GamePackageMenuLabels? menuLabels;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
@@ -112,6 +150,7 @@ final class GamePackagePresentation {
           'titleMotion': titleMotion!.toJson(),
         if (typography != null) 'typography': typography!.toJson(),
         if (theme != null) 'theme': theme!.toJson(),
+        if (menuLabels != null) 'menuLabels': menuLabels!.toJson(),
       };
 }
 

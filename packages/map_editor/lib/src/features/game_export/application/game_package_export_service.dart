@@ -220,6 +220,20 @@ final class GamePackageExportService {
           theme: projection.presentation.theme == null
               ? null
               : _packageSemanticTheme(projection.presentation.theme!),
+          menuLabels: projection.presentation.menuLabels == null
+              ? null
+              : GamePackageMenuLabels(
+                  pauseTitle: projection.presentation.menuLabels!.pauseTitle,
+                  resume: projection.presentation.menuLabels!.resume,
+                  party: projection.presentation.menuLabels!.party,
+                  bag: projection.presentation.menuLabels!.bag,
+                  pokedex: projection.presentation.menuLabels!.pokedex,
+                  map: projection.presentation.menuLabels!.map,
+                  save: projection.presentation.menuLabels!.save,
+                  options: projection.presentation.menuLabels!.options,
+                  returnToTitle:
+                      projection.presentation.menuLabels!.returnToTitle,
+                ),
         ),
         content: emptyContent,
       );

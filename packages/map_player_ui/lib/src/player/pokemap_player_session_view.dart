@@ -15,6 +15,7 @@ import 'player_title_screen.dart';
 import 'player_dialogue_overlay.dart';
 import 'player_control_profile.dart';
 import 'player_heal_confirmation.dart';
+import 'player_pause_menu.dart';
 import 'player_pc_overlay.dart';
 import 'player_shop_overlay.dart';
 import 'runtime_player_actions.dart';
@@ -90,6 +91,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
     this.hapticFeedback,
     this.controlProfile,
     this.onControlProfileChanged,
+    this.pauseMenuLabels = const PlayerPauseMenuLabels(),
   });
 
   final RuntimePlayerViewController controller;
@@ -124,6 +126,7 @@ class PokeMapPlayerSessionView extends StatefulWidget {
   final Future<void> Function()? hapticFeedback;
   final PlayerControlProfile? controlProfile;
   final ValueChanged<PlayerControlProfile>? onControlProfileChanged;
+  final PlayerPauseMenuLabels pauseMenuLabels;
 
   @override
   State<PokeMapPlayerSessionView> createState() =>
@@ -464,6 +467,7 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
         RuntimePlayerSurfaceRouter(
           snapshot: snapshot,
           titlePresentation: widget.titlePresentation,
+          pauseMenuLabels: widget.pauseMenuLabels,
           gameSceneBuilder: widget.gameSceneBuilder,
           onShowDiagnostics: widget.onShowDiagnostics,
           gameplayTouchMenuEnabled: acceptsOverworldTouch,

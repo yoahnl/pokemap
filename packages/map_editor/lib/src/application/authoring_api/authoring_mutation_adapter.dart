@@ -66,13 +66,13 @@ final class AuthoringMutationAdapter
     WorkspaceHandleStore Function()? workspaceHandles,
     ProjectSnapshotFingerprintCache? fingerprintCache,
     ProjectSnapshotCache? snapshotCache,
-  })  : _fileReader = fileReader,
-        _queries = queries,
-        _projectRoots = projectRoots,
-        _workspaceHandles = workspaceHandles ?? (() => WorkspaceHandleStore()),
-        _fingerprintCache =
-            fingerprintCache ?? ProjectSnapshotFingerprintCache(),
-        _snapshotCache = snapshotCache ?? ProjectSnapshotCache();
+  }) : _fileReader = fileReader,
+       _queries = queries,
+       _projectRoots = projectRoots,
+       _workspaceHandles = workspaceHandles ?? (() => WorkspaceHandleStore()),
+       _fingerprintCache =
+           fingerprintCache ?? ProjectSnapshotFingerprintCache(),
+       _snapshotCache = snapshotCache ?? ProjectSnapshotCache();
 
   final ProjectFileReader _fileReader;
   final AuthoringQueryAdapter _queries;
@@ -354,6 +354,46 @@ final class AuthoringMutationAdapter
     }
   }
 
+  Future<EditorAuthoringMutationResult> savePresentation(
+    ProjectPresentationProfile profile,
+    String projectRootPath, {
+    required String expectedProjectRevision,
+    required String operationId,
+  }) async {
+    try {
+      final session = await _open(projectRootPath);
+      return await session.use(() async {
+        final before = await session.snapshot();
+        final liveProjectRevision = narrativeEventBytesFingerprint(
+          before.resourceBytes('project'),
+        );
+        if (liveProjectRevision != expectedProjectRevision) {
+          throw const EditorConflictException(
+            'The project changed outside the Personalization Studio.',
+          );
+        }
+        final mutationPlan = await _planInSession(
+          session,
+          actionId: 'presentation.update',
+          parameters: <String, Object?>{
+            'profile': _strictJsonMap(profile.toJson()),
+          },
+          idempotencyKey: operationId,
+          requestId: operationId,
+          expectedRevision: before.revision,
+        );
+        return _applyInSession(session, mutationPlan, operationId: operationId);
+      });
+    } on EditorConflictException {
+      rethrow;
+    } on EditorAuthoringMutationFailure catch (failure) {
+      if (_isConflictCode(failure.code)) {
+        throw EditorConflictException(failure.message);
+      }
+      rethrow;
+    }
+  }
+
   @override
   Future<void> allowCandidate(String canonicalRoot) async {
     _candidateRoot = canonicalRoot == _retainedRoot ? null : canonicalRoot;
@@ -498,10 +538,10 @@ final class _EditorMutationSession {
     required ProjectSnapshotLoader snapshots,
     required void Function(int delta) onOperationDelta,
     required void Function() onClosed,
-  })  : _handles = handles,
-        _snapshots = snapshots,
-        _onOperationDelta = onOperationDelta,
-        _onClosed = onClosed;
+  }) : _handles = handles,
+       _snapshots = snapshots,
+       _onOperationDelta = onOperationDelta,
+       _onClosed = onClosed;
 
   static Future<_EditorMutationSession> open({
     required String canonicalRoot,

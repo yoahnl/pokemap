@@ -155,6 +155,44 @@ void main() {
       expect(codec.decodeJson(manifest.toJson()).toJson(), json);
     });
 
+    test('round-trips V2 project menu label overrides', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 2,
+          'branding': <String, Object?>{},
+          'menuLabels': <String, Object?>{
+            'pauseTitle': 'Interruption',
+            'pokedex': 'Carnet de voyage',
+            'returnToTitle': 'Quitter la partie',
+          },
+        };
+
+      final manifest = codec.decodeJson(json);
+
+      expect(manifest.presentation?.menuLabels?.pauseTitle, 'Interruption');
+      expect(manifest.presentation?.menuLabels?.pokedex, 'Carnet de voyage');
+      expect(
+        manifest.presentation?.menuLabels?.returnToTitle,
+        'Quitter la partie',
+      );
+      expect(codec.decodeJson(manifest.toJson()).toJson(), json);
+    });
+
+    test('rejects invalid packaged menu labels', () {
+      final json = _minimalManifestJson()
+        ..['presentation'] = <String, Object?>{
+          'schemaVersion': 2,
+          'branding': <String, Object?>{},
+          'menuLabels': <String, Object?>{'pokedex': '   '},
+        };
+
+      _expectCode(
+        () => codec.decodeJson(json),
+        'invalidMenuLabel',
+        r'$.presentation.menuLabels.pokedex',
+      );
+    });
+
     test('rejects packaged semantic themes with inaccessible contrast', () {
       final json = _minimalManifestJson()
         ..['presentation'] = <String, Object?>{
