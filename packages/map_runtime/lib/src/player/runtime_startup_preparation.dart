@@ -18,11 +18,60 @@ abstract interface class RuntimeStartupClock {
   Future<void> delay(Duration duration);
 }
 
-final class SystemRuntimeStartupClock implements RuntimeStartupClock {
+abstract interface class RuntimeStartupScheduledDelay {
+  Future<void> get future;
+
+  void cancel();
+}
+
+abstract interface class RuntimeStartupSchedulingClock
+    implements RuntimeStartupClock {
+  RuntimeStartupScheduledDelay schedule(Duration duration);
+}
+
+final class SystemRuntimeStartupClock
+    implements RuntimeStartupClock, RuntimeStartupSchedulingClock {
   const SystemRuntimeStartupClock();
 
   @override
-  Future<void> delay(Duration duration) => Future<void>.delayed(duration);
+  Future<void> delay(Duration duration) => schedule(duration).future;
+
+  @override
+  RuntimeStartupScheduledDelay schedule(Duration duration) =>
+      _SystemRuntimeStartupScheduledDelay(duration);
+}
+
+final class _SystemRuntimeStartupScheduledDelay
+    implements RuntimeStartupScheduledDelay {
+  _SystemRuntimeStartupScheduledDelay(Duration duration) {
+    _timer = Timer(duration, _complete);
+  }
+
+  final Completer<void> _completer = Completer<void>();
+  late final Timer _timer;
+
+  @override
+  Future<void> get future => _completer.future;
+
+  @override
+  void cancel() {
+    _timer.cancel();
+    _complete();
+  }
+
+  void _complete() {
+    if (!_completer.isCompleted) _completer.complete();
+  }
+}
+
+final class RuntimeStartupTimelineGate {
+  const RuntimeStartupTimelineGate({
+    required this.minimumDisplayElapsed,
+    required this.splashHoldElapsed,
+  });
+
+  final Future<void> minimumDisplayElapsed;
+  final Future<void> splashHoldElapsed;
 }
 
 enum RuntimeStartupPreparationStepStatus {
@@ -155,7 +204,9 @@ final class RuntimeStartupPreparation {
   RuntimeStartupPreparation({
     required RuntimeStartupClock clock,
     required this.minimumDisplayDuration,
+    Future<void>? minimumDisplayElapsed,
   })  : _clock = clock,
+        _minimumDisplayElapsed = minimumDisplayElapsed,
         _snapshot = RuntimeStartupPreparationSnapshot(
           revision: 0,
           progress: 0,
@@ -173,6 +224,7 @@ final class RuntimeStartupPreparation {
   }
 
   final RuntimeStartupClock _clock;
+  final Future<void>? _minimumDisplayElapsed;
   final Duration minimumDisplayDuration;
   final Set<RuntimeStartupPreparationStage> _completed =
       <RuntimeStartupPreparationStage>{};
@@ -229,10 +281,10 @@ final class RuntimeStartupPreparation {
 
     // These futures intentionally start together. Awaiting the delay before
     // the operations would turn the splash into decorative fake loading.
-    _clock.delay(minimumDisplayDuration).then(
-          (_) => _minimumElapsed(),
-          onError: (_, __) => _minimumElapsed(),
-        );
+    (_minimumDisplayElapsed ?? _clock.delay(minimumDisplayDuration)).then(
+      (_) => _minimumElapsed(),
+      onError: (_, __) => _minimumElapsed(),
+    );
     for (final stage in RuntimeStartupPreparationStage.values) {
       Future<RuntimeStartupPreparationStepResult>.sync(operations[stage]!).then(
         (result) => _completeStage(stage, result),

@@ -1062,6 +1062,141 @@ void main() {
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titleMenu);
     expect(harness.audio.played, hasLength(2));
   });
+
+  test('runtime owns bootstrap progress and preserves the cinematic clock',
+      () async {
+    final harness = _RuntimeStartupBootstrapTestHarness();
+    addTearDown(harness.dispose);
+    final progress = <double>[];
+    final subscription = harness.startup.snapshots.listen(
+      (snapshot) => progress.add(snapshot.progress),
+    );
+    addTearDown(subscription.cancel);
+
+    harness.startup.start();
+    await _flushEvents();
+
+    expect(
+      harness.clock.pendingDurations,
+      containsAll(<Duration>[
+        const Duration(seconds: 7),
+        const Duration(milliseconds: 5704),
+      ]),
+    );
+    harness.bootstrap.completeStage(
+      RuntimeStartupBootstrapStage.projectResolution,
+    );
+    await _flushEvents();
+    expect(harness.startup.snapshot.progress, 0.08);
+
+    for (final stage in RuntimeStartupBootstrapStage.values.skip(1)) {
+      harness.bootstrap.completeStage(stage);
+    }
+    await _flushEvents();
+    expect(harness.startup.snapshot.progress, closeTo(0.35, 0.000001));
+
+    harness.bootstrap.complete();
+    await _flushEvents();
+
+    expect(harness.preparedValues, <String>['hub-graph']);
+    expect(harness.startup.snapshot.progress, 1);
+    expect(progress, orderedEquals(<double>[...progress]..sort()));
+    expect(
+      harness.clock.pendingDurations
+          .where((duration) => duration == const Duration(seconds: 7)),
+      hasLength(1),
+    );
+    expect(
+      harness.clock.pendingDurations.where(
+        (duration) => duration == const Duration(milliseconds: 5704),
+      ),
+      hasLength(1),
+    );
+  });
+
+  test('bootstrap retry ignores stale progress from the failed attempt',
+      () async {
+    final harness = _RuntimeStartupBootstrapTestHarness();
+    addTearDown(harness.dispose);
+    harness.startup.start();
+    await _flushEvents();
+    harness.bootstrap.completeStage(
+      RuntimeStartupBootstrapStage.projectResolution,
+      attempt: 0,
+    );
+    harness.bootstrap.fail(
+      const RuntimeStartupFailure(
+        code: 'projectUnavailable',
+        safeMessage: 'The installed game could not be resolved.',
+      ),
+      attempt: 0,
+    );
+    await _flushEvents();
+
+    expect(
+      harness.startup.snapshot.phase,
+      RuntimeStartupPhase.recoverableError,
+    );
+    expect(harness.startup.snapshot.failure?.code, 'projectUnavailable');
+    final retry = await harness.startup.dispatch(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.retryPreparation,
+        snapshotRevision: harness.startup.snapshot.revision,
+      ),
+    );
+    expect(retry.status, RuntimeStartupCommandStatus.accepted);
+
+    harness.bootstrap.completeStage(
+      RuntimeStartupBootstrapStage.playerPreferences,
+      attempt: 0,
+    );
+    await _flushEvents();
+    expect(harness.startup.snapshot.progress, 0.08);
+
+    for (final stage in RuntimeStartupBootstrapStage.values) {
+      harness.bootstrap.completeStage(stage, attempt: 1);
+    }
+    harness.bootstrap.complete(attempt: 1);
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.progress, 1);
+    expect(harness.preparedValues, <String>['hub-graph']);
+  });
+
+  test('dispose rejects a late bootstrap graph and closes its resources',
+      () async {
+    final harness = _RuntimeStartupBootstrapTestHarness();
+    harness.startup.start();
+    await _flushEvents();
+
+    await harness.startup.dispose();
+    harness.bootstrap.complete();
+    await _flushEvents();
+
+    expect(harness.player.coordinator.isDisposed, isTrue);
+  });
+
+  test('lifecycle pause remains authoritative while bootstrap completes',
+      () async {
+    final harness = _RuntimeStartupBootstrapTestHarness();
+    addTearDown(harness.dispose);
+    harness.startup.start();
+    await _flushEvents();
+
+    await harness.startup.pauseForLifecycle();
+    harness.bootstrap.complete();
+    await _flushEvents();
+
+    expect(
+      harness.startup.snapshot.phase,
+      RuntimeStartupPhase.lifecyclePaused,
+    );
+    expect(harness.startup.snapshot.isLifecycleActive, isFalse);
+
+    await harness.startup.resumeFromLifecycle();
+    expect(harness.startup.snapshot.isLifecycleActive, isTrue);
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.splash);
+  });
 }
 
 ProjectPresentationProfile _presentationWithIntroAndMusic({
@@ -1170,6 +1305,91 @@ final class _RuntimeStartupTestHarness {
   late final RuntimeStartupCoordinator startup;
 
   Future<void> dispose() => startup.dispose();
+}
+
+final class _RuntimeStartupBootstrapTestHarness {
+  _RuntimeStartupBootstrapTestHarness()
+      : player = RuntimePlayerTestHarness(),
+        clock = _ManualStartupClock() {
+    final graph = RuntimeStartupPreparedGraph(
+      playerCoordinator: player.coordinator,
+      preparationPort: _MemoryStartupPreparationPort(),
+      initialMapPreloadPort: _MemoryInitialMapPreloadPort(),
+      assetResolver: _MemoryPresentationAssetResolver(),
+      introController: RuntimeIntroSequenceController(),
+      splashJingleController: RuntimeSplashJingleController(
+        driver: _FakeAudioDriver(),
+      ),
+      titleMusicController: RuntimeTitleMusicController(
+        driver: _FakeAudioDriver(),
+      ),
+    );
+    bootstrap = _ControlledRuntimeStartupBootstrap(graph);
+    startup = RuntimeStartupBootstrapCoordinator<String>(
+      bootstrapPort: bootstrap,
+      clock: clock,
+      minimumSplashDuration: const Duration(seconds: 7),
+      onPrepared: preparedValues.add,
+    );
+  }
+
+  final RuntimePlayerTestHarness player;
+  final _ManualStartupClock clock;
+  final List<String> preparedValues = <String>[];
+  late final _ControlledRuntimeStartupBootstrap bootstrap;
+  late final RuntimeStartupBootstrapCoordinator<String> startup;
+
+  Future<void> dispose() => startup.dispose();
+}
+
+final class _ControlledRuntimeStartupBootstrap
+    implements RuntimeStartupBootstrapPort<String> {
+  _ControlledRuntimeStartupBootstrap(this.graph);
+
+  final RuntimeStartupPreparedGraph graph;
+  final List<_ControlledRuntimeStartupBootstrapAttempt> _attempts =
+      <_ControlledRuntimeStartupBootstrapAttempt>[];
+
+  @override
+  Future<RuntimeStartupBootstrapResult<String>> prepare({
+    required RuntimeStartupBootstrapStageSink onStageCompleted,
+  }) {
+    final attempt = _ControlledRuntimeStartupBootstrapAttempt(
+      onStageCompleted,
+    );
+    _attempts.add(attempt);
+    return attempt.result.future;
+  }
+
+  void completeStage(
+    RuntimeStartupBootstrapStage stage, {
+    int? attempt,
+  }) {
+    _attempts[attempt ?? _attempts.length - 1].onStageCompleted(stage);
+  }
+
+  void complete({int? attempt}) {
+    _attempts[attempt ?? _attempts.length - 1].result.complete(
+          RuntimeStartupBootstrapResult<String>(
+            graph: graph,
+            value: 'hub-graph',
+          ),
+        );
+  }
+
+  void fail(RuntimeStartupFailure failure, {int? attempt}) {
+    _attempts[attempt ?? _attempts.length - 1].result.completeError(
+          RuntimeStartupBootstrapException(failure),
+        );
+  }
+}
+
+final class _ControlledRuntimeStartupBootstrapAttempt {
+  _ControlledRuntimeStartupBootstrapAttempt(this.onStageCompleted);
+
+  final RuntimeStartupBootstrapStageSink onStageCompleted;
+  final Completer<RuntimeStartupBootstrapResult<String>> result =
+      Completer<RuntimeStartupBootstrapResult<String>>();
 }
 
 final class _MemoryInitialMapPreloadPort

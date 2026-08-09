@@ -76,7 +76,10 @@ export 'src/player/runtime_startup_preparation.dart'
     show
         runtimeStartupPreparationWeights,
         RuntimeStartupClock,
+        RuntimeStartupScheduledDelay,
+        RuntimeStartupSchedulingClock,
         SystemRuntimeStartupClock,
+        RuntimeStartupTimelineGate,
         RuntimeStartupPreparationStepStatus,
         RuntimeStartupPreparationStepResult,
         RuntimeStartupPreparationOperation,
@@ -84,6 +87,16 @@ export 'src/player/runtime_startup_preparation.dart'
         RuntimeStartupPreparationStatus,
         RuntimeStartupPreparationResult,
         RuntimeStartupPreparation;
+export 'src/player/runtime_startup_bootstrap.dart'
+    show
+        RuntimeStartupBootstrapStage,
+        runtimeStartupBootstrapWeights,
+        RuntimeStartupBootstrapStageSink,
+        RuntimeStartupBootstrapPort,
+        RuntimeStartupBootstrapResult,
+        RuntimeStartupBootstrapException,
+        RuntimeStartupPreparedGraph,
+        RuntimeStartupBootstrapCoordinator;
 export 'src/player/runtime_startup_coordinator.dart'
     show
         RuntimeStartupPreparationPort,

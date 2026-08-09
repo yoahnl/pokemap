@@ -21,6 +21,7 @@ import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_i
 import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
 import 'package:pokemap_hub/features/session/application/services/player_launch_failure.dart';
 import 'package:pokemap_hub/presentation/features/player/state/player_typography_loader.dart';
+import 'package:pokemap_hub/presentation/features/player/state/hub_runtime_startup_bootstrap.dart';
 import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
@@ -82,7 +83,8 @@ class HubInstalledGamePlayer extends StatefulWidget {
 class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     with WidgetsBindingObserver {
   RuntimePlayerCoordinator? _coordinator;
-  RuntimeStartupCoordinator? _startupCoordinator;
+  RuntimeStartupBootstrapCoordinator<HubRuntimeStartupPreparedData>?
+  _startupCoordinator;
   HubRuntimeStartupAdapter? _startupAdapter;
   RuntimeStartupSnapshot? _startupSnapshot;
   final player_ui.PlayerRuntimeStartupShellController _startupShellController =
@@ -102,8 +104,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   player_ui.PlayerControlProfile _controlProfile =
       player_ui.PlayerControlProfile.standard;
   StreamSubscription<RuntimeStartupSnapshot>? _startupSubscription;
-  late final Stopwatch _startupStopwatch;
-  double _startupLoadingProgress = 0;
   bool _lifecycleActive = true;
   bool _reducedMotion = false;
   bool _initialLaunchDispatching = false;
@@ -112,24 +112,63 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   @override
   void initState() {
     super.initState();
-    _startupStopwatch = Stopwatch()..start();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(_initialize());
+    if (widget.runtimeStartupShellEnabled) {
+      _startRuntimeBootstrap();
+    } else {
+      unawaited(_initializeLegacy());
+    }
   }
 
-  void _advanceStartupLoading(double progress) {
-    if (!mounted || progress <= _startupLoadingProgress) return;
-    setState(() => _startupLoadingProgress = progress);
+  void _startRuntimeBootstrap() {
+    final startup =
+        RuntimeStartupBootstrapCoordinator<HubRuntimeStartupPreparedData>(
+          bootstrapPort: HubRuntimeStartupBootstrap(
+            supportRoot: widget.supportRoot,
+            saveRepositoryFactory: widget.saveRepositoryFactory,
+            preferencesRepository: widget.preferencesRepository,
+            controlProfileRepository: widget.controlProfileRepository,
+            launchResolver: widget.launchResolver,
+            game: widget.game,
+            onHubRequested: widget.onHubRequested,
+            mountGame: _mountGame,
+            unmountGame: _unmountGame,
+            stopIntroPlayback: _startupShellController.stopIntroPlayback,
+            diagnosticLogFile: widget.diagnosticLogFile,
+          ),
+          hostBranding: _aveluneStartupBranding,
+          onPrepared: _acceptRuntimeBootstrap,
+        );
+    _startupCoordinator = startup;
+    _startupSnapshot = startup.snapshot;
+    _startupSubscription = startup.snapshots.listen(_handleStartupSnapshot);
+    startup.start();
   }
 
-  Duration get _remainingSplashDuration {
-    final remaining =
-        _aveluneStartupBranding.minimumDisplayDuration -
-        _startupStopwatch.elapsed;
-    return remaining.isNegative ? Duration.zero : remaining;
+  void _acceptRuntimeBootstrap(HubRuntimeStartupPreparedData prepared) {
+    if (!mounted) return;
+    setState(() {
+      _launch = prepared.launch;
+      _sessions = prepared.sessions;
+      _coordinator = prepared.coordinator;
+      _startupAdapter = prepared.startupAdapter;
+      _saveSelection = prepared.saveSelection;
+      _titlePresentation = prepared.titlePresentation;
+      _playerLocale = Locale(
+        prepared.playerLocale.split(RegExp('[-_]')).first.toLowerCase(),
+      );
+      _playerTypography = prepared.playerTypography;
+      _audioMixer = prepared.audioMixer;
+      _controlProfileStore = prepared.controlProfileStore;
+      _controlProfile = prepared.controlProfile;
+      _reducedMotion = prepared.reducedMotion;
+      _viewController = player_ui.RuntimePlayerCoordinatorViewController(
+        prepared.coordinator,
+      );
+    });
   }
 
-  Future<void> _initialize() async {
+  Future<void> _initializeLegacy() async {
     RuntimePlayerCoordinator? coordinator;
     RuntimeStartupCoordinator? startupCoordinator;
     RuntimeSplashJingleController? splashJingleController;
@@ -138,17 +177,14 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     StreamSubscription<RuntimeStartupSnapshot>? startupSubscription;
     try {
       final launch = await widget.launchResolver.resolve(widget.game);
-      _advanceStartupLoading(.08);
       final store = widget.saveRepositoryFactory(
         widget.supportRoot,
         launch.identity,
       );
       final preferencesStore = widget.preferencesRepository;
       final preferences = (await preferencesStore.load()).preferences;
-      _advanceStartupLoading(.14);
       final controlProfileStore = widget.controlProfileRepository;
       final controlProfile = await controlProfileStore.load();
-      _advanceStartupLoading(.18);
       final audioMixer = RuntimeAudioMixer(
         mix: RuntimeAudioMix(
           masterVolume: preferences.masterVolume,
@@ -175,16 +211,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         defaultProfileDisplayName: strings.defaultProfile,
         defaultSlotDisplayName: 'Slot 1',
       );
-      _advanceStartupLoading(.24);
-      _advanceStartupLoading(.28);
       final titlePresentation =
           await HubTitlePresentationLoader(
             manifest: launch.manifest,
             resolveFile: launch.assets.resolveFile,
           ).load();
-      _advanceStartupLoading(.32);
       final loadedTypography = await loadPlayerTypography(titlePresentation);
-      _advanceStartupLoading(.35);
       final gameSource = HubRuntimeGameSource(
         launch: launch,
         preferencesGateway: preferencesGateway,
@@ -237,7 +269,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
           splashJingleController: startupSplashJingle,
           titleMusicController: startupTitleMusic,
           hostBranding: _aveluneStartupBranding,
-          minimumSplashDuration: _remainingSplashDuration,
+          minimumSplashDuration: _aveluneStartupBranding.minimumDisplayDuration,
           reducedMotion: preferences.reducedMotion,
           stopIntroPlayback: _startupShellController.stopIntroPlayback,
         );
@@ -276,10 +308,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         _launch = launch;
         _sessions = sessions;
         _coordinator = coordinator;
-        _startupCoordinator = startupCoordinator;
         _startupAdapter = startupAdapter;
-        _startupSnapshot = startupCoordinator?.snapshot;
-        _startupSubscription = startupSubscription;
         _saveSelection = saveSelection;
         _titlePresentation = titlePresentation;
         _playerLocale = Locale(
@@ -320,32 +349,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     }
   }
 
-  RuntimeStartupSnapshot get _bootstrapStartupSnapshot {
-    final phase =
-        _lifecycleActive
-            ? RuntimeStartupPhase.preparing
-            : RuntimeStartupPhase.lifecyclePaused;
-    return RuntimeStartupSnapshot(
-      revision: 0,
-      phase: phase,
-      progress: _startupLoadingProgress,
-      currentStage: RuntimeStartupPreparationStage.manifestAndIdentity,
-      isPreparationReady: false,
-      isMinimumElapsed: false,
-      isLifecycleActive: _lifecycleActive,
-      suspendedPhase: _lifecycleActive ? null : RuntimeStartupPhase.preparing,
-    );
-  }
-
   void _handleStartupSnapshot(RuntimeStartupSnapshot snapshot) {
     if (!mounted) return;
-    final progress = .35 + (snapshot.progress * .65);
-    setState(() {
-      _startupSnapshot = snapshot;
-      if (progress > _startupLoadingProgress) {
-        _startupLoadingProgress = progress;
-      }
-    });
+    setState(() => _startupSnapshot = snapshot);
     if (widget.initialLaunchIntent.skipsStartup) {
       unawaited(_driveInitialLaunchIntent(snapshot));
     }
@@ -522,10 +528,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (!_lifecycleActive && mounted) {
         setState(() => _lifecycleActive = true);
       }
-      if (coordinator == null) return;
-      unawaited(
-        startup?.resumeFromLifecycle() ?? coordinator.resumeFromLifecycle(),
-      );
+      if (startup != null) {
+        unawaited(startup.resumeFromLifecycle());
+      } else if (coordinator != null) {
+        unawaited(coordinator.resumeFromLifecycle());
+      }
       return;
     }
     if (state == AppLifecycleState.inactive ||
@@ -535,10 +542,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       if (_lifecycleActive && mounted) {
         setState(() => _lifecycleActive = false);
       }
-      if (coordinator == null) return;
-      unawaited(
-        startup?.pauseForLifecycle() ?? coordinator.pauseForLifecycle(),
-      );
+      if (startup != null) {
+        unawaited(startup.pauseForLifecycle());
+      } else if (coordinator != null) {
+        unawaited(coordinator.pauseForLifecycle());
+      }
     }
   }
 
@@ -595,9 +603,11 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         semanticTheme,
       );
     }
-    final effectiveSnapshot = startupSnapshot ?? _bootstrapStartupSnapshot;
+    final effectiveSnapshot = startupSnapshot ?? startup?.snapshot;
     final visiblePhase =
-        effectiveSnapshot.phase == RuntimeStartupPhase.lifecyclePaused
+        effectiveSnapshot == null
+            ? RuntimeStartupPhase.completed
+            : effectiveSnapshot.phase == RuntimeStartupPhase.lifecyclePaused
             ? effectiveSnapshot.suspendedPhase ?? RuntimeStartupPhase.splash
             : effectiveSnapshot.phase;
     final startupTheme =
@@ -606,7 +616,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
             ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
             : personalizedTheme;
     final intro = titlePresentation?.intro;
-    final resolvedPresentation = effectiveSnapshot.presentation;
+    final resolvedPresentation = effectiveSnapshot?.presentation;
     final presentationProfile = resolvedPresentation?.profile;
     final orientation =
         resolvedPresentation?.orientation ??
@@ -668,7 +678,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                   key: const ValueKey<String>('pokemap-runtime-startup-shell'),
                   controller: _startupShellController,
                   branding: _aveluneStartupBranding,
-                  snapshot: effectiveSnapshot,
+                  snapshot: effectiveSnapshot!,
                   titlePresentation:
                       titlePresentation?.title ??
                       const player_ui.RuntimePlayerTitlePresentation(
@@ -699,7 +709,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                   splashLogo: const AssetImage(
                     'assets/avelune/logo/avelune_mark.webp',
                   ),
-                  splashLoadingProgress: _startupLoadingProgress,
+                  splashLoadingProgress: effectiveSnapshot.progress,
                   reducedMotion: _reducedMotion,
                   onPresentationOrientationChanged: (nextOrientation) {
                     if (startup != null) {

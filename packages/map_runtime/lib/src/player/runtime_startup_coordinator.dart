@@ -47,6 +47,7 @@ final class RuntimeStartupCoordinator {
     RuntimePresentationOrientation presentationOrientation =
         RuntimePresentationOrientation.landscape,
     Future<void> Function()? stopIntroPlayback,
+    RuntimeStartupTimelineGate? initialTimelineGate,
   })  : _player = playerCoordinator,
         _preparationPort = preparationPort,
         _initialMapPreloadPort = initialMapPreloadPort,
@@ -66,6 +67,7 @@ final class RuntimeStartupCoordinator {
         _reducedMotion = reducedMotion,
         _presentationOrientation = presentationOrientation,
         _stopIntroPlayback = stopIntroPlayback ?? _noOp,
+        _initialTimelineGate = initialTimelineGate,
         _snapshot = RuntimeStartupSnapshot(
           revision: 0,
           phase: RuntimeStartupPhase.preparing,
@@ -115,6 +117,7 @@ final class RuntimeStartupCoordinator {
   final bool _reducedMotion;
   RuntimePresentationOrientation _presentationOrientation;
   final Future<void> Function() _stopIntroPlayback;
+  final RuntimeStartupTimelineGate? _initialTimelineGate;
   final StreamController<RuntimeStartupSnapshot> _snapshots =
       StreamController<RuntimeStartupSnapshot>.broadcast();
   late final StreamSubscription<RuntimePlayerSnapshot> _playerSubscription;
@@ -131,6 +134,7 @@ final class RuntimeStartupCoordinator {
   bool _preparationActivated = false;
   bool _splashHoldElapsed = false;
   bool _preparationReadyObserved = false;
+  bool _initialTimelineConsumed = false;
   Future<void>? _pendingSplashExit;
 
   RuntimeStartupSnapshot get snapshot => _snapshot;
@@ -371,6 +375,9 @@ final class RuntimeStartupCoordinator {
 
   void _startPreparationAttempt() {
     final generation = ++_generation;
+    final initialTimelineGate =
+        _initialTimelineConsumed ? null : _initialTimelineGate;
+    _initialTimelineConsumed = true;
     final attempt = _RuntimeStartupAttemptContext(
       orientation: _presentationOrientation,
     );
@@ -407,10 +414,15 @@ final class RuntimeStartupCoordinator {
     // Both weighted units await the same concurrent load without duplicating it.
     final playerPreparation = _player.initialize();
     final presentationPreparation = _loadPresentationSafely(attempt);
-    _watchSplashHold(generation, attempt);
+    _watchSplashHold(
+      generation,
+      attempt,
+      initialTimelineGate?.splashHoldElapsed,
+    );
     final preparation = RuntimeStartupPreparation(
       clock: _clock,
       minimumDisplayDuration: _minimumSplashDuration,
+      minimumDisplayElapsed: initialTimelineGate?.minimumDisplayElapsed,
     );
     _activePreparation = preparation;
     final result = preparation.run(
@@ -522,12 +534,13 @@ final class RuntimeStartupCoordinator {
   void _watchSplashHold(
     int generation,
     _RuntimeStartupAttemptContext attempt,
+    Future<void>? splashHoldElapsed,
   ) {
     if (_reducedMotion) return;
     final holdDuration = _minimumSplashDuration > _splashExitDuration
         ? _minimumSplashDuration - _splashExitDuration
         : Duration.zero;
-    _clock.delay(holdDuration).then(
+    (splashHoldElapsed ?? _clock.delay(holdDuration)).then(
       (_) {
         if (_isActiveAttempt(generation, attempt)) {
           _splashHoldElapsed = true;
