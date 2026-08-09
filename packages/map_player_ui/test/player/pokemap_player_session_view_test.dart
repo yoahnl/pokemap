@@ -77,7 +77,7 @@ void main() {
     expect(controller.commands.single.snapshotRevision, 7);
 
     final newGameButton = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Nouvelle partie'),
+      find.widgetWithText(FilledButton, 'Nouveau jeu'),
     );
     expect(newGameButton.onPressed, isNull);
     expect(controller.commands, hasLength(1));
@@ -407,7 +407,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('Nouvelle partie'));
+      await tester.tap(find.text('Nouveau jeu'));
       await tester.pumpAndSettle();
       expect(
         find.byKey(

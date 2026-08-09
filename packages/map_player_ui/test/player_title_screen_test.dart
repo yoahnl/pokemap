@@ -32,18 +32,18 @@ void main() {
     expect(find.text('Aube'), findsOneWidget);
     expect(find.text('Studio Brume'), findsOneWidget);
     expect(find.text('Continuer'), findsOneWidget);
-    expect(find.text('Nouvelle partie'), findsOneWidget);
+    expect(find.text('Nouveau jeu'), findsOneWidget);
     expect(find.text('Charger'), findsOneWidget);
     expect(find.text('Options'), findsOneWidget);
     expect(find.text('Crédits / À propos'), findsOneWidget);
     expect(find.text('Retour au Hub'), findsOneWidget);
     expect(
       FocusManager.instance.primaryFocus?.debugLabel,
-      'Player action: Nouvelle partie',
+      'Player action: Nouveau jeu',
       reason: 'Focus starts on the first enabled action.',
     );
 
-    await tester.tap(find.text('Nouvelle partie'));
+    await tester.tap(find.text('Nouveau jeu'));
     expect(selected, <PlayerTitleMenuAction>[
       PlayerTitleMenuAction.newGame,
     ]);
@@ -142,13 +142,17 @@ void main() {
     expect(tester.widget<Text>(find.text('Aube')).style?.fontFamily,
         'Aube Display');
     expect(
-      tester.widget<Text>(find.text('Nouvelle partie')).style?.fontFamily,
+      tester.widget<Text>(find.text('Nouveau jeu')).style?.fontFamily,
       'Aube Body',
     );
   });
 
-  testWidgets('cinematic startup menu matches desktop and mobile geometry',
+  testWidgets('premium startup menu matches the authored compact composition',
       (tester) async {
+    final focusController = RuntimePlayerFocusController(
+      logicalSelectionId: 'title.newGame',
+    );
+    addTearDown(focusController.dispose);
     final data = PlayerTitleViewData(
       gameTitle: 'Le Train de 17h42',
       author: 'PokeMap',
@@ -172,51 +176,93 @@ void main() {
       },
     );
 
-    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.physicalSize = const Size(392, 996);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      _app(PlayerTitleScreen(data: data, onSelected: (_) {})),
+      _app(
+        PlayerTitleScreen(
+          data: data,
+          focusController: focusController,
+          onSelected: (_) {},
+        ),
+      ),
     );
 
-    expect(
-      tester.getSize(
-        find.byKey(const ValueKey<String>('player-cinematic-stage')),
-      ),
-      const Size(1440, 810),
-    );
     expect(
       tester.getSize(
         find.byKey(const ValueKey<String>('player-title-startup-menu')),
       ),
-      const Size(619.2, 810),
+      const Size(392, 996),
     );
+    expect(find.byKey(const ValueKey<String>('player-cinematic-stage')),
+        findsNothing);
+    expect(find.byKey(const ValueKey<String>('player-title-startup-visual')),
+        findsNothing);
+    expect(find.text('PokeMap'), findsNothing);
+    expect(find.text('Le Train\nde 17h42'), findsOneWidget);
     expect(find.text('01:46 · Vallée d’Hisui'), findsOneWidget);
-    expect(find.byType(FilledButton), findsOneWidget);
-    expect(find.byType(TextButton), findsNWidgets(2));
-
-    tester.view.physicalSize = const Size(390, 844);
-    await tester.pumpWidget(
-      _app(PlayerTitleScreen(data: data, onSelected: (_) {})),
-    );
+    expect(find.text('Nouveau jeu'), findsOneWidget);
+    expect(find.text('Choisir'), findsOneWidget);
+    expect(find.text('ENTER'), findsOneWidget);
+    expect(find.text('Valider'), findsOneWidget);
 
     expect(
-      tester
-          .getSize(
-            find.byKey(const ValueKey<String>('player-title-startup-visual')),
-          )
-          .height,
-      closeTo(489.52, .01),
+      tester.getTopLeft(
+        find.byKey(const ValueKey<String>('player-title-premium-title')),
+      ),
+      const Offset(46, 74),
     );
     expect(
-      tester
-          .getSize(
-            find.byKey(const ValueKey<String>('player-title-startup-menu')),
-          )
-          .height,
-      closeTo(379.8, .01),
+      tester.getRect(
+        find.byKey(
+          const ValueKey<String>('player-title-premium-action-newGame'),
+        ),
+      ),
+      const Rect.fromLTWH(46, 243, 302, 58),
+    );
+    expect(
+      tester.getTopLeft(
+        find.byKey(const ValueKey<String>('player-title-premium-controls')),
+      ),
+      const Offset(46, 930),
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('premium startup menu keeps a 392 pixel rail on desktop',
+      (tester) async {
+    tester.view.physicalSize = const Size(995, 690);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      _app(
+        PlayerTitleScreen(
+          data: PlayerTitleViewData(
+            gameTitle: 'Le Train de 17h42',
+            author: 'PokeMap',
+            layoutVariant: PlayerTitleLayoutVariant.runtimeStartupCinematic,
+            actions: const <PlayerTitleMenuAction, PlayerActionAvailability>{
+              PlayerTitleMenuAction.continueGame:
+                  PlayerActionAvailability.enabled,
+              PlayerTitleMenuAction.newGame: PlayerActionAvailability.enabled,
+              PlayerTitleMenuAction.options: PlayerActionAvailability.enabled,
+            },
+          ),
+          onSelected: (_) {},
+        ),
+      ),
+    );
+
+    expect(
+      tester.getSize(
+        find.byKey(const ValueKey<String>('player-title-startup-menu')),
+      ),
+      const Size(392, 690),
+    );
+    expect(find.byKey(const ValueKey<String>('player-title-startup-visual')),
+        findsOneWidget);
+    expect(find.text('PokeMap'), findsNothing);
   });
 }
 

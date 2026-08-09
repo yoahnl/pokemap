@@ -319,7 +319,7 @@ void main() {
       );
 
       expect(find.text('Continuer'), findsOneWidget);
-      expect(find.text('Nouvelle partie'), findsOneWidget);
+      expect(find.text('Nouveau jeu'), findsOneWidget);
       expect(find.text('Options'), findsOneWidget);
       expect(find.text('Charger'), findsNothing);
       expect(find.text('Crédits & à propos'), findsNothing);
@@ -391,7 +391,7 @@ void main() {
       ),
     );
 
-    await tester.tap(find.text('Nouvelle partie'));
+    await tester.tap(find.text('Nouveau jeu'));
     await tester.pumpAndSettle();
     expect(find.text('Remplacer la partie actuelle ?'), findsOneWidget);
     expect(commands, isEmpty);

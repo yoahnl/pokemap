@@ -7,7 +7,6 @@ import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
-import 'player_cinematic_stage.dart';
 import 'runtime_player_focus_controller.dart';
 
 enum PlayerTitleMenuAction {
@@ -252,6 +251,19 @@ class PlayerTitleScreen extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final compact = constraints.maxWidth <= 760;
+          if (cinematic) {
+            if (compact) {
+              return _startupPremiumMenu(context);
+            }
+            return Row(
+              key: const ValueKey<String>('player-title-startup-expanded'),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                SizedBox(width: 392, child: _startupPremiumMenu(context)),
+                Expanded(child: _startupVisual(context)),
+              ],
+            );
+          }
           if (compact) {
             final visualHeight = constraints.maxHeight * .58;
             final menuHeight = math.min(
@@ -297,9 +309,331 @@ class PlayerTitleScreen extends StatelessWidget {
         },
       ),
     );
-    return Scaffold(
-      body: cinematic ? PlayerCinematicStage(child: content) : content,
+    return Scaffold(body: content);
+  }
+
+  Widget _startupPremiumMenu(BuildContext context) {
+    final colors = context.playerColors;
+    final semantic = context.playerSemanticTheme;
+    final firstEnabledAction = data.initialSelection ??
+        data.actions.keys
+            .where((action) => _availability(context, action).isEnabled)
+            .firstOrNull;
+    return Material(
+      key: const ValueKey<String>('player-title-startup-menu'),
+      color: semantic.background,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                stops: const <double>[0, .18, .46, .64, .78, 1],
+                colors: <Color>[
+                  Color.lerp(semantic.background, semantic.surface, .38)!,
+                  Color.lerp(semantic.background, semantic.surface, .66)!,
+                  Color.lerp(semantic.background, semantic.surface, .86)!,
+                  Color.lerp(semantic.background, semantic.surface, .18)!,
+                  semantic.background,
+                  Color.lerp(semantic.background, semantic.surface, .46)!,
+                ],
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  semantic.surfaceElevated.withValues(alpha: 0),
+                  semantic.surfaceElevated.withValues(alpha: .32),
+                  semantic.surfaceElevated.withValues(alpha: .42),
+                  semantic.surfaceElevated.withValues(alpha: .38),
+                  semantic.surfaceElevated.withValues(alpha: .18),
+                  semantic.surfaceElevated.withValues(alpha: 0),
+                ],
+                stops: const <double>[.08, .15, .18, .22, .35, .43],
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: <Color>[
+                  semantic.onPrimary.withValues(alpha: 0),
+                  semantic.onPrimary.withValues(alpha: .19),
+                  semantic.onPrimary.withValues(alpha: .25),
+                  semantic.onPrimary.withValues(alpha: .2),
+                  semantic.onPrimary.withValues(alpha: 0),
+                ],
+                stops: const <double>[.08, .15, .18, .22, .3],
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(.48, -.1),
+                radius: .68,
+                colors: <Color>[
+                  semantic.surface.withValues(alpha: .2),
+                  semantic.surface.withValues(alpha: .08),
+                  semantic.surface.withValues(alpha: 0),
+                ],
+                stops: const <double>[0, .46, 1],
+              ),
+            ),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: const Alignment(.34, 1.08),
+                radius: .66,
+                colors: <Color>[
+                  semantic.surface.withValues(alpha: .16),
+                  semantic.surface.withValues(alpha: 0),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(left: 46, right: 44),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                const SizedBox(height: 74),
+                SizedBox(
+                  key: const ValueKey<String>('player-title-premium-title'),
+                  height: 64,
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      _premiumTitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.visible,
+                      style: context.playerTypography.displayStyle(
+                        (Theme.of(context).textTheme.headlineLarge ??
+                                const TextStyle())
+                            .copyWith(
+                          color: colors.textPrimary,
+                          fontSize: 40,
+                          fontWeight: FontWeight.w500,
+                          height: .82,
+                          letterSpacing: -1.25,
+                          fontFeatures: const <FontFeature>[
+                            FontFeature.liningFigures(),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 47),
+                for (final (index, action) in data.actions.keys.indexed) ...[
+                  if (index > 0) const SizedBox(height: 10),
+                  _startupPremiumAction(
+                    context,
+                    action: action,
+                    selected: _isStartupHighlighted(action, firstEnabledAction),
+                  ),
+                ],
+                const Spacer(),
+                _startupPremiumControls(context),
+                const SizedBox(height: 40),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
+  }
+
+  Widget _startupPremiumAction(
+    BuildContext context, {
+    required PlayerTitleMenuAction action,
+    required bool selected,
+  }) {
+    final colors = context.playerColors;
+    final availability = _availability(context, action);
+    final enabled = availability.isEnabled;
+    final foreground = selected ? colors.onPrimary : colors.textSecondary;
+    final focusNode = _focusNode(action);
+    final firstEnabledAction = data.initialSelection ??
+        data.actions.keys
+            .where((candidate) => _availability(context, candidate).isEnabled)
+            .firstOrNull;
+    return SizedBox(
+      key: ValueKey<String>('player-title-premium-action-${action.name}'),
+      height: selected ? 58 : 48,
+      child: Focus(
+        focusNode: focusNode,
+        autofocus: focusController?.logicalSelectionId == null
+            ? action == firstEnabledAction
+            : _isSelected(action),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: selected
+                ? <BoxShadow>[
+                    BoxShadow(
+                      color: colors.primary.withValues(alpha: .16),
+                      blurRadius: 26,
+                      offset: const Offset(0, 12),
+                    ),
+                  ]
+                : const <BoxShadow>[],
+          ),
+          child: Material(
+            color: selected
+                ? colors.primary
+                : colors.background.withValues(alpha: 0),
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10),
+              onTap: enabled ? () => _select(action) : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Row(
+                  children: <Widget>[
+                    SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: <Widget>[
+                          Icon(
+                            Icons.circle,
+                            size: selected ? 18 : 7,
+                            color: selected
+                                ? (data.accentColor ?? colors.warning)
+                                    .withValues(alpha: .22)
+                                : colors.outline.withValues(
+                                    alpha: enabled ? .48 : .28,
+                                  ),
+                          ),
+                          if (selected)
+                            Icon(
+                              Icons.circle,
+                              size: 7,
+                              color: data.accentColor ?? colors.warning,
+                            ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 17),
+                    Expanded(
+                      child: Text(
+                        _label(context, action),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.playerTypography.bodyStyle(
+                          (Theme.of(context).textTheme.labelLarge ??
+                                  const TextStyle())
+                              .copyWith(
+                            color: enabled
+                                ? foreground
+                                : foreground.withValues(alpha: .45),
+                            fontSize: 16,
+                            fontWeight:
+                                selected ? FontWeight.w700 : FontWeight.w600,
+                            letterSpacing: .05,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (action == PlayerTitleMenuAction.continueGame)
+                      _continueSaveMetadata(
+                            context,
+                            color: selected
+                                ? colors.onPrimary.withValues(alpha: .58)
+                                : colors.textSecondary.withValues(alpha: .68),
+                            fontSize: 9,
+                          ) ??
+                          const SizedBox.shrink(),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _startupPremiumControls(BuildContext context) {
+    final colors = context.playerColors;
+    final labelStyle = context.playerTypography.bodyStyle(
+      (Theme.of(context).textTheme.labelSmall ?? const TextStyle()).copyWith(
+        color: colors.textSecondary.withValues(alpha: .82),
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+      ),
+    );
+    return SizedBox(
+      key: const ValueKey<String>('player-title-premium-controls'),
+      height: 26,
+      child: Row(
+        children: <Widget>[
+          _startupPremiumKey(
+            context,
+            width: 31,
+            child: Icon(
+              Icons.swap_vert_rounded,
+              size: 15,
+              color: colors.textPrimary,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(context.playerL10n.choose, style: labelStyle),
+          const SizedBox(width: 18),
+          _startupPremiumKey(
+            context,
+            width: 47,
+            child: Text(
+              'ENTER',
+              style: context.playerTypography.numbersStyle(
+                TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: .45,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(context.playerL10n.validate, style: labelStyle),
+        ],
+      ),
+    );
+  }
+
+  Widget _startupPremiumKey(
+    BuildContext context, {
+    required double width,
+    required Widget child,
+  }) =>
+      Container(
+        width: width,
+        height: 24,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: context.playerColors.surfaceElevated.withValues(alpha: .72),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: child,
+      );
+
+  String get _premiumTitle {
+    final words = data.gameTitle.trim().split(RegExp(r'\s+'));
+    if (words.length < 4) return data.gameTitle;
+    final split = (words.length / 2).ceil();
+    return '${words.take(split).join(' ')}\n${words.skip(split).join(' ')}';
   }
 
   Widget _startupVisual(BuildContext context) {
@@ -448,7 +782,11 @@ class PlayerTitleScreen extends StatelessWidget {
         PlayerTitleMenuAction.returnToHub => 'title.returnToHost',
       };
 
-  Widget? _continueSaveMetadata(BuildContext context) {
+  Widget? _continueSaveMetadata(
+    BuildContext context, {
+    Color? color,
+    double? fontSize,
+  }) {
     final save = data.continueSave;
     if (save == null) return null;
     final totalMinutes = save.playTimeSeconds ~/ 60;
@@ -465,7 +803,8 @@ class PlayerTitleScreen extends StatelessWidget {
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: context.playerColors.textSecondary,
+            color: color ?? context.playerColors.textSecondary,
+            fontSize: fontSize,
           ),
     );
   }

@@ -47,7 +47,7 @@ final class PokeMapPlayerLocalizations {
       : 'Import a compatible game package to begin an adventure.';
   String get searchGames => _fr ? 'Rechercher un jeu' : 'Search games';
   String get continueGame => _fr ? 'Continuer' : 'Continue';
-  String get newGame => _fr ? 'Nouvelle partie' : 'New game';
+  String get newGame => _fr ? 'Nouveau jeu' : 'New game';
   String get load => _fr ? 'Charger' : 'Load';
   String get options => _fr ? 'Options' : 'Options';
   String get creditsAbout => _fr ? 'Crédits / À propos' : 'Credits / About';
@@ -105,6 +105,8 @@ final class PokeMapPlayerLocalizations {
   String get actionUnavailable =>
       _fr ? 'Action indisponible' : 'Action unavailable';
   String get confirmShortcut => _fr ? 'Entrée / bouton A' : 'Enter / A button';
+  String get choose => _fr ? 'Choisir' : 'Choose';
+  String get validate => _fr ? 'Valider' : 'Confirm';
   String get noSaveAvailable =>
       _fr ? 'Aucune sauvegarde disponible' : 'No save available';
   String get noSaveToLoad =>
