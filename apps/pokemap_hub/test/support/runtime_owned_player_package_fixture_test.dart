@@ -3,19 +3,24 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:path/path.dart' as p;
 
 import 'runtime_owned_player_package_fixture.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test('compiled integration payload matches the data-only fixture', () async {
     final fixture = Directory(
       p.join('test', 'fixtures', 'runtime_owned_player_game'),
     );
     final compiled = runtimeOwnedPlayerFixturePayload();
     final onDisk = <String, List<int>>{};
-    await for (final entity
-        in fixture.list(recursive: true, followLinks: false)) {
+    await for (final entity in fixture.list(
+      recursive: true,
+      followLinks: false,
+    )) {
       if (entity is! File) continue;
       final relative = p
           .relative(entity.path, from: fixture.path)
@@ -30,18 +35,27 @@ void main() {
     }
   });
 
-  test('fixture scenes are valid and buildable by the runtime', () {
-    final payload = runtimeOwnedPlayerFixturePayload();
-    final project = ProjectManifest.fromJson(
-      jsonDecode(
-        utf8.decode(payload['project/project.json']!),
-      ) as Map<String, dynamic>,
+  test('fixture is a valid Smart Tiles v6 runtime project', () async {
+    final project = _fixtureProject();
+    final map = _fixtureMap();
+
+    expect(project.version, ProjectVersion.v6);
+    expect(map.version, ProjectVersion.v6);
+    ProjectValidator.validate(project);
+    MapValidator.validate(map, projectDialogueContext: project);
+
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: p.join(
+        'test',
+        'fixtures',
+        'runtime_owned_player_game',
+        'project',
+        'project.json',
+      ),
+      mapId: 'runtime_harbor',
     );
-    final map = MapData.fromJson(
-      jsonDecode(
-        utf8.decode(payload['project/maps/runtime_harbor.json']!),
-      ) as Map<String, dynamic>,
-    );
+    expect(bundle.manifest.version, ProjectVersion.v6);
+    expect(bundle.map.version, ProjectVersion.v6);
 
     for (final scene in project.scenes) {
       final report = diagnoseSceneAgainstProject(
@@ -53,8 +67,9 @@ void main() {
         report.hasErrors,
         isFalse,
         reason: report.diagnostics
-            .map((diagnostic) =>
-                '${diagnostic.code.name}: ${diagnostic.message}')
+            .map(
+              (diagnostic) => '${diagnostic.code.name}: ${diagnostic.message}',
+            )
             .join('\n'),
       );
 
@@ -63,39 +78,103 @@ void main() {
         plan.canBuild,
         isTrue,
         reason: plan.diagnostics
-            .map((diagnostic) =>
-                '${diagnostic.code.name}: ${diagnostic.message}')
+            .map(
+              (diagnostic) => '${diagnostic.code.name}: ${diagnostic.message}',
+            )
             .join('\n'),
       );
     }
   });
 
-  test('installed Golden fixture keeps the canonical Selbrume ending contract',
-      () {
-    final fixtureProject = ProjectManifest.fromJson(
-      jsonDecode(
-        utf8.decode(
-          runtimeOwnedPlayerFixturePayload()['project/project.json']!,
-        ),
-      ) as Map<String, dynamic>,
-    );
-    final canonicalProject = ProjectManifest.fromJson(
-      jsonDecode(
-        File(
-          p.join(
-            _repositoryRoot().path,
-            'selbrume',
-            'project.json',
-          ),
-        ).readAsStringSync(),
-      ) as Map<String, dynamic>,
-    );
+  test('v2 remains rejected for project and map fixture payloads', () {
+    final payload = runtimeOwnedPlayerFixturePayload();
+    final projectJson =
+        jsonDecode(utf8.decode(payload['project/project.json']!))
+            as Map<String, dynamic>;
+    final mapJson =
+        jsonDecode(utf8.decode(payload['project/maps/runtime_harbor.json']!))
+            as Map<String, dynamic>;
+    projectJson['version'] = 'v2';
+    mapJson['version'] = 'v2';
 
     expect(
-      _finishGame(fixtureProject, 'scene_selbrume_terminal').toJson(),
-      _finishGame(canonicalProject, 'scene_ending_port').toJson(),
+      () => ProjectManifest.fromJson(projectJson),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.toString(),
+          'message',
+          contains('smart_tile_v6_project_required'),
+        ),
+      ),
+    );
+    expect(
+      () => MapData.fromJson(mapJson),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.toString(),
+          'message',
+          contains('smart_tile_v6_map_required'),
+        ),
+      ),
     );
   });
+
+  test('v6 fixture keeps the canonical Selbrume ending contract', () {
+    expect(
+      _finishGame(_fixtureProject(), 'scene_selbrume_terminal'),
+      SceneFinishGameConsequence(
+        endingId: 'ending.selbrume-sauvee',
+        outcome: SceneGameCompletionOutcome.victory,
+        result: SceneFinishGameResult(
+          title: SceneLocalizedText(
+            fallback: 'Selbrume est sauvée',
+            translations: const <String, String>{'en': 'Selbrume is safe'},
+          ),
+          summary: SceneLocalizedText(
+            fallback:
+                'La lumière du phare traverse de nouveau la brume et '
+                'les habitants reprennent la mer.',
+            translations: const <String, String>{
+              'en':
+                  'The lighthouse shines through the mist again, and the '
+                  'islanders return to sea.',
+            },
+          ),
+        ),
+        credits: SceneFinishGameCredits(
+          title: SceneLocalizedText(
+            fallback: 'Crédits — Selbrume',
+            translations: const <String, String>{'en': 'Selbrume Credits'},
+          ),
+          author: 'Selbrume',
+          endingLabel: SceneLocalizedText(
+            fallback: 'Fin principale — Selbrume sauvée',
+            translations: const <String, String>{
+              'en': 'Main ending — Selbrume is safe',
+            },
+          ),
+        ),
+        postGamePolicy: ScenePostGamePolicy.returnToHub,
+        label: 'Terminer Selbrume',
+      ),
+    );
+  });
+}
+
+ProjectManifest _fixtureProject() {
+  final payload = runtimeOwnedPlayerFixturePayload();
+  return ProjectManifest.fromJson(
+    jsonDecode(utf8.decode(payload['project/project.json']!))
+        as Map<String, dynamic>,
+  );
+}
+
+MapData _fixtureMap() {
+  final payload = runtimeOwnedPlayerFixturePayload();
+  return MapData.fromJson(
+    jsonDecode(utf8.decode(payload['project/maps/runtime_harbor.json']!))
+        as Map<String, dynamic>,
+  );
 }
 
 SceneFinishGameConsequence _finishGame(
@@ -109,18 +188,4 @@ SceneFinishGameConsequence _finishGame(
       .map((payload) => payload.consequence)
       .whereType<SceneFinishGameConsequence>()
       .single;
-}
-
-Directory _repositoryRoot() {
-  var current = Directory.current.absolute;
-  while (true) {
-    if (File(p.join(current.path, 'selbrume', 'project.json')).existsSync()) {
-      return current;
-    }
-    final parent = current.parent;
-    if (parent.path == current.path) {
-      throw StateError('Repository root containing Selbrume was not found.');
-    }
-    current = parent;
-  }
 }
