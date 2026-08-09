@@ -998,6 +998,17 @@ final class RuntimeStartupCoordinator {
             playerSnapshot.phase == RuntimePlayerPhase.paused)) {
       desiredPhase = RuntimeStartupPhase.completed;
     }
+    if ((desiredPhase == RuntimeStartupPhase.launchingSession ||
+            desiredPhase == RuntimeStartupPhase.completed) &&
+        playerSnapshot.phase == RuntimePlayerPhase.title) {
+      desiredPhase = RuntimeStartupPhase.titleMenu;
+      unawaited(
+        _titleMusic.update(
+          path: _titleMusicAsset?.playbackLocation,
+          titleVisible: true,
+        ),
+      );
+    }
     if (_snapshot.phase == RuntimeStartupPhase.lifecyclePaused) {
       _resumePhase = desiredPhase;
       _publish(

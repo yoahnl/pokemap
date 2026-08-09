@@ -918,6 +918,53 @@ void main() {
     );
   });
 
+  test('returning from a session re-enters the runtime title menu', () async {
+    final harness = _RuntimeStartupTestHarness(
+      profile: _presentationWithIntroAndMusic(includeIntro: false),
+    );
+    addTearDown(harness.dispose);
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+    await harness.startup.dispatch(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.pressStart,
+        snapshotRevision: harness.startup.snapshot.revision,
+      ),
+    );
+    final launched = await harness.startup.dispatchPlayerCommand(
+      startupSnapshotRevision: harness.startup.snapshot.revision,
+      command: RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.player.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'player',
+          slotId: 'slot_1',
+        ),
+      ),
+    );
+    expect(launched.status, RuntimePlayerCommandStatus.accepted);
+    harness.player.adapter.emitRunning();
+    await harness.player.coordinator.settle();
+    await _flushEvents();
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.completed);
+
+    await openHarnessPause(harness.player);
+    harness.player.adapter.checkpoint = testPlayerCheckpoint();
+    final returned = await harness.player.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.returnToTitle,
+        snapshotRevision: harness.player.coordinator.snapshot.revision,
+      ),
+    );
+    await _flushEvents();
+
+    expect(returned.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.player.coordinator.snapshot.phase, RuntimePlayerPhase.title);
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titleMenu);
+    expect(harness.audio.played, hasLength(2));
+  });
+
   test('lifecycle pause cancels launch before session allocation', () async {
     final stopGate = Completer<void>();
     final harness = _RuntimeStartupTestHarness(
