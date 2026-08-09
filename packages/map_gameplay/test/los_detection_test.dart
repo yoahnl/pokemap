@@ -91,8 +91,7 @@ void main() {
           MapLayer.tile(
             id: 'terrain',
             name: 'Terrain',
-            tilesetId: 'ts',
-            tiles: List.filled(100, 0),
+            cells: List.filled(100, 0),
           ),
           MapLayer.collision(
             id: 'collision',

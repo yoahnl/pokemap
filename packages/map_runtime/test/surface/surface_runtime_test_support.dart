@@ -15,6 +15,18 @@ RuntimeMapBundle surfaceTestBundle({
       id: 'surface-water',
       name: 'Surface Water',
       relativePath: 'tilesets/surface-water.png',
+      source: ProjectRegularAtlasTilesetSource(
+        assetId: 'surface-water',
+        pixelWidth: surfaceTestTileSize,
+        pixelHeight: surfaceTestTileSize,
+        tileWidth: surfaceTestTileSize,
+        tileHeight: surfaceTestTileSize,
+      ),
+    ),
+    ProjectTilesetEntry(
+      id: 'surface-path',
+      name: 'Surface Path',
+      relativePath: 'tilesets/surface-path.png',
     ),
     ProjectTilesetEntry(
       id: 'base',
@@ -78,6 +90,22 @@ SmartTileLayer runtimeTestBaseLayer({
   );
 }
 
+SmartTileLayer runtimeTestPathLayer({
+  bool isVisible = true,
+  double opacity = 1,
+}) {
+  return SmartTileLayer(
+    id: 'path-layer',
+    name: 'Path',
+    isVisible: isVisible,
+    opacity: opacity,
+    presetId: 'runtime-path',
+    usage: SmartTileUsage.path,
+    materialPalette: const <String>['', 'runtime-path-material'],
+    field: const SmartTileField.cell(semanticCells: <int>[1]),
+  );
+}
+
 final ProjectSmartTileCatalog runtimeTestSmartTileCatalog =
     ProjectSmartTileCatalog(
   atlases: const <ProjectSmartTileAtlas>[
@@ -88,12 +116,24 @@ final ProjectSmartTileCatalog runtimeTestSmartTileCatalog =
       columns: 1,
       rows: 1,
     ),
+    ProjectSmartTileAtlas(
+      id: 'runtime-path-atlas',
+      name: 'Path atlas',
+      tilesetId: 'surface-path',
+      columns: 1,
+      rows: 1,
+    ),
   ],
   materials: const <ProjectSmartTileMaterial>[
     ProjectSmartTileMaterial(
       id: 'runtime-base-material',
       name: 'Base material',
       connectionGroupId: 'runtime-base-material',
+    ),
+    ProjectSmartTileMaterial(
+      id: 'runtime-path-material',
+      name: 'Path material',
+      connectionGroupId: 'runtime-path-material',
     ),
   ],
   presets: const <ProjectSmartTilePreset>[
@@ -121,6 +161,42 @@ final ProjectSmartTileCatalog runtimeTestSmartTileCatalog =
                   source: SmartTileVisualSource.frame(
                     frame: SmartTileFrameRef(
                       atlasId: 'runtime-base-atlas',
+                      column: 0,
+                      row: 0,
+                    ),
+                  ),
+                  channel: SmartTileRenderChannel.ground,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+    ProjectSmartTilePreset(
+      id: 'runtime-path',
+      name: 'Path',
+      usage: SmartTileUsage.path,
+      topology: SmartTileTopology.cardinal4,
+      coveragePolicy: SmartTileCoveragePolicy.sparse,
+      coverageProfile: SmartTileCoverageProfile(
+        mode: SmartTileCoverageMode.explicit,
+      ),
+      transformPolicy: SmartTileTransformPolicy(),
+      defaultMaterialId: 'runtime-path-material',
+      allowedMaterialIds: <String>['runtime-path-material'],
+      rules: <SmartTileRule>[
+        SmartTileRule(
+          id: 'any',
+          centerMatch: SmartTileSlotMatch.any(),
+          candidates: <SmartTileCandidate>[
+            SmartTileCandidate(
+              id: 'path',
+              parts: <SmartTileVisualPart>[
+                SmartTileVisualPart(
+                  source: SmartTileVisualSource.frame(
+                    frame: SmartTileFrameRef(
+                      atlasId: 'runtime-path-atlas',
                       column: 0,
                       row: 0,
                     ),

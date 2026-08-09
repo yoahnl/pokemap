@@ -349,7 +349,7 @@ void main() {
           MapLayer.tile(
             id: 'layer',
             name: 'Layer',
-            tiles: [
+            cells: [
               0,
               0,
               0,
@@ -436,7 +436,7 @@ void main() {
           MapLayer.tile(
             id: 'layer',
             name: 'Layer',
-            tiles: [
+            cells: [
               0,
               0,
               0,
@@ -528,7 +528,7 @@ void main() {
           MapLayer.tile(
             id: 'layer',
             name: 'Layer',
-            tiles: [
+            cells: [
               0,
               0,
               0,
@@ -620,7 +620,7 @@ MapData _mapWithBehavior({
       MapLayer.tile(
         id: 'layer',
         name: 'Layer',
-        tiles: List<int>.filled(tileCount, 0, growable: false),
+        cells: List<int>.filled(tileCount, 0, growable: false),
       ),
     ],
     placedElements: [

@@ -99,7 +99,7 @@ MapData _buildingMap() {
       MapLayer.tile(
         id: 'tile',
         name: 'Tile',
-        tiles: List<int>.filled(144, 0),
+        cells: List<int>.filled(144, 0),
       ),
     ],
     placedElements: const [

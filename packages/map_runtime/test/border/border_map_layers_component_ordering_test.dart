@@ -28,14 +28,12 @@ void main() {
   group('MapLayersComponent Border authored ordering', () {
     test('keeps the exact legacy visual phases when no Border exists',
         () async {
-      final component = await _surfaceThenTileComponent(
+      final component = await _objectThenTileComponent(
         layers: <MapLayer>[
-          surfaceTestLayer(),
-          const TileLayer(
+          _blueObjectLayer(),
+          _singleTileLayer(
             id: 'tile',
             name: 'Tile',
-            tilesetId: 'base',
-            tiles: <int>[1],
           ),
         ],
       );
@@ -49,14 +47,12 @@ void main() {
       'a hidden Border activates authored legacy-direction order without '
       'painting itself',
       () async {
-        final component = await _surfaceThenTileComponent(
+        final component = await _objectThenTileComponent(
           layers: <MapLayer>[
-            surfaceTestLayer(),
-            const TileLayer(
+            _blueObjectLayer(),
+            _singleTileLayer(
               id: 'tile',
               name: 'Tile',
-              tilesetId: 'base',
-              tiles: <int>[1],
             ),
             const BorderLayer(
               id: 'hidden-border',
@@ -69,7 +65,7 @@ void main() {
         final image = await renderSurfaceTestComponent(component);
 
         // Legacy authored direction is reverse serialization: hidden Border,
-        // Tile, then Surface. The hidden Border creates no pixels, so Surface
+        // Tile, then Object. The hidden Border creates no pixels, so Object
         // must be the visible top result.
         expect(await pixelAt(image, 16, 16), rgba(0, 0, 255, 255));
       },
@@ -90,23 +86,12 @@ void main() {
                 'tileLayerOrder': 'bottom_to_top',
               },
               layers: <MapLayer>[
-                const TerrainLayer(
-                  id: 'terrain',
-                  name: 'Terrain',
-                  terrains: <TerrainType>[TerrainType.grass],
-                ),
-                const PathLayer(
-                  id: 'path',
-                  name: 'Path',
-                  cells: <bool>[true],
-                ),
-                surfaceTestLayer(),
+                runtimeTestBaseLayer(),
+                runtimeTestPathLayer(),
                 _borderLayer(id: 'border-a', snapshotId: _snapshotA),
-                const TileLayer(
+                _singleTileLayer(
                   id: 'tile',
                   name: 'Tile',
-                  tilesetId: 'base',
-                  tiles: <int>[1],
                 ),
                 const ObjectLayer(id: 'objects', name: 'Objects'),
                 const EnvironmentLayer(
@@ -120,6 +105,9 @@ void main() {
           tileImagesByTilesetId: {
             'surface-water': await runtimeTilesetImage(
               const <Color>[Color(0xFF0000FF)],
+            ),
+            'surface-path': await runtimeTilesetImage(
+              const <Color>[Color(0xFF009688)],
             ),
             'base': await runtimeTilesetImage(
               const <Color>[Color(0xFFFF0000)],
@@ -146,11 +134,9 @@ void main() {
             },
             layers: <MapLayer>[
               _borderLayer(id: 'border-a', snapshotId: _snapshotA),
-              const TileLayer(
+              _singleTileLayer(
                 id: 'tile',
                 name: 'Tile',
-                tilesetId: 'base',
-                tiles: <int>[1],
               ),
             ],
           ),
@@ -181,7 +167,7 @@ void main() {
               'tileLayerOrder': 'bottom_to_top',
             },
             layers: <MapLayer>[
-              surfaceTestLayer(),
+              runtimeTestBaseLayer(),
               _borderPlacementLayer(
                 id: 'two-tier-cliff',
                 snapshotId: _snapshotA,
@@ -212,7 +198,7 @@ void main() {
       expect(await pixelAt(image, 28, 16), rgba(0, 0, 255, 255));
     });
 
-    test('keeps paintAfterTileLayerId paths immediately above their ground',
+    test('keeps authored Smart Tile paths immediately above their ground',
         () async {
       final component = MapLayersComponent(
         bundle: surfaceTestBundle(
@@ -224,27 +210,21 @@ void main() {
               'tileLayerOrder': 'bottom_to_top',
             },
             layers: <MapLayer>[
-              const PathLayer(
-                id: 'path',
-                name: 'Path',
-                cells: <bool>[true],
-                properties: <String, String>{
-                  'paintAfterTileLayerId': 'ground',
-                },
-              ),
               _borderLayer(id: 'border-a', snapshotId: _snapshotA),
-              const TileLayer(
+              _singleTileLayer(
                 id: 'ground',
                 name: 'Ground',
-                tilesetId: 'base',
-                tiles: <int>[1],
               ),
+              runtimeTestPathLayer(),
             ],
           ),
         ),
         tileImagesByTilesetId: {
           'base': await runtimeTilesetImage(
             const <Color>[Color(0xFFFF0000)],
+          ),
+          'surface-path': await runtimeTilesetImage(
+            const <Color>[Color(0xFF009688)],
           ),
         },
         borderAssets: await _borderAssets(),
@@ -270,30 +250,22 @@ void main() {
                 name: 'Environment',
               ),
               const ObjectLayer(id: 'objects', name: 'Objects'),
-              const TileLayer(
+              _singleTileLayer(
                 id: 'tile',
                 name: 'Tile',
-                tilesetId: 'base',
-                tiles: <int>[1],
               ),
               _borderLayer(id: 'border-a', snapshotId: _snapshotA),
-              surfaceTestLayer(),
-              const PathLayer(
-                id: 'path',
-                name: 'Path',
-                cells: <bool>[true],
-              ),
-              const TerrainLayer(
-                id: 'terrain',
-                name: 'Terrain',
-                terrains: <TerrainType>[TerrainType.grass],
-              ),
+              runtimeTestPathLayer(),
+              runtimeTestBaseLayer(),
             ],
           ),
         ),
         tileImagesByTilesetId: {
           'surface-water': await runtimeTilesetImage(
             const <Color>[Color(0xFF0000FF)],
+          ),
+          'surface-path': await runtimeTilesetImage(
+            const <Color>[Color(0xFF009688)],
           ),
           'base': await runtimeTilesetImage(
             const <Color>[Color(0xFFFF0000)],
@@ -337,11 +309,9 @@ void main() {
         size: const GridSize(width: 1, height: 1),
         layers: <MapLayer>[
           _borderLayer(id: 'border-a', snapshotId: _snapshotA),
-          const TileLayer(
+          _singleTileLayer(
             id: 'tile_overhead',
             name: 'Overhead',
-            tilesetId: 'base',
-            tiles: <int>[1],
           ),
         ],
       );
@@ -408,11 +378,9 @@ void main() {
             },
             layers: <MapLayer>[
               _borderLayer(id: 'border-a', snapshotId: _snapshotA),
-              const TileLayer(
+              _singleTileLayer(
                 id: 'tile',
                 name: 'Tile',
-                tilesetId: 'base',
-                tiles: <int>[1],
               ),
             ],
             placedElements: const <MapPlacedElement>[
@@ -495,7 +463,7 @@ void main() {
   });
 }
 
-Future<MapLayersComponent> _surfaceThenTileComponent({
+Future<MapLayersComponent> _objectThenTileComponent({
   required List<MapLayer> layers,
 }) async {
   return MapLayersComponent(
@@ -507,6 +475,40 @@ Future<MapLayersComponent> _surfaceThenTileComponent({
           await runtimeTilesetImage(const <Color>[Color(0xFF0000FF)]),
       'base': await runtimeTilesetImage(const <Color>[Color(0xFFFF0000)]),
     },
+  );
+}
+
+ObjectLayer _blueObjectLayer() {
+  return const ObjectLayer(
+    id: 'object',
+    name: 'Object',
+    tileObjects: <MapPlacedTile>[
+      MapPlacedTile(
+        id: 'blue-object',
+        tile: TileLayerPaletteEntry(
+          tilesetId: 'surface-water',
+          localTileId: 0,
+        ),
+        anchorX: 0,
+        anchorY: 1,
+        width: 1,
+        height: 1,
+      ),
+    ],
+  );
+}
+
+TileLayer _singleTileLayer({
+  required String id,
+  required String name,
+}) {
+  return TileLayer(
+    id: id,
+    name: name,
+    palette: const <TileLayerPaletteEntry>[
+      TileLayerPaletteEntry(tilesetId: 'base', localTileId: 0),
+    ],
+    cells: const <int>[1],
   );
 }
 
@@ -538,7 +540,7 @@ BorderLayer _borderLayer({
                 x: 0,
                 y: 0,
                 visualSnapshotId: snapshotId,
-                resolvedRole: SurfaceVariantRole.isolated,
+                resolvedRole: BorderGroundVariantRole.isolated,
               ),
             ],
             placements: const <BorderResolvedPlacement>[],

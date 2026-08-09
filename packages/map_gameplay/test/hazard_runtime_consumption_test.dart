@@ -304,7 +304,7 @@ MapData _baseMap({
       const MapLayer.tile(
         id: 'tile',
         name: 'Tile',
-        tiles: [0, 0, 0],
+        cells: [0, 0, 0],
       ),
       MapLayer.collision(
         id: 'collision',
@@ -327,7 +327,7 @@ MapData _smartTileMap() {
       MapLayer.tile(
         id: 'tile',
         name: 'Tile',
-        tiles: [0, 0, 0],
+        cells: [0, 0, 0],
       ),
       MapLayer.collision(
         id: 'collision',
