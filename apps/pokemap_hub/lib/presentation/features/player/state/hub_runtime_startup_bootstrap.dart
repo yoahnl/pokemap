@@ -16,7 +16,6 @@ import 'package:pokemap_hub/features/session/application/services/hub_runtime_st
 import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
 import 'package:pokemap_hub/features/session/application/services/player_launch_failure.dart';
 import 'package:pokemap_hub/features/session/domain/entities/hub_runtime_external_exit.dart';
-import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/control_profile_repository_interface.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
@@ -25,7 +24,6 @@ import 'player_typography_loader.dart';
 
 final class HubRuntimeStartupPreparedData {
   const HubRuntimeStartupPreparedData({
-    required this.launch,
     required this.sessions,
     required this.coordinator,
     required this.startupAdapter,
@@ -39,7 +37,6 @@ final class HubRuntimeStartupPreparedData {
     required this.reducedMotion,
   });
 
-  final InstalledGameLaunchContext launch;
   final GameSessionController sessions;
   final RuntimePlayerCoordinator coordinator;
   final HubRuntimeStartupAdapter startupAdapter;
@@ -185,7 +182,6 @@ final class HubRuntimeStartupBootstrap
       return RuntimeStartupBootstrapResult<HubRuntimeStartupPreparedData>(
         graph: graph,
         value: HubRuntimeStartupPreparedData(
-          launch: launch,
           sessions: sessions,
           coordinator: coordinator,
           startupAdapter: startupAdapter,

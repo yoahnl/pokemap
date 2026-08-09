@@ -9,14 +9,12 @@ import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboa
 import 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 import 'package:pokemap_hub/presentation/shell/hub_shell.dart';
 import 'package:pokemap_hub/presentation/theme/avelune_theme.dart';
-import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
 import 'package:pokemap_hub/features/dashboard/application/notifiers/hub_dashboard_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 typedef HubPlayerBuilder = Widget Function(
   BuildContext context,
   HubGameView game,
-  HubPlayerLaunchIntent intent,
   Future<void> Function() onHubRequested,
 );
 
@@ -46,7 +44,6 @@ class PokeMapHubApp extends ConsumerStatefulWidget {
 
 class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
   HubGameView? _activeGame;
-  HubPlayerLaunchIntent _activeLaunchIntent = HubPlayerLaunchIntent.title;
   bool _startupLaunchEvaluated = false;
   AveluneHomeController? _homeController;
 
@@ -81,7 +78,6 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
       return;
     }
     _activeGame = null;
-    _activeLaunchIntent = HubPlayerLaunchIntent.title;
     _startupLaunchEvaluated = false;
     _syncHomeController();
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -133,10 +129,7 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
       }
     }
     if (target != null) {
-      setState(() {
-        _activeGame = target;
-        _activeLaunchIntent = HubPlayerLaunchIntent.title;
-      });
+      setState(() => _activeGame = target);
     }
   }
 
@@ -146,14 +139,8 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
     if (playerBuilder == null) return actions;
     return HubUiActions(
       onImportRequested: actions.onImportRequested,
-      onContinue: (game) => _openPlayer(
-        game,
-        intent: HubPlayerLaunchIntent.title,
-      ),
-      onNewGame: (game) => _openPlayer(
-        game,
-        intent: HubPlayerLaunchIntent.title,
-      ),
+      onContinue: _openPlayer,
+      onNewGame: _openPlayer,
       onUpdate: actions.onUpdate,
       onRepair: actions.onRepair,
       onManageSaves: actions.onManageSaves,
@@ -161,26 +148,14 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
     );
   }
 
-  void _openPlayer(
-    HubGameView game, {
-    required HubPlayerLaunchIntent intent,
-  }) {
-    if (_activeGame?.game.gameId == game.game.gameId &&
-        _activeLaunchIntent == intent) {
-      return;
-    }
-    setState(() {
-      _activeGame = game;
-      _activeLaunchIntent = intent;
-    });
+  void _openPlayer(HubGameView game) {
+    if (_activeGame?.game.gameId == game.game.gameId) return;
+    setState(() => _activeGame = game);
   }
 
   Future<void> _returnToHub() async {
     if (_activeGame == null) return;
-    setState(() {
-      _activeGame = null;
-      _activeLaunchIntent = HubPlayerLaunchIntent.title;
-    });
+    setState(() => _activeGame = null);
     await widget.controller.refresh();
   }
 
@@ -236,7 +211,6 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
               (final game?, final playerBuilder?) => playerBuilder(
                   context,
                   game,
-                  _activeLaunchIntent,
                   _returnToHub,
                 ),
               _ => HubShell(

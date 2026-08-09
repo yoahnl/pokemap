@@ -93,7 +93,7 @@ void main() {
             controller: controller,
             initializeController: false,
             playerBuilder:
-                (_, game, intent, onHubRequested) => HubInstalledGamePlayer(
+                (_, game, onHubRequested) => HubInstalledGamePlayer(
                   supportRoot: supportRoot,
                   saveRepositoryFactory:
                       (root, identity) =>
@@ -104,7 +104,6 @@ void main() {
                   ),
                   launchResolver: launchResolver,
                   game: game.game,
-                  initialLaunchIntent: intent,
                   onHubRequested: onHubRequested,
                 ),
           ),

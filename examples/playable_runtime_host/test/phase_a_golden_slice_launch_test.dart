@@ -361,13 +361,14 @@ void main() {
   });
 
   test(
-    'the developer picker adopts the generic shell behind a host flag',
+    'the developer picker always adopts the generic runtime shell',
     () async {
       final source = await File('lib/main.dart').readAsString();
 
       expect(source, contains('PlayerRuntimeStartupShell('));
       expect(source, contains('StandaloneRuntimeStartupHost('));
-      expect(source, contains("'POKEMAP_RUNTIME_STARTUP_SHELL'"));
+      expect(source, isNot(contains('POKEMAP_RUNTIME_STARTUP_SHELL')));
+      expect(source, isNot(contains('_runtimeStartupShellEnabled')));
       expect(
         source,
         contains('onPressed: _loading ? null : _launchSelectedProject'),

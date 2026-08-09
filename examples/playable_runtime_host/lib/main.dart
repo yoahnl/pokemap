@@ -44,12 +44,6 @@ void _runtimeHostLog(String message) {
   debugPrint('[runtime_host] $message');
 }
 
-/// Host-owned rollback capability. Authored project data cannot change it.
-const _runtimeStartupShellEnabled = bool.fromEnvironment(
-  'POKEMAP_RUNTIME_STARTUP_SHELL',
-  defaultValue: true,
-);
-
 // Point d'entrée minimal du host runtime.
 // On garde un MaterialApp très simple, puis toute la navigation se fait
 // depuis la page de chargement et le menu in-game.
@@ -832,14 +826,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   }
 
   Future<void> _launchSelectedProject() async {
-    if (!_runtimeStartupShellEnabled) {
-      try {
-        await _load();
-      } on Object {
-        // `_load` already exposes the developer-facing diagnostic.
-      }
-      return;
-    }
     final manifest = _projectManifest;
     if (_projectFilePath.isEmpty || manifest == null) {
       setState(() => _error = 'Sélectionnez un dossier projet valide.');

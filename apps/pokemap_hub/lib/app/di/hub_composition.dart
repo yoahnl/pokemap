@@ -111,7 +111,7 @@ final class HubComposition implements HubAppComposition {
     actions: actions,
     appearanceController: appearanceController,
     playerBuilder:
-        (context, game, intent, onHubRequested) => HubInstalledGamePlayer(
+        (context, game, onHubRequested) => HubInstalledGamePlayer(
           supportRoot: supportRoot,
           // Interface meets implementation here and nowhere else (rule 6).
           saveRepositoryFactory:
@@ -123,7 +123,6 @@ final class HubComposition implements HubAppComposition {
           ),
           launchResolver: launchResolver,
           game: game.game,
-          initialLaunchIntent: intent,
           preferences: controller.snapshot.preferences,
           diagnosticLogFile: File(
             p.join(supportRoot.path, 'logs', 'hub-player.log'),

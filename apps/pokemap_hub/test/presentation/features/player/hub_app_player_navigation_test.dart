@@ -66,7 +66,7 @@ void main() {
           PokeMapHubApp(
             controller: harness.notifier,
             initializeController: false,
-            playerBuilder: (context, selected, intent, onHubRequested) =>
+            playerBuilder: (context, selected, onHubRequested) =>
                 Scaffold(
               body: Column(
                 children: <Widget>[
@@ -107,8 +107,6 @@ void main() {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      HubPlayerLaunchIntent? launchIntent;
-
       await tester.pumpWidget(
         harness.wrap(
           PokeMapHubApp(
@@ -118,10 +116,8 @@ void main() {
             playerBuilder: (
               context,
               selected,
-              intent,
               onHubRequested,
             ) {
-              launchIntent = intent;
               return Scaffold(body: Text('Lecteur ${selected.game.title}'));
             },
           ),
@@ -144,11 +140,6 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(
-        launchIntent,
-        HubPlayerLaunchIntent.title,
-        reason: 'A saved game still enters the complete cold-launch sequence.',
-      );
       expect(find.text('Lecteur Aube'), findsOneWidget);
     },
   );
@@ -236,7 +227,7 @@ void main() {
           PokeMapHubApp(
             controller: harness.notifier,
             initializeController: false,
-            playerBuilder: (context, selected, intent, onHubRequested) =>
+            playerBuilder: (context, selected, onHubRequested) =>
                 Scaffold(
               body: Column(
                 children: <Widget>[

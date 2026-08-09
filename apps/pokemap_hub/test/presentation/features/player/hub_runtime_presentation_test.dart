@@ -10,19 +10,24 @@ void main() {
           await File(
             'lib/presentation/features/player/pages/hub_installed_game_player.dart',
           ).readAsString();
+      final startupBootstrap =
+          await File(
+            'lib/presentation/features/player/state/hub_runtime_startup_bootstrap.dart',
+          ).readAsString();
       final uiBarrel = await File('lib/pokemap_hub_ui.dart').readAsString();
       final playerBarrel =
           await File('lib/pokemap_hub_player.dart').readAsString();
 
       expect(installedPlayer, contains('GameWidget('));
-      expect(installedPlayer, contains('RuntimePlayerCoordinator('));
-      expect(installedPlayer, contains('RuntimeStartupCoordinator('));
-      expect(installedPlayer, contains('HubRuntimeStartupAdapter('));
-      expect(installedPlayer, contains('RuntimeInitialMapPreloader('));
-      expect(installedPlayer, contains('initialMapPreloadPort:'));
-      expect(installedPlayer, contains('preloadedInitialMap:'));
+      expect(installedPlayer, contains('RuntimeStartupBootstrapCoordinator'));
+      expect(startupBootstrap, contains('RuntimePlayerCoordinator('));
+      expect(startupBootstrap, contains('HubRuntimeStartupAdapter('));
+      expect(startupBootstrap, contains('RuntimeInitialMapPreloader('));
+      expect(startupBootstrap, contains('initialMapPreloadPort:'));
+      expect(startupBootstrap, contains('preloadedInitialMap:'));
       expect(installedPlayer, contains('PlayerRuntimeStartupShell('));
-      expect(installedPlayer, contains('runtimeStartupShellEnabled'));
+      expect(installedPlayer, isNot(contains('runtimeStartupShellEnabled')));
+      expect(installedPlayer, isNot(contains('PlayerLoadingSurface(')));
       expect(installedPlayer, contains('stopIntroPlayback'));
       expect(installedPlayer, contains('PokeMapPlayerSessionView('));
       expect(installedPlayer, contains('Localizations.override('));
@@ -53,10 +58,10 @@ void main() {
         isNot(contains('HubIntroVideoPlayer(')),
         reason: 'Concrete intro playback must now live in map_player_ui.',
       );
-      expect(installedPlayer, contains('HubRuntimeGameSource('));
-      expect(installedPlayer, contains('HubPlayerSaveGateway('));
-      expect(installedPlayer, contains('HubPlayerPreferencesGateway('));
-      expect(installedPlayer, contains('HubRuntimeExternalExit('));
+      expect(startupBootstrap, contains('HubRuntimeGameSource('));
+      expect(startupBootstrap, contains('HubPlayerSaveGateway('));
+      expect(startupBootstrap, contains('HubPlayerPreferencesGateway('));
+      expect(startupBootstrap, contains('HubRuntimeExternalExit('));
       expect(installedPlayer, contains('PopScope<Object?>('));
       expect(installedPlayer, contains('pauseForLifecycle()'));
       expect(installedPlayer, contains('resumeFromLifecycle()'));

@@ -3,26 +3,15 @@ import 'dart:io';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
 
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
-import 'package:pokemap_hub/features/session/application/gateways/hub_player_preferences_gateway.dart';
-import 'package:pokemap_hub/features/session/application/gateways/hub_player_save_gateway.dart';
-import 'package:pokemap_hub/features/session/domain/entities/hub_runtime_external_exit.dart';
-import 'package:pokemap_hub/features/session/application/services/hub_runtime_game_source.dart';
 import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
-import 'package:pokemap_hub/features/session/application/services/hub_in_process_session_factory.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
-import 'package:pokemap_hub/presentation/features/player/pages/hub_installed_player_strings.dart';
-import 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_title_presentation_loader.dart';
-import 'package:pokemap_hub/features/session/application/services/player_launch_failure.dart';
-import 'package:pokemap_hub/presentation/features/player/state/player_typography_loader.dart';
 import 'package:pokemap_hub/presentation/features/player/state/hub_runtime_startup_bootstrap.dart';
-import 'package:pokemap_hub/features/session/domain/entities/installed_game_launch_context.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
 import 'package:pokemap_hub/features/dashboard/application/services/installed_game_activity_reader.dart';
 import 'package:pokemap_hub/features/preferences/domain/repositories/player_preferences_repository_interface.dart';
@@ -52,8 +41,6 @@ class HubInstalledGamePlayer extends StatefulWidget {
     required this.launchResolver,
     required this.game,
     required this.onHubRequested,
-    this.initialLaunchIntent = HubPlayerLaunchIntent.title,
-    this.runtimeStartupShellEnabled = true,
     this.diagnosticLogFile,
     player_ui.PlayerPreferences? preferences,
   });
@@ -69,11 +56,6 @@ class HubInstalledGamePlayer extends StatefulWidget {
   final SessionLaunchRepositoryInterface launchResolver;
   final InstalledGame game;
   final HubPlayerReturnRequest onHubRequested;
-  final HubPlayerLaunchIntent initialLaunchIntent;
-
-  /// Host-owned rollout capability. It is deliberately not project data: a
-  /// verified game cannot opt itself into a host integration path.
-  final bool runtimeStartupShellEnabled;
   final File? diagnosticLogFile;
 
   @override
@@ -92,8 +74,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   player_ui.RuntimePlayerCoordinatorViewController? _viewController;
   GameSessionController? _sessions;
   PlayableMapGame? _mountedGame;
-  InstalledGameLaunchContext? _launch;
-  PlayerLaunchFailure? _failure;
   HubSaveSelection? _saveSelection;
   HubLoadedTitlePresentation? _titlePresentation;
   Locale? _playerLocale;
@@ -106,18 +86,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   StreamSubscription<RuntimeStartupSnapshot>? _startupSubscription;
   bool _lifecycleActive = true;
   bool _reducedMotion = false;
-  bool _initialLaunchDispatching = false;
-  bool _initialLaunchHandled = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    if (widget.runtimeStartupShellEnabled) {
-      _startRuntimeBootstrap();
-    } else {
-      unawaited(_initializeLegacy());
-    }
+    _startRuntimeBootstrap();
   }
 
   void _startRuntimeBootstrap() {
@@ -148,7 +122,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   void _acceptRuntimeBootstrap(HubRuntimeStartupPreparedData prepared) {
     if (!mounted) return;
     setState(() {
-      _launch = prepared.launch;
       _sessions = prepared.sessions;
       _coordinator = prepared.coordinator;
       _startupAdapter = prepared.startupAdapter;
@@ -168,269 +141,9 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     });
   }
 
-  Future<void> _initializeLegacy() async {
-    RuntimePlayerCoordinator? coordinator;
-    RuntimeStartupCoordinator? startupCoordinator;
-    RuntimeSplashJingleController? splashJingleController;
-    RuntimeTitleMusicController? titleMusicController;
-    HubRuntimeStartupAdapter? startupAdapter;
-    StreamSubscription<RuntimeStartupSnapshot>? startupSubscription;
-    try {
-      final launch = await widget.launchResolver.resolve(widget.game);
-      final store = widget.saveRepositoryFactory(
-        widget.supportRoot,
-        launch.identity,
-      );
-      final preferencesStore = widget.preferencesRepository;
-      final preferences = (await preferencesStore.load()).preferences;
-      final controlProfileStore = widget.controlProfileRepository;
-      final controlProfile = await controlProfileStore.load();
-      final audioMixer = RuntimeAudioMixer(
-        mix: RuntimeAudioMix(
-          masterVolume: preferences.masterVolume,
-          musicVolume: preferences.musicVolume,
-          effectsVolume: preferences.effectsVolume,
-        ),
-      );
-      final preferencesGateway = HubPlayerPreferencesGateway(
-        store: preferencesStore,
-        fallbackLocale: launch.manifest.locales.defaultLocale,
-        audioMixer: audioMixer,
-      );
-      final saveGateway = HubPlayerSaveGateway(store: store);
-      final profileManager = HubSaveProfileManager(store: store);
-      final playerLocale = ProjectLocaleResolver.resolve(
-        preferredLocale:
-            preferences.locale?.toLanguageTag() ??
-            launch.manifest.locales.defaultLocale,
-        supportedLocales: launch.manifest.locales.supported,
-        fallbackLocale: launch.manifest.locales.defaultLocale,
-      );
-      final strings = HubInstalledPlayerStrings.forLocale(playerLocale);
-      final saveSelection = await profileManager.ensureDefaultSelection(
-        defaultProfileDisplayName: strings.defaultProfile,
-        defaultSlotDisplayName: 'Slot 1',
-      );
-      final titlePresentation =
-          await HubTitlePresentationLoader(
-            manifest: launch.manifest,
-            resolveFile: launch.assets.resolveFile,
-          ).load();
-      final loadedTypography = await loadPlayerTypography(titlePresentation);
-      final gameSource = HubRuntimeGameSource(
-        launch: launch,
-        preferencesGateway: preferencesGateway,
-      );
-      final initialMapPreloader = RuntimeInitialMapPreloader(
-        projectFilePath: () async {
-          final project = await launch.assets.resolveReference(launch.project);
-          return project.path;
-        },
-        loadSave: saveGateway.readLaunchableEnvelope,
-      );
-      final sessionFactory = HubInProcessSessionFactory(
-        launch: launch,
-        saves: store,
-        mountGame: _mountGame,
-        unmountGame: _unmountGame,
-        preloadedInitialMap: initialMapPreloader.resolveForSession,
-        audioMixer: audioMixer,
-      );
-      final sessions = GameSessionController(
-        adapterFactory: sessionFactory.call,
-        commitCheckpoint: saveGateway.commit,
-      );
-      coordinator = RuntimePlayerCoordinator(
-        gameSource: gameSource,
-        saveGateway: saveGateway,
-        preferencesGateway: preferencesGateway,
-        sessionController: sessions,
-        externalExit: HubRuntimeExternalExit(widget.onHubRequested),
-      );
-      if (widget.runtimeStartupShellEnabled) {
-        final startupSplashJingle = RuntimeSplashJingleController(
-          mixer: audioMixer,
-        );
-        splashJingleController = startupSplashJingle;
-        final startupTitleMusic = RuntimeTitleMusicController(
-          mixer: audioMixer,
-        );
-        titleMusicController = startupTitleMusic;
-        startupAdapter = HubRuntimeStartupAdapter(
-          manifest: launch.manifest,
-          assets: launch.assets,
-        );
-        startupCoordinator = RuntimeStartupCoordinator(
-          playerCoordinator: coordinator,
-          preparationPort: startupAdapter,
-          initialMapPreloadPort: initialMapPreloader,
-          assetResolver: startupAdapter,
-          introController: RuntimeIntroSequenceController(),
-          splashJingleController: startupSplashJingle,
-          titleMusicController: startupTitleMusic,
-          hostBranding: _aveluneStartupBranding,
-          minimumSplashDuration: _aveluneStartupBranding.minimumDisplayDuration,
-          reducedMotion: preferences.reducedMotion,
-          stopIntroPlayback: _startupShellController.stopIntroPlayback,
-        );
-        startupSubscription = startupCoordinator.snapshots.listen(
-          _handleStartupSnapshot,
-        );
-      } else {
-        // Rollback path for controlled host rollout. It preserves the direct
-        // runtime player composition without reintroducing Hub-owned intro UI.
-        await coordinator.initialize();
-        final initialLaunch = await dispatchHubInitialLaunchIntent(
-          intent: widget.initialLaunchIntent,
-          snapshot: coordinator.snapshot,
-          dispatch: coordinator.dispatch,
-        );
-        if (initialLaunch != null &&
-            initialLaunch.status != RuntimePlayerCommandStatus.accepted) {
-          throw StateError(
-            initialLaunch.safeMessage ??
-                'The selected save could not be resumed from Avelune.',
-          );
-        }
-      }
-      if (!mounted) {
-        await startupSubscription?.cancel();
-        if (startupCoordinator != null) {
-          await startupCoordinator.dispose();
-        } else {
-          await splashJingleController?.dispose();
-          await titleMusicController?.dispose();
-          await coordinator.dispose();
-        }
-        return;
-      }
-      setState(() {
-        _launch = launch;
-        _sessions = sessions;
-        _coordinator = coordinator;
-        _startupAdapter = startupAdapter;
-        _saveSelection = saveSelection;
-        _titlePresentation = titlePresentation;
-        _playerLocale = Locale(
-          playerLocale.split(RegExp('[-_]')).first.toLowerCase(),
-        );
-        _playerTypography = loadedTypography;
-        _audioMixer = audioMixer;
-        _controlProfileStore = controlProfileStore;
-        _controlProfile = controlProfile;
-        _reducedMotion = preferences.reducedMotion;
-        _viewController = player_ui.RuntimePlayerCoordinatorViewController(
-          coordinator!,
-        );
-      });
-      startupCoordinator?.start();
-      if (!_lifecycleActive) {
-        await startupCoordinator?.pauseForLifecycle();
-      }
-    } on Object catch (error, stackTrace) {
-      await startupSubscription?.cancel();
-      if (startupCoordinator != null) {
-        await startupCoordinator.dispose();
-      } else {
-        await splashJingleController?.dispose();
-        await titleMusicController?.dispose();
-        await coordinator?.dispose();
-      }
-      final failure = await recordPlayerLaunchFailure(
-        game: widget.game,
-        supportRoot: widget.supportRoot,
-        diagnosticLogFile: widget.diagnosticLogFile,
-        error,
-        stackTrace,
-        event: 'playerLaunchFailed',
-      );
-      if (!mounted) return;
-      setState(() => _failure = failure);
-    }
-  }
-
   void _handleStartupSnapshot(RuntimeStartupSnapshot snapshot) {
     if (!mounted) return;
     setState(() => _startupSnapshot = snapshot);
-    if (widget.initialLaunchIntent.skipsStartup) {
-      unawaited(_driveInitialLaunchIntent(snapshot));
-    }
-  }
-
-  /// An explicit host quick-resume shortcut still commits every skipped phase
-  /// through the same revisioned commands as a human press. Ordinary dashboard
-  /// Continue uses [HubPlayerLaunchIntent.title] and never enters this path.
-  Future<void> _driveInitialLaunchIntent(
-    RuntimeStartupSnapshot snapshot,
-  ) async {
-    final startup = _startupCoordinator;
-    if (startup == null ||
-        _initialLaunchHandled ||
-        _initialLaunchDispatching ||
-        !mounted) {
-      return;
-    }
-    RuntimeStartupAction? startupAction;
-    switch (snapshot.phase) {
-      case RuntimeStartupPhase.preparing || RuntimeStartupPhase.splash:
-        if (snapshot.canSkipSplash) {
-          startupAction = RuntimeStartupAction.skipSplash;
-        }
-        break;
-      case RuntimeStartupPhase.intro:
-        if (snapshot.canContinueFromPoster) {
-          startupAction = RuntimeStartupAction.continueFromPoster;
-        } else if (snapshot.canSkipIntro) {
-          startupAction = RuntimeStartupAction.skipIntro;
-        }
-        break;
-      case RuntimeStartupPhase.titlePrompt:
-        startupAction = RuntimeStartupAction.pressStart;
-        break;
-      case RuntimeStartupPhase.titleMenu:
-        _initialLaunchDispatching = true;
-        try {
-          final player = snapshot.playerSnapshot;
-          if (player == null) return;
-          final result = await startup.dispatchPlayerCommand(
-            startupSnapshotRevision: snapshot.revision,
-            command: RuntimePlayerCommand(
-              action: RuntimePlayerAction.continueGame,
-              snapshotRevision: player.revision,
-            ),
-          );
-          _initialLaunchHandled =
-              result.status == RuntimePlayerCommandStatus.accepted;
-        } finally {
-          _initialLaunchDispatching = false;
-        }
-        return;
-      case RuntimeStartupPhase.launchingSession ||
-          RuntimeStartupPhase.completed:
-        _initialLaunchHandled = true;
-        return;
-      case RuntimeStartupPhase.recoverableError ||
-          RuntimeStartupPhase.lifecyclePaused:
-        return;
-    }
-    if (startupAction == null) return;
-    _initialLaunchDispatching = true;
-    try {
-      await startup.dispatch(
-        RuntimeStartupCommand(
-          action: startupAction,
-          snapshotRevision: snapshot.revision,
-        ),
-      );
-    } finally {
-      _initialLaunchDispatching = false;
-    }
-    final current = startup.snapshot;
-    if (mounted &&
-        !_initialLaunchHandled &&
-        current.revision != snapshot.revision) {
-      unawaited(_driveInitialLaunchIntent(current));
-    }
   }
 
   Future<void> _mountGame(PlayableMapGame game) async {
@@ -523,15 +236,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final startup = _startupCoordinator;
-    final coordinator = _coordinator;
     if (state == AppLifecycleState.resumed) {
       if (!_lifecycleActive && mounted) {
         setState(() => _lifecycleActive = true);
       }
       if (startup != null) {
         unawaited(startup.resumeFromLifecycle());
-      } else if (coordinator != null) {
-        unawaited(coordinator.resumeFromLifecycle());
       }
       return;
     }
@@ -544,52 +254,16 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       }
       if (startup != null) {
         unawaited(startup.pauseForLifecycle());
-      } else if (coordinator != null) {
-        unawaited(coordinator.pauseForLifecycle());
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final strings = HubInstalledPlayerStrings.of(context);
-    final failure = _failure;
-    if (failure != null) {
-      return Scaffold(
-        body: player_ui.PlayerErrorSurface(
-          title: strings.launchFailureTitle,
-          message: strings.launchFailureMessage,
-          recommendation: strings.launchFailureRecommendation,
-          code: 'hub.player.${failure.code}',
-          onReturnToHub: () => unawaited(widget.onHubRequested()),
-          onShowDiagnostics:
-              () => Clipboard.setData(
-                ClipboardData(
-                  text: <String>[
-                    failure.details,
-                    if (failure.logPath != null) 'Log: ${failure.logPath}',
-                  ].join('\n'),
-                ),
-              ),
-        ),
-      );
-    }
-    final coordinator = _coordinator;
     final viewController = _viewController;
-    final launch = _launch;
     final titlePresentation = _titlePresentation;
-    final startup = _startupCoordinator;
-    final startupSnapshot = _startupSnapshot;
-    final initialized =
-        coordinator != null &&
-        viewController != null &&
-        launch != null &&
-        titlePresentation != null;
-    if (!widget.runtimeStartupShellEnabled && !initialized) {
-      return Scaffold(
-        body: player_ui.PlayerLoadingSurface(stage: strings.verifyingGame),
-      );
-    }
+    final startup = _startupCoordinator!;
+    final effectiveSnapshot = _startupSnapshot ?? startup.snapshot;
     var personalizedTheme = Theme.of(context);
     if (titlePresentation != null) {
       personalizedTheme = player_ui.PokeMapPlayerTheme.withTypography(
@@ -603,11 +277,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         semanticTheme,
       );
     }
-    final effectiveSnapshot = startupSnapshot ?? startup?.snapshot;
     final visiblePhase =
-        effectiveSnapshot == null
-            ? RuntimeStartupPhase.completed
-            : effectiveSnapshot.phase == RuntimeStartupPhase.lifecyclePaused
+        effectiveSnapshot.phase == RuntimeStartupPhase.lifecyclePaused
             ? effectiveSnapshot.suspendedPhase ?? RuntimeStartupPhase.splash
             : effectiveSnapshot.phase;
     final startupTheme =
@@ -615,8 +286,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                 visiblePhase == RuntimeStartupPhase.splash
             ? player_ui.PokeMapPlayerTheme.dark(reducedMotion: _reducedMotion)
             : personalizedTheme;
-    final intro = titlePresentation?.intro;
-    final resolvedPresentation = effectiveSnapshot?.presentation;
+    final resolvedPresentation = effectiveSnapshot.presentation;
     final presentationProfile = resolvedPresentation?.profile;
     final orientation =
         resolvedPresentation?.orientation ??
@@ -639,32 +309,12 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         menuMedia == null
             ? null
             : selectRuntimePresentationVideo(menuMedia, orientation).variant;
-    final introSource =
-        widget.runtimeStartupShellEnabled
-            ? _startupVideo(
-              resolvedPresentation?.introVideo,
-              introVariant,
-              looping: false,
-              volume:
-                  _audioMixer?.mix.volumeFor(
-                    RuntimeAudioRoute.cinematicMusic,
-                  ) ??
-                  1,
-            )
-            : intro == null
-            ? null
-            : player_ui.PlayerIntroVideoSource(
-              videoUri: File(intro.videoPath).uri,
-              captionsLoader:
-                  intro.captionsPath == null
-                      ? null
-                      : File(intro.captionsPath!).readAsString,
-              volume:
-                  _audioMixer?.mix.volumeFor(
-                    RuntimeAudioRoute.cinematicMusic,
-                  ) ??
-                  1,
-            );
+    final introSource = _startupVideo(
+      resolvedPresentation?.introVideo,
+      introVariant,
+      looping: false,
+      volume: _audioMixer?.mix.volumeFor(RuntimeAudioRoute.cinematicMusic) ?? 1,
+    );
     final player = Theme(
       data: startupTheme,
       child: PopScope<Object?>(
@@ -672,94 +322,70 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) unawaited(_handleSystemBack());
         },
-        child:
-            widget.runtimeStartupShellEnabled
-                ? player_ui.PlayerRuntimeStartupShell(
-                  key: const ValueKey<String>('pokemap-runtime-startup-shell'),
-                  controller: _startupShellController,
-                  branding: _aveluneStartupBranding,
-                  snapshot: effectiveSnapshot!,
-                  titlePresentation:
-                      titlePresentation?.title ??
-                      const player_ui.RuntimePlayerTitlePresentation(
-                        author: 'PokeMap',
-                      ),
-                  introSource: introSource,
-                  introPoster:
-                      _startupImage(resolvedPresentation?.introPoster) ??
-                      intro?.poster,
-                  titlePromptSource: _startupVideo(
-                    resolvedPresentation?.titlePromptVideo,
-                    promptVariant,
-                    looping: true,
-                    volume: 0,
-                  ),
-                  titlePromptPoster: _startupImage(
-                    resolvedPresentation?.titlePromptPoster,
-                  ),
-                  titleMenuSource: _startupVideo(
-                    resolvedPresentation?.titleMenuVideo,
-                    menuVariant,
-                    looping: true,
-                    volume: 0,
-                  ),
-                  titleMenuPoster: _startupImage(
-                    resolvedPresentation?.titleMenuPoster,
-                  ),
-                  splashLogo: const AssetImage(
-                    'assets/avelune/logo/avelune_mark.webp',
-                  ),
-                  splashLoadingProgress: effectiveSnapshot.progress,
-                  reducedMotion: _reducedMotion,
-                  onPresentationOrientationChanged: (nextOrientation) {
-                    if (startup != null) {
-                      unawaited(
-                        startup.updatePresentationOrientation(nextOrientation),
-                      );
-                    }
-                  },
-                  payloadForAction: _payloadForAction,
-                  onStartupCommand: (command) {
-                    if (startup != null) unawaited(startup.dispatch(command));
-                  },
-                  onPlayerCommand: (command) {
-                    if (startup != null) {
-                      unawaited(
-                        startup.dispatchPlayerCommand(
-                          startupSnapshotRevision: effectiveSnapshot.revision,
-                          command: command,
-                        ),
-                      );
-                    }
-                  },
-                  onIntroPlaybackCompleted: (revision) {
-                    if (startup != null) {
-                      unawaited(
-                        startup.introPlaybackCompleted(
-                          snapshotRevision: revision,
-                        ),
-                      );
-                    }
-                  },
-                  onIntroPlaybackFailed: (revision, reason) {
-                    if (startup != null) {
-                      unawaited(
-                        startup.introPlaybackFailed(
-                          snapshotRevision: revision,
-                          reason: reason,
-                        ),
-                      );
-                    }
-                  },
-                  sessionBuilder:
-                      viewController == null || titlePresentation == null
-                          ? (_, _) => const SizedBox.expand()
-                          : (_, _) => _buildSessionView(
-                            viewController,
-                            titlePresentation,
-                          ),
-                )
-                : _buildSessionView(viewController!, titlePresentation!),
+        child: player_ui.PlayerRuntimeStartupShell(
+          key: const ValueKey<String>('pokemap-runtime-startup-shell'),
+          controller: _startupShellController,
+          branding: _aveluneStartupBranding,
+          snapshot: effectiveSnapshot,
+          titlePresentation:
+              titlePresentation?.title ??
+              player_ui.RuntimePlayerTitlePresentation(
+                author: widget.game.authorName,
+              ),
+          introSource: introSource,
+          introPoster: _startupImage(resolvedPresentation?.introPoster),
+          titlePromptSource: _startupVideo(
+            resolvedPresentation?.titlePromptVideo,
+            promptVariant,
+            looping: true,
+            volume: 0,
+          ),
+          titlePromptPoster: _startupImage(
+            resolvedPresentation?.titlePromptPoster,
+          ),
+          titleMenuSource: _startupVideo(
+            resolvedPresentation?.titleMenuVideo,
+            menuVariant,
+            looping: true,
+            volume: 0,
+          ),
+          titleMenuPoster: _startupImage(resolvedPresentation?.titleMenuPoster),
+          splashLogo: const AssetImage('assets/avelune/logo/avelune_mark.webp'),
+          reducedMotion: _reducedMotion,
+          onPresentationOrientationChanged: (nextOrientation) {
+            unawaited(startup.updatePresentationOrientation(nextOrientation));
+          },
+          payloadForAction: _payloadForAction,
+          onStartupCommand: (command) {
+            unawaited(startup.dispatch(command));
+          },
+          onPlayerCommand: (command) {
+            unawaited(
+              startup.dispatchPlayerCommand(
+                startupSnapshotRevision: effectiveSnapshot.revision,
+                command: command,
+              ),
+            );
+          },
+          onIntroPlaybackCompleted: (revision) {
+            unawaited(
+              startup.introPlaybackCompleted(snapshotRevision: revision),
+            );
+          },
+          onIntroPlaybackFailed: (revision, reason) {
+            unawaited(
+              startup.introPlaybackFailed(
+                snapshotRevision: revision,
+                reason: reason,
+              ),
+            );
+          },
+          sessionBuilder:
+              viewController == null || titlePresentation == null
+                  ? (_, _) => const SizedBox.expand()
+                  : (_, _) =>
+                      _buildSessionView(viewController, titlePresentation),
+        ),
       ),
     );
     final playerLocale = _playerLocale;
@@ -806,7 +432,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    final coordinator = _coordinator;
     final startupCoordinator = _startupCoordinator;
     _coordinator = null;
     _startupCoordinator = null;
@@ -821,8 +446,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     }
     if (startupCoordinator != null) {
       unawaited(startupCoordinator.dispose());
-    } else if (coordinator != null) {
-      unawaited(coordinator.dispose());
     }
     super.dispose();
   }

@@ -47,7 +47,6 @@ export 'package:pokemap_hub/features/dashboard/application/services/installed_ga
 export 'package:pokemap_hub/presentation/shell/hub_game_views.dart';
 export 'package:pokemap_hub/presentation/shell/hub_shell.dart';
 export 'package:pokemap_hub/presentation/features/player/pages/hub_installed_game_player.dart';
-export 'package:pokemap_hub/features/session/domain/entities/hub_player_launch_intent.dart';
 export 'package:pokemap_hub/features/preferences/data/repositories/hub_preferences_repository_impl.dart';
 export 'package:pokemap_hub/features/preferences/domain/entities/hub_preferences_read.dart';
 export 'package:pokemap_hub/features/appearance/domain/entities/avelune_appearance_read.dart';

@@ -33,6 +33,10 @@ void main() {
       '_advanceStartupLoading',
       '_bootstrapStartupSnapshot',
       '.35 + (snapshot.progress * .65)',
+      'runtimeStartupShellEnabled',
+      '_initializeLegacy',
+      '_driveInitialLaunchIntent',
+      'HubPlayerLaunchIntent',
     ]) {
       expect(
         installedPlayer,
