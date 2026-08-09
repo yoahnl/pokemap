@@ -83,6 +83,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     with WidgetsBindingObserver {
   RuntimePlayerCoordinator? _coordinator;
   RuntimeStartupCoordinator? _startupCoordinator;
+  HubRuntimeStartupAdapter? _startupAdapter;
   RuntimeStartupSnapshot? _startupSnapshot;
   final player_ui.PlayerRuntimeStartupShellController _startupShellController =
       player_ui.PlayerRuntimeStartupShellController();
@@ -115,6 +116,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     RuntimePlayerCoordinator? coordinator;
     RuntimeStartupCoordinator? startupCoordinator;
     RuntimeTitleMusicController? titleMusicController;
+    HubRuntimeStartupAdapter? startupAdapter;
     StreamSubscription<RuntimeStartupSnapshot>? startupSubscription;
     try {
       final launch = await widget.launchResolver.resolve(widget.game);
@@ -184,7 +186,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         final startupTitleMusic =
             RuntimeTitleMusicController(mixer: audioMixer);
         titleMusicController = startupTitleMusic;
-        final startupAdapter = HubRuntimeStartupAdapter(
+        startupAdapter = HubRuntimeStartupAdapter(
           manifest: launch.manifest,
           assets: launch.assets,
         );
@@ -233,6 +235,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         _sessions = sessions;
         _coordinator = coordinator;
         _startupCoordinator = startupCoordinator;
+        _startupAdapter = startupAdapter;
         _startupSnapshot = startupCoordinator?.snapshot;
         _startupSubscription = startupSubscription;
         _saveSelection = saveSelection;
@@ -410,6 +413,37 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     );
   }
 
+  ImageProvider? _startupImage(RuntimeStartupPresentationAsset? asset) {
+    final adapter = _startupAdapter;
+    if (adapter == null || asset == null) return null;
+    final resolved = adapter.resolvedAsset(asset.assetId);
+    if (resolved == null || resolved.resolvedUri.scheme != 'file') return null;
+    return FileImage(File.fromUri(resolved.resolvedUri));
+  }
+
+  player_ui.PlayerIntroVideoSource? _startupVideo(
+    RuntimeStartupPresentationAsset? asset,
+    ProjectVideoVariantProfile? variant, {
+    required bool looping,
+    required double volume,
+  }) {
+    final adapter = _startupAdapter;
+    if (adapter == null || asset == null || variant == null) return null;
+    final resolved = adapter.resolvedAsset(asset.assetId);
+    if (resolved == null) return null;
+    return player_ui.PlayerIntroVideoSource(
+      videoUri: resolved.resolvedUri,
+      captionsLoader: variant.captionsPath == null
+          ? null
+          : () => adapter.loadText(variant.captionsPath!),
+      volume: volume,
+      looping: looping,
+      aspectRatio: variant.width / variant.height,
+      focalX: variant.focalX,
+      focalY: variant.focalY,
+    );
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     final startup = _startupCoordinator;
@@ -483,18 +517,45 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
       );
     }
     final intro = titlePresentation.intro;
-    final introSource = intro == null
+    final resolvedPresentation = startupSnapshot?.presentation;
+    final presentationProfile = resolvedPresentation?.profile;
+    final orientation = resolvedPresentation?.orientation ??
+        RuntimePresentationOrientation.landscape;
+    final introProfile = presentationProfile?.intro;
+    final promptMedia = presentationProfile?.titleMotion?.promptLoop;
+    final menuMedia = presentationProfile?.titleMotion?.menuLoop;
+    final introVariant = introProfile == null
         ? null
-        : player_ui.PlayerIntroVideoSource(
-            videoUri: File(intro.videoPath).uri,
-            captionsLoader: intro.captionsPath == null
-                ? null
-                : File(intro.captionsPath!).readAsString,
+        : selectRuntimePresentationVideo(introProfile.media, orientation)
+            .variant;
+    final promptVariant = promptMedia == null
+        ? null
+        : selectRuntimePresentationVideo(promptMedia, orientation).variant;
+    final menuVariant = menuMedia == null
+        ? null
+        : selectRuntimePresentationVideo(menuMedia, orientation).variant;
+    final introSource = widget.runtimeStartupShellEnabled
+        ? _startupVideo(
+            resolvedPresentation?.introVideo,
+            introVariant,
+            looping: false,
             volume: _audioMixer?.mix.volumeFor(
                   RuntimeAudioRoute.cinematicMusic,
                 ) ??
                 1,
-          );
+          )
+        : intro == null
+            ? null
+            : player_ui.PlayerIntroVideoSource(
+                videoUri: File(intro.videoPath).uri,
+                captionsLoader: intro.captionsPath == null
+                    ? null
+                    : File(intro.captionsPath!).readAsString,
+                volume: _audioMixer?.mix.volumeFor(
+                      RuntimeAudioRoute.cinematicMusic,
+                    ) ??
+                    1,
+              );
     return Theme(
       data: personalizedTheme,
       child: PopScope<Object?>(
@@ -510,11 +571,34 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                 snapshot: startupSnapshot!,
                 titlePresentation: titlePresentation.title,
                 introSource: introSource,
-                introPoster: intro?.poster,
+                introPoster: _startupImage(resolvedPresentation?.introPoster) ??
+                    intro?.poster,
+                titlePromptSource: _startupVideo(
+                  resolvedPresentation?.titlePromptVideo,
+                  promptVariant,
+                  looping: true,
+                  volume: 0,
+                ),
+                titlePromptPoster: _startupImage(
+                  resolvedPresentation?.titlePromptPoster,
+                ),
+                titleMenuSource: _startupVideo(
+                  resolvedPresentation?.titleMenuVideo,
+                  menuVariant,
+                  looping: true,
+                  volume: 0,
+                ),
+                titleMenuPoster: _startupImage(
+                  resolvedPresentation?.titleMenuPoster,
+                ),
                 splashLogo: const AssetImage(
                   'assets/avelune/logo/avelune_mark.webp',
                 ),
                 reducedMotion: _reducedMotion,
+                onPresentationOrientationChanged: (nextOrientation) =>
+                    unawaited(
+                  startup!.updatePresentationOrientation(nextOrientation),
+                ),
                 payloadForAction: _payloadForAction,
                 onStartupCommand: (command) =>
                     unawaited(startup!.dispatch(command)),

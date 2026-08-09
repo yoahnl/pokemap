@@ -1204,6 +1204,29 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     return FileImage(File.fromUri(resolved.resolvedUri));
   }
 
+  player_ui.PlayerIntroVideoSource? _startupVideo(
+    StandaloneRuntimeStartupHost host,
+    RuntimeStartupPresentationAsset? asset,
+    ProjectVideoVariantProfile? variant, {
+    required bool looping,
+    required double volume,
+  }) {
+    if (asset == null || variant == null) return null;
+    final resolved = host.presentation.resolvedAsset(asset.assetId);
+    if (resolved == null) return null;
+    return player_ui.PlayerIntroVideoSource(
+      videoUri: resolved.resolvedUri,
+      captionsLoader: variant.captionsPath == null
+          ? null
+          : () => host.presentation.loadText(variant.captionsPath!),
+      volume: volume,
+      looping: looping,
+      aspectRatio: variant.width / variant.height,
+      focalX: variant.focalX,
+      focalY: variant.focalY,
+    );
+  }
+
   Widget _buildStartupShell(
     StandaloneRuntimeStartupHost host,
     RuntimeStartupSnapshot snapshot,
@@ -1211,23 +1234,29 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   ) {
     final profile = snapshot.presentation?.profile;
     final introProfile = profile?.intro;
-    final introAsset = snapshot.presentation?.introVideo;
-    final resolvedIntro = introAsset == null
+    final orientation = snapshot.presentation?.orientation ??
+        RuntimePresentationOrientation.landscape;
+    final introVariant = introProfile == null
         ? null
-        : host.presentation.resolvedAsset(introAsset.assetId);
-    final introSource = resolvedIntro == null
+        : selectRuntimePresentationVideo(introProfile.media, orientation)
+            .variant;
+    final promptMedia = profile?.titleMotion?.promptLoop;
+    final menuMedia = profile?.titleMotion?.menuLoop;
+    final promptVariant = promptMedia == null
         ? null
-        : player_ui.PlayerIntroVideoSource(
-            videoUri: resolvedIntro.resolvedUri,
-            captionsLoader: introProfile?.captionsPath == null
-                ? null
-                : () => host.presentation.loadText(
-                      introProfile!.captionsPath!,
-                    ),
-            volume: host.audioMixer.mix.volumeFor(
-              RuntimeAudioRoute.cinematicMusic,
-            ),
-          );
+        : selectRuntimePresentationVideo(promptMedia, orientation).variant;
+    final menuVariant = menuMedia == null
+        ? null
+        : selectRuntimePresentationVideo(menuMedia, orientation).variant;
+    final introSource = _startupVideo(
+      host,
+      snapshot.presentation?.introVideo,
+      introVariant,
+      looping: false,
+      volume: host.audioMixer.mix.volumeFor(
+        RuntimeAudioRoute.cinematicMusic,
+      ),
+    );
     final titlePresentation = player_ui.RuntimePlayerTitlePresentation(
       author: 'PokeMap',
       description: 'Projet local · host développeur',
@@ -1257,6 +1286,31 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         introPoster: _startupImage(
           host,
           snapshot.presentation?.introPoster,
+        ),
+        titlePromptSource: _startupVideo(
+          host,
+          snapshot.presentation?.titlePromptVideo,
+          promptVariant,
+          looping: true,
+          volume: 0,
+        ),
+        titlePromptPoster: _startupImage(
+          host,
+          snapshot.presentation?.titlePromptPoster,
+        ),
+        titleMenuSource: _startupVideo(
+          host,
+          snapshot.presentation?.titleMenuVideo,
+          menuVariant,
+          looping: true,
+          volume: 0,
+        ),
+        titleMenuPoster: _startupImage(
+          host,
+          snapshot.presentation?.titleMenuPoster,
+        ),
+        onPresentationOrientationChanged: (nextOrientation) => unawaited(
+          host.coordinator.updatePresentationOrientation(nextOrientation),
         ),
         reducedMotion: reducedMotion,
         payloadForAction: _startupPayloadForAction,

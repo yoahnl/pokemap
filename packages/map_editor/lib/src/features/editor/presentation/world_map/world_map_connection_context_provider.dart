@@ -44,7 +44,19 @@ final worldMapConnectionContextProvider = FutureProvider.autoDispose
   },
 );
 
-final worldMapConnectionDirectionProvider =
-    StateProvider.autoDispose<MapConnectionDirection>(
-  (ref) => MapConnectionDirection.north,
+final worldMapConnectionDirectionProvider = NotifierProvider.autoDispose<
+    WorldMapConnectionDirectionController, MapConnectionDirection>(
+  WorldMapConnectionDirectionController.new,
 );
+
+/// Keeps the compass selection scoped to the active inspector lifecycle.
+final class WorldMapConnectionDirectionController
+    extends Notifier<MapConnectionDirection> {
+  @override
+  MapConnectionDirection build() => MapConnectionDirection.north;
+
+  void select(MapConnectionDirection direction) {
+    if (state == direction) return;
+    state = direction;
+  }
+}

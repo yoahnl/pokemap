@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart';
@@ -61,7 +62,8 @@ void main() {
   ProviderContainer container,
   EditorNotifier notifier,
   _RecordingMapRepository repository,
-}) _createFixture() {
+})
+_createFixture() {
   final repository = _RecordingMapRepository();
   final container = ProviderContainer(
     overrides: <Override>[
@@ -91,11 +93,7 @@ void main() {
       canRedoMap: true,
       isDirty: true,
     );
-  return (
-    container: container,
-    notifier: notifier,
-    repository: repository,
-  );
+  return (container: container, notifier: notifier, repository: repository);
 }
 
 class _RecordingMapRepository implements MapRepository {
@@ -125,11 +123,7 @@ class _RecordingMapRepository implements MapRepository {
 const _project = ProjectManifest(
   name: 'Demo',
   maps: <ProjectMapEntry>[
-    ProjectMapEntry(
-      id: 'town',
-      name: 'Town',
-      relativePath: 'maps/town.json',
-    ),
+    ProjectMapEntry(id: 'town', name: 'Town', relativePath: 'maps/town.json'),
   ],
   tilesets: <ProjectTilesetEntry>[],
 );
@@ -139,11 +133,7 @@ const _cleanMap = MapData(
   name: 'Town',
   size: GridSize(width: 2, height: 1),
   layers: <MapLayer>[
-    TileLayer(
-      id: 'ground',
-      name: 'Ground',
-      cells: <int>[1, 1],
-    ),
+    TileLayer(id: 'ground', name: 'Ground', cells: <int>[1, 1]),
   ],
 );
 
@@ -152,11 +142,7 @@ const _partialMap = MapData(
   name: 'Town',
   size: GridSize(width: 2, height: 1),
   layers: <MapLayer>[
-    TileLayer(
-      id: 'ground',
-      name: 'Ground',
-      cells: <int>[0, 1],
-    ),
+    TileLayer(id: 'ground', name: 'Ground', cells: <int>[0, 1]),
   ],
 );
 
@@ -165,11 +151,7 @@ const _undoCandidate = MapData(
   name: 'Town',
   size: GridSize(width: 2, height: 1),
   layers: <MapLayer>[
-    TileLayer(
-      id: 'ground',
-      name: 'Ground',
-      cells: <int>[2, 2],
-    ),
+    TileLayer(id: 'ground', name: 'Ground', cells: <int>[2, 2]),
   ],
 );
 
@@ -178,10 +160,6 @@ const _redoCandidate = MapData(
   name: 'Town',
   size: GridSize(width: 2, height: 1),
   layers: <MapLayer>[
-    TileLayer(
-      id: 'ground',
-      name: 'Ground',
-      cells: <int>[3, 3],
-    ),
+    TileLayer(id: 'ground', name: 'Ground', cells: <int>[3, 3]),
   ],
 );

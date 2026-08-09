@@ -11,81 +11,81 @@ import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
-  testWidgets('tap canvas peint le masque attaché quand le TileLayer est actif',
-      (tester) async {
-    final area = _area();
-    final map = MapData(
-      id: 'route_1',
-      name: 'Route 1',
-      size: const GridSize(width: 4, height: 4),
-      layers: <MapLayer>[
-        const TileLayer(
-          id: 'tiles',
-          name: 'Sol',
-          cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ),
-        MapLayer.environment(
-          id: 'env',
-          name: 'Environment',
-          content: EnvironmentLayerContent(
-            targetTileLayerId: 'tiles',
-            areas: [area],
+  testWidgets(
+    'tap canvas peint le masque attaché quand le TileLayer est actif',
+    (tester) async {
+      final area = _area();
+      final map = MapData(
+        id: 'route_1',
+        name: 'Route 1',
+        size: const GridSize(width: 4, height: 4),
+        layers: <MapLayer>[
+          const TileLayer(
+            id: 'tiles',
+            name: 'Sol',
+            cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
-        ),
-      ],
-    );
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    container.read(editorNotifierProvider.notifier).state = EditorState(
-      projectRootPath: '/tmp/map_editor_env34',
-      project: _manifest(),
-      activeMap: map,
-      activeLayerId: 'tiles',
-      selectedEnvironmentAreaId: area.id,
-      environmentMaskEditMode: EnvironmentMaskEditMode.paint,
-    );
+          MapLayer.environment(
+            id: 'env',
+            name: 'Environment',
+            content: EnvironmentLayerContent(
+              targetTileLayerId: 'tiles',
+              areas: [area],
+            ),
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp/map_editor_env34',
+        project: _manifest(),
+        activeMap: map,
+        activeLayerId: 'tiles',
+        selectedEnvironmentAreaId: area.id,
+        environmentMaskEditMode: EnvironmentMaskEditMode.paint,
+      );
 
-    await tester.binding.setSurfaceSize(const Size(900, 700));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MacosTheme(
-          data: MacosThemeData.light(),
-          child: const MaterialApp(
-            home: CupertinoPageScaffold(
-              child: Center(
-                child: SizedBox(
-                  width: 900,
-                  height: 700,
-                  child: MapCanvas(),
+      await tester.binding.setSurfaceSize(const Size(900, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: const MaterialApp(
+              home: CupertinoPageScaffold(
+                child: Center(
+                  child: SizedBox(width: 900, height: 700, child: MapCanvas()),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    final mapBox = tester.getRect(find.byType(MapCanvas));
-    await tester.tapAt(mapBox.topLeft + const Offset(48, 48));
-    await tester.pump();
+      final mapBox = tester.getRect(find.byType(MapCanvas));
+      await tester.tapAt(mapBox.topLeft + const Offset(48, 48));
+      await tester.pump();
 
-    final state = container.read(editorNotifierProvider);
-    final envLayer =
-        state.activeMap!.layers.whereType<EnvironmentLayer>().single;
-    final painted = envLayer.content.areas.single;
-    expect(state.activeLayerId, 'tiles');
-    expect(envLayer.content.targetTileLayerId, 'tiles');
-    expect(painted.mask.isActiveAt(1, 1), isTrue);
-    expect(painted.mask.activeCellCount, 1);
-    expect(state.activeMap!.placedElements, isEmpty);
-  });
+      final state = container.read(editorNotifierProvider);
+      final envLayer = state.activeMap!.layers
+          .whereType<EnvironmentLayer>()
+          .single;
+      final painted = envLayer.content.areas.single;
+      expect(state.activeLayerId, 'tiles');
+      expect(envLayer.content.targetTileLayerId, 'tiles');
+      expect(painted.mask.isActiveAt(1, 1), isTrue);
+      expect(painted.mask.activeCellCount, 1);
+      expect(state.activeMap!.placedElements, isEmpty);
+    },
+  );
 
-  testWidgets('tap canvas peint un carré 3x3 avec brush size 3',
-      (tester) async {
+  testWidgets('tap canvas peint un carré 3x3 avec brush size 3', (
+    tester,
+  ) async {
     final area = _area();
     final map = MapData(
       id: 'route_1',
@@ -109,7 +109,7 @@ void main() {
     );
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    container.read(environmentMaskBrushSizeProvider.notifier).state = 3;
+    container.read(environmentMaskBrushSizeProvider.notifier).setSize(3);
     container.read(editorNotifierProvider.notifier).state = EditorState(
       projectRootPath: '/tmp/map_editor_env35',
       project: _manifest(),
@@ -129,11 +129,7 @@ void main() {
           child: const MaterialApp(
             home: CupertinoPageScaffold(
               child: Center(
-                child: SizedBox(
-                  width: 900,
-                  height: 700,
-                  child: MapCanvas(),
-                ),
+                child: SizedBox(width: 900, height: 700, child: MapCanvas()),
               ),
             ),
           ),
@@ -148,8 +144,9 @@ void main() {
     await tester.pump();
 
     final state = container.read(editorNotifierProvider);
-    final envLayer =
-        state.activeMap!.layers.whereType<EnvironmentLayer>().single;
+    final envLayer = state.activeMap!.layers
+        .whereType<EnvironmentLayer>()
+        .single;
     final painted = envLayer.content.areas.single;
     expect(state.activeLayerId, 'tiles');
     expect(painted.mask.activeCellCount, 9);
@@ -160,8 +157,9 @@ void main() {
     expect(state.activeMap!.placedElements, isEmpty);
   });
 
-  testWidgets('tap canvas efface un carré 3x3 avec brush size 3',
-      (tester) async {
+  testWidgets('tap canvas efface un carré 3x3 avec brush size 3', (
+    tester,
+  ) async {
     final area = _areaWithActiveMask();
     final map = MapData(
       id: 'route_1',
@@ -185,7 +183,7 @@ void main() {
     );
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    container.read(environmentMaskBrushSizeProvider.notifier).state = 3;
+    container.read(environmentMaskBrushSizeProvider.notifier).setSize(3);
     container.read(editorNotifierProvider.notifier).state = EditorState(
       projectRootPath: '/tmp/map_editor_env36',
       project: _manifest(),
@@ -205,11 +203,7 @@ void main() {
           child: const MaterialApp(
             home: CupertinoPageScaffold(
               child: Center(
-                child: SizedBox(
-                  width: 900,
-                  height: 700,
-                  child: MapCanvas(),
-                ),
+                child: SizedBox(width: 900, height: 700, child: MapCanvas()),
               ),
             ),
           ),
@@ -224,8 +218,9 @@ void main() {
     await tester.pump();
 
     final state = container.read(editorNotifierProvider);
-    final envLayer =
-        state.activeMap!.layers.whereType<EnvironmentLayer>().single;
+    final envLayer = state.activeMap!.layers
+        .whereType<EnvironmentLayer>()
+        .single;
     final erased = envLayer.content.areas.single;
     expect(state.activeLayerId, 'tiles');
     expect(state.selectedEnvironmentAreaId, area.id);
@@ -237,80 +232,79 @@ void main() {
     expect(state.activeMap!.placedElements, isEmpty);
   });
 
-  testWidgets('tap canvas erase taille 1 efface exactement la cellule centrale',
-      (tester) async {
-    final area = _areaWithActiveMask();
-    final map = MapData(
-      id: 'route_1',
-      name: 'Route 1',
-      size: const GridSize(width: 4, height: 4),
-      layers: <MapLayer>[
-        const TileLayer(
-          id: 'tiles',
-          name: 'Sol',
-          cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        ),
-        MapLayer.environment(
-          id: 'env',
-          name: 'Environment',
-          content: EnvironmentLayerContent(
-            targetTileLayerId: 'tiles',
-            areas: [area],
+  testWidgets(
+    'tap canvas erase taille 1 efface exactement la cellule centrale',
+    (tester) async {
+      final area = _areaWithActiveMask();
+      final map = MapData(
+        id: 'route_1',
+        name: 'Route 1',
+        size: const GridSize(width: 4, height: 4),
+        layers: <MapLayer>[
+          const TileLayer(
+            id: 'tiles',
+            name: 'Sol',
+            cells: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           ),
-        ),
-      ],
-    );
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    container.read(editorNotifierProvider.notifier).state = EditorState(
-      projectRootPath: '/tmp/map_editor_env36',
-      project: _manifest(),
-      activeMap: map,
-      activeLayerId: 'tiles',
-      selectedEnvironmentAreaId: area.id,
-      environmentMaskEditMode: EnvironmentMaskEditMode.erase,
-    );
+          MapLayer.environment(
+            id: 'env',
+            name: 'Environment',
+            content: EnvironmentLayerContent(
+              targetTileLayerId: 'tiles',
+              areas: [area],
+            ),
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp/map_editor_env36',
+        project: _manifest(),
+        activeMap: map,
+        activeLayerId: 'tiles',
+        selectedEnvironmentAreaId: area.id,
+        environmentMaskEditMode: EnvironmentMaskEditMode.erase,
+      );
 
-    await tester.binding.setSurfaceSize(const Size(900, 700));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MacosTheme(
-          data: MacosThemeData.light(),
-          child: const MaterialApp(
-            home: CupertinoPageScaffold(
-              child: Center(
-                child: SizedBox(
-                  width: 900,
-                  height: 700,
-                  child: MapCanvas(),
+      await tester.binding.setSurfaceSize(const Size(900, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: const MaterialApp(
+              home: CupertinoPageScaffold(
+                child: Center(
+                  child: SizedBox(width: 900, height: 700, child: MapCanvas()),
                 ),
               ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 100));
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
 
-    final mapBox = tester.getRect(find.byType(MapCanvas));
-    await tester.tapAt(mapBox.topLeft + const Offset(48, 48));
-    await tester.pump();
+      final mapBox = tester.getRect(find.byType(MapCanvas));
+      await tester.tapAt(mapBox.topLeft + const Offset(48, 48));
+      await tester.pump();
 
-    final state = container.read(editorNotifierProvider);
-    final envLayer =
-        state.activeMap!.layers.whereType<EnvironmentLayer>().single;
-    final erased = envLayer.content.areas.single;
-    expect(state.activeLayerId, 'tiles');
-    expect(state.selectedEnvironmentAreaId, area.id);
-    expect(erased.mask.activeCellCount, 15);
-    expect(erased.mask.isActiveAt(1, 1), isFalse);
-    expect(erased.mask.isActiveAt(1, 0), isTrue);
-    expect(erased.mask.isActiveAt(0, 1), isTrue);
-    expect(state.activeMap!.placedElements, isEmpty);
-  });
+      final state = container.read(editorNotifierProvider);
+      final envLayer = state.activeMap!.layers
+          .whereType<EnvironmentLayer>()
+          .single;
+      final erased = envLayer.content.areas.single;
+      expect(state.activeLayerId, 'tiles');
+      expect(state.selectedEnvironmentAreaId, area.id);
+      expect(erased.mask.activeCellCount, 15);
+      expect(erased.mask.isActiveAt(1, 1), isFalse);
+      expect(erased.mask.isActiveAt(1, 0), isTrue);
+      expect(erased.mask.isActiveAt(0, 1), isTrue);
+      expect(state.activeMap!.placedElements, isEmpty);
+    },
+  );
 }
 
 EnvironmentArea _area() {
@@ -352,9 +346,7 @@ ProjectManifest _manifest() {
         name: 'Tree',
         tilesetId: 'nature',
         categoryId: 'trees',
-        frames: [
-          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-        ],
+        frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
       ),
     ],
     environmentPresets: [
@@ -362,9 +354,7 @@ ProjectManifest _manifest() {
         id: 'forest',
         name: 'Forêt',
         templateId: 'forest',
-        palette: [
-          EnvironmentPaletteItem(elementId: 'tree', weight: 1),
-        ],
+        palette: [EnvironmentPaletteItem(elementId: 'tree', weight: 1)],
         defaultParams: EnvironmentGenerationParams.standard(),
         sortOrder: 0,
       ),

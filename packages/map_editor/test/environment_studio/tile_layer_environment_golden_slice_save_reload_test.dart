@@ -16,186 +16,206 @@ import 'package:path/path.dart' as p;
 void main() {
   group('Environment-48 Golden Slice save/reload', () {
     test(
-        'préserve environnement, placements, grouping et reste clearable après reload',
-        () async {
-      final tempDir =
-          await Directory.systemTemp.createTemp('env48_save_reload_');
-      addTearDown(() async {
-        if (await tempDir.exists()) {
-          await tempDir.delete(recursive: true);
+      'préserve environnement, placements, grouping et reste clearable après reload',
+      () async {
+        final tempDir = await Directory.systemTemp.createTemp(
+          'env48_save_reload_',
+        );
+        addTearDown(() async {
+          if (await tempDir.exists()) {
+            await tempDir.delete(recursive: true);
+          }
+        });
+        final manifest = _manifest();
+        final initialMap = _map();
+        final manifestPath = p.join(tempDir.path, 'project.json');
+        final mapPath = p.join(tempDir.path, 'maps', 'golden.json');
+        await FileProjectRepository().saveProject(manifest, manifestPath);
+        await FileMapRepository().saveMap(
+          initialMap,
+          mapPath,
+          projectDialogueContext: manifest,
+        );
+
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final notifier = container.read(editorNotifierProvider.notifier);
+        await notifier.loadProject(manifestPath, rememberAsRecent: false);
+        await notifier.loadMap('maps/golden.json');
+        notifier.state = notifier.state.copyWith(
+          activeLayerId: 'tiles',
+          selectedEnvironmentAreaId: 'area',
+        );
+
+        notifier.startDeletingGeneratedEnvironmentPlacementForActiveTileLayer();
+        expect(
+          notifier.state.environmentMaskEditMode,
+          EnvironmentMaskEditMode.generatedDelete,
+        );
+        expect(
+          notifier.deleteGeneratedEnvironmentPlacementAtForActiveTileLayer(
+            const GridPos(x: 3, y: 2),
+          ),
+          isTrue,
+        );
+
+        notifier.selectEnvironmentGeneratedPlacementElementForActiveTileLayer(
+          'bush',
+        );
+        notifier.startAddingGeneratedEnvironmentPlacementForActiveTileLayer();
+        expect(
+          notifier.state.environmentMaskEditMode,
+          EnvironmentMaskEditMode.generatedAdd,
+        );
+        expect(
+          notifier.addGeneratedEnvironmentPlacementAtForActiveTileLayer(
+            const GridPos(x: 4, y: 0),
+          ),
+          isTrue,
+        );
+        container.read(environmentMaskBrushSizeProvider.notifier).setSize(7);
+        notifier.state = notifier.state.copyWith(
+          hoveredTile: const GridPos(x: 1, y: 1),
+        );
+
+        await notifier.saveActiveMap();
+        expect(notifier.state.errorMessage, isNull);
+        expect(notifier.state.isDirty, isFalse);
+
+        final savedMapJson = await File(mapPath).readAsString();
+        expect(savedMapJson, isNot(contains('generatedAdd')));
+        expect(savedMapJson, isNot(contains('hoveredTile')));
+        expect(savedMapJson, isNot(contains('environmentMaskEditMode')));
+
+        final reloadedContainer = ProviderContainer();
+        addTearDown(reloadedContainer.dispose);
+        final reloadedNotifier = reloadedContainer.read(
+          editorNotifierProvider.notifier,
+        );
+        await reloadedNotifier.loadProject(
+          manifestPath,
+          rememberAsRecent: false,
+        );
+        await reloadedNotifier.loadMap('maps/golden.json');
+
+        final reloadedState = reloadedNotifier.state;
+        final reloadedMap = reloadedState.activeMap!;
+        final reloadedArea = _areaById(reloadedMap, 'area');
+        final placedIds = reloadedMap.placedElements
+            .map((placed) => placed.id)
+            .toSet();
+
+        expect(reloadedState.activeLayerId, 'tiles');
+        expect(reloadedState.selectedEnvironmentAreaId, isNull);
+        expect(reloadedState.environmentMaskEditMode, isNull);
+        expect(reloadedState.hoveredTile, isNull);
+        expect(
+          reloadedContainer.read(
+            environmentGeneratedPlacementAddElementProvider,
+          ),
+          isNull,
+        );
+        expect(
+          reloadedContainer.read(environmentMaskBrushSizeProvider),
+          kDefaultEnvironmentMaskBrushSize,
+        );
+
+        expect(_tileLayer(reloadedMap).cells, _tileLayer(initialMap).cells);
+        expect(
+          _environmentLayer(reloadedMap).content.targetTileLayerId,
+          'tiles',
+        );
+        expect(reloadedArea.mask, _areaById(initialMap, 'area').mask);
+        expect(reloadedArea.seed, 17);
+        expect(reloadedArea.paramsOverride, _params);
+        expect(reloadedArea.presetId, 'forest');
+        expect(reloadedArea.generatedPlacementIds, const [
+          'generated_keep',
+          'env_gen_area_4_0_bush',
+        ]);
+        expect(
+          reloadedArea.generatedPlacementIds.toSet().length,
+          reloadedArea.generatedPlacementIds.length,
+        );
+        for (final id in reloadedArea.generatedPlacementIds) {
+          expect(placedIds, contains(id));
         }
-      });
-      final manifest = _manifest();
-      final initialMap = _map();
-      final manifestPath = p.join(tempDir.path, 'project.json');
-      final mapPath = p.join(tempDir.path, 'maps', 'golden.json');
-      await FileProjectRepository().saveProject(manifest, manifestPath);
-      await FileMapRepository().saveMap(
-        initialMap,
-        mapPath,
-        projectDialogueContext: manifest,
-      );
 
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(editorNotifierProvider.notifier);
-      await notifier.loadProject(manifestPath, rememberAsRecent: false);
-      await notifier.loadMap('maps/golden.json');
-      notifier.state = notifier.state.copyWith(
-        activeLayerId: 'tiles',
-        selectedEnvironmentAreaId: 'area',
-      );
+        expect(placedIds, contains('manual_tree'));
+        expect(placedIds, contains('generated_keep'));
+        expect(placedIds, contains('env_gen_area_4_0_bush'));
+        expect(placedIds, contains('other_generated'));
+        expect(placedIds, isNot(contains('generated_delete')));
+        expect(
+          reloadedArea.generatedPlacementIds,
+          isNot(contains('manual_tree')),
+        );
+        final added = reloadedMap.placedElements.singleWhere(
+          (placed) => placed.id == 'env_gen_area_4_0_bush',
+        );
+        expect(added.layerId, 'tiles');
+        expect(added.elementId, 'bush');
+        expect(added.pos, const GridPos(x: 4, y: 0));
+        final manual = reloadedMap.placedElements.singleWhere(
+          (placed) => placed.id == 'manual_tree',
+        );
+        expect(manual.layerId, 'tiles');
+        expect(manual.elementId, 'tree');
+        expect(manual.pos, const GridPos(x: 0, y: 0));
+        expect(_areaById(reloadedMap, 'other').generatedPlacementIds, const [
+          'other_generated',
+        ]);
 
-      notifier.startDeletingGeneratedEnvironmentPlacementForActiveTileLayer();
-      expect(notifier.state.environmentMaskEditMode,
-          EnvironmentMaskEditMode.generatedDelete);
-      expect(
-        notifier.deleteGeneratedEnvironmentPlacementAtForActiveTileLayer(
-          const GridPos(x: 3, y: 2),
-        ),
-        isTrue,
-      );
+        final model = buildTileLayerEnvironmentAttachmentReadModel(
+          manifest: reloadedState.project,
+          map: reloadedMap,
+          selectedLayerId: 'tiles',
+          selectedEnvironmentAreaId: 'area',
+          selectedGeneratedPlacementElementId: 'bush',
+        );
+        expect(model.hasAttachment, isTrue);
+        expect(model.activeTileLayerId, 'tiles');
+        expect(model.attachedEnvironmentLayerId, 'env');
+        expect(model.hasMask, isTrue);
+        expect(model.maskActiveCellCount, greaterThan(0));
+        expect(model.generatedPlacementCount, 2);
+        expect(model.existingGeneratedPlacementCount, 2);
+        expect(model.missingGeneratedPlacementCount, 0);
+        expect(model.selectedAreaHasParamsOverride, isTrue);
+        expect(model.selectedAreaSeed, 17);
+        expect(model.canClearGeneratedPlacements, isTrue);
+        expect(model.canRegenerate, isTrue);
+        expect(model.canShuffle, isTrue);
+        expect(model.canAddGeneratedPlacement, isTrue);
 
-      notifier.selectEnvironmentGeneratedPlacementElementForActiveTileLayer(
-        'bush',
-      );
-      notifier.startAddingGeneratedEnvironmentPlacementForActiveTileLayer();
-      expect(notifier.state.environmentMaskEditMode,
-          EnvironmentMaskEditMode.generatedAdd);
-      expect(
-        notifier.addGeneratedEnvironmentPlacementAtForActiveTileLayer(
-          const GridPos(x: 4, y: 0),
-        ),
-        isTrue,
-      );
-      container.read(environmentMaskBrushSizeProvider.notifier).state = 7;
-      notifier.state = notifier.state.copyWith(
-        hoveredTile: const GridPos(x: 1, y: 1),
-      );
+        final rows = buildLayerPanelPresentationRows(
+          reloadedMap,
+          activeLayerId: 'env',
+        );
+        expect(rows.map((row) => row.layer.id), const ['tiles', 'objects']);
+        final tileRow = rows.singleWhere((row) => row.layer.id == 'tiles');
+        expect(tileRow.environmentAttachmentLabel, 'Environnement actif');
+        expect(tileRow.attachedEnvironmentLayerIds, const ['env']);
+        expect(tileRow.isActive, isTrue);
+        expect(tileRow.isTechnicalEnvironmentSelection, isTrue);
 
-      await notifier.saveActiveMap();
-      expect(notifier.state.errorMessage, isNull);
-      expect(notifier.state.isDirty, isFalse);
-
-      final savedMapJson = await File(mapPath).readAsString();
-      expect(savedMapJson, isNot(contains('generatedAdd')));
-      expect(savedMapJson, isNot(contains('hoveredTile')));
-      expect(savedMapJson, isNot(contains('environmentMaskEditMode')));
-
-      final reloadedContainer = ProviderContainer();
-      addTearDown(reloadedContainer.dispose);
-      final reloadedNotifier =
-          reloadedContainer.read(editorNotifierProvider.notifier);
-      await reloadedNotifier.loadProject(
-        manifestPath,
-        rememberAsRecent: false,
-      );
-      await reloadedNotifier.loadMap('maps/golden.json');
-
-      final reloadedState = reloadedNotifier.state;
-      final reloadedMap = reloadedState.activeMap!;
-      final reloadedArea = _areaById(reloadedMap, 'area');
-      final placedIds =
-          reloadedMap.placedElements.map((placed) => placed.id).toSet();
-
-      expect(reloadedState.activeLayerId, 'tiles');
-      expect(reloadedState.selectedEnvironmentAreaId, isNull);
-      expect(reloadedState.environmentMaskEditMode, isNull);
-      expect(reloadedState.hoveredTile, isNull);
-      expect(
-        reloadedContainer.read(environmentGeneratedPlacementAddElementProvider),
-        isNull,
-      );
-      expect(
-        reloadedContainer.read(environmentMaskBrushSizeProvider),
-        kDefaultEnvironmentMaskBrushSize,
-      );
-
-      expect(_tileLayer(reloadedMap).cells, _tileLayer(initialMap).cells);
-      expect(_environmentLayer(reloadedMap).content.targetTileLayerId, 'tiles');
-      expect(reloadedArea.mask, _areaById(initialMap, 'area').mask);
-      expect(reloadedArea.seed, 17);
-      expect(reloadedArea.paramsOverride, _params);
-      expect(reloadedArea.presetId, 'forest');
-      expect(reloadedArea.generatedPlacementIds, const [
-        'generated_keep',
-        'env_gen_area_4_0_bush',
-      ]);
-      expect(reloadedArea.generatedPlacementIds.toSet().length,
-          reloadedArea.generatedPlacementIds.length);
-      for (final id in reloadedArea.generatedPlacementIds) {
-        expect(placedIds, contains(id));
-      }
-
-      expect(placedIds, contains('manual_tree'));
-      expect(placedIds, contains('generated_keep'));
-      expect(placedIds, contains('env_gen_area_4_0_bush'));
-      expect(placedIds, contains('other_generated'));
-      expect(placedIds, isNot(contains('generated_delete')));
-      expect(
-          reloadedArea.generatedPlacementIds, isNot(contains('manual_tree')));
-      final added = reloadedMap.placedElements.singleWhere(
-        (placed) => placed.id == 'env_gen_area_4_0_bush',
-      );
-      expect(added.layerId, 'tiles');
-      expect(added.elementId, 'bush');
-      expect(added.pos, const GridPos(x: 4, y: 0));
-      final manual = reloadedMap.placedElements.singleWhere(
-        (placed) => placed.id == 'manual_tree',
-      );
-      expect(manual.layerId, 'tiles');
-      expect(manual.elementId, 'tree');
-      expect(manual.pos, const GridPos(x: 0, y: 0));
-      expect(_areaById(reloadedMap, 'other').generatedPlacementIds,
-          const ['other_generated']);
-
-      final model = buildTileLayerEnvironmentAttachmentReadModel(
-        manifest: reloadedState.project,
-        map: reloadedMap,
-        selectedLayerId: 'tiles',
-        selectedEnvironmentAreaId: 'area',
-        selectedGeneratedPlacementElementId: 'bush',
-      );
-      expect(model.hasAttachment, isTrue);
-      expect(model.activeTileLayerId, 'tiles');
-      expect(model.attachedEnvironmentLayerId, 'env');
-      expect(model.hasMask, isTrue);
-      expect(model.maskActiveCellCount, greaterThan(0));
-      expect(model.generatedPlacementCount, 2);
-      expect(model.existingGeneratedPlacementCount, 2);
-      expect(model.missingGeneratedPlacementCount, 0);
-      expect(model.selectedAreaHasParamsOverride, isTrue);
-      expect(model.selectedAreaSeed, 17);
-      expect(model.canClearGeneratedPlacements, isTrue);
-      expect(model.canRegenerate, isTrue);
-      expect(model.canShuffle, isTrue);
-      expect(model.canAddGeneratedPlacement, isTrue);
-
-      final rows = buildLayerPanelPresentationRows(
-        reloadedMap,
-        activeLayerId: 'env',
-      );
-      expect(rows.map((row) => row.layer.id), const ['tiles', 'objects']);
-      final tileRow = rows.singleWhere((row) => row.layer.id == 'tiles');
-      expect(tileRow.environmentAttachmentLabel, 'Environnement actif');
-      expect(tileRow.attachedEnvironmentLayerIds, const ['env']);
-      expect(tileRow.isActive, isTrue);
-      expect(tileRow.isTechnicalEnvironmentSelection, isTrue);
-
-      final clear =
-          ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase().execute(
-        reloadedMap,
-        tileLayerId: 'tiles',
-        areaId: 'area',
-      );
-      expect(clear.removedPlacementIds,
-          unorderedEquals(['generated_keep', 'env_gen_area_4_0_bush']));
-      expect(_areaById(clear.map, 'area').generatedPlacementIds, isEmpty);
-      expect(clear.map.placedElements.map((placed) => placed.id),
-          contains('manual_tree'));
-      expect(clear.map.placedElements.map((placed) => placed.id),
-          contains('other_generated'));
-    });
+        final clear = ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase()
+            .execute(reloadedMap, tileLayerId: 'tiles', areaId: 'area');
+        expect(
+          clear.removedPlacementIds,
+          unorderedEquals(['generated_keep', 'env_gen_area_4_0_bush']),
+        );
+        expect(_areaById(clear.map, 'area').generatedPlacementIds, isEmpty);
+        expect(
+          clear.map.placedElements.map((placed) => placed.id),
+          contains('manual_tree'),
+        );
+        expect(
+          clear.map.placedElements.map((placed) => placed.id),
+          contains('other_generated'),
+        );
+      },
+    );
   });
 }
 
@@ -239,18 +259,14 @@ ProjectManifest _manifest() {
         name: 'Tree',
         tilesetId: 'nature',
         categoryId: 'nature',
-        frames: [
-          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-        ],
+        frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
       ),
       ProjectElementEntry(
         id: 'bush',
         name: 'Bush',
         tilesetId: 'nature',
         categoryId: 'nature',
-        frames: [
-          TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0)),
-        ],
+        frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0))],
       ),
       ProjectElementEntry(
         id: 'big_tree',
@@ -296,9 +312,7 @@ MapData _map() {
       const TileLayer(
         id: 'tiles',
         name: 'Décor',
-        palette: [
-          TileLayerPaletteEntry(tilesetId: 'nature', localTileId: 0),
-        ],
+        palette: [TileLayerPaletteEntry(tilesetId: 'nature', localTileId: 0)],
         cells: [
           1,
           0,
@@ -430,8 +444,7 @@ EnvironmentLayer _environmentLayer(MapData map) {
 }
 
 EnvironmentArea _areaById(MapData map, String areaId) {
-  return _environmentLayer(map)
-      .content
-      .areas
-      .singleWhere((area) => area.id == areaId);
+  return _environmentLayer(
+    map,
+  ).content.areas.singleWhere((area) => area.id == areaId);
 }

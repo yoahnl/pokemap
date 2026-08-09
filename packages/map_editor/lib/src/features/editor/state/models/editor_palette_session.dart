@@ -9,14 +9,10 @@ part 'editor_palette_session.freezed.dart';
 /// declared library folder. It is UI taxonomy, never a persisted folder ID.
 const kEditorPaletteUnclassifiedFolderId = '__unclassified__';
 
-enum EditorPaletteAssetCollection {
-  all,
-  recent,
-  favorites,
-}
+enum EditorPaletteAssetCollection { all, recent, favorites }
 
 @freezed
-class EditorPaletteContextKey with _$EditorPaletteContextKey {
+abstract class EditorPaletteContextKey with _$EditorPaletteContextKey {
   const factory EditorPaletteContextKey({
     required String mapId,
     required String layerId,
@@ -43,7 +39,7 @@ sealed class EditorPaletteBrushMemory with _$EditorPaletteBrushMemory {
 }
 
 @freezed
-class EditorLayerPaletteContext with _$EditorLayerPaletteContext {
+abstract class EditorLayerPaletteContext with _$EditorLayerPaletteContext {
   const factory EditorLayerPaletteContext({
     String? selectedTilesetId,
     String? selectedElementGroupId,
@@ -61,7 +57,7 @@ class EditorLayerPaletteContext with _$EditorLayerPaletteContext {
 }
 
 @freezed
-class EditorPaletteSession with _$EditorPaletteSession {
+abstract class EditorPaletteSession with _$EditorPaletteSession {
   const factory EditorPaletteSession({
     EditorPaletteContextKey? activeKey,
     @Default(<EditorPaletteContextKey, EditorLayerPaletteContext>{})

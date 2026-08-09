@@ -4,7 +4,7 @@ import 'package:map_editor/personalization_hub.dart';
 
 void main() {
   test('applies one preset section without replacing unrelated authoring', () {
-    const intro = ProjectIntroVideoProfile(
+    final intro = ProjectIntroVideoProfile.fromLandscape(
       videoPath: 'presentation/intro.mp4',
       durationMilliseconds: 1000,
       width: 1280,
@@ -13,7 +13,7 @@ void main() {
       sizeBytes: 1000,
       videoCodec: 'h264',
     );
-    const current = ProjectPresentationProfile(intro: intro);
+    final current = ProjectPresentationProfile(intro: intro);
 
     final updated = cinematicPresentationPreset.apply(
       current,
@@ -39,22 +39,24 @@ void main() {
     expect(updated.theme, safeProjectSemanticTheme);
   });
 
-  test('preview and comparison project the canonical presentation contract',
-      () {
-    const baseline = ProjectPresentationProfile();
-    const current = ProjectPresentationProfile(
-      branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
-      theme: safeProjectSemanticTheme,
-    );
-    final preview = PersonalizationPreviewProjection(current);
-    final comparison = compareProjectPresentation(baseline, current);
+  test(
+    'preview and comparison project the canonical presentation contract',
+    () {
+      const baseline = ProjectPresentationProfile();
+      const current = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+        theme: safeProjectSemanticTheme,
+      );
+      final preview = PersonalizationPreviewProjection(current);
+      final comparison = compareProjectPresentation(baseline, current);
 
-    expect(
-      preview.surface(PersonalizationPreviewSurface.battleHud).backgroundHex,
-      safeProjectSemanticTheme.battleHudSurface,
-    );
-    expect(preview.titleLayoutVariant, 'cinematic');
-    expect(comparison.changedPaths, contains(r'$.branding.layoutVariant'));
-    expect(comparison.changedPaths, contains(r'$.theme'));
-  });
+      expect(
+        preview.surface(PersonalizationPreviewSurface.battleHud).backgroundHex,
+        safeProjectSemanticTheme.battleHudSurface,
+      );
+      expect(preview.titleLayoutVariant, 'cinematic');
+      expect(comparison.changedPaths, contains(r'$.branding.layoutVariant'));
+      expect(comparison.changedPaths, contains(r'$.theme'));
+    },
+  );
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' show Material, MaterialApp, SizedBox;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -19,14 +20,14 @@ const _appkitUiElementColorsChannel = MethodChannel('appkit_ui_element_colors');
 void _installMacosAccentColorMock() {
   TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
       .setMockMethodCallHandler(_appkitUiElementColorsChannel, (call) async {
-    switch (call.method) {
-      case 'getColorComponents':
-        return <String, double>{'hueComponent': 0.58};
-      case 'getColor':
-        return 0xFF0A84FF;
-    }
-    return null;
-  });
+        switch (call.method) {
+          case 'getColorComponents':
+            return <String, double>{'hueComponent': 0.58};
+          case 'getColor':
+            return 0xFF0A84FF;
+        }
+        return null;
+      });
   addTearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(_appkitUiElementColorsChannel, null);
@@ -103,8 +104,9 @@ Future<ProviderContainer> pumpEditorShellPage(
       ? baseTheme
       : baseTheme.copyWith(
           textTheme: baseTheme.textTheme.apply(fontFamily: fontFamily),
-          primaryTextTheme:
-              baseTheme.primaryTextTheme.apply(fontFamily: fontFamily),
+          primaryTextTheme: baseTheme.primaryTextTheme.apply(
+            fontFamily: fontFamily,
+          ),
         );
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -213,9 +215,7 @@ Future<ProviderContainer> pumpEditorCanvasHostHarness(
             child: child ?? const SizedBox.shrink(),
           );
         },
-        home: const CupertinoPageScaffold(
-          child: EditorCanvasHost(),
-        ),
+        home: const CupertinoPageScaffold(child: EditorCanvasHost()),
       ),
     ),
   );
@@ -328,9 +328,7 @@ class _TopToolbarHarness extends ConsumerWidget {
     return const CupertinoPageScaffold(
       child: Align(
         alignment: Alignment.topCenter,
-        child: TopToolbar(
-          key: Key('top-toolbar-under-test'),
-        ),
+        child: TopToolbar(key: Key('top-toolbar-under-test')),
       ),
     );
   }
@@ -342,10 +340,7 @@ class _StatusBarHarness extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const CupertinoPageScaffold(
-      child: Align(
-        alignment: Alignment.bottomCenter,
-        child: StatusBar(),
-      ),
+      child: Align(alignment: Alignment.bottomCenter, child: StatusBar()),
     );
   }
 }

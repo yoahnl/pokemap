@@ -12,8 +12,9 @@ import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
-  testWidgets('hover canvas fournit un ghost preview sans muter la MapData',
-      (tester) async {
+  testWidgets('hover canvas fournit un ghost preview sans muter la MapData', (
+    tester,
+  ) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final map = _map();
@@ -27,7 +28,7 @@ void main() {
     );
     container
         .read(environmentGeneratedPlacementAddElementProvider.notifier)
-        .state = 'big_tree';
+        .select('big_tree');
 
     await _pumpCanvas(tester, container);
 
@@ -83,11 +84,7 @@ Future<void> _pumpCanvas(
         child: const MaterialApp(
           home: CupertinoPageScaffold(
             child: Center(
-              child: SizedBox(
-                width: 900,
-                height: 700,
-                child: MapCanvas(),
-              ),
+              child: SizedBox(width: 900, height: 700, child: MapCanvas()),
             ),
           ),
         ),
@@ -154,9 +151,7 @@ ProjectManifest _manifest() {
         name: 'Tree',
         tilesetId: 'nature',
         categoryId: 'trees',
-        frames: [
-          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-        ],
+        frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
       ),
       ProjectElementEntry(
         id: 'big_tree',

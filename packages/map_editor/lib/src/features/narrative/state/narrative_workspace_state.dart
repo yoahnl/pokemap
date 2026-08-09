@@ -66,9 +66,9 @@ const Object _unset = Object();
 /// - navigation fluide gauche <-> centre <-> droite
 /// - état déterministe et facile à déboguer
 /// - API lisible pour les widgets (pas de logique cachée dans les vues)
-class NarrativeWorkspaceController
-    extends StateNotifier<NarrativeWorkspaceState> {
-  NarrativeWorkspaceController() : super(const NarrativeWorkspaceState());
+class NarrativeWorkspaceController extends Notifier<NarrativeWorkspaceState> {
+  @override
+  NarrativeWorkspaceState build() => const NarrativeWorkspaceState();
 
   void openGlobalStory({String? scenarioId}) {
     state = state.copyWith(
@@ -119,7 +119,6 @@ class NarrativeWorkspaceController
   }
 }
 
-final narrativeWorkspaceControllerProvider = StateNotifierProvider<
-    NarrativeWorkspaceController, NarrativeWorkspaceState>(
-  (ref) => NarrativeWorkspaceController(),
-);
+final narrativeWorkspaceControllerProvider =
+    NotifierProvider<NarrativeWorkspaceController, NarrativeWorkspaceState>(
+        NarrativeWorkspaceController.new);

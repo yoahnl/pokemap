@@ -114,42 +114,51 @@ SmartTileGestureSelection _smartTileGestureSelection(
   WorldMapSmartTileGestureMode mode, {
   required GridPos start,
   required GridPos end,
-}) =>
-    switch (mode) {
-      WorldMapSmartTileGestureMode.line =>
-        SmartTileGestureSelection.line(start: start, end: end),
-      WorldMapSmartTileGestureMode.rectangle =>
-        SmartTileGestureSelection.rectangle(start: start, end: end),
-      WorldMapSmartTileGestureMode.floodFill =>
-        SmartTileGestureSelection.floodFill(seed: start),
-      WorldMapSmartTileGestureMode.brush =>
-        throw StateError('Brush gestures are sampled as normal strokes.'),
-    };
+}) => switch (mode) {
+  WorldMapSmartTileGestureMode.line => SmartTileGestureSelection.line(
+    start: start,
+    end: end,
+  ),
+  WorldMapSmartTileGestureMode.rectangle => SmartTileGestureSelection.rectangle(
+    start: start,
+    end: end,
+  ),
+  WorldMapSmartTileGestureMode.floodFill => SmartTileGestureSelection.floodFill(
+    seed: start,
+  ),
+  WorldMapSmartTileGestureMode.brush => throw StateError(
+    'Brush gestures are sampled as normal strokes.',
+  ),
+};
 
 SmartTilePatternSelection _smartTilePatternSelection(
   WorldMapSmartTileGestureMode mode, {
   required GridPos start,
   required GridPos end,
-}) =>
-    switch (mode) {
-      WorldMapSmartTileGestureMode.brush =>
-        SmartTilePatternSelection.stamp(anchor: start),
-      WorldMapSmartTileGestureMode.line =>
-        SmartTilePatternSelection.line(start: start, end: end),
-      WorldMapSmartTileGestureMode.rectangle =>
-        SmartTilePatternSelection.rectangle(start: start, end: end),
-      WorldMapSmartTileGestureMode.floodFill =>
-        throw StateError('Reusable patterns do not support flood fill.'),
-    };
+}) => switch (mode) {
+  WorldMapSmartTileGestureMode.brush => SmartTilePatternSelection.stamp(
+    anchor: start,
+  ),
+  WorldMapSmartTileGestureMode.line => SmartTilePatternSelection.line(
+    start: start,
+    end: end,
+  ),
+  WorldMapSmartTileGestureMode.rectangle => SmartTilePatternSelection.rectangle(
+    start: start,
+    end: end,
+  ),
+  WorldMapSmartTileGestureMode.floodFill => throw StateError(
+    'Reusable patterns do not support flood fill.',
+  ),
+};
 
 SmartTileGestureSelection _smartTilePatternEraseSelection(
   WorldMapSmartTileGestureMode mode, {
   required GridPos start,
   required GridPos end,
-}) =>
-    mode == WorldMapSmartTileGestureMode.brush
-        ? SmartTileGestureSelection.line(start: start, end: end)
-        : _smartTileGestureSelection(mode, start: start, end: end);
+}) => mode == WorldMapSmartTileGestureMode.brush
+    ? SmartTileGestureSelection.line(start: start, end: end)
+    : _smartTileGestureSelection(mode, start: start, end: end);
 
 bool _smartTilePatternSupportsGesture(
   ProjectSmartTilePattern pattern,
@@ -161,9 +170,7 @@ bool _smartTilePatternSupportsGesture(
   return mode != WorldMapSmartTileGestureMode.floodFill;
 }
 
-({GridPos origin, GridSize size}) _smartTileGestureBounds(
-  List<GridPos> cells,
-) {
+({GridPos origin, GridSize size}) _smartTileGestureBounds(List<GridPos> cells) {
   var left = cells.first.x;
   var right = cells.first.x;
   var top = cells.first.y;
@@ -192,15 +199,17 @@ String _mapCanvasImageFailureMessage(
   }
 
   String reason(EditorImageFailureKind kind) => switch (kind) {
-        EditorImageFailureKind.invalidPath => 'aucun fichier associé',
-        EditorImageFailureKind.missingFile => 'fichier introuvable',
-        EditorImageFailureKind.emptyFile => 'fichier vide',
-        EditorImageFailureKind.readFailed => 'lecture impossible',
-        EditorImageFailureKind.decodeFailed => 'image illisible',
-        EditorImageFailureKind.cacheDisposed => 'session projet fermée',
-      };
+    EditorImageFailureKind.invalidPath => 'aucun fichier associé',
+    EditorImageFailureKind.missingFile => 'fichier introuvable',
+    EditorImageFailureKind.emptyFile => 'fichier vide',
+    EditorImageFailureKind.readFailed => 'lecture impossible',
+    EditorImageFailureKind.decodeFailed => 'image illisible',
+    EditorImageFailureKind.cacheDisposed => 'session projet fermée',
+  };
 
-  final visible = failures.entries.take(3).map(
+  final visible = failures.entries
+      .take(3)
+      .map(
         (entry) => '${tilesetLabel(entry.key)} : ${reason(entry.value.kind)}',
       );
   final remaining = failures.length - 3;
@@ -254,8 +263,9 @@ String mapCanvasSelectionSemanticsLabel({
   if (entityId != null) {
     for (final entity in map.entities) {
       if (entity.id == entityId) {
-        final name =
-            entity.name.trim().isEmpty ? entity.id : entity.name.trim();
+        final name = entity.name.trim().isEmpty
+            ? entity.id
+            : entity.name.trim();
         return 'Entité $name sélectionnée, '
             '${boundsLabel(entity.pos, entity.size)}.';
       }
@@ -265,8 +275,9 @@ String mapCanvasSelectionSemanticsLabel({
   if (eventId != null) {
     for (final event in map.events) {
       if (event.id == eventId) {
-        final title =
-            event.title.trim().isEmpty ? event.id : event.title.trim();
+        final title = event.title.trim().isEmpty
+            ? event.id
+            : event.title.trim();
         return 'Événement $title sélectionné, '
             'x ${event.position.x}, y ${event.position.y}.';
       }
@@ -286,8 +297,9 @@ String mapCanvasSelectionSemanticsLabel({
   if (triggerId != null) {
     for (final trigger in map.triggers) {
       if (trigger.id == triggerId) {
-        final name =
-            trigger.name.trim().isEmpty ? trigger.id : trigger.name.trim();
+        final name = trigger.name.trim().isEmpty
+            ? trigger.id
+            : trigger.name.trim();
         return 'Déclencheur $name sélectionné, '
             '${boundsLabel(trigger.area.pos, trigger.area.size)}.';
       }
@@ -342,13 +354,8 @@ NarrativeEventSourceRef? resolveNarrativeEventMapCandidateAt({
   final matches = <NarrativeEventSourceRef>[];
   for (final entity in map.entities) {
     if (entity.kind == MapEntityKind.spawn) continue;
-    if (_mapRectContains(
-      MapRect(pos: entity.pos, size: entity.size),
-      pos,
-    )) {
-      matches.add(
-        NarrativeEventSourceRef.entityInteract(map.id, entity.id),
-      );
+    if (_mapRectContains(MapRect(pos: entity.pos, size: entity.size), pos)) {
+      matches.add(NarrativeEventSourceRef.entityInteract(map.id, entity.id));
     }
   }
   for (final trigger in map.triggers) {
@@ -357,9 +364,7 @@ NarrativeEventSourceRef? resolveNarrativeEventMapCandidateAt({
       continue;
     }
     if (_mapRectContains(trigger.area, pos)) {
-      matches.add(
-        NarrativeEventSourceRef.triggerEnter(map.id, trigger.id),
-      );
+      matches.add(NarrativeEventSourceRef.triggerEnter(map.id, trigger.id));
     }
   }
   return matches.length == 1 ? matches.single : null;
@@ -423,7 +428,7 @@ class MapCanvas extends ConsumerStatefulWidget {
   final VoidCallback? debugOnBuild;
   @visibleForTesting
   final ValueChanged<EditorCanvasRepaintLifecycleEvent>?
-      debugOnRepaintLifecycle;
+  debugOnRepaintLifecycle;
 
   @override
   ConsumerState<MapCanvas> createState() => _MapCanvasState();
@@ -455,8 +460,8 @@ final class MapCanvasContextMenuRequest {
   final MapContextMenuInvocation invocation;
 }
 
-typedef MapCanvasContextMenuRequested
-    = ValueChanged<MapCanvasContextMenuRequest>;
+typedef MapCanvasContextMenuRequested =
+    ValueChanged<MapCanvasContextMenuRequest>;
 
 typedef _TilesetImageBatch = ({
   int generation,
@@ -504,7 +509,8 @@ String _mapCanvasObjectMovePreviewSemanticsLabel(
     MapCanvasObjectKind.trigger => 'le déclencheur',
     MapCanvasObjectKind.warp => 'le téléporteur',
   };
-  final destination = 'x ${preview.destinationAnchor.x}, '
+  final destination =
+      'x ${preview.destinationAnchor.x}, '
       'y ${preview.destinationAnchor.y}';
   final rejectionReason = switch (preview.plan.rejection) {
     MapCanvasObjectMoveRejection.targetNotFound => 'l’objet est introuvable',
@@ -561,12 +567,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   GridPos? _hoveredTile;
   GridPos? _hoveredBorderVertex;
   _MapCanvasObjectMovePreview? _objectMovePreview;
-  ({
-    int interactionId,
-    int pointerId,
-    MapViewport viewport,
-    Offset focalPoint,
-  })? _trackpadGesture;
+  ({int interactionId, int pointerId, MapViewport viewport, Offset focalPoint})?
+  _trackpadGesture;
 
   bool _spacePressed = false;
   bool _spaceKeyboardActivationPending = false;
@@ -726,23 +728,18 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     super.dispose();
   }
 
-  void _releaseTilesetImagesFuture(
-    Future<_TilesetImageBatch>? future,
-  ) {
+  void _releaseTilesetImagesFuture(Future<_TilesetImageBatch>? future) {
     if (future == null) return;
     unawaited(
-      future.then<void>(
-        (batch) {
-          final binding = WidgetsBinding.instance;
-          binding.addPostFrameCallback((_) {
-            for (final result in batch.results.values) {
-              result.dispose();
-            }
-          });
-          binding.ensureVisualUpdate();
-        },
-        onError: (Object _, StackTrace __) {},
-      ),
+      future.then<void>((batch) {
+        final binding = WidgetsBinding.instance;
+        binding.addPostFrameCallback((_) {
+          for (final result in batch.results.values) {
+            result.dispose();
+          }
+        });
+        binding.ensureVisualUpdate();
+      }, onError: (Object _, StackTrace __) {}),
     );
   }
 
@@ -767,8 +764,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     _lastTilesetPathsById = Map<String, String>.from(nextTilesetPathsById);
     _lastTilesetTransparentColorById =
         Map<String, TilesetTransparentColor>.from(
-      nextTransparentColorByTilesetId,
-    );
+          nextTransparentColorByTilesetId,
+        );
     final resultsFuture = imageCache?.loadMany(
       _lastTilesetPathsById,
       variantKeyForId: (tilesetId) =>
@@ -788,16 +785,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         };
       },
     );
-    _tilesetImagesFuture = (resultsFuture ??
-            Future<Map<String, EditorImageLoadResult>>.value(
-              const <String, EditorImageLoadResult>{},
-            ))
-        .then(
-      (results) => (
-        generation: requestGeneration,
-        results: results,
-      ),
-    );
+    _tilesetImagesFuture =
+        (resultsFuture ??
+                Future<Map<String, EditorImageLoadResult>>.value(
+                  const <String, EditorImageLoadResult>{},
+                ))
+            .then(
+              (results) => (generation: requestGeneration, results: results),
+            );
     _releaseTilesetImagesFuture(previousFuture);
   }
 
@@ -837,23 +832,29 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       panOffset: viewport.panOffset,
     );
     final imageCache = switch (state.projectRootPath?.trim()) {
-      final root? when root.isNotEmpty =>
-        ref.watch(editorImageCacheProvider(root)),
+      final root? when root.isNotEmpty => ref.watch(
+        editorImageCacheProvider(root),
+      ),
       _ => null,
     };
     final bridgeState = ref.watch(narrativeEventMapBridgeControllerProvider);
-    final narrativeNavigation =
-        ref.watch(narrativeStudioNavigationControllerProvider);
+    final narrativeNavigation = ref.watch(
+      narrativeStudioNavigationControllerProvider,
+    );
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final environmentMaskBrushSize =
-        ref.watch(environmentMaskBrushSizeProvider);
-    final selectedGeneratedPlacementElementId =
-        ref.watch(environmentGeneratedPlacementAddElementProvider);
-    final activeBorderFeature =
-        ref.watch(activeBorderFeatureControllerProvider);
+    final environmentMaskBrushSize = ref.watch(
+      environmentMaskBrushSizeProvider,
+    );
+    final selectedGeneratedPlacementElementId = ref.watch(
+      environmentGeneratedPlacementAddElementProvider,
+    );
+    final activeBorderFeature = ref.watch(
+      activeBorderFeatureControllerProvider,
+    );
     final borderPreviewState = ref.watch(borderPreviewControllerProvider);
-    final borderPreviewController =
-        ref.read(borderPreviewControllerProvider.notifier);
+    final borderPreviewController = ref.read(
+      borderPreviewControllerProvider.notifier,
+    );
     final hoveredTileLayerId = ref.watch(worldMapHoveredTileLayerIdProvider);
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
@@ -880,12 +881,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         : ref.watch(
             worldMapConnectionContextProvider(connectionContextRequest),
           );
-    final connectionContext = connectionContextAsync?.valueOrNull;
+    final connectionContext = connectionContextAsync?.value;
     final selectedConnectionDirection = connectionModeActive
         ? ref.watch(worldMapConnectionDirectionProvider)
         : MapConnectionDirection.north;
-    final connectionLabelsByDirection =
-        resolveMapConnectionLabels(activeMap, state.project);
+    final connectionLabelsByDirection = resolveMapConnectionLabels(
+      activeMap,
+      state.project,
+    );
     final tilesetPathsById = collectMapCanvasTilesetPaths(
       maps: [
         if (activeMap != null) activeMap,
@@ -948,8 +951,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         final batch = snapshot.data;
         final tilesetImageResults =
             batch?.generation == _tilesetImageRequestGeneration
-                ? batch!.results
-                : const <String, EditorImageLoadResult>{};
+            ? batch!.results
+            : const <String, EditorImageLoadResult>{};
         final tilesetImagesById = <String, ui.Image?>{
           for (final entry in tilesetImageResults.entries)
             entry.key: entry.value.image,
@@ -983,12 +986,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         final keyboardCursor = _resolveKeyboardCursor(state, activeMap);
         final hoveredTile =
             _hoveredTile ?? (_mapFocusNode.hasFocus ? keyboardCursor : null);
-        final smartTileGestureMode =
-            ref.watch(worldMapSmartTileGestureModeProvider);
-        final selectedSmartTileMaterialId =
-            ref.watch(worldMapSmartTileMaterialIdProvider);
-        final selectedSmartTilePatternId =
-            ref.watch(worldMapSmartTilePatternIdProvider);
+        final smartTileGestureMode = ref.watch(
+          worldMapSmartTileGestureModeProvider,
+        );
+        final selectedSmartTileMaterialId = ref.watch(
+          worldMapSmartTileMaterialIdProvider,
+        );
+        final selectedSmartTilePatternId = ref.watch(
+          worldMapSmartTilePatternIdProvider,
+        );
         SmartTileLayer? activeSmartTileLayer;
         for (final layer in activeMap.layers) {
           if (layer.id == state.activeLayerId && layer is SmartTileLayer) {
@@ -998,8 +1004,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         }
         ProjectSmartTilePreset? activeSmartTilePreset;
         if (activeSmartTileLayer != null) {
-          for (final preset in state.project?.smartTileCatalog.presets ??
-              const <ProjectSmartTilePreset>[]) {
+          for (final preset
+              in state.project?.smartTileCatalog.presets ??
+                  const <ProjectSmartTilePreset>[]) {
             if (preset.id == activeSmartTileLayer.presetId) {
               activeSmartTilePreset = preset;
               break;
@@ -1008,8 +1015,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         }
         ProjectSmartTilePattern? activeSmartTilePattern;
         if (activeSmartTileLayer != null) {
-          for (final pattern in state.project?.smartTileCatalog.patterns ??
-              const <ProjectSmartTilePattern>[]) {
+          for (final pattern
+              in state.project?.smartTileCatalog.patterns ??
+                  const <ProjectSmartTilePattern>[]) {
             if (pattern.id == selectedSmartTilePatternId &&
                 pattern.usage == activeSmartTileLayer.usage) {
               activeSmartTilePattern = pattern;
@@ -1022,18 +1030,20 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             : activeMap.layers.whereType<CollisionLayer>().firstOrNull?.id;
         final isActiveSmartTilePatternGestureSupported =
             activeSmartTilePattern == null ||
-                state.activeTool == EditorToolType.eraser ||
-                _smartTilePatternSupportsGesture(
-                  activeSmartTilePattern,
-                  smartTileGestureMode,
-                );
+            state.activeTool == EditorToolType.eraser ||
+            _smartTilePatternSupportsGesture(
+              activeSmartTilePattern,
+              smartTileGestureMode,
+            );
         final activeSmartTileMaterialId = activeSmartTilePreset == null
             ? null
-            : activeSmartTilePreset.allowedMaterialIds
-                    .contains(selectedSmartTileMaterialId)
-                ? selectedSmartTileMaterialId
-                : activeSmartTilePreset.defaultMaterialId;
-        final isSmartTileShapeEditing = activeSmartTileLayer != null &&
+            : activeSmartTilePreset.allowedMaterialIds.contains(
+                selectedSmartTileMaterialId,
+              )
+            ? selectedSmartTileMaterialId
+            : activeSmartTilePreset.defaultMaterialId;
+        final isSmartTileShapeEditing =
+            activeSmartTileLayer != null &&
             (state.activeTool == EditorToolType.terrainPaint ||
                 state.activeTool == EditorToolType.eraser) &&
             (activeSmartTilePattern != null ||
@@ -1046,7 +1056,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
           final start = _smartTileShapeStart ?? hoveredTile;
           final end = _smartTileShapeEnd ?? hoveredTile;
           try {
-            final cells = activeSmartTilePattern != null &&
+            final cells =
+                activeSmartTilePattern != null &&
                     state.activeTool == EditorToolType.terrainPaint
                 ? applySmartTilePatternGesture(
                     activeSmartTileLayer,
@@ -1121,56 +1132,60 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                   );
           }
         }
-        final eraserPreview =
-            state.activeTool == EditorToolType.eraser ? toolPreview : null;
+        final eraserPreview = state.activeTool == EditorToolType.eraser
+            ? toolPreview
+            : null;
         final shadowLightPreviewPreset =
             editorShadowLightPreviewPresetById(_shadowLightPreviewPresetId) ??
-                neutralEditorShadowLightPreviewPreset;
+            neutralEditorShadowLightPreviewPreset;
         final environmentGeneratedAddPreview =
             hoveredTile != null && state.project != null
-                ? switch (state.environmentMaskEditMode) {
-                    EnvironmentMaskEditMode.generatedAdd =>
-                      resolveEnvironmentGeneratedPlacementAddPreview(
-                        map: activeMap,
-                        manifest: state.project!,
-                        activeLayerId: state.activeLayerId,
-                        selectedAreaId: state.selectedEnvironmentAreaId,
-                        selectedElementId: selectedGeneratedPlacementElementId,
-                        pos: hoveredTile,
-                      ),
-                    _ => null,
-                  }
-                : null;
+            ? switch (state.environmentMaskEditMode) {
+                EnvironmentMaskEditMode.generatedAdd =>
+                  resolveEnvironmentGeneratedPlacementAddPreview(
+                    map: activeMap,
+                    manifest: state.project!,
+                    activeLayerId: state.activeLayerId,
+                    selectedAreaId: state.selectedEnvironmentAreaId,
+                    selectedElementId: selectedGeneratedPlacementElementId,
+                    pos: hoveredTile,
+                  ),
+                _ => null,
+              }
+            : null;
         final environmentGeneratedDeleteTarget =
             hoveredTile != null && state.project != null
-                ? switch (state.environmentMaskEditMode) {
-                    EnvironmentMaskEditMode.generatedDelete =>
-                      resolveEnvironmentGeneratedPlacementDeleteTarget(
-                        map: activeMap,
-                        manifest: state.project,
-                        activeLayerId: state.activeLayerId,
-                        selectedAreaId: state.selectedEnvironmentAreaId,
-                        pos: hoveredTile,
-                      ),
-                    _ => null,
-                  }
-                : null;
-        final isEnvironmentMaskEditing =
-            _isEnvironmentMaskEditing(state, activeMap);
+            ? switch (state.environmentMaskEditMode) {
+                EnvironmentMaskEditMode.generatedDelete =>
+                  resolveEnvironmentGeneratedPlacementDeleteTarget(
+                    map: activeMap,
+                    manifest: state.project,
+                    activeLayerId: state.activeLayerId,
+                    selectedAreaId: state.selectedEnvironmentAreaId,
+                    pos: hoveredTile,
+                  ),
+                _ => null,
+              }
+            : null;
+        final isEnvironmentMaskEditing = _isEnvironmentMaskEditing(
+          state,
+          activeMap,
+        );
         final borderToolAvailability = assessBorderToolAvailability(
           manifest: state.project,
           map: activeMap,
           activeLayerId: state.activeLayerId,
           activeFeatureId: activeBorderFeature.activeFeatureId,
         );
-        final canResumeResolvedLinearBorder = borderPreviewState.phase ==
-                BorderPreviewPhase.resolved &&
+        final canResumeResolvedLinearBorder =
+            borderPreviewState.phase == BorderPreviewPhase.resolved &&
             borderPreviewState.transaction?.layerId == state.activeLayerId &&
             borderPreviewState.transaction?.featureId ==
                 activeBorderFeature.activeFeatureId &&
             borderPreviewState.transaction?.proposedFeature.geometry
                 is BorderStrokeGeometry;
-        final isBorderEditing = borderToolAvailability.isEnabled &&
+        final isBorderEditing =
+            borderToolAvailability.isEnabled &&
             (state.activeTool == EditorToolType.borderPaint ||
                 state.activeTool == EditorToolType.borderErase) &&
             (borderPreviewState.phase == BorderPreviewPhase.idle ||
@@ -1187,10 +1202,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             .featureById(activeBorderFeature.activeFeatureId ?? '');
         final usesGridEdgeSnapping =
             switch (persistedActiveBorderFeature?.geometry) {
-          BorderStrokeGeometry(:final alignment) =>
-            alignment == BorderStrokeAlignment.gridEdges,
-          _ => false,
-        };
+              BorderStrokeGeometry(:final alignment) =>
+                alignment == BorderStrokeAlignment.gridEdges,
+              _ => false,
+            };
 
         GridPos? screenToActiveToolGrid(Offset localPosition) {
           if (isBorderEditing && usesGridEdgeSnapping) {
@@ -1213,25 +1228,28 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
           );
         }
 
-        final isInertTilePaint = state.activeTool == EditorToolType.tilePaint &&
+        final isInertTilePaint =
+            state.activeTool == EditorToolType.tilePaint &&
             state.activeBrush is NoEditorBrush;
         final isSmartTileShapeTool = isSmartTileShapeEditing;
         final isDirectSmartTileStroke =
             (state.activeTool == EditorToolType.terrainPaint ||
-                    state.activeTool == EditorToolType.eraser) &&
-                !isSmartTileShapeTool;
+                state.activeTool == EditorToolType.eraser) &&
+            !isSmartTileShapeTool;
         final isDirectStrokeEditingTool =
             (state.activeTool == EditorToolType.tilePaint &&
-                    !isInertTilePaint) ||
-                isDirectSmartTileStroke ||
-                state.activeTool == EditorToolType.collisionPaint ||
-                isEnvironmentMaskEditing;
-        final isStrokeEditingTool = isDirectStrokeEditingTool ||
+                !isInertTilePaint) ||
+            isDirectSmartTileStroke ||
+            state.activeTool == EditorToolType.collisionPaint ||
+            isEnvironmentMaskEditing;
+        final isStrokeEditingTool =
+            isDirectStrokeEditingTool ||
             isSmartTileShapeTool ||
             isBorderEditing;
         final isNpcWaypointPlacementActive =
             (state.npcWaypointPlacementEntityId?.trim().isNotEmpty ?? false);
-        final isTapEditingTool = isStrokeEditingTool ||
+        final isTapEditingTool =
+            isStrokeEditingTool ||
             state.activeTool == EditorToolType.entityPlacement ||
             state.activeTool == EditorToolType.eventPlacement ||
             state.activeTool == EditorToolType.warpPlacement ||
@@ -1239,10 +1257,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             state.activeTool == EditorToolType.gameplayZonePlacement;
         final isNarrativeEventGuidedNavigation =
             bridgeState.pendingReturn != null &&
-                (bridgeState.navigationMode ==
-                        NarrativeEventMapNavigationMode.create ||
-                    bridgeState.navigationMode ==
-                        NarrativeEventMapNavigationMode.choose);
+            (bridgeState.navigationMode ==
+                    NarrativeEventMapNavigationMode.create ||
+                bridgeState.navigationMode ==
+                    NarrativeEventMapNavigationMode.choose);
 
         final environmentMaskOverlay = isEnvironmentMaskEditing
             ? resolveEnvironmentMaskPaintTarget(
@@ -1253,12 +1271,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             : null;
         final environmentBrushCursorOverlay =
             isEnvironmentMaskEditing && hoveredTile != null
-                ? EnvironmentMaskBrushCursorOverlay(
-                    center: hoveredTile,
-                    brushSize: environmentMaskBrushSize,
-                    mode: state.environmentMaskEditMode!,
-                  )
-                : null;
+            ? EnvironmentMaskBrushCursorOverlay(
+                center: hoveredTile,
+                brushSize: environmentMaskBrushSize,
+                mode: state.environmentMaskEditMode!,
+              )
+            : null;
 
         void previewBorderGeometry(BorderFeatureGeometry geometry) {
           final transaction = borderPreviewController.current.transaction;
@@ -1285,8 +1303,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             if (_borderStrokeGestureRejected) return;
             if (borderPreviewController.current.phase ==
                 BorderPreviewPhase.idle) {
-              final previewContext =
-                  _borderPreviewContextForCanvas(state, activeMap);
+              final previewContext = _borderPreviewContextForCanvas(
+                state,
+                activeMap,
+              );
               if (previewContext == null) return;
               borderPreviewController.begin(
                 map: activeMap,
@@ -1309,8 +1329,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
               return;
             }
             if (geometry is BorderRegionGeometry) {
-              final previousCell =
-                  partOfStroke ? _lastBorderPaintCell ?? gridPos : gridPos;
+              final previousCell = partOfStroke
+                  ? _lastBorderPaintCell ?? gridPos
+                  : gridPos;
               final updated = editBorderRegionSegment(
                 geometry,
                 previousCell,
@@ -1324,7 +1345,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
               final mode = state.activeTool == EditorToolType.borderPaint
                   ? BorderStrokeEditingMode.draw
                   : BorderStrokeEditingMode.erase;
-              final currentDraft = _borderStrokeEditingDraft ??
+              final currentDraft =
+                  _borderStrokeEditingDraft ??
                   BorderStrokeEditingDraft.begin(
                     baseGeometry: geometry,
                     mode: mode,
@@ -1832,7 +1854,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
               }
               final isActiveStroke =
                   interactionKind == MapCanvasInteractionKind.paintingStroke ||
-                      interactionKind == MapCanvasInteractionKind.borderGesture;
+                  interactionKind == MapCanvasInteractionKind.borderGesture;
               if (!isActiveStroke || !isStrokeEditingTool) return;
               final gridPos = screenToActiveToolGrid(details.localPosition);
               if (gridPos != null) {
@@ -1950,23 +1972,25 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
               }
               final interaction = _activeGestureInteraction();
               if (interaction == null) return;
-              final cancelled =
-                  _interactionController.cancelPointer(interaction.pointerId);
+              final cancelled = _interactionController.cancelPointer(
+                interaction.pointerId,
+              );
               if (cancelled == null) return;
               _rollbackMapInteraction(cancelled.session);
               if (mounted) setState(() {});
             },
             child: MouseRegion(
-              cursor: (_interactionController.activeSession?.kind ==
+              cursor:
+                  (_interactionController.activeSession?.kind ==
                           MapCanvasInteractionKind.panning ||
                       _interactionController.activeSession?.kind ==
                           MapCanvasInteractionKind.draggingSelection)
                   ? SystemMouseCursors.grabbing
                   : _spacePressed && _interactionController.isIdle
-                      ? SystemMouseCursors.grab
-                      : state.activeTool == EditorToolType.eraser
-                          ? SystemMouseCursors.precise
-                          : SystemMouseCursors.basic,
+                  ? SystemMouseCursors.grab
+                  : state.activeTool == EditorToolType.eraser
+                  ? SystemMouseCursors.precise
+                  : SystemMouseCursors.basic,
               onExit: (_) {
                 if (_hoveredTile != null || _hoveredBorderVertex != null) {
                   setState(() {
@@ -2008,14 +2032,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                         child: Semantics(
                           container: true,
                           liveRegion: true,
-                          label: '${mapCanvasSelectionSemanticsLabel(
-                            state: state,
-                            map: activeMap,
-                            project: state.project,
-                            selectedBorderFeatureId:
-                                activeBorderFeature.activeFeatureId,
-                            editorAnimationTimeMs: _repaintClock.elapsedMs,
-                          )} Curseur cellule x ${keyboardCursor.x}, '
+                          label:
+                              '${mapCanvasSelectionSemanticsLabel(state: state, map: activeMap, project: state.project, selectedBorderFeatureId: activeBorderFeature.activeFeatureId, editorAnimationTimeMs: _repaintClock.elapsedMs)} Curseur cellule x ${keyboardCursor.x}, '
                               'y ${keyboardCursor.y}.',
                           child: CustomPaint(
                             size: Size.infinite,
@@ -2027,12 +2045,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                               offset: state.panOffset,
                               hoveredTile:
                                   environmentBrushCursorOverlay == null &&
-                                          state.environmentMaskEditMode !=
-                                              EnvironmentMaskEditMode
-                                                  .generatedAdd &&
-                                          eraserPreview == null
-                                      ? hoveredTile
-                                      : null,
+                                      state.environmentMaskEditMode !=
+                                          EnvironmentMaskEditMode
+                                              .generatedAdd &&
+                                      eraserPreview == null
+                                  ? hoveredTile
+                                  : null,
                               activeLayerId: state.activeLayerId,
                               tileWidth: tileWidth,
                               tileHeight: tileHeight,
@@ -2080,13 +2098,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                               borderPreview: borderPreviewState.transaction,
                               borderDiagnosticOverlayPalette:
                                   EditorBorderDiagnosticOverlayPalette(
-                                warningFill:
-                                    colors.warningSoft.withValues(alpha: 0.72),
-                                warningStroke: colors.warningBorder,
-                                errorFill:
-                                    colors.errorSoft.withValues(alpha: 0.72),
-                                errorStroke: colors.errorBorder,
-                              ),
+                                    warningFill: colors.warningSoft.withValues(
+                                      alpha: 0.72,
+                                    ),
+                                    warningStroke: colors.warningBorder,
+                                    errorFill: colors.errorSoft.withValues(
+                                      alpha: 0.72,
+                                    ),
+                                    errorStroke: colors.errorBorder,
+                                  ),
                             ),
                           ),
                         ),
@@ -2151,8 +2171,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                                 tileHeight: tileHeight,
                                 fillColor: preview.isRejected
                                     ? colors.errorSoft.withValues(alpha: 0.62)
-                                    : colors.brandPrimarySoft
-                                        .withValues(alpha: 0.62),
+                                    : colors.brandPrimarySoft.withValues(
+                                        alpha: 0.62,
+                                      ),
                                 strokeColor: preview.isRejected
                                     ? colors.errorBorder
                                     : colors.brandPrimaryBorder,
@@ -2236,12 +2257,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                             builder: (context, constraints) {
                               const badgeMargin = 8.0;
                               const badgeMaxWidth = 160.0;
-                              final desiredLeft = state.panOffset.dx +
+                              final desiredLeft =
+                                  state.panOffset.dx +
                                   (_hoveredTile!.x + eraserPreview.size.width) *
                                       tileWidth *
                                       state.zoom +
                                   badgeMargin;
-                              final desiredTop = state.panOffset.dy +
+                              final desiredTop =
+                                  state.panOffset.dy +
                                   _hoveredTile!.y * tileHeight * state.zoom -
                                   26;
                               final maxLeft = math.max(
@@ -2258,16 +2281,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                                 children: [
                                   Positioned(
                                     left: desiredLeft
-                                        .clamp(
-                                          badgeMargin,
-                                          maxLeft,
-                                        )
+                                        .clamp(badgeMargin, maxLeft)
                                         .toDouble(),
                                     top: desiredTop
-                                        .clamp(
-                                          badgeMargin,
-                                          maxTop,
-                                        )
+                                        .clamp(badgeMargin, maxTop)
                                         .toDouble(),
                                     child: Semantics(
                                       label:
@@ -2325,14 +2342,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
                       ),
                       actionLabel:
                           state.projectRootPath?.trim().isEmpty == false
-                              ? 'Actualiser'
-                              : null,
+                          ? 'Actualiser'
+                          : null,
                       onAction: state.projectRootPath?.trim().isEmpty == false
                           ? () => ref.invalidate(
-                                editorImageCacheProvider(
-                                  state.projectRootPath!.trim(),
-                                ),
-                              )
+                              editorImageCacheProvider(
+                                state.projectRootPath!.trim(),
+                              ),
+                            )
                           : null,
                     ),
                   ),
@@ -2442,10 +2459,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
               decoration: BoxDecoration(
                 color: colors.surfaceRaised.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: colors.borderSubtle,
-                  width: 1,
-                ),
+                border: Border.all(color: colors.borderSubtle, width: 1),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x1A000000),
@@ -2510,10 +2524,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       },
       child: Text(
         preset.label,
-        style: const TextStyle(
-          fontSize: 10,
-          decoration: TextDecoration.none,
-        ),
+        style: const TextStyle(fontSize: 10, decoration: TextDecoration.none),
       ),
     );
   }
@@ -2533,11 +2544,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     final objectMovePreview = _objectMovePreview;
     final expectedContext =
         interaction.kind == MapCanvasInteractionKind.draggingSelection
-            ? objectMovePreview?.contextAfterSelection
-            : interaction.contextAtStart;
+        ? objectMovePreview?.contextAfterSelection
+        : interaction.contextAtStart;
     final currentState = ref.read(editorNotifierProvider);
-    final sourceIsCurrent = interaction.kind !=
-            MapCanvasInteractionKind.draggingSelection ||
+    final sourceIsCurrent =
+        interaction.kind != MapCanvasInteractionKind.draggingSelection ||
         (objectMovePreview != null &&
             identical(currentState.activeMap, objectMovePreview.sourceMap) &&
             _isCanvasObjectTargetSelected(
@@ -2618,9 +2629,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   MapCanvasInteractionContext _currentMapInteractionContext() {
     final state = ref.read(editorNotifierProvider);
     final bridge = ref.read(narrativeEventMapBridgeControllerProvider);
-    final borderFeatureId =
-        ref.read(activeBorderFeatureControllerProvider).activeFeatureId;
-    final guidedNavigation = bridge.pendingReturn != null &&
+    final borderFeatureId = ref
+        .read(activeBorderFeatureControllerProvider)
+        .activeFeatureId;
+    final guidedNavigation =
+        bridge.pendingReturn != null &&
         (bridge.navigationMode == NarrativeEventMapNavigationMode.create ||
             bridge.navigationMode == NarrativeEventMapNavigationMode.choose);
     final targetKey = <Object?>[
@@ -2753,10 +2766,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     _trackpadGesture = (
       interactionId: session.interactionId,
       pointerId: event.pointer,
-      viewport: MapViewport(
-        zoom: state.zoom,
-        panOffset: state.panOffset,
-      ),
+      viewport: MapViewport(zoom: state.zoom, panOffset: state.panOffset),
       focalPoint: event.localPosition,
     );
     setState(() {});
@@ -2820,10 +2830,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     if (event.scrollDelta == Offset.zero) return;
     _mapFocusNode.requestFocus();
     final state = ref.read(editorNotifierProvider);
-    final current = MapViewport(
-      zoom: state.zoom,
-      panOffset: state.panOffset,
-    );
+    final current = MapViewport(zoom: state.zoom, panOffset: state.panOffset);
     final keyboard = HardwareKeyboard.instance;
     final zoomRequested = keyboard.isMetaPressed || keyboard.isControlPressed;
     if (zoomRequested) {
@@ -2888,7 +2895,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         setState(() => _spacePressed = nextPressed);
       }
       if (event is KeyUpEvent) {
-        final activate = _spaceKeyboardActivationPending &&
+        final activate =
+            _spaceKeyboardActivationPending &&
             _pressedMapPointers.isEmpty &&
             _interactionController.isIdle;
         _spaceKeyboardActivationPending = false;
@@ -2951,12 +2959,12 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
   }
 
   GridPos? _keyboardArrowDelta(LogicalKeyboardKey key) => switch (key) {
-        LogicalKeyboardKey.arrowLeft => const GridPos(x: -1, y: 0),
-        LogicalKeyboardKey.arrowRight => const GridPos(x: 1, y: 0),
-        LogicalKeyboardKey.arrowUp => const GridPos(x: 0, y: -1),
-        LogicalKeyboardKey.arrowDown => const GridPos(x: 0, y: 1),
-        _ => null,
-      };
+    LogicalKeyboardKey.arrowLeft => const GridPos(x: -1, y: 0),
+    LogicalKeyboardKey.arrowRight => const GridPos(x: 1, y: 0),
+    LogicalKeyboardKey.arrowUp => const GridPos(x: 0, y: -1),
+    LogicalKeyboardKey.arrowDown => const GridPos(x: 0, y: 1),
+    _ => null,
+  };
 
   GridPos _resolveKeyboardCursor(EditorState state, MapData map) {
     final local = _keyboardCursorMapId == map.id ? _keyboardCursor : null;
@@ -3033,12 +3041,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       x: target.anchor.x + delta.x,
       y: target.anchor.y + delta.y,
     );
-    final moved =
-        ref.read(editorNotifierProvider.notifier).commitCanvasObjectMove(
-              sourceMap: map,
-              target: target,
-              destinationAnchor: destination,
-            );
+    final moved = ref
+        .read(editorNotifierProvider.notifier)
+        .commitCanvasObjectMove(
+          sourceMap: map,
+          target: target,
+          destinationAnchor: destination,
+        );
     if (moved) _setKeyboardCursor(map, destination);
   }
 
@@ -3288,12 +3297,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     }
   }
 
-  ({
-    Size mapPixelSize,
-    Size tileSize,
-    Size viewportSize,
-    MapViewport viewport,
-  })? _readActiveMapViewportGeometry() {
+  ({Size mapPixelSize, Size tileSize, Size viewportSize, MapViewport viewport})?
+  _readActiveMapViewportGeometry() {
     final state = ref.read(editorNotifierProvider);
     final map = state.activeMap;
     if (map == null) return null;
@@ -3315,10 +3320,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       mapPixelSize: mapPixelSize,
       tileSize: Size(tileWidth, tileHeight),
       viewportSize: renderObject.size,
-      viewport: MapViewport(
-        zoom: state.zoom,
-        panOffset: state.panOffset,
-      ),
+      viewport: MapViewport(zoom: state.zoom, panOffset: state.panOffset),
     );
   }
 
@@ -3342,7 +3344,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             ),
           ),
         )
-        .valueOrNull;
+        .value;
   }
 
   void _clearTrackpadGesture([int? interactionId]) {
@@ -3462,7 +3464,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       alt: keyboard.isAltPressed,
       control: keyboard.isControlPressed,
       meta: keyboard.isMetaPressed,
-      space: _spacePressed ||
+      space:
+          _spacePressed ||
           keyboard.logicalKeysPressed.contains(LogicalKeyboardKey.space),
     );
   }
@@ -3494,8 +3497,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       tileW,
       tileH,
     );
-    final activeBorderSelection =
-        ref.read(activeBorderFeatureControllerProvider);
+    final activeBorderSelection = ref.read(
+      activeBorderFeatureControllerProvider,
+    );
     BorderFeature? activeBorderFeature;
     if (s.activeTool == EditorToolType.borderPaint ||
         s.activeTool == EditorToolType.borderErase) {
@@ -3540,8 +3544,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
       for (final snapshot in project.borderCatalog.visualSnapshots)
         for (var index = 0; index < snapshot.frames.length; index += 1)
           if (snapshot.frames[index].transparentColorArgb != null)
-            editorBorderFrameImageKey(snapshot.id, index):
-                TilesetTransparentColor(
+            editorBorderFrameImageKey(
+              snapshot.id,
+              index,
+            ): TilesetTransparentColor(
               red: (snapshot.frames[index].transparentColorArgb! >> 16) & 0xff,
               green: (snapshot.frames[index].transparentColorArgb! >> 8) & 0xff,
               blue: snapshot.frames[index].transparentColorArgb! & 0xff,
@@ -3553,12 +3559,11 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
     required MapData map,
     required ProjectManifest? project,
     required BorderPreviewTransaction? borderPreview,
-  }) =>
-      editorCanvasNeedsAnimation(
-        map: map,
-        project: project,
-        borderPreview: borderPreview,
-      );
+  }) => editorCanvasNeedsAnimation(
+    map: map,
+    project: project,
+    borderPreview: borderPreview,
+  );
 
   /// Construit un [MapRect] à partir de deux coins opposés (inclusif des deux).
   MapRect _rectFromCorners(GridPos a, GridPos b) {

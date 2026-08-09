@@ -12,72 +12,74 @@ import '../shell_chrome_test_harness.dart';
 
 void main() {
   group('ProjectPresentationDocumentGateway', () {
-    test('atomically saves only presentation and preserves unknown root data',
-        () async {
-      final fixture = _GatewayFixture.create();
-      addTearDown(fixture.dispose);
-      final gateway = ProjectPresentationDocumentGateway(
-        projectPath: fixture.projectFile.path,
-        persistence: const AtomicProjectManifestPersistence(),
-      );
-      final before = await gateway.read();
-      const profile = ProjectPresentationProfile(
-        branding: ProjectBrandingProfile(
-          accentColor: '#123456',
-          layoutVariant: 'cinematic',
-        ),
-      );
-      final after = before.document.copyWith(presentation: profile);
+    test(
+      'atomically saves only presentation and preserves unknown root data',
+      () async {
+        final fixture = _GatewayFixture.create();
+        addTearDown(fixture.dispose);
+        final gateway = ProjectPresentationDocumentGateway(
+          projectPath: fixture.projectFile.path,
+          persistence: const AtomicProjectManifestPersistence(),
+        );
+        final before = await gateway.read();
+        const profile = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(
+            accentColor: '#123456',
+            layoutVariant: 'cinematic',
+          ),
+        );
+        final after = before.document.copyWith(presentation: profile);
 
-      final result = await gateway.save(
-        expectedRevision: before.revision,
-        before: before.document,
-        after: after,
-        operationId: 'save-presentation-1',
-      );
+        final result = await gateway.save(
+          expectedRevision: before.revision,
+          before: before.document,
+          after: after,
+          operationId: 'save-presentation-1',
+        );
 
-      expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
-      final durableRoot = jsonDecode(fixture.projectFile.readAsStringSync())
-          as Map<String, dynamic>;
-      expect(durableRoot['extensionOwned'], <String, dynamic>{'keep': true});
-      expect(
-        ProjectManifest.fromJson(durableRoot).presentation,
-        profile,
-      );
-      expect(
-        fixture.root.listSync().where((entry) => entry.path.endsWith('.tmp')),
-        isEmpty,
-      );
-    });
+        expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+        final durableRoot =
+            jsonDecode(fixture.projectFile.readAsStringSync())
+                as Map<String, dynamic>;
+        expect(durableRoot['extensionOwned'], <String, dynamic>{'keep': true});
+        expect(ProjectManifest.fromJson(durableRoot).presentation, profile);
+        expect(
+          fixture.root.listSync().where((entry) => entry.path.endsWith('.tmp')),
+          isEmpty,
+        );
+      },
+    );
 
-    test('reports a conflict without replacing an externally changed project',
-        () async {
-      final fixture = _GatewayFixture.create();
-      addTearDown(fixture.dispose);
-      final gateway = ProjectPresentationDocumentGateway(
-        projectPath: fixture.projectFile.path,
-        persistence: const AtomicProjectManifestPersistence(),
-      );
-      final before = await gateway.read();
-      final external = before.document.copyWith(name: 'External edit');
-      fixture.writeProject(external);
-      final externalBytes = fixture.projectFile.readAsBytesSync();
-      final local = before.document.copyWith(
-        presentation: const ProjectPresentationProfile(
-          branding: ProjectBrandingProfile(accentColor: '#123456'),
-        ),
-      );
+    test(
+      'reports a conflict without replacing an externally changed project',
+      () async {
+        final fixture = _GatewayFixture.create();
+        addTearDown(fixture.dispose);
+        final gateway = ProjectPresentationDocumentGateway(
+          projectPath: fixture.projectFile.path,
+          persistence: const AtomicProjectManifestPersistence(),
+        );
+        final before = await gateway.read();
+        final external = before.document.copyWith(name: 'External edit');
+        fixture.writeProject(external);
+        final externalBytes = fixture.projectFile.readAsBytesSync();
+        final local = before.document.copyWith(
+          presentation: const ProjectPresentationProfile(
+            branding: ProjectBrandingProfile(accentColor: '#123456'),
+          ),
+        );
 
-      final result = await gateway.save(
-        expectedRevision: before.revision,
-        before: before.document,
-        after: local,
-        operationId: 'stale-presentation-save',
-      );
+        final result = await gateway.save(
+          expectedRevision: before.revision,
+          before: before.document,
+          after: local,
+          operationId: 'stale-presentation-save',
+        );
 
-      expect(result, isA<NarrativeDocumentSaveConflicted<ProjectManifest>>());
-      expect(fixture.projectFile.readAsBytesSync(), externalBytes);
-    });
+        expect(result, isA<NarrativeDocumentSaveConflicted<ProjectManifest>>());
+        expect(fixture.projectFile.readAsBytesSync(), externalBytes);
+      },
+    );
 
     test('rejects a mutation outside the presentation profile', () async {
       final fixture = _GatewayFixture.create();
@@ -98,98 +100,107 @@ void main() {
       expect(
         result,
         isA<NarrativeDocumentSaveFailed<ProjectManifest>>().having(
-            (value) => value.code, 'code', 'unsupportedDocumentMutation'),
+          (value) => value.code,
+          'code',
+          'unsupportedDocumentMutation',
+        ),
       );
-      expect(
-        (await gateway.read()).document,
-        before.document,
-      );
+      expect((await gateway.read()).document, before.document);
     });
 
-    test('cleans replaced presentation assets only after a durable save',
-        () async {
-      const oldProfile = ProjectPresentationProfile(
-        intro: ProjectIntroVideoProfile(
-          videoPath: 'assets/presentation/intro/old.mp4',
-          posterPath: 'assets/presentation/intro/old.png',
-          durationMilliseconds: 1,
-          width: 1,
-          height: 1,
-          bitrateKbps: 1,
-          sizeBytes: 1,
-          videoCodec: 'h264',
-        ),
-      );
-      const newProfile = ProjectPresentationProfile(
-        intro: ProjectIntroVideoProfile(
-          videoPath: 'assets/presentation/intro/new.mp4',
-          posterPath: 'assets/presentation/intro/new.png',
-          durationMilliseconds: 1,
-          width: 1,
-          height: 1,
-          bitrateKbps: 1,
-          sizeBytes: 1,
-          videoCodec: 'h264',
-        ),
-      );
-      final fixture = _GatewayFixture.create(presentation: oldProfile);
-      addTearDown(fixture.dispose);
-      final oldVideo = fixture.writeAsset('assets/presentation/intro/old.mp4');
-      final oldPoster = fixture.writeAsset('assets/presentation/intro/old.png');
-      final newVideo = fixture.writeAsset('assets/presentation/intro/new.mp4');
-      final newPoster = fixture.writeAsset('assets/presentation/intro/new.png');
-      final gateway = ProjectPresentationDocumentGateway(
-        projectPath: fixture.projectFile.path,
-        persistence: const AtomicProjectManifestPersistence(),
-      );
-      final before = await gateway.read();
+    test(
+      'cleans replaced presentation assets only after a durable save',
+      () async {
+        final oldProfile = ProjectPresentationProfile(
+          intro: ProjectIntroVideoProfile.fromLandscape(
+            videoPath: 'assets/presentation/intro/old.mp4',
+            posterPath: 'assets/presentation/intro/old.png',
+            durationMilliseconds: 1,
+            width: 1,
+            height: 1,
+            bitrateKbps: 1,
+            sizeBytes: 1,
+            videoCodec: 'h264',
+          ),
+        );
+        final newProfile = ProjectPresentationProfile(
+          intro: ProjectIntroVideoProfile.fromLandscape(
+            videoPath: 'assets/presentation/intro/new.mp4',
+            posterPath: 'assets/presentation/intro/new.png',
+            durationMilliseconds: 1,
+            width: 1,
+            height: 1,
+            bitrateKbps: 1,
+            sizeBytes: 1,
+            videoCodec: 'h264',
+          ),
+        );
+        final fixture = _GatewayFixture.create(presentation: oldProfile);
+        addTearDown(fixture.dispose);
+        final oldVideo = fixture.writeAsset(
+          'assets/presentation/intro/old.mp4',
+        );
+        final oldPoster = fixture.writeAsset(
+          'assets/presentation/intro/old.png',
+        );
+        final newVideo = fixture.writeAsset(
+          'assets/presentation/intro/new.mp4',
+        );
+        final newPoster = fixture.writeAsset(
+          'assets/presentation/intro/new.png',
+        );
+        final gateway = ProjectPresentationDocumentGateway(
+          projectPath: fixture.projectFile.path,
+          persistence: const AtomicProjectManifestPersistence(),
+        );
+        final before = await gateway.read();
 
-      final result = await gateway.save(
-        expectedRevision: before.revision,
-        before: before.document,
-        after: before.document.copyWith(presentation: newProfile),
-        operationId: 'replace-presentation-assets',
-      );
+        final result = await gateway.save(
+          expectedRevision: before.revision,
+          before: before.document,
+          after: before.document.copyWith(presentation: newProfile),
+          operationId: 'replace-presentation-assets',
+        );
 
-      expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
-      expect(oldVideo.existsSync(), isFalse);
-      expect(oldPoster.existsSync(), isFalse);
-      expect(newVideo.existsSync(), isTrue);
-      expect(newPoster.existsSync(), isTrue);
-      expect(
-        gateway.lastAssetCleanupResult?.deletedPaths,
-        <String>{
+        expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+        expect(oldVideo.existsSync(), isFalse);
+        expect(oldPoster.existsSync(), isFalse);
+        expect(newVideo.existsSync(), isTrue);
+        expect(newPoster.existsSync(), isTrue);
+        expect(gateway.lastAssetCleanupResult?.deletedPaths, <String>{
           'assets/presentation/intro/old.mp4',
           'assets/presentation/intro/old.png',
-        },
-      );
-    });
+        });
+      },
+    );
 
-    test('cleanup failure never turns a committed save into a failed save',
-        () async {
-      final fixture = _GatewayFixture.create();
-      addTearDown(fixture.dispose);
-      final gateway = ProjectPresentationDocumentGateway(
-        projectPath: fixture.projectFile.path,
-        persistence: const AtomicProjectManifestPersistence(),
-        assetCleaner: const _ThrowingAssetCleaner(),
-      );
-      final before = await gateway.read();
+    test(
+      'cleanup failure never turns a committed save into a failed save',
+      () async {
+        final fixture = _GatewayFixture.create();
+        addTearDown(fixture.dispose);
+        final gateway = ProjectPresentationDocumentGateway(
+          projectPath: fixture.projectFile.path,
+          persistence: const AtomicProjectManifestPersistence(),
+          assetCleaner: const _ThrowingAssetCleaner(),
+        );
+        final before = await gateway.read();
 
-      final result = await gateway.save(
-        expectedRevision: before.revision,
-        before: before.document,
-        after: before.document.copyWith(
-          presentation: const ProjectPresentationProfile(
-            branding: ProjectBrandingProfile(accentColor: '#123456'),
+        final result = await gateway.save(
+          expectedRevision: before.revision,
+          before: before.document,
+          after: before.document.copyWith(
+            presentation: const ProjectPresentationProfile(
+              branding: ProjectBrandingProfile(accentColor: '#123456'),
+            ),
           ),
-        ),
-        operationId: 'save-despite-cleanup-error',
-      );
+          operationId: 'save-despite-cleanup-error',
+        );
 
-      expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
-      expect(gateway.lastAssetCleanupResult?.failures, isNotEmpty);
-    });
+        expect(result, isA<NarrativeDocumentSaved<ProjectManifest>>());
+        expect(gateway.lastAssetCleanupResult?.failures, isNotEmpty);
+      },
+    );
   });
 }
 
@@ -200,14 +211,14 @@ final class _GatewayFixture {
     required this.initialProject,
   });
 
-  factory _GatewayFixture.create({
-    ProjectPresentationProfile? presentation,
-  }) {
-    final root =
-        Directory.systemTemp.createTempSync('presentation-gateway-test-');
+  factory _GatewayFixture.create({ProjectPresentationProfile? presentation}) {
+    final root = Directory.systemTemp.createTempSync(
+      'presentation-gateway-test-',
+    );
     final projectFile = File('${root.path}/project.json');
-    final project = buildShellChromeProject(name: 'Presentation gateway')
-        .copyWith(presentation: presentation);
+    final project = buildShellChromeProject(
+      name: 'Presentation gateway',
+    ).copyWith(presentation: presentation);
     final fixture = _GatewayFixture._(
       root: root,
       projectFile: projectFile,

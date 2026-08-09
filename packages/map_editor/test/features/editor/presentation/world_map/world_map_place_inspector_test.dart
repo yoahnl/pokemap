@@ -3,6 +3,7 @@ import 'dart:ui' show Tristate;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/services/narrative_event_legacy_authoring_guard.dart';
@@ -51,9 +52,7 @@ void main() {
       }
 
       await tester.tap(
-        find.byKey(
-          const ValueKey<String>('world-map-placement-family-entity'),
-        ),
+        find.byKey(const ValueKey<String>('world-map-placement-family-entity')),
       );
       await tester.pump();
 
@@ -62,10 +61,7 @@ void main() {
         WorldMapPlacementSubtool.entity,
       );
       expect(harness.sessionState.activeFamily, WorldMapToolFamily.place);
-      expect(
-        harness.notifier.state.activeTool,
-        EditorToolType.entityPlacement,
-      );
+      expect(harness.notifier.state.activeTool, EditorToolType.entityPlacement);
       expect(
         find.byKey(
           const ValueKey<String>(
@@ -77,8 +73,9 @@ void main() {
     },
   );
 
-  testWidgets('entity family exposes every real entity kind without a menu',
-      (tester) async {
+  testWidgets('entity family exposes every real entity kind without a menu', (
+    tester,
+  ) async {
     final harness = _PlaceHarness(
       activeLayerId: 'tile',
       initialSession: const WorldMapWorkspaceSession(
@@ -92,26 +89,23 @@ void main() {
 
     for (final kind in MapEntityKind.values) {
       expect(
-        find.byKey(
-          ValueKey<String>('world-map-entity-kind-${kind.name}'),
-        ),
+        find.byKey(ValueKey<String>('world-map-entity-kind-${kind.name}')),
         findsOneWidget,
         reason: kind.name,
       );
     }
 
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('world-map-entity-kind-item'),
-      ),
+      find.byKey(const ValueKey<String>('world-map-entity-kind-item')),
     );
     await tester.pump();
 
     expect(harness.notifier.state.selectedEntityKind, MapEntityKind.item);
   });
 
-  testWidgets('hub disables a canonically unavailable placement family',
-      (tester) async {
+  testWidgets('hub disables a canonically unavailable placement family', (
+    tester,
+  ) async {
     final harness = _PlaceHarness(
       activeLayerId: 'tile',
       project: _v2OnlyProject,
@@ -145,8 +139,9 @@ void main() {
     expect(harness.sessionState, same(beforeSession));
   });
 
-  testWidgets('hub remains overflow-free at doubled text scaling',
-      (tester) async {
+  testWidgets('hub remains overflow-free at doubled text scaling', (
+    tester,
+  ) async {
     final harness = _PlaceHarness(
       activeLayerId: 'tile',
       initialSession: const WorldMapWorkspaceSession(
@@ -156,10 +151,7 @@ void main() {
     );
     addTearDown(harness.dispose);
 
-    await harness.pump(
-      tester,
-      textScaler: const TextScaler.linear(2),
-    );
+    await harness.pump(tester, textScaler: const TextScaler.linear(2));
 
     expect(
       find.byKey(
@@ -174,49 +166,52 @@ void main() {
     'projects all six Place subtools to palette or typed placement guidance',
     (tester) async {
       const objectBrush = EditorBrush.projectElement(elementId: 'lamp');
-      const cases = <({
-        WorldMapPlacementSubtool subtool,
-        WorldMapSubtoolBodyKind bodyKind,
-        EditorToolType resultingTool,
-        EditorBrush resultingBrush,
-      })>[
-        (
-          subtool: WorldMapPlacementSubtool.object,
-          bodyKind: WorldMapSubtoolBodyKind.elementsPalette,
-          resultingTool: EditorToolType.tilePaint,
-          resultingBrush: objectBrush,
-        ),
-        (
-          subtool: WorldMapPlacementSubtool.entity,
-          bodyKind: WorldMapSubtoolBodyKind.entityPlacement,
-          resultingTool: EditorToolType.entityPlacement,
-          resultingBrush: EditorBrush.none(),
-        ),
-        (
-          subtool: WorldMapPlacementSubtool.event,
-          bodyKind: WorldMapSubtoolBodyKind.eventPlacement,
-          resultingTool: EditorToolType.eventPlacement,
-          resultingBrush: EditorBrush.none(),
-        ),
-        (
-          subtool: WorldMapPlacementSubtool.trigger,
-          bodyKind: WorldMapSubtoolBodyKind.triggerPlacement,
-          resultingTool: EditorToolType.triggerPlacement,
-          resultingBrush: EditorBrush.none(),
-        ),
-        (
-          subtool: WorldMapPlacementSubtool.warp,
-          bodyKind: WorldMapSubtoolBodyKind.warpPlacement,
-          resultingTool: EditorToolType.warpPlacement,
-          resultingBrush: EditorBrush.none(),
-        ),
-        (
-          subtool: WorldMapPlacementSubtool.gameplayZone,
-          bodyKind: WorldMapSubtoolBodyKind.gameplayZonePlacement,
-          resultingTool: EditorToolType.gameplayZonePlacement,
-          resultingBrush: EditorBrush.none(),
-        ),
-      ];
+      const cases =
+          <
+            ({
+              WorldMapPlacementSubtool subtool,
+              WorldMapSubtoolBodyKind bodyKind,
+              EditorToolType resultingTool,
+              EditorBrush resultingBrush,
+            })
+          >[
+            (
+              subtool: WorldMapPlacementSubtool.object,
+              bodyKind: WorldMapSubtoolBodyKind.elementsPalette,
+              resultingTool: EditorToolType.tilePaint,
+              resultingBrush: objectBrush,
+            ),
+            (
+              subtool: WorldMapPlacementSubtool.entity,
+              bodyKind: WorldMapSubtoolBodyKind.entityPlacement,
+              resultingTool: EditorToolType.entityPlacement,
+              resultingBrush: EditorBrush.none(),
+            ),
+            (
+              subtool: WorldMapPlacementSubtool.event,
+              bodyKind: WorldMapSubtoolBodyKind.eventPlacement,
+              resultingTool: EditorToolType.eventPlacement,
+              resultingBrush: EditorBrush.none(),
+            ),
+            (
+              subtool: WorldMapPlacementSubtool.trigger,
+              bodyKind: WorldMapSubtoolBodyKind.triggerPlacement,
+              resultingTool: EditorToolType.triggerPlacement,
+              resultingBrush: EditorBrush.none(),
+            ),
+            (
+              subtool: WorldMapPlacementSubtool.warp,
+              bodyKind: WorldMapSubtoolBodyKind.warpPlacement,
+              resultingTool: EditorToolType.warpPlacement,
+              resultingBrush: EditorBrush.none(),
+            ),
+            (
+              subtool: WorldMapPlacementSubtool.gameplayZone,
+              bodyKind: WorldMapSubtoolBodyKind.gameplayZonePlacement,
+              resultingTool: EditorToolType.gameplayZonePlacement,
+              resultingBrush: EditorBrush.none(),
+            ),
+          ];
 
       for (final testCase in cases) {
         final harness = _PlaceHarness(activeLayerId: 'tile');
@@ -232,9 +227,7 @@ void main() {
 
         expect(
           find.byKey(
-            ValueKey<String>(
-              'world-map-place-body-${testCase.bodyKind.name}',
-            ),
+            ValueKey<String>('world-map-place-body-${testCase.bodyKind.name}'),
           ),
           findsOneWidget,
         );
@@ -256,9 +249,7 @@ void main() {
           expect(_mountedPropertyPanelCount(), 0);
           if (testCase.subtool == WorldMapPlacementSubtool.entity) {
             expect(
-              find.byKey(
-                const ValueKey<String>('world-map-entity-kind-npc'),
-              ),
+              find.byKey(const ValueKey<String>('world-map-entity-kind-npc')),
               findsOneWidget,
             );
             expect(find.byType(EntityPlacementKindPicker), findsNothing);
@@ -272,39 +263,43 @@ void main() {
     },
   );
 
-  testWidgets('mounts a full properties panel only for a resolved matching id',
-      (tester) async {
-    const cases = <({
-      WorldMapPlacementSubtool subtool,
-      Type panelType,
-      String selectedId,
-    })>[
-      (
-        subtool: WorldMapPlacementSubtool.entity,
-        panelType: EntityPropertiesPanel,
-        selectedId: 'entity',
-      ),
-      (
-        subtool: WorldMapPlacementSubtool.event,
-        panelType: EventPropertiesPanel,
-        selectedId: 'event',
-      ),
-      (
-        subtool: WorldMapPlacementSubtool.trigger,
-        panelType: TriggerPropertiesPanel,
-        selectedId: 'trigger',
-      ),
-      (
-        subtool: WorldMapPlacementSubtool.warp,
-        panelType: WarpPropertiesPanel,
-        selectedId: 'warp',
-      ),
-      (
-        subtool: WorldMapPlacementSubtool.gameplayZone,
-        panelType: GameplayZonePropertiesPanel,
-        selectedId: 'zone',
-      ),
-    ];
+  testWidgets('mounts a full properties panel only for a resolved matching id', (
+    tester,
+  ) async {
+    const cases =
+        <
+          ({
+            WorldMapPlacementSubtool subtool,
+            Type panelType,
+            String selectedId,
+          })
+        >[
+          (
+            subtool: WorldMapPlacementSubtool.entity,
+            panelType: EntityPropertiesPanel,
+            selectedId: 'entity',
+          ),
+          (
+            subtool: WorldMapPlacementSubtool.event,
+            panelType: EventPropertiesPanel,
+            selectedId: 'event',
+          ),
+          (
+            subtool: WorldMapPlacementSubtool.trigger,
+            panelType: TriggerPropertiesPanel,
+            selectedId: 'trigger',
+          ),
+          (
+            subtool: WorldMapPlacementSubtool.warp,
+            panelType: WarpPropertiesPanel,
+            selectedId: 'warp',
+          ),
+          (
+            subtool: WorldMapPlacementSubtool.gameplayZone,
+            panelType: GameplayZonePropertiesPanel,
+            selectedId: 'zone',
+          ),
+        ];
 
     for (final testCase in cases) {
       final harness = _PlaceHarness(activeLayerId: 'tile');
@@ -337,17 +332,16 @@ void main() {
     }
   });
 
-  testWidgets('stale selection keeps typed guidance and never mounts a form',
-      (tester) async {
+  testWidgets('stale selection keeps typed guidance and never mounts a form', (
+    tester,
+  ) async {
     final harness = _PlaceHarness(activeLayerId: 'tile');
     addTearDown(harness.dispose);
     expect(
       harness.session
           .activateTool(
             harness.notifier,
-            const ActivateWorldMapPlacement(
-              WorldMapPlacementSubtool.entity,
-            ),
+            const ActivateWorldMapPlacement(WorldMapPlacementSubtool.entity),
           )
           .accepted,
       isTrue,
@@ -360,17 +354,13 @@ void main() {
 
     expect(find.byType(EntityPropertiesPanel), findsNothing);
     expect(
-      find.byKey(
-        const ValueKey<String>('world-map-entity-kind-npc'),
-      ),
+      find.byKey(const ValueKey<String>('world-map-entity-kind-npc')),
       findsOneWidget,
     );
     expect(find.byType(EntityPlacementKindPicker), findsNothing);
     expect(
       find.byKey(
-        const ValueKey<String>(
-          'world-map-placement-guidance-entityPlacement',
-        ),
+        const ValueKey<String>('world-map-placement-guidance-entityPlacement'),
       ),
       findsOneWidget,
     );
@@ -403,17 +393,11 @@ void main() {
         isNot(Tristate.none),
       );
       expect(
-        find.descendant(
-          of: guidance,
-          matching: find.byType(PokeMapButton),
-        ),
+        find.descendant(of: guidance, matching: find.byType(PokeMapButton)),
         findsNothing,
       );
       expect(
-        find.descendant(
-          of: guidance,
-          matching: find.byType(PokeMapIconButton),
-        ),
+        find.descendant(of: guidance, matching: find.byType(PokeMapIconButton)),
         findsNothing,
       );
 
@@ -459,9 +443,7 @@ void main() {
       expect(find.text(reason), findsOneWidget);
       expect(
         find.byKey(
-          const ValueKey<String>(
-            'world-map-placement-guidance-eventPlacement',
-          ),
+          const ValueKey<String>('world-map-placement-guidance-eventPlacement'),
         ),
         findsNothing,
       );
@@ -494,9 +476,7 @@ void main() {
       addTearDown(harness.dispose);
       await harness.pump(
         tester,
-        child: _CountingWorldMapPlaceInspector(
-          onBuild: () => rebuilds += 1,
-        ),
+        child: _CountingWorldMapPlaceInspector(onBuild: () => rebuilds += 1),
       );
       expect(
         find.byKey(
@@ -552,12 +532,12 @@ class _PlaceHarness {
     WorldMapWorkspaceSession initialSession = const WorldMapWorkspaceSession(),
     ProjectManifest? project,
   }) : container = ProviderContainer(
-          overrides: <Override>[
-            worldMapWorkspaceSessionProvider.overrideWith(
-              () => _TestSessionController(initialSession),
-            ),
-          ],
-        ) {
+         overrides: <Override>[
+           worldMapWorkspaceSessionProvider.overrideWith(
+             () => _TestSessionController(initialSession),
+           ),
+         ],
+       ) {
     keepAlive = container.listen(editorNotifierProvider, (_, __) {});
     notifier.state = EditorState(
       projectRootPath: '/virtual/project',
@@ -584,16 +564,21 @@ class _PlaceHarness {
 
   void select(WorldMapPlacementSubtool subtool, String id) {
     notifier.state = switch (subtool) {
-      WorldMapPlacementSubtool.entity =>
-        notifier.state.copyWith(selectedEntityId: id),
-      WorldMapPlacementSubtool.event =>
-        notifier.state.copyWith(selectedMapEventId: id),
-      WorldMapPlacementSubtool.trigger =>
-        notifier.state.copyWith(selectedTriggerId: id),
-      WorldMapPlacementSubtool.warp =>
-        notifier.state.copyWith(selectedWarpId: id),
-      WorldMapPlacementSubtool.gameplayZone =>
-        notifier.state.copyWith(selectedGameplayZoneId: id),
+      WorldMapPlacementSubtool.entity => notifier.state.copyWith(
+        selectedEntityId: id,
+      ),
+      WorldMapPlacementSubtool.event => notifier.state.copyWith(
+        selectedMapEventId: id,
+      ),
+      WorldMapPlacementSubtool.trigger => notifier.state.copyWith(
+        selectedTriggerId: id,
+      ),
+      WorldMapPlacementSubtool.warp => notifier.state.copyWith(
+        selectedWarpId: id,
+      ),
+      WorldMapPlacementSubtool.gameplayZone => notifier.state.copyWith(
+        selectedGameplayZoneId: id,
+      ),
       WorldMapPlacementSubtool.object => notifier.state,
     };
   }
@@ -613,13 +598,7 @@ class _PlaceHarness {
             data: MediaQuery.of(context).copyWith(textScaler: textScaler),
             child: child!,
           ),
-          home: Scaffold(
-            body: SizedBox(
-              width: 440,
-              height: 720,
-              child: child,
-            ),
-          ),
+          home: Scaffold(body: SizedBox(width: 440, height: 720, child: child)),
         ),
       ),
     );

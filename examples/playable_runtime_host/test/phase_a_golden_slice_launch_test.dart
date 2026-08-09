@@ -191,12 +191,12 @@ void main() {
     await projectFile.writeAsString('{}');
     final fixture = await _loadManifest(_goldenProjectPath());
     final manifest = fixture.copyWith(
-      presentation: const ProjectPresentationProfile(
+      presentation: ProjectPresentationProfile(
         branding: ProjectBrandingProfile(
           heroPath: 'media/missing-hero.png',
           titleMusicPath: 'media/missing-title.ogg',
         ),
-        intro: ProjectIntroVideoProfile(
+        intro: ProjectIntroVideoProfile.fromLandscape(
           videoPath: 'media/missing-intro.mp4',
           posterPath: 'media/missing-poster.png',
           durationMilliseconds: 1200,

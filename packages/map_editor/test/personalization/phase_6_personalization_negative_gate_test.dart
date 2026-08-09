@@ -26,8 +26,8 @@ void main() {
 
       final result = await _inspect(
         root,
-        const ProjectPresentationProfile(
-          intro: ProjectIntroVideoProfile(
+        ProjectPresentationProfile(
+          intro: ProjectIntroVideoProfile.fromLandscape(
             videoPath: 'assets/intro.mp4',
             posterPath: 'assets/poster.png',
             durationMilliseconds: 1000,
@@ -55,9 +55,7 @@ void main() {
       final result = await _inspect(
         root,
         ProjectPresentationProfile(
-          typography: _typography(
-            licensePath: 'assets/display-license.txt',
-          ),
+          typography: _typography(licensePath: 'assets/display-license.txt'),
         ),
       );
 
@@ -65,17 +63,11 @@ void main() {
     });
 
     test('blocks an embedded font without a license', () async {
-      _writeBytes(
-        root,
-        'assets/display.ttf',
-        <int>[0, 1, 0, 0, 0, 0, 0, 0],
-      );
+      _writeBytes(root, 'assets/display.ttf', <int>[0, 1, 0, 0, 0, 0, 0, 0]);
 
       final result = await _inspect(
         root,
-        ProjectPresentationProfile(
-          typography: _typography(),
-        ),
+        ProjectPresentationProfile(typography: _typography()),
       );
 
       _expectBlockedBy(result, 'typographyLicenseRequired');
@@ -94,9 +86,7 @@ void main() {
       _expectBlockedBy(result, 'themeContrastInsufficient');
       expect(
         result.report.issues
-            .firstWhere(
-              (issue) => issue.code == 'themeContrastInsufficient',
-            )
+            .firstWhere((issue) => issue.code == 'themeContrastInsufficient')
             .correctionKind,
         PersonalizationCorrectionKind.useSafeTheme,
       );
@@ -107,11 +97,10 @@ void main() {
 Future<ProjectPresentationPreflightResult> _inspect(
   Directory root,
   ProjectPresentationProfile profile,
-) =>
-    const FileSystemProjectPresentationPreflight().inspect(
-      projectRoot: root,
-      profile: profile,
-    );
+) => const FileSystemProjectPresentationPreflight().inspect(
+  projectRoot: root,
+  profile: profile,
+);
 
 ProjectTypographyProfile _typography({String? licensePath}) =>
     ProjectTypographyProfile(

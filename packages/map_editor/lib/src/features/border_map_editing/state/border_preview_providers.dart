@@ -6,9 +6,9 @@ import '../application/border_preview_transaction.dart';
 import '../application/pending_border_save_guard.dart';
 
 final borderPreviewControllerProvider =
-    StateNotifierProvider<BorderPreviewController, BorderPreviewState>((ref) {
-  return BorderPreviewController();
-});
+    NotifierProvider<BorderPreviewController, BorderPreviewState>(
+  BorderPreviewController.new,
+);
 
 final pendingBorderSaveGuardProvider = Provider<PendingBorderSaveGuard>((ref) {
   return PendingBorderSaveGuard();
@@ -31,6 +31,23 @@ final class BorderResizeFeedback {
   bool appliesTo(MapData? map) => map != null && identical(mapIdentity, map);
 }
 
-final borderResizeFeedbackProvider = StateProvider<BorderResizeFeedback?>(
-  (ref) => null,
+final borderResizeFeedbackProvider =
+    NotifierProvider<BorderResizeFeedbackController, BorderResizeFeedback?>(
+  BorderResizeFeedbackController.new,
 );
+
+/// Owns transient resize diagnostics without retaining them in project state.
+final class BorderResizeFeedbackController
+    extends Notifier<BorderResizeFeedback?> {
+  @override
+  BorderResizeFeedback? build() => null;
+
+  void setFeedback(BorderResizeFeedback feedback) {
+    state = feedback;
+  }
+
+  void clear() {
+    if (state == null) return;
+    state = null;
+  }
+}

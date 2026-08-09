@@ -4,6 +4,7 @@ import 'dart:ui' show Tristate;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/editor/editor_asset_cache_providers.dart';
@@ -80,9 +81,7 @@ void main() {
       );
       expect(_activeBrowserContext(notifier).browserQuery, 'Détails');
 
-      notifier.setPaletteBrowserCollection(
-        EditorPaletteAssetCollection.recent,
-      );
+      notifier.setPaletteBrowserCollection(EditorPaletteAssetCollection.recent);
       notifier.togglePaletteTilesetFavorite('details');
       notifier.selectTilesetEditorContext('details');
       await tester.pump();
@@ -91,10 +90,9 @@ void main() {
         _activeBrowserContext(notifier).browserCollection,
         EditorPaletteAssetCollection.recent,
       );
-      expect(
-        notifier.state.paletteSession.favoriteTilesetIds,
-        <String>['details'],
-      );
+      expect(notifier.state.paletteSession.favoriteTilesetIds, <String>[
+        'details',
+      ]);
       expect(
         notifier.state.paletteSession.recentTilesetIds,
         contains('details'),
@@ -135,10 +133,7 @@ void main() {
           activeMap: map,
           activeLayerId: 'ground',
           activeTool: EditorToolType.tilePaint,
-          activeBrush: const EditorBrush.tile(
-            tileId: 1,
-            tilesetId: 'world',
-          ),
+          activeBrush: const EditorBrush.tile(tileId: 1, tilesetId: 'world'),
           paletteSession: EditorPaletteSession(
             activeKey: contextKey,
             contexts: <EditorPaletteContextKey, EditorLayerPaletteContext>{
@@ -171,9 +166,7 @@ void main() {
       await tester.pump();
 
       await tester.tap(
-        find.byKey(
-          MapPaletteAssetBrowserKeys.tilesetRow('private_characters'),
-        ),
+        find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('private_characters')),
       );
       await tester.pump();
 
@@ -186,170 +179,150 @@ void main() {
     },
   );
 
-  testWidgets(
-    'browser filters declared sources without dirtying the map',
-    (tester) async {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(editorNotifierProvider.notifier)
-        ..state = const EditorState(
-          project: project,
-          workspaceMode: EditorWorkspaceMode.map,
-          activeMap: map,
-          activeLayerId: 'ground',
-        );
+  testWidgets('browser filters declared sources without dirtying the map', (
+    tester,
+  ) async {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier)
+      ..state = const EditorState(
+        project: project,
+        workspaceMode: EditorWorkspaceMode.map,
+        activeMap: map,
+        activeLayerId: 'ground',
+      );
 
-      await tester.binding.setSurfaceSize(const Size(800, 600));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      await tester.pumpWidget(
-        UncontrolledProviderScope(
-          container: container,
-          child: MaterialApp(
-            theme: PokeMapTheme.light(),
-            home: const Scaffold(
-              body: Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: 360,
-                  child: MapPaletteAssetBrowserLauncher(),
-                ),
+    await tester.binding.setSurfaceSize(const Size(800, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: PokeMapTheme.light(),
+          home: const Scaffold(
+            body: Align(
+              alignment: Alignment.topLeft,
+              child: SizedBox(
+                width: 360,
+                child: MapPaletteAssetBrowserLauncher(),
               ),
             ),
           ),
         ),
-      );
+      ),
+    );
 
-      expect(
-        find.byKey(MapPaletteAssetBrowserKeys.openButton),
-        findsOneWidget,
-      );
-      await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.openButton));
-      await tester.pumpAndSettle();
+    expect(find.byKey(MapPaletteAssetBrowserKeys.openButton), findsOneWidget);
+    await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.openButton));
+    await tester.pumpAndSettle();
 
-      expect(find.byKey(MapPaletteAssetBrowserKeys.sheet), findsOneWidget);
-      expect(find.byKey(MapPaletteAssetBrowserKeys.search), findsOneWidget);
-      expect(
-        FocusManager.instance.primaryFocus?.debugLabel,
-        'world map asset browser search',
-      );
-      expect(find.text('Monde'), findsWidgets);
-      expect(find.text('Détails'), findsOneWidget);
-      expect(find.text('Personnages privés'), findsNothing);
-      expect(find.byKey(MapPaletteAssetBrowserKeys.folderRail), findsOneWidget);
-      expect(find.byKey(MapPaletteAssetBrowserKeys.folderAll), findsOneWidget);
-      expect(
-        find.byKey(MapPaletteAssetBrowserKeys.folder('root')),
-        findsOneWidget,
-      );
+    expect(find.byKey(MapPaletteAssetBrowserKeys.sheet), findsOneWidget);
+    expect(find.byKey(MapPaletteAssetBrowserKeys.search), findsOneWidget);
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'world map asset browser search',
+    );
+    expect(find.text('Monde'), findsWidgets);
+    expect(find.text('Détails'), findsOneWidget);
+    expect(find.text('Personnages privés'), findsNothing);
+    expect(find.byKey(MapPaletteAssetBrowserKeys.folderRail), findsOneWidget);
+    expect(find.byKey(MapPaletteAssetBrowserKeys.folderAll), findsOneWidget);
+    expect(
+      find.byKey(MapPaletteAssetBrowserKeys.folder('root')),
+      findsOneWidget,
+    );
 
-      await tester.enterText(
-        find.byKey(MapPaletteAssetBrowserKeys.search),
-        'Détails',
-      );
-      await tester.pump();
+    await tester.enterText(
+      find.byKey(MapPaletteAssetBrowserKeys.search),
+      'Détails',
+    );
+    await tester.pump();
 
-      expect(
-        find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('details')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('world')),
-        findsNothing,
-      );
-      expect(notifier.state.isDirty, isFalse);
-      expect(notifier.state.mapUndoStack, isEmpty);
+    expect(
+      find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('details')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('world')),
+      findsNothing,
+    );
+    expect(notifier.state.isDirty, isFalse);
+    expect(notifier.state.mapUndoStack, isEmpty);
 
-      await tester.tap(
-        find.byKey(MapPaletteAssetBrowserKeys.favoriteButton('details')),
-      );
-      await tester.pump();
-      expect(
-        notifier.state.paletteSession.favoriteTilesetIds,
-        <String>['details'],
-      );
+    await tester.tap(
+      find.byKey(MapPaletteAssetBrowserKeys.favoriteButton('details')),
+    );
+    await tester.pump();
+    expect(notifier.state.paletteSession.favoriteTilesetIds, <String>[
+      'details',
+    ]);
 
-      await tester.enterText(
-        find.byKey(MapPaletteAssetBrowserKeys.search),
-        '',
-      );
-      await tester.tap(
-        find.byKey(MapPaletteAssetBrowserKeys.collectionFavorites),
-      );
-      await tester.pump();
-      expect(
-        find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('details')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('world')),
-        findsNothing,
-      );
+    await tester.enterText(find.byKey(MapPaletteAssetBrowserKeys.search), '');
+    await tester.tap(
+      find.byKey(MapPaletteAssetBrowserKeys.collectionFavorites),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('details')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('world')),
+      findsNothing,
+    );
 
-      await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.collectionAll));
-      await tester.tap(
-        find.byKey(MapPaletteAssetBrowserKeys.showIncompatible),
-      );
-      await tester.pump();
-      expect(
-        find.byKey(
-          MapPaletteAssetBrowserKeys.tilesetRow('private_characters'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.textContaining('autre groupe'), findsOneWidget);
-      final disabledReason = tester.widget<Text>(
-        find.textContaining('Cette source appartient à un autre groupe'),
-      );
-      expect(disabledReason.maxLines, 2);
-      expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.collectionAll));
+    await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.showIncompatible));
+    await tester.pump();
+    expect(
+      find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('private_characters')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('autre groupe'), findsOneWidget);
+    final disabledReason = tester.widget<Text>(
+      find.textContaining('Cette source appartient à un autre groupe'),
+    );
+    expect(disabledReason.maxLines, 2);
+    expect(tester.takeException(), isNull);
 
-      await tester.tap(
-        find.byKey(MapPaletteAssetBrowserKeys.folder('outdoor')),
-      );
-      await tester.pump();
-      expect(
-        find.byKey(
-          MapPaletteAssetBrowserKeys.tilesetRow('private_characters'),
-        ),
-        findsNothing,
-      );
-      expect(
-        _activeBrowserContext(notifier).browserFolderId,
-        'outdoor',
-      );
-      expect(notifier.state.isDirty, isFalse);
-      expect(notifier.state.mapUndoStack, isEmpty);
+    await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.folder('outdoor')));
+    await tester.pump();
+    expect(
+      find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('private_characters')),
+      findsNothing,
+    );
+    expect(_activeBrowserContext(notifier).browserFolderId, 'outdoor');
+    expect(notifier.state.isDirty, isFalse);
+    expect(notifier.state.mapUndoStack, isEmpty);
 
-      await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.folderAll));
-      await tester.pump();
-      expect(
-        find.byKey(
-          MapPaletteAssetBrowserKeys.tilesetRow('private_characters'),
-        ),
-        findsOneWidget,
-      );
+    await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.folderAll));
+    await tester.pump();
+    expect(
+      find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('private_characters')),
+      findsOneWidget,
+    );
 
-      await tester.tap(
-        find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('details')),
-      );
-      await tester.pump();
-      expect(notifier.getSelectedTilesetEntry()?.id, 'details');
-      expect(notifier.state.isDirty, isFalse);
-      expect(notifier.state.mapUndoStack, isEmpty);
-      expect(find.text('Source prête'), findsOneWidget);
+    await tester.tap(
+      find.byKey(MapPaletteAssetBrowserKeys.tilesetRow('details')),
+    );
+    await tester.pump();
+    expect(notifier.getSelectedTilesetEntry()?.id, 'details');
+    expect(notifier.state.isDirty, isFalse);
+    expect(notifier.state.mapUndoStack, isEmpty);
+    expect(find.text('Source prête'), findsOneWidget);
 
-      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-      await tester.pumpAndSettle();
-      expect(find.byKey(MapPaletteAssetBrowserKeys.sheet), findsNothing);
-      expect(
-        FocusManager.instance.primaryFocus?.debugLabel,
-        'world map asset browser launcher',
-      );
-    },
-  );
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+    expect(find.byKey(MapPaletteAssetBrowserKeys.sheet), findsNothing);
+    expect(
+      FocusManager.instance.primaryFocus?.debugLabel,
+      'world map asset browser launcher',
+    );
+  });
 
-  testWidgets('compact browser replaces the folder rail with a picker',
-      (tester) async {
+  testWidgets('compact browser replaces the folder rail with a picker', (
+    tester,
+  ) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     container.read(editorNotifierProvider.notifier).state = const EditorState(
@@ -366,25 +339,21 @@ void main() {
         container: container,
         child: MaterialApp(
           theme: PokeMapTheme.dark(),
-          home: const Scaffold(
-            body: MapPaletteAssetBrowserLauncher(),
-          ),
+          home: const Scaffold(body: MapPaletteAssetBrowserLauncher()),
         ),
       ),
     );
     await tester.tap(find.byKey(MapPaletteAssetBrowserKeys.openButton));
     await tester.pumpAndSettle();
 
-    expect(
-      find.byKey(MapPaletteAssetBrowserKeys.folderPicker),
-      findsOneWidget,
-    );
+    expect(find.byKey(MapPaletteAssetBrowserKeys.folderPicker), findsOneWidget);
     expect(find.byKey(MapPaletteAssetBrowserKeys.folderRail), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('missing legacy map default does not block the source browser',
-      (tester) async {
+  testWidgets('missing legacy map default does not block the source browser', (
+    tester,
+  ) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     container.read(editorNotifierProvider.notifier).state = EditorState(
@@ -392,11 +361,7 @@ void main() {
       workspaceMode: EditorWorkspaceMode.map,
       activeMap: map.copyWith(
         layers: const <MapLayer>[
-          TileLayer(
-            id: 'ground',
-            name: 'Sol',
-            cells: <int>[0],
-          ),
+          TileLayer(id: 'ground', name: 'Sol', cells: <int>[0]),
         ],
       ),
       activeLayerId: 'ground',
@@ -409,9 +374,7 @@ void main() {
         container: container,
         child: MaterialApp(
           theme: PokeMapTheme.light(),
-          home: const Scaffold(
-            body: MapPaletteAssetBrowserLauncher(),
-          ),
+          home: const Scaffold(body: MapPaletteAssetBrowserLauncher()),
         ),
       ),
     );
@@ -427,8 +390,9 @@ void main() {
     );
   });
 
-  testWidgets('keyboard and semantics expose browser item states',
-      (tester) async {
+  testWidgets('keyboard and semantics expose browser item states', (
+    tester,
+  ) async {
     final semantics = tester.ensureSemantics();
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -461,9 +425,7 @@ void main() {
         container: container,
         child: MaterialApp(
           theme: PokeMapTheme.dark(),
-          home: const Scaffold(
-            body: MapPaletteAssetBrowserLauncher(),
-          ),
+          home: const Scaffold(body: MapPaletteAssetBrowserLauncher()),
         ),
       ),
     );
@@ -512,14 +474,12 @@ void main() {
     semantics.dispose();
   });
 
-  testWidgets('embedded palette keeps the launcher without a selected image',
-      (tester) async {
+  testWidgets('embedded palette keeps the launcher without a selected image', (
+    tester,
+  ) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final keepAlive = container.listen(
-      editorNotifierProvider,
-      (_, __) {},
-    );
+    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
     container.read(editorNotifierProvider.notifier).state = const EditorState(
       project: project,
       workspaceMode: EditorWorkspaceMode.map,
@@ -528,11 +488,7 @@ void main() {
         name: 'Ville',
         size: GridSize(width: 1, height: 1),
         layers: <MapLayer>[
-          TileLayer(
-            id: 'ground',
-            name: 'Sol',
-            cells: <int>[0],
-          ),
+          TileLayer(id: 'ground', name: 'Sol', cells: <int>[0]),
         ],
       ),
       activeLayerId: 'ground',
@@ -555,10 +511,7 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      find.byKey(MapPaletteAssetBrowserKeys.openButton),
-      findsOneWidget,
-    );
+    expect(find.byKey(MapPaletteAssetBrowserKeys.openButton), findsOneWidget);
     expect(find.text('Aucun tileset sélectionné'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -567,17 +520,16 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('embedded palette keeps the launcher after an image failure',
-      (tester) async {
+  testWidgets('embedded palette keeps the launcher after an image failure', (
+    tester,
+  ) async {
     final container = ProviderContainer(
       overrides: <Override>[
-        editorImageCacheProvider.overrideWith(
-          (ref, projectRoot) {
-            final cache = _FailingEditorImageCache(projectRoot);
-            ref.onDispose(cache.dispose);
-            return cache;
-          },
-        ),
+        editorImageCacheProvider.overrideWith((ref, projectRoot) {
+          final cache = _FailingEditorImageCache(projectRoot);
+          ref.onDispose(cache.dispose);
+          return cache;
+        }),
       ],
     );
     final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
@@ -611,10 +563,7 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(
-      find.byKey(MapPaletteAssetBrowserKeys.openButton),
-      findsOneWidget,
-    );
+    expect(find.byKey(MapPaletteAssetBrowserKeys.openButton), findsOneWidget);
     expect(find.text('Tileset image unavailable'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
@@ -624,8 +573,9 @@ void main() {
     await tester.pump();
   });
 
-  testWidgets('browser source selection does not mutate the map',
-      (tester) async {
+  testWidgets('browser source selection does not mutate the map', (
+    tester,
+  ) async {
     final root = await tester.runAsync(() async {
       final directory = await Directory.systemTemp.createTemp(
         'pokemap_asset_browser_assignment_',
@@ -651,10 +601,7 @@ void main() {
 
     final container = ProviderContainer();
     addTearDown(container.dispose);
-    final keepAlive = container.listen(
-      editorNotifierProvider,
-      (_, __) {},
-    );
+    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
     final notifier = container.read(editorNotifierProvider.notifier)
       ..state = EditorState(
         projectRootPath: projectRoot.path,
@@ -673,9 +620,7 @@ void main() {
         container: container,
         child: MaterialApp(
           theme: PokeMapTheme.light(),
-          home: const Scaffold(
-            body: MapPaletteAssetBrowserLauncher(),
-          ),
+          home: const Scaffold(body: MapPaletteAssetBrowserLauncher()),
         ),
       ),
     );
@@ -707,16 +652,8 @@ void main() {
 const project = ProjectManifest(
   name: 'Browser widget',
   groups: <ProjectMapGroup>[
-    ProjectMapGroup(
-      id: 'towns',
-      name: 'Villes',
-      type: MapGroupType.city,
-    ),
-    ProjectMapGroup(
-      id: 'private',
-      name: 'Privé',
-      type: MapGroupType.special,
-    ),
+    ProjectMapGroup(id: 'towns', name: 'Villes', type: MapGroupType.city),
+    ProjectMapGroup(id: 'private', name: 'Privé', type: MapGroupType.special),
   ],
   maps: <ProjectMapEntry>[
     ProjectMapEntry(
@@ -759,11 +696,7 @@ const map = MapData(
   name: 'Ville',
   size: GridSize(width: 1, height: 1),
   layers: <MapLayer>[
-    TileLayer(
-      id: 'ground',
-      name: 'Sol',
-      cells: <int>[0],
-    ),
+    TileLayer(id: 'ground', name: 'Sol', cells: <int>[0]),
   ],
 );
 

@@ -5,8 +5,9 @@ import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 
 void main() {
-  testWidgets('guides a first intro import with the supported limits',
-      (tester) async {
+  testWidgets('guides a first intro import with the supported limits', (
+    tester,
+  ) async {
     var importCount = 0;
 
     await tester.pumpWidget(
@@ -28,10 +29,11 @@ void main() {
     expect(importCount, 1);
   });
 
-  testWidgets('shows metadata and emits accessible playback preferences',
-      (tester) async {
+  testWidgets('shows metadata and emits accessible playback preferences', (
+    tester,
+  ) async {
     final changes = <ProjectIntroVideoProfile>[];
-    const profile = ProjectIntroVideoProfile(
+    final profile = ProjectIntroVideoProfile.fromLandscape(
       videoPath: 'assets/presentation/intro/intro.mp4',
       posterPath: 'assets/presentation/intro/poster.png',
       captionsPath: 'assets/presentation/intro/captions.vtt',
@@ -71,6 +73,6 @@ void main() {
 }
 
 Widget _app(Widget child) => MaterialApp(
-      theme: PokeMapTheme.light(),
-      home: Scaffold(body: SingleChildScrollView(child: child)),
-    );
+  theme: PokeMapTheme.light(),
+  home: Scaffold(body: SingleChildScrollView(child: child)),
+);

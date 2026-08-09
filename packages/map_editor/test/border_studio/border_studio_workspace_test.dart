@@ -8,6 +8,7 @@ import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/border_studio/application/border_asset_snapshot_service.dart';
 import 'package:map_editor/src/features/border_studio/application/border_project_element_asset_service.dart';
@@ -25,11 +26,13 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 import '../shell_chrome_test_harness.dart';
 
 void main() {
-  testWidgets('creates a blueprint and exposes template-dependent role lists',
-      (tester) async {
+  testWidgets('creates a blueprint and exposes template-dependent role lists', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(tester, _manifest());
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
+    final controller = container.read(
+      borderStudioDraftControllerProvider.notifier,
+    );
 
     await tester.tap(
       find.byKey(const ValueKey<String>('border-studio-new-blueprint')),
@@ -45,8 +48,9 @@ void main() {
     expect(find.text('Publication disponible'), findsNWidgets(5));
     expect(find.text('Publication après BORD-06'), findsNothing);
 
-    final fenceTemplate =
-        find.byKey(const ValueKey<String>('border-studio-template-fence'));
+    final fenceTemplate = find.byKey(
+      const ValueKey<String>('border-studio-template-fence'),
+    );
     await tester.ensureVisible(fenceTemplate);
     await tester.tap(fenceTemplate);
     await tester.pump();
@@ -61,62 +65,63 @@ void main() {
     expect(find.text('Structure principale'), findsNothing);
     expect(
       find.text(
-          'Poteau et Traverse sont requis. Les autres rôles sont optionnels.'),
+        'Poteau et Traverse sont requis. Les autres rôles sont optionnels.',
+      ),
       findsOneWidget,
     );
     expect(find.text('Publication après BORD-06'), findsNothing);
   });
 
   testWidgets(
-      'connected line exposes three no-code slots and counts their variants',
-      (tester) async {
-    final container = await _pumpWorkspace(tester, _manifest());
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier)
-          ..createBlueprint(
-            id: 'cliff-line',
-            name: 'Falaise libre',
-            template: BorderBlueprintTemplate.connectedLine,
-          )
-          ..replacePrimitives(<BorderPrimitiveDraft>[
-            _primitive(id: 'cap-a', role: BorderPrimitiveRole.lineCap),
-            _primitive(id: 'cap-b', role: BorderPrimitiveRole.lineCap),
-            _primitive(
-              id: 'straight',
-              role: BorderPrimitiveRole.lineStraight,
-            ),
-            _primitive(id: 'corner', role: BorderPrimitiveRole.lineCorner),
-          ]);
-    await tester.pump();
+    'connected line exposes three no-code slots and counts their variants',
+    (tester) async {
+      final container = await _pumpWorkspace(tester, _manifest());
+      final controller =
+          container.read(borderStudioDraftControllerProvider.notifier)
+            ..createBlueprint(
+              id: 'cliff-line',
+              name: 'Falaise libre',
+              template: BorderBlueprintTemplate.connectedLine,
+            )
+            ..replacePrimitives(<BorderPrimitiveDraft>[
+              _primitive(id: 'cap-a', role: BorderPrimitiveRole.lineCap),
+              _primitive(id: 'cap-b', role: BorderPrimitiveRole.lineCap),
+              _primitive(
+                id: 'straight',
+                role: BorderPrimitiveRole.lineStraight,
+              ),
+              _primitive(id: 'corner', role: BorderPrimitiveRole.lineCorner),
+            ]);
+      await tester.pump();
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('border-studio-step-Rôles')),
-    );
-    await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-step-Rôles')),
+      );
+      await tester.pump();
 
-    expect(find.text('Extrémité'), findsWidgets);
-    expect(find.text('Segment droit'), findsWidgets);
-    expect(find.text('Angle'), findsWidgets);
-    expect(
-      find.byKey(
-        const ValueKey<String>('border-studio-role-status-lineCap'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('2 variantes'), findsOneWidget);
-    expect(find.text('1 variante'), findsNWidgets(2));
-    expect(find.text('Prêt'), findsNWidgets(3));
-    expect(find.text('Manquant'), findsNothing);
+      expect(find.text('Extrémité'), findsWidgets);
+      expect(find.text('Segment droit'), findsWidgets);
+      expect(find.text('Angle'), findsWidgets);
+      expect(
+        find.byKey(const ValueKey<String>('border-studio-role-status-lineCap')),
+        findsOneWidget,
+      );
+      expect(find.text('2 variantes'), findsOneWidget);
+      expect(find.text('1 variante'), findsNWidgets(2));
+      expect(find.text('Prêt'), findsNWidgets(3));
+      expect(find.text('Manquant'), findsNothing);
 
-    controller.removePrimitive('corner');
-    await tester.pump();
+      controller.removePrimitive('corner');
+      await tester.pump();
 
-    expect(find.text('Manquant'), findsOneWidget);
-    expect(find.text('Prêt'), findsNWidgets(2));
-  });
+      expect(find.text('Manquant'), findsOneWidget);
+      expect(find.text('Prêt'), findsNWidgets(2));
+    },
+  );
 
-  testWidgets('masonry roles require one structure and keep finishes optional',
-      (tester) async {
+  testWidgets('masonry roles require one structure and keep finishes optional', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(tester, _manifest());
     container
         .read(borderStudioDraftControllerProvider.notifier)
@@ -146,101 +151,98 @@ void main() {
   });
 
   testWidgets(
-      'two-tier stone-chain roles require a top and a face with optional fallbacks',
-      (tester) async {
+    'two-tier stone-chain roles require a top and a face with optional fallbacks',
+    (tester) async {
+      final container = await _pumpWorkspace(tester, _manifest());
+      final controller =
+          container.read(borderStudioDraftControllerProvider.notifier)
+            ..createBlueprint(
+              id: 'stone-chain',
+              name: 'Chaîne de pierres',
+              template: BorderBlueprintTemplate.stoneChainLine,
+            );
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-step-Rôles')),
+      );
+      await tester.pump();
+
+      for (final label in const <String>[
+        'Sommet plat',
+        'Face de falaise',
+        'Pierre libre facultative',
+        'Pierre de sommet à un angle',
+        'Pierre de sommet à une extrémité',
+      ]) {
+        expect(find.text(label), findsWidgets);
+      }
+      expect(find.text('Requis'), findsNWidgets(2));
+      expect(find.text('Facultatif'), findsNWidgets(3));
+      expect(find.text('Repli automatique'), findsNWidgets(3));
+      expect(find.text('Manquant'), findsNWidgets(2));
+      expect(find.text('Poteau'), findsNothing);
+      expect(find.text('Traverse'), findsNothing);
+      expect(find.text('Finition intérieure'), findsNothing);
+
+      controller.replacePrimitives(<BorderPrimitiveDraft>[
+        _primitive(id: 'main-stone', role: BorderPrimitiveRole.structureLarge),
+      ]);
+      await tester.pump();
+
+      expect(find.text('Manquant'), findsOneWidget);
+      expect(find.text('Rôles non résolus'), findsOneWidget);
+
+      controller.replacePrimitives(<BorderPrimitiveDraft>[
+        _primitive(id: 'main-stone', role: BorderPrimitiveRole.structureLarge),
+        _primitive(id: 'cliff-face', role: BorderPrimitiveRole.structureMedium),
+      ]);
+      await tester.pump();
+
+      expect(find.text('Manquant'), findsNothing);
+      expect(find.text('Rôles non résolus'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'reports asset validation without exposing internal identifiers',
+    (tester) async {
+      final container = await _pumpWorkspace(tester, _manifest());
+      final controller = container.read(
+        borderStudioDraftControllerProvider.notifier,
+      );
+      controller.createBlueprint(
+        id: 'internal-blueprint-id',
+        name: 'Côte du port',
+        template: BorderBlueprintTemplate.organicEdge,
+      );
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-step-Assets')),
+      );
+      await tester.pump();
+
+      expect(find.text('Aucun asset analysé'), findsOneWidget);
+      expect(
+        find.text('Ajoutez au moins une structure pour préparer la bordure.'),
+        findsOneWidget,
+      );
+      expect(find.text('internal-blueprint-id'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('border-studio-asset-error')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('strict and wild profiles edit guided integer rules', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(tester, _manifest());
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier)
-          ..createBlueprint(
-            id: 'stone-chain',
-            name: 'Chaîne de pierres',
-            template: BorderBlueprintTemplate.stoneChainLine,
-          );
-    await tester.pump();
-
-    await tester.tap(
-      find.byKey(const ValueKey<String>('border-studio-step-Rôles')),
+    final controller = container.read(
+      borderStudioDraftControllerProvider.notifier,
     );
-    await tester.pump();
-
-    for (final label in const <String>[
-      'Sommet plat',
-      'Face de falaise',
-      'Pierre libre facultative',
-      'Pierre de sommet à un angle',
-      'Pierre de sommet à une extrémité',
-    ]) {
-      expect(find.text(label), findsWidgets);
-    }
-    expect(find.text('Requis'), findsNWidgets(2));
-    expect(find.text('Facultatif'), findsNWidgets(3));
-    expect(find.text('Repli automatique'), findsNWidgets(3));
-    expect(find.text('Manquant'), findsNWidgets(2));
-    expect(find.text('Poteau'), findsNothing);
-    expect(find.text('Traverse'), findsNothing);
-    expect(find.text('Finition intérieure'), findsNothing);
-
-    controller.replacePrimitives(<BorderPrimitiveDraft>[
-      _primitive(
-        id: 'main-stone',
-        role: BorderPrimitiveRole.structureLarge,
-      ),
-    ]);
-    await tester.pump();
-
-    expect(find.text('Manquant'), findsOneWidget);
-    expect(find.text('Rôles non résolus'), findsOneWidget);
-
-    controller.replacePrimitives(<BorderPrimitiveDraft>[
-      _primitive(
-        id: 'main-stone',
-        role: BorderPrimitiveRole.structureLarge,
-      ),
-      _primitive(
-        id: 'cliff-face',
-        role: BorderPrimitiveRole.structureMedium,
-      ),
-    ]);
-    await tester.pump();
-
-    expect(find.text('Manquant'), findsNothing);
-    expect(find.text('Rôles non résolus'), findsNothing);
-  });
-
-  testWidgets('reports asset validation without exposing internal identifiers',
-      (tester) async {
-    final container = await _pumpWorkspace(tester, _manifest());
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
-    controller.createBlueprint(
-      id: 'internal-blueprint-id',
-      name: 'Côte du port',
-      template: BorderBlueprintTemplate.organicEdge,
-    );
-    await tester.pump();
-
-    await tester.tap(
-      find.byKey(const ValueKey<String>('border-studio-step-Assets')),
-    );
-    await tester.pump();
-
-    expect(find.text('Aucun asset analysé'), findsOneWidget);
-    expect(
-      find.text('Ajoutez au moins une structure pour préparer la bordure.'),
-      findsOneWidget,
-    );
-    expect(find.text('internal-blueprint-id'), findsNothing);
-    expect(
-      find.byKey(const ValueKey<String>('border-studio-asset-error')),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('strict and wild profiles edit guided integer rules',
-      (tester) async {
-    final container = await _pumpWorkspace(tester, _manifest());
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
     controller.createBlueprint(
       id: 'coast',
       name: 'Côte',
@@ -274,11 +276,13 @@ void main() {
     expect(find.text('Profil sauvage appliqué'), findsOneWidget);
   });
 
-  testWidgets('masonry rules use aligned and aged labels without depth rows',
-      (tester) async {
+  testWidgets('masonry rules use aligned and aged labels without depth rows', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(tester, _manifest());
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
+    final controller = container.read(
+      borderStudioDraftControllerProvider.notifier,
+    );
     controller.createBlueprint(
       id: 'wall',
       name: 'Muret',
@@ -302,8 +306,9 @@ void main() {
     expect(find.text('Profil aligné appliqué'), findsOneWidget);
   });
 
-  testWidgets('fence rules use regular and rustic labels without depth rows',
-      (tester) async {
+  testWidgets('fence rules use regular and rustic labels without depth rows', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(tester, _manifest());
     container
         .read(borderStudioDraftControllerProvider.notifier)
@@ -326,8 +331,9 @@ void main() {
 
   testWidgets('assigns functional roles with a guided picker', (tester) async {
     final container = await _pumpWorkspace(tester, _manifest());
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
+    final controller = container.read(
+      borderStudioDraftControllerProvider.notifier,
+    );
     controller.createBlueprint(
       id: 'coast',
       name: 'Côte',
@@ -358,89 +364,98 @@ void main() {
 
     expect(
       controller
-          .state.workingDraft!.blueprint.definition.primitives.single.role,
+          .state
+          .workingDraft!
+          .blueprint
+          .definition
+          .primitives
+          .single
+          .role,
       BorderPrimitiveRole.outerAccent,
     );
     expect(
-      controller.state.workingDraft!.blueprint.definition.primitives.single
+      controller
+          .state
+          .workingDraft!
+          .blueprint
+          .definition
+          .primitives
+          .single
           .authoredOrientation,
       BorderPrimitiveOrientation.west,
     );
   });
 
   testWidgets(
-      'preview is a neutral sandbox with deterministic variation and distinct final actions',
-      (tester) async {
-    final container = await _pumpWorkspace(tester, _manifest());
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
-    controller.createBlueprint(
-      id: 'coast',
-      name: 'Côte',
-      template: BorderBlueprintTemplate.organicEdge,
-    );
-    controller.replacePrimitives(<BorderPrimitiveDraft>[
-      _primitive(
-        id: 'rock',
-        role: BorderPrimitiveRole.structureLarge,
-      ),
-    ]);
-    controller.setDiagnostics(const BorderDiagnosticsReport.empty());
-    final previousSeed = controller.state.previewSeed;
-    await tester.pump();
+    'preview is a neutral sandbox with deterministic variation and distinct final actions',
+    (tester) async {
+      final container = await _pumpWorkspace(tester, _manifest());
+      final controller = container.read(
+        borderStudioDraftControllerProvider.notifier,
+      );
+      controller.createBlueprint(
+        id: 'coast',
+        name: 'Côte',
+        template: BorderBlueprintTemplate.organicEdge,
+      );
+      controller.replacePrimitives(<BorderPrimitiveDraft>[
+        _primitive(id: 'rock', role: BorderPrimitiveRole.structureLarge),
+      ]);
+      controller.setDiagnostics(const BorderDiagnosticsReport.empty());
+      final previousSeed = controller.state.previewSeed;
+      await tester.pump();
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>(
-          'border-studio-step-Aperçu et publication',
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('border-studio-step-Aperçu et publication'),
         ),
-      ),
-    );
-    await tester.pump();
+      );
+      await tester.pump();
 
-    expect(
-      find.byKey(const ValueKey<String>('border-studio-neutral-sandbox')),
-      findsOneWidget,
-    );
-    expect(find.text('Longue portion'), findsNothing);
-    expect(
-      find.byKey(
-        const ValueKey<String>('border-studio-gallery-not-prepared'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(
-        const ValueKey<String>('border-studio-prepare-preview'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey<String>('border-studio-save-draft')),
-      findsOneWidget,
-    );
-    final publish = find.byKey(
-      const ValueKey<String>('border-studio-publish'),
-    );
-    expect(publish, findsOneWidget);
-    expect(tester.widget<PokeMapButton>(publish).onPressed, isNull);
-    expect(
-      find.text('Générez l’aperçu canonique avant de publier.'),
-      findsOneWidget,
-    );
+      expect(
+        find.byKey(const ValueKey<String>('border-studio-neutral-sandbox')),
+        findsOneWidget,
+      );
+      expect(find.text('Longue portion'), findsNothing);
+      expect(
+        find.byKey(
+          const ValueKey<String>('border-studio-gallery-not-prepared'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('border-studio-prepare-preview')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('border-studio-save-draft')),
+        findsOneWidget,
+      );
+      final publish = find.byKey(
+        const ValueKey<String>('border-studio-publish'),
+      );
+      expect(publish, findsOneWidget);
+      expect(tester.widget<PokeMapButton>(publish).onPressed, isNull);
+      expect(
+        find.text('Générez l’aperçu canonique avant de publier.'),
+        findsOneWidget,
+      );
 
-    await tester.tap(
-      find.byKey(const ValueKey<String>('border-studio-new-variation')),
-    );
-    await tester.pump();
-    expect(controller.state.previewSeed, isNot(previousSeed));
-  });
+      await tester.tap(
+        find.byKey(const ValueKey<String>('border-studio-new-variation')),
+      );
+      await tester.pump();
+      expect(controller.state.previewSeed, isNot(previousSeed));
+    },
+  );
 
-  testWidgets('line templates report missing roles instead of a lot gate',
-      (tester) async {
+  testWidgets('line templates report missing roles instead of a lot gate', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(tester, _manifest());
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
+    final controller = container.read(
+      borderStudioDraftControllerProvider.notifier,
+    );
     controller.createBlueprint(
       id: 'wall',
       name: 'Muret',
@@ -451,23 +466,20 @@ void main() {
 
     await tester.tap(
       find.byKey(
-        const ValueKey<String>(
-          'border-studio-step-Aperçu et publication',
-        ),
+        const ValueKey<String>('border-studio-step-Aperçu et publication'),
       ),
     );
     await tester.pump();
 
     expect(find.textContaining('Attribuez les rôles requis'), findsOneWidget);
     expect(find.textContaining('BORD-06'), findsNothing);
-    final publish = find.byKey(
-      const ValueKey<String>('border-studio-publish'),
-    );
+    final publish = find.byKey(const ValueKey<String>('border-studio-publish'));
     expect(tester.widget<PokeMapButton>(publish).onPressed, isNull);
   });
 
-  testWidgets('step controls expose button semantics and keyboard activation',
-      (tester) async {
+  testWidgets('step controls expose button semantics and keyboard activation', (
+    tester,
+  ) async {
     final container = await _pumpWorkspace(tester, _manifest());
     container
         .read(borderStudioDraftControllerProvider.notifier)
@@ -494,8 +506,9 @@ void main() {
     );
   });
 
-  testWidgets('publication disables every workspace mutation and navigation',
-      (tester) async {
+  testWidgets('publication disables every workspace mutation and navigation', (
+    tester,
+  ) async {
     final publishCompleter = Completer<BorderPublicationResult>();
     late BorderPublicationRequest request;
     final manifest = _publicationManifest();
@@ -538,9 +551,7 @@ void main() {
     }
     expect(
       tester
-          .widgetList<PokeMapSidebarItem>(
-            find.byType(PokeMapSidebarItem),
-          )
+          .widgetList<PokeMapSidebarItem>(find.byType(PokeMapSidebarItem))
           .every((item) => item.onTap == null),
       isTrue,
     );
@@ -553,8 +564,9 @@ void main() {
     );
   });
 
-  testWidgets('publication completion never pollutes a newly opened project',
-      (tester) async {
+  testWidgets('publication completion never pollutes a newly opened project', (
+    tester,
+  ) async {
     final publishCompleter = Completer<BorderPublicationResult>();
     late BorderPublicationRequest request;
     final originalManifest = _publicationManifest();
@@ -588,49 +600,50 @@ void main() {
     expect(
       tester
           .widget<PokeMapButton>(
-            find.byKey(
-              const ValueKey<String>('border-studio-new-blueprint'),
-            ),
+            find.byKey(const ValueKey<String>('border-studio-new-blueprint')),
           )
           .onPressed,
       isNotNull,
     );
   });
 
-  testWidgets('publication completion never overwrites a changed target draft',
-      (tester) async {
-    final publishCompleter = Completer<BorderPublicationResult>();
-    late BorderPublicationRequest request;
-    final manifest = _publicationManifest();
-    final container = await _pumpControlledPublicationWorkspace(
-      tester,
-      manifest: manifest,
-      coordinator: _controlledCoordinator(
-        publishCompleter: publishCompleter,
-        onPublishRequest: (value) => request = value,
-      ),
-    );
-    await _prepareAndStartPublication(tester, container);
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
-    controller.renameBlueprint('Edited while publication was pending');
-    await tester.pump();
+  testWidgets(
+    'publication completion never overwrites a changed target draft',
+    (tester) async {
+      final publishCompleter = Completer<BorderPublicationResult>();
+      late BorderPublicationRequest request;
+      final manifest = _publicationManifest();
+      final container = await _pumpControlledPublicationWorkspace(
+        tester,
+        manifest: manifest,
+        coordinator: _controlledCoordinator(
+          publishCompleter: publishCompleter,
+          onPublishRequest: (value) => request = value,
+        ),
+      );
+      await _prepareAndStartPublication(tester, container);
+      final controller = container.read(
+        borderStudioDraftControllerProvider.notifier,
+      );
+      controller.renameBlueprint('Edited while publication was pending');
+      await tester.pump();
 
-    publishCompleter.complete(_publicationResult(request.nextManifest));
-    await tester.pumpAndSettle();
+      publishCompleter.complete(_publicationResult(request.nextManifest));
+      await tester.pumpAndSettle();
 
-    expect(
-      controller.state.workingDraft!.blueprint.definition.name,
-      'Edited while publication was pending',
-    );
-    expect(container.read(editorNotifierProvider).project, same(manifest));
-    expect(
-      find.text(
-        'Le résultat a été ignoré car le projet ou le blueprint a changé.',
-      ),
-      findsOneWidget,
-    );
-  });
+      expect(
+        controller.state.workingDraft!.blueprint.definition.name,
+        'Edited while publication was pending',
+      );
+      expect(container.read(editorNotifierProvider).project, same(manifest));
+      expect(
+        find.text(
+          'Le résultat a été ignoré car le projet ou le blueprint a changé.',
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 }
 
 Future<ProviderContainer> _pumpWorkspace(
@@ -699,9 +712,7 @@ Future<ProviderContainer> _pumpControlledPublicationWorkspace(
 }) async {
   final container = ProviderContainer(
     overrides: <Override>[
-      borderStudioPublicationCoordinatorProvider.overrideWithValue(
-        coordinator,
-      ),
+      borderStudioPublicationCoordinatorProvider.overrideWithValue(coordinator),
     ],
   );
   final subscription = container.listen<EditorState>(
@@ -727,9 +738,7 @@ Future<ProviderContainer> _pumpControlledPublicationWorkspace(
       container: container,
       child: MaterialApp(
         theme: PokeMapTheme.dark(),
-        home: const CupertinoPageScaffold(
-          child: BorderStudioWorkspace(),
-        ),
+        home: const CupertinoPageScaffold(child: BorderStudioWorkspace()),
       ),
     ),
   );
@@ -743,9 +752,7 @@ Future<void> _prepareAndStartPublication(
 ) async {
   await tester.tap(
     find.byKey(
-      const ValueKey<String>(
-        'border-studio-step-Aperçu et publication',
-      ),
+      const ValueKey<String>('border-studio-step-Aperçu et publication'),
     ),
   );
   await tester.pump();
@@ -753,15 +760,14 @@ Future<void> _prepareAndStartPublication(
     find.byKey(const ValueKey<String>('border-studio-prepare-preview')),
   );
   await tester.pumpAndSettle();
-  final controller =
-      container.read(borderStudioDraftControllerProvider.notifier);
+  final controller = container.read(
+    borderStudioDraftControllerProvider.notifier,
+  );
   for (final warningCode in controller.state.warningCodes) {
     controller.acknowledgeWarningCode(warningCode);
   }
   await tester.pump();
-  final publish = find.byKey(
-    const ValueKey<String>('border-studio-publish'),
-  );
+  final publish = find.byKey(const ValueKey<String>('border-studio-publish'));
   expect(
     tester.widget<PokeMapButton>(publish).onPressed,
     isNotNull,
@@ -779,29 +785,30 @@ BorderStudioPublicationCoordinator _controlledCoordinator({
   required ValueChanged<BorderPublicationRequest> onPublishRequest,
 }) {
   return BorderStudioPublicationCoordinator(
-    prepareProjectElementAsset: ({
-      required manifest,
-      required projectRootPath,
-      required sourceElementId,
-      required primitiveId,
-      required role,
-      required weight,
-      required transforms,
-      anchorPx,
-    }) async {
-      final record = manifest.borderCatalog.recordById('coast')!;
-      final primitive = record.draft.definition.primitives.singleWhere(
-        (candidate) => candidate.id == primitiveId,
-      );
-      final preparation = _snapshotPreparation(primitive);
-      return BorderPreparedProjectElementAsset(
-        sourceElement: manifest.elements.singleWhere(
-          (element) => element.id == sourceElementId,
-        ),
-        primitive: primitive,
-        preparation: preparation,
-      );
-    },
+    prepareProjectElementAsset:
+        ({
+          required manifest,
+          required projectRootPath,
+          required sourceElementId,
+          required primitiveId,
+          required role,
+          required weight,
+          required transforms,
+          anchorPx,
+        }) async {
+          final record = manifest.borderCatalog.recordById('coast')!;
+          final primitive = record.draft.definition.primitives.singleWhere(
+            (candidate) => candidate.id == primitiveId,
+          );
+          final preparation = _snapshotPreparation(primitive);
+          return BorderPreparedProjectElementAsset(
+            sourceElement: manifest.elements.singleWhere(
+              (element) => element.id == sourceElementId,
+            ),
+            primitive: primitive,
+            preparation: preparation,
+          );
+        },
     buildCandidate: const BorderPublicationCandidateBuilder().build,
     resolveCanonicalGallery: _passingGallery,
     publishRequest: (request) {
@@ -820,8 +827,9 @@ BorderStudioCanonicalGalleryResolution _passingGallery({
 }) {
   final definition = blueprintRevision.definition;
   final samples = <BorderPublicationGallerySample>[
-    for (final galleryCase
-        in borderCanonicalGalleryCasesForTemplate(definition.template))
+    for (final galleryCase in borderCanonicalGalleryCasesForTemplate(
+      definition.template,
+    ))
       BorderPublicationGallerySample(
         galleryCase: galleryCase,
         coverageChecks: <BorderPublicationCoverageCheck>[
@@ -909,12 +917,7 @@ BorderResolutionResult _successfulResolution({
           visualSnapshotId: snapshotId,
           anchorCell: const GridPos(x: 0, y: 0),
           topLeftWorldPx: const BorderPixelPos(x: 0, y: 0),
-          opaqueWorldBoundsPx: BorderPixelRect(
-            x: 0,
-            y: 0,
-            width: 1,
-            height: 1,
-          ),
+          opaqueWorldBoundsPx: BorderPixelRect(x: 0, y: 0, width: 1, height: 1),
           transform: BorderSpriteTransform(quarterTurns: 0, flipX: false),
           drawBand: BorderDrawBand.structure,
           stableOrderKey: BorderStableOrderKey(
@@ -948,9 +951,12 @@ ProjectManifest _publicationManifest() {
       pixelSize: const GridSize(width: 2, height: 2),
       opaqueBounds: BorderPixelRect(x: 0, y: 0, width: 2, height: 2),
       defaultAnchorPx: const BorderPixelPos(x: 1, y: 1),
-      occupancyMaskRle: encodeBorderRleMask(
-        const <bool>[true, true, true, true],
-      ),
+      occupancyMaskRle: encodeBorderRleMask(const <bool>[
+        true,
+        true,
+        true,
+        true,
+      ]),
     ),
   );
   final record = BorderBlueprintRecord(

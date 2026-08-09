@@ -1,48 +1,54 @@
 import 'package:flutter_test/flutter_test.dart';
+import '../../support/riverpod_notifier_harness.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_destination.dart';
 import 'package:map_editor/src/ui/canvas/narrative_studio/narrative_studio_navigation.dart';
 
 void main() {
   group('NSC-10 navigation session', () {
-    test('restores a single-use route selection viewport and focus snapshot',
-        () {
-      final controller = NarrativeStudioNavigationController();
-      final source = NarrativeStudioRouteLocation.events(
-        selection: NarrativeStudioAssetSelection(
-          kind: NarrativeStudioAssetKind.event,
-          assetId: 'evt_port',
-          parentId: 'map_port',
-        ),
-      );
-      final target = NarrativeStudioRouteLocation.scenes(
-        selection: NarrativeStudioAssetSelection(
-          kind: NarrativeStudioAssetKind.scene,
-          assetId: 'scene_depart',
-        ),
-      );
-      final expectedReturn = NarrativeStudioReturnExpectation(
-        location: source,
-        scrollOffset: 236,
-        zoom: 1.35,
-        focusAnchorId: 'v2:evt_port',
-      );
+    test(
+      'restores a single-use route selection viewport and focus snapshot',
+      () {
+        final controller = mountNarrativeStudioNavigationController();
+        final source = NarrativeStudioRouteLocation.events(
+          selection: NarrativeStudioAssetSelection(
+            kind: NarrativeStudioAssetKind.event,
+            assetId: 'evt_port',
+            parentId: 'map_port',
+          ),
+        );
+        final target = NarrativeStudioRouteLocation.scenes(
+          selection: NarrativeStudioAssetSelection(
+            kind: NarrativeStudioAssetKind.scene,
+            assetId: 'scene_depart',
+          ),
+        );
+        final expectedReturn = NarrativeStudioReturnExpectation(
+          location: source,
+          scrollOffset: 236,
+          zoom: 1.35,
+          focusAnchorId: 'v2:evt_port',
+        );
 
-      controller.navigate(target, returnExpectation: expectedReturn);
-      expect(controller.state.location, target);
-      expect(controller.state.pendingReturn, expectedReturn);
+        controller.navigate(target, returnExpectation: expectedReturn);
+        expect(controller.state.location, target);
+        expect(controller.state.pendingReturn, expectedReturn);
 
-      final restored = controller.restoreReturn();
-      expect(restored, expectedReturn);
-      expect(controller.state.location, source);
-      expect(controller.state.pendingReturn, isNull);
-      expect(controller.state.restorationRequest?.expectation, expectedReturn);
+        final restored = controller.restoreReturn();
+        expect(restored, expectedReturn);
+        expect(controller.state.location, source);
+        expect(controller.state.pendingReturn, isNull);
+        expect(
+          controller.state.restorationRequest?.expectation,
+          expectedReturn,
+        );
 
-      final revision = controller.state.restorationRequest!.revision;
-      expect(controller.consumeRestoration(revision), isTrue);
-      expect(controller.state.restorationRequest, isNull);
-      expect(controller.restoreReturn(), isNull);
-    });
+        final revision = controller.state.restorationRequest!.revision;
+        expect(controller.consumeRestoration(revision), isTrue);
+        expect(controller.state.restorationRequest, isNull);
+        expect(controller.restoreReturn(), isNull);
+      },
+    );
 
     test('rejects invalid viewport snapshots', () {
       final location = NarrativeStudioRouteLocation.scenes();
@@ -61,7 +67,7 @@ void main() {
     });
 
     test('top-level replacement clears stale return and restoration state', () {
-      final controller = NarrativeStudioNavigationController();
+      final controller = mountNarrativeStudioNavigationController();
       final source = NarrativeStudioRouteLocation.scenes();
       final target = NarrativeStudioRouteLocation.dialogues(
         selection: NarrativeStudioAssetSelection(
@@ -90,7 +96,7 @@ void main() {
     });
 
     test('selection-only returns do not create a restoration request', () {
-      final controller = NarrativeStudioNavigationController();
+      final controller = mountNarrativeStudioNavigationController();
       final source = NarrativeStudioRouteLocation.cinematics(
         childRoute: NarrativeStudioChildRoute.cinematicLibrary,
         selection: NarrativeStudioAssetSelection(
@@ -116,7 +122,7 @@ void main() {
     });
 
     test('reset prevents return context leaking into another project', () {
-      final controller = NarrativeStudioNavigationController();
+      final controller = mountNarrativeStudioNavigationController();
       controller.navigate(
         NarrativeStudioRouteLocation.cinematics(
           childRoute: NarrativeStudioChildRoute.cinematicBuilder,
@@ -145,44 +151,49 @@ void main() {
 
   group('NSC-10 canonical intent adapter', () {
     test('resolves Scene, Cinematic and Dialogue to exact internal assets', () {
-      final cases = <NarrativeDependencyNavigationIntent,
-          ({
-        NarrativeStudioDestination destination,
-        NarrativeStudioChildRoute child,
-        NarrativeStudioAssetKind kind,
-      })>{
-        const NarrativeDependencyNavigationIntent(
-          kind: NarrativeDependencyTargetKind.scene,
-          assetId: 'scene.port',
-        ): (
-          destination: NarrativeStudioDestination.scenes,
-          child: NarrativeStudioChildRoute.sceneBuilder,
-          kind: NarrativeStudioAssetKind.scene,
-        ),
-        const NarrativeDependencyNavigationIntent(
-          kind: NarrativeDependencyTargetKind.cinematic,
-          assetId: 'cine.depart',
-        ): (
-          destination: NarrativeStudioDestination.cinematics,
-          child: NarrativeStudioChildRoute.cinematicBuilder,
-          kind: NarrativeStudioAssetKind.cinematic,
-        ),
-        const NarrativeDependencyNavigationIntent(
-          kind: NarrativeDependencyTargetKind.dialogue,
-          assetId: 'dialogue.lysa',
-        ): (
-          destination: NarrativeStudioDestination.dialogues,
-          child: NarrativeStudioChildRoute.dialogueEditor,
-          kind: NarrativeStudioAssetKind.dialogue,
-        ),
-      };
+      final cases =
+          <
+            NarrativeDependencyNavigationIntent,
+            ({
+              NarrativeStudioDestination destination,
+              NarrativeStudioChildRoute child,
+              NarrativeStudioAssetKind kind,
+            })
+          >{
+            const NarrativeDependencyNavigationIntent(
+              kind: NarrativeDependencyTargetKind.scene,
+              assetId: 'scene.port',
+            ): (
+              destination: NarrativeStudioDestination.scenes,
+              child: NarrativeStudioChildRoute.sceneBuilder,
+              kind: NarrativeStudioAssetKind.scene,
+            ),
+            const NarrativeDependencyNavigationIntent(
+              kind: NarrativeDependencyTargetKind.cinematic,
+              assetId: 'cine.depart',
+            ): (
+              destination: NarrativeStudioDestination.cinematics,
+              child: NarrativeStudioChildRoute.cinematicBuilder,
+              kind: NarrativeStudioAssetKind.cinematic,
+            ),
+            const NarrativeDependencyNavigationIntent(
+              kind: NarrativeDependencyTargetKind.dialogue,
+              assetId: 'dialogue.lysa',
+            ): (
+              destination: NarrativeStudioDestination.dialogues,
+              child: NarrativeStudioChildRoute.dialogueEditor,
+              kind: NarrativeStudioAssetKind.dialogue,
+            ),
+          };
 
       for (final entry in cases.entries) {
         final resolution = resolveNarrativeDependencyNavigationIntent(
           entry.key,
         );
         expect(
-            resolution.kind, NarrativeStudioNavigationResolutionKind.internal);
+          resolution.kind,
+          NarrativeStudioNavigationResolutionKind.internal,
+        );
         expect(resolution.location?.destination, entry.value.destination);
         expect(resolution.location?.childRoute, entry.value.child);
         expect(resolution.location?.selection?.kind, entry.value.kind);
@@ -203,7 +214,9 @@ void main() {
       final resolution = resolveNarrativeDependencyNavigationIntent(intent);
 
       expect(
-          resolution.kind, NarrativeStudioNavigationResolutionKind.externalMap);
+        resolution.kind,
+        NarrativeStudioNavigationResolutionKind.externalMap,
+      );
       expect(
         resolution.externalMapTarget,
         const NarrativeStudioExternalMapTarget(
@@ -255,79 +268,86 @@ void main() {
       );
     });
 
-    test('controller directly consumes internal canonical dependency intents',
-        () {
-      final controller = NarrativeStudioNavigationController();
-      const intent = NarrativeDependencyNavigationIntent(
-        kind: NarrativeDependencyTargetKind.scene,
-        assetId: 'scene.port',
-      );
+    test(
+      'controller directly consumes internal canonical dependency intents',
+      () {
+        final controller = mountNarrativeStudioNavigationController();
+        const intent = NarrativeDependencyNavigationIntent(
+          kind: NarrativeDependencyTargetKind.scene,
+          assetId: 'scene.port',
+        );
 
-      final resolution = controller.navigateToDependency(intent);
+        final resolution = controller.navigateToDependency(intent);
 
-      expect(resolution.kind, NarrativeStudioNavigationResolutionKind.internal);
-      expect(
-        controller.state.location,
-        NarrativeStudioRouteLocation.scenes(
-          selection: NarrativeStudioAssetSelection(
-            kind: NarrativeStudioAssetKind.scene,
-            assetId: 'scene.port',
-          ),
-        ),
-      );
-    });
-
-    test('controller consumes a navigation intent emitted by the real index',
-        () {
-      final project = ProjectManifest(
-        name: 'Canonical navigation chain',
-        maps: const <ProjectMapEntry>[],
-        tilesets: const <ProjectTilesetEntry>[],
-        scenes: <SceneAsset>[
-          SceneAsset(
-            id: 'scene.indexed',
-            name: 'Indexed Scene',
-            graph: SceneGraph(
-              startNodeId: 'start',
-              nodes: <SceneNode>[
-                SceneNode(id: 'start', kind: SceneNodeKind.start),
-              ],
+        expect(
+          resolution.kind,
+          NarrativeStudioNavigationResolutionKind.internal,
+        );
+        expect(
+          controller.state.location,
+          NarrativeStudioRouteLocation.scenes(
+            selection: NarrativeStudioAssetSelection(
+              kind: NarrativeStudioAssetKind.scene,
+              assetId: 'scene.port',
             ),
           ),
-        ],
-      );
-      final index = buildNarrativeDependencyIndex(project: project);
-      final intent = index
-          .definitionsFor(
-            const NarrativeDependencyKey(
-              NarrativeDependencyTargetKind.scene,
-              'scene.indexed',
+        );
+      },
+    );
+
+    test(
+      'controller consumes a navigation intent emitted by the real index',
+      () {
+        final project = ProjectManifest(
+          name: 'Canonical navigation chain',
+          maps: const <ProjectMapEntry>[],
+          tilesets: const <ProjectTilesetEntry>[],
+          scenes: <SceneAsset>[
+            SceneAsset(
+              id: 'scene.indexed',
+              name: 'Indexed Scene',
+              graph: SceneGraph(
+                startNodeId: 'start',
+                nodes: <SceneNode>[
+                  SceneNode(id: 'start', kind: SceneNodeKind.start),
+                ],
+              ),
             ),
-          )
-          .single
-          .navigationIntent!;
-      final controller = NarrativeStudioNavigationController();
-      final expectedReturn = NarrativeStudioReturnExpectation(
-        location: NarrativeStudioRouteLocation.overview(),
-      );
+          ],
+        );
+        final index = buildNarrativeDependencyIndex(project: project);
+        final intent = index
+            .definitionsFor(
+              const NarrativeDependencyKey(
+                NarrativeDependencyTargetKind.scene,
+                'scene.indexed',
+              ),
+            )
+            .single
+            .navigationIntent!;
+        final controller = mountNarrativeStudioNavigationController();
+        final expectedReturn = NarrativeStudioReturnExpectation(
+          location: NarrativeStudioRouteLocation.overview(),
+        );
 
-      controller.navigateToDependency(
-        intent,
-        returnExpectation: expectedReturn,
-      );
+        controller.navigateToDependency(
+          intent,
+          returnExpectation: expectedReturn,
+        );
 
-      expect(
-        controller.state.location,
-        NarrativeStudioRouteLocation.scenes(
-          selection: NarrativeStudioAssetSelection(
-            kind: NarrativeStudioAssetKind.scene,
-            assetId: 'scene.indexed',
-            sourceContext: 'scenes[scene.indexed]',
+        expect(
+          controller.state.location,
+          NarrativeStudioRouteLocation.scenes(
+            selection: NarrativeStudioAssetSelection(
+              kind: NarrativeStudioAssetKind.scene,
+              assetId: 'scene.indexed',
+              sourceContext: 'scenes[scene.indexed]',
+            ),
           ),
-        ),
-      );
-      expect(controller.state.pendingReturn, expectedReturn);
-    });
+        );
+        expect(controller.state.pendingReturn, expectedReturn);
+      },
+    );
 
     test('fails closed when a physical source has no usable map identity', () {
       const intent = NarrativeDependencyNavigationIntent(
@@ -359,32 +379,27 @@ void main() {
 
       final resolution = resolveNarrativeDependencyNavigationIntent(intent);
 
-      expect(
-        resolution.kind,
-        NarrativeStudioNavigationResolutionKind.internal,
-      );
-      expect(
-        resolution.location,
-        NarrativeStudioRouteLocation.overview(),
-      );
+      expect(resolution.kind, NarrativeStudioNavigationResolutionKind.internal);
+      expect(resolution.location, NarrativeStudioRouteLocation.overview());
     });
 
-    test('maps a diagnostic to the exact asset instead of only its workspace',
-        () {
-      const diagnostic = NarrativeProjectDiagnostic(
-        code: 'scene.dialogue.missing',
-        severity: NarrativeProjectDiagnosticSeverity.error,
-        domain: NarrativeProjectDiagnosticDomain.dialogue,
-        message: 'Dialogue missing',
-        path: 'scenes[scene.port].nodes[node.lysa]',
-        destination: NarrativeProjectDiagnosticDestination.dialogue,
-        sceneId: 'scene.port',
-        dialogueId: 'dialogue.lysa',
-      );
+    test(
+      'maps a diagnostic to the exact asset instead of only its workspace',
+      () {
+        const diagnostic = NarrativeProjectDiagnostic(
+          code: 'scene.dialogue.missing',
+          severity: NarrativeProjectDiagnosticSeverity.error,
+          domain: NarrativeProjectDiagnosticDomain.dialogue,
+          message: 'Dialogue missing',
+          path: 'scenes[scene.port].nodes[node.lysa]',
+          destination: NarrativeProjectDiagnosticDestination.dialogue,
+          sceneId: 'scene.port',
+          dialogueId: 'dialogue.lysa',
+        );
 
-      final resolution = resolveNarrativeProjectDiagnostic(diagnostic);
+        final resolution = resolveNarrativeProjectDiagnostic(diagnostic);
 
-      expect(
+        expect(
           resolution.location,
           NarrativeStudioRouteLocation.dialogues(
             selection: NarrativeStudioAssetSelection(
@@ -393,8 +408,10 @@ void main() {
               parentId: 'scene.port',
               sourceContext: 'scenes[scene.port].nodes[node.lysa]',
             ),
-          ));
-    });
+          ),
+        );
+      },
+    );
 
     test('maps a Step diagnostic to canonical Storyline Structure', () {
       const diagnostic = NarrativeProjectDiagnostic(

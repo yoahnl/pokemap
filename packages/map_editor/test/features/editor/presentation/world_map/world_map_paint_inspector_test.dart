@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
@@ -24,66 +25,70 @@ import 'package:map_editor/src/ui/panels/tileset_palette/widgets/browser/map_pal
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/palette/map_layer_asset_palette.dart';
 
 void main() {
-  testWidgets('projects all six Paint subtools to their real body',
-      (tester) async {
+  testWidgets('projects all six Paint subtools to their real body', (
+    tester,
+  ) async {
     const tileBrush = EditorBrush.tile(tileId: 1, tilesetId: 'world');
-    const cases = <({
-      WorldMapPaintSubtool subtool,
-      String layerId,
-      WorldMapSubtoolBodyKind bodyKind,
-      Type bodyType,
-      EditorToolType resultingTool,
-      EditorBrush resultingBrush,
-    })>[
-      (
-        subtool: WorldMapPaintSubtool.tile,
-        layerId: 'tile',
-        bodyKind: WorldMapSubtoolBodyKind.tilesPalette,
-        bodyType: MapLayerAssetPalette,
-        resultingTool: EditorToolType.tilePaint,
-        resultingBrush: tileBrush,
-      ),
-      (
-        subtool: WorldMapPaintSubtool.terrain,
-        layerId: 'smart-terrain',
-        bodyKind: WorldMapSubtoolBodyKind.terrainPainter,
-        bodyType: WorldMapSmartTilePaintPalette,
-        resultingTool: EditorToolType.terrainPaint,
-        resultingBrush: EditorBrush.none(),
-      ),
-      (
-        subtool: WorldMapPaintSubtool.path,
-        layerId: 'smart-path',
-        bodyKind: WorldMapSubtoolBodyKind.pathPainter,
-        bodyType: WorldMapSmartTilePaintPalette,
-        resultingTool: EditorToolType.terrainPaint,
-        resultingBrush: EditorBrush.none(),
-      ),
-      (
-        subtool: WorldMapPaintSubtool.surface,
-        layerId: 'smart-surface',
-        bodyKind: WorldMapSubtoolBodyKind.surfacePainter,
-        bodyType: WorldMapSmartTilePaintPalette,
-        resultingTool: EditorToolType.terrainPaint,
-        resultingBrush: EditorBrush.none(),
-      ),
-      (
-        subtool: WorldMapPaintSubtool.border,
-        layerId: 'border',
-        bodyKind: WorldMapSubtoolBodyKind.borderInspector,
-        bodyType: BorderLayerInspectorPanel,
-        resultingTool: EditorToolType.borderPaint,
-        resultingBrush: EditorBrush.none(),
-      ),
-      (
-        subtool: WorldMapPaintSubtool.collision,
-        layerId: 'collision',
-        bodyKind: WorldMapSubtoolBodyKind.collisionInspector,
-        bodyType: WorldMapCollisionInspector,
-        resultingTool: EditorToolType.collisionPaint,
-        resultingBrush: EditorBrush.none(),
-      ),
-    ];
+    const cases =
+        <
+          ({
+            WorldMapPaintSubtool subtool,
+            String layerId,
+            WorldMapSubtoolBodyKind bodyKind,
+            Type bodyType,
+            EditorToolType resultingTool,
+            EditorBrush resultingBrush,
+          })
+        >[
+          (
+            subtool: WorldMapPaintSubtool.tile,
+            layerId: 'tile',
+            bodyKind: WorldMapSubtoolBodyKind.tilesPalette,
+            bodyType: MapLayerAssetPalette,
+            resultingTool: EditorToolType.tilePaint,
+            resultingBrush: tileBrush,
+          ),
+          (
+            subtool: WorldMapPaintSubtool.terrain,
+            layerId: 'smart-terrain',
+            bodyKind: WorldMapSubtoolBodyKind.terrainPainter,
+            bodyType: WorldMapSmartTilePaintPalette,
+            resultingTool: EditorToolType.terrainPaint,
+            resultingBrush: EditorBrush.none(),
+          ),
+          (
+            subtool: WorldMapPaintSubtool.path,
+            layerId: 'smart-path',
+            bodyKind: WorldMapSubtoolBodyKind.pathPainter,
+            bodyType: WorldMapSmartTilePaintPalette,
+            resultingTool: EditorToolType.terrainPaint,
+            resultingBrush: EditorBrush.none(),
+          ),
+          (
+            subtool: WorldMapPaintSubtool.surface,
+            layerId: 'smart-surface',
+            bodyKind: WorldMapSubtoolBodyKind.surfacePainter,
+            bodyType: WorldMapSmartTilePaintPalette,
+            resultingTool: EditorToolType.terrainPaint,
+            resultingBrush: EditorBrush.none(),
+          ),
+          (
+            subtool: WorldMapPaintSubtool.border,
+            layerId: 'border',
+            bodyKind: WorldMapSubtoolBodyKind.borderInspector,
+            bodyType: BorderLayerInspectorPanel,
+            resultingTool: EditorToolType.borderPaint,
+            resultingBrush: EditorBrush.none(),
+          ),
+          (
+            subtool: WorldMapPaintSubtool.collision,
+            layerId: 'collision',
+            bodyKind: WorldMapSubtoolBodyKind.collisionInspector,
+            bodyType: WorldMapCollisionInspector,
+            resultingTool: EditorToolType.collisionPaint,
+            resultingBrush: EditorBrush.none(),
+          ),
+        ];
 
     for (final testCase in cases) {
       final harness = _PaintHarness(testCase.layerId);
@@ -107,20 +112,12 @@ void main() {
       expect(find.byType(testCase.bodyType), findsOneWidget);
       expect(
         find.byKey(
-          ValueKey<String>(
-            'world-map-paint-body-${testCase.bodyKind.name}',
-          ),
+          ValueKey<String>('world-map-paint-body-${testCase.bodyKind.name}'),
         ),
         findsOneWidget,
       );
-      expect(
-        harness.notifier.state.activeTool,
-        testCase.resultingTool,
-      );
-      expect(
-        harness.notifier.state.activeBrush,
-        testCase.resultingBrush,
-      );
+      expect(harness.notifier.state.activeTool, testCase.resultingTool);
+      expect(harness.notifier.state.activeBrush, testCase.resultingBrush);
       if (testCase.subtool == WorldMapPaintSubtool.tile) {
         expect(
           find.byWidgetPredicate(
@@ -165,40 +162,38 @@ void main() {
     },
   );
 
-  testWidgets(
-    'terrain palette never bypasses canonical layer creation',
-    (tester) async {
-      final harness = _PaintHarness('tile', map: _tileOnlyMap);
-      addTearDown(harness.dispose);
-      harness.showMissingLayer(WorldMapPaintSubtool.terrain);
+  testWidgets('terrain palette never bypasses canonical layer creation', (
+    tester,
+  ) async {
+    final harness = _PaintHarness('tile', map: _tileOnlyMap);
+    addTearDown(harness.dispose);
+    harness.showMissingLayer(WorldMapPaintSubtool.terrain);
 
-      await harness.pump(tester);
+    await harness.pump(tester);
 
-      final prairie = find.byKey(
-        const ValueKey<String>(
-          'world-map-smart-tile-terrain-preset-prairie',
-        ),
-      );
-      expect(prairie, findsOneWidget);
-      expect(
-        find.text(smartTileCanonicalLayerActionRequiredCode),
-        findsOneWidget,
-      );
+    final prairie = find.byKey(
+      const ValueKey<String>('world-map-smart-tile-terrain-preset-prairie'),
+    );
+    expect(prairie, findsOneWidget);
+    expect(
+      find.text(smartTileCanonicalLayerActionRequiredCode),
+      findsOneWidget,
+    );
 
-      await tester.tap(prairie);
-      await tester.pump();
+    await tester.tap(prairie);
+    await tester.pump();
 
-      expect(
-        harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
-        isEmpty,
-      );
-      expect(harness.notifier.state.mapUndoStack, isEmpty);
-      expect(harness.notifier.state.isDirty, isFalse);
-    },
-  );
+    expect(
+      harness.notifier.state.activeMap!.layers.whereType<SmartTileLayer>(),
+      isEmpty,
+    );
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+    expect(harness.notifier.state.isDirty, isFalse);
+  });
 
-  testWidgets('compact terrain palette stays scrollable without overflow',
-      (tester) async {
+  testWidgets('compact terrain palette stays scrollable without overflow', (
+    tester,
+  ) async {
     final harness = _PaintHarness(
       'tile',
       map: _tileOnlyMap,
@@ -221,8 +216,9 @@ void main() {
     expect(find.byType(Scrollable), findsWidgets);
   });
 
-  testWidgets('narrow terrain palette uses one readable column',
-      (tester) async {
+  testWidgets('narrow terrain palette uses one readable column', (
+    tester,
+  ) async {
     final harness = _PaintHarness(
       'tile',
       map: _tileOnlyMap,
@@ -239,8 +235,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('choosing an existing cell preset reuses its layer',
-      (tester) async {
+  testWidgets('choosing an existing cell preset reuses its layer', (
+    tester,
+  ) async {
     final harness = _PaintHarness(
       'tile',
       map: _map,
@@ -255,9 +252,7 @@ void main() {
     await harness.pump(tester);
     await tester.tap(
       find.byKey(
-        const ValueKey<String>(
-          'world-map-smart-tile-terrain-preset-prairie',
-        ),
+        const ValueKey<String>('world-map-smart-tile-terrain-preset-prairie'),
       ),
     );
     await tester.pump();
@@ -304,21 +299,14 @@ void main() {
     expect(thumbnail, findsOneWidget);
     expect(
       tester.widget<SmartTileSpritePreview>(thumbnail).frame,
-      const SmartTileFrameRef(
-        atlasId: 'visual-path-atlas',
-        column: 1,
-        row: 0,
-      ),
+      const SmartTileFrameRef(atlasId: 'visual-path-atlas', column: 1, row: 0),
     );
   });
 
   testWidgets(
     'missing-layer guidance explains the required type and offers a safe add CTA',
     (tester) async {
-      final harness = _PaintHarness(
-        'tile',
-        map: _tileOnlyMap,
-      );
+      final harness = _PaintHarness('tile', map: _tileOnlyMap);
       addTearDown(harness.dispose);
       harness.showMissingLayer(WorldMapPaintSubtool.collision);
       final beforeEditor = harness.notifier.state;
@@ -348,10 +336,7 @@ void main() {
           'L’outil Collision peint uniquement dans un calque de collision.',
         ),
       );
-      expect(
-        tester.getSemantics(addButton).flagsCollection.isButton,
-        isTrue,
-      );
+      expect(tester.getSemantics(addButton).flagsCollection.isButton, isTrue);
       expect(harness.notifier.state, same(beforeEditor));
       expect(harness.sessionState, same(beforeSession));
       expect(harness.notifier.state.mapUndoStack, isEmpty);
@@ -430,9 +415,7 @@ void main() {
       expect(harness.notifier.state, same(before));
       expect(
         find.byKey(
-          const ValueKey<String>(
-            'world-map-smart-tile-forestSurface-palette',
-          ),
+          const ValueKey<String>('world-map-smart-tile-forestSurface-palette'),
         ),
         findsOneWidget,
       );
@@ -449,65 +432,46 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Organic Surface is one Smart Tile body and arms explicitly',
-    (tester) async {
-      final harness = _PaintHarness(
-        'smart-surface',
-      );
-      addTearDown(harness.dispose);
-      harness.showSetup(WorldMapPaintSubtool.surface);
-      final beforeEditor = harness.notifier.state;
-      final beforeSession = harness.sessionState;
+  testWidgets('Organic Surface is one Smart Tile body and arms explicitly', (
+    tester,
+  ) async {
+    final harness = _PaintHarness('smart-surface');
+    addTearDown(harness.dispose);
+    harness.showSetup(WorldMapPaintSubtool.surface);
+    final beforeEditor = harness.notifier.state;
+    final beforeSession = harness.sessionState;
 
-      await harness.pump(tester);
+    await harness.pump(tester);
 
-      expect(find.byType(WorldMapSmartTilePaintPalette), findsOneWidget);
-      expect(_mountedPaintBodyCount(), 1);
-      expect(
-        find.text('Peindre une surface organique'),
-        findsOneWidget,
-      );
-      expect(harness.notifier.state, same(beforeEditor));
-      expect(harness.sessionState, same(beforeSession));
+    expect(find.byType(WorldMapSmartTilePaintPalette), findsOneWidget);
+    expect(_mountedPaintBodyCount(), 1);
+    expect(find.text('Peindre une surface organique'), findsOneWidget);
+    expect(harness.notifier.state, same(beforeEditor));
+    expect(harness.sessionState, same(beforeSession));
 
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>(
-            'world-map-smart-tile-forestSurface-paint',
-          ),
-        ),
-      );
-      await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('world-map-smart-tile-forestSurface-paint'),
+      ),
+    );
+    await tester.pump();
 
-      expect(
-        harness.notifier.state.activeTool,
-        EditorToolType.terrainPaint,
-      );
-      expect(harness.notifier.state.mapUndoStack, isEmpty);
-      expect(harness.notifier.state.mapRedoStack, isEmpty);
-      expect(
-        harness.sessionState.activeFamily,
-        WorldMapToolFamily.paint,
-      );
-      expect(harness.paintInspectionIntent, isNull);
+    expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+    expect(harness.notifier.state.mapRedoStack, isEmpty);
+    expect(harness.sessionState.activeFamily, WorldMapToolFamily.paint);
+    expect(harness.paintInspectionIntent, isNull);
 
-      await tester.tap(
-        find.byKey(
-          const ValueKey<String>(
-            'world-map-smart-tile-forestSurface-erase',
-          ),
-        ),
-      );
-      await tester.pump();
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('world-map-smart-tile-forestSurface-erase'),
+      ),
+    );
+    await tester.pump();
 
-      expect(harness.notifier.state.activeTool, EditorToolType.eraser);
-      expect(
-        harness.sessionState.activeFamily,
-        WorldMapToolFamily.erase,
-      );
-    },
-  );
+    expect(harness.notifier.state.activeTool, EditorToolType.eraser);
+    expect(harness.sessionState.activeFamily, WorldMapToolFamily.erase);
+  });
 
   testWidgets(
     'Border setup stays inert until explicit transactional Paint and Erase',
@@ -556,10 +520,7 @@ void main() {
       await tester.pump();
 
       expect(harness.notifier.state.activeTool, EditorToolType.borderPaint);
-      expect(
-        harness.sessionState.activeFamily,
-        WorldMapToolFamily.paint,
-      );
+      expect(harness.sessionState.activeFamily, WorldMapToolFamily.paint);
       expect(harness.paintInspectionIntent, isNull);
 
       final eraseButton = find.byKey(
@@ -570,19 +531,14 @@ void main() {
       await tester.pump();
 
       expect(harness.notifier.state.activeTool, EditorToolType.borderErase);
-      expect(
-        harness.sessionState.activeFamily,
-        WorldMapToolFamily.erase,
-      );
+      expect(harness.sessionState.activeFamily, WorldMapToolFamily.erase);
     },
   );
 
-  testWidgets('empty Border setup exposes creation without arming the tool',
-      (tester) async {
-    final harness = _PaintHarness(
-      'border',
-      map: _mapWithEmptyBorder,
-    );
+  testWidgets('empty Border setup exposes creation without arming the tool', (
+    tester,
+  ) async {
+    final harness = _PaintHarness('border', map: _mapWithEmptyBorder);
     addTearDown(harness.dispose);
     harness.showSetup(WorldMapPaintSubtool.border);
     final beforeEditor = harness.notifier.state;
@@ -643,9 +599,7 @@ void main() {
       addTearDown(pathHarness.dispose);
       await pathHarness.pump(tester);
       await tester.tap(
-        find.byKey(
-          const ValueKey<String>('world-map-smart-tile-path-paint'),
-        ),
+        find.byKey(const ValueKey<String>('world-map-smart-tile-path-paint')),
       );
       await tester.pump();
 
@@ -653,27 +607,19 @@ void main() {
         pathHarness.notifier.state.activeTool,
         EditorToolType.terrainPaint,
       );
-      expect(
-        pathHarness.sessionState.activeFamily,
-        WorldMapToolFamily.paint,
-      );
+      expect(pathHarness.sessionState.activeFamily, WorldMapToolFamily.paint);
       expect(
         pathHarness.sessionState.lastPaintSubtool,
         WorldMapPaintSubtool.path,
       );
 
       await tester.tap(
-        find.byKey(
-          const ValueKey<String>('world-map-smart-tile-path-erase'),
-        ),
+        find.byKey(const ValueKey<String>('world-map-smart-tile-path-erase')),
       );
       await tester.pump();
 
       expect(pathHarness.notifier.state.activeTool, EditorToolType.eraser);
-      expect(
-        pathHarness.sessionState.activeFamily,
-        WorldMapToolFamily.erase,
-      );
+      expect(pathHarness.sessionState.activeFamily, WorldMapToolFamily.erase);
       expect(
         pathHarness.paintInspectionIntent?.subtool,
         WorldMapPaintSubtool.path,
@@ -681,8 +627,9 @@ void main() {
     },
   );
 
-  testWidgets('Wang Smart Tile actions arm the typed World Map session',
-      (tester) async {
+  testWidgets('Wang Smart Tile actions arm the typed World Map session', (
+    tester,
+  ) async {
     final harness = _PaintHarness(
       'smart-terrain',
       map: _mapWithWangTerrain,
@@ -694,28 +641,18 @@ void main() {
     addTearDown(harness.dispose);
     await harness.pump(tester);
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('world-map-smart-tile-terrain-paint'),
-      ),
+      find.byKey(const ValueKey<String>('world-map-smart-tile-terrain-paint')),
     );
     await tester.pump();
 
-    expect(
-      harness.notifier.state.activeTool,
-      EditorToolType.terrainPaint,
-    );
-    expect(
-      harness.sessionState.activeFamily,
-      WorldMapToolFamily.paint,
-    );
-    expect(
-      harness.sessionState.lastPaintSubtool,
-      WorldMapPaintSubtool.terrain,
-    );
+    expect(harness.notifier.state.activeTool, EditorToolType.terrainPaint);
+    expect(harness.sessionState.activeFamily, WorldMapToolFamily.paint);
+    expect(harness.sessionState.lastPaintSubtool, WorldMapPaintSubtool.terrain);
   });
 
-  testWidgets('Wang palette exposes the four no-code gesture modes',
-      (tester) async {
+  testWidgets('Wang palette exposes the four no-code gesture modes', (
+    tester,
+  ) async {
     final harness = _PaintHarness(
       'smart-terrain',
       map: _mapWithWangTerrain,
@@ -748,8 +685,9 @@ void main() {
     );
   });
 
-  testWidgets('terrain palette selects an allowed material without mutation',
-      (tester) async {
+  testWidgets('terrain palette selects an allowed material without mutation', (
+    tester,
+  ) async {
     final harness = _PaintHarness(
       'smart-terrain',
       map: _mapWithWangTerrain,
@@ -856,9 +794,7 @@ void main() {
       addTearDown(harness.dispose);
       await harness.pump(
         tester,
-        child: _CountingWorldMapPaintInspector(
-          onBuild: () => rebuilds += 1,
-        ),
+        child: _CountingWorldMapPaintInspector(onBuild: () => rebuilds += 1),
       );
       expect(find.byType(WorldMapCollisionInspector), findsOneWidget);
 
@@ -906,15 +842,15 @@ class _PaintHarness {
     ProjectManifest? project,
     String projectRootPath = '/virtual/project',
     String? activeMapPath,
-  })  : map = map ?? _map,
-        activeLayerId = activeLayerId,
-        container = ProviderContainer(
-          overrides: <Override>[
-            worldMapWorkspaceSessionProvider.overrideWith(
-              () => _TestSessionController(initialSession),
-            ),
-          ],
-        ) {
+  }) : map = map ?? _map,
+       activeLayerId = activeLayerId,
+       container = ProviderContainer(
+         overrides: <Override>[
+           worldMapWorkspaceSessionProvider.overrideWith(
+             () => _TestSessionController(initialSession),
+           ),
+         ],
+       ) {
     keepAlive = container.listen(editorNotifierProvider, (_, __) {});
     notifier.state = EditorState(
       projectRootPath: projectRootPath,
@@ -946,11 +882,9 @@ class _PaintHarness {
       container.read(worldMapPaintInspectionIntentProvider);
 
   void showSetup(WorldMapPaintSubtool subtool) {
-    container.read(worldMapPaintInspectionIntentProvider.notifier).showSetup(
-          mapId: map.id,
-          layerId: activeLayerId,
-          subtool: subtool,
-        );
+    container
+        .read(worldMapPaintInspectionIntentProvider.notifier)
+        .showSetup(mapId: map.id, layerId: activeLayerId, subtool: subtool);
   }
 
   void showLayerChoice(
@@ -969,20 +903,13 @@ class _PaintHarness {
   void showMissingLayer(WorldMapPaintSubtool subtool) {
     container
         .read(worldMapPaintInspectionIntentProvider.notifier)
-        .showMissingLayer(
-          mapId: map.id,
-          subtool: subtool,
-        );
+        .showMissingLayer(mapId: map.id, subtool: subtool);
   }
 
   void selectBorderFeature() {
     container
         .read(activeBorderFeatureControllerProvider.notifier)
-        .selectFeature(
-          map: map,
-          layerId: 'border',
-          featureId: 'coast',
-        );
+        .selectFeature(map: map, layerId: 'border', featureId: 'coast');
   }
 
   void clearBorderSelection() {
@@ -1002,11 +929,7 @@ class _PaintHarness {
         child: MaterialApp(
           theme: PokeMapTheme.light(),
           home: Scaffold(
-            body: SizedBox(
-              width: width,
-              height: height,
-              child: child,
-            ),
+            body: SizedBox(width: width, height: height, child: child),
           ),
         ),
       ),
@@ -1254,24 +1177,7 @@ final _map = MapData(
     const TileLayer(
       id: 'tile',
       name: 'Tile',
-      cells: <int>[
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-      ],
+      cells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     ),
     const SmartTileLayer(
       id: 'smart-terrain',
@@ -1279,24 +1185,7 @@ final _map = MapData(
       presetId: 'prairie',
       usage: SmartTileUsage.terrain,
       field: SmartTileField.cell(
-        semanticCells: <int>[
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-        ],
+        semanticCells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ),
     const SmartTileLayer(
@@ -1305,24 +1194,7 @@ final _map = MapData(
       presetId: 'path',
       usage: SmartTileUsage.path,
       field: SmartTileField.cell(
-        semanticCells: <int>[
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-        ],
+        semanticCells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ),
     const SmartTileLayer(
@@ -1331,24 +1203,7 @@ final _map = MapData(
       presetId: 'forest',
       usage: SmartTileUsage.forestSurface,
       field: SmartTileField.cell(
-        semanticCells: <int>[
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-          0,
-        ],
+        semanticCells: <int>[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
       ),
     ),
     const CollisionLayer(
@@ -1447,7 +1302,5 @@ final _mapWithEmptyBorder = _map.copyWith(
 final _tileOnlyMap = _map.copyWith(
   id: 'tile-only',
   name: 'Éléments uniquement',
-  layers: <MapLayer>[
-    _map.layers.whereType<TileLayer>().single,
-  ],
+  layers: <MapLayer>[_map.layers.whereType<TileLayer>().single],
 );

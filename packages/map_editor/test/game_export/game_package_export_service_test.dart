@@ -66,7 +66,7 @@ void main() {
     );
     expect(first.manifest.gameId, profile.gameId);
     expect(first.manifest.title, profile.title);
-    expect(first.manifest.presentation?.schemaVersion, 1);
+    expect(first.manifest.presentation?.schemaVersion, 2);
     expect(first.manifest.usesLegacyBranding, isFalse);
     expect(first.manifest.branding?.icon, 'presentation/icon.png');
     expect(first.manifest.branding?.accentColor, '#126E78');
@@ -328,7 +328,7 @@ void main() {
   });
 
   test(
-      'packages authored intro, typography and semantic theme contracts '
+      'packages authored responsive motion, typography and theme contracts '
       'with their assets', () async {
     final root = await createAuthorProject(withDialogue: false);
     addTearDown(() => root.delete(recursive: true));
@@ -359,22 +359,64 @@ void main() {
     final projectFile = File(p.join(root.path, 'project.json'));
     final project =
         jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    Map<String, Object?> videoVariant({
+      required int width,
+      required int height,
+      required String audioCodec,
+    }) =>
+        <String, Object?>{
+          'videoPath': 'assets/intro.mp4',
+          'posterPath': 'assets/poster.png',
+          'durationMilliseconds': 1000,
+          'width': width,
+          'height': height,
+          'bitrateKbps': 128,
+          'sizeBytes': video.length,
+          'videoCodec': 'h264',
+          'audioCodec': audioCodec,
+        };
     project['presentation'] = <String, Object?>{
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'branding': <String, Object?>{},
       'intro': <String, Object?>{
-        'videoPath': 'assets/intro.mp4',
-        'posterPath': 'assets/poster.png',
-        'captionsPath': 'assets/captions.vtt',
-        'durationMilliseconds': 1000,
-        'width': 1280,
-        'height': 720,
-        'bitrateKbps': 128,
-        'sizeBytes': video.length,
-        'videoCodec': 'h264',
-        'audioCodec': 'aac',
+        'media': <String, Object?>{
+          'landscape': <String, Object?>{
+            ...videoVariant(
+              width: 1280,
+              height: 720,
+              audioCodec: 'aac',
+            ),
+            'captionsPath': 'assets/captions.vtt',
+          },
+        },
         'reducedMotionBehavior': 'poster',
         'allowReplay': true,
+      },
+      'titleMotion': <String, Object?>{
+        'promptLoop': <String, Object?>{
+          'landscape': videoVariant(
+            width: 1280,
+            height: 720,
+            audioCodec: 'none',
+          ),
+          'portrait': videoVariant(
+            width: 720,
+            height: 1280,
+            audioCodec: 'none',
+          ),
+        },
+        'menuLoop': <String, Object?>{
+          'landscape': videoVariant(
+            width: 1280,
+            height: 720,
+            audioCodec: 'none',
+          ),
+          'portrait': videoVariant(
+            width: 720,
+            height: 1280,
+            audioCodec: 'none',
+          ),
+        },
       },
       'typography': <String, Object?>{
         'display': <String, Object?>{
@@ -428,15 +470,27 @@ void main() {
 
     expect(
       artifact.manifest.presentation?.intro?.video,
-      'presentation/intro/video.mp4',
+      'presentation/intro/landscape/video.mp4',
     );
     expect(
       artifact.inspection.payloadPaths,
       containsAll(<String>[
-        'presentation/intro/video.mp4',
-        'presentation/intro/poster.png',
-        'presentation/intro/captions.vtt',
+        'presentation/intro/landscape/video.mp4',
+        'presentation/intro/landscape/poster.png',
+        'presentation/intro/landscape/captions.vtt',
+        'presentation/title/prompt/landscape/video.mp4',
+        'presentation/title/prompt/portrait/video.mp4',
+        'presentation/title/menu/landscape/video.mp4',
+        'presentation/title/menu/portrait/video.mp4',
       ]),
+    );
+    expect(
+      artifact.manifest.presentation?.titleMotion?.promptLoop?.portrait?.video,
+      'presentation/title/prompt/portrait/video.mp4',
+    );
+    expect(
+      artifact.manifest.presentation?.titleMotion?.menuLoop?.landscape.video,
+      'presentation/title/menu/landscape/video.mp4',
     );
     expect(
       artifact.manifest.presentation?.typography?.display.family,

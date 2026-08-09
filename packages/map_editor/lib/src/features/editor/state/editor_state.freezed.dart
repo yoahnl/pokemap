@@ -1,5 +1,5 @@
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,2566 +9,1402 @@ part of 'editor_state.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
 /// @nodoc
 mixin _$EditorBrush {
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() none,
-    required TResult Function(int tileId, String tilesetId) tile,
-    required TResult Function(String entryId, String tilesetId) paletteEntry,
-    required TResult Function(String elementId) projectElement,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? none,
-    TResult? Function(int tileId, String tilesetId)? tile,
-    TResult? Function(String entryId, String tilesetId)? paletteEntry,
-    TResult? Function(String elementId)? projectElement,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? none,
-    TResult Function(int tileId, String tilesetId)? tile,
-    TResult Function(String entryId, String tilesetId)? paletteEntry,
-    TResult Function(String elementId)? projectElement,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(NoEditorBrush value) none,
-    required TResult Function(TileEditorBrush value) tile,
-    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
-    required TResult Function(ProjectElementEditorBrush value) projectElement,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(NoEditorBrush value)? none,
-    TResult? Function(TileEditorBrush value)? tile,
-    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult? Function(ProjectElementEditorBrush value)? projectElement,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(NoEditorBrush value)? none,
-    TResult Function(TileEditorBrush value)? tile,
-    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult Function(ProjectElementEditorBrush value)? projectElement,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EditorBrush);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'EditorBrush()';
+}
+
+
 }
 
 /// @nodoc
-abstract class $EditorBrushCopyWith<$Res> {
-  factory $EditorBrushCopyWith(
-          EditorBrush value, $Res Function(EditorBrush) then) =
-      _$EditorBrushCopyWithImpl<$Res, EditorBrush>;
+class $EditorBrushCopyWith<$Res>  {
+$EditorBrushCopyWith(EditorBrush _, $Res Function(EditorBrush) __);
 }
 
-/// @nodoc
-class _$EditorBrushCopyWithImpl<$Res, $Val extends EditorBrush>
-    implements $EditorBrushCopyWith<$Res> {
-  _$EditorBrushCopyWithImpl(this._value, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+/// Adds pattern-matching-related methods to [EditorBrush].
+extension EditorBrushPatterns on EditorBrush {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
 
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( NoEditorBrush value)?  none,TResult Function( TileEditorBrush value)?  tile,TResult Function( PaletteEntryEditorBrush value)?  paletteEntry,TResult Function( ProjectElementEditorBrush value)?  projectElement,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case NoEditorBrush() when none != null:
+return none(_that);case TileEditorBrush() when tile != null:
+return tile(_that);case PaletteEntryEditorBrush() when paletteEntry != null:
+return paletteEntry(_that);case ProjectElementEditorBrush() when projectElement != null:
+return projectElement(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( NoEditorBrush value)  none,required TResult Function( TileEditorBrush value)  tile,required TResult Function( PaletteEntryEditorBrush value)  paletteEntry,required TResult Function( ProjectElementEditorBrush value)  projectElement,}){
+final _that = this;
+switch (_that) {
+case NoEditorBrush():
+return none(_that);case TileEditorBrush():
+return tile(_that);case PaletteEntryEditorBrush():
+return paletteEntry(_that);case ProjectElementEditorBrush():
+return projectElement(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( NoEditorBrush value)?  none,TResult? Function( TileEditorBrush value)?  tile,TResult? Function( PaletteEntryEditorBrush value)?  paletteEntry,TResult? Function( ProjectElementEditorBrush value)?  projectElement,}){
+final _that = this;
+switch (_that) {
+case NoEditorBrush() when none != null:
+return none(_that);case TileEditorBrush() when tile != null:
+return tile(_that);case PaletteEntryEditorBrush() when paletteEntry != null:
+return paletteEntry(_that);case ProjectElementEditorBrush() when projectElement != null:
+return projectElement(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  none,TResult Function( int tileId,  String tilesetId)?  tile,TResult Function( String entryId,  String tilesetId)?  paletteEntry,TResult Function( String elementId)?  projectElement,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case NoEditorBrush() when none != null:
+return none();case TileEditorBrush() when tile != null:
+return tile(_that.tileId,_that.tilesetId);case PaletteEntryEditorBrush() when paletteEntry != null:
+return paletteEntry(_that.entryId,_that.tilesetId);case ProjectElementEditorBrush() when projectElement != null:
+return projectElement(_that.elementId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  none,required TResult Function( int tileId,  String tilesetId)  tile,required TResult Function( String entryId,  String tilesetId)  paletteEntry,required TResult Function( String elementId)  projectElement,}) {final _that = this;
+switch (_that) {
+case NoEditorBrush():
+return none();case TileEditorBrush():
+return tile(_that.tileId,_that.tilesetId);case PaletteEntryEditorBrush():
+return paletteEntry(_that.entryId,_that.tilesetId);case ProjectElementEditorBrush():
+return projectElement(_that.elementId);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  none,TResult? Function( int tileId,  String tilesetId)?  tile,TResult? Function( String entryId,  String tilesetId)?  paletteEntry,TResult? Function( String elementId)?  projectElement,}) {final _that = this;
+switch (_that) {
+case NoEditorBrush() when none != null:
+return none();case TileEditorBrush() when tile != null:
+return tile(_that.tileId,_that.tilesetId);case PaletteEntryEditorBrush() when paletteEntry != null:
+return paletteEntry(_that.entryId,_that.tilesetId);case ProjectElementEditorBrush() when projectElement != null:
+return projectElement(_that.elementId);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-abstract class _$$NoEditorBrushImplCopyWith<$Res> {
-  factory _$$NoEditorBrushImplCopyWith(
-          _$NoEditorBrushImpl value, $Res Function(_$NoEditorBrushImpl) then) =
-      __$$NoEditorBrushImplCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$NoEditorBrushImplCopyWithImpl<$Res>
-    extends _$EditorBrushCopyWithImpl<$Res, _$NoEditorBrushImpl>
-    implements _$$NoEditorBrushImplCopyWith<$Res> {
-  __$$NoEditorBrushImplCopyWithImpl(
-      _$NoEditorBrushImpl _value, $Res Function(_$NoEditorBrushImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-}
-
-/// @nodoc
-
-class _$NoEditorBrushImpl implements NoEditorBrush {
-  const _$NoEditorBrushImpl();
-
-  @override
-  String toString() {
-    return 'EditorBrush.none()';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType && other is _$NoEditorBrushImpl);
-  }
-
-  @override
-  int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() none,
-    required TResult Function(int tileId, String tilesetId) tile,
-    required TResult Function(String entryId, String tilesetId) paletteEntry,
-    required TResult Function(String elementId) projectElement,
-  }) {
-    return none();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? none,
-    TResult? Function(int tileId, String tilesetId)? tile,
-    TResult? Function(String entryId, String tilesetId)? paletteEntry,
-    TResult? Function(String elementId)? projectElement,
-  }) {
-    return none?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? none,
-    TResult Function(int tileId, String tilesetId)? tile,
-    TResult Function(String entryId, String tilesetId)? paletteEntry,
-    TResult Function(String elementId)? projectElement,
-    required TResult orElse(),
-  }) {
-    if (none != null) {
-      return none();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(NoEditorBrush value) none,
-    required TResult Function(TileEditorBrush value) tile,
-    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
-    required TResult Function(ProjectElementEditorBrush value) projectElement,
-  }) {
-    return none(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(NoEditorBrush value)? none,
-    TResult? Function(TileEditorBrush value)? tile,
-    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult? Function(ProjectElementEditorBrush value)? projectElement,
-  }) {
-    return none?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(NoEditorBrush value)? none,
-    TResult Function(TileEditorBrush value)? tile,
-    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult Function(ProjectElementEditorBrush value)? projectElement,
-    required TResult orElse(),
-  }) {
-    if (none != null) {
-      return none(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class NoEditorBrush implements EditorBrush {
-  const factory NoEditorBrush() = _$NoEditorBrushImpl;
-}
-
-/// @nodoc
-abstract class _$$TileEditorBrushImplCopyWith<$Res> {
-  factory _$$TileEditorBrushImplCopyWith(_$TileEditorBrushImpl value,
-          $Res Function(_$TileEditorBrushImpl) then) =
-      __$$TileEditorBrushImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({int tileId, String tilesetId});
-}
-
-/// @nodoc
-class __$$TileEditorBrushImplCopyWithImpl<$Res>
-    extends _$EditorBrushCopyWithImpl<$Res, _$TileEditorBrushImpl>
-    implements _$$TileEditorBrushImplCopyWith<$Res> {
-  __$$TileEditorBrushImplCopyWithImpl(
-      _$TileEditorBrushImpl _value, $Res Function(_$TileEditorBrushImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? tileId = null,
-    Object? tilesetId = null,
-  }) {
-    return _then(_$TileEditorBrushImpl(
-      tileId: null == tileId
-          ? _value.tileId
-          : tileId // ignore: cast_nullable_to_non_nullable
-              as int,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-    ));
-  }
 }
 
 /// @nodoc
 
-class _$TileEditorBrushImpl implements TileEditorBrush {
-  const _$TileEditorBrushImpl({required this.tileId, required this.tilesetId});
 
-  @override
-  final int tileId;
-  @override
-  final String tilesetId;
+class NoEditorBrush implements EditorBrush {
+  const NoEditorBrush();
+  
 
-  @override
-  String toString() {
-    return 'EditorBrush.tile(tileId: $tileId, tilesetId: $tilesetId)';
-  }
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$TileEditorBrushImpl &&
-            (identical(other.tileId, tileId) || other.tileId == tileId) &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId));
-  }
 
-  @override
-  int get hashCode => Object.hash(runtimeType, tileId, tilesetId);
 
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$TileEditorBrushImplCopyWith<_$TileEditorBrushImpl> get copyWith =>
-      __$$TileEditorBrushImplCopyWithImpl<_$TileEditorBrushImpl>(
-          this, _$identity);
 
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() none,
-    required TResult Function(int tileId, String tilesetId) tile,
-    required TResult Function(String entryId, String tilesetId) paletteEntry,
-    required TResult Function(String elementId) projectElement,
-  }) {
-    return tile(tileId, tilesetId);
-  }
 
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? none,
-    TResult? Function(int tileId, String tilesetId)? tile,
-    TResult? Function(String entryId, String tilesetId)? paletteEntry,
-    TResult? Function(String elementId)? projectElement,
-  }) {
-    return tile?.call(tileId, tilesetId);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? none,
-    TResult Function(int tileId, String tilesetId)? tile,
-    TResult Function(String entryId, String tilesetId)? paletteEntry,
-    TResult Function(String elementId)? projectElement,
-    required TResult orElse(),
-  }) {
-    if (tile != null) {
-      return tile(tileId, tilesetId);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(NoEditorBrush value) none,
-    required TResult Function(TileEditorBrush value) tile,
-    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
-    required TResult Function(ProjectElementEditorBrush value) projectElement,
-  }) {
-    return tile(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(NoEditorBrush value)? none,
-    TResult? Function(TileEditorBrush value)? tile,
-    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult? Function(ProjectElementEditorBrush value)? projectElement,
-  }) {
-    return tile?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(NoEditorBrush value)? none,
-    TResult Function(TileEditorBrush value)? tile,
-    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult Function(ProjectElementEditorBrush value)? projectElement,
-    required TResult orElse(),
-  }) {
-    if (tile != null) {
-      return tile(this);
-    }
-    return orElse();
-  }
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is NoEditorBrush);
 }
 
-abstract class TileEditorBrush implements EditorBrush {
-  const factory TileEditorBrush(
-      {required final int tileId,
-      required final String tilesetId}) = _$TileEditorBrushImpl;
 
-  int get tileId;
-  String get tilesetId;
+@override
+int get hashCode => runtimeType.hashCode;
 
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$TileEditorBrushImplCopyWith<_$TileEditorBrushImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+@override
+String toString() {
+  return 'EditorBrush.none()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class TileEditorBrush implements EditorBrush {
+  const TileEditorBrush({required this.tileId, required this.tilesetId});
+  
+
+ final  int tileId;
+ final  String tilesetId;
+
+/// Create a copy of EditorBrush
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TileEditorBrushCopyWith<TileEditorBrush> get copyWith => _$TileEditorBrushCopyWithImpl<TileEditorBrush>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TileEditorBrush&&(identical(other.tileId, tileId) || other.tileId == tileId)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,tileId,tilesetId);
+
+@override
+String toString() {
+  return 'EditorBrush.tile(tileId: $tileId, tilesetId: $tilesetId)';
+}
+
+
 }
 
 /// @nodoc
-abstract class _$$PaletteEntryEditorBrushImplCopyWith<$Res> {
-  factory _$$PaletteEntryEditorBrushImplCopyWith(
-          _$PaletteEntryEditorBrushImpl value,
-          $Res Function(_$PaletteEntryEditorBrushImpl) then) =
-      __$$PaletteEntryEditorBrushImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({String entryId, String tilesetId});
+abstract mixin class $TileEditorBrushCopyWith<$Res> implements $EditorBrushCopyWith<$Res> {
+  factory $TileEditorBrushCopyWith(TileEditorBrush value, $Res Function(TileEditorBrush) _then) = _$TileEditorBrushCopyWithImpl;
+@useResult
+$Res call({
+ int tileId, String tilesetId
+});
+
+
+
+
+}
+/// @nodoc
+class _$TileEditorBrushCopyWithImpl<$Res>
+    implements $TileEditorBrushCopyWith<$Res> {
+  _$TileEditorBrushCopyWithImpl(this._self, this._then);
+
+  final TileEditorBrush _self;
+  final $Res Function(TileEditorBrush) _then;
+
+/// Create a copy of EditorBrush
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? tileId = null,Object? tilesetId = null,}) {
+  return _then(TileEditorBrush(
+tileId: null == tileId ? _self.tileId : tileId // ignore: cast_nullable_to_non_nullable
+as int,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
 }
 
-/// @nodoc
-class __$$PaletteEntryEditorBrushImplCopyWithImpl<$Res>
-    extends _$EditorBrushCopyWithImpl<$Res, _$PaletteEntryEditorBrushImpl>
-    implements _$$PaletteEntryEditorBrushImplCopyWith<$Res> {
-  __$$PaletteEntryEditorBrushImplCopyWithImpl(
-      _$PaletteEntryEditorBrushImpl _value,
-      $Res Function(_$PaletteEntryEditorBrushImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? entryId = null,
-    Object? tilesetId = null,
-  }) {
-    return _then(_$PaletteEntryEditorBrushImpl(
-      entryId: null == entryId
-          ? _value.entryId
-          : entryId // ignore: cast_nullable_to_non_nullable
-              as String,
-      tilesetId: null == tilesetId
-          ? _value.tilesetId
-          : tilesetId // ignore: cast_nullable_to_non_nullable
-              as String,
-    ));
-  }
 }
 
 /// @nodoc
 
-class _$PaletteEntryEditorBrushImpl implements PaletteEntryEditorBrush {
-  const _$PaletteEntryEditorBrushImpl(
-      {required this.entryId, required this.tilesetId});
 
-  @override
-  final String entryId;
-  @override
-  final String tilesetId;
+class PaletteEntryEditorBrush implements EditorBrush {
+  const PaletteEntryEditorBrush({required this.entryId, required this.tilesetId});
+  
 
-  @override
-  String toString() {
-    return 'EditorBrush.paletteEntry(entryId: $entryId, tilesetId: $tilesetId)';
-  }
+ final  String entryId;
+ final  String tilesetId;
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$PaletteEntryEditorBrushImpl &&
-            (identical(other.entryId, entryId) || other.entryId == entryId) &&
-            (identical(other.tilesetId, tilesetId) ||
-                other.tilesetId == tilesetId));
-  }
+/// Create a copy of EditorBrush
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PaletteEntryEditorBrushCopyWith<PaletteEntryEditorBrush> get copyWith => _$PaletteEntryEditorBrushCopyWithImpl<PaletteEntryEditorBrush>(this, _$identity);
 
-  @override
-  int get hashCode => Object.hash(runtimeType, entryId, tilesetId);
 
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$PaletteEntryEditorBrushImplCopyWith<_$PaletteEntryEditorBrushImpl>
-      get copyWith => __$$PaletteEntryEditorBrushImplCopyWithImpl<
-          _$PaletteEntryEditorBrushImpl>(this, _$identity);
 
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() none,
-    required TResult Function(int tileId, String tilesetId) tile,
-    required TResult Function(String entryId, String tilesetId) paletteEntry,
-    required TResult Function(String elementId) projectElement,
-  }) {
-    return paletteEntry(entryId, tilesetId);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? none,
-    TResult? Function(int tileId, String tilesetId)? tile,
-    TResult? Function(String entryId, String tilesetId)? paletteEntry,
-    TResult? Function(String elementId)? projectElement,
-  }) {
-    return paletteEntry?.call(entryId, tilesetId);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? none,
-    TResult Function(int tileId, String tilesetId)? tile,
-    TResult Function(String entryId, String tilesetId)? paletteEntry,
-    TResult Function(String elementId)? projectElement,
-    required TResult orElse(),
-  }) {
-    if (paletteEntry != null) {
-      return paletteEntry(entryId, tilesetId);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(NoEditorBrush value) none,
-    required TResult Function(TileEditorBrush value) tile,
-    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
-    required TResult Function(ProjectElementEditorBrush value) projectElement,
-  }) {
-    return paletteEntry(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(NoEditorBrush value)? none,
-    TResult? Function(TileEditorBrush value)? tile,
-    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult? Function(ProjectElementEditorBrush value)? projectElement,
-  }) {
-    return paletteEntry?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(NoEditorBrush value)? none,
-    TResult Function(TileEditorBrush value)? tile,
-    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult Function(ProjectElementEditorBrush value)? projectElement,
-    required TResult orElse(),
-  }) {
-    if (paletteEntry != null) {
-      return paletteEntry(this);
-    }
-    return orElse();
-  }
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PaletteEntryEditorBrush&&(identical(other.entryId, entryId) || other.entryId == entryId)&&(identical(other.tilesetId, tilesetId) || other.tilesetId == tilesetId));
 }
 
-abstract class PaletteEntryEditorBrush implements EditorBrush {
-  const factory PaletteEntryEditorBrush(
-      {required final String entryId,
-      required final String tilesetId}) = _$PaletteEntryEditorBrushImpl;
 
-  String get entryId;
-  String get tilesetId;
+@override
+int get hashCode => Object.hash(runtimeType,entryId,tilesetId);
 
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$PaletteEntryEditorBrushImplCopyWith<_$PaletteEntryEditorBrushImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+String toString() {
+  return 'EditorBrush.paletteEntry(entryId: $entryId, tilesetId: $tilesetId)';
+}
+
+
 }
 
 /// @nodoc
-abstract class _$$ProjectElementEditorBrushImplCopyWith<$Res> {
-  factory _$$ProjectElementEditorBrushImplCopyWith(
-          _$ProjectElementEditorBrushImpl value,
-          $Res Function(_$ProjectElementEditorBrushImpl) then) =
-      __$$ProjectElementEditorBrushImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({String elementId});
+abstract mixin class $PaletteEntryEditorBrushCopyWith<$Res> implements $EditorBrushCopyWith<$Res> {
+  factory $PaletteEntryEditorBrushCopyWith(PaletteEntryEditorBrush value, $Res Function(PaletteEntryEditorBrush) _then) = _$PaletteEntryEditorBrushCopyWithImpl;
+@useResult
+$Res call({
+ String entryId, String tilesetId
+});
+
+
+
+
+}
+/// @nodoc
+class _$PaletteEntryEditorBrushCopyWithImpl<$Res>
+    implements $PaletteEntryEditorBrushCopyWith<$Res> {
+  _$PaletteEntryEditorBrushCopyWithImpl(this._self, this._then);
+
+  final PaletteEntryEditorBrush _self;
+  final $Res Function(PaletteEntryEditorBrush) _then;
+
+/// Create a copy of EditorBrush
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? entryId = null,Object? tilesetId = null,}) {
+  return _then(PaletteEntryEditorBrush(
+entryId: null == entryId ? _self.entryId : entryId // ignore: cast_nullable_to_non_nullable
+as String,tilesetId: null == tilesetId ? _self.tilesetId : tilesetId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
 }
 
-/// @nodoc
-class __$$ProjectElementEditorBrushImplCopyWithImpl<$Res>
-    extends _$EditorBrushCopyWithImpl<$Res, _$ProjectElementEditorBrushImpl>
-    implements _$$ProjectElementEditorBrushImplCopyWith<$Res> {
-  __$$ProjectElementEditorBrushImplCopyWithImpl(
-      _$ProjectElementEditorBrushImpl _value,
-      $Res Function(_$ProjectElementEditorBrushImpl) _then)
-      : super(_value, _then);
 
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? elementId = null,
-  }) {
-    return _then(_$ProjectElementEditorBrushImpl(
-      elementId: null == elementId
-          ? _value.elementId
-          : elementId // ignore: cast_nullable_to_non_nullable
-              as String,
-    ));
-  }
 }
 
 /// @nodoc
 
-class _$ProjectElementEditorBrushImpl implements ProjectElementEditorBrush {
-  const _$ProjectElementEditorBrushImpl({required this.elementId});
 
-  @override
-  final String elementId;
+class ProjectElementEditorBrush implements EditorBrush {
+  const ProjectElementEditorBrush({required this.elementId});
+  
 
-  @override
-  String toString() {
-    return 'EditorBrush.projectElement(elementId: $elementId)';
-  }
+ final  String elementId;
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$ProjectElementEditorBrushImpl &&
-            (identical(other.elementId, elementId) ||
-                other.elementId == elementId));
-  }
+/// Create a copy of EditorBrush
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ProjectElementEditorBrushCopyWith<ProjectElementEditorBrush> get copyWith => _$ProjectElementEditorBrushCopyWithImpl<ProjectElementEditorBrush>(this, _$identity);
 
-  @override
-  int get hashCode => Object.hash(runtimeType, elementId);
 
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$ProjectElementEditorBrushImplCopyWith<_$ProjectElementEditorBrushImpl>
-      get copyWith => __$$ProjectElementEditorBrushImplCopyWithImpl<
-          _$ProjectElementEditorBrushImpl>(this, _$identity);
 
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() none,
-    required TResult Function(int tileId, String tilesetId) tile,
-    required TResult Function(String entryId, String tilesetId) paletteEntry,
-    required TResult Function(String elementId) projectElement,
-  }) {
-    return projectElement(elementId);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? none,
-    TResult? Function(int tileId, String tilesetId)? tile,
-    TResult? Function(String entryId, String tilesetId)? paletteEntry,
-    TResult? Function(String elementId)? projectElement,
-  }) {
-    return projectElement?.call(elementId);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? none,
-    TResult Function(int tileId, String tilesetId)? tile,
-    TResult Function(String entryId, String tilesetId)? paletteEntry,
-    TResult Function(String elementId)? projectElement,
-    required TResult orElse(),
-  }) {
-    if (projectElement != null) {
-      return projectElement(elementId);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(NoEditorBrush value) none,
-    required TResult Function(TileEditorBrush value) tile,
-    required TResult Function(PaletteEntryEditorBrush value) paletteEntry,
-    required TResult Function(ProjectElementEditorBrush value) projectElement,
-  }) {
-    return projectElement(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(NoEditorBrush value)? none,
-    TResult? Function(TileEditorBrush value)? tile,
-    TResult? Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult? Function(ProjectElementEditorBrush value)? projectElement,
-  }) {
-    return projectElement?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(NoEditorBrush value)? none,
-    TResult Function(TileEditorBrush value)? tile,
-    TResult Function(PaletteEntryEditorBrush value)? paletteEntry,
-    TResult Function(ProjectElementEditorBrush value)? projectElement,
-    required TResult orElse(),
-  }) {
-    if (projectElement != null) {
-      return projectElement(this);
-    }
-    return orElse();
-  }
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProjectElementEditorBrush&&(identical(other.elementId, elementId) || other.elementId == elementId));
 }
 
-abstract class ProjectElementEditorBrush implements EditorBrush {
-  const factory ProjectElementEditorBrush({required final String elementId}) =
-      _$ProjectElementEditorBrushImpl;
 
-  String get elementId;
+@override
+int get hashCode => Object.hash(runtimeType,elementId);
 
-  /// Create a copy of EditorBrush
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$ProjectElementEditorBrushImplCopyWith<_$ProjectElementEditorBrushImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+String toString() {
+  return 'EditorBrush.projectElement(elementId: $elementId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $ProjectElementEditorBrushCopyWith<$Res> implements $EditorBrushCopyWith<$Res> {
+  factory $ProjectElementEditorBrushCopyWith(ProjectElementEditorBrush value, $Res Function(ProjectElementEditorBrush) _then) = _$ProjectElementEditorBrushCopyWithImpl;
+@useResult
+$Res call({
+ String elementId
+});
+
+
+
+
+}
+/// @nodoc
+class _$ProjectElementEditorBrushCopyWithImpl<$Res>
+    implements $ProjectElementEditorBrushCopyWith<$Res> {
+  _$ProjectElementEditorBrushCopyWithImpl(this._self, this._then);
+
+  final ProjectElementEditorBrush _self;
+  final $Res Function(ProjectElementEditorBrush) _then;
+
+/// Create a copy of EditorBrush
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? elementId = null,}) {
+  return _then(ProjectElementEditorBrush(
+elementId: null == elementId ? _self.elementId : elementId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
 }
 
 /// @nodoc
 mixin _$EditorEraserFootprint {
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() singleTile,
-    required TResult Function(GridSize size) previousBrush,
-    required TResult Function(GridSize size) custom,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? singleTile,
-    TResult? Function(GridSize size)? previousBrush,
-    TResult? Function(GridSize size)? custom,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? singleTile,
-    TResult Function(GridSize size)? previousBrush,
-    TResult Function(GridSize size)? custom,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(SingleTileEditorEraserFootprint value) singleTile,
-    required TResult Function(PreviousBrushEditorEraserFootprint value)
-        previousBrush,
-    required TResult Function(CustomEditorEraserFootprint value) custom,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(SingleTileEditorEraserFootprint value)? singleTile,
-    TResult? Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
-    TResult? Function(CustomEditorEraserFootprint value)? custom,
-  }) =>
-      throw _privateConstructorUsedError;
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(SingleTileEditorEraserFootprint value)? singleTile,
-    TResult Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
-    TResult Function(CustomEditorEraserFootprint value)? custom,
-    required TResult orElse(),
-  }) =>
-      throw _privateConstructorUsedError;
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EditorEraserFootprint);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'EditorEraserFootprint()';
+}
+
+
 }
 
 /// @nodoc
-abstract class $EditorEraserFootprintCopyWith<$Res> {
-  factory $EditorEraserFootprintCopyWith(EditorEraserFootprint value,
-          $Res Function(EditorEraserFootprint) then) =
-      _$EditorEraserFootprintCopyWithImpl<$Res, EditorEraserFootprint>;
+class $EditorEraserFootprintCopyWith<$Res>  {
+$EditorEraserFootprintCopyWith(EditorEraserFootprint _, $Res Function(EditorEraserFootprint) __);
 }
 
-/// @nodoc
-class _$EditorEraserFootprintCopyWithImpl<$Res,
-        $Val extends EditorEraserFootprint>
-    implements $EditorEraserFootprintCopyWith<$Res> {
-  _$EditorEraserFootprintCopyWithImpl(this._value, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+/// Adds pattern-matching-related methods to [EditorEraserFootprint].
+extension EditorEraserFootprintPatterns on EditorEraserFootprint {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
 
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( SingleTileEditorEraserFootprint value)?  singleTile,TResult Function( PreviousBrushEditorEraserFootprint value)?  previousBrush,TResult Function( CustomEditorEraserFootprint value)?  custom,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case SingleTileEditorEraserFootprint() when singleTile != null:
+return singleTile(_that);case PreviousBrushEditorEraserFootprint() when previousBrush != null:
+return previousBrush(_that);case CustomEditorEraserFootprint() when custom != null:
+return custom(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( SingleTileEditorEraserFootprint value)  singleTile,required TResult Function( PreviousBrushEditorEraserFootprint value)  previousBrush,required TResult Function( CustomEditorEraserFootprint value)  custom,}){
+final _that = this;
+switch (_that) {
+case SingleTileEditorEraserFootprint():
+return singleTile(_that);case PreviousBrushEditorEraserFootprint():
+return previousBrush(_that);case CustomEditorEraserFootprint():
+return custom(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( SingleTileEditorEraserFootprint value)?  singleTile,TResult? Function( PreviousBrushEditorEraserFootprint value)?  previousBrush,TResult? Function( CustomEditorEraserFootprint value)?  custom,}){
+final _that = this;
+switch (_that) {
+case SingleTileEditorEraserFootprint() when singleTile != null:
+return singleTile(_that);case PreviousBrushEditorEraserFootprint() when previousBrush != null:
+return previousBrush(_that);case CustomEditorEraserFootprint() when custom != null:
+return custom(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  singleTile,TResult Function( GridSize size)?  previousBrush,TResult Function( GridSize size)?  custom,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case SingleTileEditorEraserFootprint() when singleTile != null:
+return singleTile();case PreviousBrushEditorEraserFootprint() when previousBrush != null:
+return previousBrush(_that.size);case CustomEditorEraserFootprint() when custom != null:
+return custom(_that.size);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  singleTile,required TResult Function( GridSize size)  previousBrush,required TResult Function( GridSize size)  custom,}) {final _that = this;
+switch (_that) {
+case SingleTileEditorEraserFootprint():
+return singleTile();case PreviousBrushEditorEraserFootprint():
+return previousBrush(_that.size);case CustomEditorEraserFootprint():
+return custom(_that.size);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  singleTile,TResult? Function( GridSize size)?  previousBrush,TResult? Function( GridSize size)?  custom,}) {final _that = this;
+switch (_that) {
+case SingleTileEditorEraserFootprint() when singleTile != null:
+return singleTile();case PreviousBrushEditorEraserFootprint() when previousBrush != null:
+return previousBrush(_that.size);case CustomEditorEraserFootprint() when custom != null:
+return custom(_that.size);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-abstract class _$$SingleTileEditorEraserFootprintImplCopyWith<$Res> {
-  factory _$$SingleTileEditorEraserFootprintImplCopyWith(
-          _$SingleTileEditorEraserFootprintImpl value,
-          $Res Function(_$SingleTileEditorEraserFootprintImpl) then) =
-      __$$SingleTileEditorEraserFootprintImplCopyWithImpl<$Res>;
-}
-
-/// @nodoc
-class __$$SingleTileEditorEraserFootprintImplCopyWithImpl<$Res>
-    extends _$EditorEraserFootprintCopyWithImpl<$Res,
-        _$SingleTileEditorEraserFootprintImpl>
-    implements _$$SingleTileEditorEraserFootprintImplCopyWith<$Res> {
-  __$$SingleTileEditorEraserFootprintImplCopyWithImpl(
-      _$SingleTileEditorEraserFootprintImpl _value,
-      $Res Function(_$SingleTileEditorEraserFootprintImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
-}
-
-/// @nodoc
-
-class _$SingleTileEditorEraserFootprintImpl
-    implements SingleTileEditorEraserFootprint {
-  const _$SingleTileEditorEraserFootprintImpl();
-
-  @override
-  String toString() {
-    return 'EditorEraserFootprint.singleTile()';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$SingleTileEditorEraserFootprintImpl);
-  }
-
-  @override
-  int get hashCode => runtimeType.hashCode;
-
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() singleTile,
-    required TResult Function(GridSize size) previousBrush,
-    required TResult Function(GridSize size) custom,
-  }) {
-    return singleTile();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? singleTile,
-    TResult? Function(GridSize size)? previousBrush,
-    TResult? Function(GridSize size)? custom,
-  }) {
-    return singleTile?.call();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? singleTile,
-    TResult Function(GridSize size)? previousBrush,
-    TResult Function(GridSize size)? custom,
-    required TResult orElse(),
-  }) {
-    if (singleTile != null) {
-      return singleTile();
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(SingleTileEditorEraserFootprint value) singleTile,
-    required TResult Function(PreviousBrushEditorEraserFootprint value)
-        previousBrush,
-    required TResult Function(CustomEditorEraserFootprint value) custom,
-  }) {
-    return singleTile(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(SingleTileEditorEraserFootprint value)? singleTile,
-    TResult? Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
-    TResult? Function(CustomEditorEraserFootprint value)? custom,
-  }) {
-    return singleTile?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(SingleTileEditorEraserFootprint value)? singleTile,
-    TResult Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
-    TResult Function(CustomEditorEraserFootprint value)? custom,
-    required TResult orElse(),
-  }) {
-    if (singleTile != null) {
-      return singleTile(this);
-    }
-    return orElse();
-  }
-}
-
-abstract class SingleTileEditorEraserFootprint
-    implements EditorEraserFootprint {
-  const factory SingleTileEditorEraserFootprint() =
-      _$SingleTileEditorEraserFootprintImpl;
-}
-
-/// @nodoc
-abstract class _$$PreviousBrushEditorEraserFootprintImplCopyWith<$Res> {
-  factory _$$PreviousBrushEditorEraserFootprintImplCopyWith(
-          _$PreviousBrushEditorEraserFootprintImpl value,
-          $Res Function(_$PreviousBrushEditorEraserFootprintImpl) then) =
-      __$$PreviousBrushEditorEraserFootprintImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({GridSize size});
-
-  $GridSizeCopyWith<$Res> get size;
-}
-
-/// @nodoc
-class __$$PreviousBrushEditorEraserFootprintImplCopyWithImpl<$Res>
-    extends _$EditorEraserFootprintCopyWithImpl<$Res,
-        _$PreviousBrushEditorEraserFootprintImpl>
-    implements _$$PreviousBrushEditorEraserFootprintImplCopyWith<$Res> {
-  __$$PreviousBrushEditorEraserFootprintImplCopyWithImpl(
-      _$PreviousBrushEditorEraserFootprintImpl _value,
-      $Res Function(_$PreviousBrushEditorEraserFootprintImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? size = null,
-  }) {
-    return _then(_$PreviousBrushEditorEraserFootprintImpl(
-      size: null == size
-          ? _value.size
-          : size // ignore: cast_nullable_to_non_nullable
-              as GridSize,
-    ));
-  }
-
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridSizeCopyWith<$Res> get size {
-    return $GridSizeCopyWith<$Res>(_value.size, (value) {
-      return _then(_value.copyWith(size: value));
-    });
-  }
 }
 
 /// @nodoc
 
-class _$PreviousBrushEditorEraserFootprintImpl
-    implements PreviousBrushEditorEraserFootprint {
-  const _$PreviousBrushEditorEraserFootprintImpl({required this.size});
 
-  @override
-  final GridSize size;
+class SingleTileEditorEraserFootprint implements EditorEraserFootprint {
+  const SingleTileEditorEraserFootprint();
+  
 
-  @override
-  String toString() {
-    return 'EditorEraserFootprint.previousBrush(size: $size)';
-  }
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$PreviousBrushEditorEraserFootprintImpl &&
-            (identical(other.size, size) || other.size == size));
-  }
 
-  @override
-  int get hashCode => Object.hash(runtimeType, size);
 
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$PreviousBrushEditorEraserFootprintImplCopyWith<
-          _$PreviousBrushEditorEraserFootprintImpl>
-      get copyWith => __$$PreviousBrushEditorEraserFootprintImplCopyWithImpl<
-          _$PreviousBrushEditorEraserFootprintImpl>(this, _$identity);
 
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() singleTile,
-    required TResult Function(GridSize size) previousBrush,
-    required TResult Function(GridSize size) custom,
-  }) {
-    return previousBrush(size);
-  }
 
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? singleTile,
-    TResult? Function(GridSize size)? previousBrush,
-    TResult? Function(GridSize size)? custom,
-  }) {
-    return previousBrush?.call(size);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? singleTile,
-    TResult Function(GridSize size)? previousBrush,
-    TResult Function(GridSize size)? custom,
-    required TResult orElse(),
-  }) {
-    if (previousBrush != null) {
-      return previousBrush(size);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(SingleTileEditorEraserFootprint value) singleTile,
-    required TResult Function(PreviousBrushEditorEraserFootprint value)
-        previousBrush,
-    required TResult Function(CustomEditorEraserFootprint value) custom,
-  }) {
-    return previousBrush(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(SingleTileEditorEraserFootprint value)? singleTile,
-    TResult? Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
-    TResult? Function(CustomEditorEraserFootprint value)? custom,
-  }) {
-    return previousBrush?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(SingleTileEditorEraserFootprint value)? singleTile,
-    TResult Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
-    TResult Function(CustomEditorEraserFootprint value)? custom,
-    required TResult orElse(),
-  }) {
-    if (previousBrush != null) {
-      return previousBrush(this);
-    }
-    return orElse();
-  }
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SingleTileEditorEraserFootprint);
 }
 
-abstract class PreviousBrushEditorEraserFootprint
-    implements EditorEraserFootprint {
-  const factory PreviousBrushEditorEraserFootprint(
-          {required final GridSize size}) =
-      _$PreviousBrushEditorEraserFootprintImpl;
 
-  GridSize get size;
+@override
+int get hashCode => runtimeType.hashCode;
 
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$PreviousBrushEditorEraserFootprintImplCopyWith<
-          _$PreviousBrushEditorEraserFootprintImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+String toString() {
+  return 'EditorEraserFootprint.singleTile()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class PreviousBrushEditorEraserFootprint implements EditorEraserFootprint {
+  const PreviousBrushEditorEraserFootprint({required this.size});
+  
+
+ final  GridSize size;
+
+/// Create a copy of EditorEraserFootprint
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$PreviousBrushEditorEraserFootprintCopyWith<PreviousBrushEditorEraserFootprint> get copyWith => _$PreviousBrushEditorEraserFootprintCopyWithImpl<PreviousBrushEditorEraserFootprint>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PreviousBrushEditorEraserFootprint&&(identical(other.size, size) || other.size == size));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,size);
+
+@override
+String toString() {
+  return 'EditorEraserFootprint.previousBrush(size: $size)';
+}
+
+
 }
 
 /// @nodoc
-abstract class _$$CustomEditorEraserFootprintImplCopyWith<$Res> {
-  factory _$$CustomEditorEraserFootprintImplCopyWith(
-          _$CustomEditorEraserFootprintImpl value,
-          $Res Function(_$CustomEditorEraserFootprintImpl) then) =
-      __$$CustomEditorEraserFootprintImplCopyWithImpl<$Res>;
-  @useResult
-  $Res call({GridSize size});
+abstract mixin class $PreviousBrushEditorEraserFootprintCopyWith<$Res> implements $EditorEraserFootprintCopyWith<$Res> {
+  factory $PreviousBrushEditorEraserFootprintCopyWith(PreviousBrushEditorEraserFootprint value, $Res Function(PreviousBrushEditorEraserFootprint) _then) = _$PreviousBrushEditorEraserFootprintCopyWithImpl;
+@useResult
+$Res call({
+ GridSize size
+});
 
-  $GridSizeCopyWith<$Res> get size;
+
+$GridSizeCopyWith<$Res> get size;
+
+}
+/// @nodoc
+class _$PreviousBrushEditorEraserFootprintCopyWithImpl<$Res>
+    implements $PreviousBrushEditorEraserFootprintCopyWith<$Res> {
+  _$PreviousBrushEditorEraserFootprintCopyWithImpl(this._self, this._then);
+
+  final PreviousBrushEditorEraserFootprint _self;
+  final $Res Function(PreviousBrushEditorEraserFootprint) _then;
+
+/// Create a copy of EditorEraserFootprint
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? size = null,}) {
+  return _then(PreviousBrushEditorEraserFootprint(
+size: null == size ? _self.size : size // ignore: cast_nullable_to_non_nullable
+as GridSize,
+  ));
 }
 
-/// @nodoc
-class __$$CustomEditorEraserFootprintImplCopyWithImpl<$Res>
-    extends _$EditorEraserFootprintCopyWithImpl<$Res,
-        _$CustomEditorEraserFootprintImpl>
-    implements _$$CustomEditorEraserFootprintImplCopyWith<$Res> {
-  __$$CustomEditorEraserFootprintImplCopyWithImpl(
-      _$CustomEditorEraserFootprintImpl _value,
-      $Res Function(_$CustomEditorEraserFootprintImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? size = null,
-  }) {
-    return _then(_$CustomEditorEraserFootprintImpl(
-      size: null == size
-          ? _value.size
-          : size // ignore: cast_nullable_to_non_nullable
-              as GridSize,
-    ));
-  }
-
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridSizeCopyWith<$Res> get size {
-    return $GridSizeCopyWith<$Res>(_value.size, (value) {
-      return _then(_value.copyWith(size: value));
-    });
-  }
+/// Create a copy of EditorEraserFootprint
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridSizeCopyWith<$Res> get size {
+  
+  return $GridSizeCopyWith<$Res>(_self.size, (value) {
+    return _then(_self.copyWith(size: value));
+  });
+}
 }
 
 /// @nodoc
 
-class _$CustomEditorEraserFootprintImpl implements CustomEditorEraserFootprint {
-  const _$CustomEditorEraserFootprintImpl({required this.size});
 
-  @override
-  final GridSize size;
+class CustomEditorEraserFootprint implements EditorEraserFootprint {
+  const CustomEditorEraserFootprint({required this.size});
+  
 
-  @override
-  String toString() {
-    return 'EditorEraserFootprint.custom(size: $size)';
-  }
+ final  GridSize size;
 
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$CustomEditorEraserFootprintImpl &&
-            (identical(other.size, size) || other.size == size));
-  }
+/// Create a copy of EditorEraserFootprint
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$CustomEditorEraserFootprintCopyWith<CustomEditorEraserFootprint> get copyWith => _$CustomEditorEraserFootprintCopyWithImpl<CustomEditorEraserFootprint>(this, _$identity);
 
-  @override
-  int get hashCode => Object.hash(runtimeType, size);
 
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$CustomEditorEraserFootprintImplCopyWith<_$CustomEditorEraserFootprintImpl>
-      get copyWith => __$$CustomEditorEraserFootprintImplCopyWithImpl<
-          _$CustomEditorEraserFootprintImpl>(this, _$identity);
 
-  @override
-  @optionalTypeArgs
-  TResult when<TResult extends Object?>({
-    required TResult Function() singleTile,
-    required TResult Function(GridSize size) previousBrush,
-    required TResult Function(GridSize size) custom,
-  }) {
-    return custom(size);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? whenOrNull<TResult extends Object?>({
-    TResult? Function()? singleTile,
-    TResult? Function(GridSize size)? previousBrush,
-    TResult? Function(GridSize size)? custom,
-  }) {
-    return custom?.call(size);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeWhen<TResult extends Object?>({
-    TResult Function()? singleTile,
-    TResult Function(GridSize size)? previousBrush,
-    TResult Function(GridSize size)? custom,
-    required TResult orElse(),
-  }) {
-    if (custom != null) {
-      return custom(size);
-    }
-    return orElse();
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult map<TResult extends Object?>({
-    required TResult Function(SingleTileEditorEraserFootprint value) singleTile,
-    required TResult Function(PreviousBrushEditorEraserFootprint value)
-        previousBrush,
-    required TResult Function(CustomEditorEraserFootprint value) custom,
-  }) {
-    return custom(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult? mapOrNull<TResult extends Object?>({
-    TResult? Function(SingleTileEditorEraserFootprint value)? singleTile,
-    TResult? Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
-    TResult? Function(CustomEditorEraserFootprint value)? custom,
-  }) {
-    return custom?.call(this);
-  }
-
-  @override
-  @optionalTypeArgs
-  TResult maybeMap<TResult extends Object?>({
-    TResult Function(SingleTileEditorEraserFootprint value)? singleTile,
-    TResult Function(PreviousBrushEditorEraserFootprint value)? previousBrush,
-    TResult Function(CustomEditorEraserFootprint value)? custom,
-    required TResult orElse(),
-  }) {
-    if (custom != null) {
-      return custom(this);
-    }
-    return orElse();
-  }
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is CustomEditorEraserFootprint&&(identical(other.size, size) || other.size == size));
 }
 
-abstract class CustomEditorEraserFootprint implements EditorEraserFootprint {
-  const factory CustomEditorEraserFootprint({required final GridSize size}) =
-      _$CustomEditorEraserFootprintImpl;
 
-  GridSize get size;
+@override
+int get hashCode => Object.hash(runtimeType,size);
 
-  /// Create a copy of EditorEraserFootprint
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$CustomEditorEraserFootprintImplCopyWith<_$CustomEditorEraserFootprintImpl>
-      get copyWith => throw _privateConstructorUsedError;
+@override
+String toString() {
+  return 'EditorEraserFootprint.custom(size: $size)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $CustomEditorEraserFootprintCopyWith<$Res> implements $EditorEraserFootprintCopyWith<$Res> {
+  factory $CustomEditorEraserFootprintCopyWith(CustomEditorEraserFootprint value, $Res Function(CustomEditorEraserFootprint) _then) = _$CustomEditorEraserFootprintCopyWithImpl;
+@useResult
+$Res call({
+ GridSize size
+});
+
+
+$GridSizeCopyWith<$Res> get size;
+
+}
+/// @nodoc
+class _$CustomEditorEraserFootprintCopyWithImpl<$Res>
+    implements $CustomEditorEraserFootprintCopyWith<$Res> {
+  _$CustomEditorEraserFootprintCopyWithImpl(this._self, this._then);
+
+  final CustomEditorEraserFootprint _self;
+  final $Res Function(CustomEditorEraserFootprint) _then;
+
+/// Create a copy of EditorEraserFootprint
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? size = null,}) {
+  return _then(CustomEditorEraserFootprint(
+size: null == size ? _self.size : size // ignore: cast_nullable_to_non_nullable
+as GridSize,
+  ));
+}
+
+/// Create a copy of EditorEraserFootprint
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridSizeCopyWith<$Res> get size {
+  
+  return $GridSizeCopyWith<$Res>(_self.size, (value) {
+    return _then(_self.copyWith(size: value));
+  });
+}
 }
 
 /// @nodoc
 mixin _$EditorState {
+
 // Session projet / document ouvert
-  String? get projectRootPath => throw _privateConstructorUsedError;
-  ProjectManifest? get project => throw _privateConstructorUsedError;
-  EditorWorkspaceMode get workspaceMode => throw _privateConstructorUsedError;
-  SmartTilesStudioLaunchContext get smartTilesStudioLaunchContext =>
-      throw _privateConstructorUsedError;
-  PokemonCatalogSection get pokemonCatalogSection =>
-      throw _privateConstructorUsedError; // Document map actif
-  MapData? get activeMap => throw _privateConstructorUsedError;
-  String? get activeMapPath =>
-      throw _privateConstructorUsedError; // Outils et sélections d'édition
-  EditorToolType get activeTool => throw _privateConstructorUsedError;
-  String? get activeLayerId => throw _privateConstructorUsedError;
-  GridPos? get hoveredTile => throw _privateConstructorUsedError;
-  EditorBrush get activeBrush => throw _privateConstructorUsedError;
-  MapEntityKind get selectedEntityKind => throw _privateConstructorUsedError;
-  EditorEraserFootprint get eraserFootprint =>
-      throw _privateConstructorUsedError;
-  CollisionBrushSizeMode get collisionBrushSizeMode =>
-      throw _privateConstructorUsedError;
-  String? get selectedEntityId => throw _privateConstructorUsedError;
-
-  /// Session de placement visuel de waypoint NPC active.
-  ///
-  /// - `null` : aucun mode placement waypoint actif.
-  /// - non null : id de l'entité NPC ciblée par les clics map.
-  ///
-  /// Le clic map est alors re-routé vers "ajout waypoint", au lieu du flux
-  /// d'outil normal (paint/place/select), tant que la session est valide.
-  String? get npcWaypointPlacementEntityId =>
-      throw _privateConstructorUsedError;
-  String? get selectedMapEventId => throw _privateConstructorUsedError;
-  String? get selectedWarpId => throw _privateConstructorUsedError;
-  String? get selectedTriggerId => throw _privateConstructorUsedError;
-  String? get selectedGameplayZoneId => throw _privateConstructorUsedError;
-
-  /// Lot Environment-22 : area dont le masque est édité (layer actif = Environment).
-  String? get selectedEnvironmentAreaId => throw _privateConstructorUsedError;
-  EnvironmentMaskEditMode? get environmentMaskEditMode =>
-      throw _privateConstructorUsedError;
-
-  /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
-  MapRect? get gameplayZoneDraftArea => throw _privateConstructorUsedError;
-  String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
-  String? get selectedTilesetElementGroupId =>
-      throw _privateConstructorUsedError;
-  EditorPaletteSession get paletteSession => throw _privateConstructorUsedError;
-  TilesElementsPanelMode get tilesElementsPanelMode =>
-      throw _privateConstructorUsedError;
-  String? get selectedPlacedElementInstanceId =>
-      throw _privateConstructorUsedError;
-
-  /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
-  String? get selectedProjectDialogueId =>
-      throw _privateConstructorUsedError; // Rollback complet scénario/scripts:
+ String? get projectRootPath; ProjectManifest? get project; EditorWorkspaceMode get workspaceMode; SmartTilesStudioLaunchContext get smartTilesStudioLaunchContext; PokemonCatalogSection get pokemonCatalogSection;// Document map actif
+ MapData? get activeMap; String? get activeMapPath;// Outils et sélections d'édition
+ EditorToolType get activeTool; String? get activeLayerId; GridPos? get hoveredTile; EditorBrush get activeBrush; MapEntityKind get selectedEntityKind; EditorEraserFootprint get eraserFootprint; CollisionBrushSizeMode get collisionBrushSizeMode; String? get selectedEntityId;/// Session de placement visuel de waypoint NPC active.
+///
+/// - `null` : aucun mode placement waypoint actif.
+/// - non null : id de l'entité NPC ciblée par les clics map.
+///
+/// Le clic map est alors re-routé vers "ajout waypoint", au lieu du flux
+/// d'outil normal (paint/place/select), tant que la session est valide.
+ String? get npcWaypointPlacementEntityId; String? get selectedMapEventId; String? get selectedWarpId; String? get selectedTriggerId; String? get selectedGameplayZoneId;/// Lot Environment-22 : area dont le masque est édité (layer actif = Environment).
+ String? get selectedEnvironmentAreaId; EnvironmentMaskEditMode? get environmentMaskEditMode;/// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
+ MapRect? get gameplayZoneDraftArea; String? get selectedTilesetEditorId; String? get selectedTilesetElementGroupId; EditorPaletteSession get paletteSession; TilesElementsPanelMode get tilesElementsPanelMode; String? get selectedPlacedElementInstanceId;/// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
+ String? get selectedProjectDialogueId;// Rollback complet scénario/scripts:
 // Les sélections dédiées au graphe scénario et à la bibliothèque de scripts
 // runtime sont supprimées de l’état éditeur. Cela évite de conserver des
 // états fantômes pour des surfaces UI désormais retirées.
-  /// Dresseur sélectionné dans la bibliothèque dresseurs.
-  String? get selectedTrainerId => throw _privateConstructorUsedError;
+/// Dresseur sélectionné dans la bibliothèque dresseurs.
+ String? get selectedTrainerId;/// Personnage sélectionné dans la bibliothèque personnages.
+ String? get selectedCharacterId; PaletteCategory? get paletteCategoryFilter;// Viewport canvas
+ double get zoom; Offset get panOffset;// Statut document / historique
+ List<MapHistorySnapshot> get mapUndoStack; List<MapHistorySnapshot> get mapRedoStack; MapHistorySnapshot? get mapStrokeStart; MapData? get savedMapSnapshot; bool get canUndoMap; bool get canRedoMap; bool get isDirty; bool get isProjectDirty; bool get isSaving; String? get statusMessage; String? get errorMessage;
+/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$EditorStateCopyWith<EditorState> get copyWith => _$EditorStateCopyWithImpl<EditorState>(this as EditorState, _$identity);
 
-  /// Personnage sélectionné dans la bibliothèque personnages.
-  String? get selectedCharacterId => throw _privateConstructorUsedError;
-  PaletteCategory? get paletteCategoryFilter =>
-      throw _privateConstructorUsedError; // Viewport canvas
-  double get zoom => throw _privateConstructorUsedError;
-  Offset get panOffset =>
-      throw _privateConstructorUsedError; // Statut document / historique
-  List<MapHistorySnapshot> get mapUndoStack =>
-      throw _privateConstructorUsedError;
-  List<MapHistorySnapshot> get mapRedoStack =>
-      throw _privateConstructorUsedError;
-  MapHistorySnapshot? get mapStrokeStart => throw _privateConstructorUsedError;
-  MapData? get savedMapSnapshot => throw _privateConstructorUsedError;
-  bool get canUndoMap => throw _privateConstructorUsedError;
-  bool get canRedoMap => throw _privateConstructorUsedError;
-  bool get isDirty => throw _privateConstructorUsedError;
-  bool get isProjectDirty => throw _privateConstructorUsedError;
-  bool get isSaving => throw _privateConstructorUsedError;
-  String? get statusMessage => throw _privateConstructorUsedError;
-  String? get errorMessage => throw _privateConstructorUsedError;
 
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $EditorStateCopyWith<EditorState> get copyWith =>
-      throw _privateConstructorUsedError;
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is EditorState&&(identical(other.projectRootPath, projectRootPath) || other.projectRootPath == projectRootPath)&&(identical(other.project, project) || other.project == project)&&(identical(other.workspaceMode, workspaceMode) || other.workspaceMode == workspaceMode)&&(identical(other.smartTilesStudioLaunchContext, smartTilesStudioLaunchContext) || other.smartTilesStudioLaunchContext == smartTilesStudioLaunchContext)&&(identical(other.pokemonCatalogSection, pokemonCatalogSection) || other.pokemonCatalogSection == pokemonCatalogSection)&&(identical(other.activeMap, activeMap) || other.activeMap == activeMap)&&(identical(other.activeMapPath, activeMapPath) || other.activeMapPath == activeMapPath)&&(identical(other.activeTool, activeTool) || other.activeTool == activeTool)&&(identical(other.activeLayerId, activeLayerId) || other.activeLayerId == activeLayerId)&&(identical(other.hoveredTile, hoveredTile) || other.hoveredTile == hoveredTile)&&(identical(other.activeBrush, activeBrush) || other.activeBrush == activeBrush)&&(identical(other.selectedEntityKind, selectedEntityKind) || other.selectedEntityKind == selectedEntityKind)&&(identical(other.eraserFootprint, eraserFootprint) || other.eraserFootprint == eraserFootprint)&&(identical(other.collisionBrushSizeMode, collisionBrushSizeMode) || other.collisionBrushSizeMode == collisionBrushSizeMode)&&(identical(other.selectedEntityId, selectedEntityId) || other.selectedEntityId == selectedEntityId)&&(identical(other.npcWaypointPlacementEntityId, npcWaypointPlacementEntityId) || other.npcWaypointPlacementEntityId == npcWaypointPlacementEntityId)&&(identical(other.selectedMapEventId, selectedMapEventId) || other.selectedMapEventId == selectedMapEventId)&&(identical(other.selectedWarpId, selectedWarpId) || other.selectedWarpId == selectedWarpId)&&(identical(other.selectedTriggerId, selectedTriggerId) || other.selectedTriggerId == selectedTriggerId)&&(identical(other.selectedGameplayZoneId, selectedGameplayZoneId) || other.selectedGameplayZoneId == selectedGameplayZoneId)&&(identical(other.selectedEnvironmentAreaId, selectedEnvironmentAreaId) || other.selectedEnvironmentAreaId == selectedEnvironmentAreaId)&&(identical(other.environmentMaskEditMode, environmentMaskEditMode) || other.environmentMaskEditMode == environmentMaskEditMode)&&(identical(other.gameplayZoneDraftArea, gameplayZoneDraftArea) || other.gameplayZoneDraftArea == gameplayZoneDraftArea)&&(identical(other.selectedTilesetEditorId, selectedTilesetEditorId) || other.selectedTilesetEditorId == selectedTilesetEditorId)&&(identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) || other.selectedTilesetElementGroupId == selectedTilesetElementGroupId)&&(identical(other.paletteSession, paletteSession) || other.paletteSession == paletteSession)&&(identical(other.tilesElementsPanelMode, tilesElementsPanelMode) || other.tilesElementsPanelMode == tilesElementsPanelMode)&&(identical(other.selectedPlacedElementInstanceId, selectedPlacedElementInstanceId) || other.selectedPlacedElementInstanceId == selectedPlacedElementInstanceId)&&(identical(other.selectedProjectDialogueId, selectedProjectDialogueId) || other.selectedProjectDialogueId == selectedProjectDialogueId)&&(identical(other.selectedTrainerId, selectedTrainerId) || other.selectedTrainerId == selectedTrainerId)&&(identical(other.selectedCharacterId, selectedCharacterId) || other.selectedCharacterId == selectedCharacterId)&&(identical(other.paletteCategoryFilter, paletteCategoryFilter) || other.paletteCategoryFilter == paletteCategoryFilter)&&(identical(other.zoom, zoom) || other.zoom == zoom)&&(identical(other.panOffset, panOffset) || other.panOffset == panOffset)&&const DeepCollectionEquality().equals(other.mapUndoStack, mapUndoStack)&&const DeepCollectionEquality().equals(other.mapRedoStack, mapRedoStack)&&(identical(other.mapStrokeStart, mapStrokeStart) || other.mapStrokeStart == mapStrokeStart)&&(identical(other.savedMapSnapshot, savedMapSnapshot) || other.savedMapSnapshot == savedMapSnapshot)&&(identical(other.canUndoMap, canUndoMap) || other.canUndoMap == canUndoMap)&&(identical(other.canRedoMap, canRedoMap) || other.canRedoMap == canRedoMap)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty)&&(identical(other.isProjectDirty, isProjectDirty) || other.isProjectDirty == isProjectDirty)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.statusMessage, statusMessage) || other.statusMessage == statusMessage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+}
+
+
+@override
+int get hashCode => Object.hashAll([runtimeType,projectRootPath,project,workspaceMode,smartTilesStudioLaunchContext,pokemonCatalogSection,activeMap,activeMapPath,activeTool,activeLayerId,hoveredTile,activeBrush,selectedEntityKind,eraserFootprint,collisionBrushSizeMode,selectedEntityId,npcWaypointPlacementEntityId,selectedMapEventId,selectedWarpId,selectedTriggerId,selectedGameplayZoneId,selectedEnvironmentAreaId,environmentMaskEditMode,gameplayZoneDraftArea,selectedTilesetEditorId,selectedTilesetElementGroupId,paletteSession,tilesElementsPanelMode,selectedPlacedElementInstanceId,selectedProjectDialogueId,selectedTrainerId,selectedCharacterId,paletteCategoryFilter,zoom,panOffset,const DeepCollectionEquality().hash(mapUndoStack),const DeepCollectionEquality().hash(mapRedoStack),mapStrokeStart,savedMapSnapshot,canUndoMap,canRedoMap,isDirty,isProjectDirty,isSaving,statusMessage,errorMessage]);
+
+@override
+String toString() {
+  return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, smartTilesStudioLaunchContext: $smartTilesStudioLaunchContext, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedEntityKind: $selectedEntityKind, eraserFootprint: $eraserFootprint, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteSession: $paletteSession, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $EditorStateCopyWith<$Res> {
-  factory $EditorStateCopyWith(
-          EditorState value, $Res Function(EditorState) then) =
-      _$EditorStateCopyWithImpl<$Res, EditorState>;
-  @useResult
-  $Res call(
-      {String? projectRootPath,
-      ProjectManifest? project,
-      EditorWorkspaceMode workspaceMode,
-      SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,
-      PokemonCatalogSection pokemonCatalogSection,
-      MapData? activeMap,
-      String? activeMapPath,
-      EditorToolType activeTool,
-      String? activeLayerId,
-      GridPos? hoveredTile,
-      EditorBrush activeBrush,
-      MapEntityKind selectedEntityKind,
-      EditorEraserFootprint eraserFootprint,
-      CollisionBrushSizeMode collisionBrushSizeMode,
-      String? selectedEntityId,
-      String? npcWaypointPlacementEntityId,
-      String? selectedMapEventId,
-      String? selectedWarpId,
-      String? selectedTriggerId,
-      String? selectedGameplayZoneId,
-      String? selectedEnvironmentAreaId,
-      EnvironmentMaskEditMode? environmentMaskEditMode,
-      MapRect? gameplayZoneDraftArea,
-      String? selectedTilesetEditorId,
-      String? selectedTilesetElementGroupId,
-      EditorPaletteSession paletteSession,
-      TilesElementsPanelMode tilesElementsPanelMode,
-      String? selectedPlacedElementInstanceId,
-      String? selectedProjectDialogueId,
-      String? selectedTrainerId,
-      String? selectedCharacterId,
-      PaletteCategory? paletteCategoryFilter,
-      double zoom,
-      Offset panOffset,
-      List<MapHistorySnapshot> mapUndoStack,
-      List<MapHistorySnapshot> mapRedoStack,
-      MapHistorySnapshot? mapStrokeStart,
-      MapData? savedMapSnapshot,
-      bool canUndoMap,
-      bool canRedoMap,
-      bool isDirty,
-      bool isProjectDirty,
-      bool isSaving,
-      String? statusMessage,
-      String? errorMessage});
+abstract mixin class $EditorStateCopyWith<$Res>  {
+  factory $EditorStateCopyWith(EditorState value, $Res Function(EditorState) _then) = _$EditorStateCopyWithImpl;
+@useResult
+$Res call({
+ String? projectRootPath, ProjectManifest? project, EditorWorkspaceMode workspaceMode, SmartTilesStudioLaunchContext smartTilesStudioLaunchContext, PokemonCatalogSection pokemonCatalogSection, MapData? activeMap, String? activeMapPath, EditorToolType activeTool, String? activeLayerId, GridPos? hoveredTile, EditorBrush activeBrush, MapEntityKind selectedEntityKind, EditorEraserFootprint eraserFootprint, CollisionBrushSizeMode collisionBrushSizeMode, String? selectedEntityId, String? npcWaypointPlacementEntityId, String? selectedMapEventId, String? selectedWarpId, String? selectedTriggerId, String? selectedGameplayZoneId, String? selectedEnvironmentAreaId, EnvironmentMaskEditMode? environmentMaskEditMode, MapRect? gameplayZoneDraftArea, String? selectedTilesetEditorId, String? selectedTilesetElementGroupId, EditorPaletteSession paletteSession, TilesElementsPanelMode tilesElementsPanelMode, String? selectedPlacedElementInstanceId, String? selectedProjectDialogueId, String? selectedTrainerId, String? selectedCharacterId, PaletteCategory? paletteCategoryFilter, double zoom, Offset panOffset, List<MapHistorySnapshot> mapUndoStack, List<MapHistorySnapshot> mapRedoStack, MapHistorySnapshot? mapStrokeStart, MapData? savedMapSnapshot, bool canUndoMap, bool canRedoMap, bool isDirty, bool isProjectDirty, bool isSaving, String? statusMessage, String? errorMessage
+});
 
-  $ProjectManifestCopyWith<$Res>? get project;
-  $MapDataCopyWith<$Res>? get activeMap;
-  $GridPosCopyWith<$Res>? get hoveredTile;
-  $EditorBrushCopyWith<$Res> get activeBrush;
-  $EditorEraserFootprintCopyWith<$Res> get eraserFootprint;
-  $MapRectCopyWith<$Res>? get gameplayZoneDraftArea;
-  $EditorPaletteSessionCopyWith<$Res> get paletteSession;
-  $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
-  $MapDataCopyWith<$Res>? get savedMapSnapshot;
+
+$ProjectManifestCopyWith<$Res>? get project;$MapDataCopyWith<$Res>? get activeMap;$GridPosCopyWith<$Res>? get hoveredTile;$EditorBrushCopyWith<$Res> get activeBrush;$EditorEraserFootprintCopyWith<$Res> get eraserFootprint;$MapRectCopyWith<$Res>? get gameplayZoneDraftArea;$EditorPaletteSessionCopyWith<$Res> get paletteSession;$MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;$MapDataCopyWith<$Res>? get savedMapSnapshot;
+
 }
-
 /// @nodoc
-class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
+class _$EditorStateCopyWithImpl<$Res>
     implements $EditorStateCopyWith<$Res> {
-  _$EditorStateCopyWithImpl(this._value, this._then);
+  _$EditorStateCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final EditorState _self;
+  final $Res Function(EditorState) _then;
 
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? projectRootPath = freezed,
-    Object? project = freezed,
-    Object? workspaceMode = null,
-    Object? smartTilesStudioLaunchContext = null,
-    Object? pokemonCatalogSection = null,
-    Object? activeMap = freezed,
-    Object? activeMapPath = freezed,
-    Object? activeTool = null,
-    Object? activeLayerId = freezed,
-    Object? hoveredTile = freezed,
-    Object? activeBrush = null,
-    Object? selectedEntityKind = null,
-    Object? eraserFootprint = null,
-    Object? collisionBrushSizeMode = null,
-    Object? selectedEntityId = freezed,
-    Object? npcWaypointPlacementEntityId = freezed,
-    Object? selectedMapEventId = freezed,
-    Object? selectedWarpId = freezed,
-    Object? selectedTriggerId = freezed,
-    Object? selectedGameplayZoneId = freezed,
-    Object? selectedEnvironmentAreaId = freezed,
-    Object? environmentMaskEditMode = freezed,
-    Object? gameplayZoneDraftArea = freezed,
-    Object? selectedTilesetEditorId = freezed,
-    Object? selectedTilesetElementGroupId = freezed,
-    Object? paletteSession = null,
-    Object? tilesElementsPanelMode = null,
-    Object? selectedPlacedElementInstanceId = freezed,
-    Object? selectedProjectDialogueId = freezed,
-    Object? selectedTrainerId = freezed,
-    Object? selectedCharacterId = freezed,
-    Object? paletteCategoryFilter = freezed,
-    Object? zoom = null,
-    Object? panOffset = null,
-    Object? mapUndoStack = null,
-    Object? mapRedoStack = null,
-    Object? mapStrokeStart = freezed,
-    Object? savedMapSnapshot = freezed,
-    Object? canUndoMap = null,
-    Object? canRedoMap = null,
-    Object? isDirty = null,
-    Object? isProjectDirty = null,
-    Object? isSaving = null,
-    Object? statusMessage = freezed,
-    Object? errorMessage = freezed,
-  }) {
-    return _then(_value.copyWith(
-      projectRootPath: freezed == projectRootPath
-          ? _value.projectRootPath
-          : projectRootPath // ignore: cast_nullable_to_non_nullable
-              as String?,
-      project: freezed == project
-          ? _value.project
-          : project // ignore: cast_nullable_to_non_nullable
-              as ProjectManifest?,
-      workspaceMode: null == workspaceMode
-          ? _value.workspaceMode
-          : workspaceMode // ignore: cast_nullable_to_non_nullable
-              as EditorWorkspaceMode,
-      smartTilesStudioLaunchContext: null == smartTilesStudioLaunchContext
-          ? _value.smartTilesStudioLaunchContext
-          : smartTilesStudioLaunchContext // ignore: cast_nullable_to_non_nullable
-              as SmartTilesStudioLaunchContext,
-      pokemonCatalogSection: null == pokemonCatalogSection
-          ? _value.pokemonCatalogSection
-          : pokemonCatalogSection // ignore: cast_nullable_to_non_nullable
-              as PokemonCatalogSection,
-      activeMap: freezed == activeMap
-          ? _value.activeMap
-          : activeMap // ignore: cast_nullable_to_non_nullable
-              as MapData?,
-      activeMapPath: freezed == activeMapPath
-          ? _value.activeMapPath
-          : activeMapPath // ignore: cast_nullable_to_non_nullable
-              as String?,
-      activeTool: null == activeTool
-          ? _value.activeTool
-          : activeTool // ignore: cast_nullable_to_non_nullable
-              as EditorToolType,
-      activeLayerId: freezed == activeLayerId
-          ? _value.activeLayerId
-          : activeLayerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      hoveredTile: freezed == hoveredTile
-          ? _value.hoveredTile
-          : hoveredTile // ignore: cast_nullable_to_non_nullable
-              as GridPos?,
-      activeBrush: null == activeBrush
-          ? _value.activeBrush
-          : activeBrush // ignore: cast_nullable_to_non_nullable
-              as EditorBrush,
-      selectedEntityKind: null == selectedEntityKind
-          ? _value.selectedEntityKind
-          : selectedEntityKind // ignore: cast_nullable_to_non_nullable
-              as MapEntityKind,
-      eraserFootprint: null == eraserFootprint
-          ? _value.eraserFootprint
-          : eraserFootprint // ignore: cast_nullable_to_non_nullable
-              as EditorEraserFootprint,
-      collisionBrushSizeMode: null == collisionBrushSizeMode
-          ? _value.collisionBrushSizeMode
-          : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
-              as CollisionBrushSizeMode,
-      selectedEntityId: freezed == selectedEntityId
-          ? _value.selectedEntityId
-          : selectedEntityId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      npcWaypointPlacementEntityId: freezed == npcWaypointPlacementEntityId
-          ? _value.npcWaypointPlacementEntityId
-          : npcWaypointPlacementEntityId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedMapEventId: freezed == selectedMapEventId
-          ? _value.selectedMapEventId
-          : selectedMapEventId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedWarpId: freezed == selectedWarpId
-          ? _value.selectedWarpId
-          : selectedWarpId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedTriggerId: freezed == selectedTriggerId
-          ? _value.selectedTriggerId
-          : selectedTriggerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedGameplayZoneId: freezed == selectedGameplayZoneId
-          ? _value.selectedGameplayZoneId
-          : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedEnvironmentAreaId: freezed == selectedEnvironmentAreaId
-          ? _value.selectedEnvironmentAreaId
-          : selectedEnvironmentAreaId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      environmentMaskEditMode: freezed == environmentMaskEditMode
-          ? _value.environmentMaskEditMode
-          : environmentMaskEditMode // ignore: cast_nullable_to_non_nullable
-              as EnvironmentMaskEditMode?,
-      gameplayZoneDraftArea: freezed == gameplayZoneDraftArea
-          ? _value.gameplayZoneDraftArea
-          : gameplayZoneDraftArea // ignore: cast_nullable_to_non_nullable
-              as MapRect?,
-      selectedTilesetEditorId: freezed == selectedTilesetEditorId
-          ? _value.selectedTilesetEditorId
-          : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedTilesetElementGroupId: freezed == selectedTilesetElementGroupId
-          ? _value.selectedTilesetElementGroupId
-          : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      paletteSession: null == paletteSession
-          ? _value.paletteSession
-          : paletteSession // ignore: cast_nullable_to_non_nullable
-              as EditorPaletteSession,
-      tilesElementsPanelMode: null == tilesElementsPanelMode
-          ? _value.tilesElementsPanelMode
-          : tilesElementsPanelMode // ignore: cast_nullable_to_non_nullable
-              as TilesElementsPanelMode,
-      selectedPlacedElementInstanceId: freezed ==
-              selectedPlacedElementInstanceId
-          ? _value.selectedPlacedElementInstanceId
-          : selectedPlacedElementInstanceId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedProjectDialogueId: freezed == selectedProjectDialogueId
-          ? _value.selectedProjectDialogueId
-          : selectedProjectDialogueId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedTrainerId: freezed == selectedTrainerId
-          ? _value.selectedTrainerId
-          : selectedTrainerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedCharacterId: freezed == selectedCharacterId
-          ? _value.selectedCharacterId
-          : selectedCharacterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      paletteCategoryFilter: freezed == paletteCategoryFilter
-          ? _value.paletteCategoryFilter
-          : paletteCategoryFilter // ignore: cast_nullable_to_non_nullable
-              as PaletteCategory?,
-      zoom: null == zoom
-          ? _value.zoom
-          : zoom // ignore: cast_nullable_to_non_nullable
-              as double,
-      panOffset: null == panOffset
-          ? _value.panOffset
-          : panOffset // ignore: cast_nullable_to_non_nullable
-              as Offset,
-      mapUndoStack: null == mapUndoStack
-          ? _value.mapUndoStack
-          : mapUndoStack // ignore: cast_nullable_to_non_nullable
-              as List<MapHistorySnapshot>,
-      mapRedoStack: null == mapRedoStack
-          ? _value.mapRedoStack
-          : mapRedoStack // ignore: cast_nullable_to_non_nullable
-              as List<MapHistorySnapshot>,
-      mapStrokeStart: freezed == mapStrokeStart
-          ? _value.mapStrokeStart
-          : mapStrokeStart // ignore: cast_nullable_to_non_nullable
-              as MapHistorySnapshot?,
-      savedMapSnapshot: freezed == savedMapSnapshot
-          ? _value.savedMapSnapshot
-          : savedMapSnapshot // ignore: cast_nullable_to_non_nullable
-              as MapData?,
-      canUndoMap: null == canUndoMap
-          ? _value.canUndoMap
-          : canUndoMap // ignore: cast_nullable_to_non_nullable
-              as bool,
-      canRedoMap: null == canRedoMap
-          ? _value.canRedoMap
-          : canRedoMap // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isDirty: null == isDirty
-          ? _value.isDirty
-          : isDirty // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isProjectDirty: null == isProjectDirty
-          ? _value.isProjectDirty
-          : isProjectDirty // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isSaving: null == isSaving
-          ? _value.isSaving
-          : isSaving // ignore: cast_nullable_to_non_nullable
-              as bool,
-      statusMessage: freezed == statusMessage
-          ? _value.statusMessage
-          : statusMessage // ignore: cast_nullable_to_non_nullable
-              as String?,
-      errorMessage: freezed == errorMessage
-          ? _value.errorMessage
-          : errorMessage // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? projectRootPath = freezed,Object? project = freezed,Object? workspaceMode = null,Object? smartTilesStudioLaunchContext = null,Object? pokemonCatalogSection = null,Object? activeMap = freezed,Object? activeMapPath = freezed,Object? activeTool = null,Object? activeLayerId = freezed,Object? hoveredTile = freezed,Object? activeBrush = null,Object? selectedEntityKind = null,Object? eraserFootprint = null,Object? collisionBrushSizeMode = null,Object? selectedEntityId = freezed,Object? npcWaypointPlacementEntityId = freezed,Object? selectedMapEventId = freezed,Object? selectedWarpId = freezed,Object? selectedTriggerId = freezed,Object? selectedGameplayZoneId = freezed,Object? selectedEnvironmentAreaId = freezed,Object? environmentMaskEditMode = freezed,Object? gameplayZoneDraftArea = freezed,Object? selectedTilesetEditorId = freezed,Object? selectedTilesetElementGroupId = freezed,Object? paletteSession = null,Object? tilesElementsPanelMode = null,Object? selectedPlacedElementInstanceId = freezed,Object? selectedProjectDialogueId = freezed,Object? selectedTrainerId = freezed,Object? selectedCharacterId = freezed,Object? paletteCategoryFilter = freezed,Object? zoom = null,Object? panOffset = null,Object? mapUndoStack = null,Object? mapRedoStack = null,Object? mapStrokeStart = freezed,Object? savedMapSnapshot = freezed,Object? canUndoMap = null,Object? canRedoMap = null,Object? isDirty = null,Object? isProjectDirty = null,Object? isSaving = null,Object? statusMessage = freezed,Object? errorMessage = freezed,}) {
+  return _then(_self.copyWith(
+projectRootPath: freezed == projectRootPath ? _self.projectRootPath : projectRootPath // ignore: cast_nullable_to_non_nullable
+as String?,project: freezed == project ? _self.project : project // ignore: cast_nullable_to_non_nullable
+as ProjectManifest?,workspaceMode: null == workspaceMode ? _self.workspaceMode : workspaceMode // ignore: cast_nullable_to_non_nullable
+as EditorWorkspaceMode,smartTilesStudioLaunchContext: null == smartTilesStudioLaunchContext ? _self.smartTilesStudioLaunchContext : smartTilesStudioLaunchContext // ignore: cast_nullable_to_non_nullable
+as SmartTilesStudioLaunchContext,pokemonCatalogSection: null == pokemonCatalogSection ? _self.pokemonCatalogSection : pokemonCatalogSection // ignore: cast_nullable_to_non_nullable
+as PokemonCatalogSection,activeMap: freezed == activeMap ? _self.activeMap : activeMap // ignore: cast_nullable_to_non_nullable
+as MapData?,activeMapPath: freezed == activeMapPath ? _self.activeMapPath : activeMapPath // ignore: cast_nullable_to_non_nullable
+as String?,activeTool: null == activeTool ? _self.activeTool : activeTool // ignore: cast_nullable_to_non_nullable
+as EditorToolType,activeLayerId: freezed == activeLayerId ? _self.activeLayerId : activeLayerId // ignore: cast_nullable_to_non_nullable
+as String?,hoveredTile: freezed == hoveredTile ? _self.hoveredTile : hoveredTile // ignore: cast_nullable_to_non_nullable
+as GridPos?,activeBrush: null == activeBrush ? _self.activeBrush : activeBrush // ignore: cast_nullable_to_non_nullable
+as EditorBrush,selectedEntityKind: null == selectedEntityKind ? _self.selectedEntityKind : selectedEntityKind // ignore: cast_nullable_to_non_nullable
+as MapEntityKind,eraserFootprint: null == eraserFootprint ? _self.eraserFootprint : eraserFootprint // ignore: cast_nullable_to_non_nullable
+as EditorEraserFootprint,collisionBrushSizeMode: null == collisionBrushSizeMode ? _self.collisionBrushSizeMode : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
+as CollisionBrushSizeMode,selectedEntityId: freezed == selectedEntityId ? _self.selectedEntityId : selectedEntityId // ignore: cast_nullable_to_non_nullable
+as String?,npcWaypointPlacementEntityId: freezed == npcWaypointPlacementEntityId ? _self.npcWaypointPlacementEntityId : npcWaypointPlacementEntityId // ignore: cast_nullable_to_non_nullable
+as String?,selectedMapEventId: freezed == selectedMapEventId ? _self.selectedMapEventId : selectedMapEventId // ignore: cast_nullable_to_non_nullable
+as String?,selectedWarpId: freezed == selectedWarpId ? _self.selectedWarpId : selectedWarpId // ignore: cast_nullable_to_non_nullable
+as String?,selectedTriggerId: freezed == selectedTriggerId ? _self.selectedTriggerId : selectedTriggerId // ignore: cast_nullable_to_non_nullable
+as String?,selectedGameplayZoneId: freezed == selectedGameplayZoneId ? _self.selectedGameplayZoneId : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
+as String?,selectedEnvironmentAreaId: freezed == selectedEnvironmentAreaId ? _self.selectedEnvironmentAreaId : selectedEnvironmentAreaId // ignore: cast_nullable_to_non_nullable
+as String?,environmentMaskEditMode: freezed == environmentMaskEditMode ? _self.environmentMaskEditMode : environmentMaskEditMode // ignore: cast_nullable_to_non_nullable
+as EnvironmentMaskEditMode?,gameplayZoneDraftArea: freezed == gameplayZoneDraftArea ? _self.gameplayZoneDraftArea : gameplayZoneDraftArea // ignore: cast_nullable_to_non_nullable
+as MapRect?,selectedTilesetEditorId: freezed == selectedTilesetEditorId ? _self.selectedTilesetEditorId : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
+as String?,selectedTilesetElementGroupId: freezed == selectedTilesetElementGroupId ? _self.selectedTilesetElementGroupId : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
+as String?,paletteSession: null == paletteSession ? _self.paletteSession : paletteSession // ignore: cast_nullable_to_non_nullable
+as EditorPaletteSession,tilesElementsPanelMode: null == tilesElementsPanelMode ? _self.tilesElementsPanelMode : tilesElementsPanelMode // ignore: cast_nullable_to_non_nullable
+as TilesElementsPanelMode,selectedPlacedElementInstanceId: freezed == selectedPlacedElementInstanceId ? _self.selectedPlacedElementInstanceId : selectedPlacedElementInstanceId // ignore: cast_nullable_to_non_nullable
+as String?,selectedProjectDialogueId: freezed == selectedProjectDialogueId ? _self.selectedProjectDialogueId : selectedProjectDialogueId // ignore: cast_nullable_to_non_nullable
+as String?,selectedTrainerId: freezed == selectedTrainerId ? _self.selectedTrainerId : selectedTrainerId // ignore: cast_nullable_to_non_nullable
+as String?,selectedCharacterId: freezed == selectedCharacterId ? _self.selectedCharacterId : selectedCharacterId // ignore: cast_nullable_to_non_nullable
+as String?,paletteCategoryFilter: freezed == paletteCategoryFilter ? _self.paletteCategoryFilter : paletteCategoryFilter // ignore: cast_nullable_to_non_nullable
+as PaletteCategory?,zoom: null == zoom ? _self.zoom : zoom // ignore: cast_nullable_to_non_nullable
+as double,panOffset: null == panOffset ? _self.panOffset : panOffset // ignore: cast_nullable_to_non_nullable
+as Offset,mapUndoStack: null == mapUndoStack ? _self.mapUndoStack : mapUndoStack // ignore: cast_nullable_to_non_nullable
+as List<MapHistorySnapshot>,mapRedoStack: null == mapRedoStack ? _self.mapRedoStack : mapRedoStack // ignore: cast_nullable_to_non_nullable
+as List<MapHistorySnapshot>,mapStrokeStart: freezed == mapStrokeStart ? _self.mapStrokeStart : mapStrokeStart // ignore: cast_nullable_to_non_nullable
+as MapHistorySnapshot?,savedMapSnapshot: freezed == savedMapSnapshot ? _self.savedMapSnapshot : savedMapSnapshot // ignore: cast_nullable_to_non_nullable
+as MapData?,canUndoMap: null == canUndoMap ? _self.canUndoMap : canUndoMap // ignore: cast_nullable_to_non_nullable
+as bool,canRedoMap: null == canRedoMap ? _self.canRedoMap : canRedoMap // ignore: cast_nullable_to_non_nullable
+as bool,isDirty: null == isDirty ? _self.isDirty : isDirty // ignore: cast_nullable_to_non_nullable
+as bool,isProjectDirty: null == isProjectDirty ? _self.isProjectDirty : isProjectDirty // ignore: cast_nullable_to_non_nullable
+as bool,isSaving: null == isSaving ? _self.isSaving : isSaving // ignore: cast_nullable_to_non_nullable
+as bool,statusMessage: freezed == statusMessage ? _self.statusMessage : statusMessage // ignore: cast_nullable_to_non_nullable
+as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectManifestCopyWith<$Res>? get project {
+    if (_self.project == null) {
+    return null;
   }
 
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $ProjectManifestCopyWith<$Res>? get project {
-    if (_value.project == null) {
-      return null;
-    }
-
-    return $ProjectManifestCopyWith<$Res>(_value.project!, (value) {
-      return _then(_value.copyWith(project: value) as $Val);
-    });
+  return $ProjectManifestCopyWith<$Res>(_self.project!, (value) {
+    return _then(_self.copyWith(project: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapDataCopyWith<$Res>? get activeMap {
+    if (_self.activeMap == null) {
+    return null;
   }
 
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapDataCopyWith<$Res>? get activeMap {
-    if (_value.activeMap == null) {
-      return null;
-    }
-
-    return $MapDataCopyWith<$Res>(_value.activeMap!, (value) {
-      return _then(_value.copyWith(activeMap: value) as $Val);
-    });
+  return $MapDataCopyWith<$Res>(_self.activeMap!, (value) {
+    return _then(_self.copyWith(activeMap: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res>? get hoveredTile {
+    if (_self.hoveredTile == null) {
+    return null;
   }
 
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridPosCopyWith<$Res>? get hoveredTile {
-    if (_value.hoveredTile == null) {
-      return null;
-    }
-
-    return $GridPosCopyWith<$Res>(_value.hoveredTile!, (value) {
-      return _then(_value.copyWith(hoveredTile: value) as $Val);
-    });
+  return $GridPosCopyWith<$Res>(_self.hoveredTile!, (value) {
+    return _then(_self.copyWith(hoveredTile: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EditorBrushCopyWith<$Res> get activeBrush {
+  
+  return $EditorBrushCopyWith<$Res>(_self.activeBrush, (value) {
+    return _then(_self.copyWith(activeBrush: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EditorEraserFootprintCopyWith<$Res> get eraserFootprint {
+  
+  return $EditorEraserFootprintCopyWith<$Res>(_self.eraserFootprint, (value) {
+    return _then(_self.copyWith(eraserFootprint: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res>? get gameplayZoneDraftArea {
+    if (_self.gameplayZoneDraftArea == null) {
+    return null;
   }
 
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $EditorBrushCopyWith<$Res> get activeBrush {
-    return $EditorBrushCopyWith<$Res>(_value.activeBrush, (value) {
-      return _then(_value.copyWith(activeBrush: value) as $Val);
-    });
+  return $MapRectCopyWith<$Res>(_self.gameplayZoneDraftArea!, (value) {
+    return _then(_self.copyWith(gameplayZoneDraftArea: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EditorPaletteSessionCopyWith<$Res> get paletteSession {
+  
+  return $EditorPaletteSessionCopyWith<$Res>(_self.paletteSession, (value) {
+    return _then(_self.copyWith(paletteSession: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart {
+    if (_self.mapStrokeStart == null) {
+    return null;
   }
 
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $EditorEraserFootprintCopyWith<$Res> get eraserFootprint {
-    return $EditorEraserFootprintCopyWith<$Res>(_value.eraserFootprint,
-        (value) {
-      return _then(_value.copyWith(eraserFootprint: value) as $Val);
-    });
+  return $MapHistorySnapshotCopyWith<$Res>(_self.mapStrokeStart!, (value) {
+    return _then(_self.copyWith(mapStrokeStart: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapDataCopyWith<$Res>? get savedMapSnapshot {
+    if (_self.savedMapSnapshot == null) {
+    return null;
   }
 
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapRectCopyWith<$Res>? get gameplayZoneDraftArea {
-    if (_value.gameplayZoneDraftArea == null) {
-      return null;
-    }
-
-    return $MapRectCopyWith<$Res>(_value.gameplayZoneDraftArea!, (value) {
-      return _then(_value.copyWith(gameplayZoneDraftArea: value) as $Val);
-    });
-  }
-
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $EditorPaletteSessionCopyWith<$Res> get paletteSession {
-    return $EditorPaletteSessionCopyWith<$Res>(_value.paletteSession, (value) {
-      return _then(_value.copyWith(paletteSession: value) as $Val);
-    });
-  }
-
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart {
-    if (_value.mapStrokeStart == null) {
-      return null;
-    }
-
-    return $MapHistorySnapshotCopyWith<$Res>(_value.mapStrokeStart!, (value) {
-      return _then(_value.copyWith(mapStrokeStart: value) as $Val);
-    });
-  }
-
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $MapDataCopyWith<$Res>? get savedMapSnapshot {
-    if (_value.savedMapSnapshot == null) {
-      return null;
-    }
-
-    return $MapDataCopyWith<$Res>(_value.savedMapSnapshot!, (value) {
-      return _then(_value.copyWith(savedMapSnapshot: value) as $Val);
-    });
-  }
+  return $MapDataCopyWith<$Res>(_self.savedMapSnapshot!, (value) {
+    return _then(_self.copyWith(savedMapSnapshot: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$EditorStateImplCopyWith<$Res>
-    implements $EditorStateCopyWith<$Res> {
-  factory _$$EditorStateImplCopyWith(
-          _$EditorStateImpl value, $Res Function(_$EditorStateImpl) then) =
-      __$$EditorStateImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {String? projectRootPath,
-      ProjectManifest? project,
-      EditorWorkspaceMode workspaceMode,
-      SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,
-      PokemonCatalogSection pokemonCatalogSection,
-      MapData? activeMap,
-      String? activeMapPath,
-      EditorToolType activeTool,
-      String? activeLayerId,
-      GridPos? hoveredTile,
-      EditorBrush activeBrush,
-      MapEntityKind selectedEntityKind,
-      EditorEraserFootprint eraserFootprint,
-      CollisionBrushSizeMode collisionBrushSizeMode,
-      String? selectedEntityId,
-      String? npcWaypointPlacementEntityId,
-      String? selectedMapEventId,
-      String? selectedWarpId,
-      String? selectedTriggerId,
-      String? selectedGameplayZoneId,
-      String? selectedEnvironmentAreaId,
-      EnvironmentMaskEditMode? environmentMaskEditMode,
-      MapRect? gameplayZoneDraftArea,
-      String? selectedTilesetEditorId,
-      String? selectedTilesetElementGroupId,
-      EditorPaletteSession paletteSession,
-      TilesElementsPanelMode tilesElementsPanelMode,
-      String? selectedPlacedElementInstanceId,
-      String? selectedProjectDialogueId,
-      String? selectedTrainerId,
-      String? selectedCharacterId,
-      PaletteCategory? paletteCategoryFilter,
-      double zoom,
-      Offset panOffset,
-      List<MapHistorySnapshot> mapUndoStack,
-      List<MapHistorySnapshot> mapRedoStack,
-      MapHistorySnapshot? mapStrokeStart,
-      MapData? savedMapSnapshot,
-      bool canUndoMap,
-      bool canRedoMap,
-      bool isDirty,
-      bool isProjectDirty,
-      bool isSaving,
-      String? statusMessage,
-      String? errorMessage});
 
-  @override
-  $ProjectManifestCopyWith<$Res>? get project;
-  @override
-  $MapDataCopyWith<$Res>? get activeMap;
-  @override
-  $GridPosCopyWith<$Res>? get hoveredTile;
-  @override
-  $EditorBrushCopyWith<$Res> get activeBrush;
-  @override
-  $EditorEraserFootprintCopyWith<$Res> get eraserFootprint;
-  @override
-  $MapRectCopyWith<$Res>? get gameplayZoneDraftArea;
-  @override
-  $EditorPaletteSessionCopyWith<$Res> get paletteSession;
-  @override
-  $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;
-  @override
-  $MapDataCopyWith<$Res>? get savedMapSnapshot;
+/// Adds pattern-matching-related methods to [EditorState].
+extension EditorStatePatterns on EditorState {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _EditorState value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _EditorState() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _EditorState value)  $default,){
+final _that = this;
+switch (_that) {
+case _EditorState():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _EditorState value)?  $default,){
+final _that = this;
+switch (_that) {
+case _EditorState() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String? projectRootPath,  ProjectManifest? project,  EditorWorkspaceMode workspaceMode,  SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,  PokemonCatalogSection pokemonCatalogSection,  MapData? activeMap,  String? activeMapPath,  EditorToolType activeTool,  String? activeLayerId,  GridPos? hoveredTile,  EditorBrush activeBrush,  MapEntityKind selectedEntityKind,  EditorEraserFootprint eraserFootprint,  CollisionBrushSizeMode collisionBrushSizeMode,  String? selectedEntityId,  String? npcWaypointPlacementEntityId,  String? selectedMapEventId,  String? selectedWarpId,  String? selectedTriggerId,  String? selectedGameplayZoneId,  String? selectedEnvironmentAreaId,  EnvironmentMaskEditMode? environmentMaskEditMode,  MapRect? gameplayZoneDraftArea,  String? selectedTilesetEditorId,  String? selectedTilesetElementGroupId,  EditorPaletteSession paletteSession,  TilesElementsPanelMode tilesElementsPanelMode,  String? selectedPlacedElementInstanceId,  String? selectedProjectDialogueId,  String? selectedTrainerId,  String? selectedCharacterId,  PaletteCategory? paletteCategoryFilter,  double zoom,  Offset panOffset,  List<MapHistorySnapshot> mapUndoStack,  List<MapHistorySnapshot> mapRedoStack,  MapHistorySnapshot? mapStrokeStart,  MapData? savedMapSnapshot,  bool canUndoMap,  bool canRedoMap,  bool isDirty,  bool isProjectDirty,  bool isSaving,  String? statusMessage,  String? errorMessage)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _EditorState() when $default != null:
+return $default(_that.projectRootPath,_that.project,_that.workspaceMode,_that.smartTilesStudioLaunchContext,_that.pokemonCatalogSection,_that.activeMap,_that.activeMapPath,_that.activeTool,_that.activeLayerId,_that.hoveredTile,_that.activeBrush,_that.selectedEntityKind,_that.eraserFootprint,_that.collisionBrushSizeMode,_that.selectedEntityId,_that.npcWaypointPlacementEntityId,_that.selectedMapEventId,_that.selectedWarpId,_that.selectedTriggerId,_that.selectedGameplayZoneId,_that.selectedEnvironmentAreaId,_that.environmentMaskEditMode,_that.gameplayZoneDraftArea,_that.selectedTilesetEditorId,_that.selectedTilesetElementGroupId,_that.paletteSession,_that.tilesElementsPanelMode,_that.selectedPlacedElementInstanceId,_that.selectedProjectDialogueId,_that.selectedTrainerId,_that.selectedCharacterId,_that.paletteCategoryFilter,_that.zoom,_that.panOffset,_that.mapUndoStack,_that.mapRedoStack,_that.mapStrokeStart,_that.savedMapSnapshot,_that.canUndoMap,_that.canRedoMap,_that.isDirty,_that.isProjectDirty,_that.isSaving,_that.statusMessage,_that.errorMessage);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String? projectRootPath,  ProjectManifest? project,  EditorWorkspaceMode workspaceMode,  SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,  PokemonCatalogSection pokemonCatalogSection,  MapData? activeMap,  String? activeMapPath,  EditorToolType activeTool,  String? activeLayerId,  GridPos? hoveredTile,  EditorBrush activeBrush,  MapEntityKind selectedEntityKind,  EditorEraserFootprint eraserFootprint,  CollisionBrushSizeMode collisionBrushSizeMode,  String? selectedEntityId,  String? npcWaypointPlacementEntityId,  String? selectedMapEventId,  String? selectedWarpId,  String? selectedTriggerId,  String? selectedGameplayZoneId,  String? selectedEnvironmentAreaId,  EnvironmentMaskEditMode? environmentMaskEditMode,  MapRect? gameplayZoneDraftArea,  String? selectedTilesetEditorId,  String? selectedTilesetElementGroupId,  EditorPaletteSession paletteSession,  TilesElementsPanelMode tilesElementsPanelMode,  String? selectedPlacedElementInstanceId,  String? selectedProjectDialogueId,  String? selectedTrainerId,  String? selectedCharacterId,  PaletteCategory? paletteCategoryFilter,  double zoom,  Offset panOffset,  List<MapHistorySnapshot> mapUndoStack,  List<MapHistorySnapshot> mapRedoStack,  MapHistorySnapshot? mapStrokeStart,  MapData? savedMapSnapshot,  bool canUndoMap,  bool canRedoMap,  bool isDirty,  bool isProjectDirty,  bool isSaving,  String? statusMessage,  String? errorMessage)  $default,) {final _that = this;
+switch (_that) {
+case _EditorState():
+return $default(_that.projectRootPath,_that.project,_that.workspaceMode,_that.smartTilesStudioLaunchContext,_that.pokemonCatalogSection,_that.activeMap,_that.activeMapPath,_that.activeTool,_that.activeLayerId,_that.hoveredTile,_that.activeBrush,_that.selectedEntityKind,_that.eraserFootprint,_that.collisionBrushSizeMode,_that.selectedEntityId,_that.npcWaypointPlacementEntityId,_that.selectedMapEventId,_that.selectedWarpId,_that.selectedTriggerId,_that.selectedGameplayZoneId,_that.selectedEnvironmentAreaId,_that.environmentMaskEditMode,_that.gameplayZoneDraftArea,_that.selectedTilesetEditorId,_that.selectedTilesetElementGroupId,_that.paletteSession,_that.tilesElementsPanelMode,_that.selectedPlacedElementInstanceId,_that.selectedProjectDialogueId,_that.selectedTrainerId,_that.selectedCharacterId,_that.paletteCategoryFilter,_that.zoom,_that.panOffset,_that.mapUndoStack,_that.mapRedoStack,_that.mapStrokeStart,_that.savedMapSnapshot,_that.canUndoMap,_that.canRedoMap,_that.isDirty,_that.isProjectDirty,_that.isSaving,_that.statusMessage,_that.errorMessage);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String? projectRootPath,  ProjectManifest? project,  EditorWorkspaceMode workspaceMode,  SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,  PokemonCatalogSection pokemonCatalogSection,  MapData? activeMap,  String? activeMapPath,  EditorToolType activeTool,  String? activeLayerId,  GridPos? hoveredTile,  EditorBrush activeBrush,  MapEntityKind selectedEntityKind,  EditorEraserFootprint eraserFootprint,  CollisionBrushSizeMode collisionBrushSizeMode,  String? selectedEntityId,  String? npcWaypointPlacementEntityId,  String? selectedMapEventId,  String? selectedWarpId,  String? selectedTriggerId,  String? selectedGameplayZoneId,  String? selectedEnvironmentAreaId,  EnvironmentMaskEditMode? environmentMaskEditMode,  MapRect? gameplayZoneDraftArea,  String? selectedTilesetEditorId,  String? selectedTilesetElementGroupId,  EditorPaletteSession paletteSession,  TilesElementsPanelMode tilesElementsPanelMode,  String? selectedPlacedElementInstanceId,  String? selectedProjectDialogueId,  String? selectedTrainerId,  String? selectedCharacterId,  PaletteCategory? paletteCategoryFilter,  double zoom,  Offset panOffset,  List<MapHistorySnapshot> mapUndoStack,  List<MapHistorySnapshot> mapRedoStack,  MapHistorySnapshot? mapStrokeStart,  MapData? savedMapSnapshot,  bool canUndoMap,  bool canRedoMap,  bool isDirty,  bool isProjectDirty,  bool isSaving,  String? statusMessage,  String? errorMessage)?  $default,) {final _that = this;
+switch (_that) {
+case _EditorState() when $default != null:
+return $default(_that.projectRootPath,_that.project,_that.workspaceMode,_that.smartTilesStudioLaunchContext,_that.pokemonCatalogSection,_that.activeMap,_that.activeMapPath,_that.activeTool,_that.activeLayerId,_that.hoveredTile,_that.activeBrush,_that.selectedEntityKind,_that.eraserFootprint,_that.collisionBrushSizeMode,_that.selectedEntityId,_that.npcWaypointPlacementEntityId,_that.selectedMapEventId,_that.selectedWarpId,_that.selectedTriggerId,_that.selectedGameplayZoneId,_that.selectedEnvironmentAreaId,_that.environmentMaskEditMode,_that.gameplayZoneDraftArea,_that.selectedTilesetEditorId,_that.selectedTilesetElementGroupId,_that.paletteSession,_that.tilesElementsPanelMode,_that.selectedPlacedElementInstanceId,_that.selectedProjectDialogueId,_that.selectedTrainerId,_that.selectedCharacterId,_that.paletteCategoryFilter,_that.zoom,_that.panOffset,_that.mapUndoStack,_that.mapRedoStack,_that.mapStrokeStart,_that.savedMapSnapshot,_that.canUndoMap,_that.canRedoMap,_that.isDirty,_that.isProjectDirty,_that.isSaving,_that.statusMessage,_that.errorMessage);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$EditorStateImplCopyWithImpl<$Res>
-    extends _$EditorStateCopyWithImpl<$Res, _$EditorStateImpl>
-    implements _$$EditorStateImplCopyWith<$Res> {
-  __$$EditorStateImplCopyWithImpl(
-      _$EditorStateImpl _value, $Res Function(_$EditorStateImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? projectRootPath = freezed,
-    Object? project = freezed,
-    Object? workspaceMode = null,
-    Object? smartTilesStudioLaunchContext = null,
-    Object? pokemonCatalogSection = null,
-    Object? activeMap = freezed,
-    Object? activeMapPath = freezed,
-    Object? activeTool = null,
-    Object? activeLayerId = freezed,
-    Object? hoveredTile = freezed,
-    Object? activeBrush = null,
-    Object? selectedEntityKind = null,
-    Object? eraserFootprint = null,
-    Object? collisionBrushSizeMode = null,
-    Object? selectedEntityId = freezed,
-    Object? npcWaypointPlacementEntityId = freezed,
-    Object? selectedMapEventId = freezed,
-    Object? selectedWarpId = freezed,
-    Object? selectedTriggerId = freezed,
-    Object? selectedGameplayZoneId = freezed,
-    Object? selectedEnvironmentAreaId = freezed,
-    Object? environmentMaskEditMode = freezed,
-    Object? gameplayZoneDraftArea = freezed,
-    Object? selectedTilesetEditorId = freezed,
-    Object? selectedTilesetElementGroupId = freezed,
-    Object? paletteSession = null,
-    Object? tilesElementsPanelMode = null,
-    Object? selectedPlacedElementInstanceId = freezed,
-    Object? selectedProjectDialogueId = freezed,
-    Object? selectedTrainerId = freezed,
-    Object? selectedCharacterId = freezed,
-    Object? paletteCategoryFilter = freezed,
-    Object? zoom = null,
-    Object? panOffset = null,
-    Object? mapUndoStack = null,
-    Object? mapRedoStack = null,
-    Object? mapStrokeStart = freezed,
-    Object? savedMapSnapshot = freezed,
-    Object? canUndoMap = null,
-    Object? canRedoMap = null,
-    Object? isDirty = null,
-    Object? isProjectDirty = null,
-    Object? isSaving = null,
-    Object? statusMessage = freezed,
-    Object? errorMessage = freezed,
-  }) {
-    return _then(_$EditorStateImpl(
-      projectRootPath: freezed == projectRootPath
-          ? _value.projectRootPath
-          : projectRootPath // ignore: cast_nullable_to_non_nullable
-              as String?,
-      project: freezed == project
-          ? _value.project
-          : project // ignore: cast_nullable_to_non_nullable
-              as ProjectManifest?,
-      workspaceMode: null == workspaceMode
-          ? _value.workspaceMode
-          : workspaceMode // ignore: cast_nullable_to_non_nullable
-              as EditorWorkspaceMode,
-      smartTilesStudioLaunchContext: null == smartTilesStudioLaunchContext
-          ? _value.smartTilesStudioLaunchContext
-          : smartTilesStudioLaunchContext // ignore: cast_nullable_to_non_nullable
-              as SmartTilesStudioLaunchContext,
-      pokemonCatalogSection: null == pokemonCatalogSection
-          ? _value.pokemonCatalogSection
-          : pokemonCatalogSection // ignore: cast_nullable_to_non_nullable
-              as PokemonCatalogSection,
-      activeMap: freezed == activeMap
-          ? _value.activeMap
-          : activeMap // ignore: cast_nullable_to_non_nullable
-              as MapData?,
-      activeMapPath: freezed == activeMapPath
-          ? _value.activeMapPath
-          : activeMapPath // ignore: cast_nullable_to_non_nullable
-              as String?,
-      activeTool: null == activeTool
-          ? _value.activeTool
-          : activeTool // ignore: cast_nullable_to_non_nullable
-              as EditorToolType,
-      activeLayerId: freezed == activeLayerId
-          ? _value.activeLayerId
-          : activeLayerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      hoveredTile: freezed == hoveredTile
-          ? _value.hoveredTile
-          : hoveredTile // ignore: cast_nullable_to_non_nullable
-              as GridPos?,
-      activeBrush: null == activeBrush
-          ? _value.activeBrush
-          : activeBrush // ignore: cast_nullable_to_non_nullable
-              as EditorBrush,
-      selectedEntityKind: null == selectedEntityKind
-          ? _value.selectedEntityKind
-          : selectedEntityKind // ignore: cast_nullable_to_non_nullable
-              as MapEntityKind,
-      eraserFootprint: null == eraserFootprint
-          ? _value.eraserFootprint
-          : eraserFootprint // ignore: cast_nullable_to_non_nullable
-              as EditorEraserFootprint,
-      collisionBrushSizeMode: null == collisionBrushSizeMode
-          ? _value.collisionBrushSizeMode
-          : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
-              as CollisionBrushSizeMode,
-      selectedEntityId: freezed == selectedEntityId
-          ? _value.selectedEntityId
-          : selectedEntityId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      npcWaypointPlacementEntityId: freezed == npcWaypointPlacementEntityId
-          ? _value.npcWaypointPlacementEntityId
-          : npcWaypointPlacementEntityId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedMapEventId: freezed == selectedMapEventId
-          ? _value.selectedMapEventId
-          : selectedMapEventId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedWarpId: freezed == selectedWarpId
-          ? _value.selectedWarpId
-          : selectedWarpId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedTriggerId: freezed == selectedTriggerId
-          ? _value.selectedTriggerId
-          : selectedTriggerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedGameplayZoneId: freezed == selectedGameplayZoneId
-          ? _value.selectedGameplayZoneId
-          : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedEnvironmentAreaId: freezed == selectedEnvironmentAreaId
-          ? _value.selectedEnvironmentAreaId
-          : selectedEnvironmentAreaId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      environmentMaskEditMode: freezed == environmentMaskEditMode
-          ? _value.environmentMaskEditMode
-          : environmentMaskEditMode // ignore: cast_nullable_to_non_nullable
-              as EnvironmentMaskEditMode?,
-      gameplayZoneDraftArea: freezed == gameplayZoneDraftArea
-          ? _value.gameplayZoneDraftArea
-          : gameplayZoneDraftArea // ignore: cast_nullable_to_non_nullable
-              as MapRect?,
-      selectedTilesetEditorId: freezed == selectedTilesetEditorId
-          ? _value.selectedTilesetEditorId
-          : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedTilesetElementGroupId: freezed == selectedTilesetElementGroupId
-          ? _value.selectedTilesetElementGroupId
-          : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      paletteSession: null == paletteSession
-          ? _value.paletteSession
-          : paletteSession // ignore: cast_nullable_to_non_nullable
-              as EditorPaletteSession,
-      tilesElementsPanelMode: null == tilesElementsPanelMode
-          ? _value.tilesElementsPanelMode
-          : tilesElementsPanelMode // ignore: cast_nullable_to_non_nullable
-              as TilesElementsPanelMode,
-      selectedPlacedElementInstanceId: freezed ==
-              selectedPlacedElementInstanceId
-          ? _value.selectedPlacedElementInstanceId
-          : selectedPlacedElementInstanceId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedProjectDialogueId: freezed == selectedProjectDialogueId
-          ? _value.selectedProjectDialogueId
-          : selectedProjectDialogueId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedTrainerId: freezed == selectedTrainerId
-          ? _value.selectedTrainerId
-          : selectedTrainerId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      selectedCharacterId: freezed == selectedCharacterId
-          ? _value.selectedCharacterId
-          : selectedCharacterId // ignore: cast_nullable_to_non_nullable
-              as String?,
-      paletteCategoryFilter: freezed == paletteCategoryFilter
-          ? _value.paletteCategoryFilter
-          : paletteCategoryFilter // ignore: cast_nullable_to_non_nullable
-              as PaletteCategory?,
-      zoom: null == zoom
-          ? _value.zoom
-          : zoom // ignore: cast_nullable_to_non_nullable
-              as double,
-      panOffset: null == panOffset
-          ? _value.panOffset
-          : panOffset // ignore: cast_nullable_to_non_nullable
-              as Offset,
-      mapUndoStack: null == mapUndoStack
-          ? _value._mapUndoStack
-          : mapUndoStack // ignore: cast_nullable_to_non_nullable
-              as List<MapHistorySnapshot>,
-      mapRedoStack: null == mapRedoStack
-          ? _value._mapRedoStack
-          : mapRedoStack // ignore: cast_nullable_to_non_nullable
-              as List<MapHistorySnapshot>,
-      mapStrokeStart: freezed == mapStrokeStart
-          ? _value.mapStrokeStart
-          : mapStrokeStart // ignore: cast_nullable_to_non_nullable
-              as MapHistorySnapshot?,
-      savedMapSnapshot: freezed == savedMapSnapshot
-          ? _value.savedMapSnapshot
-          : savedMapSnapshot // ignore: cast_nullable_to_non_nullable
-              as MapData?,
-      canUndoMap: null == canUndoMap
-          ? _value.canUndoMap
-          : canUndoMap // ignore: cast_nullable_to_non_nullable
-              as bool,
-      canRedoMap: null == canRedoMap
-          ? _value.canRedoMap
-          : canRedoMap // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isDirty: null == isDirty
-          ? _value.isDirty
-          : isDirty // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isProjectDirty: null == isProjectDirty
-          ? _value.isProjectDirty
-          : isProjectDirty // ignore: cast_nullable_to_non_nullable
-              as bool,
-      isSaving: null == isSaving
-          ? _value.isSaving
-          : isSaving // ignore: cast_nullable_to_non_nullable
-              as bool,
-      statusMessage: freezed == statusMessage
-          ? _value.statusMessage
-          : statusMessage // ignore: cast_nullable_to_non_nullable
-              as String?,
-      errorMessage: freezed == errorMessage
-          ? _value.errorMessage
-          : errorMessage // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
-  }
 }
 
 /// @nodoc
 
-class _$EditorStateImpl implements _EditorState {
-  const _$EditorStateImpl(
-      {this.projectRootPath,
-      this.project,
-      this.workspaceMode = EditorWorkspaceMode.map,
-      this.smartTilesStudioLaunchContext =
-          const SmartTilesStudioLaunchContext.library(),
-      this.pokemonCatalogSection = PokemonCatalogSection.pokedex,
-      this.activeMap,
-      this.activeMapPath,
-      this.activeTool = EditorToolType.selection,
-      this.activeLayerId,
-      this.hoveredTile,
-      this.activeBrush = const EditorBrush.none(),
-      this.selectedEntityKind = MapEntityKind.npc,
-      this.eraserFootprint = const EditorEraserFootprint.singleTile(),
-      this.collisionBrushSizeMode = CollisionBrushSizeMode.brushFootprint,
-      this.selectedEntityId,
-      this.npcWaypointPlacementEntityId,
-      this.selectedMapEventId,
-      this.selectedWarpId,
-      this.selectedTriggerId,
-      this.selectedGameplayZoneId,
-      this.selectedEnvironmentAreaId,
-      this.environmentMaskEditMode,
-      this.gameplayZoneDraftArea,
-      this.selectedTilesetEditorId,
-      this.selectedTilesetElementGroupId,
-      this.paletteSession = const EditorPaletteSession(),
-      this.tilesElementsPanelMode = TilesElementsPanelMode.palette,
-      this.selectedPlacedElementInstanceId,
-      this.selectedProjectDialogueId,
-      this.selectedTrainerId,
-      this.selectedCharacterId,
-      this.paletteCategoryFilter,
-      this.zoom = 1.0,
-      this.panOffset = Offset.zero,
-      final List<MapHistorySnapshot> mapUndoStack = const [],
-      final List<MapHistorySnapshot> mapRedoStack = const [],
-      this.mapStrokeStart,
-      this.savedMapSnapshot,
-      this.canUndoMap = false,
-      this.canRedoMap = false,
-      this.isDirty = false,
-      this.isProjectDirty = false,
-      this.isSaving = false,
-      this.statusMessage,
-      this.errorMessage})
-      : _mapUndoStack = mapUndoStack,
-        _mapRedoStack = mapRedoStack;
+
+class _EditorState implements EditorState {
+  const _EditorState({this.projectRootPath, this.project, this.workspaceMode = EditorWorkspaceMode.map, this.smartTilesStudioLaunchContext = const SmartTilesStudioLaunchContext.library(), this.pokemonCatalogSection = PokemonCatalogSection.pokedex, this.activeMap, this.activeMapPath, this.activeTool = EditorToolType.selection, this.activeLayerId, this.hoveredTile, this.activeBrush = const EditorBrush.none(), this.selectedEntityKind = MapEntityKind.npc, this.eraserFootprint = const EditorEraserFootprint.singleTile(), this.collisionBrushSizeMode = CollisionBrushSizeMode.brushFootprint, this.selectedEntityId, this.npcWaypointPlacementEntityId, this.selectedMapEventId, this.selectedWarpId, this.selectedTriggerId, this.selectedGameplayZoneId, this.selectedEnvironmentAreaId, this.environmentMaskEditMode, this.gameplayZoneDraftArea, this.selectedTilesetEditorId, this.selectedTilesetElementGroupId, this.paletteSession = const EditorPaletteSession(), this.tilesElementsPanelMode = TilesElementsPanelMode.palette, this.selectedPlacedElementInstanceId, this.selectedProjectDialogueId, this.selectedTrainerId, this.selectedCharacterId, this.paletteCategoryFilter, this.zoom = 1.0, this.panOffset = Offset.zero, final  List<MapHistorySnapshot> mapUndoStack = const [], final  List<MapHistorySnapshot> mapRedoStack = const [], this.mapStrokeStart, this.savedMapSnapshot, this.canUndoMap = false, this.canRedoMap = false, this.isDirty = false, this.isProjectDirty = false, this.isSaving = false, this.statusMessage, this.errorMessage}): _mapUndoStack = mapUndoStack,_mapRedoStack = mapRedoStack;
+  
 
 // Session projet / document ouvert
-  @override
-  final String? projectRootPath;
-  @override
-  final ProjectManifest? project;
-  @override
-  @JsonKey()
-  final EditorWorkspaceMode workspaceMode;
-  @override
-  @JsonKey()
-  final SmartTilesStudioLaunchContext smartTilesStudioLaunchContext;
-  @override
-  @JsonKey()
-  final PokemonCatalogSection pokemonCatalogSection;
+@override final  String? projectRootPath;
+@override final  ProjectManifest? project;
+@override@JsonKey() final  EditorWorkspaceMode workspaceMode;
+@override@JsonKey() final  SmartTilesStudioLaunchContext smartTilesStudioLaunchContext;
+@override@JsonKey() final  PokemonCatalogSection pokemonCatalogSection;
 // Document map actif
-  @override
-  final MapData? activeMap;
-  @override
-  final String? activeMapPath;
+@override final  MapData? activeMap;
+@override final  String? activeMapPath;
 // Outils et sélections d'édition
-  @override
-  @JsonKey()
-  final EditorToolType activeTool;
-  @override
-  final String? activeLayerId;
-  @override
-  final GridPos? hoveredTile;
-  @override
-  @JsonKey()
-  final EditorBrush activeBrush;
-  @override
-  @JsonKey()
-  final MapEntityKind selectedEntityKind;
-  @override
-  @JsonKey()
-  final EditorEraserFootprint eraserFootprint;
-  @override
-  @JsonKey()
-  final CollisionBrushSizeMode collisionBrushSizeMode;
-  @override
-  final String? selectedEntityId;
-
-  /// Session de placement visuel de waypoint NPC active.
-  ///
-  /// - `null` : aucun mode placement waypoint actif.
-  /// - non null : id de l'entité NPC ciblée par les clics map.
-  ///
-  /// Le clic map est alors re-routé vers "ajout waypoint", au lieu du flux
-  /// d'outil normal (paint/place/select), tant que la session est valide.
-  @override
-  final String? npcWaypointPlacementEntityId;
-  @override
-  final String? selectedMapEventId;
-  @override
-  final String? selectedWarpId;
-  @override
-  final String? selectedTriggerId;
-  @override
-  final String? selectedGameplayZoneId;
-
-  /// Lot Environment-22 : area dont le masque est édité (layer actif = Environment).
-  @override
-  final String? selectedEnvironmentAreaId;
-  @override
-  final EnvironmentMaskEditMode? environmentMaskEditMode;
-
-  /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
-  @override
-  final MapRect? gameplayZoneDraftArea;
-  @override
-  final String? selectedTilesetEditorId;
-  @override
-  final String? selectedTilesetElementGroupId;
-  @override
-  @JsonKey()
-  final EditorPaletteSession paletteSession;
-  @override
-  @JsonKey()
-  final TilesElementsPanelMode tilesElementsPanelMode;
-  @override
-  final String? selectedPlacedElementInstanceId;
-
-  /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
-  @override
-  final String? selectedProjectDialogueId;
+@override@JsonKey() final  EditorToolType activeTool;
+@override final  String? activeLayerId;
+@override final  GridPos? hoveredTile;
+@override@JsonKey() final  EditorBrush activeBrush;
+@override@JsonKey() final  MapEntityKind selectedEntityKind;
+@override@JsonKey() final  EditorEraserFootprint eraserFootprint;
+@override@JsonKey() final  CollisionBrushSizeMode collisionBrushSizeMode;
+@override final  String? selectedEntityId;
+/// Session de placement visuel de waypoint NPC active.
+///
+/// - `null` : aucun mode placement waypoint actif.
+/// - non null : id de l'entité NPC ciblée par les clics map.
+///
+/// Le clic map est alors re-routé vers "ajout waypoint", au lieu du flux
+/// d'outil normal (paint/place/select), tant que la session est valide.
+@override final  String? npcWaypointPlacementEntityId;
+@override final  String? selectedMapEventId;
+@override final  String? selectedWarpId;
+@override final  String? selectedTriggerId;
+@override final  String? selectedGameplayZoneId;
+/// Lot Environment-22 : area dont le masque est édité (layer actif = Environment).
+@override final  String? selectedEnvironmentAreaId;
+@override final  EnvironmentMaskEditMode? environmentMaskEditMode;
+/// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
+@override final  MapRect? gameplayZoneDraftArea;
+@override final  String? selectedTilesetEditorId;
+@override final  String? selectedTilesetElementGroupId;
+@override@JsonKey() final  EditorPaletteSession paletteSession;
+@override@JsonKey() final  TilesElementsPanelMode tilesElementsPanelMode;
+@override final  String? selectedPlacedElementInstanceId;
+/// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
+@override final  String? selectedProjectDialogueId;
 // Rollback complet scénario/scripts:
 // Les sélections dédiées au graphe scénario et à la bibliothèque de scripts
 // runtime sont supprimées de l’état éditeur. Cela évite de conserver des
 // états fantômes pour des surfaces UI désormais retirées.
-  /// Dresseur sélectionné dans la bibliothèque dresseurs.
-  @override
-  final String? selectedTrainerId;
-
-  /// Personnage sélectionné dans la bibliothèque personnages.
-  @override
-  final String? selectedCharacterId;
-  @override
-  final PaletteCategory? paletteCategoryFilter;
+/// Dresseur sélectionné dans la bibliothèque dresseurs.
+@override final  String? selectedTrainerId;
+/// Personnage sélectionné dans la bibliothèque personnages.
+@override final  String? selectedCharacterId;
+@override final  PaletteCategory? paletteCategoryFilter;
 // Viewport canvas
-  @override
-  @JsonKey()
-  final double zoom;
-  @override
-  @JsonKey()
-  final Offset panOffset;
+@override@JsonKey() final  double zoom;
+@override@JsonKey() final  Offset panOffset;
 // Statut document / historique
-  final List<MapHistorySnapshot> _mapUndoStack;
+ final  List<MapHistorySnapshot> _mapUndoStack;
 // Statut document / historique
-  @override
-  @JsonKey()
-  List<MapHistorySnapshot> get mapUndoStack {
-    if (_mapUndoStack is EqualUnmodifiableListView) return _mapUndoStack;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_mapUndoStack);
-  }
-
-  final List<MapHistorySnapshot> _mapRedoStack;
-  @override
-  @JsonKey()
-  List<MapHistorySnapshot> get mapRedoStack {
-    if (_mapRedoStack is EqualUnmodifiableListView) return _mapRedoStack;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableListView(_mapRedoStack);
-  }
-
-  @override
-  final MapHistorySnapshot? mapStrokeStart;
-  @override
-  final MapData? savedMapSnapshot;
-  @override
-  @JsonKey()
-  final bool canUndoMap;
-  @override
-  @JsonKey()
-  final bool canRedoMap;
-  @override
-  @JsonKey()
-  final bool isDirty;
-  @override
-  @JsonKey()
-  final bool isProjectDirty;
-  @override
-  @JsonKey()
-  final bool isSaving;
-  @override
-  final String? statusMessage;
-  @override
-  final String? errorMessage;
-
-  @override
-  String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, smartTilesStudioLaunchContext: $smartTilesStudioLaunchContext, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedEntityKind: $selectedEntityKind, eraserFootprint: $eraserFootprint, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteSession: $paletteSession, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$EditorStateImpl &&
-            (identical(other.projectRootPath, projectRootPath) ||
-                other.projectRootPath == projectRootPath) &&
-            (identical(other.project, project) || other.project == project) &&
-            (identical(other.workspaceMode, workspaceMode) ||
-                other.workspaceMode == workspaceMode) &&
-            (identical(other.smartTilesStudioLaunchContext, smartTilesStudioLaunchContext) ||
-                other.smartTilesStudioLaunchContext ==
-                    smartTilesStudioLaunchContext) &&
-            (identical(other.pokemonCatalogSection, pokemonCatalogSection) ||
-                other.pokemonCatalogSection == pokemonCatalogSection) &&
-            (identical(other.activeMap, activeMap) ||
-                other.activeMap == activeMap) &&
-            (identical(other.activeMapPath, activeMapPath) ||
-                other.activeMapPath == activeMapPath) &&
-            (identical(other.activeTool, activeTool) ||
-                other.activeTool == activeTool) &&
-            (identical(other.activeLayerId, activeLayerId) ||
-                other.activeLayerId == activeLayerId) &&
-            (identical(other.hoveredTile, hoveredTile) ||
-                other.hoveredTile == hoveredTile) &&
-            (identical(other.activeBrush, activeBrush) ||
-                other.activeBrush == activeBrush) &&
-            (identical(other.selectedEntityKind, selectedEntityKind) ||
-                other.selectedEntityKind == selectedEntityKind) &&
-            (identical(other.eraserFootprint, eraserFootprint) ||
-                other.eraserFootprint == eraserFootprint) &&
-            (identical(other.collisionBrushSizeMode, collisionBrushSizeMode) ||
-                other.collisionBrushSizeMode == collisionBrushSizeMode) &&
-            (identical(other.selectedEntityId, selectedEntityId) ||
-                other.selectedEntityId == selectedEntityId) &&
-            (identical(other.npcWaypointPlacementEntityId, npcWaypointPlacementEntityId) ||
-                other.npcWaypointPlacementEntityId ==
-                    npcWaypointPlacementEntityId) &&
-            (identical(other.selectedMapEventId, selectedMapEventId) ||
-                other.selectedMapEventId == selectedMapEventId) &&
-            (identical(other.selectedWarpId, selectedWarpId) ||
-                other.selectedWarpId == selectedWarpId) &&
-            (identical(other.selectedTriggerId, selectedTriggerId) ||
-                other.selectedTriggerId == selectedTriggerId) &&
-            (identical(other.selectedGameplayZoneId, selectedGameplayZoneId) ||
-                other.selectedGameplayZoneId == selectedGameplayZoneId) &&
-            (identical(other.selectedEnvironmentAreaId, selectedEnvironmentAreaId) ||
-                other.selectedEnvironmentAreaId == selectedEnvironmentAreaId) &&
-            (identical(other.environmentMaskEditMode, environmentMaskEditMode) ||
-                other.environmentMaskEditMode == environmentMaskEditMode) &&
-            (identical(other.gameplayZoneDraftArea, gameplayZoneDraftArea) ||
-                other.gameplayZoneDraftArea == gameplayZoneDraftArea) &&
-            (identical(other.selectedTilesetEditorId, selectedTilesetEditorId) ||
-                other.selectedTilesetEditorId == selectedTilesetEditorId) &&
-            (identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) ||
-                other.selectedTilesetElementGroupId ==
-                    selectedTilesetElementGroupId) &&
-            (identical(other.paletteSession, paletteSession) ||
-                other.paletteSession == paletteSession) &&
-            (identical(other.tilesElementsPanelMode, tilesElementsPanelMode) ||
-                other.tilesElementsPanelMode == tilesElementsPanelMode) &&
-            (identical(other.selectedPlacedElementInstanceId, selectedPlacedElementInstanceId) ||
-                other.selectedPlacedElementInstanceId ==
-                    selectedPlacedElementInstanceId) &&
-            (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) || other.selectedProjectDialogueId == selectedProjectDialogueId) &&
-            (identical(other.selectedTrainerId, selectedTrainerId) || other.selectedTrainerId == selectedTrainerId) &&
-            (identical(other.selectedCharacterId, selectedCharacterId) || other.selectedCharacterId == selectedCharacterId) &&
-            (identical(other.paletteCategoryFilter, paletteCategoryFilter) || other.paletteCategoryFilter == paletteCategoryFilter) &&
-            (identical(other.zoom, zoom) || other.zoom == zoom) &&
-            (identical(other.panOffset, panOffset) || other.panOffset == panOffset) &&
-            const DeepCollectionEquality().equals(other._mapUndoStack, _mapUndoStack) &&
-            const DeepCollectionEquality().equals(other._mapRedoStack, _mapRedoStack) &&
-            (identical(other.mapStrokeStart, mapStrokeStart) || other.mapStrokeStart == mapStrokeStart) &&
-            (identical(other.savedMapSnapshot, savedMapSnapshot) || other.savedMapSnapshot == savedMapSnapshot) &&
-            (identical(other.canUndoMap, canUndoMap) || other.canUndoMap == canUndoMap) &&
-            (identical(other.canRedoMap, canRedoMap) || other.canRedoMap == canRedoMap) &&
-            (identical(other.isDirty, isDirty) || other.isDirty == isDirty) &&
-            (identical(other.isProjectDirty, isProjectDirty) || other.isProjectDirty == isProjectDirty) &&
-            (identical(other.isSaving, isSaving) || other.isSaving == isSaving) &&
-            (identical(other.statusMessage, statusMessage) || other.statusMessage == statusMessage) &&
-            (identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
-  }
-
-  @override
-  int get hashCode => Object.hashAll([
-        runtimeType,
-        projectRootPath,
-        project,
-        workspaceMode,
-        smartTilesStudioLaunchContext,
-        pokemonCatalogSection,
-        activeMap,
-        activeMapPath,
-        activeTool,
-        activeLayerId,
-        hoveredTile,
-        activeBrush,
-        selectedEntityKind,
-        eraserFootprint,
-        collisionBrushSizeMode,
-        selectedEntityId,
-        npcWaypointPlacementEntityId,
-        selectedMapEventId,
-        selectedWarpId,
-        selectedTriggerId,
-        selectedGameplayZoneId,
-        selectedEnvironmentAreaId,
-        environmentMaskEditMode,
-        gameplayZoneDraftArea,
-        selectedTilesetEditorId,
-        selectedTilesetElementGroupId,
-        paletteSession,
-        tilesElementsPanelMode,
-        selectedPlacedElementInstanceId,
-        selectedProjectDialogueId,
-        selectedTrainerId,
-        selectedCharacterId,
-        paletteCategoryFilter,
-        zoom,
-        panOffset,
-        const DeepCollectionEquality().hash(_mapUndoStack),
-        const DeepCollectionEquality().hash(_mapRedoStack),
-        mapStrokeStart,
-        savedMapSnapshot,
-        canUndoMap,
-        canRedoMap,
-        isDirty,
-        isProjectDirty,
-        isSaving,
-        statusMessage,
-        errorMessage
-      ]);
-
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$EditorStateImplCopyWith<_$EditorStateImpl> get copyWith =>
-      __$$EditorStateImplCopyWithImpl<_$EditorStateImpl>(this, _$identity);
+@override@JsonKey() List<MapHistorySnapshot> get mapUndoStack {
+  if (_mapUndoStack is EqualUnmodifiableListView) return _mapUndoStack;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_mapUndoStack);
 }
 
-abstract class _EditorState implements EditorState {
-  const factory _EditorState(
-      {final String? projectRootPath,
-      final ProjectManifest? project,
-      final EditorWorkspaceMode workspaceMode,
-      final SmartTilesStudioLaunchContext smartTilesStudioLaunchContext,
-      final PokemonCatalogSection pokemonCatalogSection,
-      final MapData? activeMap,
-      final String? activeMapPath,
-      final EditorToolType activeTool,
-      final String? activeLayerId,
-      final GridPos? hoveredTile,
-      final EditorBrush activeBrush,
-      final MapEntityKind selectedEntityKind,
-      final EditorEraserFootprint eraserFootprint,
-      final CollisionBrushSizeMode collisionBrushSizeMode,
-      final String? selectedEntityId,
-      final String? npcWaypointPlacementEntityId,
-      final String? selectedMapEventId,
-      final String? selectedWarpId,
-      final String? selectedTriggerId,
-      final String? selectedGameplayZoneId,
-      final String? selectedEnvironmentAreaId,
-      final EnvironmentMaskEditMode? environmentMaskEditMode,
-      final MapRect? gameplayZoneDraftArea,
-      final String? selectedTilesetEditorId,
-      final String? selectedTilesetElementGroupId,
-      final EditorPaletteSession paletteSession,
-      final TilesElementsPanelMode tilesElementsPanelMode,
-      final String? selectedPlacedElementInstanceId,
-      final String? selectedProjectDialogueId,
-      final String? selectedTrainerId,
-      final String? selectedCharacterId,
-      final PaletteCategory? paletteCategoryFilter,
-      final double zoom,
-      final Offset panOffset,
-      final List<MapHistorySnapshot> mapUndoStack,
-      final List<MapHistorySnapshot> mapRedoStack,
-      final MapHistorySnapshot? mapStrokeStart,
-      final MapData? savedMapSnapshot,
-      final bool canUndoMap,
-      final bool canRedoMap,
-      final bool isDirty,
-      final bool isProjectDirty,
-      final bool isSaving,
-      final String? statusMessage,
-      final String? errorMessage}) = _$EditorStateImpl;
-
-// Session projet / document ouvert
-  @override
-  String? get projectRootPath;
-  @override
-  ProjectManifest? get project;
-  @override
-  EditorWorkspaceMode get workspaceMode;
-  @override
-  SmartTilesStudioLaunchContext get smartTilesStudioLaunchContext;
-  @override
-  PokemonCatalogSection get pokemonCatalogSection; // Document map actif
-  @override
-  MapData? get activeMap;
-  @override
-  String? get activeMapPath; // Outils et sélections d'édition
-  @override
-  EditorToolType get activeTool;
-  @override
-  String? get activeLayerId;
-  @override
-  GridPos? get hoveredTile;
-  @override
-  EditorBrush get activeBrush;
-  @override
-  MapEntityKind get selectedEntityKind;
-  @override
-  EditorEraserFootprint get eraserFootprint;
-  @override
-  CollisionBrushSizeMode get collisionBrushSizeMode;
-  @override
-  String? get selectedEntityId;
-
-  /// Session de placement visuel de waypoint NPC active.
-  ///
-  /// - `null` : aucun mode placement waypoint actif.
-  /// - non null : id de l'entité NPC ciblée par les clics map.
-  ///
-  /// Le clic map est alors re-routé vers "ajout waypoint", au lieu du flux
-  /// d'outil normal (paint/place/select), tant que la session est valide.
-  @override
-  String? get npcWaypointPlacementEntityId;
-  @override
-  String? get selectedMapEventId;
-  @override
-  String? get selectedWarpId;
-  @override
-  String? get selectedTriggerId;
-  @override
-  String? get selectedGameplayZoneId;
-
-  /// Lot Environment-22 : area dont le masque est édité (layer actif = Environment).
-  @override
-  String? get selectedEnvironmentAreaId;
-  @override
-  EnvironmentMaskEditMode? get environmentMaskEditMode;
-
-  /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
-  @override
-  MapRect? get gameplayZoneDraftArea;
-  @override
-  String? get selectedTilesetEditorId;
-  @override
-  String? get selectedTilesetElementGroupId;
-  @override
-  EditorPaletteSession get paletteSession;
-  @override
-  TilesElementsPanelMode get tilesElementsPanelMode;
-  @override
-  String? get selectedPlacedElementInstanceId;
-
-  /// Dialogue projet sélectionné dans l’explorateur (bibliothèque).
-  @override
-  String? get selectedProjectDialogueId; // Rollback complet scénario/scripts:
-// Les sélections dédiées au graphe scénario et à la bibliothèque de scripts
-// runtime sont supprimées de l’état éditeur. Cela évite de conserver des
-// états fantômes pour des surfaces UI désormais retirées.
-  /// Dresseur sélectionné dans la bibliothèque dresseurs.
-  @override
-  String? get selectedTrainerId;
-
-  /// Personnage sélectionné dans la bibliothèque personnages.
-  @override
-  String? get selectedCharacterId;
-  @override
-  PaletteCategory? get paletteCategoryFilter; // Viewport canvas
-  @override
-  double get zoom;
-  @override
-  Offset get panOffset; // Statut document / historique
-  @override
-  List<MapHistorySnapshot> get mapUndoStack;
-  @override
-  List<MapHistorySnapshot> get mapRedoStack;
-  @override
-  MapHistorySnapshot? get mapStrokeStart;
-  @override
-  MapData? get savedMapSnapshot;
-  @override
-  bool get canUndoMap;
-  @override
-  bool get canRedoMap;
-  @override
-  bool get isDirty;
-  @override
-  bool get isProjectDirty;
-  @override
-  bool get isSaving;
-  @override
-  String? get statusMessage;
-  @override
-  String? get errorMessage;
-
-  /// Create a copy of EditorState
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$EditorStateImplCopyWith<_$EditorStateImpl> get copyWith =>
-      throw _privateConstructorUsedError;
+ final  List<MapHistorySnapshot> _mapRedoStack;
+@override@JsonKey() List<MapHistorySnapshot> get mapRedoStack {
+  if (_mapRedoStack is EqualUnmodifiableListView) return _mapRedoStack;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableListView(_mapRedoStack);
 }
+
+@override final  MapHistorySnapshot? mapStrokeStart;
+@override final  MapData? savedMapSnapshot;
+@override@JsonKey() final  bool canUndoMap;
+@override@JsonKey() final  bool canRedoMap;
+@override@JsonKey() final  bool isDirty;
+@override@JsonKey() final  bool isProjectDirty;
+@override@JsonKey() final  bool isSaving;
+@override final  String? statusMessage;
+@override final  String? errorMessage;
+
+/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$EditorStateCopyWith<_EditorState> get copyWith => __$EditorStateCopyWithImpl<_EditorState>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _EditorState&&(identical(other.projectRootPath, projectRootPath) || other.projectRootPath == projectRootPath)&&(identical(other.project, project) || other.project == project)&&(identical(other.workspaceMode, workspaceMode) || other.workspaceMode == workspaceMode)&&(identical(other.smartTilesStudioLaunchContext, smartTilesStudioLaunchContext) || other.smartTilesStudioLaunchContext == smartTilesStudioLaunchContext)&&(identical(other.pokemonCatalogSection, pokemonCatalogSection) || other.pokemonCatalogSection == pokemonCatalogSection)&&(identical(other.activeMap, activeMap) || other.activeMap == activeMap)&&(identical(other.activeMapPath, activeMapPath) || other.activeMapPath == activeMapPath)&&(identical(other.activeTool, activeTool) || other.activeTool == activeTool)&&(identical(other.activeLayerId, activeLayerId) || other.activeLayerId == activeLayerId)&&(identical(other.hoveredTile, hoveredTile) || other.hoveredTile == hoveredTile)&&(identical(other.activeBrush, activeBrush) || other.activeBrush == activeBrush)&&(identical(other.selectedEntityKind, selectedEntityKind) || other.selectedEntityKind == selectedEntityKind)&&(identical(other.eraserFootprint, eraserFootprint) || other.eraserFootprint == eraserFootprint)&&(identical(other.collisionBrushSizeMode, collisionBrushSizeMode) || other.collisionBrushSizeMode == collisionBrushSizeMode)&&(identical(other.selectedEntityId, selectedEntityId) || other.selectedEntityId == selectedEntityId)&&(identical(other.npcWaypointPlacementEntityId, npcWaypointPlacementEntityId) || other.npcWaypointPlacementEntityId == npcWaypointPlacementEntityId)&&(identical(other.selectedMapEventId, selectedMapEventId) || other.selectedMapEventId == selectedMapEventId)&&(identical(other.selectedWarpId, selectedWarpId) || other.selectedWarpId == selectedWarpId)&&(identical(other.selectedTriggerId, selectedTriggerId) || other.selectedTriggerId == selectedTriggerId)&&(identical(other.selectedGameplayZoneId, selectedGameplayZoneId) || other.selectedGameplayZoneId == selectedGameplayZoneId)&&(identical(other.selectedEnvironmentAreaId, selectedEnvironmentAreaId) || other.selectedEnvironmentAreaId == selectedEnvironmentAreaId)&&(identical(other.environmentMaskEditMode, environmentMaskEditMode) || other.environmentMaskEditMode == environmentMaskEditMode)&&(identical(other.gameplayZoneDraftArea, gameplayZoneDraftArea) || other.gameplayZoneDraftArea == gameplayZoneDraftArea)&&(identical(other.selectedTilesetEditorId, selectedTilesetEditorId) || other.selectedTilesetEditorId == selectedTilesetEditorId)&&(identical(other.selectedTilesetElementGroupId, selectedTilesetElementGroupId) || other.selectedTilesetElementGroupId == selectedTilesetElementGroupId)&&(identical(other.paletteSession, paletteSession) || other.paletteSession == paletteSession)&&(identical(other.tilesElementsPanelMode, tilesElementsPanelMode) || other.tilesElementsPanelMode == tilesElementsPanelMode)&&(identical(other.selectedPlacedElementInstanceId, selectedPlacedElementInstanceId) || other.selectedPlacedElementInstanceId == selectedPlacedElementInstanceId)&&(identical(other.selectedProjectDialogueId, selectedProjectDialogueId) || other.selectedProjectDialogueId == selectedProjectDialogueId)&&(identical(other.selectedTrainerId, selectedTrainerId) || other.selectedTrainerId == selectedTrainerId)&&(identical(other.selectedCharacterId, selectedCharacterId) || other.selectedCharacterId == selectedCharacterId)&&(identical(other.paletteCategoryFilter, paletteCategoryFilter) || other.paletteCategoryFilter == paletteCategoryFilter)&&(identical(other.zoom, zoom) || other.zoom == zoom)&&(identical(other.panOffset, panOffset) || other.panOffset == panOffset)&&const DeepCollectionEquality().equals(other._mapUndoStack, _mapUndoStack)&&const DeepCollectionEquality().equals(other._mapRedoStack, _mapRedoStack)&&(identical(other.mapStrokeStart, mapStrokeStart) || other.mapStrokeStart == mapStrokeStart)&&(identical(other.savedMapSnapshot, savedMapSnapshot) || other.savedMapSnapshot == savedMapSnapshot)&&(identical(other.canUndoMap, canUndoMap) || other.canUndoMap == canUndoMap)&&(identical(other.canRedoMap, canRedoMap) || other.canRedoMap == canRedoMap)&&(identical(other.isDirty, isDirty) || other.isDirty == isDirty)&&(identical(other.isProjectDirty, isProjectDirty) || other.isProjectDirty == isProjectDirty)&&(identical(other.isSaving, isSaving) || other.isSaving == isSaving)&&(identical(other.statusMessage, statusMessage) || other.statusMessage == statusMessage)&&(identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
+}
+
+
+@override
+int get hashCode => Object.hashAll([runtimeType,projectRootPath,project,workspaceMode,smartTilesStudioLaunchContext,pokemonCatalogSection,activeMap,activeMapPath,activeTool,activeLayerId,hoveredTile,activeBrush,selectedEntityKind,eraserFootprint,collisionBrushSizeMode,selectedEntityId,npcWaypointPlacementEntityId,selectedMapEventId,selectedWarpId,selectedTriggerId,selectedGameplayZoneId,selectedEnvironmentAreaId,environmentMaskEditMode,gameplayZoneDraftArea,selectedTilesetEditorId,selectedTilesetElementGroupId,paletteSession,tilesElementsPanelMode,selectedPlacedElementInstanceId,selectedProjectDialogueId,selectedTrainerId,selectedCharacterId,paletteCategoryFilter,zoom,panOffset,const DeepCollectionEquality().hash(_mapUndoStack),const DeepCollectionEquality().hash(_mapRedoStack),mapStrokeStart,savedMapSnapshot,canUndoMap,canRedoMap,isDirty,isProjectDirty,isSaving,statusMessage,errorMessage]);
+
+@override
+String toString() {
+  return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, smartTilesStudioLaunchContext: $smartTilesStudioLaunchContext, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, selectedEntityKind: $selectedEntityKind, eraserFootprint: $eraserFootprint, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, paletteSession: $paletteSession, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$EditorStateCopyWith<$Res> implements $EditorStateCopyWith<$Res> {
+  factory _$EditorStateCopyWith(_EditorState value, $Res Function(_EditorState) _then) = __$EditorStateCopyWithImpl;
+@override @useResult
+$Res call({
+ String? projectRootPath, ProjectManifest? project, EditorWorkspaceMode workspaceMode, SmartTilesStudioLaunchContext smartTilesStudioLaunchContext, PokemonCatalogSection pokemonCatalogSection, MapData? activeMap, String? activeMapPath, EditorToolType activeTool, String? activeLayerId, GridPos? hoveredTile, EditorBrush activeBrush, MapEntityKind selectedEntityKind, EditorEraserFootprint eraserFootprint, CollisionBrushSizeMode collisionBrushSizeMode, String? selectedEntityId, String? npcWaypointPlacementEntityId, String? selectedMapEventId, String? selectedWarpId, String? selectedTriggerId, String? selectedGameplayZoneId, String? selectedEnvironmentAreaId, EnvironmentMaskEditMode? environmentMaskEditMode, MapRect? gameplayZoneDraftArea, String? selectedTilesetEditorId, String? selectedTilesetElementGroupId, EditorPaletteSession paletteSession, TilesElementsPanelMode tilesElementsPanelMode, String? selectedPlacedElementInstanceId, String? selectedProjectDialogueId, String? selectedTrainerId, String? selectedCharacterId, PaletteCategory? paletteCategoryFilter, double zoom, Offset panOffset, List<MapHistorySnapshot> mapUndoStack, List<MapHistorySnapshot> mapRedoStack, MapHistorySnapshot? mapStrokeStart, MapData? savedMapSnapshot, bool canUndoMap, bool canRedoMap, bool isDirty, bool isProjectDirty, bool isSaving, String? statusMessage, String? errorMessage
+});
+
+
+@override $ProjectManifestCopyWith<$Res>? get project;@override $MapDataCopyWith<$Res>? get activeMap;@override $GridPosCopyWith<$Res>? get hoveredTile;@override $EditorBrushCopyWith<$Res> get activeBrush;@override $EditorEraserFootprintCopyWith<$Res> get eraserFootprint;@override $MapRectCopyWith<$Res>? get gameplayZoneDraftArea;@override $EditorPaletteSessionCopyWith<$Res> get paletteSession;@override $MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart;@override $MapDataCopyWith<$Res>? get savedMapSnapshot;
+
+}
+/// @nodoc
+class __$EditorStateCopyWithImpl<$Res>
+    implements _$EditorStateCopyWith<$Res> {
+  __$EditorStateCopyWithImpl(this._self, this._then);
+
+  final _EditorState _self;
+  final $Res Function(_EditorState) _then;
+
+/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? projectRootPath = freezed,Object? project = freezed,Object? workspaceMode = null,Object? smartTilesStudioLaunchContext = null,Object? pokemonCatalogSection = null,Object? activeMap = freezed,Object? activeMapPath = freezed,Object? activeTool = null,Object? activeLayerId = freezed,Object? hoveredTile = freezed,Object? activeBrush = null,Object? selectedEntityKind = null,Object? eraserFootprint = null,Object? collisionBrushSizeMode = null,Object? selectedEntityId = freezed,Object? npcWaypointPlacementEntityId = freezed,Object? selectedMapEventId = freezed,Object? selectedWarpId = freezed,Object? selectedTriggerId = freezed,Object? selectedGameplayZoneId = freezed,Object? selectedEnvironmentAreaId = freezed,Object? environmentMaskEditMode = freezed,Object? gameplayZoneDraftArea = freezed,Object? selectedTilesetEditorId = freezed,Object? selectedTilesetElementGroupId = freezed,Object? paletteSession = null,Object? tilesElementsPanelMode = null,Object? selectedPlacedElementInstanceId = freezed,Object? selectedProjectDialogueId = freezed,Object? selectedTrainerId = freezed,Object? selectedCharacterId = freezed,Object? paletteCategoryFilter = freezed,Object? zoom = null,Object? panOffset = null,Object? mapUndoStack = null,Object? mapRedoStack = null,Object? mapStrokeStart = freezed,Object? savedMapSnapshot = freezed,Object? canUndoMap = null,Object? canRedoMap = null,Object? isDirty = null,Object? isProjectDirty = null,Object? isSaving = null,Object? statusMessage = freezed,Object? errorMessage = freezed,}) {
+  return _then(_EditorState(
+projectRootPath: freezed == projectRootPath ? _self.projectRootPath : projectRootPath // ignore: cast_nullable_to_non_nullable
+as String?,project: freezed == project ? _self.project : project // ignore: cast_nullable_to_non_nullable
+as ProjectManifest?,workspaceMode: null == workspaceMode ? _self.workspaceMode : workspaceMode // ignore: cast_nullable_to_non_nullable
+as EditorWorkspaceMode,smartTilesStudioLaunchContext: null == smartTilesStudioLaunchContext ? _self.smartTilesStudioLaunchContext : smartTilesStudioLaunchContext // ignore: cast_nullable_to_non_nullable
+as SmartTilesStudioLaunchContext,pokemonCatalogSection: null == pokemonCatalogSection ? _self.pokemonCatalogSection : pokemonCatalogSection // ignore: cast_nullable_to_non_nullable
+as PokemonCatalogSection,activeMap: freezed == activeMap ? _self.activeMap : activeMap // ignore: cast_nullable_to_non_nullable
+as MapData?,activeMapPath: freezed == activeMapPath ? _self.activeMapPath : activeMapPath // ignore: cast_nullable_to_non_nullable
+as String?,activeTool: null == activeTool ? _self.activeTool : activeTool // ignore: cast_nullable_to_non_nullable
+as EditorToolType,activeLayerId: freezed == activeLayerId ? _self.activeLayerId : activeLayerId // ignore: cast_nullable_to_non_nullable
+as String?,hoveredTile: freezed == hoveredTile ? _self.hoveredTile : hoveredTile // ignore: cast_nullable_to_non_nullable
+as GridPos?,activeBrush: null == activeBrush ? _self.activeBrush : activeBrush // ignore: cast_nullable_to_non_nullable
+as EditorBrush,selectedEntityKind: null == selectedEntityKind ? _self.selectedEntityKind : selectedEntityKind // ignore: cast_nullable_to_non_nullable
+as MapEntityKind,eraserFootprint: null == eraserFootprint ? _self.eraserFootprint : eraserFootprint // ignore: cast_nullable_to_non_nullable
+as EditorEraserFootprint,collisionBrushSizeMode: null == collisionBrushSizeMode ? _self.collisionBrushSizeMode : collisionBrushSizeMode // ignore: cast_nullable_to_non_nullable
+as CollisionBrushSizeMode,selectedEntityId: freezed == selectedEntityId ? _self.selectedEntityId : selectedEntityId // ignore: cast_nullable_to_non_nullable
+as String?,npcWaypointPlacementEntityId: freezed == npcWaypointPlacementEntityId ? _self.npcWaypointPlacementEntityId : npcWaypointPlacementEntityId // ignore: cast_nullable_to_non_nullable
+as String?,selectedMapEventId: freezed == selectedMapEventId ? _self.selectedMapEventId : selectedMapEventId // ignore: cast_nullable_to_non_nullable
+as String?,selectedWarpId: freezed == selectedWarpId ? _self.selectedWarpId : selectedWarpId // ignore: cast_nullable_to_non_nullable
+as String?,selectedTriggerId: freezed == selectedTriggerId ? _self.selectedTriggerId : selectedTriggerId // ignore: cast_nullable_to_non_nullable
+as String?,selectedGameplayZoneId: freezed == selectedGameplayZoneId ? _self.selectedGameplayZoneId : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
+as String?,selectedEnvironmentAreaId: freezed == selectedEnvironmentAreaId ? _self.selectedEnvironmentAreaId : selectedEnvironmentAreaId // ignore: cast_nullable_to_non_nullable
+as String?,environmentMaskEditMode: freezed == environmentMaskEditMode ? _self.environmentMaskEditMode : environmentMaskEditMode // ignore: cast_nullable_to_non_nullable
+as EnvironmentMaskEditMode?,gameplayZoneDraftArea: freezed == gameplayZoneDraftArea ? _self.gameplayZoneDraftArea : gameplayZoneDraftArea // ignore: cast_nullable_to_non_nullable
+as MapRect?,selectedTilesetEditorId: freezed == selectedTilesetEditorId ? _self.selectedTilesetEditorId : selectedTilesetEditorId // ignore: cast_nullable_to_non_nullable
+as String?,selectedTilesetElementGroupId: freezed == selectedTilesetElementGroupId ? _self.selectedTilesetElementGroupId : selectedTilesetElementGroupId // ignore: cast_nullable_to_non_nullable
+as String?,paletteSession: null == paletteSession ? _self.paletteSession : paletteSession // ignore: cast_nullable_to_non_nullable
+as EditorPaletteSession,tilesElementsPanelMode: null == tilesElementsPanelMode ? _self.tilesElementsPanelMode : tilesElementsPanelMode // ignore: cast_nullable_to_non_nullable
+as TilesElementsPanelMode,selectedPlacedElementInstanceId: freezed == selectedPlacedElementInstanceId ? _self.selectedPlacedElementInstanceId : selectedPlacedElementInstanceId // ignore: cast_nullable_to_non_nullable
+as String?,selectedProjectDialogueId: freezed == selectedProjectDialogueId ? _self.selectedProjectDialogueId : selectedProjectDialogueId // ignore: cast_nullable_to_non_nullable
+as String?,selectedTrainerId: freezed == selectedTrainerId ? _self.selectedTrainerId : selectedTrainerId // ignore: cast_nullable_to_non_nullable
+as String?,selectedCharacterId: freezed == selectedCharacterId ? _self.selectedCharacterId : selectedCharacterId // ignore: cast_nullable_to_non_nullable
+as String?,paletteCategoryFilter: freezed == paletteCategoryFilter ? _self.paletteCategoryFilter : paletteCategoryFilter // ignore: cast_nullable_to_non_nullable
+as PaletteCategory?,zoom: null == zoom ? _self.zoom : zoom // ignore: cast_nullable_to_non_nullable
+as double,panOffset: null == panOffset ? _self.panOffset : panOffset // ignore: cast_nullable_to_non_nullable
+as Offset,mapUndoStack: null == mapUndoStack ? _self._mapUndoStack : mapUndoStack // ignore: cast_nullable_to_non_nullable
+as List<MapHistorySnapshot>,mapRedoStack: null == mapRedoStack ? _self._mapRedoStack : mapRedoStack // ignore: cast_nullable_to_non_nullable
+as List<MapHistorySnapshot>,mapStrokeStart: freezed == mapStrokeStart ? _self.mapStrokeStart : mapStrokeStart // ignore: cast_nullable_to_non_nullable
+as MapHistorySnapshot?,savedMapSnapshot: freezed == savedMapSnapshot ? _self.savedMapSnapshot : savedMapSnapshot // ignore: cast_nullable_to_non_nullable
+as MapData?,canUndoMap: null == canUndoMap ? _self.canUndoMap : canUndoMap // ignore: cast_nullable_to_non_nullable
+as bool,canRedoMap: null == canRedoMap ? _self.canRedoMap : canRedoMap // ignore: cast_nullable_to_non_nullable
+as bool,isDirty: null == isDirty ? _self.isDirty : isDirty // ignore: cast_nullable_to_non_nullable
+as bool,isProjectDirty: null == isProjectDirty ? _self.isProjectDirty : isProjectDirty // ignore: cast_nullable_to_non_nullable
+as bool,isSaving: null == isSaving ? _self.isSaving : isSaving // ignore: cast_nullable_to_non_nullable
+as bool,statusMessage: freezed == statusMessage ? _self.statusMessage : statusMessage // ignore: cast_nullable_to_non_nullable
+as String?,errorMessage: freezed == errorMessage ? _self.errorMessage : errorMessage // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$ProjectManifestCopyWith<$Res>? get project {
+    if (_self.project == null) {
+    return null;
+  }
+
+  return $ProjectManifestCopyWith<$Res>(_self.project!, (value) {
+    return _then(_self.copyWith(project: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapDataCopyWith<$Res>? get activeMap {
+    if (_self.activeMap == null) {
+    return null;
+  }
+
+  return $MapDataCopyWith<$Res>(_self.activeMap!, (value) {
+    return _then(_self.copyWith(activeMap: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res>? get hoveredTile {
+    if (_self.hoveredTile == null) {
+    return null;
+  }
+
+  return $GridPosCopyWith<$Res>(_self.hoveredTile!, (value) {
+    return _then(_self.copyWith(hoveredTile: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EditorBrushCopyWith<$Res> get activeBrush {
+  
+  return $EditorBrushCopyWith<$Res>(_self.activeBrush, (value) {
+    return _then(_self.copyWith(activeBrush: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EditorEraserFootprintCopyWith<$Res> get eraserFootprint {
+  
+  return $EditorEraserFootprintCopyWith<$Res>(_self.eraserFootprint, (value) {
+    return _then(_self.copyWith(eraserFootprint: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapRectCopyWith<$Res>? get gameplayZoneDraftArea {
+    if (_self.gameplayZoneDraftArea == null) {
+    return null;
+  }
+
+  return $MapRectCopyWith<$Res>(_self.gameplayZoneDraftArea!, (value) {
+    return _then(_self.copyWith(gameplayZoneDraftArea: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$EditorPaletteSessionCopyWith<$Res> get paletteSession {
+  
+  return $EditorPaletteSessionCopyWith<$Res>(_self.paletteSession, (value) {
+    return _then(_self.copyWith(paletteSession: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapHistorySnapshotCopyWith<$Res>? get mapStrokeStart {
+    if (_self.mapStrokeStart == null) {
+    return null;
+  }
+
+  return $MapHistorySnapshotCopyWith<$Res>(_self.mapStrokeStart!, (value) {
+    return _then(_self.copyWith(mapStrokeStart: value));
+  });
+}/// Create a copy of EditorState
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$MapDataCopyWith<$Res>? get savedMapSnapshot {
+    if (_self.savedMapSnapshot == null) {
+    return null;
+  }
+
+  return $MapDataCopyWith<$Res>(_self.savedMapSnapshot!, (value) {
+    return _then(_self.copyWith(savedMapSnapshot: value));
+  });
+}
+}
+
+// dart format on

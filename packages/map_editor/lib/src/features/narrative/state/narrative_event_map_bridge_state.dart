@@ -15,39 +15,41 @@ import '../../../application/use_cases/narrative_event_spatial_source_link_use_c
 import '../../editor/state/editor_notifier.dart';
 import '../../editor/state/editor_state.dart';
 
-typedef ApplyPersistedNarrativeEventRegistry = bool Function({
-  required String expectedProjectRootPath,
-  required NarrativeEventRegistry? expectedPreviousRegistry,
-  required NarrativeEventRegistry nextRegistry,
-});
+typedef ApplyPersistedNarrativeEventRegistry =
+    bool Function({
+      required String expectedProjectRootPath,
+      required NarrativeEventRegistry? expectedPreviousRegistry,
+      required NarrativeEventRegistry nextRegistry,
+    });
 typedef LoadNarrativeEventMapSnapshot = Future<MapData?> Function(String mapId);
-typedef ActivateNarrativeEventMapSnapshot = FutureOr<bool> Function(
-  MapData map,
-);
-typedef ApplyNarrativeEventMapFocus = bool Function(
-  NarrativeEditorFocusTarget focus,
-);
-typedef OpenExactNarrativeEvent = void Function({
-  required String eventId,
-  required NarrativeEventGroupContext groupContext,
-});
-typedef AdoptPersistedNarrativeEventSourceProposal = bool Function(
-  NarrativeEventCreatedSourceProposal proposal,
-);
-typedef AdoptPersistedNarrativeEventSourceCleanup = Future<bool> Function({
-  required String expectedProjectRootPath,
-  required MapData expectedActiveMap,
-  required NarrativeEventSpatialLinkJournal journal,
-});
-typedef BeginNarrativeEventSourceCleanupInterlock = bool Function({
-  required String expectedProjectRootPath,
-  required MapData expectedActiveMap,
-  required NarrativeEventSpatialLinkJournal journal,
-});
-typedef ReleaseNarrativeEventSourceCleanupInterlock = void Function({
-  required String expectedProjectRootPath,
-  required NarrativeEventSpatialLinkJournal journal,
-});
+typedef ActivateNarrativeEventMapSnapshot =
+    FutureOr<bool> Function(MapData map);
+typedef ApplyNarrativeEventMapFocus =
+    bool Function(NarrativeEditorFocusTarget focus);
+typedef OpenExactNarrativeEvent =
+    void Function({
+      required String eventId,
+      required NarrativeEventGroupContext groupContext,
+    });
+typedef AdoptPersistedNarrativeEventSourceProposal =
+    bool Function(NarrativeEventCreatedSourceProposal proposal);
+typedef AdoptPersistedNarrativeEventSourceCleanup =
+    Future<bool> Function({
+      required String expectedProjectRootPath,
+      required MapData expectedActiveMap,
+      required NarrativeEventSpatialLinkJournal journal,
+    });
+typedef BeginNarrativeEventSourceCleanupInterlock =
+    bool Function({
+      required String expectedProjectRootPath,
+      required MapData expectedActiveMap,
+      required NarrativeEventSpatialLinkJournal journal,
+    });
+typedef ReleaseNarrativeEventSourceCleanupInterlock =
+    void Function({
+      required String expectedProjectRootPath,
+      required NarrativeEventSpatialLinkJournal journal,
+    });
 typedef _SourceCreationInspectionIdentity = ({
   String projectRootPath,
   int projectSessionToken,
@@ -193,7 +195,7 @@ final class NarrativeEventMapBridgeState {
       lastSourceCreationResult: identical(lastSourceCreationResult, _unset)
           ? this.lastSourceCreationResult
           : lastSourceCreationResult
-              as NarrativeEventExplicitSourceCreationResult?,
+                as NarrativeEventExplicitSourceCreationResult?,
       cleanupConfirmationRequested:
           cleanupConfirmationRequested ?? this.cleanupConfirmationRequested,
       lastResult: identical(lastResult, _unset)
@@ -208,37 +210,44 @@ final class NarrativeEventMapBridgeState {
 
 const Object _unset = Object();
 
-final class NarrativeEventMapBridgeController
-    extends StateNotifier<NarrativeEventMapBridgeState> {
+class NarrativeEventMapBridgeController
+    extends Notifier<NarrativeEventMapBridgeState> {
   NarrativeEventMapBridgeController({
     required CreateNarrativeEventFromMapSourceUseCase useCase,
     String? projectRootPath,
     String Function()? requestIdFactory,
     NarrativeEventSpatialSourceLinkUseCase? sourceLinkUseCase,
     NarrativeEventExplicitSourceCreationUseCase? explicitSourceCreationUseCase,
-  })  : _useCase = useCase,
-        _sourceLinkUseCase = sourceLinkUseCase,
-        _explicitSourceCreationUseCase = explicitSourceCreationUseCase,
-        _requestIdFactory = requestIdFactory ?? _defaultMapRequestId,
-        super(
-          NarrativeEventMapBridgeState(
-            projectRootPath: _normalizedProjectRoot(projectRootPath),
-          ),
-        );
+  }) : _useCase = useCase,
+       _sourceLinkUseCase = sourceLinkUseCase,
+       _explicitSourceCreationUseCase = explicitSourceCreationUseCase,
+       _requestIdFactory = requestIdFactory ?? _defaultMapRequestId,
+       _initialProjectRootPath = _normalizedProjectRoot(projectRootPath);
 
-  final CreateNarrativeEventFromMapSourceUseCase _useCase;
-  final NarrativeEventSpatialSourceLinkUseCase? _sourceLinkUseCase;
-  final NarrativeEventExplicitSourceCreationUseCase?
-      _explicitSourceCreationUseCase;
+  NarrativeEventMapBridgeController._connected()
+    : _requestIdFactory = _defaultMapRequestId,
+      _initialProjectRootPath = null;
+
+  late CreateNarrativeEventFromMapSourceUseCase _useCase;
+  NarrativeEventSpatialSourceLinkUseCase? _sourceLinkUseCase;
+  NarrativeEventExplicitSourceCreationUseCase? _explicitSourceCreationUseCase;
   final String Function() _requestIdFactory;
+  final String? _initialProjectRootPath;
   int _operationEpoch = 0;
   int _sourceCreationBusyGeneration = 0;
   int? _sourceCreationBusyOwner;
   _SourceCreationBusyKind? _sourceCreationBusyKind;
   Object? _boundProjectIdentity;
   bool _hasProjectBinding = false;
-  final _pendingSourceCreationInspections = <_SourceCreationInspectionIdentity,
-      Future<NarrativeEventExplicitSourceCreationResult?>>{};
+  final _pendingSourceCreationInspections =
+      <
+        _SourceCreationInspectionIdentity,
+        Future<NarrativeEventExplicitSourceCreationResult?>
+      >{};
+
+  @override
+  NarrativeEventMapBridgeState build() =>
+      NarrativeEventMapBridgeState(projectRootPath: _initialProjectRootPath);
 
   void bindProjectRootPath(String? projectRootPath) {
     final normalized = _normalizedProjectRoot(projectRootPath);
@@ -332,7 +341,8 @@ final class NarrativeEventMapBridgeController
     final operationEpoch = ++_operationEpoch;
     final projectSessionToken = state.projectSessionToken;
     final targetMap = sameMap ? activeMap! : await loadMapSnapshot(sourceMapId);
-    if (operationEpoch != _operationEpoch ||
+    if (!ref.mounted ||
+        operationEpoch != _operationEpoch ||
         projectSessionToken != state.projectSessionToken) {
       return const NarrativeEventMapNavigationResult(
         status: NarrativeEventMapNavigationStatus.unavailable,
@@ -628,6 +638,9 @@ final class NarrativeEventMapBridgeController
       );
     }
     final result = _bindSourceCreationResultToToken(rawResult, token);
+    if (!ref.mounted) {
+      return result;
+    }
     if (!_isCurrentOperation(
       projectRootPath: normalizedRoot,
       projectSessionToken: projectSessionToken,
@@ -635,13 +648,14 @@ final class NarrativeEventMapBridgeController
     )) {
       final stale =
           result.status == NarrativeEventExplicitSourceCreationStatus.committed
-              ? _sourceCreationOutOfSync(result, 'projectChangedAfterCommit')
-              : result;
+          ? _sourceCreationOutOfSync(result, 'projectChangedAfterCommit')
+          : result;
       if (state.projectRootPath == normalizedRoot) {
         state = state.copyWith(
           isSourceCreationBusy: _busyAfterRelease(busyOwner),
-          sourceCreationProposal:
-              stale.journal == null ? state.sourceCreationProposal : null,
+          sourceCreationProposal: stale.journal == null
+              ? state.sourceCreationProposal
+              : null,
           lastSourceCreationResult: stale,
         );
       }
@@ -664,7 +678,7 @@ final class NarrativeEventMapBridgeController
   }
 
   Future<NarrativeEventExplicitSourceCreationResult?>
-      inspectPendingSourceCreation({
+  inspectPendingSourceCreation({
     required String? projectRootPath,
     required bool mapDirty,
     required bool projectDirty,
@@ -677,23 +691,24 @@ final class NarrativeEventMapBridgeController
     final pending = _pendingSourceCreationInspections[identity];
     if (pending != null) return pending;
     late final Future<NarrativeEventExplicitSourceCreationResult?> tracked;
-    tracked = _inspectPendingSourceCreation(
-      identity: identity,
-      token: state.pendingReturn!,
-      mapDirty: mapDirty,
-      projectDirty: projectDirty,
-      saving: saving,
-    ).whenComplete(() {
-      if (identical(_pendingSourceCreationInspections[identity], tracked)) {
-        _pendingSourceCreationInspections.remove(identity);
-      }
-    });
+    tracked =
+        _inspectPendingSourceCreation(
+          identity: identity,
+          token: state.pendingReturn!,
+          mapDirty: mapDirty,
+          projectDirty: projectDirty,
+          saving: saving,
+        ).whenComplete(() {
+          if (identical(_pendingSourceCreationInspections[identity], tracked)) {
+            _pendingSourceCreationInspections.remove(identity);
+          }
+        });
     _pendingSourceCreationInspections[identity] = tracked;
     return tracked;
   }
 
   Future<NarrativeEventExplicitSourceCreationResult?>
-      _inspectPendingSourceCreation({
+  _inspectPendingSourceCreation({
     required _SourceCreationInspectionIdentity identity,
     required NarrativeEventMapReturnToken token,
     required bool mapDirty,
@@ -721,6 +736,9 @@ final class NarrativeEventMapBridgeController
       saving: saving,
     );
     final result = _bindSourceCreationResultToToken(inspected, token);
+    if (!ref.mounted) {
+      return result;
+    }
     if (!_sourceCreationInspectionIsCurrent(identity)) {
       state = state.copyWith(
         isSourceCreationBusy: _busyAfterRelease(busyOwner),
@@ -733,12 +751,13 @@ final class NarrativeEventMapBridgeController
     );
     state = state.copyWith(
       isSourceCreationBusy: _busyAfterRelease(busyOwner),
-      sourceCreationProposal:
-          stateResult.journal == null ? state.sourceCreationProposal : null,
+      sourceCreationProposal: stateResult.journal == null
+          ? state.sourceCreationProposal
+          : null,
       lastSourceCreationResult:
           stateResult.status == NarrativeEventExplicitSourceCreationStatus.clear
-              ? null
-              : stateResult,
+          ? null
+          : stateResult,
     );
     return result;
   }
@@ -767,9 +786,7 @@ final class NarrativeEventMapBridgeController
       return null;
     }
     if (journal != null && !_journalMatchesToken(journal, token)) {
-      final mismatch = _pendingJournalMismatch(
-        state.lastSourceCreationResult!,
-      );
+      final mismatch = _pendingJournalMismatch(state.lastSourceCreationResult!);
       state = state.copyWith(
         lastSourceCreationResult: mismatch,
         cleanupConfirmationRequested: false,
@@ -799,6 +816,9 @@ final class NarrativeEventMapBridgeController
       previousRecovery,
       _bindSourceCreationResultToToken(retried, token),
     );
+    if (!ref.mounted) {
+      return result;
+    }
     if (!_isCurrentOperation(
       projectRootPath: normalizedRoot,
       projectSessionToken: projectSessionToken,
@@ -806,13 +826,14 @@ final class NarrativeEventMapBridgeController
     )) {
       final stale =
           result.status == NarrativeEventExplicitSourceCreationStatus.committed
-              ? _sourceCreationOutOfSync(result, 'projectChangedAfterRetry')
-              : result;
+          ? _sourceCreationOutOfSync(result, 'projectChangedAfterRetry')
+          : result;
       if (state.projectRootPath == normalizedRoot) {
         state = state.copyWith(
           isSourceCreationBusy: _busyAfterRelease(busyOwner),
-          sourceCreationProposal:
-              stale.journal == null ? state.sourceCreationProposal : null,
+          sourceCreationProposal: stale.journal == null
+              ? state.sourceCreationProposal
+              : null,
           lastSourceCreationResult: stale,
         );
       }
@@ -821,12 +842,13 @@ final class NarrativeEventMapBridgeController
     if (result.status != NarrativeEventExplicitSourceCreationStatus.committed) {
       state = state.copyWith(
         isSourceCreationBusy: _busyAfterRelease(busyOwner),
-        sourceCreationProposal:
-            result.journal == null ? state.sourceCreationProposal : null,
+        sourceCreationProposal: result.journal == null
+            ? state.sourceCreationProposal
+            : null,
         lastSourceCreationResult:
             result.status == NarrativeEventExplicitSourceCreationStatus.clear
-                ? null
-                : result,
+            ? null
+            : result,
       );
       return result;
     }
@@ -879,7 +901,7 @@ final class NarrativeEventMapBridgeController
     required bool saving,
     required BeginNarrativeEventSourceCleanupInterlock beginCleanupInterlock,
     required ReleaseNarrativeEventSourceCleanupInterlock
-        releaseCleanupInterlock,
+    releaseCleanupInterlock,
     required AdoptPersistedNarrativeEventSourceCleanup adoptPersistedCleanup,
   }) async {
     final useCase = _explicitSourceCreationUseCase;
@@ -912,7 +934,8 @@ final class NarrativeEventMapBridgeController
       final blocked = NarrativeEventExplicitSourceCreationResult(
         status: NarrativeEventExplicitSourceCreationStatus.recoveryRequired,
         code: 'cleanupInterlockUnavailable',
-        message: 'La suppression n’a pas démarré car la map active ne peut '
+        message:
+            'La suppression n’a pas démarré car la map active ne peut '
             'pas être protégée contre une sauvegarde concurrente.',
         journal: journal,
         inspection: pending?.inspection,
@@ -957,6 +980,9 @@ final class NarrativeEventMapBridgeController
         // Keeping a stale-map barrier is safer than risking resurrection.
       }
     }
+    if (!ref.mounted) {
+      return result;
+    }
     if (!_isCurrentOperation(
       projectRootPath: normalizedRoot,
       projectSessionToken: projectSessionToken,
@@ -964,13 +990,14 @@ final class NarrativeEventMapBridgeController
     )) {
       final stale =
           result.status == NarrativeEventExplicitSourceCreationStatus.cleaned
-              ? _sourceCleanupOutOfSync(result)
-              : result;
+          ? _sourceCleanupOutOfSync(result)
+          : result;
       if (state.projectRootPath == normalizedRoot) {
         state = state.copyWith(
           isSourceCreationBusy: _busyAfterRelease(busyOwner),
-          sourceCreationProposal:
-              stale.journal == null ? state.sourceCreationProposal : null,
+          sourceCreationProposal: stale.journal == null
+              ? state.sourceCreationProposal
+              : null,
           lastSourceCreationResult: stale,
           cleanupConfirmationRequested: false,
         );
@@ -992,6 +1019,9 @@ final class NarrativeEventMapBridgeController
           adopted = false;
         }
       }
+      if (!ref.mounted) {
+        return result;
+      }
       if (!adopted ||
           !_isCurrentOperation(
             projectRootPath: normalizedRoot,
@@ -1003,7 +1033,8 @@ final class NarrativeEventMapBridgeController
     }
     state = state.copyWith(
       isSourceCreationBusy: _busyAfterRelease(busyOwner),
-      sourceCreationProposal: stateResult.journal != null ||
+      sourceCreationProposal:
+          stateResult.journal != null ||
               stateResult.status ==
                   NarrativeEventExplicitSourceCreationStatus.cleaned
           ? null
@@ -1090,10 +1121,10 @@ final class NarrativeEventMapBridgeController
         record.draftOrNull?.source ?? record.definitionOrNull?.source;
     final sourceMatchesReturnGroup = source == null
         ? token.expectedSource == null &&
-            state.navigationMode == NarrativeEventMapNavigationMode.create &&
-            token.groupContext.kind == NarrativeEventGroupContextKind.map &&
-            token.groupContext.mapId != null &&
-            _projectContainsMap(project, token.groupContext.mapId!)
+              state.navigationMode == NarrativeEventMapNavigationMode.create &&
+              token.groupContext.kind == NarrativeEventGroupContextKind.map &&
+              token.groupContext.mapId != null &&
+              _projectContainsMap(project, token.groupContext.mapId!)
         : _sourceMatchesGroup(source, token.groupContext);
     if (source != token.expectedSource || !sourceMatchesReturnGroup) {
       _operationEpoch++;
@@ -1105,10 +1136,7 @@ final class NarrativeEventMapBridgeController
       );
       return false;
     }
-    openExactEvent(
-      eventId: token.eventId,
-      groupContext: token.groupContext,
-    );
+    openExactEvent(eventId: token.eventId, groupContext: token.groupContext);
     _operationEpoch++;
     state = state.copyWith(
       selectedNarrativeEventV2Id: token.eventId,
@@ -1138,20 +1166,25 @@ final class NarrativeEventMapBridgeController
         message: 'Une liaison de source est déjà en cours.',
       );
     }
-    final inspectionIdentity =
-        _sourceCreationInspectionIdentity(projectRootPath);
+    final inspectionIdentity = _sourceCreationInspectionIdentity(
+      projectRootPath,
+    );
     final pendingInspection = inspectionIdentity == null
         ? null
         : _pendingSourceCreationInspections[inspectionIdentity];
     if (pendingInspection != null) {
       state = state.copyWith(isLinkingSource: true);
       await pendingInspection;
+      if (!ref.mounted) {
+        return null;
+      }
       state = state.copyWith(isLinkingSource: false);
       if (_hasBlockingSourceCreationRecovery) {
         return const NarrativeEventSpatialSourceLinkResult(
           status: NarrativeEventSpatialSourceLinkStatus.blocked,
           code: 'sourceCreationRecoveryRequired',
-          message: 'La récupération de la source durable doit être terminée '
+          message:
+              'La récupération de la source durable doit être terminée '
               'avant de changer la liaison.',
         );
       }
@@ -1180,7 +1213,8 @@ final class NarrativeEventMapBridgeController
       final rejected = NarrativeEventSpatialSourceLinkResult(
         status: NarrativeEventSpatialSourceLinkStatus.rejected,
         code: 'candidateUnavailable',
-        message: navigation.absenceReason ??
+        message:
+            navigation.absenceReason ??
             'Cette source n’est plus disponible sur la map.',
       );
       state = state.copyWith(lastSourceLinkResult: rejected);
@@ -1189,10 +1223,7 @@ final class NarrativeEventMapBridgeController
 
     final operationEpoch = ++_operationEpoch;
     final projectSessionToken = state.projectSessionToken;
-    state = state.copyWith(
-      isLinkingSource: true,
-      lastSourceLinkResult: null,
-    );
+    state = state.copyWith(isLinkingSource: true, lastSourceLinkResult: null);
     late final NarrativeEventSpatialSourceLinkResult result;
     try {
       result = await useCase(
@@ -1210,12 +1241,15 @@ final class NarrativeEventMapBridgeController
         message: 'La liaison de source a échoué de façon inattendue.',
       );
     }
+    if (!ref.mounted) {
+      return result;
+    }
     if (operationEpoch != _operationEpoch ||
         projectSessionToken != state.projectSessionToken) {
       final staleResult =
           result.status == NarrativeEventSpatialSourceLinkStatus.committed
-              ? _committedSourceLinkOutOfSync(result)
-              : result;
+          ? _committedSourceLinkOutOfSync(result)
+          : result;
       if (state.projectRootPath == normalizedRoot) {
         state = state.copyWith(
           isLinkingSource: false,
@@ -1350,7 +1384,7 @@ final class NarrativeEventMapBridgeController
   }
 
   Future<NarrativeEventExplicitSourceCreationResult>
-      _finishCommittedSourceCreation({
+  _finishCommittedSourceCreation({
     required NarrativeEventExplicitSourceCreationResult result,
     required NarrativeEventCreatedSourceProposal? proposal,
     required MapData durableMap,
@@ -1368,8 +1402,9 @@ final class NarrativeEventMapBridgeController
       );
       state = state.copyWith(
         isSourceCreationBusy: _busyAfterRelease(busyOwner),
-        sourceCreationProposal:
-            stateResult.journal == null ? state.sourceCreationProposal : null,
+        sourceCreationProposal: stateResult.journal == null
+            ? state.sourceCreationProposal
+            : null,
         lastSourceCreationResult: stateResult,
       );
       return stateResult;
@@ -1457,9 +1492,11 @@ final class NarrativeEventMapBridgeController
       );
       return outOfSync;
     }
-    final acknowledgementIdentity =
-        _sourceCreationInspectionIdentity(state.projectRootPath);
-    final acknowledgementBelongsToToken = acknowledgementIdentity != null &&
+    final acknowledgementIdentity = _sourceCreationInspectionIdentity(
+      state.projectRootPath,
+    );
+    final acknowledgementBelongsToToken =
+        acknowledgementIdentity != null &&
         acknowledgementIdentity.requestId == token.requestId &&
         acknowledgementIdentity.eventId == token.eventId &&
         acknowledgementIdentity.mapId == token.groupContext.mapId;
@@ -1469,6 +1506,9 @@ final class NarrativeEventMapBridgeController
       expectedEventId: token.eventId,
       expectedMapId: token.groupContext.mapId!,
     );
+    if (!ref.mounted) {
+      return result;
+    }
     if (!acknowledgementBelongsToToken ||
         !_sourceCreationInspectionIsCurrent(acknowledgementIdentity)) {
       final stale = _sourceCreationOutOfSync(
@@ -1530,7 +1570,8 @@ final class NarrativeEventMapBridgeController
     return NarrativeEventExplicitSourceCreationResult(
       status: NarrativeEventExplicitSourceCreationStatus.recoveryRequired,
       code: code,
-      message: 'La source est durable, mais l’éditeur doit être resynchronisé '
+      message:
+          'La source est durable, mais l’éditeur doit être resynchronisé '
           'avant de continuer.',
       journal: committed.journal,
       inspection: committed.inspection,
@@ -1546,7 +1587,8 @@ final class NarrativeEventMapBridgeController
     return NarrativeEventExplicitSourceCreationResult(
       status: NarrativeEventExplicitSourceCreationStatus.recoveryRequired,
       code: 'cleanedMapOutOfSync',
-      message: 'La source est supprimée sur disque, mais la map active doit '
+      message:
+          'La source est supprimée sur disque, mais la map active doit '
           'être rechargée avant de continuer.',
       journal: cleaned.journal,
       inspection: cleaned.inspection,
@@ -1561,7 +1603,8 @@ final class NarrativeEventMapBridgeController
     NarrativeEventExplicitSourceCreationResult incoming, {
     bool preserveAnyRecoveryWithoutIdentity = false,
   }) {
-    final resultWithoutIdentity = incoming.journal == null &&
+    final resultWithoutIdentity =
+        incoming.journal == null &&
         incoming.inspection?.journal == null &&
         (const {
               'inspectionException',
@@ -1609,7 +1652,7 @@ final class NarrativeEventMapBridgeController
   }
 
   NarrativeEventExplicitSourceCreationResult
-      _normalizeSourceCreationResultJournal(
+  _normalizeSourceCreationResultJournal(
     NarrativeEventExplicitSourceCreationResult result,
   ) {
     final journal = result.journal ?? result.inspection?.journal;
@@ -1632,7 +1675,8 @@ final class NarrativeEventMapBridgeController
     return NarrativeEventExplicitSourceCreationResult(
       status: NarrativeEventExplicitSourceCreationStatus.rejected,
       code: 'pendingJournalMismatch',
-      message: 'La récupération durable appartient à un autre Event ou à une '
+      message:
+          'La récupération durable appartient à un autre Event ou à une '
           'autre map. Ouvrez l’Event exact pour continuer.',
       inspection: result.inspection,
     );
@@ -1690,6 +1734,9 @@ final class NarrativeEventMapBridgeController
   bool _sourceCreationInspectionIsCurrent(
     _SourceCreationInspectionIdentity identity,
   ) {
+    if (!ref.mounted) {
+      return false;
+    }
     final token = state.pendingReturn;
     return identity.projectRootPath == state.projectRootPath &&
         identity.projectSessionToken == state.projectSessionToken &&
@@ -1708,7 +1755,8 @@ final class NarrativeEventMapBridgeController
     required int operationEpoch,
     required int projectSessionToken,
   }) {
-    return operationEpoch == _operationEpoch &&
+    return ref.mounted &&
+        operationEpoch == _operationEpoch &&
         projectSessionToken == state.projectSessionToken;
   }
 
@@ -1732,7 +1780,8 @@ final class NarrativeEventMapBridgeController
     return NarrativeEventSpatialSourceLinkResult(
       status: NarrativeEventSpatialSourceLinkStatus.committedOutOfSync,
       code: 'committedOutOfSync',
-      message: 'La source est enregistrée sur disque, mais le projet doit être '
+      message:
+          'La source est enregistrée sur disque, mais le projet doit être '
           'rechargé avant de continuer.',
       previousRegistry: committed.previousRegistry,
       nextRegistry: committed.nextRegistry,
@@ -1824,6 +1873,9 @@ final class NarrativeEventMapBridgeController
         allowAdditionalEvent: allowAdditionalEvent,
       );
 
+      if (!ref.mounted) {
+        return result;
+      }
       if (!_isCurrentOperation(
         projectRootPath: normalizedProjectRoot,
         projectSessionToken: projectSessionToken,
@@ -1932,10 +1984,7 @@ final class NarrativeEventMapBridgeController
         case NarrativeEventMapCreationStatus.authoringRejected:
         case NarrativeEventMapCreationStatus.persistenceRejected:
         case NarrativeEventMapCreationStatus.preflightRejected:
-          state = state.copyWith(
-            isSubmitting: false,
-            lastResult: result,
-          );
+          state = state.copyWith(isSubmitting: false, lastResult: result);
           return result;
       }
     } on Object {
@@ -1965,7 +2014,8 @@ final class NarrativeEventMapBridgeController
     required int projectSessionToken,
     required int operationEpoch,
   }) {
-    return state.projectRootPath == projectRootPath &&
+    return ref.mounted &&
+        state.projectRootPath == projectRootPath &&
         state.projectSessionToken == projectSessionToken &&
         _operationEpoch == operationEpoch;
   }
@@ -2063,55 +2113,73 @@ bool _projectContainsMap(ProjectManifest project, String mapId) {
 
 final createNarrativeEventFromMapSourceUseCaseProvider =
     Provider<CreateNarrativeEventFromMapSourceUseCase>((ref) {
-  return CreateNarrativeEventFromMapSourceUseCase(
-    persistenceGateway:
-        ref.watch(narrativeEventRegistryPersistenceGatewayProvider),
-  );
-});
+      return CreateNarrativeEventFromMapSourceUseCase(
+        persistenceGateway: ref.watch(
+          narrativeEventRegistryPersistenceGatewayProvider,
+        ),
+      );
+    });
 
 final narrativeEventSpatialSourceLinkUseCaseProvider =
     Provider<NarrativeEventSpatialSourceLinkUseCase>((ref) {
-  return NarrativeEventSpatialSourceLinkUseCase(
-    persistenceGateway:
-        ref.watch(narrativeEventRegistryPersistenceGatewayProvider),
-  );
-});
+      return NarrativeEventSpatialSourceLinkUseCase(
+        persistenceGateway: ref.watch(
+          narrativeEventRegistryPersistenceGatewayProvider,
+        ),
+      );
+    });
 
 final narrativeEventExplicitSourceCreationUseCaseProvider =
     Provider<NarrativeEventExplicitSourceCreationUseCase>((ref) {
-  return NarrativeEventExplicitSourceCreationUseCase(
-    sourceGateway:
-        ref.watch(narrativeEventSpatialSourceCreationGatewayProvider),
-    registryGateway:
-        ref.watch(narrativeEventRegistryPersistenceGatewayProvider),
-  );
-});
+      return NarrativeEventExplicitSourceCreationUseCase(
+        sourceGateway: ref.watch(
+          narrativeEventSpatialSourceCreationGatewayProvider,
+        ),
+        registryGateway: ref.watch(
+          narrativeEventRegistryPersistenceGatewayProvider,
+        ),
+      );
+    });
 
-final narrativeEventMapBridgeControllerProvider = StateNotifierProvider<
-    NarrativeEventMapBridgeController, NarrativeEventMapBridgeState>((ref) {
-  final controller = NarrativeEventMapBridgeController(
-    useCase: ref.watch(createNarrativeEventFromMapSourceUseCaseProvider),
-    sourceLinkUseCase:
-        ref.watch(narrativeEventSpatialSourceLinkUseCaseProvider),
-    explicitSourceCreationUseCase:
-        ref.watch(narrativeEventExplicitSourceCreationUseCaseProvider),
-  );
-  ref.listen<EditorState>(
-    editorNotifierProvider,
-    (previous, next) {
+final class _ConnectedNarrativeEventMapBridgeController
+    extends NarrativeEventMapBridgeController {
+  _ConnectedNarrativeEventMapBridgeController() : super._connected();
+
+  @override
+  NarrativeEventMapBridgeState build() {
+    _useCase = ref.watch(createNarrativeEventFromMapSourceUseCaseProvider);
+    _sourceLinkUseCase = ref.watch(
+      narrativeEventSpatialSourceLinkUseCaseProvider,
+    );
+    _explicitSourceCreationUseCase = ref.watch(
+      narrativeEventExplicitSourceCreationUseCaseProvider,
+    );
+    final editor = ref.read(editorNotifierProvider);
+    _hasProjectBinding = true;
+    _boundProjectIdentity = editor.project;
+    _operationEpoch++;
+    ref.listen<EditorState>(editorNotifierProvider, (previous, next) {
       if (previous == null ||
           previous.projectRootPath != next.projectRootPath ||
           !identical(previous.project, next.project)) {
-        controller.bindProjectSession(
+        bindProjectSession(
           projectRootPath: next.projectRootPath,
           project: next.project,
         );
       }
-    },
-    fireImmediately: true,
-  );
-  return controller;
-});
+    });
+    return NarrativeEventMapBridgeState(
+      projectRootPath: _normalizedProjectRoot(editor.projectRootPath),
+      projectSessionToken: 1,
+    );
+  }
+}
+
+final narrativeEventMapBridgeControllerProvider =
+    NotifierProvider<
+      NarrativeEventMapBridgeController,
+      NarrativeEventMapBridgeState
+    >(_ConnectedNarrativeEventMapBridgeController.new);
 
 String? _normalizedProjectRoot(String? value) {
   final trimmed = value?.trim();
@@ -2137,9 +2205,8 @@ String _spatialMapId(NarrativeEventSourceRef source) {
     entityInteract: (mapId, _) => mapId,
     triggerEnter: (mapId, _) => mapId,
     mapEnter: (mapId) => mapId,
-    outcomeReceived: (_) => throw StateError(
-      'A non-spatial source does not own a map.',
-    ),
+    outcomeReceived: (_) =>
+        throw StateError('A non-spatial source does not own a map.'),
   );
 }
 

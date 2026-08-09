@@ -8,32 +8,34 @@ import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 
 void main() {
   group('EditorNotifier TileLayer individual generated placement add', () {
-    test('sélection élément garde TileLayer actif et ne mute pas la MapData',
-        () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(editorNotifierProvider.notifier);
-      final map = _map();
-      notifier.state = EditorState(
-        project: _manifest(),
-        activeMap: map,
-        activeLayerId: 'tiles',
-        selectedEnvironmentAreaId: 'area',
-      );
+    test(
+      'sélection élément garde TileLayer actif et ne mute pas la MapData',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final notifier = container.read(editorNotifierProvider.notifier);
+        final map = _map();
+        notifier.state = EditorState(
+          project: _manifest(),
+          activeMap: map,
+          activeLayerId: 'tiles',
+          selectedEnvironmentAreaId: 'area',
+        );
 
-      notifier.selectEnvironmentGeneratedPlacementElementForActiveTileLayer(
-        'big_tree',
-      );
+        notifier.selectEnvironmentGeneratedPlacementElementForActiveTileLayer(
+          'big_tree',
+        );
 
-      expect(notifier.state.activeMap, same(map));
-      expect(notifier.state.activeLayerId, 'tiles');
-      expect(notifier.state.selectedEnvironmentAreaId, 'area');
-      expect(
-        container.read(environmentGeneratedPlacementAddElementProvider),
-        'big_tree',
-      );
-      expect(notifier.state.statusMessage, contains('Big Tree'));
-    });
+        expect(notifier.state.activeMap, same(map));
+        expect(notifier.state.activeLayerId, 'tiles');
+        expect(notifier.state.selectedEnvironmentAreaId, 'area');
+        expect(
+          container.read(environmentGeneratedPlacementAddElementProvider),
+          'big_tree',
+        );
+        expect(notifier.state.statusMessage, contains('Big Tree'));
+      },
+    );
 
     test('start et stop add mode gardent TileLayer et area', () {
       final container = ProviderContainer();
@@ -49,7 +51,7 @@ void main() {
       );
       container
           .read(environmentGeneratedPlacementAddElementProvider.notifier)
-          .state = 'tree';
+          .select('tree');
 
       notifier.startAddingGeneratedEnvironmentPlacementForActiveTileLayer();
 
@@ -58,7 +60,9 @@ void main() {
       expect(active.activeLayerId, 'tiles');
       expect(active.selectedEnvironmentAreaId, 'area');
       expect(
-          active.environmentMaskEditMode, EnvironmentMaskEditMode.generatedAdd);
+        active.environmentMaskEditMode,
+        EnvironmentMaskEditMode.generatedAdd,
+      );
       expect(active.statusMessage, contains('Ajout actif'));
 
       notifier.stopAddingGeneratedEnvironmentPlacement();
@@ -85,7 +89,7 @@ void main() {
       );
       container
           .read(environmentGeneratedPlacementAddElementProvider.notifier)
-          .state = 'big_tree';
+          .select('big_tree');
 
       notifier.addGeneratedEnvironmentPlacementAtForActiveTileLayer(
         const GridPos(x: 2, y: 2),
@@ -96,7 +100,9 @@ void main() {
       expect(state.activeLayerId, 'tiles');
       expect(state.selectedEnvironmentAreaId, 'area');
       expect(
-          state.environmentMaskEditMode, EnvironmentMaskEditMode.generatedAdd);
+        state.environmentMaskEditMode,
+        EnvironmentMaskEditMode.generatedAdd,
+      );
       expect(state.statusMessage, contains('Élément généré ajouté'));
       expect(state.errorMessage, isNull);
       expect(state.isDirty, isTrue);
@@ -107,18 +113,17 @@ void main() {
       expect(added.layerId, 'tiles');
       expect(added.elementId, 'big_tree');
       expect(added.pos, const GridPos(x: 2, y: 2));
-      expect(
-        _areaById(state.activeMap!, 'area').generatedPlacementIds,
-        const ['generated_a', 'env_gen_area_2_2_big_tree'],
-      );
+      expect(_areaById(state.activeMap!, 'area').generatedPlacementIds, const [
+        'generated_a',
+        'env_gen_area_2_2_big_tree',
+      ]);
       expect(
         state.activeMap!.placedElements.map((element) => element.id),
         containsAll(const ['manual', 'other_generated']),
       );
-      expect(
-        _areaById(state.activeMap!, 'other').generatedPlacementIds,
-        const ['other_generated'],
-      );
+      expect(_areaById(state.activeMap!, 'other').generatedPlacementIds, const [
+        'other_generated',
+      ]);
     });
 
     test('position invalide ne mute pas la MapData et garde le mode actif', () {
@@ -135,7 +140,7 @@ void main() {
       );
       container
           .read(environmentGeneratedPlacementAddElementProvider.notifier)
-          .state = 'big_tree';
+          .select('big_tree');
 
       notifier.addGeneratedEnvironmentPlacementAtForActiveTileLayer(
         const GridPos(x: 4, y: 4),
@@ -146,49 +151,53 @@ void main() {
       expect(state.activeLayerId, 'tiles');
       expect(state.selectedEnvironmentAreaId, 'area');
       expect(
-          state.environmentMaskEditMode, EnvironmentMaskEditMode.generatedAdd);
+        state.environmentMaskEditMode,
+        EnvironmentMaskEditMode.generatedAdd,
+      );
       expect(state.errorMessage, contains('Impossible d’ajouter ici'));
     });
 
-    test('refuse sans TileLayer actif, sans area, ou sans élément sélectionné',
-        () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(editorNotifierProvider.notifier);
-      final map = _map();
+    test(
+      'refuse sans TileLayer actif, sans area, ou sans élément sélectionné',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final notifier = container.read(editorNotifierProvider.notifier);
+        final map = _map();
 
-      notifier.state = EditorState(
-        project: _manifest(),
-        activeMap: map,
-        activeLayerId: 'env',
-        selectedEnvironmentAreaId: 'area',
-      );
-      notifier.startAddingGeneratedEnvironmentPlacementForActiveTileLayer();
-      expect(notifier.state.activeMap, same(map));
-      expect(notifier.state.errorMessage, contains('TileLayer'));
+        notifier.state = EditorState(
+          project: _manifest(),
+          activeMap: map,
+          activeLayerId: 'env',
+          selectedEnvironmentAreaId: 'area',
+        );
+        notifier.startAddingGeneratedEnvironmentPlacementForActiveTileLayer();
+        expect(notifier.state.activeMap, same(map));
+        expect(notifier.state.errorMessage, contains('TileLayer'));
 
-      notifier.state = EditorState(
-        project: _manifest(),
-        activeMap: map,
-        activeLayerId: 'tiles',
-      );
-      notifier.startAddingGeneratedEnvironmentPlacementForActiveTileLayer();
-      expect(notifier.state.activeMap, same(map));
-      expect(notifier.state.errorMessage, contains('zone'));
+        notifier.state = EditorState(
+          project: _manifest(),
+          activeMap: map,
+          activeLayerId: 'tiles',
+        );
+        notifier.startAddingGeneratedEnvironmentPlacementForActiveTileLayer();
+        expect(notifier.state.activeMap, same(map));
+        expect(notifier.state.errorMessage, contains('zone'));
 
-      notifier.state = EditorState(
-        project: _manifest(),
-        activeMap: map,
-        activeLayerId: 'tiles',
-        selectedEnvironmentAreaId: 'area',
-      );
-      container
-          .read(environmentGeneratedPlacementAddElementProvider.notifier)
-          .state = null;
-      notifier.startAddingGeneratedEnvironmentPlacementForActiveTileLayer();
-      expect(notifier.state.environmentMaskEditMode, isNull);
-      expect(notifier.state.errorMessage, contains('élément'));
-    });
+        notifier.state = EditorState(
+          project: _manifest(),
+          activeMap: map,
+          activeLayerId: 'tiles',
+          selectedEnvironmentAreaId: 'area',
+        );
+        container
+            .read(environmentGeneratedPlacementAddElementProvider.notifier)
+            .select(null);
+        notifier.startAddingGeneratedEnvironmentPlacementForActiveTileLayer();
+        expect(notifier.state.environmentMaskEditMode, isNull);
+        expect(notifier.state.errorMessage, contains('élément'));
+      },
+    );
   });
 }
 
@@ -307,9 +316,7 @@ ProjectManifest _manifest() {
         name: 'Tree',
         tilesetId: 'nature',
         categoryId: 'trees',
-        frames: [
-          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-        ],
+        frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
       ),
       ProjectElementEntry(
         id: 'big_tree',

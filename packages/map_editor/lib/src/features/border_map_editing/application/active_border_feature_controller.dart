@@ -33,9 +33,9 @@ final class ActiveBorderFeatureState {
 }
 
 final class ActiveBorderFeatureController
-    extends StateNotifier<ActiveBorderFeatureState> {
-  ActiveBorderFeatureController()
-      : super(const ActiveBorderFeatureState.empty());
+    extends Notifier<ActiveBorderFeatureState> {
+  @override
+  ActiveBorderFeatureState build() => const ActiveBorderFeatureState.empty();
 
   /// Reconciles selection after layer/feature selection, deletion or reorder.
   /// Later authored features are visually uppermost and become the fallback.

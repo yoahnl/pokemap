@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/narrative_event_authoring_session.dart';
@@ -107,10 +108,7 @@ final class EventBuilderV2ProductRouteFixture {
           label: 'Rival battu',
         ),
       ],
-      scenes: [
-        _scene('scene_action', 'Rencontre'),
-        _rivalScene(),
-      ],
+      scenes: [_scene('scene_action', 'Rencontre'), _rivalScene()],
       worldRules: [
         WorldRuleDefinition(
           id: 'world_rule_rival_leaves_port',
@@ -156,10 +154,7 @@ final class EventBuilderV2ProductRouteFixture {
           _configured(
             productRouteForestEventId,
             'Écho dans la brume',
-            NarrativeEventSourceRef.entityInteract(
-              'map_forest',
-              'npc_spirit',
-            ),
+            NarrativeEventSourceRef.entityInteract('map_forest', 'npc_spirit'),
             enabled: false,
           ),
           _configured(
@@ -226,7 +221,7 @@ final class EventBuilderV2ProductRouteFixture {
 }
 
 Future<EventBuilderV2ProductRouteFixture>
-    createEventBuilderV2ProductRouteFixture(
+createEventBuilderV2ProductRouteFixture(
   WidgetTester tester, {
   required EventSystemMode mode,
 }) async {
@@ -267,8 +262,8 @@ Future<ProviderContainer> pumpEventBuilderV2ProductRoute(
       narrativeEventValidationSnapshotLoaderProvider.overrideWithValue(
         validationLoader ??
             (_) => Future.value(
-                  buildEventBuilderV2ProductRouteValidationSnapshot(fixture),
-                ),
+              buildEventBuilderV2ProductRouteValidationSnapshot(fixture),
+            ),
       ),
       if (persistenceGateway != null)
         narrativeEventRegistryPersistenceGatewayProvider.overrideWithValue(
@@ -303,8 +298,9 @@ Future<ProviderContainer> pumpEventBuilderV2ProductRoute(
       ? baseTheme
       : baseTheme.copyWith(
           textTheme: baseTheme.textTheme.apply(fontFamily: fontFamily),
-          primaryTextTheme:
-              baseTheme.primaryTextTheme.apply(fontFamily: fontFamily),
+          primaryTextTheme: baseTheme.primaryTextTheme.apply(
+            fontFamily: fontFamily,
+          ),
         );
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -312,16 +308,11 @@ Future<ProviderContainer> pumpEventBuilderV2ProductRoute(
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: theme,
-        home: const Scaffold(
-          body: SizedBox.expand(child: EditorCanvasHost()),
-        ),
+        home: const Scaffold(body: SizedBox.expand(child: EditorCanvasHost())),
       ),
     ),
   );
-  await pumpEventBuilderV2ProductRouteFrames(
-    tester,
-    container: container,
-  );
+  await pumpEventBuilderV2ProductRouteFrames(tester, container: container);
   return container;
 }
 
@@ -352,8 +343,8 @@ Future<ProviderContainer> pumpEventBuilderV2FullProductRoute(
     narrativeEventValidationSnapshotLoaderProvider.overrideWithValue(
       validationLoader ??
           (_) => Future.value(
-                buildEventBuilderV2ProductRouteValidationSnapshot(fixture),
-              ),
+            buildEventBuilderV2ProductRouteValidationSnapshot(fixture),
+          ),
     ),
     if (persistenceGateway != null)
       narrativeEventRegistryPersistenceGatewayProvider.overrideWithValue(
@@ -399,7 +390,7 @@ Future<ProviderContainer> pumpEventBuilderV2FullProductRoute(
 }
 
 NarrativeEventValidationSnapshot
-    buildEventBuilderV2ProductRouteValidationSnapshot(
+buildEventBuilderV2ProductRouteValidationSnapshot(
   EventBuilderV2ProductRouteFixture fixture,
 ) {
   final registry = fixture.project.eventRegistry!;
@@ -575,8 +566,8 @@ SceneAsset _scene(
     declaredOutcomes: declaredOutcomes.isNotEmpty
         ? declaredOutcomes
         : outcomeId == null
-            ? const []
-            : [SceneOutcome(id: outcomeId, label: 'Victoire')],
+        ? const []
+        : [SceneOutcome(id: outcomeId, label: 'Victoire')],
   );
 }
 
@@ -752,8 +743,7 @@ final class _InitialClearSourceCreationGateway
   @override
   Future<NarrativeEventSpatialLinkOperationResult> commitMap(
     NarrativeEventSpatialLinkMapCommitRequest request,
-  ) =>
-      _delegate.commitMap(request);
+  ) => _delegate.commitMap(request);
 
   @override
   Future<NarrativeEventSpatialLinkOperationResult> recoverProject({
@@ -762,44 +752,40 @@ final class _InitialClearSourceCreationGateway
     required String expectedEventId,
     required String expectedMapId,
     required NarrativeEventSourceRef expectedSource,
-  }) =>
-      _delegate.recoverProject(
-        projectPath: projectPath,
-        expectedOperationId: expectedOperationId,
-        expectedEventId: expectedEventId,
-        expectedMapId: expectedMapId,
-        expectedSource: expectedSource,
-      );
+  }) => _delegate.recoverProject(
+    projectPath: projectPath,
+    expectedOperationId: expectedOperationId,
+    expectedEventId: expectedEventId,
+    expectedMapId: expectedMapId,
+    expectedSource: expectedSource,
+  );
 
   @override
   Future<NarrativeEventSpatialLinkOperationResult> markEventCommitted({
     required String projectPath,
     required String operationId,
-  }) =>
-      _delegate.markEventCommitted(
-        projectPath: projectPath,
-        operationId: operationId,
-      );
+  }) => _delegate.markEventCommitted(
+    projectPath: projectPath,
+    operationId: operationId,
+  );
 
   @override
   Future<NarrativeEventSpatialLinkOperationResult> acknowledgeEventCommitted({
     required String projectPath,
     required String operationId,
-  }) =>
-      _delegate.acknowledgeEventCommitted(
-        projectPath: projectPath,
-        operationId: operationId,
-      );
+  }) => _delegate.acknowledgeEventCommitted(
+    projectPath: projectPath,
+    operationId: operationId,
+  );
 
   @override
   Future<NarrativeEventSpatialLinkOperationResult> cleanupSource({
     required String projectPath,
     required String operationId,
     required bool confirmed,
-  }) =>
-      _delegate.cleanupSource(
-        projectPath: projectPath,
-        operationId: operationId,
-        confirmed: confirmed,
-      );
+  }) => _delegate.cleanupSource(
+    projectPath: projectPath,
+    operationId: operationId,
+    confirmed: confirmed,
+  );
 }

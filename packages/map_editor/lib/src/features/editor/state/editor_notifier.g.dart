@@ -6,21 +6,57 @@ part of 'editor_notifier.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$editorNotifierHash() => r'a140428284de9f56f207390e7ef24bbafc77c390';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [EditorNotifier].
 @ProviderFor(EditorNotifier)
-final editorNotifierProvider =
-    AutoDisposeNotifierProvider<EditorNotifier, EditorState>.internal(
-  EditorNotifier.new,
-  name: r'editorNotifierProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$editorNotifierHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+final editorNotifierProvider = EditorNotifierProvider._();
 
-typedef _$EditorNotifier = AutoDisposeNotifier<EditorState>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class EditorNotifierProvider
+    extends $NotifierProvider<EditorNotifier, EditorState> {
+  EditorNotifierProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'editorNotifierProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$editorNotifierHash();
+
+  @$internal
+  @override
+  EditorNotifier create() => EditorNotifier();
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(EditorState value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<EditorState>(value),
+    );
+  }
+}
+
+String _$editorNotifierHash() => r'484a52cb1b0d41209092bbf882068324646c6a65';
+
+abstract class _$EditorNotifier extends $Notifier<EditorState> {
+  EditorState build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final ref = this.ref as $Ref<EditorState, EditorState>;
+    final element =
+        ref.element
+            as $ClassProviderElement<
+              AnyNotifier<EditorState, EditorState>,
+              EditorState,
+              Object?,
+              Object?
+            >;
+    element.handleCreate(ref, build);
+  }
+}

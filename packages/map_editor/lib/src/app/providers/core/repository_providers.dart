@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 import 'package:map_authoring/map_authoring.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart' show Provider, Ref;
+import 'package:flutter_riverpod/flutter_riverpod.dart'
+    show FutureProvider, Provider, Ref;
 import 'package:path/path.dart' as p;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -41,12 +42,12 @@ part 'repository_providers.g.dart';
 
 final mapLifecycleTransactionCoordinatorProvider =
     Provider<MapLifecycleTransactionCoordinator?>((ref) {
-  final mapRepository = ref.watch(mapRepositoryProvider);
-  if (mapRepository is! RevisionedMapRepository) return null;
-  return MapLifecycleTransactionCoordinator(
-    MapLifecycleTransactionFileGateway(mapRepository: mapRepository),
-  );
-});
+      final mapRepository = ref.watch(mapRepositoryProvider);
+      if (mapRepository is! RevisionedMapRepository) return null;
+      return MapLifecycleTransactionCoordinator(
+        MapLifecycleTransactionFileGateway(mapRepository: mapRepository),
+      );
+    });
 
 final editorProjectFileReaderProvider = Provider<EditorProjectFileReader>(
   (ref) => const EditorProjectFileReader(),
@@ -54,8 +55,8 @@ final editorProjectFileReaderProvider = Provider<EditorProjectFileReader>(
 
 final authoringFingerprintCacheProvider =
     Provider<ProjectSnapshotFingerprintCache>(
-  (ref) => ProjectSnapshotFingerprintCache(),
-);
+      (ref) => ProjectSnapshotFingerprintCache(),
+    );
 
 final authoringSnapshotCacheProvider = Provider<ProjectSnapshotCache>(
   (ref) => ProjectSnapshotCache(),
@@ -63,12 +64,12 @@ final authoringSnapshotCacheProvider = Provider<ProjectSnapshotCache>(
 
 final editorAuthoringSessionLifecycleProvider =
     Provider<EditorAuthoringSessionLifecycle>((ref) {
-  final lifecycle = EditorAuthoringSessionLifecycle(
-    fileReader: ref.watch(editorProjectFileReaderProvider),
-  );
-  ref.onDispose(lifecycle.closeAll);
-  return lifecycle;
-});
+      final lifecycle = EditorAuthoringSessionLifecycle(
+        fileReader: ref.watch(editorProjectFileReaderProvider),
+      );
+      ref.onDispose(lifecycle.closeAll);
+      return lifecycle;
+    });
 
 final authoringQueryAdapterProvider = Provider<AuthoringQueryAdapter>((ref) {
   final adapter = AuthoringQueryAdapter(
@@ -81,8 +82,9 @@ final authoringQueryAdapterProvider = Provider<AuthoringQueryAdapter>((ref) {
   return adapter;
 });
 
-final authoringMutationAdapterProvider =
-    Provider<AuthoringMutationAdapter>((ref) {
+final authoringMutationAdapterProvider = Provider<AuthoringMutationAdapter>((
+  ref,
+) {
   final projectFiles = ref.watch(editorProjectFileReaderProvider);
   final adapter = AuthoringMutationAdapter(
     fileReader: projectFiles,
@@ -102,49 +104,50 @@ final editorReceiptPresenterProvider = Provider<EditorReceiptPresenter>(
 
 final fileProjectRepositoryProvider = Provider<FileProjectRepository>((ref) {
   return FileProjectRepository(
-    mapLifecycleTransactions:
-        ref.watch(mapLifecycleTransactionCoordinatorProvider),
+    mapLifecycleTransactions: ref.watch(
+      mapLifecycleTransactionCoordinatorProvider,
+    ),
     authoringQueries: ref.watch(authoringQueryAdapterProvider),
   );
 });
 
 final personalizationStudioAssetPickerProvider =
     Provider<PersonalizationStudioAssetPicker>((ref) {
-  return const FilePickerPersonalizationStudioAssetPicker();
-});
+      return const FilePickerPersonalizationStudioAssetPicker();
+    });
 
 final personalizationStudioBrandingImagePickerProvider =
     Provider<PersonalizationStudioBrandingImagePicker>((ref) {
-  return const FilePickerPersonalizationStudioBrandingImagePicker();
-});
+      return const FilePickerPersonalizationStudioBrandingImagePicker();
+    });
 
 final personalizationStudioTitleMusicPickerProvider =
     Provider<PersonalizationStudioTitleMusicPicker>((ref) {
-  return const FilePickerPersonalizationStudioTitleMusicPicker();
-});
+      return const FilePickerPersonalizationStudioTitleMusicPicker();
+    });
 
 final projectBrandingImageImportServiceProvider =
     Provider<ProjectBrandingImageImporter>((ref) {
-  return const ProjectBrandingImageImportService();
-});
+      return const ProjectBrandingImageImportService();
+    });
 
 final projectTitleMusicImportServiceProvider =
     Provider<ProjectTitleMusicImporter>((ref) {
-  return const ProjectTitleMusicImportService();
-});
+      return const ProjectTitleMusicImportService();
+    });
 
-typedef ProjectTitleMusicPreviewControllerFactory
-    = ProjectTitleMusicPreviewController Function();
+typedef ProjectTitleMusicPreviewControllerFactory =
+    ProjectTitleMusicPreviewController Function();
 
 final projectTitleMusicPreviewControllerFactoryProvider =
     Provider<ProjectTitleMusicPreviewControllerFactory>((ref) {
-  return DefaultProjectTitleMusicPreviewController.new;
-});
+      return DefaultProjectTitleMusicPreviewController.new;
+    });
 
 final projectIntroVideoImportServiceProvider =
     Provider<ProjectIntroVideoImporter>((ref) {
-  return const ProjectIntroVideoImportService();
-});
+      return const ProjectIntroVideoImportService();
+    });
 
 final projectFontImportServiceProvider = Provider<ProjectFontImporter>((ref) {
   return const ProjectFontImportService();
@@ -152,74 +155,78 @@ final projectFontImportServiceProvider = Provider<ProjectFontImporter>((ref) {
 
 final projectPresentationPreflightProvider =
     Provider<ProjectPresentationPreflight>((ref) {
-  return const FileSystemProjectPresentationPreflight();
-});
+      return const FileSystemProjectPresentationPreflight();
+    });
 
-final projectFontPreviewLoaderProvider =
-    Provider<ProjectFontPreviewRegistry>((ref) {
+final projectFontPreviewLoaderProvider = Provider<ProjectFontPreviewRegistry>((
+  ref,
+) {
   return const ProjectFontPreviewLoader();
 });
 
 final narrativeEventRegistryPersistenceGatewayProvider =
     Provider<NarrativeEventRegistryPersistenceGateway>((ref) {
-  return ref.watch(fileProjectRepositoryProvider);
-});
+      return ref.watch(fileProjectRepositoryProvider);
+    });
 
 final narrativeAuthoringPersistenceGatewayProvider =
     Provider<NarrativeAuthoringPersistenceGateway>((ref) {
-  return ref.watch(fileProjectRepositoryProvider).narrativeAuthoringPersistence;
-});
+      return ref
+          .watch(fileProjectRepositoryProvider)
+          .narrativeAuthoringPersistence;
+    });
 
 final executeNarrativeAuthoringTransactionProvider =
     Provider<ExecuteNarrativeAuthoringTransaction>((ref) {
-  return ExecuteNarrativeAuthoringTransaction(
-    ref.watch(narrativeAuthoringPersistenceGatewayProvider),
-  );
-});
+      return ExecuteNarrativeAuthoringTransaction(
+        ref.watch(narrativeAuthoringPersistenceGatewayProvider),
+      );
+    });
 
-typedef NarrativeProjectDocumentSessionFactory
-    = NarrativeDocumentSession<ProjectManifest> Function({
-  required String projectPath,
-  required ProjectManifest initialDocument,
-});
+typedef NarrativeProjectDocumentSessionFactory =
+    NarrativeDocumentSession<ProjectManifest> Function({
+      required String projectPath,
+      required ProjectManifest initialDocument,
+    });
 
-typedef PersonalizationStudioSessionControllerFactory
-    = PersonalizationStudioSessionController Function({
-  required String projectPath,
-  required ProjectManifest initialDocument,
-});
+typedef PersonalizationStudioSessionControllerFactory =
+    PersonalizationStudioSessionController Function({
+      required String projectPath,
+      required ProjectManifest initialDocument,
+    });
 
 final personalizationStudioSessionControllerFactoryProvider =
     Provider<PersonalizationStudioSessionControllerFactory>((ref) {
-  final persistence =
-      ref.watch(fileProjectRepositoryProvider).narrativeAuthoringPersistence;
-  return ({
-    required String projectPath,
-    required ProjectManifest initialDocument,
-  }) {
-    final journalPath = p.join(
-      p.dirname(projectPath),
-      '.pokemap',
-      'recovery',
-      'personalization-studio.json',
-    );
-    return PersonalizationStudioSessionController(
-      session: NarrativeDocumentSession<ProjectManifest>(
-        documentId: 'personalization-studio',
-        initialDocument: initialDocument,
-        gateway: ProjectPresentationDocumentGateway(
-          projectPath: projectPath,
-          persistence: persistence,
-        ),
-        recoveryStore: FileNarrativeDocumentRecoveryStore<ProjectManifest>(
-          journalPath: journalPath,
-          encodeDocument: (document) => document.toJson(),
-          decodeDocument: _decodeRecoveryProjectManifest,
-        ),
-      ),
-    );
-  };
-});
+      final persistence = ref
+          .watch(fileProjectRepositoryProvider)
+          .narrativeAuthoringPersistence;
+      return ({
+        required String projectPath,
+        required ProjectManifest initialDocument,
+      }) {
+        final journalPath = p.join(
+          p.dirname(projectPath),
+          '.pokemap',
+          'recovery',
+          'personalization-studio.json',
+        );
+        return PersonalizationStudioSessionController(
+          session: NarrativeDocumentSession<ProjectManifest>(
+            documentId: 'personalization-studio',
+            initialDocument: initialDocument,
+            gateway: ProjectPresentationDocumentGateway(
+              projectPath: projectPath,
+              persistence: persistence,
+            ),
+            recoveryStore: FileNarrativeDocumentRecoveryStore<ProjectManifest>(
+              journalPath: journalPath,
+              encodeDocument: (document) => document.toJson(),
+              decodeDocument: _decodeRecoveryProjectManifest,
+            ),
+          ),
+        );
+      };
+    });
 
 /// Creates the crash-safe document session used by the Cinematics pilot.
 ///
@@ -227,64 +234,66 @@ final personalizationStudioSessionControllerFactoryProvider =
 /// edit immediately, independently of that preference.
 final narrativeProjectDocumentSessionFactoryProvider =
     Provider<NarrativeProjectDocumentSessionFactory>((ref) {
-  final persistence = ref.watch(narrativeAuthoringPersistenceGatewayProvider);
-  return ({
-    required String projectPath,
-    required ProjectManifest initialDocument,
-  }) {
-    final journalPath = p.join(
-      p.dirname(projectPath),
-      '.pokemap',
-      'recovery',
-      'narrative-cinematics.json',
-    );
-    final session = NarrativeDocumentSession<ProjectManifest>(
-      documentId: 'cinematics',
-      initialDocument: initialDocument,
-      gateway: ProjectManifestNarrativeDocumentGateway(
-        projectPath: projectPath,
-        persistence: persistence,
-      ),
-      recoveryStore: FileNarrativeDocumentRecoveryStore<ProjectManifest>(
-        journalPath: journalPath,
-        encodeDocument: (document) => document.toJson(),
-        decodeDocument: _decodeRecoveryProjectManifest,
-      ),
-    );
-    final projectRootPath = p.dirname(projectPath);
-    final activityRepository = NarrativeActivityJournalRepository(
-      projectRootPath: projectRootPath,
-    );
-    NarrativeActivitySessionRecorder<ProjectManifest>(
-      session: session,
-      store: activityRepository,
-      destination: NarrativeActivityDestination.cinematics,
-      onPersisted: () =>
-          ref.invalidate(narrativeActivityJournalProvider(projectRootPath)),
-      // Activity telemetry must never make a crash-safe authoring edit fail.
-      // The Overview exposes repository read failures separately.
-      onError: (_) {},
-    );
-    return session;
-  };
-});
+      final persistence = ref.watch(
+        narrativeAuthoringPersistenceGatewayProvider,
+      );
+      return ({
+        required String projectPath,
+        required ProjectManifest initialDocument,
+      }) {
+        final journalPath = p.join(
+          p.dirname(projectPath),
+          '.pokemap',
+          'recovery',
+          'narrative-cinematics.json',
+        );
+        final session = NarrativeDocumentSession<ProjectManifest>(
+          documentId: 'cinematics',
+          initialDocument: initialDocument,
+          gateway: ProjectManifestNarrativeDocumentGateway(
+            projectPath: projectPath,
+            persistence: persistence,
+          ),
+          recoveryStore: FileNarrativeDocumentRecoveryStore<ProjectManifest>(
+            journalPath: journalPath,
+            encodeDocument: (document) => document.toJson(),
+            decodeDocument: _decodeRecoveryProjectManifest,
+          ),
+        );
+        final projectRootPath = p.dirname(projectPath);
+        final activityRepository = NarrativeActivityJournalRepository(
+          projectRootPath: projectRootPath,
+        );
+        NarrativeActivitySessionRecorder<ProjectManifest>(
+          session: session,
+          store: activityRepository,
+          destination: NarrativeActivityDestination.cinematics,
+          onPersisted: () =>
+              ref.invalidate(narrativeActivityJournalProvider(projectRootPath)),
+          // Activity telemetry must never make a crash-safe authoring edit fail.
+          // The Overview exposes repository read failures separately.
+          onError: (_) {},
+        );
+        return session;
+      };
+    });
 
 final narrativeActivityJournalProvider = FutureProvider.autoDispose
     .family<NarrativeActivityJournal, String>((ref, projectRootPath) {
-  return NarrativeActivityJournalRepository(
-    projectRootPath: projectRootPath,
-  ).load();
-});
+      return NarrativeActivityJournalRepository(
+        projectRootPath: projectRootPath,
+      ).load();
+    });
 
 final narrativeEventSpatialSourceCreationGatewayProvider =
     Provider<NarrativeEventSpatialSourceCreationGateway>((ref) {
-  return NarrativeEventSpatialLinkJournalRepository();
-});
+      return NarrativeEventSpatialLinkJournalRepository();
+    });
 
 final narrativeEventMigrationPersistenceGatewayProvider =
     Provider<NarrativeEventMigrationPersistenceGateway>((ref) {
-  return NarrativeEventMigrationPersistenceRepository();
-});
+      return NarrativeEventMigrationPersistenceRepository();
+    });
 
 /// Providers transverses de bas niveau pour la composition root.
 ///

@@ -13,8 +13,9 @@ final class NarrativeSceneFocusRequest {
 }
 
 final class NarrativeSceneFocusController
-    extends StateNotifier<NarrativeSceneFocusRequest?> {
-  NarrativeSceneFocusController() : super(null);
+    extends Notifier<NarrativeSceneFocusRequest?> {
+  @override
+  NarrativeSceneFocusRequest? build() => null;
 
   int _nonce = 0;
 
@@ -28,7 +29,6 @@ final class NarrativeSceneFocusController
   }
 }
 
-final narrativeSceneFocusProvider = StateNotifierProvider<
-    NarrativeSceneFocusController, NarrativeSceneFocusRequest?>((ref) {
-  return NarrativeSceneFocusController();
-});
+final narrativeSceneFocusProvider = NotifierProvider<
+    NarrativeSceneFocusController,
+    NarrativeSceneFocusRequest?>(NarrativeSceneFocusController.new);

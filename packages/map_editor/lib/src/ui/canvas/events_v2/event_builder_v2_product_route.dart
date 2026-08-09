@@ -36,8 +36,11 @@ import 'event_builder_v2_simulation_sheet.dart';
 import 'event_builder_v2_template_sheet.dart';
 import 'event_builder_v2_workspace.dart';
 
-final _eventBuilderV2TemplateDraftProvider =
-    StateProvider<_PendingEventBuilderV2TemplateDraft?>((ref) => null);
+final _eventBuilderV2TemplateDraftProvider = NotifierProvider<
+    _EventBuilderV2TemplateDraftController,
+    _PendingEventBuilderV2TemplateDraft?>(
+  _EventBuilderV2TemplateDraftController.new,
+);
 
 class _PendingEventBuilderV2TemplateDraft {
   const _PendingEventBuilderV2TemplateDraft({
@@ -47,6 +50,22 @@ class _PendingEventBuilderV2TemplateDraft {
 
   final String projectPath;
   final EventBuilderV2TemplateDraft draft;
+}
+
+/// Keeps an unfinished template draft while navigation opens the map editor.
+final class _EventBuilderV2TemplateDraftController
+    extends Notifier<_PendingEventBuilderV2TemplateDraft?> {
+  @override
+  _PendingEventBuilderV2TemplateDraft? build() => null;
+
+  void setDraft(_PendingEventBuilderV2TemplateDraft draft) {
+    state = draft;
+  }
+
+  void clear() {
+    if (state == null) return;
+    state = null;
+  }
 }
 
 /// Production composition boundary for Event Builder V2.
@@ -1388,11 +1407,12 @@ class _EventBuilderV2ProductRouteState
           onApply: _applyTemplate,
           initialDraft: pendingTemplateDraft,
           onOpenMapEditor: (draft) {
-            ref.read(_eventBuilderV2TemplateDraftProvider.notifier).state =
-                _PendingEventBuilderV2TemplateDraft(
-              projectPath: projectPath,
-              draft: draft,
-            );
+            ref
+                .read(_eventBuilderV2TemplateDraftProvider.notifier)
+                .setDraft(_PendingEventBuilderV2TemplateDraft(
+                  projectPath: projectPath,
+                  draft: draft,
+                ));
             ref.read(editorNotifierProvider.notifier).selectMapWorkspace();
           },
         ),
@@ -1447,7 +1467,7 @@ class _EventBuilderV2ProductRouteState
         _pendingSelectionEventId = preview.event?.id;
         _lastTemplatePreview = preview;
       });
-      ref.read(_eventBuilderV2TemplateDraftProvider.notifier).state = null;
+      ref.read(_eventBuilderV2TemplateDraftProvider.notifier).clear();
       return null;
     } on Object catch (error) {
       if (!mounted) return error.toString();

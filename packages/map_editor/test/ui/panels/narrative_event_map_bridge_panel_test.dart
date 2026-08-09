@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -24,8 +25,9 @@ const _additionalEvent = 'evt_019abcde-0000-7000-8000-000000000499';
 
 void main() {
   group('NS-EVENT-V2-23 Map Inspector bridge panel', () {
-    testWidgets('offers map, selected eligible entity and trigger actions',
-        (tester) async {
+    testWidgets('offers map, selected eligible entity and trigger actions', (
+      tester,
+    ) async {
       final container = _testContainer();
       container.read(editorNotifierProvider.notifier).state = EditorState(
         projectRootPath: '/tmp/v2_23_panel',
@@ -132,8 +134,9 @@ void main() {
       );
     });
 
-    testWidgets('contains no map, layer, coordinate, or raw ID form input',
-        (tester) async {
+    testWidgets('contains no map, layer, coordinate, or raw ID form input', (
+      tester,
+    ) async {
       final container = _testContainer();
       container.read(editorNotifierProvider.notifier).state = EditorState(
         projectRootPath: '/tmp/v2_23_panel',
@@ -153,8 +156,9 @@ void main() {
       expect(find.textContaining('ID technique'), findsNothing);
     });
 
-    testWidgets('lists every existing link without writing a duplicate',
-        (tester) async {
+    testWidgets('lists every existing link without writing a duplicate', (
+      tester,
+    ) async {
       final source = NarrativeEventSourceRef.entityInteract(
         'map_a',
         'entity_a',
@@ -170,14 +174,16 @@ void main() {
         () => File(fixture.projectPath).readAsBytes(),
       ))!;
       final gateway = _NeverWriteGateway();
-      final container = _testContainer(overrides: [
-        createNarrativeEventFromMapSourceUseCaseProvider.overrideWithValue(
-          CreateNarrativeEventFromMapSourceUseCase(
-            persistenceGateway: gateway,
-            prepareSession: (_) async => fixture.session,
+      final container = _testContainer(
+        overrides: [
+          createNarrativeEventFromMapSourceUseCaseProvider.overrideWithValue(
+            CreateNarrativeEventFromMapSourceUseCase(
+              persistenceGateway: gateway,
+              prepareSession: (_) async => fixture.session,
+            ),
           ),
-        ),
-      ]);
+        ],
+      );
       final project = _project().copyWith(
         eventRegistry: _existingRegistry(source),
       );
@@ -216,9 +222,7 @@ void main() {
       );
       expect(gateway.persistCalls, 0);
       expect(
-        await tester.runAsync(
-          () => File(fixture.projectPath).readAsBytes(),
-        ),
+        await tester.runAsync(() => File(fixture.projectPath).readAsBytes()),
         beforeBytes,
       );
       expect(
@@ -257,263 +261,277 @@ void main() {
     });
 
     testWidgets(
-        'additional Event action requires explicit no-code confirmation and writes once',
-        (tester) async {
-      final source = NarrativeEventSourceRef.entityInteract(
-        'map_a',
-        'entity_a',
-      );
-      final fixture = (await tester.runAsync(
-        () => createPersistenceFixture(
-          registry: _existingRegistry(source),
-          map: _sourceMap(),
-        ),
-      ))!;
-      addTearDown(() => tester.runAsync(fixture.dispose));
-      final gateway = _RecordingWriteGateway();
-      final container = _testContainer(overrides: [
-        createNarrativeEventFromMapSourceUseCaseProvider.overrideWithValue(
-          CreateNarrativeEventFromMapSourceUseCase(
-            persistenceGateway: gateway,
-            prepareSession: (_) async => fixture.session,
-            eventIdGeneratorFactory: () => NarrativeEventIdGenerator(
-              rawUuidFactory: () => _additionalEvent.substring(4),
+      'additional Event action requires explicit no-code confirmation and writes once',
+      (tester) async {
+        final source = NarrativeEventSourceRef.entityInteract(
+          'map_a',
+          'entity_a',
+        );
+        final fixture = (await tester.runAsync(
+          () => createPersistenceFixture(
+            registry: _existingRegistry(source),
+            map: _sourceMap(),
+          ),
+        ))!;
+        addTearDown(() => tester.runAsync(fixture.dispose));
+        final gateway = _RecordingWriteGateway();
+        final container = _testContainer(
+          overrides: [
+            createNarrativeEventFromMapSourceUseCaseProvider.overrideWithValue(
+              CreateNarrativeEventFromMapSourceUseCase(
+                persistenceGateway: gateway,
+                prepareSession: (_) async => fixture.session,
+                eventIdGeneratorFactory: () => NarrativeEventIdGenerator(
+                  rawUuidFactory: () => _additionalEvent.substring(4),
+                ),
+                operationIdFactory: () => 'v2_23_additional',
+              ),
             ),
-            operationIdFactory: () => 'v2_23_additional',
+          ],
+        );
+        container.read(editorNotifierProvider.notifier).state = EditorState(
+          projectRootPath: fixture.root.path,
+          project: _project().copyWith(
+            eventRegistry: _existingRegistry(source),
           ),
-        ),
-      ]);
-      container.read(editorNotifierProvider.notifier).state = EditorState(
-        projectRootPath: fixture.root.path,
-        project: _project().copyWith(eventRegistry: _existingRegistry(source)),
-        activeMap: _sourceMap(),
-        selectedEntityId: 'entity_a',
-      );
-      await _pumpPanel(tester, container);
+          activeMap: _sourceMap(),
+          selectedEntityId: 'entity_a',
+        );
+        await _pumpPanel(tester, container);
 
-      await tester.tap(
-        find.byKey(
-          const ValueKey('narrative-event-map-source-entity-entity_a'),
-        ),
-      );
-      await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('narrative-event-map-bridge-confirm')),
-      );
-      await tester.pump();
-      await tester.pump();
-
-      expect(gateway.persistCalls, 0);
-      expect(
-        find.byKey(
-          const ValueKey('narrative-event-map-existing-create-additional'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('Créer un Event supplémentaire'), findsOneWidget);
-      expect(find.textContaining(_eventA), findsNothing);
-      expect(find.textContaining(_eventB), findsNothing);
-
-      await tester.tap(
-        find.byKey(
-          const ValueKey('narrative-event-map-existing-create-additional'),
-        ),
-      );
-      await tester.pump();
-      expect(find.text('Confirmer l’Event supplémentaire'), findsOneWidget);
-      expect(find.text('Créer l’Event supplémentaire'), findsOneWidget);
-      expect(gateway.persistCalls, 0);
-
-      await tester.tap(
-        find.byKey(const ValueKey('narrative-event-map-bridge-cancel')),
-      );
-      await tester.pump();
-      expect(
-        find.byKey(
-          const ValueKey('narrative-event-map-existing-create-additional'),
-        ),
-        findsOneWidget,
-      );
-      expect(gateway.persistCalls, 0);
-
-      await tester.tap(
-        find.byKey(
-          const ValueKey('narrative-event-map-existing-create-additional'),
-        ),
-      );
-      await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('narrative-event-map-bridge-confirm')),
-      );
-      await tester.pump();
-      await tester.pump();
-
-      expect(gateway.persistCalls, 1);
-      expect(gateway.requests, hasLength(1));
-      final created = gateway.requests.single.nextRegistry.records
-          .singleWhere((record) => record.id == _additionalEvent)
-          .draftOrNull!;
-      expect(created.source, source);
-      expect(
-        container
-            .read(narrativeEventMapBridgeControllerProvider)
-            .selectedNarrativeEventV2Id,
-        _additionalEvent,
-      );
-    });
-
-    testWidgets('out-of-sync recovery blocks reload while dirty and can cancel',
-        (tester) async {
-      final source = NarrativeEventSourceRef.mapEnter('map_a');
-      final fixture = (await tester.runAsync(
-        () => createPersistenceFixture(
-          registry: persistenceRegistry(
-            records: [],
-            mode: EventSystemMode.dualRead,
+        await tester.tap(
+          find.byKey(
+            const ValueKey('narrative-event-map-source-entity-entity_a'),
           ),
-          map: _sourceMap(),
-        ),
-      ))!;
-      addTearDown(() => tester.runAsync(fixture.dispose));
-      final gateway = _RecordingWriteGateway();
-      final container = _testContainer(overrides: [
-        createNarrativeEventFromMapSourceUseCaseProvider.overrideWithValue(
-          CreateNarrativeEventFromMapSourceUseCase(
-            persistenceGateway: gateway,
-            prepareSession: (_) async => fixture.session,
-            eventIdGeneratorFactory: () => NarrativeEventIdGenerator(
-              rawUuidFactory: () => _additionalEvent.substring(4),
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-event-map-bridge-confirm')),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        expect(gateway.persistCalls, 0);
+        expect(
+          find.byKey(
+            const ValueKey('narrative-event-map-existing-create-additional'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Créer un Event supplémentaire'), findsOneWidget);
+        expect(find.textContaining(_eventA), findsNothing);
+        expect(find.textContaining(_eventB), findsNothing);
+
+        await tester.tap(
+          find.byKey(
+            const ValueKey('narrative-event-map-existing-create-additional'),
+          ),
+        );
+        await tester.pump();
+        expect(find.text('Confirmer l’Event supplémentaire'), findsOneWidget);
+        expect(find.text('Créer l’Event supplémentaire'), findsOneWidget);
+        expect(gateway.persistCalls, 0);
+
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-event-map-bridge-cancel')),
+        );
+        await tester.pump();
+        expect(
+          find.byKey(
+            const ValueKey('narrative-event-map-existing-create-additional'),
+          ),
+          findsOneWidget,
+        );
+        expect(gateway.persistCalls, 0);
+
+        await tester.tap(
+          find.byKey(
+            const ValueKey('narrative-event-map-existing-create-additional'),
+          ),
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-event-map-bridge-confirm')),
+        );
+        await tester.pump();
+        await tester.pump();
+
+        expect(gateway.persistCalls, 1);
+        expect(gateway.requests, hasLength(1));
+        final created = gateway.requests.single.nextRegistry.records
+            .singleWhere((record) => record.id == _additionalEvent)
+            .draftOrNull!;
+        expect(created.source, source);
+        expect(
+          container
+              .read(narrativeEventMapBridgeControllerProvider)
+              .selectedNarrativeEventV2Id,
+          _additionalEvent,
+        );
+      },
+    );
+
+    testWidgets(
+      'out-of-sync recovery blocks reload while dirty and can cancel',
+      (tester) async {
+        final source = NarrativeEventSourceRef.mapEnter('map_a');
+        final fixture = (await tester.runAsync(
+          () => createPersistenceFixture(
+            registry: persistenceRegistry(
+              records: [],
+              mode: EventSystemMode.dualRead,
             ),
-            operationIdFactory: () => 'v2_23_out_of_sync_cancel',
+            map: _sourceMap(),
           ),
-        ),
-      ]);
-      final notifier = container.read(editorNotifierProvider.notifier);
-      notifier.state = EditorState(
-        projectRootPath: fixture.root.path,
-        project: _project().copyWith(
-          eventRegistry: _existingRegistry(source),
-        ),
-        activeMap: _sourceMap(),
-      );
-      await _pumpPanel(tester, container);
-
-      await tester.tap(
-        find.byKey(const ValueKey('narrative-event-map-source-map-map_a')),
-      );
-      await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('narrative-event-map-bridge-confirm')),
-      );
-      await tester.pump();
-      await tester.pump();
-
-      expect(
-        container.read(narrativeEventMapBridgeControllerProvider).recovery,
-        isNotNull,
-      );
-      expect(find.text('Recharger le projet'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('narrative-event-map-recovery-reload')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('narrative-event-map-recovery-cancel')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('narrative-event-map-bridge-confirm')),
-        findsNothing,
-      );
-
-      notifier.state = notifier.state.copyWith(isDirty: true);
-      await tester.pump();
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('narrative-event-map-recovery-reload'),
+        ))!;
+        addTearDown(() => tester.runAsync(fixture.dispose));
+        final gateway = _RecordingWriteGateway();
+        final container = _testContainer(
+          overrides: [
+            createNarrativeEventFromMapSourceUseCaseProvider.overrideWithValue(
+              CreateNarrativeEventFromMapSourceUseCase(
+                persistenceGateway: gateway,
+                prepareSession: (_) async => fixture.session,
+                eventIdGeneratorFactory: () => NarrativeEventIdGenerator(
+                  rawUuidFactory: () => _additionalEvent.substring(4),
+                ),
+                operationIdFactory: () => 'v2_23_out_of_sync_cancel',
               ),
-            )
-            .onPressed,
-        isNull,
-      );
+            ),
+          ],
+        );
+        final notifier = container.read(editorNotifierProvider.notifier);
+        notifier.state = EditorState(
+          projectRootPath: fixture.root.path,
+          project: _project().copyWith(
+            eventRegistry: _existingRegistry(source),
+          ),
+          activeMap: _sourceMap(),
+        );
+        await _pumpPanel(tester, container);
 
-      notifier.state = notifier.state.copyWith(
-        isDirty: false,
-        isProjectDirty: true,
-      );
-      await tester.pump();
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('narrative-event-map-recovery-reload'),
-              ),
-            )
-            .onPressed,
-        isNull,
-      );
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-event-map-source-map-map_a')),
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-event-map-bridge-confirm')),
+        );
+        await tester.pump();
+        await tester.pump();
 
-      notifier.state = notifier.state.copyWith(
-        isProjectDirty: false,
-        isSaving: true,
-      );
-      await tester.pump();
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('narrative-event-map-recovery-reload'),
-              ),
-            )
-            .onPressed,
-        isNull,
-      );
+        expect(
+          container.read(narrativeEventMapBridgeControllerProvider).recovery,
+          isNotNull,
+        );
+        expect(find.text('Recharger le projet'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('narrative-event-map-recovery-reload')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('narrative-event-map-recovery-cancel')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('narrative-event-map-bridge-confirm')),
+          findsNothing,
+        );
 
-      notifier.state = notifier.state.copyWith(isSaving: false);
-      await tester.pump();
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('narrative-event-map-recovery-reload'),
-              ),
-            )
-            .onPressed,
-        isNotNull,
-      );
+        notifier.state = notifier.state.copyWith(isDirty: true);
+        await tester.pump();
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(
+                  const ValueKey('narrative-event-map-recovery-reload'),
+                ),
+              )
+              .onPressed,
+          isNull,
+        );
 
-      await tester.tap(
-        find.byKey(const ValueKey('narrative-event-map-recovery-cancel')),
-      );
-      await tester.pump();
-      expect(
-        container.read(narrativeEventMapBridgeControllerProvider).recovery,
-        isNull,
-      );
-      expect(
-        container.read(narrativeEventMapBridgeControllerProvider).pendingIntent,
-        isNull,
-      );
-      expect(gateway.persistCalls, 1);
-    });
+        notifier.state = notifier.state.copyWith(
+          isDirty: false,
+          isProjectDirty: true,
+        );
+        await tester.pump();
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(
+                  const ValueKey('narrative-event-map-recovery-reload'),
+                ),
+              )
+              .onPressed,
+          isNull,
+        );
 
-    testWidgets('gateway exception restores actions with a human message',
-        (tester) async {
+        notifier.state = notifier.state.copyWith(
+          isProjectDirty: false,
+          isSaving: true,
+        );
+        await tester.pump();
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(
+                  const ValueKey('narrative-event-map-recovery-reload'),
+                ),
+              )
+              .onPressed,
+          isNull,
+        );
+
+        notifier.state = notifier.state.copyWith(isSaving: false);
+        await tester.pump();
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(
+                  const ValueKey('narrative-event-map-recovery-reload'),
+                ),
+              )
+              .onPressed,
+          isNotNull,
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-event-map-recovery-cancel')),
+        );
+        await tester.pump();
+        expect(
+          container.read(narrativeEventMapBridgeControllerProvider).recovery,
+          isNull,
+        );
+        expect(
+          container
+              .read(narrativeEventMapBridgeControllerProvider)
+              .pendingIntent,
+          isNull,
+        );
+        expect(gateway.persistCalls, 1);
+      },
+    );
+
+    testWidgets('gateway exception restores actions with a human message', (
+      tester,
+    ) async {
       final fixture = (await tester.runAsync(
         () => createPersistenceFixture(map: _sourceMap()),
       ))!;
       addTearDown(() => tester.runAsync(fixture.dispose));
       final gateway = _ThrowingPanelGateway();
-      final container = _testContainer(overrides: [
-        createNarrativeEventFromMapSourceUseCaseProvider.overrideWithValue(
-          CreateNarrativeEventFromMapSourceUseCase(
-            persistenceGateway: gateway,
-            prepareSession: (_) async => fixture.session,
+      final container = _testContainer(
+        overrides: [
+          createNarrativeEventFromMapSourceUseCaseProvider.overrideWithValue(
+            CreateNarrativeEventFromMapSourceUseCase(
+              persistenceGateway: gateway,
+              prepareSession: (_) async => fixture.session,
+            ),
           ),
-        ),
-      ]);
+        ],
+      );
       container.read(editorNotifierProvider.notifier).state = EditorState(
         projectRootPath: fixture.root.path,
         project: _project(),
@@ -539,9 +557,7 @@ void main() {
       expect(
         tester
             .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('narrative-event-map-bridge-confirm'),
-              ),
+              find.byKey(const ValueKey('narrative-event-map-bridge-confirm')),
             )
             .onPressed,
         isNotNull,
@@ -549,8 +565,9 @@ void main() {
       expect(gateway.persistCalls, 1);
     });
 
-    testWidgets('MapEvent inspector remains separate and visibly legacy',
-        (tester) async {
+    testWidgets('MapEvent inspector remains separate and visibly legacy', (
+      tester,
+    ) async {
       final container = _testContainer();
       container.read(editorNotifierProvider.notifier).state = EditorState(
         projectRootPath: '/tmp/v2_23_panel',
@@ -572,9 +589,7 @@ void main() {
   });
 }
 
-ProviderContainer _testContainer({
-  List<Override> overrides = const [],
-}) {
+ProviderContainer _testContainer({List<Override> overrides = const []}) {
   final container = ProviderContainer(overrides: overrides);
   final keepAlive = container.listen<EditorState>(
     editorNotifierProvider,
@@ -587,17 +602,11 @@ ProviderContainer _testContainer({
   return container;
 }
 
-Future<void> _pumpPanel(
-  WidgetTester tester,
-  ProviderContainer container,
-) {
+Future<void> _pumpPanel(WidgetTester tester, ProviderContainer container) {
   return _pump(
     tester,
     container,
-    const SizedBox(
-      width: 400,
-      child: NarrativeEventMapBridgePanel(),
-    ),
+    const SizedBox(width: 400, child: NarrativeEventMapBridgePanel()),
   );
 }
 
@@ -622,17 +631,17 @@ Future<void> _pump(
 }
 
 ProjectManifest _project() => ProjectManifest(
-      name: 'Bridge panel project',
-      maps: const [
-        ProjectMapEntry(
-          id: 'map_a',
-          name: 'Port Selbrume',
-          relativePath: 'maps/map_a.json',
-        ),
-      ],
-      tilesets: const [],
-      scenes: [persistenceScene()],
-    );
+  name: 'Bridge panel project',
+  maps: const [
+    ProjectMapEntry(
+      id: 'map_a',
+      name: 'Port Selbrume',
+      relativePath: 'maps/map_a.json',
+    ),
+  ],
+  tilesets: const [],
+  scenes: [persistenceScene()],
+);
 
 MapData _sourceMap({
   MapEntityKind entityKind = MapEntityKind.npc,

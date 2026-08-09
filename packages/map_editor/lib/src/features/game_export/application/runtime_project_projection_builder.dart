@@ -18,9 +18,9 @@ final class RuntimeProjectProjection {
     this.coverPackagePath,
     this.heroPackagePath,
     this.titleMusicPackagePath,
-    this.introVideoPackagePath,
-    this.introPosterPackagePath,
-    this.introCaptionsPackagePath,
+    this.introMedia,
+    this.titlePromptMedia,
+    this.titleMenuMedia,
     Map<ProjectTypographyRole, RuntimeProjectedFontRole> typographyRoles =
         const <ProjectTypographyRole, RuntimeProjectedFontRole>{},
   })  : payloadFiles = Map.unmodifiable(
@@ -39,10 +39,39 @@ final class RuntimeProjectProjection {
   final String? coverPackagePath;
   final String? heroPackagePath;
   final String? titleMusicPackagePath;
-  final String? introVideoPackagePath;
-  final String? introPosterPackagePath;
-  final String? introCaptionsPackagePath;
+  final RuntimeProjectedResponsiveVideo? introMedia;
+  final RuntimeProjectedResponsiveVideo? titlePromptMedia;
+  final RuntimeProjectedResponsiveVideo? titleMenuMedia;
   final Map<ProjectTypographyRole, RuntimeProjectedFontRole> typographyRoles;
+
+  String? get introVideoPackagePath => introMedia?.landscape.videoPackagePath;
+  String? get introPosterPackagePath => introMedia?.landscape.posterPackagePath;
+  String? get introCaptionsPackagePath =>
+      introMedia?.landscape.captionsPackagePath;
+}
+
+final class RuntimeProjectedVideoVariant {
+  const RuntimeProjectedVideoVariant({
+    required this.profile,
+    required this.videoPackagePath,
+    required this.posterPackagePath,
+    this.captionsPackagePath,
+  });
+
+  final ProjectVideoVariantProfile profile;
+  final String videoPackagePath;
+  final String posterPackagePath;
+  final String? captionsPackagePath;
+}
+
+final class RuntimeProjectedResponsiveVideo {
+  const RuntimeProjectedResponsiveVideo({
+    required this.landscape,
+    this.portrait,
+  });
+
+  final RuntimeProjectedVideoVariant landscape;
+  final RuntimeProjectedVideoVariant? portrait;
 }
 
 final class RuntimeProjectedFontRole {
@@ -313,30 +342,32 @@ final class RuntimeProjectProjectionBuilder {
       );
     }
     final intro = presentation.intro;
-    final introVideoPackagePath = intro == null
+    final introMedia = intro == null
         ? null
-        : await _addIntroVideo(
+        : await _addResponsiveVideo(
             payload,
             projectRoot,
-            intro,
-            budget,
+            intro.media,
+            packageRoot: 'presentation/intro',
+            budget: budget,
           );
-    final introPosterPackagePath = intro == null
+    final titlePromptMedia = presentation.titleMotion?.promptLoop == null
         ? null
-        : await _addPresentationAsset(
+        : await _addResponsiveVideo(
             payload,
             projectRoot,
-            intro.posterPath,
-            'intro/poster',
-            budget,
+            presentation.titleMotion!.promptLoop!,
+            packageRoot: 'presentation/title/prompt',
+            budget: budget,
           );
-    final introCaptionsPackagePath = intro?.captionsPath == null
+    final titleMenuMedia = presentation.titleMotion?.menuLoop == null
         ? null
-        : await _addIntroCaptions(
+        : await _addResponsiveVideo(
             payload,
             projectRoot,
-            intro!.captionsPath!,
-            budget,
+            presentation.titleMotion!.menuLoop!,
+            packageRoot: 'presentation/title/menu',
+            budget: budget,
           );
     final typographyRoles = <ProjectTypographyRole, RuntimeProjectedFontRole>{};
     final typography = presentation.typography;
@@ -368,48 +399,98 @@ final class RuntimeProjectProjectionBuilder {
       coverPackagePath: coverPackagePath,
       heroPackagePath: heroPackagePath,
       titleMusicPackagePath: titleMusicPackagePath,
-      introVideoPackagePath: introVideoPackagePath,
-      introPosterPackagePath: introPosterPackagePath,
-      introCaptionsPackagePath: introCaptionsPackagePath,
+      introMedia: introMedia,
+      titlePromptMedia: titlePromptMedia,
+      titleMenuMedia: titleMenuMedia,
       typographyRoles: typographyRoles,
     );
   }
 
-  Future<String> _addIntroVideo(
+  Future<RuntimeProjectedResponsiveVideo> _addResponsiveVideo(
     Map<String, List<int>> payload,
     Directory root,
-    ProjectIntroVideoProfile intro,
-    _ProjectionBudget budget,
-  ) async {
-    final file = await _resolveAuthorFile(root, intro.videoPath);
+    ProjectResponsiveVideoProfile media, {
+    required String packageRoot,
+    required _ProjectionBudget budget,
+  }) async =>
+      RuntimeProjectedResponsiveVideo(
+        landscape: await _addVideoVariant(
+          payload,
+          root,
+          media.landscape,
+          packageRoot: '$packageRoot/landscape',
+          budget: budget,
+        ),
+        portrait: media.portrait == null
+            ? null
+            : await _addVideoVariant(
+                payload,
+                root,
+                media.portrait!,
+                packageRoot: '$packageRoot/portrait',
+                budget: budget,
+              ),
+      );
+
+  Future<RuntimeProjectedVideoVariant> _addVideoVariant(
+    Map<String, List<int>> payload,
+    Directory root,
+    ProjectVideoVariantProfile variant, {
+    required String packageRoot,
+    required _ProjectionBudget budget,
+  }) async {
+    final file = await _resolveAuthorFile(root, variant.videoPath);
     final bytes = await budget.readFile(
       file,
-      logicalPath: intro.videoPath,
+      logicalPath: variant.videoPath,
     );
     final signature = latin1.decode(bytes, allowInvalid: true);
-    if (!intro.videoPath.toLowerCase().endsWith('.mp4') ||
-        bytes.length != intro.sizeBytes ||
+    if (!variant.videoPath.toLowerCase().endsWith('.mp4') ||
+        bytes.length != variant.sizeBytes ||
         !signature.contains('ftyp') ||
         !(signature.contains('avc1') || signature.contains('avc3')) ||
-        (intro.audioCodec == 'aac' && !signature.contains('mp4a'))) {
+        (variant.audioCodec == 'aac' && !signature.contains('mp4a'))) {
       throw GamePackageExportException(
         code: 'invalidIntroVideo',
-        path: intro.videoPath,
-        message:
-            'Intro video bytes do not match the declared MP4/H.264 metadata.',
+        path: variant.videoPath,
+        message: 'Presentation video bytes do not match the declared metadata.',
       );
     }
-    const packagePath = 'presentation/intro/video.mp4';
-    budget.addPayload(payload, packagePath, bytes);
-    return packagePath;
+    final videoPackagePath = '$packageRoot/video.mp4';
+    budget.addPayload(payload, videoPackagePath, bytes);
+    final posterRole =
+        '${packageRoot.substring('presentation/'.length)}/poster';
+    final posterPackagePath = await _addPresentationAsset(
+      payload,
+      root,
+      variant.posterPath,
+      posterRole,
+      budget,
+    );
+    final captionsPackagePath = variant.captionsPath == null
+        ? null
+        : await _addIntroCaptions(
+            payload,
+            root,
+            variant.captionsPath!,
+            packagePath: '$packageRoot/captions.vtt',
+            budget: budget,
+          );
+    return RuntimeProjectedVideoVariant(
+      profile: variant,
+      videoPackagePath: videoPackagePath,
+      posterPackagePath: posterPackagePath!,
+      captionsPackagePath: captionsPackagePath,
+    );
   }
 
   Future<String> _addIntroCaptions(
     Map<String, List<int>> payload,
     Directory root,
-    String relativePath,
-    _ProjectionBudget budget,
-  ) async {
+    String relativePath, {
+    required String packagePath,
+    required _ProjectionBudget budget,
+  }) async {
     final file = await _resolveAuthorFile(root, relativePath);
     final bytes = await budget.readFile(
       file,
@@ -435,7 +516,6 @@ final class RuntimeProjectProjectionBuilder {
         message: 'Intro captions must be valid WebVTT.',
       );
     }
-    const packagePath = 'presentation/intro/captions.vtt';
     budget.addPayload(payload, packagePath, bytes);
     return packagePath;
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart';
@@ -68,8 +69,9 @@ Future<void> _save(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('une perte massive propose une confirmation au lieu d\'un mur',
-      (tester) async {
+  testWidgets('une perte massive propose une confirmation au lieu d\'un mur', (
+    tester,
+  ) async {
     final harness = await _pump(
       tester,
       savedPlacements: 8,
@@ -84,16 +86,14 @@ void main() {
     expect(harness.repository.savedMaps, isEmpty);
   });
 
-  testWidgets('le bouton nomme le nombre exact de placements supprimés',
-      (tester) async {
+  testWidgets('le bouton nomme le nombre exact de placements supprimés', (
+    tester,
+  ) async {
     await _pump(tester, savedPlacements: 8, currentPlacements: 3);
 
     await _save(tester);
 
-    expect(
-      find.text('Supprimer 5 placements et sauvegarder'),
-      findsOneWidget,
-    );
+    expect(find.text('Supprimer 5 placements et sauvegarder'), findsOneWidget);
   });
 
   testWidgets('confirmer écrit la carte amputée', (tester) async {
@@ -112,8 +112,9 @@ void main() {
     expect(harness.notifier.state.isDirty, isFalse);
   });
 
-  testWidgets('annuler n\'écrit rien et garde la carte modifiée',
-      (tester) async {
+  testWidgets('annuler n\'écrit rien et garde la carte modifiée', (
+    tester,
+  ) async {
     final harness = await _pump(
       tester,
       savedPlacements: 8,
@@ -129,8 +130,9 @@ void main() {
     expect(harness.notifier.state.activeMap!.placedElements, hasLength(3));
   });
 
-  testWidgets('une perte sous le seuil sauvegarde sans rien demander',
-      (tester) async {
+  testWidgets('une perte sous le seuil sauvegarde sans rien demander', (
+    tester,
+  ) async {
     final harness = await _pump(
       tester,
       savedPlacements: 8,
@@ -167,46 +169,46 @@ class _FakeMapRepository implements MapRepository {
 }
 
 MapData _mapWithPlacementCount(int count) => MapData(
-      id: 'town',
-      name: 'Town',
-      size: GridSize(width: count, height: 1),
-      layers: <MapLayer>[
-        MapLayer.tile(
-          id: 'decor',
-          name: 'Decor',
-          cells: List<int>.filled(count, 0),
-        ),
-      ],
-      placedElements: <MapPlacedElement>[
-        for (var index = 0; index < count; index += 1)
-          MapPlacedElement(
-            id: 'placement_$index',
-            layerId: 'decor',
-            elementId: 'tree',
-            pos: GridPos(x: index, y: 0),
-          ),
-      ],
-    );
+  id: 'town',
+  name: 'Town',
+  size: GridSize(width: count, height: 1),
+  layers: <MapLayer>[
+    MapLayer.tile(
+      id: 'decor',
+      name: 'Decor',
+      cells: List<int>.filled(count, 0),
+    ),
+  ],
+  placedElements: <MapPlacedElement>[
+    for (var index = 0; index < count; index += 1)
+      MapPlacedElement(
+        id: 'placement_$index',
+        layerId: 'decor',
+        elementId: 'tree',
+        pos: GridPos(x: index, y: 0),
+      ),
+  ],
+);
 
 ProjectManifest _manifest() => const ProjectManifest(
-      name: 'Demo',
-      maps: <ProjectMapEntry>[],
-      tilesets: <ProjectTilesetEntry>[
-        ProjectTilesetEntry(
-          id: 'nature',
-          name: 'Nature',
-          relativePath: 'tilesets/nature.png',
-        ),
+  name: 'Demo',
+  maps: <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'nature',
+      name: 'Nature',
+      relativePath: 'tilesets/nature.png',
+    ),
+  ],
+  elements: <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'tree',
+      name: 'Tree',
+      tilesetId: 'nature',
+      categoryId: 'nature',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
       ],
-      elements: <ProjectElementEntry>[
-        ProjectElementEntry(
-          id: 'tree',
-          name: 'Tree',
-          tilesetId: 'nature',
-          categoryId: 'nature',
-          frames: <TilesetVisualFrame>[
-            TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-          ],
-        ),
-      ],
-    );
+    ),
+  ],
+);

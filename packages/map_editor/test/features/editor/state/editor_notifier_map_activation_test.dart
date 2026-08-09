@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import '../../../support/riverpod_notifier_harness.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart';
@@ -50,10 +52,9 @@ void main() {
       expect(outcome, MapActivationOutcome.activated);
       expect(notifier.state.activeMap, same(_alphaSaved));
       expect(notifier.state.isDirty, isFalse);
-      expect(
-        fixture.repository.loadedPaths,
-        <String>['/project/maps/alpha.json'],
-      );
+      expect(fixture.repository.loadedPaths, <String>[
+        '/project/maps/alpha.json',
+      ]);
     });
 
     test('dirty activation requires a decision before any I/O', () async {
@@ -69,35 +70,37 @@ void main() {
       expect(fixture.repository.savedPaths, isEmpty);
     });
 
-    test('clean map with a pending Border preview requires a decision',
-        () async {
-      final fixture = _ActivationFixture();
-      final map = _alphaWithBorder();
-      final notifier = fixture.notifier
-        ..state = _cleanSourceState().copyWith(
-          activeMap: map,
-          savedMapSnapshot: map,
-        );
-      fixture.preview.begin(
-        map: map,
-        layerId: 'borders',
-        featureId: 'coast',
-        context: createEditorBorderPreviewContext(
-          projectRootPath: '/project',
-          activeMapPath: '/project/maps/alpha.json',
-          project: _project,
+    test(
+      'clean map with a pending Border preview requires a decision',
+      () async {
+        final fixture = _ActivationFixture();
+        final map = _alphaWithBorder();
+        final notifier = fixture.notifier
+          ..state = _cleanSourceState().copyWith(
+            activeMap: map,
+            savedMapSnapshot: map,
+          );
+        fixture.preview.begin(
           map: map,
-        ),
-      );
+          layerId: 'borders',
+          featureId: 'coast',
+          context: createEditorBorderPreviewContext(
+            projectRootPath: '/project',
+            activeMapPath: '/project/maps/alpha.json',
+            project: _project,
+            map: map,
+          ),
+        );
 
-      final outcome = await notifier.activateMap('maps/beta.json');
+        final outcome = await notifier.activateMap('maps/beta.json');
 
-      expect(outcome, MapActivationOutcome.requiresDecision);
-      expect(notifier.state.activeMap, same(map));
-      expect(fixture.preview.current.hasPendingPreview, isTrue);
-      expect(fixture.repository.loadedPaths, isEmpty);
-      expect(fixture.repository.savedPaths, isEmpty);
-    });
+        expect(outcome, MapActivationOutcome.requiresDecision);
+        expect(notifier.state.activeMap, same(map));
+        expect(fixture.preview.current.hasPendingPreview, isTrue);
+        expect(fixture.repository.loadedPaths, isEmpty);
+        expect(fixture.repository.savedPaths, isEmpty);
+      },
+    );
 
     test('cancel keeps the complete source editing session intact', () async {
       final fixture = _ActivationFixture();
@@ -148,30 +151,32 @@ void main() {
       expect(fixture.repository.savedPaths, isEmpty);
     });
 
-    test('Discard is rejected if the source snapshot changed while prompting',
-        () async {
-      final fixture = _ActivationFixture();
-      final notifier = fixture.notifier..state = _dirtySourceState();
+    test(
+      'Discard is rejected if the source snapshot changed while prompting',
+      () async {
+        final fixture = _ActivationFixture();
+        final notifier = fixture.notifier..state = _dirtySourceState();
 
-      expect(
-        await notifier.activateMap('maps/beta.json'),
-        MapActivationOutcome.requiresDecision,
-      );
-      final replacement = notifier.state.copyWith(
-        activeMap: notifier.state.activeMap!.copyWith(name: 'Async result'),
-      );
-      notifier.state = replacement;
+        expect(
+          await notifier.activateMap('maps/beta.json'),
+          MapActivationOutcome.requiresDecision,
+        );
+        final replacement = notifier.state.copyWith(
+          activeMap: notifier.state.activeMap!.copyWith(name: 'Async result'),
+        );
+        notifier.state = replacement;
 
-      final outcome = await notifier.activateMap(
-        'maps/beta.json',
-        dirtyDecision: DirtyMapActivationDecision.discard,
-      );
+        final outcome = await notifier.activateMap(
+          'maps/beta.json',
+          dirtyDecision: DirtyMapActivationDecision.discard,
+        );
 
-      expect(outcome, MapActivationOutcome.unavailable);
-      expect(notifier.state, replacement);
-      expect(fixture.repository.loadedPaths, isEmpty);
-      expect(fixture.repository.savedPaths, isEmpty);
-    });
+        expect(outcome, MapActivationOutcome.unavailable);
+        expect(notifier.state, replacement);
+        expect(fixture.repository.loadedPaths, isEmpty);
+        expect(fixture.repository.savedPaths, isEmpty);
+      },
+    );
 
     test('a stale decision cannot hide behind a same-map no-op', () async {
       final fixture = _ActivationFixture();
@@ -267,36 +272,38 @@ void main() {
       expect(notifier.state.isDirty, isFalse);
     });
 
-    test('successful external save may advance map identity before activation',
-        () async {
-      final fixture = _ActivationFixture();
-      final notifier = fixture.notifier..state = _dirtySourceState();
+    test(
+      'successful external save may advance map identity before activation',
+      () async {
+        final fixture = _ActivationFixture();
+        final notifier = fixture.notifier..state = _dirtySourceState();
 
-      expect(
-        await notifier.activateMap('maps/beta.json'),
-        MapActivationOutcome.requiresDecision,
-      );
-      final savedReplacement =
-          notifier.state.activeMap!.copyWith(name: 'Saved async result');
-      notifier.state = notifier.state.copyWith(
-        activeMap: savedReplacement,
-        savedMapSnapshot: savedReplacement,
-        isDirty: false,
-      );
+        expect(
+          await notifier.activateMap('maps/beta.json'),
+          MapActivationOutcome.requiresDecision,
+        );
+        final savedReplacement = notifier.state.activeMap!.copyWith(
+          name: 'Saved async result',
+        );
+        notifier.state = notifier.state.copyWith(
+          activeMap: savedReplacement,
+          savedMapSnapshot: savedReplacement,
+          isDirty: false,
+        );
 
-      final outcome = await notifier.activateMap(
-        'maps/beta.json',
-        dirtyDecision: DirtyMapActivationDecision.save,
-      );
+        final outcome = await notifier.activateMap(
+          'maps/beta.json',
+          dirtyDecision: DirtyMapActivationDecision.save,
+        );
 
-      expect(outcome, MapActivationOutcome.activated);
-      expect(notifier.state.activeMap, same(_beta));
-      expect(fixture.repository.savedPaths, isEmpty);
-      expect(
-        fixture.repository.loadedPaths,
-        <String>['/project/maps/beta.json'],
-      );
-    });
+        expect(outcome, MapActivationOutcome.activated);
+        expect(notifier.state.activeMap, same(_beta));
+        expect(fixture.repository.savedPaths, isEmpty);
+        expect(fixture.repository.loadedPaths, <String>[
+          '/project/maps/beta.json',
+        ]);
+      },
+    );
 
     test('failed save blocks navigation and preserves the source', () async {
       final fixture = _ActivationFixture(saveError: StateError('disk full'));
@@ -355,20 +362,22 @@ void main() {
       expect(notifier.state.mapUndoStack, isNotEmpty);
     });
 
-    test('rejects a target whose persisted ID disagrees with the manifest',
-        () async {
-      final fixture = _ActivationFixture();
-      fixture.repository.mapsByPath['/project/maps/beta.json'] =
-          _beta.copyWith(id: 'wrong');
-      final notifier = fixture.notifier..state = _cleanSourceState();
+    test(
+      'rejects a target whose persisted ID disagrees with the manifest',
+      () async {
+        final fixture = _ActivationFixture();
+        fixture.repository.mapsByPath['/project/maps/beta.json'] = _beta
+            .copyWith(id: 'wrong');
+        final notifier = fixture.notifier..state = _cleanSourceState();
 
-      final outcome = await notifier.activateMap('maps/beta.json');
+        final outcome = await notifier.activateMap('maps/beta.json');
 
-      expect(outcome, MapActivationOutcome.failed);
-      expect(notifier.state.activeMap, same(_alphaEdited));
-      expect(notifier.state.activeMapPath, '/project/maps/alpha.json');
-      expect(notifier.state.isDirty, isFalse);
-    });
+        expect(outcome, MapActivationOutcome.failed);
+        expect(notifier.state.activeMap, same(_alphaEdited));
+        expect(notifier.state.activeMapPath, '/project/maps/alpha.json');
+        expect(notifier.state.isDirty, isFalse);
+      },
+    );
 
     test('rejects a second concurrent activation as busy', () async {
       final loadStarted = Completer<void>();
@@ -394,48 +403,50 @@ void main() {
       expect(notifier.state.activeMap, same(_beta));
     });
 
-    test('a dirty Discard load owns the gateway until adoption completes',
-        () async {
-      final loadStarted = Completer<void>();
-      final releaseLoad = Completer<MapData>();
-      final fixture = _ActivationFixture(
-        loadHandler: (path) {
-          if (path == '/project/maps/beta.json') {
-            if (!loadStarted.isCompleted) loadStarted.complete();
-            return releaseLoad.future;
-          }
-          return Future<MapData>.value(_gamma);
-        },
-      );
-      final notifier = fixture.notifier..state = _dirtySourceState();
+    test(
+      'a dirty Discard load owns the gateway until adoption completes',
+      () async {
+        final loadStarted = Completer<void>();
+        final releaseLoad = Completer<MapData>();
+        final fixture = _ActivationFixture(
+          loadHandler: (path) {
+            if (path == '/project/maps/beta.json') {
+              if (!loadStarted.isCompleted) loadStarted.complete();
+              return releaseLoad.future;
+            }
+            return Future<MapData>.value(_gamma);
+          },
+        );
+        final notifier = fixture.notifier..state = _dirtySourceState();
 
-      expect(
-        await notifier.activateMap('maps/beta.json'),
-        MapActivationOutcome.requiresDecision,
-      );
-      final first = notifier.activateMap(
-        'maps/beta.json',
-        dirtyDecision: DirtyMapActivationDecision.discard,
-      );
-      await loadStarted.future;
+        expect(
+          await notifier.activateMap('maps/beta.json'),
+          MapActivationOutcome.requiresDecision,
+        );
+        final first = notifier.activateMap(
+          'maps/beta.json',
+          dirtyDecision: DirtyMapActivationDecision.discard,
+        );
+        await loadStarted.future;
 
-      expect(
-        await notifier.activateMap('maps/gamma.json'),
-        MapActivationOutcome.busy,
-      );
-      expect(
-        await notifier.activateProject(
-          '/other/project.json',
-          rememberAsRecent: false,
-        ),
-        MapActivationOutcome.busy,
-      );
+        expect(
+          await notifier.activateMap('maps/gamma.json'),
+          MapActivationOutcome.busy,
+        );
+        expect(
+          await notifier.activateProject(
+            '/other/project.json',
+            rememberAsRecent: false,
+          ),
+          MapActivationOutcome.busy,
+        );
 
-      releaseLoad.complete(_beta);
-      expect(await first, MapActivationOutcome.activated);
-      expect(notifier.state.activeMap, same(_beta));
-      expect(fixture.projectRepository.loadedPaths, isEmpty);
-    });
+        releaseLoad.complete(_beta);
+        expect(await first, MapActivationOutcome.activated);
+        expect(notifier.state.activeMap, same(_beta));
+        expect(fixture.projectRepository.loadedPaths, isEmpty);
+      },
+    );
 
     test('only one dirty activation decision can be pending', () async {
       final fixture = _ActivationFixture();
@@ -459,120 +470,128 @@ void main() {
       );
     });
 
-    test('connected-map check and cancel preserve an in-progress stroke',
-        () async {
-      final fixture = _ActivationFixture();
-      const strokeStart = MapHistorySnapshot(map: _alphaSaved);
-      final connectedAlpha = _alphaEdited.copyWith(
-        connections: const <MapConnection>[
-          MapConnection(
-            direction: MapConnectionDirection.north,
-            targetMapId: 'beta',
-            offset: 0,
-          ),
-        ],
-      );
-      final before = _dirtySourceState().copyWith(
-        activeMap: connectedAlpha,
-        mapStrokeStart: strokeStart,
-      );
-      final notifier = fixture.notifier..state = before;
+    test(
+      'connected-map check and cancel preserve an in-progress stroke',
+      () async {
+        final fixture = _ActivationFixture();
+        const strokeStart = MapHistorySnapshot(map: _alphaSaved);
+        final connectedAlpha = _alphaEdited.copyWith(
+          connections: const <MapConnection>[
+            MapConnection(
+              direction: MapConnectionDirection.north,
+              targetMapId: 'beta',
+              offset: 0,
+            ),
+          ],
+        );
+        final before = _dirtySourceState().copyWith(
+          activeMap: connectedAlpha,
+          mapStrokeStart: strokeStart,
+        );
+        final notifier = fixture.notifier..state = before;
 
-      final check = await notifier.activateConnectedMap(
-        MapConnectionDirection.north,
-      );
-      expect(check, MapActivationOutcome.requiresDecision);
-      expect(notifier.state, before);
+        final check = await notifier.activateConnectedMap(
+          MapConnectionDirection.north,
+        );
+        expect(check, MapActivationOutcome.requiresDecision);
+        expect(notifier.state, before);
 
-      final cancelled = await notifier.activateConnectedMap(
-        MapConnectionDirection.north,
-        dirtyDecision: DirtyMapActivationDecision.cancel,
-      );
-      expect(cancelled, MapActivationOutcome.cancelled);
-      expect(notifier.state, before);
-      expect(fixture.repository.loadedPaths, isEmpty);
-      expect(fixture.repository.savedPaths, isEmpty);
-    });
+        final cancelled = await notifier.activateConnectedMap(
+          MapConnectionDirection.north,
+          dirtyDecision: DirtyMapActivationDecision.cancel,
+        );
+        expect(cancelled, MapActivationOutcome.cancelled);
+        expect(notifier.state, before);
+        expect(fixture.repository.loadedPaths, isEmpty);
+        expect(fixture.repository.savedPaths, isEmpty);
+      },
+    );
   });
 
   group('project session replacement interlock', () {
-    test('clean project activation owns the lease before repository I/O',
-        () async {
-      final loadStarted = Completer<void>();
-      final releaseLoad = Completer<ProjectManifest>();
-      final fixture = _ActivationFixture(
-        projectLoadHandler: (path) {
-          if (!loadStarted.isCompleted) loadStarted.complete();
-          return releaseLoad.future;
-        },
-      );
-      final notifier = fixture.notifier..state = _cleanSourceState();
-
-      final activation = notifier.activateProject(
-        '/other/project.json',
-        rememberAsRecent: false,
-      );
-      await loadStarted.future;
-
-      expect(notifier.state.isSaving, isTrue);
-      expect(
-        await notifier.activateMap('maps/beta.json'),
-        MapActivationOutcome.busy,
-      );
-      releaseLoad.complete(_project);
-      expect(await activation, MapActivationOutcome.activated);
-      expect(notifier.state.isSaving, isFalse);
-    });
-
-    test('clean project authorization rejects a microtask document change',
-        () async {
-      final fixture = _ActivationFixture();
-      final notifier = fixture.notifier..state = _cleanSourceState();
-
-      scheduleMicrotask(() {
-        notifier.state = notifier.state.copyWith(
-          activeMap: notifier.state.activeMap!.copyWith(name: 'Async result'),
-          isDirty: true,
+    test(
+      'clean project activation owns the lease before repository I/O',
+      () async {
+        final loadStarted = Completer<void>();
+        final releaseLoad = Completer<ProjectManifest>();
+        final fixture = _ActivationFixture(
+          projectLoadHandler: (path) {
+            if (!loadStarted.isCompleted) loadStarted.complete();
+            return releaseLoad.future;
+          },
         );
-      });
-      final activation = notifier.activateProject(
-        '/other/project.json',
-        rememberAsRecent: false,
-      );
+        final notifier = fixture.notifier..state = _cleanSourceState();
 
-      expect(await activation, MapActivationOutcome.unavailable);
-      expect(fixture.projectRepository.loadedPaths, isEmpty);
-      expect(notifier.state.activeMap!.name, 'Async result');
-      expect(notifier.state.isDirty, isTrue);
-    });
-
-    test('dirty project load requires a handshake and Cancel preserves source',
-        () async {
-      final fixture = _ActivationFixture();
-      final notifier = fixture.notifier;
-      final before = _dirtySourceState();
-      notifier.state = before;
-
-      expect(
-        await notifier.activateProject(
+        final activation = notifier.activateProject(
           '/other/project.json',
           rememberAsRecent: false,
-        ),
-        MapActivationOutcome.requiresDecision,
-      );
-      expect(fixture.projectRepository.loadedPaths, isEmpty);
+        );
+        await loadStarted.future;
 
-      expect(
-        await notifier.activateProject(
+        expect(notifier.state.isSaving, isTrue);
+        expect(
+          await notifier.activateMap('maps/beta.json'),
+          MapActivationOutcome.busy,
+        );
+        releaseLoad.complete(_project);
+        expect(await activation, MapActivationOutcome.activated);
+        expect(notifier.state.isSaving, isFalse);
+      },
+    );
+
+    test(
+      'clean project authorization rejects a microtask document change',
+      () async {
+        final fixture = _ActivationFixture();
+        final notifier = fixture.notifier..state = _cleanSourceState();
+
+        scheduleMicrotask(() {
+          notifier.state = notifier.state.copyWith(
+            activeMap: notifier.state.activeMap!.copyWith(name: 'Async result'),
+            isDirty: true,
+          );
+        });
+        final activation = notifier.activateProject(
           '/other/project.json',
-          dirtyDecision: DirtyMapActivationDecision.cancel,
           rememberAsRecent: false,
-        ),
-        MapActivationOutcome.cancelled,
-      );
-      expect(notifier.state, before);
-      fixture.expectNoLifecycleIo();
-    });
+        );
+
+        expect(await activation, MapActivationOutcome.unavailable);
+        expect(fixture.projectRepository.loadedPaths, isEmpty);
+        expect(notifier.state.activeMap!.name, 'Async result');
+        expect(notifier.state.isDirty, isTrue);
+      },
+    );
+
+    test(
+      'dirty project load requires a handshake and Cancel preserves source',
+      () async {
+        final fixture = _ActivationFixture();
+        final notifier = fixture.notifier;
+        final before = _dirtySourceState();
+        notifier.state = before;
+
+        expect(
+          await notifier.activateProject(
+            '/other/project.json',
+            rememberAsRecent: false,
+          ),
+          MapActivationOutcome.requiresDecision,
+        );
+        expect(fixture.projectRepository.loadedPaths, isEmpty);
+
+        expect(
+          await notifier.activateProject(
+            '/other/project.json',
+            dirtyDecision: DirtyMapActivationDecision.cancel,
+            rememberAsRecent: false,
+          ),
+          MapActivationOutcome.cancelled,
+        );
+        expect(notifier.state, before);
+        fixture.expectNoLifecycleIo();
+      },
+    );
 
     test('Discard loads the project only after the exact handshake', () async {
       final fixture = _ActivationFixture();
@@ -592,72 +611,75 @@ void main() {
       );
 
       expect(outcome, MapActivationOutcome.activated);
-      expect(
-        fixture.projectRepository.loadedPaths,
-        <String>['/other/project.json'],
-      );
+      expect(fixture.projectRepository.loadedPaths, <String>[
+        '/other/project.json',
+      ]);
       expect(notifier.state.activeMap, isNull);
       expect(notifier.state.activeMapPath, isNull);
       expect(notifier.state.isDirty, isFalse);
     });
 
     test(
-        'project Discard is rejected if the active map changed while prompting',
-        () async {
-      final fixture = _ActivationFixture();
-      final notifier = fixture.notifier..state = _dirtySourceState();
+      'project Discard is rejected if the active map changed while prompting',
+      () async {
+        final fixture = _ActivationFixture();
+        final notifier = fixture.notifier..state = _dirtySourceState();
 
-      expect(
-        await notifier.activateProject(
+        expect(
+          await notifier.activateProject(
+            '/other/project.json',
+            rememberAsRecent: false,
+          ),
+          MapActivationOutcome.requiresDecision,
+        );
+        final replacement = notifier.state.copyWith(
+          activeMap: notifier.state.activeMap!.copyWith(name: 'Async result'),
+        );
+        notifier.state = replacement;
+
+        final outcome = await notifier.activateProject(
+          '/other/project.json',
+          dirtyDecision: DirtyMapActivationDecision.discard,
+          rememberAsRecent: false,
+        );
+
+        expect(outcome, MapActivationOutcome.unavailable);
+        expect(notifier.state, replacement);
+        fixture.expectNoLifecycleIo();
+      },
+    );
+
+    test(
+      'low-level project wrappers cannot silently replace a dirty map',
+      () async {
+        final fixture = _ActivationFixture();
+        final notifier = fixture.notifier;
+        final before = _dirtySourceState();
+        notifier.state = before;
+
+        await notifier.loadProject(
           '/other/project.json',
           rememberAsRecent: false,
-        ),
-        MapActivationOutcome.requiresDecision,
-      );
-      final replacement = notifier.state.copyWith(
-        activeMap: notifier.state.activeMap!.copyWith(name: 'Async result'),
-      );
-      notifier.state = replacement;
+        );
+        await notifier.createProject('Other', '/other');
 
-      final outcome = await notifier.activateProject(
-        '/other/project.json',
-        dirtyDecision: DirtyMapActivationDecision.discard,
-        rememberAsRecent: false,
-      );
-
-      expect(outcome, MapActivationOutcome.unavailable);
-      expect(notifier.state, replacement);
-      fixture.expectNoLifecycleIo();
-    });
-
-    test('low-level project wrappers cannot silently replace a dirty map',
-        () async {
-      final fixture = _ActivationFixture();
-      final notifier = fixture.notifier;
-      final before = _dirtySourceState();
-      notifier.state = before;
-
-      await notifier.loadProject(
-        '/other/project.json',
-        rememberAsRecent: false,
-      );
-      await notifier.createProject('Other', '/other');
-
-      expect(notifier.state, before);
-      fixture.expectNoLifecycleIo();
-      expect(
-        await notifier.activateMap('maps/beta.json'),
-        MapActivationOutcome.requiresDecision,
-        reason: 'Compatibility wrappers must release their pending handshake.',
-      );
-      expect(
-        await notifier.activateMap(
-          'maps/beta.json',
-          dirtyDecision: DirtyMapActivationDecision.cancel,
-        ),
-        MapActivationOutcome.cancelled,
-      );
-    });
+        expect(notifier.state, before);
+        fixture.expectNoLifecycleIo();
+        expect(
+          await notifier.activateMap('maps/beta.json'),
+          MapActivationOutcome.requiresDecision,
+          reason:
+              'Compatibility wrappers must release their pending handshake.',
+        );
+        expect(
+          await notifier.activateMap(
+            'maps/beta.json',
+            dirtyDecision: DirtyMapActivationDecision.cancel,
+          ),
+          MapActivationOutcome.cancelled,
+        );
+      },
+    );
 
     test('pending Border preview protects project open and creation', () async {
       final fixture = _ActivationFixture();
@@ -697,31 +719,33 @@ void main() {
       fixture.expectNoLifecycleIo();
     });
 
-    test('project-dirty state also requires an explicit replacement decision',
-        () async {
-      final fixture = _ActivationFixture();
-      final notifier = fixture.notifier
-        ..state = _cleanSourceState().copyWith(isProjectDirty: true);
+    test(
+      'project-dirty state also requires an explicit replacement decision',
+      () async {
+        final fixture = _ActivationFixture();
+        final notifier = fixture.notifier
+          ..state = _cleanSourceState().copyWith(isProjectDirty: true);
 
-      expect(
-        await notifier.activateProject(
-          '/other/project.json',
-          rememberAsRecent: false,
-        ),
-        MapActivationOutcome.requiresDecision,
-      );
-      expect(fixture.projectRepository.loadedPaths, isEmpty);
-      expect(
-        await notifier.activateProject(
-          '/other/project.json',
-          dirtyDecision: DirtyMapActivationDecision.cancel,
-          rememberAsRecent: false,
-        ),
-        MapActivationOutcome.cancelled,
-      );
-      expect(notifier.state.isProjectDirty, isTrue);
-      fixture.expectNoLifecycleIo();
-    });
+        expect(
+          await notifier.activateProject(
+            '/other/project.json',
+            rememberAsRecent: false,
+          ),
+          MapActivationOutcome.requiresDecision,
+        );
+        expect(fixture.projectRepository.loadedPaths, isEmpty);
+        expect(
+          await notifier.activateProject(
+            '/other/project.json',
+            dirtyDecision: DirtyMapActivationDecision.cancel,
+            rememberAsRecent: false,
+          ),
+          MapActivationOutcome.cancelled,
+        );
+        expect(notifier.state.isProjectDirty, isTrue);
+        fixture.expectNoLifecycleIo();
+      },
+    );
   });
 
   group('DS-04 map dependency preflight handoff', () {
@@ -747,10 +771,7 @@ void main() {
         result.inspection.usages.single.path,
         'maps[beta].warps[0].targetMapId',
       );
-      expect(
-        result.inspection.usages.single.navigationIntent?.mapId,
-        'beta',
-      );
+      expect(result.inspection.usages.single.navigationIntent?.mapId, 'beta');
       expect(notifier.state.errorMessage, result.blockingMessage);
       expect(fixture.repository.savedPaths, isEmpty);
       expect(fixture.repository.deletedPaths, isEmpty);
@@ -829,22 +850,24 @@ void main() {
       fixture.expectNoLifecycleIo();
     });
 
-    test('pending Border preview blocks every map lifecycle replacement',
-        () async {
-      final fixture = _ActivationFixture();
-      final map = _beginPendingAlphaBorderPreview(fixture);
-      final notifier = fixture.notifier;
+    test(
+      'pending Border preview blocks every map lifecycle replacement',
+      () async {
+        final fixture = _ActivationFixture();
+        final map = _beginPendingAlphaBorderPreview(fixture);
+        final notifier = fixture.notifier;
 
-      await notifier.createMap('delta', 8, 8);
-      await notifier.renameMap('beta', 'delta');
-      await notifier.deleteMap('beta');
-      await notifier.duplicateMap('beta');
+        await notifier.createMap('delta', 8, 8);
+        await notifier.renameMap('beta', 'delta');
+        await notifier.deleteMap('beta');
+        await notifier.duplicateMap('beta');
 
-      expect(notifier.state.activeMap, same(map));
-      expect(fixture.preview.current.hasPendingPreview, isTrue);
-      expect(notifier.state.errorMessage, contains('aperçu de bordure'));
-      fixture.expectNoLifecycleIo();
-    });
+        expect(notifier.state.activeMap, same(map));
+        expect(fixture.preview.current.hasPendingPreview, isTrue);
+        expect(notifier.state.errorMessage, contains('aperçu de bordure'));
+        fixture.expectNoLifecycleIo();
+      },
+    );
 
     test('pending Border preview blocks direct map writers', () async {
       final fixture = _ActivationFixture();
@@ -895,80 +918,84 @@ void main() {
       fixture.expectNoLifecycleIo();
     });
 
-    test('ambiguous manifest path ownership makes direct writers read-only',
-        () async {
-      final fixture = _ActivationFixture();
-      final ambiguousProject = _project.copyWith(
-        maps: const <ProjectMapEntry>[
-          ProjectMapEntry(
-            id: 'alpha',
-            name: 'Alpha',
-            relativePath: 'maps/shared.json',
-          ),
-          ProjectMapEntry(
-            id: 'beta',
-            name: 'Beta',
-            relativePath: 'maps/SHARED.json',
-          ),
-        ],
-      );
-      final notifier = fixture.notifier
-        ..state = _cleanSourceState().copyWith(project: ambiguousProject);
-
-      expect(
-        await notifier.saveActiveMap(),
-        ActiveMapSaveOutcome.unavailable,
-      );
-      expect(notifier.beginNarrativeEventSourceMapWriteLease(), isNull);
-
-      expect(notifier.state.isSaving, isFalse);
-      expect(notifier.state.errorMessage, contains('lecture seule'));
-      fixture.expectNoLifecycleIo();
-    });
-
-    test('canonical map cannot write a reciprocal warp into a legacy target',
-        () async {
-      final fixture = _ActivationFixture();
-      final source = _alphaWithBorder().copyWith(
-        warps: const <MapWarp>[
-          MapWarp(
-            id: 'legacy_exit',
-            pos: GridPos(x: 0, y: 0),
-            targetMapId: '../legacy',
-            targetPos: GridPos(x: 0, y: 0),
-          ),
-        ],
-      );
-      final project = _projectWithTilesets.copyWith(
-        maps: const <ProjectMapEntry>[
-          ProjectMapEntry(
-            id: 'alpha',
-            name: 'Alpha',
-            relativePath: 'maps/alpha.json',
-          ),
-          ProjectMapEntry(
-            id: '../legacy',
-            name: 'Legacy',
-            relativePath: 'maps/legacy.json',
-          ),
-        ],
-      );
-      final notifier = fixture.notifier
-        ..state = _cleanSourceState().copyWith(
-          project: project,
-          activeMap: source,
-          savedMapSnapshot: source,
-          activeLayerId: 'ground',
-          selectedWarpId: 'legacy_exit',
+    test(
+      'ambiguous manifest path ownership makes direct writers read-only',
+      () async {
+        final fixture = _ActivationFixture();
+        final ambiguousProject = _project.copyWith(
+          maps: const <ProjectMapEntry>[
+            ProjectMapEntry(
+              id: 'alpha',
+              name: 'Alpha',
+              relativePath: 'maps/shared.json',
+            ),
+            ProjectMapEntry(
+              id: 'beta',
+              name: 'Beta',
+              relativePath: 'maps/SHARED.json',
+            ),
+          ],
         );
+        final notifier = fixture.notifier
+          ..state = _cleanSourceState().copyWith(project: ambiguousProject);
 
-      await notifier.createReciprocalWarpForSelectedWarp();
+        expect(
+          await notifier.saveActiveMap(),
+          ActiveMapSaveOutcome.unavailable,
+        );
+        expect(notifier.beginNarrativeEventSourceMapWriteLease(), isNull);
 
-      expect(notifier.state.activeMap, same(source));
-      expect(notifier.state.isSaving, isFalse);
-      expect(notifier.state.errorMessage, contains('lecture seule'));
-      fixture.expectNoLifecycleIo();
-    });
+        expect(notifier.state.isSaving, isFalse);
+        expect(notifier.state.errorMessage, contains('lecture seule'));
+        fixture.expectNoLifecycleIo();
+      },
+    );
+
+    test(
+      'canonical map cannot write a reciprocal warp into a legacy target',
+      () async {
+        final fixture = _ActivationFixture();
+        final source = _alphaWithBorder().copyWith(
+          warps: const <MapWarp>[
+            MapWarp(
+              id: 'legacy_exit',
+              pos: GridPos(x: 0, y: 0),
+              targetMapId: '../legacy',
+              targetPos: GridPos(x: 0, y: 0),
+            ),
+          ],
+        );
+        final project = _projectWithTilesets.copyWith(
+          maps: const <ProjectMapEntry>[
+            ProjectMapEntry(
+              id: 'alpha',
+              name: 'Alpha',
+              relativePath: 'maps/alpha.json',
+            ),
+            ProjectMapEntry(
+              id: '../legacy',
+              name: 'Legacy',
+              relativePath: 'maps/legacy.json',
+            ),
+          ],
+        );
+        final notifier = fixture.notifier
+          ..state = _cleanSourceState().copyWith(
+            project: project,
+            activeMap: source,
+            savedMapSnapshot: source,
+            activeLayerId: 'ground',
+            selectedWarpId: 'legacy_exit',
+          );
+
+        await notifier.createReciprocalWarpForSelectedWarp();
+
+        expect(notifier.state.activeMap, same(source));
+        expect(notifier.state.isSaving, isFalse);
+        expect(notifier.state.errorMessage, contains('lecture seule'));
+        fixture.expectNoLifecycleIo();
+      },
+    );
   });
 }
 
@@ -1002,11 +1029,7 @@ const _project = ProjectManifest(
       name: 'Alpha',
       relativePath: 'maps/alpha.json',
     ),
-    ProjectMapEntry(
-      id: 'beta',
-      name: 'Beta',
-      relativePath: 'maps/beta.json',
-    ),
+    ProjectMapEntry(id: 'beta', name: 'Beta', relativePath: 'maps/beta.json'),
     ProjectMapEntry(
       id: 'gamma',
       name: 'Gamma',
@@ -1031,69 +1054,63 @@ final _projectWithTilesets = _project.copyWith(
 );
 
 EditorState _dirtySourceState() => const EditorState(
-      projectRootPath: '/project',
-      project: _project,
-      activeMap: _alphaEdited,
-      activeMapPath: '/project/maps/alpha.json',
-      savedMapSnapshot: _alphaSaved,
-      activeLayerId: 'decor',
-      zoom: 1.75,
-      panOffset: Offset(13, -8),
-      mapUndoStack: <MapHistorySnapshot>[
-        MapHistorySnapshot(map: _alphaSaved),
-      ],
-      canUndoMap: true,
-      isDirty: true,
-    );
+  projectRootPath: '/project',
+  project: _project,
+  activeMap: _alphaEdited,
+  activeMapPath: '/project/maps/alpha.json',
+  savedMapSnapshot: _alphaSaved,
+  activeLayerId: 'decor',
+  zoom: 1.75,
+  panOffset: Offset(13, -8),
+  mapUndoStack: <MapHistorySnapshot>[MapHistorySnapshot(map: _alphaSaved)],
+  canUndoMap: true,
+  isDirty: true,
+);
 
 EditorState _cleanSourceState() => _dirtySourceState().copyWith(
-      savedMapSnapshot: _alphaEdited,
-      mapUndoStack: const <MapHistorySnapshot>[],
-      canUndoMap: false,
-      isDirty: false,
-    );
+  savedMapSnapshot: _alphaEdited,
+  mapUndoStack: const <MapHistorySnapshot>[],
+  canUndoMap: false,
+  isDirty: false,
+);
 
 MapData _alphaWithBorder() => MapData(
-      id: 'alpha',
-      name: 'Alpha with Border preview',
-      size: const GridSize(width: 2, height: 2),
-      layers: <MapLayer>[
-        const TileLayer(
-          id: 'ground',
-          name: 'Sol',
-          cells: <int>[0, 0, 0, 0],
-        ),
-        MapLayer.border(
-          id: 'borders',
-          name: 'Bordures',
-          content: BorderLayerContent(
-            features: <BorderFeature>[
-              BorderFeature(
-                id: 'coast',
-                name: 'Côte',
-                blueprintId: 'coast-blueprint',
-                seed: BorderSignedInt64.fromInt(7),
-                geometry: BorderRegionGeometry(
-                  width: 2,
-                  height: 2,
-                  cells: const <bool>[true, false, false, false],
-                ),
-                overrides: const <BorderSlotOverride>[],
-                keepOutRegions: const <BorderKeepOutRegion>[],
-              ),
-            ],
+  id: 'alpha',
+  name: 'Alpha with Border preview',
+  size: const GridSize(width: 2, height: 2),
+  layers: <MapLayer>[
+    const TileLayer(id: 'ground', name: 'Sol', cells: <int>[0, 0, 0, 0]),
+    MapLayer.border(
+      id: 'borders',
+      name: 'Bordures',
+      content: BorderLayerContent(
+        features: <BorderFeature>[
+          BorderFeature(
+            id: 'coast',
+            name: 'Côte',
+            blueprintId: 'coast-blueprint',
+            seed: BorderSignedInt64.fromInt(7),
+            geometry: BorderRegionGeometry(
+              width: 2,
+              height: 2,
+              cells: const <bool>[true, false, false, false],
+            ),
+            overrides: const <BorderSlotOverride>[],
+            keepOutRegions: const <BorderKeepOutRegion>[],
           ),
-        ),
-      ],
-      warps: const <MapWarp>[
-        MapWarp(
-          id: 'north_exit',
-          pos: GridPos(x: 0, y: 0),
-          targetMapId: 'beta',
-          targetPos: GridPos(x: 0, y: 0),
-        ),
-      ],
-    );
+        ],
+      ),
+    ),
+  ],
+  warps: const <MapWarp>[
+    MapWarp(
+      id: 'north_exit',
+      pos: GridPos(x: 0, y: 0),
+      targetMapId: 'beta',
+      targetPos: GridPos(x: 0, y: 0),
+    ),
+  ],
+);
 
 MapData _beginPendingAlphaBorderPreview(_ActivationFixture fixture) {
   final map = _alphaWithBorder();
@@ -1123,14 +1140,14 @@ final class _ActivationFixture {
     Object? saveError,
     Future<MapData> Function(String path)? loadHandler,
     Future<ProjectManifest> Function(String path)? projectLoadHandler,
-  })  : preview = BorderPreviewController(),
-        repository = _ActivationMapRepository(
-          saveError: saveError,
-          loadHandler: loadHandler,
-        ),
-        projectRepository = _ActivationProjectRepository(
-          loadHandler: projectLoadHandler,
-        ) {
+  }) : preview = createBorderPreviewControllerForOverride(),
+       repository = _ActivationMapRepository(
+         saveError: saveError,
+         loadHandler: loadHandler,
+       ),
+       projectRepository = _ActivationProjectRepository(
+         loadHandler: projectLoadHandler,
+       ) {
     container = ProviderContainer(
       overrides: <Override>[
         mapRepositoryProvider.overrideWith((ref) => repository),
@@ -1146,7 +1163,7 @@ final class _ActivationFixture {
             fileReader: const _ActivationProjectFileReader(),
           ),
         ),
-        borderPreviewControllerProvider.overrideWith((ref) => preview),
+        borderPreviewControllerProvider.overrideWith(() => preview),
       ],
     );
     addTearDown(container.dispose);
@@ -1228,8 +1245,7 @@ final class _ActivationWorkspace implements ProjectWorkspace {
   Future<String> importTilesetImage(
     String sourcePath, {
     String? preferredName,
-  }) async =>
-      '$projectRoot/tilesets/imported.png';
+  }) async => '$projectRoot/tilesets/imported.png';
 
   @override
   Future<void> moveDirectory(String sourcePath, String destinationPath) async {}
@@ -1256,10 +1272,7 @@ final class _ActivationWorkspace implements ProjectWorkspace {
 }
 
 final class _ActivationMapRepository implements RevisionedMapRepository {
-  _ActivationMapRepository({
-    this.saveError,
-    this.loadHandler,
-  });
+  _ActivationMapRepository({this.saveError, this.loadHandler});
 
   final Object? saveError;
   final Future<MapData> Function(String path)? loadHandler;
@@ -1306,11 +1319,7 @@ final class _ActivationMapRepository implements RevisionedMapRepository {
     required MapDocumentWritePrecondition precondition,
     ProjectManifest? projectDialogueContext,
   }) async {
-    await saveMap(
-      map,
-      path,
-      projectDialogueContext: projectDialogueContext,
-    );
+    await saveMap(map, path, projectDialogueContext: projectDialogueContext);
     mapsByPath[path] = map;
     return RevisionedMapDocument(
       map: map,
@@ -1322,8 +1331,7 @@ final class _ActivationMapRepository implements RevisionedMapRepository {
   Future<void> deleteMapDocument(
     String path, {
     required String expectedRevision,
-  }) =>
-      deleteMap(path);
+  }) => deleteMap(path);
 
   @override
   Future<MapDocumentRecoveryResult> recoverMapDocument(String path) async {

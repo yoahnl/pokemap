@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../support/riverpod_notifier_harness.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/border_map_editing/application/active_border_feature_controller.dart';
 import 'package:map_editor/src/features/border_map_editing/state/border_map_editing_providers.dart';
@@ -8,42 +9,38 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 void main() {
   group('ActiveBorderFeatureController', () {
-    test('selects the uppermost authored feature for an active Border layer',
-        () {
-      final controller = ActiveBorderFeatureController();
-      final map = _map(
-        layers: <MapLayer>[
-          MapLayer.border(
-            id: 'border-a',
-            name: 'Bordures',
-            content: BorderLayerContent(
-              features: <BorderFeature>[
-                _feature('lower'),
-                _feature('upper'),
-              ],
+    test(
+      'selects the uppermost authored feature for an active Border layer',
+      () {
+        final controller = mountActiveBorderFeatureController();
+        final map = _map(
+          layers: <MapLayer>[
+            MapLayer.border(
+              id: 'border-a',
+              name: 'Bordures',
+              content: BorderLayerContent(
+                features: <BorderFeature>[_feature('lower'), _feature('upper')],
+              ),
             ),
-          ),
-        ],
-      );
+          ],
+        );
 
-      controller.reconcile(map: map, activeLayerId: 'border-a');
+        controller.reconcile(map: map, activeLayerId: 'border-a');
 
-      expect(controller.state.activeLayerId, 'border-a');
-      expect(controller.state.activeFeatureId, 'upper');
-    });
+        expect(controller.state.activeLayerId, 'border-a');
+        expect(controller.state.activeFeatureId, 'upper');
+      },
+    );
 
     test('preserves a surviving selection and reconciles deletion', () {
-      final controller = ActiveBorderFeatureController();
+      final controller = mountActiveBorderFeatureController();
       final initial = _map(
         layers: <MapLayer>[
           MapLayer.border(
             id: 'border-a',
             name: 'Bordures',
             content: BorderLayerContent(
-              features: <BorderFeature>[
-                _feature('first'),
-                _feature('second'),
-              ],
+              features: <BorderFeature>[_feature('first'), _feature('second')],
             ),
           ),
         ],
@@ -92,7 +89,7 @@ void main() {
     });
 
     test('clears selection outside a Border layer or without a map', () {
-      final controller = ActiveBorderFeatureController();
+      final controller = mountActiveBorderFeatureController();
       final border = MapLayer.border(
         id: 'border-a',
         name: 'Bordures',
@@ -107,12 +104,7 @@ void main() {
 
       controller.reconcile(
         map: _map(
-          layers: const <MapLayer>[
-            MapLayer.tile(
-              id: 'tiles',
-              name: 'Tiles',
-            ),
-          ],
+          layers: const <MapLayer>[MapLayer.tile(id: 'tiles', name: 'Tiles')],
         ),
         activeLayerId: 'tiles',
       );
@@ -123,7 +115,7 @@ void main() {
     });
 
     test('rejects selecting a feature outside the requested Border layer', () {
-      final controller = ActiveBorderFeatureController();
+      final controller = mountActiveBorderFeatureController();
       final map = _map(
         layers: <MapLayer>[
           MapLayer.border(
@@ -176,23 +168,23 @@ void main() {
 }
 
 MapData _map({required List<MapLayer> layers}) => MapData(
-      id: 'map',
-      name: 'Map',
-      version: ProjectVersion.v6,
-      size: const GridSize(width: 4, height: 4),
-      layers: layers,
-    );
+  id: 'map',
+  name: 'Map',
+  version: ProjectVersion.v6,
+  size: const GridSize(width: 4, height: 4),
+  layers: layers,
+);
 
 BorderFeature _feature(String id) => BorderFeature(
-      id: id,
-      name: id,
-      blueprintId: 'coast',
-      seed: BorderSignedInt64.zero,
-      geometry: BorderRegionGeometry(
-        width: 4,
-        height: 4,
-        cells: List<bool>.filled(16, false),
-      ),
-      overrides: const <BorderSlotOverride>[],
-      keepOutRegions: const <BorderKeepOutRegion>[],
-    );
+  id: id,
+  name: id,
+  blueprintId: 'coast',
+  seed: BorderSignedInt64.zero,
+  geometry: BorderRegionGeometry(
+    width: 4,
+    height: 4,
+    cells: List<bool>.filled(16, false),
+  ),
+  overrides: const <BorderSlotOverride>[],
+  keepOutRegions: const <BorderKeepOutRegion>[],
+);

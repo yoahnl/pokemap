@@ -4,9 +4,9 @@ import 'package:map_editor/personalization_hub.dart';
 
 void main() {
   test('projects readiness for every presentation category', () {
-    const profile = ProjectPresentationProfile(
+    final profile = ProjectPresentationProfile(
       branding: ProjectBrandingProfile(accentColor: 'purple'),
-      intro: ProjectIntroVideoProfile(
+      intro: ProjectIntroVideoProfile.fromLandscape(
         videoPath: 'assets/presentation/intro/intro.mp4',
         posterPath: 'assets/presentation/intro/poster.png',
         durationMilliseconds: 1200,
@@ -48,13 +48,13 @@ void main() {
   });
 
   test('warnings stay visible without blocking export readiness', () {
-    const profile = ProjectPresentationProfile(
-      intro: ProjectIntroVideoProfile(
+    final profile = ProjectPresentationProfile(
+      intro: ProjectIntroVideoProfile.fromLandscape(
         videoPath: 'assets/presentation/intro/intro.mp4',
         posterPath: 'assets/presentation/intro/poster.png',
         durationMilliseconds: 1200,
-        width: 1080,
-        height: 1920,
+        width: 1920,
+        height: 1080,
         bitrateKbps: 4000,
         sizeBytes: 2048,
         videoCodec: 'h264',
@@ -74,8 +74,9 @@ void main() {
       branding: ProjectBrandingProfile(accentColor: 'purple'),
     );
 
-    final issue =
-        PersonalizationPublishReadiness.fromProfile(profile).issues.single;
+    final issue = PersonalizationPublishReadiness.fromProfile(
+      profile,
+    ).issues.single;
 
     expect(issue.title, 'Couleur d’accent invalide');
     expect(

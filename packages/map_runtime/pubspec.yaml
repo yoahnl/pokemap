@@ -34,7 +34,8 @@ dependencies:
     path: ../map_gameplay
   map_battle:
     path: ../map_battle
-  freezed_annotation: ^2.4.1
+  # Composition with Riverpod 3 code generation resolves Freezed 3.
+  freezed_annotation: '>=2.4.1 <4.0.0'
 
 dev_dependencies:
   flutter_test:

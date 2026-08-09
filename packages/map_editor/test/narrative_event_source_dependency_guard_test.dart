@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart';
@@ -23,17 +24,11 @@ void main() {
         mapId: 'map_a',
         newMapId: 'map_b',
       );
-      final delete = guard.inspectMapDelete(
-        registry: registry,
-        mapId: 'map_a',
-      );
+      final delete = guard.inspectMapDelete(registry: registry, mapId: 'map_a');
 
       expect(rename.isAllowed, isFalse);
       expect(delete.isAllowed, isFalse);
-      expect(
-        rename.linkedEventIds,
-        [_mapEvent, _entityEvent, _triggerEvent],
-      );
+      expect(rename.linkedEventIds, [_mapEvent, _entityEvent, _triggerEvent]);
       expect(delete.linkedEventIds, rename.linkedEventIds);
     });
 
@@ -107,51 +102,53 @@ void main() {
       expect(decision.revalidationMessage, contains(_entityEvent));
     });
 
-    test('blocks linked trigger identity/delete and event to system transition',
-        () {
-      const current = MapTrigger(
-        id: 'trigger_a',
-        name: 'Zone port',
-        type: TriggerType.event,
-        area: MapRect(
-          pos: GridPos(x: 2, y: 2),
-          size: GridSize(width: 1, height: 1),
-        ),
-      );
+    test(
+      'blocks linked trigger identity/delete and event to system transition',
+      () {
+        const current = MapTrigger(
+          id: 'trigger_a',
+          name: 'Zone port',
+          type: TriggerType.event,
+          area: MapRect(
+            pos: GridPos(x: 2, y: 2),
+            size: GridSize(width: 1, height: 1),
+          ),
+        );
 
-      expect(
-        guard
-            .inspectTriggerUpdate(
-              registry: registry,
-              mapId: 'map_a',
-              current: current,
-              next: current.copyWith(id: 'trigger_b'),
-            )
-            .isAllowed,
-        isFalse,
-      );
-      expect(
-        guard
-            .inspectTriggerUpdate(
-              registry: registry,
-              mapId: 'map_a',
-              current: current,
-              next: current.copyWith(type: TriggerType.camera),
-            )
-            .isAllowed,
-        isFalse,
-      );
-      expect(
-        guard
-            .inspectTriggerDelete(
-              registry: registry,
-              mapId: 'map_a',
-              triggerId: 'trigger_a',
-            )
-            .isAllowed,
-        isFalse,
-      );
-    });
+        expect(
+          guard
+              .inspectTriggerUpdate(
+                registry: registry,
+                mapId: 'map_a',
+                current: current,
+                next: current.copyWith(id: 'trigger_b'),
+              )
+              .isAllowed,
+          isFalse,
+        );
+        expect(
+          guard
+              .inspectTriggerUpdate(
+                registry: registry,
+                mapId: 'map_a',
+                current: current,
+                next: current.copyWith(type: TriggerType.camera),
+              )
+              .isAllowed,
+          isFalse,
+        );
+        expect(
+          guard
+              .inspectTriggerDelete(
+                registry: registry,
+                mapId: 'map_a',
+                triggerId: 'trigger_a',
+              )
+              .isAllowed,
+          isFalse,
+        );
+      },
+    );
 
     test('permits event/custom transitions and non-identity trigger edits', () {
       const current = MapTrigger(
@@ -233,113 +230,120 @@ void main() {
       );
     });
 
-    test('map transition blocks a resolved entity becoming absent or spawn',
-        () {
-      final current = _map();
-      final absent = current.copyWith(entities: const []);
-      final spawn = current.copyWith(
-        entities: [
-          current.entities.single.copyWith(kind: MapEntityKind.spawn),
-        ],
-      );
-
-      for (final candidate in [absent, spawn]) {
-        final decision = guard.inspectMapTransition(
-          registry: registry,
-          current: current,
-          candidate: candidate,
-          operation: 'restauration de l’historique',
+    test(
+      'map transition blocks a resolved entity becoming absent or spawn',
+      () {
+        final current = _map();
+        final absent = current.copyWith(entities: const []);
+        final spawn = current.copyWith(
+          entities: [
+            current.entities.single.copyWith(kind: MapEntityKind.spawn),
+          ],
         );
 
-        expect(decision.isAllowed, isFalse);
-        expect(decision.linkedEventIds, [_entityEvent]);
-      }
-    });
+        for (final candidate in [absent, spawn]) {
+          final decision = guard.inspectMapTransition(
+            registry: registry,
+            current: current,
+            candidate: candidate,
+            operation: 'restauration de l’historique',
+          );
+
+          expect(decision.isAllowed, isFalse);
+          expect(decision.linkedEventIds, [_entityEvent]);
+        }
+      },
+    );
 
     test(
-        'map transition blocks a resolved trigger becoming absent or incompatible',
-        () {
-      final current = _map();
-      final absent = current.copyWith(triggers: const []);
-      final system = current.copyWith(
-        triggers: [
-          current.triggers.single.copyWith(type: TriggerType.camera),
-        ],
-      );
-
-      for (final candidate in [absent, system]) {
-        final decision = guard.inspectMapTransition(
-          registry: registry,
-          current: current,
-          candidate: candidate,
-          operation: 'restauration de l’historique',
+      'map transition blocks a resolved trigger becoming absent or incompatible',
+      () {
+        final current = _map();
+        final absent = current.copyWith(triggers: const []);
+        final system = current.copyWith(
+          triggers: [
+            current.triggers.single.copyWith(type: TriggerType.camera),
+          ],
         );
 
-        expect(decision.isAllowed, isFalse);
-        expect(decision.linkedEventIds, [_triggerEvent]);
-      }
-    });
+        for (final candidate in [absent, system]) {
+          final decision = guard.inspectMapTransition(
+            registry: registry,
+            current: current,
+            candidate: candidate,
+            operation: 'restauration de l’historique',
+          );
 
-    test('map transition permits non-identity edits and event/custom changes',
-        () {
-      final current = _map();
-      final candidate = current.copyWith(
-        name: 'Map A renommée visuellement',
-        entities: [
-          current.entities.single.copyWith(
-            name: 'Rival du port',
-            pos: const GridPos(x: 3, y: 2),
-          ),
-        ],
-        triggers: [
-          current.triggers.single.copyWith(
-            name: 'Zone rival',
-            type: TriggerType.custom,
-          ),
-        ],
-      );
+          expect(decision.isAllowed, isFalse);
+          expect(decision.linkedEventIds, [_triggerEvent]);
+        }
+      },
+    );
 
-      expect(
-        guard
-            .inspectMapTransition(
-              registry: registry,
-              current: current,
-              candidate: candidate,
-              operation: 'undo',
-            )
-            .isAllowed,
-        isTrue,
-      );
-    });
+    test(
+      'map transition permits non-identity edits and event/custom changes',
+      () {
+        final current = _map();
+        final candidate = current.copyWith(
+          name: 'Map A renommée visuellement',
+          entities: [
+            current.entities.single.copyWith(
+              name: 'Rival du port',
+              pos: const GridPos(x: 3, y: 2),
+            ),
+          ],
+          triggers: [
+            current.triggers.single.copyWith(
+              name: 'Zone rival',
+              type: TriggerType.custom,
+            ),
+          ],
+        );
 
-    test('map transition permits an already broken reference and its repair',
-        () {
-      final broken = _map().copyWith(entities: const []);
-      final stillBroken = broken.copyWith(name: 'Modification sans rapport');
+        expect(
+          guard
+              .inspectMapTransition(
+                registry: registry,
+                current: current,
+                candidate: candidate,
+                operation: 'undo',
+              )
+              .isAllowed,
+          isTrue,
+        );
+      },
+    );
 
-      expect(
-        guard
-            .inspectMapTransition(
-              registry: registry,
-              current: broken,
-              candidate: stillBroken,
-              operation: 'undo',
-            )
-            .isAllowed,
-        isTrue,
-      );
-      expect(
-        guard
-            .inspectMapTransition(
-              registry: registry,
-              current: broken,
-              candidate: _map(),
-              operation: 'redo',
-            )
-            .isAllowed,
-        isTrue,
-      );
-    });
+    test(
+      'map transition permits an already broken reference and its repair',
+      () {
+        final broken = _map().copyWith(entities: const []);
+        final stillBroken = broken.copyWith(name: 'Modification sans rapport');
+
+        expect(
+          guard
+              .inspectMapTransition(
+                registry: registry,
+                current: broken,
+                candidate: stillBroken,
+                operation: 'undo',
+              )
+              .isAllowed,
+          isTrue,
+        );
+        expect(
+          guard
+              .inspectMapTransition(
+                registry: registry,
+                current: broken,
+                candidate: _map(),
+                operation: 'redo',
+              )
+              .isAllowed,
+          isTrue,
+        );
+      },
+    );
   });
 
   group('NS-EVENT-V2-23 notifier guard integration', () {
@@ -358,10 +362,7 @@ void main() {
       expect(notifier.state.activeMap, map);
       expect(notifier.state.errorMessage, contains(_entityEvent));
 
-      notifier.updateEntity(
-        entityId: 'entity_a',
-        kind: MapEntityKind.spawn,
-      );
+      notifier.updateEntity(entityId: 'entity_a', kind: MapEntityKind.spawn);
       expect(notifier.state.activeMap, map);
 
       notifier.deleteEntity('entity_a');
@@ -383,10 +384,7 @@ void main() {
       expect(notifier.state.activeMap, map);
       expect(notifier.state.errorMessage, contains(_triggerEvent));
 
-      notifier.updateTrigger(
-        triggerId: 'trigger_a',
-        type: TriggerType.camera,
-      );
+      notifier.updateTrigger(triggerId: 'trigger_a', type: TriggerType.camera);
       expect(notifier.state.activeMap, map);
 
       notifier.deleteTrigger('trigger_a');
@@ -416,81 +414,84 @@ void main() {
         type: TriggerType.custom,
       );
 
+      expect(notifier.state.activeMap!.entities.single.name, 'Rival du port');
       expect(
-        notifier.state.activeMap!.entities.single.name,
-        'Rival du port',
+        notifier.state.activeMap!.triggers.single.type,
+        TriggerType.custom,
       );
-      expect(
-          notifier.state.activeMap!.triggers.single.type, TriggerType.custom);
       expect(notifier.state.isDirty, isTrue);
       expect(notifier.state.errorMessage, isNull);
       expect(notifier.state.statusMessage, contains('revalider'));
       expect(notifier.state.statusMessage, contains(_triggerEvent));
     });
 
-    test('blocks linked map rename/delete before repository operations',
-        () async {
-      final repository = _GuardMapRepository(_map());
-      final container = ProviderContainer(
-        overrides: <Override>[
-          mapRepositoryProvider.overrideWith((ref) => repository),
-        ],
-      );
-      addTearDown(container.dispose);
-      final notifier = container.read(editorNotifierProvider.notifier);
-      final project = _project(registry: _registry());
-      notifier.state = EditorState(
-        projectRootPath: '/tmp/v2_23_guard',
-        project: project,
-        activeMap: _map(),
-      );
+    test(
+      'blocks linked map rename/delete before repository operations',
+      () async {
+        final repository = _GuardMapRepository(_map());
+        final container = ProviderContainer(
+          overrides: <Override>[
+            mapRepositoryProvider.overrideWith((ref) => repository),
+          ],
+        );
+        addTearDown(container.dispose);
+        final notifier = container.read(editorNotifierProvider.notifier);
+        final project = _project(registry: _registry());
+        notifier.state = EditorState(
+          projectRootPath: '/tmp/v2_23_guard',
+          project: project,
+          activeMap: _map(),
+        );
 
-      final rename = await notifier.renameMap('map_a', 'map_b');
-      expect(notifier.state.project, project);
-      expect(rename, isNotNull);
-      expect(
-        rename!.inspection.usages.map((usage) => usage.owner.id),
-        containsAll(<String>[_mapEvent, _entityEvent, _triggerEvent]),
-      );
-      expect(notifier.state.errorMessage, rename.blockingMessage);
-      expect(repository.renameCalls, 0);
+        final rename = await notifier.renameMap('map_a', 'map_b');
+        expect(notifier.state.project, project);
+        expect(rename, isNotNull);
+        expect(
+          rename!.inspection.usages.map((usage) => usage.owner.id),
+          containsAll(<String>[_mapEvent, _entityEvent, _triggerEvent]),
+        );
+        expect(notifier.state.errorMessage, rename.blockingMessage);
+        expect(repository.renameCalls, 0);
 
-      final delete = await notifier.deleteMap('map_a');
-      expect(notifier.state.project, project);
-      expect(delete, isNotNull);
-      expect(
-        delete!.inspection.usages.map((usage) => usage.owner.id),
-        containsAll(<String>[_mapEvent, _entityEvent, _triggerEvent]),
-      );
-      expect(repository.deleteCalls, 0);
-    });
+        final delete = await notifier.deleteMap('map_a');
+        expect(notifier.state.project, project);
+        expect(delete, isNotNull);
+        expect(
+          delete!.inspection.usages.map((usage) => usage.owner.id),
+          containsAll(<String>[_mapEvent, _entityEvent, _triggerEvent]),
+        );
+        expect(repository.deleteCalls, 0);
+      },
+    );
 
-    test('undo keeps map and history unchanged when an entity would disappear',
-        () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(editorNotifierProvider.notifier);
-      final current = _map();
-      final candidate = current.copyWith(entities: const []);
-      final undoStack = [MapHistorySnapshot(map: candidate)];
-      notifier.state = EditorState(
-        project: _project(registry: _registry()),
-        activeMap: current,
-        selectedEntityId: 'entity_a',
-        mapUndoStack: undoStack,
-        canUndoMap: true,
-        statusMessage: 'Prêt',
-      );
+    test(
+      'undo keeps map and history unchanged when an entity would disappear',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final notifier = container.read(editorNotifierProvider.notifier);
+        final current = _map();
+        final candidate = current.copyWith(entities: const []);
+        final undoStack = [MapHistorySnapshot(map: candidate)];
+        notifier.state = EditorState(
+          project: _project(registry: _registry()),
+          activeMap: current,
+          selectedEntityId: 'entity_a',
+          mapUndoStack: undoStack,
+          canUndoMap: true,
+          statusMessage: 'Prêt',
+        );
 
-      notifier.undoMap();
+        notifier.undoMap();
 
-      expect(notifier.state.activeMap, current);
-      expect(notifier.state.mapUndoStack, undoStack);
-      expect(notifier.state.mapRedoStack, isEmpty);
-      expect(notifier.state.canUndoMap, isTrue);
-      expect(notifier.state.statusMessage, 'Prêt');
-      expect(notifier.state.errorMessage, contains(_entityEvent));
-    });
+        expect(notifier.state.activeMap, current);
+        expect(notifier.state.mapUndoStack, undoStack);
+        expect(notifier.state.mapRedoStack, isEmpty);
+        expect(notifier.state.canUndoMap, isTrue);
+        expect(notifier.state.statusMessage, 'Prêt');
+        expect(notifier.state.errorMessage, contains(_entityEvent));
+      },
+    );
 
     test('active stroke interlock leaves map and history untouched', () {
       final container = ProviderContainer();
@@ -519,36 +520,38 @@ void main() {
       expect(notifier.state.errorMessage, isNull);
     });
 
-    test('redo keeps map and history unchanged when a trigger becomes system',
-        () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(editorNotifierProvider.notifier);
-      final current = _map();
-      final candidate = current.copyWith(
-        triggers: [
-          current.triggers.single.copyWith(type: TriggerType.camera),
-        ],
-      );
-      final redoStack = [MapHistorySnapshot(map: candidate)];
-      notifier.state = EditorState(
-        project: _project(registry: _registry()),
-        activeMap: current,
-        selectedTriggerId: 'trigger_a',
-        mapRedoStack: redoStack,
-        canRedoMap: true,
-        statusMessage: 'Prêt',
-      );
+    test(
+      'redo keeps map and history unchanged when a trigger becomes system',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final notifier = container.read(editorNotifierProvider.notifier);
+        final current = _map();
+        final candidate = current.copyWith(
+          triggers: [
+            current.triggers.single.copyWith(type: TriggerType.camera),
+          ],
+        );
+        final redoStack = [MapHistorySnapshot(map: candidate)];
+        notifier.state = EditorState(
+          project: _project(registry: _registry()),
+          activeMap: current,
+          selectedTriggerId: 'trigger_a',
+          mapRedoStack: redoStack,
+          canRedoMap: true,
+          statusMessage: 'Prêt',
+        );
 
-      notifier.redoMap();
+        notifier.redoMap();
 
-      expect(notifier.state.activeMap, current);
-      expect(notifier.state.mapUndoStack, isEmpty);
-      expect(notifier.state.mapRedoStack, redoStack);
-      expect(notifier.state.canRedoMap, isTrue);
-      expect(notifier.state.statusMessage, 'Prêt');
-      expect(notifier.state.errorMessage, contains(_triggerEvent));
-    });
+        expect(notifier.state.activeMap, current);
+        expect(notifier.state.mapUndoStack, isEmpty);
+        expect(notifier.state.mapRedoStack, redoStack);
+        expect(notifier.state.canRedoMap, isTrue);
+        expect(notifier.state.statusMessage, 'Prêt');
+        expect(notifier.state.errorMessage, contains(_triggerEvent));
+      },
+    );
 
     test('undo applies non-identity source edits', () {
       final container = ProviderContainer();
@@ -556,12 +559,8 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       final current = _map();
       final candidate = current.copyWith(
-        entities: [
-          current.entities.single.copyWith(name: 'Rival du port'),
-        ],
-        triggers: [
-          current.triggers.single.copyWith(type: TriggerType.custom),
-        ],
+        entities: [current.entities.single.copyWith(name: 'Rival du port')],
+        triggers: [current.triggers.single.copyWith(type: TriggerType.custom)],
       );
       notifier.state = EditorState(
         project: _project(registry: _registry()),
@@ -580,38 +579,32 @@ void main() {
 }
 
 NarrativeEventRegistry _registry() => NarrativeEventRegistry(
-      schemaVersion: 1,
-      mode: EventSystemMode.dualRead,
-      records: [
-        _record(
-          id: _mapEvent,
-          source: NarrativeEventSourceRef.mapEnter('map_a'),
-          order: 0,
-          configured: false,
-        ),
-        _record(
-          id: _entityEvent,
-          source: NarrativeEventSourceRef.entityInteract(
-            'map_a',
-            'entity_a',
-          ),
-          order: 1,
-          configured: true,
-          enabled: false,
-        ),
-        _record(
-          id: _triggerEvent,
-          source: NarrativeEventSourceRef.triggerEnter(
-            'map_a',
-            'trigger_a',
-          ),
-          order: 2,
-          configured: true,
-          enabled: true,
-        ),
-      ],
-      legacyClaims: const [],
-    );
+  schemaVersion: 1,
+  mode: EventSystemMode.dualRead,
+  records: [
+    _record(
+      id: _mapEvent,
+      source: NarrativeEventSourceRef.mapEnter('map_a'),
+      order: 0,
+      configured: false,
+    ),
+    _record(
+      id: _entityEvent,
+      source: NarrativeEventSourceRef.entityInteract('map_a', 'entity_a'),
+      order: 1,
+      configured: true,
+      enabled: false,
+    ),
+    _record(
+      id: _triggerEvent,
+      source: NarrativeEventSourceRef.triggerEnter('map_a', 'trigger_a'),
+      order: 2,
+      configured: true,
+      enabled: true,
+    ),
+  ],
+  legacyClaims: const [],
+);
 
 NarrativeEventRecord _record({
   required String id,
@@ -648,42 +641,42 @@ NarrativeEventRecord _record({
 }
 
 MapData _map() => const MapData(
-      id: 'map_a',
-      name: 'Map A',
-      size: GridSize(width: 8, height: 6),
-      entities: [
-        MapEntity(
-          id: 'entity_a',
-          name: 'Rival',
-          kind: MapEntityKind.npc,
-          pos: GridPos(x: 1, y: 1),
-        ),
-      ],
-      triggers: [
-        MapTrigger(
-          id: 'trigger_a',
-          name: 'Zone port',
-          type: TriggerType.event,
-          area: MapRect(
-            pos: GridPos(x: 2, y: 2),
-            size: GridSize(width: 1, height: 1),
-          ),
-        ),
-      ],
-    );
+  id: 'map_a',
+  name: 'Map A',
+  size: GridSize(width: 8, height: 6),
+  entities: [
+    MapEntity(
+      id: 'entity_a',
+      name: 'Rival',
+      kind: MapEntityKind.npc,
+      pos: GridPos(x: 1, y: 1),
+    ),
+  ],
+  triggers: [
+    MapTrigger(
+      id: 'trigger_a',
+      name: 'Zone port',
+      type: TriggerType.event,
+      area: MapRect(
+        pos: GridPos(x: 2, y: 2),
+        size: GridSize(width: 1, height: 1),
+      ),
+    ),
+  ],
+);
 
 ProjectManifest _project({NarrativeEventRegistry? registry}) => ProjectManifest(
-      name: 'Guard project',
-      maps: const [
-        ProjectMapEntry(
-          id: 'map_a',
-          name: 'Map A',
-          relativePath: 'maps/map_a.json',
-        ),
-      ],
-      tilesets: const [],
-      eventRegistry: registry,
-    );
+  name: 'Guard project',
+  maps: const [
+    ProjectMapEntry(
+      id: 'map_a',
+      name: 'Map A',
+      relativePath: 'maps/map_a.json',
+    ),
+  ],
+  tilesets: const [],
+  eventRegistry: registry,
+);
 
 final class _GuardMapRepository implements MapRepository {
   _GuardMapRepository(this.map);

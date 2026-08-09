@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -19,37 +19,39 @@ import '../../shell_chrome_test_harness.dart';
 
 void main() {
   testWidgets(
-      'classic shell exposes the Help command and disables it in flight',
-      (tester) async {
-    final response = Completer<EditorUpdateRelease?>();
-    final catalog = _FakeCatalog(response: response.future);
-    final updater = _FakeNativeUpdater();
-    await pumpEditorShellPage(
-      tester,
-      initialState: EditorState(
-        project: buildShellChromeProject(),
-        projectRootPath: '/tmp/editor-update-classic',
-        workspaceMode: EditorWorkspaceMode.trainer,
-      ),
-      overrides: _overrides(catalog, updater),
-    );
+    'classic shell exposes the Help command and disables it in flight',
+    (tester) async {
+      final response = Completer<EditorUpdateRelease?>();
+      final catalog = _FakeCatalog(response: response.future);
+      final updater = _FakeNativeUpdater();
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          project: buildShellChromeProject(),
+          projectRootPath: '/tmp/editor-update-classic',
+          workspaceMode: EditorWorkspaceMode.trainer,
+        ),
+        overrides: _overrides(catalog, updater),
+      );
 
-    final action = find.byKey(editorUpdateCheckToolbarActionKey);
-    expect(action, findsOneWidget);
-    await tester.tap(action);
-    await tester.pump();
+      final action = find.byKey(editorUpdateCheckToolbarActionKey);
+      expect(action, findsOneWidget);
+      await tester.tap(action);
+      await tester.pump();
 
-    expect(catalog.calls, 1);
-    final checkingAction = tester.widget<ToolbarCapsuleButton>(action);
-    expect(checkingAction.onPressed, isNull);
+      expect(catalog.calls, 1);
+      final checkingAction = tester.widget<ToolbarCapsuleButton>(action);
+      expect(checkingAction.onPressed, isNull);
 
-    response.complete(null);
-    await tester.pumpAndSettle();
-    await tester.pump(const Duration(seconds: 4));
-  });
+      response.complete(null);
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 4));
+    },
+  );
 
-  testWidgets('World Map exposes the same command in its Plus menu',
-      (tester) async {
+  testWidgets('World Map exposes the same command in its Plus menu', (
+    tester,
+  ) async {
     final catalog = _FakeCatalog();
     final updater = _FakeNativeUpdater();
     await pumpEditorShellPage(
@@ -59,9 +61,7 @@ void main() {
         projectRootPath: '/tmp/editor-update-world-map',
         workspaceMode: EditorWorkspaceMode.map,
         activeMap: buildShellChromeMap(
-          layers: const [
-            MapLayer.tile(id: 'ground', name: 'Ground'),
-          ],
+          layers: const [MapLayer.tile(id: 'ground', name: 'Ground')],
         ),
         activeLayerId: 'ground',
       ),
@@ -80,8 +80,9 @@ void main() {
     await tester.pump(const Duration(seconds: 4));
   });
 
-  testWidgets('Narrative Studio exposes the shared update command',
-      (tester) async {
+  testWidgets('Narrative Studio exposes the shared update command', (
+    tester,
+  ) async {
     final catalog = _FakeCatalog();
     final updater = _FakeNativeUpdater();
     await pumpEditorShellPage(
@@ -103,8 +104,9 @@ void main() {
     await tester.pump(const Duration(seconds: 4));
   });
 
-  testWidgets('native Help menu requests use the same guarded callback',
-      (tester) async {
+  testWidgets('native Help menu requests use the same guarded callback', (
+    tester,
+  ) async {
     final catalog = _FakeCatalog();
     final updater = _FakeNativeUpdater();
     await pumpEditorShellPage(
@@ -125,10 +127,7 @@ void main() {
   });
 }
 
-List<Override> _overrides(
-  _FakeCatalog catalog,
-  _FakeNativeUpdater updater,
-) {
+List<Override> _overrides(_FakeCatalog catalog, _FakeNativeUpdater updater) {
   return [
     editorUpdateCatalogProvider.overrideWithValue(catalog),
     editorInstalledVersionReaderProvider.overrideWithValue(

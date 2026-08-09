@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import '../support/riverpod_notifier_harness.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core_providers.dart';
 import 'package:map_editor/src/app/providers/editor/map_use_case_providers.dart';
@@ -20,68 +22,84 @@ import 'package:path/path.dart' as p;
 
 void main() {
   group('EditorNotifier pending Border save transaction', () {
-    test('requests a decision and Cancel Save performs zero writes or history',
-        () async {
-      final fixture = _fixture();
-      final beforeHistory = fixture.notifier.state.mapUndoStack;
-      final beforeStroke = fixture.notifier.state.mapStrokeStart;
+    test(
+      'requests a decision and Cancel Save performs zero writes or history',
+      () async {
+        final fixture = _fixture();
+        final beforeHistory = fixture.notifier.state.mapUndoStack;
+        final beforeStroke = fixture.notifier.state.mapStrokeStart;
 
-      final first = await fixture.notifier.saveActiveMap();
+        final first = await fixture.notifier.saveActiveMap();
 
-      expect(first, ActiveMapSaveOutcome.pendingBorderDecisionRequired);
-      expect(fixture.repository.savedMaps, isEmpty);
-      expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
-      expect(fixture.notifier.state.mapUndoStack, beforeHistory);
-      expect(fixture.notifier.state.mapUndoStack.single,
-          same(beforeHistory.single));
-      expect(fixture.notifier.state.mapStrokeStart, same(beforeStroke));
-      expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
+        expect(first, ActiveMapSaveOutcome.pendingBorderDecisionRequired);
+        expect(fixture.repository.savedMaps, isEmpty);
+        expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
+        expect(fixture.notifier.state.mapUndoStack, beforeHistory);
+        expect(
+          fixture.notifier.state.mapUndoStack.single,
+          same(beforeHistory.single),
+        );
+        expect(fixture.notifier.state.mapStrokeStart, same(beforeStroke));
+        expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
 
-      final cancelled = await fixture.notifier.saveActiveMap(
-        pendingBorderDecision: PendingBorderSaveDecision.cancelSave,
-      );
+        final cancelled = await fixture.notifier.saveActiveMap(
+          pendingBorderDecision: PendingBorderSaveDecision.cancelSave,
+        );
 
-      expect(cancelled, ActiveMapSaveOutcome.cancelled);
-      expect(fixture.repository.savedMaps, isEmpty);
-      expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
-      expect(fixture.notifier.state.mapUndoStack, beforeHistory);
-      expect(fixture.notifier.state.mapUndoStack.single,
-          same(beforeHistory.single));
-      expect(fixture.notifier.state.mapStrokeStart, same(beforeStroke));
-      expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
-      fixture.dispose();
-    });
+        expect(cancelled, ActiveMapSaveOutcome.cancelled);
+        expect(fixture.repository.savedMaps, isEmpty);
+        expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
+        expect(fixture.notifier.state.mapUndoStack, beforeHistory);
+        expect(
+          fixture.notifier.state.mapUndoStack.single,
+          same(beforeHistory.single),
+        );
+        expect(fixture.notifier.state.mapStrokeStart, same(beforeStroke));
+        expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
+        fixture.dispose();
+      },
+    );
 
     test(
-        'Apply persists first, then records exactly one undo and clears preview',
-        () async {
-      final candidate = _richCandidateMap();
-      final fixture = _fixture(candidate: candidate, withPendingStroke: false);
-      final initialHistoryLength = fixture.notifier.state.mapUndoStack.length;
+      'Apply persists first, then records exactly one undo and clears preview',
+      () async {
+        final candidate = _richCandidateMap();
+        final fixture = _fixture(
+          candidate: candidate,
+          withPendingStroke: false,
+        );
+        final initialHistoryLength = fixture.notifier.state.mapUndoStack.length;
 
-      final outcome = await fixture.notifier.saveActiveMap(
-        pendingBorderDecision: PendingBorderSaveDecision.applyAndSave,
-      );
+        final outcome = await fixture.notifier.saveActiveMap(
+          pendingBorderDecision: PendingBorderSaveDecision.applyAndSave,
+        );
 
-      expect(outcome, ActiveMapSaveOutcome.saved);
-      expect(fixture.repository.savedMaps, <MapData>[candidate]);
-      expect(fixture.repository.mapSeenInNotifierDuringWrite,
-          same(fixture.baseMap));
-      expect(fixture.repository.previewPhaseDuringWrite,
-          BorderPreviewPhase.resolved);
-      expect(fixture.notifier.state.activeMap, same(candidate));
-      expect(
-        fixture.notifier.state.mapUndoStack,
-        hasLength(initialHistoryLength + 1),
-      );
-      expect(
-          fixture.notifier.state.mapUndoStack.last.map, same(fixture.baseMap));
-      expect(fixture.notifier.state.mapRedoStack, isEmpty);
-      expect(fixture.notifier.state.savedMapSnapshot, same(candidate));
-      expect(fixture.notifier.state.isDirty, isFalse);
-      expect(fixture.preview.current, const BorderPreviewState.idle());
-      fixture.dispose();
-    });
+        expect(outcome, ActiveMapSaveOutcome.saved);
+        expect(fixture.repository.savedMaps, <MapData>[candidate]);
+        expect(
+          fixture.repository.mapSeenInNotifierDuringWrite,
+          same(fixture.baseMap),
+        );
+        expect(
+          fixture.repository.previewPhaseDuringWrite,
+          BorderPreviewPhase.resolved,
+        );
+        expect(fixture.notifier.state.activeMap, same(candidate));
+        expect(
+          fixture.notifier.state.mapUndoStack,
+          hasLength(initialHistoryLength + 1),
+        );
+        expect(
+          fixture.notifier.state.mapUndoStack.last.map,
+          same(fixture.baseMap),
+        );
+        expect(fixture.notifier.state.mapRedoStack, isEmpty);
+        expect(fixture.notifier.state.savedMapSnapshot, same(candidate));
+        expect(fixture.notifier.state.isDirty, isFalse);
+        expect(fixture.preview.current, const BorderPreviewState.idle());
+        fixture.dispose();
+      },
+    );
 
     test('active stroke blocks Apply before persistence', () async {
       final candidate = _richCandidateMap();
@@ -164,205 +182,220 @@ void main() {
       fixture.dispose();
     });
 
-    test('active identity conflict performs zero writes and retains preview',
-        () async {
-      final fixture = _fixture(candidate: _richCandidateMap());
-      fixture.notifier.state =
-          fixture.notifier.state.copyWith(activeLayerId: 'other-layer');
+    test(
+      'active identity conflict performs zero writes and retains preview',
+      () async {
+        final fixture = _fixture(candidate: _richCandidateMap());
+        fixture.notifier.state = fixture.notifier.state.copyWith(
+          activeLayerId: 'other-layer',
+        );
 
-      final outcome = await fixture.notifier.saveActiveMap(
-        pendingBorderDecision: PendingBorderSaveDecision.applyAndSave,
-      );
+        final outcome = await fixture.notifier.saveActiveMap(
+          pendingBorderDecision: PendingBorderSaveDecision.applyAndSave,
+        );
 
-      expect(outcome, ActiveMapSaveOutcome.conflict);
-      expect(fixture.repository.savedMaps, isEmpty);
-      expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
-      expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
-      fixture.dispose();
-    });
+        expect(outcome, ActiveMapSaveOutcome.conflict);
+        expect(fixture.repository.savedMaps, isEmpty);
+        expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
+        expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
+        fixture.dispose();
+      },
+    );
 
     test(
-        'bulk-loss guard evaluates the prepared Apply candidate and preserves every transient state',
-        () async {
-      final candidate = _richCandidateMap().copyWith(
-        placedElements: _richCandidateMap().placedElements.take(2).toList(),
-      );
-      final fixture = _fixture(candidate: candidate);
-      final history = fixture.notifier.state.mapUndoStack;
-      final stroke = fixture.notifier.state.mapStrokeStart;
+      'bulk-loss guard evaluates the prepared Apply candidate and preserves every transient state',
+      () async {
+        final candidate = _richCandidateMap().copyWith(
+          placedElements: _richCandidateMap().placedElements.take(2).toList(),
+        );
+        final fixture = _fixture(candidate: candidate);
+        final history = fixture.notifier.state.mapUndoStack;
+        final stroke = fixture.notifier.state.mapStrokeStart;
 
-      final outcome = await fixture.notifier.saveActiveMap(
+        final outcome = await fixture.notifier.saveActiveMap(
+          pendingBorderDecision: PendingBorderSaveDecision.applyAndSave,
+        );
+
+        expect(outcome, ActiveMapSaveOutcome.bulkPlacementLossBlocked);
+        expect(fixture.repository.writeAttempts, 0);
+        expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
+        expect(fixture.notifier.state.mapUndoStack, history);
+        expect(
+          fixture.notifier.state.mapUndoStack.single,
+          same(history.single),
+        );
+        expect(fixture.notifier.state.mapStrokeStart, same(stroke));
+        expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
+        expect(fixture.notifier.state.errorMessage, contains('4'));
+        expect(fixture.notifier.state.errorMessage, contains('2'));
+        fixture.dispose();
+      },
+    );
+  });
+
+  test(
+    'Apply save and real reload preserve every Border field exactly',
+    () async {
+      final root = await Directory.systemTemp.createTemp('border_save_7d_');
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final mapPath = p.join(root.path, 'maps', 'coast.json');
+      final project = _project().copyWith(
+        maps: const <ProjectMapEntry>[
+          ProjectMapEntry(
+            id: 'map',
+            name: 'Côte',
+            relativePath: 'maps/coast.json',
+          ),
+        ],
+      );
+      final baseMap = _baseMap();
+      final candidate = _richCandidateMap();
+      final preview = _previewFor(
+        project: project,
+        map: baseMap,
+        projectRootPath: root.path,
+        activeMapPath: mapPath,
+      );
+      final repository = FileMapRepository();
+      final container = ProviderContainer(
+        overrides: <Override>[
+          mapRepositoryProvider.overrideWith((ref) => repository),
+          saveMapUseCaseProvider.overrideWith(
+            (ref) => SaveMapUseCase(repository),
+          ),
+          borderPreviewControllerProvider.overrideWith(() => preview),
+          pendingBorderSaveGuardProvider.overrideWithValue(
+            PendingBorderSaveGuard(
+              applier: ({required map, required transaction}) => candidate,
+            ),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      await repository.saveMap(baseMap, mapPath);
+      notifier.state = EditorState(
+        projectRootPath: root.path,
+        project: project,
+      );
+      await notifier.loadMap('maps/coast.json');
+      final loadedBaseMap = notifier.state.activeMap!;
+      notifier.state = notifier.state.copyWith(
+        workspaceMode: EditorWorkspaceMode.map,
+        activeLayerId: 'borders',
+        savedMapSnapshot: loadedBaseMap,
+        isDirty: true,
+      );
+      container
+          .read(activeBorderFeatureControllerProvider.notifier)
+          .selectFeature(
+            map: loadedBaseMap,
+            layerId: 'borders',
+            featureId: 'coast',
+          );
+      _resolvePreview(
+        preview,
+        project: project,
+        map: loadedBaseMap,
+        projectRootPath: root.path,
+        activeMapPath: mapPath,
+      );
+
+      final outcome = await notifier.saveActiveMap(
         pendingBorderDecision: PendingBorderSaveDecision.applyAndSave,
       );
+      final reloaded = await repository.loadMap(mapPath);
 
-      expect(outcome, ActiveMapSaveOutcome.bulkPlacementLossBlocked);
-      expect(fixture.repository.writeAttempts, 0);
-      expect(fixture.notifier.state.activeMap, same(fixture.baseMap));
-      expect(fixture.notifier.state.mapUndoStack, history);
-      expect(fixture.notifier.state.mapUndoStack.single, same(history.single));
-      expect(fixture.notifier.state.mapStrokeStart, same(stroke));
-      expect(fixture.preview.current.phase, BorderPreviewPhase.resolved);
-      expect(fixture.notifier.state.errorMessage, contains('4'));
-      expect(fixture.notifier.state.errorMessage, contains('2'));
-      fixture.dispose();
-    });
-  });
+      expect(outcome, ActiveMapSaveOutcome.saved);
+      expect(reloaded, candidate);
+      final reloadedFeature = _feature(reloaded);
+      final expectedFeature = _feature(candidate);
+      expect(reloadedFeature.blueprintId, expectedFeature.blueprintId);
+      expect(reloadedFeature.seed, expectedFeature.seed);
+      expect(reloadedFeature.geometry, expectedFeature.geometry);
+      expect(reloadedFeature.paramsOverride, expectedFeature.paramsOverride);
+      expect(reloadedFeature.overrides, expectedFeature.overrides);
+      expect(reloadedFeature.keepOutRegions, expectedFeature.keepOutRegions);
+      expect(
+        reloadedFeature.materialization?.ground,
+        expectedFeature.materialization?.ground,
+      );
+      expect(
+        reloadedFeature.materialization?.placements,
+        expectedFeature.materialization?.placements,
+      );
+      expect(
+        reloadedFeature.materialization?.receipt,
+        expectedFeature.materialization?.receipt,
+      );
+    },
+  );
 
-  test('Apply save and real reload preserve every Border field exactly',
-      () async {
-    final root = await Directory.systemTemp.createTemp('border_save_7d_');
-    addTearDown(() async {
-      if (await root.exists()) await root.delete(recursive: true);
-    });
-    final mapPath = p.join(root.path, 'maps', 'coast.json');
-    final project = _project().copyWith(
-      maps: const <ProjectMapEntry>[
-        ProjectMapEntry(
-          id: 'map',
-          name: 'Côte',
-          relativePath: 'maps/coast.json',
-        ),
-      ],
-    );
-    final baseMap = _baseMap();
-    final candidate = _richCandidateMap();
-    final preview = _previewFor(
-      project: project,
-      map: baseMap,
-      projectRootPath: root.path,
-      activeMapPath: mapPath,
-    );
-    final repository = FileMapRepository();
-    final container = ProviderContainer(
-      overrides: <Override>[
-        mapRepositoryProvider.overrideWith((ref) => repository),
-        saveMapUseCaseProvider
-            .overrideWith((ref) => SaveMapUseCase(repository)),
-        borderPreviewControllerProvider.overrideWith((ref) => preview),
-        pendingBorderSaveGuardProvider.overrideWithValue(
-          PendingBorderSaveGuard(
-            applier: ({required map, required transaction}) => candidate,
-          ),
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
-    final notifier = container.read(editorNotifierProvider.notifier);
-    await repository.saveMap(baseMap, mapPath);
-    notifier.state = EditorState(
-      projectRootPath: root.path,
-      project: project,
-    );
-    await notifier.loadMap('maps/coast.json');
-    final loadedBaseMap = notifier.state.activeMap!;
-    notifier.state = notifier.state.copyWith(
-      workspaceMode: EditorWorkspaceMode.map,
-      activeLayerId: 'borders',
-      savedMapSnapshot: loadedBaseMap,
-      isDirty: true,
-    );
-    container
-        .read(activeBorderFeatureControllerProvider.notifier)
-        .selectFeature(
-          map: loadedBaseMap,
-          layerId: 'borders',
-          featureId: 'coast',
-        );
-    _resolvePreview(
-      preview,
-      project: project,
-      map: loadedBaseMap,
-      projectRootPath: root.path,
-      activeMapPath: mapPath,
-    );
-
-    final outcome = await notifier.saveActiveMap(
-      pendingBorderDecision: PendingBorderSaveDecision.applyAndSave,
-    );
-    final reloaded = await repository.loadMap(mapPath);
-
-    expect(outcome, ActiveMapSaveOutcome.saved);
-    expect(reloaded, candidate);
-    final reloadedFeature = _feature(reloaded);
-    final expectedFeature = _feature(candidate);
-    expect(reloadedFeature.blueprintId, expectedFeature.blueprintId);
-    expect(reloadedFeature.seed, expectedFeature.seed);
-    expect(reloadedFeature.geometry, expectedFeature.geometry);
-    expect(reloadedFeature.paramsOverride, expectedFeature.paramsOverride);
-    expect(reloadedFeature.overrides, expectedFeature.overrides);
-    expect(reloadedFeature.keepOutRegions, expectedFeature.keepOutRegions);
-    expect(reloadedFeature.materialization?.ground,
-        expectedFeature.materialization?.ground);
-    expect(reloadedFeature.materialization?.placements,
-        expectedFeature.materialization?.placements);
-    expect(reloadedFeature.materialization?.receipt,
-        expectedFeature.materialization?.receipt);
-  });
-
-  test('filesystem round-trip preserves inclusive grid-edge geometry',
-      () async {
-    final root = await Directory.systemTemp.createTemp('border_grid_edges_');
-    addTearDown(() async {
-      if (await root.exists()) await root.delete(recursive: true);
-    });
-    final mapPath = p.join(root.path, 'maps', 'grid-edges.json');
-    final source = MapData(
-      id: 'grid-edges',
-      name: 'Grid edges',
-      version: ProjectVersion.v6,
-      size: const GridSize(width: 4, height: 4),
-      layers: <MapLayer>[
-        MapLayer.border(
-          id: 'borders',
-          name: 'Bordures',
-          content: BorderLayerContent(
-            formatVersion: BorderLayerContent.formatVersionV3,
-            features: <BorderFeature>[
-              BorderFeature(
-                id: 'stone-chain',
-                name: 'Chaîne de pierres',
-                blueprintId: 'stone-chain-blueprint',
-                seed: BorderSignedInt64.fromInt(17),
-                geometry: BorderStrokeGeometry(
-                  alignment: BorderStrokeAlignment.gridEdges,
-                  strokes: <BorderStroke>[
-                    BorderStroke(
-                      id: 'right-bottom-edge',
-                      points: const <GridPos>[
-                        GridPos(x: 0, y: 0),
-                        GridPos(x: 1, y: 0),
-                        GridPos(x: 2, y: 0),
-                        GridPos(x: 3, y: 0),
-                        GridPos(x: 4, y: 0),
-                        GridPos(x: 4, y: 1),
-                        GridPos(x: 4, y: 2),
-                        GridPos(x: 4, y: 3),
-                        GridPos(x: 4, y: 4),
-                      ],
-                      closed: false,
-                    ),
-                  ],
+  test(
+    'filesystem round-trip preserves inclusive grid-edge geometry',
+    () async {
+      final root = await Directory.systemTemp.createTemp('border_grid_edges_');
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final mapPath = p.join(root.path, 'maps', 'grid-edges.json');
+      final source = MapData(
+        id: 'grid-edges',
+        name: 'Grid edges',
+        version: ProjectVersion.v6,
+        size: const GridSize(width: 4, height: 4),
+        layers: <MapLayer>[
+          MapLayer.border(
+            id: 'borders',
+            name: 'Bordures',
+            content: BorderLayerContent(
+              formatVersion: BorderLayerContent.formatVersionV3,
+              features: <BorderFeature>[
+                BorderFeature(
+                  id: 'stone-chain',
+                  name: 'Chaîne de pierres',
+                  blueprintId: 'stone-chain-blueprint',
+                  seed: BorderSignedInt64.fromInt(17),
+                  geometry: BorderStrokeGeometry(
+                    alignment: BorderStrokeAlignment.gridEdges,
+                    strokes: <BorderStroke>[
+                      BorderStroke(
+                        id: 'right-bottom-edge',
+                        points: const <GridPos>[
+                          GridPos(x: 0, y: 0),
+                          GridPos(x: 1, y: 0),
+                          GridPos(x: 2, y: 0),
+                          GridPos(x: 3, y: 0),
+                          GridPos(x: 4, y: 0),
+                          GridPos(x: 4, y: 1),
+                          GridPos(x: 4, y: 2),
+                          GridPos(x: 4, y: 3),
+                          GridPos(x: 4, y: 4),
+                        ],
+                        closed: false,
+                      ),
+                    ],
+                  ),
+                  overrides: const <BorderSlotOverride>[],
+                  keepOutRegions: const <BorderKeepOutRegion>[],
                 ),
-                overrides: const <BorderSlotOverride>[],
-                keepOutRegions: const <BorderKeepOutRegion>[],
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
-    );
-    final repository = FileMapRepository();
+        ],
+      );
+      final repository = FileMapRepository();
 
-    await repository.saveMap(source, mapPath);
-    final reloaded = await repository.loadMap(mapPath);
+      await repository.saveMap(source, mapPath);
+      final reloaded = await repository.loadMap(mapPath);
 
-    expect(reloaded, source);
-    final reloadedFeature = _feature(reloaded);
-    final reloadedGeometry = reloadedFeature.geometry as BorderStrokeGeometry;
-    expect(reloadedGeometry.alignment, BorderStrokeAlignment.gridEdges);
-    expect(
-      reloadedGeometry.strokes.single.points,
-      const <GridPos>[
+      expect(reloaded, source);
+      final reloadedFeature = _feature(reloaded);
+      final reloadedGeometry = reloadedFeature.geometry as BorderStrokeGeometry;
+      expect(reloadedGeometry.alignment, BorderStrokeAlignment.gridEdges);
+      expect(reloadedGeometry.strokes.single.points, const <GridPos>[
         GridPos(x: 0, y: 0),
         GridPos(x: 1, y: 0),
         GridPos(x: 2, y: 0),
@@ -372,13 +405,13 @@ void main() {
         GridPos(x: 4, y: 2),
         GridPos(x: 4, y: 3),
         GridPos(x: 4, y: 4),
-      ],
-    );
-    expect(
-      computeBorderFeatureEditFingerprint(reloadedFeature),
-      computeBorderFeatureEditFingerprint(_feature(source)),
-    );
-  });
+      ]);
+      expect(
+        computeBorderFeatureEditFingerprint(reloadedFeature),
+        computeBorderFeatureEditFingerprint(_feature(source)),
+      );
+    },
+  );
 }
 
 _NotifierFixture _fixture({
@@ -394,9 +427,7 @@ _NotifierFixture _fixture({
     projectRootPath: '/project',
     activeMapPath: '/project/maps/map.json',
   );
-  final repository = _RecordingMapRepository(
-    failPersistence: failPersistence,
-  );
+  final repository = _RecordingMapRepository(failPersistence: failPersistence);
   final guard = PendingBorderSaveGuard(
     applier: ({required map, required transaction}) =>
         candidate ?? map.copyWith(name: 'Applied coast'),
@@ -405,7 +436,7 @@ _NotifierFixture _fixture({
     overrides: <Override>[
       mapRepositoryProvider.overrideWith((ref) => repository),
       saveMapUseCaseProvider.overrideWith((ref) => SaveMapUseCase(repository)),
-      borderPreviewControllerProvider.overrideWith((ref) => preview),
+      borderPreviewControllerProvider.overrideWith(() => preview),
       pendingBorderSaveGuardProvider.overrideWithValue(guard),
     ],
   );
@@ -453,7 +484,9 @@ BorderPreviewController _previewFor({
   required String projectRootPath,
   required String activeMapPath,
 }) {
-  return BorderPreviewController(resolver: (_) => _previewResult());
+  return createBorderPreviewControllerForOverride(
+    resolver: (_) => _previewResult(),
+  );
 }
 
 void _resolvePreview(
@@ -483,73 +516,73 @@ void _resolvePreview(
 }
 
 ProjectManifest _project() => ProjectManifest(
-      name: 'Border save project',
-      maps: const <ProjectMapEntry>[],
-      tilesets: const <ProjectTilesetEntry>[
-        ProjectTilesetEntry(
-          id: 'tiles',
-          name: 'Tiles',
-          relativePath: 'tilesets/tiles.png',
-        ),
-      ],
-      elementCategories: const <ProjectElementCategory>[
-        ProjectElementCategory(id: 'props', name: 'Props'),
-      ],
-      elements: <ProjectElementEntry>[
-        for (var index = 0; index < 4; index += 1)
-          ProjectElementEntry(
-            id: 'prop-$index',
-            name: 'Prop $index',
-            tilesetId: 'tiles',
-            categoryId: 'props',
-            frames: const <TilesetVisualFrame>[
-              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-            ],
-          ),
-      ],
-      borderCatalog: const ProjectBorderCatalog.empty(),
-    );
+  name: 'Border save project',
+  maps: const <ProjectMapEntry>[],
+  tilesets: const <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'tiles',
+      name: 'Tiles',
+      relativePath: 'tilesets/tiles.png',
+    ),
+  ],
+  elementCategories: const <ProjectElementCategory>[
+    ProjectElementCategory(id: 'props', name: 'Props'),
+  ],
+  elements: <ProjectElementEntry>[
+    for (var index = 0; index < 4; index += 1)
+      ProjectElementEntry(
+        id: 'prop-$index',
+        name: 'Prop $index',
+        tilesetId: 'tiles',
+        categoryId: 'props',
+        frames: const <TilesetVisualFrame>[
+          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+        ],
+      ),
+  ],
+  borderCatalog: const ProjectBorderCatalog.empty(),
+);
 
 MapData _baseMap() => MapData(
-      id: 'map',
-      name: 'Base map',
-      version: ProjectVersion.v6,
-      size: const GridSize(width: 4, height: 4),
-      layers: <MapLayer>[
-        MapLayer.border(
-          id: 'borders',
-          name: 'Bordures',
-          content: BorderLayerContent(
-            features: <BorderFeature>[
-              BorderFeature(
-                id: 'coast',
-                name: 'Côte',
-                blueprintId: 'coast-blueprint',
-                seed: BorderSignedInt64.fromInt(7),
-                geometry: _region(<int>{0}),
-                overrides: const <BorderSlotOverride>[],
-                keepOutRegions: const <BorderKeepOutRegion>[],
-              ),
-            ],
+  id: 'map',
+  name: 'Base map',
+  version: ProjectVersion.v6,
+  size: const GridSize(width: 4, height: 4),
+  layers: <MapLayer>[
+    MapLayer.border(
+      id: 'borders',
+      name: 'Bordures',
+      content: BorderLayerContent(
+        features: <BorderFeature>[
+          BorderFeature(
+            id: 'coast',
+            name: 'Côte',
+            blueprintId: 'coast-blueprint',
+            seed: BorderSignedInt64.fromInt(7),
+            geometry: _region(<int>{0}),
+            overrides: const <BorderSlotOverride>[],
+            keepOutRegions: const <BorderKeepOutRegion>[],
           ),
-        ),
-        MapLayer.tile(
-          id: 'objects',
-          name: 'Objets',
-          cells: List<int>.filled(16, 0),
-        ),
-      ],
-      placedElements: <MapPlacedElement>[
-        for (var index = 0; index < 4; index += 1)
-          MapPlacedElement(
-            id: 'manual-$index',
-            layerId: 'objects',
-            elementId: 'prop-$index',
-            pos: GridPos(x: index, y: 3),
-            applyCollision: false,
-          ),
-      ],
-    );
+        ],
+      ),
+    ),
+    MapLayer.tile(
+      id: 'objects',
+      name: 'Objets',
+      cells: List<int>.filled(16, 0),
+    ),
+  ],
+  placedElements: <MapPlacedElement>[
+    for (var index = 0; index < 4; index += 1)
+      MapPlacedElement(
+        id: 'manual-$index',
+        layerId: 'objects',
+        elementId: 'prop-$index',
+        pos: GridPos(x: index, y: 3),
+        applyCollision: false,
+      ),
+  ],
+);
 
 MapData _richCandidateMap() {
   final base = _baseMap();
@@ -576,17 +609,11 @@ MapData _richCandidateMap() {
         lockedPlacement: _placement(),
         replacementPrimitiveId: 'rock-large',
         offsetDeltaPx: const BorderPixelOffset(x: -2, y: 3),
-        transformOverride: BorderSpriteTransform(
-          quarterTurns: 3,
-          flipX: true,
-        ),
+        transformOverride: BorderSpriteTransform(quarterTurns: 3, flipX: true),
       ),
     ],
     keepOutRegions: <BorderKeepOutRegion>[
-      BorderKeepOutRegion(
-        id: 'coast-keep-out',
-        region: _region(<int>{15}),
-      ),
+      BorderKeepOutRegion(id: 'coast-keep-out', region: _region(<int>{15})),
     ],
     materialization: _materialization(),
   );
@@ -607,67 +634,62 @@ BorderFeature _feature(MapData map) =>
     map.layers.whereType<BorderLayer>().single.content.features.single;
 
 BorderRegionGeometry _region(Set<int> filled) => BorderRegionGeometry(
-      width: 4,
-      height: 4,
-      cells: <bool>[for (var i = 0; i < 16; i += 1) filled.contains(i)],
-    );
+  width: 4,
+  height: 4,
+  cells: <bool>[for (var i = 0; i < 16; i += 1) filled.contains(i)],
+);
 
 BorderResolutionResult _previewResult() => BorderResolutionResult(
-      materialization: _materialization(),
-      diagnosticReport: const BorderDiagnosticsReport.empty(),
-    );
+  materialization: _materialization(),
+  diagnosticReport: const BorderDiagnosticsReport.empty(),
+);
 
 BorderMaterialization _materialization() => BorderMaterialization(
-      receipt: BorderResolutionReceipt(
-        resolverVersion: 7,
-        blueprintRevision: 12,
-        components: BorderInputFingerprints(
-          blueprint: _fingerprint('1'),
-          geometryAndSeed: _fingerprint('2'),
-          parameters: _fingerprint('3'),
-          overrides: _fingerprint('4'),
-          keepOutRegions: _fingerprint('5'),
-          mapContext: _fingerprint('6'),
-          visualSnapshots: _fingerprint('7'),
-        ),
-        inputFingerprint: _fingerprint('8'),
-        outputFingerprint: _fingerprint('9'),
-      ),
-      ground: <BorderResolvedGroundCell>[
-        BorderResolvedGroundCell(
-          x: 1,
-          y: 1,
-          visualSnapshotId: _snapshotId,
-          resolvedRole: BorderGroundVariantRole.innerCornerSE,
-        ),
-      ],
-      placements: <BorderResolvedPlacement>[_placement()],
-    );
+  receipt: BorderResolutionReceipt(
+    resolverVersion: 7,
+    blueprintRevision: 12,
+    components: BorderInputFingerprints(
+      blueprint: _fingerprint('1'),
+      geometryAndSeed: _fingerprint('2'),
+      parameters: _fingerprint('3'),
+      overrides: _fingerprint('4'),
+      keepOutRegions: _fingerprint('5'),
+      mapContext: _fingerprint('6'),
+      visualSnapshots: _fingerprint('7'),
+    ),
+    inputFingerprint: _fingerprint('8'),
+    outputFingerprint: _fingerprint('9'),
+  ),
+  ground: <BorderResolvedGroundCell>[
+    BorderResolvedGroundCell(
+      x: 1,
+      y: 1,
+      visualSnapshotId: _snapshotId,
+      resolvedRole: BorderGroundVariantRole.innerCornerSE,
+    ),
+  ],
+  placements: <BorderResolvedPlacement>[_placement()],
+);
 
 BorderResolvedPlacement _placement() => BorderResolvedPlacement(
-      id: 'coast-placement-1',
-      slotKey: 'coast-slot-locked',
-      primitiveId: 'rock-large',
-      visualSnapshotId: _snapshotId,
-      anchorCell: const GridPos(x: 2, y: 1),
-      topLeftWorldPx: const BorderPixelPos(x: 29, y: 13),
-      opaqueWorldBoundsPx: BorderPixelRect(
-        x: 30,
-        y: 14,
-        width: 18,
-        height: 21,
-      ),
-      transform: BorderSpriteTransform(quarterTurns: 1, flipX: true),
-      drawBand: BorderDrawBand.structure,
-      stableOrderKey: BorderStableOrderKey(
-        drawBandIndex: 1,
-        anchorRowMajor: 6,
-        passIndex: 2,
-        rank: 3,
-        ordinalLocal: 4,
-        slotKey: 'coast-slot-locked',
-      ),
-    );
+  id: 'coast-placement-1',
+  slotKey: 'coast-slot-locked',
+  primitiveId: 'rock-large',
+  visualSnapshotId: _snapshotId,
+  anchorCell: const GridPos(x: 2, y: 1),
+  topLeftWorldPx: const BorderPixelPos(x: 29, y: 13),
+  opaqueWorldBoundsPx: BorderPixelRect(x: 30, y: 14, width: 18, height: 21),
+  transform: BorderSpriteTransform(quarterTurns: 1, flipX: true),
+  drawBand: BorderDrawBand.structure,
+  stableOrderKey: BorderStableOrderKey(
+    drawBandIndex: 1,
+    anchorRowMajor: 6,
+    passIndex: 2,
+    rank: 3,
+    ordinalLocal: 4,
+    slotKey: 'coast-slot-locked',
+  ),
+);
 
 const String _snapshotId =
     'border-snapshot-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';

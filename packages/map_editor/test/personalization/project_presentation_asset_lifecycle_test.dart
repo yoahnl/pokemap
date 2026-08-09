@@ -6,73 +6,80 @@ import 'package:map_editor/src/features/personalization/application/project_pres
 
 void main() {
   group('ProjectPresentationAssetLifecycle', () {
-    test('deletes only stale assets explicitly owned by the previous profile',
-        () async {
-      final root =
-          Directory.systemTemp.createTempSync('presentation-assets-cleanup-');
-      addTearDown(() => root.deleteSync(recursive: true));
-      final oldVideo = _write(root, 'assets/presentation/intro/old.mp4');
-      final oldPoster = _write(root, 'assets/presentation/intro/old.png');
-      final oldCaptions = _write(root, 'assets/presentation/intro/old.vtt');
-      final oldFont = _write(root, 'assets/presentation/fonts/body-old.otf');
-      final oldLicense =
-          _write(root, 'assets/presentation/fonts/body-old-license.txt');
-      final newVideo = _write(root, 'assets/presentation/intro/new.mp4');
-      final unknown =
-          _write(root, 'assets/presentation/intro/do-not-touch.mp4');
-      final previous = _profile(
-        videoPath: 'assets/presentation/intro/old.mp4',
-        posterPath: 'assets/presentation/intro/old.png',
-        captionsPath: 'assets/presentation/intro/old.vtt',
-        fontPath: 'assets/presentation/fonts/body-old.otf',
-        licensePath: 'assets/presentation/fonts/body-old-license.txt',
-      );
-      final current = _profile(
-        videoPath: 'assets/presentation/intro/new.mp4',
-        posterPath: 'assets/presentation/intro/old.png',
-      );
+    test(
+      'deletes only stale assets explicitly owned by the previous profile',
+      () async {
+        final root = Directory.systemTemp.createTempSync(
+          'presentation-assets-cleanup-',
+        );
+        addTearDown(() => root.deleteSync(recursive: true));
+        final oldVideo = _write(root, 'assets/presentation/intro/old.mp4');
+        final oldPoster = _write(root, 'assets/presentation/intro/old.png');
+        final oldCaptions = _write(root, 'assets/presentation/intro/old.vtt');
+        final oldFont = _write(root, 'assets/presentation/fonts/body-old.otf');
+        final oldLicense = _write(
+          root,
+          'assets/presentation/fonts/body-old-license.txt',
+        );
+        final newVideo = _write(root, 'assets/presentation/intro/new.mp4');
+        final unknown = _write(
+          root,
+          'assets/presentation/intro/do-not-touch.mp4',
+        );
+        final previous = _profile(
+          videoPath: 'assets/presentation/intro/old.mp4',
+          posterPath: 'assets/presentation/intro/old.png',
+          captionsPath: 'assets/presentation/intro/old.vtt',
+          fontPath: 'assets/presentation/fonts/body-old.otf',
+          licensePath: 'assets/presentation/fonts/body-old-license.txt',
+        );
+        final current = _profile(
+          videoPath: 'assets/presentation/intro/new.mp4',
+          posterPath: 'assets/presentation/intro/old.png',
+        );
 
-      final result =
-          await const ProjectPresentationAssetLifecycle().cleanStaleAssets(
-        projectRoot: root,
-        previousProfile: previous,
-        currentProfile: current,
-      );
+        final result = await const ProjectPresentationAssetLifecycle()
+            .cleanStaleAssets(
+              projectRoot: root,
+              previousProfile: previous,
+              currentProfile: current,
+            );
 
-      expect(
-        result.deletedPaths,
-        <String>{
+        expect(result.deletedPaths, <String>{
           'assets/presentation/intro/old.mp4',
           'assets/presentation/intro/old.vtt',
           'assets/presentation/fonts/body-old.otf',
           'assets/presentation/fonts/body-old-license.txt',
-        },
-      );
-      expect(result.failures, isEmpty);
-      expect(oldVideo.existsSync(), isFalse);
-      expect(oldCaptions.existsSync(), isFalse);
-      expect(oldFont.existsSync(), isFalse);
-      expect(oldLicense.existsSync(), isFalse);
-      expect(oldPoster.existsSync(), isTrue);
-      expect(newVideo.existsSync(), isTrue);
-      expect(unknown.existsSync(), isTrue);
-    });
+        });
+        expect(result.failures, isEmpty);
+        expect(oldVideo.existsSync(), isFalse);
+        expect(oldCaptions.existsSync(), isFalse);
+        expect(oldFont.existsSync(), isFalse);
+        expect(oldLicense.existsSync(), isFalse);
+        expect(oldPoster.existsSync(), isTrue);
+        expect(newVideo.existsSync(), isTrue);
+        expect(unknown.existsSync(), isTrue);
+      },
+    );
 
     test('rejects traversal, absolute paths, and symbolic links', () async {
-      final root =
-          Directory.systemTemp.createTempSync('presentation-assets-safety-');
+      final root = Directory.systemTemp.createTempSync(
+        'presentation-assets-safety-',
+      );
       addTearDown(() => root.deleteSync(recursive: true));
       final outside = File('${root.parent.path}/pokemap-outside-asset.txt')
         ..writeAsStringSync('outside');
       addTearDown(() {
         if (outside.existsSync()) outside.deleteSync();
       });
-      final managedTarget =
-          _write(root, 'assets/presentation/intro/symlink-target.mp4');
+      final managedTarget = _write(
+        root,
+        'assets/presentation/intro/symlink-target.mp4',
+      );
       final link = Link('${root.path}/assets/presentation/intro/linked.mp4')
         ..createSync(managedTarget.path);
       final previous = ProjectPresentationProfile(
-        intro: ProjectIntroVideoProfile(
+        intro: ProjectIntroVideoProfile.fromLandscape(
           videoPath: 'assets/presentation/intro/linked.mp4',
           posterPath: '../${outside.uri.pathSegments.last}',
           durationMilliseconds: 1,
@@ -90,12 +97,12 @@ void main() {
         ),
       );
 
-      final result =
-          await const ProjectPresentationAssetLifecycle().cleanStaleAssets(
-        projectRoot: root,
-        previousProfile: previous,
-        currentProfile: const ProjectPresentationProfile(),
-      );
+      final result = await const ProjectPresentationAssetLifecycle()
+          .cleanStaleAssets(
+            projectRoot: root,
+            previousProfile: previous,
+            currentProfile: const ProjectPresentationProfile(),
+          );
 
       expect(result.deletedPaths, isEmpty);
       expect(
@@ -112,80 +119,91 @@ void main() {
       expect(managedTarget.existsSync(), isTrue);
     });
 
-    test('reports a missing stale file without scanning managed directories',
-        () async {
-      final root =
-          Directory.systemTemp.createTempSync('presentation-assets-missing-');
-      addTearDown(() => root.deleteSync(recursive: true));
-      final unknown =
-          _write(root, 'assets/presentation/fonts/unreferenced.ttf');
-      final previous = _profile(
-        fontPath: 'assets/presentation/fonts/missing.ttf',
-        licensePath: 'assets/presentation/fonts/missing-license.txt',
-      );
+    test(
+      'reports a missing stale file without scanning managed directories',
+      () async {
+        final root = Directory.systemTemp.createTempSync(
+          'presentation-assets-missing-',
+        );
+        addTearDown(() => root.deleteSync(recursive: true));
+        final unknown = _write(
+          root,
+          'assets/presentation/fonts/unreferenced.ttf',
+        );
+        final previous = _profile(
+          fontPath: 'assets/presentation/fonts/missing.ttf',
+          licensePath: 'assets/presentation/fonts/missing-license.txt',
+        );
 
-      final result =
-          await const ProjectPresentationAssetLifecycle().cleanStaleAssets(
-        projectRoot: root,
-        previousProfile: previous,
-        currentProfile: const ProjectPresentationProfile(),
-      );
+        final result = await const ProjectPresentationAssetLifecycle()
+            .cleanStaleAssets(
+              projectRoot: root,
+              previousProfile: previous,
+              currentProfile: const ProjectPresentationProfile(),
+            );
 
-      expect(result.deletedPaths, isEmpty);
-      expect(
-        result.skippedPaths,
-        <String>{
+        expect(result.deletedPaths, isEmpty);
+        expect(result.skippedPaths, <String>{
           'assets/presentation/fonts/missing.ttf',
           'assets/presentation/fonts/missing-license.txt',
-        },
-      );
-      expect(unknown.existsSync(), isTrue);
-    });
+        });
+        expect(unknown.existsSync(), isTrue);
+      },
+    );
 
-    test('cleans stale branding copies while preserving current branding',
-        () async {
-      final root =
-          Directory.systemTemp.createTempSync('presentation-branding-cleanup-');
-      addTearDown(() => root.deleteSync(recursive: true));
-      final oldIcon = _write(root, 'assets/presentation/branding/icon-old.png');
-      final oldHero =
-          _write(root, 'assets/presentation/branding/hero-old.webp');
-      final sharedCover =
-          _write(root, 'assets/presentation/branding/cover-shared.jpg');
-      final unknown =
-          _write(root, 'assets/presentation/branding/do-not-touch.png');
-      const previous = ProjectPresentationProfile(
-        branding: ProjectBrandingProfile(
-          iconPath: 'assets/presentation/branding/icon-old.png',
-          coverPath: 'assets/presentation/branding/cover-shared.jpg',
-          heroPath: 'assets/presentation/branding/hero-old.webp',
-        ),
-      );
-      const current = ProjectPresentationProfile(
-        branding: ProjectBrandingProfile(
-          coverPath: 'assets/presentation/branding/cover-shared.jpg',
-        ),
-      );
+    test(
+      'cleans stale branding copies while preserving current branding',
+      () async {
+        final root = Directory.systemTemp.createTempSync(
+          'presentation-branding-cleanup-',
+        );
+        addTearDown(() => root.deleteSync(recursive: true));
+        final oldIcon = _write(
+          root,
+          'assets/presentation/branding/icon-old.png',
+        );
+        final oldHero = _write(
+          root,
+          'assets/presentation/branding/hero-old.webp',
+        );
+        final sharedCover = _write(
+          root,
+          'assets/presentation/branding/cover-shared.jpg',
+        );
+        final unknown = _write(
+          root,
+          'assets/presentation/branding/do-not-touch.png',
+        );
+        const previous = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(
+            iconPath: 'assets/presentation/branding/icon-old.png',
+            coverPath: 'assets/presentation/branding/cover-shared.jpg',
+            heroPath: 'assets/presentation/branding/hero-old.webp',
+          ),
+        );
+        const current = ProjectPresentationProfile(
+          branding: ProjectBrandingProfile(
+            coverPath: 'assets/presentation/branding/cover-shared.jpg',
+          ),
+        );
 
-      final result =
-          await const ProjectPresentationAssetLifecycle().cleanStaleAssets(
-        projectRoot: root,
-        previousProfile: previous,
-        currentProfile: current,
-      );
+        final result = await const ProjectPresentationAssetLifecycle()
+            .cleanStaleAssets(
+              projectRoot: root,
+              previousProfile: previous,
+              currentProfile: current,
+            );
 
-      expect(
-        result.deletedPaths,
-        <String>{
+        expect(result.deletedPaths, <String>{
           'assets/presentation/branding/icon-old.png',
           'assets/presentation/branding/hero-old.webp',
-        },
-      );
-      expect(oldIcon.existsSync(), isFalse);
-      expect(oldHero.existsSync(), isFalse);
-      expect(sharedCover.existsSync(), isTrue);
-      expect(unknown.existsSync(), isTrue);
-    });
+        });
+        expect(oldIcon.existsSync(), isFalse);
+        expect(oldHero.existsSync(), isFalse);
+        expect(sharedCover.existsSync(), isTrue);
+        expect(unknown.existsSync(), isTrue);
+      },
+    );
   });
 }
 
@@ -199,7 +217,7 @@ ProjectPresentationProfile _profile({
   return ProjectPresentationProfile(
     intro: videoPath == null
         ? null
-        : ProjectIntroVideoProfile(
+        : ProjectIntroVideoProfile.fromLandscape(
             videoPath: videoPath,
             posterPath: posterPath,
             captionsPath: captionsPath,

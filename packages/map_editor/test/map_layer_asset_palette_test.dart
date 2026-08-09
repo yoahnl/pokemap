@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/editor/editor_asset_cache_providers.dart';
@@ -27,99 +28,88 @@ void main() {
 
       expect(find.byType(PokeMapAssetCard), findsNothing);
       expect(find.text('Aucun objet à placer'), findsOneWidget);
-      expect(
-        find.textContaining('Tileset Library'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Tileset Library'), findsOneWidget);
       expect(harness.notifier.state.activeBrush, const EditorBrush.none());
       expect(harness.notifier.state.activeTool, EditorToolType.selection);
       expect(harness.notifier.state.mapUndoStack, isEmpty);
     },
   );
 
-  testWidgets(
-    'renders real project-element cards from the assigned source',
-    (tester) async {
-      final harness = await _PaletteHarness.create();
-      addTearDown(harness.dispose);
+  testWidgets('renders real project-element cards from the assigned source', (
+    tester,
+  ) async {
+    final harness = await _PaletteHarness.create();
+    addTearDown(harness.dispose);
 
-      await harness.pump(tester);
+    await harness.pump(tester);
 
-      expect(
-        find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
-        findsOneWidget,
-      );
-      final treeCard = find.byKey(
-        MapLayerAssetPaletteKeys.elementCard('tree'),
-      );
-      expect(find.text('Arbre'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: treeCard,
-          matching: find.textContaining('Type : Arbre'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: treeCard,
-          matching: find.textContaining('Collision : 2'),
-        ),
-        findsOneWidget,
-      );
-      expect(find.text('Lampe'), findsNothing);
-      expect(
-        find.descendant(
-          of: find.byKey(MapLayerAssetPaletteKeys.root),
-          matching: find.byType(Scrollable),
-        ),
-        findsOneWidget,
-      );
+    expect(
+      find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
+      findsOneWidget,
+    );
+    final treeCard = find.byKey(MapLayerAssetPaletteKeys.elementCard('tree'));
+    expect(find.text('Arbre'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: treeCard,
+        matching: find.textContaining('Type : Arbre'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: treeCard,
+        matching: find.textContaining('Collision : 2'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Lampe'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(MapLayerAssetPaletteKeys.root),
+        matching: find.byType(Scrollable),
+      ),
+      findsOneWidget,
+    );
 
-      await tester.tap(
-        find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
-      );
-      await tester.pump();
+    await tester.tap(find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')));
+    await tester.pump();
 
-      expect(
-        harness.notifier.state.activeBrush,
-        const EditorBrush.projectElement(elementId: 'tree'),
-      );
-      expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
-      expect(harness.notifier.state.mapUndoStack, isEmpty);
-    },
-  );
+    expect(
+      harness.notifier.state.activeBrush,
+      const EditorBrush.projectElement(elementId: 'tree'),
+    );
+    expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+  });
 
-  testWidgets(
-    'compatible cross-source assets remain directly selectable',
-    (tester) async {
-      final harness = await _PaletteHarness.create(
-        selectedTilesetId: 'details',
-        activeBrush: const EditorBrush.projectElement(elementId: 'tree'),
-        activeTool: EditorToolType.tilePaint,
-      );
-      addTearDown(harness.dispose);
-      await harness.pump(tester);
+  testWidgets('compatible cross-source assets remain directly selectable', (
+    tester,
+  ) async {
+    final harness = await _PaletteHarness.create(
+      selectedTilesetId: 'details',
+      activeBrush: const EditorBrush.projectElement(elementId: 'tree'),
+      activeTool: EditorToolType.tilePaint,
+    );
+    addTearDown(harness.dispose);
+    await harness.pump(tester);
 
-      final cardFinder = find.byKey(
-        MapLayerAssetPaletteKeys.elementCard('lamp'),
-      );
-      final card = tester.widget<PokeMapAssetCard>(cardFinder);
-      expect(card.onPressed, isNotNull);
-      expect(card.disabledReason, isNull);
+    final cardFinder = find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp'));
+    final card = tester.widget<PokeMapAssetCard>(cardFinder);
+    expect(card.onPressed, isNotNull);
+    expect(card.disabledReason, isNull);
 
-      await tester.tap(cardFinder);
-      await tester.pump();
+    await tester.tap(cardFinder);
+    await tester.pump();
 
-      expect(
-        harness.notifier.state.activeBrush,
-        const EditorBrush.projectElement(elementId: 'lamp'),
-      );
-      expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
-      expect(harness.notifier.state.activeMap, same(_map));
-      expect(harness.notifier.state.mapUndoStack, isEmpty);
-    },
-  );
+    expect(
+      harness.notifier.state.activeBrush,
+      const EditorBrush.projectElement(elementId: 'lamp'),
+    );
+    expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
+    expect(harness.notifier.state.activeMap, same(_map));
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+  });
 
   testWidgets(
     'incompatible source reason comes from the canonical browser projection and stays inert',
@@ -174,74 +164,63 @@ void main() {
     },
   );
 
-  testWidgets(
-    'A to B to A restores each layer source and selected asset',
-    (tester) async {
-      final harness = await _PaletteHarness.create();
-      addTearDown(harness.dispose);
+  testWidgets('A to B to A restores each layer source and selected asset', (
+    tester,
+  ) async {
+    final harness = await _PaletteHarness.create();
+    addTearDown(harness.dispose);
 
-      await harness.pump(tester);
-      await tester.tap(
-        find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
-      );
-      await tester.pump();
+    await harness.pump(tester);
+    await tester.tap(find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')));
+    await tester.pump();
 
-      harness.notifier.setActiveLayer('details');
-      await tester.pump();
-      await tester.pump();
-      expect(find.text('Détails'), findsWidgets);
-      expect(
-        find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp')),
-      );
-      await tester.pump();
+    harness.notifier.setActiveLayer('details');
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Détails'), findsWidgets);
+    expect(
+      find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp')));
+    await tester.pump();
 
-      harness.notifier.setActiveLayer('ground');
-      await tester.pump();
-      await tester.pump();
-      expect(find.text('Monde'), findsWidgets);
-      expect(
-        tester
-            .widget<PokeMapAssetCard>(
-              find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
-            )
-            .selected,
-        isTrue,
-      );
-      expect(
-        harness.notifier.getSelectedTilesetEntry()?.id,
-        'world',
-      );
-      expect(
-        harness.notifier.state.activeBrush,
-        const EditorBrush.projectElement(elementId: 'tree'),
-      );
+    harness.notifier.setActiveLayer('ground');
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Monde'), findsWidgets);
+    expect(
+      tester
+          .widget<PokeMapAssetCard>(
+            find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
+          )
+          .selected,
+      isTrue,
+    );
+    expect(harness.notifier.getSelectedTilesetEntry()?.id, 'world');
+    expect(
+      harness.notifier.state.activeBrush,
+      const EditorBrush.projectElement(elementId: 'tree'),
+    );
 
-      harness.notifier.setActiveLayer('details');
-      await tester.pump();
-      await tester.pump();
-      expect(
-        tester
-            .widget<PokeMapAssetCard>(
-              find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp')),
-            )
-            .selected,
-        isTrue,
-      );
-      expect(
-        harness.notifier.getSelectedTilesetEntry()?.id,
-        'details',
-      );
-      expect(
-        harness.notifier.state.activeBrush,
-        const EditorBrush.projectElement(elementId: 'lamp'),
-      );
-      expect(harness.notifier.state.mapUndoStack, isEmpty);
-    },
-  );
+    harness.notifier.setActiveLayer('details');
+    await tester.pump();
+    await tester.pump();
+    expect(
+      tester
+          .widget<PokeMapAssetCard>(
+            find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp')),
+          )
+          .selected,
+      isTrue,
+    );
+    expect(harness.notifier.getSelectedTilesetEntry()?.id, 'details');
+    expect(
+      harness.notifier.state.activeBrush,
+      const EditorBrush.projectElement(elementId: 'lamp'),
+    );
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+  });
 }
 
 void _expectNoEditorMutation(EditorState actual, EditorState before) {
@@ -287,17 +266,11 @@ class _PaletteHarness {
     final container = ProviderContainer(
       overrides: <Override>[
         editorImageCacheProvider.overrideWith(
-          (ref, projectRoot) => _ImmediateEditorImageCache(
-            projectRoot,
-            image,
-          ),
+          (ref, projectRoot) => _ImmediateEditorImageCache(projectRoot, image),
         ),
       ],
     );
-    final keepAlive = container.listen(
-      editorNotifierProvider,
-      (_, __) {},
-    );
+    final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
     const contextKey = EditorPaletteContextKey(
       mapId: 'town',
       layerId: 'ground',
@@ -310,8 +283,8 @@ class _PaletteHarness {
       activeLayerId: 'ground',
       activeTool: activeTool,
       activeBrush: activeBrush,
-      paletteSession: selectedTilesetId == null &&
-              projectElementCategoryId == null
+      paletteSession:
+          selectedTilesetId == null && projectElementCategoryId == null
           ? const EditorPaletteSession()
           : EditorPaletteSession(
               activeKey: contextKey,
@@ -361,7 +334,7 @@ class _PaletteHarness {
 
 class _ImmediateEditorImageCache extends EditorImageCache {
   _ImmediateEditorImageCache(String sessionKey, this._image)
-      : super(sessionKey: sessionKey);
+    : super(sessionKey: sessionKey);
 
   final ui.Image _image;
 
@@ -383,16 +356,8 @@ class _ImmediateEditorImageCache extends EditorImageCache {
 const _project = ProjectManifest(
   name: 'Palette publique',
   groups: <ProjectMapGroup>[
-    ProjectMapGroup(
-      id: 'towns',
-      name: 'Villes',
-      type: MapGroupType.city,
-    ),
-    ProjectMapGroup(
-      id: 'private',
-      name: 'Privé',
-      type: MapGroupType.special,
-    ),
+    ProjectMapGroup(id: 'towns', name: 'Villes', type: MapGroupType.city),
+    ProjectMapGroup(id: 'private', name: 'Privé', type: MapGroupType.special),
   ],
   maps: <ProjectMapEntry>[
     ProjectMapEntry(
@@ -433,10 +398,7 @@ const _project = ProjectManifest(
       categoryId: 'nature',
       presetKind: ElementPresetKind.tree,
       collisionProfile: ElementCollisionProfile(
-        cells: <GridPos>[
-          GridPos(x: 0, y: 0),
-          GridPos(x: 0, y: 1),
-        ],
+        cells: <GridPos>[GridPos(x: 0, y: 0), GridPos(x: 0, y: 1)],
       ),
       frames: <TilesetVisualFrame>[
         TilesetVisualFrame(
@@ -481,11 +443,7 @@ const _projectWithoutElements = ProjectManifest(
     ),
   ],
   groups: <ProjectMapGroup>[
-    ProjectMapGroup(
-      id: 'towns',
-      name: 'Villes',
-      type: MapGroupType.city,
-    ),
+    ProjectMapGroup(id: 'towns', name: 'Villes', type: MapGroupType.city),
   ],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(

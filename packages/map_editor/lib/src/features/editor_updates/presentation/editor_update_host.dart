@@ -13,10 +13,7 @@ import '../domain/editor_update_models.dart';
 import 'editor_update_banner.dart';
 
 final class EditorUpdateHost extends ConsumerStatefulWidget {
-  const EditorUpdateHost({
-    required this.child,
-    super.key,
-  });
+  const EditorUpdateHost({required this.child, super.key});
 
   final Widget child;
 
@@ -46,7 +43,7 @@ final class _EditorUpdateHostState extends ConsumerState<EditorUpdateHost> {
   Widget build(BuildContext context) {
     final controller = ref.watch(editorUpdateControllerProvider);
     final state =
-        ref.watch(editorUpdateStateProvider).valueOrNull ?? controller.state;
+        ref.watch(editorUpdateStateProvider).value ?? controller.state;
     final readiness = ref.watch(editorExitReadinessProvider);
     _queueRestartReadinessSynchronization(controller, readiness);
     final banner = _bannerFor(

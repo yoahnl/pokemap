@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/editor/editor_asset_cache_providers.dart';
@@ -15,42 +16,40 @@ import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/palette/map_layer_asset_palette.dart';
 
 void main() {
-  testWidgets(
-    'compatible cross-source asset is immediately available',
-    (tester) async {
-      final semantics = tester.ensureSemantics();
-      final harness = await _AssetHarness.create(selectedSourceId: 'details');
-      addTearDown(() => harness.dispose(tester));
-      await harness.pump(tester);
-      final cardFinder =
-          find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp'));
-      final enabledCard = tester.widget<PokeMapAssetCard>(cardFinder);
+  testWidgets('compatible cross-source asset is immediately available', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final harness = await _AssetHarness.create(selectedSourceId: 'details');
+    addTearDown(() => harness.dispose(tester));
+    await harness.pump(tester);
+    final cardFinder = find.byKey(MapLayerAssetPaletteKeys.elementCard('lamp'));
+    final enabledCard = tester.widget<PokeMapAssetCard>(cardFinder);
 
-      expect(enabledCard.onPressed, isNotNull);
-      expect(enabledCard.disabledReason, isNull);
-      expect(
-        tester
-            .widgetList<FocusableActionDetector>(
-              find.descendant(
-                of: cardFinder,
-                matching: find.byType(FocusableActionDetector),
-              ),
-            )
-            .single
-            .enabled,
-        isTrue,
-      );
+    expect(enabledCard.onPressed, isNotNull);
+    expect(enabledCard.disabledReason, isNull);
+    expect(
+      tester
+          .widgetList<FocusableActionDetector>(
+            find.descendant(
+              of: cardFinder,
+              matching: find.byType(FocusableActionDetector),
+            ),
+          )
+          .single
+          .enabled,
+      isTrue,
+    );
 
-      await tester.tap(cardFinder);
-      await tester.pump();
-      expect(
-        harness.notifier.state.activeBrush,
-        const EditorBrush.projectElement(elementId: 'lamp'),
-      );
-      expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
-      semantics.dispose();
-    },
-  );
+    await tester.tap(cardFinder);
+    await tester.pump();
+    expect(
+      harness.notifier.state.activeBrush,
+      const EditorBrush.projectElement(elementId: 'lamp'),
+    );
+    expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
+    semantics.dispose();
+  });
 
   testWidgets(
     'incompatible source stays disabled and cannot change brush or tool',
@@ -58,8 +57,9 @@ void main() {
       final harness = await _AssetHarness.create(selectedSourceId: 'private');
       addTearDown(() => harness.dispose(tester));
       await harness.pump(tester);
-      final cardFinder =
-          find.byKey(MapLayerAssetPaletteKeys.elementCard('private-actor'));
+      final cardFinder = find.byKey(
+        MapLayerAssetPaletteKeys.elementCard('private-actor'),
+      );
       final before = harness.notifier.state;
       final card = tester.widget<PokeMapAssetCard>(cardFinder);
 
@@ -185,7 +185,7 @@ class _AssetHarness {
 
 class _ImmediateImageCache extends EditorImageCache {
   _ImmediateImageCache(String sessionKey, this.image)
-      : super(sessionKey: sessionKey);
+    : super(sessionKey: sessionKey);
 
   final ui.Image image;
 

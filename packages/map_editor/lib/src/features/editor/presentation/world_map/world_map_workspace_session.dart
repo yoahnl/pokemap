@@ -34,7 +34,7 @@ typedef WorldMapPaintRoutingResult = ({
 });
 
 @freezed
-class WorldMapWorkspaceSession with _$WorldMapWorkspaceSession {
+abstract class WorldMapWorkspaceSession with _$WorldMapWorkspaceSession {
   const factory WorldMapWorkspaceSession({
     @Default(true) bool explorerExpanded,
     @Default(true) bool inspectorVisible,
@@ -51,15 +51,17 @@ class WorldMapWorkspaceSession with _$WorldMapWorkspaceSession {
   }) = _WorldMapWorkspaceSession;
 }
 
-final worldMapWorkspaceSessionProvider = NotifierProvider<
-    WorldMapWorkspaceSessionController, WorldMapWorkspaceSession>(
-  WorldMapWorkspaceSessionController.new,
-);
+final worldMapWorkspaceSessionProvider =
+    NotifierProvider<
+      WorldMapWorkspaceSessionController,
+      WorldMapWorkspaceSession
+    >(WorldMapWorkspaceSessionController.new);
 
-final worldMapAccessibilityErrorProvider = NotifierProvider<
-    WorldMapAccessibilityErrorController, WorldMapAccessibilityAnnouncement?>(
-  WorldMapAccessibilityErrorController.new,
-);
+final worldMapAccessibilityErrorProvider =
+    NotifierProvider<
+      WorldMapAccessibilityErrorController,
+      WorldMapAccessibilityAnnouncement?
+    >(WorldMapAccessibilityErrorController.new);
 
 class WorldMapAccessibilityAnnouncement {
   const WorldMapAccessibilityAnnouncement({
@@ -104,16 +106,14 @@ class WorldMapWorkspaceSessionController
   // Routing memory is session-only and keyed by project/document scope as
   // well as subtool. It never enters EditorState, JSON, or Undo/Redo.
   final LinkedHashMap<WorldMapDocumentScope, Map<WorldMapPaintSubtool, String>>
-      _lastCompatiblePaintLayerIdByScope = LinkedHashMap();
+  _lastCompatiblePaintLayerIdByScope = LinkedHashMap();
 
   @override
   WorldMapWorkspaceSession build() {
     final editorState = ref.read(editorNotifierProvider);
     _currentMapScope = worldMapDocumentScopeFromState(editorState);
     ref.listen<WorldMapDocumentScope>(
-      editorNotifierProvider.select(
-        worldMapDocumentScopeFromState,
-      ),
+      editorNotifierProvider.select(worldMapDocumentScopeFromState),
       (_, scope) => _resetForScope(scope),
     );
     return const WorldMapWorkspaceSession();
@@ -179,10 +179,7 @@ class WorldMapWorkspaceSessionController
     state = state.copyWith(pinnedInspectorKind: kind);
   }
 
-  void selectCell({
-    required String mapId,
-    required GridPos? cell,
-  }) {
+  void selectCell({required String mapId, required GridPos? cell}) {
     var candidate = _forMapOwnership(state, _scopeForMapId(mapId));
     candidate = candidate.copyWith(
       selectedCell: cell,
@@ -194,10 +191,7 @@ class WorldMapWorkspaceSessionController
 
   void clearSelectedCell() {
     if (state.selectedCell == null && state.selectedCellMapId == null) return;
-    state = state.copyWith(
-      selectedCell: null,
-      selectedCellMapId: null,
-    );
+    state = state.copyWith(selectedCell: null, selectedCellMapId: null);
   }
 
   void resetForMap(String? mapId) {
@@ -232,31 +226,31 @@ class WorldMapWorkspaceSessionController
     );
     candidate = switch (request) {
       ActivateWorldMapSelection() => candidate.copyWith(
-          activeFamily: WorldMapToolFamily.selection,
-        ),
+        activeFamily: WorldMapToolFamily.selection,
+      ),
       ActivateWorldMapPaint(:final subtool) => candidate.copyWith(
-          activeFamily: WorldMapToolFamily.paint,
-          lastPaintSubtool: subtool,
-          lastPaintSubtoolByLayerId: editorState.activeLayerId == null
-              ? candidate.lastPaintSubtoolByLayerId
-              : <String, WorldMapPaintSubtool>{
-                  ...candidate.lastPaintSubtoolByLayerId,
-                  editorState.activeLayerId!: subtool,
-                },
-          selectedCell: null,
-          selectedCellMapId: null,
-        ),
+        activeFamily: WorldMapToolFamily.paint,
+        lastPaintSubtool: subtool,
+        lastPaintSubtoolByLayerId: editorState.activeLayerId == null
+            ? candidate.lastPaintSubtoolByLayerId
+            : <String, WorldMapPaintSubtool>{
+                ...candidate.lastPaintSubtoolByLayerId,
+                editorState.activeLayerId!: subtool,
+              },
+        selectedCell: null,
+        selectedCellMapId: null,
+      ),
       ActivateWorldMapErase() => candidate.copyWith(
-          activeFamily: WorldMapToolFamily.erase,
-          selectedCell: null,
-          selectedCellMapId: null,
-        ),
+        activeFamily: WorldMapToolFamily.erase,
+        selectedCell: null,
+        selectedCellMapId: null,
+      ),
       ActivateWorldMapPlacement(:final subtool) => candidate.copyWith(
-          activeFamily: WorldMapToolFamily.place,
-          lastPlacementSubtool: subtool,
-          selectedCell: null,
-          selectedCellMapId: null,
-        ),
+        activeFamily: WorldMapToolFamily.place,
+        lastPlacementSubtool: subtool,
+        selectedCell: null,
+        selectedCellMapId: null,
+      ),
     };
     state = candidate;
   }
@@ -301,8 +295,8 @@ class WorldMapWorkspaceSessionController
     final targetLayerId = chosenLayerId == null
         ? routing.targetLayerId
         : compatibleLayerIds.contains(chosenLayerId)
-            ? chosenLayerId
-            : null;
+        ? chosenLayerId
+        : null;
     if (targetLayerId == null) {
       // Choice and missing-layer outcomes are pure presentation decisions:
       // the caller opens the existing inspection intent before any editor
@@ -412,7 +406,8 @@ class WorldMapWorkspaceSessionController
     required WorldMapPaintSubtool observedSubtool,
   }) {
     final snapshot = editorNotifier.worldMapToolActivationSessionSnapshot;
-    final subtool = snapshot.activeMapId == observedMapId &&
+    final subtool =
+        snapshot.activeMapId == observedMapId &&
             snapshot.activeLayerId == observedLayerId
         ? observedSubtool
         : resolveRememberedPaintSubtool(
@@ -480,15 +475,14 @@ class WorldMapWorkspaceSessionController
     return switch (source.activeFamily) {
       WorldMapToolFamily.selection ||
       WorldMapToolFamily.connections ||
-      WorldMapToolFamily.layers =>
-        const ActivateWorldMapSelection(),
+      WorldMapToolFamily.layers => const ActivateWorldMapSelection(),
       WorldMapToolFamily.paint => ActivateWorldMapPaint(
-          source.lastPaintSubtoolByLayerId[layerId] ?? source.lastPaintSubtool,
-        ),
+        source.lastPaintSubtoolByLayerId[layerId] ?? source.lastPaintSubtool,
+      ),
       WorldMapToolFamily.erase => const ActivateWorldMapErase(),
       WorldMapToolFamily.place => ActivateWorldMapPlacement(
-          source.lastPlacementSubtool,
-        ),
+        source.lastPlacementSubtool,
+      ),
     };
   }
 

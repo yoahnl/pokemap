@@ -6,283 +6,704 @@ part of 'editing_service_providers.dart';
 // RiverpodGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
+/// Providers orientés orchestration d'édition.
+///
+/// On regroupe ici les services/coordinators qui composent plusieurs use cases
+/// déjà existants. Le but est de rendre la composition root lisible par thème,
+/// pas d'ajouter une nouvelle couche abstraite.
+
+@ProviderFor(editorMapSessionCoordinator)
+final editorMapSessionCoordinatorProvider =
+    EditorMapSessionCoordinatorProvider._();
+
+/// Providers orientés orchestration d'édition.
+///
+/// On regroupe ici les services/coordinators qui composent plusieurs use cases
+/// déjà existants. Le but est de rendre la composition root lisible par thème,
+/// pas d'ajouter une nouvelle couche abstraite.
+
+final class EditorMapSessionCoordinatorProvider
+    extends
+        $FunctionalProvider<
+          EditorMapSessionCoordinator,
+          EditorMapSessionCoordinator,
+          EditorMapSessionCoordinator
+        >
+    with $Provider<EditorMapSessionCoordinator> {
+  /// Providers orientés orchestration d'édition.
+  ///
+  /// On regroupe ici les services/coordinators qui composent plusieurs use cases
+  /// déjà existants. Le but est de rendre la composition root lisible par thème,
+  /// pas d'ajouter une nouvelle couche abstraite.
+  EditorMapSessionCoordinatorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'editorMapSessionCoordinatorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$editorMapSessionCoordinatorHash();
+
+  @$internal
+  @override
+  $ProviderElement<EditorMapSessionCoordinator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  EditorMapSessionCoordinator create(Ref ref) {
+    return editorMapSessionCoordinator(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(EditorMapSessionCoordinator value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<EditorMapSessionCoordinator>(value),
+    );
+  }
+}
+
 String _$editorMapSessionCoordinatorHash() =>
     r'36758252f8c1d423908ec39a0e70e5f0f3edc388';
 
-/// See also [editorMapSessionCoordinator].
-@ProviderFor(editorMapSessionCoordinator)
-final editorMapSessionCoordinatorProvider =
-    AutoDisposeProvider<EditorMapSessionCoordinator>.internal(
-  editorMapSessionCoordinator,
-  name: r'editorMapSessionCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$editorMapSessionCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(mapHistoryCoordinator)
+final mapHistoryCoordinatorProvider = MapHistoryCoordinatorProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef EditorMapSessionCoordinatorRef
-    = AutoDisposeProviderRef<EditorMapSessionCoordinator>;
+final class MapHistoryCoordinatorProvider
+    extends
+        $FunctionalProvider<
+          MapHistoryCoordinator,
+          MapHistoryCoordinator,
+          MapHistoryCoordinator
+        >
+    with $Provider<MapHistoryCoordinator> {
+  MapHistoryCoordinatorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'mapHistoryCoordinatorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$mapHistoryCoordinatorHash();
+
+  @$internal
+  @override
+  $ProviderElement<MapHistoryCoordinator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  MapHistoryCoordinator create(Ref ref) {
+    return mapHistoryCoordinator(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(MapHistoryCoordinator value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MapHistoryCoordinator>(value),
+    );
+  }
+}
+
 String _$mapHistoryCoordinatorHash() =>
     r'bc8d7aa066d77dfe27ad1f80e4a78ed3df4f1d35';
 
-/// See also [mapHistoryCoordinator].
-@ProviderFor(mapHistoryCoordinator)
-final mapHistoryCoordinatorProvider =
-    AutoDisposeProvider<MapHistoryCoordinator>.internal(
-  mapHistoryCoordinator,
-  name: r'mapHistoryCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$mapHistoryCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(elementCollisionProfileGenerator)
+final elementCollisionProfileGeneratorProvider =
+    ElementCollisionProfileGeneratorProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef MapHistoryCoordinatorRef
-    = AutoDisposeProviderRef<MapHistoryCoordinator>;
+final class ElementCollisionProfileGeneratorProvider
+    extends
+        $FunctionalProvider<
+          ElementCollisionProfileGenerator,
+          ElementCollisionProfileGenerator,
+          ElementCollisionProfileGenerator
+        >
+    with $Provider<ElementCollisionProfileGenerator> {
+  ElementCollisionProfileGeneratorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'elementCollisionProfileGeneratorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$elementCollisionProfileGeneratorHash();
+
+  @$internal
+  @override
+  $ProviderElement<ElementCollisionProfileGenerator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  ElementCollisionProfileGenerator create(Ref ref) {
+    return elementCollisionProfileGenerator(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(ElementCollisionProfileGenerator value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<ElementCollisionProfileGenerator>(
+        value,
+      ),
+    );
+  }
+}
+
 String _$elementCollisionProfileGeneratorHash() =>
     r'eb949f8cdd12b3ed9c175b2a5936eee34817869c';
 
-/// See also [elementCollisionProfileGenerator].
-@ProviderFor(elementCollisionProfileGenerator)
-final elementCollisionProfileGeneratorProvider =
-    AutoDisposeProvider<ElementCollisionProfileGenerator>.internal(
-  elementCollisionProfileGenerator,
-  name: r'elementCollisionProfileGeneratorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$elementCollisionProfileGeneratorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(placedElementInstanceIndexer)
+final placedElementInstanceIndexerProvider =
+    PlacedElementInstanceIndexerProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef ElementCollisionProfileGeneratorRef
-    = AutoDisposeProviderRef<ElementCollisionProfileGenerator>;
+final class PlacedElementInstanceIndexerProvider
+    extends
+        $FunctionalProvider<
+          PlacedElementInstanceIndexer,
+          PlacedElementInstanceIndexer,
+          PlacedElementInstanceIndexer
+        >
+    with $Provider<PlacedElementInstanceIndexer> {
+  PlacedElementInstanceIndexerProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'placedElementInstanceIndexerProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$placedElementInstanceIndexerHash();
+
+  @$internal
+  @override
+  $ProviderElement<PlacedElementInstanceIndexer> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  PlacedElementInstanceIndexer create(Ref ref) {
+    return placedElementInstanceIndexer(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(PlacedElementInstanceIndexer value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<PlacedElementInstanceIndexer>(value),
+    );
+  }
+}
+
 String _$placedElementInstanceIndexerHash() =>
     r'f6b715a5967fdb2897fba6868e7d804bbb233da9';
 
-/// See also [placedElementInstanceIndexer].
-@ProviderFor(placedElementInstanceIndexer)
-final placedElementInstanceIndexerProvider =
-    AutoDisposeProvider<PlacedElementInstanceIndexer>.internal(
-  placedElementInstanceIndexer,
-  name: r'placedElementInstanceIndexerProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$placedElementInstanceIndexerHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(editorMapMutationCoordinator)
+final editorMapMutationCoordinatorProvider =
+    EditorMapMutationCoordinatorProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef PlacedElementInstanceIndexerRef
-    = AutoDisposeProviderRef<PlacedElementInstanceIndexer>;
+final class EditorMapMutationCoordinatorProvider
+    extends
+        $FunctionalProvider<
+          EditorMapMutationCoordinator,
+          EditorMapMutationCoordinator,
+          EditorMapMutationCoordinator
+        >
+    with $Provider<EditorMapMutationCoordinator> {
+  EditorMapMutationCoordinatorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'editorMapMutationCoordinatorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$editorMapMutationCoordinatorHash();
+
+  @$internal
+  @override
+  $ProviderElement<EditorMapMutationCoordinator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  EditorMapMutationCoordinator create(Ref ref) {
+    return editorMapMutationCoordinator(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(EditorMapMutationCoordinator value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<EditorMapMutationCoordinator>(value),
+    );
+  }
+}
+
 String _$editorMapMutationCoordinatorHash() =>
     r'f268918aeb5a98a3ad015aee2f8329acf4c23dd7';
 
-/// See also [editorMapMutationCoordinator].
-@ProviderFor(editorMapMutationCoordinator)
-final editorMapMutationCoordinatorProvider =
-    AutoDisposeProvider<EditorMapMutationCoordinator>.internal(
-  editorMapMutationCoordinator,
-  name: r'editorMapMutationCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$editorMapMutationCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(warpEditingCoordinator)
+final warpEditingCoordinatorProvider = WarpEditingCoordinatorProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef EditorMapMutationCoordinatorRef
-    = AutoDisposeProviderRef<EditorMapMutationCoordinator>;
+final class WarpEditingCoordinatorProvider
+    extends
+        $FunctionalProvider<
+          WarpEditingCoordinator,
+          WarpEditingCoordinator,
+          WarpEditingCoordinator
+        >
+    with $Provider<WarpEditingCoordinator> {
+  WarpEditingCoordinatorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'warpEditingCoordinatorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$warpEditingCoordinatorHash();
+
+  @$internal
+  @override
+  $ProviderElement<WarpEditingCoordinator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WarpEditingCoordinator create(Ref ref) {
+    return warpEditingCoordinator(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WarpEditingCoordinator value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WarpEditingCoordinator>(value),
+    );
+  }
+}
+
 String _$warpEditingCoordinatorHash() =>
     r'3aa5d3dacdb278c657bb0d636b5d04e5453c77f1';
 
-/// See also [warpEditingCoordinator].
-@ProviderFor(warpEditingCoordinator)
-final warpEditingCoordinatorProvider =
-    AutoDisposeProvider<WarpEditingCoordinator>.internal(
-  warpEditingCoordinator,
-  name: r'warpEditingCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$warpEditingCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(entityEditingCoordinator)
+final entityEditingCoordinatorProvider = EntityEditingCoordinatorProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef WarpEditingCoordinatorRef
-    = AutoDisposeProviderRef<WarpEditingCoordinator>;
+final class EntityEditingCoordinatorProvider
+    extends
+        $FunctionalProvider<
+          EntityEditingCoordinator,
+          EntityEditingCoordinator,
+          EntityEditingCoordinator
+        >
+    with $Provider<EntityEditingCoordinator> {
+  EntityEditingCoordinatorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'entityEditingCoordinatorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$entityEditingCoordinatorHash();
+
+  @$internal
+  @override
+  $ProviderElement<EntityEditingCoordinator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  EntityEditingCoordinator create(Ref ref) {
+    return entityEditingCoordinator(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(EntityEditingCoordinator value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<EntityEditingCoordinator>(value),
+    );
+  }
+}
+
 String _$entityEditingCoordinatorHash() =>
     r'8125ee6c7ec14c91e32882a279bcb6364910f333';
 
-/// See also [entityEditingCoordinator].
-@ProviderFor(entityEditingCoordinator)
-final entityEditingCoordinatorProvider =
-    AutoDisposeProvider<EntityEditingCoordinator>.internal(
-  entityEditingCoordinator,
-  name: r'entityEditingCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$entityEditingCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(triggerEditingCoordinator)
+final triggerEditingCoordinatorProvider = TriggerEditingCoordinatorProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef EntityEditingCoordinatorRef
-    = AutoDisposeProviderRef<EntityEditingCoordinator>;
+final class TriggerEditingCoordinatorProvider
+    extends
+        $FunctionalProvider<
+          TriggerEditingCoordinator,
+          TriggerEditingCoordinator,
+          TriggerEditingCoordinator
+        >
+    with $Provider<TriggerEditingCoordinator> {
+  TriggerEditingCoordinatorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'triggerEditingCoordinatorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$triggerEditingCoordinatorHash();
+
+  @$internal
+  @override
+  $ProviderElement<TriggerEditingCoordinator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  TriggerEditingCoordinator create(Ref ref) {
+    return triggerEditingCoordinator(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TriggerEditingCoordinator value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TriggerEditingCoordinator>(value),
+    );
+  }
+}
+
 String _$triggerEditingCoordinatorHash() =>
     r'95cfee377531922696ad5b127a649daa15d45f3f';
 
-/// See also [triggerEditingCoordinator].
-@ProviderFor(triggerEditingCoordinator)
-final triggerEditingCoordinatorProvider =
-    AutoDisposeProvider<TriggerEditingCoordinator>.internal(
-  triggerEditingCoordinator,
-  name: r'triggerEditingCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$triggerEditingCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(warpEditingService)
+final warpEditingServiceProvider = WarpEditingServiceProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef TriggerEditingCoordinatorRef
-    = AutoDisposeProviderRef<TriggerEditingCoordinator>;
+final class WarpEditingServiceProvider
+    extends
+        $FunctionalProvider<
+          WarpEditingService,
+          WarpEditingService,
+          WarpEditingService
+        >
+    with $Provider<WarpEditingService> {
+  WarpEditingServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'warpEditingServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$warpEditingServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<WarpEditingService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  WarpEditingService create(Ref ref) {
+    return warpEditingService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(WarpEditingService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<WarpEditingService>(value),
+    );
+  }
+}
+
 String _$warpEditingServiceHash() =>
     r'9a709f48d72b119940539494136c3b08e0f434c5';
 
-/// See also [warpEditingService].
-@ProviderFor(warpEditingService)
-final warpEditingServiceProvider =
-    AutoDisposeProvider<WarpEditingService>.internal(
-  warpEditingService,
-  name: r'warpEditingServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$warpEditingServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(triggerEditingService)
+final triggerEditingServiceProvider = TriggerEditingServiceProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef WarpEditingServiceRef = AutoDisposeProviderRef<WarpEditingService>;
+final class TriggerEditingServiceProvider
+    extends
+        $FunctionalProvider<
+          TriggerEditingService,
+          TriggerEditingService,
+          TriggerEditingService
+        >
+    with $Provider<TriggerEditingService> {
+  TriggerEditingServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'triggerEditingServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$triggerEditingServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<TriggerEditingService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  TriggerEditingService create(Ref ref) {
+    return triggerEditingService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(TriggerEditingService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<TriggerEditingService>(value),
+    );
+  }
+}
+
 String _$triggerEditingServiceHash() =>
     r'0eb238b1d556ff5f829bfd92543341238fe393b0';
 
-/// See also [triggerEditingService].
-@ProviderFor(triggerEditingService)
-final triggerEditingServiceProvider =
-    AutoDisposeProvider<TriggerEditingService>.internal(
-  triggerEditingService,
-  name: r'triggerEditingServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$triggerEditingServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+@ProviderFor(entityEditingService)
+final entityEditingServiceProvider = EntityEditingServiceProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef TriggerEditingServiceRef
-    = AutoDisposeProviderRef<TriggerEditingService>;
+final class EntityEditingServiceProvider
+    extends
+        $FunctionalProvider<
+          EntityEditingService,
+          EntityEditingService,
+          EntityEditingService
+        >
+    with $Provider<EntityEditingService> {
+  EntityEditingServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'entityEditingServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$entityEditingServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<EntityEditingService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  EntityEditingService create(Ref ref) {
+    return entityEditingService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(EntityEditingService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<EntityEditingService>(value),
+    );
+  }
+}
+
 String _$entityEditingServiceHash() =>
     r'76dcd79b87d77aa6d190d8d658f111bbc71f87b5';
 
-/// See also [entityEditingService].
-@ProviderFor(entityEditingService)
-final entityEditingServiceProvider =
-    AutoDisposeProvider<EntityEditingService>.internal(
-  entityEditingService,
-  name: r'entityEditingServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$entityEditingServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef EntityEditingServiceRef = AutoDisposeProviderRef<EntityEditingService>;
-String _$mapConnectionEditingServiceHash() =>
-    r'08f21b9c19e9d88a03b75625a0f5b340ecdcaf3d';
-
-/// See also [mapConnectionEditingService].
 @ProviderFor(mapConnectionEditingService)
 final mapConnectionEditingServiceProvider =
-    AutoDisposeProvider<MapConnectionEditingService>.internal(
-  mapConnectionEditingService,
-  name: r'mapConnectionEditingServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$mapConnectionEditingServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+    MapConnectionEditingServiceProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef MapConnectionEditingServiceRef
-    = AutoDisposeProviderRef<MapConnectionEditingService>;
+final class MapConnectionEditingServiceProvider
+    extends
+        $FunctionalProvider<
+          MapConnectionEditingService,
+          MapConnectionEditingService,
+          MapConnectionEditingService
+        >
+    with $Provider<MapConnectionEditingService> {
+  MapConnectionEditingServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'mapConnectionEditingServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$mapConnectionEditingServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<MapConnectionEditingService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  MapConnectionEditingService create(Ref ref) {
+    return mapConnectionEditingService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(MapConnectionEditingService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<MapConnectionEditingService>(value),
+    );
+  }
+}
+
+String _$mapConnectionEditingServiceHash() =>
+    r'a0c38a228f353ef06e236696cfc54b57be3a9983';
+
+@ProviderFor(gameplayZoneEditingCoordinator)
+final gameplayZoneEditingCoordinatorProvider =
+    GameplayZoneEditingCoordinatorProvider._();
+
+final class GameplayZoneEditingCoordinatorProvider
+    extends
+        $FunctionalProvider<
+          GameplayZoneEditingCoordinator,
+          GameplayZoneEditingCoordinator,
+          GameplayZoneEditingCoordinator
+        >
+    with $Provider<GameplayZoneEditingCoordinator> {
+  GameplayZoneEditingCoordinatorProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'gameplayZoneEditingCoordinatorProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$gameplayZoneEditingCoordinatorHash();
+
+  @$internal
+  @override
+  $ProviderElement<GameplayZoneEditingCoordinator> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  GameplayZoneEditingCoordinator create(Ref ref) {
+    return gameplayZoneEditingCoordinator(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GameplayZoneEditingCoordinator value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GameplayZoneEditingCoordinator>(
+        value,
+      ),
+    );
+  }
+}
+
 String _$gameplayZoneEditingCoordinatorHash() =>
     r'de7c7f3e76b629890609ce92731dd58b2783abb4';
 
-/// See also [gameplayZoneEditingCoordinator].
-@ProviderFor(gameplayZoneEditingCoordinator)
-final gameplayZoneEditingCoordinatorProvider =
-    AutoDisposeProvider<GameplayZoneEditingCoordinator>.internal(
-  gameplayZoneEditingCoordinator,
-  name: r'gameplayZoneEditingCoordinatorProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$gameplayZoneEditingCoordinatorHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
-
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef GameplayZoneEditingCoordinatorRef
-    = AutoDisposeProviderRef<GameplayZoneEditingCoordinator>;
-String _$gameplayZoneEditingServiceHash() =>
-    r'36699eac7645de126ef7e8325f9f303dafc363c3';
-
-/// See also [gameplayZoneEditingService].
 @ProviderFor(gameplayZoneEditingService)
 final gameplayZoneEditingServiceProvider =
-    AutoDisposeProvider<GameplayZoneEditingService>.internal(
-  gameplayZoneEditingService,
-  name: r'gameplayZoneEditingServiceProvider',
-  debugGetCreateSourceHash: const bool.fromEnvironment('dart.vm.product')
-      ? null
-      : _$gameplayZoneEditingServiceHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+    GameplayZoneEditingServiceProvider._();
 
-@Deprecated('Will be removed in 3.0. Use Ref instead')
-// ignore: unused_element
-typedef GameplayZoneEditingServiceRef
-    = AutoDisposeProviderRef<GameplayZoneEditingService>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class GameplayZoneEditingServiceProvider
+    extends
+        $FunctionalProvider<
+          GameplayZoneEditingService,
+          GameplayZoneEditingService,
+          GameplayZoneEditingService
+        >
+    with $Provider<GameplayZoneEditingService> {
+  GameplayZoneEditingServiceProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'gameplayZoneEditingServiceProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$gameplayZoneEditingServiceHash();
+
+  @$internal
+  @override
+  $ProviderElement<GameplayZoneEditingService> $createElement(
+    $ProviderPointer pointer,
+  ) => $ProviderElement(pointer);
+
+  @override
+  GameplayZoneEditingService create(Ref ref) {
+    return gameplayZoneEditingService(ref);
+  }
+
+  /// {@macro riverpod.override_with_value}
+  Override overrideWithValue(GameplayZoneEditingService value) {
+    return $ProviderOverride(
+      origin: this,
+      providerOverride: $SyncValueProvider<GameplayZoneEditingService>(value),
+    );
+  }
+}
+
+String _$gameplayZoneEditingServiceHash() =>
+    r'36699eac7645de126ef7e8325f9f303dafc363c3';

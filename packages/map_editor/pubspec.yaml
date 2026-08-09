@@ -4,7 +4,7 @@ version: 0.3.3+303
 publish_to: none
 
 environment:
-  sdk: '>=3.0.0 <4.0.0'
+  sdk: '>=3.9.0 <4.0.0'
   flutter: '>=3.10.0'
 
 dependencies:
@@ -13,10 +13,10 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.2
-  flutter_riverpod: ^2.4.9
-  riverpod_annotation: ^2.3.3
-  freezed_annotation: ^2.4.1
-  json_annotation: ^4.8.1
+  flutter_riverpod: 3.2.1
+  riverpod_annotation: 4.0.2
+  freezed_annotation: 3.1.0
+  json_annotation: 4.10.0
   path_provider: ^2.1.2
   package_info_plus: ^9.0.0
   file_picker: ^8.0.0
@@ -46,13 +46,14 @@ dev_dependencies:
   integration_test:
     sdk: flutter
   flutter_lints: ^3.0.1
-  build_runner: ^2.4.8
-  freezed: ^2.4.7
-  json_serializable: ^6.7.1
+  build_runner: 2.11.1
+  freezed: 3.2.4
+  json_serializable: 6.12.0
   # Debug-only desktop QA bridge. The production entrypoint never imports it.
   marionette_flutter: ^0.5.0
   marionette_mcp: ^0.6.0
-  riverpod_generator: ^2.3.9
+  riverpod: 3.2.1
+  riverpod_generator: 4.0.3
   xml: ^7.0.1
 
 flutter:

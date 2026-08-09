@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/main.dart' show MapEditorApp;
 import 'package:map_editor/src/debug/marionette_project_bootstrap.dart';
@@ -80,51 +81,51 @@ void main() {
       );
     },
   );
-  developer.registerExtension(
-    'ext.flutter.pokemap.marionette.projectContext',
-    (_, __) async {
-      final editor = container.read(editorNotifierProvider);
-      return developer.ServiceExtensionResponse.result(
-        jsonEncode(<String, Object?>{
-          'ready': editor.project != null,
-          'projectRootPath': editor.projectRootPath,
-          'projectName': editor.project?.name,
-        }),
-      );
-    },
-  );
+  developer.registerExtension('ext.flutter.pokemap.marionette.projectContext', (
+    _,
+    __,
+  ) async {
+    final editor = container.read(editorNotifierProvider);
+    return developer.ServiceExtensionResponse.result(
+      jsonEncode(<String, Object?>{
+        'ready': editor.project != null,
+        'projectRootPath': editor.projectRootPath,
+        'projectName': editor.project?.name,
+      }),
+    );
+  });
   developer.registerExtension(
     'ext.flutter.pokemap.marionette.drawPolyline',
     (_, parameters) => _drawPolyline(parameters),
   );
-  developer.registerExtension(
-    'ext.flutter.pokemap.marionette.openMap',
-    (_, parameters) async {
-      final relativePath = parameters['relativePath'];
-      if (relativePath == null || relativePath.isEmpty) {
-        return developer.ServiceExtensionResponse.result(
-          jsonEncode(<String, Object?>{
-            'opened': false,
-            'error': 'relativePath is required.',
-          }),
-        );
-      }
-      final notifier = container.read(editorNotifierProvider.notifier);
-      notifier.selectMapWorkspace();
-      await notifier.loadMap(relativePath);
-      final activeEditor = container.read(editorNotifierProvider);
+  developer.registerExtension('ext.flutter.pokemap.marionette.openMap', (
+    _,
+    parameters,
+  ) async {
+    final relativePath = parameters['relativePath'];
+    if (relativePath == null || relativePath.isEmpty) {
       return developer.ServiceExtensionResponse.result(
         jsonEncode(<String, Object?>{
-          'opened': activeEditor.activeMap != null,
-          'relativePath': relativePath,
-          'activeMapId': activeEditor.activeMap?.id,
-          'activeMapName': activeEditor.activeMap?.name,
-          'errorMessage': activeEditor.errorMessage,
-          'statusMessage': activeEditor.statusMessage,
+          'opened': false,
+          'error': 'relativePath is required.',
         }),
       );
-    },
-  );
+    }
+    final notifier = container.read(editorNotifierProvider.notifier);
+    notifier.selectMapWorkspace();
+    await notifier.loadMap(relativePath);
+    final activeEditor = container.read(editorNotifierProvider);
+    return developer.ServiceExtensionResponse.result(
+      jsonEncode(<String, Object?>{
+        'opened': activeEditor.activeMap != null,
+        'relativePath': relativePath,
+        'activeMapId': activeEditor.activeMap?.id,
+        'activeMapName': activeEditor.activeMap?.name,
+        'errorMessage': activeEditor.errorMessage,
+        'statusMessage': activeEditor.statusMessage,
+      }),
+    );
+  });
   developer.registerExtension(
     'ext.flutter.pokemap.marionette.prepareBorderQAPreview',
     (_, parameters) async {
@@ -206,46 +207,46 @@ void main() {
       );
     },
   );
-  developer.registerExtension(
-    'ext.flutter.pokemap.marionette.setMapViewport',
-    (_, parameters) async {
-      final requestedZoom = double.tryParse(parameters['zoom'] ?? '');
-      final requestedPanX = double.tryParse(parameters['panX'] ?? '');
-      final requestedPanY = double.tryParse(parameters['panY'] ?? '');
-      if (requestedZoom == null &&
-          requestedPanX == null &&
-          requestedPanY == null) {
-        return developer.ServiceExtensionResponse.result(
-          jsonEncode(<String, Object?>{
-            'updated': false,
-            'error': 'At least one of zoom, panX, or panY is required.',
-          }),
-        );
-      }
-      final notifier = container.read(editorNotifierProvider.notifier);
-      var activeEditor = container.read(editorNotifierProvider);
-      if (requestedZoom != null) {
-        notifier.zoom(requestedZoom - activeEditor.zoom);
-        activeEditor = container.read(editorNotifierProvider);
-      }
-      final targetPan = Offset(
-        requestedPanX ?? activeEditor.panOffset.dx,
-        requestedPanY ?? activeEditor.panOffset.dy,
-      );
-      notifier.pan(targetPan - activeEditor.panOffset);
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-      activeEditor = container.read(editorNotifierProvider);
+  developer.registerExtension('ext.flutter.pokemap.marionette.setMapViewport', (
+    _,
+    parameters,
+  ) async {
+    final requestedZoom = double.tryParse(parameters['zoom'] ?? '');
+    final requestedPanX = double.tryParse(parameters['panX'] ?? '');
+    final requestedPanY = double.tryParse(parameters['panY'] ?? '');
+    if (requestedZoom == null &&
+        requestedPanX == null &&
+        requestedPanY == null) {
       return developer.ServiceExtensionResponse.result(
         jsonEncode(<String, Object?>{
-          'updated': true,
-          'zoom': activeEditor.zoom,
-          'panX': activeEditor.panOffset.dx,
-          'panY': activeEditor.panOffset.dy,
-          'activeMapId': activeEditor.activeMap?.id,
+          'updated': false,
+          'error': 'At least one of zoom, panX, or panY is required.',
         }),
       );
-    },
-  );
+    }
+    final notifier = container.read(editorNotifierProvider.notifier);
+    var activeEditor = container.read(editorNotifierProvider);
+    if (requestedZoom != null) {
+      notifier.zoom(requestedZoom - activeEditor.zoom);
+      activeEditor = container.read(editorNotifierProvider);
+    }
+    final targetPan = Offset(
+      requestedPanX ?? activeEditor.panOffset.dx,
+      requestedPanY ?? activeEditor.panOffset.dy,
+    );
+    notifier.pan(targetPan - activeEditor.panOffset);
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    activeEditor = container.read(editorNotifierProvider);
+    return developer.ServiceExtensionResponse.result(
+      jsonEncode(<String, Object?>{
+        'updated': true,
+        'zoom': activeEditor.zoom,
+        'panX': activeEditor.panOffset.dx,
+        'panY': activeEditor.panOffset.dy,
+        'activeMapId': activeEditor.activeMap?.id,
+      }),
+    );
+  });
   developer.registerExtension(
     'ext.flutter.pokemap.marionette.inspectBorderFeature',
     (_, parameters) async {
@@ -253,29 +254,25 @@ void main() {
       final preview = container.read(borderPreviewControllerProvider);
       final transaction = preview.transaction;
       return developer.ServiceExtensionResponse.result(
-        jsonEncode(
-          <String, Object?>{
-            ...inspectBorderFeature(
-              map: activeEditor.activeMap,
-              project: activeEditor.project,
-              layerId: parameters['layerId'],
-              featureId: parameters['featureId'],
-              preview: transaction == null
-                  ? null
-                  : BorderFeatureInspectionPreview(
-                      layerId: transaction.layerId,
-                      feature: transaction.proposedFeature,
-                      materialization: transaction.result?.materialization,
-                    ),
-            ),
-            'previewPhase': preview.phase.name,
-            'previewDiagnostics': transaction?.result == null
-                ? const <Object?>[]
-                : _borderDiagnosticsJson(
-                    transaction!.result!.diagnosticReport,
+        jsonEncode(<String, Object?>{
+          ...inspectBorderFeature(
+            map: activeEditor.activeMap,
+            project: activeEditor.project,
+            layerId: parameters['layerId'],
+            featureId: parameters['featureId'],
+            preview: transaction == null
+                ? null
+                : BorderFeatureInspectionPreview(
+                    layerId: transaction.layerId,
+                    feature: transaction.proposedFeature,
+                    materialization: transaction.result?.materialization,
                   ),
-          },
-        ),
+          ),
+          'previewPhase': preview.phase.name,
+          'previewDiagnostics': transaction?.result == null
+              ? const <Object?>[]
+              : _borderDiagnosticsJson(transaction!.result!.diagnosticReport),
+        }),
       );
     },
   );
@@ -316,8 +313,9 @@ void main() {
       container
           .read(editorNotifierProvider.notifier)
           .selectBorderStudioWorkspace();
-      final controller =
-          container.read(borderStudioDraftControllerProvider.notifier);
+      final controller = container.read(
+        borderStudioDraftControllerProvider.notifier,
+      );
       controller.selectBlueprint(blueprintId);
       final state = container.read(borderStudioDraftControllerProvider);
       return developer.ServiceExtensionResponse.result(
@@ -343,10 +341,7 @@ void main() {
       final featureId = parameters['featureId'];
       final hasTarget = layerId != null && featureId != null;
       if (hasTarget) {
-        notifier.selectBorderFeature(
-          layerId: layerId,
-          featureId: featureId,
-        );
+        notifier.selectBorderFeature(layerId: layerId, featureId: featureId);
       }
       final prepared = hasTarget
           ? notifier.previewBorderFeatureUpdate(
@@ -404,24 +399,27 @@ void main() {
           }),
         );
       }
-      final preview =
-          const BorderFeatureAuthoringController().previewBlueprintChange(
-        map: map,
-        layerId: layer.id,
-        featureId: feature.id,
-        sourceBlueprint: project.borderCatalog.recordById(feature.blueprintId),
-        targetBlueprint: target,
-        visualSnapshots: project.borderCatalog.visualSnapshots,
-        tileSizePx: GridSize(
-          width: project.settings.tileWidth,
-          height: project.settings.tileHeight,
-        ),
-      );
+      final preview = const BorderFeatureAuthoringController()
+          .previewBlueprintChange(
+            map: map,
+            layerId: layer.id,
+            featureId: feature.id,
+            sourceBlueprint: project.borderCatalog.recordById(
+              feature.blueprintId,
+            ),
+            targetBlueprint: target,
+            visualSnapshots: project.borderCatalog.visualSnapshots,
+            tileSizePx: GridSize(
+              width: project.settings.tileWidth,
+              height: project.settings.tileHeight,
+            ),
+          );
       if (preview.canApply) {
         notifier.changeBorderFeatureBlueprint(preview);
       }
-      final saveOutcome =
-          preview.canApply ? await notifier.saveActiveMap() : null;
+      final saveOutcome = preview.canApply
+          ? await notifier.saveActiveMap()
+          : null;
       final updatedEditor = container.read(editorNotifierProvider);
       final updatedFeature = updatedEditor.activeMap?.layers
           .whereType<BorderLayer>()
@@ -434,16 +432,19 @@ void main() {
           'canApply': preview.canApply,
           'blockedReason': preview.blockedReason,
           'losses': preview.losses.map((loss) => loss.name).toList(),
-          'diagnostics':
-              preview.relink.proposedResult?.diagnosticReport.diagnostics
-                  .map(
-                    (diagnostic) => <String, Object?>{
-                      'severity': diagnostic.severity.name,
-                      'code': diagnostic.code,
-                      'parameters': diagnostic.parameters,
-                    },
-                  )
-                  .toList(),
+          'diagnostics': preview
+              .relink
+              .proposedResult
+              ?.diagnosticReport
+              .diagnostics
+              .map(
+                (diagnostic) => <String, Object?>{
+                  'severity': diagnostic.severity.name,
+                  'code': diagnostic.code,
+                  'parameters': diagnostic.parameters,
+                },
+              )
+              .toList(),
           'blueprintId': updatedFeature?.blueprintId,
           'placementCount': updatedFeature?.materialization?.placements.length,
           'saveOutcome': saveOutcome?.toString(),
@@ -507,22 +508,21 @@ Map<String, Object?> selectEditorToolForMarionette({
 /// coverage.
 List<BorderPrimitiveDraft> disableFillerPrimitivesForMarionette(
   List<BorderPrimitiveDraft> primitives,
-) =>
-    <BorderPrimitiveDraft>[
-      for (final primitive in primitives)
-        BorderPrimitiveDraft(
-          id: primitive.id,
-          sourceElementId: primitive.sourceElementId,
-          role: primitive.role,
-          authoredOrientation: primitive.authoredOrientation,
-          weight: primitive.role == BorderPrimitiveRole.filler
-              ? 0
-              : primitive.weight,
-          anchorPx: primitive.anchorPx,
-          transforms: primitive.transforms,
-          currentMetrics: primitive.currentMetrics,
-        ),
-    ];
+) => <BorderPrimitiveDraft>[
+  for (final primitive in primitives)
+    BorderPrimitiveDraft(
+      id: primitive.id,
+      sourceElementId: primitive.sourceElementId,
+      role: primitive.role,
+      authoredOrientation: primitive.authoredOrientation,
+      weight: primitive.role == BorderPrimitiveRole.filler
+          ? 0
+          : primitive.weight,
+      anchorPx: primitive.anchorPx,
+      transforms: primitive.transforms,
+      currentMetrics: primitive.currentMetrics,
+    ),
+];
 
 /// Refines only the resolved Border preview used by visual QA.
 ///
@@ -556,12 +556,12 @@ Map<String, Object?> setBorderPreviewAutoRotationForMarionette({
   final editor = container.read(editorNotifierProvider);
   final preview = container.read(borderPreviewControllerProvider);
   final transaction = preview.transaction;
-  final placements = transaction?.result?.materialization?.placements ??
+  final placements =
+      transaction?.result?.materialization?.placements ??
       const <BorderResolvedPlacement>[];
-  final slotKeys = placements
-      .map((placement) => placement.slotKey)
-      .toList(growable: false)
-    ..sort();
+  final slotKeys =
+      placements.map((placement) => placement.slotKey).toList(growable: false)
+        ..sort();
   return <String, Object?>{
     'updated': updated,
     'layerId': transaction?.layerId,
@@ -577,7 +577,7 @@ Map<String, Object?> setBorderPreviewAutoRotationForMarionette({
 }
 
 Future<developer.ServiceExtensionResponse>
-    _reanalyzeSavePublishBorderBlueprint({
+_reanalyzeSavePublishBorderBlueprint({
   required ProviderContainer container,
   required Map<String, String> parameters,
 }) async {
@@ -621,8 +621,9 @@ Future<developer.ServiceExtensionResponse>
     container
         .read(editorNotifierProvider.notifier)
         .selectBorderStudioWorkspace();
-    final controller =
-        container.read(borderStudioDraftControllerProvider.notifier);
+    final controller = container.read(
+      borderStudioDraftControllerProvider.notifier,
+    );
     controller.selectBlueprint(blueprintId);
     final selectedState = container.read(borderStudioDraftControllerProvider);
     final working = selectedState.workingDraft;
@@ -630,14 +631,18 @@ Future<developer.ServiceExtensionResponse>
       throw StateError('The requested Border blueprint was not selected.');
     }
 
-    final requestedDetailDensity =
-        int.tryParse(parameters['detailDensityPermille'] ?? '');
-    final requestedIrregularity =
-        int.tryParse(parameters['irregularityPermille'] ?? '');
-    final requestedMaximumOverlap =
-        int.tryParse(parameters['maxOverlapPx'] ?? '');
-    final requestedGapTolerance =
-        int.tryParse(parameters['gapTolerancePx'] ?? '');
+    final requestedDetailDensity = int.tryParse(
+      parameters['detailDensityPermille'] ?? '',
+    );
+    final requestedIrregularity = int.tryParse(
+      parameters['irregularityPermille'] ?? '',
+    );
+    final requestedMaximumOverlap = int.tryParse(
+      parameters['maxOverlapPx'] ?? '',
+    );
+    final requestedGapTolerance = int.tryParse(
+      parameters['gapTolerancePx'] ?? '',
+    );
     if (requestedDetailDensity != null ||
         requestedIrregularity != null ||
         requestedMaximumOverlap != null ||
@@ -670,8 +675,9 @@ Future<developer.ServiceExtensionResponse>
     }
 
     stage = 'reanalyze-primitives';
-    final configuredWorking =
-        container.read(borderStudioDraftControllerProvider).workingDraft!;
+    final configuredWorking = container
+        .read(borderStudioDraftControllerProvider)
+        .workingDraft!;
     final primitives = List<BorderPrimitiveDraft>.of(
       configuredWorking.blueprint.definition.primitives,
     );
@@ -705,15 +711,17 @@ Future<developer.ServiceExtensionResponse>
       throw StateError('The reanalyzed Border draft could not be saved.');
     }
 
-    final savedRecord =
-        savedDraftManifest.borderCatalog.recordById(blueprintId);
+    final savedRecord = savedDraftManifest.borderCatalog.recordById(
+      blueprintId,
+    );
     if (savedRecord == null) {
       throw StateError('The saved Border blueprint record is missing.');
     }
 
     stage = 'prepare-publication';
-    final prepareCoordinator =
-        container.read(borderStudioPublicationCoordinatorProvider);
+    final prepareCoordinator = container.read(
+      borderStudioPublicationCoordinatorProvider,
+    );
     if (prepareCoordinator == null) {
       throw StateError('Border publication is unavailable for this project.');
     }
@@ -760,8 +768,9 @@ Future<developer.ServiceExtensionResponse>
     // authoring state. Its manifest transaction deliberately captures the
     // latest editor session and rejects stale in-memory refreshes.
     stage = 'publish';
-    final publishCoordinator =
-        container.read(borderStudioPublicationCoordinatorProvider);
+    final publishCoordinator = container.read(
+      borderStudioPublicationCoordinatorProvider,
+    );
     if (publishCoordinator == null) {
       throw StateError('Border publication became unavailable.');
     }
@@ -812,18 +821,17 @@ Future<developer.ServiceExtensionResponse>
 
 List<Map<String, Object?>> _borderDiagnosticsJson(
   BorderDiagnosticsReport report,
-) =>
-    <Map<String, Object?>>[
-      for (final diagnostic in report.diagnostics)
-        <String, Object?>{
-          'severity': diagnostic.severity.name,
-          'phase': diagnostic.phase.name,
-          'scope': diagnostic.scope.name,
-          'code': diagnostic.code,
-          'parameters': diagnostic.parameters,
-          'suggestedAction': diagnostic.suggestedAction,
-        },
-    ];
+) => <Map<String, Object?>>[
+  for (final diagnostic in report.diagnostics)
+    <String, Object?>{
+      'severity': diagnostic.severity.name,
+      'phase': diagnostic.phase.name,
+      'scope': diagnostic.scope.name,
+      'code': diagnostic.code,
+      'parameters': diagnostic.parameters,
+      'suggestedAction': diagnostic.suggestedAction,
+    },
+];
 
 Future<developer.ServiceExtensionResponse> _drawPolyline(
   Map<String, String> parameters,
@@ -860,17 +868,19 @@ Future<developer.ServiceExtensionResponse> _drawPolyline(
     if (decoded is! List || decoded.length < 2) {
       throw const FormatException('points must contain at least two entries.');
     }
-    final points = decoded.map((entry) {
-      if (entry is! Map) {
-        throw const FormatException('Each point must be an object.');
-      }
-      final x = entry['x'];
-      final y = entry['y'];
-      if (x is! num || y is! num) {
-        throw const FormatException('Each point needs numeric x and y.');
-      }
-      return Offset(x.toDouble(), y.toDouble());
-    }).toList(growable: false);
+    final points = decoded
+        .map((entry) {
+          if (entry is! Map) {
+            throw const FormatException('Each point must be an object.');
+          }
+          final x = entry['x'];
+          final y = entry['y'];
+          if (x is! num || y is! num) {
+            throw const FormatException('Each point needs numeric x and y.');
+          }
+          return Offset(x.toDouble(), y.toDouble());
+        })
+        .toList(growable: false);
     final spacing = math.max(
       1.0,
       double.tryParse(parameters['spacing'] ?? '') ?? 8.0,

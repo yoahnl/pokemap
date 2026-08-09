@@ -1,5 +1,5 @@
-// coverage:ignore-file
 // GENERATED CODE - DO NOT MODIFY BY HAND
+// coverage:ignore-file
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
@@ -9,384 +9,320 @@ part of 'world_map_workspace_session.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// dart format off
 T _$identity<T>(T value) => value;
-
-final _privateConstructorUsedError = UnsupportedError(
-    'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
-
 /// @nodoc
 mixin _$WorldMapWorkspaceSession {
-  bool get explorerExpanded => throw _privateConstructorUsedError;
-  bool get inspectorVisible => throw _privateConstructorUsedError;
-  double get inspectorWidth => throw _privateConstructorUsedError;
-  WorldMapToolFamily get activeFamily => throw _privateConstructorUsedError;
-  WorldMapPaintSubtool get lastPaintSubtool =>
-      throw _privateConstructorUsedError;
-  WorldMapPlacementSubtool get lastPlacementSubtool =>
-      throw _privateConstructorUsedError;
-  Map<String, WorldMapPaintSubtool> get lastPaintSubtoolByLayerId =>
-      throw _privateConstructorUsedError;
-  WorldMapInspectorKind? get pinnedInspectorKind =>
-      throw _privateConstructorUsedError;
-  GridPos? get selectedCell => throw _privateConstructorUsedError;
-  String? get selectedCellMapId => throw _privateConstructorUsedError;
 
-  /// Create a copy of WorldMapWorkspaceSession
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  $WorldMapWorkspaceSessionCopyWith<WorldMapWorkspaceSession> get copyWith =>
-      throw _privateConstructorUsedError;
+ bool get explorerExpanded; bool get inspectorVisible; double get inspectorWidth; WorldMapToolFamily get activeFamily; WorldMapPaintSubtool get lastPaintSubtool; WorldMapPlacementSubtool get lastPlacementSubtool; Map<String, WorldMapPaintSubtool> get lastPaintSubtoolByLayerId; WorldMapInspectorKind? get pinnedInspectorKind; GridPos? get selectedCell; String? get selectedCellMapId;
+/// Create a copy of WorldMapWorkspaceSession
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$WorldMapWorkspaceSessionCopyWith<WorldMapWorkspaceSession> get copyWith => _$WorldMapWorkspaceSessionCopyWithImpl<WorldMapWorkspaceSession>(this as WorldMapWorkspaceSession, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is WorldMapWorkspaceSession&&(identical(other.explorerExpanded, explorerExpanded) || other.explorerExpanded == explorerExpanded)&&(identical(other.inspectorVisible, inspectorVisible) || other.inspectorVisible == inspectorVisible)&&(identical(other.inspectorWidth, inspectorWidth) || other.inspectorWidth == inspectorWidth)&&(identical(other.activeFamily, activeFamily) || other.activeFamily == activeFamily)&&(identical(other.lastPaintSubtool, lastPaintSubtool) || other.lastPaintSubtool == lastPaintSubtool)&&(identical(other.lastPlacementSubtool, lastPlacementSubtool) || other.lastPlacementSubtool == lastPlacementSubtool)&&const DeepCollectionEquality().equals(other.lastPaintSubtoolByLayerId, lastPaintSubtoolByLayerId)&&(identical(other.pinnedInspectorKind, pinnedInspectorKind) || other.pinnedInspectorKind == pinnedInspectorKind)&&(identical(other.selectedCell, selectedCell) || other.selectedCell == selectedCell)&&(identical(other.selectedCellMapId, selectedCellMapId) || other.selectedCellMapId == selectedCellMapId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,explorerExpanded,inspectorVisible,inspectorWidth,activeFamily,lastPaintSubtool,lastPlacementSubtool,const DeepCollectionEquality().hash(lastPaintSubtoolByLayerId),pinnedInspectorKind,selectedCell,selectedCellMapId);
+
+@override
+String toString() {
+  return 'WorldMapWorkspaceSession(explorerExpanded: $explorerExpanded, inspectorVisible: $inspectorVisible, inspectorWidth: $inspectorWidth, activeFamily: $activeFamily, lastPaintSubtool: $lastPaintSubtool, lastPlacementSubtool: $lastPlacementSubtool, lastPaintSubtoolByLayerId: $lastPaintSubtoolByLayerId, pinnedInspectorKind: $pinnedInspectorKind, selectedCell: $selectedCell, selectedCellMapId: $selectedCellMapId)';
+}
+
+
 }
 
 /// @nodoc
-abstract class $WorldMapWorkspaceSessionCopyWith<$Res> {
-  factory $WorldMapWorkspaceSessionCopyWith(WorldMapWorkspaceSession value,
-          $Res Function(WorldMapWorkspaceSession) then) =
-      _$WorldMapWorkspaceSessionCopyWithImpl<$Res, WorldMapWorkspaceSession>;
-  @useResult
-  $Res call(
-      {bool explorerExpanded,
-      bool inspectorVisible,
-      double inspectorWidth,
-      WorldMapToolFamily activeFamily,
-      WorldMapPaintSubtool lastPaintSubtool,
-      WorldMapPlacementSubtool lastPlacementSubtool,
-      Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId,
-      WorldMapInspectorKind? pinnedInspectorKind,
-      GridPos? selectedCell,
-      String? selectedCellMapId});
+abstract mixin class $WorldMapWorkspaceSessionCopyWith<$Res>  {
+  factory $WorldMapWorkspaceSessionCopyWith(WorldMapWorkspaceSession value, $Res Function(WorldMapWorkspaceSession) _then) = _$WorldMapWorkspaceSessionCopyWithImpl;
+@useResult
+$Res call({
+ bool explorerExpanded, bool inspectorVisible, double inspectorWidth, WorldMapToolFamily activeFamily, WorldMapPaintSubtool lastPaintSubtool, WorldMapPlacementSubtool lastPlacementSubtool, Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId, WorldMapInspectorKind? pinnedInspectorKind, GridPos? selectedCell, String? selectedCellMapId
+});
 
-  $GridPosCopyWith<$Res>? get selectedCell;
+
+$GridPosCopyWith<$Res>? get selectedCell;
+
 }
-
 /// @nodoc
-class _$WorldMapWorkspaceSessionCopyWithImpl<$Res,
-        $Val extends WorldMapWorkspaceSession>
+class _$WorldMapWorkspaceSessionCopyWithImpl<$Res>
     implements $WorldMapWorkspaceSessionCopyWith<$Res> {
-  _$WorldMapWorkspaceSessionCopyWithImpl(this._value, this._then);
+  _$WorldMapWorkspaceSessionCopyWithImpl(this._self, this._then);
 
-  // ignore: unused_field
-  final $Val _value;
-  // ignore: unused_field
-  final $Res Function($Val) _then;
+  final WorldMapWorkspaceSession _self;
+  final $Res Function(WorldMapWorkspaceSession) _then;
 
-  /// Create a copy of WorldMapWorkspaceSession
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? explorerExpanded = null,
-    Object? inspectorVisible = null,
-    Object? inspectorWidth = null,
-    Object? activeFamily = null,
-    Object? lastPaintSubtool = null,
-    Object? lastPlacementSubtool = null,
-    Object? lastPaintSubtoolByLayerId = null,
-    Object? pinnedInspectorKind = freezed,
-    Object? selectedCell = freezed,
-    Object? selectedCellMapId = freezed,
-  }) {
-    return _then(_value.copyWith(
-      explorerExpanded: null == explorerExpanded
-          ? _value.explorerExpanded
-          : explorerExpanded // ignore: cast_nullable_to_non_nullable
-              as bool,
-      inspectorVisible: null == inspectorVisible
-          ? _value.inspectorVisible
-          : inspectorVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      inspectorWidth: null == inspectorWidth
-          ? _value.inspectorWidth
-          : inspectorWidth // ignore: cast_nullable_to_non_nullable
-              as double,
-      activeFamily: null == activeFamily
-          ? _value.activeFamily
-          : activeFamily // ignore: cast_nullable_to_non_nullable
-              as WorldMapToolFamily,
-      lastPaintSubtool: null == lastPaintSubtool
-          ? _value.lastPaintSubtool
-          : lastPaintSubtool // ignore: cast_nullable_to_non_nullable
-              as WorldMapPaintSubtool,
-      lastPlacementSubtool: null == lastPlacementSubtool
-          ? _value.lastPlacementSubtool
-          : lastPlacementSubtool // ignore: cast_nullable_to_non_nullable
-              as WorldMapPlacementSubtool,
-      lastPaintSubtoolByLayerId: null == lastPaintSubtoolByLayerId
-          ? _value.lastPaintSubtoolByLayerId
-          : lastPaintSubtoolByLayerId // ignore: cast_nullable_to_non_nullable
-              as Map<String, WorldMapPaintSubtool>,
-      pinnedInspectorKind: freezed == pinnedInspectorKind
-          ? _value.pinnedInspectorKind
-          : pinnedInspectorKind // ignore: cast_nullable_to_non_nullable
-              as WorldMapInspectorKind?,
-      selectedCell: freezed == selectedCell
-          ? _value.selectedCell
-          : selectedCell // ignore: cast_nullable_to_non_nullable
-              as GridPos?,
-      selectedCellMapId: freezed == selectedCellMapId
-          ? _value.selectedCellMapId
-          : selectedCellMapId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ) as $Val);
+/// Create a copy of WorldMapWorkspaceSession
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? explorerExpanded = null,Object? inspectorVisible = null,Object? inspectorWidth = null,Object? activeFamily = null,Object? lastPaintSubtool = null,Object? lastPlacementSubtool = null,Object? lastPaintSubtoolByLayerId = null,Object? pinnedInspectorKind = freezed,Object? selectedCell = freezed,Object? selectedCellMapId = freezed,}) {
+  return _then(_self.copyWith(
+explorerExpanded: null == explorerExpanded ? _self.explorerExpanded : explorerExpanded // ignore: cast_nullable_to_non_nullable
+as bool,inspectorVisible: null == inspectorVisible ? _self.inspectorVisible : inspectorVisible // ignore: cast_nullable_to_non_nullable
+as bool,inspectorWidth: null == inspectorWidth ? _self.inspectorWidth : inspectorWidth // ignore: cast_nullable_to_non_nullable
+as double,activeFamily: null == activeFamily ? _self.activeFamily : activeFamily // ignore: cast_nullable_to_non_nullable
+as WorldMapToolFamily,lastPaintSubtool: null == lastPaintSubtool ? _self.lastPaintSubtool : lastPaintSubtool // ignore: cast_nullable_to_non_nullable
+as WorldMapPaintSubtool,lastPlacementSubtool: null == lastPlacementSubtool ? _self.lastPlacementSubtool : lastPlacementSubtool // ignore: cast_nullable_to_non_nullable
+as WorldMapPlacementSubtool,lastPaintSubtoolByLayerId: null == lastPaintSubtoolByLayerId ? _self.lastPaintSubtoolByLayerId : lastPaintSubtoolByLayerId // ignore: cast_nullable_to_non_nullable
+as Map<String, WorldMapPaintSubtool>,pinnedInspectorKind: freezed == pinnedInspectorKind ? _self.pinnedInspectorKind : pinnedInspectorKind // ignore: cast_nullable_to_non_nullable
+as WorldMapInspectorKind?,selectedCell: freezed == selectedCell ? _self.selectedCell : selectedCell // ignore: cast_nullable_to_non_nullable
+as GridPos?,selectedCellMapId: freezed == selectedCellMapId ? _self.selectedCellMapId : selectedCellMapId // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+/// Create a copy of WorldMapWorkspaceSession
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res>? get selectedCell {
+    if (_self.selectedCell == null) {
+    return null;
   }
 
-  /// Create a copy of WorldMapWorkspaceSession
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @pragma('vm:prefer-inline')
-  $GridPosCopyWith<$Res>? get selectedCell {
-    if (_value.selectedCell == null) {
-      return null;
-    }
-
-    return $GridPosCopyWith<$Res>(_value.selectedCell!, (value) {
-      return _then(_value.copyWith(selectedCell: value) as $Val);
-    });
-  }
+  return $GridPosCopyWith<$Res>(_self.selectedCell!, (value) {
+    return _then(_self.copyWith(selectedCell: value));
+  });
+}
 }
 
-/// @nodoc
-abstract class _$$WorldMapWorkspaceSessionImplCopyWith<$Res>
-    implements $WorldMapWorkspaceSessionCopyWith<$Res> {
-  factory _$$WorldMapWorkspaceSessionImplCopyWith(
-          _$WorldMapWorkspaceSessionImpl value,
-          $Res Function(_$WorldMapWorkspaceSessionImpl) then) =
-      __$$WorldMapWorkspaceSessionImplCopyWithImpl<$Res>;
-  @override
-  @useResult
-  $Res call(
-      {bool explorerExpanded,
-      bool inspectorVisible,
-      double inspectorWidth,
-      WorldMapToolFamily activeFamily,
-      WorldMapPaintSubtool lastPaintSubtool,
-      WorldMapPlacementSubtool lastPlacementSubtool,
-      Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId,
-      WorldMapInspectorKind? pinnedInspectorKind,
-      GridPos? selectedCell,
-      String? selectedCellMapId});
 
-  @override
-  $GridPosCopyWith<$Res>? get selectedCell;
+/// Adds pattern-matching-related methods to [WorldMapWorkspaceSession].
+extension WorldMapWorkspaceSessionPatterns on WorldMapWorkspaceSession {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>(TResult Function( _WorldMapWorkspaceSession value)?  $default,{required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case _WorldMapWorkspaceSession() when $default != null:
+return $default(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>(TResult Function( _WorldMapWorkspaceSession value)  $default,){
+final _that = this;
+switch (_that) {
+case _WorldMapWorkspaceSession():
+return $default(_that);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>(TResult? Function( _WorldMapWorkspaceSession value)?  $default,){
+final _that = this;
+switch (_that) {
+case _WorldMapWorkspaceSession() when $default != null:
+return $default(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool explorerExpanded,  bool inspectorVisible,  double inspectorWidth,  WorldMapToolFamily activeFamily,  WorldMapPaintSubtool lastPaintSubtool,  WorldMapPlacementSubtool lastPlacementSubtool,  Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId,  WorldMapInspectorKind? pinnedInspectorKind,  GridPos? selectedCell,  String? selectedCellMapId)?  $default,{required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case _WorldMapWorkspaceSession() when $default != null:
+return $default(_that.explorerExpanded,_that.inspectorVisible,_that.inspectorWidth,_that.activeFamily,_that.lastPaintSubtool,_that.lastPlacementSubtool,_that.lastPaintSubtoolByLayerId,_that.pinnedInspectorKind,_that.selectedCell,_that.selectedCellMapId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool explorerExpanded,  bool inspectorVisible,  double inspectorWidth,  WorldMapToolFamily activeFamily,  WorldMapPaintSubtool lastPaintSubtool,  WorldMapPlacementSubtool lastPlacementSubtool,  Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId,  WorldMapInspectorKind? pinnedInspectorKind,  GridPos? selectedCell,  String? selectedCellMapId)  $default,) {final _that = this;
+switch (_that) {
+case _WorldMapWorkspaceSession():
+return $default(_that.explorerExpanded,_that.inspectorVisible,_that.inspectorWidth,_that.activeFamily,_that.lastPaintSubtool,_that.lastPlacementSubtool,_that.lastPaintSubtoolByLayerId,_that.pinnedInspectorKind,_that.selectedCell,_that.selectedCellMapId);case _:
+  throw StateError('Unexpected subclass');
+
+}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool explorerExpanded,  bool inspectorVisible,  double inspectorWidth,  WorldMapToolFamily activeFamily,  WorldMapPaintSubtool lastPaintSubtool,  WorldMapPlacementSubtool lastPlacementSubtool,  Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId,  WorldMapInspectorKind? pinnedInspectorKind,  GridPos? selectedCell,  String? selectedCellMapId)?  $default,) {final _that = this;
+switch (_that) {
+case _WorldMapWorkspaceSession() when $default != null:
+return $default(_that.explorerExpanded,_that.inspectorVisible,_that.inspectorWidth,_that.activeFamily,_that.lastPaintSubtool,_that.lastPlacementSubtool,_that.lastPaintSubtoolByLayerId,_that.pinnedInspectorKind,_that.selectedCell,_that.selectedCellMapId);case _:
+  return null;
+
+}
 }
 
-/// @nodoc
-class __$$WorldMapWorkspaceSessionImplCopyWithImpl<$Res>
-    extends _$WorldMapWorkspaceSessionCopyWithImpl<$Res,
-        _$WorldMapWorkspaceSessionImpl>
-    implements _$$WorldMapWorkspaceSessionImplCopyWith<$Res> {
-  __$$WorldMapWorkspaceSessionImplCopyWithImpl(
-      _$WorldMapWorkspaceSessionImpl _value,
-      $Res Function(_$WorldMapWorkspaceSessionImpl) _then)
-      : super(_value, _then);
-
-  /// Create a copy of WorldMapWorkspaceSession
-  /// with the given fields replaced by the non-null parameter values.
-  @pragma('vm:prefer-inline')
-  @override
-  $Res call({
-    Object? explorerExpanded = null,
-    Object? inspectorVisible = null,
-    Object? inspectorWidth = null,
-    Object? activeFamily = null,
-    Object? lastPaintSubtool = null,
-    Object? lastPlacementSubtool = null,
-    Object? lastPaintSubtoolByLayerId = null,
-    Object? pinnedInspectorKind = freezed,
-    Object? selectedCell = freezed,
-    Object? selectedCellMapId = freezed,
-  }) {
-    return _then(_$WorldMapWorkspaceSessionImpl(
-      explorerExpanded: null == explorerExpanded
-          ? _value.explorerExpanded
-          : explorerExpanded // ignore: cast_nullable_to_non_nullable
-              as bool,
-      inspectorVisible: null == inspectorVisible
-          ? _value.inspectorVisible
-          : inspectorVisible // ignore: cast_nullable_to_non_nullable
-              as bool,
-      inspectorWidth: null == inspectorWidth
-          ? _value.inspectorWidth
-          : inspectorWidth // ignore: cast_nullable_to_non_nullable
-              as double,
-      activeFamily: null == activeFamily
-          ? _value.activeFamily
-          : activeFamily // ignore: cast_nullable_to_non_nullable
-              as WorldMapToolFamily,
-      lastPaintSubtool: null == lastPaintSubtool
-          ? _value.lastPaintSubtool
-          : lastPaintSubtool // ignore: cast_nullable_to_non_nullable
-              as WorldMapPaintSubtool,
-      lastPlacementSubtool: null == lastPlacementSubtool
-          ? _value.lastPlacementSubtool
-          : lastPlacementSubtool // ignore: cast_nullable_to_non_nullable
-              as WorldMapPlacementSubtool,
-      lastPaintSubtoolByLayerId: null == lastPaintSubtoolByLayerId
-          ? _value._lastPaintSubtoolByLayerId
-          : lastPaintSubtoolByLayerId // ignore: cast_nullable_to_non_nullable
-              as Map<String, WorldMapPaintSubtool>,
-      pinnedInspectorKind: freezed == pinnedInspectorKind
-          ? _value.pinnedInspectorKind
-          : pinnedInspectorKind // ignore: cast_nullable_to_non_nullable
-              as WorldMapInspectorKind?,
-      selectedCell: freezed == selectedCell
-          ? _value.selectedCell
-          : selectedCell // ignore: cast_nullable_to_non_nullable
-              as GridPos?,
-      selectedCellMapId: freezed == selectedCellMapId
-          ? _value.selectedCellMapId
-          : selectedCellMapId // ignore: cast_nullable_to_non_nullable
-              as String?,
-    ));
-  }
 }
 
 /// @nodoc
 
-class _$WorldMapWorkspaceSessionImpl implements _WorldMapWorkspaceSession {
-  const _$WorldMapWorkspaceSessionImpl(
-      {this.explorerExpanded = true,
-      this.inspectorVisible = true,
-      this.inspectorWidth = PokeMapDesktopLayoutTokens.inspectorWidth,
-      this.activeFamily = WorldMapToolFamily.selection,
-      this.lastPaintSubtool = WorldMapPaintSubtool.tile,
-      this.lastPlacementSubtool = WorldMapPlacementSubtool.object,
-      final Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId =
-          const <String, WorldMapPaintSubtool>{},
-      this.pinnedInspectorKind,
-      this.selectedCell,
-      this.selectedCellMapId})
-      : _lastPaintSubtoolByLayerId = lastPaintSubtoolByLayerId;
 
-  @override
-  @JsonKey()
-  final bool explorerExpanded;
-  @override
-  @JsonKey()
-  final bool inspectorVisible;
-  @override
-  @JsonKey()
-  final double inspectorWidth;
-  @override
-  @JsonKey()
-  final WorldMapToolFamily activeFamily;
-  @override
-  @JsonKey()
-  final WorldMapPaintSubtool lastPaintSubtool;
-  @override
-  @JsonKey()
-  final WorldMapPlacementSubtool lastPlacementSubtool;
-  final Map<String, WorldMapPaintSubtool> _lastPaintSubtoolByLayerId;
-  @override
-  @JsonKey()
-  Map<String, WorldMapPaintSubtool> get lastPaintSubtoolByLayerId {
-    if (_lastPaintSubtoolByLayerId is EqualUnmodifiableMapView)
-      return _lastPaintSubtoolByLayerId;
-    // ignore: implicit_dynamic_type
-    return EqualUnmodifiableMapView(_lastPaintSubtoolByLayerId);
-  }
+class _WorldMapWorkspaceSession implements WorldMapWorkspaceSession {
+  const _WorldMapWorkspaceSession({this.explorerExpanded = true, this.inspectorVisible = true, this.inspectorWidth = PokeMapDesktopLayoutTokens.inspectorWidth, this.activeFamily = WorldMapToolFamily.selection, this.lastPaintSubtool = WorldMapPaintSubtool.tile, this.lastPlacementSubtool = WorldMapPlacementSubtool.object, final  Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId = const <String, WorldMapPaintSubtool>{}, this.pinnedInspectorKind, this.selectedCell, this.selectedCellMapId}): _lastPaintSubtoolByLayerId = lastPaintSubtoolByLayerId;
+  
 
-  @override
-  final WorldMapInspectorKind? pinnedInspectorKind;
-  @override
-  final GridPos? selectedCell;
-  @override
-  final String? selectedCellMapId;
-
-  @override
-  String toString() {
-    return 'WorldMapWorkspaceSession(explorerExpanded: $explorerExpanded, inspectorVisible: $inspectorVisible, inspectorWidth: $inspectorWidth, activeFamily: $activeFamily, lastPaintSubtool: $lastPaintSubtool, lastPlacementSubtool: $lastPlacementSubtool, lastPaintSubtoolByLayerId: $lastPaintSubtoolByLayerId, pinnedInspectorKind: $pinnedInspectorKind, selectedCell: $selectedCell, selectedCellMapId: $selectedCellMapId)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        (other.runtimeType == runtimeType &&
-            other is _$WorldMapWorkspaceSessionImpl &&
-            (identical(other.explorerExpanded, explorerExpanded) ||
-                other.explorerExpanded == explorerExpanded) &&
-            (identical(other.inspectorVisible, inspectorVisible) ||
-                other.inspectorVisible == inspectorVisible) &&
-            (identical(other.inspectorWidth, inspectorWidth) ||
-                other.inspectorWidth == inspectorWidth) &&
-            (identical(other.activeFamily, activeFamily) ||
-                other.activeFamily == activeFamily) &&
-            (identical(other.lastPaintSubtool, lastPaintSubtool) ||
-                other.lastPaintSubtool == lastPaintSubtool) &&
-            (identical(other.lastPlacementSubtool, lastPlacementSubtool) ||
-                other.lastPlacementSubtool == lastPlacementSubtool) &&
-            const DeepCollectionEquality().equals(
-                other._lastPaintSubtoolByLayerId, _lastPaintSubtoolByLayerId) &&
-            (identical(other.pinnedInspectorKind, pinnedInspectorKind) ||
-                other.pinnedInspectorKind == pinnedInspectorKind) &&
-            (identical(other.selectedCell, selectedCell) ||
-                other.selectedCell == selectedCell) &&
-            (identical(other.selectedCellMapId, selectedCellMapId) ||
-                other.selectedCellMapId == selectedCellMapId));
-  }
-
-  @override
-  int get hashCode => Object.hash(
-      runtimeType,
-      explorerExpanded,
-      inspectorVisible,
-      inspectorWidth,
-      activeFamily,
-      lastPaintSubtool,
-      lastPlacementSubtool,
-      const DeepCollectionEquality().hash(_lastPaintSubtoolByLayerId),
-      pinnedInspectorKind,
-      selectedCell,
-      selectedCellMapId);
-
-  /// Create a copy of WorldMapWorkspaceSession
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  @override
-  @pragma('vm:prefer-inline')
-  _$$WorldMapWorkspaceSessionImplCopyWith<_$WorldMapWorkspaceSessionImpl>
-      get copyWith => __$$WorldMapWorkspaceSessionImplCopyWithImpl<
-          _$WorldMapWorkspaceSessionImpl>(this, _$identity);
+@override@JsonKey() final  bool explorerExpanded;
+@override@JsonKey() final  bool inspectorVisible;
+@override@JsonKey() final  double inspectorWidth;
+@override@JsonKey() final  WorldMapToolFamily activeFamily;
+@override@JsonKey() final  WorldMapPaintSubtool lastPaintSubtool;
+@override@JsonKey() final  WorldMapPlacementSubtool lastPlacementSubtool;
+ final  Map<String, WorldMapPaintSubtool> _lastPaintSubtoolByLayerId;
+@override@JsonKey() Map<String, WorldMapPaintSubtool> get lastPaintSubtoolByLayerId {
+  if (_lastPaintSubtoolByLayerId is EqualUnmodifiableMapView) return _lastPaintSubtoolByLayerId;
+  // ignore: implicit_dynamic_type
+  return EqualUnmodifiableMapView(_lastPaintSubtoolByLayerId);
 }
 
-abstract class _WorldMapWorkspaceSession implements WorldMapWorkspaceSession {
-  const factory _WorldMapWorkspaceSession(
-      {final bool explorerExpanded,
-      final bool inspectorVisible,
-      final double inspectorWidth,
-      final WorldMapToolFamily activeFamily,
-      final WorldMapPaintSubtool lastPaintSubtool,
-      final WorldMapPlacementSubtool lastPlacementSubtool,
-      final Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId,
-      final WorldMapInspectorKind? pinnedInspectorKind,
-      final GridPos? selectedCell,
-      final String? selectedCellMapId}) = _$WorldMapWorkspaceSessionImpl;
+@override final  WorldMapInspectorKind? pinnedInspectorKind;
+@override final  GridPos? selectedCell;
+@override final  String? selectedCellMapId;
 
-  @override
-  bool get explorerExpanded;
-  @override
-  bool get inspectorVisible;
-  @override
-  double get inspectorWidth;
-  @override
-  WorldMapToolFamily get activeFamily;
-  @override
-  WorldMapPaintSubtool get lastPaintSubtool;
-  @override
-  WorldMapPlacementSubtool get lastPlacementSubtool;
-  @override
-  Map<String, WorldMapPaintSubtool> get lastPaintSubtoolByLayerId;
-  @override
-  WorldMapInspectorKind? get pinnedInspectorKind;
-  @override
-  GridPos? get selectedCell;
-  @override
-  String? get selectedCellMapId;
+/// Create a copy of WorldMapWorkspaceSession
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+_$WorldMapWorkspaceSessionCopyWith<_WorldMapWorkspaceSession> get copyWith => __$WorldMapWorkspaceSessionCopyWithImpl<_WorldMapWorkspaceSession>(this, _$identity);
 
-  /// Create a copy of WorldMapWorkspaceSession
-  /// with the given fields replaced by the non-null parameter values.
-  @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$WorldMapWorkspaceSessionImplCopyWith<_$WorldMapWorkspaceSessionImpl>
-      get copyWith => throw _privateConstructorUsedError;
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _WorldMapWorkspaceSession&&(identical(other.explorerExpanded, explorerExpanded) || other.explorerExpanded == explorerExpanded)&&(identical(other.inspectorVisible, inspectorVisible) || other.inspectorVisible == inspectorVisible)&&(identical(other.inspectorWidth, inspectorWidth) || other.inspectorWidth == inspectorWidth)&&(identical(other.activeFamily, activeFamily) || other.activeFamily == activeFamily)&&(identical(other.lastPaintSubtool, lastPaintSubtool) || other.lastPaintSubtool == lastPaintSubtool)&&(identical(other.lastPlacementSubtool, lastPlacementSubtool) || other.lastPlacementSubtool == lastPlacementSubtool)&&const DeepCollectionEquality().equals(other._lastPaintSubtoolByLayerId, _lastPaintSubtoolByLayerId)&&(identical(other.pinnedInspectorKind, pinnedInspectorKind) || other.pinnedInspectorKind == pinnedInspectorKind)&&(identical(other.selectedCell, selectedCell) || other.selectedCell == selectedCell)&&(identical(other.selectedCellMapId, selectedCellMapId) || other.selectedCellMapId == selectedCellMapId));
 }
+
+
+@override
+int get hashCode => Object.hash(runtimeType,explorerExpanded,inspectorVisible,inspectorWidth,activeFamily,lastPaintSubtool,lastPlacementSubtool,const DeepCollectionEquality().hash(_lastPaintSubtoolByLayerId),pinnedInspectorKind,selectedCell,selectedCellMapId);
+
+@override
+String toString() {
+  return 'WorldMapWorkspaceSession(explorerExpanded: $explorerExpanded, inspectorVisible: $inspectorVisible, inspectorWidth: $inspectorWidth, activeFamily: $activeFamily, lastPaintSubtool: $lastPaintSubtool, lastPlacementSubtool: $lastPlacementSubtool, lastPaintSubtoolByLayerId: $lastPaintSubtoolByLayerId, pinnedInspectorKind: $pinnedInspectorKind, selectedCell: $selectedCell, selectedCellMapId: $selectedCellMapId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class _$WorldMapWorkspaceSessionCopyWith<$Res> implements $WorldMapWorkspaceSessionCopyWith<$Res> {
+  factory _$WorldMapWorkspaceSessionCopyWith(_WorldMapWorkspaceSession value, $Res Function(_WorldMapWorkspaceSession) _then) = __$WorldMapWorkspaceSessionCopyWithImpl;
+@override @useResult
+$Res call({
+ bool explorerExpanded, bool inspectorVisible, double inspectorWidth, WorldMapToolFamily activeFamily, WorldMapPaintSubtool lastPaintSubtool, WorldMapPlacementSubtool lastPlacementSubtool, Map<String, WorldMapPaintSubtool> lastPaintSubtoolByLayerId, WorldMapInspectorKind? pinnedInspectorKind, GridPos? selectedCell, String? selectedCellMapId
+});
+
+
+@override $GridPosCopyWith<$Res>? get selectedCell;
+
+}
+/// @nodoc
+class __$WorldMapWorkspaceSessionCopyWithImpl<$Res>
+    implements _$WorldMapWorkspaceSessionCopyWith<$Res> {
+  __$WorldMapWorkspaceSessionCopyWithImpl(this._self, this._then);
+
+  final _WorldMapWorkspaceSession _self;
+  final $Res Function(_WorldMapWorkspaceSession) _then;
+
+/// Create a copy of WorldMapWorkspaceSession
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? explorerExpanded = null,Object? inspectorVisible = null,Object? inspectorWidth = null,Object? activeFamily = null,Object? lastPaintSubtool = null,Object? lastPlacementSubtool = null,Object? lastPaintSubtoolByLayerId = null,Object? pinnedInspectorKind = freezed,Object? selectedCell = freezed,Object? selectedCellMapId = freezed,}) {
+  return _then(_WorldMapWorkspaceSession(
+explorerExpanded: null == explorerExpanded ? _self.explorerExpanded : explorerExpanded // ignore: cast_nullable_to_non_nullable
+as bool,inspectorVisible: null == inspectorVisible ? _self.inspectorVisible : inspectorVisible // ignore: cast_nullable_to_non_nullable
+as bool,inspectorWidth: null == inspectorWidth ? _self.inspectorWidth : inspectorWidth // ignore: cast_nullable_to_non_nullable
+as double,activeFamily: null == activeFamily ? _self.activeFamily : activeFamily // ignore: cast_nullable_to_non_nullable
+as WorldMapToolFamily,lastPaintSubtool: null == lastPaintSubtool ? _self.lastPaintSubtool : lastPaintSubtool // ignore: cast_nullable_to_non_nullable
+as WorldMapPaintSubtool,lastPlacementSubtool: null == lastPlacementSubtool ? _self.lastPlacementSubtool : lastPlacementSubtool // ignore: cast_nullable_to_non_nullable
+as WorldMapPlacementSubtool,lastPaintSubtoolByLayerId: null == lastPaintSubtoolByLayerId ? _self._lastPaintSubtoolByLayerId : lastPaintSubtoolByLayerId // ignore: cast_nullable_to_non_nullable
+as Map<String, WorldMapPaintSubtool>,pinnedInspectorKind: freezed == pinnedInspectorKind ? _self.pinnedInspectorKind : pinnedInspectorKind // ignore: cast_nullable_to_non_nullable
+as WorldMapInspectorKind?,selectedCell: freezed == selectedCell ? _self.selectedCell : selectedCell // ignore: cast_nullable_to_non_nullable
+as GridPos?,selectedCellMapId: freezed == selectedCellMapId ? _self.selectedCellMapId : selectedCellMapId // ignore: cast_nullable_to_non_nullable
+as String?,
+  ));
+}
+
+/// Create a copy of WorldMapWorkspaceSession
+/// with the given fields replaced by the non-null parameter values.
+@override
+@pragma('vm:prefer-inline')
+$GridPosCopyWith<$Res>? get selectedCell {
+    if (_self.selectedCell == null) {
+    return null;
+  }
+
+  return $GridPosCopyWith<$Res>(_self.selectedCell!, (value) {
+    return _then(_self.copyWith(selectedCell: value));
+  });
+}
+}
+
+// dart format on

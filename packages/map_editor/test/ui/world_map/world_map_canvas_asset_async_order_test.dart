@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/editor/editor_asset_cache_providers.dart';
@@ -13,52 +14,50 @@ import 'package:map_editor/src/ui/assets/editor_image_cache.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
-  testWidgets(
-    'newest canvas image batch wins when B resolves before stale A',
-    (tester) async {
-      final imageA = await _solidImage();
-      final imageB = await _solidImage();
-      final resultA = _CountingImageLoadResult(imageA);
-      final resultB = _CountingImageLoadResult(imageB);
-      final cache = _ControlledEditorImageCache();
-      final harness = await _pumpCanvas(tester, cache);
-      addTearDown(harness.dispose);
+  testWidgets('newest canvas image batch wins when B resolves before stale A', (
+    tester,
+  ) async {
+    final imageA = await _solidImage();
+    final imageB = await _solidImage();
+    final resultA = _CountingImageLoadResult(imageA);
+    final resultB = _CountingImageLoadResult(imageB);
+    final cache = _ControlledEditorImageCache();
+    final harness = await _pumpCanvas(tester, cache);
+    addTearDown(harness.dispose);
 
-      expect(cache.requests, hasLength(1));
-      expect(cache.requests.single.paths, contains('source-a'));
+    expect(cache.requests, hasLength(1));
+    expect(cache.requests.single.paths, contains('source-a'));
 
-      harness.notifier.state = harness.notifier.state.copyWith(
-        activeMap: _mapFor('source-b'),
-      );
-      await tester.pump();
-      expect(cache.requests, hasLength(2));
-      expect(cache.requests.last.paths, contains('source-b'));
+    harness.notifier.state = harness.notifier.state.copyWith(
+      activeMap: _mapFor('source-b'),
+    );
+    await tester.pump();
+    expect(cache.requests, hasLength(2));
+    expect(cache.requests.last.paths, contains('source-b'));
 
-      cache.requests.last.complete(<String, EditorImageLoadResult>{
-        'source-b': resultB,
-      });
-      await tester.pump();
-      expect(
-          _canvasPainter(tester).tilesetImagesById['source-b'], same(imageB));
+    cache.requests.last.complete(<String, EditorImageLoadResult>{
+      'source-b': resultB,
+    });
+    await tester.pump();
+    expect(_canvasPainter(tester).tilesetImagesById['source-b'], same(imageB));
 
-      cache.requests.first.complete(<String, EditorImageLoadResult>{
-        'source-a': resultA,
-      });
-      await tester.pump();
-      await tester.pump();
+    cache.requests.first.complete(<String, EditorImageLoadResult>{
+      'source-a': resultA,
+    });
+    await tester.pump();
+    await tester.pump();
 
-      final painter = _canvasPainter(tester);
-      expect(painter.tilesetImagesById['source-b'], same(imageB));
-      expect(painter.tilesetImagesById, isNot(contains('source-a')));
-      expect(resultA.disposeCalls, 1);
-      expect(resultB.disposeCalls, 0);
+    final painter = _canvasPainter(tester);
+    expect(painter.tilesetImagesById['source-b'], same(imageB));
+    expect(painter.tilesetImagesById, isNot(contains('source-a')));
+    expect(resultA.disposeCalls, 1);
+    expect(resultB.disposeCalls, 0);
 
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
-      expect(resultA.disposeCalls, 1);
-      expect(resultB.disposeCalls, 1);
-    },
-  );
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    expect(resultA.disposeCalls, 1);
+    expect(resultB.disposeCalls, 1);
+  });
 
   testWidgets(
     'disposing between B and A resolution releases both batches once',
@@ -161,10 +160,7 @@ class _ControlledEditorImageCache extends EditorImageCache {
 }
 
 class _CanvasHarness {
-  const _CanvasHarness({
-    required this.container,
-    required this.subscription,
-  });
+  const _CanvasHarness({required this.container, required this.subscription});
 
   final ProviderContainer container;
   final ProviderSubscription<EditorState> subscription;
@@ -217,11 +213,7 @@ Future<_CanvasHarness> _pumpCanvas(
 const _project = ProjectManifest(
   name: 'Async canvas assets',
   maps: <ProjectMapEntry>[
-    ProjectMapEntry(
-      id: 'map',
-      name: 'Map',
-      relativePath: 'maps/map.json',
-    ),
+    ProjectMapEntry(id: 'map', name: 'Map', relativePath: 'maps/map.json'),
   ],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(

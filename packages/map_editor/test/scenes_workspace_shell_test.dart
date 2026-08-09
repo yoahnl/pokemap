@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
@@ -22,8 +23,9 @@ import 'shell_chrome_test_harness.dart';
 
 void main() {
   group('NS-SCENES-V1-09 scene validation diagnostics', () {
-    testWidgets('Narrative Studio exposes a real Scenes navigation entry',
-        (tester) async {
+    testWidgets('Narrative Studio exposes a real Scenes navigation entry', (
+      tester,
+    ) async {
       final project = _emptyProject();
       final container = await pumpEditorShellPage(
         tester,
@@ -49,31 +51,40 @@ void main() {
         EditorWorkspaceMode.scenes,
       );
       expect(
-          find.byKey(const ValueKey('scenes-workspace-shell')), findsOneWidget);
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        findsOneWidget,
+      );
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
     testWidgets(
-        'shows an honest empty state when ProjectManifest.scenes is empty',
-        (tester) async {
-      await _pumpNarrativeShell(
-        tester,
-        project: _emptyProject(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
+      'shows an honest empty state when ProjectManifest.scenes is empty',
+      (tester) async {
+        await _pumpNarrativeShell(
+          tester,
+          project: _emptyProject(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      expect(
-          find.byKey(const ValueKey('scenes-workspace-shell')), findsOneWidget);
-      expect(find.byKey(const ValueKey('scenes-tree-panel')), findsOneWidget);
-      expect(find.text('Arborescence des scènes'), findsOneWidget);
-      expect(find.byKey(const ValueKey('scenes-tree-empty-state')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scenes-summary-empty-state')),
-          findsOneWidget);
-      expect(find.text('Aucune scène créée'), findsOneWidget);
-      expect(find.text('Liste vide'), findsOneWidget);
-      expect(find.byKey(const ValueKey('scenes-list-compact')), findsNothing);
-    });
+        expect(
+          find.byKey(const ValueKey('scenes-workspace-shell')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('scenes-tree-panel')), findsOneWidget);
+        expect(find.text('Arborescence des scènes'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('scenes-tree-empty-state')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scenes-summary-empty-state')),
+          findsOneWidget,
+        );
+        expect(find.text('Aucune scène créée'), findsOneWidget);
+        expect(find.text('Liste vide'), findsOneWidget);
+        expect(find.byKey(const ValueKey('scenes-list-compact')), findsNothing);
+      },
+    );
 
     testWidgets('does not render unsupported graph actions', (tester) async {
       final project = _projectWithScene();
@@ -89,13 +100,16 @@ void main() {
         ),
         findsNothing,
       );
-      expect(find.byKey(const ValueKey('scenes-open-graph-disabled')),
-          findsNothing);
+      expect(
+        find.byKey(const ValueKey('scenes-open-graph-disabled')),
+        findsNothing,
+      );
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
-    testWidgets('creates a minimal scene draft from the Scenes workspace',
-        (tester) async {
+    testWidgets('creates a minimal scene draft from the Scenes workspace', (
+      tester,
+    ) async {
       final project = _emptyProject();
       final container = await _pumpNarrativeShell(
         tester,
@@ -108,16 +122,18 @@ void main() {
       );
       expect(createButton.onPressed, isNotNull);
 
-      await tester
-          .tap(find.byKey(const ValueKey('scenes-create-scene-action')));
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-create-scene-action')),
+      );
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('scenes-create-scene-dialog')),
         findsOneWidget,
       );
 
-      await tester
-          .tap(find.byKey(const ValueKey('scenes-create-scene-submit')));
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-create-scene-submit')),
+      );
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('scenes-create-scene-name-error')),
@@ -133,8 +149,9 @@ void main() {
         find.byKey(const ValueKey('scenes-create-scene-description-field')),
         'Created from the test flow.',
       );
-      await tester
-          .tap(find.byKey(const ValueKey('scenes-create-scene-submit')));
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-create-scene-submit')),
+      );
       await tester.pumpAndSettle();
 
       final updated = container.read(editorNotifierProvider).project!;
@@ -175,9 +192,7 @@ void main() {
         name: 'Scenes shell test',
         maps: const [],
         tilesets: const [],
-        scenes: [
-          _sceneWithId('scene_new_draft_scene'),
-        ],
+        scenes: [_sceneWithId('scene_new_draft_scene')],
       );
       final container = await _pumpNarrativeShell(
         tester,
@@ -185,15 +200,17 @@ void main() {
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
-      await tester
-          .tap(find.byKey(const ValueKey('scenes-create-scene-action')));
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-create-scene-action')),
+      );
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('scenes-create-scene-name-field')),
         'New Draft Scene',
       );
-      await tester
-          .tap(find.byKey(const ValueKey('scenes-create-scene-submit')));
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-create-scene-submit')),
+      );
       await tester.pumpAndSettle();
 
       final updated = container.read(editorNotifierProvider).project!;
@@ -207,8 +224,9 @@ void main() {
       );
     });
 
-    testWidgets('adds a condition node draft from the Scenes palette',
-        (tester) async {
+    testWidgets('adds a condition node draft from the Scenes palette', (
+      tester,
+    ) async {
       final project = _projectWithTwoScenes();
       final container = await _pumpNarrativeShell(
         tester,
@@ -226,8 +244,10 @@ void main() {
       expect(updatedProject.scenes, hasLength(2));
       expect(updatedProject.scenes.last, project.scenes.last);
       expect(updatedScene.graph.edges, originalScene.graph.edges);
-      expect(updatedScene.graph.nodes.map((node) => node.id),
-          contains('node_condition'));
+      expect(
+        updatedScene.graph.nodes.map((node) => node.id),
+        contains('node_condition'),
+      );
       expect(
         updatedScene.graph.nodes
             .firstWhere((node) => node.id == 'node_condition')
@@ -246,8 +266,9 @@ void main() {
       expect(find.text('Condition'), findsWidgets);
     });
 
-    testWidgets('adds merge and end node drafts with no automatic edges',
-        (tester) async {
+    testWidgets('adds merge and end node drafts with no automatic edges', (
+      tester,
+    ) async {
       final project = _projectWithScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -260,15 +281,16 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('scenes-add-node-end')));
       await tester.pumpAndSettle();
 
-      final updatedScene =
-          container.read(editorNotifierProvider).project!.scenes.single;
+      final updatedScene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single;
       expect(updatedScene.graph.edges, project.scenes.single.graph.edges);
       expect(
-          updatedScene.graph.nodes.map((node) => node.id),
-          containsAll([
-            'node_merge_2',
-            'node_end_2',
-          ]));
+        updatedScene.graph.nodes.map((node) => node.id),
+        containsAll(['node_merge_2', 'node_end_2']),
+      );
       expect(
         updatedScene.graph.nodes
             .firstWhere((node) => node.id == 'node_merge_2')
@@ -292,49 +314,52 @@ void main() {
       expect(find.text('node_end_2'), findsWidgets);
     });
 
-    testWidgets('keeps unavailable kinds disabled and branch/action available',
-        (tester) async {
-      await _pumpNarrativeShell(
-        tester,
-        project: _projectWithScene(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
-
-      for (final key in [
-        'scenes-add-node-start-disabled',
-        'scenes-add-node-yarn-disabled',
-        'scenes-add-node-battle-disabled',
-        'scenes-add-node-cinematic-disabled',
-      ]) {
-        final button = tester.widget<PokeMapButton>(
-          find.byKey(ValueKey(key)).first,
+    testWidgets(
+      'keeps unavailable kinds disabled and branch/action available',
+      (tester) async {
+        await _pumpNarrativeShell(
+          tester,
+          project: _projectWithScene(),
+          workspaceMode: EditorWorkspaceMode.scenes,
         );
-        expect(button.onPressed, isNull, reason: key);
-      }
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('scenes-add-node-action-consequence'),
-              ),
-            )
-            .onPressed,
-        isNotNull,
-      );
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(const ValueKey('scenes-add-node-branch')),
-            )
-            .onPressed,
-        isNotNull,
-      );
-      expect(find.text('Selbrume Demo'), findsNothing);
-      expect(find.text('Annonce au port'), findsNothing);
-    });
 
-    testWidgets('creates a typed BranchByOutcome from an existing node',
-        (tester) async {
+        for (final key in [
+          'scenes-add-node-start-disabled',
+          'scenes-add-node-yarn-disabled',
+          'scenes-add-node-battle-disabled',
+          'scenes-add-node-cinematic-disabled',
+        ]) {
+          final button = tester.widget<PokeMapButton>(
+            find.byKey(ValueKey(key)).first,
+          );
+          expect(button.onPressed, isNull, reason: key);
+        }
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(
+                  const ValueKey('scenes-add-node-action-consequence'),
+                ),
+              )
+              .onPressed,
+          isNotNull,
+        );
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(const ValueKey('scenes-add-node-branch')),
+              )
+              .onPressed,
+          isNotNull,
+        );
+        expect(find.text('Selbrume Demo'), findsNothing);
+        expect(find.text('Annonce au port'), findsNothing);
+      },
+    );
+
+    testWidgets('creates a typed BranchByOutcome from an existing node', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithScene(),
@@ -373,145 +398,160 @@ void main() {
     });
 
     testWidgets(
-        'dialogue payload picker creates a Yarn node from real contracts',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithPayloadPickerContracts(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
+      'dialogue payload picker creates a Yarn node from real contracts',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithPayloadPickerContracts(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('scenes-add-node-yarn')),
-      );
-      await tester.tap(find.byKey(const ValueKey('scenes-add-node-yarn')));
-      await tester.pumpAndSettle();
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('scenes-add-node-yarn')),
+        );
+        await tester.tap(find.byKey(const ValueKey('scenes-add-node-yarn')));
+        await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('scene-dialogue-picker-dialog')),
-        findsOneWidget,
-      );
-      expect(find.text('Test Dialogue'), findsOneWidget);
-      expect(find.text('test_dialogue'), findsWidgets);
-      expect(find.text('dialogues/test_dialogue.yarn'), findsOneWidget);
-      expect(
-        find.text(
-            'Dialogue outcomes are not exposed by a public contract yet.'),
-        findsNothing,
-      );
-      expect(find.text('confident'), findsNothing);
-      expect(find.text('hesitant'), findsNothing);
-      expect(find.text('aggressive'), findsNothing);
-
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-dialogue-picker-option-test_dialogue'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final scene =
-          container.read(editorNotifierProvider).project!.scenes.single;
-      final node = scene.graph.nodes.last;
-      expect(node.kind, SceneNodeKind.yarnDialogue);
-      expect(node.title, 'Test Dialogue');
-      final payload = node.payload as SceneYarnDialoguePayload;
-      expect(payload.dialogueId, 'test_dialogue');
-      expect(payload.yarnNodeName, 'Start');
-      expect(payload.expectedOutcomes, isEmpty);
-      expect(
-          find.byKey(ValueKey('scene-graph-node-${node.id}')), findsOneWidget);
-      expect(find.text('dialogue_demo'), findsNothing);
-      expect(find.text('selbrume_port'), findsNothing);
-    });
-
-    testWidgets(
-        'battle payload picker creates trainer battle node from contracts',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithPayloadPickerContracts(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('scenes-add-node-battle')),
-      );
-      await tester.tap(find.byKey(const ValueKey('scenes-add-node-battle')));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const ValueKey('scene-battle-picker-dialog')),
-        findsOneWidget,
-      );
-      expect(find.text('Trainer Test Trainer'), findsOneWidget);
-      expect(find.text('test_trainer'), findsWidgets);
-      expect(find.text('trainer'), findsWidgets);
-      expect(find.text('victory / defeat'), findsNWidgets(2));
-      expect(
-        find.text('Trainer battle has no authored team yet.'),
-        findsNWidgets(2),
-      );
-
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-battle-picker-option-trainer_test_trainer'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final scene =
-          container.read(editorNotifierProvider).project!.scenes.single;
-      final node = scene.graph.nodes.last;
-      expect(node.kind, SceneNodeKind.battle);
-      expect(node.title, 'Trainer Test Trainer');
-      final payload = node.payload as SceneBattlePayload;
-      expect(payload.battleKind, 'trainer');
-      expect(payload.trainerId, 'test_trainer');
-      expect(payload.declaredOutcomes, ['victory', 'defeat']);
-      expect(
-          find.byKey(ValueKey('scene-graph-node-${node.id}')), findsOneWidget);
-      expect(find.text('battle_demo'), findsNothing);
-      expect(find.text('trainer_lysa'), findsNothing);
-    });
-
-    testWidgets(
-        'battle payload picker creates the canonical static encounter payload',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithStableStaticPayloadPickerContract(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('scenes-add-node-battle')),
-      );
-      await tester.tap(find.byKey(const ValueKey('scenes-add-node-battle')));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey(
-            'scene-battle-picker-option-static_test_static_guardian',
+        expect(
+          find.byKey(const ValueKey('scene-dialogue-picker-dialog')),
+          findsOneWidget,
+        );
+        expect(find.text('Test Dialogue'), findsOneWidget);
+        expect(find.text('test_dialogue'), findsWidgets);
+        expect(find.text('dialogues/test_dialogue.yarn'), findsOneWidget);
+        expect(
+          find.text(
+            'Dialogue outcomes are not exposed by a public contract yet.',
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+          findsNothing,
+        );
+        expect(find.text('confident'), findsNothing);
+        expect(find.text('hesitant'), findsNothing);
+        expect(find.text('aggressive'), findsNothing);
 
-      final scene = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .singleWhere((scene) => scene.id == 'scene_payload_picker');
-      final payload = scene.graph.nodes.last.payload as SceneBattlePayload;
-      expect(payload.battleKind, 'static');
-      expect(payload.trainerId, 'test_static_guardian');
-      expect(payload.battleTemplateId, 'battle_test_static_guardian');
-      expect(payload.declaredOutcomes, ['victory', 'defeat']);
-    });
+        await tester.tap(
+          find.byKey(
+            const ValueKey('scene-dialogue-picker-option-test_dialogue'),
+          ),
+        );
+        await tester.pumpAndSettle();
 
-    testWidgets('creates a setFact consequence action node from real Facts',
-        (tester) async {
+        final scene = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single;
+        final node = scene.graph.nodes.last;
+        expect(node.kind, SceneNodeKind.yarnDialogue);
+        expect(node.title, 'Test Dialogue');
+        final payload = node.payload as SceneYarnDialoguePayload;
+        expect(payload.dialogueId, 'test_dialogue');
+        expect(payload.yarnNodeName, 'Start');
+        expect(payload.expectedOutcomes, isEmpty);
+        expect(
+          find.byKey(ValueKey('scene-graph-node-${node.id}')),
+          findsOneWidget,
+        );
+        expect(find.text('dialogue_demo'), findsNothing);
+        expect(find.text('selbrume_port'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'battle payload picker creates trainer battle node from contracts',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithPayloadPickerContracts(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
+
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('scenes-add-node-battle')),
+        );
+        await tester.tap(find.byKey(const ValueKey('scenes-add-node-battle')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('scene-battle-picker-dialog')),
+          findsOneWidget,
+        );
+        expect(find.text('Trainer Test Trainer'), findsOneWidget);
+        expect(find.text('test_trainer'), findsWidgets);
+        expect(find.text('trainer'), findsWidgets);
+        expect(find.text('victory / defeat'), findsNWidgets(2));
+        expect(
+          find.text('Trainer battle has no authored team yet.'),
+          findsNWidgets(2),
+        );
+
+        await tester.tap(
+          find.byKey(
+            const ValueKey('scene-battle-picker-option-trainer_test_trainer'),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final scene = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single;
+        final node = scene.graph.nodes.last;
+        expect(node.kind, SceneNodeKind.battle);
+        expect(node.title, 'Trainer Test Trainer');
+        final payload = node.payload as SceneBattlePayload;
+        expect(payload.battleKind, 'trainer');
+        expect(payload.trainerId, 'test_trainer');
+        expect(payload.declaredOutcomes, ['victory', 'defeat']);
+        expect(
+          find.byKey(ValueKey('scene-graph-node-${node.id}')),
+          findsOneWidget,
+        );
+        expect(find.text('battle_demo'), findsNothing);
+        expect(find.text('trainer_lysa'), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'battle payload picker creates the canonical static encounter payload',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithStableStaticPayloadPickerContract(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
+
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('scenes-add-node-battle')),
+        );
+        await tester.tap(find.byKey(const ValueKey('scenes-add-node-battle')));
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey(
+              'scene-battle-picker-option-static_test_static_guardian',
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final scene = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .singleWhere((scene) => scene.id == 'scene_payload_picker');
+        final payload = scene.graph.nodes.last.payload as SceneBattlePayload;
+        expect(payload.battleKind, 'static');
+        expect(payload.trainerId, 'test_static_guardian');
+        expect(payload.battleTemplateId, 'battle_test_static_guardian');
+        expect(payload.declaredOutcomes, ['victory', 'defeat']);
+      },
+    );
+
+    testWidgets('creates a setFact consequence action node from real Facts', (
+      tester,
+    ) async {
       final project = _projectWithConsequenceAuthoringTargets();
       final container = await _pumpNarrativeShell(
         tester,
@@ -579,156 +619,159 @@ void main() {
     });
 
     testWidgets(
-        'creates a markEventConsumed consequence action node from real map events',
-        (tester) async {
-      final project = _projectWithConsequenceAuthoringTargets();
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.scenes,
-        activeMap: _mapWithConsequenceEvents(),
-      );
+      'creates a markEventConsumed consequence action node from real map events',
+      (tester) async {
+        final project = _projectWithConsequenceAuthoringTargets();
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+          activeMap: _mapWithConsequenceEvents(),
+        );
 
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-consequence-kind-markEventConsumed'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey(
-            'scene-consequence-event-option-map_test-event_gate',
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey('scene-consequence-kind-markEventConsumed'),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('scene-consequence-create-action')),
-      );
-      await tester.pumpAndSettle();
-
-      final node = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .last;
-      expect(node.kind, SceneNodeKind.action);
-      expect(node.title, 'Marquer event consommé');
-      final payload = node.payload as SceneActionPayload;
-      final consequence =
-          payload.consequence as SceneMarkEventConsumedConsequence;
-      expect(consequence.mapId, 'map_test');
-      expect(consequence.eventId, 'event_gate');
-      expect(find.textContaining('Event Gate'), findsWidgets);
-    });
-
-    testWidgets(
-        'creates giveItem from the local item catalog without raw id input',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithConsequenceAuthoringTargets(),
-        projectRootPath: '/project',
-        workspaceMode: EditorWorkspaceMode.scenes,
-        overrides: [
-          projectWorkspaceFactoryProvider.overrideWithValue(
-            const _SceneTestWorkspaceFactory(),
-          ),
-          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-            (_) async => const PokemonItemsCatalogView(
-              entries: [
-                PokemonItemCatalogEntryView(
-                  id: 'item_antidote',
-                  name: 'Antidote',
-                  shortDesc: 'Soigne le poison.',
-                  pocketId: 'medicine',
-                ),
-                PokemonItemCatalogEntryView(
-                  id: 'item_potion',
-                  name: 'Potion',
-                  shortDesc: 'Restaure quelques PV.',
-                  pocketId: 'medicine',
-                ),
-              ],
-              isAvailable: true,
-              description: 'Objets du projet.',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey(
+              'scene-consequence-event-option-map_test-event_gate',
             ),
           ),
-          pokedexEntryLoaderProvider.overrideWithValue(
-            (_) async => const <PokemonDatabaseIndexEntry>[],
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-consequence-create-action')),
+        );
+        await tester.pumpAndSettle();
+
+        final node = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single
+            .graph
+            .nodes
+            .last;
+        expect(node.kind, SceneNodeKind.action);
+        expect(node.title, 'Marquer event consommé');
+        final payload = node.payload as SceneActionPayload;
+        final consequence =
+            payload.consequence as SceneMarkEventConsumedConsequence;
+        expect(consequence.mapId, 'map_test');
+        expect(consequence.eventId, 'event_gate');
+        expect(find.textContaining('Event Gate'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'creates giveItem from the local item catalog without raw id input',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithConsequenceAuthoringTargets(),
+          projectRootPath: '/project',
+          workspaceMode: EditorWorkspaceMode.scenes,
+          overrides: [
+            projectWorkspaceFactoryProvider.overrideWithValue(
+              const _SceneTestWorkspaceFactory(),
+            ),
+            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+              (_) async => const PokemonItemsCatalogView(
+                entries: [
+                  PokemonItemCatalogEntryView(
+                    id: 'item_antidote',
+                    name: 'Antidote',
+                    shortDesc: 'Soigne le poison.',
+                    pocketId: 'medicine',
+                  ),
+                  PokemonItemCatalogEntryView(
+                    id: 'item_potion',
+                    name: 'Potion',
+                    shortDesc: 'Restaure quelques PV.',
+                    pocketId: 'medicine',
+                  ),
+                ],
+                isAvailable: true,
+                description: 'Objets du projet.',
+              ),
+            ),
+            pokedexEntryLoaderProvider.overrideWithValue(
+              (_) async => const <PokemonDatabaseIndexEntry>[],
+            ),
+          ],
+        );
+
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const ValueKey('scene-consequence-picker-sheet')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('scene-consequence-kind-giveItem')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Antidote'), findsOneWidget);
+        expect(find.text('Potion'), findsOneWidget);
+        expect(find.text('item_antidote'), findsNothing);
+        expect(find.text('item_potion'), findsNothing);
+        await tester.tap(
+          find.byKey(
+            const ValueKey('scene-consequence-item-option-item_potion'),
           ),
-        ],
-      );
-
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(const ValueKey('scene-consequence-picker-sheet')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('scene-consequence-kind-giveItem')),
-      );
-      await tester.pumpAndSettle();
-
-      expect(find.text('Antidote'), findsOneWidget);
-      expect(find.text('Potion'), findsOneWidget);
-      expect(find.text('item_antidote'), findsNothing);
-      expect(find.text('item_potion'), findsNothing);
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-consequence-item-option-item_potion'),
-        ),
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-consequence-item-quantity-field'),
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-consequence-item-quantity-field'),
+            ),
+            matching: find.byType(TextField),
           ),
-          matching: find.byType(TextField),
-        ),
-        '3',
-      );
-      await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('scene-consequence-create-action')),
-      );
-      await tester.pumpAndSettle();
+          '3',
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-consequence-create-action')),
+        );
+        await tester.pumpAndSettle();
 
-      final node = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .last;
-      final payload = node.payload as SceneActionPayload;
-      final consequence = payload.consequence as SceneGiveItemConsequence;
-      expect(consequence.itemId, 'item_potion');
-      expect(consequence.quantity, 3);
-      expect(node.title, 'Donner un objet');
-    });
+        final node = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single
+            .graph
+            .nodes
+            .last;
+        final payload = node.payload as SceneActionPayload;
+        final consequence = payload.consequence as SceneGiveItemConsequence;
+        expect(consequence.itemId, 'item_potion');
+        expect(consequence.quantity, 3);
+        expect(node.title, 'Donner un objet');
+      },
+    );
 
-    testWidgets('creates giveMoney with inline positive amount validation',
-        (tester) async {
+    testWidgets('creates giveMoney with inline positive amount validation', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithScene(),
@@ -764,9 +807,7 @@ void main() {
       expect(
         tester
             .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('scene-consequence-create-action'),
-              ),
+              find.byKey(const ValueKey('scene-consequence-create-action')),
             )
             .onPressed,
         isNull,
@@ -795,75 +836,74 @@ void main() {
           .graph
           .nodes
           .last;
-      final consequence = (node.payload as SceneActionPayload).consequence
-          as SceneGiveMoneyConsequence;
+      final consequence =
+          (node.payload as SceneActionPayload).consequence
+              as SceneGiveMoneyConsequence;
       expect(consequence.amount, 250);
       expect(node.title, 'Donner de l’argent');
     });
 
     testWidgets(
-        'keeps money available and explains unavailable gameplay catalogs',
-        (tester) async {
-      await _pumpNarrativeShell(
-        tester,
-        project: _projectWithScene(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
+      'keeps money available and explains unavailable gameplay catalogs',
+      (tester) async {
+        await _pumpNarrativeShell(
+          tester,
+          project: _projectWithScene(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.pumpAndSettle();
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(
-          const ValueKey('scene-consequence-items-catalog-diagnostic'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey('scene-consequence-species-catalog-diagnostic'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('scene-consequence-kind-giveItem'),
-              ),
-            )
-            .onPressed,
-        isNull,
-      );
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('scene-consequence-kind-givePokemon'),
-              ),
-            )
-            .onPressed,
-        isNull,
-      );
-      expect(
-        tester
-            .widget<PokeMapButton>(
-              find.byKey(
-                const ValueKey('scene-consequence-kind-giveMoney'),
-              ),
-            )
-            .onPressed,
-        isNotNull,
-      );
-    });
+        expect(
+          find.byKey(
+            const ValueKey('scene-consequence-items-catalog-diagnostic'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('scene-consequence-species-catalog-diagnostic'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(const ValueKey('scene-consequence-kind-giveItem')),
+              )
+              .onPressed,
+          isNull,
+        );
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(
+                  const ValueKey('scene-consequence-kind-givePokemon'),
+                ),
+              )
+              .onPressed,
+          isNull,
+        );
+        expect(
+          tester
+              .widget<PokeMapButton>(
+                find.byKey(const ValueKey('scene-consequence-kind-giveMoney')),
+              )
+              .onPressed,
+          isNotNull,
+        );
+      },
+    );
 
-    testWidgets('creates takeItem from the same guided local item catalog',
-        (tester) async {
+    testWidgets('creates takeItem from the same guided local item catalog', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithConsequenceAuthoringTargets(),
@@ -876,10 +916,7 @@ void main() {
           pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
             (_) async => const PokemonItemsCatalogView(
               entries: [
-                PokemonItemCatalogEntryView(
-                  id: 'item_potion',
-                  name: 'Potion',
-                ),
+                PokemonItemCatalogEntryView(id: 'item_potion', name: 'Potion'),
               ],
               isAvailable: true,
               description: 'Objets du projet.',
@@ -903,9 +940,7 @@ void main() {
       );
       await tester.pump();
       await tester.tap(
-        find.byKey(
-          const ValueKey('scene-consequence-item-option-item_potion'),
-        ),
+        find.byKey(const ValueKey('scene-consequence-item-option-item_potion')),
       );
       await tester.enterText(
         find.descendant(
@@ -930,235 +965,239 @@ void main() {
           .graph
           .nodes
           .last;
-      final consequence = (node.payload as SceneActionPayload).consequence
-          as SceneTakeItemConsequence;
+      final consequence =
+          (node.payload as SceneActionPayload).consequence
+              as SceneTakeItemConsequence;
       expect(consequence.itemId, 'item_potion');
       expect(consequence.quantity, 2);
       expect(node.title, 'Retirer un objet');
     });
 
     testWidgets(
-        'creates givePokemon from an enabled local species with level validation',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithConsequenceAuthoringTargets(),
-        projectRootPath: '/project',
-        workspaceMode: EditorWorkspaceMode.scenes,
-        overrides: [
-          projectWorkspaceFactoryProvider.overrideWithValue(
-            const _SceneTestWorkspaceFactory(),
-          ),
-          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-            (_) async => const PokemonItemsCatalogView(
-              entries: <PokemonItemCatalogEntryView>[],
-              isAvailable: false,
-              description: 'Aucun objet.',
+      'creates givePokemon from an enabled local species with level validation',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithConsequenceAuthoringTargets(),
+          projectRootPath: '/project',
+          workspaceMode: EditorWorkspaceMode.scenes,
+          overrides: [
+            projectWorkspaceFactoryProvider.overrideWithValue(
+              const _SceneTestWorkspaceFactory(),
             ),
-          ),
-          pokedexEntryLoaderProvider.overrideWithValue(
-            (_) async => const [
-              PokemonDatabaseIndexEntry(
-                id: 'species_sproutle',
-                nationalDex: 1,
-                primaryName: 'Sproutle',
-                genIntroduced: 1,
-                types: ['grass'],
-                isEnabledInProject: true,
-                refs: PokemonDatabaseIndexRefs(
-                  learnset: 'learnsets/sproutle.json',
-                  evolution: 'evolutions/sproutle.json',
-                  media: 'media/sproutle.json',
-                ),
+            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+              (_) async => const PokemonItemsCatalogView(
+                entries: <PokemonItemCatalogEntryView>[],
+                isAvailable: false,
+                description: 'Aucun objet.',
               ),
-              PokemonDatabaseIndexEntry(
-                id: 'species_disabled',
-                nationalDex: 2,
-                primaryName: 'Dormantmon',
-                genIntroduced: 1,
-                types: ['normal'],
-                isEnabledInProject: false,
-                refs: PokemonDatabaseIndexRefs(
-                  learnset: 'learnsets/dormantmon.json',
-                  evolution: 'evolutions/dormantmon.json',
-                  media: 'media/dormantmon.json',
+            ),
+            pokedexEntryLoaderProvider.overrideWithValue(
+              (_) async => const [
+                PokemonDatabaseIndexEntry(
+                  id: 'species_sproutle',
+                  nationalDex: 1,
+                  primaryName: 'Sproutle',
+                  genIntroduced: 1,
+                  types: ['grass'],
+                  isEnabledInProject: true,
+                  refs: PokemonDatabaseIndexRefs(
+                    learnset: 'learnsets/sproutle.json',
+                    evolution: 'evolutions/sproutle.json',
+                    media: 'media/sproutle.json',
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      );
+                PokemonDatabaseIndexEntry(
+                  id: 'species_disabled',
+                  nationalDex: 2,
+                  primaryName: 'Dormantmon',
+                  genIntroduced: 1,
+                  types: ['normal'],
+                  isEnabledInProject: false,
+                  refs: PokemonDatabaseIndexRefs(
+                    learnset: 'learnsets/dormantmon.json',
+                    evolution: 'evolutions/dormantmon.json',
+                    media: 'media/dormantmon.json',
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
 
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('scene-consequence-kind-givePokemon')),
-      );
-      await tester.pump();
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-consequence-kind-givePokemon')),
+        );
+        await tester.pump();
 
-      expect(find.text('Sproutle'), findsOneWidget);
-      expect(find.text('Dormantmon'), findsNothing);
-      expect(find.text('species_sproutle'), findsNothing);
-      expect(find.text('species_disabled'), findsNothing);
-      await tester.tap(
-        find.byKey(
-          const ValueKey(
-            'scene-consequence-species-option-species_sproutle',
+        expect(find.text('Sproutle'), findsOneWidget);
+        expect(find.text('Dormantmon'), findsNothing);
+        expect(find.text('species_sproutle'), findsNothing);
+        expect(find.text('species_disabled'), findsNothing);
+        await tester.tap(
+          find.byKey(
+            const ValueKey('scene-consequence-species-option-species_sproutle'),
           ),
-        ),
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-consequence-pokemon-level-field'),
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-consequence-pokemon-level-field'),
+            ),
+            matching: find.byType(TextField),
           ),
-          matching: find.byType(TextField),
-        ),
-        '101',
-      );
-      await tester.pump();
-      expect(
-        find.text('Choisissez un niveau entre 1 et 100.'),
-        findsOneWidget,
-      );
+          '101',
+        );
+        await tester.pump();
+        expect(
+          find.text('Choisissez un niveau entre 1 et 100.'),
+          findsOneWidget,
+        );
 
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-consequence-pokemon-level-field'),
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-consequence-pokemon-level-field'),
+            ),
+            matching: find.byType(TextField),
           ),
-          matching: find.byType(TextField),
-        ),
-        '7',
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-consequence-pokemon-current-hp-field'),
+          '7',
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-consequence-pokemon-current-hp-field'),
+            ),
+            matching: find.byType(TextField),
           ),
-          matching: find.byType(TextField),
-        ),
-        '23',
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-consequence-pokemon-nickname-field'),
+          '23',
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-consequence-pokemon-nickname-field'),
+            ),
+            matching: find.byType(TextField),
           ),
-          matching: find.byType(TextField),
-        ),
-        'Mousse',
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-consequence-pokemon-friendship-field'),
+          'Mousse',
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-consequence-pokemon-friendship-field'),
+            ),
+            matching: find.byType(TextField),
           ),
-          matching: find.byType(TextField),
-        ),
-        '300',
-      );
-      await tester.pump();
-      expect(
-        find.text('Choisissez une amitié entre 0 et 255.'),
-        findsOneWidget,
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-consequence-pokemon-friendship-field'),
+          '300',
+        );
+        await tester.pump();
+        expect(
+          find.text('Choisissez une amitié entre 0 et 255.'),
+          findsOneWidget,
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-consequence-pokemon-friendship-field'),
+            ),
+            matching: find.byType(TextField),
           ),
-          matching: find.byType(TextField),
-        ),
-        '80',
-      );
-      await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('scene-consequence-create-action')),
-      );
-      await tester.pumpAndSettle();
+          '80',
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-consequence-create-action')),
+        );
+        await tester.pumpAndSettle();
 
-      final node = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .last;
-      final consequence = (node.payload as SceneActionPayload).consequence
-          as SceneGivePokemonConsequence;
-      expect(consequence.speciesId, 'species_sproutle');
-      expect(consequence.level, 7);
-      expect(consequence.currentHp, 23);
-      expect(consequence.nickname, 'Mousse');
-      expect(consequence.friendship, 80);
-      expect(node.title, 'Donner un Pokémon');
-    });
+        final node = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single
+            .graph
+            .nodes
+            .last;
+        final consequence =
+            (node.payload as SceneActionPayload).consequence
+                as SceneGivePokemonConsequence;
+        expect(consequence.speciesId, 'species_sproutle');
+        expect(consequence.level, 7);
+        expect(consequence.currentHp, 23);
+        expect(consequence.nickname, 'Mousse');
+        expect(consequence.friendship, 80);
+        expect(node.title, 'Donner un Pokémon');
+      },
+    );
 
     testWidgets(
-        'creates a configured starter from New Game options without raw IDs',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithConsequenceAuthoringTargets(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
+      'creates a configured starter from New Game options without raw IDs',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithConsequenceAuthoringTargets(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-consequence-kind-giveConfiguredStarter'),
-        ),
-      );
-      await tester.pump();
-
-      expect(find.text('Bulbizarre'), findsOneWidget);
-      expect(find.text('starter_bulbasaur'), findsNothing);
-      expect(find.text('bulbasaur'), findsNothing);
-      expect(
-        find.byKey(const ValueKey('scenes-library-search')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(
-          const ValueKey(
-            'scene-consequence-configured-starter-option-starter_bulbasaur',
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('scenes-add-node-action-consequence')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(
+            const ValueKey('scene-consequence-kind-giveConfiguredStarter'),
           ),
-        ),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('scene-consequence-create-action')),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pump();
 
-      final node = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .last;
-      final consequence = (node.payload as SceneActionPayload).consequence
-          as SceneGiveConfiguredStarterConsequence;
-      expect(consequence.starterOptionId, 'starter_bulbasaur');
-      expect(node.title, 'Donner un starter configuré');
-    });
+        expect(find.text('Bulbizarre'), findsOneWidget);
+        expect(find.text('starter_bulbasaur'), findsNothing);
+        expect(find.text('bulbasaur'), findsNothing);
+        expect(
+          find.byKey(const ValueKey('scenes-library-search')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(
+            const ValueKey(
+              'scene-consequence-configured-starter-option-starter_bulbasaur',
+            ),
+          ),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('scene-consequence-create-action')),
+        );
+        await tester.pumpAndSettle();
 
-    testWidgets('creates and edits completeStoryStep from a guided picker',
-        (tester) async {
+        final node = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single
+            .graph
+            .nodes
+            .last;
+        final consequence =
+            (node.payload as SceneActionPayload).consequence
+                as SceneGiveConfiguredStarterConsequence;
+        expect(consequence.starterOptionId, 'starter_bulbasaur');
+        expect(node.title, 'Donner un starter configuré');
+      },
+    );
+
+    testWidgets('creates and edits completeStoryStep from a guided picker', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithConsequenceAuthoringTargets(),
@@ -1173,9 +1212,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(
-          const ValueKey('scene-consequence-kind-completeStoryStep'),
-        ),
+        find.byKey(const ValueKey('scene-consequence-kind-completeStoryStep')),
       );
       await tester.pumpAndSettle();
 
@@ -1183,9 +1220,7 @@ void main() {
       expect(find.text('step_leave_port'), findsNothing);
       await tester.tap(
         find.byKey(
-          const ValueKey(
-            'scene-consequence-story-step-option-step_leave_port',
-          ),
+          const ValueKey('scene-consequence-story-step-option-step_leave_port'),
         ),
       );
       await tester.tap(
@@ -1201,8 +1236,9 @@ void main() {
           .graph
           .nodes
           .last;
-      final consequence = (node.payload as SceneActionPayload).consequence
-          as SceneCompleteStoryStepConsequence;
+      final consequence =
+          (node.payload as SceneActionPayload).consequence
+              as SceneCompleteStoryStepConsequence;
       expect(consequence.stepId, 'step_leave_port');
       expect(node.title, 'Terminer une étape narrative');
       expect(
@@ -1221,184 +1257,188 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      final edited = (container
-              .read(editorNotifierProvider)
-              .project!
-              .scenes
-              .single
-              .graph
-              .nodes
-              .last
-              .payload as SceneActionPayload)
-          .consequence as SceneCompleteStoryStepConsequence;
+      final edited =
+          (container
+                          .read(editorNotifierProvider)
+                          .project!
+                          .scenes
+                          .single
+                          .graph
+                          .nodes
+                          .last
+                          .payload
+                      as SceneActionPayload)
+                  .consequence
+              as SceneCompleteStoryStepConsequence;
       expect(edited.stepId, 'step_find_lighthouse');
     });
 
     testWidgets(
-        'inspector resolves and edits takeItem through the local item catalog',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithGameplayConsequenceActionScene(
-          SceneConsequence.takeItem(itemId: 'item_potion', quantity: 1),
-        ),
-        projectRootPath: '/project',
-        workspaceMode: EditorWorkspaceMode.scenes,
-        overrides: [
-          projectWorkspaceFactoryProvider.overrideWithValue(
-            const _SceneTestWorkspaceFactory(),
+      'inspector resolves and edits takeItem through the local item catalog',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithGameplayConsequenceActionScene(
+            SceneConsequence.takeItem(itemId: 'item_potion', quantity: 1),
           ),
-          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-            (_) async => const PokemonItemsCatalogView(
-              entries: [
-                PokemonItemCatalogEntryView(
-                  id: 'item_potion',
-                  name: 'Potion',
-                  shortDesc: 'Restaure quelques PV.',
-                ),
-              ],
-              isAvailable: true,
-              description: 'Objets du projet.',
+          projectRootPath: '/project',
+          workspaceMode: EditorWorkspaceMode.scenes,
+          overrides: [
+            projectWorkspaceFactoryProvider.overrideWithValue(
+              const _SceneTestWorkspaceFactory(),
             ),
-          ),
-          pokedexEntryLoaderProvider.overrideWithValue(
-            (_) async => const <PokemonDatabaseIndexEntry>[],
-          ),
-        ],
-      );
+            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+              (_) async => const PokemonItemsCatalogView(
+                entries: [
+                  PokemonItemCatalogEntryView(
+                    id: 'item_potion',
+                    name: 'Potion',
+                    shortDesc: 'Restaure quelques PV.',
+                  ),
+                ],
+                isAvailable: true,
+                description: 'Objets du projet.',
+              ),
+            ),
+            pokedexEntryLoaderProvider.overrideWithValue(
+              (_) async => const <PokemonDatabaseIndexEntry>[],
+            ),
+          ],
+        );
 
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-node-node_action')),
-      );
-      await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_action')),
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.text('Retirer un objet'), findsWidgets);
-      expect(find.text('Potion'), findsOneWidget);
-      expect(find.text('item_potion'), findsNothing);
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-edit-action'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('scene-gameplay-consequence-edit-sheet')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('scene-gameplay-consequence-item-picker')),
-        findsOneWidget,
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-gameplay-consequence-quantity-field'),
+        expect(find.text('Retirer un objet'), findsWidgets);
+        expect(find.text('Potion'), findsOneWidget);
+        expect(find.text('item_potion'), findsNothing);
+        await tester.tap(
+          find.byKey(const ValueKey('scene-gameplay-consequence-edit-action')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('scene-gameplay-consequence-edit-sheet')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-gameplay-consequence-item-picker')),
+          findsOneWidget,
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-gameplay-consequence-quantity-field'),
+            ),
+            matching: find.byType(TextField),
           ),
-          matching: find.byType(TextField),
-        ),
-        '2',
-      );
-      await tester.pump();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-save-action'),
-        ),
-      );
-      await tester.pumpAndSettle();
+          '2',
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-gameplay-consequence-save-action')),
+        );
+        await tester.pumpAndSettle();
 
-      final node = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .firstWhere((candidate) => candidate.id == 'node_action');
-      final consequence = (node.payload as SceneActionPayload).consequence
-          as SceneTakeItemConsequence;
-      expect(consequence.itemId, 'item_potion');
-      expect(consequence.quantity, 2);
-    });
+        final node = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single
+            .graph
+            .nodes
+            .firstWhere((candidate) => candidate.id == 'node_action');
+        final consequence =
+            (node.payload as SceneActionPayload).consequence
+                as SceneTakeItemConsequence;
+        expect(consequence.itemId, 'item_potion');
+        expect(consequence.quantity, 2);
+      },
+    );
 
     testWidgets(
-        'inspector keeps giveItem typed while editing its guided quantity',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithGameplayConsequenceActionScene(
-          SceneConsequence.giveItem(itemId: 'item_potion', quantity: 1),
-        ),
-        projectRootPath: '/project',
-        workspaceMode: EditorWorkspaceMode.scenes,
-        overrides: [
-          projectWorkspaceFactoryProvider.overrideWithValue(
-            const _SceneTestWorkspaceFactory(),
+      'inspector keeps giveItem typed while editing its guided quantity',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithGameplayConsequenceActionScene(
+            SceneConsequence.giveItem(itemId: 'item_potion', quantity: 1),
           ),
-          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-            (_) async => const PokemonItemsCatalogView(
-              entries: [
-                PokemonItemCatalogEntryView(
-                  id: 'item_potion',
-                  name: 'Potion',
-                ),
-              ],
-              isAvailable: true,
-              description: 'Objets du projet.',
+          projectRootPath: '/project',
+          workspaceMode: EditorWorkspaceMode.scenes,
+          overrides: [
+            projectWorkspaceFactoryProvider.overrideWithValue(
+              const _SceneTestWorkspaceFactory(),
             ),
+            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+              (_) async => const PokemonItemsCatalogView(
+                entries: [
+                  PokemonItemCatalogEntryView(
+                    id: 'item_potion',
+                    name: 'Potion',
+                  ),
+                ],
+                isAvailable: true,
+                description: 'Objets du projet.',
+              ),
+            ),
+            pokedexEntryLoaderProvider.overrideWithValue(
+              (_) async => const <PokemonDatabaseIndexEntry>[],
+            ),
+          ],
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_action')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Donner un objet'), findsWidgets);
+        expect(find.text('Potion'), findsOneWidget);
+        expect(find.text('item_potion'), findsNothing);
+        await tester.tap(
+          find.byKey(const ValueKey('scene-gameplay-consequence-edit-action')),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-gameplay-consequence-quantity-field'),
+            ),
+            matching: find.byType(TextField),
           ),
-          pokedexEntryLoaderProvider.overrideWithValue(
-            (_) async => const <PokemonDatabaseIndexEntry>[],
-          ),
-        ],
-      );
+          '4',
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-gameplay-consequence-save-action')),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-node-node_action')),
-      );
-      await tester.pumpAndSettle();
+        final consequence =
+            (container
+                            .read(editorNotifierProvider)
+                            .project!
+                            .scenes
+                            .single
+                            .graph
+                            .nodes
+                            .firstWhere(
+                              (candidate) => candidate.id == 'node_action',
+                            )
+                            .payload
+                        as SceneActionPayload)
+                    .consequence
+                as SceneGiveItemConsequence;
+        expect(consequence.itemId, 'item_potion');
+        expect(consequence.quantity, 4);
+      },
+    );
 
-      expect(find.text('Donner un objet'), findsWidgets);
-      expect(find.text('Potion'), findsOneWidget);
-      expect(find.text('item_potion'), findsNothing);
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-edit-action'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-gameplay-consequence-quantity-field'),
-          ),
-          matching: find.byType(TextField),
-        ),
-        '4',
-      );
-      await tester.pump();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-save-action'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final consequence = (container
-              .read(editorNotifierProvider)
-              .project!
-              .scenes
-              .single
-              .graph
-              .nodes
-              .firstWhere((candidate) => candidate.id == 'node_action')
-              .payload as SceneActionPayload)
-          .consequence as SceneGiveItemConsequence;
-      expect(consequence.itemId, 'item_potion');
-      expect(consequence.quantity, 4);
-    });
-
-    testWidgets('inspector edits giveMoney through a validated amount field',
-        (tester) async {
+    testWidgets('inspector edits giveMoney through a validated amount field', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithGameplayConsequenceActionScene(
@@ -1415,9 +1455,7 @@ void main() {
       expect(find.text('100'), findsWidgets);
 
       await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-edit-action'),
-        ),
+        find.byKey(const ValueKey('scene-gameplay-consequence-edit-action')),
       );
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -1456,256 +1494,266 @@ void main() {
       );
       await tester.pump();
       await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-save-action'),
-        ),
+        find.byKey(const ValueKey('scene-gameplay-consequence-save-action')),
       );
       await tester.pumpAndSettle();
 
-      final consequence = (container
-              .read(editorNotifierProvider)
-              .project!
-              .scenes
-              .single
-              .graph
-              .nodes
-              .firstWhere((candidate) => candidate.id == 'node_action')
-              .payload as SceneActionPayload)
-          .consequence as SceneGiveMoneyConsequence;
+      final consequence =
+          (container
+                          .read(editorNotifierProvider)
+                          .project!
+                          .scenes
+                          .single
+                          .graph
+                          .nodes
+                          .firstWhere(
+                            (candidate) => candidate.id == 'node_action',
+                          )
+                          .payload
+                      as SceneActionPayload)
+                  .consequence
+              as SceneGiveMoneyConsequence;
       expect(consequence.amount, 300);
     });
 
     testWidgets(
-        'inspector resolves and edits givePokemon through local species',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithGameplayConsequenceActionScene(
-          SceneConsequence.givePokemon(
-            speciesId: 'species_sproutle',
-            level: 5,
-            currentHp: 20,
-          ),
-        ),
-        projectRootPath: '/project',
-        workspaceMode: EditorWorkspaceMode.scenes,
-        overrides: [
-          projectWorkspaceFactoryProvider.overrideWithValue(
-            const _SceneTestWorkspaceFactory(),
-          ),
-          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-            (_) async => const PokemonItemsCatalogView(
-              entries: <PokemonItemCatalogEntryView>[],
-              isAvailable: false,
-              description: 'Aucun objet.',
+      'inspector resolves and edits givePokemon through local species',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithGameplayConsequenceActionScene(
+            SceneConsequence.givePokemon(
+              speciesId: 'species_sproutle',
+              level: 5,
+              currentHp: 20,
             ),
           ),
-          pokedexEntryLoaderProvider.overrideWithValue(
-            (_) async => const [
-              PokemonDatabaseIndexEntry(
-                id: 'species_sproutle',
-                nationalDex: 1,
-                primaryName: 'Sproutle',
-                genIntroduced: 1,
-                types: ['grass'],
-                isEnabledInProject: true,
-                refs: PokemonDatabaseIndexRefs(
-                  learnset: 'learnsets/sproutle.json',
-                  evolution: 'evolutions/sproutle.json',
-                  media: 'media/sproutle.json',
-                ),
+          projectRootPath: '/project',
+          workspaceMode: EditorWorkspaceMode.scenes,
+          overrides: [
+            projectWorkspaceFactoryProvider.overrideWithValue(
+              const _SceneTestWorkspaceFactory(),
+            ),
+            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+              (_) async => const PokemonItemsCatalogView(
+                entries: <PokemonItemCatalogEntryView>[],
+                isAvailable: false,
+                description: 'Aucun objet.',
               ),
-            ],
-          ),
-        ],
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-node-node_action')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Sproutle'), findsOneWidget);
-      expect(find.text('species_sproutle'), findsNothing);
-
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-edit-action'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-species-picker'),
-        ),
-        findsOneWidget,
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-gameplay-consequence-level-field'),
-          ),
-          matching: find.byType(TextField),
-        ),
-        '8',
-      );
-      await tester.enterText(
-        find.descendant(
-          of: find.byKey(
-            const ValueKey('scene-gameplay-consequence-current-hp-field'),
-          ),
-          matching: find.byType(TextField),
-        ),
-        '27',
-      );
-      await tester.pump();
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-save-action'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final consequence = (container
-              .read(editorNotifierProvider)
-              .project!
-              .scenes
-              .single
-              .graph
-              .nodes
-              .firstWhere((candidate) => candidate.id == 'node_action')
-              .payload as SceneActionPayload)
-          .consequence as SceneGivePokemonConsequence;
-      expect(consequence.speciesId, 'species_sproutle');
-      expect(consequence.level, 8);
-      expect(consequence.currentHp, 27);
-    });
-
-    testWidgets(
-        'inspector edits a configured starter through labels without raw IDs',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithGameplayConsequenceActionScene(
-          SceneConsequence.giveConfiguredStarter(
-            starterOptionId: 'starter_bulbasaur',
-          ),
-          newGame: const ProjectNewGameConfig(
-            starterOptions: <ProjectStarterOption>[
-              ProjectStarterOption(
-                id: 'starter_bulbasaur',
-                label: 'Bulbizarre',
-                pokemon: PlayerPokemon(
-                  speciesId: 'bulbasaur',
-                  natureId: 'hardy',
-                  abilityId: 'overgrow',
-                  level: 16,
-                  currentHp: 40,
-                  knownMoveIds: <String>['vine_whip'],
-                ),
-              ),
-            ],
-          ),
-        ),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
-
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-node-node_action')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('Bulbizarre'), findsOneWidget);
-      expect(find.text('starter_bulbasaur'), findsNothing);
-      expect(find.text('bulbasaur'), findsNothing);
-
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-edit-action'),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(
-          const ValueKey(
-            'scene-gameplay-consequence-configured-starter-picker',
-          ),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('scenes-library-search')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-save-action'),
-        ),
-      );
-      await tester.pumpAndSettle();
-
-      final consequence = (container
-              .read(editorNotifierProvider)
-              .project!
-              .scenes
-              .single
-              .graph
-              .nodes
-              .firstWhere((candidate) => candidate.id == 'node_action')
-              .payload as SceneActionPayload)
-          .consequence as SceneGiveConfiguredStarterConsequence;
-      expect(consequence.starterOptionId, 'starter_bulbasaur');
-    });
-
-    testWidgets('inspector diagnoses a gameplay reference missing from catalog',
-        (tester) async {
-      await _pumpNarrativeShell(
-        tester,
-        project: _projectWithGameplayConsequenceActionScene(
-          SceneConsequence.giveItem(itemId: 'item_missing', quantity: 1),
-        ),
-        projectRootPath: '/project',
-        workspaceMode: EditorWorkspaceMode.scenes,
-        overrides: [
-          projectWorkspaceFactoryProvider.overrideWithValue(
-            const _SceneTestWorkspaceFactory(),
-          ),
-          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
-            (_) async => const PokemonItemsCatalogView(
-              entries: [
-                PokemonItemCatalogEntryView(
-                  id: 'item_potion',
-                  name: 'Potion',
+            ),
+            pokedexEntryLoaderProvider.overrideWithValue(
+              (_) async => const [
+                PokemonDatabaseIndexEntry(
+                  id: 'species_sproutle',
+                  nationalDex: 1,
+                  primaryName: 'Sproutle',
+                  genIntroduced: 1,
+                  types: ['grass'],
+                  isEnabledInProject: true,
+                  refs: PokemonDatabaseIndexRefs(
+                    learnset: 'learnsets/sproutle.json',
+                    evolution: 'evolutions/sproutle.json',
+                    media: 'media/sproutle.json',
+                  ),
                 ),
               ],
-              isAvailable: true,
-              description: 'Objets du projet.',
+            ),
+          ],
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_action')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Sproutle'), findsOneWidget);
+        expect(find.text('species_sproutle'), findsNothing);
+
+        await tester.tap(
+          find.byKey(const ValueKey('scene-gameplay-consequence-edit-action')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(
+            const ValueKey('scene-gameplay-consequence-species-picker'),
+          ),
+          findsOneWidget,
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-gameplay-consequence-level-field'),
+            ),
+            matching: find.byType(TextField),
+          ),
+          '8',
+        );
+        await tester.enterText(
+          find.descendant(
+            of: find.byKey(
+              const ValueKey('scene-gameplay-consequence-current-hp-field'),
+            ),
+            matching: find.byType(TextField),
+          ),
+          '27',
+        );
+        await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-gameplay-consequence-save-action')),
+        );
+        await tester.pumpAndSettle();
+
+        final consequence =
+            (container
+                            .read(editorNotifierProvider)
+                            .project!
+                            .scenes
+                            .single
+                            .graph
+                            .nodes
+                            .firstWhere(
+                              (candidate) => candidate.id == 'node_action',
+                            )
+                            .payload
+                        as SceneActionPayload)
+                    .consequence
+                as SceneGivePokemonConsequence;
+        expect(consequence.speciesId, 'species_sproutle');
+        expect(consequence.level, 8);
+        expect(consequence.currentHp, 27);
+      },
+    );
+
+    testWidgets(
+      'inspector edits a configured starter through labels without raw IDs',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithGameplayConsequenceActionScene(
+            SceneConsequence.giveConfiguredStarter(
+              starterOptionId: 'starter_bulbasaur',
+            ),
+            newGame: const ProjectNewGameConfig(
+              starterOptions: <ProjectStarterOption>[
+                ProjectStarterOption(
+                  id: 'starter_bulbasaur',
+                  label: 'Bulbizarre',
+                  pokemon: PlayerPokemon(
+                    speciesId: 'bulbasaur',
+                    natureId: 'hardy',
+                    abilityId: 'overgrow',
+                    level: 16,
+                    currentHp: 40,
+                    knownMoveIds: <String>['vine_whip'],
+                  ),
+                ),
+              ],
             ),
           ),
-          pokedexEntryLoaderProvider.overrideWithValue(
-            (_) async => const <PokemonDatabaseIndexEntry>[],
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_action')),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text('Bulbizarre'), findsOneWidget);
+        expect(find.text('starter_bulbasaur'), findsNothing);
+        expect(find.text('bulbasaur'), findsNothing);
+
+        await tester.tap(
+          find.byKey(const ValueKey('scene-gameplay-consequence-edit-action')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(
+            const ValueKey(
+              'scene-gameplay-consequence-configured-starter-picker',
+            ),
           ),
-        ],
-      );
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scenes-library-search')),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('scene-gameplay-consequence-save-action')),
+        );
+        await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-node-node_action')),
-      );
-      await tester.pumpAndSettle();
+        final consequence =
+            (container
+                            .read(editorNotifierProvider)
+                            .project!
+                            .scenes
+                            .single
+                            .graph
+                            .nodes
+                            .firstWhere(
+                              (candidate) => candidate.id == 'node_action',
+                            )
+                            .payload
+                        as SceneActionPayload)
+                    .consequence
+                as SceneGiveConfiguredStarterConsequence;
+        expect(consequence.starterOptionId, 'starter_bulbasaur');
+      },
+    );
 
-      expect(
-        find.byKey(
-          const ValueKey('scene-gameplay-consequence-catalog-diagnostic'),
-        ),
-        findsOneWidget,
-      );
-      expect(
-        find.text('Objet introuvable dans le catalogue local.'),
-        findsOneWidget,
-      );
-      expect(find.text('item_missing'), findsNothing);
-    });
+    testWidgets(
+      'inspector diagnoses a gameplay reference missing from catalog',
+      (tester) async {
+        await _pumpNarrativeShell(
+          tester,
+          project: _projectWithGameplayConsequenceActionScene(
+            SceneConsequence.giveItem(itemId: 'item_missing', quantity: 1),
+          ),
+          projectRootPath: '/project',
+          workspaceMode: EditorWorkspaceMode.scenes,
+          overrides: [
+            projectWorkspaceFactoryProvider.overrideWithValue(
+              const _SceneTestWorkspaceFactory(),
+            ),
+            pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+              (_) async => const PokemonItemsCatalogView(
+                entries: [
+                  PokemonItemCatalogEntryView(
+                    id: 'item_potion',
+                    name: 'Potion',
+                  ),
+                ],
+                isAvailable: true,
+                description: 'Objets du projet.',
+              ),
+            ),
+            pokedexEntryLoaderProvider.overrideWithValue(
+              (_) async => const <PokemonDatabaseIndexEntry>[],
+            ),
+          ],
+        );
 
-    testWidgets('edits a setFact consequence action payload from inspector',
-        (tester) async {
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_action')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(
+            const ValueKey('scene-gameplay-consequence-catalog-diagnostic'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Objet introuvable dans le catalogue local.'),
+          findsOneWidget,
+        );
+        expect(find.text('item_missing'), findsNothing);
+      },
+    );
+
+    testWidgets('edits a setFact consequence action payload from inspector', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithTypedConsequenceActionScene(),
@@ -1723,15 +1771,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      var payload = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .firstWhere((node) => node.id == 'node_action')
-          .payload as SceneActionPayload;
+      var payload =
+          container
+                  .read(editorNotifierProvider)
+                  .project!
+                  .scenes
+                  .single
+                  .graph
+                  .nodes
+                  .firstWhere((node) => node.id == 'node_action')
+                  .payload
+              as SceneActionPayload;
       var consequence = payload.consequence as SceneSetFactConsequence;
       expect(consequence.factId, 'fact_gate_open');
       expect(consequence.value, isFalse);
@@ -1747,23 +1797,26 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      payload = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .firstWhere((node) => node.id == 'node_action')
-          .payload as SceneActionPayload;
+      payload =
+          container
+                  .read(editorNotifierProvider)
+                  .project!
+                  .scenes
+                  .single
+                  .graph
+                  .nodes
+                  .firstWhere((node) => node.id == 'node_action')
+                  .payload
+              as SceneActionPayload;
       consequence = payload.consequence as SceneSetFactConsequence;
       expect(consequence.factId, 'fact_alarm_set');
       expect(consequence.value, isFalse);
       expect(find.textContaining('Alarme activée'), findsOneWidget);
     });
 
-    testWidgets('edits a markEventConsumed consequence target from inspector',
-        (tester) async {
+    testWidgets('edits a markEventConsumed consequence target from inspector', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithMarkEventConsumedActionScene(),
@@ -1790,15 +1843,17 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final payload = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .firstWhere((node) => node.id == 'node_action')
-          .payload as SceneActionPayload;
+      final payload =
+          container
+                  .read(editorNotifierProvider)
+                  .project!
+                  .scenes
+                  .single
+                  .graph
+                  .nodes
+                  .firstWhere((node) => node.id == 'node_action')
+                  .payload
+              as SceneActionPayload;
       final consequence =
           payload.consequence as SceneMarkEventConsumedConsequence;
       expect(consequence.mapId, 'map_test');
@@ -1807,36 +1862,42 @@ void main() {
     });
 
     testWidgets(
-        'bridge-only cinematic and branch stay disabled while money action is available',
-        (tester) async {
-      await _pumpNarrativeShell(
-        tester,
-        project: _projectWithPayloadPickerContracts(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
+      'bridge-only cinematic and branch stay disabled while money action is available',
+      (tester) async {
+        await _pumpNarrativeShell(
+          tester,
+          project: _projectWithPayloadPickerContracts(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      final cinematicButton = tester.widget<PokeMapButton>(
-        find.byKey(const ValueKey('scenes-add-node-cinematic-disabled')).first,
-      );
-      final actionButton = tester.widget<PokeMapButton>(
-        find.byKey(const ValueKey('scenes-add-node-action-consequence')).first,
-      );
-      final branchButton = tester.widget<PokeMapButton>(
-        find.byKey(const ValueKey('scenes-add-node-branch-disabled')).first,
-      );
+        final cinematicButton = tester.widget<PokeMapButton>(
+          find
+              .byKey(const ValueKey('scenes-add-node-cinematic-disabled'))
+              .first,
+        );
+        final actionButton = tester.widget<PokeMapButton>(
+          find
+              .byKey(const ValueKey('scenes-add-node-action-consequence'))
+              .first,
+        );
+        final branchButton = tester.widget<PokeMapButton>(
+          find.byKey(const ValueKey('scenes-add-node-branch-disabled')).first,
+        );
 
-      expect(cinematicButton.onPressed, isNull);
-      expect(actionButton.onPressed, isNotNull);
-      expect(branchButton.onPressed, isNull);
-      expect(find.textContaining('bridges legacy'), findsOneWidget);
-      expect(find.textContaining('aucun résultat source'), findsOneWidget);
-      expect(find.text('CinematicAsset final'), findsNothing);
-      expect(find.text('mael_intro'), findsNothing);
-      expect(find.text('lysa_rival'), findsNothing);
-    });
+        expect(cinematicButton.onPressed, isNull);
+        expect(actionButton.onPressed, isNotNull);
+        expect(branchButton.onPressed, isNull);
+        expect(find.textContaining('bridges legacy'), findsOneWidget);
+        expect(find.textContaining('aucun résultat source'), findsOneWidget);
+        expect(find.text('CinematicAsset final'), findsNothing);
+        expect(find.text('mael_intro'), findsNothing);
+        expect(find.text('lysa_rival'), findsNothing);
+      },
+    );
 
-    testWidgets('edits a Yarn dialogue payload from real public contracts',
-        (tester) async {
+    testWidgets('edits a Yarn dialogue payload from real public contracts', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithEditablePayloadNodes(),
@@ -1874,10 +1935,14 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final scene =
-          container.read(editorNotifierProvider).project!.scenes.single;
-      final node =
-          scene.graph.nodes.firstWhere((node) => node.id == 'node_dialogue');
+      final scene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single;
+      final node = scene.graph.nodes.firstWhere(
+        (node) => node.id == 'node_dialogue',
+      );
       final payload = node.payload as SceneYarnDialoguePayload;
       expect(payload.dialogueId, 'dialogue_updated');
       expect(payload.yarnNodeName, 'UpdatedStart');
@@ -1898,8 +1963,9 @@ void main() {
       expect(find.text('selbrume_port'), findsNothing);
     });
 
-    testWidgets('opens an exact Dialogue and restores its Scene node',
-        (tester) async {
+    testWidgets('opens an exact Dialogue and restores its Scene node', (
+      tester,
+    ) async {
       final project = _projectWithDeepLinkPayloadNodes();
       final container = await pumpEditorShellPage(
         tester,
@@ -1921,13 +1987,16 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
 
       final opened = container.read(editorNotifierProvider);
-      final navigation =
-          container.read(narrativeStudioNavigationControllerProvider);
+      final navigation = container.read(
+        narrativeStudioNavigationControllerProvider,
+      );
       expect(opened.workspaceMode, EditorWorkspaceMode.dialogue);
       expect(opened.selectedProjectDialogueId, 'dialogue_linked');
       expect(navigation.location.selection?.assetId, 'dialogue_linked');
-      expect(navigation.pendingReturn?.location.selection?.assetId,
-          'scene_linked');
+      expect(
+        navigation.pendingReturn?.location.selection?.assetId,
+        'scene_linked',
+      );
       expect(
         navigation.pendingReturn?.location.selection?.focusId,
         'node_dialogue',
@@ -1935,9 +2004,7 @@ void main() {
       expect(navigation.pendingReturn?.scrollOffset, isNull);
 
       await tester.tap(
-        find.byKey(
-          const ValueKey('narrative-studio-product-nav-return'),
-        ),
+        find.byKey(const ValueKey('narrative-studio-product-nav-return')),
       );
       await tester.pump();
       expect(
@@ -1956,15 +2023,11 @@ void main() {
       expect(find.text('Dialogue lié'), findsOneWidget);
       expect(find.textContaining('Linked Dialogue'), findsOneWidget);
       expect(
-        find.byKey(
-          const ValueKey('scene-graph-node-selected-node_dialogue'),
-        ),
+        find.byKey(const ValueKey('scene-graph-node-selected-node_dialogue')),
         findsOneWidget,
       );
       final dialogueNodeFocus = tester.widget<FocusableActionDetector>(
-        find.byKey(
-          const ValueKey('scene-graph-node-focus-node_dialogue'),
-        ),
+        find.byKey(const ValueKey('scene-graph-node-focus-node_dialogue')),
       );
       expect(dialogueNodeFocus.focusNode?.hasFocus, isTrue);
       expect(
@@ -1975,8 +2038,9 @@ void main() {
       );
     });
 
-    testWidgets('opens an exact Cinematic and restores its Scene node',
-        (tester) async {
+    testWidgets('opens an exact Cinematic and restores its Scene node', (
+      tester,
+    ) async {
       final project = _projectWithDeepLinkPayloadNodes();
       final container = await pumpEditorShellPage(
         tester,
@@ -1996,8 +2060,9 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final navigation =
-          container.read(narrativeStudioNavigationControllerProvider);
+      final navigation = container.read(
+        narrativeStudioNavigationControllerProvider,
+      );
       expect(
         container.read(editorNotifierProvider).workspaceMode,
         EditorWorkspaceMode.cutscene,
@@ -2013,9 +2078,7 @@ void main() {
       );
 
       await tester.tap(
-        find.byKey(
-          const ValueKey('narrative-studio-product-nav-return'),
-        ),
+        find.byKey(const ValueKey('narrative-studio-product-nav-return')),
       );
       await tester.pumpAndSettle();
 
@@ -2026,15 +2089,11 @@ void main() {
       expect(find.text('Cinématique'), findsWidgets);
       expect(find.text('cinematic_linked'), findsWidgets);
       expect(
-        find.byKey(
-          const ValueKey('scene-graph-node-selected-node_cinematic'),
-        ),
+        find.byKey(const ValueKey('scene-graph-node-selected-node_cinematic')),
         findsOneWidget,
       );
       final cinematicNodeFocus = tester.widget<FocusableActionDetector>(
-        find.byKey(
-          const ValueKey('scene-graph-node-focus-node_cinematic'),
-        ),
+        find.byKey(const ValueKey('scene-graph-node-focus-node_cinematic')),
       );
       expect(cinematicNodeFocus.focusNode?.hasFocus, isTrue);
       expect(
@@ -2046,213 +2105,212 @@ void main() {
     });
 
     testWidgets(
-        'does not reapply a consumed Scene deep link after local selection',
-        (tester) async {
-      final project = _projectWithDeepLinkPayloadNodes();
-      final container = await pumpEditorShellPage(
-        tester,
-        initialState: EditorState(
-          project: project,
-          workspaceMode: EditorWorkspaceMode.scenes,
-        ),
-        surfaceSize: const Size(1672, 941),
-      );
+      'does not reapply a consumed Scene deep link after local selection',
+      (tester) async {
+        final project = _projectWithDeepLinkPayloadNodes();
+        final container = await pumpEditorShellPage(
+          tester,
+          initialState: EditorState(
+            project: project,
+            workspaceMode: EditorWorkspaceMode.scenes,
+          ),
+          surfaceSize: const Size(1672, 941),
+        );
 
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('scene-payload-open-dialogue-action')),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 250));
-      await tester.tap(
-        find.byKey(const ValueKey('narrative-studio-product-nav-return')),
-      );
-      await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-payload-open-dialogue-action')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-studio-product-nav-return')),
+        );
+        await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(
-          const ValueKey('scene-graph-node-selected-node_dialogue'),
-        ),
-        findsOneWidget,
-      );
-      expect(
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-selected-node_dialogue')),
+          findsOneWidget,
+        );
+        expect(
+          container
+              .read(narrativeStudioNavigationControllerProvider)
+              .restorationRequest,
+          isNull,
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_cinematic')),
+        );
+        await tester.pumpAndSettle();
         container
-            .read(narrativeStudioNavigationControllerProvider)
-            .restorationRequest,
-        isNull,
-      );
+            .read(editorNotifierProvider.notifier)
+            .applyInMemoryProjectManifest(
+              project.copyWith(
+                globalProperties: {
+                  ...project.globalProperties,
+                  'testMutation': true,
+                },
+              ),
+            );
+        await tester.pumpAndSettle();
 
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-node-node_cinematic')),
-      );
-      await tester.pumpAndSettle();
-      container
-          .read(editorNotifierProvider.notifier)
-          .applyInMemoryProjectManifest(
-            project.copyWith(
-              globalProperties: {
-                ...project.globalProperties,
-                'testMutation': true,
-              },
-            ),
-          );
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byKey(
-          const ValueKey('scene-graph-node-selected-node_cinematic'),
-        ),
-        findsOneWidget,
-        reason: 'Une route déjà consommée ne doit pas écraser un choix local.',
-      );
-      expect(
-        find.byKey(
-          const ValueKey('scene-graph-node-selected-node_dialogue'),
-        ),
-        findsNothing,
-      );
-    });
+        expect(
+          find.byKey(
+            const ValueKey('scene-graph-node-selected-node_cinematic'),
+          ),
+          findsOneWidget,
+          reason:
+              'Une route déjà consommée ne doit pas écraser un choix local.',
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-selected-node_dialogue')),
+          findsNothing,
+        );
+      },
+    );
 
     testWidgets(
-        'keeps a Dialogue return pending when its exact Scene node is stale',
-        (tester) async {
-      final project = _projectWithDeepLinkPayloadNodes();
-      final container = await pumpEditorShellPage(
-        tester,
-        initialState: EditorState(
-          project: project,
-          workspaceMode: EditorWorkspaceMode.scenes,
-        ),
-        surfaceSize: const Size(1672, 941),
-      );
+      'keeps a Dialogue return pending when its exact Scene node is stale',
+      (tester) async {
+        final project = _projectWithDeepLinkPayloadNodes();
+        final container = await pumpEditorShellPage(
+          tester,
+          initialState: EditorState(
+            project: project,
+            workspaceMode: EditorWorkspaceMode.scenes,
+          ),
+          surfaceSize: const Size(1672, 941),
+        );
 
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('scene-payload-open-dialogue-action')),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 250));
-      container
-          .read(editorNotifierProvider.notifier)
-          .applyInMemoryProjectManifest(
-            project.copyWith(
-              scenes: [
-                _sceneWithoutNode(project.scenes.single, 'node_dialogue'),
-              ],
-            ),
-          );
-      await tester.pump();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-payload-open-dialogue-action')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        container
+            .read(editorNotifierProvider.notifier)
+            .applyInMemoryProjectManifest(
+              project.copyWith(
+                scenes: [
+                  _sceneWithoutNode(project.scenes.single, 'node_dialogue'),
+                ],
+              ),
+            );
+        await tester.pump();
 
-      await tester.tap(
-        find.byKey(
-          const ValueKey('narrative-studio-product-nav-return'),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 250));
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-studio-product-nav-return')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
 
-      expect(
-        find.byKey(const ValueKey('scenes-route-restoration-failure')),
-        findsOneWidget,
-      );
-      expect(find.textContaining('node_dialogue'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
-        findsNothing,
-        reason: 'Un nœud stale ne doit jamais retomber sur le premier nœud.',
-      );
-      final navigation =
-          container.read(narrativeStudioNavigationControllerProvider);
-      expect(navigation.location.selection?.assetId, 'scene_linked');
-      expect(navigation.location.selection?.focusId, 'node_dialogue');
-      expect(navigation.restorationRequest, isNotNull);
-    });
+        expect(
+          find.byKey(const ValueKey('scenes-route-restoration-failure')),
+          findsOneWidget,
+        );
+        expect(find.textContaining('node_dialogue'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
+          findsNothing,
+          reason: 'Un nœud stale ne doit jamais retomber sur le premier nœud.',
+        );
+        final navigation = container.read(
+          narrativeStudioNavigationControllerProvider,
+        );
+        expect(navigation.location.selection?.assetId, 'scene_linked');
+        expect(navigation.location.selection?.focusId, 'node_dialogue');
+        expect(navigation.restorationRequest, isNotNull);
+      },
+    );
 
     testWidgets(
-        'keeps a Cinematic return pending when its exact Scene is stale',
-        (tester) async {
-      final project = _projectWithDeepLinkPayloadNodes();
-      final container = await pumpEditorShellPage(
-        tester,
-        initialState: EditorState(
-          project: project,
-          workspaceMode: EditorWorkspaceMode.scenes,
-        ),
-        surfaceSize: const Size(1672, 941),
-      );
+      'keeps a Cinematic return pending when its exact Scene is stale',
+      (tester) async {
+        final project = _projectWithDeepLinkPayloadNodes();
+        final container = await pumpEditorShellPage(
+          tester,
+          initialState: EditorState(
+            project: project,
+            workspaceMode: EditorWorkspaceMode.scenes,
+          ),
+          surfaceSize: const Size(1672, 941),
+        );
 
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-node-node_cinematic')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const ValueKey('scene-payload-open-cinematic-action')),
-      );
-      await tester.pumpAndSettle();
-      container
-          .read(editorNotifierProvider.notifier)
-          .applyInMemoryProjectManifest(
-            project.copyWith(scenes: [_fallbackScene()]),
-          );
-      await tester.pump();
-
-      await tester.tap(
-        find.byKey(
-          const ValueKey('narrative-studio-product-nav-return'),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 250));
-
-      expect(
-        find.byKey(const ValueKey('scenes-route-restoration-failure')),
-        findsOneWidget,
-      );
-      expect(find.textContaining('scene_linked'), findsOneWidget);
-      expect(
-        find.byKey(
-          const ValueKey('scene-graph-node-selected-fallback_start'),
-        ),
-        findsNothing,
-        reason: 'Une scène stale ne doit jamais ouvrir la première scène.',
-      );
-      final navigation =
-          container.read(narrativeStudioNavigationControllerProvider);
-      expect(navigation.location.selection?.assetId, 'scene_linked');
-      expect(navigation.location.selection?.focusId, 'node_cinematic');
-      expect(navigation.restorationRequest, isNotNull);
-
-      container
-          .read(narrativeStudioNavigationControllerProvider.notifier)
-          .replace(NarrativeStudioRouteLocation.scenes());
-      await tester.pump();
-
-      expect(
-        find.byKey(const ValueKey('scenes-route-restoration-failure')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(
-          const ValueKey('scene-graph-node-selected-fallback_start'),
-        ),
-        findsOneWidget,
-      );
-      expect(
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_cinematic')),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-payload-open-cinematic-action')),
+        );
+        await tester.pumpAndSettle();
         container
-            .read(narrativeStudioNavigationControllerProvider)
-            .restorationRequest,
-        isNull,
-      );
-    });
+            .read(editorNotifierProvider.notifier)
+            .applyInMemoryProjectManifest(
+              project.copyWith(scenes: [_fallbackScene()]),
+            );
+        await tester.pump();
 
-    testWidgets('edits a trainer battle payload from real public contracts',
-        (tester) async {
+        await tester.tap(
+          find.byKey(const ValueKey('narrative-studio-product-nav-return')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+
+        expect(
+          find.byKey(const ValueKey('scenes-route-restoration-failure')),
+          findsOneWidget,
+        );
+        expect(find.textContaining('scene_linked'), findsOneWidget);
+        expect(
+          find.byKey(
+            const ValueKey('scene-graph-node-selected-fallback_start'),
+          ),
+          findsNothing,
+          reason: 'Une scène stale ne doit jamais ouvrir la première scène.',
+        );
+        final navigation = container.read(
+          narrativeStudioNavigationControllerProvider,
+        );
+        expect(navigation.location.selection?.assetId, 'scene_linked');
+        expect(navigation.location.selection?.focusId, 'node_cinematic');
+        expect(navigation.restorationRequest, isNotNull);
+
+        container
+            .read(narrativeStudioNavigationControllerProvider.notifier)
+            .replace(NarrativeStudioRouteLocation.scenes());
+        await tester.pump();
+
+        expect(
+          find.byKey(const ValueKey('scenes-route-restoration-failure')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('scene-graph-node-selected-fallback_start'),
+          ),
+          findsOneWidget,
+        );
+        expect(
+          container
+              .read(narrativeStudioNavigationControllerProvider)
+              .restorationRequest,
+          isNull,
+        );
+      },
+    );
+
+    testWidgets('edits a trainer battle payload from real public contracts', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithEditablePayloadNodes(),
@@ -2285,17 +2343,19 @@ void main() {
 
       await tester.tap(
         find.byKey(
-          const ValueKey(
-            'scene-battle-payload-edit-option-trainer_updated',
-          ),
+          const ValueKey('scene-battle-payload-edit-option-trainer_updated'),
         ),
       );
       await tester.pumpAndSettle();
 
-      final scene =
-          container.read(editorNotifierProvider).project!.scenes.single;
-      final node =
-          scene.graph.nodes.firstWhere((node) => node.id == 'node_battle');
+      final scene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single;
+      final node = scene.graph.nodes.firstWhere(
+        (node) => node.id == 'node_battle',
+      );
       final payload = node.payload as SceneBattlePayload;
       expect(payload.battleKind, 'trainer');
       expect(payload.trainerId, 'trainer_updated');
@@ -2316,8 +2376,9 @@ void main() {
       expect(find.text('trainer_lysa'), findsNothing);
     });
 
-    testWidgets('connects start.completed to a target node explicitly',
-        (tester) async {
+    testWidgets('connects start.completed to a target node explicitly', (
+      tester,
+    ) async {
       final project = _projectWithEdgeAuthoringScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -2341,8 +2402,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final updatedScene =
-          container.read(editorNotifierProvider).project!.scenes.single;
+      final updatedScene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single;
       expect(updatedScene.graph.edges, hasLength(1));
       final edge = updatedScene.graph.edges.single;
       expect(edge.id, 'edge_node_start_completed_node_condition');
@@ -2369,8 +2433,9 @@ void main() {
       expect(project.scenes.single.graph.edges, isEmpty);
     });
 
-    testWidgets('shows visual input and output ports for V0 nodes',
-        (tester) async {
+    testWidgets('shows visual input and output ports for V0 nodes', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(),
@@ -2389,7 +2454,8 @@ void main() {
       );
       expect(
         find.byKey(
-            const ValueKey('scene-graph-output-port-node_condition-true')),
+          const ValueKey('scene-graph-output-port-node_condition-true'),
+        ),
         findsOneWidget,
       );
       expect(
@@ -2420,8 +2486,9 @@ void main() {
       );
     });
 
-    testWidgets('shows visual ports for Dialogue and Battle authoring nodes',
-        (tester) async {
+    testWidgets('shows visual ports for Dialogue and Battle authoring nodes', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithDialogueBattlePortsScene(),
@@ -2429,9 +2496,7 @@ void main() {
       );
 
       expect(
-        find.byKey(
-          const ValueKey('scene-graph-input-port-node_dialogue-in'),
-        ),
+        find.byKey(const ValueKey('scene-graph-input-port-node_dialogue-in')),
         findsOneWidget,
       );
       expect(
@@ -2441,9 +2506,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(
-          const ValueKey('scene-graph-input-port-node_battle-in'),
-        ),
+        find.byKey(const ValueKey('scene-graph-input-port-node_battle-in')),
         findsOneWidget,
       );
       expect(
@@ -2461,68 +2524,70 @@ void main() {
     });
 
     testWidgets(
-        'visual port drag shows preview, highlights target, and creates edge',
-        (tester) async {
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: _projectWithEdgeAuthoringScene(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
+      'visual port drag shows preview, highlights target, and creates edge',
+      (tester) async {
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: _projectWithEdgeAuthoringScene(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      final output = find.byKey(
-        const ValueKey('scene-graph-output-port-node_start-completed'),
-      );
-      final input = find.byKey(
-        const ValueKey('scene-graph-input-port-node_condition-in'),
-      );
-      final conditionNode = find.byKey(
-        const ValueKey('scene-graph-node-node_condition'),
-      );
-      final conditionTopLeftBeforeDrag = tester.getTopLeft(conditionNode);
-      final outputHandleCenter =
-          tester.getTopLeft(output) + const Offset(16, 16);
-      final gesture = await tester.startGesture(outputHandleCenter);
-      await tester.pump();
-      await gesture.moveTo(tester.getCenter(input));
-      await tester.pump();
-      expect(tester.getTopLeft(conditionNode), conditionTopLeftBeforeDrag);
+        final output = find.byKey(
+          const ValueKey('scene-graph-output-port-node_start-completed'),
+        );
+        final input = find.byKey(
+          const ValueKey('scene-graph-input-port-node_condition-in'),
+        );
+        final conditionNode = find.byKey(
+          const ValueKey('scene-graph-node-node_condition'),
+        );
+        final conditionTopLeftBeforeDrag = tester.getTopLeft(conditionNode);
+        final outputHandleCenter =
+            tester.getTopLeft(output) + const Offset(16, 16);
+        final gesture = await tester.startGesture(outputHandleCenter);
+        await tester.pump();
+        await gesture.moveTo(tester.getCenter(input));
+        await tester.pump();
+        expect(tester.getTopLeft(conditionNode), conditionTopLeftBeforeDrag);
 
-      expect(
-        find.byKey(const ValueKey('scene-graph-connection-preview-wire')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey('scene-graph-input-port-hover-node_condition'),
-        ),
-        findsOneWidget,
-      );
-
-      await gesture.up();
-      await tester.pumpAndSettle();
-
-      final edges = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .edges;
-      expect(edges, hasLength(1));
-      expect(edges.single.id, 'edge_node_start_completed_node_condition');
-      expect(edges.single.kind, SceneEdgeKind.defaultFlow);
-      expect(
-        find.byKey(
-          const ValueKey(
-            'scene-graph-edge-edge_node_start_completed_node_condition',
+        expect(
+          find.byKey(const ValueKey('scene-graph-connection-preview-wire')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('scene-graph-input-port-hover-node_condition'),
           ),
-        ),
-        findsOneWidget,
-      );
-    });
+          findsOneWidget,
+        );
 
-    testWidgets('visual drag connects Dialogue.completed to a target node',
-        (tester) async {
+        await gesture.up();
+        await tester.pumpAndSettle();
+
+        final edges = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single
+            .graph
+            .edges;
+        expect(edges, hasLength(1));
+        expect(edges.single.id, 'edge_node_start_completed_node_condition');
+        expect(edges.single.kind, SceneEdgeKind.defaultFlow);
+        expect(
+          find.byKey(
+            const ValueKey(
+              'scene-graph-edge-edge_node_start_completed_node_condition',
+            ),
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('visual drag connects Dialogue.completed to a target node', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithDialogueBattlePortsScene(),
@@ -2567,8 +2632,9 @@ void main() {
       expect(edges.single.kind, SceneEdgeKind.defaultFlow);
     });
 
-    testWidgets('visual drag connects Battle victory and defeat ports',
-        (tester) async {
+    testWidgets('visual drag connects Battle victory and defeat ports', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithDialogueBattlePortsScene(),
@@ -2630,8 +2696,9 @@ void main() {
       );
     });
 
-    testWidgets('renders color-coded edge paths from output ports',
-        (tester) async {
+    testWidgets('renders color-coded edge paths from output ports', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(
@@ -2664,17 +2731,13 @@ void main() {
 
       expect(
         find.byKey(
-          const ValueKey(
-            'scene-graph-output-port-node_condition-true',
-          ),
+          const ValueKey('scene-graph-output-port-node_condition-true'),
         ),
         findsOneWidget,
       );
       expect(
         find.byKey(
-          const ValueKey(
-            'scene-graph-output-port-node_condition-false',
-          ),
+          const ValueKey('scene-graph-output-port-node_condition-false'),
         ),
         findsOneWidget,
       );
@@ -2688,8 +2751,9 @@ void main() {
       );
     });
 
-    testWidgets('trackpad pan zoom is ignored during visual port drag',
-        (tester) async {
+    testWidgets('trackpad pan zoom is ignored during visual port drag', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(),
@@ -2736,8 +2800,9 @@ void main() {
       await tester.pumpAndSettle();
     });
 
-    testWidgets('visual port drop in empty canvas cancels without edge',
-        (tester) async {
+    testWidgets('visual port drop in empty canvas cancels without edge', (
+      tester,
+    ) async {
       final project = _projectWithEdgeAuthoringScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -2771,8 +2836,9 @@ void main() {
       expect(container.read(editorNotifierProvider).project, project);
     });
 
-    testWidgets('connects condition true and false ports with derived kinds',
-        (tester) async {
+    testWidgets('connects condition true and false ports with derived kinds', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(),
@@ -2824,8 +2890,9 @@ void main() {
       expect(find.text('edge_node_condition_false_node_end_2'), findsOneWidget);
     });
 
-    testWidgets('disables used ports and offers no source output for end',
-        (tester) async {
+    testWidgets('disables used ports and offers no source output for end', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(
@@ -2861,8 +2928,9 @@ void main() {
       );
     });
 
-    testWidgets('connection mode is cancellable and local only',
-        (tester) async {
+    testWidgets('connection mode is cancellable and local only', (
+      tester,
+    ) async {
       final project = _projectWithEdgeAuthoringScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -2891,95 +2959,103 @@ void main() {
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
-    testWidgets('selects and deletes an edge without mutating nodes or layout',
-        (tester) async {
-      const edgeId = 'edge_node_start_completed_node_condition';
-      final project = _projectWithEdgeAuthoringScene(
-        edges: [
-          SceneEdge(
-            id: edgeId,
-            fromNodeId: 'node_start',
-            fromPortId: 'completed',
-            toNodeId: 'node_condition',
-            kind: SceneEdgeKind.defaultFlow,
-          ),
-        ],
-      );
-      final originalScene = project.scenes.single;
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
+    testWidgets(
+      'selects and deletes an edge without mutating nodes or layout',
+      (tester) async {
+        const edgeId = 'edge_node_start_completed_node_condition';
+        final project = _projectWithEdgeAuthoringScene(
+          edges: [
+            SceneEdge(
+              id: edgeId,
+              fromNodeId: 'node_start',
+              fromPortId: 'completed',
+              toNodeId: 'node_condition',
+              kind: SceneEdgeKind.defaultFlow,
+            ),
+          ],
+        );
+        final originalScene = project.scenes.single;
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      await tester.tap(
-        find.byKey(const ValueKey('scene-graph-edge-hit-target-$edgeId')),
-      );
-      await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-edge-hit-target-$edgeId')),
+        );
+        await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('scene-graph-edge-selected-$edgeId')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(const ValueKey('scene-edge-read-only-inspector')),
-        findsOneWidget,
-      );
-      expect(find.text('Lien sélectionné'), findsOneWidget);
-      expect(find.text(edgeId), findsWidgets);
-      expect(find.text('node_start'), findsWidgets);
-      expect(find.text('completed'), findsWidgets);
-      expect(find.textContaining('node_condition'), findsWidgets);
-      expect(
-        find.byKey(const ValueKey('scene-edge-delete-action')),
-        findsOneWidget,
-      );
+        expect(
+          find.byKey(const ValueKey('scene-graph-edge-selected-$edgeId')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-edge-read-only-inspector')),
+          findsOneWidget,
+        );
+        expect(find.text('Lien sélectionné'), findsOneWidget);
+        expect(find.text(edgeId), findsWidgets);
+        expect(find.text('node_start'), findsWidgets);
+        expect(find.text('completed'), findsWidgets);
+        expect(find.textContaining('node_condition'), findsWidgets);
+        expect(
+          find.byKey(const ValueKey('scene-edge-delete-action')),
+          findsOneWidget,
+        );
 
-      await tester.tap(find.byKey(const ValueKey('scene-edge-delete-action')));
-      await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-edge-delete-action')),
+        );
+        await tester.pumpAndSettle();
 
-      final updatedScene =
-          container.read(editorNotifierProvider).project!.scenes.single;
-      expect(updatedScene.graph.edges, isEmpty);
-      expect(updatedScene.graph.nodes, originalScene.graph.nodes);
-      expect(updatedScene.layout, originalScene.layout);
-      expect(
-        find.byKey(const ValueKey('scene-graph-edge-$edgeId')),
-        findsNothing,
-      );
-      expect(
-        find.byKey(const ValueKey('scene-edge-read-only-inspector')),
-        findsNothing,
-      );
+        final updatedScene = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single;
+        expect(updatedScene.graph.edges, isEmpty);
+        expect(updatedScene.graph.nodes, originalScene.graph.nodes);
+        expect(updatedScene.layout, originalScene.layout);
+        expect(
+          find.byKey(const ValueKey('scene-graph-edge-$edgeId')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-edge-read-only-inspector')),
+          findsNothing,
+        );
 
-      final output = find.byKey(
-        const ValueKey('scene-graph-output-port-node_start-completed'),
-      );
-      final input = find.byKey(
-        const ValueKey('scene-graph-input-port-node_condition-in'),
-      );
-      final gesture = await tester.startGesture(
-        tester.getTopLeft(output) + const Offset(16, 16),
-      );
-      await tester.pump();
-      await gesture.moveTo(tester.getCenter(input));
-      await tester.pump();
-      await gesture.up();
-      await tester.pumpAndSettle();
+        final output = find.byKey(
+          const ValueKey('scene-graph-output-port-node_start-completed'),
+        );
+        final input = find.byKey(
+          const ValueKey('scene-graph-input-port-node_condition-in'),
+        );
+        final gesture = await tester.startGesture(
+          tester.getTopLeft(output) + const Offset(16, 16),
+        );
+        await tester.pump();
+        await gesture.moveTo(tester.getCenter(input));
+        await tester.pump();
+        await gesture.up();
+        await tester.pumpAndSettle();
 
-      final recreatedEdges = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .edges;
-      expect(recreatedEdges, hasLength(1));
-      expect(recreatedEdges.single.id, edgeId);
-    });
+        final recreatedEdges = container
+            .read(editorNotifierProvider)
+            .project!
+            .scenes
+            .single
+            .graph
+            .edges;
+        expect(recreatedEdges, hasLength(1));
+        expect(recreatedEdges.single.id, edgeId);
+      },
+    );
 
-    testWidgets('deletes a selected V0 node and its connected edges',
-        (tester) async {
+    testWidgets('deletes a selected V0 node and its connected edges', (
+      tester,
+    ) async {
       const incomingEdgeId = 'edge_node_start_completed_node_condition';
       const outgoingEdgeId = 'edge_node_condition_true_node_end';
       const keptEdgeId = 'edge_node_merge_completed_node_end_2';
@@ -3035,16 +3111,16 @@ void main() {
       await tester.tap(find.text('Supprimer').last);
       await tester.pumpAndSettle();
 
-      final updatedScene =
-          container.read(editorNotifierProvider).project!.scenes.single;
+      final updatedScene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single;
       expect(
         updatedScene.graph.nodes.map((node) => node.id),
         isNot(contains('node_condition')),
       );
-      expect(
-        updatedScene.graph.edges.map((edge) => edge.id),
-        [keptEdgeId],
-      );
+      expect(updatedScene.graph.edges.map((edge) => edge.id), [keptEdgeId]);
       expect(
         updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
         isNot(contains('node_condition')),
@@ -3067,21 +3143,15 @@ void main() {
         findsNothing,
       );
       expect(
-        find.byKey(
-          const ValueKey('scene-graph-edge-$incomingEdgeId'),
-        ),
+        find.byKey(const ValueKey('scene-graph-edge-$incomingEdgeId')),
         findsNothing,
       );
       expect(
-        find.byKey(
-          const ValueKey('scene-graph-edge-$outgoingEdgeId'),
-        ),
+        find.byKey(const ValueKey('scene-graph-edge-$outgoingEdgeId')),
         findsNothing,
       );
       expect(
-        find.byKey(
-          const ValueKey('scene-graph-edge-$keptEdgeId'),
-        ),
+        find.byKey(const ValueKey('scene-graph-edge-$keptEdgeId')),
         findsOneWidget,
       );
       expect(
@@ -3094,8 +3164,9 @@ void main() {
       );
     });
 
-    testWidgets('deletes a selected dialogue node and its connected edges',
-        (tester) async {
+    testWidgets('deletes a selected dialogue node and its connected edges', (
+      tester,
+    ) async {
       const incomingEdgeId = 'edge_start_dialogue';
       const outgoingEdgeId = 'edge_dialogue_end';
       final project = _projectWithDialogueBattlePortsScene(
@@ -3135,8 +3206,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Zone dangereuse'), findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-node-delete-action')),
-          findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('scene-node-delete-action')),
+        findsOneWidget,
+      );
 
       await tester.ensureVisible(
         find.byKey(const ValueKey('scene-node-delete-action')),
@@ -3148,23 +3221,35 @@ void main() {
       await tester.tap(find.text('Supprimer').last);
       await tester.pumpAndSettle();
 
-      final updatedScene =
-          container.read(editorNotifierProvider).project!.scenes.single;
-      expect(updatedScene.graph.nodes.map((node) => node.id),
-          isNot(contains('node_dialogue')));
+      final updatedScene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single;
+      expect(
+        updatedScene.graph.nodes.map((node) => node.id),
+        isNot(contains('node_dialogue')),
+      );
       expect(updatedScene.graph.edges.map((edge) => edge.id), [
         'edge_battle_victory_end_2',
       ]);
-      expect(updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
-          isNot(contains('node_dialogue')));
-      expect(find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
-          findsNothing);
-      expect(find.byKey(const ValueKey('scene-graph-node-node_battle')),
-          findsOneWidget);
+      expect(
+        updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
+        isNot(contains('node_dialogue')),
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_battle')),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('deletes a selected battle node and its outcome edges',
-        (tester) async {
+    testWidgets('deletes a selected battle node and its outcome edges', (
+      tester,
+    ) async {
       final project = _projectWithDialogueBattlePortsScene(
         edges: [
           SceneEdge(
@@ -3218,19 +3303,30 @@ void main() {
       await tester.tap(find.text('Supprimer').last);
       await tester.pumpAndSettle();
 
-      final updatedScene =
-          container.read(editorNotifierProvider).project!.scenes.single;
-      expect(updatedScene.graph.nodes.map((node) => node.id),
-          isNot(contains('node_battle')));
+      final updatedScene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single;
+      expect(
+        updatedScene.graph.nodes.map((node) => node.id),
+        isNot(contains('node_battle')),
+      );
       expect(updatedScene.graph.edges.map((edge) => edge.id), [
         'edge_dialogue_completed_end',
       ]);
-      expect(updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
-          isNot(contains('node_battle')));
-      expect(find.byKey(const ValueKey('scene-graph-node-node_battle')),
-          findsNothing);
-      expect(find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
-          findsOneWidget);
+      expect(
+        updatedScene.layout.nodeLayouts.map((layout) => layout.nodeId),
+        isNot(contains('node_battle')),
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_battle')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('scene-graph-node-node_dialogue')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('last end node shows deletion as blocked', (tester) async {
@@ -3245,15 +3341,18 @@ void main() {
 
       expect(find.text('Zone dangereuse'), findsOneWidget);
       expect(
-          find.text('Une scène doit garder au moins une fin.'), findsOneWidget);
+        find.text('Une scène doit garder au moins une fin.'),
+        findsOneWidget,
+      );
       final deleteButton = tester.widget<PokeMapButton>(
         find.byKey(const ValueKey('scene-node-delete-action')),
       );
       expect(deleteButton.onPressed, isNull);
     });
 
-    testWidgets('authors a condition from an existing story step source',
-        (tester) async {
+    testWidgets('authors a condition from an existing story step source', (
+      tester,
+    ) async {
       final project = _projectWithConditionAuthoringSources();
       final container = await _pumpNarrativeShell(
         tester,
@@ -3277,9 +3376,7 @@ void main() {
 
       await tester.tap(
         find.byKey(
-          const ValueKey(
-            'scene-condition-source-kind-storyStepCompletion',
-          ),
+          const ValueKey('scene-condition-source-kind-storyStepCompletion'),
         ),
       );
       await tester.pumpAndSettle();
@@ -3317,19 +3414,21 @@ void main() {
       expect(source.label, 'Introduction terminée');
       expect(
         diagnoseScene(
-                container.read(editorNotifierProvider).project!.scenes.single)
-            .byCode(SceneDiagnosticCode.conditionSourceMissing),
+          container.read(editorNotifierProvider).project!.scenes.single,
+        ).byCode(SceneDiagnosticCode.conditionSourceMissing),
         isEmpty,
       );
       expect(
-          project.scenes.single.graph.nodes
-              .firstWhere((node) => node.id == 'node_condition')
-              .payload,
-          equals(SceneConditionPayload()));
+        project.scenes.single.graph.nodes
+            .firstWhere((node) => node.id == 'node_condition')
+            .payload,
+        equals(SceneConditionPayload()),
+      );
     });
 
-    testWidgets('authors fact-like and consumed event conditions from pickers',
-        (tester) async {
+    testWidgets('authors fact-like and consumed event conditions from pickers', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithConditionAuthoringSources(),
@@ -3342,9 +3441,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(
-          const ValueKey(
-            'scene-condition-source-kind-factLikeStoryFlag',
-          ),
+          const ValueKey('scene-condition-source-kind-factLikeStoryFlag'),
         ),
       );
       await tester.pumpAndSettle();
@@ -3365,24 +3462,26 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      var payload = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .firstWhere((node) => node.id == 'node_condition')
-          .payload as SceneConditionPayload;
-      expect(payload.conditionSource!.sourceKind,
-          SceneConditionSourceKind.factLikeStoryFlag);
+      var payload =
+          container
+                  .read(editorNotifierProvider)
+                  .project!
+                  .scenes
+                  .single
+                  .graph
+                  .nodes
+                  .firstWhere((node) => node.id == 'node_condition')
+                  .payload
+              as SceneConditionPayload;
+      expect(
+        payload.conditionSource!.sourceKind,
+        SceneConditionSourceKind.factLikeStoryFlag,
+      );
       expect(payload.conditionSource!.operator, SceneConditionOperator.isFalse);
       expect(payload.conditionSource!.sourceId, 'story_flag.harbor_fog_seen');
 
       await tester.tap(
-        find.byKey(
-          const ValueKey('scene-condition-source-kind-consumedEvent'),
-        ),
+        find.byKey(const ValueKey('scene-condition-source-kind-consumedEvent')),
       );
       await tester.pumpAndSettle();
       await tester.tap(
@@ -3402,24 +3501,29 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      payload = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .firstWhere((node) => node.id == 'node_condition')
-          .payload as SceneConditionPayload;
-      expect(payload.conditionSource!.sourceKind,
-          SceneConditionSourceKind.consumedEvent);
+      payload =
+          container
+                  .read(editorNotifierProvider)
+                  .project!
+                  .scenes
+                  .single
+                  .graph
+                  .nodes
+                  .firstWhere((node) => node.id == 'node_condition')
+                  .payload
+              as SceneConditionPayload;
+      expect(
+        payload.conditionSource!.sourceKind,
+        SceneConditionSourceKind.consumedEvent,
+      );
       expect(payload.conditionSource!.sourceId, 'mapEnter:map_test');
       expect(find.text('Inventory item'), findsNothing);
       expect(find.text('Aucune donnée Selbrume'), findsNothing);
     });
 
-    testWidgets('authors a condition from a Fact Registry source',
-        (tester) async {
+    testWidgets('authors a condition from a Fact Registry source', (
+      tester,
+    ) async {
       final container = await _pumpNarrativeShell(
         tester,
         project: _projectWithConditionAuthoringSources(includeFacts: true),
@@ -3447,9 +3551,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       await tester.tap(
-        find.byKey(
-          const ValueKey('scene-condition-fact-operator-equals'),
-        ),
+        find.byKey(const ValueKey('scene-condition-fact-operator-equals')),
       );
       await tester.pumpAndSettle();
       await tester.tap(
@@ -3461,17 +3563,21 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final payload = container
-          .read(editorNotifierProvider)
-          .project!
-          .scenes
-          .single
-          .graph
-          .nodes
-          .firstWhere((node) => node.id == 'node_condition')
-          .payload as SceneConditionPayload;
+      final payload =
+          container
+                  .read(editorNotifierProvider)
+                  .project!
+                  .scenes
+                  .single
+                  .graph
+                  .nodes
+                  .firstWhere((node) => node.id == 'node_condition')
+                  .payload
+              as SceneConditionPayload;
       expect(
-          payload.conditionSource!.sourceKind, SceneConditionSourceKind.fact);
+        payload.conditionSource!.sourceKind,
+        SceneConditionSourceKind.fact,
+      );
       expect(payload.conditionSource!.sourceId, 'fact_harbor_fog_seen');
       expect(payload.conditionSource!.label, 'Brume vue au port');
       expect(payload.conditionSource!.operator, SceneConditionOperator.equals);
@@ -3487,54 +3593,59 @@ void main() {
     });
 
     testWidgets(
-        'Action and Cinematic expose completed output while Branch does not',
-        (tester) async {
-      await _pumpNarrativeShell(
-        tester,
-        project: _projectWithUnsupportedConnectionNodes(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
+      'Action and Cinematic expose completed output while Branch does not',
+      (tester) async {
+        await _pumpNarrativeShell(
+          tester,
+          project: _projectWithUnsupportedConnectionNodes(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      await tester
-          .tap(find.byKey(const ValueKey('scene-graph-node-node_action')));
-      await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_action')),
+        );
+        await tester.pumpAndSettle();
 
-      expect(
-        find.byKey(const ValueKey('scenes-connect-port-completed')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey('scene-graph-output-port-node_action-completed'),
-        ),
-        findsOneWidget,
-      );
+        expect(
+          find.byKey(const ValueKey('scenes-connect-port-completed')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('scene-graph-output-port-node_action-completed'),
+          ),
+          findsOneWidget,
+        );
 
-      await tester
-          .tap(find.byKey(const ValueKey('scene-graph-node-node_cinematic')));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('scenes-connect-port-completed')),
-        findsOneWidget,
-      );
-      expect(
-        find.byKey(
-          const ValueKey('scene-graph-output-port-node_cinematic-completed'),
-        ),
-        findsOneWidget,
-      );
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_cinematic')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('scenes-connect-port-completed')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(
+            const ValueKey('scene-graph-output-port-node_cinematic-completed'),
+          ),
+          findsOneWidget,
+        );
 
-      await tester
-          .tap(find.byKey(const ValueKey('scene-graph-node-node_branch')));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('scenes-edge-no-outputs')),
-        findsOneWidget,
-      );
-    });
+        await tester.tap(
+          find.byKey(const ValueKey('scene-graph-node-node_branch')),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('scenes-edge-no-outputs')),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('shows zoom controls and resets the canvas zoom',
-        (tester) async {
+    testWidgets('shows zoom controls and resets the canvas zoom', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(),
@@ -3543,7 +3654,9 @@ void main() {
 
       expect(find.byKey(const ValueKey('scene-graph-grid')), findsOneWidget);
       expect(
-          find.byKey(const ValueKey('scene-graph-zoom-out')), findsOneWidget);
+        find.byKey(const ValueKey('scene-graph-zoom-out')),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('scene-graph-zoom-in')), findsOneWidget);
       expect(
         find.byKey(const ValueKey('scene-graph-reset-view')),
@@ -3567,16 +3680,18 @@ void main() {
       expect(find.text('100%'), findsOneWidget);
     });
 
-    testWidgets('keeps node content layout stable when zoom changes',
-        (tester) async {
+    testWidgets('keeps node content layout stable when zoom changes', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(),
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
-      final conditionCard =
-          find.byKey(const ValueKey('scene-graph-node-node_condition'));
+      final conditionCard = find.byKey(
+        const ValueKey('scene-graph-node-node_condition'),
+      );
       final canonicalCardSize = tester.getSize(conditionCard);
 
       await tester.tap(find.byKey(const ValueKey('scene-graph-zoom-in')));
@@ -3594,49 +3709,52 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('pinches trackpad to zoom the canvas without mutating project',
-        (tester) async {
-      final project = _projectWithEdgeAuthoringScene();
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
-      final before = container.read(editorNotifierProvider).project!;
-      final surface = find.byKey(const ValueKey('scene-graph-pan-surface'));
-      final center = tester.getCenter(surface);
+    testWidgets(
+      'pinches trackpad to zoom the canvas without mutating project',
+      (tester) async {
+        final project = _projectWithEdgeAuthoringScene();
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
+        final before = container.read(editorNotifierProvider).project!;
+        final surface = find.byKey(const ValueKey('scene-graph-pan-surface'));
+        final center = tester.getCenter(surface);
 
-      tester.binding.handlePointerEvent(
-        PointerPanZoomStartEvent(position: center),
-      );
-      tester.binding.handlePointerEvent(
-        PointerPanZoomUpdateEvent(position: center, scale: 1.25),
-      );
-      tester.binding.handlePointerEvent(
-        PointerPanZoomEndEvent(position: center),
-      );
-      await tester.pump();
+        tester.binding.handlePointerEvent(
+          PointerPanZoomStartEvent(position: center),
+        );
+        tester.binding.handlePointerEvent(
+          PointerPanZoomUpdateEvent(position: center, scale: 1.25),
+        );
+        tester.binding.handlePointerEvent(
+          PointerPanZoomEndEvent(position: center),
+        );
+        await tester.pump();
 
-      expect(find.text('125%'), findsOneWidget);
-      expect(container.read(editorNotifierProvider).project, before);
+        expect(find.text('125%'), findsOneWidget);
+        expect(container.read(editorNotifierProvider).project, before);
 
-      tester.binding.handlePointerEvent(
-        PointerPanZoomStartEvent(position: center),
-      );
-      tester.binding.handlePointerEvent(
-        PointerPanZoomUpdateEvent(position: center, scale: 0.8),
-      );
-      tester.binding.handlePointerEvent(
-        PointerPanZoomEndEvent(position: center),
-      );
-      await tester.pump();
+        tester.binding.handlePointerEvent(
+          PointerPanZoomStartEvent(position: center),
+        );
+        tester.binding.handlePointerEvent(
+          PointerPanZoomUpdateEvent(position: center, scale: 0.8),
+        );
+        tester.binding.handlePointerEvent(
+          PointerPanZoomEndEvent(position: center),
+        );
+        await tester.pump();
 
-      expect(find.text('100%'), findsOneWidget);
-      expect(container.read(editorNotifierProvider).project, before);
-    });
+        expect(find.text('100%'), findsOneWidget);
+        expect(container.read(editorNotifierProvider).project, before);
+      },
+    );
 
-    testWidgets('pans locally without mutating ProjectManifest',
-        (tester) async {
+    testWidgets('pans locally without mutating ProjectManifest', (
+      tester,
+    ) async {
       final project = _projectWithEdgeAuthoringScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -3654,8 +3772,9 @@ void main() {
       expect(after, before);
     });
 
-    testWidgets('dragging a node updates only SceneGraphLayout',
-        (tester) async {
+    testWidgets('dragging a node updates only SceneGraphLayout', (
+      tester,
+    ) async {
       final project = _projectWithEdgeAuthoringScene(
         edges: [
           SceneEdge(
@@ -3674,18 +3793,23 @@ void main() {
       );
       final originalScene = project.scenes.single;
 
-      final dragTarget = find
-          .byKey(const ValueKey('scene-graph-node-drag-target-node_condition'));
+      final dragTarget = find.byKey(
+        const ValueKey('scene-graph-node-drag-target-node_condition'),
+      );
       await tester.dragFrom(
         tester.getTopLeft(dragTarget) + const Offset(18, 18),
         const Offset(80, 40),
       );
       await tester.pumpAndSettle();
 
-      final updatedScene =
-          container.read(editorNotifierProvider).project!.scenes.single;
-      final conditionLayout = updatedScene.layout.nodeLayouts
-          .firstWhere((layout) => layout.nodeId == 'node_condition');
+      final updatedScene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single;
+      final conditionLayout = updatedScene.layout.nodeLayouts.firstWhere(
+        (layout) => layout.nodeId == 'node_condition',
+      );
       expect(conditionLayout.x, greaterThan(220));
       expect(conditionLayout.y, greaterThan(80));
       expect(updatedScene.graph.nodes, originalScene.graph.nodes);
@@ -3697,8 +3821,9 @@ void main() {
       expect(find.text('node_condition'), findsWidgets);
     });
 
-    testWidgets('edges follow moved nodes and V1-13 connection still works',
-        (tester) async {
+    testWidgets('edges follow moved nodes and V1-13 connection still works', (
+      tester,
+    ) async {
       final project = _projectWithEdgeAuthoringScene(
         edges: [
           SceneEdge(
@@ -3721,27 +3846,34 @@ void main() {
         ),
       );
 
-      final dragTarget = find
-          .byKey(const ValueKey('scene-graph-node-drag-target-node_condition'));
+      final dragTarget = find.byKey(
+        const ValueKey('scene-graph-node-drag-target-node_condition'),
+      );
       await tester.dragFrom(
         tester.getTopLeft(dragTarget) + const Offset(18, 18),
         const Offset(80, 40),
       );
       await tester.pumpAndSettle();
 
-      final movedScene =
-          container.read(editorNotifierProvider).project!.scenes.single;
-      final movedLayout = movedScene.layout.nodeLayouts
-          .firstWhere((layout) => layout.nodeId == 'node_condition');
+      final movedScene = container
+          .read(editorNotifierProvider)
+          .project!
+          .scenes
+          .single;
+      final movedLayout = movedScene.layout.nodeLayouts.firstWhere(
+        (layout) => layout.nodeId == 'node_condition',
+      );
       expect(movedLayout.x, greaterThan(220));
       expect(movedLayout.y, greaterThan(80));
       expect(edgeLabel, findsOneWidget);
 
-      await tester
-          .tap(find.byKey(const ValueKey('scene-graph-node-node_merge')));
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_merge')),
+      );
       await tester.pumpAndSettle();
-      await tester
-          .tap(find.byKey(const ValueKey('scenes-connect-port-completed')));
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-connect-port-completed')),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('scene-graph-node-node_end')));
       await tester.pumpAndSettle();
@@ -3765,59 +3897,73 @@ void main() {
       );
     });
 
-    testWidgets('shows real SceneAsset data in the read-only tree and summary',
-        (tester) async {
+    testWidgets(
+      'shows real SceneAsset data in the read-only tree and summary',
+      (tester) async {
+        await _pumpNarrativeShell(
+          tester,
+          project: _projectWithScene(),
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
+
+        expect(find.byKey(const ValueKey('scenes-tree-panel')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('scenes-tree-item-scene_test_intro')),
+          findsOneWidget,
+        );
+        expect(find.text('Test Scene Intro'), findsWidgets);
+        expect(find.text('storyline_test'), findsWidgets);
+        expect(find.text('chapter_test'), findsWidgets);
+        expect(
+          find.byKey(const ValueKey('scene-graph-read-only-view')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-layout-source-real')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-node_start')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-node_yarn')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-edge-edge_start_yarn')),
+          findsOneWidget,
+        );
+        expect(find.text('completed'), findsWidgets);
+        expect(
+          find.byKey(const ValueKey('scene-node-read-only-inspector')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('uses scene-builder proportions with fixed inspector', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithScene(),
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
-      expect(find.byKey(const ValueKey('scenes-tree-panel')), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('scenes-tree-item-scene_test_intro')),
-        findsOneWidget,
+      final treeSize = tester.getSize(
+        find.byKey(const ValueKey('scenes-tree-column')),
       );
-      expect(find.text('Test Scene Intro'), findsWidgets);
-      expect(find.text('storyline_test'), findsWidgets);
-      expect(find.text('chapter_test'), findsWidgets);
-      expect(
-        find.byKey(const ValueKey('scene-graph-read-only-view')),
-        findsOneWidget,
+      final graphSize = tester.getSize(
+        find.byKey(const ValueKey('scenes-graph-column')),
       );
-      expect(find.byKey(const ValueKey('scene-graph-layout-source-real')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-node-node_start')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-node-node_yarn')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-edge-edge_start_yarn')),
-          findsOneWidget);
-      expect(find.text('completed'), findsWidgets);
-      expect(
-        find.byKey(const ValueKey('scene-node-read-only-inspector')),
-        findsOneWidget,
+      final inspectorSize = tester.getSize(
+        find.byKey(const ValueKey('scenes-inspector-column')),
       );
-      expect(
-        find.byKey(const ValueKey('scene-graph-node-selected-node_start')),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('uses scene-builder proportions with fixed inspector',
-        (tester) async {
-      await _pumpNarrativeShell(
-        tester,
-        project: _projectWithScene(),
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
-
-      final treeSize =
-          tester.getSize(find.byKey(const ValueKey('scenes-tree-column')));
-      final graphSize =
-          tester.getSize(find.byKey(const ValueKey('scenes-graph-column')));
-      final inspectorSize =
-          tester.getSize(find.byKey(const ValueKey('scenes-inspector-column')));
 
       expect(find.byKey(const ValueKey('scenes-legacy-header')), findsNothing);
       expect(
@@ -3840,8 +3986,9 @@ void main() {
       expect(graphSize.width, greaterThan(inspectorSize.width * 1.7));
     });
 
-    testWidgets('shows scene diagnostics warnings without mutating project',
-        (tester) async {
+    testWidgets('shows scene diagnostics warnings without mutating project', (
+      tester,
+    ) async {
       final project = _projectWithDiagnosticScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -3851,14 +3998,17 @@ void main() {
 
       expect(find.text('Diagnostics'), findsWidgets);
       expect(find.text('1 warning'), findsWidgets);
-      expect(find.textContaining('Un nœud n’a pas de position sauvegardée.'),
-          findsOneWidget);
+      expect(
+        find.textContaining('Un nœud n’a pas de position sauvegardée.'),
+        findsOneWidget,
+      );
       expect(find.text('Corriger automatiquement'), findsNothing);
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
-    testWidgets('shows scene diagnostics errors in tree and inspector',
-        (tester) async {
+    testWidgets('shows scene diagnostics errors in tree and inspector', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithDiagnosticScene(missingEnd: true),
@@ -3870,8 +4020,9 @@ void main() {
       expect(find.text('Aucune donnée Selbrume'), findsNothing);
     });
 
-    testWidgets('selects real graph nodes and shows read-only inspector',
-        (tester) async {
+    testWidgets('selects real graph nodes and shows read-only inspector', (
+      tester,
+    ) async {
       final project = _projectWithScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -3888,8 +4039,9 @@ void main() {
       expect(find.text('Début'), findsWidgets);
       expect(find.text('Lecture seule'), findsWidgets);
 
-      await tester
-          .tap(find.byKey(const ValueKey('scene-graph-node-node_yarn')));
+      await tester.tap(
+        find.byKey(const ValueKey('scene-graph-node-node_yarn')),
+      );
       await tester.pumpAndSettle();
 
       expect(
@@ -3917,8 +4069,9 @@ void main() {
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
-    testWidgets('shows battle payload summary in read-only inspector',
-        (tester) async {
+    testWidgets('shows battle payload summary in read-only inspector', (
+      tester,
+    ) async {
       final project = _projectWithScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -3946,8 +4099,9 @@ void main() {
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
-    testWidgets('shows typed consequence action payload in inspector',
-        (tester) async {
+    testWidgets('shows typed consequence action payload in inspector', (
+      tester,
+    ) async {
       final project = _projectWithTypedConsequenceActionScene();
       final container = await _pumpNarrativeShell(
         tester,
@@ -3972,8 +4126,9 @@ void main() {
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
-    testWidgets('scene change recalculates local selected node',
-        (tester) async {
+    testWidgets('scene change recalculates local selected node', (
+      tester,
+    ) async {
       final project = _projectWithTwoScenes();
       final container = await _pumpNarrativeShell(
         tester,
@@ -4007,8 +4162,9 @@ void main() {
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
-    testWidgets('uses a derived layout for scenes with incomplete layout',
-        (tester) async {
+    testWidgets('uses a derived layout for scenes with incomplete layout', (
+      tester,
+    ) async {
       final project = _projectWithTwoScenes();
       final container = await _pumpNarrativeShell(
         tester,
@@ -4029,87 +4185,113 @@ void main() {
         find.byKey(const ValueKey('scene-graph-layout-source-derived')),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('scene-graph-node-node_start')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-node-node_end')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-edge-edge_start_end')),
-          findsOneWidget);
-      expect(container.read(editorNotifierProvider).project, equals(project));
-    });
-
-    testWidgets('uses bounded derived layout for cyclic and disconnected graph',
-        (tester) async {
-      final project = _projectWithComplexFallbackScene();
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
-
       expect(
-        find.byKey(const ValueKey('scene-graph-read-only-view')),
+        find.byKey(const ValueKey('scene-graph-node-node_start')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('scene-graph-layout-source-derived')),
-        findsOneWidget,
-      );
-      expect(find.byKey(const ValueKey('scene-graph-node-node_a')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-node-node_b')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-node-node_c')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scene-graph-node-node_d')),
-          findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('scene-graph-edge-edge_a_b')),
+        find.byKey(const ValueKey('scene-graph-node-node_end')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const ValueKey('scene-graph-edge-edge_b_a')),
+        find.byKey(const ValueKey('scene-graph-edge-edge_start_end')),
         findsOneWidget,
       );
-      expect(
-        find.byKey(const ValueKey('scene-graph-edge-edge_c_d')),
-        findsOneWidget,
-      );
-      expect(find.byKey(const ValueKey('scene-node-inspector')), findsNothing);
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
     testWidgets(
-        'local scene selection updates summary without mutating project',
-        (tester) async {
-      final project = _projectWithTwoScenes();
-      final container = await _pumpNarrativeShell(
-        tester,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.scenes,
-      );
+      'uses bounded derived layout for cyclic and disconnected graph',
+      (tester) async {
+        final project = _projectWithComplexFallbackScene();
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      expect(find.text('Test Scene Intro'), findsWidgets);
-      expect(find.text('Second Test Scene'), findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('scenes-selected-summary-scene_test_intro')),
-        findsOneWidget,
-      );
+        expect(
+          find.byKey(const ValueKey('scene-graph-read-only-view')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-layout-source-derived')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-node_a')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-node_b')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-node_c')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-node-node_d')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-edge-edge_a_b')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-edge-edge_b_a')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-graph-edge-edge_c_d')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const ValueKey('scene-node-inspector')),
+          findsNothing,
+        );
+        expect(container.read(editorNotifierProvider).project, equals(project));
+      },
+    );
 
-      await tester.tap(
-        find.byKey(const ValueKey('scenes-tree-item-scene_test_branch')),
-      );
-      await tester.pumpAndSettle();
+    testWidgets(
+      'local scene selection updates summary without mutating project',
+      (tester) async {
+        final project = _projectWithTwoScenes();
+        final container = await _pumpNarrativeShell(
+          tester,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.scenes,
+        );
 
-      expect(
-        find.byKey(const ValueKey('scenes-selected-summary-scene_test_branch')),
-        findsOneWidget,
-      );
-      expect(find.text('Second Test Scene'), findsWidgets);
-      expect(find.byKey(const ValueKey('scene-graph-layout-source-derived')),
-          findsOneWidget);
-      expect(container.read(editorNotifierProvider).project, equals(project));
-    });
+        expect(find.text('Test Scene Intro'), findsWidgets);
+        expect(find.text('Second Test Scene'), findsOneWidget);
+        expect(
+          find.byKey(
+            const ValueKey('scenes-selected-summary-scene_test_intro'),
+          ),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('scenes-tree-item-scene_test_branch')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(
+            const ValueKey('scenes-selected-summary-scene_test_branch'),
+          ),
+          findsOneWidget,
+        );
+        expect(find.text('Second Test Scene'), findsWidgets);
+        expect(
+          find.byKey(const ValueKey('scene-graph-layout-source-derived')),
+          findsOneWidget,
+        );
+        expect(container.read(editorNotifierProvider).project, equals(project));
+      },
+    );
 
     testWidgets('Storylines workspace remains selectable', (tester) async {
       final project = _emptyProject();
@@ -4138,23 +4320,26 @@ void main() {
       expect(container.read(editorNotifierProvider).project, equals(project));
     });
 
-    testWidgets('keeps the V1-08 scene draft visual flow valid',
-        (tester) async {
+    testWidgets('keeps the V1-08 scene draft visual flow valid', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _emptyProject(),
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
-      await tester
-          .tap(find.byKey(const ValueKey('scenes-create-scene-action')));
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-create-scene-action')),
+      );
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('scenes-create-scene-name-field')),
         'New Draft Scene',
       );
-      await tester
-          .tap(find.byKey(const ValueKey('scenes-create-scene-submit')));
+      await tester.tap(
+        find.byKey(const ValueKey('scenes-create-scene-submit')),
+      );
       await tester.pumpAndSettle();
 
       expect(
@@ -4171,8 +4356,9 @@ void main() {
       );
     });
 
-    testWidgets('keeps the V1-09 diagnostics visual flow valid',
-        (tester) async {
+    testWidgets('keeps the V1-09 diagnostics visual flow valid', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithDiagnosticScene(),
@@ -4180,13 +4366,16 @@ void main() {
       );
 
       expect(
-          find.byKey(const ValueKey('scenes-workspace-shell')), findsOneWidget);
+        find.byKey(const ValueKey('scenes-workspace-shell')),
+        findsOneWidget,
+      );
       expect(find.text('Diagnostics'), findsWidgets);
       expect(find.text('1 warning'), findsWidgets);
     });
 
-    testWidgets('keeps the V1-12 node authoring visual flow valid',
-        (tester) async {
+    testWidgets('keeps the V1-12 node authoring visual flow valid', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithScene(),
@@ -4204,14 +4393,19 @@ void main() {
         find.byKey(const ValueKey('scene-graph-node-selected-node_condition')),
         findsOneWidget,
       );
-      expect(find.byKey(const ValueKey('scenes-add-node-palette')),
-          findsOneWidget);
-      expect(find.byKey(const ValueKey('scenes-edge-authoring-toolbar')),
-          findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('scenes-add-node-palette')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('scenes-edge-authoring-toolbar')),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('keeps the V1-13 edge authoring visual flow valid',
-        (tester) async {
+    testWidgets('keeps the V1-13 edge authoring visual flow valid', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(),
@@ -4237,11 +4431,14 @@ void main() {
       );
       expect(find.byKey(const ValueKey('scene-graph-grid')), findsOneWidget);
       expect(
-          find.byKey(const ValueKey('scene-graph-zoom-reset')), findsOneWidget);
+        find.byKey(const ValueKey('scene-graph-zoom-reset')),
+        findsOneWidget,
+      );
     });
 
-    testWidgets('keeps the V1-14 blueprint canvas visual flow valid',
-        (tester) async {
+    testWidgets('keeps the V1-14 blueprint canvas visual flow valid', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(
@@ -4258,8 +4455,9 @@ void main() {
         workspaceMode: EditorWorkspaceMode.scenes,
       );
 
-      final dragTarget = find
-          .byKey(const ValueKey('scene-graph-node-drag-target-node_condition'));
+      final dragTarget = find.byKey(
+        const ValueKey('scene-graph-node-drag-target-node_condition'),
+      );
       await tester.dragFrom(
         tester.getTopLeft(dragTarget) + const Offset(18, 18),
         const Offset(88, 56),
@@ -4268,7 +4466,9 @@ void main() {
 
       expect(find.byKey(const ValueKey('scene-graph-grid')), findsOneWidget);
       expect(
-          find.byKey(const ValueKey('scene-graph-zoom-reset')), findsOneWidget);
+        find.byKey(const ValueKey('scene-graph-zoom-reset')),
+        findsOneWidget,
+      );
       expect(
         find.byKey(
           const ValueKey(
@@ -4279,8 +4479,9 @@ void main() {
       );
     });
 
-    testWidgets('writes V1-15 visual port connection UX screenshot',
-        (tester) async {
+    testWidgets('writes V1-15 visual port connection UX screenshot', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(
@@ -4321,8 +4522,9 @@ void main() {
       await gesture.up();
     });
 
-    testWidgets('writes V1-15-bis edge selection deletion UX screenshot',
-        (tester) async {
+    testWidgets('writes V1-15-bis edge selection deletion UX screenshot', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEdgeAuthoringScene(
@@ -4357,8 +4559,9 @@ void main() {
       );
     });
 
-    testWidgets('writes V1-25-bis dialogue battle ports screenshot',
-        (tester) async {
+    testWidgets('writes V1-25-bis dialogue battle ports screenshot', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithDialogueBattlePortsScene(
@@ -4411,8 +4614,9 @@ void main() {
       await gesture.up();
     });
 
-    testWidgets('writes V1-30 scene node payload editing screenshot',
-        (tester) async {
+    testWidgets('writes V1-30 scene node payload editing screenshot', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithEditablePayloadNodes(),
@@ -4433,8 +4637,9 @@ void main() {
       );
     });
 
-    testWidgets('writes V1-30-bis scene node deletion UX screenshot',
-        (tester) async {
+    testWidgets('writes V1-30-bis scene node deletion UX screenshot', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithDialogueBattlePortsScene(
@@ -4485,8 +4690,9 @@ void main() {
       );
     });
 
-    testWidgets('writes V1-31 scene consequence authoring screenshot',
-        (tester) async {
+    testWidgets('writes V1-31 scene consequence authoring screenshot', (
+      tester,
+    ) async {
       await _pumpNarrativeShell(
         tester,
         project: _projectWithMarkEventConsumedActionScene(),
@@ -4521,9 +4727,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(
-          const ValueKey(
-            'scene-condition-source-kind-storyStepCompletion',
-          ),
+          const ValueKey('scene-condition-source-kind-storyStepCompletion'),
         ),
       );
       await tester.pumpAndSettle();
@@ -4678,8 +4882,7 @@ class _SceneTestWorkspace implements ProjectWorkspace {
   Future<String> importTilesetImage(
     String sourcePath, {
     String? preferredName,
-  }) async =>
-      '$projectRoot/assets/${preferredName ?? 'tileset.png'}';
+  }) async => '$projectRoot/assets/${preferredName ?? 'tileset.png'}';
 
   @override
   Future<void> moveDirectory(String sourcePath, String destinationPath) async {}
@@ -4763,10 +4966,7 @@ ProjectManifest _projectWithTwoScenes() {
     name: 'Scenes shell test',
     maps: const [],
     tilesets: const [],
-    scenes: [
-      _testIntroScene(),
-      _testBranchScene(),
-    ],
+    scenes: [_testIntroScene(), _testBranchScene()],
   );
 }
 
@@ -4947,14 +5147,8 @@ ProjectManifest _projectWithTypedConsequenceActionScene() {
     ],
     tilesets: const [],
     facts: [
-      NarrativeFactDefinition(
-        id: 'fact_gate_open',
-        label: 'Porte ouverte',
-      ),
-      NarrativeFactDefinition(
-        id: 'fact_alarm_set',
-        label: 'Alarme activée',
-      ),
+      NarrativeFactDefinition(id: 'fact_gate_open', label: 'Porte ouverte'),
+      NarrativeFactDefinition(id: 'fact_alarm_set', label: 'Alarme activée'),
     ],
     scenes: [
       SceneAsset(
@@ -4969,10 +5163,7 @@ ProjectManifest _projectWithTypedConsequenceActionScene() {
               kind: SceneNodeKind.action,
               title: 'Action',
               payload: SceneActionPayload.consequence(
-                SceneConsequence.setFact(
-                  factId: 'fact_gate_open',
-                  value: true,
-                ),
+                SceneConsequence.setFact(factId: 'fact_gate_open', value: true),
               ),
             ),
             SceneNode(id: 'node_end', kind: SceneNodeKind.end),
@@ -5143,10 +5334,7 @@ ProjectManifest _projectWithMarkEventConsumedActionScene() {
     ],
     tilesets: const [],
     facts: [
-      NarrativeFactDefinition(
-        id: 'fact_gate_open',
-        label: 'Porte ouverte',
-      ),
+      NarrativeFactDefinition(id: 'fact_gate_open', label: 'Porte ouverte'),
     ],
     scenes: [
       SceneAsset(
@@ -5204,28 +5392,20 @@ MapData _mapWithConsequenceEvents() {
     name: 'Carte de test',
     size: const GridSize(width: 8, height: 8),
     layers: [
-      MapLayer.tile(
-        id: 'l_base',
-        name: 'Base',
-        cells: List<int>.filled(64, 0),
-      ),
+      MapLayer.tile(id: 'l_base', name: 'Base', cells: List<int>.filled(64, 0)),
     ],
     events: const [
       MapEventDefinition(
         id: 'event_gate',
         title: 'Event Gate',
         position: EventPosition(layerId: 'l_base', x: 2, y: 2),
-        pages: [
-          MapEventPage(pageNumber: 0),
-        ],
+        pages: [MapEventPage(pageNumber: 0)],
       ),
       MapEventDefinition(
         id: 'event_switch',
         title: 'Event Switch',
         position: EventPosition(layerId: 'l_base', x: 4, y: 3),
-        pages: [
-          MapEventPage(pageNumber: 0),
-        ],
+        pages: [MapEventPage(pageNumber: 0)],
       ),
     ],
   );
@@ -5269,9 +5449,7 @@ ProjectManifest _projectWithPayloadPickerContracts() {
             title: 'Start',
           ),
         ],
-        metadata: {
-          'authoring.cutsceneSchema': 'test_bridge',
-        },
+        metadata: {'authoring.cutsceneSchema': 'test_bridge'},
       ),
     ],
     scenes: [
@@ -5474,9 +5652,7 @@ ProjectManifest _projectWithDeepLinkPayloadNodes() {
             SceneNode(
               id: 'node_cinematic',
               kind: SceneNodeKind.cinematic,
-              payload: SceneCinematicPayload(
-                cinematicId: 'cinematic_linked',
-              ),
+              payload: SceneCinematicPayload(cinematicId: 'cinematic_linked'),
             ),
             SceneNode(id: 'node_end', kind: SceneNodeKind.end),
           ],
@@ -5497,9 +5673,7 @@ ProjectManifest _projectWithDeepLinkPayloadNodes() {
 
 SceneAsset _sceneWithoutNode(SceneAsset scene, String nodeId) {
   final retainedEdges = scene.graph.edges
-      .where(
-        (edge) => edge.fromNodeId != nodeId && edge.toNodeId != nodeId,
-      )
+      .where((edge) => edge.fromNodeId != nodeId && edge.toNodeId != nodeId)
       .toList();
   return SceneAsset(
     id: scene.id,
@@ -5534,9 +5708,7 @@ SceneAsset _fallbackScene() {
     name: 'Fallback Scene',
     graph: SceneGraph(
       startNodeId: 'fallback_start',
-      nodes: [
-        SceneNode(id: 'fallback_start', kind: SceneNodeKind.start),
-      ],
+      nodes: [SceneNode(id: 'fallback_start', kind: SceneNodeKind.start)],
       edges: const [],
     ),
   );
@@ -5677,9 +5849,7 @@ ProjectManifest _projectWithDiagnosticScene({bool missingEnd = false}) {
           ],
         ),
         layout: SceneGraphLayout(
-          nodeLayouts: [
-            SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80),
-          ],
+          nodeLayouts: [SceneNodeLayout(nodeId: 'node_start', x: 24, y: 80)],
         ),
       ),
     ],
@@ -5870,8 +6040,6 @@ SceneAsset _testBranchScene() {
         ),
       ],
     ),
-    declaredOutcomes: [
-      SceneOutcome(id: 'second_done', label: 'Second done'),
-    ],
+    declaredOutcomes: [SceneOutcome(id: 'second_done', label: 'Second done')],
   );
 }

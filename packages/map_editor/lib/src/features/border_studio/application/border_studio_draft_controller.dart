@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show protected;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
@@ -8,15 +9,12 @@ import 'border_studio_draft.dart';
 /// This controller never writes to disk and never invokes the publication
 /// transaction. Persisting the [ProjectManifest] returned by [saveDraft] or
 /// [deleteSelectedDraft] remains the editor session's responsibility.
-final class BorderStudioDraftController
-    extends StateNotifier<BorderStudioDraftState> {
+class BorderStudioDraftController extends Notifier<BorderStudioDraftState> {
   BorderStudioDraftController({ProjectManifest? manifest})
-      : super(BorderStudioDraftState()) {
-    if (manifest != null) {
-      loadFromManifest(manifest);
-    }
-  }
+    : _initialManifest = manifest;
 
+  final ProjectManifest? _initialManifest;
+  BorderStudioDraftState? _stateBeingBuilt;
   ProjectManifest? _manifest;
   Object? _projectIdentity;
   Map<String, Map<String, String>> _loadedFingerprintsByBlueprintId =
@@ -25,6 +23,25 @@ final class BorderStudioDraftController
       const <String, Set<String>>{};
   BorderDiagnosticsReport _externalDiagnostics =
       const BorderDiagnosticsReport.empty();
+
+  @override
+  BorderStudioDraftState build() => buildStateFromManifest(_initialManifest);
+
+  /// Initializes Riverpod state before the notifier becomes externally
+  /// readable. The connected provider uses the same path with its project
+  /// identity so the first emitted state matches the current editor session.
+  @protected
+  BorderStudioDraftState buildStateFromManifest(
+    ProjectManifest? manifest, {
+    Object? projectIdentity,
+  }) {
+    _projectIdentity = projectIdentity;
+    _stateBeingBuilt = BorderStudioDraftState();
+    _load(manifest);
+    final initial = _stateBeingBuilt!;
+    _stateBeingBuilt = null;
+    return initial;
+  }
 
   void loadFromManifest(ProjectManifest? manifest) {
     _load(manifest);
@@ -63,7 +80,8 @@ final class BorderStudioDraftController
     final previousReanalyzed = _reanalyzedDivergenceIdsByBlueprintId;
     _loadedFingerprintsByBlueprintId = <String, Map<String, String>>{
       for (final record in manifest.borderCatalog.records)
-        record.id: _publishedRevisionChanged(previousManifest, record) ||
+        record.id:
+            _publishedRevisionChanged(previousManifest, record) ||
                 previousFingerprints[record.id] == null
             ? _primitiveFingerprints(record.draft.definition.primitives)
             : previousFingerprints[record.id]!,
@@ -81,9 +99,11 @@ final class BorderStudioDraftController
         working.id: state.reanalyzedDivergedPrimitiveIds,
     };
 
-    final incoming =
-        working == null ? null : manifest.borderCatalog.recordById(working.id);
-    final selectedPublicationChanged = incoming != null &&
+    final incoming = working == null
+        ? null
+        : manifest.borderCatalog.recordById(working.id);
+    final selectedPublicationChanged =
+        incoming != null &&
         _publishedRevisionChanged(previousManifest, incoming);
     if (working != null && state.isDirty && !selectedPublicationChanged) {
       _externalDiagnostics = const BorderDiagnosticsReport.empty();
@@ -98,7 +118,8 @@ final class BorderStudioDraftController
       return;
     }
 
-    final selected = incoming ??
+    final selected =
+        incoming ??
         (manifest.borderCatalog.records.isEmpty
             ? null
             : manifest.borderCatalog.records.first);
@@ -109,7 +130,8 @@ final class BorderStudioDraftController
     _selectRecord(
       selected,
       manifest.borderCatalog.records,
-      preserveExternalDiagnostics: incoming != null &&
+      preserveExternalDiagnostics:
+          incoming != null &&
           working != null &&
           incoming.draft == working.blueprint &&
           !selectedPublicationChanged,
@@ -220,15 +242,14 @@ final class BorderStudioDraftController
   }
 
   void renameBlueprint(String name) {
-    _updateDefinition(
-      (definition) => _copyDefinition(definition, name: name),
-    );
+    _updateDefinition((definition) => _copyDefinition(definition, name: name));
   }
 
   void setTemplate(BorderBlueprintTemplate template) {
     final definition = _requireWorkingDraft().blueprint.definition;
     _validatePrimitiveRoles(definition.primitives, template);
-    final usesUntouchedTemplateDefaults = definition.primitives.isEmpty &&
+    final usesUntouchedTemplateDefaults =
+        definition.primitives.isEmpty &&
         definition.ground == null &&
         definition.defaults == _defaultGenerationParams(definition.template);
     _updateDefinition(
@@ -250,11 +271,8 @@ final class BorderStudioDraftController
 
   void setGround(BorderGroundDraft? ground) {
     _updateDefinition(
-      (definition) => _copyDefinition(
-        definition,
-        ground: ground,
-        replaceGround: true,
-      ),
+      (definition) =>
+          _copyDefinition(definition, ground: ground, replaceGround: true),
     );
   }
 
@@ -390,8 +408,9 @@ final class BorderStudioDraftController
     _setState(
       state.copyWith(
         diagnosticsAreCurrent: true,
-        acknowledgedWarningCodes:
-            state.acknowledgedWarningCodes.where(warningCodes.contains).toSet(),
+        acknowledgedWarningCodes: state.acknowledgedWarningCodes
+            .where(warningCodes.contains)
+            .toSet(),
       ),
     );
   }
@@ -426,10 +445,7 @@ final class BorderStudioDraftController
       ...state.reanalyzedDivergedPrimitiveIds,
       primitiveId,
     };
-    _rememberReanalyzedDivergences(
-      _requireWorkingDraft().id,
-      reanalyzed,
-    );
+    _rememberReanalyzedDivergences(_requireWorkingDraft().id, reanalyzed);
     _externalDiagnostics = const BorderDiagnosticsReport.empty();
     _setState(
       state.copyWith(
@@ -514,10 +530,7 @@ final class BorderStudioDraftController
     _selectRecord(records.first, records);
   }
 
-  void _load(
-    ProjectManifest? manifest, {
-    String? preferredBlueprintId,
-  }) {
+  void _load(ProjectManifest? manifest, {String? preferredBlueprintId}) {
     _manifest = manifest;
     _externalDiagnostics = const BorderDiagnosticsReport.empty();
     final records =
@@ -549,15 +562,17 @@ final class BorderStudioDraftController
     if (!preserveExternalDiagnostics) {
       _externalDiagnostics = const BorderDiagnosticsReport.empty();
     }
-    final loadedFingerprints = _loadedFingerprintsByBlueprintId[selected.id] ??
+    final loadedFingerprints =
+        _loadedFingerprintsByBlueprintId[selected.id] ??
         const <String, String>{};
     final divergence = _sourceDivergenceIds(
       selected.draft.definition.primitives,
       loadedFingerprints,
     );
     final reanalyzed = <String>{
-      for (final id in _reanalyzedDivergenceIdsByBlueprintId[selected.id] ??
-          const <String>{})
+      for (final id
+          in _reanalyzedDivergenceIdsByBlueprintId[selected.id] ??
+              const <String>{})
         if (divergence.contains(id)) id,
     };
     _setState(
@@ -579,7 +594,8 @@ final class BorderStudioDraftController
   void _updateDefinition(
     BorderBlueprintDraftDefinition Function(
       BorderBlueprintDraftDefinition definition,
-    ) update,
+    )
+    update,
   ) {
     final working = _requireWorkingDraft();
     final previousFingerprints = _primitiveFingerprints(
@@ -618,9 +634,12 @@ final class BorderStudioDraftController
   }
 
   void _setState(BorderStudioDraftState next) {
-    state = next.copyWith(
-      diagnostics: _composeDiagnostics(next),
-    );
+    final composed = next.copyWith(diagnostics: _composeDiagnostics(next));
+    if (_stateBeingBuilt != null) {
+      _stateBeingBuilt = composed;
+      return;
+    }
+    state = composed;
   }
 
   BorderDiagnosticsReport _composeDiagnostics(BorderStudioDraftState next) {
@@ -643,8 +662,9 @@ final class BorderStudioDraftController
       if (primitive == null || loadedFingerprint == null) {
         continue;
       }
-      final wasReanalyzed =
-          next.reanalyzedDivergedPrimitiveIds.contains(primitiveId);
+      final wasReanalyzed = next.reanalyzedDivergedPrimitiveIds.contains(
+        primitiveId,
+      );
       diagnostics.add(
         BorderDiagnostic(
           code: wasReanalyzed
@@ -752,11 +772,7 @@ BorderBlueprintDraftDefinition _copyDefinition(
 
 void _requireNewBlueprintId(ProjectBorderCatalog catalog, String id) {
   if (id.trim().isEmpty || id != id.trim()) {
-    throw ArgumentError.value(
-      id,
-      'id',
-      'must be nonblank and already trimmed',
-    );
+    throw ArgumentError.value(id, 'id', 'must be nonblank and already trimmed');
   }
   if (catalog.recordById(id) != null) {
     throw ArgumentError.value(id, 'id', 'already exists');
@@ -815,38 +831,34 @@ Set<String> _sourceDivergenceIds(
 
 BorderGenerationParams _defaultGenerationParams(
   BorderBlueprintTemplate template,
-) =>
-    switch (template) {
-      BorderBlueprintTemplate.stoneChainLine => BorderGenerationParams(
-          irregularityPermille: 180,
-          detailDensityPermille: 0,
-          variationPermille: 1000,
-          maxOverlapPx: 8,
-          gapTolerancePx: 0,
-          depthRows: 2,
-          allowAutoRotation: false,
-        ),
-      BorderBlueprintTemplate.organicEdge ||
-      BorderBlueprintTemplate.masonryLine ||
-      BorderBlueprintTemplate.postAndRailLine ||
-      BorderBlueprintTemplate.connectedLine =>
-        BorderGenerationParams(
-          irregularityPermille: 250,
-          detailDensityPermille: 500,
-          variationPermille: 300,
-          maxOverlapPx: 4,
-          gapTolerancePx: 1,
-          depthRows: 1,
-        ),
-    };
+) => switch (template) {
+  BorderBlueprintTemplate.stoneChainLine => BorderGenerationParams(
+    irregularityPermille: 180,
+    detailDensityPermille: 0,
+    variationPermille: 1000,
+    maxOverlapPx: 8,
+    gapTolerancePx: 0,
+    depthRows: 2,
+    allowAutoRotation: false,
+  ),
+  BorderBlueprintTemplate.organicEdge ||
+  BorderBlueprintTemplate.masonryLine ||
+  BorderBlueprintTemplate.postAndRailLine ||
+  BorderBlueprintTemplate.connectedLine => BorderGenerationParams(
+    irregularityPermille: 250,
+    detailDensityPermille: 500,
+    variationPermille: 300,
+    maxOverlapPx: 4,
+    gapTolerancePx: 1,
+    depthRows: 1,
+  ),
+};
 
 BorderSignedInt64 _initialPreviewSeed(String blueprintId) {
-  final rng = BorderDeterministicRng.fromComponents(
-    <BorderRngKeyComponent>[
-      const BorderRngKeyComponent.text('border-studio-preview-seed-v1'),
-      BorderRngKeyComponent.text(blueprintId),
-    ],
-  );
+  final rng = BorderDeterministicRng.fromComponents(<BorderRngKeyComponent>[
+    const BorderRngKeyComponent.text('border-studio-preview-seed-v1'),
+    BorderRngKeyComponent.text(blueprintId),
+  ]);
   return BorderSignedInt64(_asSignedInt64(rng.nextUint64()));
 }
 
@@ -854,13 +866,11 @@ BorderSignedInt64 _nextPreviewSeed(
   String blueprintId,
   BorderSignedInt64 current,
 ) {
-  final rng = BorderDeterministicRng.fromComponents(
-    <BorderRngKeyComponent>[
-      const BorderRngKeyComponent.text('border-studio-preview-variation-v1'),
-      BorderRngKeyComponent.text(blueprintId),
-      BorderRngKeyComponent.signedInt64(current),
-    ],
-  );
+  final rng = BorderDeterministicRng.fromComponents(<BorderRngKeyComponent>[
+    const BorderRngKeyComponent.text('border-studio-preview-variation-v1'),
+    BorderRngKeyComponent.text(blueprintId),
+    BorderRngKeyComponent.signedInt64(current),
+  ]);
   var next = BorderSignedInt64(_asSignedInt64(rng.nextUint64()));
   while (next == current) {
     next = BorderSignedInt64(_asSignedInt64(rng.nextUint64()));

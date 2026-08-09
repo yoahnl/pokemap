@@ -334,7 +334,7 @@ String canonicalSmartTileFailureMessage(
   }
 }
 
-@riverpod
+@Riverpod(name: 'editorNotifierProvider')
 class EditorNotifier extends _$EditorNotifier
     with
         _EditorNotifierMapConnections,
@@ -3651,7 +3651,7 @@ class EditorNotifier extends _$EditorNotifier
     if (map == null) return;
 
     debugPrint('EditorNotifier: resizeActiveMap(${width}x$height)');
-    ref.read(borderResizeFeedbackProvider.notifier).state = null;
+    ref.read(borderResizeFeedbackProvider.notifier).clear();
     try {
       final useCase = ref.read(resizeMapUseCaseProvider);
       final project = state.project;
@@ -3677,11 +3677,12 @@ class EditorNotifier extends _$EditorNotifier
       final resized = result.map;
       if (!result.canApply || resized == null) {
         if (result.diagnosticReport.hasDiagnostics) {
-          ref.read(borderResizeFeedbackProvider.notifier).state =
-              BorderResizeFeedback(
-            mapIdentity: map,
-            diagnosticReport: result.diagnosticReport,
-          );
+          ref
+              .read(borderResizeFeedbackProvider.notifier)
+              .setFeedback(BorderResizeFeedback(
+                mapIdentity: map,
+                diagnosticReport: result.diagnosticReport,
+              ));
         }
         final impactCount = result.plan.impacts.length;
         final diagnosticCount = result.diagnosticReport.errorCount;
@@ -3740,11 +3741,12 @@ class EditorNotifier extends _$EditorNotifier
       if (activeMap != null &&
           identical(activeMap, committed) &&
           result.diagnosticReport.hasDiagnostics) {
-        ref.read(borderResizeFeedbackProvider.notifier).state =
-            BorderResizeFeedback(
-          mapIdentity: activeMap,
-          diagnosticReport: result.diagnosticReport,
-        );
+        ref
+            .read(borderResizeFeedbackProvider.notifier)
+            .setFeedback(BorderResizeFeedback(
+              mapIdentity: activeMap,
+              diagnosticReport: result.diagnosticReport,
+            ));
       }
     } catch (e) {
       debugPrint('EditorNotifier: Error resizing map: $e');
@@ -10356,8 +10358,9 @@ class EditorNotifier extends _$EditorNotifier
         requireGeneratedPlacements: false,
         allowImplicitSelection: false,
       );
-      ref.read(environmentGeneratedPlacementAddElementProvider.notifier).state =
-          selection.item.elementId;
+      ref
+          .read(environmentGeneratedPlacementAddElementProvider.notifier)
+          .select(selection.item.elementId);
       state = state.copyWith(
         activeLayerId: selection.tileLayerId,
         selectedEnvironmentAreaId: selection.areaId,
@@ -10378,8 +10381,9 @@ class EditorNotifier extends _$EditorNotifier
         requireGeneratedPlacements: true,
         allowImplicitSelection: true,
       );
-      ref.read(environmentGeneratedPlacementAddElementProvider.notifier).state =
-          selection.item.elementId;
+      ref
+          .read(environmentGeneratedPlacementAddElementProvider.notifier)
+          .select(selection.item.elementId);
       state = state.copyWith(
         activeLayerId: selection.tileLayerId,
         selectedEnvironmentAreaId: selection.areaId,
@@ -10465,7 +10469,7 @@ class EditorNotifier extends _$EditorNotifier
       state = state.copyWith(errorMessage: null);
       return;
     }
-    ref.read(environmentMaskBrushSizeProvider.notifier).state = size;
+    ref.read(environmentMaskBrushSizeProvider.notifier).setSize(size);
     state = state.copyWith(errorMessage: null);
   }
 

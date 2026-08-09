@@ -118,19 +118,29 @@ final class GamePackagePresentation {
 final class GamePackageIntroVideo {
   const GamePackageIntroVideo({
     this.media,
-    this.video,
-    this.poster,
-    this.captions,
-    this.durationMilliseconds,
-    this.width,
-    this.height,
-    this.bitrateKbps,
-    this.sizeBytes,
-    this.videoCodec,
-    this.audioCodec,
+    String? video,
+    String? poster,
+    String? captions,
+    int? durationMilliseconds,
+    int? width,
+    int? height,
+    int? bitrateKbps,
+    int? sizeBytes,
+    String? videoCodec,
+    String? audioCodec,
     required this.reducedMotionBehavior,
     required this.allowReplay,
-  }) : assert(
+  })  : _legacyVideo = video,
+        _legacyPoster = poster,
+        _legacyCaptions = captions,
+        _legacyDurationMilliseconds = durationMilliseconds,
+        _legacyWidth = width,
+        _legacyHeight = height,
+        _legacyBitrateKbps = bitrateKbps,
+        _legacySizeBytes = sizeBytes,
+        _legacyVideoCodec = videoCodec,
+        _legacyAudioCodec = audioCodec,
+        assert(
           media != null ||
               (video != null &&
                   poster != null &&
@@ -144,33 +154,44 @@ final class GamePackageIntroVideo {
         );
 
   final GamePackageResponsiveVideo? media;
-  final String? video;
-  final String? poster;
-  final String? captions;
-  final int? durationMilliseconds;
-  final int? width;
-  final int? height;
-  final int? bitrateKbps;
-  final int? sizeBytes;
-  final String? videoCodec;
-  final String? audioCodec;
+  final String? _legacyVideo;
+  final String? _legacyPoster;
+  final String? _legacyCaptions;
+  final int? _legacyDurationMilliseconds;
+  final int? _legacyWidth;
+  final int? _legacyHeight;
+  final int? _legacyBitrateKbps;
+  final int? _legacySizeBytes;
+  final String? _legacyVideoCodec;
+  final String? _legacyAudioCodec;
   final String reducedMotionBehavior;
   final bool allowReplay;
 
   GamePackageVideoVariant get landscape =>
       media?.landscape ??
       GamePackageVideoVariant(
-        video: video!,
-        poster: poster!,
-        captions: captions,
-        durationMilliseconds: durationMilliseconds!,
-        width: width!,
-        height: height!,
-        bitrateKbps: bitrateKbps!,
-        sizeBytes: sizeBytes!,
-        videoCodec: videoCodec!,
-        audioCodec: audioCodec!,
+        video: _legacyVideo!,
+        poster: _legacyPoster!,
+        captions: _legacyCaptions,
+        durationMilliseconds: _legacyDurationMilliseconds!,
+        width: _legacyWidth!,
+        height: _legacyHeight!,
+        bitrateKbps: _legacyBitrateKbps!,
+        sizeBytes: _legacySizeBytes!,
+        videoCodec: _legacyVideoCodec!,
+        audioCodec: _legacyAudioCodec!,
       );
+
+  String get video => landscape.video;
+  String get poster => landscape.poster;
+  String? get captions => landscape.captions;
+  int get durationMilliseconds => landscape.durationMilliseconds;
+  int get width => landscape.width;
+  int get height => landscape.height;
+  int get bitrateKbps => landscape.bitrateKbps;
+  int get sizeBytes => landscape.sizeBytes;
+  String get videoCodec => landscape.videoCodec;
+  String get audioCodec => landscape.audioCodec;
 
   GamePackageResponsiveVideo get responsiveMedia =>
       media ?? GamePackageResponsiveVideo(landscape: landscape);

@@ -97,6 +97,45 @@ class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
   factory ProjectIntroVideoProfile.fromJson(Map<String, dynamic> json) =>
       _$ProjectIntroVideoProfileFromJson(json);
 
+  /// Source-migration helper for callers that still construct one landscape
+  /// intro variant with the V1 flat fields.
+  static ProjectIntroVideoProfile fromLandscape({
+    required String videoPath,
+    String? posterPath,
+    String? captionsPath,
+    required int durationMilliseconds,
+    required int width,
+    required int height,
+    required int bitrateKbps,
+    required int sizeBytes,
+    required String videoCodec,
+    String audioCodec = 'none',
+    double focalX = 0.5,
+    double focalY = 0.5,
+    String reducedMotionBehavior = 'poster',
+    bool allowReplay = true,
+  }) =>
+      ProjectIntroVideoProfile(
+        media: ProjectResponsiveVideoProfile(
+          landscape: ProjectVideoVariantProfile(
+            videoPath: videoPath,
+            posterPath: posterPath ?? '',
+            captionsPath: captionsPath,
+            durationMilliseconds: durationMilliseconds,
+            width: width,
+            height: height,
+            bitrateKbps: bitrateKbps,
+            sizeBytes: sizeBytes,
+            videoCodec: videoCodec,
+            audioCodec: audioCodec,
+            focalX: focalX,
+            focalY: focalY,
+          ),
+        ),
+        reducedMotionBehavior: reducedMotionBehavior,
+        allowReplay: allowReplay,
+      );
+
   /// Landscape compatibility projection for pre-V2 consumers.
   ProjectVideoVariantProfile get landscape => media.landscape;
   String get videoPath => landscape.videoPath;

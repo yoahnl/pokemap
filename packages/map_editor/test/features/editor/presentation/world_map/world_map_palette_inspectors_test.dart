@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/editor/editor_asset_cache_providers.dart';
@@ -155,47 +156,44 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Place Object keeps its named-card selection in Place',
-    (tester) async {
-      final harness = await _InspectorHarness.create();
-      addTearDown(harness.dispose);
-      harness.session.activateTool(
-        harness.notifier,
-        const ActivateWorldMapPlacement(WorldMapPlacementSubtool.object),
-      );
+  testWidgets('Place Object keeps its named-card selection in Place', (
+    tester,
+  ) async {
+    final harness = await _InspectorHarness.create();
+    addTearDown(harness.dispose);
+    harness.session.activateTool(
+      harness.notifier,
+      const ActivateWorldMapPlacement(WorldMapPlacementSubtool.object),
+    );
 
-      await harness.pump(tester, const AdaptiveMapInspector());
+    await harness.pump(tester, const AdaptiveMapInspector());
 
-      expect(
-        find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
-        findsOneWidget,
-      );
-      expect(find.byType(MapPaletteAssetBrowserLauncher), findsOneWidget);
-      expect(find.text('Changer de source'), findsOneWidget);
+    expect(
+      find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
+      findsOneWidget,
+    );
+    expect(find.byType(MapPaletteAssetBrowserLauncher), findsOneWidget);
+    expect(find.text('Changer de source'), findsOneWidget);
 
-      await tester.tap(
-        find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')),
-      );
-      await tester.pump();
+    await tester.tap(find.byKey(MapLayerAssetPaletteKeys.elementCard('tree')));
+    await tester.pump();
 
-      expect(
-        harness.notifier.state.activeBrush,
-        const EditorBrush.projectElement(elementId: 'tree'),
-      );
-      expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
-      expect(
-        harness.container.read(worldMapWorkspaceSessionProvider).activeFamily,
-        WorldMapToolFamily.place,
-      );
-      expect(
-        harness.container.read(worldMapInspectorSnapshotProvider).kind,
-        WorldMapInspectorKind.place,
-      );
-      expect(find.byType(WorldMapPlaceInspector), findsOneWidget);
-      expect(find.byType(WorldMapPaintInspector), findsNothing);
-    },
-  );
+    expect(
+      harness.notifier.state.activeBrush,
+      const EditorBrush.projectElement(elementId: 'tree'),
+    );
+    expect(harness.notifier.state.activeTool, EditorToolType.tilePaint);
+    expect(
+      harness.container.read(worldMapWorkspaceSessionProvider).activeFamily,
+      WorldMapToolFamily.place,
+    );
+    expect(
+      harness.container.read(worldMapInspectorSnapshotProvider).kind,
+      WorldMapInspectorKind.place,
+    );
+    expect(find.byType(WorldMapPlaceInspector), findsOneWidget);
+    expect(find.byType(WorldMapPaintInspector), findsNothing);
+  });
 
   testWidgets(
     'Place non-object subtools show non-mutating guidance without an asset palette',
@@ -256,10 +254,7 @@ class _InspectorHarness {
     final container = ProviderContainer(
       overrides: <Override>[
         editorImageCacheProvider.overrideWith(
-          (ref, projectRoot) => _ImmediateEditorImageCache(
-            projectRoot,
-            image,
-          ),
+          (ref, projectRoot) => _ImmediateEditorImageCache(projectRoot, image),
         ),
         worldMapWorkspaceSessionProvider.overrideWith(
           () => _TestWorldMapWorkspaceSessionController(initialSession),
@@ -289,13 +284,7 @@ class _InspectorHarness {
         container: container,
         child: MaterialApp(
           theme: PokeMapTheme.light(),
-          home: Scaffold(
-            body: SizedBox(
-              width: 400,
-              height: 600,
-              child: child,
-            ),
-          ),
+          home: Scaffold(body: SizedBox(width: 400, height: 600, child: child)),
         ),
       ),
     );
@@ -312,7 +301,7 @@ class _InspectorHarness {
 
 class _ImmediateEditorImageCache extends EditorImageCache {
   _ImmediateEditorImageCache(String sessionKey, this._image)
-      : super(sessionKey: sessionKey);
+    : super(sessionKey: sessionKey);
 
   final ui.Image _image;
 
@@ -344,11 +333,7 @@ class _TestWorldMapWorkspaceSessionController
 const _project = ProjectManifest(
   name: 'Inspecteurs palette',
   maps: <ProjectMapEntry>[
-    ProjectMapEntry(
-      id: 'town',
-      name: 'Ville',
-      relativePath: 'maps/town.json',
-    ),
+    ProjectMapEntry(id: 'town', name: 'Ville', relativePath: 'maps/town.json'),
   ],
   tilesets: <ProjectTilesetEntry>[
     ProjectTilesetEntry(
@@ -367,9 +352,7 @@ const _project = ProjectManifest(
       tilesetId: 'world',
       categoryId: 'nature',
       frames: <TilesetVisualFrame>[
-        TilesetVisualFrame(
-          source: TilesetSourceRect(x: 0, y: 0),
-        ),
+        TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
       ],
     ),
   ],

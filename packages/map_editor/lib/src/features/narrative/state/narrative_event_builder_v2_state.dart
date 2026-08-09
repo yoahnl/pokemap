@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../application/models/narrative_event_map_bridge_models.dart';
@@ -210,15 +209,15 @@ final class NarrativeEventBuilderV2State {
 
 /// Ephemeral list controller. Registry writes and the selected Event stay
 /// outside this controller.
-final class NarrativeEventBuilderV2Controller
-    extends StateNotifier<NarrativeEventBuilderV2State> {
+final class NarrativeEventBuilderV2Controller {
   NarrativeEventBuilderV2Controller({
     required NarrativeEventBuilderProjectReadModel readModel,
     required SelectNarrativeEventBuilderV2Event selectEvent,
   })  : _selectEvent = selectEvent,
-        super(NarrativeEventBuilderV2State(readModel: readModel));
+        state = NarrativeEventBuilderV2State(readModel: readModel);
 
   final SelectNarrativeEventBuilderV2Event _selectEvent;
+  NarrativeEventBuilderV2State state;
 
   void replaceReadModel(NarrativeEventBuilderProjectReadModel readModel) {
     state = state.withReadModel(readModel);

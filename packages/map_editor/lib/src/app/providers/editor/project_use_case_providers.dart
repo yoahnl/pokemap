@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart' show Ref;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 import '../../../application/use_cases/character_use_cases.dart';

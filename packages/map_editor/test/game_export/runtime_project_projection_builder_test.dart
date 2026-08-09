@@ -113,26 +113,66 @@ void main() {
     final projectFile = File(p.join(root.path, 'project.json'));
     final project =
         jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+    Map<String, Object?> videoVariant({
+      required int width,
+      required int height,
+      required String audioCodec,
+    }) =>
+        <String, Object?>{
+          'videoPath': 'assets/intro.mp4',
+          'posterPath': 'assets/intro-poster.png',
+          'captionsPath': 'assets/intro.vtt',
+          'durationMilliseconds': 1000,
+          'width': width,
+          'height': height,
+          'bitrateKbps': 128,
+          'sizeBytes': _h264Mp4Fixture.length,
+          'videoCodec': 'h264',
+          'audioCodec': audioCodec,
+        };
     project['presentation'] = <String, Object?>{
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'branding': <String, Object?>{
         'iconPath': 'assets/authored-icon.png',
         'accentColor': '#123456',
         'layoutVariant': 'centered',
       },
       'intro': <String, Object?>{
-        'videoPath': 'assets/intro.mp4',
-        'posterPath': 'assets/intro-poster.png',
-        'captionsPath': 'assets/intro.vtt',
-        'durationMilliseconds': 1000,
-        'width': 1280,
-        'height': 720,
-        'bitrateKbps': 128,
-        'sizeBytes': _h264Mp4Fixture.length,
-        'videoCodec': 'h264',
-        'audioCodec': 'aac',
+        'media': <String, Object?>{
+          'landscape': videoVariant(
+            width: 1280,
+            height: 720,
+            audioCodec: 'aac',
+          ),
+        },
         'reducedMotionBehavior': 'poster',
         'allowReplay': true,
+      },
+      'titleMotion': <String, Object?>{
+        'promptLoop': <String, Object?>{
+          'landscape': videoVariant(
+            width: 1280,
+            height: 720,
+            audioCodec: 'none',
+          ),
+          'portrait': videoVariant(
+            width: 720,
+            height: 1280,
+            audioCodec: 'none',
+          ),
+        },
+        'menuLoop': <String, Object?>{
+          'landscape': videoVariant(
+            width: 1280,
+            height: 720,
+            audioCodec: 'none',
+          ),
+          'portrait': videoVariant(
+            width: 720,
+            height: 1280,
+            audioCodec: 'none',
+          ),
+        },
       },
       'typography': <String, Object?>{
         'display': <String, Object?>{
@@ -170,20 +210,45 @@ void main() {
     expect(result.presentation.branding.accentColor, '#123456');
     expect(result.payloadFiles['presentation/icon.png'], <int>[1, 2, 3, 4]);
     expect(
-      result.payloadFiles['presentation/intro/video.mp4'],
+      result.payloadFiles['presentation/intro/landscape/video.mp4'],
       _h264Mp4Fixture,
     );
     expect(
       result.introVideoPackagePath,
-      'presentation/intro/video.mp4',
+      'presentation/intro/landscape/video.mp4',
     );
     expect(
       result.introPosterPackagePath,
-      'presentation/intro/poster.png',
+      'presentation/intro/landscape/poster.png',
     );
     expect(
       result.introCaptionsPackagePath,
-      'presentation/intro/captions.vtt',
+      'presentation/intro/landscape/captions.vtt',
+    );
+    expect(
+      result.titlePromptMedia?.landscape.videoPackagePath,
+      'presentation/title/prompt/landscape/video.mp4',
+    );
+    expect(
+      result.titlePromptMedia?.portrait?.videoPackagePath,
+      'presentation/title/prompt/portrait/video.mp4',
+    );
+    expect(
+      result.titleMenuMedia?.landscape.videoPackagePath,
+      'presentation/title/menu/landscape/video.mp4',
+    );
+    expect(
+      result.titleMenuMedia?.portrait?.videoPackagePath,
+      'presentation/title/menu/portrait/video.mp4',
+    );
+    expect(
+      result.payloadFiles.keys,
+      containsAll(<String>[
+        'presentation/title/prompt/landscape/video.mp4',
+        'presentation/title/prompt/portrait/video.mp4',
+        'presentation/title/menu/landscape/video.mp4',
+        'presentation/title/menu/portrait/video.mp4',
+      ]),
     );
     expect(
       result.payloadFiles,

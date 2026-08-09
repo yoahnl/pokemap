@@ -2,11 +2,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import '../support/riverpod_notifier_harness.dart';
 import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/border_studio/application/border_project_element_asset_service.dart';
 import 'package:map_editor/src/features/border_studio/application/border_studio_draft.dart';
-import 'package:map_editor/src/features/border_studio/application/border_studio_draft_controller.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -64,10 +64,7 @@ void main() {
         expect(result.primitive.role, BorderPrimitiveRole.structureLarge);
         expect(result.primitive.weight, 750);
         expect(result.primitive.transforms.allowFlipX, isTrue);
-        expect(
-          result.primitive.currentMetrics,
-          result.preparation.metrics,
-        );
+        expect(result.primitive.currentMetrics, result.preparation.metrics);
         expect(
           result.primitive.anchorPx,
           result.preparation.metrics.defaultAnchorPx,
@@ -84,7 +81,9 @@ void main() {
         await atlas.parent.create(recursive: true);
         await atlas.writeAsBytes(_twoTileAtlas(), flush: true);
         const service = BorderProjectElementAssetService();
-        final controller = BorderStudioDraftController(manifest: _manifest());
+        final controller = mountBorderStudioDraftController(
+          manifest: _manifest(),
+        );
         controller.createBlueprint(
           id: 'coast-blueprint',
           name: 'Coast',
@@ -107,7 +106,9 @@ void main() {
 
         // A fresh controller models reopening the project: the persisted
         // fingerprint is the baseline until the source is explicitly read.
-        final reloaded = BorderStudioDraftController(manifest: savedManifest);
+        final reloaded = mountBorderStudioDraftController(
+          manifest: savedManifest,
+        );
         await atlas.writeAsBytes(_changedTwoTileAtlas(), flush: true);
         final refreshed = await service.reanalyze(
           manifest: savedManifest,
@@ -194,40 +195,42 @@ void main() {
       );
     });
 
-    test('rejects an element ID that is absent from the project manifest',
-        () async {
-      final manifest = _manifest().copyWith(
-        elements: const <ProjectElementEntry>[],
-      );
+    test(
+      'rejects an element ID that is absent from the project manifest',
+      () async {
+        final manifest = _manifest().copyWith(
+          elements: const <ProjectElementEntry>[],
+        );
 
-      await expectLater(
-        const BorderProjectElementAssetService().prepare(
-          manifest: manifest,
-          projectRootPath: projectRoot.path,
-          sourceElementId: 'coast-rock',
-          primitiveId: 'structure-large-0',
-          role: BorderPrimitiveRole.structureLarge,
-          weight: 750,
-          transforms: BorderTransformPolicy(
-            allowFlipX: false,
-            allowedQuarterTurns: const <int>[0],
+        await expectLater(
+          const BorderProjectElementAssetService().prepare(
+            manifest: manifest,
+            projectRootPath: projectRoot.path,
+            sourceElementId: 'coast-rock',
+            primitiveId: 'structure-large-0',
+            role: BorderPrimitiveRole.structureLarge,
+            weight: 750,
+            transforms: BorderTransformPolicy(
+              allowFlipX: false,
+              allowedQuarterTurns: const <int>[0],
+            ),
           ),
-        ),
-        throwsA(
-          isA<BorderProjectElementAssetException>()
-              .having(
-                (error) => error.code,
-                'code',
-                BorderProjectElementAssetErrorCode.missingElement,
-              )
-              .having(
-                (error) => error.sourceElementId,
-                'sourceElementId',
-                'coast-rock',
-              ),
-        ),
-      );
-    });
+          throwsA(
+            isA<BorderProjectElementAssetException>()
+                .having(
+                  (error) => error.code,
+                  'code',
+                  BorderProjectElementAssetErrorCode.missingElement,
+                )
+                .having(
+                  (error) => error.sourceElementId,
+                  'sourceElementId',
+                  'coast-rock',
+                ),
+          ),
+        );
+      },
+    );
 
     test('rejects a tileset path that escapes the project root', () async {
       final manifest = _manifest().copyWith(
@@ -262,39 +265,35 @@ void main() {
 }
 
 ProjectManifest _manifest() => ProjectManifest(
-      name: 'Border asset test',
-      maps: const <ProjectMapEntry>[],
-      tilesets: <ProjectTilesetEntry>[
-        ProjectTilesetEntry(
-          id: 'coast',
-          name: 'Coast',
-          relativePath: 'assets/tilesets/coast.png',
-          transparentColor: TilesetTransparentColor(
-            red: 255,
-            green: 0,
-            blue: 255,
-          ),
+  name: 'Border asset test',
+  maps: const <ProjectMapEntry>[],
+  tilesets: <ProjectTilesetEntry>[
+    ProjectTilesetEntry(
+      id: 'coast',
+      name: 'Coast',
+      relativePath: 'assets/tilesets/coast.png',
+      transparentColor: TilesetTransparentColor(red: 255, green: 0, blue: 255),
+    ),
+  ],
+  elements: const <ProjectElementEntry>[
+    ProjectElementEntry(
+      id: 'coast-rock',
+      name: 'Coast rock',
+      tilesetId: 'coast',
+      categoryId: 'coast',
+      frames: <TilesetVisualFrame>[
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
+        ),
+        TilesetVisualFrame(
+          source: TilesetSourceRect(x: 1, y: 0, width: 1, height: 1),
+          durationMs: 80,
         ),
       ],
-      elements: const <ProjectElementEntry>[
-        ProjectElementEntry(
-          id: 'coast-rock',
-          name: 'Coast rock',
-          tilesetId: 'coast',
-          categoryId: 'coast',
-          frames: <TilesetVisualFrame>[
-            TilesetVisualFrame(
-              source: TilesetSourceRect(x: 0, y: 0, width: 1, height: 1),
-            ),
-            TilesetVisualFrame(
-              source: TilesetSourceRect(x: 1, y: 0, width: 1, height: 1),
-              durationMs: 80,
-            ),
-          ],
-        ),
-      ],
-      settings: const ProjectSettings(tileWidth: 2, tileHeight: 1),
-    );
+    ),
+  ],
+  settings: const ProjectSettings(tileWidth: 2, tileHeight: 1),
+);
 
 Uint8List _twoTileAtlas() {
   final image = img.Image(width: 4, height: 1, numChannels: 4);

@@ -25,20 +25,28 @@ final _borderStudioProjectSourceProvider =
   );
 });
 
-final borderStudioDraftControllerProvider =
-    StateNotifierProvider<BorderStudioDraftController, BorderStudioDraftState>(
-        (ref) {
-  final controller = BorderStudioDraftController();
-  ref.listen(
-    _borderStudioProjectSourceProvider,
-    (_, source) => controller.synchronizeFromManifest(
+final class _ConnectedBorderStudioDraftController
+    extends BorderStudioDraftController {
+  @override
+  BorderStudioDraftState build() {
+    final source = ref.read(_borderStudioProjectSourceProvider);
+    ref.listen(
+      _borderStudioProjectSourceProvider,
+      (_, next) => synchronizeFromManifest(
+        next.manifest,
+        projectIdentity: next.projectRootPath,
+      ),
+    );
+    return buildStateFromManifest(
       source.manifest,
       projectIdentity: source.projectRootPath,
-    ),
-    fireImmediately: true,
-  );
-  return controller;
-});
+    );
+  }
+}
+
+final borderStudioDraftControllerProvider =
+    NotifierProvider<BorderStudioDraftController, BorderStudioDraftState>(
+        _ConnectedBorderStudioDraftController.new);
 
 /// Focused seam between the filesystem publication transaction and the
 /// existing editor session. Tests can replace it without constructing the

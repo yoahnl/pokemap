@@ -15,33 +15,35 @@ import 'package:map_editor/src/ui/design_system/pokemap_button.dart';
 import '../shell_chrome_test_harness.dart';
 
 void main() {
-  testWidgets('runs preflight in Studio and invalidates it after a draft edit',
-      (tester) async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-preflight-ui-');
-    addTearDown(() => root.deleteSync(recursive: true));
-    final project = buildShellChromeProject(name: 'Preflight Studio')
-        .copyWith(presentation: const ProjectPresentationProfile());
-    File('${root.path}/project.json').writeAsStringSync(
-      const JsonEncoder.withIndent('  ').convert(project.toJson()),
-      flush: true,
-    );
-    final preflight = _FixedPresentationPreflight();
-    final gateway = _MemoryProjectGateway(project);
-    var exportCalls = 0;
+  testWidgets(
+    'runs preflight in Studio and invalidates it after a draft edit',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-preflight-ui-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(
+        name: 'Preflight Studio',
+      ).copyWith(presentation: const ProjectPresentationProfile());
+      File('${root.path}/project.json').writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(project.toJson()),
+        flush: true,
+      );
+      final preflight = _FixedPresentationPreflight();
+      final gateway = _MemoryProjectGateway(project);
+      var exportCalls = 0;
 
-    final container = await pumpEditorCanvasHostHarness(
-      tester,
-      initialState: EditorState(
-        projectRootPath: root.path,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.personalizationStudio,
-      ),
-      surfaceSize: const Size(1200, 900),
-      overrides: [
-        projectPresentationPreflightProvider.overrideWithValue(preflight),
-        personalizationStudioExportLauncherProvider.overrideWithValue(
-          (
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
+        ),
+        surfaceSize: const Size(1200, 900),
+        overrides: [
+          projectPresentationPreflightProvider.overrideWithValue(preflight),
+          personalizationStudioExportLauncherProvider.overrideWithValue((
             context, {
             required projectRootPath,
             required projectName,
@@ -49,258 +51,230 @@ void main() {
             exportCalls += 1;
             expect(projectRootPath, root.path);
             expect(projectName, 'Preflight Studio');
-          },
-        ),
-        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
-          ({
-            required String projectPath,
-            required ProjectManifest initialDocument,
-          }) {
-            return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
-                documentId: 'personalization-preflight-ui',
-                initialDocument: initialDocument,
-                gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-    await container
-        .read(editorNotifierProvider.notifier)
-        .initializePersonalizationStudioSession();
-    await tester.pump();
-
-    await tester.scrollUntilVisible(
-      find.byKey(
-        const ValueKey<String>('personalization-readiness-run-preflight'),
-      ),
-      500,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.ensureVisible(
-      find.byKey(
-        const ValueKey<String>('personalization-readiness-run-preflight'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-readiness-run-preflight'),
-      ),
-    );
-    await tester.pump();
-    await tester.pump();
-
-    expect(preflight.calls, 1);
-    expect(find.text('Prêt à exporter'), findsOneWidget);
-    await tester.ensureVisible(
-      find.byKey(
-        const ValueKey<String>('personalization-readiness-export'),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-readiness-export'),
-      ),
-    );
-    await tester.pump();
-    expect(exportCalls, 1);
-
-    await tester.scrollUntilVisible(
-      find.byKey(
-        const ValueKey<String>('personalization-preset-cinematic'),
-      ),
-      -500,
-      scrollable: find.byType(Scrollable).last,
-    );
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-preset-cinematic'),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 20));
-    await tester.scrollUntilVisible(
-      find.byKey(
-        const ValueKey<String>('personalization-readiness-run-preflight'),
-      ),
-      500,
-      scrollable: find.byType(Scrollable).last,
-    );
-
-    expect(find.text('Preflight à relancer'), findsOneWidget);
-  });
-
-  testWidgets('applies a preset to a dirty draft without writing project.json',
-      (tester) async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-studio-draft-');
-    addTearDown(() => root.deleteSync(recursive: true));
-    final project = buildShellChromeProject(name: 'Editable presentation')
-        .copyWith(presentation: const ProjectPresentationProfile());
-    final projectFile = File('${root.path}/project.json');
-    final durableJson =
-        const JsonEncoder.withIndent('  ').convert(project.toJson());
-    projectFile.writeAsStringSync(durableJson, flush: true);
-    final gateway = _MemoryProjectGateway(project);
-    final recoveryStore = _MemoryProjectRecoveryStore();
-
-    final container = await pumpEditorCanvasHostHarness(
-      tester,
-      initialState: EditorState(
-        projectRootPath: root.path,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.personalizationStudio,
-      ),
-      surfaceSize: const Size(1200, 800),
-      overrides: [
-        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
-          ({
-            required String projectPath,
-            required ProjectManifest initialDocument,
-          }) {
-            return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
-                documentId: 'personalization-studio',
-                initialDocument: initialDocument,
-                gateway: gateway,
-                recoveryStore: recoveryStore,
-              ),
-            );
-          },
-        ),
-      ],
-    );
-    await container
-        .read(editorNotifierProvider.notifier)
-        .initializePersonalizationStudioSession();
-    await tester.pump();
-
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-preset-cinematic'),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 20));
-
-    expect(
-      container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
-          .branding
-          .layoutVariant,
-      'cinematic',
-    );
-    expect(container.read(editorNotifierProvider).isProjectDirty, isTrue);
-    expect(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-dirty'),
-      ),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(
-        const ValueKey<String>('personalization-comparison-paths'),
-      ),
-      findsOneWidget,
-    );
-    expect(projectFile.readAsStringSync(), durableJson);
-    expect(gateway.saveCount, 0);
-
-    final undoButton = tester.widget<PokeMapButton>(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-undo'),
-      ),
-    );
-    final redoButtonBeforeUndo = tester.widget<PokeMapButton>(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-redo'),
-      ),
-    );
-    expect(undoButton.onPressed, isNotNull);
-    expect(redoButtonBeforeUndo.onPressed, isNull);
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-undo'),
-      ),
-    );
-    await tester.pump();
-    expect(
-      container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
-          .branding
-          .layoutVariant,
-      'standard',
-    );
-    final redoButtonAfterUndo = tester.widget<PokeMapButton>(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-redo'),
-      ),
-    );
-    expect(redoButtonAfterUndo.onPressed, isNotNull);
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-redo'),
-      ),
-    );
-    await tester.pump();
-    expect(
-      container
-          .read(editorNotifierProvider)
-          .project
-          ?.effectivePresentation
-          .branding
-          .layoutVariant,
-      'cinematic',
-    );
-
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-autosave'),
-      ),
-    );
-    await tester.pump();
-    expect(
-      container
+          }),
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-preflight-ui',
+                    initialDocument: initialDocument,
+                    gateway: gateway,
+                    recoveryStore: _MemoryProjectRecoveryStore(),
+                  ),
+                );
+              }),
+        ],
+      );
+      await container
           .read(editorNotifierProvider.notifier)
-          .personalizationStudioSessionState
-          ?.autosaveEnabled,
-      isTrue,
-    );
+          .initializePersonalizationStudioSession();
+      await tester.pump();
 
-    final saveButton = tester.widget<PokeMapButton>(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-save'),
-      ),
-    );
-    expect(saveButton.onPressed, isNotNull);
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-save'),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 20));
+      await tester.scrollUntilVisible(
+        find.byKey(
+          const ValueKey<String>('personalization-readiness-run-preflight'),
+        ),
+        500,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.ensureVisible(
+        find.byKey(
+          const ValueKey<String>('personalization-readiness-run-preflight'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('personalization-readiness-run-preflight'),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
 
-    expect(gateway.saveCount, 1);
-    expect(
-      find.byKey(
-        const ValueKey<String>('personalization-studio-dirty'),
-      ),
-      findsNothing,
-    );
-  });
+      expect(preflight.calls, 1);
+      expect(find.text('Prêt à exporter'), findsOneWidget);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey<String>('personalization-readiness-export')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personalization-readiness-export')),
+      );
+      await tester.pump();
+      expect(exportCalls, 1);
 
-  testWidgets('canvas displays the current project profile in read-only mode',
-      (tester) async {
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
+        -500,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.scrollUntilVisible(
+        find.byKey(
+          const ValueKey<String>('personalization-readiness-run-preflight'),
+        ),
+        500,
+        scrollable: find.byType(Scrollable).last,
+      );
+
+      expect(find.text('Preflight à relancer'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'applies a preset to a dirty draft without writing project.json',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-studio-draft-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(
+        name: 'Editable presentation',
+      ).copyWith(presentation: const ProjectPresentationProfile());
+      final projectFile = File('${root.path}/project.json');
+      final durableJson = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(project.toJson());
+      projectFile.writeAsStringSync(durableJson, flush: true);
+      final gateway = _MemoryProjectGateway(project);
+      final recoveryStore = _MemoryProjectRecoveryStore();
+
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
+        ),
+        surfaceSize: const Size(1200, 800),
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-studio',
+                    initialDocument: initialDocument,
+                    gateway: gateway,
+                    recoveryStore: recoveryStore,
+                  ),
+                );
+              }),
+        ],
+      );
+      await container
+          .read(editorNotifierProvider.notifier)
+          .initializePersonalizationStudioSession();
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project
+            ?.effectivePresentation
+            .branding
+            .layoutVariant,
+        'cinematic',
+      );
+      expect(container.read(editorNotifierProvider).isProjectDirty, isTrue);
+      expect(
+        find.byKey(const ValueKey<String>('personalization-studio-dirty')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('personalization-comparison-paths')),
+        findsOneWidget,
+      );
+      expect(projectFile.readAsStringSync(), durableJson);
+      expect(gateway.saveCount, 0);
+
+      final undoButton = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey<String>('personalization-studio-undo')),
+      );
+      final redoButtonBeforeUndo = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey<String>('personalization-studio-redo')),
+      );
+      expect(undoButton.onPressed, isNotNull);
+      expect(redoButtonBeforeUndo.onPressed, isNull);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personalization-studio-undo')),
+      );
+      await tester.pump();
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project
+            ?.effectivePresentation
+            .branding
+            .layoutVariant,
+        'standard',
+      );
+      final redoButtonAfterUndo = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey<String>('personalization-studio-redo')),
+      );
+      expect(redoButtonAfterUndo.onPressed, isNotNull);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personalization-studio-redo')),
+      );
+      await tester.pump();
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project
+            ?.effectivePresentation
+            .branding
+            .layoutVariant,
+        'cinematic',
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personalization-studio-autosave')),
+      );
+      await tester.pump();
+      expect(
+        container
+            .read(editorNotifierProvider.notifier)
+            .personalizationStudioSessionState
+            ?.autosaveEnabled,
+        isTrue,
+      );
+
+      final saveButton = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey<String>('personalization-studio-save')),
+      );
+      expect(saveButton.onPressed, isNotNull);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personalization-studio-save')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+
+      expect(gateway.saveCount, 1);
+      expect(
+        find.byKey(const ValueKey<String>('personalization-studio-dirty')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets('canvas displays the current project profile in read-only mode', (
+    tester,
+  ) async {
     const profile = ProjectPresentationProfile(
       branding: ProjectBrandingProfile(accentColor: 'purple'),
     );
@@ -329,17 +303,17 @@ void main() {
     );
 
     final reset = tester.widget<PokeMapButton>(
-      find.byKey(
-        const ValueKey<String>('personalization-reset-branding'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-reset-branding')),
     );
     expect(reset.onPressed, isNull);
   });
 
-  testWidgets('branding accent and layout update only the studio draft',
-      (tester) async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-studio-branding-');
+  testWidgets('branding accent and layout update only the studio draft', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-studio-branding-',
+    );
     addTearDown(() => root.deleteSync(recursive: true));
     final project = buildShellChromeProject(name: 'Branding Studio').copyWith(
       presentation: const ProjectPresentationProfile(
@@ -349,8 +323,9 @@ void main() {
       ),
     );
     final projectFile = File('${root.path}/project.json');
-    final durableJson =
-        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    final durableJson = const JsonEncoder.withIndent(
+      '  ',
+    ).convert(project.toJson());
     projectFile.writeAsStringSync(durableJson, flush: true);
     final gateway = _MemoryProjectGateway(project);
 
@@ -408,9 +383,7 @@ void main() {
       find.byKey(const ValueKey<String>('branding-layout')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const ValueKey<String>('branding-layout')),
-    );
+    await tester.tap(find.byKey(const ValueKey<String>('branding-layout')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cinématique').last);
     await tester.pumpAndSettle();
@@ -422,25 +395,24 @@ void main() {
         .branding;
     expect(branding?.accentColor, '#224466');
     expect(branding?.layoutVariant, 'cinematic');
-    expect(
-      branding?.iconPath,
-      'assets/presentation/branding/icon.png',
-    );
+    expect(branding?.iconPath, 'assets/presentation/branding/icon.png');
     expect(projectFile.readAsStringSync(), durableJson);
   });
 
-  testWidgets('title music import, preview, and removal stay in the draft',
-      (tester) async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-title-music-');
-    addTearDown(() => root.deleteSync(recursive: true));
-    final project =
-        buildShellChromeProject(name: 'Title Music Studio').copyWith(
-      presentation: const ProjectPresentationProfile(),
+  testWidgets('title music import, preview, and removal stay in the draft', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-title-music-',
     );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(
+      name: 'Title Music Studio',
+    ).copyWith(presentation: const ProjectPresentationProfile());
     final projectFile = File('${root.path}/project.json');
-    final durableJson =
-        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    final durableJson = const JsonEncoder.withIndent(
+      '  ',
+    ).convert(project.toJson());
     projectFile.writeAsStringSync(durableJson, flush: true);
     final gateway = _MemoryProjectGateway(project);
     final picker = _FixedTitleMusicPicker('/source/title.ogg');
@@ -471,9 +443,7 @@ void main() {
             );
           },
         ),
-        personalizationStudioTitleMusicPickerProvider.overrideWithValue(
-          picker,
-        ),
+        personalizationStudioTitleMusicPickerProvider.overrideWithValue(picker),
         projectTitleMusicImportServiceProvider.overrideWithValue(importer),
         projectTitleMusicPreviewControllerFactoryProvider.overrideWithValue(
           () => preview,
@@ -542,192 +512,193 @@ void main() {
   });
 
   testWidgets(
-      'intro category edits the studio draft without writing project.json',
-      (tester) async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-studio-intro-');
-    addTearDown(() => root.deleteSync(recursive: true));
-    const intro = ProjectIntroVideoProfile(
-      videoPath: 'assets/presentation/intro/intro.mp4',
-      posterPath: 'assets/presentation/intro/poster.png',
-      captionsPath: 'assets/presentation/intro/captions.vtt',
-      durationMilliseconds: 12000,
-      width: 1280,
-      height: 720,
-      bitrateKbps: 2400,
-      sizeBytes: 5000000,
-      videoCodec: 'h264',
-      audioCodec: 'aac',
-    );
-    final project = buildShellChromeProject(name: 'Intro Studio').copyWith(
-      presentation: const ProjectPresentationProfile(intro: intro),
-    );
-    final projectFile = File('${root.path}/project.json');
-    final durableJson =
-        const JsonEncoder.withIndent('  ').convert(project.toJson());
-    projectFile.writeAsStringSync(durableJson, flush: true);
-    final gateway = _MemoryProjectGateway(project);
+    'intro category edits the studio draft without writing project.json',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-studio-intro-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final intro = ProjectIntroVideoProfile.fromLandscape(
+        videoPath: 'assets/presentation/intro/intro.mp4',
+        posterPath: 'assets/presentation/intro/poster.png',
+        captionsPath: 'assets/presentation/intro/captions.vtt',
+        durationMilliseconds: 12000,
+        width: 1280,
+        height: 720,
+        bitrateKbps: 2400,
+        sizeBytes: 5000000,
+        videoCodec: 'h264',
+        audioCodec: 'aac',
+      );
+      final project = buildShellChromeProject(
+        name: 'Intro Studio',
+      ).copyWith(presentation: ProjectPresentationProfile(intro: intro));
+      final projectFile = File('${root.path}/project.json');
+      final durableJson = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(project.toJson());
+      projectFile.writeAsStringSync(durableJson, flush: true);
+      final gateway = _MemoryProjectGateway(project);
 
-    final container = await pumpEditorCanvasHostHarness(
-      tester,
-      initialState: EditorState(
-        projectRootPath: root.path,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.personalizationStudio,
-      ),
-      surfaceSize: const Size(1200, 800),
-      overrides: [
-        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
-          ({
-            required String projectPath,
-            required ProjectManifest initialDocument,
-          }) {
-            return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
-                documentId: 'personalization-studio-intro',
-                initialDocument: initialDocument,
-                gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
-              ),
-            );
-          },
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
         ),
-      ],
-    );
-    await container
-        .read(editorNotifierProvider.notifier)
-        .initializePersonalizationStudioSession();
-    await tester.pump();
+        surfaceSize: const Size(1200, 800),
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-studio-intro',
+                    initialDocument: initialDocument,
+                    gateway: gateway,
+                    recoveryStore: _MemoryProjectRecoveryStore(),
+                  ),
+                );
+              }),
+        ],
+      );
+      await container
+          .read(editorNotifierProvider.notifier)
+          .initializePersonalizationStudioSession();
+      await tester.pump();
 
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-category-intro'),
-      ),
-    );
-    await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personalization-category-intro')),
+      );
+      await tester.pump();
 
-    expect(find.byType(ProjectIntroVideoEditor), findsOneWidget);
-    await tester.tap(find.text('Autoriser “Rejouer”'));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 20));
+      expect(find.byType(ProjectIntroVideoEditor), findsOneWidget);
+      await tester.tap(find.text('Autoriser “Rejouer”'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
 
-    expect(
-      container
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project
+            ?.effectivePresentation
+            .intro
+            ?.allowReplay,
+        isFalse,
+      );
+      expect(projectFile.readAsStringSync(), durableJson);
+    },
+  );
+
+  testWidgets(
+    'typography category edits one role without changing the others',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-studio-typography-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      const display = ProjectTypographyRoleProfile(
+        fontPath: 'assets/presentation/fonts/display.ttf',
+        family: 'Display Custom',
+        licensePath: 'assets/presentation/fonts/display-license.txt',
+        redistributable: true,
+        fallbackFamilies: <String>['sans-serif'],
+        glyphCoverage: <String>[
+          'digits',
+          'latin',
+          'latinExtended',
+          'punctuation',
+        ],
+      );
+      const body = ProjectTypographyRoleProfile(
+        fallbackFamilies: <String>['serif'],
+      );
+      const typography = ProjectTypographyProfile(display: display, body: body);
+      final project = buildShellChromeProject(name: 'Typography Studio')
+          .copyWith(
+            presentation: const ProjectPresentationProfile(
+              typography: typography,
+            ),
+          );
+      final projectFile = File('${root.path}/project.json');
+      final durableJson = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(project.toJson());
+      projectFile.writeAsStringSync(durableJson, flush: true);
+      final gateway = _MemoryProjectGateway(project);
+
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
+        ),
+        surfaceSize: const Size(1200, 800),
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-studio-typography',
+                    initialDocument: initialDocument,
+                    gateway: gateway,
+                    recoveryStore: _MemoryProjectRecoveryStore(),
+                  ),
+                );
+              }),
+        ],
+      );
+      await container
+          .read(editorNotifierProvider.notifier)
+          .initializePersonalizationStudioSession();
+      await tester.pump();
+
+      await tester.tap(
+        find.byKey(
+          const ValueKey<String>('personalization-category-typography'),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.byType(ProjectTypographyEditor), findsOneWidget);
+      for (final role in ProjectTypographyRole.values) {
+        expect(
+          find.byKey(ValueKey<String>('typography-import-${role.name}')),
+          findsOneWidget,
+        );
+      }
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('typography-system-display')),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+
+      final draft = container
           .read(editorNotifierProvider)
           .project
           ?.effectivePresentation
-          .intro
-          ?.allowReplay,
-      isFalse,
-    );
-    expect(projectFile.readAsStringSync(), durableJson);
-  });
+          .typography;
+      expect(draft?.display.fontPath, isNull);
+      expect(draft?.display.fallbackFamilies, <String>['sans-serif']);
+      expect(draft?.body, body);
+      expect(projectFile.readAsStringSync(), durableJson);
+    },
+  );
 
-  testWidgets('typography category edits one role without changing the others',
-      (tester) async {
-    final root = Directory.systemTemp
-        .createTempSync('personalization-studio-typography-');
-    addTearDown(() => root.deleteSync(recursive: true));
-    const display = ProjectTypographyRoleProfile(
-      fontPath: 'assets/presentation/fonts/display.ttf',
-      family: 'Display Custom',
-      licensePath: 'assets/presentation/fonts/display-license.txt',
-      redistributable: true,
-      fallbackFamilies: <String>['sans-serif'],
-      glyphCoverage: <String>[
-        'digits',
-        'latin',
-        'latinExtended',
-        'punctuation',
-      ],
+  testWidgets('theme category edits a semantic token through a guided dialog', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-studio-theme-',
     );
-    const body = ProjectTypographyRoleProfile(
-      fallbackFamilies: <String>['serif'],
-    );
-    const typography = ProjectTypographyProfile(
-      display: display,
-      body: body,
-    );
-    final project = buildShellChromeProject(name: 'Typography Studio').copyWith(
-      presentation: const ProjectPresentationProfile(
-        typography: typography,
-      ),
-    );
-    final projectFile = File('${root.path}/project.json');
-    final durableJson =
-        const JsonEncoder.withIndent('  ').convert(project.toJson());
-    projectFile.writeAsStringSync(durableJson, flush: true);
-    final gateway = _MemoryProjectGateway(project);
-
-    final container = await pumpEditorCanvasHostHarness(
-      tester,
-      initialState: EditorState(
-        projectRootPath: root.path,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.personalizationStudio,
-      ),
-      surfaceSize: const Size(1200, 800),
-      overrides: [
-        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
-          ({
-            required String projectPath,
-            required ProjectManifest initialDocument,
-          }) {
-            return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
-                documentId: 'personalization-studio-typography',
-                initialDocument: initialDocument,
-                gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
-              ),
-            );
-          },
-        ),
-      ],
-    );
-    await container
-        .read(editorNotifierProvider.notifier)
-        .initializePersonalizationStudioSession();
-    await tester.pump();
-
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-category-typography'),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.byType(ProjectTypographyEditor), findsOneWidget);
-    for (final role in ProjectTypographyRole.values) {
-      expect(
-        find.byKey(ValueKey<String>('typography-import-${role.name}')),
-        findsOneWidget,
-      );
-    }
-
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('typography-system-display'),
-      ),
-    );
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 20));
-
-    final draft = container
-        .read(editorNotifierProvider)
-        .project
-        ?.effectivePresentation
-        .typography;
-    expect(draft?.display.fontPath, isNull);
-    expect(draft?.display.fallbackFamilies, <String>['sans-serif']);
-    expect(draft?.body, body);
-    expect(projectFile.readAsStringSync(), durableJson);
-  });
-
-  testWidgets('theme category edits a semantic token through a guided dialog',
-      (tester) async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-studio-theme-');
     addTearDown(() => root.deleteSync(recursive: true));
     final project = buildShellChromeProject(name: 'Theme Studio').copyWith(
       presentation: const ProjectPresentationProfile(
@@ -735,8 +706,9 @@ void main() {
       ),
     );
     final projectFile = File('${root.path}/project.json');
-    final durableJson =
-        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    final durableJson = const JsonEncoder.withIndent(
+      '  ',
+    ).convert(project.toJson());
     projectFile.writeAsStringSync(durableJson, flush: true);
     final gateway = _MemoryProjectGateway(project);
 
@@ -772,23 +744,20 @@ void main() {
     await tester.pump();
 
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-category-theme'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-category-theme')),
     );
     await tester.pump();
 
     expect(find.byType(ProjectSemanticThemeEditor), findsOneWidget);
-    final editPrimary =
-        find.byKey(const ValueKey<String>('theme-edit-primary'));
+    final editPrimary = find.byKey(
+      const ValueKey<String>('theme-edit-primary'),
+    );
     await tester.ensureVisible(editPrimary);
     await tester.tap(editPrimary);
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-theme-token-dialog'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-theme-token-dialog')),
       findsOneWidget,
     );
     final tokenInput = find.byKey(
@@ -798,10 +767,7 @@ void main() {
     await tester.tap(find.text('Appliquer'));
     await tester.pump();
 
-    expect(
-      find.textContaining('six chiffres hexadécimaux'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('six chiffres hexadécimaux'), findsOneWidget);
     expect(
       container
           .read(editorNotifierProvider)
@@ -829,109 +795,111 @@ void main() {
     expect(projectFile.readAsStringSync(), durableJson);
   });
 
-  testWidgets('guided intro import reports success and updates only the draft',
-      (tester) async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-studio-import-');
+  testWidgets(
+    'guided intro import reports success and updates only the draft',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-studio-import-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(
+        name: 'Import Studio',
+      ).copyWith(presentation: const ProjectPresentationProfile());
+      final projectFile = File('${root.path}/project.json');
+      final durableJson = const JsonEncoder.withIndent(
+        '  ',
+      ).convert(project.toJson());
+      projectFile.writeAsStringSync(durableJson, flush: true);
+      final gateway = _MemoryProjectGateway(project);
+      final assetPicker = _FixedAssetPicker(
+        intro: const PersonalizationStudioIntroAssetSelection(
+          videoPath: '/source/opening.mp4',
+          posterPath: '/source/poster.png',
+          captionsPath: '/source/captions.vtt',
+        ),
+      );
+      final introImporter = _FixedIntroImporter();
+
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
+        ),
+        surfaceSize: const Size(1200, 800),
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-studio-import',
+                    initialDocument: initialDocument,
+                    gateway: gateway,
+                    recoveryStore: _MemoryProjectRecoveryStore(),
+                  ),
+                );
+              }),
+          personalizationStudioAssetPickerProvider.overrideWithValue(
+            assetPicker,
+          ),
+          projectIntroVideoImportServiceProvider.overrideWithValue(
+            introImporter,
+          ),
+        ],
+      );
+      await container
+          .read(editorNotifierProvider.notifier)
+          .initializePersonalizationStudioSession();
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('personalization-category-intro')),
+      );
+      await tester.pump();
+
+      final importButton = tester.widget<PokeMapButton>(
+        find.byKey(const ValueKey<String>('personalization-intro-import')),
+      );
+      expect(importButton.onPressed, isNotNull);
+      importButton.onPressed!.call();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+      await tester.pumpAndSettle();
+      expect(assetPicker.introCalls, 1);
+      expect(introImporter.calls, 1);
+
+      final intro = container
+          .read(editorNotifierProvider)
+          .project
+          ?.effectivePresentation
+          .intro;
+      expect(intro, isNotNull);
+      expect(intro?.captionsPath, endsWith('.vtt'));
+      expect(
+        find.text('Vidéo, poster et sous-titres importés dans le brouillon.'),
+        findsOneWidget,
+      );
+      expect(projectFile.readAsStringSync(), durableJson);
+    },
+  );
+
+  testWidgets('guided font import confirms rights and updates only one role', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-studio-font-',
+    );
     addTearDown(() => root.deleteSync(recursive: true));
-    final project = buildShellChromeProject(name: 'Import Studio').copyWith(
-      presentation: const ProjectPresentationProfile(),
-    );
+    final project = buildShellChromeProject(
+      name: 'Font Studio',
+    ).copyWith(presentation: const ProjectPresentationProfile());
     final projectFile = File('${root.path}/project.json');
-    final durableJson =
-        const JsonEncoder.withIndent('  ').convert(project.toJson());
-    projectFile.writeAsStringSync(durableJson, flush: true);
-    final gateway = _MemoryProjectGateway(project);
-    final assetPicker = _FixedAssetPicker(
-      intro: const PersonalizationStudioIntroAssetSelection(
-        videoPath: '/source/opening.mp4',
-        posterPath: '/source/poster.png',
-        captionsPath: '/source/captions.vtt',
-      ),
-    );
-    final introImporter = _FixedIntroImporter();
-
-    final container = await pumpEditorCanvasHostHarness(
-      tester,
-      initialState: EditorState(
-        projectRootPath: root.path,
-        project: project,
-        workspaceMode: EditorWorkspaceMode.personalizationStudio,
-      ),
-      surfaceSize: const Size(1200, 800),
-      overrides: [
-        personalizationStudioSessionControllerFactoryProvider.overrideWithValue(
-          ({
-            required String projectPath,
-            required ProjectManifest initialDocument,
-          }) {
-            return PersonalizationStudioSessionController(
-              session: NarrativeDocumentSession<ProjectManifest>(
-                documentId: 'personalization-studio-import',
-                initialDocument: initialDocument,
-                gateway: gateway,
-                recoveryStore: _MemoryProjectRecoveryStore(),
-              ),
-            );
-          },
-        ),
-        personalizationStudioAssetPickerProvider.overrideWithValue(
-          assetPicker,
-        ),
-        projectIntroVideoImportServiceProvider.overrideWithValue(
-          introImporter,
-        ),
-      ],
-    );
-    await container
-        .read(editorNotifierProvider.notifier)
-        .initializePersonalizationStudioSession();
-    await tester.pump();
-    await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-category-intro'),
-      ),
-    );
-    await tester.pump();
-
-    final importButton = tester.widget<PokeMapButton>(
-      find.byKey(
-        const ValueKey<String>('personalization-intro-import'),
-      ),
-    );
-    expect(importButton.onPressed, isNotNull);
-    importButton.onPressed!.call();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 20));
-    await tester.pumpAndSettle();
-    expect(assetPicker.introCalls, 1);
-    expect(introImporter.calls, 1);
-
-    final intro = container
-        .read(editorNotifierProvider)
-        .project
-        ?.effectivePresentation
-        .intro;
-    expect(intro, isNotNull);
-    expect(intro?.captionsPath, endsWith('.vtt'));
-    expect(
-      find.text('Vidéo, poster et sous-titres importés dans le brouillon.'),
-      findsOneWidget,
-    );
-    expect(projectFile.readAsStringSync(), durableJson);
-  });
-
-  testWidgets('guided font import confirms rights and updates only one role',
-      (tester) async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-studio-font-');
-    addTearDown(() => root.deleteSync(recursive: true));
-    final project = buildShellChromeProject(name: 'Font Studio').copyWith(
-      presentation: const ProjectPresentationProfile(),
-    );
-    final projectFile = File('${root.path}/project.json');
-    final durableJson =
-        const JsonEncoder.withIndent('  ').convert(project.toJson());
+    final durableJson = const JsonEncoder.withIndent(
+      '  ',
+    ).convert(project.toJson());
     projectFile.writeAsStringSync(durableJson, flush: true);
     final gateway = _MemoryProjectGateway(project);
     final assetPicker = _FixedAssetPicker(
@@ -967,9 +935,7 @@ void main() {
             );
           },
         ),
-        personalizationStudioAssetPickerProvider.overrideWithValue(
-          assetPicker,
-        ),
+        personalizationStudioAssetPickerProvider.overrideWithValue(assetPicker),
         projectFontImportServiceProvider.overrideWithValue(fontImporter),
         projectFontPreviewLoaderProvider.overrideWithValue(previewRegistry),
       ],
@@ -979,9 +945,7 @@ void main() {
         .initializePersonalizationStudioSession();
     await tester.pump();
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-category-typography'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-category-typography')),
     );
     await tester.pump();
 
@@ -1016,15 +980,16 @@ void main() {
     expect(projectFile.readAsStringSync(), durableJson);
   });
 
-  testWidgets('guided import exposes selection errors without changing draft',
-      (tester) async {
-    final root =
-        Directory.systemTemp.createTempSync('personalization-studio-error-');
-    addTearDown(() => root.deleteSync(recursive: true));
-    final project =
-        buildShellChromeProject(name: 'Import Error Studio').copyWith(
-      presentation: const ProjectPresentationProfile(),
+  testWidgets('guided import exposes selection errors without changing draft', (
+    tester,
+  ) async {
+    final root = Directory.systemTemp.createTempSync(
+      'personalization-studio-error-',
     );
+    addTearDown(() => root.deleteSync(recursive: true));
+    final project = buildShellChromeProject(
+      name: 'Import Error Studio',
+    ).copyWith(presentation: const ProjectPresentationProfile());
     final gateway = _MemoryProjectGateway(project);
     final assetPicker = _FixedAssetPicker(
       introError: const PersonalizationStudioAssetSelectionException(
@@ -1058,9 +1023,7 @@ void main() {
             );
           },
         ),
-        personalizationStudioAssetPickerProvider.overrideWithValue(
-          assetPicker,
-        ),
+        personalizationStudioAssetPickerProvider.overrideWithValue(assetPicker),
       ],
     );
     await container
@@ -1068,16 +1031,12 @@ void main() {
         .initializePersonalizationStudioSession();
     await tester.pump();
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-category-intro'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-category-intro')),
     );
     await tester.pump();
 
     final importButton = tester.widget<PokeMapButton>(
-      find.byKey(
-        const ValueKey<String>('personalization-intro-import'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-intro-import')),
     );
     importButton.onPressed!.call();
     await tester.pumpAndSettle();
@@ -1099,8 +1058,9 @@ void main() {
     );
   });
 
-  testWidgets('shows a dedicated state when no project is open',
-      (tester) async {
+  testWidgets('shows a dedicated state when no project is open', (
+    tester,
+  ) async {
     await pumpEditorCanvasHostHarness(
       tester,
       initialState: const EditorState(
@@ -1116,8 +1076,9 @@ void main() {
     expect(find.byType(PersonalizationHubShell), findsNothing);
   });
 
-  testWidgets('shows a loading state while a project path is being restored',
-      (tester) async {
+  testWidgets('shows a loading state while a project path is being restored', (
+    tester,
+  ) async {
     await pumpEditorCanvasHostHarness(
       tester,
       initialState: const EditorState(
@@ -1134,8 +1095,9 @@ void main() {
     expect(find.byType(PersonalizationHubShell), findsNothing);
   });
 
-  testWidgets('shows the project loading error instead of an empty hub',
-      (tester) async {
+  testWidgets('shows the project loading error instead of an empty hub', (
+    tester,
+  ) async {
     await pumpEditorCanvasHostHarness(
       tester,
       initialState: const EditorState(
@@ -1228,11 +1190,7 @@ final class _MemoryProjectRecoveryStore
 }
 
 final class _FixedAssetPicker implements PersonalizationStudioAssetPicker {
-  _FixedAssetPicker({
-    this.intro,
-    this.font,
-    this.introError,
-  });
+  _FixedAssetPicker({this.intro, this.font, this.introError});
 
   final PersonalizationStudioIntroAssetSelection? intro;
   final PersonalizationStudioFontAssetSelection? font;
@@ -1267,7 +1225,7 @@ final class _FixedIntroImporter implements ProjectIntroVideoImporter {
     bool allowReplay = true,
   }) async {
     calls += 1;
-    return ProjectIntroVideoProfile(
+    return ProjectIntroVideoProfile.fromLandscape(
       videoPath: 'assets/presentation/intro/opening.mp4',
       posterPath: 'assets/presentation/intro/poster.png',
       captionsPath: captionsFile == null
@@ -1357,8 +1315,9 @@ final class _FixedTitleMusicImporter implements ProjectTitleMusicImporter {
 
 final class _FixedTitleMusicPreviewController
     implements ProjectTitleMusicPreviewController {
-  final StreamController<bool> _playing =
-      StreamController<bool>.broadcast(sync: true);
+  final StreamController<bool> _playing = StreamController<bool>.broadcast(
+    sync: true,
+  );
   bool _isPlaying = false;
   int toggleCalls = 0;
   int stopCalls = 0;

@@ -51,22 +51,30 @@ const double _kRightInspectorMinWidth = 280;
 const double _kRightInspectorMaxWidth = 560;
 const double _kRightInspectorResizeHandleWidth = 12;
 const double _kCenterStageMinWidth = 320;
-const narrativeDocumentUndoActionKey =
-    ValueKey<String>('narrative-document-undo-action');
-const narrativeDocumentRedoActionKey =
-    ValueKey<String>('narrative-document-redo-action');
-const narrativeDocumentSaveActionKey =
-    ValueKey<String>('narrative-document-save-action');
-const narrativeDocumentAutosaveActionKey =
-    ValueKey<String>('narrative-document-autosave-action');
-const narrativeDocumentCompareActionKey =
-    ValueKey<String>('narrative-document-compare-action');
-const narrativeDocumentReloadActionKey =
-    ValueKey<String>('narrative-document-reload-action');
-const narrativeDocumentKeepLocalActionKey =
-    ValueKey<String>('narrative-document-keep-local-action');
-const narrativeDocumentDiscardActionKey =
-    ValueKey<String>('narrative-document-discard-action');
+const narrativeDocumentUndoActionKey = ValueKey<String>(
+  'narrative-document-undo-action',
+);
+const narrativeDocumentRedoActionKey = ValueKey<String>(
+  'narrative-document-redo-action',
+);
+const narrativeDocumentSaveActionKey = ValueKey<String>(
+  'narrative-document-save-action',
+);
+const narrativeDocumentAutosaveActionKey = ValueKey<String>(
+  'narrative-document-autosave-action',
+);
+const narrativeDocumentCompareActionKey = ValueKey<String>(
+  'narrative-document-compare-action',
+);
+const narrativeDocumentReloadActionKey = ValueKey<String>(
+  'narrative-document-reload-action',
+);
+const narrativeDocumentKeepLocalActionKey = ValueKey<String>(
+  'narrative-document-keep-local-action',
+);
+const narrativeDocumentDiscardActionKey = ValueKey<String>(
+  'narrative-document-discard-action',
+);
 
 class EditorShellPage extends ConsumerStatefulWidget {
   const EditorShellPage({super.key});
@@ -77,12 +85,15 @@ class EditorShellPage extends ConsumerStatefulWidget {
 
 class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   Timer? _toastTimer;
-  final GlobalKey _projectExplorerKey =
-      GlobalKey(debugLabel: 'shared-project-explorer');
-  final FocusNode _worldMapInspectorFocusNode =
-      FocusNode(debugLabel: 'World Map adaptive inspector');
-  final FocusNode _worldMapSelectionFocusNode =
-      FocusNode(debugLabel: 'World Map selection tool');
+  final GlobalKey _projectExplorerKey = GlobalKey(
+    debugLabel: 'shared-project-explorer',
+  );
+  final FocusNode _worldMapInspectorFocusNode = FocusNode(
+    debugLabel: 'World Map adaptive inspector',
+  );
+  final FocusNode _worldMapSelectionFocusNode = FocusNode(
+    debugLabel: 'World Map selection tool',
+  );
   String? _toastMessage;
   bool _toastIsError = false;
   bool _didAttemptProjectAutoRestore = false;
@@ -108,8 +119,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     required MapData? activeMap,
     required List<NarrativeProjectDiagnostic> diagnostics,
   }) {
-    final diagnosticsFingerprint =
-        diagnostics.map((item) => item.stableKey).join('\n');
+    final diagnosticsFingerprint = diagnostics
+        .map((item) => item.stableKey)
+        .join('\n');
     if (identical(_indexedNarrativeProject, project) &&
         identical(_indexedNarrativeMap, activeMap) &&
         _indexedNarrativeDiagnostics == diagnosticsFingerprint) {
@@ -183,9 +195,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         project?.eventRegistry?.mode ?? EventSystemMode.legacyOnly;
     final usesNarrativeStudioProductShell =
         NarrativeStudioShellPolicy.shouldUseProductShell(
-      workspaceMode: workspaceMode,
-      eventSystemMode: eventSystemMode,
-    );
+          workspaceMode: workspaceMode,
+          eventSystemMode: eventSystemMode,
+        );
     final narrativeProjection = usesNarrativeStudioProductShell
         ? ref.watch(editorNarrativeProjectionSnapshotProvider)
         : null;
@@ -197,18 +209,19 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         narrativeProjection?.projectRootPath ?? editorState.projectRootPath;
     final projectIsDirty = narrativeProjection?.projectIsDirty ?? false;
     final activeMap = narrativeProjection?.activeMap ?? editorState.activeMap;
-    final navigationState =
-        ref.watch(narrativeStudioNavigationControllerProvider);
+    final navigationState = ref.watch(
+      narrativeStudioNavigationControllerProvider,
+    );
     final workspaceLocation = narrativeStudioRouteLocationFor(workspaceMode);
     final selectedNarrativeLocation = workspaceLocation == null
         ? navigationState.location
         : navigationState.location.destination == workspaceLocation.destination
-            ? navigationState.location
-            : workspaceLocation;
+        ? navigationState.location
+        : workspaceLocation;
     final notifier = ref.read(editorNotifierProvider.notifier);
     final updateController = ref.read(editorUpdateControllerProvider);
-    final updateState = ref.watch(editorUpdateStateProvider).valueOrNull ??
-        updateController.state;
+    final updateState =
+        ref.watch(editorUpdateStateProvider).value ?? updateController.state;
     final isUpdateCheckActive = updateState.phase == EditorUpdatePhase.checking;
 
     void checkForUpdates() {
@@ -254,7 +267,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
 
     final canRevalidateEventProject =
         project != null && (projectRootPath?.trim().isNotEmpty ?? false);
-    final narrativeValidatorRequest = usesNarrativeStudioProductShell &&
+    final narrativeValidatorRequest =
+        usesNarrativeStudioProductShell &&
             project != null &&
             (projectRootPath?.trim().isNotEmpty ?? false)
         ? NarrativeValidatorSnapshotRequest.fromProject(
@@ -266,21 +280,21 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final narrativeDiagnostics = narrativeValidatorRequest == null
         ? const <NarrativeProjectDiagnostic>[]
         : ref
-                .watch(
-                  narrativeValidatorReportProvider(narrativeValidatorRequest),
-                )
-                .asData
-                ?.value
-                .diagnostics ??
-            const <NarrativeProjectDiagnostic>[];
+                  .watch(
+                    narrativeValidatorReportProvider(narrativeValidatorRequest),
+                  )
+                  .asData
+                  ?.value
+                  .diagnostics ??
+              const <NarrativeProjectDiagnostic>[];
     final narrativeSearchIndex =
         !usesNarrativeStudioProductShell || project == null
-            ? null
-            : _globalSearchIndexFor(
-                project: project,
-                activeMap: activeMap,
-                diagnostics: narrativeDiagnostics,
-              );
+        ? null
+        : _globalSearchIndexFor(
+            project: project,
+            activeMap: activeMap,
+            diagnostics: narrativeDiagnostics,
+          );
 
     void revalidateEventProject() {
       final root = projectRootPath?.trim();
@@ -323,9 +337,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       };
     }
 
-    void applyNarrativeDestination(
-      NarrativeStudioDestination destination,
-    ) {
+    void applyNarrativeDestination(NarrativeStudioDestination destination) {
       switch (destination) {
         case NarrativeStudioDestination.overview:
           notifier.selectNarrativeOverviewWorkspace();
@@ -461,18 +473,16 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       );
     }
 
-    Future<void> openNarrativeSearchEntry(
-      NarrativeGlobalSearchEntry entry,
-    ) {
+    Future<void> openNarrativeSearchEntry(NarrativeGlobalSearchEntry entry) {
       final diagnostic = entry.diagnostic;
       final resolution = diagnostic == null
           ? entry.navigationIntent == null
-              ? const NarrativeStudioNavigationResolution.unavailable(
-                  'Cet élément ne possède pas encore de destination ouvrable.',
-                )
-              : resolveNarrativeDependencyNavigationIntent(
-                  entry.navigationIntent!,
-                )
+                ? const NarrativeStudioNavigationResolution.unavailable(
+                    'Cet élément ne possède pas encore de destination ouvrable.',
+                  )
+                : resolveNarrativeDependencyNavigationIntent(
+                    entry.navigationIntent!,
+                  )
           : resolveNarrativeProjectDiagnostic(diagnostic);
       return openNarrativeResolution(resolution);
     }
@@ -494,9 +504,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             label: _narrativeDestinationCommandLabel(destination),
             description: 'Ouvrir cet espace du Narrative Studio',
             kind: NarrativeCommandPaletteActionKind.navigation,
-            onInvoke: () => unawaited(
-              selectNarrativeDestination(destination),
-            ),
+            onInvoke: () => unawaited(selectNarrativeDestination(destination)),
           ),
       NarrativeCommandPaletteAction(
         id: 'project.validate',
@@ -551,8 +559,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       EditorWorkspaceMode.dialogue ||
       EditorWorkspaceMode.facts ||
       EditorWorkspaceMode.shops ||
-      EditorWorkspaceMode.worldRules =>
-        true,
+      EditorWorkspaceMode.worldRules => true,
       EditorWorkspaceMode.narrativeValidator => true,
       _ => false,
     };
@@ -571,15 +578,19 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       _ => true,
     };
 
-    ref.listen(editorNotifierProvider.select((s) => s.errorMessage),
-        (prev, next) {
+    ref.listen(editorNotifierProvider.select((s) => s.errorMessage), (
+      prev,
+      next,
+    ) {
       if (next != null) {
         _flashToast(next, isError: true);
       }
     });
 
-    ref.listen(editorNotifierProvider.select((s) => s.statusMessage),
-        (prev, next) {
+    ref.listen(editorNotifierProvider.select((s) => s.statusMessage), (
+      prev,
+      next,
+    ) {
       if (next != null) {
         _flashToast(next, isError: false);
       }
@@ -597,13 +608,16 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       }
     });
 
-    ref.listen(editorShellSnapshotProvider.select((s) => s.workspaceMode),
-        (prev, next) {
+    ref.listen(editorShellSnapshotProvider.select((s) => s.workspaceMode), (
+      prev,
+      next,
+    ) {
       if (prev == EditorWorkspaceMode.borderStudio &&
           next != EditorWorkspaceMode.borderStudio) {
         unawaited(_confirmBorderStudioExit());
       }
-      final wasNarrative = prev != null &&
+      final wasNarrative =
+          prev != null &&
           switch (prev) {
             EditorWorkspaceMode.narrativeOverview ||
             EditorWorkspaceMode.globalStory ||
@@ -614,8 +628,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
             EditorWorkspaceMode.dialogue ||
             EditorWorkspaceMode.facts ||
             EditorWorkspaceMode.shops ||
-            EditorWorkspaceMode.worldRules =>
-              true,
+            EditorWorkspaceMode.worldRules => true,
             EditorWorkspaceMode.narrativeValidator => true,
             _ => false,
           };
@@ -629,8 +642,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
         EditorWorkspaceMode.dialogue ||
         EditorWorkspaceMode.facts ||
         EditorWorkspaceMode.shops ||
-        EditorWorkspaceMode.worldRules =>
-          true,
+        EditorWorkspaceMode.worldRules => true,
         EditorWorkspaceMode.narrativeValidator => true,
         _ => false,
       };
@@ -645,12 +657,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
       }
       final location = narrativeStudioRouteLocationFor(next);
       if (location != null) {
-        final navigation =
-            ref.read(narrativeStudioNavigationControllerProvider);
-        if (!_narrativeLocationMatchesWorkspace(
-          navigation.location,
-          next,
-        )) {
+        final navigation = ref.read(
+          narrativeStudioNavigationControllerProvider,
+        );
+        if (!_narrativeLocationMatchesWorkspace(navigation.location, next)) {
           ref
               .read(narrativeStudioNavigationControllerProvider.notifier)
               .replace(location);
@@ -764,7 +774,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                             : _NarrativeStudioSaveStatus(
                                 isDirty: projectIsDirty,
                               ),
-                        documentActions: project == null ||
+                        documentActions:
+                            project == null ||
                                 (!usesNarrativeDocumentSession &&
                                     !notifier.narrativeDocumentBlocksNavigation)
                             ? null
@@ -773,9 +784,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                             ? NarrativeStudioWorkspacePage(
                                 presentation:
                                     narrativeStudioRoutePresentationForLocation(
-                                  selectedNarrativeLocation,
-                                ),
-                                actions: eventSystemMode ==
+                                      selectedNarrativeLocation,
+                                    ),
+                                actions:
+                                    eventSystemMode ==
                                         EventSystemMode.legacyOnly
                                     ? const []
                                     : [
@@ -880,9 +892,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                               _worldMapSelectionFocusNode,
                                           onCommandRejected: (reason) =>
                                               _flashToast(
-                                            reason,
-                                            isError: true,
-                                          ),
+                                                reason,
+                                                isError: true,
+                                              ),
                                           toolSlot: WorldMapToolbelt(
                                             onCheckForUpdates: checkForUpdates,
                                             isUpdateCheckActive:
@@ -891,69 +903,74 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                 _worldMapSelectionFocusNode,
                                             onSave: () =>
                                                 requestActiveMapSaveWithBorderPreviewGuard(
-                                              context: context,
-                                              notifier: notifier,
-                                            ),
+                                                  context: context,
+                                                  notifier: notifier,
+                                                ),
                                             onUndo: notifier.undoMap,
                                             onRedo: notifier.redoMap,
                                             onNewProject: () =>
                                                 showTopToolbarNewProjectDialog(
-                                              context,
-                                              notifier,
-                                            ),
+                                                  context,
+                                                  notifier,
+                                                ),
                                             onOpenProject: () =>
                                                 showTopToolbarOpenProjectDialog(
-                                              context,
-                                              notifier,
-                                            ),
+                                                  context,
+                                                  notifier,
+                                                ),
                                             onProjectSettings: project == null
                                                 ? null
                                                 : () =>
-                                                    showTopToolbarProjectSettingsDialog(
-                                                      context,
-                                                      notifier,
-                                                      project,
-                                                    ),
-                                            onExportGame: project == null ||
+                                                      showTopToolbarProjectSettingsDialog(
+                                                        context,
+                                                        notifier,
+                                                        project,
+                                                      ),
+                                            onExportGame:
+                                                project == null ||
                                                     projectRootPath == null
                                                 ? null
                                                 : () =>
-                                                    showTopToolbarGameExportDialog(
-                                                      context,
-                                                      projectRootPath:
-                                                          projectRootPath,
-                                                      projectName: project.name,
-                                                    ),
-                                            onNewMap: project == null ||
+                                                      showTopToolbarGameExportDialog(
+                                                        context,
+                                                        projectRootPath:
+                                                            projectRootPath,
+                                                        projectName:
+                                                            project.name,
+                                                      ),
+                                            onNewMap:
+                                                project == null ||
                                                     projectRootPath == null
                                                 ? null
                                                 : () =>
-                                                    showTopToolbarNewMapDialog(
-                                                      context,
-                                                      notifier,
-                                                      defaultWidth: project
-                                                          .settings
-                                                          .defaultMapWidth,
-                                                      defaultHeight: project
-                                                          .settings
-                                                          .defaultMapHeight,
-                                                    ),
+                                                      showTopToolbarNewMapDialog(
+                                                        context,
+                                                        notifier,
+                                                        defaultWidth: project
+                                                            .settings
+                                                            .defaultMapWidth,
+                                                        defaultHeight: project
+                                                            .settings
+                                                            .defaultMapHeight,
+                                                      ),
                                             onResizeMap: activeMap == null
                                                 ? null
                                                 : () =>
-                                                    showTopToolbarResizeMapDialog(
-                                                      context,
-                                                      notifier,
-                                                      currentWidth:
-                                                          activeMap.size.width,
-                                                      currentHeight:
-                                                          activeMap.size.height,
-                                                    ),
+                                                      showTopToolbarResizeMapDialog(
+                                                        context,
+                                                        notifier,
+                                                        currentWidth: activeMap
+                                                            .size
+                                                            .width,
+                                                        currentHeight: activeMap
+                                                            .size
+                                                            .height,
+                                                      ),
                                             onActivationRejected: (reason) =>
                                                 _flashToast(
-                                              reason,
-                                              isError: true,
-                                            ),
+                                                  reason,
+                                                  isError: true,
+                                                ),
                                           ),
                                           stageHeaderSlot: Consumer(
                                             builder: (context, ref, child) {
@@ -982,21 +999,19 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                               );
                                             },
                                           ),
-                                          explorerBuilder:
-                                              (context, onCollapse) {
+                                          explorerBuilder: (context, onCollapse) {
                                             return ProjectExplorerPanel(
                                               key: _projectExplorerKey,
                                               onOpenDependency: (intent) =>
                                                   unawaited(
-                                                openNarrativeDependencyIntent(
-                                                  intent,
-                                                ),
-                                              ),
+                                                    openNarrativeDependencyIntent(
+                                                      intent,
+                                                    ),
+                                                  ),
                                               onCollapse: onCollapse,
                                             );
                                           },
-                                          explorerRailBuilder:
-                                              (context, onReopen) {
+                                          explorerRailBuilder: (context, onReopen) {
                                             return _CollapsedExpandButton(
                                               key: const ValueKey<String>(
                                                 'project-explorer-reopen-toggle',
@@ -1034,41 +1049,41 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                               ? expandedWidth
                                               : 52.0,
                                         ),
-                                        duration:
-                                            const Duration(milliseconds: 150),
+                                        duration: const Duration(
+                                          milliseconds: 150,
+                                        ),
                                         curve: Curves.easeInOutCubic,
                                         builder: (context, animWidth, child) {
                                           return LayoutBuilder(
-                                            builder:
-                                                (context, stageConstraints) {
+                                            builder: (context, stageConstraints) {
                                               final compactExplorerForStage =
                                                   _leftSidebarVisible &&
-                                                      supportsRightInspector &&
-                                                      _rightInspectorVisible &&
-                                                      stageConstraints
-                                                              .maxWidth <
-                                                          expandedWidth +
-                                                              _kRightInspectorMinWidth +
-                                                              _kRightInspectorResizeHandleWidth +
-                                                              _kCenterStageMinWidth;
+                                                  supportsRightInspector &&
+                                                  _rightInspectorVisible &&
+                                                  stageConstraints.maxWidth <
+                                                      expandedWidth +
+                                                          _kRightInspectorMinWidth +
+                                                          _kRightInspectorResizeHandleWidth +
+                                                          _kCenterStageMinWidth;
                                               final effectiveExplorerExpanded =
                                                   _leftSidebarVisible &&
-                                                      !compactExplorerForStage;
+                                                  !compactExplorerForStage;
                                               final effectiveExplorerWidth =
                                                   compactExplorerForStage
-                                                      ? 52.0
-                                                      : animWidth;
+                                                  ? 52.0
+                                                  : animWidth;
                                               final availableInspectorMaxWidth =
                                                   math.max(
-                                                _kRightInspectorMinWidth,
-                                                math.min(
-                                                  _kRightInspectorMaxWidth,
-                                                  stageConstraints.maxWidth -
-                                                      effectiveExplorerWidth -
-                                                      _kRightInspectorResizeHandleWidth -
-                                                      _kCenterStageMinWidth,
-                                                ),
-                                              );
+                                                    _kRightInspectorMinWidth,
+                                                    math.min(
+                                                      _kRightInspectorMaxWidth,
+                                                      stageConstraints
+                                                              .maxWidth -
+                                                          effectiveExplorerWidth -
+                                                          _kRightInspectorResizeHandleWidth -
+                                                          _kCenterStageMinWidth,
+                                                    ),
+                                                  );
                                               final effectiveInspectorWidth =
                                                   _rightInspectorWidth
                                                       .clamp(
@@ -1084,16 +1099,15 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                     width:
                                                         effectiveExplorerWidth,
                                                     child: KeyedSubtree(
-                                                      key: const ValueKey<
-                                                          String>(
+                                                      key: const ValueKey<String>(
                                                         'project-explorer-region',
                                                       ),
                                                       child: OverflowBox(
                                                         minWidth: 52,
                                                         maxWidth:
                                                             isNarrativeWorkspace
-                                                                ? 460
-                                                                : 520,
+                                                            ? 460
+                                                            : 520,
                                                         alignment:
                                                             Alignment.topLeft,
                                                         child: SizedBox(
@@ -1109,55 +1123,58 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                 bottom: 0,
                                                                 width:
                                                                     expandedWidth,
-                                                                child:
-                                                                    AnimatedOpacity(
-                                                                  key: const ValueKey<
-                                                                      String>(
-                                                                    'project-explorer-expanded-state',
-                                                                  ),
+                                                                child: AnimatedOpacity(
+                                                                  key:
+                                                                      const ValueKey<
+                                                                        String
+                                                                      >(
+                                                                        'project-explorer-expanded-state',
+                                                                      ),
                                                                   duration:
                                                                       const Duration(
-                                                                    milliseconds:
-                                                                        100,
-                                                                  ),
+                                                                        milliseconds:
+                                                                            100,
+                                                                      ),
                                                                   opacity:
                                                                       effectiveExplorerExpanded
-                                                                          ? 1.0
-                                                                          : 0.0,
-                                                                  child:
-                                                                      IgnorePointer(
+                                                                      ? 1.0
+                                                                      : 0.0,
+                                                                  child: IgnorePointer(
                                                                     ignoring:
                                                                         !effectiveExplorerExpanded,
-                                                                    child:
-                                                                        KeyedSubtree(
-                                                                      key: const ValueKey<
-                                                                          String>(
-                                                                        'project-explorer-expanded',
-                                                                      ),
-                                                                      child:
-                                                                          Padding(
+                                                                    child: KeyedSubtree(
+                                                                      key:
+                                                                          const ValueKey<
+                                                                            String
+                                                                          >(
+                                                                            'project-explorer-expanded',
+                                                                          ),
+                                                                      child: Padding(
                                                                         padding:
                                                                             const EdgeInsets.fromLTRB(
-                                                                          16,
-                                                                          18,
-                                                                          12,
-                                                                          18,
-                                                                        ),
-                                                                        child:
-                                                                            ProjectExplorerPanel(
+                                                                              16,
+                                                                              18,
+                                                                              12,
+                                                                              18,
+                                                                            ),
+                                                                        child: ProjectExplorerPanel(
                                                                           key:
                                                                               _projectExplorerKey,
-                                                                          onOpenDependency: (intent) =>
-                                                                              unawaited(
-                                                                            openNarrativeDependencyIntent(
-                                                                              intent,
-                                                                            ),
-                                                                          ),
-                                                                          onCollapse:
-                                                                              () {
+                                                                          onOpenDependency:
+                                                                              (
+                                                                                intent,
+                                                                              ) => unawaited(
+                                                                                openNarrativeDependencyIntent(
+                                                                                  intent,
+                                                                                ),
+                                                                              ),
+                                                                          onCollapse: () {
                                                                             setState(() {
                                                                               _leftSidebarVisible = false;
-                                                                              if (workspaceMode == EditorWorkspaceMode.map && activeMap != null) {
+                                                                              if (workspaceMode ==
+                                                                                      EditorWorkspaceMode.map &&
+                                                                                  activeMap !=
+                                                                                      null) {
                                                                                 _rightInspectorWidth = _kRightInspectorMaxWidth;
                                                                               }
                                                                             });
@@ -1172,47 +1189,50 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                 left: 0,
                                                                 right: 0,
                                                                 top: 14,
-                                                                child:
-                                                                    AnimatedOpacity(
-                                                                  key: const ValueKey<
-                                                                      String>(
-                                                                    'project-explorer-reduced-state',
-                                                                  ),
+                                                                child: AnimatedOpacity(
+                                                                  key:
+                                                                      const ValueKey<
+                                                                        String
+                                                                      >(
+                                                                        'project-explorer-reduced-state',
+                                                                      ),
                                                                   duration:
                                                                       const Duration(
-                                                                    milliseconds:
-                                                                        100,
-                                                                  ),
+                                                                        milliseconds:
+                                                                            100,
+                                                                      ),
                                                                   opacity:
                                                                       !effectiveExplorerExpanded
-                                                                          ? 1.0
-                                                                          : 0.0,
-                                                                  child:
-                                                                      IgnorePointer(
+                                                                      ? 1.0
+                                                                      : 0.0,
+                                                                  child: IgnorePointer(
                                                                     ignoring:
                                                                         effectiveExplorerExpanded,
-                                                                    child:
-                                                                        KeyedSubtree(
-                                                                      key: const ValueKey<
-                                                                          String>(
-                                                                        'project-explorer-reduced',
-                                                                      ),
-                                                                      child:
-                                                                          Column(
+                                                                    child: KeyedSubtree(
+                                                                      key:
+                                                                          const ValueKey<
+                                                                            String
+                                                                          >(
+                                                                            'project-explorer-reduced',
+                                                                          ),
+                                                                      child: Column(
                                                                         children: [
                                                                           _CollapsedExpandButton(
                                                                             key:
-                                                                                const ValueKey<String>(
-                                                                              'project-explorer-reopen-toggle',
-                                                                            ),
-                                                                            onTap:
+                                                                                const ValueKey<
+                                                                                  String
+                                                                                >(
+                                                                                  'project-explorer-reopen-toggle',
+                                                                                ),
+                                                                            onTap: () {
+                                                                              setState(
                                                                                 () {
-                                                                              setState(() {
-                                                                                _leftSidebarVisible = true;
-                                                                                if (compactExplorerForStage) {
-                                                                                  _rightInspectorVisible = false;
-                                                                                }
-                                                                              });
+                                                                                  _leftSidebarVisible = true;
+                                                                                  if (compactExplorerForStage) {
+                                                                                    _rightInspectorVisible = false;
+                                                                                  }
+                                                                                },
+                                                                              );
                                                                             },
                                                                           ),
                                                                         ],
@@ -1231,26 +1251,25 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                     child: Padding(
                                                       padding:
                                                           EdgeInsets.fromLTRB(
-                                                        isNarrativeWorkspace
-                                                            ? 10
-                                                            : 18,
-                                                        isNarrativeWorkspace
-                                                            ? 12
-                                                            : 18,
-                                                        isNarrativeWorkspace
-                                                            ? 10
-                                                            : 18,
-                                                        isNarrativeWorkspace
-                                                            ? 6
-                                                            : 8,
-                                                      ),
+                                                            isNarrativeWorkspace
+                                                                ? 10
+                                                                : 18,
+                                                            isNarrativeWorkspace
+                                                                ? 12
+                                                                : 18,
+                                                            isNarrativeWorkspace
+                                                                ? 10
+                                                                : 18,
+                                                            isNarrativeWorkspace
+                                                                ? 6
+                                                                : 8,
+                                                          ),
                                                       child: EditorIsland(
                                                         radius: 36,
                                                         tint: EditorChrome
                                                             .islandCoolTint,
                                                         child: Padding(
-                                                          padding: EdgeInsets
-                                                              .fromLTRB(
+                                                          padding: EdgeInsets.fromLTRB(
                                                             isNarrativeWorkspace
                                                                 ? 12
                                                                 : 18,
@@ -1281,33 +1300,31 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                       _rightInspectorVisible,
                                                                   showRightPanelToggle:
                                                                       supportsRightInspector,
-                                                                  onToggleRightPanel:
-                                                                      () {
-                                                                    setState(
-                                                                        () {
+                                                                  onToggleRightPanel: () {
+                                                                    setState(() {
                                                                       _rightInspectorVisible =
                                                                           !_rightInspectorVisible;
                                                                     });
                                                                   },
                                                                 ),
                                                                 const SizedBox(
-                                                                    height: 18),
+                                                                  height: 18,
+                                                                ),
                                                               ],
                                                               Expanded(
-                                                                child: workspaceMode ==
-                                                                            EditorWorkspaceMode
-                                                                                .map &&
+                                                                child:
+                                                                    workspaceMode ==
+                                                                            EditorWorkspaceMode.map &&
                                                                         activeMap !=
                                                                             null
                                                                     ? Container(
-                                                                        decoration:
-                                                                            BoxDecoration(
+                                                                        decoration: BoxDecoration(
                                                                           color:
                                                                               colors.backgroundApp,
-                                                                          borderRadius:
-                                                                              BorderRadius.circular(20),
-                                                                          border:
-                                                                              Border.all(
+                                                                          borderRadius: BorderRadius.circular(
+                                                                            20,
+                                                                          ),
+                                                                          border: Border.all(
                                                                             color:
                                                                                 colors.borderSubtle,
                                                                             width:
@@ -1315,21 +1332,26 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                           ),
                                                                           boxShadow: const [
                                                                             BoxShadow(
-                                                                              color: Color(0x1F000000),
+                                                                              color: Color(
+                                                                                0x1F000000,
+                                                                              ),
                                                                               blurRadius: 8,
-                                                                              offset: Offset(0, 4),
+                                                                              offset: Offset(
+                                                                                0,
+                                                                                4,
+                                                                              ),
                                                                             ),
                                                                           ],
                                                                         ),
-                                                                        child:
-                                                                            ClipRRect(
-                                                                          borderRadius:
-                                                                              BorderRadius.circular(19),
-                                                                          child:
-                                                                              Padding(
-                                                                            padding:
-                                                                                EdgeInsets.all(
-                                                                              isNarrativeWorkspace ? 8 : 14,
+                                                                        child: ClipRRect(
+                                                                          borderRadius: BorderRadius.circular(
+                                                                            19,
+                                                                          ),
+                                                                          child: Padding(
+                                                                            padding: EdgeInsets.all(
+                                                                              isNarrativeWorkspace
+                                                                                  ? 8
+                                                                                  : 14,
                                                                             ),
                                                                             child:
                                                                                 const EditorCanvasHost(),
@@ -1338,11 +1360,11 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                                       )
                                                                     : ClipRRect(
                                                                         borderRadius:
-                                                                            BorderRadius.circular(26),
-                                                                        child:
-                                                                            Padding(
-                                                                          padding:
-                                                                              EdgeInsets.all(
+                                                                            BorderRadius.circular(
+                                                                              26,
+                                                                            ),
+                                                                        child: Padding(
+                                                                          padding: EdgeInsets.all(
                                                                             isNarrativeWorkspace
                                                                                 ? 8
                                                                                 : 14,
@@ -1361,8 +1383,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                   if (supportsRightInspector &&
                                                       _rightInspectorVisible) ...[
                                                     PokeMapHorizontalResizeHandle(
-                                                      key: const ValueKey<
-                                                          String>(
+                                                      key: const ValueKey<String>(
                                                         'right-inspector-resize-handle',
                                                       ),
                                                       tooltip:
@@ -1383,145 +1404,144 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                       },
                                                     ),
                                                     SizedBox(
-                                                      key: const ValueKey<
-                                                          String>(
+                                                      key: const ValueKey<String>(
                                                         'right-inspector-region',
                                                       ),
                                                       width:
                                                           effectiveInspectorWidth,
                                                       child: Padding(
                                                         padding:
-                                                            const EdgeInsets
-                                                                .fromLTRB(
-                                                                12, 18, 16, 18),
+                                                            const EdgeInsets.fromLTRB(
+                                                              12,
+                                                              18,
+                                                              16,
+                                                              18,
+                                                            ),
                                                         child: EditorIsland(
                                                           radius: 32,
-                                                          tint: switch (
-                                                              workspaceMode) {
+                                                          tint: switch (workspaceMode) {
                                                             EditorWorkspaceMode
-                                                                  .map =>
+                                                                .map =>
                                                               EditorChrome
                                                                   .islandNeutralTint,
                                                             EditorWorkspaceMode
-                                                                  .tileset =>
+                                                                .tileset =>
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
-                                                                  .trainer =>
+                                                                .trainer =>
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
-                                                                  .pokedex =>
+                                                                .pokedex =>
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
-                                                                  .narrativeOverview =>
+                                                                .narrativeOverview =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .globalStory =>
+                                                                .globalStory =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .scenes =>
+                                                                .scenes =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .events =>
+                                                                .events =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .step =>
+                                                                .step =>
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
-                                                                  .cutscene =>
+                                                                .cutscene =>
                                                               EditorChrome
                                                                   .islandNeutralTint,
                                                             EditorWorkspaceMode
-                                                                  .dialogue =>
+                                                                .dialogue =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .facts =>
+                                                                .facts =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .shops =>
+                                                                .shops =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .worldRules =>
+                                                                .worldRules =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .narrativeValidator =>
+                                                                .narrativeValidator =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .smartTilesStudio =>
+                                                                .smartTilesStudio =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                             EditorWorkspaceMode
-                                                                  .environmentStudio =>
+                                                                .environmentStudio =>
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
-                                                                  .personalizationStudio =>
+                                                                .personalizationStudio =>
                                                               EditorChrome
                                                                   .islandWarmTint,
                                                             EditorWorkspaceMode
-                                                                  .borderStudio =>
+                                                                .borderStudio =>
                                                               EditorChrome
                                                                   .islandCoolTint,
                                                           },
-                                                          child: switch (
-                                                              workspaceMode) {
+                                                          child: switch (workspaceMode) {
                                                             EditorWorkspaceMode
-                                                                  .map =>
-                                                              const SizedBox
-                                                                  .shrink(),
+                                                                .map =>
+                                                              const SizedBox.shrink(),
                                                             EditorWorkspaceMode
-                                                                  .tileset =>
+                                                                .tileset =>
                                                               const TilesetPalettePanel(),
                                                             EditorWorkspaceMode
-                                                                  .trainer =>
+                                                                .trainer =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .pokedex =>
+                                                                .pokedex =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .narrativeOverview =>
+                                                                .narrativeOverview =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .scenes =>
+                                                                .scenes =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .events =>
+                                                                .events =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .facts =>
+                                                                .facts =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .shops =>
+                                                                .shops =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .worldRules =>
+                                                                .worldRules =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .narrativeValidator =>
+                                                                .narrativeValidator =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .smartTilesStudio =>
+                                                                .smartTilesStudio =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .environmentStudio =>
+                                                                .environmentStudio =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .personalizationStudio =>
+                                                                .personalizationStudio =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
-                                                                  .borderStudio =>
+                                                                .borderStudio =>
                                                               const _EmptyWorkspaceInspector(),
                                                             EditorWorkspaceMode
                                                                 .globalStory ||
@@ -1530,7 +1550,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                             EditorWorkspaceMode
                                                                 .cutscene ||
                                                             EditorWorkspaceMode
-                                                                  .dialogue =>
+                                                                .dialogue =>
                                                               const _EmptyWorkspaceInspector(),
                                                           },
                                                         ),
@@ -1611,23 +1631,23 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                     runSpacing: 8,
                     children: [
                       PokeMapButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(
-                          _BorderStudioExitChoice.stay,
-                        ),
+                        onPressed: () => Navigator.of(
+                          dialogContext,
+                        ).pop(_BorderStudioExitChoice.stay),
                         variant: PokeMapButtonVariant.secondary,
                         child: const Text('Rester'),
                       ),
                       PokeMapButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(
-                          _BorderStudioExitChoice.discard,
-                        ),
+                        onPressed: () => Navigator.of(
+                          dialogContext,
+                        ).pop(_BorderStudioExitChoice.discard),
                         variant: PokeMapButtonVariant.danger,
                         child: const Text('Abandonner les modifications'),
                       ),
                       PokeMapButton(
-                        onPressed: () => Navigator.of(dialogContext).pop(
-                          _BorderStudioExitChoice.save,
-                        ),
+                        onPressed: () => Navigator.of(
+                          dialogContext,
+                        ).pop(_BorderStudioExitChoice.save),
                         child: const Text('Enregistrer'),
                       ),
                     ],
@@ -1644,7 +1664,9 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     switch (choice) {
       case _BorderStudioExitChoice.save:
         final updated = controller.saveDraft();
-        ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
+        ref
+            .read(editorNotifierProvider.notifier)
+            .applyInMemoryProjectManifest(
               updated,
               statusMessage: 'Brouillon Border enregistré dans le projet.',
             );
@@ -1784,10 +1806,7 @@ class _NarrativeStudioSaveStatus extends StatelessWidget {
 }
 
 class _EditorToastBanner extends StatelessWidget {
-  const _EditorToastBanner({
-    required this.message,
-    required this.isError,
-  });
+  const _EditorToastBanner({required this.message, required this.isError});
 
   final String message;
   final bool isError;
@@ -1876,8 +1895,9 @@ class _WorkspaceStageHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.pokeMapColors;
-    final activeMap =
-        ref.watch(editorNotifierProvider.select((s) => s.activeMap));
+    final activeMap = ref.watch(
+      editorNotifierProvider.select((s) => s.activeMap),
+    );
     final notifier = ref.read(editorNotifierProvider.notifier);
 
     final chipAccent = switch (workspaceMode) {
@@ -1895,8 +1915,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.facts ||
       EditorWorkspaceMode.shops ||
       EditorWorkspaceMode.worldRules ||
-      EditorWorkspaceMode.narrativeValidator =>
-        colors.narrative,
+      EditorWorkspaceMode.narrativeValidator => colors.narrative,
       EditorWorkspaceMode.smartTilesStudio => colors.mapAccent,
       EditorWorkspaceMode.environmentStudio => colors.mapAccent,
       EditorWorkspaceMode.personalizationStudio => colors.reward,
@@ -1918,8 +1937,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
       EditorWorkspaceMode.facts ||
       EditorWorkspaceMode.shops ||
       EditorWorkspaceMode.worldRules ||
-      EditorWorkspaceMode.narrativeValidator =>
-        PokeMapBadgeVariant.narrative,
+      EditorWorkspaceMode.narrativeValidator => PokeMapBadgeVariant.narrative,
       _ => PokeMapBadgeVariant.neutral,
     };
 
@@ -1955,17 +1973,10 @@ class _WorkspaceStageHeader extends ConsumerWidget {
             decoration: BoxDecoration(
               color: colors.surfaceSubtle,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: colors.borderSubtle,
-                width: 1,
-              ),
+              border: Border.all(color: colors.borderSubtle, width: 1),
             ),
             alignment: Alignment.center,
-            child: MacosIcon(
-              CupertinoIcons.map,
-              color: chipAccent,
-              size: 18,
-            ),
+            child: MacosIcon(CupertinoIcons.map, color: chipAccent, size: 18),
           ),
           const SizedBox(width: 10),
           Flexible(
@@ -2005,8 +2016,9 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                   ? 'Masquer le panneau'
                   : 'Afficher le panneau',
               child: MacosIconButton(
-                semanticLabel:
-                    rightPanelVisible ? 'Hide right panel' : 'Show right panel',
+                semanticLabel: rightPanelVisible
+                    ? 'Hide right panel'
+                    : 'Show right panel',
                 icon: MacosIcon(
                   rightPanelVisible
                       ? Icons.open_in_full
@@ -2068,10 +2080,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
           decoration: BoxDecoration(
             color: colors.surfaceSubtle,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: colors.borderSubtle,
-              width: 1,
-            ),
+            border: Border.all(color: colors.borderSubtle, width: 1),
           ),
           alignment: Alignment.center,
           child: MacosIcon(
@@ -2115,15 +2124,17 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                 key: workspaceMode == EditorWorkspaceMode.smartTilesStudio
                     ? const Key('smart-tiles-studio-title')
                     : (workspaceMode == EditorWorkspaceMode.environmentStudio
-                        ? const Key('environment-studio-title')
-                        : (workspaceMode ==
-                                EditorWorkspaceMode.personalizationStudio
-                            ? const Key('personalization-studio-title')
-                            : (workspaceMode == EditorWorkspaceMode.borderStudio
-                                ? const Key('border-studio-title')
-                                : (workspaceMode == EditorWorkspaceMode.trainer
-                                    ? const Key('trainer-studio-title')
-                                    : null)))),
+                          ? const Key('environment-studio-title')
+                          : (workspaceMode ==
+                                    EditorWorkspaceMode.personalizationStudio
+                                ? const Key('personalization-studio-title')
+                                : (workspaceMode ==
+                                          EditorWorkspaceMode.borderStudio
+                                      ? const Key('border-studio-title')
+                                      : (workspaceMode ==
+                                                EditorWorkspaceMode.trainer
+                                            ? const Key('trainer-studio-title')
+                                            : null)))),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
@@ -2155,8 +2166,9 @@ class _WorkspaceStageHeader extends ConsumerWidget {
                 ? 'Masquer le panneau'
                 : 'Afficher le panneau',
             child: MacosIconButton(
-              semanticLabel:
-                  rightPanelVisible ? 'Hide right panel' : 'Show right panel',
+              semanticLabel: rightPanelVisible
+                  ? 'Hide right panel'
+                  : 'Show right panel',
               icon: MacosIcon(
                 rightPanelVisible ? Icons.open_in_full : Icons.close_fullscreen,
                 color: colors.textPrimary.withValues(alpha: 0.85),
@@ -2176,10 +2188,7 @@ class _WorkspaceStageHeader extends ConsumerWidget {
           ),
           const SizedBox(width: 8),
         ],
-        PokeMapBadge(
-          label: badgeLabel,
-          variant: badgeVariant,
-        ),
+        PokeMapBadge(label: badgeLabel, variant: badgeVariant),
       ],
     );
   }
@@ -2315,10 +2324,10 @@ class _NarrativeDocumentActions extends ConsumerWidget {
           onPressed: isSaving
               ? null
               : () => unawaited(
-                    notifier.setNarrativeDocumentAutosaveEnabled(
-                      !notifier.narrativeDocumentAutosaveEnabled,
-                    ),
+                  notifier.setNarrativeDocumentAutosaveEnabled(
+                    !notifier.narrativeDocumentAutosaveEnabled,
                   ),
+                ),
           tooltip: notifier.narrativeDocumentAutosaveEnabled
               ? l10n.narrativeAutosaveDisableTooltip
               : l10n.narrativeAutosaveEnableTooltip,
@@ -2390,19 +2399,18 @@ String _narrativeDocumentStatusLabel(
 
 String _narrativeDestinationCommandLabel(
   NarrativeStudioDestination destination,
-) =>
-    switch (destination) {
-      NarrativeStudioDestination.overview => 'Ouvrir l’aperçu narratif',
-      NarrativeStudioDestination.storylines => 'Ouvrir les storylines',
-      NarrativeStudioDestination.scenes => 'Ouvrir les scènes',
-      NarrativeStudioDestination.events => 'Ouvrir les événements',
-      NarrativeStudioDestination.cinematics => 'Ouvrir les cinématiques',
-      NarrativeStudioDestination.dialogues => 'Ouvrir les dialogues',
-      NarrativeStudioDestination.facts => 'Ouvrir les facts',
-      NarrativeStudioDestination.shops => 'Ouvrir les boutiques',
-      NarrativeStudioDestination.worldRules => 'Ouvrir les règles du monde',
-      NarrativeStudioDestination.validator => 'Ouvrir le validateur',
-    };
+) => switch (destination) {
+  NarrativeStudioDestination.overview => 'Ouvrir l’aperçu narratif',
+  NarrativeStudioDestination.storylines => 'Ouvrir les storylines',
+  NarrativeStudioDestination.scenes => 'Ouvrir les scènes',
+  NarrativeStudioDestination.events => 'Ouvrir les événements',
+  NarrativeStudioDestination.cinematics => 'Ouvrir les cinématiques',
+  NarrativeStudioDestination.dialogues => 'Ouvrir les dialogues',
+  NarrativeStudioDestination.facts => 'Ouvrir les facts',
+  NarrativeStudioDestination.shops => 'Ouvrir les boutiques',
+  NarrativeStudioDestination.worldRules => 'Ouvrir les règles du monde',
+  NarrativeStudioDestination.validator => 'Ouvrir le validateur',
+};
 
 PokeMapBadgeVariant _narrativeDocumentStatusVariant(
   NarrativeDocumentSessionStatus status,
@@ -2554,7 +2562,7 @@ class _CollapsedExpandButtonState extends State<_CollapsedExpandButton> {
                         color: colors.brandPrimary.withValues(alpha: 0.15),
                         blurRadius: 6,
                         spreadRadius: 1,
-                      )
+                      ),
                     ]
                   : null,
             ),

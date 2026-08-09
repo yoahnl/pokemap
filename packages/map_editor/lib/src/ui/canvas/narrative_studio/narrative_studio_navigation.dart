@@ -121,9 +121,10 @@ final class NarrativeStudioNavigationState {
 }
 
 class NarrativeStudioNavigationController
-    extends StateNotifier<NarrativeStudioNavigationState> {
-  NarrativeStudioNavigationController()
-      : super(NarrativeStudioNavigationState.initial());
+    extends Notifier<NarrativeStudioNavigationState> {
+  @override
+  NarrativeStudioNavigationState build() =>
+      NarrativeStudioNavigationState.initial();
 
   void replace(NarrativeStudioRouteLocation location) {
     state = state.copyWith(
@@ -215,10 +216,9 @@ class NarrativeStudioNavigationController
   }
 }
 
-final narrativeStudioNavigationControllerProvider = StateNotifierProvider<
-    NarrativeStudioNavigationController, NarrativeStudioNavigationState>(
-  (ref) => NarrativeStudioNavigationController(),
-);
+final narrativeStudioNavigationControllerProvider = NotifierProvider<
+    NarrativeStudioNavigationController,
+    NarrativeStudioNavigationState>(NarrativeStudioNavigationController.new);
 
 enum NarrativeStudioNavigationResolutionKind {
   internal,

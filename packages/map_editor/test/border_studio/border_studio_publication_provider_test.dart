@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/border_studio/application/border_asset_snapshot_service.dart';
@@ -26,41 +27,43 @@ void main() {
     expect(container.read(borderPublicationTransactionProvider), isNull);
   });
 
-  test('publication transaction uses project-local filesystem adapters',
-      () async {
-    final root = await Directory.systemTemp.createTemp(
-      'pokemap_border_publication_provider_',
-    );
-    addTearDown(() => root.delete(recursive: true));
-    ProjectManifest? applied;
-    final container = ProviderContainer(
-      overrides: <Override>[
-        editorProjectRootPathProvider.overrideWithValue(root.path),
-        borderPublicationApplyInMemoryManifestProvider.overrideWithValue(
-          (manifest) => applied = manifest,
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
+  test(
+    'publication transaction uses project-local filesystem adapters',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'pokemap_border_publication_provider_',
+      );
+      addTearDown(() => root.delete(recursive: true));
+      ProjectManifest? applied;
+      final container = ProviderContainer(
+        overrides: <Override>[
+          editorProjectRootPathProvider.overrideWithValue(root.path),
+          borderPublicationApplyInMemoryManifestProvider.overrideWithValue(
+            (manifest) => applied = manifest,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
 
-    final transaction = container.read(borderPublicationTransactionProvider);
+      final transaction = container.read(borderPublicationTransactionProvider);
 
-    expect(transaction, isNotNull);
-    expect(transaction!.snapshotStore, isA<FileBorderAssetSnapshotStore>());
-    expect(
-      transaction.manifestPort,
-      isA<FileBorderPublicationManifestPort>(),
-    );
-    final validator = transaction.candidateValidator;
-    expect(validator, isA<CoreBorderPublicationCandidateValidator>());
-    const manifest = ProjectManifest(
-      name: 'Provider',
-      maps: <ProjectMapEntry>[],
-      tilesets: <ProjectTilesetEntry>[],
-    );
-    transaction.manifestPort.applyInMemory(manifest);
-    expect(applied, same(manifest));
-  });
+      expect(transaction, isNotNull);
+      expect(transaction!.snapshotStore, isA<FileBorderAssetSnapshotStore>());
+      expect(
+        transaction.manifestPort,
+        isA<FileBorderPublicationManifestPort>(),
+      );
+      final validator = transaction.candidateValidator;
+      expect(validator, isA<CoreBorderPublicationCandidateValidator>());
+      const manifest = ProjectManifest(
+        name: 'Provider',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+      );
+      transaction.manifestPort.applyInMemory(manifest);
+      expect(applied, same(manifest));
+    },
+  );
 
   test('publication coordinator follows project availability', () async {
     final root = await Directory.systemTemp.createTemp(
@@ -124,8 +127,10 @@ void main() {
         () => transaction.manifestPort.applyInMemory(originalManifest),
         throwsStateError,
       );
-      expect(container.read(editorNotifierProvider).projectRootPath,
-          '/projects/replacement');
+      expect(
+        container.read(editorNotifierProvider).projectRootPath,
+        '/projects/replacement',
+      );
       expect(
         container.read(editorNotifierProvider).project,
         same(replacementManifest),
@@ -185,8 +190,9 @@ void main() {
         projectRootPath: '/projects/original',
         project: originalManifest,
       );
-      final controller =
-          container.read(borderStudioDraftControllerProvider.notifier);
+      final controller = container.read(
+        borderStudioDraftControllerProvider.notifier,
+      );
       final guardedApply = container.read(
         borderPublicationApplyInMemoryManifestProvider,
       );
@@ -249,36 +255,36 @@ void main() {
 }
 
 ProjectManifest _manifestWithDraft() => ProjectManifest(
-      name: 'Original project with draft',
-      version: ProjectVersion.v6,
-      maps: const <ProjectMapEntry>[],
-      tilesets: const <ProjectTilesetEntry>[],
-      borderCatalog: ProjectBorderCatalog(
-        records: <BorderBlueprintRecord>[
-          BorderBlueprintRecord(
-            id: 'coast',
-            draft: BorderBlueprintDraft(
-              baseRevision: 0,
-              definition: BorderBlueprintDraftDefinition(
-                name: 'Coast',
-                previewSeed: BorderSignedInt64.fromInt(7),
-                template: BorderBlueprintTemplate.organicEdge,
-                primitives: const <BorderPrimitiveDraft>[],
-                defaults: BorderGenerationParams(
-                  irregularityPermille: 250,
-                  detailDensityPermille: 500,
-                  variationPermille: 300,
-                  maxOverlapPx: 4,
-                  gapTolerancePx: 1,
-                  depthRows: 1,
-                ),
-                sortOrder: 0,
-              ),
+  name: 'Original project with draft',
+  version: ProjectVersion.v6,
+  maps: const <ProjectMapEntry>[],
+  tilesets: const <ProjectTilesetEntry>[],
+  borderCatalog: ProjectBorderCatalog(
+    records: <BorderBlueprintRecord>[
+      BorderBlueprintRecord(
+        id: 'coast',
+        draft: BorderBlueprintDraft(
+          baseRevision: 0,
+          definition: BorderBlueprintDraftDefinition(
+            name: 'Coast',
+            previewSeed: BorderSignedInt64.fromInt(7),
+            template: BorderBlueprintTemplate.organicEdge,
+            primitives: const <BorderPrimitiveDraft>[],
+            defaults: BorderGenerationParams(
+              irregularityPermille: 250,
+              detailDensityPermille: 500,
+              variationPermille: 300,
+              maxOverlapPx: 4,
+              gapTolerancePx: 1,
+              depthRows: 1,
             ),
+            sortOrder: 0,
           ),
-        ],
+        ),
       ),
-    );
+    ],
+  ),
+);
 
 final class _DelayedManifestPort implements BorderPublicationManifestPort {
   _DelayedManifestPort(this._applyInMemory);
@@ -306,20 +312,18 @@ final class _EmptySnapshotStore implements BorderAssetSnapshotStore {
   @override
   Future<BorderAssetSnapshotStage> stage(
     List<BorderSnapshotFilePayload> files,
-  ) async =>
-      BorderAssetSnapshotStage(
-        id: 'empty-stage',
-        files: const <BorderStagedSnapshotFile>[],
-      );
+  ) async => BorderAssetSnapshotStage(
+    id: 'empty-stage',
+    files: const <BorderStagedSnapshotFile>[],
+  );
 
   @override
   Future<BorderAssetSnapshotFinalizeResult> finalize(
     BorderAssetSnapshotStage stage,
-  ) async =>
-      BorderAssetSnapshotFinalizeResult(
-        createdRelativePaths: const <String>[],
-        deduplicatedRelativePaths: const <String>[],
-      );
+  ) async => BorderAssetSnapshotFinalizeResult(
+    createdRelativePaths: const <String>[],
+    deduplicatedRelativePaths: const <String>[],
+  );
 
   @override
   Future<void> discard(BorderAssetSnapshotStage stage) async {}

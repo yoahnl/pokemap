@@ -181,20 +181,22 @@ final class GamePackageExportService {
           intro: projection.presentation.intro == null
               ? null
               : GamePackageIntroVideo(
-                  video: projection.introVideoPackagePath!,
-                  poster: projection.introPosterPackagePath!,
-                  captions: projection.introCaptionsPackagePath,
-                  durationMilliseconds:
-                      projection.presentation.intro!.durationMilliseconds,
-                  width: projection.presentation.intro!.width,
-                  height: projection.presentation.intro!.height,
-                  bitrateKbps: projection.presentation.intro!.bitrateKbps,
-                  sizeBytes: projection.presentation.intro!.sizeBytes,
-                  videoCodec: projection.presentation.intro!.videoCodec,
-                  audioCodec: projection.presentation.intro!.audioCodec,
+                  media: _packageResponsiveVideo(projection.introMedia!),
                   reducedMotionBehavior:
                       projection.presentation.intro!.reducedMotionBehavior,
                   allowReplay: projection.presentation.intro!.allowReplay,
+                ),
+          titleMotion: projection.presentation.titleMotion == null
+              ? null
+              : GamePackageTitleMotion(
+                  promptLoop: projection.titlePromptMedia == null
+                      ? null
+                      : _packageResponsiveVideo(
+                          projection.titlePromptMedia!,
+                        ),
+                  menuLoop: projection.titleMenuMedia == null
+                      ? null
+                      : _packageResponsiveVideo(projection.titleMenuMedia!),
                 ),
           typography: projection.presentation.typography == null
               ? null
@@ -456,6 +458,36 @@ final class GamePackageExportService {
       family: projected.profile.family,
       license: projected.licensePackagePath,
       fallbackFamilies: projected.profile.fallbackFamilies,
+    );
+  }
+
+  static GamePackageResponsiveVideo _packageResponsiveVideo(
+    RuntimeProjectedResponsiveVideo media,
+  ) =>
+      GamePackageResponsiveVideo(
+        landscape: _packageVideoVariant(media.landscape),
+        portrait: media.portrait == null
+            ? null
+            : _packageVideoVariant(media.portrait!),
+      );
+
+  static GamePackageVideoVariant _packageVideoVariant(
+    RuntimeProjectedVideoVariant variant,
+  ) {
+    final profile = variant.profile;
+    return GamePackageVideoVariant(
+      video: variant.videoPackagePath,
+      poster: variant.posterPackagePath,
+      captions: variant.captionsPackagePath,
+      durationMilliseconds: profile.durationMilliseconds,
+      width: profile.width,
+      height: profile.height,
+      bitrateKbps: profile.bitrateKbps,
+      sizeBytes: profile.sizeBytes,
+      videoCodec: profile.videoCodec,
+      audioCodec: profile.audioCodec,
+      focalX: profile.focalX,
+      focalY: profile.focalY,
     );
   }
 

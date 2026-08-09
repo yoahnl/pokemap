@@ -5,17 +5,19 @@ import 'apply_border_materialization.dart';
 import 'border_preview_transaction.dart';
 
 /// Owns the transient draw/resolve/apply lifecycle for one Border feature.
-final class BorderPreviewController extends StateNotifier<BorderPreviewState> {
+final class BorderPreviewController extends Notifier<BorderPreviewState> {
   BorderPreviewController({
     BorderFeatureResolver? resolver,
     BorderPreviewMapApplier? applier,
   })  : _resolver = resolver ?? resolveBorderFeature,
-        _applier = applier ?? applyBorderMaterialization,
-        super(const BorderPreviewState.idle());
+        _applier = applier ?? applyBorderMaterialization;
 
   final BorderFeatureResolver _resolver;
   final BorderPreviewMapApplier _applier;
   BorderPreviewTransaction? _drawingCheckpoint;
+
+  @override
+  BorderPreviewState build() => const BorderPreviewState.idle();
 
   BorderPreviewState get current => state;
 

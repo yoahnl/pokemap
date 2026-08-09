@@ -5,11 +5,12 @@ import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 
 void main() {
-  testWidgets('PST-040 projects the current title screen contract',
-      (tester) async {
+  testWidgets('PST-040 projects the current title screen contract', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _app(
-        const PersonalizationRuntimePreview(
+        PersonalizationRuntimePreview(
           projectName: 'Pokémon Aurore',
           projectRootPath: '',
           profile: ProjectPresentationProfile(
@@ -18,9 +19,7 @@ void main() {
               layoutVariant: 'cinematic',
             ),
             typography: ProjectTypographyProfile(
-              display: ProjectTypographyRoleProfile(
-                family: 'Aurore Display',
-              ),
+              display: ProjectTypographyRoleProfile(family: 'Aurore Display'),
             ),
             theme: safeProjectSemanticTheme,
           ),
@@ -30,9 +29,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-runtime-preview'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-runtime-preview')),
       findsOneWidget,
     );
     expect(
@@ -49,19 +46,18 @@ void main() {
     expect(find.text('Aurore Display'), findsOneWidget);
   });
 
-  testWidgets('PST-041 composes dialogue and menu runtime surfaces',
-      (tester) async {
+  testWidgets('PST-041 composes dialogue and menu runtime surfaces', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _app(
-        const PersonalizationRuntimePreview(
+        PersonalizationRuntimePreview(
           projectName: 'Pokémon Aurore',
           projectRootPath: '',
           profile: ProjectPresentationProfile(
             typography: ProjectTypographyProfile(
               body: ProjectTypographyRoleProfile(family: 'Aurore Body'),
-              dialogue: ProjectTypographyRoleProfile(
-                family: 'Aurore Dialogue',
-              ),
+              dialogue: ProjectTypographyRoleProfile(family: 'Aurore Dialogue'),
             ),
             theme: safeProjectSemanticTheme,
           ),
@@ -104,19 +100,18 @@ void main() {
     expect(menuText.style?.fontFamily, 'Aurore Body');
   });
 
-  testWidgets('PST-042 composes overworld and battle HUD surfaces',
-      (tester) async {
+  testWidgets('PST-042 composes overworld and battle HUD surfaces', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _app(
-        const PersonalizationRuntimePreview(
+        PersonalizationRuntimePreview(
           projectName: 'Pokémon Aurore',
           projectRootPath: '',
           profile: ProjectPresentationProfile(
             typography: ProjectTypographyProfile(
               body: ProjectTypographyRoleProfile(family: 'Aurore Body'),
-              numbers: ProjectTypographyRoleProfile(
-                family: 'Aurore Numbers',
-              ),
+              numbers: ProjectTypographyRoleProfile(family: 'Aurore Numbers'),
             ),
             theme: safeProjectSemanticTheme,
           ),
@@ -140,9 +135,7 @@ void main() {
     expect(find.textContaining('Rejoins le laboratoire'), findsOneWidget);
 
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-preview-battleHud'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-preview-battleHud')),
     );
     await tester.pumpAndSettle();
     expect(
@@ -161,15 +154,16 @@ void main() {
     expect(battleNumbers.style?.fontFamily, 'Aurore Numbers');
   });
 
-  testWidgets('PST-043 previews portrait intro poster and reduced motion',
-      (tester) async {
+  testWidgets('PST-043 previews portrait intro poster and reduced motion', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _app(
-        const PersonalizationRuntimePreview(
+        PersonalizationRuntimePreview(
           projectName: 'Pokémon Aurore',
           projectRootPath: '',
           profile: ProjectPresentationProfile(
-            intro: ProjectIntroVideoProfile(
+            intro: ProjectIntroVideoProfile.fromLandscape(
               videoPath: 'assets/presentation/intro/portrait.mp4',
               posterPath: 'assets/presentation/intro/portrait.png',
               durationMilliseconds: 12500,
@@ -191,9 +185,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-intro-composition'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-intro-composition')),
       findsOneWidget,
     );
     expect(find.text('Portrait 9:16'), findsOneWidget);
@@ -206,15 +198,16 @@ void main() {
     );
   });
 
-  testWidgets('PST-044 simulates viewport text scale and reduced motion',
-      (tester) async {
+  testWidgets('PST-044 simulates viewport text scale and reduced motion', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _app(
-        const PersonalizationRuntimePreview(
+        PersonalizationRuntimePreview(
           projectName: 'Pokémon Aurore',
           projectRootPath: '',
           profile: ProjectPresentationProfile(
-            intro: ProjectIntroVideoProfile(
+            intro: ProjectIntroVideoProfile.fromLandscape(
               videoPath: 'assets/presentation/intro/intro.mp4',
               posterPath: 'assets/presentation/intro/poster.png',
               durationMilliseconds: 12500,
@@ -233,9 +226,7 @@ void main() {
 
     await tester.tap(
       find.byKey(
-        const ValueKey<String>(
-          'personalization-preview-viewport-portrait',
-        ),
+        const ValueKey<String>('personalization-preview-viewport-portrait'),
       ),
     );
     await tester.pumpAndSettle();
@@ -272,8 +263,9 @@ void main() {
     );
   });
 
-  testWidgets('PST-045 compares baseline and draft with identical simulation',
-      (tester) async {
+  testWidgets('PST-045 compares baseline and draft with identical simulation', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _app(
         const PersonalizationRuntimePreview(
@@ -292,16 +284,12 @@ void main() {
     );
 
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-preview-compare'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-preview-compare')),
       findsOneWidget,
     );
     await tester.tap(
       find.byKey(
-        const ValueKey<String>(
-          'personalization-preview-viewport-portrait',
-        ),
+        const ValueKey<String>('personalization-preview-viewport-portrait'),
       ),
     );
     await tester.pump();
@@ -312,9 +300,7 @@ void main() {
     );
     await tester.pump();
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-preview-compare'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-preview-compare')),
     );
     await tester.pumpAndSettle();
 
@@ -343,8 +329,9 @@ void main() {
     expect(find.text('Texte 150 %'), findsOneWidget);
   });
 
-  testWidgets('PST-045 hides comparison when the draft is unchanged',
-      (tester) async {
+  testWidgets('PST-045 hides comparison when the draft is unchanged', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       _app(
         const PersonalizationRuntimePreview(
@@ -353,23 +340,19 @@ void main() {
           baselineProfile: ProjectPresentationProfile(
             theme: safeProjectSemanticTheme,
           ),
-          profile: ProjectPresentationProfile(
-            theme: safeProjectSemanticTheme,
-          ),
+          profile: ProjectPresentationProfile(theme: safeProjectSemanticTheme),
         ),
       ),
     );
 
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-preview-compare'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-preview-compare')),
       findsNothing,
     );
   });
 }
 
 Widget _app(Widget child) => MaterialApp(
-      theme: PokeMapTheme.light(),
-      home: Scaffold(body: SingleChildScrollView(child: child)),
-    );
+  theme: PokeMapTheme.light(),
+  home: Scaffold(body: SingleChildScrollView(child: child)),
+);

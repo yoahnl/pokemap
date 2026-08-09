@@ -11,67 +11,70 @@ import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart
 
 void main() {
   group('WorldMapConnectionContextLoader', () {
-    test('projects four directions and bounds the first-level context',
-        () async {
-      final repository = _MapRepository({
-        '/project/maps/north.json': _map(
-          'north',
-          6,
-          4,
-          connections: const [
-            MapConnection(
-              direction: MapConnectionDirection.south,
-              targetMapId: 'source',
-              offset: 0,
-            ),
-          ],
-        ),
-        '/project/maps/east.json': _map('east', 5, 6),
-        '/project/maps/south.json': _map('south', 7, 3),
-        '/project/maps/west.json': _map('west', 4, 7),
-      });
-      final context = await WorldMapConnectionContextLoader(
-        mapRepository: repository,
-      ).load(
-        workspace: const FileProjectWorkspaceFactory().create('/project'),
-        project: _project,
-        sourceMap: _source,
-      );
+    test(
+      'projects four directions and bounds the first-level context',
+      () async {
+        final repository = _MapRepository({
+          '/project/maps/north.json': _map(
+            'north',
+            6,
+            4,
+            connections: const [
+              MapConnection(
+                direction: MapConnectionDirection.south,
+                targetMapId: 'source',
+                offset: 0,
+              ),
+            ],
+          ),
+          '/project/maps/east.json': _map('east', 5, 6),
+          '/project/maps/south.json': _map('south', 7, 3),
+          '/project/maps/west.json': _map('west', 4, 7),
+        });
+        final context =
+            await WorldMapConnectionContextLoader(
+              mapRepository: repository,
+            ).load(
+              workspace: const FileProjectWorkspaceFactory().create('/project'),
+              project: _project,
+              sourceMap: _source,
+            );
 
-      expect(context.neighbors.keys, {
-        MapConnectionDirection.north,
-        MapConnectionDirection.east,
-        MapConnectionDirection.south,
-        MapConnectionDirection.west,
-      });
-      expect(
-        context.neighbors[MapConnectionDirection.north]!.tileBounds,
-        const Rect.fromLTWH(0, -4, 6, 4),
-      );
-      expect(
-        context.neighbors[MapConnectionDirection.east]!.tileBounds,
-        const Rect.fromLTWH(10, 0, 5, 6),
-      );
-      expect(
-        context.neighbors[MapConnectionDirection.south]!.tileBounds,
-        const Rect.fromLTWH(0, 8, 7, 3),
-      );
-      expect(
-        context.neighbors[MapConnectionDirection.west]!.tileBounds,
-        const Rect.fromLTWH(-4, 0, 4, 7),
-      );
-      expect(context.contentTileBounds, const Rect.fromLTRB(-4, -4, 15, 11));
-      expect(context.issues, isEmpty);
-      expect(repository.loadedPaths, hasLength(4));
-      expect(
-        context.neighbors[MapConnectionDirection.north]!.exactReciprocalPair,
-        isTrue,
-      );
-      expect(
-        context.neighbors[MapConnectionDirection.east]!.exactReciprocalPair,
-        isFalse,
-      );
-    });
+        expect(context.neighbors.keys, {
+          MapConnectionDirection.north,
+          MapConnectionDirection.east,
+          MapConnectionDirection.south,
+          MapConnectionDirection.west,
+        });
+        expect(
+          context.neighbors[MapConnectionDirection.north]!.tileBounds,
+          const Rect.fromLTWH(0, -4, 6, 4),
+        );
+        expect(
+          context.neighbors[MapConnectionDirection.east]!.tileBounds,
+          const Rect.fromLTWH(10, 0, 5, 6),
+        );
+        expect(
+          context.neighbors[MapConnectionDirection.south]!.tileBounds,
+          const Rect.fromLTWH(0, 8, 7, 3),
+        );
+        expect(
+          context.neighbors[MapConnectionDirection.west]!.tileBounds,
+          const Rect.fromLTWH(-4, 0, 4, 7),
+        );
+        expect(context.contentTileBounds, const Rect.fromLTRB(-4, -4, 15, 11));
+        expect(context.issues, isEmpty);
+        expect(repository.loadedPaths, hasLength(4));
+        expect(
+          context.neighbors[MapConnectionDirection.north]!.exactReciprocalPair,
+          isTrue,
+        );
+        expect(
+          context.neighbors[MapConnectionDirection.east]!.exactReciprocalPair,
+          isFalse,
+        );
+      },
+    );
 
     test('uses canonical alignment for positive and negative offsets', () {
       const projector = WorldMapConnectionContextProjector();
@@ -114,10 +117,12 @@ void main() {
 
     test('keeps missing manifest file and invalid JSON errors local', () async {
       final repository = _MapRepository({
-        '/project/maps/east.json':
-            const MapLoadException('Map file does not exist'),
-        '/project/maps/south.json':
-            const MapLoadException('Failed to load map: invalid JSON'),
+        '/project/maps/east.json': const MapLoadException(
+          'Map file does not exist',
+        ),
+        '/project/maps/south.json': const MapLoadException(
+          'Failed to load map: invalid JSON',
+        ),
         '/project/maps/west.json': _map('west', 4, 7),
       });
       final project = _project.copyWith(
@@ -126,100 +131,116 @@ void main() {
             .toList(growable: false),
       );
 
-      final context = await WorldMapConnectionContextLoader(
-        mapRepository: repository,
-      ).load(
-        workspace: const FileProjectWorkspaceFactory().create('/project'),
-        project: project,
-        sourceMap: _source,
-      );
+      final context =
+          await WorldMapConnectionContextLoader(mapRepository: repository).load(
+            workspace: const FileProjectWorkspaceFactory().create('/project'),
+            project: project,
+            sourceMap: _source,
+          );
 
       expect(context.neighbors.keys, {MapConnectionDirection.west});
-      expect(context.issues[MapConnectionDirection.north]!.code,
-          'target_not_in_manifest');
-      expect(context.issues[MapConnectionDirection.east]!.code,
-          'target_file_missing');
-      expect(context.issues[MapConnectionDirection.south]!.code,
-          'target_unreadable');
+      expect(
+        context.issues[MapConnectionDirection.north]!.code,
+        'target_not_in_manifest',
+      );
+      expect(
+        context.issues[MapConnectionDirection.east]!.code,
+        'target_file_missing',
+      );
+      expect(
+        context.issues[MapConnectionDirection.south]!.code,
+        'target_unreadable',
+      );
       expect(repository.loadedPaths, hasLength(3));
     });
 
-    test('does not traverse a reciprocal cycle or read more than four maps',
-        () async {
+    test(
+      'does not traverse a reciprocal cycle or read more than four maps',
+      () async {
+        final repository = _MapRepository({
+          '/project/maps/north.json': _map(
+            'north',
+            6,
+            4,
+            connections: const [
+              MapConnection(
+                direction: MapConnectionDirection.south,
+                targetMapId: 'source',
+                offset: 0,
+              ),
+              MapConnection(
+                direction: MapConnectionDirection.north,
+                targetMapId: 'beyond',
+                offset: 0,
+              ),
+            ],
+          ),
+          '/project/maps/east.json': _map('east', 5, 6),
+          '/project/maps/south.json': _map('south', 7, 3),
+          '/project/maps/west.json': _map('west', 4, 7),
+          '/project/maps/beyond.json': _map('beyond', 20, 20),
+        });
+
+        await WorldMapConnectionContextLoader(mapRepository: repository).load(
+          workspace: const FileProjectWorkspaceFactory().create('/project'),
+          project: _project.copyWith(
+            maps: [
+              ..._project.maps,
+              const ProjectMapEntry(
+                id: 'beyond',
+                name: 'Beyond',
+                relativePath: 'maps/beyond.json',
+              ),
+            ],
+          ),
+          sourceMap: _source,
+        );
+
+        expect(repository.loadedPaths, hasLength(4));
+        expect(
+          repository.loadedPaths,
+          isNot(contains('/project/maps/beyond.json')),
+        );
+      },
+    );
+  });
+
+  test(
+    'Riverpod request and selected direction are shared and stable',
+    () async {
       final repository = _MapRepository({
-        '/project/maps/north.json': _map(
-          'north',
-          6,
-          4,
-          connections: const [
-            MapConnection(
-              direction: MapConnectionDirection.south,
-              targetMapId: 'source',
-              offset: 0,
-            ),
-            MapConnection(
-              direction: MapConnectionDirection.north,
-              targetMapId: 'beyond',
-              offset: 0,
-            ),
-          ],
-        ),
+        '/project/maps/north.json': _map('north', 6, 4),
         '/project/maps/east.json': _map('east', 5, 6),
         '/project/maps/south.json': _map('south', 7, 3),
         '/project/maps/west.json': _map('west', 4, 7),
-        '/project/maps/beyond.json': _map('beyond', 20, 20),
       });
-
-      await WorldMapConnectionContextLoader(mapRepository: repository).load(
-        workspace: const FileProjectWorkspaceFactory().create('/project'),
-        project: _project.copyWith(
-          maps: [
-            ..._project.maps,
-            const ProjectMapEntry(
-              id: 'beyond',
-              name: 'Beyond',
-              relativePath: 'maps/beyond.json',
-            ),
-          ],
-        ),
+      final container = ProviderContainer(
+        overrides: [mapRepositoryProvider.overrideWithValue(repository)],
+      );
+      addTearDown(container.dispose);
+      const request = WorldMapConnectionContextRequest(
+        projectRootPath: '/project',
+        project: _project,
         sourceMap: _source,
       );
 
-      expect(repository.loadedPaths, hasLength(4));
+      final context = await container.read(
+        worldMapConnectionContextProvider(request).future,
+      );
+      expect(context.neighbors, hasLength(4));
       expect(
-          repository.loadedPaths, isNot(contains('/project/maps/beyond.json')));
-    });
-  });
-
-  test('Riverpod request and selected direction are shared and stable',
-      () async {
-    final repository = _MapRepository({
-      '/project/maps/north.json': _map('north', 6, 4),
-      '/project/maps/east.json': _map('east', 5, 6),
-      '/project/maps/south.json': _map('south', 7, 3),
-      '/project/maps/west.json': _map('west', 4, 7),
-    });
-    final container = ProviderContainer(
-      overrides: [mapRepositoryProvider.overrideWithValue(repository)],
-    );
-    addTearDown(container.dispose);
-    const request = WorldMapConnectionContextRequest(
-      projectRootPath: '/project',
-      project: _project,
-      sourceMap: _source,
-    );
-
-    final context = await container.read(
-      worldMapConnectionContextProvider(request).future,
-    );
-    expect(context.neighbors, hasLength(4));
-    expect(container.read(worldMapConnectionDirectionProvider),
-        MapConnectionDirection.north);
-    container.read(worldMapConnectionDirectionProvider.notifier).state =
-        MapConnectionDirection.east;
-    expect(container.read(worldMapConnectionDirectionProvider),
-        MapConnectionDirection.east);
-  });
+        container.read(worldMapConnectionDirectionProvider),
+        MapConnectionDirection.north,
+      );
+      container
+          .read(worldMapConnectionDirectionProvider.notifier)
+          .select(MapConnectionDirection.east);
+      expect(
+        container.read(worldMapConnectionDirectionProvider),
+        MapConnectionDirection.east,
+      );
+    },
+  );
 }
 
 class _MapRepository implements MapRepository {
@@ -264,21 +285,13 @@ const _project = ProjectManifest(
       name: 'North',
       relativePath: 'maps/north.json',
     ),
-    ProjectMapEntry(
-      id: 'east',
-      name: 'East',
-      relativePath: 'maps/east.json',
-    ),
+    ProjectMapEntry(id: 'east', name: 'East', relativePath: 'maps/east.json'),
     ProjectMapEntry(
       id: 'south',
       name: 'South',
       relativePath: 'maps/south.json',
     ),
-    ProjectMapEntry(
-      id: 'west',
-      name: 'West',
-      relativePath: 'maps/west.json',
-    ),
+    ProjectMapEntry(id: 'west', name: 'West', relativePath: 'maps/west.json'),
   ],
   tilesets: [],
 );

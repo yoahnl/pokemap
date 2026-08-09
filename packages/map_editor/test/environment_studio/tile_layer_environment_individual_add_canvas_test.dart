@@ -11,8 +11,9 @@ import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
-  testWidgets('tap canvas ajoute un placement généré au TileLayer actif',
-      (tester) async {
+  testWidgets('tap canvas ajoute un placement généré au TileLayer actif', (
+    tester,
+  ) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final map = _map();
@@ -26,7 +27,7 @@ void main() {
     );
     container
         .read(environmentGeneratedPlacementAddElementProvider.notifier)
-        .state = 'tree';
+        .select('tree');
 
     await _pumpCanvas(tester, container);
 
@@ -48,22 +49,22 @@ void main() {
     expect(added.layerId, 'tiles');
     expect(added.elementId, 'tree');
     expect(added.pos, const GridPos(x: 1, y: 1));
-    expect(
-      _areaById(state.activeMap!, 'area').generatedPlacementIds,
-      const ['generated_a', 'env_gen_area_1_1_tree'],
-    );
-    expect(
-      _areaById(state.activeMap!, 'other').generatedPlacementIds,
-      const ['other_generated'],
-    );
+    expect(_areaById(state.activeMap!, 'area').generatedPlacementIds, const [
+      'generated_a',
+      'env_gen_area_1_1_tree',
+    ]);
+    expect(_areaById(state.activeMap!, 'other').generatedPlacementIds, const [
+      'other_generated',
+    ]);
     expect(
       state.activeMap!.placedElements.map((element) => element.id),
       containsAll(const ['manual', 'other_generated']),
     );
   });
 
-  testWidgets('tap canvas avec footprint invalide ne mute pas la MapData',
-      (tester) async {
+  testWidgets('tap canvas avec footprint invalide ne mute pas la MapData', (
+    tester,
+  ) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
     final map = _map();
@@ -76,7 +77,7 @@ void main() {
     );
     container
         .read(environmentGeneratedPlacementAddElementProvider.notifier)
-        .state = 'big_tree';
+        .select('big_tree');
 
     await _pumpCanvas(tester, container);
 
@@ -107,11 +108,7 @@ Future<void> _pumpCanvas(
         child: const MaterialApp(
           home: CupertinoPageScaffold(
             child: Center(
-              child: SizedBox(
-                width: 900,
-                height: 700,
-                child: MapCanvas(),
-              ),
+              child: SizedBox(width: 900, height: 700, child: MapCanvas()),
             ),
           ),
         ),
@@ -211,9 +208,7 @@ ProjectManifest _manifest() {
         name: 'Tree',
         tilesetId: 'nature',
         categoryId: 'trees',
-        frames: [
-          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-        ],
+        frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))],
       ),
       ProjectElementEntry(
         id: 'big_tree',

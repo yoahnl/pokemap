@@ -29,9 +29,8 @@ sealed class EditorBrush with _$EditorBrush {
     required String entryId,
     required String tilesetId,
   }) = PaletteEntryEditorBrush;
-  const factory EditorBrush.projectElement({
-    required String elementId,
-  }) = ProjectElementEditorBrush;
+  const factory EditorBrush.projectElement({required String elementId}) =
+      ProjectElementEditorBrush;
 }
 
 /// Maximum width or height accepted by the editor eraser.
@@ -44,25 +43,22 @@ const int kMaxEditorEraserFootprintDimension = 16;
 sealed class EditorEraserFootprint with _$EditorEraserFootprint {
   const factory EditorEraserFootprint.singleTile() =
       SingleTileEditorEraserFootprint;
-  const factory EditorEraserFootprint.previousBrush({
-    required GridSize size,
-  }) = PreviousBrushEditorEraserFootprint;
-  const factory EditorEraserFootprint.custom({
-    required GridSize size,
-  }) = CustomEditorEraserFootprint;
+  const factory EditorEraserFootprint.previousBrush({required GridSize size}) =
+      PreviousBrushEditorEraserFootprint;
+  const factory EditorEraserFootprint.custom({required GridSize size}) =
+      CustomEditorEraserFootprint;
 }
 
 extension EditorEraserFootprintSize on EditorEraserFootprint {
   GridSize get size => switch (this) {
-        SingleTileEditorEraserFootprint() =>
-          const GridSize(width: 1, height: 1),
-        PreviousBrushEditorEraserFootprint(:final size) => size,
-        CustomEditorEraserFootprint(:final size) => size,
-      };
+    SingleTileEditorEraserFootprint() => const GridSize(width: 1, height: 1),
+    PreviousBrushEditorEraserFootprint(:final size) => size,
+    CustomEditorEraserFootprint(:final size) => size,
+  };
 }
 
 @freezed
-class EditorState with _$EditorState {
+abstract class EditorState with _$EditorState {
   const factory EditorState({
     // Session projet / document ouvert
     String? projectRootPath,

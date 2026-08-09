@@ -11,20 +11,19 @@ import '../../state/editor_notifier.dart';
 import '../map_activation_guard.dart';
 import 'world_map_connection_context_provider.dart';
 
-typedef WorldMapConnectionApplyCallback = Future<void> Function({
-  required MapConnectionDirection direction,
-  required String targetMapId,
-  required int offset,
-  required bool reciprocal,
-});
+typedef WorldMapConnectionApplyCallback =
+    Future<void> Function({
+      required MapConnectionDirection direction,
+      required String targetMapId,
+      required int offset,
+      required bool reciprocal,
+    });
 
-typedef WorldMapConnectionDirectionCallback = Future<void> Function(
-  MapConnectionDirection direction,
-);
+typedef WorldMapConnectionDirectionCallback =
+    Future<void> Function(MapConnectionDirection direction);
 
-typedef WorldMapConnectionTargetLoader = Future<MapData?> Function(
-  String targetMapId,
-);
+typedef WorldMapConnectionTargetLoader =
+    Future<MapData?> Function(String targetMapId);
 
 class WorldMapConnectionsInspector extends ConsumerStatefulWidget {
   const WorldMapConnectionsInspector({
@@ -48,7 +47,7 @@ class WorldMapConnectionsInspector extends ConsumerStatefulWidget {
 class _WorldMapConnectionsInspectorState
     extends ConsumerState<WorldMapConnectionsInspector> {
   late final Map<MapConnectionDirection, TextEditingController>
-      _offsetControllers;
+  _offsetControllers;
   final _selectedTargetMapIds = <MapConnectionDirection, String?>{};
   final _reciprocalDrafts = <MapConnectionDirection, bool>{};
   final _targetFutures = <String, Future<MapData?>>{};
@@ -89,13 +88,12 @@ class _WorldMapConnectionsInspectorState
     }
 
     _syncDrafts(map);
-    final projectMaps = project.maps
-        .where((entry) => entry.id != map.id)
-        .toList(growable: false)
-      ..sort(_compareMapEntries);
-    final projectMapById = {
-      for (final entry in projectMaps) entry.id: entry,
-    };
+    final projectMaps =
+        project.maps
+            .where((entry) => entry.id != map.id)
+            .toList(growable: false)
+          ..sort(_compareMapEntries);
+    final projectMapById = {for (final entry in projectMaps) entry.id: entry};
     final projectRootPath = editorState.projectRootPath;
     final contextRequest = projectRootPath == null
         ? null
@@ -109,34 +107,38 @@ class _WorldMapConnectionsInspectorState
         : ref.watch(worldMapConnectionContextProvider(contextRequest));
     final existing = _connectionFor(map, selectedDirection);
     final targetMapId = _selectedTargetMapIds[selectedDirection]?.trim();
-    final targetManifested = targetMapId != null &&
+    final targetManifested =
+        targetMapId != null &&
         targetMapId.isNotEmpty &&
         projectMapById.containsKey(targetMapId);
     final targetFuture =
         targetManifested && (sharedContext == null || existing == null)
-            ? _targetFutures.putIfAbsent(
-                targetMapId,
-                () => (widget.loadTargetMap ?? notifier.loadMapSnapshotById)(
-                  targetMapId,
-                ),
-              )
-            : null;
+        ? _targetFutures.putIfAbsent(
+            targetMapId,
+            () => (widget.loadTargetMap ?? notifier.loadMapSnapshotById)(
+              targetMapId,
+            ),
+          )
+        : null;
 
     return FutureBuilder<MapData?>(
       future: targetFuture,
       builder: (context, targetSnapshot) {
-        final loadedContext = sharedContext?.valueOrNull;
-        final targetMap = loadedContext?.neighbors[selectedDirection]?.map ??
+        final loadedContext = sharedContext?.value;
+        final targetMap =
+            loadedContext?.neighbors[selectedDirection]?.map ??
             targetSnapshot.data;
         final contextIssue = loadedContext?.issues[selectedDirection];
-        final targetMissing = targetMapId != null &&
+        final targetMissing =
+            targetMapId != null &&
             targetMapId.isNotEmpty &&
             (!targetManifested ||
                 contextIssue != null ||
                 (targetSnapshot.connectionState == ConnectionState.done &&
                     targetMap == null &&
                     sharedContext == null));
-        final targetLoading = sharedContext?.isLoading == true ||
+        final targetLoading =
+            sharedContext?.isLoading == true ||
             (targetFuture != null &&
                 targetSnapshot.connectionState != ConnectionState.done);
         final offsetText = _offsetControllers[selectedDirection]!.text.trim();
@@ -149,7 +151,8 @@ class _WorldMapConnectionsInspectorState
                 direction: selectedDirection,
                 offset: offset,
               );
-        final exactPair = existing != null &&
+        final exactPair =
+            existing != null &&
             targetMap != null &&
             ref
                 .read(mapConnectionEditingServiceProvider)
@@ -192,8 +195,9 @@ class _WorldMapConnectionsInspectorState
                   _announcement =
                       'Direction ${_directionLabel(direction)} sélectionnée.';
                 });
-                ref.read(worldMapConnectionDirectionProvider.notifier).state =
-                    direction;
+                ref
+                    .read(worldMapConnectionDirectionProvider.notifier)
+                    .select(direction);
               },
             ),
             const SizedBox(height: 12),
@@ -224,9 +228,7 @@ class _WorldMapConnectionsInspectorState
                   ),
                   const SizedBox(height: 12),
                   PokeMapDropdownField<String>(
-                    key: const ValueKey<String>(
-                      'world-map-connection-target',
-                    ),
+                    key: const ValueKey<String>('world-map-connection-target'),
                     label: 'Map cible',
                     value: targetMapId ?? '',
                     enabled: existing == null && projectMaps.isNotEmpty,
@@ -250,12 +252,13 @@ class _WorldMapConnectionsInspectorState
                     ],
                     onChanged: (value) {
                       setState(() {
-                        _selectedTargetMapIds[selectedDirection] =
-                            value.isEmpty ? null : value;
+                        _selectedTargetMapIds[selectedDirection] = value.isEmpty
+                            ? null
+                            : value;
                         _announcement = value.isEmpty
                             ? 'Choisissez une map cible.'
                             : 'Map cible sélectionnée : '
-                                '${projectMapById[value]?.name ?? value}.';
+                                  '${projectMapById[value]?.name ?? value}.';
                       });
                     },
                   ),
@@ -305,9 +308,8 @@ class _WorldMapConnectionsInspectorState
                           ),
                           onPressed: existing == null
                               ? () => setState(() {
-                                    _reciprocalDrafts[selectedDirection] =
-                                        false;
-                                  })
+                                  _reciprocalDrafts[selectedDirection] = false;
+                                })
                               : null,
                           isSelected: !reciprocal,
                           variant: PokeMapButtonVariant.secondary,
@@ -323,8 +325,8 @@ class _WorldMapConnectionsInspectorState
                           ),
                           onPressed: existing == null
                               ? () => setState(() {
-                                    _reciprocalDrafts[selectedDirection] = true;
-                                  })
+                                  _reciprocalDrafts[selectedDirection] = true;
+                                })
                               : null,
                           isSelected: reciprocal,
                           variant: PokeMapButtonVariant.secondary,
@@ -339,9 +341,9 @@ class _WorldMapConnectionsInspectorState
                     Text(
                       exactPair
                           ? 'Paire réciproque détectée : les deux maps seront '
-                              'mises à jour ensemble.'
+                                'mises à jour ensemble.'
                           : 'Connexion à sens unique : la promotion en paire '
-                              'réciproque nécessite de la recréer.',
+                                'réciproque nécessite de la recréer.',
                       style: TextStyle(
                         color: context.pokeMapColors.textMuted,
                         fontSize: 10,
@@ -379,8 +381,9 @@ class _WorldMapConnectionsInspectorState
                             key: const ValueKey<String>(
                               'world-map-connection-delete',
                             ),
-                            onPressed:
-                                _isApplying ? null : () => _delete(notifier),
+                            onPressed: _isApplying
+                                ? null
+                                : () => _delete(notifier),
                             variant: PokeMapButtonVariant.danger,
                             size: PokeMapButtonSize.small,
                             leading: const Icon(Icons.delete_outline),
@@ -396,11 +399,11 @@ class _WorldMapConnectionsInspectorState
                           ),
                           onPressed: validation.canApply && !_isApplying
                               ? () => _apply(
-                                    notifier: notifier,
-                                    targetMapId: targetMapId!,
-                                    offset: offset!,
-                                    reciprocal: reciprocal,
-                                  )
+                                  notifier: notifier,
+                                  targetMapId: targetMapId!,
+                                  offset: offset!,
+                                  reciprocal: reciprocal,
+                                )
                               : null,
                           isLoading: _isApplying,
                           disabledReason: validation.reason,
@@ -408,7 +411,8 @@ class _WorldMapConnectionsInspectorState
                           size: PokeMapButtonSize.small,
                           leading: const Icon(Icons.check_circle_outline),
                           child: Text(
-                              existing == null ? 'Appliquer' : 'Mettre à jour'),
+                            existing == null ? 'Appliquer' : 'Mettre à jour',
+                          ),
                         ),
                       ),
                     ],
@@ -418,9 +422,7 @@ class _WorldMapConnectionsInspectorState
             ),
             const SizedBox(height: 10),
             Semantics(
-              key: const ValueKey<String>(
-                'world-map-connection-announcement',
-              ),
+              key: const ValueKey<String>('world-map-connection-announcement'),
               liveRegion: true,
               label: _announcement,
               child: Text(
@@ -440,7 +442,8 @@ class _WorldMapConnectionsInspectorState
   void _syncDrafts(MapData map) {
     final serializedConnections = map.connections
         .map(
-          (connection) => '${connection.direction.name}:'
+          (connection) =>
+              '${connection.direction.name}:'
               '${connection.targetMapId}:${connection.offset}',
         )
         .join('|');
@@ -578,11 +581,7 @@ class _ConnectionCompass extends StatelessWidget {
           children: [
             Icon(_directionIcon(value), size: 15),
             const SizedBox(height: 2),
-            Text(
-              target,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            Text(target, maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
         ),
       );
@@ -660,12 +659,12 @@ class _AlignmentPreview extends StatelessWidget {
     final text = loading
         ? 'Calcul du recouvrement…'
         : targetMissing
-            ? 'La map cible ne peut pas être lue.'
-            : preview == null
-                ? 'Choisissez une cible et un décalage valide.'
-                : preview!.hasOverlap
-                    ? 'Recouvrement : ${preview!.overlapLength} tiles communes.'
-                    : 'Aucun recouvrement : rapprochez les deux maps.';
+        ? 'La map cible ne peut pas être lue.'
+        : preview == null
+        ? 'Choisissez une cible et un décalage valide.'
+        : preview!.hasOverlap
+        ? 'Recouvrement : ${preview!.overlapLength} tiles communes.'
+        : 'Aucun recouvrement : rapprochez les deux maps.';
     return PokeMapCard(
       key: const ValueKey<String>('world-map-connection-overlap'),
       padding: const EdgeInsets.all(10),
@@ -750,10 +749,7 @@ _ConnectionValidation _validationFor({
   );
 }
 
-MapConnection? _connectionFor(
-  MapData map,
-  MapConnectionDirection direction,
-) {
+MapConnection? _connectionFor(MapData map, MapConnectionDirection direction) {
   for (final connection in map.connections) {
     if (connection.direction == direction) return connection;
   }
@@ -767,11 +763,11 @@ int _compareMapEntries(ProjectMapEntry left, ProjectMapEntry right) {
 }
 
 String _directionLabel(MapConnectionDirection direction) => switch (direction) {
-      MapConnectionDirection.north => 'Nord',
-      MapConnectionDirection.east => 'Est',
-      MapConnectionDirection.south => 'Sud',
-      MapConnectionDirection.west => 'Ouest',
-    };
+  MapConnectionDirection.north => 'Nord',
+  MapConnectionDirection.east => 'Est',
+  MapConnectionDirection.south => 'Sud',
+  MapConnectionDirection.west => 'Ouest',
+};
 
 IconData _directionIcon(MapConnectionDirection direction) =>
     switch (direction) {
@@ -783,5 +779,5 @@ IconData _directionIcon(MapConnectionDirection direction) =>
 
 final TextInputFormatter _signedIntegerFormatter =
     TextInputFormatter.withFunction((oldValue, newValue) {
-  return RegExp(r'^-?\d*$').hasMatch(newValue.text) ? newValue : oldValue;
-});
+      return RegExp(r'^-?\d*$').hasMatch(newValue.text) ? newValue : oldValue;
+    });
