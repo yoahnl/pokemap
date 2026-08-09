@@ -433,9 +433,9 @@ class PlayerTitleScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 47),
+                const SizedBox(height: 42),
                 for (final (index, action) in data.actions.keys.indexed) ...[
-                  if (index > 0) const SizedBox(height: 10),
+                  if (index > 0) const SizedBox(height: 5),
                   _startupPremiumAction(
                     context,
                     action: action,
@@ -468,94 +468,103 @@ class PlayerTitleScreen extends StatelessWidget {
             .where((candidate) => _availability(context, candidate).isEnabled)
             .firstOrNull;
     return SizedBox(
-      key: ValueKey<String>('player-title-premium-action-${action.name}'),
-      height: selected ? 58 : 48,
-      child: Focus(
-        focusNode: focusNode,
-        autofocus: focusController?.logicalSelectionId == null
-            ? action == firstEnabledAction
-            : _isSelected(action),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
-            boxShadow: selected
-                ? <BoxShadow>[
-                    BoxShadow(
-                      color: colors.primary.withValues(alpha: .16),
-                      blurRadius: 26,
-                      offset: const Offset(0, 12),
-                    ),
-                  ]
-                : const <BoxShadow>[],
-          ),
-          child: Material(
-            color: selected
-                ? colors.primary
-                : colors.background.withValues(alpha: 0),
-            borderRadius: BorderRadius.circular(10),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(10),
-              onTap: enabled ? () => _select(action) : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: Row(
-                  children: <Widget>[
-                    SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: <Widget>[
-                          Icon(
-                            Icons.circle,
-                            size: selected ? 18 : 7,
-                            color: selected
-                                ? (data.accentColor ?? colors.warning)
-                                    .withValues(alpha: .22)
-                                : colors.outline.withValues(
-                                    alpha: enabled ? .48 : .28,
-                                  ),
-                          ),
-                          if (selected)
-                            Icon(
-                              Icons.circle,
-                              size: 7,
-                              color: data.accentColor ?? colors.warning,
-                            ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 17),
-                    Expanded(
-                      child: Text(
-                        _label(context, action),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.playerTypography.bodyStyle(
-                          (Theme.of(context).textTheme.labelLarge ??
-                                  const TextStyle())
-                              .copyWith(
-                            color: enabled
-                                ? foreground
-                                : foreground.withValues(alpha: .45),
-                            fontSize: 16,
-                            fontWeight:
-                                selected ? FontWeight.w700 : FontWeight.w600,
-                            letterSpacing: .05,
+      height: 58,
+      child: Align(
+        alignment: Alignment.center,
+        child: SizedBox(
+          key: ValueKey<String>('player-title-premium-action-${action.name}'),
+          height: selected ? 58 : 48,
+          child: Focus(
+            focusNode: focusNode,
+            autofocus: focusController?.logicalSelectionId == null
+                ? action == firstEnabledAction
+                : _isSelected(action),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: selected
+                    ? <BoxShadow>[
+                        BoxShadow(
+                          color: colors.primary.withValues(alpha: .16),
+                          blurRadius: 26,
+                          offset: const Offset(0, 12),
+                        ),
+                      ]
+                    : const <BoxShadow>[],
+              ),
+              child: Material(
+                color: selected
+                    ? colors.primary
+                    : colors.background.withValues(alpha: 0),
+                borderRadius: BorderRadius.circular(10),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(10),
+                  onTap: enabled ? () => _select(action) : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Row(
+                      children: <Widget>[
+                        SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: <Widget>[
+                              Icon(
+                                Icons.circle,
+                                size: selected ? 18 : 7,
+                                color: selected
+                                    ? (data.accentColor ?? colors.warning)
+                                        .withValues(alpha: .22)
+                                    : colors.outline.withValues(
+                                        alpha: enabled ? .48 : .28,
+                                      ),
+                              ),
+                              if (selected)
+                                Icon(
+                                  Icons.circle,
+                                  size: 7,
+                                  color: data.accentColor ?? colors.warning,
+                                ),
+                            ],
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 17),
+                        Expanded(
+                          child: Text(
+                            _label(context, action),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.playerTypography.bodyStyle(
+                              (Theme.of(context).textTheme.labelLarge ??
+                                      const TextStyle())
+                                  .copyWith(
+                                color: enabled
+                                    ? foreground
+                                    : foreground.withValues(alpha: .45),
+                                fontSize: 16,
+                                fontWeight: selected
+                                    ? FontWeight.w700
+                                    : FontWeight.w600,
+                                letterSpacing: .05,
+                              ),
+                            ),
+                          ),
+                        ),
+                        if (action == PlayerTitleMenuAction.continueGame)
+                          _continueSaveMetadata(
+                                context,
+                                color: selected
+                                    ? colors.onPrimary.withValues(alpha: .58)
+                                    : colors.textSecondary.withValues(
+                                        alpha: .68,
+                                      ),
+                                fontSize: 9,
+                              ) ??
+                              const SizedBox.shrink(),
+                      ],
                     ),
-                    if (action == PlayerTitleMenuAction.continueGame)
-                      _continueSaveMetadata(
-                            context,
-                            color: selected
-                                ? colors.onPrimary.withValues(alpha: .58)
-                                : colors.textSecondary.withValues(alpha: .68),
-                            fontSize: 9,
-                          ) ??
-                          const SizedBox.shrink(),
-                  ],
+                  ),
                 ),
               ),
             ),

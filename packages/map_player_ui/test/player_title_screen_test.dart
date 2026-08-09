@@ -227,6 +227,33 @@ void main() {
       ),
       const Offset(46, 930),
     );
+
+    final actionCenters = <PlayerTitleMenuAction, Offset>{
+      for (final action in const <PlayerTitleMenuAction>[
+        PlayerTitleMenuAction.continueGame,
+        PlayerTitleMenuAction.newGame,
+        PlayerTitleMenuAction.options,
+      ])
+        action: tester.getCenter(
+          find.byKey(
+            ValueKey<String>('player-title-premium-action-${action.name}'),
+          ),
+        ),
+    };
+    focusController.select('title.continueGame');
+    await tester.pump();
+    for (final entry in actionCenters.entries) {
+      expect(
+        tester.getCenter(
+          find.byKey(
+            ValueKey<String>(
+              'player-title-premium-action-${entry.key.name}',
+            ),
+          ),
+        ),
+        entry.value,
+      );
+    }
     expect(tester.takeException(), isNull);
   });
 
