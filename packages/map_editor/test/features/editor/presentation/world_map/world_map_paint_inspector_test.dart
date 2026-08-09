@@ -267,6 +267,76 @@ void main() {
     expect(harness.sessionState.activeFamily, WorldMapToolFamily.paint);
   });
 
+  testWidgets('a new preset changes the motif of the active Smart Tile layer', (
+    tester,
+  ) async {
+    final harness = _PaintHarness(
+      'smart-path',
+      map: _map,
+      project: _projectWithRuralPath(),
+      activeMapPath: 'maps/map.json',
+      initialSession: const WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.paint,
+        lastPaintSubtool: WorldMapPaintSubtool.path,
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    await harness.pump(tester);
+    final rural = find.byKey(
+      const ValueKey<String>('world-map-smart-tile-path-preset-rural-path'),
+    );
+    await tester.ensureVisible(rural);
+
+    expect(find.text('Changer le motif du calque'), findsOneWidget);
+    await tester.tap(rural);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Changer le motif du calque'), findsWidgets);
+    expect(find.text('Chemin de terre rurale'), findsWidgets);
+    await tester.tap(find.text('Annuler'));
+    await tester.pumpAndSettle();
+
+    expect(harness.notifier.state.activeLayerId, 'smart-path');
+    expect(
+      harness.notifier.state.activeMap!.layers
+          .whereType<SmartTileLayer>()
+          .firstWhere((layer) => layer.id == 'smart-path')
+          .presetId,
+      'path',
+    );
+    expect(harness.notifier.state.mapUndoStack, isEmpty);
+    expect(harness.notifier.state.isDirty, isFalse);
+  });
+
+  testWidgets('an unsaved map blocks preset replacement without data loss', (
+    tester,
+  ) async {
+    final harness = _PaintHarness(
+      'smart-path',
+      map: _map,
+      project: _projectWithRuralPath(),
+      activeMapPath: 'maps/map.json',
+      initialSession: const WorldMapWorkspaceSession(
+        activeFamily: WorldMapToolFamily.paint,
+        lastPaintSubtool: WorldMapPaintSubtool.path,
+      ),
+    );
+    addTearDown(harness.dispose);
+    harness.notifier.state = harness.notifier.state.copyWith(isDirty: true);
+
+    await harness.pump(tester);
+    final rural = find.byKey(
+      const ValueKey<String>('world-map-smart-tile-path-preset-rural-path'),
+    );
+    await tester.ensureVisible(rural);
+
+    expect(find.text('Enregistrer avant de changer'), findsOneWidget);
+    expect(tester.widget<PokeMapAssetCard>(rural).onPressed, isNull);
+    expect(harness.notifier.state.activeLayerId, 'smart-path');
+    expect(harness.notifier.state.isDirty, isTrue);
+  });
+
   testWidgets('path palette filters terrain and draft presets', (tester) async {
     final harness = _PaintHarness('tile', map: _tileOnlyMap);
     addTearDown(harness.dispose);
@@ -1156,6 +1226,43 @@ final _visualPathProject = ProjectManifest(
         ],
       ),
     ],
+  ),
+);
+
+const _ruralPathPreset = ProjectSmartTilePreset(
+  id: 'rural-path',
+  name: 'Chemin de terre rurale',
+  usage: SmartTileUsage.path,
+  topology: SmartTileTopology.cardinal4,
+  coveragePolicy: SmartTileCoveragePolicy.sparse,
+  coverageProfile: SmartTileCoverageProfile(
+    mode: SmartTileCoverageMode.template,
+  ),
+  transformPolicy: SmartTileTransformPolicy(),
+  status: SmartTilePresetStatus.published,
+  defaultMaterialId: 'rural',
+  allowedMaterialIds: <String>['rural'],
+);
+
+ProjectManifest _projectWithRuralPath() => _project.copyWith(
+  smartTileCatalog: ProjectSmartTileCatalog(
+    categories: _project.smartTileCatalog.categories,
+    atlases: _project.smartTileCatalog.atlases,
+    materials: <ProjectSmartTileMaterial>[
+      ..._project.smartTileCatalog.materials,
+      const ProjectSmartTileMaterial(
+        id: 'rural',
+        name: 'Terre rurale',
+        connectionGroupId: 'rural',
+      ),
+    ],
+    animations: _project.smartTileCatalog.animations,
+    presets: <ProjectSmartTilePreset>[
+      ..._project.smartTileCatalog.presets,
+      _ruralPathPreset,
+    ],
+    patterns: _project.smartTileCatalog.patterns,
+    drafts: _project.smartTileCatalog.drafts,
   ),
 );
 

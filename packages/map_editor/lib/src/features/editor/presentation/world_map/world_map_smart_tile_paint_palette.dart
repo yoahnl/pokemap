@@ -4,16 +4,19 @@ import 'package:map_authoring/map_authoring.dart'
     show smartTileCanonicalLayerActionRequiredCode;
 import 'package:map_core/map_core.dart';
 
+import '../../../../app/providers/core/repository_providers.dart';
 import '../../../../ui/design_system/design_system.dart';
 import '../../../smart_tiles_studio/application/smart_tile_preset_preview.dart';
 import '../../../smart_tiles_studio/presentation/smart_tile_behavior_action_menu.dart';
 import '../../../smart_tiles_studio/presentation/smart_tile_sprite_preview.dart';
+import '../../application/smart_tile_layer_preset_change_gateway.dart';
 import '../../application/smart_tile_variant_density.dart';
 import '../../application/world_map_tool_activation.dart';
 import '../../application/world_map_tool_family.dart';
 import '../../state/editor_notifier.dart';
 import '../../tools/editor_tool.dart';
 import 'world_map_paint_inspection_intent.dart';
+import 'smart_tile_layer_preset_change_flow.dart';
 import 'world_map_smart_tile_density_section.dart';
 import 'world_map_smart_tile_gesture_mode.dart';
 import 'world_map_workspace_session.dart';
@@ -53,6 +56,9 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
           activeLayerId: state.activeLayerId,
           activeTool: state.activeTool,
           projectRootPath: state.projectRootPath,
+          activeMapPath: state.activeMapPath,
+          mapIsDirty: state.isDirty,
+          projectIsDirty: state.isProjectDirty,
         ),
       ),
     );
@@ -116,7 +122,7 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
       intent.clear();
     }
 
-    void selectPreset(ProjectSmartTilePreset preset) {
+    Future<void> selectPreset(ProjectSmartTilePreset preset) async {
       final current = ref.read(editorNotifierProvider);
       final map = current.activeMap;
       if (map == null) return;
@@ -126,8 +132,55 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
         usage: preset.usage,
         preferredLayerId: current.activeLayerId,
       );
-      if (existing == null) return;
-      notifier.setActiveLayer(existing.id);
+      if (existing != null) {
+        notifier.setActiveLayer(existing.id);
+        materialController.select(preset.defaultMaterialId);
+        patternController.clear();
+        activate(ActivateWorldMapPaint(subtool));
+        return;
+      }
+      final project = current.project;
+      final projectRootPath = current.projectRootPath;
+      final activeMapPath = current.activeMapPath;
+      final layer = _activeSmartTileLayer(
+        map,
+        current.activeLayerId,
+        preset.usage,
+      );
+      if (project == null ||
+          projectRootPath == null ||
+          activeMapPath == null ||
+          current.isDirty ||
+          current.isProjectDirty ||
+          layer == null) {
+        return;
+      }
+      final result = await showSmartTileLayerPresetChangeFlow(
+        context: context,
+        gateway: CanonicalSmartTileLayerPresetChangeGateway(
+          mutations: ref.read(authoringMutationAdapterProvider),
+          queries: ref.read(authoringQueryAdapterProvider),
+        ),
+        projectRootPath: projectRootPath,
+        manifest: project,
+        map: map,
+        layer: layer,
+        targetPreset: preset,
+      );
+      if (result == null || !context.mounted) return;
+      final accepted = notifier.acceptCanonicalSmartTileLayerPresetChange(
+        projectRootPath: projectRootPath,
+        manifest: result.manifest,
+        map: result.map,
+        mapRevision: result.mapRevision,
+        layerId: result.layerId,
+        receiptId: result.receiptId,
+        targetPresetId: result.targetPresetId,
+        materialMappings: result.materialMappings,
+        statusMessage: 'Motif « ${preset.name} » appliqué au calque '
+            '« ${layer.name} ».',
+      );
+      if (!accepted) return;
       materialController.select(preset.defaultMaterialId);
       patternController.clear();
       activate(ActivateWorldMapPaint(subtool));
@@ -445,6 +498,11 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                                     usage: preset.usage,
                                     preferredLayerId: snapshot.activeLayerId,
                                   );
+                            final canChangeActiveLayer = activeLayer != null &&
+                                snapshot.projectRootPath != null &&
+                                snapshot.activeMapPath != null &&
+                                !snapshot.mapIsDirty &&
+                                !snapshot.projectIsDirty;
                             return PokeMapAssetCard(
                               key: ValueKey<String>(
                                 'world-map-smart-tile-${_usage.name}-preset-${preset.id}',
@@ -481,11 +539,18 @@ class WorldMapSmartTilePaintPalette extends ConsumerWidget {
                                   ? 'Prêt à peindre'
                                   : reusableLayer != null
                                       ? 'Cliquer pour utiliser'
-                                      : 'Ajouter un calque depuis Calques',
+                                      : canChangeActiveLayer
+                                          ? 'Changer le motif du calque'
+                                          : activeLayer != null &&
+                                                  (snapshot.mapIsDirty ||
+                                                      snapshot.projectIsDirty)
+                                              ? 'Enregistrer avant de changer'
+                                              : 'Ajouter un calque depuis Calques',
                               selected: selected,
-                              onPressed: reusableLayer == null
-                                  ? null
-                                  : () => selectPreset(preset),
+                              onPressed:
+                                  reusableLayer == null && !canChangeActiveLayer
+                                      ? null
+                                      : () => selectPreset(preset),
                               trailing: selected
                                   ? const Icon(Icons.check_circle_outline)
                                   : null,

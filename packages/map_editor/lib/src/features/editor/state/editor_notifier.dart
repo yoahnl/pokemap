@@ -87,6 +87,7 @@ import '../application/smart_tile_mutation_identity.dart';
 import '../application/smart_tile_variant_density.dart';
 
 part 'editor_notifier.g.dart';
+part 'editor_notifier_layer_preset_change.dart';
 part 'editor_notifier_map_connections.dart';
 part 'editor_notifier_placed_element_placement.dart';
 part 'editor_notifier_tileset_library.dart';

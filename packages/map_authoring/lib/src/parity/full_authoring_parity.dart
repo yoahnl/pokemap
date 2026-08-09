@@ -304,6 +304,9 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           'test/domains/maps/smart_tile_layer_preset_change_action_test.dart',
       AuthoringTransport.cli:
           'test/domains/maps/smart_tile_layer_preset_change_action_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/features/editor/presentation/world_map/'
+              'smart_tile_layer_preset_change_flow_test.dart',
     };
   }
   if (actionId != 'map.create' && actionId != 'presentation.update') {
