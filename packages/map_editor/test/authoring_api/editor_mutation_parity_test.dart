@@ -520,6 +520,22 @@ void main() {
         id: 'grass_patch',
         name: 'Grass Patch',
         encounterKind: EncounterKind.walk,
+        chancePerStep: 0.12,
+        entries: <ProjectEncounterEntry>[
+          ProjectEncounterEntry(
+            speciesId: 'bulbasaur',
+            minLevel: 2,
+            maxLevel: 4,
+            weight: 3,
+          ),
+          ProjectEncounterEntry(
+            speciesId: 'pikachu',
+            minLevel: 3,
+            maxLevel: 5,
+            weight: 1,
+          ),
+        ],
+        tags: <String>['route', 'early-game'],
       );
 
       final created = await gateway.upsert(
@@ -533,6 +549,14 @@ void main() {
         'campaign.encounter_table.upsert',
       );
       expect(created.encounterTables, <ProjectEncounterTable>[table]);
+      expect(
+        (await FileProjectRepository().loadProject(
+          p.join(fixture.root.path, 'project.json'),
+        ))
+            .encounterTables
+            .single,
+        table,
+      );
 
       final deleted = await gateway.remove(
         projectRootPath: fixture.root.path,

@@ -12,16 +12,16 @@ class _EncounterReferenceData {
   });
 
   const _EncounterReferenceData.loading()
-      : speciesEntries = const <PokemonDatabaseIndexEntry>[],
-        isSpeciesAvailable = false,
-        speciesMessage =
-            'Chargement des données locales d’espèces… Les IDs d’espèces bruts restent autorisés pendant le chargement.';
+    : speciesEntries = const <PokemonDatabaseIndexEntry>[],
+      isSpeciesAvailable = false,
+      speciesMessage =
+          'Chargement des données locales d’espèces… Les IDs d’espèces bruts restent autorisés pendant le chargement.';
 
   const _EncounterReferenceData.unavailable()
-      : speciesEntries = const <PokemonDatabaseIndexEntry>[],
-        isSpeciesAvailable = false,
-        speciesMessage =
-            'Aucun espace de travail Pokémon utilisable détecté. Les IDs d’espèces bruts restent autorisés, mais sans assistance locale.';
+    : speciesEntries = const <PokemonDatabaseIndexEntry>[],
+      isSpeciesAvailable = false,
+      speciesMessage =
+          'Aucun espace de travail Pokémon utilisable détecté. Les IDs d’espèces bruts restent autorisés, mais sans assistance locale.';
 
   final List<PokemonDatabaseIndexEntry> speciesEntries;
   final bool isSpeciesAvailable;
@@ -46,10 +46,7 @@ class _EncounterEntryDraftValidation {
 }
 
 class _EncounterSpeciesStatus {
-  const _EncounterSpeciesStatus({
-    required this.message,
-    required this.isError,
-  });
+  const _EncounterSpeciesStatus({required this.message, required this.isError});
 
   final String message;
   final bool isError;
@@ -102,6 +99,24 @@ String _requiredEncounterFlagsText(List<ScriptCondition> conditions) {
       .join(', ');
 }
 
+String _encounterTagsText(List<String> tags) {
+  return tags
+      .map((tag) => tag.trim())
+      .where((tag) => tag.isNotEmpty)
+      .join(', ');
+}
+
+List<String> _parseEncounterTags(String rawTags) {
+  final normalized = <String, String>{};
+  for (final rawTag in rawTags.split(',')) {
+    final tag = rawTag.trim();
+    if (tag.isNotEmpty) {
+      normalized.putIfAbsent(tag.toLowerCase(), () => tag);
+    }
+  }
+  return normalized.values.toList(growable: false);
+}
+
 List<ScriptCondition> _buildAuthoredEncounterConditions({
   required List<ScriptCondition> existing,
   required String requiredFlagsText,
@@ -118,13 +133,14 @@ List<ScriptCondition> _buildAuthoredEncounterConditions({
     }
     return true;
   }).toList();
-  final flags = requiredFlagsText
-      .split(',')
-      .map((flag) => flag.trim())
-      .where((flag) => flag.isNotEmpty)
-      .toSet()
-      .toList()
-    ..sort();
+  final flags =
+      requiredFlagsText
+          .split(',')
+          .map((flag) => flag.trim())
+          .where((flag) => flag.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
   return <ScriptCondition>[
     ...preserved,
     for (final flag in flags) ScriptConditionFactory.flagIsSet(flag),
@@ -210,24 +226,6 @@ int _tableTotalWeight(ProjectEncounterTable table) {
   );
 }
 
-double? _entryChance({
-  required ProjectEncounterTable table,
-  required int weight,
-}) {
-  final totalWeight = _tableTotalWeight(table);
-  if (weight <= 0 || totalWeight <= 0) {
-    return null;
-  }
-  return weight / totalWeight;
-}
-
-String? _formatEncounterShare(double? share) {
-  if (share == null) {
-    return null;
-  }
-  return '${(share * 100).toStringAsFixed(1)}%';
-}
-
 String _kindLabel(EncounterKind kind) {
   return switch (kind) {
     EncounterKind.walk => 'Marcher',
@@ -283,27 +281,5 @@ extension _EncounterTablesPanelSupport on _EncounterTablesPanelState {
       maxLevelMessage: maxLevelMessage,
       weightMessage: weightMessage,
     );
-  }
-
-  String? _draftEncounterChance({
-    required ProjectEncounterTable table,
-  }) {
-    final draftWeight = int.tryParse(_entryWeightController.text.trim());
-    if (draftWeight == null || draftWeight <= 0) {
-      return null;
-    }
-
-    var totalWeight = _tableTotalWeight(table);
-    if (_editingEntryTableId == table.id && _editingEntryIndex != null) {
-      final current = table.entries[_editingEntryIndex!];
-      totalWeight = totalWeight - current.weight + draftWeight;
-    } else {
-      totalWeight += draftWeight;
-    }
-
-    if (totalWeight <= 0) {
-      return null;
-    }
-    return _formatEncounterShare(draftWeight / totalWeight);
   }
 }

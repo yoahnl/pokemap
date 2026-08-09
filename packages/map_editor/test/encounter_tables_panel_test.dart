@@ -13,13 +13,17 @@ import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/design_system/design_system.dart';
 import 'package:map_editor/src/ui/panels/encounter_tables_panel.dart';
 
 void main() {
   Future<void> pumpEncounterPanel(
     WidgetTester tester,
-    ProviderContainer container,
-  ) async {
+    ProviderContainer container, {
+    bool embedded = false,
+    double width = 1280,
+    double height = 1800,
+  }) async {
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(1600, 2200);
     addTearDown(() {
@@ -32,12 +36,12 @@ void main() {
         container: container,
         child: MacosTheme(
           data: MacosThemeData.light(),
-          child: const MaterialApp(
+          child: MaterialApp(
             home: CupertinoPageScaffold(
               child: SizedBox(
-                width: 1280,
-                height: 1800,
-                child: EncounterTablesPanel(),
+                width: width,
+                height: height,
+                child: EncounterTablesPanel(embedded: embedded),
               ),
             ),
           ),
@@ -47,131 +51,517 @@ void main() {
   }
 
   testWidgets(
-      'creates a table and a valid encounter entry with local species assist',
-      (tester) async {
-    final repository = _FakeProjectRepository();
-    const workspace = _FakeWorkspace();
-    final container = ProviderContainer(
-      overrides: [
-        projectRepositoryProvider.overrideWithValue(repository),
-        encounterTablePersistenceGatewayProvider.overrideWithValue(
-          _FakeEncounterTablePersistenceGateway(repository),
+    'filters the encounter library case-insensitively and configures the selected table at 1280',
+    (tester) async {
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        projectRootPath: '/tmp/encounter_library_test',
+        project: ProjectManifest(
+          name: 'encounter_library_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          encounterTables: <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'route_1_grass',
+              name: 'Route 1 — Hautes herbes',
+              encounterKind: EncounterKind.walk,
+              chancePerStep: 0.12,
+            ),
+            ProjectEncounterTable(
+              id: 'moon_cave_surf',
+              name: 'Grotte Sélénite — Eau',
+              encounterKind: EncounterKind.surf,
+              chancePerStep: 0.08,
+            ),
+          ],
         ),
-        projectWorkspaceFactoryProvider.overrideWithValue(
-          const _FakeWorkspaceFactory(workspace),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(
+        find.byKey(const Key('encounter-library-search-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('encounter-tables-table-toggle-route_1_grass')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('encounter-tables-table-toggle-moon_cave_surf')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.descendant(
+          of: find.byKey(const Key('encounter-library-search-field')),
+          matching: find.byType(EditableText),
         ),
-        pokedexEntryLoaderProvider.overrideWithValue(
-          (_) async => _speciesEntries,
+        'SÉLÉNITE',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('encounter-tables-table-toggle-route_1_grass')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('encounter-tables-table-toggle-moon_cave_surf')),
+        findsOneWidget,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-table-toggle-moon_cave_surf')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Configuration de la table'), findsWidgets);
+      expect(
+        find.byKey(
+          const Key('encounter-tables-edit-name-field-moon_cave_surf'),
         ),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    container.read(editorNotifierProvider.notifier).state = const EditorState(
-      projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(
-        name: 'encounter_panel_test',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[],
-      ),
-    );
-
-    await pumpEncounterPanel(tester, container);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    await tester.tap(
-      find.byKey(const Key('encounter-tables-new-table-button')),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-create-name-field')),
-      'Grass Patch',
-    );
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-create-rate-percent-field')),
-      '25',
-    );
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-create-required-flags-field')),
-      'route_1_open',
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('encounter-tables-create-submit-button')),
-    );
-    await tester.pumpAndSettle();
-
-    final table =
-        container.read(editorNotifierProvider).project!.encounterTables.single;
-    expect(table.id, 'grass_patch');
-    expect(table.name, 'Grass Patch');
-    expect(table.chancePerStep, 0.25);
-    expect(
-      table.conditions.single.params[ScriptConditionParams.flagName],
-      'route_1_open',
-    );
-
-    await tester.tap(
-        find.byKey(const Key('encounter-tables-table-toggle-grass_patch')));
-    await tester.pumpAndSettle();
-
-    await tester.tap(
-      find.byKey(const Key('encounter-tables-add-entry-button-grass_patch')),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-entry-species-field')),
-      'bulba',
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(
-        const Key('encounter-tables-entry-species-suggestion-bulbasaur'),
-      ),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-entry-min-level-field')),
-      '2',
-    );
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-entry-max-level-field')),
-      '4',
-    );
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-entry-weight-field')),
-      '3',
-    );
-
-    await tester.tap(
-      find.byKey(const Key('encounter-tables-entry-save-button')),
-    );
-    await tester.pumpAndSettle();
-
-    final savedEntry = container
-        .read(editorNotifierProvider)
-        .project!
-        .encounterTables
-        .single
-        .entries
-        .single;
-    expect(savedEntry.speciesId, 'bulbasaur');
-    expect(savedEntry.minLevel, 2);
-    expect(savedEntry.maxLevel, 4);
-    expect(savedEntry.weight, 3);
-    expect(
-        find.textContaining('Bulbasaur • bulbasaur • Lv.2-4'), findsOneWidget);
-    expect(find.textContaining('100.0%'), findsOneWidget);
-  });
+        findsOneWidget,
+      );
+      expect(find.text('Runtime walk/surf certifié'), findsOneWidget);
+    },
+  );
 
   testWidgets(
-      'shows inline validation and blocks save when local species or levels are invalid',
-      (tester) async {
-    final repository = _FakeProjectRepository();
+    'renders roster order with distinct relative and per-step probabilities',
+    (tester) async {
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        projectRootPath: '/tmp/encounter_roster_test',
+        project: ProjectManifest(
+          name: 'encounter_roster_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          encounterTables: <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'route_1_grass',
+              name: 'Route 1 — Hautes herbes',
+              encounterKind: EncounterKind.walk,
+              chancePerStep: 0.2,
+              entries: <ProjectEncounterEntry>[
+                ProjectEncounterEntry(
+                  speciesId: 'bulbasaur',
+                  minLevel: 2,
+                  maxLevel: 4,
+                  weight: 3,
+                ),
+                ProjectEncounterEntry(
+                  speciesId: 'pikachu',
+                  minLevel: 3,
+                  maxLevel: 5,
+                  weight: 1,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final firstRow = find.byKey(
+        const Key('encounter-roster-entry-route_1_grass-0'),
+      );
+      final secondRow = find.byKey(
+        const Key('encounter-roster-entry-route_1_grass-1'),
+      );
+
+      expect(firstRow, findsOneWidget);
+      expect(secondRow, findsOneWidget);
+      expect(
+        tester.getTopLeft(firstRow).dy,
+        lessThan(tester.getTopLeft(secondRow).dy),
+      );
+      expect(find.text('75.0% du roster'), findsOneWidget);
+      expect(find.text('15.0% par pas'), findsOneWidget);
+      expect(find.text('25.0% du roster'), findsOneWidget);
+      expect(find.text('5.0% par pas'), findsOneWidget);
+      expect(
+        find.byKey(const Key('encounter-roster-sprite-route_1_grass-0')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('encounter-roster-sprite-route_1_grass-0')),
+          matching: find.byIcon(CupertinoIcons.photo),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'does not expose a false zero probability for an invalid roster',
+    (tester) async {
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        projectRootPath: '/tmp/encounter_invalid_roster_test',
+        project: ProjectManifest(
+          name: 'encounter_invalid_roster_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          encounterTables: <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'invalid_grass',
+              name: 'Invalid Grass',
+              encounterKind: EncounterKind.walk,
+              chancePerStep: 0.2,
+              entries: <ProjectEncounterEntry>[
+                ProjectEncounterEntry(
+                  speciesId: 'bulbasaur',
+                  minLevel: 2,
+                  maxLevel: 4,
+                  weight: 0,
+                ),
+                ProjectEncounterEntry(
+                  speciesId: 'bulbasaur',
+                  minLevel: 3,
+                  maxLevel: 5,
+                  weight: 0,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Part indisponible'), findsNWidgets(2));
+      expect(find.text('Chance par pas indisponible'), findsNWidgets(2));
+      expect(find.byType(PokeMapProgressBar), findsNothing);
+      expect(
+        find.text('L’espèce "bulbasaur" apparaît aux entrées 1, 2.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'La somme des poids doit être strictement supérieure à zéro.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Table valide'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'edits and confirms deletion from the contextual entry inspector',
+    (tester) async {
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        projectRootPath: '/tmp/encounter_inspector_test',
+        project: ProjectManifest(
+          name: 'encounter_inspector_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          encounterTables: <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'route_1_grass',
+              name: 'Route 1 — Hautes herbes',
+              encounterKind: EncounterKind.walk,
+              chancePerStep: 0.2,
+              entries: <ProjectEncounterEntry>[
+                ProjectEncounterEntry(
+                  speciesId: 'bulbasaur',
+                  minLevel: 2,
+                  maxLevel: 4,
+                  weight: 3,
+                ),
+                ProjectEncounterEntry(
+                  speciesId: 'pikachu',
+                  minLevel: 3,
+                  maxLevel: 5,
+                  weight: 1,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('Validation globale'), findsOneWidget);
+      expect(find.text('Table valide'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const Key('encounter-roster-entry-route_1_grass-0')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('encounter-entry-inspector')),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-weight-field')),
+        '5',
+      );
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-entry-save-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project!
+            .encounterTables
+            .single
+            .entries
+            .first
+            .weight,
+        5,
+      );
+
+      await tester.tap(
+        find.byKey(const Key('encounter-roster-entry-route_1_grass-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('encounter-entry-delete-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(pokeMapConfirmationDialogKey), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(pokeMapConfirmationDialogKey),
+          matching: find.text('Annuler'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(pokeMapConfirmationDialogKey), findsNothing);
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project!
+            .encounterTables
+            .single
+            .entries
+            .length,
+        2,
+      );
+
+      await tester.tap(find.byKey(const Key('encounter-entry-delete-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(pokeMapConfirmationDialogKey),
+          matching: find.text('Supprimer'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project!
+            .encounterTables
+            .single
+            .entries
+            .length,
+        1,
+      );
+    },
+  );
+
+  testWidgets(
+    'keeps the entry draft and exposes retry after persistence fails',
+    (tester) async {
+      final repository = _FakeProjectRepository(
+        saveError: StateError('disk exploded'),
+        remainingSaveFailures: 1,
+      );
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        projectRootPath: '/tmp/encounter_entry_failure_test',
+        project: ProjectManifest(
+          name: 'encounter_entry_failure_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          encounterTables: <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'route_1_grass',
+              name: 'Route 1 — Hautes herbes',
+              encounterKind: EncounterKind.walk,
+              entries: <ProjectEncounterEntry>[
+                ProjectEncounterEntry(
+                  speciesId: 'bulbasaur',
+                  minLevel: 2,
+                  maxLevel: 4,
+                  weight: 3,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.tap(
+        find.byKey(const Key('encounter-roster-entry-route_1_grass-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-weight-field')),
+        '7',
+      );
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-entry-save-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('encounter-tables-entry-weight-field')),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.byKey(const Key('encounter-tables-entry-weight-field')),
+            )
+            .controller!
+            .text,
+        '7',
+      );
+      expect(find.text('Réessayer'), findsOneWidget);
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project!
+            .encounterTables
+            .single
+            .entries
+            .single
+            .weight,
+        3,
+      );
+
+      await tester.tap(find.text('Réessayer'));
+      await tester.pumpAndSettle();
+
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project!
+            .encounterTables
+            .single
+            .entries
+            .single
+            .weight,
+        7,
+      );
+      expect(
+        find.byKey(const Key('encounter-tables-entry-weight-field')),
+        findsNothing,
+      );
+    },
+  );
+
+  testWidgets('keeps the entry inspector visible when deletion fails', (
+    tester,
+  ) async {
+    final repository = _FakeProjectRepository(
+      saveError: StateError('disk exploded'),
+    );
     const workspace = _FakeWorkspace();
     final container = ProviderContainer(
       overrides: [
@@ -190,16 +580,24 @@ void main() {
     addTearDown(container.dispose);
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
-      projectRootPath: '/tmp/encounter_panel_test',
+      projectRootPath: '/tmp/encounter_entry_delete_failure_test',
       project: ProjectManifest(
-        name: 'encounter_panel_test',
+        name: 'encounter_entry_delete_failure_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
         encounterTables: <ProjectEncounterTable>[
           ProjectEncounterTable(
-            id: 'grass_patch',
-            name: 'Grass Patch',
+            id: 'route_1_grass',
+            name: 'Route 1 — Hautes herbes',
             encounterKind: EncounterKind.walk,
+            entries: <ProjectEncounterEntry>[
+              ProjectEncounterEntry(
+                speciesId: 'missingno',
+                minLevel: 5,
+                maxLevel: 3,
+                weight: 0,
+              ),
+            ],
           ),
         ],
       ),
@@ -208,67 +606,365 @@ void main() {
     await pumpEncounterPanel(tester, container);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
-
     await tester.tap(
-        find.byKey(const Key('encounter-tables-table-toggle-grass_patch')));
+      find.byKey(const Key('encounter-roster-entry-route_1_grass-0')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('encounter-entry-delete-button')));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(const Key('encounter-tables-add-entry-button-grass_patch')),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-entry-species-field')),
-      'missingno',
-    );
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-entry-min-level-field')),
-      '10',
-    );
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-entry-max-level-field')),
-      '5',
-    );
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-entry-weight-field')),
-      '0',
+      find.descendant(
+        of: find.byKey(pokeMapConfirmationDialogKey),
+        matching: find.text('Supprimer'),
+      ),
     );
     await tester.pumpAndSettle();
 
     expect(
-      find.text(
-          'L\'espèce "missingno" n\'est pas présente dans le Pokédex local.'),
-      findsOneWidget,
+      find.textContaining('Failed to delete encounter entry'),
+      findsWidgets,
     );
-    expect(
-      find.text('Le niveau max doit être supérieur ou égal au niveau min.'),
-      findsOneWidget,
-    );
-    expect(
-      find.text('Le poids doit être un entier positif.'),
-      findsOneWidget,
-    );
-    expect(
-      tester
-          .widget<CupertinoButton>(
-            find.byKey(const Key('encounter-tables-entry-save-button')),
-          )
-          .onPressed,
-      isNull,
-    );
+    expect(find.byKey(const Key('encounter-entry-inspector')), findsOneWidget);
+    expect(find.text('Réessayer'), findsNothing);
     expect(
       container
           .read(editorNotifierProvider)
           .project!
           .encounterTables
           .single
-          .entries,
-      isEmpty,
+          .entries
+          .length,
+      1,
     );
   });
 
-  testWidgets('closes the table editor after a successful table update',
-      (tester) async {
+  testWidgets(
+    'creates a table and a valid encounter entry with local species assist',
+    (tester) async {
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        projectRootPath: '/tmp/encounter_panel_test',
+        project: ProjectManifest(
+          name: 'encounter_panel_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+        ),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-new-table-button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-create-name-field')),
+        'Grass Patch',
+      );
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-create-rate-percent-field')),
+        '25',
+      );
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-create-required-flags-field')),
+        'route_1_open',
+      );
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-create-tags-field')),
+        'extérieur, commun, Extérieur',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-create-submit-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final table = container
+          .read(editorNotifierProvider)
+          .project!
+          .encounterTables
+          .single;
+      expect(table.id, 'grass_patch');
+      expect(table.name, 'Grass Patch');
+      expect(table.chancePerStep, 0.25);
+      expect(
+        table.conditions.single.params[ScriptConditionParams.flagName],
+        'route_1_open',
+      );
+      expect(table.tags, <String>['extérieur', 'commun']);
+
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-table-toggle-grass_patch')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-add-entry-button-grass_patch')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-species-field')),
+        'bulba',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+          const Key('encounter-tables-entry-species-suggestion-bulbasaur'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-min-level-field')),
+        '2',
+      );
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-max-level-field')),
+        '4',
+      );
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-weight-field')),
+        '3',
+      );
+
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-entry-save-button')),
+      );
+      await tester.pumpAndSettle();
+
+      final savedEntry = container
+          .read(editorNotifierProvider)
+          .project!
+          .encounterTables
+          .single
+          .entries
+          .single;
+      expect(savedEntry.speciesId, 'bulbasaur');
+      expect(savedEntry.minLevel, 2);
+      expect(savedEntry.maxLevel, 4);
+      expect(savedEntry.weight, 3);
+      expect(find.text('Bulbasaur'), findsOneWidget);
+      expect(find.textContaining('Lv. 2–4'), findsOneWidget);
+      expect(find.text('100.0% du roster'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'shows inline validation and blocks save when local species or levels are invalid',
+    (tester) async {
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        projectRootPath: '/tmp/encounter_panel_test',
+        project: ProjectManifest(
+          name: 'encounter_panel_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          encounterTables: <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'grass_patch',
+              name: 'Grass Patch',
+              encounterKind: EncounterKind.walk,
+            ),
+          ],
+        ),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-table-toggle-grass_patch')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-add-entry-button-grass_patch')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-species-field')),
+        'missingno',
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-min-level-field')),
+        '10',
+      );
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-max-level-field')),
+        '5',
+      );
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-entry-weight-field')),
+        '0',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'L\'espèce "missingno" n\'est pas présente dans le Pokédex local.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Le niveau max doit être supérieur ou égal au niveau min.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Le poids doit être un entier positif.'),
+        findsOneWidget,
+      );
+      expect(
+        tester
+            .widget<PokeMapButton>(
+              find.byKey(const Key('encounter-tables-entry-save-button')),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project!
+            .encounterTables
+            .single
+            .entries,
+        isEmpty,
+      );
+    },
+  );
+
+  testWidgets(
+    'keeps the selected configuration after a successful table update',
+    (tester) async {
+      final repository = _FakeProjectRepository();
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        projectRootPath: '/tmp/encounter_panel_test',
+        project: ProjectManifest(
+          name: 'encounter_panel_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          encounterTables: <ProjectEncounterTable>[
+            ProjectEncounterTable(
+              id: 'cave_floor',
+              name: 'Cave Floor',
+              encounterKind: EncounterKind.walk,
+            ),
+            ProjectEncounterTable(
+              id: 'grass_patch',
+              name: 'Grass Patch',
+              encounterKind: EncounterKind.walk,
+            ),
+          ],
+        ),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-table-toggle-grass_patch')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('encounter-tables-edit-name-field-grass_patch')),
+        findsOneWidget,
+      );
+
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-edit-name-field-grass_patch')),
+        'Tall Grass',
+      );
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-edit-tags-field-grass_patch')),
+        'route, early-game',
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-save-table-button-grass_patch')),
+      );
+      await tester.pumpAndSettle();
+
+      final savedTable = container
+          .read(editorNotifierProvider)
+          .project!
+          .encounterTables
+          .where((table) => table.id == 'grass_patch')
+          .single;
+      expect(savedTable.name, 'Tall Grass');
+      expect(savedTable.tags, <String>['route', 'early-game']);
+      expect(
+        find.byKey(const Key('encounter-tables-edit-name-field-grass_patch')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('encounter-tables-edit-name-field-cave_floor')),
+        findsNothing,
+      );
+      expect(find.text('Tall Grass'), findsWidgets);
+    },
+  );
+
+  testWidgets('requires confirmation before deleting a table', (tester) async {
     final repository = _FakeProjectRepository();
     const workspace = _FakeWorkspace();
     final container = ProviderContainer(
@@ -288,9 +984,82 @@ void main() {
     addTearDown(container.dispose);
 
     container.read(editorNotifierProvider.notifier).state = const EditorState(
-      projectRootPath: '/tmp/encounter_panel_test',
+      projectRootPath: '/tmp/encounter_table_delete_test',
       project: ProjectManifest(
-        name: 'encounter_panel_test',
+        name: 'encounter_table_delete_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        encounterTables: <ProjectEncounterTable>[
+          ProjectEncounterTable(
+            id: 'grass_patch',
+            name: 'Grass Patch',
+            encounterKind: EncounterKind.walk,
+          ),
+          ProjectEncounterTable(
+            id: 'cave_floor',
+            name: 'Cave Floor',
+            encounterKind: EncounterKind.walk,
+          ),
+        ],
+      ),
+    );
+
+    await pumpEncounterPanel(tester, container);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    await tester.tap(
+      find.byKey(const Key('encounter-tables-delete-table-button-grass_patch')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(pokeMapConfirmationDialogKey), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(PokeMapButton, 'Annuler'));
+    await tester.pumpAndSettle();
+    expect(
+      container.read(editorNotifierProvider).project!.encounterTables.length,
+      2,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('encounter-tables-delete-table-button-grass_patch')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(PokeMapButton, 'Supprimer la table'));
+    await tester.pumpAndSettle();
+
+    final remainingTables = container
+        .read(editorNotifierProvider)
+        .project!
+        .encounterTables;
+    expect(remainingTables.map((table) => table.id), <String>['cave_floor']);
+  });
+
+  testWidgets('keeps the embedded world-map host usable until ENS-030', (
+    tester,
+  ) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        encounterTablePersistenceGatewayProvider.overrideWithValue(
+          _FakeEncounterTablePersistenceGateway(repository),
+        ),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => _speciesEntries,
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/encounter_embedded_test',
+      project: ProjectManifest(
+        name: 'encounter_embedded_test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
         encounterTables: <ProjectEncounterTable>[
@@ -303,44 +1072,27 @@ void main() {
       ),
     );
 
-    await pumpEncounterPanel(tester, container);
+    await pumpEncounterPanel(
+      tester,
+      container,
+      embedded: true,
+      width: 360,
+      height: 480,
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
-    await tester.tap(
-      find.byKey(const Key('encounter-tables-table-toggle-grass_patch')),
-    );
-    await tester.pumpAndSettle();
-
+    expect(find.text('Bibliothèque'), findsWidgets);
     expect(
-      find.byKey(const Key('encounter-tables-edit-name-field-grass_patch')),
+      find.byKey(const Key('encounter-tables-table-toggle-grass_patch')),
       findsOneWidget,
     );
-
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-edit-name-field-grass_patch')),
-      'Tall Grass',
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(
-      find.byKey(const Key('encounter-tables-save-table-button-grass_patch')),
-    );
-    await tester.pumpAndSettle();
-
-    final savedTable =
-        container.read(editorNotifierProvider).project!.encounterTables.single;
-    expect(savedTable.name, 'Tall Grass');
-    expect(
-      find.byKey(const Key('encounter-tables-edit-name-field-grass_patch')),
-      findsNothing,
-    );
-    expect(find.text('Tall Grass'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-      'keeps the panel usable when the local species index is unavailable',
-      (tester) async {
+  testWidgets('keeps the panel usable when the local species index is unavailable', (
+    tester,
+  ) async {
     final repository = _FakeProjectRepository();
     const workspace = _FakeWorkspace();
     final container = ProviderContainer(
@@ -381,12 +1133,14 @@ void main() {
 
     expect(
       find.textContaining(
-          'Unable to load local species data. Raw species IDs are still allowed.'),
+        'Unable to load local species data. Raw species IDs are still allowed.',
+      ),
       findsOneWidget,
     );
 
     await tester.tap(
-        find.byKey(const Key('encounter-tables-table-toggle-grass_patch')));
+      find.byKey(const Key('encounter-tables-table-toggle-grass_patch')),
+    );
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(const Key('encounter-tables-add-entry-button-grass_patch')),
@@ -397,6 +1151,7 @@ void main() {
       find.byKey(const Key('encounter-tables-entry-species-field')),
       'missingno',
     );
+    await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const Key('encounter-tables-entry-min-level-field')),
       '5',
@@ -443,111 +1198,120 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(
+      find.text(
+        'La validation des espèces est indisponible tant que le Pokédex local ne peut pas être chargé.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Table valide'), findsNothing);
   });
 
   testWidgets(
-      'keeps the create form open and surfaces the error when persistence fails',
-      (tester) async {
-    final repository = _FakeProjectRepository(
-      saveError: StateError('disk exploded'),
-    );
-    const workspace = _FakeWorkspace();
-    final container = ProviderContainer(
-      overrides: [
-        projectRepositoryProvider.overrideWithValue(repository),
-        encounterTablePersistenceGatewayProvider.overrideWithValue(
-          _FakeEncounterTablePersistenceGateway(repository),
+    'keeps the create form open and surfaces the error when persistence fails',
+    (tester) async {
+      final repository = _FakeProjectRepository(
+        saveError: StateError('disk exploded'),
+      );
+      const workspace = _FakeWorkspace();
+      final container = ProviderContainer(
+        overrides: [
+          projectRepositoryProvider.overrideWithValue(repository),
+          encounterTablePersistenceGatewayProvider.overrideWithValue(
+            _FakeEncounterTablePersistenceGateway(repository),
+          ),
+          projectWorkspaceFactoryProvider.overrideWithValue(
+            const _FakeWorkspaceFactory(workspace),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => _speciesEntries,
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        projectRootPath: '/tmp/encounter_panel_test',
+        project: ProjectManifest(
+          name: 'encounter_panel_test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
         ),
-        projectWorkspaceFactoryProvider.overrideWithValue(
-          const _FakeWorkspaceFactory(workspace),
+      );
+
+      await pumpEncounterPanel(tester, container);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-new-table-button')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('encounter-tables-create-name-field')),
+        'Grass Patch',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('encounter-tables-create-submit-button')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('encounter-tables-create-name-field')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining(
+          'Failed to create encounter table: Bad state: disk exploded',
         ),
-        pokedexEntryLoaderProvider.overrideWithValue(
-          (_) async => _speciesEntries,
-        ),
-      ],
-    );
-    addTearDown(container.dispose);
-
-    container.read(editorNotifierProvider.notifier).state = const EditorState(
-      projectRootPath: '/tmp/encounter_panel_test',
-      project: ProjectManifest(
-        name: 'encounter_panel_test',
-        maps: <ProjectMapEntry>[],
-        tilesets: <ProjectTilesetEntry>[],
-      ),
-    );
-
-    await pumpEncounterPanel(tester, container);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-
-    await tester.tap(
-      find.byKey(const Key('encounter-tables-new-table-button')),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const Key('encounter-tables-create-name-field')),
-      'Grass Patch',
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.byKey(const Key('encounter-tables-create-submit-button')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(
-      find.byKey(const Key('encounter-tables-create-name-field')),
-      findsOneWidget,
-    );
-    expect(
-      find.textContaining(
-          'Failed to create encounter table: Bad state: disk exploded'),
-      findsWidgets,
-    );
-    expect(
-      container.read(editorNotifierProvider).project!.encounterTables,
-      isEmpty,
-    );
-  });
+        findsWidgets,
+      );
+      expect(
+        container.read(editorNotifierProvider).project!.encounterTables,
+        isEmpty,
+      );
+    },
+  );
 }
 
 const List<PokemonDatabaseIndexEntry> _speciesEntries =
     <PokemonDatabaseIndexEntry>[
-  PokemonDatabaseIndexEntry(
-    id: 'bulbasaur',
-    nationalDex: 1,
-    primaryName: 'Bulbasaur',
-    genIntroduced: 1,
-    types: <String>['grass', 'poison'],
-    isEnabledInProject: true,
-    refs: PokemonDatabaseIndexRefs(
-      learnset: 'bulbasaur',
-      evolution: 'bulbasaur',
-      media: 'bulbasaur',
-    ),
-  ),
-  PokemonDatabaseIndexEntry(
-    id: 'pikachu',
-    nationalDex: 25,
-    primaryName: 'Pikachu',
-    genIntroduced: 1,
-    types: <String>['electric'],
-    isEnabledInProject: true,
-    refs: PokemonDatabaseIndexRefs(
-      learnset: 'pikachu',
-      evolution: 'pikachu',
-      media: 'pikachu',
-    ),
-  ),
-];
+      PokemonDatabaseIndexEntry(
+        id: 'bulbasaur',
+        nationalDex: 1,
+        primaryName: 'Bulbasaur',
+        genIntroduced: 1,
+        types: <String>['grass', 'poison'],
+        isEnabledInProject: true,
+        refs: PokemonDatabaseIndexRefs(
+          learnset: 'bulbasaur',
+          evolution: 'bulbasaur',
+          media: 'bulbasaur',
+        ),
+      ),
+      PokemonDatabaseIndexEntry(
+        id: 'pikachu',
+        nationalDex: 25,
+        primaryName: 'Pikachu',
+        genIntroduced: 1,
+        types: <String>['electric'],
+        isEnabledInProject: true,
+        refs: PokemonDatabaseIndexRefs(
+          learnset: 'pikachu',
+          evolution: 'pikachu',
+          media: 'pikachu',
+        ),
+      ),
+    ];
 
 class _FakeProjectRepository implements ProjectRepository {
-  _FakeProjectRepository({
-    this.saveError,
-  });
+  _FakeProjectRepository({this.saveError, this.remainingSaveFailures})
+    : assert(remainingSaveFailures == null || remainingSaveFailures >= 0);
 
   final Object? saveError;
+  int? remainingSaveFailures;
   final List<ProjectManifest> savedProjects = <ProjectManifest>[];
 
   @override
@@ -557,7 +1321,13 @@ class _FakeProjectRepository implements ProjectRepository {
 
   @override
   Future<void> saveProject(ProjectManifest project, String path) async {
-    if (saveError != null) {
+    final shouldFail =
+        saveError != null &&
+        (remainingSaveFailures == null || remainingSaveFailures! > 0);
+    if (shouldFail) {
+      if (remainingSaveFailures != null) {
+        remainingSaveFailures = remainingSaveFailures! - 1;
+      }
       throw saveError!;
     }
     savedProjects.add(project);

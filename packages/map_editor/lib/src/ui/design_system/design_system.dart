@@ -28,6 +28,7 @@ export 'pokemap_guided_slider.dart';
 export 'pokemap_horizontal_resize_handle.dart';
 export 'pokemap_icon_button.dart';
 export 'pokemap_panel.dart';
+export 'pokemap_progress_bar.dart';
 export 'pokemap_resize_impact_dialog.dart';
 export 'pokemap_search_field.dart';
 export 'pokemap_semantic_color_preview.dart';

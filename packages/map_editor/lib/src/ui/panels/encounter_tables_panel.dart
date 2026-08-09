@@ -1,7 +1,8 @@
-import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../../app/providers/core/repository_providers.dart';
 import '../../app/providers/pokedex/pokedex_providers.dart';
@@ -10,24 +11,21 @@ import '../../application/ports/project_workspace.dart';
 import '../../application/services/pokemon_species_lookup_service.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
-import '../shared/cupertino_editor_widgets.dart';
-import '../shared/inspector_embedded_widgets.dart';
+import '../../theme/theme.dart';
+import '../design_system/design_system.dart';
+import 'encounter_probability_projection.dart';
 
 // Keep the encounters panel in one Dart library so the corrective pass can
 // split the noise into neighboring `part` files without changing visibility,
 // notifier contracts, or the existing encounter authoring pipeline.
 part 'encounter_tables_panel_support.dart';
-part 'encounter_tables_panel_table_widgets.dart';
-part 'encounter_tables_panel_entry_widgets.dart';
+part 'encounter_tables_panel_workspace.dart';
 
 const PokemonSpeciesLookupService _encounterSpeciesLookupService =
     PokemonSpeciesLookupService();
 
 class EncounterTablesPanel extends ConsumerStatefulWidget {
-  const EncounterTablesPanel({
-    super.key,
-    this.embedded = false,
-  });
+  const EncounterTablesPanel({super.key, this.embedded = false});
 
   final bool embedded;
 
@@ -44,9 +42,13 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   final _newTableNameController = TextEditingController();
   final _newTableChancePercentController = TextEditingController(text: '12');
   final _newTableRequiredFlagsController = TextEditingController();
+  final _newTableTagsController = TextEditingController();
   EncounterKind _newTableKind = EncounterKind.walk;
   bool _showCreateForm = false;
   String? _createTableValidationMessage;
+  final _tableSearchController = TextEditingController();
+  String _tableSearchQuery = '';
+  _EncounterWorkspacePane _compactWorkspacePane = _EncounterWorkspacePane.table;
 
   // -------------------------------------------------------------------------
   // Edit table draft
@@ -56,6 +58,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   final _editTableNameController = TextEditingController();
   final _editTableChancePercentController = TextEditingController();
   final _editTableRequiredFlagsController = TextEditingController();
+  final _editTableTagsController = TextEditingController();
   EncounterKind _editTableKind = EncounterKind.walk;
   String? _editTableValidationMessage;
 
@@ -75,6 +78,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   final _entryMaxLevelController = TextEditingController(text: '5');
   final _entryWeightController = TextEditingController(text: '1');
   String? _entryValidationMessage;
+  bool _entryDeleteFailed = false;
 
   // -------------------------------------------------------------------------
   // Local Pokédex references used only for encounter authoring assistance
@@ -84,13 +88,24 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   Future<_EncounterReferenceData>? _referenceDataFuture;
 
   @override
+  void initState() {
+    super.initState();
+    if (widget.embedded) {
+      _compactWorkspacePane = _EncounterWorkspacePane.library;
+    }
+  }
+
+  @override
   void dispose() {
     _newTableNameController.dispose();
     _newTableChancePercentController.dispose();
     _newTableRequiredFlagsController.dispose();
+    _newTableTagsController.dispose();
+    _tableSearchController.dispose();
     _editTableNameController.dispose();
     _editTableChancePercentController.dispose();
     _editTableRequiredFlagsController.dispose();
+    _editTableTagsController.dispose();
     _entrySpeciesController.dispose();
     _entryMinLevelController.dispose();
     _entryMaxLevelController.dispose();
@@ -106,162 +121,32 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
 
     _ensureReferenceDataForState(state);
 
-    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
-    const accent = EditorChrome.inspectorJoyCyan;
     final tables = project?.encounterTables ?? const <ProjectEncounterTable>[];
 
-    final content = project == null
-        ? Center(
-            child: Text(
-              'No project loaded',
-              style: TextStyle(
-                color: CupertinoColors.placeholderText.resolveFrom(context),
-              ),
+    return Material(
+      type: MaterialType.transparency,
+      child: project == null
+          ? const PokeMapEmptyState(
+              title: 'Aucun projet ouvert',
+              description:
+                  'Ouvrez un projet pour créer et configurer ses rencontres.',
+              icon: Icon(Icons.folder_open_rounded),
+            )
+          : FutureBuilder<_EncounterReferenceData>(
+              future: _referenceDataFuture,
+              initialData: const _EncounterReferenceData.loading(),
+              builder: (context, snapshot) {
+                final references =
+                    snapshot.data ?? const _EncounterReferenceData.loading();
+                return _buildEncounterWorkspace(
+                  context: context,
+                  state: state,
+                  notifier: notifier,
+                  tables: tables,
+                  references: references,
+                );
+              },
             ),
-          )
-        : FutureBuilder<_EncounterReferenceData>(
-            future: _referenceDataFuture,
-            initialData: const _EncounterReferenceData.loading(),
-            builder: (context, snapshot) {
-              final references =
-                  snapshot.data ?? const _EncounterReferenceData.loading();
-              return ListView(
-                padding: widget.embedded
-                    ? kInspectorTileBodyPadding
-                    : const EdgeInsets.fromLTRB(8, 8, 8, 8),
-                children: [
-                  _buildReferencesBanner(
-                    context,
-                    references,
-                    accent: accent,
-                    onRefresh: () => _refreshReferenceData(state),
-                  ),
-                  if ((state.errorMessage ?? '').trim().isNotEmpty ||
-                      (state.statusMessage ?? '').trim().isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: _buildOperationBanner(
-                        context,
-                        message:
-                            (state.errorMessage?.trim().isNotEmpty ?? false)
-                                ? state.errorMessage!.trim()
-                                : state.statusMessage!.trim(),
-                        isError:
-                            (state.errorMessage?.trim().isNotEmpty ?? false),
-                      ),
-                    ),
-                  if (!_showCreateForm)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: widget.embedded
-                          ? InspectorEmbeddedPrimaryCapsule(
-                              key: const Key(
-                                'encounter-tables-new-table-button',
-                              ),
-                              accent: accent,
-                              icon: CupertinoIcons.add_circled,
-                              label: 'Nouvelle table',
-                              prominent: false,
-                              onPressed: () => setState(() {
-                                _showCreateForm = true;
-                                _editingTableId = null;
-                                _closeEntryEditor();
-                                _createTableValidationMessage = null;
-                              }),
-                            )
-                          : CupertinoButton(
-                              key: const Key(
-                                'encounter-tables-new-table-button',
-                              ),
-                              padding: EdgeInsets.zero,
-                              alignment: Alignment.centerLeft,
-                              onPressed: () => setState(() {
-                                _showCreateForm = true;
-                                _editingTableId = null;
-                                _closeEntryEditor();
-                                _createTableValidationMessage = null;
-                              }),
-                              child: const Row(
-                                children: [
-                                  Icon(CupertinoIcons.add_circled, size: 16),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Nouvelle table',
-                                    style: TextStyle(fontSize: 13),
-                                  ),
-                                ],
-                              ),
-                            ),
-                    )
-                  else
-                    _buildCreateTableForm(
-                      context,
-                      notifier,
-                      accent,
-                    ),
-                  if (tables.isEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(
-                        'Aucune table de rencontres. Créez-en une ci-dessus.',
-                        style: TextStyle(
-                          color: CupertinoColors.placeholderText
-                              .resolveFrom(context),
-                          fontSize: 12,
-                        ),
-                      ),
-                    )
-                  else
-                    ...tables.map(
-                      (table) => _buildTableCard(
-                        context: context,
-                        notifier: notifier,
-                        table: table,
-                        references: references,
-                        accent: accent,
-                        subtle: subtle,
-                      ),
-                    ),
-                ],
-              );
-            },
-          );
-
-    if (widget.embedded) {
-      return content;
-    }
-
-    return Container(
-      decoration: BoxDecoration(color: EditorChrome.islandFill(context)),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'TABLES DE RENCONTRES',
-                    style: TextStyle(
-                      fontSize: 11,
-                      letterSpacing: 1.0,
-                      fontWeight: FontWeight.bold,
-                      color:
-                          CupertinoColors.secondaryLabel.resolveFrom(context),
-                    ),
-                  ),
-                ),
-                Text(
-                  '${tables.length}',
-                  style: TextStyle(fontSize: 11, color: subtle),
-                ),
-              ],
-            ),
-          ),
-          const EditorHorizontalDivider(),
-          Expanded(child: content),
-        ],
-      ),
     );
   }
 
@@ -341,9 +226,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   Future<void> _createTable(EditorNotifier notifier) async {
     final inlineValidation =
         _validateEncounterTableName(_newTableNameController.text) ??
-            _validateEncounterChancePercent(
-              _newTableChancePercentController.text,
-            );
+        _validateEncounterChancePercent(_newTableChancePercentController.text);
     setState(() {
       _createTableValidationMessage = inlineValidation;
     });
@@ -363,24 +246,45 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
         requiredFlagsText: _newTableRequiredFlagsController.text,
         encounterKind: _newTableKind,
       ),
+      tags: _parseEncounterTags(_newTableTagsController.text),
     );
     if (!mounted) {
       return;
     }
 
+    final afterState = ref.read(editorNotifierProvider);
     final success = _didEncounterMutationSucceed(
       beforeState: beforeState,
-      afterState: ref.read(editorNotifierProvider),
+      afterState: afterState,
     );
     if (success) {
-      setState(_resetCreateTableDraft);
+      final previousIds =
+          beforeState.project?.encounterTables
+              .map((table) => table.id)
+              .toSet() ??
+          const <String>{};
+      ProjectEncounterTable? createdTable;
+      for (final table
+          in afterState.project?.encounterTables ??
+              const <ProjectEncounterTable>[]) {
+        if (!previousIds.contains(table.id)) {
+          createdTable = table;
+          break;
+        }
+      }
+      setState(() {
+        _resetCreateTableDraft();
+        if (createdTable != null) {
+          _prepareTableDraft(createdTable);
+        }
+      });
       return;
     }
 
     setState(() {
       _createTableValidationMessage =
           ref.read(editorNotifierProvider).errorMessage ??
-              'Failed to create encounter table.';
+          'Failed to create encounter table.';
     });
   }
 
@@ -390,9 +294,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
   ) async {
     final inlineValidation =
         _validateEncounterTableName(_editTableNameController.text) ??
-            _validateEncounterChancePercent(
-              _editTableChancePercentController.text,
-            );
+        _validateEncounterChancePercent(_editTableChancePercentController.text);
     setState(() {
       _editTableValidationMessage = inlineValidation;
     });
@@ -413,6 +315,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
         requiredFlagsText: _editTableRequiredFlagsController.text,
         encounterKind: _editTableKind,
       ),
+      tags: _parseEncounterTags(_editTableTagsController.text),
     );
     if (!mounted) {
       return;
@@ -423,30 +326,50 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
       afterState: ref.read(editorNotifierProvider),
     );
     if (success) {
-      // Match the rest of the surface: a successful mutation closes the active
-      // draft instead of leaving the user inside an editor that already saved.
-      setState(_closeTableEditor);
+      final updatedTables =
+          ref.read(editorNotifierProvider).project?.encounterTables ??
+          const <ProjectEncounterTable>[];
+      ProjectEncounterTable? updatedTable;
+      for (final candidate in updatedTables) {
+        if (candidate.id == table.id) {
+          updatedTable = candidate;
+          break;
+        }
+      }
+      setState(() {
+        if (updatedTable != null) {
+          _prepareTableDraft(updatedTable);
+        } else {
+          _editingTableId = table.id;
+          _editTableValidationMessage = null;
+        }
+      });
       return;
     }
 
     setState(() {
       _editTableValidationMessage =
           ref.read(editorNotifierProvider).errorMessage ??
-              'Failed to update encounter table.';
+          'Failed to update encounter table.';
     });
   }
 
-  Future<void> _deleteTable(
-    EditorNotifier notifier,
-    String tableId,
-  ) async {
+  Future<void> _deleteTable(EditorNotifier notifier, String tableId) async {
     final beforeState = ref.read(editorNotifierProvider);
     await notifier.deleteEncounterTable(tableId);
     final success = _didEncounterMutationSucceed(
       beforeState: beforeState,
       afterState: ref.read(editorNotifierProvider),
     );
-    if (!mounted || !success) {
+    if (!mounted) {
+      return;
+    }
+    if (!success) {
+      setState(() {
+        _editTableValidationMessage =
+            ref.read(editorNotifierProvider).errorMessage ??
+            'Failed to delete encounter table.';
+      });
       return;
     }
 
@@ -468,6 +391,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
     final validation = _validateEntryDraft(references: references);
     setState(() {
       _entryValidationMessage = validation.firstMessage;
+      _entryDeleteFailed = false;
     });
     if (validation.firstMessage != null) {
       return;
@@ -511,7 +435,8 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
     }
 
     setState(() {
-      _entryValidationMessage = ref.read(editorNotifierProvider).errorMessage ??
+      _entryValidationMessage =
+          ref.read(editorNotifierProvider).errorMessage ??
           'Failed to save encounter entry.';
     });
   }
@@ -522,15 +447,21 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
     int index,
   ) async {
     final beforeState = ref.read(editorNotifierProvider);
-    await notifier.deleteEncounterEntry(
-      tableId: tableId,
-      entryIndex: index,
-    );
+    await notifier.deleteEncounterEntry(tableId: tableId, entryIndex: index);
     final success = _didEncounterMutationSucceed(
       beforeState: beforeState,
       afterState: ref.read(editorNotifierProvider),
     );
-    if (!mounted || !success) {
+    if (!mounted) {
+      return;
+    }
+    if (!success) {
+      setState(() {
+        _entryValidationMessage =
+            ref.read(editorNotifierProvider).errorMessage ??
+            'Failed to delete encounter entry.';
+        _entryDeleteFailed = true;
+      });
       return;
     }
 
@@ -587,6 +518,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
     _newTableNameController.clear();
     _newTableChancePercentController.text = '12';
     _newTableRequiredFlagsController.clear();
+    _newTableTagsController.clear();
     _newTableKind = EncounterKind.walk;
   }
 
@@ -599,6 +531,7 @@ class _EncounterTablesPanelState extends ConsumerState<EncounterTablesPanel> {
     _editingEntryTableId = null;
     _editingEntryIndex = null;
     _entryValidationMessage = null;
+    _entryDeleteFailed = false;
     _entrySpeciesController.clear();
     _entryMinLevelController.text = '1';
     _entryMaxLevelController.text = '5';

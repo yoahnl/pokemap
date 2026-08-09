@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
@@ -10,19 +11,23 @@ class PokeMapAssetThumbnail extends StatelessWidget {
     super.key,
     required this.semanticLabel,
     this.imageBytes,
+    this.imageFilePath,
     this.size = 56,
-  });
+  }) : assert(imageBytes == null || imageFilePath == null);
 
   final String semanticLabel;
   final Uint8List? imageBytes;
+  final String? imageFilePath;
   final double size;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.pokeMapColors;
     final bytes = imageBytes;
+    final filePath = imageFilePath;
+    final hasImage = bytes != null || filePath != null;
     return Semantics(
-      image: bytes != null,
+      image: hasImage,
       label: semanticLabel,
       child: Container(
         width: size,
@@ -34,22 +39,34 @@ class PokeMapAssetThumbnail extends StatelessWidget {
           border: Border.all(color: colors.borderSubtle),
         ),
         clipBehavior: Clip.antiAlias,
-        child: bytes == null
-            ? Icon(
-                CupertinoIcons.photo,
-                color: colors.textMuted,
-                size: size * 0.4,
-              )
-            : Image.memory(
+        child: bytes != null
+            ? Image.memory(
                 bytes,
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.none,
                 gaplessPlayback: true,
-                errorBuilder: (_, __, ___) => Icon(
+                errorBuilder: (_, _, _) => Icon(
                   CupertinoIcons.exclamationmark_triangle,
                   color: colors.error,
                   size: size * 0.4,
                 ),
+              )
+            : filePath != null
+            ? Image.file(
+                File(filePath),
+                fit: BoxFit.contain,
+                filterQuality: FilterQuality.none,
+                gaplessPlayback: true,
+                errorBuilder: (_, _, _) => Icon(
+                  CupertinoIcons.exclamationmark_triangle,
+                  color: colors.error,
+                  size: size * 0.4,
+                ),
+              )
+            : Icon(
+                CupertinoIcons.photo,
+                color: colors.textMuted,
+                size: size * 0.4,
               ),
       ),
     );
