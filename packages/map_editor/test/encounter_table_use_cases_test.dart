@@ -1,24 +1,39 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/authoring_api/encounter_table_persistence_gateway.dart';
 import 'package:map_editor/src/application/errors/application_errors.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/use_cases/encounter_table_use_cases.dart';
-import 'package:map_editor/src/domain/repositories/repositories.dart';
 
 void main() {
-  late _FakeProjectRepository repository;
+  late _RecordingEncounterTablePersistenceGateway gateway;
   const workspace = _FakeWorkspace();
 
   setUp(() {
-    repository = _FakeProjectRepository();
+    gateway = _RecordingEncounterTablePersistenceGateway();
   });
 
   group('encounter table use cases', () {
-    test('create, update and delete tables persist through the project repo',
+    test('routes table creation through the encounter authoring gateway',
         () async {
-      final createUseCase = CreateEncounterTableUseCase(repository);
-      final updateUseCase = UpdateEncounterTableUseCase(repository);
-      final deleteUseCase = DeleteEncounterTableUseCase(repository);
+      final project = _project();
+      final created = await CreateEncounterTableUseCase(gateway).execute(
+        workspace,
+        project,
+        name: 'Grass Patch',
+        encounterKind: EncounterKind.walk,
+      );
+
+      expect(gateway.expectedProjects, <ProjectManifest>[project]);
+      expect(gateway.upsertedTables.single.id, 'grass_patch');
+      expect(created.encounterTables.single.id, 'grass_patch');
+    });
+
+    test('create, update and delete tables persist through the gateway',
+        () async {
+      final createUseCase = CreateEncounterTableUseCase(gateway);
+      final updateUseCase = UpdateEncounterTableUseCase(gateway);
+      final deleteUseCase = DeleteEncounterTableUseCase(gateway);
 
       final created = await createUseCase.execute(
         workspace,
@@ -63,14 +78,14 @@ void main() {
       );
 
       expect(deleted.encounterTables, isEmpty);
-      expect(repository.savedProjects, hasLength(3));
+      expect(gateway.expectedProjects, hasLength(3));
     });
 
     test('add, update and delete entries keep valid encounter data stable',
         () async {
-      final addUseCase = AddEncounterEntryUseCase(repository);
-      final updateUseCase = UpdateEncounterEntryUseCase(repository);
-      final deleteUseCase = DeleteEncounterEntryUseCase(repository);
+      final addUseCase = AddEncounterEntryUseCase(gateway);
+      final updateUseCase = UpdateEncounterEntryUseCase(gateway);
+      final deleteUseCase = DeleteEncounterEntryUseCase(gateway);
 
       final created = await addUseCase.execute(
         workspace,
@@ -121,11 +136,11 @@ void main() {
       );
 
       expect(deleted.encounterTables.single.entries, isEmpty);
-      expect(repository.savedProjects, hasLength(3));
+      expect(gateway.expectedProjects, hasLength(3));
     });
 
     test('rejects invalid entry data before any save happens', () async {
-      final addUseCase = AddEncounterEntryUseCase(repository);
+      final addUseCase = AddEncounterEntryUseCase(gateway);
       final project = _project(
         encounterTables: const <ProjectEncounterTable>[
           ProjectEncounterTable(
@@ -173,7 +188,7 @@ void main() {
         throwsA(isA<EditorValidationException>()),
       );
 
-      expect(repository.savedProjects, isEmpty);
+      expect(gateway.expectedProjects, isEmpty);
     });
   });
 }
@@ -189,17 +204,40 @@ ProjectManifest _project({
   );
 }
 
-class _FakeProjectRepository implements ProjectRepository {
-  final List<ProjectManifest> savedProjects = <ProjectManifest>[];
+class _RecordingEncounterTablePersistenceGateway
+    implements EncounterTablePersistenceGateway {
+  final List<ProjectManifest> expectedProjects = <ProjectManifest>[];
+  final List<ProjectEncounterTable> upsertedTables = <ProjectEncounterTable>[];
 
   @override
-  Future<ProjectManifest> loadProject(String path) {
-    throw UnimplementedError();
+  Future<ProjectManifest> remove({
+    required String projectRootPath,
+    required ProjectManifest expectedProject,
+    required String tableId,
+  }) async {
+    expectedProjects.add(expectedProject);
+    return expectedProject.copyWith(
+      encounterTables: expectedProject.encounterTables
+          .where((table) => table.id != tableId)
+          .toList(growable: false),
+    );
   }
 
   @override
-  Future<void> saveProject(ProjectManifest project, String path) async {
-    savedProjects.add(project);
+  Future<ProjectManifest> upsert({
+    required String projectRootPath,
+    required ProjectManifest expectedProject,
+    required ProjectEncounterTable table,
+  }) async {
+    expectedProjects.add(expectedProject);
+    upsertedTables.add(table);
+    return expectedProject.copyWith(
+      encounterTables: <ProjectEncounterTable>[
+        for (final existing in expectedProject.encounterTables)
+          if (existing.id != table.id) existing,
+        table,
+      ],
+    );
   }
 }
 

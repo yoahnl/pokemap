@@ -1,5 +1,7 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart' show Provider;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../application/authoring_api/encounter_table_persistence_gateway.dart';
 import '../../../application/use_cases/character_use_cases.dart';
 import '../../../application/use_cases/encounter_table_use_cases.dart';
 import '../../../application/use_cases/project_element_use_cases.dart';
@@ -189,34 +191,54 @@ RenameGroupUseCase renameGroupUseCase(Ref ref) {
   return RenameGroupUseCase(ref.watch(projectRepositoryProvider));
 }
 
+final encounterTablePersistenceGatewayProvider =
+    Provider<EncounterTablePersistenceGateway>((ref) {
+  return CanonicalEncounterTablePersistenceGateway(
+    mutations: ref.watch(authoringMutationAdapterProvider),
+    queries: ref.watch(authoringQueryAdapterProvider),
+  );
+});
+
 @riverpod
 CreateEncounterTableUseCase createEncounterTableUseCase(Ref ref) {
-  return CreateEncounterTableUseCase(ref.watch(projectRepositoryProvider));
+  return CreateEncounterTableUseCase(
+    ref.watch(encounterTablePersistenceGatewayProvider),
+  );
 }
 
 @riverpod
 UpdateEncounterTableUseCase updateEncounterTableUseCase(Ref ref) {
-  return UpdateEncounterTableUseCase(ref.watch(projectRepositoryProvider));
+  return UpdateEncounterTableUseCase(
+    ref.watch(encounterTablePersistenceGatewayProvider),
+  );
 }
 
 @riverpod
 DeleteEncounterTableUseCase deleteEncounterTableUseCase(Ref ref) {
-  return DeleteEncounterTableUseCase(ref.watch(projectRepositoryProvider));
+  return DeleteEncounterTableUseCase(
+    ref.watch(encounterTablePersistenceGatewayProvider),
+  );
 }
 
 @riverpod
 AddEncounterEntryUseCase addEncounterEntryUseCase(Ref ref) {
-  return AddEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
+  return AddEncounterEntryUseCase(
+    ref.watch(encounterTablePersistenceGatewayProvider),
+  );
 }
 
 @riverpod
 UpdateEncounterEntryUseCase updateEncounterEntryUseCase(Ref ref) {
-  return UpdateEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
+  return UpdateEncounterEntryUseCase(
+    ref.watch(encounterTablePersistenceGatewayProvider),
+  );
 }
 
 @riverpod
 DeleteEncounterEntryUseCase deleteEncounterEntryUseCase(Ref ref) {
-  return DeleteEncounterEntryUseCase(ref.watch(projectRepositoryProvider));
+  return DeleteEncounterEntryUseCase(
+    ref.watch(encounterTablePersistenceGatewayProvider),
+  );
 }
 
 @riverpod

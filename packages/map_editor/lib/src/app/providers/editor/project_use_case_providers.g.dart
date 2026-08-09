@@ -1617,7 +1617,7 @@ final class CreateEncounterTableUseCaseProvider
 }
 
 String _$createEncounterTableUseCaseHash() =>
-    r'69b15f270d896e6e217ca4e14948d960fa7b8861';
+    r'4ec35bdc9e21173aa572ad54d50591c54753013d';
 
 @ProviderFor(updateEncounterTableUseCase)
 final updateEncounterTableUseCaseProvider =
@@ -1666,7 +1666,7 @@ final class UpdateEncounterTableUseCaseProvider
 }
 
 String _$updateEncounterTableUseCaseHash() =>
-    r'29e4a04466922b83f500122edba139281e0d7fb2';
+    r'317e1f7dd6c377c7f9ab6d960996501c2f2335c5';
 
 @ProviderFor(deleteEncounterTableUseCase)
 final deleteEncounterTableUseCaseProvider =
@@ -1715,7 +1715,7 @@ final class DeleteEncounterTableUseCaseProvider
 }
 
 String _$deleteEncounterTableUseCaseHash() =>
-    r'9696c9b5dbb0dc1b2081d21e1cf7def04b4f4299';
+    r'ac2999251a079383eaab503dc5640371671c2d6c';
 
 @ProviderFor(addEncounterEntryUseCase)
 final addEncounterEntryUseCaseProvider = AddEncounterEntryUseCaseProvider._();
@@ -1763,7 +1763,7 @@ final class AddEncounterEntryUseCaseProvider
 }
 
 String _$addEncounterEntryUseCaseHash() =>
-    r'e51075d75e6aac223a6943264114def196200d2b';
+    r'3a200e8931a01be1c92d17ee90bdd0dc5b2ccaa4';
 
 @ProviderFor(updateEncounterEntryUseCase)
 final updateEncounterEntryUseCaseProvider =
@@ -1812,7 +1812,7 @@ final class UpdateEncounterEntryUseCaseProvider
 }
 
 String _$updateEncounterEntryUseCaseHash() =>
-    r'794aec1952d4015e7d12a3ef9e17a5a1fc77952d';
+    r'c32024a9063bd1dde00cb8918cd4fe6a1e157f34';
 
 @ProviderFor(deleteEncounterEntryUseCase)
 final deleteEncounterEntryUseCaseProvider =
@@ -1861,7 +1861,7 @@ final class DeleteEncounterEntryUseCaseProvider
 }
 
 String _$deleteEncounterEntryUseCaseHash() =>
-    r'66204d4209d9ce2108db07cf2b9397c089caa46c';
+    r'f5a1ea338af8a0eb3d45f6a450d776a250e3096e';
 
 @ProviderFor(createTrainerUseCase)
 final createTrainerUseCaseProvider = CreateTrainerUseCaseProvider._();

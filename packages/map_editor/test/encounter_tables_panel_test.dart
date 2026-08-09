@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/core/repository_providers.dart';
+import 'package:map_editor/src/app/providers/editor/project_use_case_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
+import 'package:map_editor/src/application/authoring_api/encounter_table_persistence_gateway.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/domain/repositories/repositories.dart';
@@ -52,6 +54,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         projectRepositoryProvider.overrideWithValue(repository),
+        encounterTablePersistenceGatewayProvider.overrideWithValue(
+          _FakeEncounterTablePersistenceGateway(repository),
+        ),
         projectWorkspaceFactoryProvider.overrideWithValue(
           const _FakeWorkspaceFactory(workspace),
         ),
@@ -171,6 +176,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         projectRepositoryProvider.overrideWithValue(repository),
+        encounterTablePersistenceGatewayProvider.overrideWithValue(
+          _FakeEncounterTablePersistenceGateway(repository),
+        ),
         projectWorkspaceFactoryProvider.overrideWithValue(
           const _FakeWorkspaceFactory(workspace),
         ),
@@ -266,6 +274,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         projectRepositoryProvider.overrideWithValue(repository),
+        encounterTablePersistenceGatewayProvider.overrideWithValue(
+          _FakeEncounterTablePersistenceGateway(repository),
+        ),
         projectWorkspaceFactoryProvider.overrideWithValue(
           const _FakeWorkspaceFactory(workspace),
         ),
@@ -335,6 +346,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         projectRepositoryProvider.overrideWithValue(repository),
+        encounterTablePersistenceGatewayProvider.overrideWithValue(
+          _FakeEncounterTablePersistenceGateway(repository),
+        ),
         projectWorkspaceFactoryProvider.overrideWithValue(
           const _FakeWorkspaceFactory(workspace),
         ),
@@ -441,6 +455,9 @@ void main() {
     final container = ProviderContainer(
       overrides: [
         projectRepositoryProvider.overrideWithValue(repository),
+        encounterTablePersistenceGatewayProvider.overrideWithValue(
+          _FakeEncounterTablePersistenceGateway(repository),
+        ),
         projectWorkspaceFactoryProvider.overrideWithValue(
           const _FakeWorkspaceFactory(workspace),
         ),
@@ -544,6 +561,45 @@ class _FakeProjectRepository implements ProjectRepository {
       throw saveError!;
     }
     savedProjects.add(project);
+  }
+}
+
+class _FakeEncounterTablePersistenceGateway
+    implements EncounterTablePersistenceGateway {
+  _FakeEncounterTablePersistenceGateway(this._repository);
+
+  final _FakeProjectRepository _repository;
+
+  @override
+  Future<ProjectManifest> remove({
+    required String projectRootPath,
+    required ProjectManifest expectedProject,
+    required String tableId,
+  }) async {
+    final updated = expectedProject.copyWith(
+      encounterTables: expectedProject.encounterTables
+          .where((table) => table.id != tableId)
+          .toList(growable: false),
+    );
+    await _repository.saveProject(updated, projectRootPath);
+    return updated;
+  }
+
+  @override
+  Future<ProjectManifest> upsert({
+    required String projectRootPath,
+    required ProjectManifest expectedProject,
+    required ProjectEncounterTable table,
+  }) async {
+    final updated = expectedProject.copyWith(
+      encounterTables: <ProjectEncounterTable>[
+        for (final existing in expectedProject.encounterTables)
+          if (existing.id != table.id) existing,
+        table,
+      ],
+    );
+    await _repository.saveProject(updated, projectRootPath);
+    return updated;
   }
 }
 

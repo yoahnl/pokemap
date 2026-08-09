@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/authoring_api/encounter_table_persistence_gateway.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_mutation_adapter.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_query_adapter.dart';
 import 'package:map_editor/src/application/authoring_api/authoring_session_lifecycle.dart';
@@ -505,6 +506,88 @@ void main() {
         ).existsSync(),
         isFalse,
       );
+    });
+
+    test('persists encounter tables through canonical campaign actions',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final gateway = CanonicalEncounterTablePersistenceGateway(
+        mutations: fixture.mutations,
+        queries: fixture.queries,
+      );
+      const table = ProjectEncounterTable(
+        id: 'grass_patch',
+        name: 'Grass Patch',
+        encounterKind: EncounterKind.walk,
+      );
+
+      final created = await gateway.upsert(
+        projectRootPath: fixture.root.path,
+        expectedProject: fixture.project,
+        table: table,
+      );
+
+      expect(
+        fixture.mutations.lastAppliedReceipt?.actionId,
+        'campaign.encounter_table.upsert',
+      );
+      expect(created.encounterTables, <ProjectEncounterTable>[table]);
+
+      final deleted = await gateway.remove(
+        projectRootPath: fixture.root.path,
+        expectedProject: created,
+        tableId: table.id,
+      );
+
+      expect(
+        fixture.mutations.lastAppliedReceipt?.actionId,
+        'campaign.encounter_table.delete',
+      );
+      expect(deleted.encounterTables, isEmpty);
+      expect(
+        (await FileProjectRepository().loadProject(
+          p.join(fixture.root.path, 'project.json'),
+        ))
+            .encounterTables,
+        isEmpty,
+      );
+    });
+
+    test('rejects a stale encounter project without overwriting disk',
+        () async {
+      final fixture = await _MutationFixture.create();
+      addTearDown(fixture.dispose);
+      final gateway = CanonicalEncounterTablePersistenceGateway(
+        mutations: fixture.mutations,
+        queries: fixture.queries,
+      );
+      const table = ProjectEncounterTable(
+        id: 'grass_patch',
+        name: 'Grass Patch',
+        encounterKind: EncounterKind.walk,
+      );
+      final created = await gateway.upsert(
+        projectRootPath: fixture.root.path,
+        expectedProject: fixture.project,
+        table: table,
+      );
+      final projectPath = p.join(fixture.root.path, 'project.json');
+      final external = created.copyWith(name: 'External edit');
+      await FileProjectRepository().saveProject(external, projectPath);
+
+      await expectLater(
+        gateway.upsert(
+          projectRootPath: fixture.root.path,
+          expectedProject: created,
+          table: table.copyWith(name: 'Overwritten'),
+        ),
+        throwsA(isA<EditorConflictException>()),
+      );
+
+      final durable = await FileProjectRepository().loadProject(projectPath);
+      expect(durable.name, 'External edit');
+      expect(durable.encounterTables.single.name, 'Grass Patch');
     });
 
     test('plans without writing, applies once, and replays idempotently',

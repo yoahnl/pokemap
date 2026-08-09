@@ -58,6 +58,27 @@ void main() {
     expect(provider, contains('authoringMutationAdapterProvider'));
     expect(provider, contains('authoringMutations:'));
   });
+
+  test('encounter use cases inject canonical Authoring mutations', () async {
+    final provider = await File(
+      p.join(Directory.current.path, 'lib', 'src', 'app', 'providers', 'editor',
+          'project_use_case_providers.dart'),
+    ).readAsString();
+    final gateway = await File(
+      p.join(Directory.current.path, 'lib', 'src', 'application',
+          'authoring_api', 'encounter_table_persistence_gateway.dart'),
+    ).readAsString();
+    final useCases = await File(
+      p.join(Directory.current.path, 'lib', 'src', 'application', 'use_cases',
+          'encounter_table_use_cases.dart'),
+    ).readAsString();
+
+    expect(provider, contains('authoringMutationAdapterProvider'));
+    expect(provider, contains('encounterTablePersistenceGatewayProvider'));
+    expect(gateway, contains('campaign.encounter_table.upsert'));
+    expect(gateway, contains('campaign.encounter_table.delete'));
+    expect(useCases, isNot(contains('.saveProject(')));
+  });
 }
 
 final RegExp _directWrite = RegExp(

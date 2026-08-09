@@ -1,6 +1,6 @@
 import 'package:map_core/map_core.dart';
 
-import '../../domain/repositories/repositories.dart';
+import '../authoring_api/encounter_table_persistence_gateway.dart';
 import '../errors/application_errors.dart';
 import '../ports/project_workspace.dart';
 
@@ -31,9 +31,9 @@ String _generateUniqueEncounterTableId(ProjectManifest project, String seed) {
 // ---------------------------------------------------------------------------
 
 class CreateEncounterTableUseCase {
-  CreateEncounterTableUseCase(this._repo);
+  CreateEncounterTableUseCase(this._persistence);
 
-  final ProjectRepository _repo;
+  final EncounterTablePersistenceGateway _persistence;
 
   Future<ProjectManifest> execute(
     ProjectWorkspace workspace,
@@ -58,19 +58,22 @@ class CreateEncounterTableUseCase {
       conditions: conditions,
       tags: tags,
     );
-    final updated = project.copyWith(
+    final projected = project.copyWith(
       encounterTables: [...project.encounterTables, table],
     );
-    ProjectValidator.validate(updated);
-    await _repo.saveProject(updated, workspace.projectManifestPath);
-    return updated;
+    ProjectValidator.validate(projected);
+    return _persistence.upsert(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      table: table,
+    );
   }
 }
 
 class UpdateEncounterTableUseCase {
-  UpdateEncounterTableUseCase(this._repo);
+  UpdateEncounterTableUseCase(this._persistence);
 
-  final ProjectRepository _repo;
+  final EncounterTablePersistenceGateway _persistence;
 
   Future<ProjectManifest> execute(
     ProjectWorkspace workspace,
@@ -102,17 +105,19 @@ class UpdateEncounterTableUseCase {
     );
     final tables = List<ProjectEncounterTable>.from(project.encounterTables);
     tables[index] = updatedTable;
-    final updated = project.copyWith(encounterTables: tables);
-    ProjectValidator.validate(updated);
-    await _repo.saveProject(updated, workspace.projectManifestPath);
-    return updated;
+    ProjectValidator.validate(project.copyWith(encounterTables: tables));
+    return _persistence.upsert(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      table: updatedTable,
+    );
   }
 }
 
 class DeleteEncounterTableUseCase {
-  DeleteEncounterTableUseCase(this._repo);
+  DeleteEncounterTableUseCase(this._persistence);
 
-  final ProjectRepository _repo;
+  final EncounterTablePersistenceGateway _persistence;
 
   Future<ProjectManifest> execute(
     ProjectWorkspace workspace,
@@ -125,10 +130,12 @@ class DeleteEncounterTableUseCase {
     }
     final tables = List<ProjectEncounterTable>.from(project.encounterTables)
       ..removeAt(index);
-    final updated = project.copyWith(encounterTables: tables);
-    ProjectValidator.validate(updated);
-    await _repo.saveProject(updated, workspace.projectManifestPath);
-    return updated;
+    ProjectValidator.validate(project.copyWith(encounterTables: tables));
+    return _persistence.remove(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      tableId: tableId,
+    );
   }
 }
 
@@ -137,9 +144,9 @@ class DeleteEncounterTableUseCase {
 // ---------------------------------------------------------------------------
 
 class AddEncounterEntryUseCase {
-  AddEncounterEntryUseCase(this._repo);
+  AddEncounterEntryUseCase(this._persistence);
 
-  final ProjectRepository _repo;
+  final EncounterTablePersistenceGateway _persistence;
 
   Future<ProjectManifest> execute(
     ProjectWorkspace workspace,
@@ -179,17 +186,19 @@ class AddEncounterEntryUseCase {
     final updatedTable = table.copyWith(entries: [...table.entries, entry]);
     final tables = List<ProjectEncounterTable>.from(project.encounterTables);
     tables[index] = updatedTable;
-    final updated = project.copyWith(encounterTables: tables);
-    ProjectValidator.validate(updated);
-    await _repo.saveProject(updated, workspace.projectManifestPath);
-    return updated;
+    ProjectValidator.validate(project.copyWith(encounterTables: tables));
+    return _persistence.upsert(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      table: updatedTable,
+    );
   }
 }
 
 class UpdateEncounterEntryUseCase {
-  UpdateEncounterEntryUseCase(this._repo);
+  UpdateEncounterEntryUseCase(this._persistence);
 
-  final ProjectRepository _repo;
+  final EncounterTablePersistenceGateway _persistence;
 
   Future<ProjectManifest> execute(
     ProjectWorkspace workspace,
@@ -241,17 +250,19 @@ class UpdateEncounterEntryUseCase {
     final updatedTable = table.copyWith(entries: entries);
     final tables = List<ProjectEncounterTable>.from(project.encounterTables);
     tables[tableIndex] = updatedTable;
-    final updated = project.copyWith(encounterTables: tables);
-    ProjectValidator.validate(updated);
-    await _repo.saveProject(updated, workspace.projectManifestPath);
-    return updated;
+    ProjectValidator.validate(project.copyWith(encounterTables: tables));
+    return _persistence.upsert(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      table: updatedTable,
+    );
   }
 }
 
 class DeleteEncounterEntryUseCase {
-  DeleteEncounterEntryUseCase(this._repo);
+  DeleteEncounterEntryUseCase(this._persistence);
 
-  final ProjectRepository _repo;
+  final EncounterTablePersistenceGateway _persistence;
 
   Future<ProjectManifest> execute(
     ProjectWorkspace workspace,
@@ -275,9 +286,11 @@ class DeleteEncounterEntryUseCase {
     final updatedTable = table.copyWith(entries: entries);
     final tables = List<ProjectEncounterTable>.from(project.encounterTables);
     tables[tableIndex] = updatedTable;
-    final updated = project.copyWith(encounterTables: tables);
-    ProjectValidator.validate(updated);
-    await _repo.saveProject(updated, workspace.projectManifestPath);
-    return updated;
+    ProjectValidator.validate(project.copyWith(encounterTables: tables));
+    return _persistence.upsert(
+      projectRootPath: workspace.projectRoot,
+      expectedProject: project,
+      table: updatedTable,
+    );
   }
 }
