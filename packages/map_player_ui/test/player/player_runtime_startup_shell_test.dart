@@ -134,6 +134,37 @@ void main() {
     tester.view.resetDevicePixelRatio();
   });
 
+  testWidgets('preserves authored cinematic layout in the startup menu',
+      (tester) async {
+    await tester.pumpWidget(
+      _app(
+        PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: _startup(
+            RuntimeStartupPhase.titleMenu,
+            player: _titlePlayer(),
+          ),
+          titlePresentation: const RuntimePlayerTitlePresentation(
+            author: 'PokeMap',
+            layoutVariant: PlayerTitleLayoutVariant.cinematic,
+          ),
+          onStartupCommand: (_) {},
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      ),
+    );
+
+    final screen = tester.widget<PlayerTitleScreen>(
+      find.byType(PlayerTitleScreen),
+    );
+    expect(
+      screen.data.layoutVariant,
+      PlayerTitleLayoutVariant.runtimeStartupCinematic,
+    );
+  });
+
   testWidgets('asks before replacing the single save with New Game',
       (tester) async {
     final commands = <RuntimePlayerCommand>[];

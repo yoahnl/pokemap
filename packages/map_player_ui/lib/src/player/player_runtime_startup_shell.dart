@@ -289,6 +289,8 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         source: widget.titlePromptSource,
         poster: widget.titlePromptPoster,
       ),
+      eyebrow: widget.branding.signature,
+      footer: widget.branding.displayName,
       onStart: () => _dispatchStartup(RuntimeStartupAction.pressStart),
       onReplayIntro: widget.snapshot.canReplayIntro
           ? () => _dispatchStartup(RuntimeStartupAction.replayIntro)
@@ -342,7 +344,10 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         ),
         logo: widget.titlePresentation.logo,
         accentColor: widget.titlePresentation.accentColor,
-        layoutVariant: PlayerTitleLayoutVariant.runtimeStartup,
+        layoutVariant: widget.titlePresentation.layoutVariant ==
+                PlayerTitleLayoutVariant.cinematic
+            ? PlayerTitleLayoutVariant.runtimeStartupCinematic
+            : PlayerTitleLayoutVariant.runtimeStartup,
         actions: actions,
         initialSelection: initial,
       ),

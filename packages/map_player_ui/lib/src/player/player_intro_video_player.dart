@@ -219,7 +219,22 @@ class _PlayerIntroVideoPlayerState extends State<PlayerIntroVideoPlayer>
           errorBuilder: (_, __, ___) => const SizedBox.expand(),
         );
 
-  Widget? _video() => _snapshot.isInitialized ? _driver?.buildVideo() : null;
+  Widget? _video() {
+    if (!_snapshot.isInitialized) return null;
+    final video = _driver?.buildVideo();
+    if (video == null) return null;
+    return ClipRect(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        alignment: widget.source.focalAlignment,
+        child: SizedBox(
+          width: widget.source.aspectRatio,
+          height: 1,
+          child: video,
+        ),
+      ),
+    );
+  }
 
   @override
   void dispose() {

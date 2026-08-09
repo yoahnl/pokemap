@@ -144,6 +144,65 @@ void main() {
       'Aube Body',
     );
   });
+
+  testWidgets('cinematic startup menu matches desktop and mobile geometry',
+      (tester) async {
+    final data = PlayerTitleViewData(
+      gameTitle: 'Le Train de 17h42',
+      author: 'PokeMap',
+      layoutVariant: PlayerTitleLayoutVariant.runtimeStartupCinematic,
+      actions: const <PlayerTitleMenuAction, PlayerActionAvailability>{
+        PlayerTitleMenuAction.continueGame: PlayerActionAvailability.enabled,
+        PlayerTitleMenuAction.newGame: PlayerActionAvailability.enabled,
+        PlayerTitleMenuAction.options: PlayerActionAvailability.enabled,
+      },
+    );
+
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      _app(PlayerTitleScreen(data: data, onSelected: (_) {})),
+    );
+
+    expect(
+      tester.getSize(
+        find.byKey(const ValueKey<String>('player-cinematic-stage')),
+      ),
+      const Size(1440, 810),
+    );
+    expect(
+      tester
+          .getSize(
+            find.byKey(const ValueKey<String>('player-title-startup-menu')),
+          )
+          .width,
+      619.2,
+    );
+
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpWidget(
+      _app(PlayerTitleScreen(data: data, onSelected: (_) {})),
+    );
+
+    expect(
+      tester
+          .getSize(
+            find.byKey(const ValueKey<String>('player-title-startup-visual')),
+          )
+          .height,
+      closeTo(489.52, .01),
+    );
+    expect(
+      tester
+          .getSize(
+            find.byKey(const ValueKey<String>('player-title-startup-menu')),
+          )
+          .height,
+      closeTo(379.8, .01),
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Widget _app(Widget child, {ThemeData? theme}) => MaterialApp(

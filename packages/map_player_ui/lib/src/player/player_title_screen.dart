@@ -7,6 +7,7 @@ import '../foundation/player_action_availability.dart';
 import '../foundation/player_components.dart';
 import '../localization/player_localizations.dart';
 import '../theme/pokemap_player_theme.dart';
+import 'player_cinematic_stage.dart';
 import 'player_new_game_identity.dart';
 import 'runtime_player_focus_controller.dart';
 
@@ -23,7 +24,8 @@ enum PlayerTitleLayoutVariant {
   standard,
   centered,
   cinematic,
-  runtimeStartup;
+  runtimeStartup,
+  runtimeStartupCinematic;
 
   static PlayerTitleLayoutVariant fromManifest(String? value) =>
       switch (value) {
@@ -95,8 +97,14 @@ class PlayerTitleScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (data.layoutVariant == PlayerTitleLayoutVariant.runtimeStartup) {
-      return _buildRuntimeStartup(context);
+    if (data.layoutVariant == PlayerTitleLayoutVariant.runtimeStartup ||
+        data.layoutVariant ==
+            PlayerTitleLayoutVariant.runtimeStartupCinematic) {
+      return _buildRuntimeStartup(
+        context,
+        cinematic: data.layoutVariant ==
+            PlayerTitleLayoutVariant.runtimeStartupCinematic,
+      );
     }
     final colors = context.playerColors;
     final accent = data.accentColor ?? colors.primary;
@@ -237,47 +245,60 @@ class PlayerTitleScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRuntimeStartup(BuildContext context) {
-    return Scaffold(
-      body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 760;
-            if (compact) {
-              return Stack(
-                key: const ValueKey<String>('player-title-startup-compact'),
-                fit: StackFit.expand,
-                children: <Widget>[
-                  _startupVisual(context),
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: math.max(420, constraints.maxHeight * .68),
-                      ),
-                      child: _startupMenu(context, compact: true),
-                    ),
-                  ),
-                ],
-              );
-            }
-            final panelWidth = math.min(
-              480.0,
-              math.max(380.0, constraints.maxWidth * .38),
+  Widget _buildRuntimeStartup(
+    BuildContext context, {
+    required bool cinematic,
+  }) {
+    final content = SafeArea(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth <= 760;
+          if (compact) {
+            final visualHeight = constraints.maxHeight * .58;
+            final menuHeight = math.min(
+              410.0,
+              math.max(340.0, constraints.maxHeight * .45),
             );
-            return Row(
-              key: const ValueKey<String>('player-title-startup-expanded'),
+            return Stack(
+              key: const ValueKey<String>('player-title-startup-compact'),
+              fit: StackFit.expand,
               children: <Widget>[
-                SizedBox(
-                  width: panelWidth,
-                  child: _startupMenu(context, compact: false),
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  height: visualHeight,
+                  child: _startupVisual(context),
                 ),
-                Expanded(child: _startupVisual(context)),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  height: menuHeight,
+                  child: _startupMenu(context, compact: true),
+                ),
               ],
             );
-          },
-        ),
+          }
+          final panelWidth = math.min(
+            640.0,
+            math.max(390.0, constraints.maxWidth * .43),
+          );
+          return Row(
+            key: const ValueKey<String>('player-title-startup-expanded'),
+            children: <Widget>[
+              SizedBox(
+                width: panelWidth,
+                child: _startupMenu(context, compact: false),
+              ),
+              Expanded(child: _startupVisual(context)),
+            ],
+          );
+        },
       ),
+    );
+    return Scaffold(
+      body: cinematic ? PlayerCinematicStage(child: content) : content,
     );
   }
 
@@ -318,10 +339,11 @@ class PlayerTitleScreen extends StatelessWidget {
             .firstOrNull;
     final horizontal = compact ? PlayerSpacing.lg : PlayerSpacing.xl;
     return Material(
+      key: const ValueKey<String>('player-title-startup-menu'),
       color: colors.surface,
       elevation: compact ? 16 : 0,
       borderRadius: compact
-          ? const BorderRadius.vertical(top: Radius.circular(PlayerRadii.lg))
+          ? const BorderRadius.vertical(top: Radius.circular(PlayerRadii.xl))
           : BorderRadius.zero,
       child: SingleChildScrollView(
         key: const ValueKey<String>('player-title-startup-menu-scroll'),

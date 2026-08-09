@@ -27,6 +27,11 @@ void main() {
 
     expect(find.text('Une nouvelle aventure commence.'), findsOneWidget);
     expect(find.text('Passer'), findsOneWidget);
+    expect(find.byType(PlayerSurface), findsNothing);
+    expect(
+      tester.getSize(find.byKey(const ValueKey<String>('video-frame'))),
+      const Size(320, 520),
+    );
     expect(tester.takeException(), isNull);
 
     await tester.tap(find.text('Passer'));

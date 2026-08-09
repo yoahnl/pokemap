@@ -47,6 +47,35 @@ void main() {
     expect(replays, 1);
     expect(starts, 0);
   });
+
+  testWidgets('uses a framed desktop stage and a full mobile viewport',
+      (tester) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final prompt = PlayerTitlePromptSurface(
+      gameTitle: 'Le Train de 17h42',
+      eyebrow: 'Une aventure PokeMap',
+      footer: 'Avelune',
+      onStart: () {},
+    );
+
+    await tester.pumpWidget(_app(prompt));
+    expect(
+      tester.getSize(
+        find.byKey(const ValueKey<String>('player-cinematic-stage')),
+      ),
+      const Size(1440, 810),
+    );
+
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpWidget(_app(prompt));
+    expect(
+      find.byKey(const ValueKey<String>('player-cinematic-stage')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Widget _app(Widget child) => MaterialApp(
