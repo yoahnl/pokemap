@@ -54,11 +54,12 @@ void main() {
           onLaunch: (descriptor, reportProgress, preloadedInitialMap) async {
             launches.add(descriptor);
             final bundle =
-                preloadedInitialMap ??
+                preloadedInitialMap?.bundle ??
                 await loadRuntimeMapBundle(
                   projectFilePath: projectFilePath,
                   mapId: 'golden_field',
                 );
+            preloadedInitialMap?.dispose();
             loadedMapIds.add(bundle.map.id);
             reportProgress(
               const GameSessionLoadingProgress(
@@ -121,11 +122,12 @@ void main() {
             final save = await loadRuntimeHostLaunchSaveData(
               projectFilePath: projectFilePath,
             );
-            final bundle = preloadedInitialMap!;
+            final bundle = preloadedInitialMap!.bundle;
             final restoredSave = save!;
             restoredPositions.add(
               '${bundle.map.id}:${restoredSave.playerPosition.x},${restoredSave.playerPosition.y}',
             );
+            preloadedInitialMap.dispose();
           },
         ),
       );

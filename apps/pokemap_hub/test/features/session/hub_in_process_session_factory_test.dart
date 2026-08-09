@@ -95,7 +95,7 @@ void main() {
         preloadReads++;
         expect(descriptor.launchMode, GameSessionLaunchMode.continueGame);
         expect(initialSave?.saveId, save.saveId);
-        return bundle;
+        return RuntimeInitialMapPreloadResult(bundle: bundle);
       },
       mountGame: (_) async => mountCount++,
       unmountGame: (_) async {},

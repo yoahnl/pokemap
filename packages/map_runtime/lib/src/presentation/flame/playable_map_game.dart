@@ -219,6 +219,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeDialogueSessionLoader? dialogueSessionLoader,
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
+    RuntimeTilesetImageSingleFlightCache? initialTilesetImageCache,
     RuntimePlayerPokemonProgressionCatalogLoader?
         runtimePlayerPokemonProgressionCatalogLoader,
     @visibleForTesting math.Random? encounterRandom,
@@ -378,9 +379,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _cinematicRuntimeController = CinematicRuntimePlaybackController(
       sink: _cinematicRuntimeSink,
     );
-    _tilesetImageCache = RuntimeTilesetImageSingleFlightCache(
-      loader: _runtimeTilesetImageLoader,
-    );
+    _tilesetImageCache = initialTilesetImageCache ??
+        RuntimeTilesetImageSingleFlightCache(
+          loader: _runtimeTilesetImageLoader,
+        );
   }
 
   final String projectFilePath;

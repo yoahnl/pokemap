@@ -601,7 +601,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   Future<PlayableMapGame> _load({
     GameSessionLaunchMode launchMode = GameSessionLaunchMode.continueGame,
     GameSessionProgressReporter? reportProgress,
-    RuntimeMapBundle? preloadedInitialMap,
+    RuntimeInitialMapPreloadResult? preloadedInitialMap,
   }) async {
     final projectFilePath = _projectFilePath;
     final selectedMapId = (_selectedMapId ?? '').trim();
@@ -664,12 +664,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         ),
       );
       _runtimeHostLog('bundle load start mapId=$mapId');
-      final bundle = preloadedInitialMap?.map.id == mapId
-          ? preloadedInitialMap!
+      final preloadedBundle = preloadedInitialMap?.bundle;
+      final reusesPreloadedInitialMap = preloadedBundle?.map.id == mapId;
+      final bundle = reusesPreloadedInitialMap
+          ? preloadedBundle!
           : await loadRuntimeMapBundle(
               projectFilePath: projectFilePath,
               mapId: mapId,
             );
+      if (!reusesPreloadedInitialMap) preloadedInitialMap?.dispose();
       _runtimeHostLog(
         'bundle load ok map=${bundle.map.id} size=${bundle.map.size.width}x${bundle.map.size.height} layers=${bundle.map.layers.length} entities=${bundle.map.entities.length} tilesets=${bundle.tilesetAbsolutePathsById.length}',
       );
@@ -720,15 +723,25 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         manualLaunchOverride: launchSaveOverride,
         demoLaunchFallback: demoLaunchFallback,
       );
-      final nextGame = PlayableMapGame(
-        bundle: bundle,
-        projectFilePath: projectFilePath,
-        saveData: launchPlan.saveData,
-        initialMapActivationReason: launchPlan.initialMapActivationReason,
-        enableActorContactShadows: false,
-        enableStaticPlacedElementShadows: false,
-        audioMixer: _startupHost?.audioMixer,
-      );
+      final initialTilesetImageCache = reusesPreloadedInitialMap
+          ? preloadedInitialMap?.takeTilesetImageCache()
+          : null;
+      late final PlayableMapGame nextGame;
+      try {
+        nextGame = PlayableMapGame(
+          bundle: bundle,
+          projectFilePath: projectFilePath,
+          saveData: launchPlan.saveData,
+          initialMapActivationReason: launchPlan.initialMapActivationReason,
+          initialTilesetImageCache: initialTilesetImageCache,
+          enableActorContactShadows: false,
+          enableStaticPlacedElementShadows: false,
+          audioMixer: _startupHost?.audioMixer,
+        );
+      } catch (_) {
+        initialTilesetImageCache?.dispose();
+        rethrow;
+      }
       nextGame.setPlayerServiceRuntimeController(
         PlayerServiceRuntimeController(
           currentGameState: () => nextGame.playerServiceGameStateSnapshot,
@@ -812,6 +825,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       if (mounted) setState(() => _error = e.toString());
       rethrow;
     } finally {
+      preloadedInitialMap?.dispose();
       if (mounted) setState(() => _loading = false);
       _runtimeHostLog('map load finished loading=false mapId=$mapId');
     }

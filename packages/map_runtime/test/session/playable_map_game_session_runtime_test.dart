@@ -260,7 +260,7 @@ void main() {
         expect(projectFilePath, '/missing/project.json');
         expect(descriptor.sessionId, 'session-preloaded');
         expect(initialSave, same(save));
-        return bundle;
+        return RuntimeInitialMapPreloadResult(bundle: bundle);
       },
       mountGame: (game) async => mounted = game,
       unmountGame: (_) async {},
@@ -328,7 +328,7 @@ void main() {
         required descriptor,
         required initialSave,
       }) async =>
-          bundle,
+          RuntimeInitialMapPreloadResult(bundle: bundle),
       mountGame: (_) async => mounted = true,
       unmountGame: (_) async {},
     );

@@ -19,6 +19,10 @@ typedef RuntimeTilesetImageFileLoader = Future<RuntimeTilesetImage> Function(
   String absolutePath, {
   TilesetTransparentColor? transparentColor,
 });
+typedef RuntimeTilesetImageLoadProgressSink = void Function(
+  int completed,
+  int total,
+);
 
 final class RuntimeTilesetImageSingleFlightCache {
   RuntimeTilesetImageSingleFlightCache({
@@ -493,13 +497,16 @@ Future<Map<String, RuntimeTilesetImage>> loadTilesetImagesById(
   Map<String, String> absolutePathByTilesetId, {
   Map<String, TilesetTransparentColor> transparentColorByTilesetId = const {},
   RuntimeTilesetImageFileLoader? loader,
+  RuntimeTilesetImageLoadProgressSink? onProgress,
 }) async {
   final load = loader ?? loadTilesetImageFromFilePath;
   // Chargements concurrents : la latence passe de la somme des décodages au
   // plus lent d'entre eux. Chaque résultat est capturé individuellement pour
   // pouvoir libérer les succès si un décodage échoue.
+  final entries = absolutePathByTilesetId.entries.toList(growable: false);
+  var completed = 0;
   final outcomes = await Future.wait(
-    absolutePathByTilesetId.entries.map((e) async {
+    entries.map((e) async {
       try {
         final image = await load(
           e.value,
@@ -513,6 +520,9 @@ Future<Map<String, RuntimeTilesetImage>> loadTilesetImagesById(
           error: error as Object?,
           stackTrace: stackTrace as StackTrace?,
         );
+      } finally {
+        completed++;
+        onProgress?.call(completed, entries.length);
       }
     }),
   );

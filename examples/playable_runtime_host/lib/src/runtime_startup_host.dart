@@ -26,7 +26,7 @@ abstract interface class StandaloneRuntimeSessionPort {
   Future<void> launch(
     GameSessionDescriptor descriptor,
     GameSessionProgressReporter reportProgress,
-    RuntimeMapBundle? preloadedInitialMap,
+    RuntimeInitialMapPreloadResult? preloadedInitialMap,
   );
 
   Future<void> pause();
@@ -59,7 +59,7 @@ final class CallbackStandaloneRuntimeSessionPort
   final Future<void> Function(
     GameSessionDescriptor descriptor,
     GameSessionProgressReporter reportProgress,
-    RuntimeMapBundle? preloadedInitialMap,
+    RuntimeInitialMapPreloadResult? preloadedInitialMap,
   )
   onLaunch;
   final Future<void> Function() _onPause;
@@ -73,7 +73,7 @@ final class CallbackStandaloneRuntimeSessionPort
   Future<void> launch(
     GameSessionDescriptor descriptor,
     GameSessionProgressReporter reportProgress,
-    RuntimeMapBundle? preloadedInitialMap,
+    RuntimeInitialMapPreloadResult? preloadedInitialMap,
   ) => onLaunch(descriptor, reportProgress, preloadedInitialMap);
 
   @override

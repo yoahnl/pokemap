@@ -13,6 +13,7 @@ import '../application/runtime_pokemon_species_loader.dart';
 import '../player/runtime_player_pause_data.dart';
 import '../player/runtime_player_pause_data_builder.dart';
 import '../player/runtime_audio_mixer.dart';
+import '../player/runtime_initial_map_preloader.dart';
 import '../player/runtime_world_service_models.dart';
 import '../presentation/flame/playable_map_game.dart';
 import '../presentation/flame/runtime_input_authority.dart';
@@ -26,7 +27,8 @@ typedef PlayableMapGameMount = Future<void> Function(PlayableMapGame game);
 typedef PlayableMapGameUnmount = Future<void> Function(PlayableMapGame game);
 typedef SessionProjectFilePathLoader = Future<String> Function();
 typedef SessionInitialSaveLoader = Future<SaveEnvelope?> Function();
-typedef SessionPreloadedInitialMapLoader = Future<RuntimeMapBundle?> Function({
+typedef SessionPreloadedInitialMapLoader
+    = Future<RuntimeInitialMapPreloadResult?> Function({
   required String projectFilePath,
   required GameSessionDescriptor descriptor,
   required SaveEnvelope? initialSave,
@@ -152,11 +154,12 @@ final class PlayableMapGameSessionRuntime
     );
     final save = await _initialSave();
     _validateInitialSave(save);
-    final preloadedBundle = await _preloadedInitialMap?.call(
+    final preloadedInitialMap = await _preloadedInitialMap?.call(
       projectFilePath: projectFilePath,
       descriptor: descriptor,
       initialSave: save,
     );
+    final preloadedBundle = preloadedInitialMap?.bundle;
     final manifest = preloadedBundle?.manifest ??
         await loadProjectManifestFromFile(projectFilePath);
 
@@ -166,6 +169,7 @@ final class PlayableMapGameSessionRuntime
     if (descriptor.launchMode == GameSessionLaunchMode.newGame) {
       if (!manifest.newGame.enabled ||
           manifest.newGame.startMapId.trim().isEmpty) {
+        preloadedInitialMap?.dispose();
         throw StateError(
           'The installed project does not define a launchable new game.',
         );
@@ -178,6 +182,7 @@ final class PlayableMapGameSessionRuntime
       initialState = const GameStateSaveEnvelopeMapper().restore(envelope);
       mapId = initialState.currentMapId.trim();
       if (mapId.isEmpty) {
+        preloadedInitialMap?.dispose();
         throw StateError('The selected save does not reference a map.');
       }
       saveData = saveDataFromGameState(initialState);
@@ -203,6 +208,7 @@ final class PlayableMapGameSessionRuntime
     } else {
       if (preloadedBundle.map.id != mapId ||
           projectMapEntryForId(preloadedBundle.manifest, mapId) == null) {
+        preloadedInitialMap?.dispose();
         throw StateError(
           'The preloaded map does not match the requested session map.',
         );
@@ -213,26 +219,37 @@ final class PlayableMapGameSessionRuntime
     _pokemonConfig = bundle.manifest.pokemon;
     _projectMaps = List<ProjectMapEntry>.unmodifiable(bundle.manifest.maps);
     final memorySaves = _SessionMemoryGameSaveRepository(initialState);
-    final game = PlayableMapGame(
-      bundle: bundle,
-      projectFilePath: projectFilePath,
-      saveData: saveData,
-      saveRepository: memorySaves,
-      gameCompletionEmitter: emitCompletion,
-      defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
-      runtimeLocale: descriptor.locale,
-      initialPlayerName: descriptor.initialPlayerIdentity?.name,
-      initialPlayerAvatarCharacterId:
-          descriptor.initialPlayerIdentity?.avatarCharacterId,
-      initialPlayerPronounSet: descriptor.initialPlayerIdentity?.pronounSet,
-      initialMapActivationReason:
-          descriptor.launchMode == GameSessionLaunchMode.newGame
-              ? MapActivationReason.initialBoot
-              : MapActivationReason.saveRestore,
-      enableActorContactShadows: false,
-      enableStaticPlacedElementShadows: false,
-      audioMixer: audioMixer,
-    );
+    final initialTilesetImageCache =
+        preloadedInitialMap?.takeTilesetImageCache();
+    late final PlayableMapGame game;
+    try {
+      game = PlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        saveData: saveData,
+        saveRepository: memorySaves,
+        gameCompletionEmitter: emitCompletion,
+        defeatRecoveryCheckpointEmitter: emitDefeatRecoveryCheckpointRequest,
+        runtimeLocale: descriptor.locale,
+        initialPlayerName: descriptor.initialPlayerIdentity?.name,
+        initialPlayerAvatarCharacterId:
+            descriptor.initialPlayerIdentity?.avatarCharacterId,
+        initialPlayerPronounSet: descriptor.initialPlayerIdentity?.pronounSet,
+        initialMapActivationReason:
+            descriptor.launchMode == GameSessionLaunchMode.newGame
+                ? MapActivationReason.initialBoot
+                : MapActivationReason.saveRestore,
+        initialTilesetImageCache: initialTilesetImageCache,
+        enableActorContactShadows: false,
+        enableStaticPlacedElementShadows: false,
+        audioMixer: audioMixer,
+      );
+    } catch (_) {
+      initialTilesetImageCache?.dispose();
+      rethrow;
+    } finally {
+      preloadedInitialMap?.dispose();
+    }
     _game = game;
     final playerServices = PlayerServiceRuntimeController.contextual(
       currentGameState: () => game.playerServiceGameStateSnapshot,

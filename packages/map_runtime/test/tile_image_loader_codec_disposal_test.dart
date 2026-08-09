@@ -176,6 +176,57 @@ void main() {
     expect(firstImage.debugDisposed, isTrue);
   });
 
+  test('batch progress advances only when individual files finish', () async {
+    final firstImage = await _fakeImage();
+    final secondImage = await _fakeImage();
+    final firstStarted = Completer<void>();
+    final secondStarted = Completer<void>();
+    final releaseFirst = Completer<void>();
+    final releaseSecond = Completer<void>();
+    final firstProgress = Completer<void>();
+    final progress = <(int, int)>[];
+
+    final load = loadTilesetImagesById(
+      const <String, String>{
+        'first': '/tmp/first.png',
+        'second': '/tmp/second.png',
+      },
+      loader: (path, {transparentColor}) async {
+        if (path.endsWith('first.png')) {
+          firstStarted.complete();
+          await releaseFirst.future;
+          return _runtimeImage(firstImage);
+        }
+        secondStarted.complete();
+        await releaseSecond.future;
+        return _runtimeImage(secondImage);
+      },
+      onProgress: (completed, total) {
+        progress.add((completed, total));
+        if (completed == 1) firstProgress.complete();
+      },
+    );
+    await Future.wait(<Future<void>>[
+      firstStarted.future,
+      secondStarted.future,
+    ]);
+
+    expect(progress, isEmpty);
+
+    releaseSecond.complete();
+    await firstProgress.future;
+
+    expect(progress, <(int, int)>[(1, 2)]);
+
+    releaseFirst.complete();
+    final loaded = await load;
+
+    expect(progress, <(int, int)>[(1, 2), (2, 2)]);
+    for (final image in loaded.values) {
+      image.dispose();
+    }
+  });
+
   test('single-flight cache dispose releases completed images once', () async {
     final image = await _fakeImage();
     addTearDown(() {

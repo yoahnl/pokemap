@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_player_pokemon_progression_hydrator.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
+import 'package:map_runtime/src/infrastructure/tile_image_loader.dart';
 import 'package:map_runtime/src/presentation/flame/playable_map_game.dart';
 
 void main() {
@@ -55,6 +56,56 @@ void main() {
 
     expect(loadedTileset!.debugDisposed, isTrue);
     expect(game.world.children, isEmpty);
+  });
+
+  test('reuses a warmed initial cache without decoding tilesets again',
+      () async {
+    final bundle = _bundle();
+    final runtimeImage = await _runtimeTilesetImage();
+    var batchLoads = 0;
+    final cache = RuntimeTilesetImageSingleFlightCache(
+      loader: (
+        paths, {
+        transparentColorByTilesetId = const <String, TilesetTransparentColor>{},
+      }) async {
+        batchLoads++;
+        return <String, RuntimeTilesetImage>{'player': runtimeImage};
+      },
+    );
+    await cache.loadById(bundle.tilesetAbsolutePathsById);
+    final imagesReady = Completer<void>();
+    final releaseLoad = Completer<void>();
+    final game = PlayableMapGame(
+      bundle: bundle,
+      projectFilePath: '/tmp/tileset-lifecycle/project.json',
+      initialTilesetImageCache: cache,
+      runtimePlayerPokemonProgressionCatalogLoader: ({
+        required gameState,
+        required projectRootDirectory,
+        required pokemonConfig,
+      }) async {
+        return const RuntimePlayerPokemonProgressionCatalogs(
+          growthRateIdBySpeciesId: <String, String>{},
+          maxPpByMoveId: <String, int>{},
+        );
+      },
+      afterInitialTilesetImagesLoaded: () async {
+        imagesReady.complete();
+        await releaseLoad.future;
+      },
+    );
+
+    game.onGameResize(Vector2(128, 96));
+    final load = game.onLoad();
+    await imagesReady.future;
+
+    expect(batchLoads, 1);
+
+    game.onRemove();
+    releaseLoad.complete();
+    await load;
+
+    expect(runtimeImage.debugDisposed, isTrue);
   });
 }
 

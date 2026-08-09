@@ -3,6 +3,8 @@ import 'package:path/path.dart' as p;
 
 import '../application/load_runtime_map_bundle.dart';
 import '../application/runtime_map_bundle.dart';
+import '../infrastructure/runtime_tileset_image.dart';
+import '../infrastructure/tile_image_loader.dart';
 import '../session/game_session_contract.dart';
 
 enum RuntimeInitialMapPreloadMode { continueGame, newGame }
@@ -68,6 +70,35 @@ typedef RuntimeInitialMapBundleLoader = Future<RuntimeMapBundle> Function({
   required String mapId,
   required ProjectManifest preloadedManifest,
 });
+typedef RuntimeInitialMapTilesetImageLoader
+    = Future<Map<String, RuntimeTilesetImage>> Function(
+  Map<String, String> absolutePathByTilesetId, {
+  Map<String, TilesetTransparentColor> transparentColorByTilesetId,
+  RuntimeTilesetImageLoadProgressSink? onProgress,
+});
+
+final class RuntimeInitialMapPreloadResult {
+  RuntimeInitialMapPreloadResult({required this.bundle});
+
+  RuntimeInitialMapPreloadResult._({
+    required this.bundle,
+    required RuntimeTilesetImageSingleFlightCache tilesetImageCache,
+  }) : _tilesetImageCache = tilesetImageCache;
+
+  final RuntimeMapBundle bundle;
+  RuntimeTilesetImageSingleFlightCache? _tilesetImageCache;
+
+  RuntimeTilesetImageSingleFlightCache? takeTilesetImageCache() {
+    final cache = _tilesetImageCache;
+    _tilesetImageCache = null;
+    return cache;
+  }
+
+  void dispose() {
+    _tilesetImageCache?.dispose();
+    _tilesetImageCache = null;
+  }
+}
 
 final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
   RuntimeInitialMapPreloader({
@@ -76,17 +107,24 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     RuntimeInitialMapManifestLoader manifestLoader =
         loadProjectManifestFromFile,
     RuntimeInitialMapBundleLoader? bundleLoader,
+    RuntimeInitialMapTilesetImageLoader tilesetImageLoader =
+        loadTilesetImagesById,
   })  : _projectFilePath = projectFilePath,
         _loadSave = loadSave,
         _manifestLoader = manifestLoader,
-        _bundleLoader = bundleLoader;
+        _bundleLoader = bundleLoader,
+        _tilesetImageLoader = tilesetImageLoader;
 
   final RuntimeInitialMapProjectFilePathLoader _projectFilePath;
   final RuntimeInitialMapSaveLoader _loadSave;
   final RuntimeInitialMapManifestLoader _manifestLoader;
   final RuntimeInitialMapBundleLoader? _bundleLoader;
+  final RuntimeInitialMapTilesetImageLoader _tilesetImageLoader;
 
   _RuntimeInitialMapCacheEntry? _cached;
+  final Map<int, RuntimeTilesetImageSingleFlightCache>
+      _activeTilesetCacheByGeneration =
+      <int, RuntimeTilesetImageSingleFlightCache>{};
   int _generation = 0;
 
   @override
@@ -94,12 +132,15 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     RuntimeInitialMapPreloadRequest request, {
     RuntimeInitialMapPreloadProgressSink? onProgress,
   }) async {
-    final generation = ++_generation;
-    _cached = null;
+    final generation = _beginGeneration();
+    var publishedValue = -1.0;
     void publish(RuntimeInitialMapPreloadStage stage, double value) {
       if (generation != _generation) return;
+      final boundedValue = value.clamp(0.0, 1.0).toDouble();
+      if (boundedValue <= publishedValue) return;
+      publishedValue = boundedValue;
       onProgress?.call(
-        RuntimeInitialMapPreloadProgress(stage: stage, value: value),
+        RuntimeInitialMapPreloadProgress(stage: stage, value: boundedValue),
       );
     }
 
@@ -127,16 +168,13 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
                     RuntimeMapBundleLoadStage.mapResolution:
                 break;
               case RuntimeMapBundleLoadStage.mapData:
-                publish(RuntimeInitialMapPreloadStage.mapData, 0.7);
+                publish(RuntimeInitialMapPreloadStage.mapData, 0.62);
               case RuntimeMapBundleLoadStage.assetCatalog:
-                publish(RuntimeInitialMapPreloadStage.assetCatalog, 0.8);
+                publish(RuntimeInitialMapPreloadStage.assetCatalog, 0.72);
               case RuntimeMapBundleLoadStage.tilesets:
-                publish(RuntimeInitialMapPreloadStage.tilesets, 0.9);
+                publish(RuntimeInitialMapPreloadStage.tilesets, 0.78);
               case RuntimeMapBundleLoadStage.worldPreparation:
-                publish(
-                  RuntimeInitialMapPreloadStage.worldPreparation,
-                  0.97,
-                );
+                break;
             }
           },
         ));
@@ -144,16 +182,67 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
       throw StateError('The preloaded map does not match the requested map.');
     }
     if (generation != _generation) return;
-    _cached = _RuntimeInitialMapCacheEntry(
-      projectFilePath: projectFilePath,
-      request: request,
-      mapId: mapId,
-      bundle: bundle,
+    RuntimeTilesetImageLoadProgressSink? tilesetProgress = (completed, total) {
+      final fraction = total <= 0 ? 1.0 : completed / total;
+      publish(
+        RuntimeInitialMapPreloadStage.tilesets,
+        0.78 + (0.18 * fraction.clamp(0, 1)),
+      );
+    };
+    final tilesetCache = RuntimeTilesetImageSingleFlightCache(
+      loader: (
+        paths, {
+        transparentColorByTilesetId = const <String, TilesetTransparentColor>{},
+      }) =>
+          _tilesetImageLoader(
+        paths,
+        transparentColorByTilesetId: transparentColorByTilesetId,
+        onProgress: tilesetProgress,
+      ),
     );
-    publish(RuntimeInitialMapPreloadStage.ready, 1);
+    _activeTilesetCacheByGeneration[generation] = tilesetCache;
+    var retained = false;
+    try {
+      publish(RuntimeInitialMapPreloadStage.tilesets, 0.78);
+      await tilesetCache.loadById(
+        bundle.tilesetAbsolutePathsById,
+        transparentColorByTilesetId: _transparentColorByTilesetId(
+          bundle.manifest,
+        ),
+      );
+      if (bundle.tilesetAbsolutePathsById.isEmpty) {
+        publish(RuntimeInitialMapPreloadStage.tilesets, 0.96);
+      }
+      tilesetProgress = null;
+      if (generation != _generation) return;
+      publish(RuntimeInitialMapPreloadStage.worldPreparation, 0.97);
+      final result = RuntimeInitialMapPreloadResult._(
+        bundle: bundle,
+        tilesetImageCache: tilesetCache,
+      );
+      _cached = _RuntimeInitialMapCacheEntry(
+        projectFilePath: projectFilePath,
+        request: request,
+        mapId: mapId,
+        result: result,
+      );
+      retained = true;
+      publish(RuntimeInitialMapPreloadStage.ready, 1);
+    } catch (_) {
+      if (generation == _generation) rethrow;
+    } finally {
+      tilesetProgress = null;
+      if (identical(
+        _activeTilesetCacheByGeneration[generation],
+        tilesetCache,
+      )) {
+        _activeTilesetCacheByGeneration.remove(generation);
+      }
+      if (!retained) tilesetCache.dispose();
+    }
   }
 
-  Future<RuntimeMapBundle?> resolveForSession({
+  Future<RuntimeInitialMapPreloadResult?> resolveForSession({
     required String projectFilePath,
     required GameSessionDescriptor descriptor,
     required SaveEnvelope? initialSave,
@@ -167,7 +256,7 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
       GameSessionLaunchMode.newGame =>
         cached.request.mode == RuntimeInitialMapPreloadMode.newGame &&
                 initialSave == null
-            ? cached.bundle.manifest.newGame.startMapId.trim()
+            ? cached.result.bundle.manifest.newGame.startMapId.trim()
             : null,
       GameSessionLaunchMode.continueGame ||
       GameSessionLaunchMode.load =>
@@ -176,17 +265,32 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     if (expectedMapId == null ||
         expectedMapId.isEmpty ||
         expectedMapId != cached.mapId ||
-        cached.bundle.map.id != expectedMapId) {
+        cached.result.bundle.map.id != expectedMapId) {
       return null;
     }
     _cached = null;
-    return cached.bundle;
+    return cached.result;
   }
 
   @override
   void clear() {
     _generation++;
+    _disposePreloadedResources();
+  }
+
+  int _beginGeneration() {
+    final generation = ++_generation;
+    _disposePreloadedResources();
+    return generation;
+  }
+
+  void _disposePreloadedResources() {
+    _cached?.result.dispose();
     _cached = null;
+    for (final cache in _activeTilesetCacheByGeneration.values) {
+      cache.dispose();
+    }
+    _activeTilesetCacheByGeneration.clear();
   }
 
   Future<String> _resolveMapId(
@@ -214,6 +318,16 @@ final class RuntimeInitialMapPreloader implements RuntimeInitialMapPreloadPort {
     }
     return mapId;
   }
+}
+
+Map<String, TilesetTransparentColor> _transparentColorByTilesetId(
+  ProjectManifest manifest,
+) {
+  return <String, TilesetTransparentColor>{
+    for (final tileset in manifest.tilesets)
+      if (tileset.transparentColor != null)
+        tileset.id: tileset.transparentColor!,
+  };
 }
 
 String? _resolveContinueMapId(
@@ -245,11 +359,11 @@ final class _RuntimeInitialMapCacheEntry {
     required this.projectFilePath,
     required this.request,
     required this.mapId,
-    required this.bundle,
+    required this.result,
   });
 
   final String projectFilePath;
   final RuntimeInitialMapPreloadRequest request;
   final String mapId;
-  final RuntimeMapBundle bundle;
+  final RuntimeInitialMapPreloadResult result;
 }
