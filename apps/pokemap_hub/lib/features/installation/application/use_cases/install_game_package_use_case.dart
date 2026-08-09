@@ -23,6 +23,7 @@ final class InstallGamePackageUseCase {
     return _repository.install(
       packageFile,
       source: GamePackageInstallSource.localFile,
+      mode: GamePackageActivationMode.update,
       cancellationToken: cancellationToken,
       onProgress: onProgress,
     );

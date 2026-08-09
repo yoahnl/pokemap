@@ -9,11 +9,13 @@ import 'package:pokemap_hub/features/installation/data/repositories/editor_expor
 import 'package:pokemap_hub/features/installation/data/repositories/game_package_installer.dart';
 import 'package:pokemap_hub/features/installation/data/repositories/installed_project_smoke.dart';
 import 'package:pokemap_hub/features/installation/domain/repositories/game_installation_repository_interface.dart';
+import 'package:pokemap_hub/features/saves/data/repositories/game_save_update_preparation.dart';
 
 /// Infrastructure wiring for package installation.
 final gameInstallationRepositoryProvider =
     FutureProvider<GameInstallationRepositoryInterface>((ref) async {
   final root = await ref.watch(supportRootProvider.future);
+  final saveUpdatePreparation = GameSaveUpdatePreparation(supportRoot: root);
   return GamePackageInstaller(
     supportRoot: root,
     inspector: GamePackageInspector(
@@ -21,12 +23,7 @@ final gameInstallationRepositoryProvider =
     ),
     availableDiskBytes: ref.watch(hubPlatformAdapterProvider).availableDiskBytes,
     loadSmoke: loadInstalledProjectSmoke,
-    prepareSavesForUpdate: (_, __) {
-      throw UnsupportedError(
-        'Updates remain disabled until save migration transactions '
-        'are recoverable.',
-      );
-    },
+    prepareSavesForUpdate: saveUpdatePreparation.call,
   );
 });
 
