@@ -425,7 +425,7 @@ mixin _$MapGameplayZone {
  MovementZonePayload? get movement;/// Payload pour [GameplayZoneKind.movementEffect].
  MovementEffectZonePayload? get movementEffect;/// Payload pour [GameplayZoneKind.hazard].
  HazardZonePayload? get hazard;/// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
- SpecialZonePayload? get special;
+ SpecialZonePayload? get special;@JsonKey(includeIfNull: false) SmartTileGameplayZoneProvenance? get smartTileProvenance;
 /// Create a copy of MapGameplayZone
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -438,16 +438,16 @@ $MapGameplayZoneCopyWith<MapGameplayZone> get copyWith => _$MapGameplayZoneCopyW
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapGameplayZone&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.area, area) || other.area == area)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.encounter, encounter) || other.encounter == encounter)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.movementEffect, movementEffect) || other.movementEffect == movementEffect)&&(identical(other.hazard, hazard) || other.hazard == hazard)&&(identical(other.special, special) || other.special == special));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MapGameplayZone&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.area, area) || other.area == area)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.encounter, encounter) || other.encounter == encounter)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.movementEffect, movementEffect) || other.movementEffect == movementEffect)&&(identical(other.hazard, hazard) || other.hazard == hazard)&&(identical(other.special, special) || other.special == special)&&(identical(other.smartTileProvenance, smartTileProvenance) || other.smartTileProvenance == smartTileProvenance));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,kind,area,priority,encounter,movement,movementEffect,hazard,special);
+int get hashCode => Object.hash(runtimeType,id,name,kind,area,priority,encounter,movement,movementEffect,hazard,special,smartTileProvenance);
 
 @override
 String toString() {
-  return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, movementEffect: $movementEffect, hazard: $hazard, special: $special)';
+  return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, movementEffect: $movementEffect, hazard: $hazard, special: $special, smartTileProvenance: $smartTileProvenance)';
 }
 
 
@@ -458,7 +458,7 @@ abstract mixin class $MapGameplayZoneCopyWith<$Res>  {
   factory $MapGameplayZoneCopyWith(MapGameplayZone value, $Res Function(MapGameplayZone) _then) = _$MapGameplayZoneCopyWithImpl;
 @useResult
 $Res call({
- String id, String name, GameplayZoneKind kind, MapRect area, int priority, EncounterZonePayload? encounter, MovementZonePayload? movement, MovementEffectZonePayload? movementEffect, HazardZonePayload? hazard, SpecialZonePayload? special
+ String id, String name, GameplayZoneKind kind, MapRect area, int priority, EncounterZonePayload? encounter, MovementZonePayload? movement, MovementEffectZonePayload? movementEffect, HazardZonePayload? hazard, SpecialZonePayload? special,@JsonKey(includeIfNull: false) SmartTileGameplayZoneProvenance? smartTileProvenance
 });
 
 
@@ -475,7 +475,7 @@ class _$MapGameplayZoneCopyWithImpl<$Res>
 
 /// Create a copy of MapGameplayZone
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? area = null,Object? priority = null,Object? encounter = freezed,Object? movement = freezed,Object? movementEffect = freezed,Object? hazard = freezed,Object? special = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? area = null,Object? priority = null,Object? encounter = freezed,Object? movement = freezed,Object? movementEffect = freezed,Object? hazard = freezed,Object? special = freezed,Object? smartTileProvenance = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -487,7 +487,8 @@ as EncounterZonePayload?,movement: freezed == movement ? _self.movement : moveme
 as MovementZonePayload?,movementEffect: freezed == movementEffect ? _self.movementEffect : movementEffect // ignore: cast_nullable_to_non_nullable
 as MovementEffectZonePayload?,hazard: freezed == hazard ? _self.hazard : hazard // ignore: cast_nullable_to_non_nullable
 as HazardZonePayload?,special: freezed == special ? _self.special : special // ignore: cast_nullable_to_non_nullable
-as SpecialZonePayload?,
+as SpecialZonePayload?,smartTileProvenance: freezed == smartTileProvenance ? _self.smartTileProvenance : smartTileProvenance // ignore: cast_nullable_to_non_nullable
+as SmartTileGameplayZoneProvenance?,
   ));
 }
 /// Create a copy of MapGameplayZone
@@ -641,10 +642,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  GameplayZoneKind kind,  MapRect area,  int priority,  EncounterZonePayload? encounter,  MovementZonePayload? movement,  MovementEffectZonePayload? movementEffect,  HazardZonePayload? hazard,  SpecialZonePayload? special)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String name,  GameplayZoneKind kind,  MapRect area,  int priority,  EncounterZonePayload? encounter,  MovementZonePayload? movement,  MovementEffectZonePayload? movementEffect,  HazardZonePayload? hazard,  SpecialZonePayload? special, @JsonKey(includeIfNull: false)  SmartTileGameplayZoneProvenance? smartTileProvenance)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MapGameplayZone() when $default != null:
-return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.encounter,_that.movement,_that.movementEffect,_that.hazard,_that.special);case _:
+return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.encounter,_that.movement,_that.movementEffect,_that.hazard,_that.special,_that.smartTileProvenance);case _:
   return orElse();
 
 }
@@ -662,10 +663,10 @@ return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.e
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  GameplayZoneKind kind,  MapRect area,  int priority,  EncounterZonePayload? encounter,  MovementZonePayload? movement,  MovementEffectZonePayload? movementEffect,  HazardZonePayload? hazard,  SpecialZonePayload? special)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String name,  GameplayZoneKind kind,  MapRect area,  int priority,  EncounterZonePayload? encounter,  MovementZonePayload? movement,  MovementEffectZonePayload? movementEffect,  HazardZonePayload? hazard,  SpecialZonePayload? special, @JsonKey(includeIfNull: false)  SmartTileGameplayZoneProvenance? smartTileProvenance)  $default,) {final _that = this;
 switch (_that) {
 case _MapGameplayZone():
-return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.encounter,_that.movement,_that.movementEffect,_that.hazard,_that.special);case _:
+return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.encounter,_that.movement,_that.movementEffect,_that.hazard,_that.special,_that.smartTileProvenance);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -682,10 +683,10 @@ return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.e
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  GameplayZoneKind kind,  MapRect area,  int priority,  EncounterZonePayload? encounter,  MovementZonePayload? movement,  MovementEffectZonePayload? movementEffect,  HazardZonePayload? hazard,  SpecialZonePayload? special)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String name,  GameplayZoneKind kind,  MapRect area,  int priority,  EncounterZonePayload? encounter,  MovementZonePayload? movement,  MovementEffectZonePayload? movementEffect,  HazardZonePayload? hazard,  SpecialZonePayload? special, @JsonKey(includeIfNull: false)  SmartTileGameplayZoneProvenance? smartTileProvenance)?  $default,) {final _that = this;
 switch (_that) {
 case _MapGameplayZone() when $default != null:
-return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.encounter,_that.movement,_that.movementEffect,_that.hazard,_that.special);case _:
+return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.encounter,_that.movement,_that.movementEffect,_that.hazard,_that.special,_that.smartTileProvenance);case _:
   return null;
 
 }
@@ -697,7 +698,7 @@ return $default(_that.id,_that.name,_that.kind,_that.area,_that.priority,_that.e
 
 @JsonSerializable(explicitToJson: true)
 class _MapGameplayZone implements MapGameplayZone {
-  const _MapGameplayZone({required this.id, this.name = '', required this.kind, required this.area, this.priority = 0, this.encounter, this.movement, this.movementEffect, this.hazard, this.special});
+  const _MapGameplayZone({required this.id, this.name = '', required this.kind, required this.area, this.priority = 0, this.encounter, this.movement, this.movementEffect, this.hazard, this.special, @JsonKey(includeIfNull: false) this.smartTileProvenance});
   factory _MapGameplayZone.fromJson(Map<String, dynamic> json) => _$MapGameplayZoneFromJson(json);
 
 @override final  String id;
@@ -716,6 +717,7 @@ class _MapGameplayZone implements MapGameplayZone {
 @override final  HazardZonePayload? hazard;
 /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
 @override final  SpecialZonePayload? special;
+@override@JsonKey(includeIfNull: false) final  SmartTileGameplayZoneProvenance? smartTileProvenance;
 
 /// Create a copy of MapGameplayZone
 /// with the given fields replaced by the non-null parameter values.
@@ -730,16 +732,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapGameplayZone&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.area, area) || other.area == area)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.encounter, encounter) || other.encounter == encounter)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.movementEffect, movementEffect) || other.movementEffect == movementEffect)&&(identical(other.hazard, hazard) || other.hazard == hazard)&&(identical(other.special, special) || other.special == special));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MapGameplayZone&&(identical(other.id, id) || other.id == id)&&(identical(other.name, name) || other.name == name)&&(identical(other.kind, kind) || other.kind == kind)&&(identical(other.area, area) || other.area == area)&&(identical(other.priority, priority) || other.priority == priority)&&(identical(other.encounter, encounter) || other.encounter == encounter)&&(identical(other.movement, movement) || other.movement == movement)&&(identical(other.movementEffect, movementEffect) || other.movementEffect == movementEffect)&&(identical(other.hazard, hazard) || other.hazard == hazard)&&(identical(other.special, special) || other.special == special)&&(identical(other.smartTileProvenance, smartTileProvenance) || other.smartTileProvenance == smartTileProvenance));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,name,kind,area,priority,encounter,movement,movementEffect,hazard,special);
+int get hashCode => Object.hash(runtimeType,id,name,kind,area,priority,encounter,movement,movementEffect,hazard,special,smartTileProvenance);
 
 @override
 String toString() {
-  return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, movementEffect: $movementEffect, hazard: $hazard, special: $special)';
+  return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, movementEffect: $movementEffect, hazard: $hazard, special: $special, smartTileProvenance: $smartTileProvenance)';
 }
 
 
@@ -750,7 +752,7 @@ abstract mixin class _$MapGameplayZoneCopyWith<$Res> implements $MapGameplayZone
   factory _$MapGameplayZoneCopyWith(_MapGameplayZone value, $Res Function(_MapGameplayZone) _then) = __$MapGameplayZoneCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String name, GameplayZoneKind kind, MapRect area, int priority, EncounterZonePayload? encounter, MovementZonePayload? movement, MovementEffectZonePayload? movementEffect, HazardZonePayload? hazard, SpecialZonePayload? special
+ String id, String name, GameplayZoneKind kind, MapRect area, int priority, EncounterZonePayload? encounter, MovementZonePayload? movement, MovementEffectZonePayload? movementEffect, HazardZonePayload? hazard, SpecialZonePayload? special,@JsonKey(includeIfNull: false) SmartTileGameplayZoneProvenance? smartTileProvenance
 });
 
 
@@ -767,7 +769,7 @@ class __$MapGameplayZoneCopyWithImpl<$Res>
 
 /// Create a copy of MapGameplayZone
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? area = null,Object? priority = null,Object? encounter = freezed,Object? movement = freezed,Object? movementEffect = freezed,Object? hazard = freezed,Object? special = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? name = null,Object? kind = null,Object? area = null,Object? priority = null,Object? encounter = freezed,Object? movement = freezed,Object? movementEffect = freezed,Object? hazard = freezed,Object? special = freezed,Object? smartTileProvenance = freezed,}) {
   return _then(_MapGameplayZone(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,name: null == name ? _self.name : name // ignore: cast_nullable_to_non_nullable
@@ -779,7 +781,8 @@ as EncounterZonePayload?,movement: freezed == movement ? _self.movement : moveme
 as MovementZonePayload?,movementEffect: freezed == movementEffect ? _self.movementEffect : movementEffect // ignore: cast_nullable_to_non_nullable
 as MovementEffectZonePayload?,hazard: freezed == hazard ? _self.hazard : hazard // ignore: cast_nullable_to_non_nullable
 as HazardZonePayload?,special: freezed == special ? _self.special : special // ignore: cast_nullable_to_non_nullable
-as SpecialZonePayload?,
+as SpecialZonePayload?,smartTileProvenance: freezed == smartTileProvenance ? _self.smartTileProvenance : smartTileProvenance // ignore: cast_nullable_to_non_nullable
+as SmartTileGameplayZoneProvenance?,
   ));
 }
 

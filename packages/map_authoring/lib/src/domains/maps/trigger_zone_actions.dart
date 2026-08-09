@@ -19,6 +19,10 @@ final class TriggerZoneActions {
       ('trigger.delete_apply', 'Delete a map trigger'),
       ('trigger.patch_properties', 'Patch trigger properties'),
       ('gameplay_zone.create', 'Create a typed gameplay zone'),
+      (
+        'gameplay_zone.smart_tile.sync',
+        'Synchronize gameplay zones generated from one Smart Tile binding',
+      ),
       ('gameplay_zone.update', 'Replace a typed gameplay zone'),
       ('gameplay_zone.move', 'Move a gameplay zone'),
       ('gameplay_zone.resize', 'Resize a gameplay zone'),
@@ -61,6 +65,7 @@ final class TriggerZoneActions {
       'trigger.delete_apply' => const {'triggerId'},
       'trigger.patch_properties' => const {'triggerId', 'patch'},
       'gameplay_zone.create' => const {'zone'},
+      'gameplay_zone.smart_tile.sync' => const {'zones'},
       'gameplay_zone.update' => const {'zoneId', 'zone'},
       'gameplay_zone.move' => const {'zoneId', 'x', 'y'},
       'gameplay_zone.resize' => const {'zoneId', 'width', 'height'},
@@ -163,6 +168,15 @@ final class TriggerZoneActions {
           final zone = _zone(parameters.object('zone'));
           _assertStrictZonePayload(zone);
           updated = addGameplayZoneToMap(context.map, zone: zone);
+        case 'gameplay_zone.smart_tile.sync':
+          final zones = _zones(parameters.list('zones'));
+          for (final zone in zones) {
+            _assertStrictZonePayload(zone);
+          }
+          updated = synchronizeSmartTileGameplayZones(
+            context.map,
+            generatedZones: zones,
+          ).map;
         case 'gameplay_zone.update':
           final zone = _zone(parameters.object('zone'));
           _assertStrictZonePayload(zone);
@@ -179,6 +193,7 @@ final class TriggerZoneActions {
             movementEffect: zone.movementEffect,
             hazard: zone.hazard,
             special: zone.special,
+            smartTileProvenance: zone.smartTileProvenance,
           );
         case 'gameplay_zone.move':
           updated = moveGameplayZoneOnMap(
@@ -207,6 +222,7 @@ final class TriggerZoneActions {
             context.map,
             zone: source.copyWith(
               id: parameters.string('newId'),
+              smartTileProvenance: null,
               area: source.area.copyWith(
                 pos: GridPos(
                   x: parameters.integer('x'),
@@ -330,6 +346,21 @@ MapGameplayZone _zone(Map<String, Object?> value) {
       details: {'validationType': error.runtimeType.toString()},
     );
   }
+}
+
+List<MapGameplayZone> _zones(List<Object?> values) {
+  if (values.isEmpty) {
+    throw invalidSemanticField('zones', 'a non-empty list');
+  }
+  return List<MapGameplayZone>.unmodifiable(
+    values.indexed.map((entry) {
+      final (index, value) = entry;
+      if (value is! Map || value.keys.any((key) => key is! String)) {
+        throw invalidSemanticField('zones[$index]', 'an object');
+      }
+      return _zone(value.cast<String, Object?>());
+    }),
+  );
 }
 
 MapTrigger _triggerById(MapData map, String id) {

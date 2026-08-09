@@ -4,6 +4,7 @@ final class TallGrassEncounterSmartTileGameplayZonePreview {
   TallGrassEncounterSmartTileGameplayZonePreview({
     required this.surfaceLabel,
     required this.sourceCellCount,
+    required this.existingZoneCount,
     required this.status,
     required Iterable<SmartTileGameplayZoneGenerationAssessmentMessage>
         messages,
@@ -16,6 +17,7 @@ final class TallGrassEncounterSmartTileGameplayZonePreview {
 
   final String surfaceLabel;
   final int sourceCellCount;
+  final int existingZoneCount;
   final SmartTileGameplayZoneGenerationAssessmentStatus status;
   final List<SmartTileGameplayZoneGenerationAssessmentMessage> messages;
   final SmartTileGameplayZoneGenerationPlan? plan;
@@ -27,6 +29,7 @@ final class TallGrassEncounterSmartTileGameplayZonePreview {
       status != SmartTileGameplayZoneGenerationAssessmentStatus.blocked;
 
   int get generatedZoneCount => plan?.generatedZones.length ?? 0;
+  bool get isSynchronization => existingZoneCount > 0;
 
   String get summaryTitle {
     return assessment?.summaryTitle ??
@@ -44,6 +47,7 @@ final class SurfableWaterSmartTileGameplayZonePreview {
   SurfableWaterSmartTileGameplayZonePreview({
     required this.surfaceLabel,
     required this.sourceCellCount,
+    required this.existingZoneCount,
     required this.status,
     required Iterable<SmartTileGameplayZoneGenerationAssessmentMessage>
         messages,
@@ -56,6 +60,7 @@ final class SurfableWaterSmartTileGameplayZonePreview {
 
   final String surfaceLabel;
   final int sourceCellCount;
+  final int existingZoneCount;
   final SmartTileGameplayZoneGenerationAssessmentStatus status;
   final List<SmartTileGameplayZoneGenerationAssessmentMessage> messages;
   final SmartTileGameplayZoneGenerationPlan? plan;
@@ -67,6 +72,7 @@ final class SurfableWaterSmartTileGameplayZonePreview {
       status != SmartTileGameplayZoneGenerationAssessmentStatus.blocked;
 
   int get generatedZoneCount => plan?.generatedZones.length ?? 0;
+  bool get isSynchronization => existingZoneCount > 0;
 
   String get summaryTitle {
     return assessment?.summaryTitle ??
@@ -84,6 +90,7 @@ final class LavaHazardSmartTileGameplayZonePreview {
   LavaHazardSmartTileGameplayZonePreview({
     required this.surfaceLabel,
     required this.sourceCellCount,
+    required this.existingZoneCount,
     required this.damagePerStep,
     required this.status,
     required Iterable<SmartTileGameplayZoneGenerationAssessmentMessage>
@@ -97,6 +104,7 @@ final class LavaHazardSmartTileGameplayZonePreview {
 
   final String surfaceLabel;
   final int sourceCellCount;
+  final int existingZoneCount;
   final int? damagePerStep;
   final SmartTileGameplayZoneGenerationAssessmentStatus status;
   final List<SmartTileGameplayZoneGenerationAssessmentMessage> messages;
@@ -109,6 +117,7 @@ final class LavaHazardSmartTileGameplayZonePreview {
       status != SmartTileGameplayZoneGenerationAssessmentStatus.blocked;
 
   int get generatedZoneCount => plan?.generatedZones.length ?? 0;
+  bool get isSynchronization => existingZoneCount > 0;
 
   String get summaryTitle {
     return assessment?.summaryTitle ??
@@ -186,6 +195,7 @@ TallGrassEncounterSmartTileGameplayZonePreview
   return TallGrassEncounterSmartTileGameplayZonePreview(
     surfaceLabel: resolved.sourceLabel,
     sourceCellCount: resolved.source.cells.length,
+    existingZoneCount: _existingZoneCount(map, plan),
     status: assessment.status,
     messages: assessment.messages,
     plan: plan,
@@ -243,6 +253,7 @@ SurfableWaterSmartTileGameplayZonePreview
   return SurfableWaterSmartTileGameplayZonePreview(
     surfaceLabel: resolved.sourceLabel,
     sourceCellCount: resolved.source.cells.length,
+    existingZoneCount: _existingZoneCount(map, plan),
     status: assessment.status,
     messages: assessment.messages,
     plan: plan,
@@ -317,6 +328,7 @@ LavaHazardSmartTileGameplayZonePreview
   return LavaHazardSmartTileGameplayZonePreview(
     surfaceLabel: resolved.sourceLabel,
     sourceCellCount: resolved.source.cells.length,
+    existingZoneCount: _existingZoneCount(map, plan),
     damagePerStep: damagePerStep,
     status: assessment.status,
     messages: assessment.messages,
@@ -471,6 +483,7 @@ LavaHazardSmartTileGameplayZonePreview _blockedLavaPreview({
   return LavaHazardSmartTileGameplayZonePreview(
     surfaceLabel: surfaceLabel,
     sourceCellCount: sourceCellCount,
+    existingZoneCount: 0,
     damagePerStep: damagePerStep,
     status: SmartTileGameplayZoneGenerationAssessmentStatus.blocked,
     messages: [
@@ -492,6 +505,7 @@ SurfableWaterSmartTileGameplayZonePreview _blockedWaterPreview({
   return SurfableWaterSmartTileGameplayZonePreview(
     surfaceLabel: surfaceLabel,
     sourceCellCount: sourceCellCount,
+    existingZoneCount: 0,
     status: SmartTileGameplayZoneGenerationAssessmentStatus.blocked,
     messages: [
       SmartTileGameplayZoneGenerationAssessmentMessage(
@@ -512,6 +526,7 @@ TallGrassEncounterSmartTileGameplayZonePreview _blockedPreview({
   return TallGrassEncounterSmartTileGameplayZonePreview(
     surfaceLabel: surfaceLabel,
     sourceCellCount: sourceCellCount,
+    existingZoneCount: 0,
     status: SmartTileGameplayZoneGenerationAssessmentStatus.blocked,
     messages: [
       SmartTileGameplayZoneGenerationAssessmentMessage(
@@ -521,4 +536,16 @@ TallGrassEncounterSmartTileGameplayZonePreview _blockedPreview({
       ),
     ],
   );
+}
+
+int _existingZoneCount(
+  MapData map,
+  SmartTileGameplayZoneGenerationPlan plan,
+) {
+  final provenance = plan.generatedZones.first.smartTileProvenance;
+  if (provenance == null) return 0;
+  return smartTileGameplayZonesForBinding(
+    map.gameplayZones,
+    provenance,
+  ).length;
 }

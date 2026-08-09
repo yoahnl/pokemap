@@ -3,6 +3,7 @@ import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_gameplay_zone_payloads.dart';
+import '../models/smart_tile_gameplay_zone_provenance.dart';
 
 // ---------------------------------------------------------------------------
 // Lookup
@@ -77,6 +78,7 @@ MapData updateGameplayZoneOnMap(
   Object? movementEffect = _kUnset,
   Object? hazard = _kUnset,
   Object? special = _kUnset,
+  Object? smartTileProvenance = _kUnset,
 }) {
   final index = map.gameplayZones.indexWhere((z) => z.id == zoneId);
   if (index < 0) throw ValidationException('Gameplay zone not found: $zoneId');
@@ -104,6 +106,12 @@ MapData updateGameplayZoneOnMap(
   }
   if (!identical(special, _kUnset)) {
     draft = draft.copyWith(special: special as SpecialZonePayload?);
+  }
+  if (!identical(smartTileProvenance, _kUnset)) {
+    draft = draft.copyWith(
+      smartTileProvenance:
+          smartTileProvenance as SmartTileGameplayZoneProvenance?,
+    );
   }
 
   final next = _normalizeZone(draft);

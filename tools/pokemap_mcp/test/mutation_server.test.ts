@@ -2221,6 +2221,7 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "smart_tile.preset.draft.upsert",
       "smart_tile.preset.delete",
       "smart_tile.preset.publish",
+      "gameplay_zone.smart_tile.sync",
       "tileset.tiled.import",
     ]) {
       assert.ok(actionIds.includes(actionId), actionId);
@@ -2345,6 +2346,31 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       "smart_tile.layer.normalize",
       { mapId: "map_hanazuki_village", layerId: "terrain" },
       "normalize",
+    );
+    await applyAction(
+      "gameplay_zone.smart_tile.sync",
+      {
+        mapId: "map_hanazuki_village",
+        zones: [
+          {
+            id: "path-tall-grass",
+            name: "Path tall grass",
+            kind: "encounter",
+            area: {
+              pos: { x: 0, y: 1 },
+              size: { width: 3, height: 1 },
+            },
+            encounter: { encounterKind: "walk" },
+            smartTileProvenance: {
+              smartTileLayerId: "path_target",
+              smartTilePresetId: "path",
+              materialId: "dirt",
+              behaviorKey: "encounter.walk",
+            },
+          },
+        ],
+      },
+      "sync-tall-grass",
     );
     await applyAction(
       "smart_tile.layer.merge",
@@ -2531,6 +2557,16 @@ test("MCP normalizes and atomically merges the complete M01 Smart Tile fixture",
       ),
     ) as JsonRecord;
     assert.equal(map.version, "v6");
+    const gameplayZones = map.gameplayZones as JsonRecord[];
+    assert.equal(gameplayZones.length, 1);
+    const gameplayZone = gameplayZones[0];
+    assert.ok(gameplayZone);
+    assert.deepEqual(record(gameplayZone.smartTileProvenance), {
+      smartTileLayerId: "path_target",
+      smartTilePresetId: "path",
+      materialId: "dirt",
+      behaviorKey: "encounter.walk",
+    });
     const layers = map.layers as JsonRecord[];
     assert.deepEqual(
       layers.map((layer) => layer.id),

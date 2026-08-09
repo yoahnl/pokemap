@@ -449,6 +449,45 @@ void main() {
       expect(confirmedPlan, isNotNull);
       expect(confirmedPlan!.generatedZones, hasLength(2));
     });
+
+    testWidgets('announces synchronization for an existing binding',
+        (tester) async {
+      final baseMap = _mapWithTallGrassSmartTile();
+      final catalog = _smartTileCatalog(
+        presets: [_smartTilePreset(id: 'tall_grass', name: 'Tall Grass')],
+      );
+      final existing = buildTallGrassEncounterSmartTileGameplayZonePreview(
+        map: baseMap,
+        smartTileLayer: _tallGrassLayer(),
+        smartTilePresetId: 'tall_grass',
+        catalog: catalog,
+        encounterTableId: 'route_1_grass',
+      ).plan!;
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: CupertinoPageScaffold(
+            child: SmartTileToGameplayZoneDialog(
+              map: baseMap.copyWith(gameplayZones: existing.generatedZones),
+              smartTileLayer: _tallGrassLayer(),
+              smartTilePresetId: 'tall_grass',
+              catalog: catalog,
+              encounterTables: const [
+                ProjectEncounterTable(
+                  id: 'route_1_grass',
+                  name: 'Route 1 Grass',
+                  encounterKind: EncounterKind.walk,
+                ),
+              ],
+              onConfirm: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Remplacées : '), findsOneWidget);
+      expect(find.text('Synchroniser les zones'), findsOneWidget);
+    });
   });
 
   group('SurfableWaterSmartTileGameplayZoneDialog', () {
@@ -737,6 +776,94 @@ void main() {
         updatedMap.layers.whereType<SmartTileLayer>().single.field,
         initialMap.layers.whereType<SmartTileLayer>().single.field,
       );
+    });
+
+    test('resynchronizes painted cells without deleting manual zones', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithTallGrassSmartTile();
+      final catalog = _smartTileCatalog(
+        presets: [_smartTilePreset(id: 'tall_grass', name: 'Tall Grass')],
+      );
+      notifier.state = EditorState(
+        project: _projectManifest(),
+        activeMap: initialMap,
+        activeLayerId: 'smart-tile-main',
+        savedMapSnapshot: initialMap,
+      );
+      final firstPreview = buildTallGrassEncounterSmartTileGameplayZonePreview(
+        map: initialMap,
+        smartTileLayer: _tallGrassLayer(),
+        smartTilePresetId: 'tall_grass',
+        catalog: catalog,
+        encounterTableId: 'route_1_grass',
+      );
+      expect(
+        applyTallGrassEncounterGameplayZonePlan(
+          notifier: notifier,
+          plan: firstPreview.plan!,
+        ),
+        isTrue,
+      );
+
+      const manualZone = MapGameplayZone(
+        id: 'manual-zone',
+        name: 'Manuelle',
+        kind: GameplayZoneKind.encounter,
+        area: MapRect(
+          pos: GridPos(x: 7, y: 7),
+          size: GridSize(width: 1, height: 1),
+        ),
+        encounter: EncounterZonePayload(
+          encounterTableId: 'manual-table',
+        ),
+      );
+      final repaintedLayer = _smartTileLayer(
+        presetId: 'tall_grass',
+        paintedCellIndexes: const <int>[9, 10, 17, 18],
+      );
+      final repaintedMap = notifier.state.activeMap!.copyWith(
+        layers: <MapLayer>[repaintedLayer],
+        gameplayZones: <MapGameplayZone>[
+          ...notifier.state.activeMap!.gameplayZones,
+          manualZone,
+        ],
+      );
+      notifier.state = notifier.state.copyWith(activeMap: repaintedMap);
+      final synchronizationPreview =
+          buildTallGrassEncounterSmartTileGameplayZonePreview(
+        map: repaintedMap,
+        smartTileLayer: repaintedLayer,
+        smartTilePresetId: 'tall_grass',
+        catalog: catalog,
+        encounterTableId: 'route_1_grass',
+      );
+
+      expect(synchronizationPreview.isSynchronization, isTrue);
+      expect(synchronizationPreview.existingZoneCount, 2);
+      expect(synchronizationPreview.generatedZoneCount, 1);
+      expect(
+        applyTallGrassEncounterGameplayZonePlan(
+          notifier: notifier,
+          plan: synchronizationPreview.plan!,
+        ),
+        isTrue,
+      );
+
+      final zones = notifier.state.activeMap!.gameplayZones;
+      expect(zones, hasLength(2));
+      expect(zones, contains(manualZone));
+      final generated = zones.singleWhere((zone) => zone.id != manualZone.id);
+      expect(
+        generated.area,
+        const MapRect(
+          pos: GridPos(x: 1, y: 1),
+          size: GridSize(width: 2, height: 2),
+        ),
+      );
+      expect(generated.smartTileProvenance, isNotNull);
+      expect(notifier.state.mapUndoStack, hasLength(2));
     });
 
     test('rejects non-encounter plans without mutating the map', () {

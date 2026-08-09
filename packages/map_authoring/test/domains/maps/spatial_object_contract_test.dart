@@ -79,10 +79,41 @@ void main() {
           'trigger.create',
           'trigger.delete_apply',
           'gameplay_zone.create',
+          'gameplay_zone.smart_tile.sync',
           'gameplay_zone.set_hazard_payload',
           'gameplay_zone.delete',
         }),
       );
+    });
+
+    test('Smart Tile gameplay zones synchronize atomically', () {
+      const provenance = SmartTileGameplayZoneProvenance(
+        smartTileLayerId: 'paths',
+        smartTilePresetId: 'tall-grass',
+        materialId: 'grass',
+        behaviorKey: 'encounter.walk',
+      );
+      const replacement = MapGameplayZone(
+        id: 'grass',
+        kind: GameplayZoneKind.encounter,
+        area: MapRect(
+          pos: GridPos(x: 1, y: 1),
+          size: GridSize(width: 2, height: 2),
+        ),
+        encounter: EncounterZonePayload(encounterTableId: 'route-grass'),
+        smartTileProvenance: provenance,
+      );
+      final draft = const TriggerZoneActions().build(
+        _gameplayZoneSyncContext(replacement),
+      );
+      final updated = MapData.fromJson(
+        jsonDecode(utf8.decode(draft.changeSet.changes.single.afterBytes!))
+            as Map<String, dynamic>,
+      );
+
+      expect(updated.gameplayZones, hasLength(2));
+      expect(updated.gameplayZones.first, replacement);
+      expect(updated.gameplayZones.last.id, 'manual');
     });
 
     test('places a 128 by 128 building as one logical instance', () {
@@ -233,3 +264,103 @@ MapData _emptyMap() => const MapData(
       name: 'Map',
       size: GridSize(width: 4, height: 4),
     );
+
+AuthoringPlanningContext _gameplayZoneSyncContext(
+  MapGameplayZone replacement,
+) {
+  const provenance = SmartTileGameplayZoneProvenance(
+    smartTileLayerId: 'paths',
+    smartTilePresetId: 'tall-grass',
+    materialId: 'grass',
+    behaviorKey: 'encounter.walk',
+  );
+  const map = MapData(
+    id: 'map',
+    name: 'Map',
+    size: GridSize(width: 4, height: 4),
+    gameplayZones: <MapGameplayZone>[
+      MapGameplayZone(
+        id: 'grass-old',
+        kind: GameplayZoneKind.encounter,
+        area: MapRect(
+          pos: GridPos(x: 0, y: 0),
+          size: GridSize(width: 1, height: 1),
+        ),
+        smartTileProvenance: provenance,
+      ),
+      MapGameplayZone(
+        id: 'manual',
+        kind: GameplayZoneKind.custom,
+        area: MapRect(
+          pos: GridPos(x: 3, y: 3),
+          size: GridSize(width: 1, height: 1),
+        ),
+      ),
+    ],
+  );
+  const manifest = ProjectManifest(
+    name: 'Project',
+    maps: <ProjectMapEntry>[
+      ProjectMapEntry(
+        id: 'map',
+        name: 'Map',
+        relativePath: 'maps/map.json',
+      ),
+    ],
+    tilesets: <ProjectTilesetEntry>[],
+  );
+  final manifestBytes = utf8.encode(jsonEncode(manifest.toJson()));
+  final mapBytes = utf8.encode(jsonEncode(map.toJson()));
+  final revision = computeNarrativeProjectFingerprint(
+    <NarrativeProjectFingerprintEntry>[
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'project.json',
+        bytes: manifestBytes,
+      ),
+      NarrativeProjectFingerprintEntry(
+        relativePath: 'maps/map.json',
+        bytes: mapBytes,
+      ),
+    ],
+  );
+  final snapshot = ProjectSnapshot(
+    projectHandle: const ProjectHandle('project'),
+    revision: revision,
+    manifest: manifest,
+    maps: const <MapData>[map],
+    resourceFingerprints: <String, String>{
+      'project': computeAuthoringBytesFingerprint(
+        manifestBytes,
+        logicalName: 'project.json',
+      ),
+      'map:map': computeAuthoringBytesFingerprint(
+        mapBytes,
+        logicalName: 'maps/map.json',
+      ),
+    },
+    resourceBytes: <String, List<int>>{
+      'project': manifestBytes,
+      'map:map': mapBytes,
+    },
+  );
+  return AuthoringPlanningContext(
+    snapshot: snapshot,
+    request: AuthoringRequest(
+      requestId: 'sync',
+      actionId: 'gameplay_zone.smart_tile.sync',
+      actionVersion: 1,
+      workspaceHandle: 'workspace',
+      parameters: <String, Object?>{
+        'mapId': 'map',
+        'zones': <Object?>[
+          jsonDecode(jsonEncode(replacement.toJson())),
+        ],
+      },
+      expectedRevision: snapshot.revision,
+      idempotencyKey: 'sync-idempotency',
+      dryRun: false,
+    ),
+    planId: 'sync-plan',
+    seed: 1,
+  );
+}

@@ -12,6 +12,7 @@ import 'map_layer.dart';
 import 'map_metadata.dart';
 import 'map_visual_stack_config.dart';
 import 'shadow.dart';
+import 'smart_tile_gameplay_zone_provenance.dart';
 
 import '../compatibility/environment_single_area_migration.dart';
 import '../operations/map_placed_element_shadow_override_json_codec.dart';
@@ -196,6 +197,8 @@ abstract class MapGameplayZone with _$MapGameplayZone {
 
     /// Payload pour [GameplayZoneKind.special] et [GameplayZoneKind.custom].
     SpecialZonePayload? special,
+    @JsonKey(includeIfNull: false)
+    SmartTileGameplayZoneProvenance? smartTileProvenance,
   }) = _MapGameplayZone;
 
   factory MapGameplayZone.fromJson(Map<String, dynamic> json) =>

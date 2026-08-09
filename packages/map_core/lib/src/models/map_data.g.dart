@@ -120,6 +120,11 @@ _MapGameplayZone _$MapGameplayZoneFromJson(
   special: json['special'] == null
       ? null
       : SpecialZonePayload.fromJson(json['special'] as Map<String, dynamic>),
+  smartTileProvenance: json['smartTileProvenance'] == null
+      ? null
+      : SmartTileGameplayZoneProvenance.fromJson(
+          json['smartTileProvenance'] as Map<String, dynamic>,
+        ),
 );
 
 Map<String, dynamic> _$MapGameplayZoneToJson(_MapGameplayZone instance) =>
@@ -134,6 +139,7 @@ Map<String, dynamic> _$MapGameplayZoneToJson(_MapGameplayZone instance) =>
       'movementEffect': instance.movementEffect?.toJson(),
       'hazard': instance.hazard?.toJson(),
       'special': instance.special?.toJson(),
+      'smartTileProvenance': ?instance.smartTileProvenance?.toJson(),
     };
 
 const _$GameplayZoneKindEnumMap = {

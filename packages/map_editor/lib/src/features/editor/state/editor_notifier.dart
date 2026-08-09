@@ -7565,24 +7565,26 @@ class EditorNotifier extends _$EditorNotifier
   }
 
   bool applyGeneratedGameplayZones({
-    required List<MapGameplayZone> zones,
+    required SmartTileGameplayZoneGenerationPlan plan,
     String? selectZoneId,
     String? statusMessage,
   }) {
     final map = state.activeMap;
+    final zones = plan.generatedZones;
     if (map == null || zones.isEmpty) return false;
     try {
-      var updatedMap = map;
-      for (final zone in zones) {
-        updatedMap = addGameplayZoneToMap(updatedMap, zone: zone);
-      }
+      final synchronization = synchronizeSmartTileGameplayZones(
+        map,
+        generatedZones: zones,
+      );
+      final updatedMap = synchronization.map;
 
       _applyMapMutation(
         previousMap: map,
         updatedMap: updatedMap,
         preferredActiveLayerId: state.activeLayerId,
         statusMessage: statusMessage ??
-            'Generated ${zones.length} gameplay ${zones.length == 1 ? 'zone' : 'zones'}',
+            'Synchronized ${zones.length} gameplay ${zones.length == 1 ? 'zone' : 'zones'}',
       );
 
       final requestedSelection = selectZoneId?.trim();

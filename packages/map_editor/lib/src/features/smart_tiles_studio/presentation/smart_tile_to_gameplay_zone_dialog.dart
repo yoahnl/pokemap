@@ -72,6 +72,11 @@ class _SmartTileToGameplayZoneDialogState
             label: 'Zones',
             value: '${preview.generatedZoneCount}',
           ),
+          if (preview.isSynchronization)
+            _InfoLine(
+              label: 'Remplacées',
+              value: '${preview.existingZoneCount}',
+            ),
           const SizedBox(height: 10),
           const Align(
             alignment: Alignment.centerLeft,
@@ -139,7 +144,11 @@ class _SmartTileToGameplayZoneDialogState
           isDefaultAction: true,
           onPressed:
               preview.canConfirm ? () => widget.onConfirm(preview.plan!) : null,
-          child: const Text('Créer les zones'),
+          child: Text(
+            preview.isSynchronization
+                ? 'Synchroniser les zones'
+                : 'Créer les zones',
+          ),
         ),
       ],
     );
@@ -186,6 +195,11 @@ class SurfableWaterSmartTileGameplayZoneDialog extends StatelessWidget {
           _InfoLine(label: 'Cellules', value: '${preview.sourceCellCount}'),
           const _InfoLine(label: 'Mode', value: 'Surf'),
           _InfoLine(label: 'Zones', value: '${preview.generatedZoneCount}'),
+          if (preview.isSynchronization)
+            _InfoLine(
+              label: 'Remplacées',
+              value: '${preview.existingZoneCount}',
+            ),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
@@ -230,7 +244,11 @@ class SurfableWaterSmartTileGameplayZoneDialog extends StatelessWidget {
         CupertinoDialogAction(
           isDefaultAction: true,
           onPressed: preview.canConfirm ? () => onConfirm(preview.plan!) : null,
-          child: const Text('Créer la zone Surf'),
+          child: Text(
+            preview.isSynchronization
+                ? 'Synchroniser la zone Surf'
+                : 'Créer la zone Surf',
+          ),
         ),
       ],
     );
@@ -299,6 +317,11 @@ class _LavaHazardSmartTileGameplayZoneDialogState
           _InfoLine(label: 'Cellules', value: '${preview.sourceCellCount}'),
           const _InfoLine(label: 'Type', value: 'Lave dangereuse'),
           _InfoLine(label: 'Zones', value: '${preview.generatedZoneCount}'),
+          if (preview.isSynchronization)
+            _InfoLine(
+              label: 'Remplacées',
+              value: '${preview.existingZoneCount}',
+            ),
           const SizedBox(height: 10),
           const Align(
             alignment: Alignment.centerLeft,
@@ -357,7 +380,11 @@ class _LavaHazardSmartTileGameplayZoneDialogState
           isDefaultAction: true,
           onPressed:
               preview.canConfirm ? () => widget.onConfirm(preview.plan!) : null,
-          child: const Text('Créer la zone de lave'),
+          child: Text(
+            preview.isSynchronization
+                ? 'Synchroniser la zone de lave'
+                : 'Créer la zone de lave',
+          ),
         ),
       ],
     );

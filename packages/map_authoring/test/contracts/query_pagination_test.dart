@@ -623,6 +623,23 @@ void main() {
       expect(summaryJson.length, lessThan(detailJson.length));
     });
 
+    test('map detail returns JSON-safe gameplay-zone geometry', () {
+      final page = const ProjectQueryService().query(
+        _snapshot(withGameplayZone: true),
+        AuthoringQueryRequest(
+          resourceKind: 'map',
+          operation: AuthoringQueryOperation.get,
+          ids: ['a-map'],
+          view: AuthoringQueryView.detail,
+        ),
+      );
+
+      expect(() => jsonEncode(page.toJson()), returnsNormally);
+      final zones = page.items.single['gameplayZones']! as List<Object?>;
+      final zone = zones.single as Map<String, Object?>;
+      expect(zone['smartTileProvenance'], isA<Map<String, Object?>>());
+    });
+
     test('does not expose manifest paths or the persisted editor API key', () {
       final page = const ProjectQueryService().query(
         _snapshot(withApiKey: true),
@@ -725,6 +742,7 @@ ProjectSnapshot _snapshot({
   bool withApiKey = false,
   bool withConnections = false,
   bool withBrokenConnection = false,
+  bool withGameplayZone = false,
 }) {
   final maps = [
     _map(
@@ -754,6 +772,24 @@ ProjectSnapshot _snapshot({
                   ),
                 ]
               : const [],
+      gameplayZones: withGameplayZone
+          ? const <MapGameplayZone>[
+              MapGameplayZone(
+                id: 'grass',
+                kind: GameplayZoneKind.encounter,
+                area: MapRect(
+                  pos: GridPos(x: 0, y: 0),
+                  size: GridSize(width: 1, height: 1),
+                ),
+                smartTileProvenance: SmartTileGameplayZoneProvenance(
+                  smartTileLayerId: 'a-map-ground',
+                  smartTilePresetId: 'grass',
+                  materialId: 'grass',
+                  behaviorKey: 'encounter.walk',
+                ),
+              ),
+            ]
+          : const <MapGameplayZone>[],
     ),
     _map(
       id: 'b-map',
@@ -812,6 +848,7 @@ MapData _map({
   required int width,
   required List<int> tiles,
   List<MapConnection> connections = const [],
+  List<MapGameplayZone> gameplayZones = const [],
 }) {
   return MapData(
     id: id,
@@ -837,5 +874,6 @@ MapData _map({
       'tags': id == 'a-map' ? ['forest', 'day'] : ['city'],
     },
     connections: connections,
+    gameplayZones: gameplayZones,
   );
 }

@@ -230,6 +230,15 @@ void main() {
       expect(zone.encounter!.encounterKind, EncounterKind.walk);
       expect(zone.movement, isNull);
       expect(zone.hazard, isNull);
+      expect(
+        zone.smartTileProvenance,
+        const SmartTileGameplayZoneProvenance(
+          smartTileLayerId: 'surfaces',
+          smartTilePresetId: 'tall_grass',
+          materialId: 'grass',
+          behaviorKey: 'encounter.walk',
+        ),
+      );
     });
 
     test('generates surfable water movement payload', () {

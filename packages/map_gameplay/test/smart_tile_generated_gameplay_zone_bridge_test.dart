@@ -431,7 +431,7 @@ MapData _baseSmartTileMap({bool blockLavaTarget = false}) {
       const MapLayer.tile(
         id: 'tile',
         name: 'Tile',
-        tiles: [
+        cells: [
           0,
           0,
           0,

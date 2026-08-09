@@ -850,8 +850,9 @@ Map<String, Object?> _mapSummary(MapData map) => {
       ],
     };
 
-Map<String, Object?> _mapDetail(MapData map) =>
-    _jsonObject(map.toJson())..['resourceKind'] = 'map';
+Map<String, Object?> _mapDetail(MapData map) => Map<String, Object?>.from(
+      jsonDecode(jsonEncode(map.toJson())) as Map<String, dynamic>,
+    )..['resourceKind'] = 'map';
 
 Map<String, Object?> _mapConnectionRecord(
   MapData map,

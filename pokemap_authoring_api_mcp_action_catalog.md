@@ -1231,6 +1231,7 @@ gameplay_zone.list
 gameplay_zone.get
 gameplay_zone.find_at
 gameplay_zone.create
+gameplay_zone.smart_tile.sync
 gameplay_zone.update
 gameplay_zone.move
 gameplay_zone.resize

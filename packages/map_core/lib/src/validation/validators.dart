@@ -2248,6 +2248,25 @@ class MapValidator {
     for (final zone in map.gameplayZones) {
       final zoneId =
           _requireNonBlank(zone.id, 'Gameplay zone ID cannot be empty');
+      final smartTileProvenance = zone.smartTileProvenance;
+      if (smartTileProvenance != null) {
+        _requireNonBlank(
+          smartTileProvenance.smartTileLayerId,
+          'Gameplay zone $zoneId Smart Tile layer ID cannot be empty',
+        );
+        _requireNonBlank(
+          smartTileProvenance.smartTilePresetId,
+          'Gameplay zone $zoneId Smart Tile preset ID cannot be empty',
+        );
+        _requireNonBlank(
+          smartTileProvenance.materialId,
+          'Gameplay zone $zoneId Smart Tile material ID cannot be empty',
+        );
+        _requireNonBlank(
+          smartTileProvenance.behaviorKey,
+          'Gameplay zone $zoneId Smart Tile behavior key cannot be empty',
+        );
+      }
       _requireNonBlank(
           zone.kind.name, 'Gameplay zone $zoneId has invalid kind');
       final encounterBattleBackgroundRelativePath =

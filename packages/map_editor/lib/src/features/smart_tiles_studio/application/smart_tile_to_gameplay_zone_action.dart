@@ -15,9 +15,9 @@ bool applyTallGrassEncounterGameplayZonePlan({
   }
 
   return notifier.applyGeneratedGameplayZones(
-    zones: zones,
+    plan: plan,
     selectZoneId: zones.first.id,
-    statusMessage: 'Zones de rencontre créées depuis le Smart Tile',
+    statusMessage: 'Zones de rencontre synchronisées depuis le Smart Tile',
   );
 }
 
@@ -34,9 +34,9 @@ bool applySurfableWaterGameplayZonePlan({
   }
 
   return notifier.applyGeneratedGameplayZones(
-    zones: zones,
+    plan: plan,
     selectZoneId: zones.first.id,
-    statusMessage: 'Zones Surf créées depuis le Smart Tile',
+    statusMessage: 'Zones Surf synchronisées depuis le Smart Tile',
   );
 }
 
@@ -55,9 +55,9 @@ bool applyLavaHazardGameplayZonePlan({
   }
 
   return notifier.applyGeneratedGameplayZones(
-    zones: zones,
+    plan: plan,
     selectZoneId: zones.first.id,
-    statusMessage: 'Zones de lave créées depuis le Smart Tile',
+    statusMessage: 'Zones de lave synchronisées depuis le Smart Tile',
   );
 }
 

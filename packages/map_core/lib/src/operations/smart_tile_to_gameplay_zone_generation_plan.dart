@@ -3,6 +3,7 @@ import '../models/enums.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 import '../models/map_gameplay_zone_payloads.dart';
+import '../models/smart_tile_gameplay_zone_provenance.dart';
 
 enum SmartTileGameplayZoneGenerationStrategy {
   boundingBox,
@@ -40,6 +41,9 @@ final class SmartTileGameplayZoneGenerationSource {
         smartTilePresetId = smartTilePresetId.trim(),
         materialId = materialId.trim(),
         cells = _normalizeCells(cells, mapSize: mapSize) {
+    if (this.smartTileLayerId.isEmpty) {
+      throw const ValidationException('smartTileLayerId cannot be empty');
+    }
     if (this.smartTilePresetId.isEmpty) {
       throw const ValidationException('smartTilePresetId cannot be empty');
     }
@@ -279,6 +283,18 @@ SmartTileGameplayZoneGenerationPlan createSmartTileGameplayZoneGenerationPlan({
   List<MapGameplayZone> existingZones = const [],
   int maxRectanglesWarningThreshold = 8,
 }) {
+  final provenance = SmartTileGameplayZoneProvenance(
+    smartTileLayerId: source.smartTileLayerId,
+    smartTilePresetId: source.smartTilePresetId,
+    materialId: source.materialId,
+    behaviorKey: _behaviorKey(behavior),
+  );
+  final unmanagedExistingZones = existingZones
+      .where(
+        (zone) =>
+            !(zone.smartTileProvenance?.hasSameBinding(provenance) ?? false),
+      )
+      .toList(growable: false);
   final rectangles = switch (strategy) {
     SmartTileGameplayZoneGenerationStrategy.boundingBox => [
         _boundingBox(source.cells),
@@ -320,7 +336,7 @@ SmartTileGameplayZoneGenerationPlan createSmartTileGameplayZoneGenerationPlan({
     );
   }
   for (final rectangle in rectangles) {
-    for (final existingZone in existingZones) {
+    for (final existingZone in unmanagedExistingZones) {
       if (_rectsOverlap(rectangle, existingZone.area)) {
         diagnostics.add(
           SmartTileGameplayZoneGenerationDiagnostic(
@@ -336,7 +352,7 @@ SmartTileGameplayZoneGenerationPlan createSmartTileGameplayZoneGenerationPlan({
     }
   }
 
-  final usedIds = <String>{for (final zone in existingZones) zone.id};
+  final usedIds = <String>{for (final zone in unmanagedExistingZones) zone.id};
   final zones = <MapGameplayZone>[];
   for (var i = 0; i < rectangles.length; i++) {
     final baseId = _baseZoneId(
@@ -371,6 +387,7 @@ SmartTileGameplayZoneGenerationPlan createSmartTileGameplayZoneGenerationPlan({
         area: rectangles[i],
         priority: priority,
         behavior: behavior,
+        provenance: provenance,
       ),
     );
   }
@@ -505,6 +522,7 @@ MapGameplayZone _zoneFromDraft({
   required MapRect area,
   required int priority,
   required SmartTileGameplayZoneBehaviorDraft behavior,
+  required SmartTileGameplayZoneProvenance provenance,
 }) {
   return MapGameplayZone(
     id: id,
@@ -516,7 +534,24 @@ MapGameplayZone _zoneFromDraft({
     movement: behavior.movement,
     hazard: behavior.hazard,
     special: behavior.special,
+    smartTileProvenance: provenance,
   );
+}
+
+String _behaviorKey(SmartTileGameplayZoneBehaviorDraft behavior) {
+  return switch (behavior.kind) {
+    GameplayZoneKind.encounter =>
+      'encounter.${behavior.encounter?.encounterKind.name ?? 'walk'}',
+    GameplayZoneKind.movement =>
+      'movement.${behavior.movement?.requiredMode.name ?? 'walk'}',
+    GameplayZoneKind.hazard =>
+      'hazard.${behavior.hazard?.hazardKind.name ?? 'other'}',
+    GameplayZoneKind.special => 'special',
+    GameplayZoneKind.movementEffect || GameplayZoneKind.custom =>
+      throw const ValidationException(
+        'Unsupported Smart Tile gameplay-zone behavior',
+      ),
+  };
 }
 
 String _baseZoneId({
