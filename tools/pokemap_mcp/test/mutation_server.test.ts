@@ -1490,6 +1490,248 @@ test("MCP upserts and paints a reusable Smart Tile pattern", async () => {
   }
 });
 
+test("MCP changes, reopens, undoes, and reapplies a Smart Tile layer preset", async () => {
+  const fixture = await mutationFixture({ withNativeSmartTileV5: true });
+  try {
+    const described = await toolData(fixture.client, "pokemap_describe", {});
+    const actionIds = (described.mutationActions as JsonRecord[]).map(
+      (action) => action.id,
+    );
+    assert.ok(actionIds.includes("smart_tile.layer.change_preset"));
+    const opened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const projectHandle = String(opened.projectHandle);
+    const workspaceHandle = String(opened.workspaceHandle);
+    let revision = String(
+      (
+        await toolData(fixture.client, "pokemap_validate", {
+          projectHandle,
+        })
+      ).snapshotRevision,
+    );
+    async function applyAction(
+      actionId: string,
+      parameters: JsonRecord,
+      sequence: string,
+    ): Promise<JsonRecord> {
+      const planned = await toolData(fixture.client, "pokemap_plan", {
+        projectHandle,
+        request: {
+          requestId: `preset-change-${sequence}`,
+          actionId,
+          actionVersion: 1,
+          workspaceHandle,
+          parameters,
+          expectedRevision: revision,
+          idempotencyKey: `idem-preset-change-${sequence}`,
+          dryRun: false,
+        },
+      });
+      const applied = await toolData(fixture.client, "pokemap_apply", {
+        operation: "apply",
+        projectHandle,
+        planId: planned.planId,
+        operationId: `operation-preset-change-${sequence}`,
+      });
+      revision = String(
+        (
+          await toolData(fixture.client, "pokemap_validate", {
+            projectHandle,
+          })
+        ).snapshotRevision,
+      );
+      return applied;
+    }
+
+    await applyAction(
+      "smart_tile.preset.draft.upsert",
+      {
+        draft: completeSimpleSmartTileDraft({
+          id: "preset-change-source-draft",
+          targetPresetId: "preset-change-source",
+          usage: "path",
+        }),
+      },
+      "source-draft",
+    );
+    await applyAction(
+      "smart_tile.preset.publish",
+      {
+        draftId: "preset-change-source-draft",
+        layer: {
+          mapId: "native_v5",
+          layerId: "restyled_path",
+          name: "Restyled path",
+        },
+      },
+      "source-publish",
+    );
+    await applyAction(
+      "smart_tile.preset.draft.upsert",
+      {
+        draft: completeSimpleSmartTileDraft({
+          id: "preset-change-target-draft",
+          targetPresetId: "preset-change-target",
+          usage: "path",
+        }),
+      },
+      "target-draft",
+    );
+    await applyAction(
+      "smart_tile.preset.publish",
+      { draftId: "preset-change-target-draft" },
+      "target-publish",
+    );
+
+    const mapPath = join(fixture.root, "maps/native_v5.json");
+    const beforeMap = record(JSON.parse(await readFile(mapPath, "utf8")));
+    const beforeLayers = beforeMap.layers as JsonRecord[];
+    const beforeLayer = record(
+      beforeLayers.find((layer) => layer.id === "restyled_path"),
+    );
+    const beforeField = record(beforeLayer.field);
+    const planned = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle,
+      request: {
+        requestId: "preset-change-apply",
+        actionId: "smart_tile.layer.change_preset",
+        actionVersion: 1,
+        workspaceHandle,
+        parameters: {
+          mapId: "native_v5",
+          layerId: "restyled_path",
+          targetPresetId: "preset-change-target",
+          materialMappings: {
+            "preset-change-source-draft-material":
+              "preset-change-target-draft-material",
+          },
+        },
+        expectedRevision: revision,
+        idempotencyKey: "idem-preset-change-apply",
+        dryRun: false,
+      },
+    });
+    const preview = record(record(planned.plan).preview);
+    assert.equal(preview.sourcePresetId, "preset-change-source");
+    assert.equal(preview.targetPresetId, "preset-change-target");
+    assert.equal(preview.geometryPreserved, true);
+    assert.equal(preview.layerIdentityPreserved, true);
+    assert.equal(preview.gameplayZonesChanged, false);
+    const applied = await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle,
+      planId: planned.planId,
+      operationId: "operation-preset-change-apply",
+    });
+    const receipt = record(applied.receipt);
+    const afterMap = record(JSON.parse(await readFile(mapPath, "utf8")));
+    const afterLayers = afterMap.layers as JsonRecord[];
+    const afterLayer = record(
+      afterLayers.find((layer) => layer.id === "restyled_path"),
+    );
+    assert.deepEqual(
+      afterLayers.map((layer) => layer.id),
+      beforeLayers.map((layer) => layer.id),
+    );
+    assert.equal(afterLayer.presetId, "preset-change-target");
+    assert.deepEqual(record(afterLayer.field), beforeField);
+    assert.deepEqual(afterMap.gameplayZones, beforeMap.gameplayZones);
+
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle,
+    });
+    const reopened = await toolData(fixture.client, "pokemap_workspace", {
+      operation: "open",
+      projectRoot: fixture.root,
+    });
+    const reopenedProjectHandle = String(reopened.projectHandle);
+    const reopenedWorkspaceHandle = String(reopened.workspaceHandle);
+    const queried = await toolData(fixture.client, "pokemap_query", {
+      projectHandle: reopenedProjectHandle,
+      resourceKind: "smartTileLayer",
+      operation: "get",
+      view: "detail",
+      ids: ["native_v5:restyled_path"],
+    });
+    assert.equal(
+      record((queried.items as unknown[])[0]).presetId,
+      "preset-change-target",
+    );
+    const history = await toolData(fixture.client, "pokemap_history", {
+      operation: "list",
+      projectHandle: reopenedProjectHandle,
+      limit: 10,
+    });
+    const historyEntry = (history.entries as JsonRecord[]).find(
+      (entry) => record(entry.receipt).receiptId === receipt.receiptId,
+    );
+    assert.ok(historyEntry);
+    await toolData(fixture.client, "pokemap_history", {
+      operation: "undo",
+      projectHandle: reopenedProjectHandle,
+      entryId: String(historyEntry.entryId),
+      idempotencyKey: "idem-preset-change-undo",
+    });
+    let persisted = record(JSON.parse(await readFile(mapPath, "utf8")));
+    let persistedLayer = record(
+      (persisted.layers as JsonRecord[]).find(
+        (layer) => layer.id === "restyled_path",
+      ),
+    );
+    assert.equal(persistedLayer.presetId, "preset-change-source");
+
+    const undoValidation = await toolData(fixture.client, "pokemap_validate", {
+      projectHandle: reopenedProjectHandle,
+    });
+    const redoPlan = await toolData(fixture.client, "pokemap_plan", {
+      projectHandle: reopenedProjectHandle,
+      request: {
+        requestId: "preset-change-redo",
+        actionId: "smart_tile.layer.change_preset",
+        actionVersion: 1,
+        workspaceHandle: reopenedWorkspaceHandle,
+        parameters: {
+          mapId: "native_v5",
+          layerId: "restyled_path",
+          targetPresetId: "preset-change-target",
+          materialMappings: {
+            "preset-change-source-draft-material":
+              "preset-change-target-draft-material",
+          },
+        },
+        expectedRevision: undoValidation.snapshotRevision,
+        idempotencyKey: "idem-preset-change-redo",
+        dryRun: false,
+      },
+    });
+    await toolData(fixture.client, "pokemap_apply", {
+      operation: "apply",
+      projectHandle: reopenedProjectHandle,
+      planId: redoPlan.planId,
+      operationId: "operation-preset-change-redo",
+    });
+    persisted = record(JSON.parse(await readFile(mapPath, "utf8")));
+    persistedLayer = record(
+      (persisted.layers as JsonRecord[]).find(
+        (layer) => layer.id === "restyled_path",
+      ),
+    );
+    assert.equal(persistedLayer.presetId, "preset-change-target");
+    await toolData(fixture.client, "pokemap_workspace", {
+      operation: "close",
+      workspaceHandle: reopenedWorkspaceHandle,
+    });
+  } finally {
+    await fixture.client.close();
+    await fixture.server.close();
+    await fixture.authoring.close();
+    await rm(fixture.root, { recursive: true, force: true });
+  }
+});
+
 test("MCP imports a Tiled tileset through one canonical receipt", async () => {
   const fixture = await mutationFixture();
   try {

@@ -50,6 +50,10 @@ void main() {
       expect(draft.preview, containsPair('remappedEntryCount', 2));
       expect(draft.preview, containsPair('clearedCandidateWeightCount', 1));
       expect(draft.preview, containsPair('geometryPreserved', true));
+      expect(draft.preview, containsPair('layerIdentityPreserved', true));
+      expect(draft.preview, containsPair('patternStrokesPreserved', true));
+      expect(draft.preview, containsPair('preservedPatternStrokeCount', 1));
+      expect(draft.preview, containsPair('gameplayZonesChanged', false));
       expect(draft.preview, containsPair('batchAtomicity', 'all_or_nothing'));
       expect(draft.changeSet.changes, hasLength(1));
     });

@@ -138,7 +138,7 @@ void main() {
             .toJson(),
         containsPair(
           'endToEndVerifiedTransports',
-          <String>['cli', 'directApi', 'editor'],
+          <String>['cli', 'directApi', 'editor', 'mcp'],
         ),
       );
       expect(

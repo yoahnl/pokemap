@@ -307,6 +307,8 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
       AuthoringTransport.editor:
           '../map_editor/test/features/editor/presentation/world_map/'
               'smart_tile_layer_preset_change_flow_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
   if (actionId != 'map.create' && actionId != 'presentation.update') {
