@@ -125,6 +125,7 @@ export 'src/operations/tiled_map_import.dart';
 export 'src/operations/tiled_map_compilation.dart';
 export 'src/operations/project_tileset_visual_resolver.dart';
 export 'src/operations/smart_tile_layer_creation.dart';
+export 'src/operations/smart_tile_layer_preset_change.dart';
 export 'src/operations/smart_tile_layer_readiness.dart';
 export 'src/operations/smart_tile_layer_visual_resolver.dart';
 export 'src/operations/smart_tile_sprite_geometry.dart';
