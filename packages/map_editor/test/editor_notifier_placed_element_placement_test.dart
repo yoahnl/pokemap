@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +11,8 @@ import 'package:map_editor/src/application/models/map_tool_preview.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas.dart';
+import 'package:map_editor/src/ui/shared/pokemap_macos_ui_shim.dart';
 
 void main() {
   test(
@@ -43,6 +47,38 @@ void main() {
       );
     },
   );
+
+  testWidgets('canvas tap routes one project element placement', (
+    tester,
+  ) async {
+    final seeded = _RoutingEditorNotifier(_state());
+    final container = ProviderContainer(
+      overrides: <Override>[editorNotifierProvider.overrideWith(() => seeded)],
+    );
+    addTearDown(container.dispose);
+    await tester.binding.setSurfaceSize(const Size(900, 700));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MacosTheme(
+          data: MacosThemeData.light(),
+          child: const MaterialApp(
+            home: CupertinoPageScaffold(
+              child: SizedBox.expand(child: MapCanvas()),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    final canvas = tester.getRect(find.byType(MapCanvas));
+
+    await tester.tapAt(canvas.topLeft + const Offset(16, 16));
+    await tester.pump();
+
+    expect(seeded.semanticPlacements, const <GridPos>[GridPos(x: 0, y: 0)]);
+  });
 
   test(
     'project element preview exposes the footprint and rejects overflow',

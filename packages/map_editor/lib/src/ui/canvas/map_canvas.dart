@@ -1231,6 +1231,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
         final isInertTilePaint =
             state.activeTool == EditorToolType.tilePaint &&
             state.activeBrush is NoEditorBrush;
+        final isProjectElementPlacement =
+            state.activeTool == EditorToolType.tilePaint &&
+            state.activeBrush is ProjectElementEditorBrush;
         final isSmartTileShapeTool = isSmartTileShapeEditing;
         final isDirectSmartTileStroke =
             (state.activeTool == EditorToolType.terrainPaint ||
@@ -1238,7 +1241,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             !isSmartTileShapeTool;
         final isDirectStrokeEditingTool =
             (state.activeTool == EditorToolType.tilePaint &&
-                !isInertTilePaint) ||
+                !isInertTilePaint &&
+                !isProjectElementPlacement) ||
             isDirectSmartTileStroke ||
             state.activeTool == EditorToolType.collisionPaint ||
             isEnvironmentMaskEditing;
@@ -1250,6 +1254,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas>
             (state.npcWaypointPlacementEntityId?.trim().isNotEmpty ?? false);
         final isTapEditingTool =
             isStrokeEditingTool ||
+            isProjectElementPlacement ||
             state.activeTool == EditorToolType.entityPlacement ||
             state.activeTool == EditorToolType.eventPlacement ||
             state.activeTool == EditorToolType.warpPlacement ||
