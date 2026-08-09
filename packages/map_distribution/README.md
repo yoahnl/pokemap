@@ -64,5 +64,6 @@ HP-036–HP-039. HP-033, HP-034, and HP-035 are installer
 crash/atomic-promotion cases and belong to the Phase 3 staging and library
 implementation.
 
-The authoritative format and security contracts are under
-`reports/product/pokemap_hub/phase_0/`.
+The executable format and security contracts are implemented by this package.
+Independent golden vectors, compatibility cases, and valid and invalid package
+fixtures are tracked under `test/fixtures/game_package_contract/`.

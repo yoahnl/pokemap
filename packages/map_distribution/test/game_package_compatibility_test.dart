@@ -1,9 +1,10 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:map_distribution/map_distribution.dart';
 import 'package:pub_semver/pub_semver.dart';
 import 'package:test/test.dart';
+
+import 'support/game_package_contract_fixtures.dart';
 
 void main() {
   final host = GamePackageHostCompatibility(
@@ -155,29 +156,32 @@ void main() {
       expect(blocked.missingCapabilities, <String>['dialogue.choices@2']);
     });
 
-    test('executes every Phase 1 row from the Phase 0 compatibility matrix',
-        () {
+    test('executes every applicable row from the compatibility matrix', () {
       final matrix = jsonDecode(
-        File(
-          '../../reports/product/pokemap_hub/phase_0/compatibility/'
-          'compatibility-matrix.json',
+        gamePackageContractFixture(
+          'compatibility/compatibility-matrix.json',
         ).readAsStringSync(),
       ) as Map<String, dynamic>;
+      final cases = matrix['cases'] as List;
+      final caseIds = cases
+          .map((value) => (value as Map<String, dynamic>)['id'] as String)
+          .toList(growable: false);
       final handled = <String>{};
-      final deferredToPhase2 = <String>{
-        'C-011',
-        'C-012',
-        'C-013',
-        'C-014',
-        'C-015',
-        'C-016',
-        'C-020',
+      final expectedCaseIds = <String>{
+        for (var index = 1; index <= 10; index++)
+          'C-${index.toString().padLeft(3, '0')}',
+        'C-017',
+        'C-018',
+        'C-019',
       };
 
-      for (final rawCase in matrix['cases'] as List) {
+      expect(cases, hasLength(13));
+      expect(caseIds.toSet(), hasLength(caseIds.length));
+      expect(caseIds.toSet(), expectedCaseIds);
+
+      for (final rawCase in cases) {
         final testCase = rawCase as Map<String, dynamic>;
         final id = testCase['id'] as String;
-        if (deferredToPhase2.contains(id)) continue;
         final given = testCase['given'] as Map<String, dynamic>;
         final expected = testCase['expected'] as Map<String, dynamic>;
         if (id.compareTo('C-010') <= 0) {
@@ -269,12 +273,10 @@ void main() {
         },
       );
       expect(
-        (matrix['cases'] as List)
-            .map((value) => (value as Map<String, dynamic>)['id'] as String)
-            .toSet()
-            .difference(handled),
-        deferredToPhase2,
+        handled,
+        expectedCaseIds,
       );
+      expect(handled, hasLength(13));
     });
   });
 }

@@ -1,0 +1,26 @@
+{
+  "packageFormat": 1,
+  "gameId": "games.example.traversal",
+  "gameVersion": "1.0.0",
+  "title": "Traversal",
+  "author": { "name": "Example" },
+  "compatibility": {
+    "minHubVersion": "1.0.0",
+    "runtimeApi": ">=1.0.0 <2.0.0",
+    "projectFormat": "v6",
+    "saveFormat": 1,
+    "compatibilityId": "main",
+    "requiredCapabilities": []
+  },
+  "locales": { "default": "fr", "supported": ["fr"] },
+  "content": {
+    "fileCount": 1,
+    "totalBytes": 1,
+    "treeSha256": "e9cf3e702eabaafe6c9fbc8816b39a3885d7b456c4d08dbb96e6879ea240de36",
+    "files": [{
+      "path": "project/../../outside.txt",
+      "size": 1,
+      "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    }]
+  }
+}

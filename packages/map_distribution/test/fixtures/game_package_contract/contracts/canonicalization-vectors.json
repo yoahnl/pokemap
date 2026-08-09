@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "jsonCanonicalization": [
+    {
+      "name": "utf8-key-order",
+      "input": {
+        "z": 1,
+        "a": "é",
+        "nested": {
+          "b": true,
+          "a": null
+        }
+      },
+      "canonicalUtf8": "{\"a\":\"é\",\"nested\":{\"a\":null,\"b\":true},\"z\":1}",
+      "sha256": "8d3427a4781d0d93575fe50fe56942d1d8eadd6bf4f403457f327a47a0b06c77"
+    }
+  ],
+  "contentTrees": [
+    {
+      "name": "minimal-project",
+      "files": [
+        {
+          "path": "project/project.json",
+          "size": 67,
+          "sha256": "37174190ed0a5555f5cfecb1dda482e45bdc01f3ee81860981869ce8c3c5dc02"
+        }
+      ],
+      "canonicalPreimage": "pokemap-content-tree-v1\nproject/project.json\t67\t37174190ed0a5555f5cfecb1dda482e45bdc01f3ee81860981869ce8c3c5dc02\n",
+      "treeSha256": "7f4f52d0ba676cc3c003514c125d94e192a61555146eea8f79aa3dec480401d9"
+    },
+    {
+      "name": "order-normalized",
+      "files": [
+        {
+          "path": "project/project.json",
+          "size": 67,
+          "sha256": "37174190ed0a5555f5cfecb1dda482e45bdc01f3ee81860981869ce8c3c5dc02"
+        },
+        {
+          "path": "legal/CREDITS.txt",
+          "size": 8,
+          "sha256": "e5ff1f08d7619c827debf108523c6ea0bc8cbf4abe12a1857421f71a065c5629"
+        },
+        {
+          "path": "presentation/icon.png",
+          "size": 68,
+          "sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460"
+        }
+      ],
+      "canonicalPreimage": "pokemap-content-tree-v1\nlegal/CREDITS.txt\t8\te5ff1f08d7619c827debf108523c6ea0bc8cbf4abe12a1857421f71a065c5629\npresentation/icon.png\t68\t431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460\nproject/project.json\t67\t37174190ed0a5555f5cfecb1dda482e45bdc01f3ee81860981869ce8c3c5dc02\n",
+      "treeSha256": "d20b5b2036446190adc7071321eb2ec7695b5853cfea0220c550a14387e24b25"
+    }
+  ]
+}

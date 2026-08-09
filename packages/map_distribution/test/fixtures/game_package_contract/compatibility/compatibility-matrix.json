@@ -1,0 +1,104 @@
+{
+  "policyVersion": 1,
+  "assumedHost": {
+    "hubVersion": "1.2.0",
+    "packageFormats": [1],
+    "runtimeApiVersion": "1.4.0",
+    "capabilities": [
+      "dialogue.choices@1",
+      "overworld.menu@1",
+      "world.shop@1"
+    ],
+    "projectFormats": ["v1", "v2"],
+    "currentProjectFormat": "v2",
+    "saveFormats": [1],
+    "currentSaveFormat": 1
+  },
+  "cases": [
+    {
+      "id": "C-001",
+      "given": { "packageFormat": 1 },
+      "expected": { "decision": "accept" }
+    },
+    {
+      "id": "C-002",
+      "given": { "packageFormat": 2 },
+      "expected": { "decision": "reject", "code": "packageFormatUnsupported" }
+    },
+    {
+      "id": "C-003",
+      "given": { "minHubVersion": "1.3.0" },
+      "expected": { "decision": "reject", "code": "hubTooOld" }
+    },
+    {
+      "id": "C-004",
+      "given": { "runtimeApi": ">=1.0.0 <2.0.0" },
+      "expected": { "decision": "accept" }
+    },
+    {
+      "id": "C-005",
+      "given": { "runtimeApi": ">=2.0.0 <3.0.0" },
+      "expected": { "decision": "reject", "code": "runtimeApiUnsupported" }
+    },
+    {
+      "id": "C-006",
+      "given": { "requiredCapabilities": ["dialogue.choices@1"] },
+      "expected": { "decision": "accept" }
+    },
+    {
+      "id": "C-007",
+      "given": { "requiredCapabilities": ["dialogue.choices@2"] },
+      "expected": { "decision": "reject", "code": "capabilityUnsupported" }
+    },
+    {
+      "id": "C-008",
+      "given": { "projectFormat": "v2" },
+      "expected": { "decision": "accept" }
+    },
+    {
+      "id": "C-009",
+      "given": { "projectFormat": "v1" },
+      "expected": { "decision": "migrate", "code": "projectMigrationRequired" }
+    },
+    {
+      "id": "C-010",
+      "given": { "projectFormat": "v3" },
+      "expected": { "decision": "reject", "code": "projectFormatUnsupported" }
+    },
+    {
+      "id": "C-017",
+      "given": {
+        "installed": {
+          "gameId": "games.example.complete",
+          "gameVersion": "1.2.0",
+          "treeSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "candidate": {
+          "gameId": "games.example.complete",
+          "gameVersion": "1.2.0",
+          "treeSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      },
+      "expected": { "decision": "reject", "code": "releaseConflict" }
+    },
+    {
+      "id": "C-018",
+      "given": {
+        "currentGameVersion": "1.2.0",
+        "candidateGameVersion": "1.1.0",
+        "activationMode": "update"
+      },
+      "expected": { "decision": "reject", "code": "notAnUpdate" }
+    },
+    {
+      "id": "C-019",
+      "given": {
+        "currentGameVersion": "1.2.0",
+        "candidateGameVersion": "1.1.0",
+        "activationMode": "rollback",
+        "compatibleSaveSnapshotAvailable": true
+      },
+      "expected": { "decision": "acceptWithWarning", "code": "rollbackConfirmationRequired" }
+    }
+  ]
+}

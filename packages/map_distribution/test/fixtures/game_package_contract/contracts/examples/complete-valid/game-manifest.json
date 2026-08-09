@@ -1,0 +1,56 @@
+{
+  "packageFormat": 1,
+  "gameId": "games.example.complete",
+  "gameVersion": "1.2.0",
+  "title": "Complete Adventure",
+  "description": "A complete but neutral contract fixture.",
+  "author": {
+    "name": "Example Studio",
+    "url": "https://example.invalid"
+  },
+  "publisher": {
+    "name": "Example Publisher"
+  },
+  "compatibility": {
+    "minHubVersion": "1.0.0",
+    "runtimeApi": ">=1.1.0 <2.0.0",
+    "projectFormat": "v6",
+    "saveFormat": 1,
+    "compatibilityId": "campaign-v1",
+    "requiredCapabilities": ["dialogue.choices@1", "overworld.menu@1"]
+  },
+  "locales": {
+    "default": "fr-FR",
+    "supported": ["fr-FR", "en-US"]
+  },
+  "branding": {
+    "icon": "presentation/icon.png",
+    "accentColor": "#6D5EFCAA",
+    "layoutVariant": "standard"
+  },
+  "content": {
+    "fileCount": 3,
+    "totalBytes": 143,
+    "treeSha256": "d20b5b2036446190adc7071321eb2ec7695b5853cfea0220c550a14387e24b25",
+    "files": [
+      {
+        "path": "legal/CREDITS.txt",
+        "size": 8,
+        "sha256": "e5ff1f08d7619c827debf108523c6ea0bc8cbf4abe12a1857421f71a065c5629",
+        "mediaType": "text/plain"
+      },
+      {
+        "path": "presentation/icon.png",
+        "size": 68,
+        "sha256": "431ced6916a2a21a156e38701afe55bbd7f88969fbbfc56d7fe099d47f265460",
+        "mediaType": "image/png"
+      },
+      {
+        "path": "project/project.json",
+        "size": 67,
+        "sha256": "37174190ed0a5555f5cfecb1dda482e45bdc01f3ee81860981869ce8c3c5dc02",
+        "mediaType": "application/json"
+      }
+    ]
+  }
+}

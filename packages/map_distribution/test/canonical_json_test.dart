@@ -1,27 +1,47 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:map_distribution/map_distribution.dart';
 import 'package:test/test.dart';
 
+import 'support/game_package_contract_fixtures.dart';
+
 void main() {
   group('CanonicalJson', () {
-    test('sorts object keys recursively and reproduces the Phase 0 vector', () {
+    test('executes every committed JSON canonicalization vector', () {
       final fixture = jsonDecode(
-        File(
-          '../../reports/product/pokemap_hub/phase_0/contracts/'
-          'canonicalization-vectors.json',
+        gamePackageContractFixture(
+          'contracts/canonicalization-vectors.json',
         ).readAsStringSync(),
       ) as Map<String, dynamic>;
-      final vector = (fixture['jsonCanonicalization'] as List).single
-          as Map<String, dynamic>;
-      final input = Map<String, Object?>.from(vector['input'] as Map);
+      final vectors = fixture['jsonCanonicalization'] as List;
+      final executed = <String>{};
 
-      final canonical = CanonicalJson.encode(input);
+      expect(vectors, hasLength(1));
+      expect(
+        vectors
+            .map((value) => (value as Map<String, dynamic>)['name'] as String)
+            .toSet(),
+        <String>{'utf8-key-order'},
+      );
 
-      expect(canonical, vector['canonicalUtf8']);
-      expect(CanonicalJson.sha256Hex(input), vector['sha256']);
-      expect(utf8.decode(CanonicalJson.encodeUtf8(input)), canonical);
+      for (final rawVector in vectors) {
+        final vector = rawVector as Map<String, dynamic>;
+        final name = vector['name'] as String;
+        final input = Map<String, Object?>.from(vector['input'] as Map);
+
+        final canonical = CanonicalJson.encode(input);
+
+        expect(canonical, vector['canonicalUtf8'], reason: name);
+        expect(CanonicalJson.sha256Hex(input), vector['sha256'], reason: name);
+        expect(
+          utf8.decode(CanonicalJson.encodeUtf8(input)),
+          canonical,
+          reason: name,
+        );
+        executed.add(name);
+      }
+
+      expect(executed, <String>{'utf8-key-order'});
     });
 
     test('rejects non-finite and non-integral numbers', () {
