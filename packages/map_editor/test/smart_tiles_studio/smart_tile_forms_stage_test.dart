@@ -93,4 +93,75 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('paths expose only ground and actor occlusion visual layers',
+      (tester) async {
+    SmartTileRenderChannel? selected;
+    await tester.pumpWidget(
+      _formsStage(
+        usage: SmartTileUsage.path,
+        onChannelSelected: (channel) => selected = channel,
+      ),
+    );
+
+    expect(find.byKey(const Key('smart-tiles-channel-ground')), findsOneWidget);
+    expect(
+      find.byKey(const Key('smart-tiles-channel-actorOcclusion')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('smart-tiles-channel-canopy')), findsNothing);
+
+    final actor =
+        find.byKey(const Key('smart-tiles-channel-actorOcclusion'));
+    await tester.ensureVisible(actor);
+    await tester.tap(actor);
+
+    expect(selected, SmartTileRenderChannel.actorOcclusion);
+  });
 }
+
+Widget _formsStage({
+  required SmartTileUsage usage,
+  required ValueChanged<SmartTileRenderChannel> onChannelSelected,
+}) =>
+    MaterialApp(
+      theme: PokeMapTheme.dark(),
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: SmartTileFormsStage(
+            usage: usage,
+            topology: SmartTileTopology.uniform,
+            forms: const <SmartTileFormReadModel>[],
+            materials: const <ProjectSmartTileMaterial>[],
+            transitionCases: const <SmartTileRule>[],
+            selectedMask: null,
+            selectedTransitionCaseId: null,
+            pendingAtlasFrame: null,
+            atlasSelectionMode: SmartTileAtlasSelectionMode.singleCell,
+            selectedChannel: SmartTileRenderChannel.ground,
+            animations: const <ProjectSmartTileAnimation>[],
+            atlasWorkbench: const SizedBox(height: 80),
+            onFormSelected: (_) {},
+            onCreateTransitionCase: () {},
+            onTransitionCaseSelected: (_) {},
+            onTransitionCaseRemoved: (_) {},
+            onTransitionCaseCenterChanged: (_, __) {},
+            onTransitionCaseSlotChanged: (_, __, ___) {},
+            onClearPendingFrame: () {},
+            onAtlasSelectionModeChanged: (_) {},
+            onChannelSelected: onChannelSelected,
+            onAnimationSelected: (_, __) {},
+            onTransitionCaseAnimationSelected: (_, __) {},
+            onWeightChanged: (_, __, ___) {},
+            onTransitionCaseWeightChanged: (_, __, ___) {},
+            onVisualPartChanged: (_, __, ___, ____) {},
+            onTransitionCaseVisualPartChanged: (_, __, ___, ____) {},
+            onMoveVariant: (_, __, ___) {},
+            onMoveTransitionCaseVariant: (_, __, ___) {},
+            onRemoveVariant: (_, __) {},
+            onRemoveTransitionCaseVariant: (_, __) {},
+            onContinue: null,
+          ),
+        ),
+      ),
+    );

@@ -41,6 +41,12 @@ void main() {
             map: controller.map,
             layer: controller.layer,
             catalog: fixture.catalog,
+            pass: SmartTileVisualPass.actorOcclusion,
+          ),
+          ...resolveSmartTileLayerVisuals(
+            map: controller.map,
+            layer: controller.layer,
+            catalog: fixture.catalog,
             pass: SmartTileVisualPass.foreground,
           ),
         ].where(
@@ -75,6 +81,7 @@ void main() {
           inspection.visuals.map((visual) => visual.channel),
           <SmartTileRenderChannel>[
             SmartTileRenderChannel.ground,
+            SmartTileRenderChannel.actorOcclusion,
             SmartTileRenderChannel.canopy,
           ],
         );
@@ -369,6 +376,16 @@ SmartTileRule _rule(int mask, SmartTileTopology topology) => SmartTileRule(
                 ),
               ),
               channel: SmartTileRenderChannel.ground,
+            ),
+            SmartTileVisualPart(
+              source: SmartTileVisualSource.frame(
+                frame: SmartTileFrameRef(
+                  atlasId: 'atlas',
+                  column: 1,
+                  row: 0,
+                ),
+              ),
+              channel: SmartTileRenderChannel.actorOcclusion,
             ),
             SmartTileVisualPart(
               source: SmartTileVisualSource.frame(

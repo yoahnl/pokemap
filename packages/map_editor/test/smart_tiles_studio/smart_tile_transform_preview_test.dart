@@ -150,6 +150,49 @@ void main() {
       }
     }
   });
+
+  test('editor map preview paints actor occlusion Smart Tile parts', () async {
+    final atlas = await _twoColorAtlas();
+    addTearDown(atlas.dispose);
+    final fixture = _actorOcclusionFixture();
+    final recorder = ui.PictureRecorder();
+    MapGridPainter(
+      map: fixture.map,
+      zoom: 1,
+      offset: ui.Offset.zero,
+      tileWidth: 32,
+      tileHeight: 32,
+      tilesetImagesById: <String, ui.Image?>{'smart': atlas},
+      sourceTileWidth: 32,
+      sourceTileHeight: 32,
+      tilesPerRowById: const <String, int>{'smart': 2},
+      warps: const <MapWarp>[],
+      gameplayZones: const <MapGameplayZone>[],
+      connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+      project: fixture.manifest,
+      showGrid: false,
+      showEntityEditorChrome: false,
+      showEditorOverlays: false,
+    ).paint(ui.Canvas(recorder), const ui.Size(32, 32));
+    final rendered = await recorder.endRecording().toImage(32, 32);
+
+    expect(await _pixelAt(rendered, 16, 16), <int>[0, 0, 255, 255]);
+    rendered.dispose();
+  });
+}
+
+Future<ui.Image> _twoColorAtlas() {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(0, 0, 32, 32),
+    ui.Paint()..color = const ui.Color(0xFFFF0000),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(32, 0, 32, 32),
+    ui.Paint()..color = const ui.Color(0xFF0000FF),
+  );
+  return recorder.endRecording().toImage(64, 32);
 }
 
 Future<ui.Image> _asymmetricAtlas() {
@@ -294,6 +337,78 @@ final _manifest = ProjectManifest(
     ],
   ),
 );
+
+({ProjectManifest manifest, MapData map}) _actorOcclusionFixture() {
+  const map = MapData(
+    id: 'actor-occlusion-preview',
+    name: 'Actor occlusion preview',
+    version: ProjectVersion.v6,
+    size: GridSize(width: 1, height: 1),
+    layers: <MapLayer>[
+      SmartTileLayer(
+        id: 'tall-grass',
+        name: 'Tall grass',
+        presetId: 'tall-grass',
+        usage: SmartTileUsage.path,
+        materialPalette: <String>['', 'grass'],
+        field: SmartTileField.cell(semanticCells: <int>[1]),
+      ),
+    ],
+  );
+  final preset = _manifest.smartTileCatalog.presets.single.copyWith(
+    id: 'tall-grass',
+    name: 'Tall grass',
+    usage: SmartTileUsage.path,
+    rules: const <SmartTileRule>[
+      SmartTileRule(
+        id: 'grass',
+        centerMatch: SmartTileSlotMatch.material('grass'),
+        candidates: <SmartTileCandidate>[
+          SmartTileCandidate(
+            id: 'grass',
+            parts: <SmartTileVisualPart>[
+              SmartTileVisualPart(
+                source: SmartTileVisualSource.frame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'atlas',
+                    column: 0,
+                    row: 0,
+                  ),
+                ),
+              ),
+              SmartTileVisualPart(
+                source: SmartTileVisualSource.frame(
+                  frame: SmartTileFrameRef(
+                    atlasId: 'atlas',
+                    column: 1,
+                    row: 0,
+                  ),
+                ),
+                channel: SmartTileRenderChannel.actorOcclusion,
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+  final sourceCatalog = _manifest.smartTileCatalog;
+  final catalog = ProjectSmartTileCatalog(
+    categories: sourceCatalog.categories,
+    atlases: <ProjectSmartTileAtlas>[
+      sourceCatalog.atlases.single.copyWith(columns: 2),
+    ],
+    materials: sourceCatalog.materials,
+    animations: sourceCatalog.animations,
+    presets: <ProjectSmartTilePreset>[preset],
+    patterns: sourceCatalog.patterns,
+    drafts: sourceCatalog.drafts,
+  );
+  return (
+    manifest: _manifest.copyWith(smartTileCatalog: catalog),
+    map: map,
+  );
+}
 
 ({ProjectManifest manifest, MapData map}) _geometryFixture({
   required SmartTileFrameRef frame,

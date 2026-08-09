@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/smart_tile_atlas_image_loader.dart';
+import '../application/smart_tile_authoring_channels.dart';
 import '../application/smart_tile_pattern_authoring.dart';
 
 enum _PatternAtlasInputMode { selection, anchor }
@@ -50,7 +51,7 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
   _PatternAtlasInputMode _inputMode = _PatternAtlasInputMode.selection;
   bool _awaitingOppositeCorner = false;
   late Map<GridPos, SmartTilePatternCellProfile> _cellProfiles;
-  SmartTileRenderChannel _profileChannel = SmartTileRenderChannel.canopy;
+  late SmartTileRenderChannel _profileChannel;
   SmartTilePatternCollision _profileCollision =
       SmartTilePatternCollision.inherit;
   bool _profileEraseMaterial = false;
@@ -89,6 +90,10 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
       projection?.cellProfiles ??
           const <GridPos, SmartTilePatternCellProfile>{},
     );
+    _profileChannel = _cellProfiles.values.firstOrNull?.channel ??
+        (_usage == SmartTileUsage.forestSurface
+            ? SmartTileRenderChannel.canopy
+            : SmartTileRenderChannel.ground);
     unawaited(_loadAtlasImage());
   }
 
@@ -166,7 +171,7 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
                 key: Key('smart-tiles-pattern-usage-${usage.name}'),
                 onPressed: widget.isSaving
                     ? null
-                    : () => setState(() => _usage = usage),
+                    : () => _selectUsage(usage),
                 variant: PokeMapButtonVariant.ghost,
                 size: PokeMapButtonSize.small,
                 isSelected: _usage == usage,
@@ -258,7 +263,7 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
             enabled: !widget.isSaving,
             onCellSelected: _selectAtlasCell,
           ),
-          if (_usage == SmartTileUsage.forestSurface && selection != null) ...[
+          if (_usage != SmartTileUsage.terrain && selection != null) ...[
             const SizedBox(height: 16),
             _buildOrganicCompositionEditor(selection),
           ],
@@ -354,6 +359,16 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
       _localError = null;
     });
     unawaited(_loadAtlasImage());
+  }
+
+  void _selectUsage(SmartTileUsage usage) {
+    final channels = smartTileRenderChannelsForUsage(usage);
+    setState(() {
+      _usage = usage;
+      if (!channels.contains(_profileChannel)) {
+        _profileChannel = channels.first;
+      }
+    });
   }
 
   void _selectAtlasCell(({int column, int row}) cell) {
@@ -456,17 +471,20 @@ class _SmartTilePatternEditorState extends State<SmartTilePatternEditor> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: <Widget>[
-          const PokeMapSectionHeader(
-            title: 'Composition organique',
-            description:
-                'Choisissez un canal et une collision, puis peignez les cellules du motif. La canopée passe devant le joueur ; le sous-bois reste derrière.',
+          PokeMapSectionHeader(
+            title: _usage == SmartTileUsage.path
+                ? 'Occlusion des personnages'
+                : 'Composition organique',
+            description: _usage == SmartTileUsage.path
+                ? 'Choisissez « Devant les personnages », puis marquez les cellules dont les brins doivent masquer les jambes du joueur.'
+                : 'Choisissez un canal et une collision, puis peignez les cellules du motif. La canopée passe devant le joueur ; le sous-bois reste derrière.',
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: <Widget>[
-              for (final channel in SmartTileRenderChannel.values)
+              for (final channel in smartTileRenderChannelsForUsage(_usage))
                 PokeMapButton(
                   key: Key(
                     'smart-tiles-pattern-profile-channel-${channel.name}',

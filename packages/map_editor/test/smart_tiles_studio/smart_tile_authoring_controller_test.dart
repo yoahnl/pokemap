@@ -651,6 +651,33 @@ void main() {
       expect(parts.last.anchorY, 96);
     });
 
+    test('path visuals preserve an actor occlusion overlay', () {
+      final controller = _configuredController();
+      controller
+        ..selectUsage(SmartTileUsage.path)
+        ..addAtlasVariant(
+          mask: 0xff,
+          column: 2,
+          row: 1,
+          candidateId: 'tall-grass',
+        )
+        ..replaceAtlasCandidate(
+          mask: 0xff,
+          column: 3,
+          row: 1,
+          candidateId: 'tall-grass',
+          channel: SmartTileRenderChannel.actorOcclusion,
+        );
+
+      final parts =
+          controller.compilePreset().rules.single.candidates.single.parts;
+
+      expect(parts.map((part) => part.channel), <SmartTileRenderChannel>[
+        SmartTileRenderChannel.ground,
+        SmartTileRenderChannel.actorOcclusion,
+      ]);
+    });
+
     test('rectangular crops default to their full grid footprint', () {
       final controller = _configuredController()
         ..selectUsage(SmartTileUsage.path)

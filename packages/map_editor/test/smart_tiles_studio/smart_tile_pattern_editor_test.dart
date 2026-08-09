@@ -122,6 +122,69 @@ void main() {
     );
   });
 
+  testWidgets('authors an actor occlusion profile for a path pattern',
+      (tester) async {
+    tester.view.physicalSize = const Size(1200, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    ProjectSmartTilePattern? saved;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: PokeMapTheme.light(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 1000,
+            height: 1400,
+            child: SmartTilePatternEditor(
+              manifest: _manifest,
+              projectRootPath: '/virtual/project',
+              patternId: 'tall_grass',
+              imageLoader: const _MissingImageLoader(),
+              isSaving: false,
+              onCancel: () {},
+              onSave: (pattern) async => saved = pattern,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    await tester.enterText(
+      find.byKey(const Key('smart-tiles-pattern-name')),
+      'Hautes herbes',
+    );
+    await tester.tap(find.byKey(const Key('smart-tiles-pattern-usage-path')));
+    await tester.pump();
+
+    final actor = find.byKey(
+      const Key('smart-tiles-pattern-profile-channel-actorOcclusion'),
+    );
+    await tester.ensureVisible(actor);
+    expect(actor, findsOneWidget);
+    expect(
+      find.byKey(const Key('smart-tiles-pattern-profile-channel-canopy')),
+      findsNothing,
+    );
+    await tester.tap(actor);
+    await tester.tap(
+      find.byKey(const Key('smart-tiles-pattern-profile-cell-0-0')),
+    );
+    final save = find.byKey(const Key('smart-tiles-pattern-save'));
+    await tester.ensureVisible(save);
+    await tester.tap(save);
+    await tester.pump();
+
+    expect(saved, isNotNull);
+    expect(
+      saved!.cells.single.parts.single.channel,
+      SmartTileRenderChannel.actorOcclusion,
+    );
+  });
+
   testWidgets('authors canopy and collision masks for an organic forest',
       (tester) async {
     tester.view.physicalSize = const Size(1200, 1800);

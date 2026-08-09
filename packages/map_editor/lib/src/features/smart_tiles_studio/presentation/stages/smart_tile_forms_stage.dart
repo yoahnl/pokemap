@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../../ui/design_system/design_system.dart';
 import '../../application/smart_tile_atlas_selection.dart';
+import '../../application/smart_tile_authoring_channels.dart';
 import '../../application/smart_tile_authoring_controller.dart';
 import '../../application/smart_tile_form_projection.dart';
 import '../workbench/smart_tile_coverage_gallery.dart';
@@ -257,25 +258,31 @@ class SmartTileFormsStage extends StatelessWidget {
                 ),
         ),
         const SizedBox(height: 10),
-        if (usage == SmartTileUsage.forestSurface) ...[
-          const PokeMapSectionHeader(
+        if (usage != SmartTileUsage.terrain) ...[
+          PokeMapSectionHeader(
             title: 'Couche visuelle active',
-            description:
-                'Le sol est la variante principale ; les autres canaux composent le sous-bois et la canopée.',
+            description: usage == SmartTileUsage.path
+                ? 'Le sol dessine le chemin. « Devant les personnages » ajoute les brins qui masquent naturellement leurs jambes.'
+                : 'Le sol est la variante principale ; les autres canaux composent le sous-bois et la canopée.',
           ),
           const SizedBox(height: 8),
           Wrap(
             spacing: 6,
             runSpacing: 6,
             children: <Widget>[
-              for (final channel in SmartTileRenderChannel.values)
+              for (final channel in smartTileRenderChannelsForUsage(usage))
                 PokeMapButton(
                   key: Key('smart-tiles-channel-${channel.name}'),
                   onPressed: () => onChannelSelected(channel),
                   variant: PokeMapButtonVariant.ghost,
                   size: PokeMapButtonSize.small,
                   isSelected: selectedChannel == channel,
-                  child: Text(_channelLabel(channel)),
+                  child: Text(
+                    usage == SmartTileUsage.path &&
+                            channel == SmartTileRenderChannel.actorOcclusion
+                        ? 'Hautes herbes (devant le joueur)'
+                        : _channelLabel(channel),
+                  ),
                 ),
             ],
           ),

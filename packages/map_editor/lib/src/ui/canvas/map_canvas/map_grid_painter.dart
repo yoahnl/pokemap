@@ -619,6 +619,17 @@ class MapGridPainter extends CustomPainter {
             canvas,
             foregroundPass: false,
           );
+          for (final smartLayer in map.layers
+              .where((layer) => layer.isVisible)
+              .whereType<SmartTileLayer>()) {
+            _paintSmartTileLayer(
+              canvas,
+              smartLayer,
+              pass: SmartTileVisualPass.actorOcclusion,
+              visibleBounds: visibleBounds,
+              cullingCounter: cullingCounter,
+            );
+          }
         case MapVisualCompositionStepKind.foregroundTilesAndPlacedElements:
           for (final layer in tileLayersInPaintOrder) {
             _paintTileLayer(

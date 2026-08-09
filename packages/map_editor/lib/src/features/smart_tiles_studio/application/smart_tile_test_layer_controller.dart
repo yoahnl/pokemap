@@ -173,6 +173,12 @@ final class SmartTileTestLayerController {
         map: _map,
         layer: currentLayer,
         catalog: catalog,
+        pass: SmartTileVisualPass.actorOcclusion,
+      ).where((visual) => visual.cellX == x && visual.cellY == y),
+      ...resolveSmartTileLayerVisuals(
+        map: _map,
+        layer: currentLayer,
+        catalog: catalog,
         pass: SmartTileVisualPass.foreground,
       ).where((visual) => visual.cellX == x && visual.cellY == y),
     ];
