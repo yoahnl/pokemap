@@ -48,6 +48,7 @@ void main() {
       final host = StandaloneRuntimeStartupHost(
         projectFilePath: projectFilePath,
         manifest: manifest,
+        clock: const _ImmediateClock(),
         minimumSplashDuration: Duration.zero,
         sessionPort: CallbackStandaloneRuntimeSessionPort(
           onLaunch: (descriptor, reportProgress, preloadedInitialMap) async {
@@ -112,6 +113,7 @@ void main() {
       final host = StandaloneRuntimeStartupHost(
         projectFilePath: projectFilePath,
         manifest: manifest,
+        clock: const _ImmediateClock(),
         minimumSplashDuration: Duration.zero,
         sessionPort: CallbackStandaloneRuntimeSessionPort(
           onLaunch: (descriptor, _, preloadedInitialMap) async {
@@ -212,6 +214,7 @@ void main() {
     final host = StandaloneRuntimeStartupHost(
       projectFilePath: projectFile.path,
       manifest: manifest,
+      clock: const _ImmediateClock(),
       minimumSplashDuration: Duration.zero,
       sessionPort: CallbackStandaloneRuntimeSessionPort(
         onLaunch: (_, __, ___) async {},
@@ -414,4 +417,11 @@ final class _GateClock implements RuntimeStartupClock {
   void complete() {
     if (!_gate.isCompleted) _gate.complete();
   }
+}
+
+final class _ImmediateClock implements RuntimeStartupClock {
+  const _ImmediateClock();
+
+  @override
+  Future<void> delay(Duration duration) async {}
 }

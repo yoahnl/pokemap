@@ -124,8 +124,10 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
 }
 
 class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _splashAnimation;
+  late final AnimationController _splashAmbientAnimation;
+  late final AnimationController _splashFinishAnimation;
   late final RuntimePlayerFocusController _focusController;
   late final PlayerIntroVideoPlayerController _introPlaybackController;
   int? _consumedStartupRevision;
@@ -147,11 +149,15 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       vsync: this,
       duration: widget.branding.minimumDisplayDuration,
     );
-    if (widget.reducedMotion) {
-      _splashAnimation.value = 1;
-    } else {
-      _splashAnimation.forward();
-    }
+    _splashAmbientAnimation = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 10),
+    );
+    _splashFinishAnimation = AnimationController(
+      vsync: this,
+      duration: widget.branding.finalCurtainDuration,
+    );
+    _syncSplashAnimations();
     _focusController = RuntimePlayerFocusController(
       activeInputSource: widget.snapshot.playerSnapshot?.activeInputSource ??
           PlayerInputSource.keyboard,
@@ -174,9 +180,15 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         widget.branding.minimumDisplayDuration) {
       _splashAnimation.duration = widget.branding.minimumDisplayDuration;
     }
-    if (!oldWidget.reducedMotion && widget.reducedMotion) {
-      _splashAnimation.value = 1;
+    if (oldWidget.branding.finalCurtainDuration !=
+        widget.branding.finalCurtainDuration) {
+      _splashFinishAnimation.duration = widget.branding.finalCurtainDuration;
     }
+    if (oldWidget.reducedMotion && !widget.reducedMotion) {
+      _splashAnimation.value = 0;
+      _splashAmbientAnimation.value = 0;
+    }
+    _syncSplashAnimations();
   }
 
   @override
@@ -220,16 +232,80 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   }
 
   Widget _buildSplash() => AnimatedBuilder(
-        animation: _splashAnimation,
+        animation: Listenable.merge(<Listenable>[
+          _splashAnimation,
+          _splashAmbientAnimation,
+          _splashFinishAnimation,
+        ]),
         builder: (context, _) => PlayerRuntimeSplashSurface(
           branding: widget.branding,
           progress: widget.splashLoadingProgress ?? widget.snapshot.progress,
           animationProgress:
               widget.splashAnimationProgress ?? _splashAnimation.value,
+          exitProgress: _splashFinishAnimation.value,
+          ambientProgress: _splashAmbientAnimation.value,
+          loadingLabel: _runtimeStartupLoadingLabel(widget.snapshot),
           logo: widget.splashLogo,
           reducedMotion: widget.reducedMotion,
         ),
       );
+
+  void _syncSplashAnimations() {
+    if (widget.reducedMotion) {
+      _splashAnimation.stop(canceled: false);
+      _splashAnimation.value = kPlayerSplashHoldProgress;
+      _splashAmbientAnimation.stop(canceled: false);
+      _splashAmbientAnimation.value = 0;
+      _splashFinishAnimation.stop(canceled: false);
+      _splashFinishAnimation.value = 0;
+      return;
+    }
+    final splashVisible = _visiblePhase == RuntimeStartupPhase.splash ||
+        _visiblePhase == RuntimeStartupPhase.preparing;
+    if (!splashVisible || !_active) {
+      _splashAnimation.stop(canceled: false);
+      _splashAmbientAnimation.stop(canceled: false);
+      _splashFinishAnimation.stop(canceled: false);
+      return;
+    }
+    if (!_splashAmbientAnimation.isAnimating) {
+      _splashAmbientAnimation.repeat();
+    }
+    final loadingProgress =
+        widget.splashLoadingProgress ?? widget.snapshot.progress;
+    final target = loadingProgress >= 1 ? 1.0 : kPlayerSplashHoldProgress;
+    if (loadingProgress < 1) {
+      _splashFinishAnimation.stop(canceled: false);
+      _splashFinishAnimation.value = 0;
+    }
+    if (_splashAnimation.value < target) {
+      final exitingHeldTimeline = target == 1 &&
+          _splashAnimation.value >= kPlayerSplashHoldProgress - .0001;
+      final remaining = exitingHeldTimeline
+          ? widget.branding.exitTransitionDuration.inMicroseconds *
+              ((1 - _splashAnimation.value) / (1 - kPlayerSplashHoldProgress))
+          : widget.branding.minimumDisplayDuration.inMicroseconds *
+              (target - _splashAnimation.value);
+      unawaited(
+        _splashAnimation
+            .animateTo(
+          target,
+          duration: Duration(microseconds: remaining.round()),
+          curve: Curves.linear,
+        )
+            .then((_) {
+          if (mounted) _syncSplashAnimations();
+        }),
+      );
+      return;
+    }
+    if (target == 1 &&
+        widget.snapshot.isMinimumElapsed &&
+        _splashFinishAnimation.value < 1 &&
+        !_splashFinishAnimation.isAnimating) {
+      _splashFinishAnimation.forward();
+    }
+  }
 
   Widget _buildIntro() {
     final snapshot = widget.snapshot;
@@ -600,7 +676,26 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   void dispose() {
     widget.controller?._detach(_handleInput, _stopIntroPlayback);
     _splashAnimation.dispose();
+    _splashAmbientAnimation.dispose();
+    _splashFinishAnimation.dispose();
     _focusController.dispose();
     super.dispose();
   }
+}
+
+String _runtimeStartupLoadingLabel(RuntimeStartupSnapshot snapshot) {
+  if (snapshot.progress >= 1) return 'PRÊT';
+  return switch (snapshot.currentStage) {
+    RuntimeStartupPreparationStage.manifestAndIdentity =>
+      'PRÉPARATION DU VOYAGE',
+    RuntimeStartupPreparationStage.playerPreferences => 'PRÉFÉRENCES DU JOUEUR',
+    RuntimeStartupPreparationStage.saveDiscovery =>
+      'RECHERCHE DE LA SAUVEGARDE',
+    RuntimeStartupPreparationStage.initialMap => 'ACCORD DU MONDE',
+    RuntimeStartupPreparationStage.presentationProfile =>
+      'PROFIL DE PRÉSENTATION',
+    RuntimeStartupPreparationStage.splashBranding => 'PRÉPARATION DU SPLASH',
+    RuntimeStartupPreparationStage.introAndPoster => 'PRÉPARATION DE LA SCÈNE',
+    RuntimeStartupPreparationStage.titleMenuAndMusic => 'MENU ET MUSIQUE',
+  };
 }

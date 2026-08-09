@@ -92,6 +92,8 @@ final class RuntimeHostSplashBranding {
     this.secondaryColorHex = '#9E79D7',
     this.backgroundColorHex = '#02040A',
     this.minimumDisplayDuration = const Duration(milliseconds: 7200),
+    this.exitTransitionDuration = const Duration(milliseconds: 1296),
+    this.finalCurtainDuration = const Duration(milliseconds: 280),
   })  : assert(displayName != ''),
         assert(signature != '');
 
@@ -102,6 +104,8 @@ final class RuntimeHostSplashBranding {
   final String secondaryColorHex;
   final String backgroundColorHex;
   final Duration minimumDisplayDuration;
+  final Duration exitTransitionDuration;
+  final Duration finalCurtainDuration;
 }
 
 /// A resolved install/project asset. The project-facing identifier remains
@@ -225,11 +229,7 @@ final class RuntimeStartupSnapshot {
   final RuntimePlayerSnapshot? playerSnapshot;
   final bool introCanReplay;
 
-  bool get canSkipSplash =>
-      isLifecycleActive &&
-      !isTransitioning &&
-      phase == RuntimeStartupPhase.splash &&
-      isPreparationReady;
+  bool get canSkipSplash => false;
 
   bool get canSkipIntro =>
       isLifecycleActive &&

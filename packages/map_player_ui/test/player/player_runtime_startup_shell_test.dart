@@ -43,10 +43,10 @@ void main() {
       ),
     );
 
-    final indicator = tester.widget<LinearProgressIndicator>(
-      find.byKey(const ValueKey<String>('startup-splash-progress')),
+    final surface = tester.widget<PlayerRuntimeSplashSurface>(
+      find.byType(PlayerRuntimeSplashSurface),
     );
-    expect(indicator.value, .35);
+    expect(surface.progress, .35);
   });
 
   testWidgets('player input cannot shorten the runtime loading splash',
@@ -86,6 +86,171 @@ void main() {
       isTrue,
     );
     expect(commands, isEmpty);
+  });
+
+  testWidgets('holds the live timeline and plays the signed slow-load exit',
+      (tester) async {
+    RuntimeStartupSnapshot snapshot({
+      required double progress,
+      required bool ready,
+      required bool minimumElapsed,
+      int revision = 1,
+    }) =>
+        RuntimeStartupSnapshot(
+          revision: revision,
+          phase: RuntimeStartupPhase.splash,
+          progress: progress,
+          currentStage: RuntimeStartupPreparationStage.initialMap,
+          isPreparationReady: ready,
+          isMinimumElapsed: minimumElapsed,
+          isLifecycleActive: true,
+        );
+
+    PlayerRuntimeStartupShell shell(RuntimeStartupSnapshot startup) =>
+        PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: startup,
+          titlePresentation: presentation,
+          onStartupCommand: (_) {},
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        );
+
+    await tester.pumpWidget(
+      _app(shell(snapshot(progress: .62, ready: false, minimumElapsed: false))),
+    );
+    await tester.pump(const Duration(milliseconds: 5904));
+
+    var surface = tester.widget<PlayerRuntimeSplashSurface>(
+      find.byType(PlayerRuntimeSplashSurface),
+    );
+    expect(surface.animationProgress, closeTo(kPlayerSplashHoldProgress, .001));
+    final ambientAtHold = surface.ambientProgress!;
+
+    await tester.pump(const Duration(milliseconds: 500));
+    surface = tester.widget<PlayerRuntimeSplashSurface>(
+      find.byType(PlayerRuntimeSplashSurface),
+    );
+    expect(surface.animationProgress, closeTo(kPlayerSplashHoldProgress, .001));
+    expect(surface.ambientProgress, isNot(ambientAtHold));
+
+    await tester.pumpWidget(
+      _app(
+        shell(
+          snapshot(
+            progress: 1,
+            ready: true,
+            minimumElapsed: true,
+            revision: 2,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 1296));
+
+    surface = tester.widget<PlayerRuntimeSplashSurface>(
+      find.byType(PlayerRuntimeSplashSurface),
+    );
+    expect(surface.animationProgress, 1);
+    expect(surface.exitProgress, 0);
+
+    await tester.pump(const Duration(milliseconds: 1));
+    await tester.pump(const Duration(milliseconds: 140));
+    surface = tester.widget<PlayerRuntimeSplashSurface>(
+      find.byType(PlayerRuntimeSplashSurface),
+    );
+    expect(surface.exitProgress, closeTo(.5, .02));
+
+    await tester.pump(const Duration(milliseconds: 140));
+    surface = tester.widget<PlayerRuntimeSplashSurface>(
+      find.byType(PlayerRuntimeSplashSurface),
+    );
+    expect(surface.exitProgress, 1);
+  });
+
+  testWidgets('pauses and resumes the splash timeline with lifecycle state',
+      (tester) async {
+    RuntimeStartupSnapshot snapshot({
+      required RuntimeStartupPhase phase,
+      required bool active,
+      RuntimeStartupPhase? suspendedPhase,
+      int revision = 1,
+    }) =>
+        RuntimeStartupSnapshot(
+          revision: revision,
+          phase: phase,
+          progress: .4,
+          currentStage: RuntimeStartupPreparationStage.initialMap,
+          isPreparationReady: false,
+          isMinimumElapsed: false,
+          isLifecycleActive: active,
+          suspendedPhase: suspendedPhase,
+        );
+
+    PlayerRuntimeStartupShell shell(RuntimeStartupSnapshot startup) =>
+        PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: startup,
+          titlePresentation: presentation,
+          onStartupCommand: (_) {},
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        );
+
+    await tester.pumpWidget(
+      _app(
+        shell(
+          snapshot(phase: RuntimeStartupPhase.splash, active: true),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    final beforePause = tester
+        .widget<PlayerRuntimeSplashSurface>(
+          find.byType(PlayerRuntimeSplashSurface),
+        )
+        .animationProgress;
+
+    await tester.pumpWidget(
+      _app(
+        shell(
+          snapshot(
+            phase: RuntimeStartupPhase.lifecyclePaused,
+            active: false,
+            suspendedPhase: RuntimeStartupPhase.splash,
+            revision: 2,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 2));
+    final whilePaused = tester
+        .widget<PlayerRuntimeSplashSurface>(
+          find.byType(PlayerRuntimeSplashSurface),
+        )
+        .animationProgress;
+    expect(whilePaused, beforePause);
+
+    await tester.pumpWidget(
+      _app(
+        shell(
+          snapshot(
+            phase: RuntimeStartupPhase.splash,
+            active: true,
+            revision: 3,
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(seconds: 1));
+    final afterResume = tester
+        .widget<PlayerRuntimeSplashSurface>(
+          find.byType(PlayerRuntimeSplashSurface),
+        )
+        .animationProgress;
+    expect(afterResume, greaterThan(whilePaused));
   });
 
   testWidgets('Start and primary consume one title prompt revision',

@@ -56,6 +56,10 @@ final class RuntimeStartupCoordinator {
         _minimumSplashDuration = minimumSplashDuration ??
             hostBranding?.minimumDisplayDuration ??
             const Duration(milliseconds: 7200),
+        _splashExitDuration = hostBranding?.exitTransitionDuration ??
+            const Duration(milliseconds: 1296),
+        _finalCurtainDuration = hostBranding?.finalCurtainDuration ??
+            const Duration(milliseconds: 280),
         _reducedMotion = reducedMotion,
         _presentationOrientation = presentationOrientation,
         _stopIntroPlayback = stopIntroPlayback ?? _noOp,
@@ -76,6 +80,20 @@ final class RuntimeStartupCoordinator {
         'must not be negative',
       );
     }
+    if (_splashExitDuration.isNegative) {
+      throw ArgumentError.value(
+        _splashExitDuration,
+        'exitTransitionDuration',
+        'must not be negative',
+      );
+    }
+    if (_finalCurtainDuration.isNegative) {
+      throw ArgumentError.value(
+        _finalCurtainDuration,
+        'finalCurtainDuration',
+        'must not be negative',
+      );
+    }
     _playerSubscription = _player.snapshots.listen(_onPlayerSnapshot);
   }
 
@@ -88,6 +106,8 @@ final class RuntimeStartupCoordinator {
   final RuntimeStartupClock _clock;
   final RuntimeHostSplashBranding? _hostBranding;
   final Duration _minimumSplashDuration;
+  final Duration _splashExitDuration;
+  final Duration _finalCurtainDuration;
   final bool _reducedMotion;
   RuntimePresentationOrientation _presentationOrientation;
   final Future<void> Function() _stopIntroPlayback;
@@ -105,6 +125,9 @@ final class RuntimeStartupCoordinator {
   bool _started = false;
   bool _disposed = false;
   bool _preparationActivated = false;
+  bool _splashHoldElapsed = false;
+  bool _preparationReadyObserved = false;
+  Future<void>? _pendingSplashExit;
 
   RuntimeStartupSnapshot get snapshot => _snapshot;
   Stream<RuntimeStartupSnapshot> get snapshots => _snapshots.stream;
@@ -349,13 +372,15 @@ final class RuntimeStartupCoordinator {
     _initialMapPreloadPort.clear();
     _activeAttempt = attempt;
     _preparationActivated = false;
+    _splashHoldElapsed = false;
+    _preparationReadyObserved = false;
+    _pendingSplashExit = null;
     _titleMusicAsset = null;
     _resumePhase = null;
     _publish(
       _snapshot.next(
         phase: RuntimeStartupPhase.splash,
         // A retry never makes a visible loading bar move backwards. The new
-        // attempt still recomputes every real unit before it can continue.
         progress: _snapshot.progress,
         currentStage: RuntimeStartupPreparationStage.manifestAndIdentity,
         isPreparationReady: false,
@@ -374,6 +399,7 @@ final class RuntimeStartupCoordinator {
     // Both weighted units await the same concurrent load without duplicating it.
     final playerPreparation = _player.initialize();
     final presentationPreparation = _loadPresentationSafely(attempt);
+    _watchSplashHold(generation, attempt);
     final preparation = RuntimeStartupPreparation(
       clock: _clock,
       minimumDisplayDuration: _minimumSplashDuration,
@@ -458,6 +484,15 @@ final class RuntimeStartupCoordinator {
       },
       onChanged: (preparationSnapshot) {
         if (!_isCurrent(generation)) return;
+        if (preparationSnapshot.isPreparationReady &&
+            !_preparationReadyObserved) {
+          _preparationReadyObserved = true;
+          if (!_reducedMotion &&
+              _splashHoldElapsed &&
+              _splashExitDuration > Duration.zero) {
+            _pendingSplashExit = _clock.delay(_splashExitDuration);
+          }
+        }
         _publish(
           _snapshot.next(
             progress: preparationSnapshot.progress > _snapshot.progress
@@ -473,6 +508,28 @@ final class RuntimeStartupCoordinator {
     );
     result.then(
       (value) => _handlePreparationResult(generation, attempt, value),
+    );
+  }
+
+  void _watchSplashHold(
+    int generation,
+    _RuntimeStartupAttemptContext attempt,
+  ) {
+    if (_reducedMotion) return;
+    final holdDuration = _minimumSplashDuration > _splashExitDuration
+        ? _minimumSplashDuration - _splashExitDuration
+        : Duration.zero;
+    _clock.delay(holdDuration).then(
+      (_) {
+        if (_isActiveAttempt(generation, attempt)) {
+          _splashHoldElapsed = true;
+        }
+      },
+      onError: (_, __) {
+        if (_isActiveAttempt(generation, attempt)) {
+          _splashHoldElapsed = true;
+        }
+      },
     );
   }
 
@@ -716,6 +773,22 @@ final class RuntimeStartupCoordinator {
     _titleMusicAsset = attempt.titleMusic;
     final resolved = _resolvedPresentation(attempt);
     final introProfile = attempt.profile?.intro;
+    _publish(
+      _snapshot.next(
+        progress: 1,
+        isPreparationReady: true,
+        presentation: resolved,
+      ),
+    );
+    final pendingSplashExit = _pendingSplashExit;
+    if (!_reducedMotion && pendingSplashExit != null) {
+      await pendingSplashExit;
+      if (!_isActiveAttempt(generation, attempt)) return;
+    }
+    if (!_reducedMotion && _finalCurtainDuration > Duration.zero) {
+      await _clock.delay(_finalCurtainDuration);
+      if (!_isActiveAttempt(generation, attempt)) return;
+    }
     _intro.start(
       hasVideo: attempt.introVideo != null,
       hasPoster: attempt.introPoster != null,
@@ -727,9 +800,6 @@ final class RuntimeStartupCoordinator {
     );
     _publish(
       _snapshot.next(
-        progress: 1,
-        isPreparationReady: true,
-        presentation: resolved,
         introPhase: _intro.phase,
         introCanReplay:
             (introProfile?.allowReplay ?? false) && attempt.introVideo != null,

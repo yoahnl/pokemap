@@ -49,12 +49,11 @@ void main() {
     );
     final background =
         tester
-            .widgetList<DecoratedBox>(
-              find.descendant(of: splash, matching: find.byType(DecoratedBox)),
+            .widgetList<ColoredBox>(
+              find.descendant(of: splash, matching: find.byType(ColoredBox)),
             )
             .first;
-    final gradient = (background.decoration as BoxDecoration).gradient;
-    expect((gradient as RadialGradient).colors.last, const Color(0xFF02040A));
+    expect(background.color, const Color(0xFF02040A));
 
     launch.completeError(StateError('bootstrap test completed'));
     await tester.pump();

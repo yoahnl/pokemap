@@ -31,7 +31,7 @@ typedef HubPlayerReturnRequest = Future<void> Function();
 
 const _aveluneStartupBranding = RuntimeHostSplashBranding(
   displayName: 'AVELUNE',
-  signature: 'UNE AVENTURE POKÉMAP',
+  signature: 'UNE EXPÉRIENCE DE JEU',
   primaryColorHex: '#F2D9B2',
   secondaryColorHex: '#9E79D7',
 );

@@ -90,6 +90,84 @@ void main() {
     expect(progress, orderedEquals([...progress]..sort()));
   });
 
+  test('finishes only the curtain when loading completes before the hold',
+      () async {
+    final clock = _ManualStartupClock();
+    final harness = _RuntimeStartupTestHarness(clock: clock);
+    addTearDown(harness.dispose);
+
+    harness.startup.start();
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.isPreparationReady, isTrue);
+    expect(clock.pendingDurations, contains(const Duration(seconds: 7)));
+    expect(
+      clock.pendingDurations,
+      contains(const Duration(milliseconds: 5704)),
+    );
+
+    clock.elapse(const Duration(milliseconds: 5704));
+    clock.elapse(const Duration(seconds: 7));
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.splash);
+    expect(
+      clock.pendingDurations,
+      orderedEquals(<Duration>[const Duration(milliseconds: 280)]),
+    );
+
+    clock.elapse(const Duration(milliseconds: 280));
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+  });
+
+  test('awaits the held timeline exit from real loading completion', () async {
+    final loadingGate = Completer<void>();
+    final clock = _ManualStartupClock();
+    final harness = _RuntimeStartupTestHarness(
+      clock: clock,
+      initialMapPreloadPort: _MemoryInitialMapPreloadPort(
+        gate: loadingGate.future,
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    harness.startup.start();
+    await _flushEvents();
+
+    clock.elapse(const Duration(milliseconds: 5704));
+    clock.elapse(const Duration(seconds: 7));
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.isMinimumElapsed, isTrue);
+    expect(harness.startup.snapshot.isPreparationReady, isFalse);
+
+    loadingGate.complete();
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.splash);
+    expect(harness.startup.snapshot.progress, 1);
+    expect(
+      clock.pendingDurations,
+      orderedEquals(<Duration>[const Duration(milliseconds: 1296)]),
+    );
+
+    clock.elapse(const Duration(milliseconds: 1296));
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.splash);
+    expect(
+      clock.pendingDurations,
+      orderedEquals(<Duration>[const Duration(milliseconds: 280)]),
+    );
+
+    clock.elapse(const Duration(milliseconds: 280));
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+  });
+
   test('preloads the latest launchable save map before leaving the splash',
       () async {
     final gate = Completer<void>();
@@ -272,14 +350,13 @@ void main() {
     );
   });
 
-  test('a ready splash can be skipped without waiting for its minimum',
-      () async {
+  test('a ready splash cannot be skipped before its minimum', () async {
     final harness = _RuntimeStartupTestHarness();
     addTearDown(harness.dispose);
     harness.startup.start();
     await _flushEvents();
 
-    expect(harness.startup.snapshot.canSkipSplash, isTrue);
+    expect(harness.startup.snapshot.canSkipSplash, isFalse);
     expect(harness.startup.snapshot.isMinimumElapsed, isFalse);
     final skipped = await harness.startup.dispatch(
       RuntimeStartupCommand(
@@ -288,7 +365,12 @@ void main() {
       ),
     );
 
-    expect(skipped.status, RuntimeStartupCommandStatus.accepted);
+    expect(skipped.status, RuntimeStartupCommandStatus.unavailable);
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.splash);
+
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
   });
 
@@ -1167,6 +1249,36 @@ final class _ControlledStartupClock implements RuntimeStartupClock {
 final class _ImmediateStartupClock implements RuntimeStartupClock {
   @override
   Future<void> delay(Duration duration) => Future<void>.value();
+}
+
+final class _ManualStartupClock implements RuntimeStartupClock {
+  final List<_ManualStartupDelay> _delays = <_ManualStartupDelay>[];
+
+  List<Duration> get pendingDurations => <Duration>[
+        for (final delay in _delays)
+          if (!delay.completer.isCompleted) delay.duration,
+      ];
+
+  void elapse(Duration duration) {
+    final delay = _delays.firstWhere(
+      (delay) => !delay.completer.isCompleted && delay.duration == duration,
+    );
+    delay.completer.complete();
+  }
+
+  @override
+  Future<void> delay(Duration duration) {
+    final delay = _ManualStartupDelay(duration);
+    _delays.add(delay);
+    return delay.completer.future;
+  }
+}
+
+final class _ManualStartupDelay {
+  _ManualStartupDelay(this.duration);
+
+  final Duration duration;
+  final Completer<void> completer = Completer<void>();
 }
 
 final class _FakeAudioDriver implements FlameCinematicAudioDriver {

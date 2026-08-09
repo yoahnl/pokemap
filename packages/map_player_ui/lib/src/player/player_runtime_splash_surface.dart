@@ -16,12 +16,14 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
     required this.branding,
     required this.progress,
     required this.animationProgress,
+    this.exitProgress = 0,
     this.ambientProgress,
     this.loadingLabel,
     this.logo,
     this.reducedMotion = false,
   })  : assert(progress >= 0 && progress <= 1),
         assert(animationProgress >= 0 && animationProgress <= 1),
+        assert(exitProgress >= 0 && exitProgress <= 1),
         assert(
           ambientProgress == null ||
               (ambientProgress >= 0 && ambientProgress <= 1),
@@ -30,6 +32,7 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
   final RuntimeHostSplashBranding branding;
   final double progress;
   final double animationProgress;
+  final double exitProgress;
   final double? ambientProgress;
   final String? loadingLabel;
   final ImageProvider? logo;
@@ -48,6 +51,7 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
         key: const ValueKey<String>('startup-splash-timeline'),
         branding: branding,
         progress: timelineProgress,
+        exitProgress: progress >= 1 ? exitProgress : 0,
         ambientProgress: ambientProgress ?? animationProgress,
         loadingProgress: progress,
         loadingLabel: loadingLabel,
@@ -63,17 +67,20 @@ class PlayerSplashTimeline extends StatelessWidget {
     super.key,
     required this.branding,
     required this.progress,
+    required this.exitProgress,
     required this.ambientProgress,
     required this.loadingProgress,
     required this.reducedMotion,
     this.loadingLabel,
     this.logo,
   })  : assert(progress >= 0 && progress <= 1),
+        assert(exitProgress >= 0 && exitProgress <= 1),
         assert(ambientProgress >= 0 && ambientProgress <= 1),
         assert(loadingProgress >= 0 && loadingProgress <= 1);
 
   final RuntimeHostSplashBranding branding;
   final double progress;
+  final double exitProgress;
   final double ambientProgress;
   final double loadingProgress;
   final String? loadingLabel;
@@ -85,7 +92,8 @@ class PlayerSplashTimeline extends StatelessWidget {
     final primary = _opaqueHex(branding.primaryColorHex, 0xFFF2D9B2);
     final secondary = _opaqueHex(branding.secondaryColorHex, 0xFF9E79D7);
     final background = _opaqueHex(branding.backgroundColorHex, 0xFF02040A);
-    final time = progress * kPlayerSplashTimelineMilliseconds;
+    final time = progress * kPlayerSplashTimelineMilliseconds +
+        exitProgress * branding.finalCurtainDuration.inMilliseconds;
     final ambientTime = ambientProgress * 10000;
     final label = loadingProgress >= 1
         ? 'PRÊT'
@@ -207,10 +215,10 @@ class _SplashLogoStage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width =
-        mobile ? viewport.width * .88 : math.min(viewport.width * .48, 560);
-    final height =
-        mobile ? viewport.height * .54 : math.min(viewport.height * .6, 500);
+    final double width =
+        mobile ? viewport.width * .88 : math.min(viewport.width * .48, 560.0);
+    final double height =
+        mobile ? viewport.height * .54 : math.min(viewport.height * .6, 500.0);
     final markSize = mobile
         ? (viewport.width * .34).clamp(110.0, 150.0)
         : (viewport.width * .11).clamp(104.0, 178.0);
@@ -279,29 +287,24 @@ class _SplashLogoStage extends StatelessWidget {
                         sigmaX: nameState.blur,
                         sigmaY: nameState.blur,
                       ),
-                      child: Padding(
-                        padding: EdgeInsets.only(
-                          left: nameState.letterSpacingEm * wordmarkSize,
-                        ),
-                        child: Text(
-                          branding.displayName,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: const Color(0xFFF8F3E9),
-                            fontFamily: 'PokeMapSplashMarcellus',
-                            package: 'map_player_ui',
-                            fontSize: wordmarkSize,
-                            fontWeight: FontWeight.w400,
-                            height: 1.2,
-                            letterSpacing:
-                                nameState.letterSpacingEm * wordmarkSize,
-                            shadows: const <Shadow>[
-                              Shadow(
-                                color: Color(0x80EAD5FF),
-                                blurRadius: 28,
-                              ),
-                            ],
-                          ),
+                      child: _PaintedText(
+                        text: branding.displayName,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: const Color(0xFFF8F3E9),
+                          fontFamily: 'PokeMapSplashMarcellus',
+                          package: 'map_player_ui',
+                          fontSize: wordmarkSize,
+                          fontWeight: FontWeight.w400,
+                          height: 1.2,
+                          letterSpacing:
+                              nameState.letterSpacingEm * wordmarkSize,
+                          shadows: const <Shadow>[
+                            Shadow(
+                              color: Color(0x80EAD5FF),
+                              blurRadius: 28,
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -313,20 +316,17 @@ class _SplashLogoStage extends StatelessWidget {
                   opacity: signatureState.opacity,
                   child: Transform.translate(
                     offset: Offset(0, signatureState.translateY),
-                    child: Padding(
-                      padding: EdgeInsets.only(left: signatureSize * .32),
-                      child: Text(
-                        branding.signature.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: const Color(0xFFECE5DC).withValues(alpha: .54),
-                          fontFamily: 'PokeMapSplashDMSans',
-                          package: 'map_player_ui',
-                          fontSize: signatureSize,
-                          fontWeight: FontWeight.w500,
-                          height: 1.2,
-                          letterSpacing: signatureSize * .32,
-                        ),
+                    child: _PaintedText(
+                      text: branding.signature.toUpperCase(),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: const Color(0xFFECE5DC).withValues(alpha: .54),
+                        fontFamily: 'PokeMapSplashDMSans',
+                        package: 'map_player_ui',
+                        fontSize: signatureSize,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
+                        letterSpacing: signatureSize * .32,
                       ),
                     ),
                   ),
@@ -485,20 +485,17 @@ class _SplashLoadingZone extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: <Widget>[
-                  Flexible(
-                    child: Text(
-                      label,
-                      key: const ValueKey<String>(
-                          'startup-splash-progress-label'),
-                      maxLines: 1,
-                      overflow: TextOverflow.clip,
-                      style: style,
-                    ),
+                  _PaintedText(
+                    key:
+                        const ValueKey<String>('startup-splash-progress-label'),
+                    text: label,
+                    style: style,
                   ),
-                  Text(
-                    '${(progress * 100).round().toString().padLeft(3, '0')}%',
+                  _PaintedText(
                     key:
                         const ValueKey<String>('startup-splash-progress-value'),
+                    text:
+                        '${(progress * 100).round().toString().padLeft(3, '0')}%',
                     style: style,
                   ),
                 ],
@@ -549,13 +546,90 @@ class _SplashSkipHint extends StatelessWidget {
             border: Border.all(color: Colors.white.withValues(alpha: .14)),
             borderRadius: BorderRadius.circular(4),
           ),
-          child: Text('ENTER', style: style.copyWith(fontSize: fontSize * .88)),
+          child: _PaintedText(
+            text: 'ENTER',
+            style: style.copyWith(fontSize: fontSize * .88),
+          ),
         ),
         const SizedBox(width: 8),
-        Text('PASSER', style: style),
+        _PaintedText(text: 'PASSER', style: style),
       ],
     );
   }
+}
+
+class _PaintedText extends StatelessWidget {
+  const _PaintedText({
+    super.key,
+    required this.text,
+    required this.style,
+    this.textAlign = TextAlign.start,
+  });
+
+  final String text;
+  final TextStyle style;
+  final TextAlign textAlign;
+
+  @override
+  Widget build(BuildContext context) {
+    final direction = Directionality.of(context);
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textAlign: textAlign,
+      textDirection: direction,
+      textScaler: TextScaler.noScaling,
+      maxLines: 1,
+    )..layout();
+    return Semantics(
+      label: text,
+      child: SizedBox(
+        width: painter.width,
+        height: painter.height,
+        child: CustomPaint(
+          painter: _TextCanvasPainter(
+            text: text,
+            style: style,
+            textAlign: textAlign,
+            textDirection: direction,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TextCanvasPainter extends CustomPainter {
+  const _TextCanvasPainter({
+    required this.text,
+    required this.style,
+    required this.textAlign,
+    required this.textDirection,
+  });
+
+  final String text;
+  final TextStyle style;
+  final TextAlign textAlign;
+  final TextDirection textDirection;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    TextPainter(
+      text: TextSpan(text: text, style: style),
+      textAlign: textAlign,
+      textDirection: textDirection,
+      textScaler: TextScaler.noScaling,
+      maxLines: 1,
+    )
+      ..layout(maxWidth: size.width)
+      ..paint(canvas, Offset.zero);
+  }
+
+  @override
+  bool shouldRepaint(_TextCanvasPainter oldDelegate) =>
+      oldDelegate.text != text ||
+      oldDelegate.style != style ||
+      oldDelegate.textAlign != textAlign ||
+      oldDelegate.textDirection != textDirection;
 }
 
 class _SplashProgressPainter extends CustomPainter {
@@ -712,10 +786,6 @@ class _SplashBackdropPainter extends CustomPainter {
     canvas.rotate((first ? -18 : 16) * math.pi / 180);
     canvas.scale(state.scale);
     canvas.translate(-rect.center.dx, -rect.center.dy);
-    final layerPaint = Paint()
-      ..blendMode = BlendMode.screen
-      ..imageFilter = ui.ImageFilter.blur(sigmaX: 72, sigmaY: 72);
-    canvas.saveLayer(rect.inflate(180), layerPaint);
     final colors = first
         ? <Color>[
             Colors.transparent,
@@ -729,18 +799,18 @@ class _SplashBackdropPainter extends CustomPainter {
             const Color(0xFF9F5ECD).withValues(alpha: .16 * state.opacity),
             Colors.transparent,
           ];
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-          rect, Radius.elliptical(rect.width / 2, rect.height / 2)),
+    canvas.drawOval(
+      rect,
       Paint()
+        ..blendMode = BlendMode.screen
         ..shader = ui.Gradient.linear(
           rect.centerLeft,
           rect.centerRight,
           colors,
-          const <double>[0, .35, .68, 1],
-        ),
+          const <double>[0, 1 / 3, 2 / 3, 1],
+        )
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 72),
     );
-    canvas.restore();
     canvas.restore();
   }
 
@@ -761,11 +831,11 @@ class _SplashBackdropPainter extends CustomPainter {
       final center = Offset(size.width * star.x, size.height * star.y);
       canvas.drawCircle(
         center,
-        4,
+        1,
         Paint()
           ..color =
               const Color(0xFFFFECC0).withValues(alpha: .9 * state.opacity)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
       );
       canvas.drawCircle(
         center,
@@ -1122,8 +1192,8 @@ _OrbitState _wideOrbitState(double time, double ambientTime, bool held) {
   const curve = Cubic(.2, .75, .25, 1);
   var angle = _keyframes(
         p,
-        stops,
-        const <double>[-25, -25, 37.5, 132.5, 155],
+        const <double>[0, .1, 1],
+        const <double>[-25, -25, 155],
         curve,
       ) *
       math.pi /
@@ -1132,8 +1202,12 @@ _OrbitState _wideOrbitState(double time, double ambientTime, bool held) {
   return _OrbitState(
     opacity: _keyframes(p, stops, const <double>[0, 0, .9, .24, 0], curve),
     angle: angle,
-    scale:
-        _keyframes(p, stops, const <double>[.45, .45, .8, 1.25, 1.45], curve),
+    scale: _keyframes(
+      p,
+      const <double>[0, .1, 1],
+      const <double>[.45, .45, 1.45],
+      curve,
+    ),
   );
 }
 
@@ -1143,8 +1217,8 @@ _OrbitState _tightOrbitState(double time, double ambientTime, bool held) {
   const curve = Cubic(.2, .75, .25, 1);
   var angle = _keyframes(
         p,
-        stops,
-        const <double>[45, 45, -10, -112, -135],
+        const <double>[0, .14, 1],
+        const <double>[45, 45, -135],
         curve,
       ) *
       math.pi /
@@ -1153,8 +1227,12 @@ _OrbitState _tightOrbitState(double time, double ambientTime, bool held) {
   return _OrbitState(
     opacity: _keyframes(p, stops, const <double>[0, 0, .7, .18, 0], curve),
     angle: angle,
-    scale:
-        _keyframes(p, stops, const <double>[.38, .38, .82, 1.42, 1.68], curve),
+    scale: _keyframes(
+      p,
+      const <double>[0, .14, 1],
+      const <double>[.38, .38, 1.68],
+      curve,
+    ),
   );
 }
 
@@ -1165,12 +1243,25 @@ _AuroraState _auroraOneState(double time, double ambientTime, bool held) {
   final wave = held ? math.sin(ambientTime / 10000 * math.pi * 2) : 0;
   return _AuroraState(
     opacity: _keyframes(p, stops, const <double>[0, 0, .7, .36, 0], curve),
-    translateX:
-        _keyframes(p, stops, const <double>[-.18, -.18, .02, .25, .34], curve) +
-            wave * .012,
-    translateY:
-        _keyframes(p, stops, const <double>[.1, .1, .03, -.035, -.06], curve),
-    scale: _keyframes(p, stops, const <double>[.8, .8, .94, 1.1, 1.18], curve),
+    translateX: _keyframes(
+          p,
+          const <double>[0, .08, 1],
+          const <double>[-.18, -.18, .34],
+          curve,
+        ) +
+        wave * .012,
+    translateY: _keyframes(
+      p,
+      const <double>[0, .08, 1],
+      const <double>[.1, .1, -.06],
+      curve,
+    ),
+    scale: _keyframes(
+      p,
+      const <double>[0, .08, 1],
+      const <double>[.8, .8, 1.18],
+      curve,
+    ),
   );
 }
 
@@ -1181,13 +1272,25 @@ _AuroraState _auroraTwoState(double time, double ambientTime, bool held) {
   final wave = held ? math.sin(ambientTime / 10000 * math.pi * 2) : 0;
   return _AuroraState(
     opacity: _keyframes(p, stops, const <double>[0, 0, .7, .3, 0], curve),
-    translateX:
-        _keyframes(p, stops, const <double>[.2, .2, .01, -.2, -.28], curve) -
-            wave * .01,
-    translateY:
-        _keyframes(p, stops, const <double>[.1, .1, .02, -.07, -.1], curve),
-    scale:
-        _keyframes(p, stops, const <double>[.86, .86, .98, 1.09, 1.14], curve),
+    translateX: _keyframes(
+          p,
+          const <double>[0, .16, 1],
+          const <double>[.2, .2, -.28],
+          curve,
+        ) -
+        wave * .01,
+    translateY: _keyframes(
+      p,
+      const <double>[0, .16, 1],
+      const <double>[.1, .1, -.1],
+      curve,
+    ),
+    scale: _keyframes(
+      p,
+      const <double>[0, .16, 1],
+      const <double>[.86, .86, 1.14],
+      curve,
+    ),
   );
 }
 
