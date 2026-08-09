@@ -5,12 +5,13 @@ import 'runtime_startup_models.dart';
 const Map<RuntimeStartupPreparationStage, double>
     runtimeStartupPreparationWeights = <RuntimeStartupPreparationStage, double>{
   RuntimeStartupPreparationStage.manifestAndIdentity: 0.15,
-  RuntimeStartupPreparationStage.playerPreferences: 0.10,
-  RuntimeStartupPreparationStage.saveDiscovery: 0.15,
-  RuntimeStartupPreparationStage.presentationProfile: 0.10,
-  RuntimeStartupPreparationStage.splashBranding: 0.10,
-  RuntimeStartupPreparationStage.introAndPoster: 0.20,
-  RuntimeStartupPreparationStage.titleMenuAndMusic: 0.20,
+  RuntimeStartupPreparationStage.playerPreferences: 0.08,
+  RuntimeStartupPreparationStage.saveDiscovery: 0.12,
+  RuntimeStartupPreparationStage.initialMap: 0.35,
+  RuntimeStartupPreparationStage.presentationProfile: 0.07,
+  RuntimeStartupPreparationStage.splashBranding: 0.06,
+  RuntimeStartupPreparationStage.introAndPoster: 0.08,
+  RuntimeStartupPreparationStage.titleMenuAndMusic: 0.09,
 };
 
 abstract interface class RuntimeStartupClock {
@@ -146,7 +147,7 @@ final class RuntimeStartupPreparationResult {
   final RuntimeStartupPreparationSnapshot snapshot;
 }
 
-/// Runs the seven signed startup units concurrently with the splash minimum.
+/// Runs the eight signed startup units concurrently with the splash minimum.
 ///
 /// Progress only moves when real work completes. The clock never fabricates a
 /// percentage: it is a separate success gate that prevents a short flash.
@@ -175,6 +176,8 @@ final class RuntimeStartupPreparation {
   final Duration minimumDisplayDuration;
   final Set<RuntimeStartupPreparationStage> _completed =
       <RuntimeStartupPreparationStage>{};
+  final Map<RuntimeStartupPreparationStage, double> _stageProgress =
+      <RuntimeStartupPreparationStage, double>{};
   final List<RuntimeStartupDiagnostic> _diagnostics =
       <RuntimeStartupDiagnostic>[];
 
@@ -185,6 +188,25 @@ final class RuntimeStartupPreparation {
   bool _terminated = false;
 
   RuntimeStartupPreparationSnapshot get snapshot => _snapshot;
+
+  void reportStageProgress(
+    RuntimeStartupPreparationStage stage,
+    double progress,
+  ) {
+    if (!_started || _terminated || _completed.contains(stage)) return;
+    if (!progress.isFinite) {
+      throw ArgumentError.value(progress, 'progress', 'must be finite');
+    }
+    final bounded = progress.clamp(0.0, 1.0);
+    if (bounded <= (_stageProgress[stage] ?? 0)) return;
+    _stageProgress[stage] = bounded;
+    _publish(
+      _snapshot.next(
+        progress: _progressValue(),
+        currentStage: _currentStage(),
+      ),
+    );
+  }
 
   Future<RuntimeStartupPreparationResult> run({
     required Map<RuntimeStartupPreparationStage,
@@ -198,7 +220,7 @@ final class RuntimeStartupPreparation {
     if (operations.length != RuntimeStartupPreparationStage.values.length ||
         !RuntimeStartupPreparationStage.values.every(operations.containsKey)) {
       throw ArgumentError(
-        'Startup preparation must provide each of the seven signed stages.',
+        'Startup preparation must provide each of the eight signed stages.',
       );
     }
     _started = true;
@@ -266,22 +288,12 @@ final class RuntimeStartupPreparation {
     }
     _diagnostics.addAll(result.diagnostics);
     _completed.add(stage);
-    final progress = _completed.fold<double>(
-      0,
-      (value, completed) =>
-          value + runtimeStartupPreparationWeights[completed]!,
-    );
     final preparationReady =
         _completed.length == RuntimeStartupPreparationStage.values.length;
-    final currentStage = preparationReady
-        ? RuntimeStartupPreparationStage.titleMenuAndMusic
-        : RuntimeStartupPreparationStage.values.firstWhere(
-            (candidate) => !_completed.contains(candidate),
-          );
     _publish(
       _snapshot.next(
-        progress: progress.clamp(0.0, 1.0),
-        currentStage: currentStage,
+        progress: _progressValue(),
+        currentStage: _currentStage(),
         isPreparationReady: preparationReady,
         diagnostics: _diagnostics,
       ),
@@ -301,6 +313,25 @@ final class RuntimeStartupPreparation {
         status: RuntimeStartupPreparationStatus.ready,
         snapshot: _snapshot,
       ),
+    );
+  }
+
+  double _progressValue() => RuntimeStartupPreparationStage.values
+      .fold<double>(
+        0,
+        (value, stage) =>
+            value +
+            runtimeStartupPreparationWeights[stage]! *
+                (_completed.contains(stage) ? 1 : _stageProgress[stage] ?? 0),
+      )
+      .clamp(0.0, 1.0);
+
+  RuntimeStartupPreparationStage _currentStage() {
+    if (_completed.length == RuntimeStartupPreparationStage.values.length) {
+      return RuntimeStartupPreparationStage.titleMenuAndMusic;
+    }
+    return RuntimeStartupPreparationStage.values.firstWhere(
+      (candidate) => !_completed.contains(candidate),
     );
   }
 

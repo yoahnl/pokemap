@@ -15,6 +15,7 @@ final class HubInProcessSessionFactory {
     required this.saves,
     required this.mountGame,
     required this.unmountGame,
+    this.preloadedInitialMap,
     this.audioMixer,
     this.saveIdFactory,
     this.now,
@@ -24,6 +25,7 @@ final class HubInProcessSessionFactory {
   final SaveRepositoryInterface saves;
   final PlayableMapGameMount mountGame;
   final PlayableMapGameUnmount unmountGame;
+  final SessionPreloadedInitialMapLoader? preloadedInitialMap;
   final RuntimeAudioMixer? audioMixer;
   final SessionSaveIdFactory? saveIdFactory;
   final DateTime Function()? now;
@@ -39,40 +41,43 @@ final class HubInProcessSessionFactory {
       throw StateError('The save store does not match the launch identity.');
     }
     return InProcessGameSessionAdapter(
-      runtimeFactory: (preparedDescriptor) => PlayableMapGameSessionRuntime(
-        descriptor: preparedDescriptor,
-        projectFilePath: () async {
-          final file = await launch.assets.resolveReference(launch.project);
-          return file.path;
-        },
-        initialSave: () async {
-          if (preparedDescriptor.launchMode == GameSessionLaunchMode.newGame) {
-            return null;
-          }
-          final selected = await saves.read(
-            SaveSlotAddress(
-              gameId: preparedDescriptor.identity.gameId,
-              profileId: preparedDescriptor.profileId,
-              slotId: preparedDescriptor.slotId,
-            ),
-          );
-          if (!selected.canContinue || selected.envelope == null) {
-            throw StateError('The selected save is no longer launchable.');
-          }
-          if (hubSaveReadHandle(selected.envelope!) !=
-              preparedDescriptor.saveReadHandle) {
-            throw StateError(
-              'The selected save changed after the launch was authorized.',
-            );
-          }
-          return selected.envelope;
-        },
-        mountGame: mountGame,
-        unmountGame: unmountGame,
-        audioMixer: audioMixer,
-        saveIdFactory: saveIdFactory,
-        now: now,
-      ),
+      runtimeFactory:
+          (preparedDescriptor) => PlayableMapGameSessionRuntime(
+            descriptor: preparedDescriptor,
+            projectFilePath: () async {
+              final file = await launch.assets.resolveReference(launch.project);
+              return file.path;
+            },
+            initialSave: () async {
+              if (preparedDescriptor.launchMode ==
+                  GameSessionLaunchMode.newGame) {
+                return null;
+              }
+              final selected = await saves.read(
+                SaveSlotAddress(
+                  gameId: preparedDescriptor.identity.gameId,
+                  profileId: preparedDescriptor.profileId,
+                  slotId: preparedDescriptor.slotId,
+                ),
+              );
+              if (!selected.canContinue || selected.envelope == null) {
+                throw StateError('The selected save is no longer launchable.');
+              }
+              if (hubSaveReadHandle(selected.envelope!) !=
+                  preparedDescriptor.saveReadHandle) {
+                throw StateError(
+                  'The selected save changed after the launch was authorized.',
+                );
+              }
+              return selected.envelope;
+            },
+            mountGame: mountGame,
+            unmountGame: unmountGame,
+            preloadedInitialMap: preloadedInitialMap,
+            audioMixer: audioMixer,
+            saveIdFactory: saveIdFactory,
+            now: now,
+          ),
     );
   }
 }

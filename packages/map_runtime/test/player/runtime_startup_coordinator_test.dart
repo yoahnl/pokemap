@@ -90,6 +90,104 @@ void main() {
     expect(progress, orderedEquals([...progress]..sort()));
   });
 
+  test('preloads the latest launchable save map before leaving the splash',
+      () async {
+    final gate = Completer<void>();
+    final address = SaveSlotAddress(
+      gameId: 'com.pokemap.runtime-player-test',
+      profileId: 'player',
+      slotId: 'main',
+    );
+    final preloader = _MemoryInitialMapPreloadPort(
+      gate: gate.future,
+      reportedProgress: 0.5,
+    );
+    final harness = _RuntimeStartupTestHarness(
+      latestSave: PlayerSaveSummary(
+        address: address,
+        updatedAt: DateTime.utc(2026, 8, 9),
+        playTimeSeconds: 120,
+        status: SaveStatus.active,
+        canContinue: true,
+      ),
+      initialMapPreloadPort: preloader,
+    );
+    addTearDown(harness.dispose);
+
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+
+    expect(preloader.requests, hasLength(1));
+    expect(
+      preloader.requests.single.mode,
+      RuntimeInitialMapPreloadMode.continueGame,
+    );
+    expect(preloader.requests.single.saveAddress, address);
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.splash);
+    expect(harness.startup.snapshot.isPreparationReady, isFalse);
+    expect(harness.startup.snapshot.progress, closeTo(0.825, 0.0001));
+
+    gate.complete();
+    await _flushEvents();
+
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+    expect(harness.startup.snapshot.isPreparationReady, isTrue);
+  });
+
+  test('preloads the project new game map when no save is launchable',
+      () async {
+    final preloader = _MemoryInitialMapPreloadPort();
+    final harness = _RuntimeStartupTestHarness(
+      initialMapPreloadPort: preloader,
+    );
+    addTearDown(harness.dispose);
+
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+
+    expect(preloader.requests, hasLength(1));
+    expect(
+      preloader.requests.single.mode,
+      RuntimeInitialMapPreloadMode.newGame,
+    );
+    expect(preloader.requests.single.saveAddress, isNull);
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+  });
+
+  test('an invalid discovered save falls back to the authored new game map',
+      () async {
+    final preloader = _MemoryInitialMapPreloadPort();
+    final harness = _RuntimeStartupTestHarness(
+      latestSave: PlayerSaveSummary(
+        address: SaveSlotAddress(
+          gameId: 'com.pokemap.runtime-player-test',
+          profileId: 'player',
+          slotId: 'main',
+        ),
+        updatedAt: DateTime.utc(2026, 8, 9),
+        playTimeSeconds: 120,
+        status: SaveStatus.active,
+        canContinue: false,
+        safeUnavailableReason: 'Save incompatible.',
+      ),
+      initialMapPreloadPort: preloader,
+    );
+    addTearDown(harness.dispose);
+
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+
+    expect(preloader.requests, hasLength(1));
+    expect(
+      preloader.requests.single.mode,
+      RuntimeInitialMapPreloadMode.newGame,
+    );
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+  });
+
   test('preloads only the selected responsive media and switches on rotation',
       () async {
     final assets = _MemoryPresentationAssetResolver();
@@ -632,7 +730,11 @@ void main() {
     final port = _MemoryStartupPreparationPort(
       manifestGates: <Future<void>>[manifestGate.future],
     );
-    final harness = _RuntimeStartupTestHarness(preparationPort: port);
+    final preloader = _MemoryInitialMapPreloadPort();
+    final harness = _RuntimeStartupTestHarness(
+      preparationPort: port,
+      initialMapPreloadPort: preloader,
+    );
     final snapshots = <RuntimeStartupSnapshot>[];
     final subscription = harness.startup.snapshots.listen(snapshots.add);
     harness.startup.start();
@@ -647,6 +749,7 @@ void main() {
     expect(harness.startup.isDisposed, isTrue);
     expect(snapshots, hasLength(countBeforeDispose));
     expect(harness.audio.stopCount, lessThanOrEqualTo(1));
+    expect(preloader.clearCount, 2);
     await subscription.cancel();
   });
 
@@ -879,8 +982,10 @@ ProjectPresentationProfile _presentationWithIntroOnly() {
 final class _RuntimeStartupTestHarness {
   _RuntimeStartupTestHarness({
     ProjectPresentationProfile? profile,
+    PlayerSaveSummary? latestSave,
     _MemoryStartupPreparationPort? preparationPort,
     _MemoryPresentationAssetResolver? assetResolver,
+    RuntimeInitialMapPreloadPort? initialMapPreloadPort,
     RuntimeStartupClock? clock,
     Future<void> Function()? stopIntroPlayback,
     bool reducedMotion = false,
@@ -888,7 +993,10 @@ final class _RuntimeStartupTestHarness {
     Future<void>? descriptorGate,
     RuntimePresentationOrientation presentationOrientation =
         RuntimePresentationOrientation.landscape,
-  })  : player = RuntimePlayerTestHarness(descriptorGate: descriptorGate),
+  })  : player = RuntimePlayerTestHarness(
+          latestSave: latestSave,
+          descriptorGate: descriptorGate,
+        ),
         clock = clock is _ControlledStartupClock
             ? clock
             : clock == null
@@ -902,6 +1010,8 @@ final class _RuntimeStartupTestHarness {
       playerCoordinator: player.coordinator,
       preparationPort:
           preparationPort ?? _MemoryStartupPreparationPort(profile: profile),
+      initialMapPreloadPort:
+          initialMapPreloadPort ?? _MemoryInitialMapPreloadPort(),
       assetResolver: assetResolver ?? _MemoryPresentationAssetResolver(),
       introController: intro,
       titleMusicController: music,
@@ -922,6 +1032,39 @@ final class _RuntimeStartupTestHarness {
   late final RuntimeStartupCoordinator startup;
 
   Future<void> dispose() => startup.dispose();
+}
+
+final class _MemoryInitialMapPreloadPort
+    implements RuntimeInitialMapPreloadPort {
+  _MemoryInitialMapPreloadPort({this.gate, this.reportedProgress});
+
+  final Future<void>? gate;
+  final double? reportedProgress;
+  final List<RuntimeInitialMapPreloadRequest> requests =
+      <RuntimeInitialMapPreloadRequest>[];
+  int clearCount = 0;
+
+  @override
+  Future<void> preloadInitialMap(
+    RuntimeInitialMapPreloadRequest request, {
+    RuntimeInitialMapPreloadProgressSink? onProgress,
+  }) async {
+    requests.add(request);
+    if (reportedProgress case final value?) {
+      onProgress?.call(
+        RuntimeInitialMapPreloadProgress(
+          stage: RuntimeInitialMapPreloadStage.mapData,
+          value: value,
+        ),
+      );
+    }
+    await gate;
+  }
+
+  @override
+  void clear() {
+    clearCount++;
+  }
 }
 
 final class _MemoryStartupPreparationPort

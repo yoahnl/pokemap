@@ -49,6 +49,45 @@ void main() {
     expect(indicator.value, .35);
   });
 
+  testWidgets('player input cannot shorten the runtime loading splash',
+      (tester) async {
+    final controller = PlayerRuntimeStartupShellController();
+    final commands = <RuntimeStartupCommand>[];
+    await tester.pumpWidget(
+      _app(
+        PlayerRuntimeStartupShell(
+          controller: controller,
+          branding: branding,
+          snapshot: RuntimeStartupSnapshot(
+            revision: 3,
+            phase: RuntimeStartupPhase.splash,
+            progress: 1,
+            currentStage: RuntimeStartupPreparationStage.titleMenuAndMusic,
+            isPreparationReady: true,
+            isMinimumElapsed: false,
+            isLifecycleActive: true,
+          ),
+          titlePresentation: presentation,
+          onStartupCommand: commands.add,
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      ),
+    );
+
+    expect(
+      controller.handle(
+        const PlayerInputCommand.press(
+          PlayerInputAction.confirm,
+          source: PlayerInputSource.controller,
+        ),
+      ),
+      isTrue,
+    );
+    expect(commands, isEmpty);
+  });
+
   testWidgets('Start and primary consume one title prompt revision',
       (tester) async {
     final controller = PlayerRuntimeStartupShellController();

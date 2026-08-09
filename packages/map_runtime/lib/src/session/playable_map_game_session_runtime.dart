@@ -6,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 
 import '../application/load_runtime_map_bundle.dart';
 import '../application/map_activation.dart';
+import '../application/runtime_map_bundle.dart';
 import '../application/player_service_runtime_controller.dart';
 import '../application/runtime_move_catalog_loader.dart';
 import '../application/runtime_pokemon_species_loader.dart';
@@ -25,6 +26,11 @@ typedef PlayableMapGameMount = Future<void> Function(PlayableMapGame game);
 typedef PlayableMapGameUnmount = Future<void> Function(PlayableMapGame game);
 typedef SessionProjectFilePathLoader = Future<String> Function();
 typedef SessionInitialSaveLoader = Future<SaveEnvelope?> Function();
+typedef SessionPreloadedInitialMapLoader = Future<RuntimeMapBundle?> Function({
+  required String projectFilePath,
+  required GameSessionDescriptor descriptor,
+  required SaveEnvelope? initialSave,
+});
 typedef SessionSaveIdFactory = String Function();
 
 /// Disposable in-process graph backed by the production `PlayableMapGame`.
@@ -52,6 +58,7 @@ final class PlayableMapGameSessionRuntime
     required SessionInitialSaveLoader initialSave,
     required PlayableMapGameMount mountGame,
     required PlayableMapGameUnmount unmountGame,
+    SessionPreloadedInitialMapLoader? preloadedInitialMap,
     this.audioMixer,
     SessionSaveIdFactory? saveIdFactory,
     DateTime Function()? now,
@@ -59,6 +66,7 @@ final class PlayableMapGameSessionRuntime
         _initialSave = initialSave,
         _mountGame = mountGame,
         _unmountGame = unmountGame,
+        _preloadedInitialMap = preloadedInitialMap,
         _saveIdFactory = saveIdFactory ?? _uuidV4,
         _now = now ?? DateTime.now;
 
@@ -67,6 +75,7 @@ final class PlayableMapGameSessionRuntime
   final SessionInitialSaveLoader _initialSave;
   final PlayableMapGameMount _mountGame;
   final PlayableMapGameUnmount _unmountGame;
+  final SessionPreloadedInitialMapLoader? _preloadedInitialMap;
   final RuntimeAudioMixer? audioMixer;
   final SessionSaveIdFactory _saveIdFactory;
   final DateTime Function() _now;
@@ -134,7 +143,6 @@ final class PlayableMapGameSessionRuntime
       ),
     );
     final projectFilePath = await _projectFilePath();
-    final manifest = await loadProjectManifestFromFile(projectFilePath);
     reportProgress(
       const GameSessionLoadingProgress(
         stage: 'save',
@@ -144,6 +152,13 @@ final class PlayableMapGameSessionRuntime
     );
     final save = await _initialSave();
     _validateInitialSave(save);
+    final preloadedBundle = await _preloadedInitialMap?.call(
+      projectFilePath: projectFilePath,
+      descriptor: descriptor,
+      initialSave: save,
+    );
+    final manifest = preloadedBundle?.manifest ??
+        await loadProjectManifestFromFile(projectFilePath);
 
     late final String mapId;
     SaveData? saveData;
@@ -155,13 +170,16 @@ final class PlayableMapGameSessionRuntime
           'The installed project does not define a launchable new game.',
         );
       }
-      mapId = manifest.newGame.startMapId;
+      mapId = manifest.newGame.startMapId.trim();
       _createdAt = _now().toUtc();
       _saveId = _saveIdFactory();
     } else {
       final envelope = save!;
       initialState = const GameStateSaveEnvelopeMapper().restore(envelope);
-      mapId = initialState.currentMapId;
+      mapId = initialState.currentMapId.trim();
+      if (mapId.isEmpty) {
+        throw StateError('The selected save does not reference a map.');
+      }
       saveData = saveDataFromGameState(initialState);
       _createdAt = envelope.createdAt;
       _saveId = envelope.saveId;
@@ -175,11 +193,22 @@ final class PlayableMapGameSessionRuntime
         total: 4,
       ),
     );
-    final bundle = await loadRuntimeMapBundle(
-      projectFilePath: projectFilePath,
-      mapId: mapId,
-      preloadedManifest: manifest,
-    );
+    final RuntimeMapBundle bundle;
+    if (preloadedBundle == null) {
+      bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: mapId,
+        preloadedManifest: manifest,
+      );
+    } else {
+      if (preloadedBundle.map.id != mapId ||
+          projectMapEntryForId(preloadedBundle.manifest, mapId) == null) {
+        throw StateError(
+          'The preloaded map does not match the requested session map.',
+        );
+      }
+      bundle = preloadedBundle;
+    }
     _projectRootDirectory = bundle.projectRootDirectory;
     _pokemonConfig = bundle.manifest.pokemon;
     _projectMaps = List<ProjectMapEntry>.unmodifiable(bundle.manifest.maps);

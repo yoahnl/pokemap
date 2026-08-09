@@ -32,74 +32,77 @@ void main() {
     if (await root.exists()) await root.delete(recursive: true);
   });
 
-  test('returns scoped summaries and opaque handles for the exact slot',
-      () async {
-    final envelope = _envelope(identity);
-    await store.write(envelope);
-
-    final latest = await gateway.readLatestSummary();
-    final exact = await gateway.readSummary(envelope.address);
-    final handle = await gateway.openReadHandle(envelope.address);
-
-    expect(gateway.identity, identity);
-    expect(latest?.address, envelope.address);
-    expect(exact?.address, envelope.address);
-    expect(exact?.canContinue, isTrue);
-    expect(exact?.playTimeSeconds, 120);
-    expect(handle, isNotNull);
-    expect(handle, isNot(contains(identity.gameId)));
-    expect(handle, isNot(contains(envelope.profileId)));
-    expect(handle, isNot(contains(envelope.slotId)));
-  });
-
-  test('completed saves respect the authored post-game policy on reload',
-      () async {
-    for (final testCase in <({
-      ScenePostGamePolicy policy,
-      bool canContinue,
-    })>[
-      (
-        policy: ScenePostGamePolicy.continueGame,
-        canContinue: true,
-      ),
-      (
-        policy: ScenePostGamePolicy.returnToTitle,
-        canContinue: false,
-      ),
-      (
-        policy: ScenePostGamePolicy.returnToHub,
-        canContinue: false,
-      ),
-    ]) {
-      final envelope = _envelope(
-        identity,
-        status: SaveStatus.completed,
-        completedAt: DateTime.utc(2026, 7, 25, 11),
-        state: <String, Object?>{
-          'currentMapId': 'port',
-          'metadata': <String, String>{
-            sceneGameCompletionEndingMetadataKey: 'ending.selbrume',
-            sceneGameCompletionPostGamePolicyMetadataKey: testCase.policy.name,
-          },
-        },
-      );
+  test(
+    'returns scoped summaries and opaque handles for the exact slot',
+    () async {
+      final envelope = _envelope(identity);
       await store.write(envelope);
 
-      final summary = await gateway.readSummary(envelope.address);
+      final latest = await gateway.readLatestSummary();
+      final exact = await gateway.readSummary(envelope.address);
       final handle = await gateway.openReadHandle(envelope.address);
+      final launchable = await gateway.readLaunchableEnvelope(envelope.address);
 
-      expect(
-        summary?.canContinue,
-        testCase.canContinue,
-        reason: testCase.policy.name,
-      );
-      expect(
-        handle != null,
-        testCase.canContinue,
-        reason: testCase.policy.name,
-      );
-    }
-  });
+      expect(gateway.identity, identity);
+      expect(latest?.address, envelope.address);
+      expect(exact?.address, envelope.address);
+      expect(exact?.canContinue, isTrue);
+      expect(exact?.playTimeSeconds, 120);
+      expect(handle, isNotNull);
+      expect(handle, isNot(contains(identity.gameId)));
+      expect(handle, isNot(contains(envelope.profileId)));
+      expect(handle, isNot(contains(envelope.slotId)));
+      expect(launchable?.saveId, envelope.saveId);
+    },
+  );
+
+  test(
+    'completed saves respect the authored post-game policy on reload',
+    () async {
+      for (final testCase in <({ScenePostGamePolicy policy, bool canContinue})>[
+        (policy: ScenePostGamePolicy.continueGame, canContinue: true),
+        (policy: ScenePostGamePolicy.returnToTitle, canContinue: false),
+        (policy: ScenePostGamePolicy.returnToHub, canContinue: false),
+      ]) {
+        final envelope = _envelope(
+          identity,
+          status: SaveStatus.completed,
+          completedAt: DateTime.utc(2026, 7, 25, 11),
+          state: <String, Object?>{
+            'currentMapId': 'port',
+            'metadata': <String, String>{
+              sceneGameCompletionEndingMetadataKey: 'ending.selbrume',
+              sceneGameCompletionPostGamePolicyMetadataKey:
+                  testCase.policy.name,
+            },
+          },
+        );
+        await store.write(envelope);
+
+        final summary = await gateway.readSummary(envelope.address);
+        final handle = await gateway.openReadHandle(envelope.address);
+        final launchable = await gateway.readLaunchableEnvelope(
+          envelope.address,
+        );
+
+        expect(
+          summary?.canContinue,
+          testCase.canContinue,
+          reason: testCase.policy.name,
+        );
+        expect(
+          handle != null,
+          testCase.canContinue,
+          reason: testCase.policy.name,
+        );
+        expect(
+          launchable != null,
+          testCase.canContinue,
+          reason: testCase.policy.name,
+        );
+      }
+    },
+  );
 
   test('refuses another game and does not leak another profile or slot',
       () async {

@@ -198,4 +198,144 @@ void main() {
     expect(unmounted, isTrue);
     await subscription.cancel();
   });
+
+  test(
+      'reuses a preloaded initial map bundle without reading the project again',
+      () async {
+    final projectFile = File(
+      'test/fixtures/p3_scenario_runtime_golden_path/project.json',
+    ).absolute;
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: projectFile.path,
+      mapId: 'p3_test_map',
+    );
+    final identity = GameIdentity(
+      gameId: 'org.example.runtime-fixture',
+      gameVersion: '1.0.0',
+      projectFormat: ProjectFormat.v1,
+      saveFormat: 1,
+      compatibilityId: 'fixture-v1',
+    );
+    final descriptor = GameSessionDescriptor(
+      sessionId: 'session-preloaded',
+      sessionToken: 'secret',
+      identity: identity,
+      profileId: 'player-1',
+      slotId: 'slot-1',
+      launchMode: GameSessionLaunchMode.continueGame,
+      installedVersionHandle: 'verified-fixture',
+      saveReadHandle: 'opaque-save',
+      runtimeApiVersion: '1.0.0',
+      grantedCapabilities: const <String>{'map.v1'},
+      locale: 'fr-FR',
+      accessibility: const GameSessionAccessibilityOptions(),
+    );
+    final timestamp = DateTime.utc(2026, 8, 9);
+    final save = const GameStateSaveEnvelopeMapper().create(
+      identity: identity,
+      profileId: descriptor.profileId,
+      slotId: descriptor.slotId,
+      saveId: '123e4567-e89b-42d3-a456-426614174001',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      status: SaveStatus.active,
+      playTimeSeconds: 30,
+      gameState: const GameState(
+        saveId: '123e4567-e89b-42d3-a456-426614174001',
+        currentMapId: 'p3_test_map',
+      ),
+    );
+    var preloadReads = 0;
+    PlayableMapGame? mounted;
+    final runtime = PlayableMapGameSessionRuntime(
+      descriptor: descriptor,
+      projectFilePath: () async => '/missing/project.json',
+      initialSave: () async => save,
+      preloadedInitialMap: ({
+        required String projectFilePath,
+        required GameSessionDescriptor descriptor,
+        required SaveEnvelope? initialSave,
+      }) async {
+        preloadReads++;
+        expect(projectFilePath, '/missing/project.json');
+        expect(descriptor.sessionId, 'session-preloaded');
+        expect(initialSave, same(save));
+        return bundle;
+      },
+      mountGame: (game) async => mounted = game,
+      unmountGame: (_) async {},
+    );
+    addTearDown(runtime.dispose);
+
+    await runtime.load((_) {});
+
+    expect(preloadReads, 1);
+    expect(mounted, isNotNull);
+    expect(mounted!.gameStateSnapshot.currentMapId, 'p3_test_map');
+  });
+
+  test('refuses a preloaded bundle when the saved map has diverged', () async {
+    final projectFile = File(
+      'test/fixtures/p3_scenario_runtime_golden_path/project.json',
+    ).absolute;
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: projectFile.path,
+      mapId: 'p3_test_map',
+    );
+    final identity = GameIdentity(
+      gameId: 'org.example.runtime-fixture',
+      gameVersion: '1.0.0',
+      projectFormat: ProjectFormat.v1,
+      saveFormat: 1,
+      compatibilityId: 'fixture-v1',
+    );
+    final descriptor = GameSessionDescriptor(
+      sessionId: 'session-diverged-preload',
+      sessionToken: 'secret',
+      identity: identity,
+      profileId: 'player-1',
+      slotId: 'slot-1',
+      launchMode: GameSessionLaunchMode.continueGame,
+      installedVersionHandle: 'verified-fixture',
+      saveReadHandle: 'opaque-save',
+      runtimeApiVersion: '1.0.0',
+      grantedCapabilities: const <String>{'map.v1'},
+      locale: 'fr-FR',
+      accessibility: const GameSessionAccessibilityOptions(),
+    );
+    final timestamp = DateTime.utc(2026, 8, 9);
+    final save = const GameStateSaveEnvelopeMapper().create(
+      identity: identity,
+      profileId: descriptor.profileId,
+      slotId: descriptor.slotId,
+      saveId: '123e4567-e89b-42d3-a456-426614174002',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      status: SaveStatus.active,
+      playTimeSeconds: 30,
+      gameState: const GameState(
+        saveId: '123e4567-e89b-42d3-a456-426614174002',
+        currentMapId: 'another-map',
+      ),
+    );
+    var mounted = false;
+    final runtime = PlayableMapGameSessionRuntime(
+      descriptor: descriptor,
+      projectFilePath: () async => '/missing/project.json',
+      initialSave: () async => save,
+      preloadedInitialMap: ({
+        required projectFilePath,
+        required descriptor,
+        required initialSave,
+      }) async =>
+          bundle,
+      mountGame: (_) async => mounted = true,
+      unmountGame: (_) async {},
+    );
+    addTearDown(runtime.dispose);
+
+    await expectLater(runtime.load((_) {}), throwsStateError);
+
+    expect(mounted, isFalse);
+  });
 }

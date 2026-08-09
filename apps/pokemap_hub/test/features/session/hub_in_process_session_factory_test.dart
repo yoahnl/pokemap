@@ -23,35 +23,105 @@ void main() {
     if (await root.exists()) await root.delete(recursive: true);
   });
 
-  test('builds a single-use adapter only for the verified launch handle',
-      () async {
-    final factory = HubInProcessSessionFactory(
-      launch: launch,
-      saves: saves,
-      mountGame: (_) async {},
-      unmountGame: (_) async {},
+  test(
+    'builds a single-use adapter only for the verified launch handle',
+    () async {
+      final factory = HubInProcessSessionFactory(
+        launch: launch,
+        saves: saves,
+        mountGame: (_) async {},
+        unmountGame: (_) async {},
+      );
+      final descriptor = _descriptor(launch);
+      final adapter = factory.call(descriptor);
+
+      expect(adapter, isA<InProcessGameSessionAdapter>());
+      await adapter.prepare(descriptor);
+      await adapter.dispose();
+
+      final wrong = GameSessionDescriptor(
+        sessionId: 'session-other',
+        sessionToken: 'secret-other',
+        identity: launch.identity,
+        profileId: 'player-1',
+        slotId: 'slot-1',
+        launchMode: GameSessionLaunchMode.newGame,
+        installedVersionHandle: 'another-install',
+        runtimeApiVersion: '1.0.0',
+        grantedCapabilities: const <String>{},
+        locale: 'fr-FR',
+        accessibility: const GameSessionAccessibilityOptions(),
+      );
+      expect(() => factory.call(wrong), throwsStateError);
+    },
+  );
+
+  test('forwards one exact preloaded bundle into the Hub session', () async {
+    final projectFile =
+        File(
+          '../../packages/map_runtime/test/fixtures/'
+          'p3_scenario_runtime_golden_path/project.json',
+        ).absolute;
+    final bundle = await loadRuntimeMapBundle(
+      projectFilePath: projectFile.path,
+      mapId: 'p3_test_map',
     );
-    final descriptor = _descriptor(launch);
-    final adapter = factory.call(descriptor);
-
-    expect(adapter, isA<InProcessGameSessionAdapter>());
-    await adapter.prepare(descriptor);
-    await adapter.dispose();
-
-    final wrong = GameSessionDescriptor(
-      sessionId: 'session-other',
-      sessionToken: 'secret-other',
+    final timestamp = DateTime.utc(2026, 8, 9);
+    final save = const GameStateSaveEnvelopeMapper().create(
       identity: launch.identity,
       profileId: 'player-1',
       slotId: 'slot-1',
-      launchMode: GameSessionLaunchMode.newGame,
-      installedVersionHandle: 'another-install',
-      runtimeApiVersion: '1.0.0',
-      grantedCapabilities: const <String>{},
+      saveId: '123e4567-e89b-42d3-a456-426614174020',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      status: SaveStatus.active,
+      playTimeSeconds: 30,
+      gameState: const GameState(
+        saveId: '123e4567-e89b-42d3-a456-426614174020',
+        currentMapId: 'p3_test_map',
+      ),
+    );
+    await saves.write(save);
+    var preloadReads = 0;
+    var mountCount = 0;
+    final factory = HubInProcessSessionFactory(
+      launch: launch,
+      saves: saves,
+      preloadedInitialMap: ({
+        required projectFilePath,
+        required descriptor,
+        required initialSave,
+      }) async {
+        preloadReads++;
+        expect(descriptor.launchMode, GameSessionLaunchMode.continueGame);
+        expect(initialSave?.saveId, save.saveId);
+        return bundle;
+      },
+      mountGame: (_) async => mountCount++,
+      unmountGame: (_) async {},
+    );
+    final descriptor = GameSessionDescriptor(
+      sessionId: 'session-preloaded',
+      sessionToken: 'secret',
+      identity: launch.identity,
+      profileId: save.profileId,
+      slotId: save.slotId,
+      launchMode: GameSessionLaunchMode.continueGame,
+      installedVersionHandle: launch.installedVersionHandle,
+      saveReadHandle: hubSaveReadHandle(save),
+      runtimeApiVersion: launch.runtimeApiVersion,
+      grantedCapabilities: launch.grantedCapabilities,
       locale: 'fr-FR',
       accessibility: const GameSessionAccessibilityOptions(),
     );
-    expect(() => factory.call(wrong), throwsStateError);
+    final adapter = factory.call(descriptor);
+
+    await adapter.prepare(descriptor);
+    await adapter.start();
+
+    expect(preloadReads, 1);
+    expect(mountCount, 1);
+    await adapter.dispose();
   });
 }
 
@@ -73,8 +143,9 @@ GameSessionDescriptor _descriptor(InstalledGameLaunchContext launch) =>
 Future<InstalledGameLaunchContext> _context(Directory root) async {
   final version = Directory(p.join(root.path, 'version'));
   await Directory(p.join(version.path, 'project')).create(recursive: true);
-  await File(p.join(version.path, 'project', 'project.json'))
-      .writeAsString('{}');
+  await File(
+    p.join(version.path, 'project', 'project.json'),
+  ).writeAsString('{}');
   final manifest = GamePackageManifest(
     packageFormat: 1,
     gameId: 'org.example.adventure',

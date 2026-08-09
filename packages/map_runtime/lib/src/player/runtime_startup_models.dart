@@ -53,6 +53,7 @@ enum RuntimeStartupPreparationStage {
   manifestAndIdentity,
   playerPreferences,
   saveDiscovery,
+  initialMap,
   presentationProfile,
   splashBranding,
   introAndPoster,

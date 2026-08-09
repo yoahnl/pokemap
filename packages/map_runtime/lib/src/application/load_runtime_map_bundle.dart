@@ -42,6 +42,19 @@ typedef RuntimeMapBundleLoadProfileSink = void Function(
   RuntimeMapBundleLoadProfile profile,
 );
 
+enum RuntimeMapBundleLoadStage {
+  manifest,
+  mapResolution,
+  mapData,
+  assetCatalog,
+  tilesets,
+  worldPreparation,
+}
+
+typedef RuntimeMapBundleLoadProgressSink = void Function(
+  RuntimeMapBundleLoadStage stage,
+);
+
 void _runtimeLoaderLog(String message) {
   if (kDebugMode) {
     debugPrint('[runtime_loader] $message');
@@ -250,6 +263,7 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   required String mapId,
   ProjectManifest? preloadedManifest,
   RuntimeMapBundleLoadProfileSink? profileSink,
+  RuntimeMapBundleLoadProgressSink? progressSink,
 }) async {
   final totalWatch = Stopwatch()..start();
   _runtimeLoaderLog(
@@ -265,6 +279,7 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
   } else {
     manifest = preloadedManifest;
   }
+  progressSink?.call(RuntimeMapBundleLoadStage.manifest);
   final entry = projectMapEntryForId(manifest, mapId);
   if (entry == null) {
     _runtimeLoaderLog(
@@ -279,6 +294,7 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     throw const MapLoadException('Map entry has empty relativePath');
   }
   final mapPath = p.normalize(p.join(projectRoot, rel));
+  progressSink?.call(RuntimeMapBundleLoadStage.mapResolution);
   _runtimeLoaderLog(
       'bundle map resolved mapId=$mapId relativePath=$rel mapPath=$mapPath');
   final mapWatch = Stopwatch()..start();
@@ -287,9 +303,11 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     projectDialogueContext: manifest,
   );
   mapWatch.stop();
+  progressSink?.call(RuntimeMapBundleLoadStage.mapData);
   final assetCatalogWatch = Stopwatch()..start();
   final assetCatalog = await _loadRuntimeAssetCatalog(projectRoot);
   assetCatalogWatch.stop();
+  progressSink?.call(RuntimeMapBundleLoadStage.assetCatalog);
   final tilesetWatch = Stopwatch()..start();
   final tilesetIds = collectAllRuntimeTilesetIds(map, manifest);
   _runtimeLoaderLog('bundle tilesets collected ids=${tilesetIds.join(',')}');
@@ -300,6 +318,7 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     assetCatalog: assetCatalog,
   );
   tilesetWatch.stop();
+  progressSink?.call(RuntimeMapBundleLoadStage.tilesets);
   for (final entry in paths.entries) {
     _runtimeLoaderLog(
         'bundle tileset path id=${entry.key} path=${entry.value}');
@@ -317,6 +336,7 @@ Future<RuntimeMapBundle> loadRuntimeMapBundle({
     ),
   );
   borderWatch.stop();
+  progressSink?.call(RuntimeMapBundleLoadStage.worldPreparation);
   totalWatch.stop();
   profileSink?.call(
     RuntimeMapBundleLoadProfile(

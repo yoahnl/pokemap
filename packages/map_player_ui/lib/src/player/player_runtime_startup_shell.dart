@@ -524,9 +524,6 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     }
     switch (phase) {
       case RuntimeStartupPhase.splash || RuntimeStartupPhase.preparing:
-        if (widget.snapshot.canSkipSplash) {
-          _dispatchStartup(RuntimeStartupAction.skipSplash);
-        }
         return true;
       case RuntimeStartupPhase.intro:
         if (widget.snapshot.canContinueFromPoster) {

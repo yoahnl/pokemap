@@ -49,6 +49,7 @@ export 'src/player/runtime_intro_sequence_controller.dart'
         RuntimeIntroPhase,
         RuntimeIntroReducedMotionBehavior,
         RuntimeIntroSequenceController;
+export 'src/player/runtime_initial_map_preloader.dart';
 export 'src/player/runtime_startup_models.dart'
     show
         RuntimeStartupPhase,
@@ -186,6 +187,8 @@ export 'src/application/load_runtime_map_bundle.dart'
     show
         RuntimeMapBundleLoadProfile,
         RuntimeMapBundleLoadProfileSink,
+        RuntimeMapBundleLoadProgressSink,
+        RuntimeMapBundleLoadStage,
         loadRuntimeMapBundle;
 export 'src/application/authoring_preview/runtime_authoring_map_render_adapter.dart'
     show RuntimeAuthoringMapRenderAdapter;

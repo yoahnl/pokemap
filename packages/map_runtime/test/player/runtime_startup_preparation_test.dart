@@ -57,7 +57,7 @@ void main() {
 
     expect(snapshots.last.isMinimumElapsed, isTrue);
     expect(snapshots.last.isPreparationReady, isFalse);
-    expect(snapshots.last.progress, closeTo(0.8, 0.0001));
+    expect(snapshots.last.progress, closeTo(0.92, 0.0001));
     expect(completed, isFalse);
 
     gate.complete();
@@ -67,7 +67,7 @@ void main() {
     expect(result.snapshot.progress, 1);
   });
 
-  test('uses the seven signed weights and never regresses out of order',
+  test('uses the eight signed weights and never regresses out of order',
       () async {
     final clock = _ControlledStartupClock()..elapseMinimum();
     final gates = <RuntimeStartupPreparationStage, Completer<void>>{
@@ -93,7 +93,7 @@ void main() {
 
     gates[RuntimeStartupPreparationStage.titleMenuAndMusic]!.complete();
     await _flushEvents();
-    expect(snapshots.last.progress, closeTo(0.2, 0.0001));
+    expect(snapshots.last.progress, closeTo(0.09, 0.0001));
     expect(
       snapshots.last.currentStage,
       RuntimeStartupPreparationStage.manifestAndIdentity,
@@ -101,7 +101,7 @@ void main() {
 
     gates[RuntimeStartupPreparationStage.manifestAndIdentity]!.complete();
     await _flushEvents();
-    expect(snapshots.last.progress, closeTo(0.35, 0.0001));
+    expect(snapshots.last.progress, closeTo(0.24, 0.0001));
     expect(
       snapshots.last.currentStage,
       RuntimeStartupPreparationStage.playerPreferences,
@@ -124,14 +124,59 @@ void main() {
       runtimeStartupPreparationWeights,
       const <RuntimeStartupPreparationStage, double>{
         RuntimeStartupPreparationStage.manifestAndIdentity: 0.15,
-        RuntimeStartupPreparationStage.playerPreferences: 0.10,
-        RuntimeStartupPreparationStage.saveDiscovery: 0.15,
-        RuntimeStartupPreparationStage.presentationProfile: 0.10,
-        RuntimeStartupPreparationStage.splashBranding: 0.10,
-        RuntimeStartupPreparationStage.introAndPoster: 0.20,
-        RuntimeStartupPreparationStage.titleMenuAndMusic: 0.20,
+        RuntimeStartupPreparationStage.playerPreferences: 0.08,
+        RuntimeStartupPreparationStage.saveDiscovery: 0.12,
+        RuntimeStartupPreparationStage.initialMap: 0.35,
+        RuntimeStartupPreparationStage.presentationProfile: 0.07,
+        RuntimeStartupPreparationStage.splashBranding: 0.06,
+        RuntimeStartupPreparationStage.introAndPoster: 0.08,
+        RuntimeStartupPreparationStage.titleMenuAndMusic: 0.09,
       },
     );
+  });
+
+  test('includes monotone partial progress from a real long-running stage',
+      () async {
+    final clock = _ControlledStartupClock();
+    final gates = <RuntimeStartupPreparationStage, Completer<void>>{
+      for (final stage in RuntimeStartupPreparationStage.values)
+        stage: Completer<void>(),
+    };
+    final preparation = RuntimeStartupPreparation(
+      clock: clock,
+      minimumDisplayDuration: const Duration(seconds: 7),
+    );
+    final resultFuture = preparation.run(
+      operations: <RuntimeStartupPreparationStage,
+          RuntimeStartupPreparationOperation>{
+        for (final entry in gates.entries)
+          entry.key: () async {
+            await entry.value.future;
+            return const RuntimeStartupPreparationStepResult.completed();
+          },
+      },
+    );
+
+    preparation.reportStageProgress(
+      RuntimeStartupPreparationStage.initialMap,
+      0.5,
+    );
+    expect(preparation.snapshot.progress, closeTo(0.175, 0.0001));
+
+    preparation.reportStageProgress(
+      RuntimeStartupPreparationStage.initialMap,
+      0.25,
+    );
+    expect(preparation.snapshot.progress, closeTo(0.175, 0.0001));
+
+    preparation.cancel();
+    expect(
+      (await resultFuture).status,
+      RuntimeStartupPreparationStatus.cancelled,
+    );
+    for (final gate in gates.values) {
+      gate.complete();
+    }
   });
 
   test('optional absence and non-blocking errors still reach ready', () async {

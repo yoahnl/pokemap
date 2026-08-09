@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_core/map_core.dart';
 
 import 'runtime_intro_sequence_controller.dart';
+import 'runtime_initial_map_preloader.dart';
 import 'runtime_presentation_media_selection.dart';
 import 'runtime_player_coordinator.dart';
 import 'runtime_player_models.dart';
@@ -33,6 +34,7 @@ final class RuntimeStartupCoordinator {
   RuntimeStartupCoordinator({
     required RuntimePlayerCoordinator playerCoordinator,
     required RuntimeStartupPreparationPort preparationPort,
+    required RuntimeInitialMapPreloadPort initialMapPreloadPort,
     required RuntimePresentationAssetResolver assetResolver,
     required RuntimeIntroSequenceController introController,
     required RuntimeTitleMusicController titleMusicController,
@@ -45,6 +47,7 @@ final class RuntimeStartupCoordinator {
     Future<void> Function()? stopIntroPlayback,
   })  : _player = playerCoordinator,
         _preparationPort = preparationPort,
+        _initialMapPreloadPort = initialMapPreloadPort,
         _assetResolver = assetResolver,
         _intro = introController,
         _titleMusic = titleMusicController,
@@ -78,6 +81,7 @@ final class RuntimeStartupCoordinator {
 
   final RuntimePlayerCoordinator _player;
   final RuntimeStartupPreparationPort _preparationPort;
+  final RuntimeInitialMapPreloadPort _initialMapPreloadPort;
   final RuntimePresentationAssetResolver _assetResolver;
   final RuntimeIntroSequenceController _intro;
   final RuntimeTitleMusicController _titleMusic;
@@ -325,6 +329,7 @@ final class RuntimeStartupCoordinator {
     _generation++;
     _presentationSelectionGeneration++;
     _activePreparation?.cancel();
+    _initialMapPreloadPort.clear();
     _activeAttempt = null;
     await _playerSubscription.cancel();
     await _stopIntroSafely();
@@ -341,6 +346,7 @@ final class RuntimeStartupCoordinator {
     );
     _presentationSelectionGeneration++;
     _activePreparation?.cancel();
+    _initialMapPreloadPort.clear();
     _activeAttempt = attempt;
     _preparationActivated = false;
     _titleMusicAsset = null;
@@ -393,6 +399,38 @@ final class RuntimeStartupCoordinator {
             _preparePlayerTitleUnit(playerPreparation, 'preferencesFailed'),
         RuntimeStartupPreparationStage.saveDiscovery: () =>
             _preparePlayerTitleUnit(playerPreparation, 'saveDiscoveryFailed'),
+        RuntimeStartupPreparationStage.initialMap: () async {
+          await playerPreparation;
+          if (_player.snapshot.phase != RuntimePlayerPhase.title) {
+            return const RuntimeStartupPreparationStepResult.blockingFailure(
+              RuntimeStartupFailure(
+                code: 'initialMapPreparationFailed',
+                safeMessage: 'The first map could not be prepared.',
+              ),
+            );
+          }
+          final save = _player.snapshot.continueSave;
+          final request = save != null && save.canContinue
+              ? RuntimeInitialMapPreloadRequest.continueGame(save.address)
+              : const RuntimeInitialMapPreloadRequest.newGame();
+          try {
+            await _initialMapPreloadPort.preloadInitialMap(
+              request,
+              onProgress: (progress) => preparation.reportStageProgress(
+                RuntimeStartupPreparationStage.initialMap,
+                progress.value,
+              ),
+            );
+            return const RuntimeStartupPreparationStepResult.completed();
+          } on Object {
+            return const RuntimeStartupPreparationStepResult.blockingFailure(
+              RuntimeStartupFailure(
+                code: 'initialMapPreparationFailed',
+                safeMessage: 'The first map could not be prepared.',
+              ),
+            );
+          }
+        },
         RuntimeStartupPreparationStage.presentationProfile: () async {
           await presentationPreparation;
           if (attempt.presentationLoadFailed) {

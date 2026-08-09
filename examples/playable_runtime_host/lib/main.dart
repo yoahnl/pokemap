@@ -601,6 +601,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
   Future<PlayableMapGame> _load({
     GameSessionLaunchMode launchMode = GameSessionLaunchMode.continueGame,
     GameSessionProgressReporter? reportProgress,
+    RuntimeMapBundle? preloadedInitialMap,
   }) async {
     final projectFilePath = _projectFilePath;
     final selectedMapId = (_selectedMapId ?? '').trim();
@@ -663,10 +664,12 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
         ),
       );
       _runtimeHostLog('bundle load start mapId=$mapId');
-      final bundle = await loadRuntimeMapBundle(
-        projectFilePath: projectFilePath,
-        mapId: mapId,
-      );
+      final bundle = preloadedInitialMap?.map.id == mapId
+          ? preloadedInitialMap!
+          : await loadRuntimeMapBundle(
+              projectFilePath: projectFilePath,
+              mapId: mapId,
+            );
       _runtimeHostLog(
         'bundle load ok map=${bundle.map.id} size=${bundle.map.size.width}x${bundle.map.size.height} layers=${bundle.map.layers.length} entities=${bundle.map.entities.length} tilesets=${bundle.tilesetAbsolutePathsById.length}',
       );
@@ -840,10 +843,11 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
       projectFilePath: _projectFilePath,
       manifest: manifest,
       sessionPort: CallbackStandaloneRuntimeSessionPort(
-        onLaunch: (descriptor, reportProgress) async {
+        onLaunch: (descriptor, reportProgress, preloadedInitialMap) async {
           await _load(
             launchMode: descriptor.launchMode,
             reportProgress: reportProgress,
+            preloadedInitialMap: preloadedInitialMap,
           );
         },
         onPause: _pauseStandaloneSession,

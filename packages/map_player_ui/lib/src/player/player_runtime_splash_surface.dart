@@ -29,7 +29,11 @@ class PlayerRuntimeSplashSurface extends StatelessWidget {
         body: PlayerSplashTimeline(
           key: const ValueKey<String>('startup-splash-timeline'),
           branding: branding,
-          progress: reducedMotion ? 1 : animationProgress,
+          progress: reducedMotion
+              ? 1
+              : progress >= 1
+                  ? animationProgress
+                  : math.min(animationProgress, .9),
           loadingProgress: progress,
           logo: logo,
           reducedMotion: reducedMotion,
@@ -75,7 +79,7 @@ class PlayerSplashTimeline extends StatelessWidget {
     final wordmarkOpacity = _interval(.4, .72);
     final signatureOpacity = _interval(.58, .81);
     final progressOpacity = _interval(.7, .9);
-    final curtainOpacity = 1 - _interval(.9, 1);
+    final curtainOpacity = reducedMotion ? 0.0 : _interval(.9, 1);
 
     return Semantics(
       label: '${branding.displayName}. ${branding.signature}',

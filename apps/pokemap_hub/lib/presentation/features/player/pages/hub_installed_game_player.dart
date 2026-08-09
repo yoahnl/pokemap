@@ -189,11 +189,19 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         launch: launch,
         preferencesGateway: preferencesGateway,
       );
+      final initialMapPreloader = RuntimeInitialMapPreloader(
+        projectFilePath: () async {
+          final project = await launch.assets.resolveReference(launch.project);
+          return project.path;
+        },
+        loadSave: saveGateway.readLaunchableEnvelope,
+      );
       final sessionFactory = HubInProcessSessionFactory(
         launch: launch,
         saves: store,
         mountGame: _mountGame,
         unmountGame: _unmountGame,
+        preloadedInitialMap: initialMapPreloader.resolveForSession,
         audioMixer: audioMixer,
       );
       final sessions = GameSessionController(
@@ -219,6 +227,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
         startupCoordinator = RuntimeStartupCoordinator(
           playerCoordinator: coordinator,
           preparationPort: startupAdapter,
+          initialMapPreloadPort: initialMapPreloader,
           assetResolver: startupAdapter,
           introController: RuntimeIntroSequenceController(),
           titleMusicController: startupTitleMusic,

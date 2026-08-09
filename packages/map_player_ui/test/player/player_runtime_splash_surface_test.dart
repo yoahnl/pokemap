@@ -16,7 +16,7 @@ void main() {
         _app(
           PlayerRuntimeSplashSurface(
             branding: branding,
-            progress: .62,
+            progress: 1,
             animationProgress: progress,
           ),
         ),
@@ -32,10 +32,42 @@ void main() {
               find.byKey(const ValueKey<String>('startup-splash-progress')),
             )
             .value,
-        .62,
+        1,
       );
       expect(tester.takeException(), isNull);
     }
+  });
+
+  testWidgets('keeps the curtain clear until the final transition',
+      (tester) async {
+    Future<double> curtainOpacity(
+      double animationProgress, {
+      double loadingProgress = .62,
+    }) async {
+      await tester.pumpWidget(
+        _app(
+          PlayerRuntimeSplashSurface(
+            branding: branding,
+            progress: loadingProgress,
+            animationProgress: animationProgress,
+          ),
+        ),
+      );
+      final timeline = find.byKey(
+        const ValueKey<String>('startup-splash-timeline'),
+      );
+      return tester
+          .widgetList<Opacity>(
+            find.descendant(of: timeline, matching: find.byType(Opacity)),
+          )
+          .last
+          .opacity;
+    }
+
+    expect(await curtainOpacity(.45), 0);
+    expect(await curtainOpacity(.9), 0);
+    expect(await curtainOpacity(1), 0);
+    expect(await curtainOpacity(1, loadingProgress: 1), 1);
   });
 
   testWidgets('reduced motion renders the complete static composition',
@@ -57,6 +89,20 @@ void main() {
     expect(timeline.progress, 1);
     expect(find.text('PokeMap Runtime'), findsOneWidget);
     expect(find.text('Une aventure prend vie'), findsOneWidget);
+    expect(
+      tester
+          .widgetList<Opacity>(
+            find.descendant(
+              of: find.byKey(
+                const ValueKey<String>('startup-splash-timeline'),
+              ),
+              matching: find.byType(Opacity),
+            ),
+          )
+          .last
+          .opacity,
+      0,
+    );
   });
 
   testWidgets('works in light and dark themes without a logo', (tester) async {

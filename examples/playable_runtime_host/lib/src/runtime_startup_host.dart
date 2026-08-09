@@ -26,6 +26,7 @@ abstract interface class StandaloneRuntimeSessionPort {
   Future<void> launch(
     GameSessionDescriptor descriptor,
     GameSessionProgressReporter reportProgress,
+    RuntimeMapBundle? preloadedInitialMap,
   );
 
   Future<void> pause();
@@ -48,17 +49,19 @@ final class CallbackStandaloneRuntimeSessionPort
     Future<void> Function(GameSessionExitReason reason)? onStop,
     Future<void> Function()? onDispose,
     bool Function(RuntimeInputEvent event)? onInput,
-  })  : _onPause = onPause ?? _noOp,
-        _onResume = onResume ?? _noOp,
-        _onCaptureCheckpoint = onCaptureCheckpoint ?? _noCheckpoint,
-        _onStop = onStop ?? _noOpStop,
-        _onDispose = onDispose ?? _noOp,
-        _onInput = onInput ?? _ignoreInput;
+  }) : _onPause = onPause ?? _noOp,
+       _onResume = onResume ?? _noOp,
+       _onCaptureCheckpoint = onCaptureCheckpoint ?? _noCheckpoint,
+       _onStop = onStop ?? _noOpStop,
+       _onDispose = onDispose ?? _noOp,
+       _onInput = onInput ?? _ignoreInput;
 
   final Future<void> Function(
     GameSessionDescriptor descriptor,
     GameSessionProgressReporter reportProgress,
-  ) onLaunch;
+    RuntimeMapBundle? preloadedInitialMap,
+  )
+  onLaunch;
   final Future<void> Function() _onPause;
   final Future<void> Function() _onResume;
   final Future<GameSessionCheckpoint?> Function() _onCaptureCheckpoint;
@@ -70,8 +73,8 @@ final class CallbackStandaloneRuntimeSessionPort
   Future<void> launch(
     GameSessionDescriptor descriptor,
     GameSessionProgressReporter reportProgress,
-  ) =>
-      onLaunch(descriptor, reportProgress);
+    RuntimeMapBundle? preloadedInitialMap,
+  ) => onLaunch(descriptor, reportProgress, preloadedInitialMap);
 
   @override
   Future<void> pause() => _onPause();
@@ -108,11 +111,11 @@ final class StandaloneRuntimeStartupHost {
     RuntimeStartupClock clock = const SystemRuntimeStartupClock(),
     Duration? minimumSplashDuration,
     bool reducedMotion = false,
-  })  : presentation = StandaloneRuntimeStartupAdapter(
-          projectFilePath: projectFilePath,
-          manifest: manifest,
-        ),
-        audioMixer = RuntimeAudioMixer() {
+  }) : presentation = StandaloneRuntimeStartupAdapter(
+         projectFilePath: projectFilePath,
+         manifest: manifest,
+       ),
+       audioMixer = RuntimeAudioMixer() {
     identity = buildStandaloneRuntimeGameIdentity(
       projectFilePath: projectFilePath,
       projectFormat: manifest.version.name,
@@ -121,8 +124,14 @@ final class StandaloneRuntimeStartupHost {
       projectFilePath: projectFilePath,
       identity: identity,
     );
-    final preferences = preferencesGateway ??
+    final preferences =
+        preferencesGateway ??
         StandalonePlayerPreferencesGateway(audioMixer: audioMixer);
+    initialMapPreloader = RuntimeInitialMapPreloader(
+      projectFilePath: () async => projectFilePath,
+      loadSave: (_) => saves.readEnvelope(),
+      manifestLoader: (_) async => manifest,
+    );
     final source = _StandaloneRuntimeGameSource(
       identity: identity,
       displayTitle: manifest.name,
@@ -134,6 +143,9 @@ final class StandaloneRuntimeStartupHost {
         runtimeFactory: (descriptor) => _StandaloneInProcessSessionRuntime(
           descriptor: descriptor,
           sessionPort: sessionPort,
+          projectFilePath: projectFilePath,
+          initialSave: saves.readEnvelope,
+          preloadedInitialMap: initialMapPreloader.resolveForSession,
         ),
       ),
       commitCheckpoint: saves.commit,
@@ -144,15 +156,14 @@ final class StandaloneRuntimeStartupHost {
       saveGateway: saves,
       preferencesGateway: preferences,
       sessionController: sessions,
-      externalExit: _CallbackRuntimeExternalExit(
-        onExternalExit ?? _noOp,
-      ),
+      externalExit: _CallbackRuntimeExternalExit(onExternalExit ?? _noOp),
     );
     final titleMusic =
         titleMusicController ?? RuntimeTitleMusicController(mixer: audioMixer);
     coordinator = RuntimeStartupCoordinator(
       playerCoordinator: playerCoordinator,
       preparationPort: presentation,
+      initialMapPreloadPort: initialMapPreloader,
       assetResolver: presentation,
       introController: RuntimeIntroSequenceController(),
       titleMusicController: titleMusic,
@@ -167,6 +178,7 @@ final class StandaloneRuntimeStartupHost {
   late final GameIdentity identity;
   final StandaloneRuntimeStartupAdapter presentation;
   final RuntimeAudioMixer audioMixer;
+  late final RuntimeInitialMapPreloader initialMapPreloader;
   late final GameSessionController sessionController;
   late final RuntimePlayerCoordinator playerCoordinator;
   late final RuntimeStartupCoordinator coordinator;
@@ -186,10 +198,10 @@ final class StandaloneRuntimeStartupAdapter
   StandaloneRuntimeStartupAdapter({
     required String projectFilePath,
     required this.manifest,
-  })  : projectFilePath = p.normalize(p.absolute(projectFilePath)),
-        _projectRoot = p.normalize(
-          p.absolute(File(projectFilePath).parent.path),
-        );
+  }) : projectFilePath = p.normalize(p.absolute(projectFilePath)),
+       _projectRoot = p.normalize(
+         p.absolute(File(projectFilePath).parent.path),
+       );
 
   final String projectFilePath;
   final ProjectManifest manifest;
@@ -282,16 +294,14 @@ final class StandalonePlayerSaveGateway implements PlayerSaveGateway {
   final GameIdentity identity;
 
   File get _saveFile => File.fromUri(
-        File(projectFilePath).parent.uri.resolve(
-              kRuntimeHostLaunchSaveFileName,
-            ),
-      );
+    File(projectFilePath).parent.uri.resolve(kRuntimeHostLaunchSaveFileName),
+  );
 
   SaveSlotAddress get _address => SaveSlotAddress(
-        gameId: identity.gameId,
-        profileId: standaloneRuntimeProfileId,
-        slotId: standaloneRuntimeSlotId,
-      );
+    gameId: identity.gameId,
+    profileId: standaloneRuntimeProfileId,
+    slotId: standaloneRuntimeSlotId,
+  );
 
   @override
   Future<PlayerSaveSummary?> readLatestSummary() => readSummary(_address);
@@ -365,8 +375,8 @@ final class StandalonePlayerPreferencesGateway
       locale: 'fr',
       accessibility: GameSessionAccessibilityOptions(),
     ),
-  })  : _audioMixer = audioMixer,
-        _snapshot = initial;
+  }) : _audioMixer = audioMixer,
+       _snapshot = initial;
 
   final RuntimeAudioMixer _audioMixer;
   PlayerPreferencesSnapshot _snapshot;
@@ -403,8 +413,8 @@ final class _StandaloneRuntimeGameSource implements RuntimeGameSource {
     required this.projectFilePath,
     required this.preferences,
   }) : _projectDigest = sha256
-            .convert(utf8.encode(p.normalize(p.absolute(projectFilePath))))
-            .toString();
+           .convert(utf8.encode(p.normalize(p.absolute(projectFilePath))))
+           .toString();
 
   @override
   final GameIdentity identity;
@@ -457,10 +467,16 @@ final class _StandaloneInProcessSessionRuntime
   _StandaloneInProcessSessionRuntime({
     required this.descriptor,
     required this.sessionPort,
+    required this.projectFilePath,
+    required this.initialSave,
+    required this.preloadedInitialMap,
   });
 
   final GameSessionDescriptor descriptor;
   final StandaloneRuntimeSessionPort sessionPort;
+  final String projectFilePath;
+  final Future<SaveEnvelope?> Function() initialSave;
+  final SessionPreloadedInitialMapLoader preloadedInitialMap;
   final StreamController<GameSessionAdapterEvent> _events =
       StreamController<GameSessionAdapterEvent>.broadcast();
   bool _disposed = false;
@@ -469,8 +485,17 @@ final class _StandaloneInProcessSessionRuntime
   Stream<GameSessionAdapterEvent> get events => _events.stream;
 
   @override
-  Future<void> load(GameSessionProgressReporter reportProgress) =>
-      sessionPort.launch(descriptor, reportProgress);
+  Future<void> load(GameSessionProgressReporter reportProgress) async {
+    final save = descriptor.launchMode == GameSessionLaunchMode.newGame
+        ? null
+        : await initialSave();
+    final bundle = await preloadedInitialMap(
+      projectFilePath: projectFilePath,
+      descriptor: descriptor,
+      initialSave: save,
+    );
+    await sessionPort.launch(descriptor, reportProgress, bundle);
+  }
 
   @override
   Future<void> pause() => sessionPort.pause();
@@ -521,8 +546,9 @@ Future<GameSessionCheckpoint?> _noCheckpoint() async => null;
 bool _ignoreInput(RuntimeInputEvent event) => false;
 
 String _standaloneSaveUuid(String legacySaveId) {
-  final source =
-      legacySaveId.trim().isEmpty ? 'standalone-save' : legacySaveId.trim();
+  final source = legacySaveId.trim().isEmpty
+      ? 'standalone-save'
+      : legacySaveId.trim();
   final hex = sha256.convert(utf8.encode(source)).toString();
   return '${hex.substring(0, 8)}-'
       '${hex.substring(8, 12)}-'
@@ -532,13 +558,13 @@ String _standaloneSaveUuid(String legacySaveId) {
 }
 
 String? _mediaTypeFor(String path) => switch (p.extension(path).toLowerCase()) {
-      '.png' => 'image/png',
-      '.jpg' || '.jpeg' => 'image/jpeg',
-      '.webp' => 'image/webp',
-      '.mp4' => 'video/mp4',
-      '.m4a' => 'audio/mp4',
-      '.mp3' => 'audio/mpeg',
-      '.ogg' => 'audio/ogg',
-      '.vtt' => 'text/vtt',
-      _ => null,
-    };
+  '.png' => 'image/png',
+  '.jpg' || '.jpeg' => 'image/jpeg',
+  '.webp' => 'image/webp',
+  '.mp4' => 'video/mp4',
+  '.m4a' => 'audio/mp4',
+  '.mp3' => 'audio/mpeg',
+  '.ogg' => 'audio/ogg',
+  '.vtt' => 'text/vtt',
+  _ => null,
+};

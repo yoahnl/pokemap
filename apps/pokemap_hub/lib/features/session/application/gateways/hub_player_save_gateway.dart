@@ -36,10 +36,15 @@ final class HubPlayerSaveGateway implements PlayerSaveGateway {
 
   @override
   Future<String?> openReadHandle(SaveSlotAddress address) async {
+    final envelope = await readLaunchableEnvelope(address);
+    return envelope == null ? null : hubSaveReadHandle(envelope);
+  }
+
+  Future<SaveEnvelope?> readLaunchableEnvelope(SaveSlotAddress address) async {
     final read = await store.read(address);
     final envelope = read.envelope;
     if (!_canContinue(read, envelope)) return null;
-    return hubSaveReadHandle(envelope!);
+    return envelope;
   }
 
   @override
