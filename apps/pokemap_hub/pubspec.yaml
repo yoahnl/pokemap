@@ -1,6 +1,6 @@
 name: pokemap_hub
 description: PokeMap Hub composition root and player application.
-version: 1.0.0+2
+version: 1.0.1+3
 publish_to: none
 
 environment:
