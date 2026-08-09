@@ -57,7 +57,7 @@ class _PokeMapHubAppState extends ConsumerState<PokeMapHubApp> {
     // no longer requires detaching a listener in didUpdateWidget.
     ref.listenManual(
       hubDashboardNotifierProvider,
-      (_, __) => _handleControllerChanged(),
+      (_, _) => _handleControllerChanged(),
     );
     if (widget.initializeController) {
       unawaited(widget.controller.initialize());

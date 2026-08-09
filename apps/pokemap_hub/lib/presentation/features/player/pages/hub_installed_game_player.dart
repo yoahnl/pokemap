@@ -743,8 +743,8 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                   },
                   sessionBuilder:
                       viewController == null || titlePresentation == null
-                          ? (_, __) => const SizedBox.expand()
-                          : (_, __) => _buildSessionView(
+                          ? (_, _) => const SizedBox.expand()
+                          : (_, _) => _buildSessionView(
                             viewController,
                             titlePresentation.title,
                           ),

@@ -59,7 +59,7 @@ class AveluneLetterboxBackdrop extends StatelessWidget {
               fit: BoxFit.cover,
               filterQuality: FilterQuality.low,
               excludeFromSemantics: true,
-              errorBuilder: (_, __, ___) => ColoredBox(color: colors.canvas),
+              errorBuilder: (_, _, _) => ColoredBox(color: colors.canvas),
             ),
           ),
           // Held well back so the console stays the subject.

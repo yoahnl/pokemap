@@ -23,7 +23,7 @@ void main() {
         theme: PokeMapPlayerTheme.light(),
         home: HubInstalledGamePlayer(
           supportRoot: Directory.systemTemp,
-          saveRepositoryFactory: (_, __) => throw UnimplementedError(),
+          saveRepositoryFactory: (_, _) => throw UnimplementedError(),
           preferencesRepository: _UnusedPreferencesRepository(),
           controlProfileRepository: _UnusedControlProfileRepository(),
           launchResolver: _PendingLaunchResolver(launch.future),

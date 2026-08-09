@@ -29,8 +29,8 @@ void main() {
         ),
       ),
       availableDiskBytes: (_) async => 1 << 30,
-      loadSmoke: (_, __) async {},
-      prepareSavesForUpdate: (_, __) async => const SaveUpdatePreparation(),
+      loadSmoke: (_, _) async {},
+      prepareSavesForUpdate: (_, _) async => const SaveUpdatePreparation(),
     );
 
     final result = await installer.install(

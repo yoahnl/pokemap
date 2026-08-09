@@ -109,8 +109,8 @@ void main() {
           hostCompatibility: testHostCompatibility(),
         ),
         availableDiskBytes: (_) async => 2 * 1024 * 1024 * 1024,
-        loadSmoke: (_, __) async {},
-        prepareSavesForUpdate: (_, __) async => const SaveUpdatePreparation(),
+        loadSmoke: (_, _) async {},
+        prepareSavesForUpdate: (_, _) async => const SaveUpdatePreparation(),
         now: () => DateTime.utc(2026, 7, 25, 12),
       );
       await installer.install(

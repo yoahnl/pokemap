@@ -51,7 +51,7 @@ void main() {
         inspector: GamePackageInspector(hostCompatibility: compatibility),
         availableDiskBytes: (_) async => 2 * 1024 * 1024 * 1024,
         loadSmoke: _loadInstalledProjectSmoke,
-        prepareSavesForUpdate: (_, __) async => const SaveUpdatePreparation(),
+        prepareSavesForUpdate: (_, _) async => const SaveUpdatePreparation(),
       );
 
       final installed = await installer.install(

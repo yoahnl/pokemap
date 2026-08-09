@@ -123,14 +123,14 @@ class AveluneHomeContent extends StatelessWidget {
             reducedMotion ? Duration.zero : const Duration(milliseconds: 420),
         reverseTransitionDuration:
             reducedMotion ? Duration.zero : const Duration(milliseconds: 300),
-        pageBuilder: (_, __, ___) => AveluneGameDetailsScreen(
+        pageBuilder: (_, _, _) => AveluneGameDetailsScreen(
           game: source,
           referenceTime: referenceTime ?? DateTime.now(),
           onDelete: actions.onUninstall == null
               ? null
               : () => actions.onUninstall!(source),
         ),
-        transitionsBuilder: (_, animation, __, child) {
+        transitionsBuilder: (_, animation, _, child) {
           if (reducedMotion) return child;
           final curved = CurvedAnimation(
             parent: animation,

@@ -172,7 +172,7 @@ void main() {
       supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
-      importer: (_, token, __) async {
+      importer: (_, token, _) async {
         received = token;
         started.complete();
         await release.future;
@@ -196,7 +196,7 @@ void main() {
       supportRoot: root,
       libraryStore: libraryStore,
       activityReader: (_) async => const HubGameActivity(),
-      importer: (_, __, ___) async {
+      importer: (_, _, _) async {
         throw const GameInstallationException(
           GameInstallationDiagnostic(
             code: GameInstallationErrorCode.cancelled,
@@ -225,7 +225,7 @@ void main() {
         supportRoot: root,
         libraryStore: libraryStore,
         activityReader: (_) async => const HubGameActivity(),
-        importer: (_, __, ___) async => throw StateError('private path'),
+        importer: (_, _, _) async => throw StateError('private path'),
       );
       await harness.notifier.initialize();
       final package = File('${root.path}/aube.avelunegame');
@@ -249,7 +249,7 @@ void main() {
         libraryStore: libraryStore,
         activityReader: (_) async => const HubGameActivity(),
         diagnosticLogFile: log,
-        importer: (_, __, ___) async {
+        importer: (_, _, _) async {
           throw GameInstallationException(
             const GameInstallationDiagnostic(
               code: GameInstallationErrorCode.integrityFailed,

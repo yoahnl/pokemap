@@ -61,7 +61,7 @@ class HubArtwork extends StatelessWidget {
       image: requireLocalArtworkImage(assetPath),
       fit: BoxFit.cover,
       excludeFromSemantics: true,
-      errorBuilder: (_, __, ___) => fallback,
+      errorBuilder: (_, _, _) => fallback,
     );
   }
 }

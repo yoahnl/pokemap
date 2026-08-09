@@ -314,7 +314,7 @@ class _AveluneDetailsArtwork extends StatelessWidget {
                   image: image,
                   fit: BoxFit.cover,
                   excludeFromSemantics: true,
-                  errorBuilder: (_, __, ___) => fallback,
+                  errorBuilder: (_, _, _) => fallback,
                 ),
           DecoratedBox(
             decoration: BoxDecoration(

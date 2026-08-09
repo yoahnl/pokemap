@@ -179,7 +179,7 @@ void main() {
       await healthy.save(previous);
       final failing = AveluneAppearanceStore(
         supportRoot: supportRoot,
-        writeDocument: (_, __) async => throw const FileSystemException(
+        writeDocument: (_, _) async => throw const FileSystemException(
           'simulated write failure',
         ),
       );

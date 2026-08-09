@@ -24,8 +24,8 @@ void main() {
           hostCompatibility: testHostCompatibility(),
         ),
         availableDiskBytes: (_) async => 1 << 40,
-        loadSmoke: (_, __) async {},
-        prepareSavesForUpdate: (_, __) async => const SaveUpdatePreparation(),
+        loadSmoke: (_, _) async {},
+        prepareSavesForUpdate: (_, _) async => const SaveUpdatePreparation(),
       );
 
       await expectLater(
@@ -76,9 +76,9 @@ void main() {
         hostCompatibility: testHostCompatibility(),
       ),
       availableDiskBytes: disk ?? (_) async => 2 * 1024 * 1024 * 1024,
-      loadSmoke: smoke ?? (_, __) async {},
+      loadSmoke: smoke ?? (_, _) async {},
       prepareSavesForUpdate:
-          prepareSaves ?? (_, __) async => const SaveUpdatePreparation(),
+          prepareSaves ?? (_, _) async => const SaveUpdatePreparation(),
       loadSmokeTimeout: smokeTimeout ?? const Duration(seconds: 30),
       now: () => DateTime.utc(2026, 7, 25, 12),
     );
@@ -294,7 +294,7 @@ void main() {
 
         await expectLater(
           installer(
-            smoke: (_, __) => Completer<void>().future,
+            smoke: (_, _) => Completer<void>().future,
             smokeTimeout: const Duration(milliseconds: 10),
           ).install(package, source: GamePackageInstallSource.localFile),
           throwsA(
@@ -393,7 +393,7 @@ void main() {
       final version1 = await writeTestPackage(packages, gameVersion: '1.0.0');
       final version2 = await writeTestPackage(packages, gameVersion: '1.1.0');
       final service = installer(
-        prepareSaves: (_, __) async => throw StateError('migration failed'),
+        prepareSaves: (_, _) async => throw StateError('migration failed'),
       );
       await service.install(
         version1,

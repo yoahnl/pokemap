@@ -356,7 +356,7 @@ class _AveluneCabinWindow extends StatelessWidget {
                     alignment: Alignment.center,
                     filterQuality: FilterQuality.high,
                     excludeFromSemantics: true,
-                    errorBuilder: (_, __, ___) =>
+                    errorBuilder: (_, _, _) =>
                         ColoredBox(color: colors.room),
                   ),
                   IgnorePointer(

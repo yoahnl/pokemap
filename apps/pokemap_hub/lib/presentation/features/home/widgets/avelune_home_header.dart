@@ -46,7 +46,7 @@ class AveluneHomeHeader extends StatelessWidget {
                 fit: BoxFit.contain,
                 filterQuality: FilterQuality.high,
                 excludeFromSemantics: true,
-                errorBuilder: (_, __, ___) => Icon(
+                errorBuilder: (_, _, _) => Icon(
                   AveluneIcons.brand,
                   color: colors.primaryBright,
                   size: markSize * 0.78,

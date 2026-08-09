@@ -131,7 +131,7 @@ class _BackgroundGrid extends StatelessWidget {
     return Image(
       image: requireLocalArtworkImage(path),
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      errorBuilder: (_, _, _) => const SizedBox.shrink(),
     );
   }
 
@@ -140,7 +140,7 @@ class _BackgroundGrid extends StatelessWidget {
     return Image.asset(
       assetPath,
       fit: BoxFit.cover,
-      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+      errorBuilder: (_, _, _) => const SizedBox.shrink(),
     );
   }
 }
@@ -214,7 +214,7 @@ class _CabinFinishSwatch extends StatelessWidget {
           child: Image.asset(
             kAveluneMatteAbsTextureAssetPath,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            errorBuilder: (_, _, _) => const SizedBox.shrink(),
           ),
         ),
       ),
@@ -367,7 +367,7 @@ class _CustomBackgroundSection extends StatelessWidget {
                       state.customBackgroundThumbnailPath!,
                     ),
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => DecoratedBox(
+                    errorBuilder: (_, _, _) => DecoratedBox(
                       decoration: BoxDecoration(
                         color: colors.surface,
                         borderRadius: BorderRadius.circular(10),

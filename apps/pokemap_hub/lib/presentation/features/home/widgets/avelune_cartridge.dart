@@ -463,7 +463,7 @@ class _CartridgeLabel extends StatelessWidget {
         fit: BoxFit.cover,
         filterQuality: FilterQuality.high,
         excludeFromSemantics: true,
-        errorBuilder: (_, __, ___) => _LabelFallback(
+        errorBuilder: (_, _, _) => _LabelFallback(
           addSlot: addSlot,
           cache: cache,
           colors: colors,
@@ -581,7 +581,7 @@ class _LabelFallback extends StatelessWidget {
         cacheWidth: cache.width,
         cacheHeight: cache.height,
         excludeFromSemantics: true,
-        errorBuilder: (_, __, ___) => _neutralFallback(),
+        errorBuilder: (_, _, _) => _neutralFallback(),
       );
     }
     return _neutralFallback();

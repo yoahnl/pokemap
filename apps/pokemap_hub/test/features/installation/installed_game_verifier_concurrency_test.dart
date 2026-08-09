@@ -34,8 +34,8 @@ void main() {
         hostCompatibility: testHostCompatibility(),
       ),
       availableDiskBytes: (_) async => 2 * 1024 * 1024 * 1024,
-      loadSmoke: (_, __) async {},
-      prepareSavesForUpdate: (_, __) async => const SaveUpdatePreparation(),
+      loadSmoke: (_, _) async {},
+      prepareSavesForUpdate: (_, _) async => const SaveUpdatePreparation(),
     ).install(
       package,
       source: GamePackageInstallSource.localFile,
@@ -86,8 +86,8 @@ void main() {
         hostCompatibility: testHostCompatibility(),
       ),
       availableDiskBytes: (_) async => 2 * 1024 * 1024 * 1024,
-      loadSmoke: (_, __) async {},
-      prepareSavesForUpdate: (_, __) async => const SaveUpdatePreparation(),
+      loadSmoke: (_, _) async {},
+      prepareSavesForUpdate: (_, _) async => const SaveUpdatePreparation(),
     ).install(
       package,
       source: GamePackageInstallSource.localFile,

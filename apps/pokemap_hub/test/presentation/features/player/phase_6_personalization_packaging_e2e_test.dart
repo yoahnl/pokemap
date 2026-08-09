@@ -91,10 +91,10 @@ void main() {
         supportRoot: supportRoot,
         inspector: inspector,
         availableDiskBytes: (_) async => 2 * 1024 * 1024 * 1024,
-        loadSmoke: (_, __) async {
+        loadSmoke: (_, _) async {
           installSmokePassed = true;
         },
-        prepareSavesForUpdate: (_, __) async => const SaveUpdatePreparation(),
+        prepareSavesForUpdate: (_, _) async => const SaveUpdatePreparation(),
         now: () => DateTime.utc(2026, 7, 27, 12),
       ).install(packageFile, source: GamePackageInstallSource.localFile);
       final launch = await InstalledGameLaunchResolver(
