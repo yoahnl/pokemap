@@ -25,7 +25,7 @@ final class GamePackageContentValidator {
     final extension = p.extension(lowerPath);
     final validationExtension =
         extension == '.blob' && _isPokeMapStoreBlob(lowerPath)
-            ? _embeddedImageExtension(bytes) ?? extension
+            ? _embeddedMediaExtension(bytes) ?? extension
             : extension;
     if (_isExcludedAuthorArtifact(lowerPath)) {
       _fail(
@@ -288,9 +288,16 @@ final class GamePackageContentValidator {
     };
   }
 
-  String? _embeddedImageExtension(Uint8List bytes) {
+  String? _embeddedMediaExtension(Uint8List bytes) {
     for (final extension in _imageExtensions) {
       if (_imageDimensions(extension, bytes) != null) return extension;
+    }
+    for (final extension in <String>{
+      ..._videoExtensions,
+      ..._audioExtensions,
+      ..._fontExtensions,
+    }) {
+      if (_matchesMediaMagic(extension, bytes)) return extension;
     }
     return null;
   }

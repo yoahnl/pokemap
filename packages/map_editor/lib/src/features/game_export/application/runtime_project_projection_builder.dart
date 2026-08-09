@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:path/path.dart' as p;
@@ -113,6 +114,10 @@ final class RuntimeProjectProjectionBuilder {
       maxJsonSourceBytes: maxJsonSourceBytes,
       maxTotalPayloadBytes: maxTotalPayloadBytes,
     );
+    final authorFiles = await _AuthorProjectFileResolver.load(
+      projectRoot,
+      budget,
+    );
     final projectFile = File(p.join(projectRoot.path, 'project.json'));
     await _requireRegularFile(projectFile, logicalPath: 'project.json');
 
@@ -165,19 +170,15 @@ final class RuntimeProjectProjectionBuilder {
     for (final entry in authorProject.dialogues) {
       final sourcePath = _normalizeRelative(entry.relativePath);
       dialogueSources.add(sourcePath);
-      final sourceFile = await _resolveAuthorFile(
-        projectRoot,
-        sourcePath,
-      );
       final extension = p.extension(sourcePath).toLowerCase();
       final RuntimeDialogueDocument document;
       if (extension == '.yarn') {
         try {
           document = const YarnDialogueCompiler().compile(
             utf8.decode(
-              await budget.readFile(
-                sourceFile,
-                logicalPath: sourcePath,
+              await authorFiles.read(
+                sourcePath,
+                budget,
                 jsonLike: true,
               ),
               allowMalformed: false,
@@ -194,9 +195,9 @@ final class RuntimeProjectProjectionBuilder {
       } else if (extension == '.json') {
         try {
           document = const RuntimeDialogueDocumentCodec().decodeUtf8(
-            await budget.readFile(
-              sourceFile,
-              logicalPath: sourcePath,
+            await authorFiles.read(
+              sourcePath,
+              budget,
               jsonLike: true,
             ),
           );
@@ -292,35 +293,35 @@ final class RuntimeProjectProjectionBuilder {
 
     final iconPackagePath = await _addPresentationAsset(
       payload,
-      projectRoot,
+      authorFiles,
       presentation.branding.iconPath,
       'icon',
       budget,
     );
     final coverPackagePath = await _addPresentationAsset(
       payload,
-      projectRoot,
+      authorFiles,
       presentation.branding.coverPath,
       'cover',
       budget,
     );
     final heroPackagePath = await _addPresentationAsset(
       payload,
-      projectRoot,
+      authorFiles,
       presentation.branding.heroPath,
       'hero',
       budget,
     );
     await _addLegalFile(
       payload,
-      projectRoot,
+      authorFiles,
       profile.licensePath,
       'LICENSE.txt',
       budget,
     );
     await _addLegalFile(
       payload,
-      projectRoot,
+      authorFiles,
       profile.creditsPath,
       'CREDITS.txt',
       budget,
@@ -329,16 +330,21 @@ final class RuntimeProjectProjectionBuilder {
     final titleMusicPackagePath = titleMusicPath == null
         ? null
         : _normalizePackagePath('project/$titleMusicPath');
-    if (titleMusicPackagePath != null &&
-        (!_audioExtensions.contains(
-              p.extension(titleMusicPath!).toLowerCase(),
-            ) ||
-            !titleMusicPackagePath.startsWith('project/assets/') ||
-            !payload.containsKey(titleMusicPackagePath))) {
-      throw GamePackageExportException(
-        code: 'invalidTitleMusic',
-        path: titleMusicPath,
-        message: 'Title music must reference an exported audio asset.',
+    if (titleMusicPackagePath != null) {
+      if (!_audioExtensions.contains(
+            p.extension(titleMusicPath!).toLowerCase(),
+          ) ||
+          !titleMusicPackagePath.startsWith('project/assets/')) {
+        throw GamePackageExportException(
+          code: 'invalidTitleMusic',
+          path: titleMusicPath,
+          message: 'Title music must reference an exported audio asset.',
+        );
+      }
+      budget.replacePayload(
+        payload,
+        titleMusicPackagePath,
+        await authorFiles.read(titleMusicPath, budget),
       );
     }
     final intro = presentation.intro;
@@ -346,7 +352,7 @@ final class RuntimeProjectProjectionBuilder {
         ? null
         : await _addResponsiveVideo(
             payload,
-            projectRoot,
+            authorFiles,
             intro.media,
             packageRoot: 'presentation/intro',
             budget: budget,
@@ -355,7 +361,7 @@ final class RuntimeProjectProjectionBuilder {
         ? null
         : await _addResponsiveVideo(
             payload,
-            projectRoot,
+            authorFiles,
             presentation.titleMotion!.promptLoop!,
             packageRoot: 'presentation/title/prompt',
             budget: budget,
@@ -364,7 +370,7 @@ final class RuntimeProjectProjectionBuilder {
         ? null
         : await _addResponsiveVideo(
             payload,
-            projectRoot,
+            authorFiles,
             presentation.titleMotion!.menuLoop!,
             packageRoot: 'presentation/title/menu',
             budget: budget,
@@ -381,7 +387,7 @@ final class RuntimeProjectProjectionBuilder {
         };
         typographyRoles[role] = await _addTypographyRole(
           payload,
-          projectRoot,
+          authorFiles,
           role,
           roleProfile,
           budget,
@@ -408,7 +414,7 @@ final class RuntimeProjectProjectionBuilder {
 
   Future<RuntimeProjectedResponsiveVideo> _addResponsiveVideo(
     Map<String, List<int>> payload,
-    Directory root,
+    _AuthorProjectFileResolver authorFiles,
     ProjectResponsiveVideoProfile media, {
     required String packageRoot,
     required _ProjectionBudget budget,
@@ -416,7 +422,7 @@ final class RuntimeProjectProjectionBuilder {
       RuntimeProjectedResponsiveVideo(
         landscape: await _addVideoVariant(
           payload,
-          root,
+          authorFiles,
           media.landscape,
           packageRoot: '$packageRoot/landscape',
           budget: budget,
@@ -425,7 +431,7 @@ final class RuntimeProjectProjectionBuilder {
             ? null
             : await _addVideoVariant(
                 payload,
-                root,
+                authorFiles,
                 media.portrait!,
                 packageRoot: '$packageRoot/portrait',
                 budget: budget,
@@ -434,16 +440,12 @@ final class RuntimeProjectProjectionBuilder {
 
   Future<RuntimeProjectedVideoVariant> _addVideoVariant(
     Map<String, List<int>> payload,
-    Directory root,
+    _AuthorProjectFileResolver authorFiles,
     ProjectVideoVariantProfile variant, {
     required String packageRoot,
     required _ProjectionBudget budget,
   }) async {
-    final file = await _resolveAuthorFile(root, variant.videoPath);
-    final bytes = await budget.readFile(
-      file,
-      logicalPath: variant.videoPath,
-    );
+    final bytes = await authorFiles.read(variant.videoPath, budget);
     final signature = latin1.decode(bytes, allowInvalid: true);
     if (!variant.videoPath.toLowerCase().endsWith('.mp4') ||
         bytes.length != variant.sizeBytes ||
@@ -462,7 +464,7 @@ final class RuntimeProjectProjectionBuilder {
         '${packageRoot.substring('presentation/'.length)}/poster';
     final posterPackagePath = await _addPresentationAsset(
       payload,
-      root,
+      authorFiles,
       variant.posterPath,
       posterRole,
       budget,
@@ -471,7 +473,7 @@ final class RuntimeProjectProjectionBuilder {
         ? null
         : await _addIntroCaptions(
             payload,
-            root,
+            authorFiles,
             variant.captionsPath!,
             packagePath: '$packageRoot/captions.vtt',
             budget: budget,
@@ -486,15 +488,14 @@ final class RuntimeProjectProjectionBuilder {
 
   Future<String> _addIntroCaptions(
     Map<String, List<int>> payload,
-    Directory root,
+    _AuthorProjectFileResolver authorFiles,
     String relativePath, {
     required String packagePath,
     required _ProjectionBudget budget,
   }) async {
-    final file = await _resolveAuthorFile(root, relativePath);
-    final bytes = await budget.readFile(
-      file,
-      logicalPath: relativePath,
+    final bytes = await authorFiles.read(
+      relativePath,
+      budget,
       jsonLike: true,
     );
     late final String source;
@@ -522,7 +523,7 @@ final class RuntimeProjectProjectionBuilder {
 
   Future<RuntimeProjectedFontRole> _addTypographyRole(
     Map<String, List<int>> payload,
-    Directory root,
+    _AuthorProjectFileResolver authorFiles,
     ProjectTypographyRole role,
     ProjectTypographyRoleProfile profile,
     _ProjectionBudget budget,
@@ -536,8 +537,7 @@ final class RuntimeProjectProjectionBuilder {
       );
     }
     final licensePath = profile.licensePath!;
-    final fontFile = await _resolveAuthorFile(root, fontPath);
-    final fontBytes = await budget.readFile(fontFile, logicalPath: fontPath);
+    final fontBytes = await authorFiles.read(fontPath, budget);
     final extension = p.extension(fontPath).toLowerCase();
     final isTtf = extension == '.ttf' &&
         fontBytes.length >= 4 &&
@@ -557,10 +557,9 @@ final class RuntimeProjectProjectionBuilder {
         message: 'Typography font bytes do not match TTF or OTF.',
       );
     }
-    final licenseFile = await _resolveAuthorFile(root, licensePath);
-    final licenseBytes = await budget.readFile(
-      licenseFile,
-      logicalPath: licensePath,
+    final licenseBytes = await authorFiles.read(
+      licensePath,
+      budget,
       jsonLike: true,
     );
     try {
@@ -615,37 +614,14 @@ final class RuntimeProjectProjectionBuilder {
     }
   }
 
-  Future<File> _resolveAuthorFile(
-    Directory root,
-    String relativePath,
-  ) async {
-    final normalized = _normalizeRelative(relativePath);
-    final file = File(p.joinAll(<String>[
-      root.path,
-      ...normalized.split('/'),
-    ]));
-    final absolute = p.normalize(p.absolute(file.path));
-    final absoluteRoot = p.normalize(p.absolute(root.path));
-    if (absolute != absoluteRoot && !p.isWithin(absoluteRoot, absolute)) {
-      throw GamePackageExportException(
-        code: 'authoringPathEscapesRoot',
-        path: relativePath,
-        message: 'Authoring path escapes the project root.',
-      );
-    }
-    await _requireRegularFile(file, logicalPath: relativePath);
-    return file;
-  }
-
   Future<String?> _addPresentationAsset(
     Map<String, List<int>> payload,
-    Directory root,
+    _AuthorProjectFileResolver authorFiles,
     String? relativePath,
     String role,
     _ProjectionBudget budget,
   ) async {
     if (relativePath == null) return null;
-    final file = await _resolveAuthorFile(root, relativePath);
     final extension = p.extension(relativePath).toLowerCase();
     if (!_presentationExtensions.contains(extension)) {
       throw GamePackageExportException(
@@ -658,23 +634,22 @@ final class RuntimeProjectProjectionBuilder {
     budget.addPayload(
       payload,
       packagePath,
-      await budget.readFile(file, logicalPath: relativePath),
+      await authorFiles.read(relativePath, budget),
     );
     return packagePath;
   }
 
   Future<void> _addLegalFile(
     Map<String, List<int>> payload,
-    Directory root,
+    _AuthorProjectFileResolver authorFiles,
     String? relativePath,
     String targetName,
     _ProjectionBudget budget,
   ) async {
     if (relativePath == null) return;
-    final file = await _resolveAuthorFile(root, relativePath);
-    final bytes = await budget.readFile(
-      file,
-      logicalPath: relativePath,
+    final bytes = await authorFiles.read(
+      relativePath,
+      budget,
       jsonLike: true,
     );
     try {
@@ -948,6 +923,120 @@ final class _JsonScrubResult {
   final int removedSecretFields;
 }
 
+final class _AuthorProjectFileResolver {
+  const _AuthorProjectFileResolver(this.root, this.catalog);
+
+  static Future<_AuthorProjectFileResolver> load(
+    Directory root,
+    _ProjectionBudget budget,
+  ) async {
+    final catalogFile = File(
+      p.joinAll(<String>[
+        root.path,
+        ...assetCatalogStorageKey.split('/'),
+      ]),
+    );
+    final type = await FileSystemEntity.type(
+      catalogFile.path,
+      followLinks: false,
+    );
+    if (type == FileSystemEntityType.notFound) {
+      return _AuthorProjectFileResolver(root, AssetCatalog());
+    }
+    if (type != FileSystemEntityType.file) {
+      throw const GamePackageExportException(
+        code: 'invalidAssetCatalog',
+        path: assetCatalogStorageKey,
+        message: 'The canonical asset catalog is missing or unsafe.',
+      );
+    }
+    final bytes = await budget.readFile(
+      catalogFile,
+      logicalPath: assetCatalogStorageKey,
+      jsonLike: true,
+    );
+    try {
+      final decoded = jsonDecode(utf8.decode(bytes, allowMalformed: false));
+      if (decoded is! Map) throw const FormatException();
+      return _AuthorProjectFileResolver(
+        root,
+        AssetCatalog.fromJson(Map<String, dynamic>.from(decoded)),
+      );
+    } on Object catch (error) {
+      throw GamePackageExportException(
+        code: 'invalidAssetCatalog',
+        path: assetCatalogStorageKey,
+        message: 'The canonical asset catalog is malformed.',
+        cause: error,
+      );
+    }
+  }
+
+  final Directory root;
+  final AssetCatalog catalog;
+
+  Future<List<int>> read(
+    String relativePath,
+    _ProjectionBudget budget, {
+    bool jsonLike = false,
+  }) async {
+    final normalized = RuntimeProjectProjectionBuilder._normalizeRelative(
+      relativePath,
+    );
+    final record = catalog.findByLogicalPath(normalized);
+    final storagePath = record == null
+        ? normalized
+        : assetBlobStorageKey(record.artifact);
+    final file = _fileWithinRoot(storagePath, logicalPath: relativePath);
+    final type = await FileSystemEntity.type(file.path, followLinks: false);
+    if (type != FileSystemEntityType.file) {
+      throw GamePackageExportException(
+        code: 'missingProjectFile',
+        path: relativePath,
+        message: 'Required authoring file is missing or unsafe.',
+      );
+    }
+    final bytes = await budget.readFile(
+      file,
+      logicalPath: relativePath,
+      jsonLike: jsonLike,
+    );
+    final expected = record?.artifact;
+    if (expected != null) {
+      final actual = ContentArtifactRef.fromBytes(
+        bytes,
+        mediaType: expected.mediaType,
+      );
+      if (actual.digest != expected.digest ||
+          actual.byteLength != expected.byteLength) {
+        throw GamePackageExportException(
+          code: 'assetBlobIntegrityMismatch',
+          path: relativePath,
+          message: 'The canonical asset blob does not match its catalog entry.',
+        );
+      }
+    }
+    return bytes;
+  }
+
+  File _fileWithinRoot(String storagePath, {required String logicalPath}) {
+    final file = File(p.joinAll(<String>[
+      root.path,
+      ...storagePath.split('/'),
+    ]));
+    final absolute = p.normalize(p.absolute(file.path));
+    final absoluteRoot = p.normalize(p.absolute(root.path));
+    if (absolute != absoluteRoot && !p.isWithin(absoluteRoot, absolute)) {
+      throw GamePackageExportException(
+        code: 'authoringPathEscapesRoot',
+        path: logicalPath,
+        message: 'Authoring path escapes the project root.',
+      );
+    }
+    return file;
+  }
+}
+
 final class _ProjectionBudget {
   _ProjectionBudget({
     required this.maxWorkspaceEntries,
@@ -1028,5 +1117,15 @@ final class _ProjectionBudget {
       );
     }
     payload[path] = bytes;
+  }
+
+  void replacePayload(
+    Map<String, List<int>> payload,
+    String path,
+    List<int> bytes,
+  ) {
+    final previous = payload.remove(path);
+    if (previous != null) _totalPayloadBytes -= previous.length;
+    addPayload(payload, path, bytes);
   }
 }

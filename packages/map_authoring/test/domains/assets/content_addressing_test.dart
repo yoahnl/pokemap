@@ -251,6 +251,17 @@ void main() {
       );
     });
 
+    test('catalog resolves an exact canonical logical path', () {
+      final expected = _record('hero', 'images/hero.png');
+      final catalog = AssetCatalog(
+        records: [expected, _record('portrait', 'images/portrait.png')],
+      );
+
+      expect(catalog.findByLogicalPath('images/hero.png'), same(expected));
+      expect(catalog.findByLogicalPath('images/HERO.png'), isNull);
+      expect(catalog.findByLogicalPath('images/missing.png'), isNull);
+    });
+
     test('delete planning refuses references and exposes their impact', () {
       final catalog = AssetCatalog(
         records: [

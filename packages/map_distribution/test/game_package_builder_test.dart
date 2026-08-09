@@ -91,6 +91,34 @@ void main() {
       );
     });
 
+    test('accepts an MP4 in the canonical PokeMap asset store', () {
+      const digest =
+          '0079d95b54750e42a7b369b8610cd7d87ad4e09edc1c239c8079dc3235a8e5b2';
+      final built = builder.build(
+        manifest: _draftManifest(),
+        payloadFiles: <String, List<int>>{
+          'project/project.json': _validProjectBytes(),
+          'project/assets/.pokemap-store/$digest.blob': <int>[
+            0,
+            0,
+            0,
+            24,
+            ...utf8.encode('ftypisom'),
+            0,
+            0,
+            0,
+            0,
+            ...utf8.encode('isomavc1mp4a'),
+          ],
+        },
+      );
+
+      expect(
+        built.manifest.content.files.map((entry) => entry.path),
+        contains('project/assets/.pokemap-store/$digest.blob'),
+      );
+    });
+
     test('does not allow a stale signature to cover changed content', () {
       final unsigned = builder.build(
         manifest: _draftManifest(),

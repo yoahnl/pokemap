@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/game_export.dart';
 import 'package:path/path.dart' as p;
@@ -268,6 +269,60 @@ void main() {
     );
   });
 
+  test('projects presentation media stored only in the canonical asset store',
+      () async {
+    final root = await createAuthorProject(
+      withDialogue: false,
+      withCanonicalPokemon: false,
+    );
+    addTearDown(() => root.delete(recursive: true));
+    await _configureCatalogOnlyIntro(root);
+
+    final result = await const RuntimeProjectProjectionBuilder().build(
+      projectRoot: root,
+      profile: neutralExportProfile(),
+    );
+
+    expect(
+      result.payloadFiles['presentation/intro/landscape/video.mp4'],
+      _h264Mp4Fixture,
+    );
+    expect(
+      result.payloadFiles['presentation/intro/landscape/poster.png'],
+      onePixelPng,
+    );
+  });
+
+  test('rejects a canonical presentation blob with mismatched content',
+      () async {
+    final root = await createAuthorProject(
+      withDialogue: false,
+      withCanonicalPokemon: false,
+    );
+    addTearDown(() => root.delete(recursive: true));
+    await _configureCatalogOnlyIntro(root, corruptVideo: true);
+
+    expect(
+      () => const RuntimeProjectProjectionBuilder().build(
+        projectRoot: root,
+        profile: neutralExportProfile(),
+      ),
+      throwsA(
+        isA<GamePackageExportException>()
+            .having(
+              (error) => error.code,
+              'code',
+              'assetBlobIntegrityMismatch',
+            )
+            .having(
+              (error) => error.path,
+              'path',
+              'assets/presentation/intro.mp4',
+            ),
+      ),
+    );
+  });
+
   test('rejects symlinks and branding paths outside the project root',
       () async {
     final root = await createAuthorProject(
@@ -368,6 +423,42 @@ void main() {
     );
   });
 
+  test('title music prefers the canonical blob over a stale physical file',
+      () async {
+    final root = await createAuthorProject(withCanonicalPokemon: false);
+    addTearDown(() => root.delete(recursive: true));
+    const logicalPath = 'assets/title.ogg';
+    final physical = File(p.join(root.path, logicalPath));
+    await physical.writeAsBytes(<int>[...utf8.encode('OggS'), 1]);
+    final canonicalBytes = <int>[...utf8.encode('OggS'), 2];
+    final artifact = ContentArtifactRef.fromBytes(
+      canonicalBytes,
+      mediaType: 'audio/ogg',
+    );
+    final catalog = AssetCatalog(
+      records: <AssetRecord>[
+        AssetRecord(
+          id: 'presentation-title-music',
+          logicalPath: logicalPath,
+          artifact: artifact,
+        ),
+      ],
+    );
+    final catalogFile = File(p.join(root.path, assetCatalogStorageKey));
+    await catalogFile.parent.create(recursive: true);
+    await catalogFile.writeAsString(jsonEncode(catalog.toJson()), flush: true);
+    final blob = File(p.join(root.path, assetBlobStorageKey(artifact)));
+    await blob.parent.create(recursive: true);
+    await blob.writeAsBytes(canonicalBytes, flush: true);
+
+    final result = await const RuntimeProjectProjectionBuilder().build(
+      projectRoot: root,
+      profile: neutralExportProfile().copyWith(titleMusicPath: logicalPath),
+    );
+
+    expect(result.payloadFiles['project/$logicalPath'], canonicalBytes);
+  });
+
   test('normalizes decomposed macOS filenames and JSON references to NFC',
       () async {
     final root = await createAuthorProject(
@@ -463,3 +554,75 @@ final List<int> _h264Mp4Fixture = <int>[
   0,
   ...utf8.encode('isomavc1mp4a'),
 ];
+
+Future<void> _configureCatalogOnlyIntro(
+  Directory root, {
+  bool corruptVideo = false,
+}) async {
+  const videoPath = 'assets/presentation/intro.mp4';
+  const posterPath = 'assets/presentation/intro-poster.png';
+  final projectFile = File(p.join(root.path, 'project.json'));
+  final project = jsonDecode(await projectFile.readAsString())
+      as Map<String, dynamic>;
+  project['presentation'] = <String, Object?>{
+    'schemaVersion': 2,
+    'branding': <String, Object?>{
+      'accentColor': '#123456',
+      'layoutVariant': 'cinematic',
+    },
+    'intro': <String, Object?>{
+      'media': <String, Object?>{
+        'landscape': <String, Object?>{
+          'videoPath': videoPath,
+          'posterPath': posterPath,
+          'durationMilliseconds': 1000,
+          'width': 1280,
+          'height': 720,
+          'bitrateKbps': 128,
+          'sizeBytes': _h264Mp4Fixture.length,
+          'videoCodec': 'h264',
+          'audioCodec': 'aac',
+        },
+      },
+      'reducedMotionBehavior': 'poster',
+      'allowReplay': true,
+    },
+  };
+  await projectFile.writeAsString(jsonEncode(project), flush: true);
+
+  final videoArtifact = ContentArtifactRef.fromBytes(
+    _h264Mp4Fixture,
+    mediaType: 'video/mp4',
+  );
+  final posterArtifact = ContentArtifactRef.fromBytes(
+    onePixelPng,
+    mediaType: 'image/png',
+  );
+  final catalog = AssetCatalog(
+    records: <AssetRecord>[
+      AssetRecord(
+        id: 'presentation-intro-video',
+        logicalPath: videoPath,
+        artifact: videoArtifact,
+      ),
+      AssetRecord(
+        id: 'presentation-intro-poster',
+        logicalPath: posterPath,
+        artifact: posterArtifact,
+      ),
+    ],
+  );
+  final catalogFile = File(p.join(root.path, assetCatalogStorageKey));
+  await catalogFile.parent.create(recursive: true);
+  await catalogFile.writeAsString(jsonEncode(catalog.toJson()), flush: true);
+
+  final videoBytes = List<int>.of(_h264Mp4Fixture);
+  if (corruptVideo) videoBytes[0] ^= 0xff;
+  final videoBlob = File(p.join(root.path, assetBlobStorageKey(videoArtifact)));
+  await videoBlob.parent.create(recursive: true);
+  await videoBlob.writeAsBytes(videoBytes, flush: true);
+  final posterBlob = File(
+    p.join(root.path, assetBlobStorageKey(posterArtifact)),
+  );
+  await posterBlob.writeAsBytes(onePixelPng, flush: true);
+}

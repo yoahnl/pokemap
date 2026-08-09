@@ -117,6 +117,9 @@ final class AssetCatalog {
       : records = _validatedRecords(records) {
     _byId = Map.unmodifiable(
         {for (final record in this.records) record.id: record});
+    _byLogicalPath = Map.unmodifiable(
+      {for (final record in this.records) record.logicalPath: record},
+    );
   }
 
   factory AssetCatalog.fromJson(Map<String, dynamic> json) {
@@ -136,8 +139,12 @@ final class AssetCatalog {
 
   final List<AssetRecord> records;
   late final Map<String, AssetRecord> _byId;
+  late final Map<String, AssetRecord> _byLogicalPath;
 
   AssetRecord? find(String id) => _byId[id];
+
+  AssetRecord? findByLogicalPath(String logicalPath) =>
+      _byLogicalPath[logicalPath];
 
   AssetRecord require(String id) =>
       find(id) ??
