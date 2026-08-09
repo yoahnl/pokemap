@@ -561,6 +561,32 @@ void main() {
       expect(first, isNot(different));
     });
 
+    test('rectangle may cover a whole map beyond the explicit payload limit',
+        () {
+      const largeMapSize = GridSize(width: 65, height: 64);
+      final largeLayer = _layer(
+        SmartTileField.cell(
+          semanticCells: List<int>.filled(
+            largeMapSize.width * largeMapSize.height,
+            0,
+          ),
+        ),
+      );
+
+      final cells = compileSmartTileGestureSelection(
+        largeLayer,
+        mapSize: largeMapSize,
+        selection: const SmartTileGestureSelection.rectangle(
+          start: GridPos(x: 0, y: 0),
+          end: GridPos(x: 64, y: 63),
+        ),
+      );
+
+      expect(cells, hasLength(4160));
+      expect(cells.first, const GridPos(x: 0, y: 0));
+      expect(cells.last, const GridPos(x: 64, y: 63));
+    });
+
     test('flood fill is four-connected, semantic, and bounded', () {
       expect(
         compileSmartTileGestureSelection(

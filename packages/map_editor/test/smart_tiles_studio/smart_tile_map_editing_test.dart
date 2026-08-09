@@ -287,6 +287,50 @@ void main() {
       <int>[1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1],
     );
   });
+
+  test('rectangle paints a whole map beyond the explicit payload limit', () {
+    const mapSize = GridSize(width: 65, height: 64);
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final notifier = container.read(editorNotifierProvider.notifier);
+    final layer = MapLayer.smartTile(
+      id: 'smart',
+      name: 'Smart',
+      presetId: 'terrain',
+      usage: SmartTileUsage.terrain,
+      materialPalette: const <String>['', 'grass'],
+      field: SmartTileField.cell(
+        semanticCells: List<int>.filled(mapSize.width * mapSize.height, 0),
+      ),
+    );
+    final map = MapData(
+      id: 'map',
+      name: 'Map',
+      version: ProjectVersion.v6,
+      size: mapSize,
+      layers: <MapLayer>[layer],
+    );
+    notifier.state = EditorState(
+      project: _project,
+      activeMap: map,
+      savedMapSnapshot: map,
+      activeLayerId: 'smart',
+      activeTool: EditorToolType.terrainPaint,
+    );
+
+    notifier.applyActiveSmartTileSelection(
+      const SmartTileGestureSelection.rectangle(
+        start: GridPos(x: 0, y: 0),
+        end: GridPos(x: 64, y: 63),
+      ),
+    );
+
+    final edited = notifier.state.activeMap!.layers.single as SmartTileLayer;
+    expect(notifier.state.errorMessage, isNull);
+    expect(smartTileSemanticCells(edited), hasLength(4160));
+    expect(smartTileSemanticCells(edited).every((cell) => cell == 1), isTrue);
+    expect(notifier.state.mapUndoStack, hasLength(1));
+  });
 }
 
 final _project = ProjectManifest(

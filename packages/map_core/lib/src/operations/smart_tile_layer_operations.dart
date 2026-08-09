@@ -49,7 +49,7 @@ List<int> smartTileCorners(SmartTileLayer layer) => switch (layer.field) {
       SmartTileCellField() || SmartTileEdgeField() => const <int>[],
     };
 
-/// Shared safety boundary for one atomic Smart Tile authoring gesture.
+/// Safety boundary for one explicit or persisted Smart Tile cell list.
 const int smartTileMaximumCellsPerGesture = 4096;
 
 enum SmartTileGestureSelectionKind {
@@ -118,9 +118,11 @@ List<GridPos> compileSmartTileGestureSelection(
   SmartTileLayer layer, {
   required GridSize mapSize,
   required SmartTileGestureSelection selection,
-  int maximumCellCount = smartTileMaximumCellsPerGesture,
+  int? maximumCellCount,
 }) {
-  if (maximumCellCount <= 0) {
+  final resolvedMaximumCellCount =
+      maximumCellCount ?? mapSize.width * mapSize.height;
+  if (resolvedMaximumCellCount <= 0) {
     throw const ValidationException(
       'Smart Tile gesture maximumCellCount must be positive',
     );
@@ -147,18 +149,18 @@ List<GridPos> compileSmartTileGestureSelection(
     SmartTileGestureSelectionKind.line => _smartTileLineCells(
         selection.start,
         end!,
-        maximumCellCount: maximumCellCount,
+        maximumCellCount: resolvedMaximumCellCount,
       ),
     SmartTileGestureSelectionKind.rectangle => _smartTileRectangleCells(
         selection.start,
         end!,
-        maximumCellCount: maximumCellCount,
+        maximumCellCount: resolvedMaximumCellCount,
       ),
     SmartTileGestureSelectionKind.floodFill => _smartTileFloodFillCells(
         layer,
         mapSize: mapSize,
         seed: selection.start,
-        maximumCellCount: maximumCellCount,
+        maximumCellCount: resolvedMaximumCellCount,
       ),
   };
   cells.sort(_compareGridPositions);

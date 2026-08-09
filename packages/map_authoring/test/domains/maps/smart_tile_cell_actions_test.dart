@@ -24,6 +24,8 @@ void main() {
           descriptor.extensions['supportedFieldKinds'],
           <String>['cell', 'edge', 'corner', 'mixed'],
         );
+        expect(descriptor.extensions['maximumExplicitCellCount'], 4096);
+        expect(descriptor.extensions['geometricSelectionLimit'], 'mapExtent');
       }
     });
 
@@ -174,6 +176,56 @@ void main() {
         <int>[1, 1, 1, 1],
       );
       expect(rectangle.preview['gestureCellCount'], 4);
+    });
+
+    test(
+        'geometric selection may cover a map beyond the explicit payload limit',
+        () {
+      const mapSize = GridSize(width: 65, height: 64);
+      final draft = _build(
+        _fixture(mapSize: mapSize).snapshot,
+        actionId: 'smart_tile.cell.paint',
+        parameters: const <String, Object?>{
+          'mapId': 'map',
+          'layerId': 'ground',
+          'materialId': 'grass',
+          'selection': <String, Object?>{
+            'kind': 'rectangle',
+            'start': <String, int>{'x': 0, 'y': 0},
+            'end': <String, int>{'x': 64, 'y': 63},
+          },
+        },
+      );
+
+      final layer = _map(draft).layers.single as SmartTileLayer;
+      expect(draft.preview['gestureCellCount'], 4160);
+      expect(smartTileSemanticCells(layer), hasLength(4160));
+      expect(smartTileSemanticCells(layer).every((cell) => cell == 1), isTrue);
+    });
+
+    test('explicit cell payloads remain bounded to 4096 coordinates', () {
+      const mapSize = GridSize(width: 65, height: 64);
+      final cells = <Map<String, int>>[
+        for (var index = 0; index < 4097; index++)
+          <String, int>{
+            'x': index % mapSize.width,
+            'y': index ~/ mapSize.width,
+          },
+      ];
+
+      expect(
+        () => _build(
+          _fixture(mapSize: mapSize).snapshot,
+          actionId: 'smart_tile.cell.paint',
+          parameters: <String, Object?>{
+            'mapId': 'map',
+            'layerId': 'ground',
+            'materialId': 'grass',
+            'cells': cells,
+          },
+        ),
+        _failure('smart_tile.cell.gesture_too_large'),
+      );
     });
 
     test('flood fill follows the source semantic region', () {
@@ -413,17 +465,20 @@ AuthoringMutationDraft _build(
     );
 
 ({ProjectSnapshot snapshot, ProjectManifest manifest, MapData map}) _fixture({
-  SmartTileField field = const SmartTileField.cell(
-    semanticCells: <int>[0, 0, 0, 0],
-  ),
+  SmartTileField? field,
+  GridSize mapSize = const GridSize(width: 2, height: 2),
   bool includePattern = false,
   bool includeCollision = false,
 }) {
+  final resolvedField = field ??
+      SmartTileField.cell(
+        semanticCells: List<int>.filled(mapSize.width * mapSize.height, 0),
+      );
   final map = MapData(
     id: 'map',
     name: 'Map',
     version: ProjectVersion.v6,
-    size: const GridSize(width: 2, height: 2),
+    size: mapSize,
     layers: <MapLayer>[
       MapLayer.smartTile(
         id: 'ground',
@@ -431,17 +486,20 @@ AuthoringMutationDraft _build(
         presetId: 'grass-preset',
         usage: SmartTileUsage.terrain,
         materialPalette: const <String>['', 'grass'],
-        field: field,
+        field: resolvedField,
       ),
       if (includeCollision)
-        const MapLayer.collision(
+        MapLayer.collision(
           id: 'collision',
           name: 'Collision',
-          collisions: <bool>[false, false, false, false],
+          collisions: List<bool>.filled(
+            mapSize.width * mapSize.height,
+            false,
+          ),
         ),
     ],
   );
-  final (topology, templateHint) = switch (field) {
+  final (topology, templateHint) = switch (resolvedField) {
     SmartTileCellField() => (
         SmartTileTopology.uniform,
         SmartTileTemplateHint.simple,

@@ -13,7 +13,9 @@ import 'smart_tile_native_transition_guard.dart';
 final class SmartTileCellActions {
   const SmartTileCellActions();
 
-  static const int maximumCellsPerGesture = smartTileMaximumCellsPerGesture;
+  static const int maximumExplicitCellsPerGesture =
+      smartTileMaximumCellsPerGesture;
+  static const int maximumCellsPerGesture = maximumExplicitCellsPerGesture;
 
   static final List<AuthoringActionDescriptor> descriptors = List.unmodifiable([
     _descriptor(
@@ -158,6 +160,9 @@ AuthoringActionDescriptor _descriptor(String id, String summary) =>
           'rectangle',
           'floodFill',
         ],
+        'maximumExplicitCellCount':
+            SmartTileCellActions.maximumExplicitCellsPerGesture,
+        'geometricSelectionLimit': 'mapExtent',
         'supportedFieldKinds': <String>['cell', 'edge', 'corner', 'mixed'],
       },
     );
@@ -299,7 +304,6 @@ void _requireAllowedMaterial({
       layer,
       mapSize: mapSize,
       selection: selection,
-      maximumCellCount: SmartTileCellActions.maximumCellsPerGesture,
     );
     return (
       cells: <({int x, int y})>[
@@ -371,13 +375,13 @@ List<({int x, int y})> _cells(
   if (raw.isEmpty) {
     throw invalidSemanticField('cells', 'a non-empty list of coordinates');
   }
-  if (raw.length > SmartTileCellActions.maximumCellsPerGesture) {
+  if (raw.length > SmartTileCellActions.maximumExplicitCellsPerGesture) {
     throw semanticFailure(
       'smart_tile.cell.gesture_too_large',
       'The Smart Tile gesture exceeds the bounded cell limit.',
       details: <String, Object?>{
         'cellCount': raw.length,
-        'maximumCellCount': SmartTileCellActions.maximumCellsPerGesture,
+        'maximumCellCount': SmartTileCellActions.maximumExplicitCellsPerGesture,
       },
     );
   }

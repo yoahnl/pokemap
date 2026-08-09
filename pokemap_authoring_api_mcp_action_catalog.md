@@ -1044,8 +1044,10 @@ pour résoudre sans ambiguïté les raccords partagés.
 Chaque action reçoit exactement une source de cellules : soit `cells`, soit une
 `selection` géométrique native. Les sélections supportées sont `line`
 (`start`/`end`), `rectangle` rempli (`start`/`end`) et `floodFill` sémantique à
-quatre voisins (`seed`). Leur projection est déterministe, bornée à 4 096
-cellules et conserve une seule transaction/annulation pour tout le geste.
+quatre voisins (`seed`). Les listes `cells` explicites restent bornées à 4 096
+coordonnées, tandis qu’une sélection géométrique peut couvrir toute l’étendue de
+la map. Leur projection reste déterministe et conserve une seule
+transaction/annulation pour tout le geste.
 
 Les motifs multi-cellules sont des ressources `smartTilePattern` natives. Ils
 sont créés/supprimés avec `smart_tile.pattern.upsert`/`delete` et peints ou
