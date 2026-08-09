@@ -920,6 +920,8 @@ final class RuntimePlayerCoordinator {
         clearSaveReceipt: true,
         preferences: _preferences,
         hasDiscoveredSave: _latestSave != null,
+        continueSave: _latestSave,
+        clearContinueSave: _latestSave == null,
         actions: _titleActions,
       ),
     );

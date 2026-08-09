@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
 import 'package:map_runtime/map_runtime.dart';
 
@@ -499,6 +500,18 @@ RuntimePlayerSnapshot _titlePlayer() => RuntimePlayerSnapshot(
       phase: RuntimePlayerPhase.title,
       gameTitle: 'Le Train de 17h42',
       hasDiscoveredSave: true,
+      continueSave: PlayerSaveSummary(
+        address: SaveSlotAddress(
+          gameId: 'com.pokemap.train1742',
+          profileId: 'default',
+          slotId: 'slot-1',
+        ),
+        updatedAt: DateTime(2026, 8, 9),
+        playTimeSeconds: 6386,
+        status: SaveStatus.active,
+        canContinue: true,
+        locationLabel: 'Vallée d’Hisui',
+      ),
       actions: const <RuntimePlayerActionAvailability>[
         RuntimePlayerActionAvailability.enabled(
           RuntimePlayerAction.newGame,

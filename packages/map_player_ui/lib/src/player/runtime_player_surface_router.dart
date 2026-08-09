@@ -92,6 +92,7 @@ class RuntimePlayerSurfaceRouter extends StatelessWidget {
             logo: titlePresentation.logo,
             accentColor: titlePresentation.accentColor,
             layoutVariant: titlePresentation.layoutVariant,
+            continueSave: snapshot.continueSave,
             actions: <PlayerTitleMenuAction, PlayerActionAvailability>{
               for (final action in PlayerTitleMenuAction.values)
                 action: _titleAvailability(context, action),

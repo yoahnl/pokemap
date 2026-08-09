@@ -33,7 +33,11 @@ final class PlayerSaveSummary {
     required this.status,
     required this.canContinue,
     this.safeUnavailableReason,
-  }) {
+    String? locationLabel,
+  }) : locationLabel = switch (locationLabel?.trim()) {
+          '' => null,
+          final label => label,
+        } {
     if (playTimeSeconds < 0) {
       throw ArgumentError.value(
         playTimeSeconds,
@@ -49,6 +53,7 @@ final class PlayerSaveSummary {
   final SaveStatus status;
   final bool canContinue;
   final String? safeUnavailableReason;
+  final String? locationLabel;
 }
 
 /// Host-owned save operations exposed to the runtime player.

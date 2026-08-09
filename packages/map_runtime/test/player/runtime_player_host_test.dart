@@ -43,6 +43,7 @@ void main() {
       playTimeSeconds: 42,
       status: SaveStatus.active,
       canContinue: true,
+      locationLabel: 'Hanazuki',
     );
     final gateway = _MemorySaveGateway(identity, summary);
 
@@ -51,6 +52,7 @@ void main() {
     expect(await gateway.openReadHandle(address), 'opaque-save-revision');
     expect(summary.address, address);
     expect(summary.playTimeSeconds, 42);
+    expect(summary.locationLabel, 'Hanazuki');
     expect(summary.safeUnavailableReason, isNull);
   });
 

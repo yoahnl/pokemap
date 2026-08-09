@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_player_ui/map_player_ui.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   testWidgets('title exposes the product actions and availability',
@@ -151,6 +153,18 @@ void main() {
       gameTitle: 'Le Train de 17h42',
       author: 'PokeMap',
       layoutVariant: PlayerTitleLayoutVariant.runtimeStartupCinematic,
+      continueSave: PlayerSaveSummary(
+        address: SaveSlotAddress(
+          gameId: 'com.pokemap.train1742',
+          profileId: 'default',
+          slotId: 'slot-1',
+        ),
+        updatedAt: DateTime(2026, 8, 9),
+        playTimeSeconds: 6386,
+        status: SaveStatus.active,
+        canContinue: true,
+        locationLabel: 'Vallée d’Hisui',
+      ),
       actions: const <PlayerTitleMenuAction, PlayerActionAvailability>{
         PlayerTitleMenuAction.continueGame: PlayerActionAvailability.enabled,
         PlayerTitleMenuAction.newGame: PlayerActionAvailability.enabled,
@@ -179,6 +193,7 @@ void main() {
           .width,
       619.2,
     );
+    expect(find.text('01:46 · Vallée d’Hisui'), findsOneWidget);
 
     tester.view.physicalSize = const Size(390, 844);
     await tester.pumpWidget(

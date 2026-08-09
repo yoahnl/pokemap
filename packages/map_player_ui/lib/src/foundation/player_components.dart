@@ -160,7 +160,7 @@ class _PlayerActionButtonState extends State<PlayerActionButton> {
         ),
         if (widget.trailing != null) ...<Widget>[
           const SizedBox(width: PlayerSpacing.sm),
-          widget.trailing!,
+          Flexible(child: widget.trailing!),
         ],
       ],
     );

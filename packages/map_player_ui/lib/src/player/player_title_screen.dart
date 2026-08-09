@@ -69,6 +69,7 @@ final class PlayerTitleViewData {
     this.layoutVariant = PlayerTitleLayoutVariant.standard,
     required Map<PlayerTitleMenuAction, PlayerActionAvailability> actions,
     this.initialSelection,
+    this.continueSave,
   }) : actions = Map.unmodifiable(actions);
 
   final String gameTitle;
@@ -81,6 +82,7 @@ final class PlayerTitleViewData {
   final PlayerTitleLayoutVariant layoutVariant;
   final Map<PlayerTitleMenuAction, PlayerActionAvailability> actions;
   final PlayerTitleMenuAction? initialSelection;
+  final PlayerSaveSummary? continueSave;
 }
 
 class PlayerTitleScreen extends StatelessWidget {
@@ -411,6 +413,9 @@ class PlayerTitleScreen extends StatelessWidget {
                           : _isSelected(action),
                       disabledReason:
                           _availability(context, action).disabledReason,
+                      trailing: action == PlayerTitleMenuAction.continueGame
+                          ? _continueSaveMetadata(context)
+                          : null,
                       focusNode: _focusNode(action),
                       showFocusHighlight:
                           focusController?.showFocusHighlight ?? true,
@@ -436,6 +441,28 @@ class PlayerTitleScreen extends StatelessWidget {
         PlayerTitleMenuAction.creditsAbout => 'title.showCredits',
         PlayerTitleMenuAction.returnToHub => 'title.returnToHost',
       };
+
+  Widget? _continueSaveMetadata(BuildContext context) {
+    final save = data.continueSave;
+    if (save == null) return null;
+    final totalMinutes = save.playTimeSeconds ~/ 60;
+    final hours = (totalMinutes ~/ 60).toString().padLeft(2, '0');
+    final minutes = (totalMinutes % 60).toString().padLeft(2, '0');
+    final location = save.locationLabel;
+    final updatedAt = save.updatedAt.toLocal();
+    final savedOn = '${updatedAt.day.toString().padLeft(2, '0')}/'
+        '${updatedAt.month.toString().padLeft(2, '0')}/'
+        '${updatedAt.year}';
+    final secondary = location ?? savedOn;
+    return Text(
+      '$hours:$minutes · $secondary',
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: context.playerColors.textSecondary,
+          ),
+    );
+  }
 
   FocusNode? _focusNode(PlayerTitleMenuAction action) =>
       focusController?.nodeFor(

@@ -132,6 +132,7 @@ void main() {
       isTrue,
     );
     expect(harness.coordinator.snapshot.hasDiscoveredSave, isTrue);
+    expect(harness.coordinator.snapshot.continueSave, same(save));
   });
 
   test('keeps Options and Credits available for a completed save', () async {

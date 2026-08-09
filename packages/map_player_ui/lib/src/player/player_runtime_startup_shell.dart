@@ -350,6 +350,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
             : PlayerTitleLayoutVariant.runtimeStartup,
         actions: actions,
         initialSelection: initial,
+        continueSave: player.continueSave,
       ),
       focusController: _focusController,
       onSelected: (action) => _selectTitleAction(action, player),
