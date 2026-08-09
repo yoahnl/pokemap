@@ -27,3 +27,15 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  fonts:
+    - family: PokeMapSplashMarcellus
+      fonts:
+        - asset: assets/fonts/Marcellus-Regular.ttf
+    - family: PokeMapSplashDMSans
+      fonts:
+        - asset: assets/fonts/DMSans-Variable.ttf
+          weight: 400
+        - asset: assets/fonts/DMSans-Variable.ttf
+          weight: 500
+        - asset: assets/fonts/DMSans-Variable.ttf
+          weight: 600
