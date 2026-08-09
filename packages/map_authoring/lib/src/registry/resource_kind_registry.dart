@@ -134,6 +134,13 @@ final class AuthoringResourceKindRegistry {
         summary: 'PokeMap project manifest and project-owned content',
       ),
       AuthoringResourceKindDescriptor(
+        id: 'projectPresentationProfile',
+        version: 2,
+        displayName: 'Project presentation profile',
+        summary:
+            'Responsive intro, title motion, branding, typography and theme',
+      ),
+      AuthoringResourceKindDescriptor(
         id: 'map',
         version: 1,
         displayName: 'Map',
@@ -395,6 +402,7 @@ final class AuthoringResourceKindRegistry {
       'map',
       'mapConnection',
       'project',
+      'projectPresentationProfile',
       'scenario',
       'scene',
       'script',

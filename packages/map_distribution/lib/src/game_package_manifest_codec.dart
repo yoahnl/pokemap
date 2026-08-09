@@ -9,6 +9,9 @@ import 'package:map_core/map_core.dart'
         projectIntroVideoMaxHeight,
         projectIntroVideoMaxSizeBytes,
         projectIntroVideoMaxWidth,
+        projectTitleLoopMaxDurationMilliseconds,
+        projectTitleLoopMaxSizeBytes,
+        projectTitleMotionMaxSizeBytes,
         validateProjectSemanticTheme;
 import 'package:pub_semver/pub_semver.dart';
 
@@ -155,28 +158,68 @@ final class GamePackageManifestCodec {
       }
     }
     final intro = presentation?.intro;
-    for (final reference in <({String field, String? value})>[
-      (field: 'video', value: intro?.video),
-      (field: 'poster', value: intro?.poster),
-      (field: 'captions', value: intro?.captions),
-    ]) {
-      final value = reference.value;
-      if (value == null) continue;
-      if (!value.startsWith('presentation/intro/')) {
-        _fail(
-          'invalidIntroVideoReference',
-          '\$.presentation.intro.${reference.field}',
-          'Intro assets must use the presentation/intro package root.',
-        );
-      }
-      if (!contentPaths.contains(value)) {
-        _fail(
-          'introVideoReferenceMissing',
-          '\$.presentation.intro.${reference.field}',
-          'Intro reference is not present in content.files.',
-        );
+    void validateVideoReferences(
+      GamePackageResponsiveVideo? media, {
+      required String path,
+      required String packageRoot,
+      bool legacyIntro = false,
+    }) {
+      if (media == null) return;
+      final variants = <String, GamePackageVideoVariant>{
+        'landscape': media.landscape,
+        if (media.portrait != null) 'portrait': media.portrait!,
+      };
+      for (final variant in variants.entries) {
+        for (final reference in <({String field, String? value})>[
+          (field: 'video', value: variant.value.video),
+          (field: 'poster', value: variant.value.poster),
+          (field: 'captions', value: variant.value.captions),
+        ]) {
+          final value = reference.value;
+          if (value == null) continue;
+          final referencePath = legacyIntro
+              ? '$path.${reference.field}'
+              : '$path.${variant.key}.${reference.field}';
+          if (!value.startsWith(packageRoot)) {
+            _fail(
+              legacyIntro
+                  ? 'invalidIntroVideoReference'
+                  : 'invalidPresentationVideoReference',
+              referencePath,
+              'Video assets must use their presentation package root.',
+            );
+          }
+          if (!contentPaths.contains(value)) {
+            _fail(
+              legacyIntro
+                  ? 'introVideoReferenceMissing'
+                  : 'presentationVideoReferenceMissing',
+              referencePath,
+              'Video reference is not present in content.files.',
+            );
+          }
+        }
       }
     }
+
+    validateVideoReferences(
+      intro?.responsiveMedia,
+      path: presentation?.schemaVersion == 1
+          ? r'$.presentation.intro'
+          : r'$.presentation.intro.media',
+      packageRoot: 'presentation/intro/',
+      legacyIntro: presentation?.schemaVersion == 1,
+    );
+    validateVideoReferences(
+      presentation?.titleMotion?.promptLoop,
+      path: r'$.presentation.titleMotion.promptLoop',
+      packageRoot: 'presentation/title/prompt/',
+    );
+    validateVideoReferences(
+      presentation?.titleMotion?.menuLoop,
+      path: r'$.presentation.titleMotion.menuLoop',
+      packageRoot: 'presentation/title/menu/',
+    );
     final typography = presentation?.typography;
     final fontRoles = <String, GamePackageFontRole?>{
       'display': typography?.display,
@@ -429,15 +472,27 @@ final class GamePackageManifestCodec {
       value,
       path,
       required: const <String>{'schemaVersion', 'branding'},
-      optional: const <String>{'intro', 'typography', 'theme'},
+      optional: const <String>{
+        'intro',
+        'titleMotion',
+        'typography',
+        'theme',
+      },
     );
     final schemaVersion =
         _integer(json['schemaVersion'], '$path.schemaVersion');
-    if (schemaVersion != 1) {
+    if (schemaVersion != 1 && schemaVersion != 2) {
       _fail(
         'presentationVersionUnsupported',
         '$path.schemaVersion',
-        'Only presentation schema version 1 is supported.',
+        'Only presentation schema versions 1 and 2 are supported.',
+      );
+    }
+    if (schemaVersion == 1 && json.containsKey('titleMotion')) {
+      _fail(
+        'presentationVersionUnsupported',
+        '$path.titleMotion',
+        'Title motion requires presentation schema version 2.',
       );
     }
     return GamePackagePresentation(
@@ -447,7 +502,14 @@ final class GamePackageManifestCodec {
         path: '$path.branding',
       ),
       intro: json.containsKey('intro')
-          ? _intro(json['intro'], path: '$path.intro')
+          ? _intro(
+              json['intro'],
+              path: '$path.intro',
+              schemaVersion: schemaVersion,
+            )
+          : null,
+      titleMotion: json.containsKey('titleMotion')
+          ? _titleMotion(json['titleMotion'], path: '$path.titleMotion')
           : null,
       typography: json.containsKey('typography')
           ? _typography(json['typography'], path: '$path.typography')
@@ -461,7 +523,40 @@ final class GamePackageManifestCodec {
   GamePackageIntroVideo _intro(
     Object? value, {
     required String path,
+    required int schemaVersion,
   }) {
+    if (schemaVersion == 2) {
+      final json = _object(
+        value,
+        path,
+        required: const <String>{
+          'media',
+          'reducedMotionBehavior',
+          'allowReplay',
+        },
+        optional: const <String>{},
+      );
+      final reducedMotion = _string(
+        json['reducedMotionBehavior'],
+        '$path.reducedMotionBehavior',
+      );
+      if (!const <String>{'poster', 'skip'}.contains(reducedMotion)) {
+        _fail(
+          'invalidIntroVideoMetadata',
+          path,
+          'Unsupported reduced-motion behavior.',
+        );
+      }
+      return GamePackageIntroVideo(
+        media: _responsiveVideo(
+          json['media'],
+          path: '$path.media',
+          titleLoop: false,
+        ),
+        reducedMotionBehavior: reducedMotion,
+        allowReplay: _boolean(json['allowReplay'], '$path.allowReplay'),
+      );
+    }
     final json = _object(
       value,
       path,
@@ -538,6 +633,172 @@ final class GamePackageManifestCodec {
       reducedMotionBehavior: reducedMotion,
       allowReplay: allowReplay,
     );
+  }
+
+  GamePackageTitleMotion _titleMotion(
+    Object? value, {
+    required String path,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{},
+      optional: const <String>{'promptLoop', 'menuLoop'},
+    );
+    if (json.isEmpty) {
+      _fail(
+        'invalidTitleMotion',
+        path,
+        'Title motion must configure at least one loop.',
+      );
+    }
+    final prompt = json.containsKey('promptLoop')
+        ? _responsiveVideo(
+            json['promptLoop'],
+            path: '$path.promptLoop',
+            titleLoop: true,
+          )
+        : null;
+    final menu = json.containsKey('menuLoop')
+        ? _responsiveVideo(
+            json['menuLoop'],
+            path: '$path.menuLoop',
+            titleLoop: true,
+          )
+        : null;
+    final combinedSize = <GamePackageResponsiveVideo?>[prompt, menu]
+        .whereType<GamePackageResponsiveVideo>()
+        .expand((media) => media.variants)
+        .fold<int>(0, (total, variant) => total + variant.sizeBytes);
+    if (combinedSize > projectTitleMotionMaxSizeBytes) {
+      _fail(
+        'invalidTitleMotion',
+        path,
+        'Combined title motion exceeds the package size budget.',
+      );
+    }
+    return GamePackageTitleMotion(promptLoop: prompt, menuLoop: menu);
+  }
+
+  GamePackageResponsiveVideo _responsiveVideo(
+    Object? value, {
+    required String path,
+    required bool titleLoop,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{'landscape'},
+      optional: const <String>{'portrait'},
+    );
+    return GamePackageResponsiveVideo(
+      landscape: _videoVariant(
+        json['landscape'],
+        path: '$path.landscape',
+        titleLoop: titleLoop,
+      ),
+      portrait: json.containsKey('portrait')
+          ? _videoVariant(
+              json['portrait'],
+              path: '$path.portrait',
+              titleLoop: titleLoop,
+            )
+          : null,
+    );
+  }
+
+  GamePackageVideoVariant _videoVariant(
+    Object? value, {
+    required String path,
+    required bool titleLoop,
+  }) {
+    final json = _object(
+      value,
+      path,
+      required: const <String>{
+        'video',
+        'poster',
+        'durationMilliseconds',
+        'width',
+        'height',
+        'bitrateKbps',
+        'sizeBytes',
+        'videoCodec',
+        'audioCodec',
+        'focalXPermille',
+        'focalYPermille',
+      },
+      optional: const <String>{'captions'},
+    );
+    String packagePath(String field) {
+      final result = _boundedString(json[field], '$path.$field', 1, 512);
+      PackagePathPolicy.validate(result, errorPath: '$path.$field');
+      return result;
+    }
+
+    final variant = GamePackageVideoVariant(
+      video: packagePath('video'),
+      poster: packagePath('poster'),
+      captions: json.containsKey('captions') ? packagePath('captions') : null,
+      durationMilliseconds: _integer(
+        json['durationMilliseconds'],
+        '$path.durationMilliseconds',
+      ),
+      width: _integer(json['width'], '$path.width'),
+      height: _integer(json['height'], '$path.height'),
+      bitrateKbps: _integer(json['bitrateKbps'], '$path.bitrateKbps'),
+      sizeBytes: _integer(json['sizeBytes'], '$path.sizeBytes'),
+      videoCodec: _string(json['videoCodec'], '$path.videoCodec'),
+      audioCodec: _string(json['audioCodec'], '$path.audioCodec'),
+      focalX: _integer(
+            json['focalXPermille'],
+            '$path.focalXPermille',
+          ) /
+          1000,
+      focalY: _integer(
+            json['focalYPermille'],
+            '$path.focalYPermille',
+          ) /
+          1000,
+    );
+    final longestEdge =
+        variant.width > variant.height ? variant.width : variant.height;
+    final shortestEdge =
+        variant.width < variant.height ? variant.width : variant.height;
+    final maxDuration = titleLoop
+        ? projectTitleLoopMaxDurationMilliseconds
+        : projectIntroVideoMaxDurationMilliseconds;
+    final maxSize = titleLoop
+        ? projectTitleLoopMaxSizeBytes
+        : projectIntroVideoMaxSizeBytes;
+    if (!variant.video.toLowerCase().endsWith('.mp4') ||
+        !const <String>['.png', '.jpg', '.jpeg', '.webp']
+            .any(variant.poster.toLowerCase().endsWith) ||
+        (variant.captions != null &&
+            !variant.captions!.toLowerCase().endsWith('.vtt')) ||
+        variant.durationMilliseconds <= 0 ||
+        variant.durationMilliseconds > maxDuration ||
+        longestEdge > projectIntroVideoMaxWidth ||
+        shortestEdge > projectIntroVideoMaxHeight ||
+        variant.bitrateKbps <= 0 ||
+        variant.bitrateKbps > projectIntroVideoMaxBitrateKbps ||
+        variant.sizeBytes <= 0 ||
+        variant.sizeBytes > maxSize ||
+        variant.videoCodec != 'h264' ||
+        (titleLoop
+            ? variant.audioCodec != 'none'
+            : !const <String>{'aac', 'none'}.contains(variant.audioCodec)) ||
+        variant.focalX < 0 ||
+        variant.focalX > 1 ||
+        variant.focalY < 0 ||
+        variant.focalY > 1) {
+      _fail(
+        titleLoop ? 'invalidTitleMotion' : 'invalidIntroVideoMetadata',
+        path,
+        'Video metadata exceeds the supported playback contract.',
+      );
+    }
+    return variant;
   }
 
   GamePackageTypography _typography(

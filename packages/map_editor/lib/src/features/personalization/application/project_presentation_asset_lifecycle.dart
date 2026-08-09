@@ -107,7 +107,7 @@ Iterable<String> _ownedAssetPaths(ProjectPresentationProfile profile) sync* {
   final intro = profile.intro;
   if (intro != null) {
     yield intro.videoPath;
-    if (intro.posterPath case final path?) yield path;
+    yield intro.posterPath;
     if (intro.captionsPath case final path?) yield path;
   }
   final typography = profile.typography;

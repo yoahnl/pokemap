@@ -12,12 +12,14 @@ class PlayerTitlePromptSurface extends StatelessWidget {
     required this.gameTitle,
     required this.onStart,
     this.background,
+    this.backgroundContent,
     this.logo,
     this.onReplayIntro,
   });
 
   final String gameTitle;
   final ImageProvider? background;
+  final Widget? backgroundContent;
   final ImageProvider? logo;
   final VoidCallback onStart;
   final VoidCallback? onReplayIntro;
@@ -42,91 +44,98 @@ class PlayerTitlePromptSurface extends StatelessWidget {
               key: const ValueKey<String>('player-title-prompt-hit-area'),
               behavior: HitTestBehavior.opaque,
               onTap: onStart,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.background,
-                  image: background == null
-                      ? null
-                      : DecorationImage(
-                          image: background!,
-                          fit: BoxFit.cover,
-                          colorFilter: ColorFilter.mode(
-                            colors.scrim.withValues(alpha: .28),
-                            BlendMode.srcOver,
-                          ),
-                        ),
-                ),
-                child: SafeArea(
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(PlayerSpacing.xl),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              if (logo != null)
-                                ConstrainedBox(
-                                  constraints:
-                                      const BoxConstraints(maxHeight: 210),
-                                  child: Image(
-                                    image: logo!,
-                                    fit: BoxFit.contain,
-                                    semanticLabel: gameTitle,
-                                    errorBuilder: (_, __, ___) =>
-                                        const SizedBox.shrink(),
-                                  ),
-                                )
-                              else
-                                Text(
-                                  gameTitle,
-                                  textAlign: TextAlign.center,
-                                  style: context.playerTypography.displayStyle(
-                                    Theme.of(context).textTheme.displayMedium ??
-                                        const TextStyle(),
-                                  ),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: Padding(
-                          padding: const EdgeInsets.all(PlayerSpacing.lg),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              Semantics(
-                                liveRegion: true,
-                                child: PlayerPanel(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: PlayerSpacing.lg,
-                                    vertical: PlayerSpacing.sm,
-                                  ),
-                                  child: Text(
-                                    strings.pressStart,
-                                    style:
-                                        Theme.of(context).textTheme.titleMedium,
-                                  ),
-                                ),
-                              ),
-                              if (onReplayIntro != null) ...<Widget>[
-                                const SizedBox(height: PlayerSpacing.sm),
-                                TextButton.icon(
-                                  onPressed: onReplayIntro,
-                                  icon: const Icon(Icons.replay_rounded),
-                                  label: Text(strings.replayIntro),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
+              child: Stack(
+                fit: StackFit.expand,
+                children: <Widget>[
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.background,
+                      image: background == null
+                          ? null
+                          : DecorationImage(
+                              image: background!,
+                              fit: BoxFit.cover,
+                            ),
+                    ),
                   ),
-                ),
+                  if (backgroundContent != null) backgroundContent!,
+                  ColoredBox(color: colors.scrim.withValues(alpha: .28)),
+                  SafeArea(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: <Widget>[
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(PlayerSpacing.xl),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                if (logo != null)
+                                  ConstrainedBox(
+                                    constraints:
+                                        const BoxConstraints(maxHeight: 210),
+                                    child: Image(
+                                      image: logo!,
+                                      fit: BoxFit.contain,
+                                      semanticLabel: gameTitle,
+                                      errorBuilder: (_, __, ___) =>
+                                          const SizedBox.shrink(),
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    gameTitle,
+                                    textAlign: TextAlign.center,
+                                    style:
+                                        context.playerTypography.displayStyle(
+                                      Theme.of(context)
+                                              .textTheme
+                                              .displayMedium ??
+                                          const TextStyle(),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.all(PlayerSpacing.lg),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                Semantics(
+                                  liveRegion: true,
+                                  child: PlayerPanel(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: PlayerSpacing.lg,
+                                      vertical: PlayerSpacing.sm,
+                                    ),
+                                    child: Text(
+                                      strings.pressStart,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleMedium,
+                                    ),
+                                  ),
+                                ),
+                                if (onReplayIntro != null) ...<Widget>[
+                                  const SizedBox(height: PlayerSpacing.sm),
+                                  TextButton.icon(
+                                    onPressed: onReplayIntro,
+                                    icon: const Icon(Icons.replay_rounded),
+                                    label: Text(strings.replayIntro),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

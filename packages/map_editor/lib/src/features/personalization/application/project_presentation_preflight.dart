@@ -162,14 +162,12 @@ Iterable<_PresentationAssetReference> _references(
       kind: _PresentationAssetKind.introVideo,
       declaredAudioCodec: intro.audioCodec,
     );
-    if (intro.posterPath case final posterPath?) {
-      yield _PresentationAssetReference(
-        category: ProjectPresentationCategory.intro,
-        relativePath: posterPath,
-        profilePath: r'$.presentation.intro.posterPath',
-        kind: _PresentationAssetKind.introPoster,
-      );
-    }
+    yield _PresentationAssetReference(
+      category: ProjectPresentationCategory.intro,
+      relativePath: intro.posterPath,
+      profilePath: r'$.presentation.intro.posterPath',
+      kind: _PresentationAssetKind.introPoster,
+    );
     if (intro.captionsPath case final captionsPath?) {
       yield _PresentationAssetReference(
         category: ProjectPresentationCategory.intro,

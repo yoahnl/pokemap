@@ -64,6 +64,11 @@ export 'src/player/runtime_startup_models.dart'
         RuntimeStartupPresentationAsset,
         RuntimeStartupResolvedPresentation,
         RuntimeStartupSnapshot;
+export 'src/player/runtime_presentation_media_selection.dart'
+    show
+        RuntimePresentationOrientation,
+        RuntimeSelectedPresentationVideo,
+        selectRuntimePresentationVideo;
 export 'src/player/runtime_startup_preparation.dart'
     show
         runtimeStartupPreparationWeights,

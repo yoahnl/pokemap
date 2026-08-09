@@ -13,6 +13,7 @@ import 'player_runtime_splash_surface.dart';
 import 'player_startup_media.dart';
 import 'player_startup_strings.dart';
 import 'player_title_options_surface.dart';
+import 'player_title_motion.dart';
 import 'player_title_prompt_surface.dart';
 import 'player_title_screen.dart';
 import 'runtime_player_actions.dart';
@@ -68,6 +69,12 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
     this.introPoster,
     this.splashLogo,
     this.introDriverFactory,
+    this.titlePromptSource,
+    this.titlePromptPoster,
+    this.titleMenuSource,
+    this.titleMenuPoster,
+    this.titleMotionDriverFactory,
+    this.onPresentationOrientationChanged,
     this.payloadForAction,
     this.onPreferencesChanged,
     this.reducedMotion = false,
@@ -90,6 +97,13 @@ class PlayerRuntimeStartupShell extends StatefulWidget {
   final ImageProvider? introPoster;
   final ImageProvider? splashLogo;
   final PlayerIntroPlaybackFactory? introDriverFactory;
+  final PlayerIntroVideoSource? titlePromptSource;
+  final ImageProvider? titlePromptPoster;
+  final PlayerIntroVideoSource? titleMenuSource;
+  final ImageProvider? titleMenuPoster;
+  final PlayerIntroPlaybackFactory? titleMotionDriverFactory;
+  final ValueChanged<RuntimePresentationOrientation>?
+      onPresentationOrientationChanged;
   final Object? Function(RuntimePlayerAction action)? payloadForAction;
   final ValueChanged<PlayerPreferencesSnapshot>? onPreferencesChanged;
   final bool reducedMotion;
@@ -110,6 +124,7 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   late final RuntimePlayerFocusController _focusController;
   late final PlayerIntroVideoPlayerController _introPlaybackController;
   int? _consumedStartupRevision;
+  RuntimePresentationOrientation? _reportedOrientation;
 
   RuntimeStartupPhase get _visiblePhase =>
       widget.snapshot.phase == RuntimeStartupPhase.lifecyclePaused
@@ -157,6 +172,18 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
     if (!oldWidget.reducedMotion && widget.reducedMotion) {
       _splashAnimation.value = 1;
     }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final size = MediaQuery.sizeOf(context);
+    final orientation = size.height > size.width
+        ? RuntimePresentationOrientation.portrait
+        : RuntimePresentationOrientation.landscape;
+    if (_reportedOrientation == orientation) return;
+    _reportedOrientation = orientation;
+    widget.onPresentationOrientationChanged?.call(orientation);
   }
 
   @override
@@ -252,6 +279,10 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       gameTitle: player?.gameTitle ?? widget.branding.displayName,
       background: widget.titlePresentation.background,
       logo: widget.titlePresentation.logo,
+      backgroundContent: _titleMotion(
+        source: widget.titlePromptSource,
+        poster: widget.titlePromptPoster,
+      ),
       onStart: () => _dispatchStartup(RuntimeStartupAction.pressStart),
       onReplayIntro: widget.snapshot.canReplayIntro
           ? () => _dispatchStartup(RuntimeStartupAction.replayIntro)
@@ -299,6 +330,10 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         author: widget.titlePresentation.author,
         description: widget.titlePresentation.description,
         background: widget.titlePresentation.background,
+        backgroundContent: _titleMotion(
+          source: widget.titleMenuSource,
+          poster: widget.titleMenuPoster,
+        ),
         logo: widget.titlePresentation.logo,
         accentColor: widget.titlePresentation.accentColor,
         layoutVariant: PlayerTitleLayoutVariant.runtimeStartup,
@@ -307,6 +342,19 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
       ),
       focusController: _focusController,
       onSelected: (action) => _selectTitleAction(action, player),
+    );
+  }
+
+  Widget? _titleMotion({
+    required PlayerIntroVideoSource? source,
+    required ImageProvider? poster,
+  }) {
+    if (source == null && poster == null) return null;
+    return PlayerTitleMotion(
+      source: source,
+      poster: poster,
+      driverFactory: widget.titleMotionDriverFactory,
+      reducedMotion: widget.reducedMotion,
     );
   }
 

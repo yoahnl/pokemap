@@ -181,16 +181,20 @@ final class ProjectIntroVideoImportService
         ? null
         : 'assets/presentation/intro/captions-$digest.vtt';
     final profile = ProjectIntroVideoProfile(
-      videoPath: videoPath,
-      posterPath: posterPath,
-      captionsPath: captionsPath,
-      durationMilliseconds: durationMilliseconds,
-      width: media.width,
-      height: media.height,
-      bitrateKbps: bitrateKbps,
-      sizeBytes: videoBytes.length,
-      videoCodec: 'h264',
-      audioCodec: audioCodec,
+      media: ProjectResponsiveVideoProfile(
+        landscape: ProjectVideoVariantProfile(
+          videoPath: videoPath,
+          posterPath: posterPath,
+          captionsPath: captionsPath,
+          durationMilliseconds: durationMilliseconds,
+          width: media.width,
+          height: media.height,
+          bitrateKbps: bitrateKbps,
+          sizeBytes: videoBytes.length,
+          videoCodec: 'h264',
+          audioCodec: audioCodec,
+        ),
+      ),
       reducedMotionBehavior: reducedMotionBehavior,
       allowReplay: allowReplay,
     );

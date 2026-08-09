@@ -44,6 +44,31 @@ void main() {
       expect(receipt.toJson()['receiptVersion'], 1);
     });
 
+    test('certifies every responsive intro and title-motion variant', () {
+      final built = const GamePackageBuilder().build(
+        manifest: _manifestV2(content: _emptyContent),
+        payloadFiles: _validPayloadV2(),
+      );
+
+      final receipt = preflight.certify(
+        const GamePackageInspector().inspect(built.packageBytes),
+      );
+
+      expect(
+        receipt.assetSha256.keys,
+        containsAll(<String>[
+          'presentation/intro/landscape/video.mp4',
+          'presentation/intro/portrait/video.mp4',
+          'presentation/title/prompt/landscape/video.mp4',
+          'presentation/title/prompt/portrait/video.mp4',
+          'presentation/title/menu/landscape/video.mp4',
+          'presentation/title/menu/portrait/video.mp4',
+        ]),
+      );
+      expect(receipt.videoCodec, 'h264');
+      expect(receipt.audioCodec, 'aac');
+    });
+
     test('rejects an embedded font without its redistribution license', () {
       final valid = _validInspection();
       final manifest = _manifest(
@@ -212,6 +237,36 @@ Map<String, List<int>> _validPayload() => <String, List<int>>{
           utf8.encode('Redistribution permitted.'),
     };
 
+Map<String, List<int>> _validPayloadV2() {
+  final payload = _validPayload()
+    ..remove('presentation/intro/video.mp4')
+    ..remove('presentation/intro/poster.png')
+    ..remove('presentation/intro/captions.vtt');
+  for (final root in <String>[
+    'presentation/intro/landscape',
+    'presentation/intro/portrait',
+    'presentation/title/prompt/landscape',
+    'presentation/title/prompt/portrait',
+    'presentation/title/menu/landscape',
+    'presentation/title/menu/portrait',
+  ]) {
+    payload['$root/video.mp4'] = <int>[
+      0,
+      0,
+      0,
+      24,
+      ...ascii.encode('ftypisom'),
+      0,
+      0,
+      0,
+      0,
+      ...ascii.encode('isomavc1mp4a'),
+    ];
+    payload['$root/poster.png'] = _onePixelPngHeader();
+  }
+  return payload;
+}
+
 GamePackageInspectionResult _withManifest(
   GamePackageInspectionResult inspection,
   GamePackageManifest manifest,
@@ -278,6 +333,90 @@ GamePackageManifest _manifest({
       ),
       content: content,
     );
+
+GamePackageManifest _manifestV2({required GamePackageContent content}) {
+  GamePackageVideoVariant variant(String root, {required bool withAudio}) =>
+      GamePackageVideoVariant(
+        video: '$root/video.mp4',
+        poster: '$root/poster.png',
+        durationMilliseconds: 1000,
+        width: root.endsWith('portrait') ? 360 : 640,
+        height: root.endsWith('portrait') ? 640 : 360,
+        bitrateKbps: 1000,
+        sizeBytes: 32,
+        videoCodec: 'h264',
+        audioCodec: withAudio ? 'aac' : 'none',
+      );
+
+  return GamePackageManifest(
+    packageFormat: 1,
+    gameId: 'games.example.personalized',
+    gameVersion: Version(2, 0, 0),
+    title: 'Personalization Responsive',
+    author: const GamePackageParty(name: 'PokeMap'),
+    compatibility: GamePackageCompatibility(
+      minHubVersion: Version(1, 0, 0),
+      runtimeApiExpression: '>=1.0.0 <2.0.0',
+      projectFormat: 'v6',
+      saveFormat: 1,
+      compatibilityId: 'main',
+      requiredCapabilities: const <String>[],
+    ),
+    locales: GamePackageLocales(
+      defaultLocale: 'fr',
+      supported: const <String>['fr'],
+    ),
+    presentation: GamePackagePresentation(
+      schemaVersion: 2,
+      intro: GamePackageIntroVideo(
+        media: GamePackageResponsiveVideo(
+          landscape: variant(
+            'presentation/intro/landscape',
+            withAudio: true,
+          ),
+          portrait: variant(
+            'presentation/intro/portrait',
+            withAudio: true,
+          ),
+        ),
+        reducedMotionBehavior: 'poster',
+        allowReplay: true,
+      ),
+      titleMotion: GamePackageTitleMotion(
+        promptLoop: GamePackageResponsiveVideo(
+          landscape: variant(
+            'presentation/title/prompt/landscape',
+            withAudio: false,
+          ),
+          portrait: variant(
+            'presentation/title/prompt/portrait',
+            withAudio: false,
+          ),
+        ),
+        menuLoop: GamePackageResponsiveVideo(
+          landscape: variant(
+            'presentation/title/menu/landscape',
+            withAudio: false,
+          ),
+          portrait: variant(
+            'presentation/title/menu/portrait',
+            withAudio: false,
+          ),
+        ),
+      ),
+      typography: const GamePackageTypography(display: _defaultDisplayFont),
+      theme: _theme,
+    ),
+    content: content,
+  );
+}
+
+const _defaultDisplayFont = GamePackageFontRole(
+  font: 'presentation/fonts/display.ttf',
+  family: 'Golden Display',
+  license: 'presentation/fonts/display-license.txt',
+  fallbackFamilies: <String>['sans-serif'],
+);
 
 final _emptyContent = GamePackageContent(
   fileCount: 0,

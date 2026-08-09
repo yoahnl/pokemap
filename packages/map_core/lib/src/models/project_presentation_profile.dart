@@ -50,11 +50,11 @@ class ProjectBrandingProfile with _$ProjectBrandingProfile {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
+class ProjectVideoVariantProfile with _$ProjectVideoVariantProfile {
   @JsonSerializable(explicitToJson: true)
-  const factory ProjectIntroVideoProfile({
+  const factory ProjectVideoVariantProfile({
     required String videoPath,
-    @JsonKey(includeIfNull: false) String? posterPath,
+    required String posterPath,
     @JsonKey(includeIfNull: false) String? captionsPath,
     required int durationMilliseconds,
     required int width,
@@ -63,12 +63,64 @@ class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
     required int sizeBytes,
     required String videoCodec,
     @Default('none') String audioCodec,
+    @Default(0.5) double focalX,
+    @Default(0.5) double focalY,
+  }) = _ProjectVideoVariantProfile;
+
+  factory ProjectVideoVariantProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectVideoVariantProfileFromJson(json);
+}
+
+@Freezed(fromJson: true, toJson: true)
+class ProjectResponsiveVideoProfile with _$ProjectResponsiveVideoProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectResponsiveVideoProfile({
+    required ProjectVideoVariantProfile landscape,
+    @JsonKey(includeIfNull: false) ProjectVideoVariantProfile? portrait,
+  }) = _ProjectResponsiveVideoProfile;
+
+  factory ProjectResponsiveVideoProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectResponsiveVideoProfileFromJson(json);
+}
+
+@Freezed(fromJson: true, toJson: true)
+class ProjectIntroVideoProfile with _$ProjectIntroVideoProfile {
+  const ProjectIntroVideoProfile._();
+
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectIntroVideoProfile({
+    required ProjectResponsiveVideoProfile media,
     @Default('poster') String reducedMotionBehavior,
     @Default(true) bool allowReplay,
   }) = _ProjectIntroVideoProfile;
 
   factory ProjectIntroVideoProfile.fromJson(Map<String, dynamic> json) =>
       _$ProjectIntroVideoProfileFromJson(json);
+
+  /// Landscape compatibility projection for pre-V2 consumers.
+  ProjectVideoVariantProfile get landscape => media.landscape;
+  String get videoPath => landscape.videoPath;
+  String get posterPath => landscape.posterPath;
+  String? get captionsPath => landscape.captionsPath;
+  int get durationMilliseconds => landscape.durationMilliseconds;
+  int get width => landscape.width;
+  int get height => landscape.height;
+  int get bitrateKbps => landscape.bitrateKbps;
+  int get sizeBytes => landscape.sizeBytes;
+  String get videoCodec => landscape.videoCodec;
+  String get audioCodec => landscape.audioCodec;
+}
+
+@Freezed(fromJson: true, toJson: true)
+class ProjectTitleMotionProfile with _$ProjectTitleMotionProfile {
+  @JsonSerializable(explicitToJson: true)
+  const factory ProjectTitleMotionProfile({
+    @JsonKey(includeIfNull: false) ProjectResponsiveVideoProfile? promptLoop,
+    @JsonKey(includeIfNull: false) ProjectResponsiveVideoProfile? menuLoop,
+  }) = _ProjectTitleMotionProfile;
+
+  factory ProjectTitleMotionProfile.fromJson(Map<String, dynamic> json) =>
+      _$ProjectTitleMotionProfileFromJson(json);
 }
 
 @Freezed(fromJson: true, toJson: true)
@@ -140,18 +192,22 @@ class ProjectPresentationProfile with _$ProjectPresentationProfile {
     int schemaVersion,
     @Default(ProjectBrandingProfile()) ProjectBrandingProfile branding,
     @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
+    @JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,
     @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
     @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme,
   }) = _ProjectPresentationProfile;
 
   factory ProjectPresentationProfile.fromJson(Map<String, dynamic> json) =>
-      _$ProjectPresentationProfileFromJson(json);
+      _$ProjectPresentationProfileFromJson(
+        _migrateProjectPresentationProfileJson(json),
+      );
 
-  static const int supportedSchemaVersion = 1;
+  static const int supportedSchemaVersion = 2;
 
   Set<ProjectPresentationCategory> get configuredCategories =>
       <ProjectPresentationCategory>{
-        if (_hasBranding(branding)) ProjectPresentationCategory.branding,
+        if (_hasBranding(branding) || titleMotion != null)
+          ProjectPresentationCategory.branding,
         if (intro != null) ProjectPresentationCategory.intro,
         if (typography != null) ProjectPresentationCategory.typography,
         if (theme != null) ProjectPresentationCategory.theme,
@@ -163,6 +219,11 @@ const int projectIntroVideoMaxWidth = 1920;
 const int projectIntroVideoMaxHeight = 1080;
 const int projectIntroVideoMaxBitrateKbps = 12000;
 const int projectIntroVideoMaxSizeBytes = 100 * 1024 * 1024;
+const int projectIntroResponsiveMaxSizeBytes = 160 * 1024 * 1024;
+const int projectTitleLoopMaxDurationMilliseconds = 15000;
+const int projectTitleLoopMaxSizeBytes = 24 * 1024 * 1024;
+const int projectTitleMotionMaxSizeBytes = 96 * 1024 * 1024;
+const int projectPresentationMediaMaxSizeBytes = 220 * 1024 * 1024;
 
 const Set<String> supportedProjectTitleLayoutVariants = <String>{
   'standard',
@@ -264,6 +325,8 @@ List<ProjectPresentationDiagnostic> validateProjectPresentationProfile(
     );
   }
   _validateIntroVideo(profile.intro, diagnostics);
+  _validateTitleMotion(profile.titleMotion, diagnostics);
+  _validateCombinedPresentationMediaBudget(profile, diagnostics);
   _validateTypography(profile.typography, diagnostics);
   if (profile.theme case final theme?) {
     diagnostics.addAll(validateProjectSemanticTheme(theme));
@@ -415,22 +478,157 @@ void _validateIntroVideo(
   List<ProjectPresentationDiagnostic> diagnostics,
 ) {
   if (intro == null) return;
-  void error(String code, String field, String message) {
-    diagnostics.add(
-      ProjectPresentationDiagnostic(
-        code: code,
-        category: ProjectPresentationCategory.intro,
-        severity: ProjectPresentationDiagnosticSeverity.error,
-        path: r'$.presentation.intro.' + field,
-        message: message,
-      ),
+  if (!const <String>{'poster', 'skip'}.contains(intro.reducedMotionBehavior)) {
+    _presentationError(
+      diagnostics,
+      'introReducedMotionBehaviorUnsupported',
+      ProjectPresentationCategory.intro,
+      r'$.presentation.intro.reducedMotionBehavior',
+      'Reduced motion must show the poster or skip the intro.',
     );
   }
+  final variants = _responsiveVariants(intro.media);
+  for (final entry in variants) {
+    _validateVideoVariant(
+      entry.variant,
+      path: r'$.presentation.intro.media.' + entry.orientation,
+      category: ProjectPresentationCategory.intro,
+      isPortraitSlot: entry.orientation == 'portrait',
+      maxDurationMilliseconds: projectIntroVideoMaxDurationMilliseconds,
+      maxSizeBytes: projectIntroVideoMaxSizeBytes,
+      durationCode: 'introDurationExceeded',
+      sizeCode: 'introSizeExceeded',
+      audioAllowed: const <String>{'aac', 'none'},
+      diagnostics: diagnostics,
+    );
+    if (entry.variant.audioCodec != 'none' &&
+        entry.variant.captionsPath == null) {
+      diagnostics.add(
+        ProjectPresentationDiagnostic(
+          code: 'introCaptionsRecommended',
+          category: ProjectPresentationCategory.intro,
+          severity: ProjectPresentationDiagnosticSeverity.warning,
+          path: r'$.presentation.intro.media.' +
+              entry.orientation +
+              '.captionsPath',
+          message: 'Add WebVTT captions for spoken or meaningful audio.',
+        ),
+      );
+    }
+  }
+  final combinedSize = variants.fold<int>(
+    0,
+    (sum, entry) => sum + entry.variant.sizeBytes,
+  );
+  if (combinedSize > projectIntroResponsiveMaxSizeBytes) {
+    _presentationError(
+      diagnostics,
+      'introCombinedSizeExceeded',
+      ProjectPresentationCategory.intro,
+      r'$.presentation.intro.media',
+      'Landscape and portrait intro videos must total at most 160 MiB.',
+    );
+  }
+}
+
+void _validateTitleMotion(
+  ProjectTitleMotionProfile? motion,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  if (motion == null) return;
+  for (final loop in <({
+    String name,
+    ProjectResponsiveVideoProfile? media,
+  })>[
+    (name: 'promptLoop', media: motion.promptLoop),
+    (name: 'menuLoop', media: motion.menuLoop),
+  ]) {
+    final media = loop.media;
+    if (media == null) continue;
+    for (final entry in _responsiveVariants(media)) {
+      _validateVideoVariant(
+        entry.variant,
+        path: r'$.presentation.titleMotion.' +
+            loop.name +
+            '.${entry.orientation}',
+        category: ProjectPresentationCategory.branding,
+        isPortraitSlot: entry.orientation == 'portrait',
+        maxDurationMilliseconds: projectTitleLoopMaxDurationMilliseconds,
+        maxSizeBytes: projectTitleLoopMaxSizeBytes,
+        durationCode: 'titleLoopDurationExceeded',
+        sizeCode: 'titleLoopSizeExceeded',
+        audioAllowed: const <String>{'none'},
+        diagnostics: diagnostics,
+      );
+    }
+  }
+  final combinedSize = _titleMotionVariants(motion).fold<int>(
+    0,
+    (sum, variant) => sum + variant.sizeBytes,
+  );
+  if (combinedSize > projectTitleMotionMaxSizeBytes) {
+    _presentationError(
+      diagnostics,
+      'titleMotionCombinedSizeExceeded',
+      ProjectPresentationCategory.branding,
+      r'$.presentation.titleMotion',
+      'All title and menu loops must total at most 96 MiB.',
+    );
+  }
+}
+
+void _validateCombinedPresentationMediaBudget(
+  ProjectPresentationProfile profile,
+  List<ProjectPresentationDiagnostic> diagnostics,
+) {
+  final introBytes = profile.intro == null
+      ? 0
+      : _responsiveVariants(profile.intro!.media).fold<int>(
+          0,
+          (sum, entry) => sum + entry.variant.sizeBytes,
+        );
+  final titleBytes = profile.titleMotion == null
+      ? 0
+      : _titleMotionVariants(profile.titleMotion!).fold<int>(
+          0,
+          (sum, variant) => sum + variant.sizeBytes,
+        );
+  if (introBytes + titleBytes > projectPresentationMediaMaxSizeBytes) {
+    _presentationError(
+      diagnostics,
+      'presentationCombinedSizeExceeded',
+      ProjectPresentationCategory.branding,
+      r'$.presentation',
+      'Presentation videos must total at most 220 MiB.',
+    );
+  }
+}
+
+void _validateVideoVariant(
+  ProjectVideoVariantProfile variant, {
+  required String path,
+  required ProjectPresentationCategory category,
+  required bool isPortraitSlot,
+  required int maxDurationMilliseconds,
+  required int maxSizeBytes,
+  required String durationCode,
+  required String sizeCode,
+  required Set<String> audioAllowed,
+  required List<ProjectPresentationDiagnostic> diagnostics,
+}) {
+  final isIntro = category == ProjectPresentationCategory.intro;
+  void error(String code, String field, String message) => _presentationError(
+        diagnostics,
+        code,
+        category,
+        '$path.$field',
+        message,
+      );
 
   for (final asset in <({String field, String? value})>[
-    (field: 'videoPath', value: intro.videoPath),
-    (field: 'posterPath', value: intro.posterPath),
-    (field: 'captionsPath', value: intro.captionsPath),
+    (field: 'videoPath', value: variant.videoPath),
+    (field: 'posterPath', value: variant.posterPath),
+    (field: 'captionsPath', value: variant.captionsPath),
   ]) {
     final value = asset.value;
     if (value != null && !_isSafeProjectRelativePath(value)) {
@@ -441,106 +639,161 @@ void _validateIntroVideo(
       );
     }
   }
-  if (intro.posterPath == null) {
+  if (isIntro && variant.posterPath.trim().isEmpty) {
     error(
       'introPosterRequired',
       'posterPath',
       'Choose a poster image so the intro always has a safe fallback.',
     );
   }
-  if (!intro.videoPath.toLowerCase().endsWith('.mp4')) {
+  if (!variant.videoPath.toLowerCase().endsWith('.mp4')) {
     error(
-      'introContainerUnsupported',
+      isIntro
+          ? 'introContainerUnsupported'
+          : 'presentationVideoContainerUnsupported',
       'videoPath',
-      'Intro videos must use the cross-platform MP4 container.',
+      'Presentation videos must use the cross-platform MP4 container.',
     );
   }
-  final posterPath = intro.posterPath?.toLowerCase();
-  if (posterPath != null &&
-      !const <String>['.png', '.jpg', '.jpeg', '.webp']
-          .any(posterPath.endsWith)) {
+  final posterPath = variant.posterPath.toLowerCase();
+  if (!const <String>['.png', '.jpg', '.jpeg', '.webp']
+      .any(posterPath.endsWith)) {
     error(
-      'introPosterFormatUnsupported',
+      isIntro
+          ? 'introPosterFormatUnsupported'
+          : 'presentationPosterFormatUnsupported',
       'posterPath',
       'Poster images must use PNG, JPEG, or WebP.',
     );
   }
-  final captionsPath = intro.captionsPath?.toLowerCase();
+  final captionsPath = variant.captionsPath?.toLowerCase();
   if (captionsPath != null && !captionsPath.endsWith('.vtt')) {
     error(
-      'introCaptionsFormatUnsupported',
+      isIntro
+          ? 'introCaptionsFormatUnsupported'
+          : 'presentationCaptionsFormatUnsupported',
       'captionsPath',
       'Captions must use WebVTT.',
     );
   }
-  if (intro.durationMilliseconds <= 0 ||
-      intro.durationMilliseconds > projectIntroVideoMaxDurationMilliseconds) {
+  if (variant.durationMilliseconds <= 0 ||
+      variant.durationMilliseconds > maxDurationMilliseconds) {
     error(
-      'introDurationExceeded',
+      durationCode,
       'durationMilliseconds',
-      'Intro duration must be between 1 ms and 120 seconds.',
+      'The video duration exceeds the allowed presentation budget.',
     );
   }
-  final longestEdge = math.max(intro.width, intro.height);
-  final shortestEdge = math.min(intro.width, intro.height);
-  if (intro.width <= 0 ||
-      intro.height <= 0 ||
+  final longestEdge = math.max(variant.width, variant.height);
+  final shortestEdge = math.min(variant.width, variant.height);
+  if (variant.width <= 0 ||
+      variant.height <= 0 ||
       longestEdge > projectIntroVideoMaxWidth ||
       shortestEdge > projectIntroVideoMaxHeight) {
     error(
-      'introResolutionExceeded',
+      isIntro ? 'introResolutionExceeded' : 'presentationResolutionExceeded',
       'width',
-      'Intro resolution must not exceed 1920 px on its longest edge and '
+      'Video resolution must not exceed 1920 px on its longest edge and '
           '1080 px on its shortest edge.',
     );
   }
-  if (intro.bitrateKbps <= 0 ||
-      intro.bitrateKbps > projectIntroVideoMaxBitrateKbps) {
+  if ((!isPortraitSlot && variant.height > variant.width) ||
+      (isPortraitSlot && variant.height <= variant.width)) {
     error(
-      'introBitrateExceeded',
+      isPortraitSlot
+          ? 'presentationPortraitOrientationRequired'
+          : 'presentationLandscapeOrientationRequired',
+      'width',
+      'The video dimensions must match the authored orientation slot.',
+    );
+  }
+  if (variant.bitrateKbps <= 0 ||
+      variant.bitrateKbps > projectIntroVideoMaxBitrateKbps) {
+    error(
+      isIntro ? 'introBitrateExceeded' : 'presentationBitrateExceeded',
       'bitrateKbps',
-      'Intro bitrate must not exceed 12,000 kbps.',
+      'Video bitrate must not exceed 12,000 kbps.',
     );
   }
-  if (intro.sizeBytes <= 0 || intro.sizeBytes > projectIntroVideoMaxSizeBytes) {
+  if (variant.sizeBytes <= 0 || variant.sizeBytes > maxSizeBytes) {
     error(
-      'introSizeExceeded',
+      sizeCode,
       'sizeBytes',
-      'Intro video must not exceed 100 MiB.',
+      'The video size exceeds the allowed presentation budget.',
     );
   }
-  if (intro.videoCodec != 'h264') {
+  if (variant.videoCodec != 'h264') {
     error(
-      'introVideoCodecUnsupported',
+      isIntro
+          ? 'introVideoCodecUnsupported'
+          : 'presentationVideoCodecUnsupported',
       'videoCodec',
-      'Intro video must use H.264.',
+      'Presentation videos must use H.264.',
     );
   }
-  if (!const <String>{'aac', 'none'}.contains(intro.audioCodec)) {
+  if (!audioAllowed.contains(variant.audioCodec)) {
     error(
-      'introAudioCodecUnsupported',
+      audioAllowed.length == 1
+          ? 'titleLoopAudioForbidden'
+          : 'introAudioCodecUnsupported',
       'audioCodec',
-      'Intro audio must use AAC or be omitted.',
+      audioAllowed.length == 1
+          ? 'Title and menu loops must not contain audio.'
+          : 'Intro audio must use AAC or be omitted.',
     );
   }
-  if (!const <String>{'poster', 'skip'}.contains(intro.reducedMotionBehavior)) {
+  if (!variant.focalX.isFinite ||
+      !variant.focalY.isFinite ||
+      variant.focalX < 0 ||
+      variant.focalX > 1 ||
+      variant.focalY < 0 ||
+      variant.focalY > 1) {
     error(
-      'introReducedMotionBehaviorUnsupported',
-      'reducedMotionBehavior',
-      'Reduced motion must show the poster or skip the intro.',
+      'presentationFocalPointInvalid',
+      'focalX',
+      'Focal points must stay between 0 and 1.',
     );
   }
-  if (intro.audioCodec != 'none' && intro.captionsPath == null) {
-    diagnostics.add(
-      const ProjectPresentationDiagnostic(
-        code: 'introCaptionsRecommended',
-        category: ProjectPresentationCategory.intro,
-        severity: ProjectPresentationDiagnosticSeverity.warning,
-        path: r'$.presentation.intro.captionsPath',
-        message: 'Add WebVTT captions for spoken or meaningful audio.',
-      ),
-    );
+}
+
+Iterable<({String orientation, ProjectVideoVariantProfile variant})>
+    _responsiveVariants(ProjectResponsiveVideoProfile media) sync* {
+  yield (orientation: 'landscape', variant: media.landscape);
+  if (media.portrait case final portrait?) {
+    yield (orientation: 'portrait', variant: portrait);
   }
+}
+
+Iterable<ProjectVideoVariantProfile> _titleMotionVariants(
+  ProjectTitleMotionProfile motion,
+) sync* {
+  for (final media in <ProjectResponsiveVideoProfile?>[
+    motion.promptLoop,
+    motion.menuLoop,
+  ]) {
+    if (media == null) continue;
+    for (final entry in _responsiveVariants(media)) {
+      yield entry.variant;
+    }
+  }
+}
+
+void _presentationError(
+  List<ProjectPresentationDiagnostic> diagnostics,
+  String code,
+  ProjectPresentationCategory category,
+  String path,
+  String message,
+) {
+  diagnostics.add(
+    ProjectPresentationDiagnostic(
+      code: code,
+      category: category,
+      severity: ProjectPresentationDiagnosticSeverity.error,
+      path: path,
+      message: message,
+    ),
+  );
 }
 
 void _validateTypography(
@@ -640,6 +893,40 @@ bool _hasBranding(ProjectBrandingProfile branding) =>
     branding.accentColor != null ||
     branding.titleMusicPath != null ||
     branding.layoutVariant != 'standard';
+
+/// Normalizes the one released presentation schema before generated decoding.
+///
+/// Keeping migration here means every transport (project load, direct API,
+/// JSONL, editor and package export) observes the exact same V2 document. The
+/// source map is never mutated, and the next serialization is always V2.
+Map<String, dynamic> _migrateProjectPresentationProfileJson(
+  Map<String, dynamic> source,
+) {
+  final schemaVersion = source['schemaVersion'] ?? 1;
+  if (schemaVersion != 1) return Map<String, dynamic>.from(source);
+
+  final migrated = Map<String, dynamic>.from(source)
+    ..['schemaVersion'] = ProjectPresentationProfile.supportedSchemaVersion;
+  final rawIntro = source['intro'];
+  if (rawIntro is! Map) return migrated;
+
+  final intro = Map<String, dynamic>.from(rawIntro);
+  final reducedMotionBehavior = intro.remove('reducedMotionBehavior');
+  final allowReplay = intro.remove('allowReplay');
+  // V1 allowed a missing poster at decode time and rejected it in validation.
+  // Preserve that readable-but-invalid behavior with an empty V2 path so a
+  // project is never made undecodable by migration.
+  intro['posterPath'] ??= '';
+  intro['focalX'] = 0.5;
+  intro['focalY'] = 0.5;
+  migrated['intro'] = <String, Object?>{
+    'media': <String, Object?>{'landscape': intro},
+    if (reducedMotionBehavior != null)
+      'reducedMotionBehavior': reducedMotionBehavior,
+    if (allowReplay != null) 'allowReplay': allowReplay,
+  };
+  return migrated;
+}
 
 bool _isSafeProjectRelativePath(String source) {
   final value = source.trim();

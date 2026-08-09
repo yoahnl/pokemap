@@ -320,6 +320,87 @@ void main() {
     await stop;
     expect(stopped, isTrue);
   });
+
+  testWidgets('uses distinct looping media for prompt and menu',
+      (tester) async {
+    final drivers = <_GatePlaybackDriver>[];
+    _GatePlaybackDriver createDriver(PlayerIntroVideoSource _) {
+      final gate = Completer<void>()..complete();
+      final driver = _GatePlaybackDriver(gate);
+      drivers.add(driver);
+      return driver;
+    }
+
+    Widget shell(RuntimeStartupPhase phase) => PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: _startup(
+            phase,
+            player: phase == RuntimeStartupPhase.titleMenu
+                ? _titlePlayer()
+                : null,
+          ),
+          titlePresentation: presentation,
+          titlePromptSource: PlayerIntroVideoSource(
+            videoUri: Uri.parse('file:///installed/prompt.mp4'),
+            looping: true,
+          ),
+          titleMenuSource: PlayerIntroVideoSource(
+            videoUri: Uri.parse('file:///installed/menu.mp4'),
+            looping: true,
+          ),
+          titleMotionDriverFactory: createDriver,
+          onStartupCommand: (_) {},
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        );
+
+    await tester.pumpWidget(_app(shell(RuntimeStartupPhase.titlePrompt)));
+    await tester.pump();
+    expect(
+      find.byKey(const ValueKey<String>('player-title-motion-video')),
+      findsOneWidget,
+    );
+    expect(drivers, hasLength(1));
+    expect(drivers.single.playCalls, 1);
+
+    await tester.pumpWidget(_app(shell(RuntimeStartupPhase.titleMenu)));
+    await tester.pump();
+    expect(drivers, hasLength(2));
+    expect(drivers.last.playCalls, 1);
+    expect(drivers.first.disposeCalls, 1);
+  });
+
+  testWidgets('reports portrait and landscape viewport changes',
+      (tester) async {
+    final orientations = <RuntimePresentationOrientation>[];
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    Widget shell() => PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: _startup(RuntimeStartupPhase.titlePrompt),
+          titlePresentation: presentation,
+          onPresentationOrientationChanged: orientations.add,
+          onStartupCommand: (_) {},
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        );
+
+    await tester.pumpWidget(_app(shell()));
+    expect(orientations, <RuntimePresentationOrientation>[
+      RuntimePresentationOrientation.portrait,
+    ]);
+
+    tester.view.physicalSize = const Size(844, 390);
+    await tester.pumpWidget(_app(shell()));
+    expect(orientations.last, RuntimePresentationOrientation.landscape);
+  });
 }
 
 RuntimeStartupSnapshot _startup(
@@ -417,6 +498,7 @@ final class _GatePlaybackDriver implements PlayerIntroPlaybackDriver {
   );
   int pauseCalls = 0;
   int playCalls = 0;
+  int disposeCalls = 0;
 
   @override
   ValueListenable<PlayerIntroPlaybackSnapshot> get snapshots => _snapshots;
@@ -442,6 +524,7 @@ final class _GatePlaybackDriver implements PlayerIntroPlaybackDriver {
 
   @override
   Future<void> dispose() async {
+    disposeCalls++;
     _snapshots.dispose();
   }
 }

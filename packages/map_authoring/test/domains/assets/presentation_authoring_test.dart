@@ -115,6 +115,64 @@ void main() {
 
       expect(ids, containsAll({'presentation.update', 'presentation.delete'}));
     });
+
+    test('validates every authored responsive intro and title loop asset', () {
+      final profile = _profile().copyWith(
+        titleMotion: const ProjectTitleMotionProfile(
+          promptLoop: ProjectResponsiveVideoProfile(
+            landscape: ProjectVideoVariantProfile(
+              videoPath: 'presentation/prompt-landscape.mp4',
+              posterPath: 'presentation/prompt-landscape.png',
+              durationMilliseconds: 7000,
+              width: 1920,
+              height: 1080,
+              bitrateKbps: 3000,
+              sizeBytes: 6000000,
+              videoCodec: 'h264',
+              audioCodec: 'none',
+            ),
+            portrait: ProjectVideoVariantProfile(
+              videoPath: 'presentation/prompt-portrait.mp4',
+              posterPath: 'presentation/prompt-portrait.png',
+              durationMilliseconds: 7000,
+              width: 1080,
+              height: 1920,
+              bitrateKbps: 3000,
+              sizeBytes: 6000000,
+              videoCodec: 'h264',
+              audioCodec: 'none',
+            ),
+          ),
+        ),
+      );
+
+      final result = const PresentationAuthoringGate().inspect(
+        profile,
+        _catalog(includeLicense: true, includeMotion: true),
+      );
+
+      expect(result.canPublish, isTrue);
+      final preview = const PresentationPreviewService().create(
+        profile: profile,
+        projectRevision: _revision('d'),
+        assets: _catalog(includeLicense: true, includeMotion: true),
+      );
+      expect(
+        preview.assetHandles,
+        containsAll(<String>[
+          _catalog(includeMotion: true)
+              .records
+              .singleWhere((asset) => asset.id == 'prompt-landscape')
+              .artifact
+              .handle,
+          _catalog(includeMotion: true)
+              .records
+              .singleWhere((asset) => asset.id == 'prompt-portrait')
+              .artifact
+              .handle,
+        ]),
+      );
+    });
   });
 }
 
@@ -126,15 +184,19 @@ ProjectPresentationProfile _profile({ProjectBrandingProfile? branding}) =>
             titleMusicPath: 'presentation/title.ogg',
           ),
       intro: const ProjectIntroVideoProfile(
-        videoPath: 'presentation/intro.mp4',
-        posterPath: 'presentation/poster.png',
-        durationMilliseconds: 3000,
-        width: 1280,
-        height: 720,
-        bitrateKbps: 4000,
-        sizeBytes: 42,
-        videoCodec: 'h264',
-        audioCodec: 'aac',
+        media: ProjectResponsiveVideoProfile(
+          landscape: ProjectVideoVariantProfile(
+            videoPath: 'presentation/intro.mp4',
+            posterPath: 'presentation/poster.png',
+            durationMilliseconds: 3000,
+            width: 1280,
+            height: 720,
+            bitrateKbps: 4000,
+            sizeBytes: 42,
+            videoCodec: 'h264',
+            audioCodec: 'aac',
+          ),
+        ),
       ),
       typography: const ProjectTypographyProfile(
         body: ProjectTypographyRoleProfile(
@@ -149,12 +211,42 @@ ProjectPresentationProfile _profile({ProjectBrandingProfile? branding}) =>
       theme: safeProjectSemanticTheme,
     );
 
-AssetCatalog _catalog({bool includeLicense = false}) => AssetCatalog(records: [
+AssetCatalog _catalog({
+  bool includeLicense = false,
+  bool includeMotion = false,
+}) =>
+    AssetCatalog(records: [
       _asset('icon', 'presentation/icon.png', 'image/png', 1),
       _asset('wrong-music', 'presentation/title.png', 'image/png', 7),
       _asset('music', 'presentation/title.ogg', 'audio/ogg', 2),
       _asset('intro', 'presentation/intro.mp4', 'video/mp4', 3),
       _asset('poster', 'presentation/poster.png', 'image/png', 4),
+      if (includeMotion) ...<AssetRecord>[
+        _asset(
+          'prompt-landscape',
+          'presentation/prompt-landscape.mp4',
+          'video/mp4',
+          8,
+        ),
+        _asset(
+          'prompt-landscape-poster',
+          'presentation/prompt-landscape.png',
+          'image/png',
+          9,
+        ),
+        _asset(
+          'prompt-portrait',
+          'presentation/prompt-portrait.mp4',
+          'video/mp4',
+          10,
+        ),
+        _asset(
+          'prompt-portrait-poster',
+          'presentation/prompt-portrait.png',
+          'image/png',
+          11,
+        ),
+      ],
       _asset('font', 'presentation/body.ttf', 'font/ttf', 5),
       if (includeLicense)
         _asset(

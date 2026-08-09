@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "branding": {
+    "heroPath": "assets/presentation/hero.png",
+    "titleMusicPath": "assets/audio/title.ogg",
+    "layoutVariant": "cinematic"
+  },
+  "intro": {
+    "videoPath": "assets/presentation/intro/landscape.mp4",
+    "posterPath": "assets/presentation/intro/landscape.png",
+    "captionsPath": "assets/presentation/intro/landscape.vtt",
+    "durationMilliseconds": 32000,
+    "width": 1920,
+    "height": 1080,
+    "bitrateKbps": 8000,
+    "sizeBytes": 32000000,
+    "videoCodec": "h264",
+    "audioCodec": "aac",
+    "reducedMotionBehavior": "poster",
+    "allowReplay": true
+  }
+}

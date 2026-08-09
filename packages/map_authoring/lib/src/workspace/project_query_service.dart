@@ -497,6 +497,18 @@ List<_QueryRecord> _records(ProjectSnapshot snapshot, String resourceKind) {
           detail: _projectDetail(snapshot),
         ),
       ];
+    case 'projectPresentationProfile':
+      final profile = snapshot.manifest.presentation;
+      if (profile == null) return const [];
+      final detail = <String, Object?>{
+        'id': 'project-presentation',
+        'schemaVersion': profile.schemaVersion,
+        'configuredCategories': [
+          for (final category in profile.configuredCategories) category.name,
+        ]..sort(),
+        'profile': profile.toJson(),
+      };
+      return [_QueryRecord(summary: detail, detail: detail)];
     case 'map':
       return [
         for (final map in snapshot.maps)

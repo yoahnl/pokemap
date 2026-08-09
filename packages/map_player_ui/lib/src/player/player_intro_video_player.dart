@@ -241,6 +241,7 @@ final class VideoPlayerIntroPlaybackDriver
     implements PlayerIntroPlaybackDriver {
   VideoPlayerIntroPlaybackDriver(PlayerIntroVideoSource source)
       : _volume = source.volume,
+        _looping = source.looping,
         _controller = createPlayerIntroVideoController(
           source.videoUri,
           captions: source.captionsLoader == null
@@ -251,6 +252,7 @@ final class VideoPlayerIntroPlaybackDriver
 
   final VideoPlayerController _controller;
   final double _volume;
+  final bool _looping;
   final ValueNotifier<PlayerIntroPlaybackSnapshot> _snapshots =
       ValueNotifier<PlayerIntroPlaybackSnapshot>(
     const PlayerIntroPlaybackSnapshot(),
@@ -266,7 +268,7 @@ final class VideoPlayerIntroPlaybackDriver
   Future<void> initialize() async {
     _controller.addListener(_synchronize);
     await _controller.initialize();
-    await _controller.setLooping(false);
+    await _controller.setLooping(_looping);
     await _controller.setVolume(_volume);
     _synchronize();
   }

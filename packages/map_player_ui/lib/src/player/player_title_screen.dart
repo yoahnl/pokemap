@@ -61,6 +61,7 @@ final class PlayerTitleViewData {
     required this.author,
     this.description,
     this.background,
+    this.backgroundContent,
     this.logo,
     this.accentColor,
     this.layoutVariant = PlayerTitleLayoutVariant.standard,
@@ -72,6 +73,7 @@ final class PlayerTitleViewData {
   final String author;
   final String? description;
   final ImageProvider? background;
+  final Widget? backgroundContent;
   final ImageProvider? logo;
   final Color? accentColor;
   final PlayerTitleLayoutVariant layoutVariant;
@@ -281,7 +283,7 @@ class PlayerTitleScreen extends StatelessWidget {
 
   Widget _startupVisual(BuildContext context) {
     final colors = context.playerColors;
-    return DecoratedBox(
+    final fallback = DecoratedBox(
       key: const ValueKey<String>('player-title-startup-visual'),
       decoration: BoxDecoration(
         color: colors.background,
@@ -298,6 +300,13 @@ class PlayerTitleScreen extends StatelessWidget {
               ),
             )
           : const SizedBox.expand(),
+    );
+    final backgroundContent = data.backgroundContent;
+    if (backgroundContent == null) return fallback;
+    return Stack(
+      key: const ValueKey<String>('player-title-startup-visual'),
+      fit: StackFit.expand,
+      children: <Widget>[fallback, backgroundContent],
     );
   }
 

@@ -7,6 +7,7 @@ import '../models/map_event_definition.dart';
 import '../models/map_layer.dart';
 import '../models/narrative_value.dart';
 import '../models/project_manifest.dart';
+import '../models/project_presentation_profile.dart';
 import '../models/project_tileset_source.dart';
 import '../models/project_trainer.dart';
 import '../models/scenario_asset.dart';
@@ -107,6 +108,18 @@ class ProjectValidator {
           },
         );
       }
+    }
+    for (final diagnostic in validateProjectPresentationProfile(
+      manifest.effectivePresentation,
+    )) {
+      if (diagnostic.severity != ProjectPresentationDiagnosticSeverity.error) {
+        continue;
+      }
+      throw ValidationException(
+        '${diagnostic.path}: ${diagnostic.message}',
+        code: diagnostic.code,
+        details: <String, Object?>{'path': diagnostic.path},
+      );
     }
     _validateUniqueness(manifest);
     _validateHierarchy(manifest);

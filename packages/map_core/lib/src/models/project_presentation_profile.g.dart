@@ -28,11 +28,11 @@ Map<String, dynamic> _$$ProjectBrandingProfileImplToJson(
       'layoutVariant': instance.layoutVariant,
     };
 
-_$ProjectIntroVideoProfileImpl _$$ProjectIntroVideoProfileImplFromJson(
+_$ProjectVideoVariantProfileImpl _$$ProjectVideoVariantProfileImplFromJson(
         Map<String, dynamic> json) =>
-    _$ProjectIntroVideoProfileImpl(
+    _$ProjectVideoVariantProfileImpl(
       videoPath: json['videoPath'] as String,
-      posterPath: json['posterPath'] as String?,
+      posterPath: json['posterPath'] as String,
       captionsPath: json['captionsPath'] as String?,
       durationMilliseconds: (json['durationMilliseconds'] as num).toInt(),
       width: (json['width'] as num).toInt(),
@@ -41,16 +41,15 @@ _$ProjectIntroVideoProfileImpl _$$ProjectIntroVideoProfileImplFromJson(
       sizeBytes: (json['sizeBytes'] as num).toInt(),
       videoCodec: json['videoCodec'] as String,
       audioCodec: json['audioCodec'] as String? ?? 'none',
-      reducedMotionBehavior:
-          json['reducedMotionBehavior'] as String? ?? 'poster',
-      allowReplay: json['allowReplay'] as bool? ?? true,
+      focalX: (json['focalX'] as num?)?.toDouble() ?? 0.5,
+      focalY: (json['focalY'] as num?)?.toDouble() ?? 0.5,
     );
 
-Map<String, dynamic> _$$ProjectIntroVideoProfileImplToJson(
-        _$ProjectIntroVideoProfileImpl instance) =>
+Map<String, dynamic> _$$ProjectVideoVariantProfileImplToJson(
+        _$ProjectVideoVariantProfileImpl instance) =>
     <String, dynamic>{
       'videoPath': instance.videoPath,
-      if (instance.posterPath case final value?) 'posterPath': value,
+      'posterPath': instance.posterPath,
       if (instance.captionsPath case final value?) 'captionsPath': value,
       'durationMilliseconds': instance.durationMilliseconds,
       'width': instance.width,
@@ -59,8 +58,64 @@ Map<String, dynamic> _$$ProjectIntroVideoProfileImplToJson(
       'sizeBytes': instance.sizeBytes,
       'videoCodec': instance.videoCodec,
       'audioCodec': instance.audioCodec,
+      'focalX': instance.focalX,
+      'focalY': instance.focalY,
+    };
+
+_$ProjectResponsiveVideoProfileImpl
+    _$$ProjectResponsiveVideoProfileImplFromJson(Map<String, dynamic> json) =>
+        _$ProjectResponsiveVideoProfileImpl(
+          landscape: ProjectVideoVariantProfile.fromJson(
+              json['landscape'] as Map<String, dynamic>),
+          portrait: json['portrait'] == null
+              ? null
+              : ProjectVideoVariantProfile.fromJson(
+                  json['portrait'] as Map<String, dynamic>),
+        );
+
+Map<String, dynamic> _$$ProjectResponsiveVideoProfileImplToJson(
+        _$ProjectResponsiveVideoProfileImpl instance) =>
+    <String, dynamic>{
+      'landscape': instance.landscape.toJson(),
+      if (instance.portrait?.toJson() case final value?) 'portrait': value,
+    };
+
+_$ProjectIntroVideoProfileImpl _$$ProjectIntroVideoProfileImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectIntroVideoProfileImpl(
+      media: ProjectResponsiveVideoProfile.fromJson(
+          json['media'] as Map<String, dynamic>),
+      reducedMotionBehavior:
+          json['reducedMotionBehavior'] as String? ?? 'poster',
+      allowReplay: json['allowReplay'] as bool? ?? true,
+    );
+
+Map<String, dynamic> _$$ProjectIntroVideoProfileImplToJson(
+        _$ProjectIntroVideoProfileImpl instance) =>
+    <String, dynamic>{
+      'media': instance.media.toJson(),
       'reducedMotionBehavior': instance.reducedMotionBehavior,
       'allowReplay': instance.allowReplay,
+    };
+
+_$ProjectTitleMotionProfileImpl _$$ProjectTitleMotionProfileImplFromJson(
+        Map<String, dynamic> json) =>
+    _$ProjectTitleMotionProfileImpl(
+      promptLoop: json['promptLoop'] == null
+          ? null
+          : ProjectResponsiveVideoProfile.fromJson(
+              json['promptLoop'] as Map<String, dynamic>),
+      menuLoop: json['menuLoop'] == null
+          ? null
+          : ProjectResponsiveVideoProfile.fromJson(
+              json['menuLoop'] as Map<String, dynamic>),
+    );
+
+Map<String, dynamic> _$$ProjectTitleMotionProfileImplToJson(
+        _$ProjectTitleMotionProfileImpl instance) =>
+    <String, dynamic>{
+      if (instance.promptLoop?.toJson() case final value?) 'promptLoop': value,
+      if (instance.menuLoop?.toJson() case final value?) 'menuLoop': value,
     };
 
 _$ProjectTypographyRoleProfileImpl _$$ProjectTypographyRoleProfileImplFromJson(
@@ -176,6 +231,10 @@ _$ProjectPresentationProfileImpl _$$ProjectPresentationProfileImplFromJson(
           ? null
           : ProjectIntroVideoProfile.fromJson(
               json['intro'] as Map<String, dynamic>),
+      titleMotion: json['titleMotion'] == null
+          ? null
+          : ProjectTitleMotionProfile.fromJson(
+              json['titleMotion'] as Map<String, dynamic>),
       typography: json['typography'] == null
           ? null
           : ProjectTypographyProfile.fromJson(
@@ -192,6 +251,8 @@ Map<String, dynamic> _$$ProjectPresentationProfileImplToJson(
       'schemaVersion': instance.schemaVersion,
       'branding': instance.branding.toJson(),
       if (instance.intro?.toJson() case final value?) 'intro': value,
+      if (instance.titleMotion?.toJson() case final value?)
+        'titleMotion': value,
       if (instance.typography?.toJson() case final value?) 'typography': value,
       if (instance.theme?.toJson() case final value?) 'theme': value,
     };

@@ -343,7 +343,11 @@ AuthoringActionDescriptor _descriptor(
       inputSchemaId: 'pokemap.authoring/$id.input.v1',
       outputSchemaId: 'pokemap.authoring/$id.output.v1',
       riskLevel: risk,
-      resourceKinds: const ['project', 'asset'],
+      resourceKinds: const [
+        'project',
+        'projectPresentationProfile',
+        'asset',
+      ],
       capabilityIds: const ['authoring.presentation'],
       requiredPermissions: const [AuthoringPermission.projectWrite],
       guarantees: const [
@@ -443,23 +447,25 @@ Iterable<_PresentationReference> _presentationReferences(
     );
   }
   if (profile.intro case final intro?) {
-    yield _PresentationReference.video(
-      intro.videoPath,
-      ProjectPresentationCategory.intro,
-      r'$.presentation.intro.videoPath',
+    yield* _responsiveVideoReferences(
+      intro.media,
+      category: ProjectPresentationCategory.intro,
+      profilePath: r'$.presentation.intro.media',
     );
-    if (intro.posterPath case final value?) {
-      yield _PresentationReference.image(
-        value,
-        ProjectPresentationCategory.intro,
-        r'$.presentation.intro.posterPath',
+  }
+  if (profile.titleMotion case final motion?) {
+    if (motion.promptLoop case final prompt?) {
+      yield* _responsiveVideoReferences(
+        prompt,
+        category: ProjectPresentationCategory.branding,
+        profilePath: r'$.presentation.titleMotion.promptLoop',
       );
     }
-    if (intro.captionsPath case final value?) {
-      yield _PresentationReference.captions(
-        value,
-        ProjectPresentationCategory.intro,
-        r'$.presentation.intro.captionsPath',
+    if (motion.menuLoop case final menu?) {
+      yield* _responsiveVideoReferences(
+        menu,
+        category: ProjectPresentationCategory.branding,
+        profilePath: r'$.presentation.titleMotion.menuLoop',
       );
     }
   }
@@ -485,6 +491,41 @@ Iterable<_PresentationReference> _presentationReferences(
           '\$.presentation.typography.${entry.key}.licensePath',
         );
       }
+    }
+  }
+}
+
+Iterable<_PresentationReference> _responsiveVideoReferences(
+  ProjectResponsiveVideoProfile media, {
+  required ProjectPresentationCategory category,
+  required String profilePath,
+}) sync* {
+  for (final entry in <({
+    String orientation,
+    ProjectVideoVariantProfile? variant,
+  })>[
+    (orientation: 'landscape', variant: media.landscape),
+    (orientation: 'portrait', variant: media.portrait),
+  ]) {
+    final variant = entry.variant;
+    if (variant == null) continue;
+    final path = '$profilePath.${entry.orientation}';
+    yield _PresentationReference.video(
+      variant.videoPath,
+      category,
+      '$path.videoPath',
+    );
+    yield _PresentationReference.image(
+      variant.posterPath,
+      category,
+      '$path.posterPath',
+    );
+    if (variant.captionsPath case final captions?) {
+      yield _PresentationReference.captions(
+        captions,
+        category,
+        '$path.captionsPath',
+      );
     }
   }
 }

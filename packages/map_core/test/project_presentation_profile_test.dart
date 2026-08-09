@@ -1,8 +1,135 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('ProjectPresentationProfile', () {
+    test('migrates V1 landscape intro before generated deserialization', () {
+      final source = jsonDecode(
+        File(
+          'test/fixtures/project_presentation/v1_landscape.json',
+        ).readAsStringSync(),
+      ) as Map<String, dynamic>;
+
+      final profile = ProjectPresentationProfile.fromJson(source);
+
+      expect(profile.schemaVersion, 2);
+      expect(profile.intro!.media.landscape.videoPath,
+          'assets/presentation/intro/landscape.mp4');
+      expect(profile.intro!.media.landscape.focalX, 0.5);
+      expect(profile.intro!.media.portrait, isNull);
+      expect(profile.titleMotion, isNull);
+      final encoded = profile.toJson();
+      expect(encoded['schemaVersion'], 2);
+      expect((encoded['intro']! as Map<String, dynamic>), contains('media'));
+      expect((encoded['intro']! as Map<String, dynamic>),
+          isNot(contains('videoPath')));
+    });
+
+    test('round-trips V2 landscape-only and responsive title motion fixtures',
+        () {
+      for (final fixture in <String>[
+        'v2_landscape_only.json',
+        'v2_landscape_portrait.json',
+      ]) {
+        final source = jsonDecode(
+          File('test/fixtures/project_presentation/$fixture')
+              .readAsStringSync(),
+        ) as Map<String, dynamic>;
+        final profile = ProjectPresentationProfile.fromJson(source);
+
+        expect(ProjectPresentationProfile.fromJson(profile.toJson()), profile,
+            reason: fixture);
+        expect(validateProjectPresentationProfile(profile), isEmpty,
+            reason: fixture);
+      }
+    });
+
+    test('validates focal points, loop audio and combined responsive budgets',
+        () {
+      ProjectVideoVariantProfile variant({
+        String video = 'assets/presentation/title/loop.mp4',
+        String poster = 'assets/presentation/title/loop.png',
+        int duration = 16000,
+        int size = 60 * 1024 * 1024,
+        String audio = 'aac',
+        double focalX = 1.2,
+      }) =>
+          ProjectVideoVariantProfile(
+            videoPath: video,
+            posterPath: poster,
+            durationMilliseconds: duration,
+            width: 1920,
+            height: 1080,
+            bitrateKbps: 4000,
+            sizeBytes: size,
+            videoCodec: 'h264',
+            audioCodec: audio,
+            focalX: focalX,
+          );
+      final profile = ProjectPresentationProfile(
+        titleMotion: ProjectTitleMotionProfile(
+          promptLoop: ProjectResponsiveVideoProfile(
+            landscape: variant(),
+            portrait: variant(
+              video: 'assets/presentation/title/portrait.mp4',
+              poster: 'assets/presentation/title/portrait.png',
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        validateProjectPresentationProfile(profile)
+            .map((diagnostic) => diagnostic.code),
+        containsAll(<String>[
+          'presentationFocalPointInvalid',
+          'titleLoopDurationExceeded',
+          'titleLoopSizeExceeded',
+          'titleLoopAudioForbidden',
+          'titleMotionCombinedSizeExceeded',
+        ]),
+      );
+    });
+
+    test('ProjectValidator rejects blocking presentation diagnostics', () {
+      final manifest = ProjectManifest(
+        name: 'Invalid presentation',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        presentation: ProjectPresentationProfile(
+          titleMotion: ProjectTitleMotionProfile(
+            promptLoop: ProjectResponsiveVideoProfile(
+              landscape: ProjectVideoVariantProfile(
+                videoPath: '../outside.mp4',
+                posterPath: 'assets/presentation/title/poster.png',
+                durationMilliseconds: 5000,
+                width: 1920,
+                height: 1080,
+                bitrateKbps: 2000,
+                sizeBytes: 1000000,
+                videoCodec: 'h264',
+                audioCodec: 'none',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        () => ProjectValidator.validate(manifest),
+        throwsA(
+          isA<ValidationException>().having(
+            (error) => error.code,
+            'code',
+            'presentationAssetPathUnsafe',
+          ),
+        ),
+      );
+    });
+
     test('round-trips the versioned branding contract', () {
       const profile = ProjectPresentationProfile(
         branding: ProjectBrandingProfile(
@@ -103,16 +230,20 @@ void main() {
     test('valid intro video metadata joins the semantic contract', () {
       const profile = ProjectPresentationProfile(
         intro: ProjectIntroVideoProfile(
-          videoPath: 'assets/presentation/intro/intro.mp4',
-          posterPath: 'assets/presentation/intro/poster.png',
-          captionsPath: 'assets/presentation/intro/captions.vtt',
-          durationMilliseconds: 32000,
-          width: 1920,
-          height: 1080,
-          bitrateKbps: 8000,
-          sizeBytes: 32000000,
-          videoCodec: 'h264',
-          audioCodec: 'aac',
+          media: ProjectResponsiveVideoProfile(
+            landscape: ProjectVideoVariantProfile(
+              videoPath: 'assets/presentation/intro/intro.mp4',
+              posterPath: 'assets/presentation/intro/poster.png',
+              captionsPath: 'assets/presentation/intro/captions.vtt',
+              durationMilliseconds: 32000,
+              width: 1920,
+              height: 1080,
+              bitrateKbps: 8000,
+              sizeBytes: 32000000,
+              videoCodec: 'h264',
+              audioCodec: 'aac',
+            ),
+          ),
         ),
       );
 
@@ -127,49 +258,53 @@ void main() {
       );
     });
 
-    test('accepts intro videos in landscape and portrait orientations', () {
-      ProjectPresentationProfile profileFor({
-        required int width,
-        required int height,
-      }) =>
-          ProjectPresentationProfile(
-            intro: ProjectIntroVideoProfile(
+    test('accepts landscape and optional portrait intro variants', () {
+      const profile = ProjectPresentationProfile(
+        intro: ProjectIntroVideoProfile(
+          media: ProjectResponsiveVideoProfile(
+            landscape: ProjectVideoVariantProfile(
               videoPath: 'assets/presentation/intro/intro.mp4',
               posterPath: 'assets/presentation/intro/poster.png',
               durationMilliseconds: 12000,
-              width: width,
-              height: height,
+              width: 1920,
+              height: 1080,
               bitrateKbps: 2400,
               sizeBytes: 5000000,
               videoCodec: 'h264',
             ),
-          );
+            portrait: ProjectVideoVariantProfile(
+              videoPath: 'assets/presentation/intro/intro-portrait.mp4',
+              posterPath: 'assets/presentation/intro/poster-portrait.png',
+              durationMilliseconds: 12000,
+              width: 1080,
+              height: 1920,
+              bitrateKbps: 2400,
+              sizeBytes: 5000000,
+              videoCodec: 'h264',
+            ),
+          ),
+        ),
+      );
 
-      expect(
-        validateProjectPresentationProfile(
-          profileFor(width: 1920, height: 1080),
-        ),
-        isEmpty,
-      );
-      expect(
-        validateProjectPresentationProfile(
-          profileFor(width: 1080, height: 1920),
-        ),
-        isEmpty,
-      );
+      expect(validateProjectPresentationProfile(profile), isEmpty);
     });
 
     test('intro video limits and fallback poster fail closed', () {
       const profile = ProjectPresentationProfile(
         intro: ProjectIntroVideoProfile(
-          videoPath: 'assets/presentation/intro/intro.mov',
-          durationMilliseconds: 130000,
-          width: 3840,
-          height: 2160,
-          bitrateKbps: 24000,
-          sizeBytes: 150000000,
-          videoCodec: 'hevc',
-          audioCodec: 'aac',
+          media: ProjectResponsiveVideoProfile(
+            landscape: ProjectVideoVariantProfile(
+              videoPath: 'assets/presentation/intro/intro.mov',
+              posterPath: '',
+              durationMilliseconds: 130000,
+              width: 3840,
+              height: 2160,
+              bitrateKbps: 24000,
+              sizeBytes: 150000000,
+              videoCodec: 'hevc',
+              audioCodec: 'aac',
+            ),
+          ),
         ),
       );
 

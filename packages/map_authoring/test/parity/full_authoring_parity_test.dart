@@ -216,6 +216,52 @@ void main() {
 
       expect(directEvidence, cliEvidence);
       expect(directEvidence['accentColor'], '#126E78');
+      expect(directEvidence['schemaVersion'], 2);
+      expect(
+        directEvidence['introLandscape'],
+        'presentation/intro-landscape.mp4',
+      );
+      expect(
+        directEvidence['promptPortrait'],
+        'presentation/prompt-portrait.mp4',
+      );
+    });
+
+    test('projectPresentationProfile is a first-class query resource', () {
+      const profile = ProjectPresentationProfile(
+        branding: ProjectBrandingProfile(accentColor: '#126E78'),
+      );
+      final snapshot = ProjectSnapshot(
+        projectHandle: const ProjectHandle('prj_presentation_query'),
+        revision: 'sha256:${List.filled(64, 'a').join()}',
+        manifest: const ProjectManifest(
+          name: 'Presentation query',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          presentation: profile,
+        ),
+        maps: const <MapData>[],
+        resourceFingerprints: <String, String>{
+          'project': 'sha256:'
+              '1111111111111111111111111111111111111111111111111111111111111111',
+        },
+      );
+
+      expect(
+        canonicalQueryableResourceKindIds,
+        contains('projectPresentationProfile'),
+      );
+      final page = const ProjectQueryService().query(
+        snapshot,
+        AuthoringQueryRequest(
+          resourceKind: 'projectPresentationProfile',
+          operation: AuthoringQueryOperation.list,
+          view: AuthoringQueryView.detail,
+        ),
+      );
+      expect(page.totalAvailable, 1);
+      expect(page.items.single['id'], 'project-presentation');
+      expect(page.items.single['profile'], profile.toJson());
     });
   });
 }
@@ -304,6 +350,55 @@ final class _GoldenHarness {
     );
     await File('${root.path}/project.json').writeAsString(
       const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
+      flush: true,
+    );
+    final assets = AssetCatalog(records: <AssetRecord>[
+      _catalogAsset(
+        'intro-landscape',
+        'presentation/intro-landscape.mp4',
+        'video/mp4',
+        31,
+      ),
+      _catalogAsset(
+        'intro-landscape-poster',
+        'presentation/intro-landscape.png',
+        'image/png',
+        32,
+      ),
+      _catalogAsset(
+        'prompt-portrait',
+        'presentation/prompt-portrait.mp4',
+        'video/mp4',
+        33,
+      ),
+      _catalogAsset(
+        'prompt-portrait-poster',
+        'presentation/prompt-portrait.png',
+        'image/png',
+        34,
+      ),
+    ]);
+    for (final asset in assets.records) {
+      final blob = File(
+        '${root.path}/${assetBlobStorageKey(asset.artifact)}',
+      );
+      await blob.create(recursive: true);
+      await blob.writeAsBytes(
+        <int>[
+          switch (asset.id) {
+            'intro-landscape' => 31,
+            'intro-landscape-poster' => 32,
+            'prompt-portrait' => 33,
+            'prompt-portrait-poster' => 34,
+            _ => throw StateError('Unexpected golden asset ${asset.id}.'),
+          },
+        ],
+        flush: true,
+      );
+    }
+    await File('${root.path}/$assetCatalogStorageKey').create(recursive: true);
+    await File('${root.path}/$assetCatalogStorageKey').writeAsString(
+      jsonEncode(assets.toJson()),
       flush: true,
     );
     const reader = LocalProjectFileReader();
@@ -446,9 +541,7 @@ final class _GoldenHarness {
         actionVersion: 1,
         workspaceHandle: workspaceHandle,
         parameters: {
-          'profile': const ProjectPresentationProfile(
-            branding: ProjectBrandingProfile(accentColor: '#126E78'),
-          ).toJson(),
+          'profile': _responsivePresentationProfile.toJson(),
         },
         expectedRevision: revision,
         idempotencyKey: 'pmcp085-presentation-idempotency',
@@ -463,6 +556,10 @@ final class _GoldenHarness {
     return <String, Object?>{
       'receipt': _stableReceipt(receipt),
       'accentColor': manifest.presentation?.branding.accentColor,
+      'schemaVersion': manifest.presentation?.schemaVersion,
+      'introLandscape': manifest.presentation?.intro?.media.landscape.videoPath,
+      'promptPortrait':
+          manifest.presentation?.titleMotion?.promptLoop?.portrait?.videoPath,
     };
   }
 
@@ -492,6 +589,64 @@ final class _GoldenHarness {
     if (await root.exists()) await root.delete(recursive: true);
   }
 }
+
+const ProjectPresentationProfile _responsivePresentationProfile =
+    ProjectPresentationProfile(
+  branding: ProjectBrandingProfile(accentColor: '#126E78'),
+  intro: ProjectIntroVideoProfile(
+    media: ProjectResponsiveVideoProfile(
+      landscape: ProjectVideoVariantProfile(
+        videoPath: 'presentation/intro-landscape.mp4',
+        posterPath: 'presentation/intro-landscape.png',
+        durationMilliseconds: 6000,
+        width: 1920,
+        height: 1080,
+        bitrateKbps: 2500,
+        sizeBytes: 4000000,
+        videoCodec: 'h264',
+        audioCodec: 'none',
+      ),
+    ),
+  ),
+  titleMotion: ProjectTitleMotionProfile(
+    promptLoop: ProjectResponsiveVideoProfile(
+      landscape: ProjectVideoVariantProfile(
+        videoPath: 'presentation/intro-landscape.mp4',
+        posterPath: 'presentation/intro-landscape.png',
+        durationMilliseconds: 6000,
+        width: 1920,
+        height: 1080,
+        bitrateKbps: 2500,
+        sizeBytes: 4000000,
+        videoCodec: 'h264',
+        audioCodec: 'none',
+      ),
+      portrait: ProjectVideoVariantProfile(
+        videoPath: 'presentation/prompt-portrait.mp4',
+        posterPath: 'presentation/prompt-portrait.png',
+        durationMilliseconds: 6000,
+        width: 1080,
+        height: 1920,
+        bitrateKbps: 2500,
+        sizeBytes: 4000000,
+        videoCodec: 'h264',
+        audioCodec: 'none',
+      ),
+    ),
+  ),
+);
+
+AssetRecord _catalogAsset(
+  String id,
+  String logicalPath,
+  String mediaType,
+  int byte,
+) =>
+    AssetRecord(
+      id: id,
+      logicalPath: logicalPath,
+      artifact: ContentArtifactRef.fromBytes(<int>[byte], mediaType: mediaType),
+    );
 
 Map<String, Object?> _stableReceipt(Object? raw) {
   final receipt = AuthoringReceipt.fromJson(

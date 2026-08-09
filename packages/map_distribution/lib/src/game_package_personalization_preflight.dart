@@ -7,6 +7,7 @@ import 'game_package_manifest.dart';
 enum GamePackagePersonalizationCategory {
   branding,
   intro,
+  titleMotion,
   typography,
   theme,
 }
@@ -131,18 +132,33 @@ final class GamePackagePersonalizationPreflight {
     final intro = presentation?.intro;
     if (intro != null) {
       categories.add(GamePackagePersonalizationCategory.intro);
-      if (!intro.video.toLowerCase().endsWith('.mp4') ||
-          intro.videoCodec != 'h264' ||
-          !const <String>{'aac', 'none'}.contains(intro.audioCodec)) {
-        _fail(
-          'presentationMediaUnsupported',
-          r'$.presentation.intro',
-          'The intro playback contract is outside the supported codec matrix.',
+      _certifyVideoMedia(
+        intro.responsiveMedia,
+        path: r'$.presentation.intro.media',
+        titleLoop: false,
+        certifyAsset: certifyAsset,
+      );
+    }
+
+    final titleMotion = presentation?.titleMotion;
+    if (titleMotion != null) {
+      categories.add(GamePackagePersonalizationCategory.titleMotion);
+      if (titleMotion.promptLoop case final prompt?) {
+        _certifyVideoMedia(
+          prompt,
+          path: r'$.presentation.titleMotion.promptLoop',
+          titleLoop: true,
+          certifyAsset: certifyAsset,
         );
       }
-      certifyAsset(intro.video, r'$.presentation.intro.video');
-      certifyAsset(intro.poster, r'$.presentation.intro.poster');
-      certifyAsset(intro.captions, r'$.presentation.intro.captions');
+      if (titleMotion.menuLoop case final menu?) {
+        _certifyVideoMedia(
+          menu,
+          path: r'$.presentation.titleMotion.menuLoop',
+          titleLoop: true,
+          certifyAsset: certifyAsset,
+        );
+      }
     }
 
     final typography = presentation?.typography;
@@ -202,9 +218,39 @@ final class GamePackagePersonalizationPreflight {
           : CanonicalJson.sha256Hex(presentation.toJson()),
       configuredCategories: categories,
       assetSha256: assetHashes,
-      videoCodec: intro?.videoCodec,
-      audioCodec: intro?.audioCodec,
+      videoCodec: intro?.landscape.videoCodec,
+      audioCodec: intro?.landscape.audioCodec,
     );
+  }
+
+  void _certifyVideoMedia(
+    GamePackageResponsiveVideo media, {
+    required String path,
+    required bool titleLoop,
+    required void Function(String? path, String manifestPath) certifyAsset,
+  }) {
+    final variants = <String, GamePackageVideoVariant>{
+      'landscape': media.landscape,
+      if (media.portrait != null) 'portrait': media.portrait!,
+    };
+    for (final entry in variants.entries) {
+      final variant = entry.value;
+      final variantPath = '$path.${entry.key}';
+      if (!variant.video.toLowerCase().endsWith('.mp4') ||
+          variant.videoCodec != 'h264' ||
+          (titleLoop
+              ? variant.audioCodec != 'none'
+              : !const <String>{'aac', 'none'}.contains(variant.audioCodec))) {
+        _fail(
+          'presentationMediaUnsupported',
+          variantPath,
+          'The playback contract is outside the supported codec matrix.',
+        );
+      }
+      certifyAsset(variant.video, '$variantPath.video');
+      certifyAsset(variant.poster, '$variantPath.poster');
+      certifyAsset(variant.captions, '$variantPath.captions');
+    }
   }
 
   bool _hasBranding(GamePackageBranding branding) =>

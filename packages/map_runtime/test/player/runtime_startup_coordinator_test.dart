@@ -90,6 +90,90 @@ void main() {
     expect(progress, orderedEquals([...progress]..sort()));
   });
 
+  test('preloads only the selected responsive media and switches on rotation',
+      () async {
+    final assets = _MemoryPresentationAssetResolver();
+    const landscape = ProjectVideoVariantProfile(
+      videoPath: 'assets/landscape.mp4',
+      posterPath: 'assets/landscape.png',
+      durationMilliseconds: 7000,
+      width: 1920,
+      height: 1080,
+      bitrateKbps: 3000,
+      sizeBytes: 5000000,
+      videoCodec: 'h264',
+    );
+    const portrait = ProjectVideoVariantProfile(
+      videoPath: 'assets/portrait.mp4',
+      posterPath: 'assets/portrait.png',
+      durationMilliseconds: 7000,
+      width: 1080,
+      height: 1920,
+      bitrateKbps: 3000,
+      sizeBytes: 5000000,
+      videoCodec: 'h264',
+    );
+    final harness = _RuntimeStartupTestHarness(
+      assetResolver: assets,
+      presentationOrientation: RuntimePresentationOrientation.portrait,
+      profile: const ProjectPresentationProfile(
+        intro: ProjectIntroVideoProfile(
+          media: ProjectResponsiveVideoProfile(
+            landscape: landscape,
+            portrait: portrait,
+          ),
+        ),
+        titleMotion: ProjectTitleMotionProfile(
+          promptLoop: ProjectResponsiveVideoProfile(
+            landscape: landscape,
+            portrait: portrait,
+          ),
+          menuLoop: ProjectResponsiveVideoProfile(
+            landscape: landscape,
+            portrait: portrait,
+          ),
+        ),
+      ),
+    );
+    addTearDown(harness.dispose);
+
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+
+    expect(assets.resolvedMediaPaths, isNot(contains('assets/landscape.mp4')));
+    expect(
+      harness.startup.snapshot.presentation?.orientation,
+      RuntimePresentationOrientation.portrait,
+    );
+    expect(
+      harness.startup.snapshot.presentation?.introVideo?.assetId,
+      'assets/portrait.mp4',
+    );
+    expect(
+      harness.startup.snapshot.presentation?.titlePromptVideo?.assetId,
+      'assets/portrait.mp4',
+    );
+    expect(
+      harness.startup.snapshot.presentation?.titleMenuPoster?.assetId,
+      'assets/portrait.png',
+    );
+
+    await harness.startup.updatePresentationOrientation(
+      RuntimePresentationOrientation.landscape,
+    );
+
+    expect(assets.resolvedMediaPaths, contains('assets/landscape.mp4'));
+    expect(
+      harness.startup.snapshot.presentation?.orientation,
+      RuntimePresentationOrientation.landscape,
+    );
+    expect(
+      harness.startup.snapshot.presentation?.titleMenuVideo?.assetId,
+      'assets/landscape.mp4',
+    );
+  });
+
   test('a ready splash can be skipped without waiting for its minimum',
       () async {
     final harness = _RuntimeStartupTestHarness();
@@ -754,15 +838,19 @@ ProjectPresentationProfile _presentationWithIntroAndMusic({
     ),
     intro: includeIntro
         ? const ProjectIntroVideoProfile(
-            videoPath: 'assets/intro.mp4',
-            posterPath: 'assets/intro-poster.png',
-            durationMilliseconds: 5000,
-            width: 1280,
-            height: 720,
-            bitrateKbps: 4000,
-            sizeBytes: 1024,
-            videoCodec: 'h264',
-            audioCodec: 'aac',
+            media: ProjectResponsiveVideoProfile(
+              landscape: ProjectVideoVariantProfile(
+                videoPath: 'assets/intro.mp4',
+                posterPath: 'assets/intro-poster.png',
+                durationMilliseconds: 5000,
+                width: 1280,
+                height: 720,
+                bitrateKbps: 4000,
+                sizeBytes: 1024,
+                videoCodec: 'h264',
+                audioCodec: 'aac',
+              ),
+            ),
           )
         : null,
   );
@@ -771,15 +859,19 @@ ProjectPresentationProfile _presentationWithIntroAndMusic({
 ProjectPresentationProfile _presentationWithIntroOnly() {
   return const ProjectPresentationProfile(
     intro: ProjectIntroVideoProfile(
-      videoPath: 'assets/intro.mp4',
-      posterPath: 'assets/intro-poster.png',
-      durationMilliseconds: 5000,
-      width: 1280,
-      height: 720,
-      bitrateKbps: 4000,
-      sizeBytes: 1024,
-      videoCodec: 'h264',
-      audioCodec: 'aac',
+      media: ProjectResponsiveVideoProfile(
+        landscape: ProjectVideoVariantProfile(
+          videoPath: 'assets/intro.mp4',
+          posterPath: 'assets/intro-poster.png',
+          durationMilliseconds: 5000,
+          width: 1280,
+          height: 720,
+          bitrateKbps: 4000,
+          sizeBytes: 1024,
+          videoCodec: 'h264',
+          audioCodec: 'aac',
+        ),
+      ),
     ),
   );
 }
@@ -794,6 +886,8 @@ final class _RuntimeStartupTestHarness {
     bool reducedMotion = false,
     Completer<void>? audioStopGate,
     Future<void>? descriptorGate,
+    RuntimePresentationOrientation presentationOrientation =
+        RuntimePresentationOrientation.landscape,
   })  : player = RuntimePlayerTestHarness(descriptorGate: descriptorGate),
         clock = clock is _ControlledStartupClock
             ? clock
@@ -814,6 +908,7 @@ final class _RuntimeStartupTestHarness {
       clock: effectiveClock,
       minimumSplashDuration: const Duration(seconds: 7),
       reducedMotion: reducedMotion,
+      presentationOrientation: presentationOrientation,
       stopIntroPlayback: stopIntroPlayback,
     );
   }
@@ -876,6 +971,7 @@ final class _MemoryPresentationAssetResolver
   final Set<String> failingImages;
   final Set<String> failingMedia;
   int mediaCalls = 0;
+  final List<String> resolvedMediaPaths = <String>[];
 
   @override
   Future<bool> exists(String projectRelativePath) async => true;
@@ -894,6 +990,7 @@ final class _MemoryPresentationAssetResolver
 
   @override
   Future<RuntimeResolvedAsset?> resolveMedia(String projectRelativePath) async {
+    resolvedMediaPaths.add(projectRelativePath);
     mediaCalls++;
     final callIndex = mediaCalls - 1;
     if (callIndex < mediaGates.length) {

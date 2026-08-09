@@ -92,6 +92,7 @@ final class GamePackagePresentation {
     this.schemaVersion = 1,
     this.branding = const GamePackageBranding(),
     this.intro,
+    this.titleMotion,
     this.typography,
     this.theme,
   });
@@ -99,13 +100,16 @@ final class GamePackagePresentation {
   final int schemaVersion;
   final GamePackageBranding branding;
   final GamePackageIntroVideo? intro;
+  final GamePackageTitleMotion? titleMotion;
   final GamePackageTypography? typography;
   final GamePackageSemanticTheme? theme;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'schemaVersion': schemaVersion,
         'branding': branding.toJson(),
-        if (intro != null) 'intro': intro!.toJson(),
+        if (intro != null) 'intro': intro!.toJson(legacy: schemaVersion == 1),
+        if (schemaVersion >= 2 && titleMotion != null)
+          'titleMotion': titleMotion!.toJson(),
         if (typography != null) 'typography': typography!.toJson(),
         if (theme != null) 'theme': theme!.toJson(),
       };
@@ -113,6 +117,76 @@ final class GamePackagePresentation {
 
 final class GamePackageIntroVideo {
   const GamePackageIntroVideo({
+    this.media,
+    this.video,
+    this.poster,
+    this.captions,
+    this.durationMilliseconds,
+    this.width,
+    this.height,
+    this.bitrateKbps,
+    this.sizeBytes,
+    this.videoCodec,
+    this.audioCodec,
+    required this.reducedMotionBehavior,
+    required this.allowReplay,
+  }) : assert(
+          media != null ||
+              (video != null &&
+                  poster != null &&
+                  durationMilliseconds != null &&
+                  width != null &&
+                  height != null &&
+                  bitrateKbps != null &&
+                  sizeBytes != null &&
+                  videoCodec != null &&
+                  audioCodec != null),
+        );
+
+  final GamePackageResponsiveVideo? media;
+  final String? video;
+  final String? poster;
+  final String? captions;
+  final int? durationMilliseconds;
+  final int? width;
+  final int? height;
+  final int? bitrateKbps;
+  final int? sizeBytes;
+  final String? videoCodec;
+  final String? audioCodec;
+  final String reducedMotionBehavior;
+  final bool allowReplay;
+
+  GamePackageVideoVariant get landscape =>
+      media?.landscape ??
+      GamePackageVideoVariant(
+        video: video!,
+        poster: poster!,
+        captions: captions,
+        durationMilliseconds: durationMilliseconds!,
+        width: width!,
+        height: height!,
+        bitrateKbps: bitrateKbps!,
+        sizeBytes: sizeBytes!,
+        videoCodec: videoCodec!,
+        audioCodec: audioCodec!,
+      );
+
+  GamePackageResponsiveVideo get responsiveMedia =>
+      media ?? GamePackageResponsiveVideo(landscape: landscape);
+
+  Map<String, Object?> toJson({bool legacy = false}) => <String, Object?>{
+        if (legacy)
+          ...landscape.toLegacyJson()
+        else
+          'media': responsiveMedia.toJson(),
+        'reducedMotionBehavior': reducedMotionBehavior,
+        'allowReplay': allowReplay,
+      };
+}
+
+final class GamePackageVideoVariant {
+  const GamePackageVideoVariant({
     required this.video,
     required this.poster,
     this.captions,
@@ -123,8 +197,8 @@ final class GamePackageIntroVideo {
     required this.sizeBytes,
     required this.videoCodec,
     required this.audioCodec,
-    required this.reducedMotionBehavior,
-    required this.allowReplay,
+    this.focalX = .5,
+    this.focalY = .5,
   });
 
   final String video;
@@ -137,8 +211,8 @@ final class GamePackageIntroVideo {
   final int sizeBytes;
   final String videoCodec;
   final String audioCodec;
-  final String reducedMotionBehavior;
-  final bool allowReplay;
+  final double focalX;
+  final double focalY;
 
   Map<String, Object?> toJson() => <String, Object?>{
         'video': video,
@@ -151,8 +225,56 @@ final class GamePackageIntroVideo {
         'sizeBytes': sizeBytes,
         'videoCodec': videoCodec,
         'audioCodec': audioCodec,
-        'reducedMotionBehavior': reducedMotionBehavior,
-        'allowReplay': allowReplay,
+        'focalXPermille': (focalX * 1000).round(),
+        'focalYPermille': (focalY * 1000).round(),
+      };
+
+  Map<String, Object?> toLegacyJson() => <String, Object?>{
+        'video': video,
+        'poster': poster,
+        if (captions != null) 'captions': captions,
+        'durationMilliseconds': durationMilliseconds,
+        'width': width,
+        'height': height,
+        'bitrateKbps': bitrateKbps,
+        'sizeBytes': sizeBytes,
+        'videoCodec': videoCodec,
+        'audioCodec': audioCodec,
+      };
+}
+
+final class GamePackageResponsiveVideo {
+  const GamePackageResponsiveVideo({
+    required this.landscape,
+    this.portrait,
+  });
+
+  final GamePackageVideoVariant landscape;
+  final GamePackageVideoVariant? portrait;
+
+  Iterable<GamePackageVideoVariant> get variants sync* {
+    yield landscape;
+    if (portrait case final portrait?) yield portrait;
+  }
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        'landscape': landscape.toJson(),
+        if (portrait != null) 'portrait': portrait!.toJson(),
+      };
+}
+
+final class GamePackageTitleMotion {
+  const GamePackageTitleMotion({
+    this.promptLoop,
+    this.menuLoop,
+  });
+
+  final GamePackageResponsiveVideo? promptLoop;
+  final GamePackageResponsiveVideo? menuLoop;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+        if (promptLoop != null) 'promptLoop': promptLoop!.toJson(),
+        if (menuLoop != null) 'menuLoop': menuLoop!.toJson(),
       };
 }
 

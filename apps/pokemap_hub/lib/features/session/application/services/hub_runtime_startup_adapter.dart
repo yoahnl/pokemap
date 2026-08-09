@@ -35,10 +35,10 @@ final class HubRuntimeStartupAdapter
   Future<ProjectPresentationProfile?> loadPresentationProfile() async {
     final branding = manifest.branding;
     final intro = manifest.presentation?.intro;
-    if (branding == null && intro == null) return null;
+    final titleMotion = manifest.presentation?.titleMotion;
+    if (branding == null && intro == null && titleMotion == null) return null;
     return ProjectPresentationProfile(
-      schemaVersion: manifest.presentation?.schemaVersion ??
-          ProjectPresentationProfile.supportedSchemaVersion,
+      schemaVersion: ProjectPresentationProfile.supportedSchemaVersion,
       branding: ProjectBrandingProfile(
         iconPath: branding?.icon,
         coverPath: branding?.cover,
@@ -50,21 +50,47 @@ final class HubRuntimeStartupAdapter
       intro: intro == null
           ? null
           : ProjectIntroVideoProfile(
-              videoPath: intro.video,
-              posterPath: intro.poster,
-              captionsPath: intro.captions,
-              durationMilliseconds: intro.durationMilliseconds,
-              width: intro.width,
-              height: intro.height,
-              bitrateKbps: intro.bitrateKbps,
-              sizeBytes: intro.sizeBytes,
-              videoCodec: intro.videoCodec,
-              audioCodec: intro.audioCodec,
+              media: _projectMedia(intro.responsiveMedia),
               reducedMotionBehavior: intro.reducedMotionBehavior,
               allowReplay: intro.allowReplay,
             ),
+      titleMotion: titleMotion == null
+          ? null
+          : ProjectTitleMotionProfile(
+              promptLoop: titleMotion.promptLoop == null
+                  ? null
+                  : _projectMedia(titleMotion.promptLoop!),
+              menuLoop: titleMotion.menuLoop == null
+                  ? null
+                  : _projectMedia(titleMotion.menuLoop!),
+            ),
     );
   }
+
+  ProjectResponsiveVideoProfile _projectMedia(
+    GamePackageResponsiveVideo media,
+  ) =>
+      ProjectResponsiveVideoProfile(
+        landscape: _projectVariant(media.landscape),
+        portrait:
+            media.portrait == null ? null : _projectVariant(media.portrait!),
+      );
+
+  ProjectVideoVariantProfile _projectVariant(GamePackageVideoVariant variant) =>
+      ProjectVideoVariantProfile(
+        videoPath: variant.video,
+        posterPath: variant.poster,
+        captionsPath: variant.captions,
+        durationMilliseconds: variant.durationMilliseconds,
+        width: variant.width,
+        height: variant.height,
+        bitrateKbps: variant.bitrateKbps,
+        sizeBytes: variant.sizeBytes,
+        videoCodec: variant.videoCodec,
+        audioCodec: variant.audioCodec,
+        focalX: variant.focalX,
+        focalY: variant.focalY,
+      );
 
   @override
   Future<RuntimeResolvedAsset?> resolveImage(String projectRelativePath) =>

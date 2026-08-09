@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 2,
+  "branding": {},
+  "intro": {
+    "media": {
+      "landscape": {
+        "videoPath": "assets/presentation/intro/landscape.mp4",
+        "posterPath": "assets/presentation/intro/landscape.png",
+        "durationMilliseconds": 12000,
+        "width": 1920,
+        "height": 1080,
+        "bitrateKbps": 2400,
+        "sizeBytes": 5000000,
+        "videoCodec": "h264",
+        "audioCodec": "none",
+        "focalX": 0.25,
+        "focalY": 0.75
+      },
+      "portrait": {
+        "videoPath": "assets/presentation/intro/portrait.mp4",
+        "posterPath": "assets/presentation/intro/portrait.webp",
+        "durationMilliseconds": 12000,
+        "width": 1080,
+        "height": 1920,
+        "bitrateKbps": 2400,
+        "sizeBytes": 4800000,
+        "videoCodec": "h264",
+        "audioCodec": "none",
+        "focalX": 0.5,
+        "focalY": 0.5
+      }
+    },
+    "reducedMotionBehavior": "poster",
+    "allowReplay": true
+  },
+  "titleMotion": {
+    "promptLoop": {
+      "landscape": {
+        "videoPath": "assets/presentation/title/prompt-landscape.mp4",
+        "posterPath": "assets/presentation/title/prompt-landscape.png",
+        "durationMilliseconds": 8000,
+        "width": 1920,
+        "height": 1080,
+        "bitrateKbps": 3200,
+        "sizeBytes": 8000000,
+        "videoCodec": "h264",
+        "audioCodec": "none",
+        "focalX": 0.5,
+        "focalY": 0.5
+      },
+      "portrait": {
+        "videoPath": "assets/presentation/title/prompt-portrait.mp4",
+        "posterPath": "assets/presentation/title/prompt-portrait.png",
+        "durationMilliseconds": 8000,
+        "width": 1080,
+        "height": 1920,
+        "bitrateKbps": 3200,
+        "sizeBytes": 7600000,
+        "videoCodec": "h264",
+        "audioCodec": "none",
+        "focalX": 0.5,
+        "focalY": 0.5
+      }
+    },
+    "menuLoop": {
+      "landscape": {
+        "videoPath": "assets/presentation/title/menu-landscape.mp4",
+        "posterPath": "assets/presentation/title/menu-landscape.png",
+        "durationMilliseconds": 10000,
+        "width": 1920,
+        "height": 1080,
+        "bitrateKbps": 3600,
+        "sizeBytes": 9000000,
+        "videoCodec": "h264",
+        "audioCodec": "none",
+        "focalX": 0.5,
+        "focalY": 0.5
+      },
+      "portrait": {
+        "videoPath": "assets/presentation/title/menu-portrait.mp4",
+        "posterPath": "assets/presentation/title/menu-portrait.png",
+        "durationMilliseconds": 10000,
+        "width": 1080,
+        "height": 1920,
+        "bitrateKbps": 3600,
+        "sizeBytes": 8600000,
+        "videoCodec": "h264",
+        "audioCodec": "none",
+        "focalX": 0.5,
+        "focalY": 0.5
+      }
+    }
+  }
+}

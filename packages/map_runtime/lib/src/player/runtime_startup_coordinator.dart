@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:map_core/map_core.dart';
 
 import 'runtime_intro_sequence_controller.dart';
+import 'runtime_presentation_media_selection.dart';
 import 'runtime_player_coordinator.dart';
 import 'runtime_player_models.dart';
 import 'runtime_startup_models.dart';
@@ -39,6 +40,8 @@ final class RuntimeStartupCoordinator {
     RuntimeHostSplashBranding? hostBranding,
     Duration? minimumSplashDuration,
     bool reducedMotion = false,
+    RuntimePresentationOrientation presentationOrientation =
+        RuntimePresentationOrientation.landscape,
     Future<void> Function()? stopIntroPlayback,
   })  : _player = playerCoordinator,
         _preparationPort = preparationPort,
@@ -51,6 +54,7 @@ final class RuntimeStartupCoordinator {
             hostBranding?.minimumDisplayDuration ??
             const Duration(milliseconds: 7200),
         _reducedMotion = reducedMotion,
+        _presentationOrientation = presentationOrientation,
         _stopIntroPlayback = stopIntroPlayback ?? _noOp,
         _snapshot = RuntimeStartupSnapshot(
           revision: 0,
@@ -81,6 +85,7 @@ final class RuntimeStartupCoordinator {
   final RuntimeHostSplashBranding? _hostBranding;
   final Duration _minimumSplashDuration;
   final bool _reducedMotion;
+  RuntimePresentationOrientation _presentationOrientation;
   final Future<void> Function() _stopIntroPlayback;
   final StreamController<RuntimeStartupSnapshot> _snapshots =
       StreamController<RuntimeStartupSnapshot>.broadcast();
@@ -92,6 +97,7 @@ final class RuntimeStartupCoordinator {
   RuntimeResolvedAsset? _titleMusicAsset;
   RuntimeStartupPhase? _resumePhase;
   int _generation = 0;
+  int _presentationSelectionGeneration = 0;
   bool _started = false;
   bool _disposed = false;
   bool _preparationActivated = false;
@@ -317,6 +323,7 @@ final class RuntimeStartupCoordinator {
     if (_disposed) return;
     _disposed = true;
     _generation++;
+    _presentationSelectionGeneration++;
     _activePreparation?.cancel();
     _activeAttempt = null;
     await _playerSubscription.cancel();
@@ -329,7 +336,10 @@ final class RuntimeStartupCoordinator {
 
   void _startPreparationAttempt() {
     final generation = ++_generation;
-    final attempt = _RuntimeStartupAttemptContext();
+    final attempt = _RuntimeStartupAttemptContext(
+      orientation: _presentationOrientation,
+    );
+    _presentationSelectionGeneration++;
     _activePreparation?.cancel();
     _activeAttempt = attempt;
     _preparationActivated = false;
@@ -492,11 +502,12 @@ final class RuntimeStartupCoordinator {
     if (intro == null) {
       return const RuntimeStartupPreparationStepResult.absent();
     }
-    final video = _resolveMediaSafely(intro.videoPath);
-    final poster = switch (intro.posterPath) {
-      final String path => _resolveImageSafely(path),
-      null => Future<RuntimeResolvedAsset?>.value(),
-    };
+    final variant = selectRuntimePresentationVideo(
+      intro.media,
+      attempt.orientation,
+    ).variant;
+    final video = _resolveMediaSafely(variant.videoPath);
+    final poster = _resolveImageSafely(variant.posterPath);
     final assets = await Future.wait<
         RuntimeResolvedAsset?>(<Future<RuntimeResolvedAsset?>>[
       video,
@@ -513,7 +524,7 @@ final class RuntimeStartupCoordinator {
         ),
       );
     }
-    if (intro.posterPath != null && attempt.introPoster == null) {
+    if (attempt.introPoster == null) {
       diagnostics.add(
         const RuntimeStartupDiagnostic(
           code: 'introPosterUnavailable',
@@ -529,10 +540,19 @@ final class RuntimeStartupCoordinator {
   Future<RuntimeStartupPreparationStepResult> _prepareTitleAssets(
     _RuntimeStartupAttemptContext attempt,
   ) async {
-    final branding = attempt.profile?.branding;
-    if (branding == null) {
+    final profile = attempt.profile;
+    if (profile == null) {
       return const RuntimeStartupPreparationStepResult.absent();
     }
+    final branding = profile.branding;
+    final prompt = profile.titleMotion?.promptLoop;
+    final menu = profile.titleMotion?.menuLoop;
+    final promptVariant = prompt == null
+        ? null
+        : selectRuntimePresentationVideo(prompt, attempt.orientation).variant;
+    final menuVariant = menu == null
+        ? null
+        : selectRuntimePresentationVideo(menu, attempt.orientation).variant;
     final hero = switch (branding.heroPath) {
       final String path => _resolveImageSafely(path),
       null => Future<RuntimeResolvedAsset?>.value(),
@@ -541,13 +561,33 @@ final class RuntimeStartupCoordinator {
       final String path => _resolveMediaSafely(path),
       null => Future<RuntimeResolvedAsset?>.value(),
     };
+    final promptVideo = promptVariant == null
+        ? Future<RuntimeResolvedAsset?>.value()
+        : _resolveMediaSafely(promptVariant.videoPath);
+    final promptPoster = promptVariant == null
+        ? Future<RuntimeResolvedAsset?>.value()
+        : _resolveImageSafely(promptVariant.posterPath);
+    final menuVideo = menuVariant == null
+        ? Future<RuntimeResolvedAsset?>.value()
+        : _resolveMediaSafely(menuVariant.videoPath);
+    final menuPoster = menuVariant == null
+        ? Future<RuntimeResolvedAsset?>.value()
+        : _resolveImageSafely(menuVariant.posterPath);
     final assets = await Future.wait<
         RuntimeResolvedAsset?>(<Future<RuntimeResolvedAsset?>>[
       hero,
       music,
+      promptVideo,
+      promptPoster,
+      menuVideo,
+      menuPoster,
     ]);
     attempt.titleHero = assets[0];
     attempt.titleMusic = assets[1];
+    attempt.titlePromptVideo = assets[2];
+    attempt.titlePromptPoster = assets[3];
+    attempt.titleMenuVideo = assets[4];
+    attempt.titleMenuPoster = assets[5];
     final diagnostics = <RuntimeStartupDiagnostic>[];
     if (branding.titleMusicPath != null && attempt.titleMusic == null) {
       diagnostics.add(
@@ -562,6 +602,38 @@ final class RuntimeStartupCoordinator {
         const RuntimeStartupDiagnostic(
           code: 'titleHeroUnavailable',
           safeMessage: 'The title artwork is unavailable.',
+        ),
+      );
+    }
+    if (promptVariant != null && attempt.titlePromptVideo == null) {
+      diagnostics.add(
+        const RuntimeStartupDiagnostic(
+          code: 'titlePromptVideoUnavailable',
+          safeMessage: 'The title animation is unavailable.',
+        ),
+      );
+    }
+    if (promptVariant != null && attempt.titlePromptPoster == null) {
+      diagnostics.add(
+        const RuntimeStartupDiagnostic(
+          code: 'titlePromptPosterUnavailable',
+          safeMessage: 'The title poster is unavailable.',
+        ),
+      );
+    }
+    if (menuVariant != null && attempt.titleMenuVideo == null) {
+      diagnostics.add(
+        const RuntimeStartupDiagnostic(
+          code: 'titleMenuVideoUnavailable',
+          safeMessage: 'The menu animation is unavailable.',
+        ),
+      );
+    }
+    if (menuVariant != null && attempt.titleMenuPoster == null) {
+      diagnostics.add(
+        const RuntimeStartupDiagnostic(
+          code: 'titleMenuPosterUnavailable',
+          safeMessage: 'The menu poster is unavailable.',
         ),
       );
     }
@@ -594,16 +666,17 @@ final class RuntimeStartupCoordinator {
     _RuntimeStartupAttemptContext attempt,
   ) async {
     if (!_isActiveAttempt(generation, attempt) || _preparationActivated) return;
+    if (attempt.orientation != _presentationOrientation) {
+      attempt.orientation = _presentationOrientation;
+      await Future.wait<RuntimeStartupPreparationStepResult>([
+        _prepareIntroAssets(attempt),
+        _prepareTitleAssets(attempt),
+      ]);
+      if (!_isActiveAttempt(generation, attempt)) return;
+    }
     _preparationActivated = true;
     _titleMusicAsset = attempt.titleMusic;
-    final resolved = RuntimeStartupResolvedPresentation(
-      profile: attempt.profile,
-      hostLogo: attempt.hostLogo?.presentationAsset,
-      introVideo: attempt.introVideo?.presentationAsset,
-      introPoster: attempt.introPoster?.presentationAsset,
-      titleHero: attempt.titleHero?.presentationAsset,
-      titleMusic: attempt.titleMusic?.presentationAsset,
-    );
+    final resolved = _resolvedPresentation(attempt);
     final introProfile = attempt.profile?.intro;
     _intro.start(
       hasVideo: attempt.introVideo != null,
@@ -634,6 +707,68 @@ final class RuntimeStartupCoordinator {
       isTransitioning: false,
     );
     if (!_snapshot.isLifecycleActive) _intro.pauseForLifecycle();
+  }
+
+  /// Selects and resolves only the media needed by the new viewport family.
+  /// Concrete players observe new asset ids and dispose their previous decoder
+  /// before constructing the replacement.
+  Future<void> updatePresentationOrientation(
+    RuntimePresentationOrientation orientation,
+  ) async {
+    _ensureOpen();
+    if (_presentationOrientation == orientation) return;
+    _presentationOrientation = orientation;
+    final attempt = _activeAttempt;
+    if (!_preparationActivated || attempt == null) return;
+    final generation = _generation;
+    final selectionGeneration = ++_presentationSelectionGeneration;
+    attempt.orientation = orientation;
+    final results = await Future.wait<RuntimeStartupPreparationStepResult>([
+      _prepareIntroAssets(attempt),
+      _prepareTitleAssets(attempt),
+    ]);
+    if (!_isActiveAttempt(generation, attempt) ||
+        selectionGeneration != _presentationSelectionGeneration ||
+        attempt.orientation != orientation) {
+      return;
+    }
+    final diagnostics = <RuntimeStartupDiagnostic>[
+      ..._snapshot.diagnostics,
+      for (final result in results) ...result.diagnostics,
+    ];
+    _publish(
+      _snapshot.next(
+        presentation: _resolvedPresentation(attempt),
+        diagnostics: _uniqueDiagnostics(diagnostics),
+      ),
+    );
+  }
+
+  RuntimeStartupResolvedPresentation _resolvedPresentation(
+    _RuntimeStartupAttemptContext attempt,
+  ) =>
+      RuntimeStartupResolvedPresentation(
+        orientation: attempt.orientation,
+        profile: attempt.profile,
+        hostLogo: attempt.hostLogo?.presentationAsset,
+        introVideo: attempt.introVideo?.presentationAsset,
+        introPoster: attempt.introPoster?.presentationAsset,
+        titleHero: attempt.titleHero?.presentationAsset,
+        titleMusic: attempt.titleMusic?.presentationAsset,
+        titlePromptVideo: attempt.titlePromptVideo?.presentationAsset,
+        titlePromptPoster: attempt.titlePromptPoster?.presentationAsset,
+        titleMenuVideo: attempt.titleMenuVideo?.presentationAsset,
+        titleMenuPoster: attempt.titleMenuPoster?.presentationAsset,
+      );
+
+  List<RuntimeStartupDiagnostic> _uniqueDiagnostics(
+    Iterable<RuntimeStartupDiagnostic> diagnostics,
+  ) {
+    final seen = <String>{};
+    return [
+      for (final diagnostic in diagnostics)
+        if (seen.add(diagnostic.code)) diagnostic,
+    ];
   }
 
   Future<RuntimeStartupCommandResult> _finishIntro({
@@ -853,6 +988,9 @@ final class RuntimeStartupCoordinator {
 }
 
 final class _RuntimeStartupAttemptContext {
+  _RuntimeStartupAttemptContext({required this.orientation});
+
+  RuntimePresentationOrientation orientation;
   ProjectPresentationProfile? profile;
   bool presentationLoadFailed = false;
   RuntimeResolvedAsset? hostLogo;
@@ -860,4 +998,8 @@ final class _RuntimeStartupAttemptContext {
   RuntimeResolvedAsset? introPoster;
   RuntimeResolvedAsset? titleHero;
   RuntimeResolvedAsset? titleMusic;
+  RuntimeResolvedAsset? titlePromptVideo;
+  RuntimeResolvedAsset? titlePromptPoster;
+  RuntimeResolvedAsset? titleMenuVideo;
+  RuntimeResolvedAsset? titleMenuPoster;
 }

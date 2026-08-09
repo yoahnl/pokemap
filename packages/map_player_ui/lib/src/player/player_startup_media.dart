@@ -25,11 +25,24 @@ final class PlayerIntroVideoSource {
     required this.videoUri,
     this.captionsLoader,
     this.volume = 1,
-  }) : assert(volume >= 0 && volume <= 1);
+    this.looping = false,
+    this.aspectRatio = 16 / 9,
+    this.focalX = .5,
+    this.focalY = .5,
+  })  : assert(volume >= 0 && volume <= 1),
+        assert(aspectRatio > 0),
+        assert(focalX >= 0 && focalX <= 1),
+        assert(focalY >= 0 && focalY <= 1);
 
   final Uri videoUri;
   final Future<String> Function()? captionsLoader;
   final double volume;
+  final bool looping;
+  final double aspectRatio;
+  final double focalX;
+  final double focalY;
+
+  Alignment get focalAlignment => Alignment(focalX * 2 - 1, focalY * 2 - 1);
 }
 
 @immutable

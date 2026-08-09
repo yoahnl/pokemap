@@ -525,16 +525,15 @@ abstract class _ProjectBrandingProfile implements ProjectBrandingProfile {
       get copyWith => throw _privateConstructorUsedError;
 }
 
-ProjectIntroVideoProfile _$ProjectIntroVideoProfileFromJson(
+ProjectVideoVariantProfile _$ProjectVideoVariantProfileFromJson(
     Map<String, dynamic> json) {
-  return _ProjectIntroVideoProfile.fromJson(json);
+  return _ProjectVideoVariantProfile.fromJson(json);
 }
 
 /// @nodoc
-mixin _$ProjectIntroVideoProfile {
+mixin _$ProjectVideoVariantProfile {
   String get videoPath => throw _privateConstructorUsedError;
-  @JsonKey(includeIfNull: false)
-  String? get posterPath => throw _privateConstructorUsedError;
+  String get posterPath => throw _privateConstructorUsedError;
   @JsonKey(includeIfNull: false)
   String? get captionsPath => throw _privateConstructorUsedError;
   int get durationMilliseconds => throw _privateConstructorUsedError;
@@ -544,28 +543,29 @@ mixin _$ProjectIntroVideoProfile {
   int get sizeBytes => throw _privateConstructorUsedError;
   String get videoCodec => throw _privateConstructorUsedError;
   String get audioCodec => throw _privateConstructorUsedError;
-  String get reducedMotionBehavior => throw _privateConstructorUsedError;
-  bool get allowReplay => throw _privateConstructorUsedError;
+  double get focalX => throw _privateConstructorUsedError;
+  double get focalY => throw _privateConstructorUsedError;
 
-  /// Serializes this ProjectIntroVideoProfile to a JSON map.
+  /// Serializes this ProjectVideoVariantProfile to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
-  /// Create a copy of ProjectIntroVideoProfile
+  /// Create a copy of ProjectVideoVariantProfile
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $ProjectIntroVideoProfileCopyWith<ProjectIntroVideoProfile> get copyWith =>
-      throw _privateConstructorUsedError;
+  $ProjectVideoVariantProfileCopyWith<ProjectVideoVariantProfile>
+      get copyWith => throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $ProjectIntroVideoProfileCopyWith<$Res> {
-  factory $ProjectIntroVideoProfileCopyWith(ProjectIntroVideoProfile value,
-          $Res Function(ProjectIntroVideoProfile) then) =
-      _$ProjectIntroVideoProfileCopyWithImpl<$Res, ProjectIntroVideoProfile>;
+abstract class $ProjectVideoVariantProfileCopyWith<$Res> {
+  factory $ProjectVideoVariantProfileCopyWith(ProjectVideoVariantProfile value,
+          $Res Function(ProjectVideoVariantProfile) then) =
+      _$ProjectVideoVariantProfileCopyWithImpl<$Res,
+          ProjectVideoVariantProfile>;
   @useResult
   $Res call(
       {String videoPath,
-      @JsonKey(includeIfNull: false) String? posterPath,
+      String posterPath,
       @JsonKey(includeIfNull: false) String? captionsPath,
       int durationMilliseconds,
       int width,
@@ -574,28 +574,28 @@ abstract class $ProjectIntroVideoProfileCopyWith<$Res> {
       int sizeBytes,
       String videoCodec,
       String audioCodec,
-      String reducedMotionBehavior,
-      bool allowReplay});
+      double focalX,
+      double focalY});
 }
 
 /// @nodoc
-class _$ProjectIntroVideoProfileCopyWithImpl<$Res,
-        $Val extends ProjectIntroVideoProfile>
-    implements $ProjectIntroVideoProfileCopyWith<$Res> {
-  _$ProjectIntroVideoProfileCopyWithImpl(this._value, this._then);
+class _$ProjectVideoVariantProfileCopyWithImpl<$Res,
+        $Val extends ProjectVideoVariantProfile>
+    implements $ProjectVideoVariantProfileCopyWith<$Res> {
+  _$ProjectVideoVariantProfileCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of ProjectIntroVideoProfile
+  /// Create a copy of ProjectVideoVariantProfile
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? videoPath = null,
-    Object? posterPath = freezed,
+    Object? posterPath = null,
     Object? captionsPath = freezed,
     Object? durationMilliseconds = null,
     Object? width = null,
@@ -604,18 +604,18 @@ class _$ProjectIntroVideoProfileCopyWithImpl<$Res,
     Object? sizeBytes = null,
     Object? videoCodec = null,
     Object? audioCodec = null,
-    Object? reducedMotionBehavior = null,
-    Object? allowReplay = null,
+    Object? focalX = null,
+    Object? focalY = null,
   }) {
     return _then(_value.copyWith(
       videoPath: null == videoPath
           ? _value.videoPath
           : videoPath // ignore: cast_nullable_to_non_nullable
               as String,
-      posterPath: freezed == posterPath
+      posterPath: null == posterPath
           ? _value.posterPath
           : posterPath // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as String,
       captionsPath: freezed == captionsPath
           ? _value.captionsPath
           : captionsPath // ignore: cast_nullable_to_non_nullable
@@ -648,30 +648,30 @@ class _$ProjectIntroVideoProfileCopyWithImpl<$Res,
           ? _value.audioCodec
           : audioCodec // ignore: cast_nullable_to_non_nullable
               as String,
-      reducedMotionBehavior: null == reducedMotionBehavior
-          ? _value.reducedMotionBehavior
-          : reducedMotionBehavior // ignore: cast_nullable_to_non_nullable
-              as String,
-      allowReplay: null == allowReplay
-          ? _value.allowReplay
-          : allowReplay // ignore: cast_nullable_to_non_nullable
-              as bool,
+      focalX: null == focalX
+          ? _value.focalX
+          : focalX // ignore: cast_nullable_to_non_nullable
+              as double,
+      focalY: null == focalY
+          ? _value.focalY
+          : focalY // ignore: cast_nullable_to_non_nullable
+              as double,
     ) as $Val);
   }
 }
 
 /// @nodoc
-abstract class _$$ProjectIntroVideoProfileImplCopyWith<$Res>
-    implements $ProjectIntroVideoProfileCopyWith<$Res> {
-  factory _$$ProjectIntroVideoProfileImplCopyWith(
-          _$ProjectIntroVideoProfileImpl value,
-          $Res Function(_$ProjectIntroVideoProfileImpl) then) =
-      __$$ProjectIntroVideoProfileImplCopyWithImpl<$Res>;
+abstract class _$$ProjectVideoVariantProfileImplCopyWith<$Res>
+    implements $ProjectVideoVariantProfileCopyWith<$Res> {
+  factory _$$ProjectVideoVariantProfileImplCopyWith(
+          _$ProjectVideoVariantProfileImpl value,
+          $Res Function(_$ProjectVideoVariantProfileImpl) then) =
+      __$$ProjectVideoVariantProfileImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call(
       {String videoPath,
-      @JsonKey(includeIfNull: false) String? posterPath,
+      String posterPath,
       @JsonKey(includeIfNull: false) String? captionsPath,
       int durationMilliseconds,
       int width,
@@ -680,27 +680,27 @@ abstract class _$$ProjectIntroVideoProfileImplCopyWith<$Res>
       int sizeBytes,
       String videoCodec,
       String audioCodec,
-      String reducedMotionBehavior,
-      bool allowReplay});
+      double focalX,
+      double focalY});
 }
 
 /// @nodoc
-class __$$ProjectIntroVideoProfileImplCopyWithImpl<$Res>
-    extends _$ProjectIntroVideoProfileCopyWithImpl<$Res,
-        _$ProjectIntroVideoProfileImpl>
-    implements _$$ProjectIntroVideoProfileImplCopyWith<$Res> {
-  __$$ProjectIntroVideoProfileImplCopyWithImpl(
-      _$ProjectIntroVideoProfileImpl _value,
-      $Res Function(_$ProjectIntroVideoProfileImpl) _then)
+class __$$ProjectVideoVariantProfileImplCopyWithImpl<$Res>
+    extends _$ProjectVideoVariantProfileCopyWithImpl<$Res,
+        _$ProjectVideoVariantProfileImpl>
+    implements _$$ProjectVideoVariantProfileImplCopyWith<$Res> {
+  __$$ProjectVideoVariantProfileImplCopyWithImpl(
+      _$ProjectVideoVariantProfileImpl _value,
+      $Res Function(_$ProjectVideoVariantProfileImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of ProjectIntroVideoProfile
+  /// Create a copy of ProjectVideoVariantProfile
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
     Object? videoPath = null,
-    Object? posterPath = freezed,
+    Object? posterPath = null,
     Object? captionsPath = freezed,
     Object? durationMilliseconds = null,
     Object? width = null,
@@ -709,18 +709,18 @@ class __$$ProjectIntroVideoProfileImplCopyWithImpl<$Res>
     Object? sizeBytes = null,
     Object? videoCodec = null,
     Object? audioCodec = null,
-    Object? reducedMotionBehavior = null,
-    Object? allowReplay = null,
+    Object? focalX = null,
+    Object? focalY = null,
   }) {
-    return _then(_$ProjectIntroVideoProfileImpl(
+    return _then(_$ProjectVideoVariantProfileImpl(
       videoPath: null == videoPath
           ? _value.videoPath
           : videoPath // ignore: cast_nullable_to_non_nullable
               as String,
-      posterPath: freezed == posterPath
+      posterPath: null == posterPath
           ? _value.posterPath
           : posterPath // ignore: cast_nullable_to_non_nullable
-              as String?,
+              as String,
       captionsPath: freezed == captionsPath
           ? _value.captionsPath
           : captionsPath // ignore: cast_nullable_to_non_nullable
@@ -753,14 +753,14 @@ class __$$ProjectIntroVideoProfileImplCopyWithImpl<$Res>
           ? _value.audioCodec
           : audioCodec // ignore: cast_nullable_to_non_nullable
               as String,
-      reducedMotionBehavior: null == reducedMotionBehavior
-          ? _value.reducedMotionBehavior
-          : reducedMotionBehavior // ignore: cast_nullable_to_non_nullable
-              as String,
-      allowReplay: null == allowReplay
-          ? _value.allowReplay
-          : allowReplay // ignore: cast_nullable_to_non_nullable
-              as bool,
+      focalX: null == focalX
+          ? _value.focalX
+          : focalX // ignore: cast_nullable_to_non_nullable
+              as double,
+      focalY: null == focalY
+          ? _value.focalY
+          : focalY // ignore: cast_nullable_to_non_nullable
+              as double,
     ));
   }
 }
@@ -768,10 +768,10 @@ class __$$ProjectIntroVideoProfileImplCopyWithImpl<$Res>
 /// @nodoc
 
 @JsonSerializable(explicitToJson: true)
-class _$ProjectIntroVideoProfileImpl implements _ProjectIntroVideoProfile {
-  const _$ProjectIntroVideoProfileImpl(
+class _$ProjectVideoVariantProfileImpl implements _ProjectVideoVariantProfile {
+  const _$ProjectVideoVariantProfileImpl(
       {required this.videoPath,
-      @JsonKey(includeIfNull: false) this.posterPath,
+      required this.posterPath,
       @JsonKey(includeIfNull: false) this.captionsPath,
       required this.durationMilliseconds,
       required this.width,
@@ -780,17 +780,17 @@ class _$ProjectIntroVideoProfileImpl implements _ProjectIntroVideoProfile {
       required this.sizeBytes,
       required this.videoCodec,
       this.audioCodec = 'none',
-      this.reducedMotionBehavior = 'poster',
-      this.allowReplay = true});
+      this.focalX = 0.5,
+      this.focalY = 0.5});
 
-  factory _$ProjectIntroVideoProfileImpl.fromJson(Map<String, dynamic> json) =>
-      _$$ProjectIntroVideoProfileImplFromJson(json);
+  factory _$ProjectVideoVariantProfileImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$ProjectVideoVariantProfileImplFromJson(json);
 
   @override
   final String videoPath;
   @override
-  @JsonKey(includeIfNull: false)
-  final String? posterPath;
+  final String posterPath;
   @override
   @JsonKey(includeIfNull: false)
   final String? captionsPath;
@@ -811,21 +811,21 @@ class _$ProjectIntroVideoProfileImpl implements _ProjectIntroVideoProfile {
   final String audioCodec;
   @override
   @JsonKey()
-  final String reducedMotionBehavior;
+  final double focalX;
   @override
   @JsonKey()
-  final bool allowReplay;
+  final double focalY;
 
   @override
   String toString() {
-    return 'ProjectIntroVideoProfile(videoPath: $videoPath, posterPath: $posterPath, captionsPath: $captionsPath, durationMilliseconds: $durationMilliseconds, width: $width, height: $height, bitrateKbps: $bitrateKbps, sizeBytes: $sizeBytes, videoCodec: $videoCodec, audioCodec: $audioCodec, reducedMotionBehavior: $reducedMotionBehavior, allowReplay: $allowReplay)';
+    return 'ProjectVideoVariantProfile(videoPath: $videoPath, posterPath: $posterPath, captionsPath: $captionsPath, durationMilliseconds: $durationMilliseconds, width: $width, height: $height, bitrateKbps: $bitrateKbps, sizeBytes: $sizeBytes, videoCodec: $videoCodec, audioCodec: $audioCodec, focalX: $focalX, focalY: $focalY)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$ProjectIntroVideoProfileImpl &&
+            other is _$ProjectVideoVariantProfileImpl &&
             (identical(other.videoPath, videoPath) ||
                 other.videoPath == videoPath) &&
             (identical(other.posterPath, posterPath) ||
@@ -844,10 +844,8 @@ class _$ProjectIntroVideoProfileImpl implements _ProjectIntroVideoProfile {
                 other.videoCodec == videoCodec) &&
             (identical(other.audioCodec, audioCodec) ||
                 other.audioCodec == audioCodec) &&
-            (identical(other.reducedMotionBehavior, reducedMotionBehavior) ||
-                other.reducedMotionBehavior == reducedMotionBehavior) &&
-            (identical(other.allowReplay, allowReplay) ||
-                other.allowReplay == allowReplay));
+            (identical(other.focalX, focalX) || other.focalX == focalX) &&
+            (identical(other.focalY, focalY) || other.focalY == focalY));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -864,30 +862,31 @@ class _$ProjectIntroVideoProfileImpl implements _ProjectIntroVideoProfile {
       sizeBytes,
       videoCodec,
       audioCodec,
-      reducedMotionBehavior,
-      allowReplay);
+      focalX,
+      focalY);
 
-  /// Create a copy of ProjectIntroVideoProfile
+  /// Create a copy of ProjectVideoVariantProfile
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$ProjectIntroVideoProfileImplCopyWith<_$ProjectIntroVideoProfileImpl>
-      get copyWith => __$$ProjectIntroVideoProfileImplCopyWithImpl<
-          _$ProjectIntroVideoProfileImpl>(this, _$identity);
+  _$$ProjectVideoVariantProfileImplCopyWith<_$ProjectVideoVariantProfileImpl>
+      get copyWith => __$$ProjectVideoVariantProfileImplCopyWithImpl<
+          _$ProjectVideoVariantProfileImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$ProjectIntroVideoProfileImplToJson(
+    return _$$ProjectVideoVariantProfileImplToJson(
       this,
     );
   }
 }
 
-abstract class _ProjectIntroVideoProfile implements ProjectIntroVideoProfile {
-  const factory _ProjectIntroVideoProfile(
+abstract class _ProjectVideoVariantProfile
+    implements ProjectVideoVariantProfile {
+  const factory _ProjectVideoVariantProfile(
       {required final String videoPath,
-      @JsonKey(includeIfNull: false) final String? posterPath,
+      required final String posterPath,
       @JsonKey(includeIfNull: false) final String? captionsPath,
       required final int durationMilliseconds,
       required final int width,
@@ -896,17 +895,16 @@ abstract class _ProjectIntroVideoProfile implements ProjectIntroVideoProfile {
       required final int sizeBytes,
       required final String videoCodec,
       final String audioCodec,
-      final String reducedMotionBehavior,
-      final bool allowReplay}) = _$ProjectIntroVideoProfileImpl;
+      final double focalX,
+      final double focalY}) = _$ProjectVideoVariantProfileImpl;
 
-  factory _ProjectIntroVideoProfile.fromJson(Map<String, dynamic> json) =
-      _$ProjectIntroVideoProfileImpl.fromJson;
+  factory _ProjectVideoVariantProfile.fromJson(Map<String, dynamic> json) =
+      _$ProjectVideoVariantProfileImpl.fromJson;
 
   @override
   String get videoPath;
   @override
-  @JsonKey(includeIfNull: false)
-  String? get posterPath;
+  String get posterPath;
   @override
   @JsonKey(includeIfNull: false)
   String? get captionsPath;
@@ -925,6 +923,455 @@ abstract class _ProjectIntroVideoProfile implements ProjectIntroVideoProfile {
   @override
   String get audioCodec;
   @override
+  double get focalX;
+  @override
+  double get focalY;
+
+  /// Create a copy of ProjectVideoVariantProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectVideoVariantProfileImplCopyWith<_$ProjectVideoVariantProfileImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectResponsiveVideoProfile _$ProjectResponsiveVideoProfileFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectResponsiveVideoProfile.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectResponsiveVideoProfile {
+  ProjectVideoVariantProfile get landscape =>
+      throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  ProjectVideoVariantProfile? get portrait =>
+      throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectResponsiveVideoProfile to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectResponsiveVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectResponsiveVideoProfileCopyWith<ProjectResponsiveVideoProfile>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectResponsiveVideoProfileCopyWith<$Res> {
+  factory $ProjectResponsiveVideoProfileCopyWith(
+          ProjectResponsiveVideoProfile value,
+          $Res Function(ProjectResponsiveVideoProfile) then) =
+      _$ProjectResponsiveVideoProfileCopyWithImpl<$Res,
+          ProjectResponsiveVideoProfile>;
+  @useResult
+  $Res call(
+      {ProjectVideoVariantProfile landscape,
+      @JsonKey(includeIfNull: false) ProjectVideoVariantProfile? portrait});
+
+  $ProjectVideoVariantProfileCopyWith<$Res> get landscape;
+  $ProjectVideoVariantProfileCopyWith<$Res>? get portrait;
+}
+
+/// @nodoc
+class _$ProjectResponsiveVideoProfileCopyWithImpl<$Res,
+        $Val extends ProjectResponsiveVideoProfile>
+    implements $ProjectResponsiveVideoProfileCopyWith<$Res> {
+  _$ProjectResponsiveVideoProfileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectResponsiveVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? landscape = null,
+    Object? portrait = freezed,
+  }) {
+    return _then(_value.copyWith(
+      landscape: null == landscape
+          ? _value.landscape
+          : landscape // ignore: cast_nullable_to_non_nullable
+              as ProjectVideoVariantProfile,
+      portrait: freezed == portrait
+          ? _value.portrait
+          : portrait // ignore: cast_nullable_to_non_nullable
+              as ProjectVideoVariantProfile?,
+    ) as $Val);
+  }
+
+  /// Create a copy of ProjectResponsiveVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectVideoVariantProfileCopyWith<$Res> get landscape {
+    return $ProjectVideoVariantProfileCopyWith<$Res>(_value.landscape, (value) {
+      return _then(_value.copyWith(landscape: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ProjectResponsiveVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectVideoVariantProfileCopyWith<$Res>? get portrait {
+    if (_value.portrait == null) {
+      return null;
+    }
+
+    return $ProjectVideoVariantProfileCopyWith<$Res>(_value.portrait!, (value) {
+      return _then(_value.copyWith(portrait: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectResponsiveVideoProfileImplCopyWith<$Res>
+    implements $ProjectResponsiveVideoProfileCopyWith<$Res> {
+  factory _$$ProjectResponsiveVideoProfileImplCopyWith(
+          _$ProjectResponsiveVideoProfileImpl value,
+          $Res Function(_$ProjectResponsiveVideoProfileImpl) then) =
+      __$$ProjectResponsiveVideoProfileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {ProjectVideoVariantProfile landscape,
+      @JsonKey(includeIfNull: false) ProjectVideoVariantProfile? portrait});
+
+  @override
+  $ProjectVideoVariantProfileCopyWith<$Res> get landscape;
+  @override
+  $ProjectVideoVariantProfileCopyWith<$Res>? get portrait;
+}
+
+/// @nodoc
+class __$$ProjectResponsiveVideoProfileImplCopyWithImpl<$Res>
+    extends _$ProjectResponsiveVideoProfileCopyWithImpl<$Res,
+        _$ProjectResponsiveVideoProfileImpl>
+    implements _$$ProjectResponsiveVideoProfileImplCopyWith<$Res> {
+  __$$ProjectResponsiveVideoProfileImplCopyWithImpl(
+      _$ProjectResponsiveVideoProfileImpl _value,
+      $Res Function(_$ProjectResponsiveVideoProfileImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectResponsiveVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? landscape = null,
+    Object? portrait = freezed,
+  }) {
+    return _then(_$ProjectResponsiveVideoProfileImpl(
+      landscape: null == landscape
+          ? _value.landscape
+          : landscape // ignore: cast_nullable_to_non_nullable
+              as ProjectVideoVariantProfile,
+      portrait: freezed == portrait
+          ? _value.portrait
+          : portrait // ignore: cast_nullable_to_non_nullable
+              as ProjectVideoVariantProfile?,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectResponsiveVideoProfileImpl
+    implements _ProjectResponsiveVideoProfile {
+  const _$ProjectResponsiveVideoProfileImpl(
+      {required this.landscape, @JsonKey(includeIfNull: false) this.portrait});
+
+  factory _$ProjectResponsiveVideoProfileImpl.fromJson(
+          Map<String, dynamic> json) =>
+      _$$ProjectResponsiveVideoProfileImplFromJson(json);
+
+  @override
+  final ProjectVideoVariantProfile landscape;
+  @override
+  @JsonKey(includeIfNull: false)
+  final ProjectVideoVariantProfile? portrait;
+
+  @override
+  String toString() {
+    return 'ProjectResponsiveVideoProfile(landscape: $landscape, portrait: $portrait)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectResponsiveVideoProfileImpl &&
+            (identical(other.landscape, landscape) ||
+                other.landscape == landscape) &&
+            (identical(other.portrait, portrait) ||
+                other.portrait == portrait));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, landscape, portrait);
+
+  /// Create a copy of ProjectResponsiveVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectResponsiveVideoProfileImplCopyWith<
+          _$ProjectResponsiveVideoProfileImpl>
+      get copyWith => __$$ProjectResponsiveVideoProfileImplCopyWithImpl<
+          _$ProjectResponsiveVideoProfileImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectResponsiveVideoProfileImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectResponsiveVideoProfile
+    implements ProjectResponsiveVideoProfile {
+  const factory _ProjectResponsiveVideoProfile(
+          {required final ProjectVideoVariantProfile landscape,
+          @JsonKey(includeIfNull: false)
+          final ProjectVideoVariantProfile? portrait}) =
+      _$ProjectResponsiveVideoProfileImpl;
+
+  factory _ProjectResponsiveVideoProfile.fromJson(Map<String, dynamic> json) =
+      _$ProjectResponsiveVideoProfileImpl.fromJson;
+
+  @override
+  ProjectVideoVariantProfile get landscape;
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectVideoVariantProfile? get portrait;
+
+  /// Create a copy of ProjectResponsiveVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectResponsiveVideoProfileImplCopyWith<
+          _$ProjectResponsiveVideoProfileImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectIntroVideoProfile _$ProjectIntroVideoProfileFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectIntroVideoProfile.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectIntroVideoProfile {
+  ProjectResponsiveVideoProfile get media => throw _privateConstructorUsedError;
+  String get reducedMotionBehavior => throw _privateConstructorUsedError;
+  bool get allowReplay => throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectIntroVideoProfile to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectIntroVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectIntroVideoProfileCopyWith<ProjectIntroVideoProfile> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectIntroVideoProfileCopyWith<$Res> {
+  factory $ProjectIntroVideoProfileCopyWith(ProjectIntroVideoProfile value,
+          $Res Function(ProjectIntroVideoProfile) then) =
+      _$ProjectIntroVideoProfileCopyWithImpl<$Res, ProjectIntroVideoProfile>;
+  @useResult
+  $Res call(
+      {ProjectResponsiveVideoProfile media,
+      String reducedMotionBehavior,
+      bool allowReplay});
+
+  $ProjectResponsiveVideoProfileCopyWith<$Res> get media;
+}
+
+/// @nodoc
+class _$ProjectIntroVideoProfileCopyWithImpl<$Res,
+        $Val extends ProjectIntroVideoProfile>
+    implements $ProjectIntroVideoProfileCopyWith<$Res> {
+  _$ProjectIntroVideoProfileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectIntroVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? media = null,
+    Object? reducedMotionBehavior = null,
+    Object? allowReplay = null,
+  }) {
+    return _then(_value.copyWith(
+      media: null == media
+          ? _value.media
+          : media // ignore: cast_nullable_to_non_nullable
+              as ProjectResponsiveVideoProfile,
+      reducedMotionBehavior: null == reducedMotionBehavior
+          ? _value.reducedMotionBehavior
+          : reducedMotionBehavior // ignore: cast_nullable_to_non_nullable
+              as String,
+      allowReplay: null == allowReplay
+          ? _value.allowReplay
+          : allowReplay // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ) as $Val);
+  }
+
+  /// Create a copy of ProjectIntroVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectResponsiveVideoProfileCopyWith<$Res> get media {
+    return $ProjectResponsiveVideoProfileCopyWith<$Res>(_value.media, (value) {
+      return _then(_value.copyWith(media: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectIntroVideoProfileImplCopyWith<$Res>
+    implements $ProjectIntroVideoProfileCopyWith<$Res> {
+  factory _$$ProjectIntroVideoProfileImplCopyWith(
+          _$ProjectIntroVideoProfileImpl value,
+          $Res Function(_$ProjectIntroVideoProfileImpl) then) =
+      __$$ProjectIntroVideoProfileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {ProjectResponsiveVideoProfile media,
+      String reducedMotionBehavior,
+      bool allowReplay});
+
+  @override
+  $ProjectResponsiveVideoProfileCopyWith<$Res> get media;
+}
+
+/// @nodoc
+class __$$ProjectIntroVideoProfileImplCopyWithImpl<$Res>
+    extends _$ProjectIntroVideoProfileCopyWithImpl<$Res,
+        _$ProjectIntroVideoProfileImpl>
+    implements _$$ProjectIntroVideoProfileImplCopyWith<$Res> {
+  __$$ProjectIntroVideoProfileImplCopyWithImpl(
+      _$ProjectIntroVideoProfileImpl _value,
+      $Res Function(_$ProjectIntroVideoProfileImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectIntroVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? media = null,
+    Object? reducedMotionBehavior = null,
+    Object? allowReplay = null,
+  }) {
+    return _then(_$ProjectIntroVideoProfileImpl(
+      media: null == media
+          ? _value.media
+          : media // ignore: cast_nullable_to_non_nullable
+              as ProjectResponsiveVideoProfile,
+      reducedMotionBehavior: null == reducedMotionBehavior
+          ? _value.reducedMotionBehavior
+          : reducedMotionBehavior // ignore: cast_nullable_to_non_nullable
+              as String,
+      allowReplay: null == allowReplay
+          ? _value.allowReplay
+          : allowReplay // ignore: cast_nullable_to_non_nullable
+              as bool,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectIntroVideoProfileImpl extends _ProjectIntroVideoProfile {
+  const _$ProjectIntroVideoProfileImpl(
+      {required this.media,
+      this.reducedMotionBehavior = 'poster',
+      this.allowReplay = true})
+      : super._();
+
+  factory _$ProjectIntroVideoProfileImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectIntroVideoProfileImplFromJson(json);
+
+  @override
+  final ProjectResponsiveVideoProfile media;
+  @override
+  @JsonKey()
+  final String reducedMotionBehavior;
+  @override
+  @JsonKey()
+  final bool allowReplay;
+
+  @override
+  String toString() {
+    return 'ProjectIntroVideoProfile(media: $media, reducedMotionBehavior: $reducedMotionBehavior, allowReplay: $allowReplay)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectIntroVideoProfileImpl &&
+            (identical(other.media, media) || other.media == media) &&
+            (identical(other.reducedMotionBehavior, reducedMotionBehavior) ||
+                other.reducedMotionBehavior == reducedMotionBehavior) &&
+            (identical(other.allowReplay, allowReplay) ||
+                other.allowReplay == allowReplay));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode =>
+      Object.hash(runtimeType, media, reducedMotionBehavior, allowReplay);
+
+  /// Create a copy of ProjectIntroVideoProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectIntroVideoProfileImplCopyWith<_$ProjectIntroVideoProfileImpl>
+      get copyWith => __$$ProjectIntroVideoProfileImplCopyWithImpl<
+          _$ProjectIntroVideoProfileImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectIntroVideoProfileImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectIntroVideoProfile extends ProjectIntroVideoProfile {
+  const factory _ProjectIntroVideoProfile(
+      {required final ProjectResponsiveVideoProfile media,
+      final String reducedMotionBehavior,
+      final bool allowReplay}) = _$ProjectIntroVideoProfileImpl;
+  const _ProjectIntroVideoProfile._() : super._();
+
+  factory _ProjectIntroVideoProfile.fromJson(Map<String, dynamic> json) =
+      _$ProjectIntroVideoProfileImpl.fromJson;
+
+  @override
+  ProjectResponsiveVideoProfile get media;
+  @override
   String get reducedMotionBehavior;
   @override
   bool get allowReplay;
@@ -934,6 +1381,237 @@ abstract class _ProjectIntroVideoProfile implements ProjectIntroVideoProfile {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$ProjectIntroVideoProfileImplCopyWith<_$ProjectIntroVideoProfileImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
+ProjectTitleMotionProfile _$ProjectTitleMotionProfileFromJson(
+    Map<String, dynamic> json) {
+  return _ProjectTitleMotionProfile.fromJson(json);
+}
+
+/// @nodoc
+mixin _$ProjectTitleMotionProfile {
+  @JsonKey(includeIfNull: false)
+  ProjectResponsiveVideoProfile? get promptLoop =>
+      throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
+  ProjectResponsiveVideoProfile? get menuLoop =>
+      throw _privateConstructorUsedError;
+
+  /// Serializes this ProjectTitleMotionProfile to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of ProjectTitleMotionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $ProjectTitleMotionProfileCopyWith<ProjectTitleMotionProfile> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $ProjectTitleMotionProfileCopyWith<$Res> {
+  factory $ProjectTitleMotionProfileCopyWith(ProjectTitleMotionProfile value,
+          $Res Function(ProjectTitleMotionProfile) then) =
+      _$ProjectTitleMotionProfileCopyWithImpl<$Res, ProjectTitleMotionProfile>;
+  @useResult
+  $Res call(
+      {@JsonKey(includeIfNull: false) ProjectResponsiveVideoProfile? promptLoop,
+      @JsonKey(includeIfNull: false) ProjectResponsiveVideoProfile? menuLoop});
+
+  $ProjectResponsiveVideoProfileCopyWith<$Res>? get promptLoop;
+  $ProjectResponsiveVideoProfileCopyWith<$Res>? get menuLoop;
+}
+
+/// @nodoc
+class _$ProjectTitleMotionProfileCopyWithImpl<$Res,
+        $Val extends ProjectTitleMotionProfile>
+    implements $ProjectTitleMotionProfileCopyWith<$Res> {
+  _$ProjectTitleMotionProfileCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of ProjectTitleMotionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? promptLoop = freezed,
+    Object? menuLoop = freezed,
+  }) {
+    return _then(_value.copyWith(
+      promptLoop: freezed == promptLoop
+          ? _value.promptLoop
+          : promptLoop // ignore: cast_nullable_to_non_nullable
+              as ProjectResponsiveVideoProfile?,
+      menuLoop: freezed == menuLoop
+          ? _value.menuLoop
+          : menuLoop // ignore: cast_nullable_to_non_nullable
+              as ProjectResponsiveVideoProfile?,
+    ) as $Val);
+  }
+
+  /// Create a copy of ProjectTitleMotionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectResponsiveVideoProfileCopyWith<$Res>? get promptLoop {
+    if (_value.promptLoop == null) {
+      return null;
+    }
+
+    return $ProjectResponsiveVideoProfileCopyWith<$Res>(_value.promptLoop!,
+        (value) {
+      return _then(_value.copyWith(promptLoop: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ProjectTitleMotionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectResponsiveVideoProfileCopyWith<$Res>? get menuLoop {
+    if (_value.menuLoop == null) {
+      return null;
+    }
+
+    return $ProjectResponsiveVideoProfileCopyWith<$Res>(_value.menuLoop!,
+        (value) {
+      return _then(_value.copyWith(menuLoop: value) as $Val);
+    });
+  }
+}
+
+/// @nodoc
+abstract class _$$ProjectTitleMotionProfileImplCopyWith<$Res>
+    implements $ProjectTitleMotionProfileCopyWith<$Res> {
+  factory _$$ProjectTitleMotionProfileImplCopyWith(
+          _$ProjectTitleMotionProfileImpl value,
+          $Res Function(_$ProjectTitleMotionProfileImpl) then) =
+      __$$ProjectTitleMotionProfileImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {@JsonKey(includeIfNull: false) ProjectResponsiveVideoProfile? promptLoop,
+      @JsonKey(includeIfNull: false) ProjectResponsiveVideoProfile? menuLoop});
+
+  @override
+  $ProjectResponsiveVideoProfileCopyWith<$Res>? get promptLoop;
+  @override
+  $ProjectResponsiveVideoProfileCopyWith<$Res>? get menuLoop;
+}
+
+/// @nodoc
+class __$$ProjectTitleMotionProfileImplCopyWithImpl<$Res>
+    extends _$ProjectTitleMotionProfileCopyWithImpl<$Res,
+        _$ProjectTitleMotionProfileImpl>
+    implements _$$ProjectTitleMotionProfileImplCopyWith<$Res> {
+  __$$ProjectTitleMotionProfileImplCopyWithImpl(
+      _$ProjectTitleMotionProfileImpl _value,
+      $Res Function(_$ProjectTitleMotionProfileImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of ProjectTitleMotionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? promptLoop = freezed,
+    Object? menuLoop = freezed,
+  }) {
+    return _then(_$ProjectTitleMotionProfileImpl(
+      promptLoop: freezed == promptLoop
+          ? _value.promptLoop
+          : promptLoop // ignore: cast_nullable_to_non_nullable
+              as ProjectResponsiveVideoProfile?,
+      menuLoop: freezed == menuLoop
+          ? _value.menuLoop
+          : menuLoop // ignore: cast_nullable_to_non_nullable
+              as ProjectResponsiveVideoProfile?,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$ProjectTitleMotionProfileImpl implements _ProjectTitleMotionProfile {
+  const _$ProjectTitleMotionProfileImpl(
+      {@JsonKey(includeIfNull: false) this.promptLoop,
+      @JsonKey(includeIfNull: false) this.menuLoop});
+
+  factory _$ProjectTitleMotionProfileImpl.fromJson(Map<String, dynamic> json) =>
+      _$$ProjectTitleMotionProfileImplFromJson(json);
+
+  @override
+  @JsonKey(includeIfNull: false)
+  final ProjectResponsiveVideoProfile? promptLoop;
+  @override
+  @JsonKey(includeIfNull: false)
+  final ProjectResponsiveVideoProfile? menuLoop;
+
+  @override
+  String toString() {
+    return 'ProjectTitleMotionProfile(promptLoop: $promptLoop, menuLoop: $menuLoop)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$ProjectTitleMotionProfileImpl &&
+            (identical(other.promptLoop, promptLoop) ||
+                other.promptLoop == promptLoop) &&
+            (identical(other.menuLoop, menuLoop) ||
+                other.menuLoop == menuLoop));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, promptLoop, menuLoop);
+
+  /// Create a copy of ProjectTitleMotionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$ProjectTitleMotionProfileImplCopyWith<_$ProjectTitleMotionProfileImpl>
+      get copyWith => __$$ProjectTitleMotionProfileImplCopyWithImpl<
+          _$ProjectTitleMotionProfileImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$ProjectTitleMotionProfileImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _ProjectTitleMotionProfile implements ProjectTitleMotionProfile {
+  const factory _ProjectTitleMotionProfile(
+          {@JsonKey(includeIfNull: false)
+          final ProjectResponsiveVideoProfile? promptLoop,
+          @JsonKey(includeIfNull: false)
+          final ProjectResponsiveVideoProfile? menuLoop}) =
+      _$ProjectTitleMotionProfileImpl;
+
+  factory _ProjectTitleMotionProfile.fromJson(Map<String, dynamic> json) =
+      _$ProjectTitleMotionProfileImpl.fromJson;
+
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectResponsiveVideoProfile? get promptLoop;
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectResponsiveVideoProfile? get menuLoop;
+
+  /// Create a copy of ProjectTitleMotionProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$ProjectTitleMotionProfileImplCopyWith<_$ProjectTitleMotionProfileImpl>
       get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -2032,6 +2710,9 @@ mixin _$ProjectPresentationProfile {
   @JsonKey(includeIfNull: false)
   ProjectIntroVideoProfile? get intro => throw _privateConstructorUsedError;
   @JsonKey(includeIfNull: false)
+  ProjectTitleMotionProfile? get titleMotion =>
+      throw _privateConstructorUsedError;
+  @JsonKey(includeIfNull: false)
   ProjectTypographyProfile? get typography =>
       throw _privateConstructorUsedError;
   @JsonKey(includeIfNull: false)
@@ -2058,11 +2739,13 @@ abstract class $ProjectPresentationProfileCopyWith<$Res> {
       {int schemaVersion,
       ProjectBrandingProfile branding,
       @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
+      @JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,
       @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
       @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme});
 
   $ProjectBrandingProfileCopyWith<$Res> get branding;
   $ProjectIntroVideoProfileCopyWith<$Res>? get intro;
+  $ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;
   $ProjectTypographyProfileCopyWith<$Res>? get typography;
   $ProjectSemanticThemeProfileCopyWith<$Res>? get theme;
 }
@@ -2086,6 +2769,7 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res,
     Object? schemaVersion = null,
     Object? branding = null,
     Object? intro = freezed,
+    Object? titleMotion = freezed,
     Object? typography = freezed,
     Object? theme = freezed,
   }) {
@@ -2102,6 +2786,10 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res,
           ? _value.intro
           : intro // ignore: cast_nullable_to_non_nullable
               as ProjectIntroVideoProfile?,
+      titleMotion: freezed == titleMotion
+          ? _value.titleMotion
+          : titleMotion // ignore: cast_nullable_to_non_nullable
+              as ProjectTitleMotionProfile?,
       typography: freezed == typography
           ? _value.typography
           : typography // ignore: cast_nullable_to_non_nullable
@@ -2134,6 +2822,21 @@ class _$ProjectPresentationProfileCopyWithImpl<$Res,
 
     return $ProjectIntroVideoProfileCopyWith<$Res>(_value.intro!, (value) {
       return _then(_value.copyWith(intro: value) as $Val);
+    });
+  }
+
+  /// Create a copy of ProjectPresentationProfile
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
+  $ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion {
+    if (_value.titleMotion == null) {
+      return null;
+    }
+
+    return $ProjectTitleMotionProfileCopyWith<$Res>(_value.titleMotion!,
+        (value) {
+      return _then(_value.copyWith(titleMotion: value) as $Val);
     });
   }
 
@@ -2179,6 +2882,7 @@ abstract class _$$ProjectPresentationProfileImplCopyWith<$Res>
       {int schemaVersion,
       ProjectBrandingProfile branding,
       @JsonKey(includeIfNull: false) ProjectIntroVideoProfile? intro,
+      @JsonKey(includeIfNull: false) ProjectTitleMotionProfile? titleMotion,
       @JsonKey(includeIfNull: false) ProjectTypographyProfile? typography,
       @JsonKey(includeIfNull: false) ProjectSemanticThemeProfile? theme});
 
@@ -2186,6 +2890,8 @@ abstract class _$$ProjectPresentationProfileImplCopyWith<$Res>
   $ProjectBrandingProfileCopyWith<$Res> get branding;
   @override
   $ProjectIntroVideoProfileCopyWith<$Res>? get intro;
+  @override
+  $ProjectTitleMotionProfileCopyWith<$Res>? get titleMotion;
   @override
   $ProjectTypographyProfileCopyWith<$Res>? get typography;
   @override
@@ -2210,6 +2916,7 @@ class __$$ProjectPresentationProfileImplCopyWithImpl<$Res>
     Object? schemaVersion = null,
     Object? branding = null,
     Object? intro = freezed,
+    Object? titleMotion = freezed,
     Object? typography = freezed,
     Object? theme = freezed,
   }) {
@@ -2226,6 +2933,10 @@ class __$$ProjectPresentationProfileImplCopyWithImpl<$Res>
           ? _value.intro
           : intro // ignore: cast_nullable_to_non_nullable
               as ProjectIntroVideoProfile?,
+      titleMotion: freezed == titleMotion
+          ? _value.titleMotion
+          : titleMotion // ignore: cast_nullable_to_non_nullable
+              as ProjectTitleMotionProfile?,
       typography: freezed == typography
           ? _value.typography
           : typography // ignore: cast_nullable_to_non_nullable
@@ -2246,6 +2957,7 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
       {this.schemaVersion = ProjectPresentationProfile.supportedSchemaVersion,
       this.branding = const ProjectBrandingProfile(),
       @JsonKey(includeIfNull: false) this.intro,
+      @JsonKey(includeIfNull: false) this.titleMotion,
       @JsonKey(includeIfNull: false) this.typography,
       @JsonKey(includeIfNull: false) this.theme})
       : super._();
@@ -2265,6 +2977,9 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
   final ProjectIntroVideoProfile? intro;
   @override
   @JsonKey(includeIfNull: false)
+  final ProjectTitleMotionProfile? titleMotion;
+  @override
+  @JsonKey(includeIfNull: false)
   final ProjectTypographyProfile? typography;
   @override
   @JsonKey(includeIfNull: false)
@@ -2272,7 +2987,7 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
 
   @override
   String toString() {
-    return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro, typography: $typography, theme: $theme)';
+    return 'ProjectPresentationProfile(schemaVersion: $schemaVersion, branding: $branding, intro: $intro, titleMotion: $titleMotion, typography: $typography, theme: $theme)';
   }
 
   @override
@@ -2285,6 +3000,8 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
             (identical(other.branding, branding) ||
                 other.branding == branding) &&
             (identical(other.intro, intro) || other.intro == intro) &&
+            (identical(other.titleMotion, titleMotion) ||
+                other.titleMotion == titleMotion) &&
             (identical(other.typography, typography) ||
                 other.typography == typography) &&
             (identical(other.theme, theme) || other.theme == theme));
@@ -2292,8 +3009,8 @@ class _$ProjectPresentationProfileImpl extends _ProjectPresentationProfile {
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, schemaVersion, branding, intro, typography, theme);
+  int get hashCode => Object.hash(runtimeType, schemaVersion, branding, intro,
+      titleMotion, typography, theme);
 
   /// Create a copy of ProjectPresentationProfile
   /// with the given fields replaced by the non-null parameter values.
@@ -2317,6 +3034,8 @@ abstract class _ProjectPresentationProfile extends ProjectPresentationProfile {
       {final int schemaVersion,
       final ProjectBrandingProfile branding,
       @JsonKey(includeIfNull: false) final ProjectIntroVideoProfile? intro,
+      @JsonKey(includeIfNull: false)
+      final ProjectTitleMotionProfile? titleMotion,
       @JsonKey(includeIfNull: false) final ProjectTypographyProfile? typography,
       @JsonKey(includeIfNull: false)
       final ProjectSemanticThemeProfile?
@@ -2333,6 +3052,9 @@ abstract class _ProjectPresentationProfile extends ProjectPresentationProfile {
   @override
   @JsonKey(includeIfNull: false)
   ProjectIntroVideoProfile? get intro;
+  @override
+  @JsonKey(includeIfNull: false)
+  ProjectTitleMotionProfile? get titleMotion;
   @override
   @JsonKey(includeIfNull: false)
   ProjectTypographyProfile? get typography;
