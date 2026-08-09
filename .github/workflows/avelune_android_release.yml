@@ -43,6 +43,8 @@ concurrency:
 env:
   FLUTTER_VERSION: 3.46.0-0.3.pre
   FLUTTER_REVISION: 677d472756f83c14371dd8cc624387065f3d32a7
+  AVELUNE_ANDROID_PACKAGE: com.yoahnl.avelune.player
+  AVELUNE_PLAY_TRACK: internal
   RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && format('avelune-v{0}', inputs.version) || github.ref_name }}
 
 jobs:
@@ -145,25 +147,32 @@ jobs:
             base64 --decode > "$AVELUNE_KEYSTORE_PATH"
           test -s "$AVELUNE_KEYSTORE_PATH"
           echo "AVELUNE_KEYSTORE_PATH=$AVELUNE_KEYSTORE_PATH" >> "$GITHUB_ENV"
-      - name: Test and build signed release APK
+      - name: Test and build signed Android release
         working-directory: apps/pokemap_hub
         run: |
           flutter pub get
           flutter test test/release/mobile_platform_release_gate_test.dart
           flutter analyze
           flutter build apk --release
+          flutter build appbundle --release
           VERSION="${RELEASE_TAG#avelune-v}"
           mkdir -p build/release
           cp build/app/outputs/flutter-apk/app-release.apk \
             "build/release/Avelune-android-$VERSION.apk"
-          sha256sum "build/release/Avelune-android-$VERSION.apk"
-      - name: Preserve signed APK
+          cp build/app/outputs/bundle/release/app-release.aab \
+            "build/release/Avelune-android-$VERSION.aab"
+          sha256sum \
+            "build/release/Avelune-android-$VERSION.apk" \
+            "build/release/Avelune-android-$VERSION.aab"
+      - name: Preserve signed Android artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: avelune-android-${{ github.sha }}
           if-no-files-found: error
           retention-days: 90
-          path: apps/pokemap_hub/build/release/Avelune-android-*.apk
+          path: |
+            apps/pokemap_hub/build/release/Avelune-android-*.apk
+            apps/pokemap_hub/build/release/Avelune-android-*.aab
       - name: Publish Avelune GitHub Release
         working-directory: apps/pokemap_hub
         env:
@@ -175,6 +184,95 @@ jobs:
           fi
           gh release create "$RELEASE_TAG" "${TARGET_ARGS[@]}" \
             build/release/Avelune-android-*.apk \
+            build/release/Avelune-android-*.aab \
             --repo "$GITHUB_REPOSITORY" \
             --title "Avelune ${RELEASE_TAG#avelune-v}" \
             --generate-notes
+
+  publish-play-internal:
+    needs: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment: pokemap-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download signed Android artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: avelune-android-${{ github.sha }}
+          path: build/release
+      - id: google_auth
+        name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093
+        with:
+          token_format: access_token
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          access_token_scopes: https://www.googleapis.com/auth/androidpublisher
+      - name: Publish Avelune to the Play internal track
+        env:
+          GOOGLE_ACCESS_TOKEN: ${{ steps.google_auth.outputs.access_token }}
+        run: |
+          set -euo pipefail
+          API_ROOT="https://androidpublisher.googleapis.com/androidpublisher/v3/applications/$AVELUNE_ANDROID_PACKAGE"
+          UPLOAD_ROOT="https://androidpublisher.googleapis.com/upload/androidpublisher/v3/applications/$AVELUNE_ANDROID_PACKAGE"
+          AAB_PATH="$(find build/release -type f -name 'Avelune-android-*.aab' -print -quit)"
+          test -n "$AAB_PATH"
+          VERSION="${RELEASE_TAG#avelune-v}"
+          TMP_DIR="$(mktemp -d)"
+          trap 'rm -rf "$TMP_DIR"' EXIT
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $GOOGLE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data '{}' \
+            "$API_ROOT/edits" > "$TMP_DIR/edit.json"
+          EDIT_ID="$(jq -er '.id' "$TMP_DIR/edit.json")"
+
+          curl --fail-with-body --silent --show-error \
+            --max-time 180 \
+            --request POST \
+            --header "Authorization: Bearer $GOOGLE_ACCESS_TOKEN" \
+            --header "Content-Type: application/octet-stream" \
+            --data-binary "@$AAB_PATH" \
+            "$UPLOAD_ROOT/edits/$EDIT_ID/bundles?uploadType=media" \
+            > "$TMP_DIR/bundle.json"
+          VERSION_CODE="$(jq -er '.versionCode | tostring' "$TMP_DIR/bundle.json")"
+
+          jq -n \
+            --arg track "$AVELUNE_PLAY_TRACK" \
+            --arg name "Avelune $VERSION" \
+            --arg version_code "$VERSION_CODE" \
+            '{
+              track: $track,
+              releases: [{
+                name: $name,
+                versionCodes: [$version_code],
+                status: "completed"
+              }]
+            }' > "$TMP_DIR/track-request.json"
+          curl --fail-with-body --silent --show-error \
+            --request PUT \
+            --header "Authorization: Bearer $GOOGLE_ACCESS_TOKEN" \
+            --header "Content-Type: application/json" \
+            --data-binary "@$TMP_DIR/track-request.json" \
+            "$API_ROOT/edits/$EDIT_ID/tracks/$AVELUNE_PLAY_TRACK" \
+            > "$TMP_DIR/track.json"
+          jq -e '.releases[] | select(.status == "completed")' \
+            "$TMP_DIR/track.json" > /dev/null
+
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $GOOGLE_ACCESS_TOKEN" \
+            "$API_ROOT/edits/$EDIT_ID:validate" > "$TMP_DIR/validation.json"
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $GOOGLE_ACCESS_TOKEN" \
+            "$API_ROOT/edits/$EDIT_ID:commit" > "$TMP_DIR/commit.json"
+          jq -e --arg edit_id "$EDIT_ID" '.id == $edit_id' \
+            "$TMP_DIR/commit.json" > /dev/null
+          printf 'Published Avelune %s (versionCode %s) to Play track %s.\n' \
+            "$VERSION" "$VERSION_CODE" "$AVELUNE_PLAY_TRACK"

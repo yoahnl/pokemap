@@ -136,4 +136,38 @@ void main() {
     );
     expect(androidWorkflow, isNot(contains('PokeMap-android')));
   });
+
+  test('GitHub publishes signed Android bundles to Play internal', () async {
+    final androidWorkflow = await File(
+      '../../.github/workflows/avelune_android_release.yml',
+    ).readAsString();
+
+    expect(androidWorkflow, contains('flutter build appbundle --release'));
+    expect(androidWorkflow, contains('publish-play-internal:'));
+    expect(androidWorkflow, contains('id-token: write'));
+    expect(
+      androidWorkflow,
+      contains(
+        'google-github-actions/auth@'
+        '7c6bc770dae815cd3e89ee6cdf493a5fab2cc093',
+      ),
+    );
+    expect(
+      androidWorkflow,
+      contains(r'${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}'),
+    );
+    expect(androidWorkflow, contains(r'${{ vars.GCP_SERVICE_ACCOUNT }}'));
+    expect(
+      androidWorkflow,
+      contains('https://www.googleapis.com/auth/androidpublisher'),
+    );
+    expect(androidWorkflow, contains('com.yoahnl.avelune.player'));
+    expect(androidWorkflow, contains('AVELUNE_PLAY_TRACK: internal'));
+    expect(androidWorkflow, contains('edits/\$EDIT_ID/bundles'));
+    expect(
+      androidWorkflow,
+      contains('edits/\$EDIT_ID/tracks/\$AVELUNE_PLAY_TRACK'),
+    );
+    expect(androidWorkflow, contains('edits/\$EDIT_ID:commit'));
+  });
 }
