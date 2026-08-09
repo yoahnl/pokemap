@@ -1187,17 +1187,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
     }
   }
 
-  Object? _startupPayloadForAction(RuntimePlayerAction action) {
-    if (action == RuntimePlayerAction.newGame ||
-        action == RuntimePlayerAction.load) {
-      return const RuntimePlayerLoadSlot(
-        profileId: standaloneRuntimeProfileId,
-        slotId: standaloneRuntimeSlotId,
-      );
-    }
-    return null;
-  }
-
   ImageProvider? _startupImage(
     StandaloneRuntimeStartupHost host,
     RuntimeStartupPresentationAsset? asset,
@@ -1313,7 +1302,6 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage>
           host.coordinator.updatePresentationOrientation(nextOrientation),
         ),
         reducedMotion: reducedMotion,
-        payloadForAction: _startupPayloadForAction,
         onStartupCommand: (command) =>
             unawaited(host.coordinator.dispatch(command)),
         onPlayerCommand: (command) => unawaited(

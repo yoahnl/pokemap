@@ -9,6 +9,7 @@ final class RuntimePlayerTestHarness {
     Future<void>? descriptorGate,
     Object? descriptorError,
     GameSessionSavePolicy savePolicy = const GameSessionSavePolicy(),
+    RuntimePlayerLoadSlot? defaultSaveSlot,
   })  : source = MemoryRuntimeGameSource(
           descriptorGate: descriptorGate,
           descriptorError: descriptorError,
@@ -34,6 +35,7 @@ final class RuntimePlayerTestHarness {
       preferencesGateway: preferences,
       sessionController: sessions,
       externalExit: exit,
+      defaultSaveSlot: defaultSaveSlot,
     );
     exit.disposedProbe = () => coordinator.isDisposed;
   }

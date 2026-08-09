@@ -73,7 +73,10 @@ void main() {
       expect(startupBootstrap, contains('HubPlayerSaveGateway('));
       expect(startupBootstrap, contains('HubPlayerPreferencesGateway('));
       expect(startupBootstrap, contains('HubRuntimeExternalExit('));
-      expect(installedPlayer, contains('PopScope<Object?>('));
+      expect(installedPlayer, isNot(contains('PopScope<Object?>(')));
+      expect(installedPlayer, isNot(contains('_handleSystemBack')));
+      expect(installedPlayer, isNot(contains('_payloadForAction')));
+      expect(startupBootstrap, contains('defaultSaveSlot:'));
       expect(installedPlayer, contains('pauseForLifecycle()'));
       expect(installedPlayer, contains('resumeFromLifecycle()'));
       expect(

@@ -379,6 +379,47 @@ void main() {
     expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
   });
 
+  test('Back is consumed without leaving the startup splash', () async {
+    final harness = _RuntimeStartupTestHarness();
+    addTearDown(harness.dispose);
+    harness.startup.start();
+    await _flushEvents();
+    final phase = harness.startup.snapshot.phase;
+
+    final result = await harness.startup.dispatch(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.requestBack,
+        snapshotRevision: harness.startup.snapshot.revision,
+      ),
+    );
+
+    expect(result.status, RuntimeStartupCommandStatus.accepted);
+    expect(harness.startup.snapshot.phase, phase);
+    expect(harness.player.exit.calls, 0);
+  });
+
+  test('Back skips the active intro through the startup policy', () async {
+    final harness = _RuntimeStartupTestHarness(
+      profile: _presentationWithIntroAndMusic(),
+    );
+    addTearDown(harness.dispose);
+    harness.startup.start();
+    harness.clock.elapseMinimum();
+    await _flushEvents();
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.intro);
+
+    final result = await harness.startup.dispatch(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.requestBack,
+        snapshotRevision: harness.startup.snapshot.revision,
+      ),
+    );
+
+    expect(result.status, RuntimeStartupCommandStatus.accepted);
+    expect(harness.startup.snapshot.phase, RuntimeStartupPhase.titlePrompt);
+    expect(harness.player.exit.calls, 0);
+  });
+
   test('skip is revisioned, stops intro first, then starts title music',
       () async {
     final stopGate = Completer<void>();
@@ -1164,6 +1205,25 @@ void main() {
       ),
       hasLength(1),
     );
+  });
+
+  test('Back is consumed before the runtime bootstrap graph exists', () async {
+    final harness = _RuntimeStartupBootstrapTestHarness();
+    addTearDown(harness.dispose);
+    harness.startup.start();
+    await _flushEvents();
+    final phase = harness.startup.snapshot.phase;
+
+    final result = await harness.startup.dispatch(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.requestBack,
+        snapshotRevision: harness.startup.snapshot.revision,
+      ),
+    );
+
+    expect(result.status, RuntimeStartupCommandStatus.accepted);
+    expect(harness.startup.snapshot.phase, phase);
+    expect(harness.player.exit.calls, 0);
   });
 
   test('bootstrap retry ignores stale progress from the failed attempt',

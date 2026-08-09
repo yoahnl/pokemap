@@ -138,12 +138,8 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pump();
 
-      expect(controller.commands, hasLength(1));
-      expect(
-        controller.commands.single.action,
-        RuntimePlayerAction.returnToTitle,
-      );
-      expect(controller.commands.single.snapshotRevision, 8);
+      expect(controller.backRequests, <int>[8]);
+      expect(controller.commands, isEmpty);
     },
   );
 
@@ -1418,6 +1414,7 @@ final class _FakeRuntimePlayerCoordinator
   final _snapshots = StreamController<RuntimePlayerSnapshot>.broadcast();
   final Completer<RuntimePlayerCommandResult>? commandCompleter;
   final commands = <RuntimePlayerCommand>[];
+  final backRequests = <int>[];
   final worldServiceCommands = <RuntimeWorldServiceCommand>[];
   RuntimePlayerSnapshot _snapshot;
 
@@ -1439,6 +1436,16 @@ final class _FakeRuntimePlayerCoordinator
     commands.add(command);
     final pending = commandCompleter;
     if (pending != null) return pending.future;
+    return const RuntimePlayerCommandResult(
+      status: RuntimePlayerCommandStatus.accepted,
+    );
+  }
+
+  @override
+  Future<RuntimePlayerCommandResult> requestBack({
+    required int snapshotRevision,
+  }) async {
+    backRequests.add(snapshotRevision);
     return const RuntimePlayerCommandResult(
       status: RuntimePlayerCommandStatus.accepted,
     );

@@ -158,6 +158,10 @@ final class StandaloneRuntimeStartupHost {
       preferencesGateway: preferences,
       sessionController: sessions,
       externalExit: _CallbackRuntimeExternalExit(onExternalExit ?? _noOp),
+      defaultSaveSlot: const RuntimePlayerLoadSlot(
+        profileId: standaloneRuntimeProfileId,
+        slotId: standaloneRuntimeSlotId,
+      ),
     );
     final titleMusic =
         titleMusicController ?? RuntimeTitleMusicController(mixer: audioMixer);

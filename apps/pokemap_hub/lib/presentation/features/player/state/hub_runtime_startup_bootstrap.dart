@@ -24,7 +24,6 @@ final class HubRuntimeStartupPreparedData {
     required this.sessions,
     required this.coordinator,
     required this.startupAdapter,
-    required this.saveSelection,
     required this.playerLocale,
     required this.audioMixer,
     required this.controlProfileStore,
@@ -35,7 +34,6 @@ final class HubRuntimeStartupPreparedData {
   final GameSessionController sessions;
   final RuntimePlayerCoordinator coordinator;
   final HubRuntimeStartupAdapter startupAdapter;
-  final HubSaveSelection saveSelection;
   final String playerLocale;
   final RuntimeAudioMixer audioMixer;
   final ControlProfileRepositoryInterface controlProfileStore;
@@ -151,6 +149,10 @@ final class HubRuntimeStartupBootstrap
         preferencesGateway: preferencesGateway,
         sessionController: sessions,
         externalExit: HubRuntimeExternalExit(onHubRequested),
+        defaultSaveSlot: RuntimePlayerLoadSlot(
+          profileId: saveSelection.profileId,
+          slotId: saveSelection.slotId,
+        ),
       );
       final graph = RuntimeStartupPreparedGraph(
         playerCoordinator: coordinator,
@@ -176,7 +178,6 @@ final class HubRuntimeStartupBootstrap
           sessions: sessions,
           coordinator: coordinator,
           startupAdapter: startupAdapter,
-          saveSelection: saveSelection,
           playerLocale: playerLocale,
           audioMixer: audioMixer,
           controlProfileStore: controlProfileRepository,

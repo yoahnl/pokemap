@@ -210,6 +210,8 @@ final class RuntimeStartupCoordinator {
       case RuntimeStartupAction.retryPreparation:
         if (!_snapshot.canRetry) return _unavailable();
         _startPreparationAttempt();
+      case RuntimeStartupAction.requestBack:
+        return _requestBack(command.snapshotRevision);
     }
     return const RuntimeStartupCommandResult(
       status: RuntimeStartupCommandStatus.accepted,
@@ -323,6 +325,58 @@ final class RuntimeStartupCoordinator {
       );
     }
     return result;
+  }
+
+  Future<RuntimeStartupCommandResult> _requestBack(
+    int snapshotRevision,
+  ) async {
+    switch (_snapshot.phase) {
+      case RuntimeStartupPhase.preparing ||
+            RuntimeStartupPhase.splash ||
+            RuntimeStartupPhase.titlePrompt ||
+            RuntimeStartupPhase.recoverableError:
+        return const RuntimeStartupCommandResult(
+          status: RuntimeStartupCommandStatus.accepted,
+        );
+      case RuntimeStartupPhase.intro:
+        if (_snapshot.canContinueFromPoster) {
+          return _finishIntro(
+            expectedRevision: snapshotRevision,
+            mutate: _intro.continueFromPoster,
+          );
+        }
+        if (_snapshot.canSkipIntro) {
+          return _finishIntro(
+            expectedRevision: snapshotRevision,
+            mutate: _intro.skip,
+          );
+        }
+        return const RuntimeStartupCommandResult(
+          status: RuntimeStartupCommandStatus.accepted,
+        );
+      case RuntimeStartupPhase.titleMenu ||
+            RuntimeStartupPhase.launchingSession ||
+            RuntimeStartupPhase.completed:
+        final result = await _player.requestBack(
+          snapshotRevision: _player.snapshot.revision,
+        );
+        return RuntimeStartupCommandResult(
+          status: switch (result.status) {
+            RuntimePlayerCommandStatus.accepted =>
+              RuntimeStartupCommandStatus.accepted,
+            RuntimePlayerCommandStatus.stale =>
+              RuntimeStartupCommandStatus.stale,
+            RuntimePlayerCommandStatus.cancelled =>
+              RuntimeStartupCommandStatus.cancelled,
+            RuntimePlayerCommandStatus.unavailable ||
+            RuntimePlayerCommandStatus.failed =>
+              RuntimeStartupCommandStatus.unavailable,
+          },
+          safeMessage: result.safeMessage,
+        );
+      case RuntimeStartupPhase.lifecyclePaused:
+        return _unavailable();
+    }
   }
 
   Future<void> pauseForLifecycle() async {

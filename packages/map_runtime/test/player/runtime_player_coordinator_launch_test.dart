@@ -242,6 +242,54 @@ void main() {
     expect(harness.coordinator.snapshot.phase, RuntimePlayerPhase.playing);
   });
 
+  test('uses the runtime default slot when New Game has no payload', () async {
+    final harness = RuntimePlayerTestHarness(
+      defaultSaveSlot: const RuntimePlayerLoadSlot(
+        profileId: 'default-player',
+        slotId: 'main',
+      ),
+    );
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.source.requests.single.profileId, 'default-player');
+    expect(harness.source.requests.single.slotId, 'main');
+  });
+
+  test('an explicit New Game slot overrides the runtime default', () async {
+    final harness = RuntimePlayerTestHarness(
+      defaultSaveSlot: const RuntimePlayerLoadSlot(
+        profileId: 'default-player',
+        slotId: 'main',
+      ),
+    );
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.newGame,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+        payload: const RuntimePlayerLoadSlot(
+          profileId: 'selected-player',
+          slotId: 'slot_2',
+        ),
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(harness.source.requests.single.profileId, 'selected-player');
+    expect(harness.source.requests.single.slotId, 'slot_2');
+  });
+
   test('forwards guided identity only to a new game descriptor', () async {
     final harness = RuntimePlayerTestHarness();
     addTearDown(harness.dispose);
@@ -331,6 +379,33 @@ void main() {
       harness.source.requests.single.saveReadHandle,
       'save:player:slot_1',
     );
+  });
+
+  test('uses the runtime default slot when Load has no payload', () async {
+    final seed = RuntimePlayerTestHarness();
+    final save = compatiblePlayerSave(seed.source.identity);
+    await seed.dispose();
+    final harness = RuntimePlayerTestHarness(
+      latestSave: save,
+      defaultSaveSlot: const RuntimePlayerLoadSlot(
+        profileId: 'player',
+        slotId: 'slot_1',
+      ),
+    );
+    addTearDown(harness.dispose);
+    await harness.coordinator.initialize();
+
+    final result = await harness.coordinator.dispatch(
+      RuntimePlayerCommand(
+        action: RuntimePlayerAction.load,
+        snapshotRevision: harness.coordinator.snapshot.revision,
+      ),
+    );
+
+    expect(result.status, RuntimePlayerCommandStatus.accepted);
+    expect(
+        harness.source.requests.single.launchMode, GameSessionLaunchMode.load);
+    expect(harness.source.requests.single.saveReadHandle, 'save:player:slot_1');
   });
 
   test('rejects stale and duplicate title commands without a second session',

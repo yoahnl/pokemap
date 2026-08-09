@@ -28,6 +28,7 @@ enum RuntimeStartupAction {
   replayIntro,
   pressStart,
   retryPreparation,
+  requestBack,
 }
 
 enum RuntimeStartupCommandStatus { accepted, stale, unavailable, cancelled }

@@ -218,16 +218,22 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
         _buildSession(context),
       RuntimeStartupPhase.lifecyclePaused => _buildSplash(),
     };
-    return RuntimePlayerActions(
-      onBack: _handleBack,
-      onMenu: () => _handleInput(
-        const PlayerInputCommand.press(
-          PlayerInputAction.menu,
-          source: PlayerInputSource.keyboard,
+    return PopScope<Object?>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _handleBack();
+      },
+      child: RuntimePlayerActions(
+        onBack: _handleBack,
+        onMenu: () => _handleInput(
+          const PlayerInputCommand.press(
+            PlayerInputAction.menu,
+            source: PlayerInputSource.keyboard,
+          ),
         ),
+        onInputSourceChanged: _focusController.noteInputSource,
+        child: IgnorePointer(ignoring: !_active, child: child),
       ),
-      onInputSourceChanged: _focusController.noteInputSource,
-      child: IgnorePointer(ignoring: !_active, child: child),
     );
   }
 
@@ -644,11 +650,13 @@ class _PlayerRuntimeStartupShellState extends State<PlayerRuntimeStartupShell>
   }
 
   void _handleBack() {
-    final player = widget.snapshot.playerSnapshot;
-    if (player != null && _isTitleOptions(player)) {
-      _focusController.select('title.openOptions');
-      _dispatchPlayer(RuntimePlayerAction.returnToTitle, player);
-    }
+    if (!_active) return;
+    widget.onStartupCommand(
+      RuntimeStartupCommand(
+        action: RuntimeStartupAction.requestBack,
+        snapshotRevision: widget.snapshot.revision,
+      ),
+    );
   }
 
   PlayerTitleMenuAction _titleAction(RuntimePlayerAction action) =>

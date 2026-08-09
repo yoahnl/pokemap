@@ -225,6 +225,13 @@ final class RuntimeStartupBootstrapCoordinator<T> {
         ),
       );
     }
+    if (command.action == RuntimeStartupAction.requestBack) {
+      return RuntimeStartupCommandResult(
+        status: _snapshot.isLifecycleActive && !_snapshot.isTransitioning
+            ? RuntimeStartupCommandStatus.accepted
+            : RuntimeStartupCommandStatus.unavailable,
+      );
+    }
     if (command.action != RuntimeStartupAction.retryPreparation ||
         !_snapshot.canRetry) {
       return const RuntimeStartupCommandResult(

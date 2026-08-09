@@ -8,7 +8,6 @@ import 'package:map_player_ui/map_player_ui.dart' as player_ui;
 import 'package:map_runtime/map_runtime.dart';
 
 import 'package:pokemap_hub/features/library/domain/entities/game_library.dart';
-import 'package:pokemap_hub/features/saves/application/services/hub_save_profile_manager.dart';
 import 'package:pokemap_hub/features/session/application/services/hub_runtime_startup_adapter.dart';
 import 'package:pokemap_hub/presentation/features/player/state/hub_runtime_startup_bootstrap.dart';
 import 'package:pokemap_hub/features/session/domain/repositories/session_launch_repository_interface.dart';
@@ -60,7 +59,6 @@ class HubInstalledGamePlayer extends StatefulWidget {
 
 class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     with WidgetsBindingObserver {
-  RuntimePlayerCoordinator? _coordinator;
   RuntimeStartupBootstrapCoordinator<HubRuntimeStartupPreparedData>?
   _startupCoordinator;
   HubRuntimeStartupAdapter? _startupAdapter;
@@ -70,7 +68,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   player_ui.RuntimePlayerCoordinatorViewController? _viewController;
   GameSessionController? _sessions;
   PlayableMapGame? _mountedGame;
-  HubSaveSelection? _saveSelection;
   Locale? _playerLocale;
   RuntimeAudioMixer? _audioMixer;
   ControlProfileRepositoryInterface? _controlProfileStore;
@@ -116,9 +113,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     if (!mounted) return;
     setState(() {
       _sessions = prepared.sessions;
-      _coordinator = prepared.coordinator;
       _startupAdapter = prepared.startupAdapter;
-      _saveSelection = prepared.saveSelection;
       _playerLocale = Locale(
         prepared.playerLocale.split(RegExp('[-_]')).first.toLowerCase(),
       );
@@ -148,48 +143,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   Future<void> _unmountGame(PlayableMapGame game) async {
     if (!mounted || !identical(_mountedGame, game)) return;
     setState(() => _mountedGame = null);
-  }
-
-  Object? _payloadForAction(RuntimePlayerAction action) {
-    if (action == RuntimePlayerAction.newGame) {
-      final selection = _saveSelection;
-      if (selection == null) return null;
-      return RuntimePlayerLoadSlot(
-        profileId: selection.profileId,
-        slotId: selection.slotId,
-      );
-    }
-    if (action == RuntimePlayerAction.load) {
-      final selection = _saveSelection;
-      if (selection != null) {
-        return RuntimePlayerLoadSlot(
-          profileId: selection.profileId,
-          slotId: selection.slotId,
-        );
-      }
-    }
-    return null;
-  }
-
-  Future<void> _handleSystemBack() async {
-    final coordinator = _coordinator;
-    if (coordinator == null) return;
-    final snapshot = coordinator.snapshot;
-    final action = switch (snapshot.phase) {
-      RuntimePlayerPhase.title
-          when snapshot.pauseSection == RuntimePlayerPauseSection.options =>
-        RuntimePlayerAction.returnToTitle,
-      RuntimePlayerPhase.title => RuntimePlayerAction.returnToHost,
-      RuntimePlayerPhase.playing => RuntimePlayerAction.openMenu,
-      RuntimePlayerPhase.paused => RuntimePlayerAction.returnToTitle,
-      RuntimePlayerPhase.preparingSession ||
-      RuntimePlayerPhase.loadingSession => RuntimePlayerAction.cancel,
-      _ => null,
-    };
-    if (action == null || !snapshot.isActionEnabled(action)) return;
-    await coordinator.dispatch(
-      RuntimePlayerCommand(action: action, snapshotRevision: snapshot.revision),
-    );
   }
 
   ImageProvider? _startupImage(RuntimeStartupPresentationAsset? asset) {
@@ -303,12 +256,7 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     );
     final player = Theme(
       data: startupTheme,
-      child: PopScope<Object?>(
-        canPop: false,
-        onPopInvokedWithResult: (didPop, _) {
-          if (!didPop) unawaited(_handleSystemBack());
-        },
-        child: player_ui.PlayerRuntimeStartupShell(
+      child: player_ui.PlayerRuntimeStartupShell(
           key: const ValueKey<String>('pokemap-runtime-startup-shell'),
           controller: _startupShellController,
           branding: widget.hostBranding,
@@ -338,7 +286,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
           onPresentationOrientationChanged: (nextOrientation) {
             unawaited(startup.updatePresentationOrientation(nextOrientation));
           },
-          payloadForAction: _payloadForAction,
           onStartupCommand: (command) {
             unawaited(startup.dispatch(command));
           },
@@ -368,7 +315,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
                   ? (_, _) => const SizedBox.expand()
                   : (_, _) =>
                       _buildSessionView(viewController, playerPresentation),
-        ),
       ),
     );
     final playerLocale = _playerLocale;
@@ -388,7 +334,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
     controller: viewController,
     titlePresentation: presentation.title,
     pauseMenuLabels: presentation.pauseMenuLabels,
-    payloadForAction: _payloadForAction,
     gameplayInputRoute: _sessions?.handleInput,
     gameplayInputAuthority: _mountedGame?.inputAuthorityListenable,
     dialoguePresentation: _mountedGame?.dialoguePresentationListenable,
@@ -416,7 +361,6 @@ class _HubInstalledGamePlayerState extends State<HubInstalledGamePlayer>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     final startupCoordinator = _startupCoordinator;
-    _coordinator = null;
     _startupCoordinator = null;
     _startupSnapshot = null;
     _viewController = null;

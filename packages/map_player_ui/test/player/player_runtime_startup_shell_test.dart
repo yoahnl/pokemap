@@ -88,6 +88,40 @@ void main() {
     expect(commands, isEmpty);
   });
 
+  testWidgets('system Back is routed to the runtime startup policy',
+      (tester) async {
+    final commands = <RuntimeStartupCommand>[];
+    await tester.pumpWidget(
+      _app(
+        PlayerRuntimeStartupShell(
+          branding: branding,
+          snapshot: RuntimeStartupSnapshot(
+            revision: 5,
+            phase: RuntimeStartupPhase.splash,
+            progress: .4,
+            currentStage: RuntimeStartupPreparationStage.initialMap,
+            isPreparationReady: false,
+            isMinimumElapsed: false,
+            isLifecycleActive: true,
+          ),
+          titlePresentation: presentation,
+          onStartupCommand: commands.add,
+          onPlayerCommand: (_) {},
+          onIntroPlaybackCompleted: (_) {},
+          onIntroPlaybackFailed: (_, __) {},
+        ),
+      ),
+    );
+
+    await tester.binding.handlePopRoute();
+    await tester.pump();
+
+    expect(commands, hasLength(1));
+    expect(commands.single.action, RuntimeStartupAction.requestBack);
+    expect(commands.single.snapshotRevision, 5);
+    expect(find.byType(PlayerRuntimeStartupShell), findsOneWidget);
+  });
+
   testWidgets('holds the live timeline and plays the signed slow-load exit',
       (tester) async {
     RuntimeStartupSnapshot snapshot({

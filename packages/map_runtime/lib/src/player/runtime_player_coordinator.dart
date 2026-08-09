@@ -20,11 +20,13 @@ final class RuntimePlayerCoordinator {
     required PlayerPreferencesGateway preferencesGateway,
     required GameSessionController sessionController,
     required RuntimeExternalExit externalExit,
+    RuntimePlayerLoadSlot? defaultSaveSlot,
   })  : _gameSource = gameSource,
         _saveGateway = saveGateway,
         _preferencesGateway = preferencesGateway,
         _sessions = sessionController,
         _externalExit = externalExit,
+        _defaultSaveSlot = defaultSaveSlot,
         _snapshot = RuntimePlayerSnapshot(
           revision: 0,
           phase: RuntimePlayerPhase.boot,
@@ -45,6 +47,7 @@ final class RuntimePlayerCoordinator {
   final PlayerPreferencesGateway _preferencesGateway;
   final GameSessionController _sessions;
   final RuntimeExternalExit _externalExit;
+  final RuntimePlayerLoadSlot? _defaultSaveSlot;
   final _snapshots = StreamController<RuntimePlayerSnapshot>.broadcast();
   late final StreamSubscription<GameSessionSnapshot> _sessionSubscription;
   late final StreamSubscription<RuntimeWorldServiceSnapshot?>
@@ -129,6 +132,23 @@ final class RuntimePlayerCoordinator {
   ) {
     _ensureOpen();
     return _sessions.dispatchWorldService(command);
+  }
+
+  Future<RuntimePlayerCommandResult> requestBack({
+    required int snapshotRevision,
+  }) {
+    _ensureOpen();
+    if (snapshotRevision == _snapshot.revision &&
+        (_snapshot.phase == RuntimePlayerPhase.preparingSession ||
+            _snapshot.phase == RuntimePlayerPhase.loadingSession)) {
+      return _cancel(
+        RuntimePlayerCommand(
+          action: RuntimePlayerAction.cancel,
+          snapshotRevision: snapshotRevision,
+        ),
+      );
+    }
+    return _serialize(() => _requestBackSerialized(snapshotRevision));
   }
 
   Future<void> pauseForLifecycle() {
@@ -224,7 +244,7 @@ final class RuntimePlayerCoordinator {
         final slot = switch (payload) {
           RuntimePlayerNewGameSetup() => payload.slot,
           RuntimePlayerLoadSlot() => payload,
-          _ => null,
+          _ => _defaultSaveSlot,
         };
         if (slot == null) {
           return const RuntimePlayerCommandResult(
@@ -253,8 +273,11 @@ final class RuntimePlayerCoordinator {
         }
         return _launchSave(save, GameSessionLaunchMode.continueGame);
       case RuntimePlayerAction.load:
-        final slot = command.payload;
-        if (slot is! RuntimePlayerLoadSlot) {
+        final slot = switch (command.payload) {
+          RuntimePlayerLoadSlot value => value,
+          _ => _defaultSaveSlot,
+        };
+        if (slot == null) {
           return const RuntimePlayerCommandResult(
             status: RuntimePlayerCommandStatus.unavailable,
             safeMessage: 'A profile and slot are required to load a save.',
@@ -537,6 +560,93 @@ final class RuntimePlayerCoordinator {
       case RuntimePlayerAction.returnToHost:
         return _returnToHost();
     }
+  }
+
+  Future<RuntimePlayerCommandResult> _requestBackSerialized(
+    int snapshotRevision,
+  ) async {
+    if (snapshotRevision != _snapshot.revision) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.stale,
+        safeMessage: 'The player surface changed before Back arrived.',
+      );
+    }
+    final worldService = _snapshot.worldService;
+    if (worldService != null) {
+      final action = worldService.isActionEnabled(
+        RuntimeWorldServiceAction.close,
+      )
+          ? RuntimeWorldServiceAction.close
+          : worldService.isActionEnabled(RuntimeWorldServiceAction.cancel)
+              ? RuntimeWorldServiceAction.cancel
+              : null;
+      if (action == null) {
+        return const RuntimePlayerCommandResult(
+          status: RuntimePlayerCommandStatus.unavailable,
+        );
+      }
+      final result = await _sessions.dispatchWorldService(
+        RuntimeWorldServiceCommand(
+          action: action,
+          snapshotRevision: worldService.revision,
+        ),
+      );
+      return RuntimePlayerCommandResult(
+        status: switch (result.status) {
+          RuntimeWorldServiceCommandStatus.accepted =>
+            RuntimePlayerCommandStatus.accepted,
+          RuntimeWorldServiceCommandStatus.stale =>
+            RuntimePlayerCommandStatus.stale,
+          RuntimeWorldServiceCommandStatus.unavailable =>
+            RuntimePlayerCommandStatus.unavailable,
+          RuntimeWorldServiceCommandStatus.cancelled =>
+            RuntimePlayerCommandStatus.cancelled,
+          RuntimeWorldServiceCommandStatus.failed =>
+            RuntimePlayerCommandStatus.failed,
+        },
+        safeMessage: result.safeMessage,
+      );
+    }
+    final action = switch (_snapshot.phase) {
+      RuntimePlayerPhase.title
+          when _snapshot.pauseSection == RuntimePlayerPauseSection.options =>
+        RuntimePlayerAction.returnToTitle,
+      RuntimePlayerPhase.title => RuntimePlayerAction.returnToHost,
+      RuntimePlayerPhase.preparingSession ||
+      RuntimePlayerPhase.loadingSession ||
+      RuntimePlayerPhase.error =>
+        RuntimePlayerAction.cancel,
+      RuntimePlayerPhase.playing => RuntimePlayerAction.openMenu,
+      RuntimePlayerPhase.paused
+          when _snapshot.pauseSection != null &&
+              _snapshot.pauseSection != RuntimePlayerPauseSection.root =>
+        RuntimePlayerAction.returnToPauseRoot,
+      RuntimePlayerPhase.paused => RuntimePlayerAction.resume,
+      RuntimePlayerPhase.result => _snapshot.isActionEnabled(
+          RuntimePlayerAction.returnToHost,
+        )
+            ? RuntimePlayerAction.returnToHost
+            : RuntimePlayerAction.returnToTitle,
+      RuntimePlayerPhase.credits => RuntimePlayerAction.finishCredits,
+      RuntimePlayerPhase.boot ||
+      RuntimePlayerPhase.saving ||
+      RuntimePlayerPhase.lifecyclePaused ||
+      RuntimePlayerPhase.completing ||
+      RuntimePlayerPhase.disposingSession ||
+      RuntimePlayerPhase.externalExit =>
+        null,
+    };
+    if (action == null) {
+      return const RuntimePlayerCommandResult(
+        status: RuntimePlayerCommandStatus.unavailable,
+      );
+    }
+    final command = RuntimePlayerCommand(
+      action: action,
+      snapshotRevision: snapshotRevision,
+    );
+    if (action == RuntimePlayerAction.cancel) return _cancel(command);
+    return _dispatchSerialized(command);
   }
 
   Future<RuntimePlayerCommandResult> _returnToHost() async {

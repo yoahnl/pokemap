@@ -34,6 +34,10 @@ abstract interface class RuntimePlayerViewController {
 
   Future<RuntimePlayerCommandResult> dispatch(RuntimePlayerCommand command);
 
+  Future<RuntimePlayerCommandResult> requestBack({
+    required int snapshotRevision,
+  });
+
   Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
     RuntimeWorldServiceCommand command,
   );
@@ -57,6 +61,12 @@ final class RuntimePlayerCoordinatorViewController
     RuntimePlayerCommand command,
   ) =>
       coordinator.dispatch(command);
+
+  @override
+  Future<RuntimePlayerCommandResult> requestBack({
+    required int snapshotRevision,
+  }) =>
+      coordinator.requestBack(snapshotRevision: snapshotRevision);
 
   @override
   Future<RuntimeWorldServiceCommandResult> dispatchWorldService(
@@ -337,40 +347,9 @@ class _PokeMapPlayerSessionViewState extends State<PokeMapPlayerSessionView> {
 
   Future<void> _dispatchBack() async {
     final snapshot = _latestSnapshot;
-    if (snapshot.worldService case final service?) {
-      final action = service.isActionEnabled(RuntimeWorldServiceAction.close)
-          ? RuntimeWorldServiceAction.close
-          : service.isActionEnabled(RuntimeWorldServiceAction.cancel)
-              ? RuntimeWorldServiceAction.cancel
-              : null;
-      if (action != null) {
-        await widget.controller.dispatchWorldService(
-          RuntimeWorldServiceCommand(
-            action: action,
-            snapshotRevision: service.revision,
-          ),
-        );
-      }
-      return;
-    }
-    final action = switch (snapshot.phase) {
-      RuntimePlayerPhase.title
-          when snapshot.pauseSection == RuntimePlayerPauseSection.options =>
-        RuntimePlayerAction.returnToTitle,
-      RuntimePlayerPhase.title => RuntimePlayerAction.returnToHost,
-      RuntimePlayerPhase.paused
-          when snapshot.pauseSection != null &&
-              snapshot.pauseSection != RuntimePlayerPauseSection.root =>
-        RuntimePlayerAction.returnToPauseRoot,
-      RuntimePlayerPhase.paused => RuntimePlayerAction.resume,
-      RuntimePlayerPhase.credits => snapshot.isActionEnabled(
-          RuntimePlayerAction.finishCredits,
-        )
-            ? RuntimePlayerAction.finishCredits
-            : RuntimePlayerAction.returnToTitle,
-      _ => null,
-    };
-    if (action != null) await _dispatchAction(action);
+    await widget.controller.requestBack(
+      snapshotRevision: snapshot.revision,
+    );
   }
 
   Future<void> _dispatchAction(RuntimePlayerAction action) async {
