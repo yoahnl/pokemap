@@ -26,14 +26,18 @@ final class ProjectPresentationPreset {
   ) {
     if (!supports(category)) return current;
     return switch (category) {
-      ProjectPresentationCategory.branding =>
-        current.copyWith(branding: profile.branding),
+      ProjectPresentationCategory.branding => current.copyWith(
+        branding: profile.branding,
+        titleMotion: profile.titleMotion,
+      ),
       ProjectPresentationCategory.intro =>
         current.copyWith(intro: profile.intro),
       ProjectPresentationCategory.typography =>
         current.copyWith(typography: profile.typography),
-      ProjectPresentationCategory.theme =>
-        current.copyWith(theme: profile.theme),
+      ProjectPresentationCategory.theme => current.copyWith(
+        theme: profile.theme,
+        menuLabels: profile.menuLabels,
+      ),
     };
   }
 }
@@ -112,12 +116,17 @@ ProjectPresentationProfile resetProjectPresentationCategory(
   ProjectPresentationCategory category,
 ) =>
     switch (category) {
-      ProjectPresentationCategory.branding =>
-        current.copyWith(branding: const ProjectBrandingProfile()),
+      ProjectPresentationCategory.branding => current.copyWith(
+        branding: const ProjectBrandingProfile(),
+        titleMotion: null,
+      ),
       ProjectPresentationCategory.intro => current.copyWith(intro: null),
       ProjectPresentationCategory.typography =>
         current.copyWith(typography: null),
-      ProjectPresentationCategory.theme => current.copyWith(theme: null),
+      ProjectPresentationCategory.theme => current.copyWith(
+        theme: null,
+        menuLabels: null,
+      ),
     };
 
 final class ProjectPresentationComparison {
@@ -146,6 +155,12 @@ ProjectPresentationComparison compareProjectPresentation(
     changed.add(r'$.intro');
   }
   if (!_jsonEqual(
+    baseline.titleMotion?.toJson(),
+    current.titleMotion?.toJson(),
+  )) {
+    changed.add(r'$.titleMotion');
+  }
+  if (!_jsonEqual(
     baseline.typography?.toJson(),
     current.typography?.toJson(),
   )) {
@@ -153,6 +168,12 @@ ProjectPresentationComparison compareProjectPresentation(
   }
   if (!_jsonEqual(baseline.theme?.toJson(), current.theme?.toJson())) {
     changed.add(r'$.theme');
+  }
+  if (!_jsonEqual(
+    baseline.menuLabels?.toJson(),
+    current.menuLabels?.toJson(),
+  )) {
+    changed.add(r'$.menuLabels');
   }
   return ProjectPresentationComparison(
     changedPaths: List<String>.unmodifiable(changed),

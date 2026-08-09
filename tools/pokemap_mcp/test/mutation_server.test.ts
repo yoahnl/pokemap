@@ -861,6 +861,10 @@ test("MCP applies and rereads the authored Avelune cartridge color", async () =>
         profile: {
           schemaVersion: 1,
           branding: { accentColor: "#126E78" },
+          menuLabels: {
+            pauseTitle: "Escale",
+            pokedex: "Carnet de voyage",
+          },
         },
       },
       sequence: "avelune-cartridge-color",
@@ -878,12 +882,20 @@ test("MCP applies and rereads the authored Avelune cartridge color", async () =>
       record(record(project.presentation).branding).accentColor,
       "#126E78",
     );
+    assert.equal(
+      record(record(project.presentation).menuLabels).pokedex,
+      "Carnet de voyage",
+    );
     const persisted = record(
       JSON.parse(await readFile(join(fixture.root, "project.json"), "utf8")),
     );
     assert.equal(
       record(record(persisted.presentation).branding).accentColor,
       "#126E78",
+    );
+    assert.equal(
+      record(record(persisted.presentation).menuLabels).pauseTitle,
+      "Escale",
     );
     const finalValidation = await toolData(fixture.client, "pokemap_validate", {
       projectHandle,

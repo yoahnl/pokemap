@@ -5,8 +5,66 @@ import 'package:map_editor/personalization_hub.dart';
 import 'package:map_editor/src/theme/pokemap_theme.dart';
 
 void main() {
-  testWidgets('shows every semantic category and shared diagnostics',
-      (tester) async {
+  const responsiveSizes = <Size>[
+    Size(759, 900),
+    Size(760, 900),
+    Size(761, 900),
+    Size(1024, 720),
+    Size(1280, 800),
+    Size(1600, 1000),
+  ];
+
+  for (final size in responsiveSizes) {
+    for (final textScale in <double>[1, 2]) {
+      testWidgets(
+        'remains usable at ${size.width}x${size.height} and ${textScale}x text',
+        (tester) async {
+          await tester.binding.setSurfaceSize(size);
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: PokeMapTheme.light(),
+              home: MediaQuery(
+                data: MediaQueryData(
+                  size: size,
+                  textScaler: TextScaler.linear(textScale),
+                ),
+                child: Scaffold(
+                  body: PersonalizationHubShell(
+                    profile: _responsiveProfile,
+                    baselineProfile: const ProjectPresentationProfile(),
+                    selectedCategory: ProjectPresentationCategory.branding,
+                    onCategorySelected: (_) {},
+                    onProfileChanged: (_) {},
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          expect(tester.takeException(), isNull);
+          expect(
+            find.byKey(
+              const ValueKey<String>('personalization-runtime-preview'),
+            ),
+            findsOneWidget,
+          );
+          expect(
+            find.byKey(
+              const ValueKey<String>('personalization-category-branding'),
+            ),
+            findsOneWidget,
+          );
+        },
+      );
+    }
+  }
+
+  testWidgets('shows every semantic category and shared diagnostics', (
+    tester,
+  ) async {
     ProjectPresentationCategory? selected;
     const profile = ProjectPresentationProfile(
       branding: ProjectBrandingProfile(accentColor: 'purple'),
@@ -32,7 +90,9 @@ void main() {
     expect(find.text('Menus & interface'), findsOneWidget);
     expect(find.text('1 erreur'), findsOneWidget);
     expect(
-        find.text('Use a hexadecimal color such as #6750A4.'), findsOneWidget);
+      find.text('Use a hexadecimal color such as #6750A4.'),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Typographie'));
     expect(selected, ProjectPresentationCategory.typography);
@@ -58,8 +118,9 @@ void main() {
     expect(find.text('Prêt à configurer'), findsOneWidget);
   });
 
-  testWidgets('uses accessible navigation and opens the contextual preview',
-      (tester) async {
+  testWidgets('uses accessible navigation and opens the contextual preview', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: PokeMapTheme.light(),
@@ -80,15 +141,11 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-menu-composition'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-menu-composition')),
       findsOneWidget,
     );
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-category-search'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-category-search')),
       findsNothing,
     );
     expect(
@@ -106,8 +163,9 @@ void main() {
     );
   });
 
-  testWidgets('applies presets, compares and resets the active section',
-      (tester) async {
+  testWidgets('applies presets, compares and resets the active section', (
+    tester,
+  ) async {
     ProjectPresentationProfile? changed;
     const profile = ProjectPresentationProfile(
       branding: ProjectBrandingProfile(layoutVariant: 'centered'),
@@ -131,36 +189,26 @@ void main() {
 
     expect(find.textContaining('changements'), findsOneWidget);
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-preset-cinematic'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
     );
     expect(changed?.branding.layoutVariant, 'cinematic');
 
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-reset-branding'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-reset-branding')),
     );
     expect(changed?.branding, const ProjectBrandingProfile());
     expect(changed?.theme, safeProjectSemanticTheme);
 
     expect(
-      find.byKey(
-        const ValueKey<String>('personalization-preview-compare'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-preview-compare')),
       findsOneWidget,
     );
     await tester.ensureVisible(
-      find.byKey(
-        const ValueKey<String>('personalization-preview-compare'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-preview-compare')),
     );
     await tester.pumpAndSettle();
     await tester.tap(
-      find.byKey(
-        const ValueKey<String>('personalization-preview-compare'),
-      ),
+      find.byKey(const ValueKey<String>('personalization-preview-compare')),
     );
     await tester.pumpAndSettle();
     expect(
@@ -173,8 +221,9 @@ void main() {
     );
   });
 
-  testWidgets('applies the safe theme from an actionable contrast diagnostic',
-      (tester) async {
+  testWidgets('applies the safe theme from an actionable contrast diagnostic', (
+    tester,
+  ) async {
     ProjectPresentationProfile? changed;
     final unsafeTheme = safeProjectSemanticTheme.copyWith(
       textPrimary: safeProjectSemanticTheme.background,
@@ -219,3 +268,23 @@ void main() {
     expect(changed?.theme, safeProjectSemanticTheme);
   });
 }
+
+const _responsiveProfile = ProjectPresentationProfile(
+  branding: ProjectBrandingProfile(layoutVariant: 'cinematic'),
+  titleMotion: ProjectTitleMotionProfile(
+    promptLoop: ProjectResponsiveVideoProfile(
+      landscape: ProjectVideoVariantProfile(
+        videoPath: 'assets/presentation/title/prompt.mp4',
+        posterPath: 'assets/presentation/title/prompt.png',
+        durationMilliseconds: 4000,
+        width: 1280,
+        height: 720,
+        bitrateKbps: 1200,
+        sizeBytes: 4000,
+        videoCodec: 'h264',
+      ),
+    ),
+  ),
+  theme: safeProjectSemanticTheme,
+  menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+);

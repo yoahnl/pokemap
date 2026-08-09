@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_authoring/map_authoring.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_distribution/map_distribution.dart';
 import 'package:map_editor/game_export.dart';
@@ -78,7 +79,7 @@ void main() {
       final container = ProviderContainer();
       final subscription = container.listen<EditorState>(
         editorNotifierProvider,
-        (_, __) {},
+        (_, _) {},
         fireImmediately: true,
       );
       addTearDown(() {
@@ -104,7 +105,8 @@ void main() {
         ),
         isTrue,
       );
-      expect(await notifier.savePersonalizationStudio(), isTrue);
+      final saved = await notifier.savePersonalizationStudio();
+      expect(saved, isTrue, reason: notifier.state.errorMessage);
 
       final configuredOutput =
           Platform.environment['POKEMAP_PHASE6_PACKAGE_OUTPUT'];
@@ -133,6 +135,7 @@ void main() {
         <GamePackagePersonalizationCategory>[
           GamePackagePersonalizationCategory.branding,
           GamePackagePersonalizationCategory.intro,
+          GamePackagePersonalizationCategory.titleMotion,
           GamePackagePersonalizationCategory.typography,
           GamePackagePersonalizationCategory.theme,
         ],
@@ -142,6 +145,10 @@ void main() {
         'cinematic',
       );
       expect(artifact.manifest.presentation?.intro?.allowReplay, isTrue);
+      expect(
+        artifact.manifest.presentation?.menuLabels?.pokedex,
+        'Carnet de route',
+      );
       expect(
         artifact.manifest.presentation?.typography?.display.family,
         'Aube Display',
@@ -212,4 +219,80 @@ Future<void> _writePresentationAssets(Directory projectRoot) async {
   await File(
     p.join(fonts.path, 'display-license.txt'),
   ).writeAsString('Redistribution permitted.', flush: true);
+
+  final catalog = AssetCatalog(
+    records: <AssetRecord>[
+      await _catalogAsset(
+        projectRoot,
+        id: 'phase6-icon',
+        logicalPath: 'assets/presentation/icon.png',
+        mediaType: 'image/png',
+      ),
+      await _catalogAsset(
+        projectRoot,
+        id: 'phase6-cover',
+        logicalPath: 'assets/presentation/cover.png',
+        mediaType: 'image/png',
+      ),
+      await _catalogAsset(
+        projectRoot,
+        id: 'phase6-hero',
+        logicalPath: 'assets/presentation/hero.png',
+        mediaType: 'image/png',
+      ),
+      await _catalogAsset(
+        projectRoot,
+        id: 'phase6-title-music',
+        logicalPath: 'assets/presentation/title.ogg',
+        mediaType: 'audio/ogg',
+      ),
+      await _catalogAsset(
+        projectRoot,
+        id: 'phase6-intro-video',
+        logicalPath: 'assets/presentation/intro/intro.mp4',
+        mediaType: 'video/mp4',
+      ),
+      await _catalogAsset(
+        projectRoot,
+        id: 'phase6-intro-poster',
+        logicalPath: 'assets/presentation/intro/poster.png',
+        mediaType: 'image/png',
+      ),
+      await _catalogAsset(
+        projectRoot,
+        id: 'phase6-intro-captions',
+        logicalPath: 'assets/presentation/intro/captions.vtt',
+        mediaType: 'text/vtt',
+      ),
+      await _catalogAsset(
+        projectRoot,
+        id: 'phase6-display-font',
+        logicalPath: 'assets/presentation/fonts/display.ttf',
+        mediaType: 'font/ttf',
+      ),
+      await _catalogAsset(
+        projectRoot,
+        id: 'phase6-display-license',
+        logicalPath: 'assets/presentation/fonts/display-license.txt',
+        mediaType: 'text/plain',
+      ),
+    ],
+  );
+  final catalogFile = File(p.join(projectRoot.path, assetCatalogStorageKey));
+  await catalogFile.create(recursive: true);
+  await catalogFile.writeAsString(jsonEncode(catalog.toJson()), flush: true);
+}
+
+Future<AssetRecord> _catalogAsset(
+  Directory projectRoot, {
+  required String id,
+  required String logicalPath,
+  required String mediaType,
+}) async {
+  final bytes = await File(p.join(projectRoot.path, logicalPath)).readAsBytes();
+  final artifact = ContentArtifactRef.fromBytes(bytes, mediaType: mediaType);
+  final blob = File(p.join(projectRoot.path, assetBlobStorageKey(artifact)));
+  await blob.create(recursive: true);
+  await blob.writeAsBytes(bytes, flush: true);
+  return AssetRecord(id: id, logicalPath: logicalPath, artifact: artifact);
 }

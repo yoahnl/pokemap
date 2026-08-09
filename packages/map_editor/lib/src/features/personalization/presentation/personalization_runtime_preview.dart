@@ -8,7 +8,10 @@ import 'package:path/path.dart' as p;
 import '../../../theme/theme.dart';
 import '../../../ui/design_system/design_system.dart';
 import '../application/personalization_preview_projection.dart';
-import '../application/project_presentation_presets.dart';
+import '../application/personalization_preview_scenario.dart';
+import '../application/personalization_preview_surface_descriptor.dart';
+import 'personalization_preview_canvas.dart';
+import 'personalization_preview_controls.dart';
 import 'project_branding_title_preview.dart';
 
 /// Runtime-shaped preview surface driven by the current presentation draft.
@@ -24,6 +27,7 @@ class PersonalizationRuntimePreview extends StatefulWidget {
     required this.projectRootPath,
     this.baselineProfile,
     this.initialSurface = PersonalizationPreviewSurface.title,
+    this.initialViewport = PersonalizationPreviewViewport.landscape,
   });
 
   final ProjectPresentationProfile profile;
@@ -31,6 +35,7 @@ class PersonalizationRuntimePreview extends StatefulWidget {
   final String projectName;
   final String projectRootPath;
   final PersonalizationPreviewSurface initialSurface;
+  final PersonalizationPreviewViewport initialViewport;
 
   @override
   State<PersonalizationRuntimePreview> createState() =>
@@ -40,14 +45,16 @@ class PersonalizationRuntimePreview extends StatefulWidget {
 class _PersonalizationRuntimePreviewState
     extends State<PersonalizationRuntimePreview> {
   late PersonalizationPreviewSurface _surface;
-  PersonalizationPreviewSimulation _simulation =
-      const PersonalizationPreviewSimulation();
+  late PersonalizationPreviewViewport _viewport;
+  double _textScale = 1;
+  bool _reducedMotion = false;
   bool _comparisonEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _surface = widget.initialSurface;
+    _viewport = widget.initialViewport;
   }
 
   @override
@@ -57,17 +64,26 @@ class _PersonalizationRuntimePreviewState
       _surface = widget.initialSurface;
       _comparisonEnabled = false;
     }
+    if (oldWidget.initialViewport != widget.initialViewport) {
+      _viewport = widget.initialViewport;
+      _comparisonEnabled = false;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final projection = PersonalizationPreviewProjection(widget.profile);
-    final surfaceProjection = projection.surface(_surface);
-    final baseline = widget.baselineProfile;
-    final canCompare =
-        baseline != null &&
-        !compareProjectPresentation(baseline, widget.profile).isIdentical;
-    final showComparison = canCompare && _comparisonEnabled;
+    final scenario = PersonalizationPreviewScenario(
+      draftProfile: widget.profile,
+      baselineProfile: widget.baselineProfile,
+      surface: _surface,
+      viewport: _viewport,
+      textScale: _textScale,
+      reducedMotion: _reducedMotion,
+      comparisonEnabled: _comparisonEnabled,
+    );
+    final surfaceProjection = PersonalizationPreviewProjection(
+      widget.profile,
+    ).surface(_surface);
     return PokeMapPanel(
       key: const ValueKey<String>('personalization-runtime-preview'),
       header: Padding(
@@ -86,10 +102,10 @@ class _PersonalizationRuntimePreviewState
             ),
             const SizedBox(width: 8),
             PokeMapBadge(
-              label: 'Texte ${(_simulation.textScale * 100).round()} %',
+              label: 'Texte ${(_textScale * 100).round()} %',
               variant: PokeMapBadgeVariant.info,
             ),
-            if (_simulation.reducedMotion) ...<Widget>[
+            if (_reducedMotion) ...<Widget>[
               const SizedBox(width: 8),
               const PokeMapBadge(
                 label: 'Mouvement réduit actif',
@@ -106,85 +122,35 @@ class _PersonalizationRuntimePreviewState
             spacing: 8,
             runSpacing: 8,
             children: <Widget>[
-              for (final surface in PersonalizationPreviewSurface.values)
+              for (final descriptor in personalizationPreviewSurfaceDescriptors)
                 PokeMapButton(
                   key: ValueKey<String>(
-                    'personalization-preview-${surface.name}',
+                    'personalization-preview-${descriptor.surface.name}',
                   ),
                   size: PokeMapButtonSize.small,
                   variant: PokeMapButtonVariant.secondary,
-                  isSelected: _surface == surface,
-                  onPressed: () => setState(() => _surface = surface),
-                  child: Text(_surfaceLabel(surface)),
+                  isSelected: _surface == descriptor.surface,
+                  onPressed: () =>
+                      setState(() => _surface = descriptor.surface),
+                  child: Text(descriptor.label),
                 ),
             ],
           ),
           const SizedBox(height: 12),
-          _PreviewSimulationControls(
-            simulation: _simulation,
-            onChanged: (value) => setState(() => _simulation = value),
-            canCompare: canCompare,
-            comparisonEnabled: showComparison,
-            onComparisonChanged: (value) {
-              setState(() => _comparisonEnabled = value);
-            },
+          PersonalizationPreviewControls(
+            scenario: scenario,
+            onChanged: (value) => setState(() {
+              _surface = value.surface;
+              _viewport = value.viewport;
+              _textScale = value.textScale;
+              _reducedMotion = value.reducedMotion;
+              _comparisonEnabled = value.comparisonEnabled;
+            }),
           ),
           const SizedBox(height: 12),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final maxWidth = switch (_simulation.viewport) {
-                PersonalizationPreviewViewport.landscape =>
-                  constraints.maxWidth,
-                PersonalizationPreviewViewport.portrait =>
-                  constraints.maxWidth.clamp(0, 320).toDouble(),
-                PersonalizationPreviewViewport.square =>
-                  constraints.maxWidth.clamp(0, 480).toDouble(),
-              };
-              return Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxWidth),
-                  child: MediaQuery(
-                    data: MediaQuery.of(context).copyWith(
-                      textScaler: TextScaler.linear(_simulation.textScale),
-                    ),
-                    child: KeyedSubtree(
-                      key: ValueKey<String>(
-                        'personalization-preview-viewport-frame-'
-                        '${_simulation.viewport.name}',
-                      ),
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 160),
-                        child: showComparison
-                            ? _ComparisonPreview(
-                                key: ValueKey<String>(
-                                  'personalization-comparison-'
-                                  '${_surface.name}-'
-                                  '${_simulation.viewport.name}',
-                                ),
-                                before: _buildSurfacePreview(
-                                  profile: baseline,
-                                  surface: _surface,
-                                  projection: PersonalizationPreviewProjection(
-                                    baseline,
-                                  ).surface(_surface),
-                                ),
-                                after: _buildSurfacePreview(
-                                  profile: widget.profile,
-                                  surface: _surface,
-                                  projection: surfaceProjection,
-                                ),
-                              )
-                            : _buildSurfacePreview(
-                                profile: widget.profile,
-                                surface: _surface,
-                                projection: surfaceProjection,
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
+          PersonalizationPreviewCanvas(
+            scenario: scenario,
+            surfaceBuilder: _buildSurfacePreview,
           ),
         ],
       ),
@@ -195,25 +161,27 @@ class _PersonalizationRuntimePreviewState
     required ProjectPresentationProfile profile,
     required PersonalizationPreviewSurface surface,
     required PersonalizationPreviewSurfaceProjection projection,
+    required double aspectRatio,
+    required bool reducedMotion,
   }) {
     final theme = profile.theme ?? safeProjectSemanticTheme;
-    final aspectRatio = _simulation.viewport.aspectRatio;
     return switch (surface) {
       PersonalizationPreviewSurface.intro => _IntroRuntimePreview(
         profile: profile.intro,
         projectRootPath: widget.projectRootPath,
         theme: theme,
         aspectRatio: aspectRatio,
-        simulateReducedMotion: _simulation.reducedMotion,
+        simulateReducedMotion: reducedMotion,
       ),
-      PersonalizationPreviewSurface.title => ProjectBrandingTitlePreview(
-        key: const ValueKey<String>('personalization-title-composition'),
+      PersonalizationPreviewSurface.title => _TitleRuntimePreview(
         projectName: widget.projectName,
         projectRootPath: widget.projectRootPath,
         branding: profile.branding,
+        titleMotion: profile.titleMotion,
         theme: theme,
         typography: profile.typography,
         aspectRatio: aspectRatio,
+        simulateReducedMotion: reducedMotion,
       ),
       PersonalizationPreviewSurface.dialogue => _DialogueRuntimePreview(
         projection: projection,
@@ -241,168 +209,58 @@ class _PersonalizationRuntimePreviewState
   }
 }
 
-class _PreviewSimulationControls extends StatelessWidget {
-  const _PreviewSimulationControls({
-    required this.simulation,
-    required this.onChanged,
-    required this.canCompare,
-    required this.comparisonEnabled,
-    required this.onComparisonChanged,
+class _TitleRuntimePreview extends StatelessWidget {
+  const _TitleRuntimePreview({
+    required this.projectName,
+    required this.projectRootPath,
+    required this.branding,
+    required this.titleMotion,
+    required this.theme,
+    required this.typography,
+    required this.aspectRatio,
+    required this.simulateReducedMotion,
   });
 
-  final PersonalizationPreviewSimulation simulation;
-  final ValueChanged<PersonalizationPreviewSimulation> onChanged;
-  final bool canCompare;
-  final bool comparisonEnabled;
-  final ValueChanged<bool> onComparisonChanged;
+  final String projectName;
+  final String projectRootPath;
+  final ProjectBrandingProfile branding;
+  final ProjectTitleMotionProfile? titleMotion;
+  final ProjectSemanticThemeProfile theme;
+  final ProjectTypographyProfile? typography;
+  final double aspectRatio;
+  final bool simulateReducedMotion;
 
   @override
   Widget build(BuildContext context) {
-    const textScales = <(String, double)>[
-      ('100', 1),
-      ('125', 1.25),
-      ('150', 1.5),
-      ('200', 2),
-    ];
-    return PokeMapCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: <Widget>[
-          const Text(
-            'Simulation locale',
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: <Widget>[
-              for (final viewport in PersonalizationPreviewViewport.values)
-                PokeMapButton(
-                  key: ValueKey<String>(
-                    'personalization-preview-viewport-${viewport.name}',
-                  ),
-                  size: PokeMapButtonSize.small,
-                  variant: PokeMapButtonVariant.secondary,
-                  isSelected: simulation.viewport == viewport,
-                  onPressed: () =>
-                      onChanged(simulation.copyWith(viewport: viewport)),
-                  leading: Icon(_viewportIcon(viewport)),
-                  child: Text(_viewportLabel(viewport)),
-                ),
-              for (final entry in textScales)
-                PokeMapButton(
-                  key: ValueKey<String>(
-                    'personalization-preview-text-scale-${entry.$1}',
-                  ),
-                  size: PokeMapButtonSize.small,
-                  variant: PokeMapButtonVariant.secondary,
-                  isSelected: simulation.textScale == entry.$2,
-                  onPressed: () =>
-                      onChanged(simulation.copyWith(textScale: entry.$2)),
-                  child: Text('${entry.$1} %'),
-                ),
-              PokeMapButton(
-                key: const ValueKey<String>(
-                  'personalization-preview-reduced-motion',
-                ),
-                size: PokeMapButtonSize.small,
-                variant: PokeMapButtonVariant.secondary,
-                isSelected: simulation.reducedMotion,
-                onPressed: () => onChanged(
-                  simulation.copyWith(reducedMotion: !simulation.reducedMotion),
-                ),
-                leading: const Icon(Icons.motion_photos_off_outlined),
-                child: const Text('Mouvement réduit'),
-              ),
-              if (canCompare)
-                PokeMapButton(
-                  key: const ValueKey<String>(
-                    'personalization-preview-compare',
-                  ),
-                  size: PokeMapButtonSize.small,
-                  variant: PokeMapButtonVariant.secondary,
-                  isSelected: comparisonEnabled,
-                  onPressed: () => onComparisonChanged(!comparisonEnabled),
-                  leading: const Icon(Icons.compare_outlined),
-                  child: Text(
-                    comparisonEnabled
-                        ? 'Fermer la comparaison'
-                        : 'Comparer avant/après',
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ComparisonPreview extends StatelessWidget {
-  const _ComparisonPreview({
-    super.key,
-    required this.before,
-    required this.after,
-  });
-
-  final Widget before;
-  final Widget after;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final beforePreview = _LabeledPreview(
-          key: const ValueKey<String>('personalization-preview-before'),
-          label: 'Avant',
-          child: before,
-        );
-        final afterPreview = _LabeledPreview(
-          key: const ValueKey<String>('personalization-preview-after'),
-          label: 'Maintenant',
-          child: after,
-        );
-        if (constraints.maxWidth >= 720) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Expanded(child: beforePreview),
-              const SizedBox(width: 12),
-              Expanded(child: afterPreview),
-            ],
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            beforePreview,
-            const SizedBox(height: 12),
-            afterPreview,
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _LabeledPreview extends StatelessWidget {
-  const _LabeledPreview({super.key, required this.label, required this.child});
-
-  final String label;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+    final hasMotion =
+        titleMotion?.promptLoop != null || titleMotion?.menuLoop != null;
+    return Stack(
       children: <Widget>[
-        Align(
-          alignment: Alignment.centerLeft,
-          child: PokeMapBadge(label: label, variant: PokeMapBadgeVariant.info),
+        ProjectBrandingTitlePreview(
+          key: const ValueKey<String>('personalization-title-composition'),
+          projectName: projectName,
+          projectRootPath: projectRootPath,
+          branding: branding,
+          theme: theme,
+          typography: typography,
+          aspectRatio: aspectRatio,
         ),
-        const SizedBox(height: 8),
-        child,
+        if (hasMotion)
+          Positioned(
+            top: 12,
+            right: 12,
+            child: PokeMapBadge(
+              key: const ValueKey<String>(
+                'personalization-title-motion-status',
+              ),
+              label: simulateReducedMotion
+                  ? 'Titre statique — mouvement réduit'
+                  : 'Animation du titre active',
+              variant: simulateReducedMotion
+                  ? PokeMapBadgeVariant.warning
+                  : PokeMapBadgeVariant.info,
+            ),
+          ),
       ],
     );
   }
@@ -1183,7 +1041,7 @@ class _ProjectIntroPoster extends StatelessWidget {
           bytes,
           key: const ValueKey<String>('personalization-intro-poster'),
           fit: BoxFit.contain,
-          errorBuilder: (_, __, ___) => ColoredBox(
+          errorBuilder: (_, _, _) => ColoredBox(
             key: const ValueKey<String>(
               'personalization-intro-poster-fallback',
             ),
@@ -1233,32 +1091,6 @@ Color _previewColor(String value, Color fallback) {
   if (!RegExp(r'^#[0-9A-Fa-f]{6}$').hasMatch(normalized)) return fallback;
   return Color(0xff000000 | int.parse(normalized.substring(1), radix: 16));
 }
-
-String _viewportLabel(PersonalizationPreviewViewport viewport) =>
-    switch (viewport) {
-      PersonalizationPreviewViewport.landscape => 'Paysage',
-      PersonalizationPreviewViewport.portrait => 'Portrait',
-      PersonalizationPreviewViewport.square => 'Carré',
-    };
-
-IconData _viewportIcon(PersonalizationPreviewViewport viewport) =>
-    switch (viewport) {
-      PersonalizationPreviewViewport.landscape =>
-        Icons.stay_current_landscape_outlined,
-      PersonalizationPreviewViewport.portrait =>
-        Icons.stay_current_portrait_outlined,
-      PersonalizationPreviewViewport.square => Icons.crop_square_outlined,
-    };
-
-String _surfaceLabel(PersonalizationPreviewSurface surface) =>
-    switch (surface) {
-      PersonalizationPreviewSurface.intro => 'Intro',
-      PersonalizationPreviewSurface.title => 'Titre',
-      PersonalizationPreviewSurface.dialogue => 'Dialogue',
-      PersonalizationPreviewSurface.menu => 'Menu',
-      PersonalizationPreviewSurface.overworldHud => 'HUD exploration',
-      PersonalizationPreviewSurface.battleHud => 'HUD combat',
-    };
 
 String _introOrientationLabel(int width, int height) {
   if (height > width) return 'Portrait 9:16';

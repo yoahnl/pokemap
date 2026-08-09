@@ -89,13 +89,13 @@ class _PersonalizationStudioWorkspaceState
   void _ensureSession(String projectRootPath) {
     if (_requestedProjectRootPath == projectRootPath) return;
     _requestedProjectRootPath = projectRootPath;
-    scheduleMicrotask(() {
+    scheduleMicrotask(() async {
       if (!mounted) return;
-      unawaited(
-        ref
-            .read(editorNotifierProvider.notifier)
-            .initializePersonalizationStudioSession(),
-      );
+      await ref
+          .read(editorNotifierProvider.notifier)
+          .initializePersonalizationStudioSession();
+      if (!mounted) return;
+      setState(() {});
     });
   }
 

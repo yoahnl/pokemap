@@ -15,7 +15,7 @@
 | Élément | Décision |
 |---|---|
 | Socle déjà livré | `337a97a6e feat(personalization): add live pause menu customization` |
-| Lots restant à livrer | **4** |
+| Lots restant à livrer | **3** après la fermeture de PERS-L1 |
 | Ordre | Acceptation → Window Studio → Layout Studio → Extension complète |
 | Mutation canonique | `presentation.update` |
 | Profil canonique | `ProjectPresentationProfile` |
@@ -25,7 +25,7 @@
 | Placements | Nouveau profil Layout Studio à breakpoints fixes |
 | Coordonnées libres | Exclues |
 | Splash Avelune | Host-owned, visible dans le parcours mais non personnalisable |
-| État global au départ | `PARTIAL` jusqu’à la fermeture du lot PERS-L1 |
+| État global | PERS-L1 `DONE` ; Phase 8 toujours `PARTIAL` jusqu’à PERS-L4 |
 
 Le commit `337a97a6e` est le **lot zéro livré**. Il ne doit pas être recompté comme travail futur : il prouve déjà la verticale modèle → sauvegarde canonique → export → Hub → menu Pause réel.
 
@@ -138,8 +138,8 @@ Pendant l’audit, ce chantier parallèle a été commit sous :
 
 | Lot | Résultat visible | Taille | Dépend de | Statut initial |
 |---|---|---:|---|---|
-| PERS-L1 | La preview actuelle est fiable, accessible et acceptée dans la vraie app | M | Socle `337a97a6e` | Prêt |
-| PERS-L2 | Window Studio personnalise réellement Pause et Dialogue | L | PERS-L1 | Bloqué par L1 |
+| PERS-L1 | La preview actuelle est fiable, accessible et acceptée dans la vraie app | M | Socle `337a97a6e` | **DONE — 2026-08-10** |
+| PERS-L2 | Window Studio personnalise réellement Pause et Dialogue | L | PERS-L1 | Prêt |
 | PERS-L3 | Layout Studio place les contenus par variantes responsives sûres | L | PERS-L2 | Bloqué par L2 |
 | PERS-L4 | Toutes les surfaces utilisent les contrats et les presets sont partageables | XL | PERS-L3 | Bloqué par L3 |
 
@@ -157,15 +157,15 @@ La nouvelle interface de la preview est celle de PokeMap, pas une démonstration
 
 ### Scope
 
-- [ ] Corriger les six tests globaux sans contourner les interactions réelles.
-- [ ] Centraliser les scénarios de preview : surface, viewport, text scale, reduced motion, baseline et brouillon.
-- [ ] Centraliser les descripteurs de surfaces : libellé, rôle typographique, token sémantique et projection.
-- [ ] Scinder le grand widget de preview en contrôles, canvas et surfaces ciblées.
-- [ ] Couvrir `menuLabels` et `titleMotion` dans comparaison, reset et presets : reset Branding efface `branding + titleMotion`, reset Interface efface `theme + menuLabels`.
-- [ ] Ajouter des goldens déterministes editor et player alimentés par la même fixture.
-- [ ] Ajouter `menuLabels` à la preuve MCP de `presentation.update`.
-- [ ] Déclarer le transport Editor dans la parité canonique.
-- [ ] Rejouer le parcours dans l’application macOS réelle sans prendre le contrôle d’une autre session active.
+- [x] Corriger les six tests globaux sans contourner les interactions réelles.
+- [x] Centraliser les scénarios de preview : surface, viewport, text scale, reduced motion, baseline et brouillon.
+- [x] Centraliser les descripteurs de surfaces : libellé, rôle typographique, token sémantique et projection.
+- [x] Scinder le grand widget de preview en contrôles, canvas et surfaces ciblées.
+- [x] Couvrir `menuLabels` et `titleMotion` dans comparaison, reset et presets : reset Branding efface `branding + titleMotion`, reset Interface efface `theme + menuLabels`.
+- [x] Ajouter des goldens déterministes editor et player alimentés par la même fixture.
+- [x] Ajouter `menuLabels` à la preuve MCP de `presentation.update`.
+- [x] Déclarer le transport Editor dans la parité canonique.
+- [x] Rejouer le parcours dans l’application macOS réelle sans prendre le contrôle d’une autre session active.
 
 ### Fichiers structurants
 
@@ -185,16 +185,37 @@ La nouvelle interface de la preview est celle de PokeMap, pas une démonstration
 
 ### Gate de sortie
 
-- [ ] `flutter test test/personalization --reporter expanded` termine à `0 failed`.
-- [ ] Les interactions utilisent des widgets `hitTestable()` et des scrollables explicitement identifiés.
-- [ ] Le shell passe à `759×900`, `760×900`, `761×900`, `1024×720`, `1280×800` et `1600×1000`.
-- [ ] Les mêmes cas passent à text scale `1.0` et `2.0` sans overflow ni scroll horizontal obligatoire.
-- [ ] Tab, Shift+Tab, Entrée, Espace, Échap, D-pad, A et B conservent un ordre navigation → éditeur → preview → publication.
-- [ ] Les goldens couvrent les six surfaces, paysage et portrait ; carré uniquement lorsqu’il apporte une différence réelle.
-- [ ] Reduced motion est prouvé pour intro et titre.
-- [ ] La comparaison détecte `menuLabels` et `titleMotion`.
-- [ ] Direct API, JSONL/CLI, Editor et MCP produisent le même profil de labels.
-- [ ] Un build macOS debug réussit et le parcours réel est inspecté visuellement.
+- [x] `flutter test test/personalization --reporter expanded` termine à `0 failed`.
+- [x] Les interactions utilisent des widgets `hitTestable()` et des scrollables explicitement identifiés.
+- [x] Le shell passe à `759×900`, `760×900`, `761×900`, `1024×720`, `1280×800` et `1600×1000`.
+- [x] Les mêmes cas passent à text scale `1.0` et `2.0` sans overflow ni scroll horizontal obligatoire.
+- [x] Tab, Shift+Tab, Entrée, Espace, directions/D-pad et A couvrent le parcours preview/publication. Échap/B sont `N/A` dans le Studio embarqué : il ne possède ni modal ni niveau de navigation à fermer ; leur affecter une action locale serait arbitraire.
+- [x] Les goldens couvrent les six surfaces, paysage et portrait ; carré uniquement lorsqu’il apporte une différence réelle.
+- [x] Reduced motion est prouvé pour intro et titre.
+- [x] La comparaison détecte `menuLabels` et `titleMotion`.
+- [x] Direct API, JSONL/CLI, Editor et MCP produisent le même profil de labels.
+- [x] Un build macOS debug réussit et le parcours réel est inspecté visuellement.
+
+### Clôture PERS-L1 — 2026-08-10
+
+Statut produit : **DONE**. Le schéma reste en version 2 et Window/Layout Studio restent hors scope.
+
+Preuves principales :
+
+- suite Personalization : `140 passed`, `0 failed` ;
+- gate Editor + export + Personalization : `174 passed`, `0 failed` ;
+- goldens : 12 editor et 12 player, six surfaces en paysage et portrait ;
+- authoring ciblé : `15 passed`, analyse `No issues found!` ;
+- MCP `presentation.update` avec `menuLabels` : test live ciblé vert ; suite séquentielle `37 passed`, `1 failed` sur `runtime_server.test.ts`, sans lien avec la présentation ;
+- build réel : `Built build/macos/Build/Products/Debug/PokeMap.app` ;
+- smoke réel isolé : projet disposable attesté, ouverture de `personalizationStudio`, 306 éléments inspectables, menu en portrait à 200 % et mouvement réduit vérifiés par clés stables et capture ;
+- fixture source inchangée avant/après (`0932bd9eefd549bedda54b2afe2fd0b9a95dc5595950f0f1ce52bd5e1c24d702`).
+
+Limites de validation globales conservées :
+
+- `flutter analyze` reste rouge sur 379 diagnostics préexistants, sans warning ou erreur ajouté par PERS-L1 ;
+- la suite globale `map_editor` a été interrompue après `5160 passed`, `11 skipped`, `133 failed` lorsqu’un test Narrative a dépassé son timeout de dix minutes puis bloqué le runner ; l’interruption a ajouté un échec technique de fermeture du loader. Les échecs observés concernent notamment goldens Narrative absents, fixtures Selbrume V2/V6 et lifecycles Riverpod, pas Personalization ;
+- le connecteur Marionette Codex installé est en `0.5.0` face au binding projet `0.6.0`. Le smoke a utilisé les extensions debug `0.6.0` du processus isolé directement ; aucune autre instance PokeMap n’a été pilotée.
 
 ### Commandes obligatoires
 
@@ -634,11 +655,11 @@ La Phase 8 reste `PARTIAL` jusqu’à la certification de PERS-L4. Les statuts d
 
 | Passe | Verdict |
 |---|---|
-| Audit / Architecture | `337a97a6e` livre la verticale Pause mais pas une acceptance visuelle ; séparer strictement preview, windows, layouts et packs |
-| Implémentation / Produit | Le socle livré doit apparaître comme L0 ; chaque lot futur doit produire une valeur visible sans promettre de coordonnées arbitraires |
-| Tests | PERS-L1 reste bloqué par 6 échecs : 95 tests passent, 6 échouent dans la suite Personalization complète |
-| Build / Validation | Chaque lot exige un build macOS ; PERS-L4 exige en plus Hub Android, host standalone et MCP live |
-| Critique finale | `PASS` après verrouillage de schema V3, resets complets et inventaires cross-package des lots 3–4 |
+| Audit / Architecture | `PASS` — scénario/descripteurs uniques, preview editor-owned et aucune dépendance aux internes runtime |
+| Implémentation / Produit | `PASS` — les six parcours rouges sont fermés sans court-circuiter les interactions ; presets, reset et comparaison sont complets |
+| Tests | `PASS PERS-L1` — 140/140 Personalization, 174/174 gate combiné et 24/24 goldens editor/player |
+| Build / Validation | `PASS PERS-L1` — build macOS et smoke isolé réels ; bruits globaux hors lot documentés sans être maquillés |
+| Critique finale | `PASS avec limites connues` — aucune dépendance runtime dans l’éditeur, aucun nouveau champ, Window/Layout Studio exclus |
 
 ## 12. Risques et auto-critique initiale
 
@@ -659,4 +680,4 @@ Le point volontairement ambitieux est PERS-L4. S’il dépasse un seul commit r�
 
 ## 13. Prochaine action
 
-Commencer uniquement par **PERS-L1**. Il ne change pas le schéma du projet et transforme le socle déjà livré en baseline fiable avant l’ajout de nouvelles libertés visuelles.
+Commencer ensuite uniquement par **PERS-L2 — Window Studio V1**. PERS-L1 fournit désormais la baseline fiable ; PERS-L2 peut ajouter formes, bordures, densité et ombre sans mélanger les placements responsifs de PERS-L3.

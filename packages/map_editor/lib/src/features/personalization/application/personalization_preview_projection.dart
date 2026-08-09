@@ -1,13 +1,6 @@
 import 'package:map_core/map_core.dart';
 
-enum PersonalizationPreviewSurface {
-  intro,
-  title,
-  dialogue,
-  menu,
-  overworldHud,
-  battleHud,
-}
+import 'personalization_preview_surface_descriptor.dart';
 
 enum PersonalizationPreviewViewport {
   landscape,
@@ -19,29 +12,6 @@ enum PersonalizationPreviewViewport {
         PersonalizationPreviewViewport.portrait => 9 / 16,
         PersonalizationPreviewViewport.square => 1,
       };
-}
-
-final class PersonalizationPreviewSimulation {
-  const PersonalizationPreviewSimulation({
-    this.viewport = PersonalizationPreviewViewport.landscape,
-    this.textScale = 1,
-    this.reducedMotion = false,
-  });
-
-  final PersonalizationPreviewViewport viewport;
-  final double textScale;
-  final bool reducedMotion;
-
-  PersonalizationPreviewSimulation copyWith({
-    PersonalizationPreviewViewport? viewport,
-    double? textScale,
-    bool? reducedMotion,
-  }) =>
-      PersonalizationPreviewSimulation(
-        viewport: viewport ?? this.viewport,
-        textScale: textScale ?? this.textScale,
-        reducedMotion: reducedMotion ?? this.reducedMotion,
-      );
 }
 
 final class PersonalizationPreviewSurfaceProjection {
@@ -71,26 +41,13 @@ final class PersonalizationPreviewProjection {
   ) {
     final theme = profile.theme ?? safeProjectSemanticTheme;
     final typography = profile.typography;
-    final background = switch (surface) {
-      PersonalizationPreviewSurface.intro => theme.titleSurface,
-      PersonalizationPreviewSurface.title => theme.titleSurface,
-      PersonalizationPreviewSurface.dialogue => theme.dialogueSurface,
-      PersonalizationPreviewSurface.menu => theme.menuSurface,
-      PersonalizationPreviewSurface.overworldHud => theme.overworldHudSurface,
-      PersonalizationPreviewSurface.battleHud => theme.battleHudSurface,
-    };
-    final role = switch (surface) {
-      PersonalizationPreviewSurface.intro => typography?.display,
-      PersonalizationPreviewSurface.title => typography?.display,
-      PersonalizationPreviewSurface.dialogue => typography?.dialogue,
-      PersonalizationPreviewSurface.menu ||
-      PersonalizationPreviewSurface.overworldHud =>
-        typography?.body,
-      PersonalizationPreviewSurface.battleHud => typography?.numbers,
-    };
+    final descriptor = PersonalizationPreviewSurfaceDescriptor.forSurface(
+      surface,
+    );
+    final role = descriptor.typographyProfile(typography);
     return PersonalizationPreviewSurfaceProjection(
       surface: surface,
-      backgroundHex: background,
+      backgroundHex: descriptor.backgroundHex(theme),
       textHex: theme.textPrimary,
       fontFamily:
           role?.family ?? role?.fallbackFamilies.firstOrNull ?? 'sans-serif',

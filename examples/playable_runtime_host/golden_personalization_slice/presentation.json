@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "branding": {
     "iconPath": "assets/presentation/icon.png",
     "coverPath": "assets/presentation/cover.png",
@@ -9,18 +9,41 @@
     "layoutVariant": "cinematic"
   },
   "intro": {
-    "videoPath": "assets/presentation/intro/intro.mp4",
-    "posterPath": "assets/presentation/intro/poster.png",
-    "captionsPath": "assets/presentation/intro/captions.vtt",
-    "durationMilliseconds": 1000,
-    "width": 1280,
-    "height": 720,
-    "bitrateKbps": 128,
-    "sizeBytes": 28,
-    "videoCodec": "h264",
-    "audioCodec": "aac",
+    "media": {
+      "landscape": {
+        "videoPath": "assets/presentation/intro/intro.mp4",
+        "posterPath": "assets/presentation/intro/poster.png",
+        "captionsPath": "assets/presentation/intro/captions.vtt",
+        "durationMilliseconds": 1000,
+        "width": 1280,
+        "height": 720,
+        "bitrateKbps": 128,
+        "sizeBytes": 28,
+        "videoCodec": "h264",
+        "audioCodec": "aac",
+        "focalX": 0.5,
+        "focalY": 0.5
+      }
+    },
     "reducedMotionBehavior": "poster",
     "allowReplay": true
+  },
+  "titleMotion": {
+    "promptLoop": {
+      "landscape": {
+        "videoPath": "assets/presentation/intro/intro.mp4",
+        "posterPath": "assets/presentation/intro/poster.png",
+        "durationMilliseconds": 1000,
+        "width": 1280,
+        "height": 720,
+        "bitrateKbps": 128,
+        "sizeBytes": 28,
+        "videoCodec": "h264",
+        "audioCodec": "none",
+        "focalX": 0.5,
+        "focalY": 0.5
+      }
+    }
   },
   "typography": {
     "display": {
@@ -71,5 +94,16 @@
     "menuSurface": "#EAF0F8",
     "overworldHudSurface": "#FFFFFF",
     "battleHudSurface": "#FFFFFF"
+  },
+  "menuLabels": {
+    "pauseTitle": "Escale",
+    "resume": "Reprendre le voyage",
+    "party": "Compagnons",
+    "bag": "Sac de voyage",
+    "pokedex": "Carnet de route",
+    "map": "Itinéraire",
+    "save": "Consigner",
+    "options": "Réglages",
+    "returnToTitle": "Quitter le train"
   }
 }

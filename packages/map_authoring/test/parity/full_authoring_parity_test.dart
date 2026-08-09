@@ -129,7 +129,7 @@ void main() {
         catalog.requireMutationAction('presentation.update').toJson(),
         containsPair(
           'endToEndVerifiedTransports',
-          ['cli', 'directApi', 'mcp'],
+          ['cli', 'directApi', 'editor', 'mcp'],
         ),
       );
       expect(
@@ -245,6 +245,7 @@ void main() {
         directEvidence['promptPortrait'],
         'presentation/prompt-portrait.mp4',
       );
+      expect(directEvidence['pokedexLabel'], 'Carnet de voyage');
     });
 
     test('projectPresentationProfile is a first-class query resource', () {
@@ -580,6 +581,7 @@ final class _GoldenHarness {
       'introLandscape': manifest.presentation?.intro?.media.landscape.videoPath,
       'promptPortrait':
           manifest.presentation?.titleMotion?.promptLoop?.portrait?.videoPath,
+      'pokedexLabel': manifest.presentation?.menuLabels?.pokedex,
     };
   }
 
@@ -653,6 +655,10 @@ const ProjectPresentationProfile _responsivePresentationProfile =
         audioCodec: 'none',
       ),
     ),
+  ),
+  menuLabels: ProjectMenuLabelsProfile(
+    pauseTitle: 'Escale',
+    pokedex: 'Carnet de voyage',
   ),
 );
 

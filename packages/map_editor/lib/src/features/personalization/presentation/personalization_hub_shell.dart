@@ -7,7 +7,7 @@ import '../../../ui/design_system/pokemap_card.dart';
 import '../../../ui/design_system/pokemap_panel.dart';
 import '../../../ui/design_system/pokemap_sidebar_item.dart';
 import '../application/personalization_publish_readiness.dart';
-import '../application/personalization_preview_projection.dart';
+import '../application/personalization_preview_surface_descriptor.dart';
 import '../application/project_presentation_presets.dart';
 import 'personalization_readiness_panel.dart';
 import 'personalization_runtime_preview.dart';
@@ -275,7 +275,10 @@ class _CategoryDetail extends StatelessWidget {
           baselineProfile: baselineProfile,
           projectName: projectName,
           projectRootPath: projectRootPath,
-          initialSurface: _previewSurface(category),
+          initialSurface:
+              PersonalizationPreviewSurfaceDescriptor.defaultForCategory(
+                category,
+              ).surface,
         ),
       ),
       const SizedBox(height: 16),
@@ -481,13 +484,3 @@ IconData _categoryIcon(ProjectPresentationCategory category) =>
       ProjectPresentationCategory.typography => Icons.font_download_outlined,
       ProjectPresentationCategory.theme => Icons.palette_outlined,
     };
-
-PersonalizationPreviewSurface _previewSurface(
-  ProjectPresentationCategory category,
-) => switch (category) {
-  ProjectPresentationCategory.branding => PersonalizationPreviewSurface.title,
-  ProjectPresentationCategory.intro => PersonalizationPreviewSurface.intro,
-  ProjectPresentationCategory.typography =>
-    PersonalizationPreviewSurface.dialogue,
-  ProjectPresentationCategory.theme => PersonalizationPreviewSurface.menu,
-};

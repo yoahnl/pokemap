@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/personalization_hub.dart';
@@ -355,6 +356,104 @@ void main() {
       find.byKey(const ValueKey<String>('personalization-preview-compare')),
       findsNothing,
     );
+  });
+
+  testWidgets('title motion follows the reduced-motion simulation', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          profile: ProjectPresentationProfile(
+            titleMotion: ProjectTitleMotionProfile(
+              promptLoop: ProjectResponsiveVideoProfile(
+                landscape: ProjectVideoVariantProfile(
+                  videoPath: 'assets/presentation/title/prompt.mp4',
+                  posterPath: 'assets/presentation/title/prompt.png',
+                  durationMilliseconds: 4000,
+                  width: 1280,
+                  height: 720,
+                  bitrateKbps: 1200,
+                  sizeBytes: 4000,
+                  videoCodec: 'h264',
+                ),
+              ),
+            ),
+            theme: safeProjectSemanticTheme,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Animation du titre active'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(
+        const ValueKey<String>('personalization-preview-reduced-motion'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Titre statique — mouvement réduit'), findsOneWidget);
+    expect(find.text('Animation du titre active'), findsNothing);
+  });
+
+  testWidgets('surface navigation is semantic and keyboard operable', (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(
+      _app(
+        const PersonalizationRuntimePreview(
+          projectName: 'Pokémon Aurore',
+          projectRootPath: '',
+          profile: ProjectPresentationProfile(theme: safeProjectSemanticTheme),
+        ),
+      ),
+    );
+
+    expect(
+      tester.getSemantics(
+        find.byKey(const ValueKey<String>('personalization-preview-title')),
+      ),
+      matchesSemantics(
+        isButton: true,
+        hasTapAction: true,
+        hasSelectedState: true,
+        isSelected: true,
+        hasEnabledState: true,
+        isEnabled: true,
+      ),
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('personalization-intro-composition')),
+      findsOneWidget,
+    );
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyEvent(LogicalKeyboardKey.space);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('personalization-title-composition')),
+      findsOneWidget,
+    );
+
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey<String>('personalization-intro-composition')),
+      findsOneWidget,
+    );
+    semantics.dispose();
   });
 }
 

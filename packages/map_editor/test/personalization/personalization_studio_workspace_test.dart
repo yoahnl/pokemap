@@ -16,6 +16,72 @@ import '../shell_chrome_test_harness.dart';
 
 void main() {
   testWidgets(
+    'enables Studio actions automatically after deferred initialization',
+    (tester) async {
+      final root = Directory.systemTemp.createTempSync(
+        'personalization-studio-deferred-',
+      );
+      addTearDown(() => root.deleteSync(recursive: true));
+      final project = buildShellChromeProject(
+        name: 'Deferred Studio',
+      ).copyWith(presentation: const ProjectPresentationProfile());
+      File(
+        '${root.path}/project.json',
+      ).writeAsStringSync(jsonEncode(project.toJson()), flush: true);
+      final gateway = _DelayedProjectGateway(project);
+
+      final container = await pumpEditorCanvasHostHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: root.path,
+          project: project,
+          workspaceMode: EditorWorkspaceMode.personalizationStudio,
+        ),
+        surfaceSize: const Size(1200, 800),
+        overrides: [
+          personalizationStudioSessionControllerFactoryProvider
+              .overrideWithValue(({
+                required String projectPath,
+                required ProjectManifest initialDocument,
+              }) {
+                return PersonalizationStudioSessionController(
+                  session: NarrativeDocumentSession<ProjectManifest>(
+                    documentId: 'personalization-studio-deferred',
+                    initialDocument: initialDocument,
+                    gateway: gateway,
+                    recoveryStore: _MemoryProjectRecoveryStore(),
+                  ),
+                );
+              }),
+        ],
+      );
+      final preset = find.byKey(
+        const ValueKey<String>('personalization-preset-cinematic'),
+      );
+
+      expect(tester.widget<PokeMapButton>(preset).onPressed, isNull);
+
+      gateway.releaseInitialization();
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<PokeMapButton>(preset).onPressed, isNotNull);
+      expect(preset.hitTestable(), findsOneWidget);
+      await tester.tap(preset.hitTestable());
+      await tester.pump();
+
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .project
+            ?.effectivePresentation
+            .branding
+            .layoutVariant,
+        'cinematic',
+      );
+    },
+  );
+
+  testWidgets(
     'runs preflight in Studio and invalidates it after a draft edit',
     (tester) async {
       final root = Directory.systemTemp.createTempSync(
@@ -72,13 +138,23 @@ void main() {
           .read(editorNotifierProvider.notifier)
           .initializePersonalizationStudioSession();
       await tester.pump();
+      final detailScrollable = find
+          .descendant(
+            of: find.byKey(
+              const ValueKey<String>(
+                'personalization-category-detail-branding',
+              ),
+            ),
+            matching: find.byType(Scrollable),
+          )
+          .first;
 
       await tester.scrollUntilVisible(
         find.byKey(
           const ValueKey<String>('personalization-readiness-run-preflight'),
         ),
         500,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: detailScrollable,
       );
       await tester.ensureVisible(
         find.byKey(
@@ -86,6 +162,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(
+        find
+            .byKey(
+              const ValueKey<String>('personalization-readiness-run-preflight'),
+            )
+            .hitTestable(),
+        findsOneWidget,
+      );
       await tester.tap(
         find.byKey(
           const ValueKey<String>('personalization-readiness-run-preflight'),
@@ -109,7 +193,13 @@ void main() {
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
         -500,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: detailScrollable,
+      );
+      expect(
+        find
+            .byKey(const ValueKey<String>('personalization-preset-cinematic'))
+            .hitTestable(),
+        findsOneWidget,
       );
       await tester.tap(
         find.byKey(const ValueKey<String>('personalization-preset-cinematic')),
@@ -121,7 +211,7 @@ void main() {
           const ValueKey<String>('personalization-readiness-run-preflight'),
         ),
         500,
-        scrollable: find.byType(Scrollable).last,
+        scrollable: detailScrollable,
       );
 
       expect(find.text('Preflight à relancer'), findsOneWidget);
@@ -1148,6 +1238,38 @@ final class _MemoryProjectGateway
       ),
     );
   }
+}
+
+final class _DelayedProjectGateway
+    implements NarrativeDocumentGateway<ProjectManifest> {
+  _DelayedProjectGateway(this.document);
+
+  final ProjectManifest document;
+  final Completer<void> _initialization = Completer<void>();
+
+  void releaseInitialization() => _initialization.complete();
+
+  @override
+  Future<NarrativeDocumentVersion<ProjectManifest>> read() async {
+    await _initialization.future;
+    return NarrativeDocumentVersion<ProjectManifest>(
+      revision: 'revision-1',
+      document: document,
+    );
+  }
+
+  @override
+  Future<NarrativeDocumentSaveResult<ProjectManifest>> save({
+    required String expectedRevision,
+    required ProjectManifest before,
+    required ProjectManifest after,
+    required String operationId,
+  }) async => NarrativeDocumentSaveResult<ProjectManifest>.saved(
+    NarrativeDocumentVersion<ProjectManifest>(
+      revision: 'revision-2',
+      document: after,
+    ),
+  );
 }
 
 final class _FixedPresentationPreflight

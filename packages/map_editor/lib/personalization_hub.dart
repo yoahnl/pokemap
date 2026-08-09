@@ -9,6 +9,8 @@ export 'src/features/personalization/application/project_presentation_preflight.
 export 'src/features/personalization/application/project_presentation_presets.dart';
 export 'src/features/personalization/application/personalization_publish_readiness.dart';
 export 'src/features/personalization/application/personalization_preview_projection.dart';
+export 'src/features/personalization/application/personalization_preview_scenario.dart';
+export 'src/features/personalization/application/personalization_preview_surface_descriptor.dart';
 export 'src/features/personalization/application/personalization_studio_asset_picker.dart';
 export 'src/features/personalization/application/personalization_studio_session_controller.dart';
 export 'src/features/personalization/application/project_branding_image_import_service.dart';

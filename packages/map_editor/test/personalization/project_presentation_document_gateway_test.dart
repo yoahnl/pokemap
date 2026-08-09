@@ -120,6 +120,51 @@ void main() {
       expect((await gateway.read()).document.presentation, profile);
     });
 
+    test('reports an explicit failure when the canonical mutation rejects',
+        () async {
+      final fixture = _GatewayFixture.create();
+      addTearDown(fixture.dispose);
+      final gateway = ProjectPresentationDocumentGateway(
+        projectPath: fixture.projectFile.path,
+        canonicalSave:
+            ({
+              required profile,
+              required expectedProjectRevision,
+              required operationId,
+            }) async {
+              throw StateError('validation rejected');
+            },
+      );
+      final before = await gateway.read();
+
+      final result = await gateway.save(
+        expectedRevision: before.revision,
+        before: before.document,
+        after: before.document.copyWith(
+          presentation: const ProjectPresentationProfile(
+            menuLabels: ProjectMenuLabelsProfile(pokedex: 'Carnet'),
+          ),
+        ),
+        operationId: 'rejected-canonical-presentation-save',
+      );
+
+      expect(
+        result,
+        isA<NarrativeDocumentSaveFailed<ProjectManifest>>()
+            .having(
+              (value) => value.code,
+              'code',
+              'canonicalPresentationUpdateFailed',
+            )
+            .having(
+              (value) => value.message,
+              'message',
+              contains('validation rejected'),
+            ),
+      );
+      expect((await gateway.read()).document, before.document);
+    });
+
     test('rejects a mutation outside the presentation profile', () async {
       final fixture = _GatewayFixture.create();
       addTearDown(fixture.dispose);

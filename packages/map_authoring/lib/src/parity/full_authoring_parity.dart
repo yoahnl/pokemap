@@ -324,15 +324,27 @@ Map<AuthoringTransport, String> _endToEndEvidenceFor(String actionId) {
           '../../tools/pokemap_mcp/test/mutation_server.test.ts',
     };
   }
-  if (actionId != 'map.create' && actionId != 'presentation.update') {
-    return const {};
+  if (actionId == 'presentation.update') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/parity/full_authoring_parity_test.dart',
+      AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
+      AuthoringTransport.editor:
+          '../map_editor/test/authoring_api/editor_mutation_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
   }
-  return const {
-    AuthoringTransport.directApi: 'test/parity/full_authoring_parity_test.dart',
-    AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
-    AuthoringTransport.mcp:
-        '../../tools/pokemap_mcp/test/mutation_server.test.ts',
-  };
+  if (actionId == 'map.create') {
+    return const {
+      AuthoringTransport.directApi:
+          'test/parity/full_authoring_parity_test.dart',
+      AuthoringTransport.cli: 'test/parity/full_authoring_parity_test.dart',
+      AuthoringTransport.mcp:
+          '../../tools/pokemap_mcp/test/mutation_server.test.ts',
+    };
+  }
+  return const {};
 }
 
 List<String> _transportNames(Iterable<AuthoringTransport> transports) =>

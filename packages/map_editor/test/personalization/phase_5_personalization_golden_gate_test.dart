@@ -106,9 +106,9 @@ void main() {
         'presentation/icon.png',
         'presentation/cover.png',
         'presentation/hero.png',
-        'presentation/intro/video.mp4',
-        'presentation/intro/poster.png',
-        'presentation/intro/captions.vtt',
+        'presentation/intro/landscape/video.mp4',
+        'presentation/intro/landscape/poster.png',
+        'presentation/intro/landscape/captions.vtt',
         'presentation/fonts/display.ttf',
         'presentation/fonts/display-license.txt',
       ]),
@@ -118,9 +118,15 @@ void main() {
       <GamePackagePersonalizationCategory>[
         GamePackagePersonalizationCategory.branding,
         GamePackagePersonalizationCategory.intro,
+        GamePackagePersonalizationCategory.titleMotion,
         GamePackagePersonalizationCategory.typography,
         GamePackagePersonalizationCategory.theme,
       ],
+    );
+    expect(built.manifest.presentation?.menuLabels?.pokedex, 'Carnet de route');
+    expect(
+      built.manifest.presentation?.titleMotion?.promptLoop?.landscape.video,
+      'presentation/title/prompt/landscape/video.mp4',
     );
     expect(
       built.personalizationPreflight.packageSha256,
