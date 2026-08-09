@@ -158,7 +158,10 @@ void main() {
         findsOneWidget,
       );
       await tester.tap(find.byKey(const ValueKey<String>('pause.party')));
-      await _pumpUntilFound(tester, find.text('Aucun Pokémon dans l’équipe.'));
+      await _pumpUntilFound(
+        tester,
+        find.text('Aucun compagnon dans l’équipe.'),
+      );
 
       final resume = find.byKey(const ValueKey<String>('pause.resume'));
       await tester.ensureVisible(resume);
@@ -169,10 +172,10 @@ void main() {
       await _pumpUntilFact(tester, game, 'fact_mist_source_resolved');
 
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-      await _pumpUntilFound(tester, find.text('Centre Pokémon'));
+      await _pumpUntilFound(tester, find.text('Maison des soins'));
       expect(find.byKey(const ValueKey<String>('heal-cancel')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey<String>('heal-cancel')));
-      await _pumpUntilGone(tester, find.text('Centre Pokémon'));
+      await _pumpUntilGone(tester, find.text('Maison des soins'));
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await _pumpUntilFound(tester, _playerSurface(RuntimePlayerPhase.paused));
@@ -346,7 +349,7 @@ Future<File> _buildFixturePackage(Directory root) async {
     payloadFiles: runtimeOwnedPlayerFixturePayload(),
   );
   final selectedPackage = File(
-    p.join(root.path, 'runtime-owned-player-fixture.pokemapgame'),
+    p.join(root.path, 'runtime-owned-player-fixture.avelunegame'),
   );
   await selectedPackage.writeAsBytes(built.packageBytes, flush: true);
   return selectedPackage;

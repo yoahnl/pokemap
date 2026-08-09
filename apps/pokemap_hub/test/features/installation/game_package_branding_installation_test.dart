@@ -40,10 +40,7 @@ void main() {
     final reloaded = await GameLibraryStore(supportRoot: supportRoot).load();
 
     expect(result.game.branding?.accentColor, '#126E78');
-    expect(
-      reloaded.library.games.single.branding?.accentColor,
-      '#126E78',
-    );
+    expect(reloaded.library.games.single.branding?.accentColor, '#126E78');
   });
 }
 
@@ -62,10 +59,7 @@ Future<File> _writeBrandedPackage(Directory root) async {
       compatibilityId: 'main',
       requiredCapabilities: const <String>[],
     ),
-    locales: GamePackageLocales(
-      defaultLocale: 'fr',
-      supported: <String>['fr'],
-    ),
+    locales: GamePackageLocales(defaultLocale: 'fr', supported: <String>['fr']),
     presentation: const GamePackagePresentation(
       branding: GamePackageBranding(accentColor: '#126E78'),
     ),
@@ -90,7 +84,7 @@ Future<File> _writeBrandedPackage(Directory root) async {
       ),
     },
   );
-  final package = File(p.join(root.path, 'aube.pokemapgame'));
+  final package = File(p.join(root.path, 'aube.avelunegame'));
   await package.writeAsBytes(built.packageBytes, flush: true);
   return package;
 }

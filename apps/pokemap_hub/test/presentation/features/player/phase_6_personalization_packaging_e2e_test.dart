@@ -29,28 +29,26 @@ void main() {
           Platform.environment['POKEMAP_PHASE7B_SUPPORT_ROOT'];
       final studioPackageInputPath =
           Platform.environment['POKEMAP_PHASE6_PACKAGE_INPUT'];
-      final evidenceMode = evidenceOutputPath != null ||
+      final evidenceMode =
+          evidenceOutputPath != null ||
           evidencePackagePath != null ||
           evidenceSupportRootPath != null;
       if (evidenceMode &&
           (evidenceOutputPath == null ||
               evidencePackagePath == null ||
               evidenceSupportRootPath == null)) {
-        fail(
-          'All three POKEMAP_PHASE7B evidence paths must be provided.',
-        );
+        fail('All three POKEMAP_PHASE7B evidence paths must be provided.');
       }
-      final releaseCandidateCommit = evidenceMode
-          ? await _requireCleanReleaseCandidate(repositoryRoot)
-          : null;
+      final releaseCandidateCommit =
+          evidenceMode
+              ? await _requireCleanReleaseCandidate(repositoryRoot)
+              : null;
       final root = await Directory.systemTemp.createTemp(
         'phase-6-personalization-e2e-',
       );
       addTearDown(() => root.delete(recursive: true));
       final compatibility = _hostCompatibility();
-      final inspector = GamePackageInspector(
-        hostCompatibility: compatibility,
-      );
+      final inspector = GamePackageInspector(hostCompatibility: compatibility);
       late final File packageFile;
       if (studioPackageInputPath != null) {
         packageFile = File(studioPackageInputPath);
@@ -69,7 +67,7 @@ void main() {
         );
         packageFile = File(
           evidencePackagePath ??
-              p.join(root.path, 'golden-personalization.pokemapgame'),
+              p.join(root.path, 'golden-personalization.avelunegame'),
         );
         if (evidenceMode && await packageFile.exists()) {
           fail('The Phase 7B package output must not already exist.');
@@ -78,8 +76,9 @@ void main() {
         await packageFile.writeAsBytes(built.packageBytes, flush: true);
       }
       final inspection = inspector.inspect(await packageFile.readAsBytes());
-      final preflight =
-          const GamePackagePersonalizationPreflight().certify(inspection);
+      final preflight = const GamePackagePersonalizationPreflight().certify(
+        inspection,
+      );
 
       var installSmokePassed = false;
       final supportRoot = Directory(
@@ -97,20 +96,19 @@ void main() {
         },
         prepareSavesForUpdate: (_, __) async => const SaveUpdatePreparation(),
         now: () => DateTime.utc(2026, 7, 27, 12),
-      ).install(
-        packageFile,
-        source: GamePackageInstallSource.localFile,
-      );
+      ).install(packageFile, source: GamePackageInstallSource.localFile);
       final launch = await InstalledGameLaunchResolver(
         supportRoot: supportRoot,
         hostCompatibility: compatibility,
       ).resolve(installed.game);
-      final presentation = await HubTitlePresentationLoader(
-        manifest: launch.manifest,
-        resolveFile: (packagePath) => launch.assets.resolveReference(
-          launch.assets.reference(packagePath),
-        ),
-      ).load();
+      final presentation =
+          await HubTitlePresentationLoader(
+            manifest: launch.manifest,
+            resolveFile:
+                (packagePath) => launch.assets.resolveReference(
+                  launch.assets.reference(packagePath),
+                ),
+          ).load();
 
       expect(installSmokePassed, isTrue);
       expect(preflight.packageSha256, inspection.receipt.packageSha256);
@@ -137,14 +135,14 @@ void main() {
       expect(presentation.semanticTheme, isNotNull);
       expect(presentation.unavailableAssets, isEmpty);
 
-      final introSequence = RuntimeIntroSequenceController()
-        ..start(
-          hasVideo: true,
-          hasPoster: presentation.intro!.poster != null,
-          reducedMotion: false,
-          reducedMotionBehavior: RuntimeIntroReducedMotionBehavior.poster,
-          allowReplay: presentation.intro!.allowReplay,
-        );
+      final introSequence =
+          RuntimeIntroSequenceController()..start(
+            hasVideo: true,
+            hasPoster: presentation.intro!.poster != null,
+            reducedMotion: false,
+            reducedMotionBehavior: RuntimeIntroReducedMotionBehavior.poster,
+            allowReplay: presentation.intro!.allowReplay,
+          );
       expect(introSequence.phase, RuntimeIntroPhase.playing);
       introSequence.playbackCompleted();
       expect(introSequence.phase, RuntimeIntroPhase.completed);
@@ -202,10 +200,7 @@ void main() {
         ).resolve(installed.game);
         fail('Corrupt installed media must invalidate the installation.');
       } on InstalledGameLaunchException catch (error) {
-        expect(
-          error.code,
-          InstalledGameLaunchErrorCode.installationUnhealthy,
-        );
+        expect(error.code, InstalledGameLaunchErrorCode.installationUnhealthy);
         corruptionRejected = true;
       }
 
@@ -221,7 +216,7 @@ void main() {
           'presentationFixture': <String, Object?>{
             'relativePath':
                 'examples/playable_runtime_host/golden_personalization_slice/'
-                    'presentation.json',
+                'presentation.json',
             'sha256': presentationFixtureSha256.toString(),
           },
           'package': <String, Object?>{
@@ -244,14 +239,18 @@ void main() {
           'resolvedPresentation': <String, Object?>{
             'titleLayoutVariant': presentation.title.layoutVariant.name,
             'introAvailable': presentation.intro != null,
-            'displayFontFamily': presentation
-                .typography?.roles[ProjectTypographyRole.display]?.family,
+            'displayFontFamily':
+                presentation
+                    .typography
+                    ?.roles[ProjectTypographyRole.display]
+                    ?.family,
             'semanticThemeAvailable': presentation.semanticTheme != null,
             'unavailableAssets': presentation.unavailableAssets,
           },
           'flow': <String, Object?>{
             'introFinishedCount': introFinishedCount,
-            'titlePersonalized': presentation.title.layoutVariant ==
+            'titlePersonalized':
+                presentation.title.layoutVariant ==
                 PlayerTitleLayoutVariant.cinematic,
             'gameMounted': mounted,
             'gameUnmounted': unmounted,
@@ -265,7 +264,8 @@ void main() {
                 preflight.configuredCategories.length == 4,
             'installSmokePassed': installSmokePassed,
             'introCompleted': introFinishedCount == 1,
-            'titlePersonalized': presentation.title.layoutVariant ==
+            'titlePersonalized':
+                presentation.title.layoutVariant ==
                 PlayerTitleLayoutVariant.cinematic,
             'gameStarted': mounted,
             'gameStopped': unmounted,
@@ -296,16 +296,16 @@ Future<ProjectPresentationProfile> _readGoldenPresentation() async {
 }
 
 File _goldenPresentationFile() => File(
-      p.join(
-        Directory.current.path,
-        '..',
-        '..',
-        'examples',
-        'playable_runtime_host',
-        'golden_personalization_slice',
-        'presentation.json',
-      ),
-    );
+  p.join(
+    Directory.current.path,
+    '..',
+    '..',
+    'examples',
+    'playable_runtime_host',
+    'golden_personalization_slice',
+    'presentation.json',
+  ),
+);
 
 Directory _findRepositoryRoot() {
   var current = Directory.current.absolute;
@@ -323,24 +323,19 @@ Directory _findRepositoryRoot() {
   }
 }
 
-Future<String> _requireCleanReleaseCandidate(
-  Directory repositoryRoot,
-) async {
-  final status = await Process.run(
-    'git',
-    const <String>['status', '--porcelain', '--untracked-files=all'],
-    workingDirectory: repositoryRoot.path,
-  );
+Future<String> _requireCleanReleaseCandidate(Directory repositoryRoot) async {
+  final status = await Process.run('git', const <String>[
+    'status',
+    '--porcelain',
+    '--untracked-files=all',
+  ], workingDirectory: repositoryRoot.path);
   if (status.exitCode != 0 || (status.stdout as String).trim().isNotEmpty) {
-    throw StateError(
-      'Phase 7B evidence requires a clean candidate worktree.',
-    );
+    throw StateError('Phase 7B evidence requires a clean candidate worktree.');
   }
-  final head = await Process.run(
-    'git',
-    const <String>['rev-parse', 'HEAD'],
-    workingDirectory: repositoryRoot.path,
-  );
+  final head = await Process.run('git', const <String>[
+    'rev-parse',
+    'HEAD',
+  ], workingDirectory: repositoryRoot.path);
   if (head.exitCode != 0) {
     throw StateError('Unable to resolve the Phase 7B candidate commit.');
   }
@@ -358,27 +353,29 @@ GamePackageHostCompatibility _hostCompatibility() =>
     );
 
 Map<String, List<int>> _presentationPayload() => <String, List<int>>{
-      'presentation/icon.png': _onePixelPngHeader(),
-      'project/assets/title.ogg': ascii.encode('OggS phase-6-title'),
-      'presentation/intro/video.mp4': <int>[
-        0,
-        0,
-        0,
-        24,
-        ...ascii.encode('ftypisom'),
-        0,
-        0,
-        0,
-        0,
-        ...ascii.encode('isomavc1mp4a'),
-      ],
-      'presentation/intro/poster.png': _onePixelPngHeader(),
-      'presentation/intro/captions.vtt':
-          utf8.encode('WEBVTT\n\n00:00.000 --> 00:01.000\nAube\n'),
-      'presentation/fonts/display.ttf': <int>[0, 1, 0, 0, 0, 0, 0, 0],
-      'presentation/fonts/display-license.txt':
-          utf8.encode('Redistribution permitted.'),
-    };
+  'presentation/icon.png': _onePixelPngHeader(),
+  'project/assets/title.ogg': ascii.encode('OggS phase-6-title'),
+  'presentation/intro/video.mp4': <int>[
+    0,
+    0,
+    0,
+    24,
+    ...ascii.encode('ftypisom'),
+    0,
+    0,
+    0,
+    0,
+    ...ascii.encode('isomavc1mp4a'),
+  ],
+  'presentation/intro/poster.png': _onePixelPngHeader(),
+  'presentation/intro/captions.vtt': utf8.encode(
+    'WEBVTT\n\n00:00.000 --> 00:01.000\nAube\n',
+  ),
+  'presentation/fonts/display.ttf': <int>[0, 1, 0, 0, 0, 0, 0, 0],
+  'presentation/fonts/display-license.txt': utf8.encode(
+    'Redistribution permitted.',
+  ),
+};
 
 GamePackageManifest _manifest(ProjectPresentationProfile profile) {
   final intro = profile.intro!;
@@ -472,12 +469,10 @@ GamePackageSemanticTheme _packageTheme(ProjectSemanticThemeProfile theme) =>
     );
 
 List<int> _onePixelPngHeader() {
-  final bytes = Uint8List(24)
-    ..setAll(
-      0,
-      <int>[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-    )
-    ..setAll(12, ascii.encode('IHDR'));
+  final bytes =
+      Uint8List(24)
+        ..setAll(0, <int>[0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+        ..setAll(12, ascii.encode('IHDR'));
   ByteData.sublistView(bytes)
     ..setUint32(16, 1)
     ..setUint32(20, 1);

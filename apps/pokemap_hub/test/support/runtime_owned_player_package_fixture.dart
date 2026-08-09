@@ -6,9 +6,9 @@ import 'dart:convert';
 /// repository after launch. A parity test keeps these payloads byte-for-byte
 /// aligned with `test/fixtures/runtime_owned_player_game`.
 Map<String, List<int>> runtimeOwnedPlayerFixturePayload() => {
-      'project/project.json': utf8.encode(_projectJson),
-      'project/maps/runtime_harbor.json': utf8.encode(_mapJson),
-    };
+  'project/project.json': utf8.encode(_projectJson),
+  'project/maps/runtime_harbor.json': utf8.encode(_mapJson),
+};
 
 const _projectJson = '''{
   "name": "Les Îles Claires",
@@ -109,7 +109,7 @@ const _projectJson = '''{
     },
     {
       "id": "scene_harbor_heal",
-      "name": "Centre Pokémon",
+      "name": "Maison des soins",
       "graph": {
         "startNodeId": "start",
         "nodes": [

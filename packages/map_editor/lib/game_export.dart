@@ -1,4 +1,4 @@
-/// Public authoring/export API for generic `.pokemapgame` releases.
+/// Public authoring/export API for generic `.avelunegame` releases.
 library;
 
 export 'src/features/game_export/application/game_package_export_profile.dart';

@@ -14,8 +14,8 @@ final class HubInstallRequestPublisher {
     required this.inbox,
     HubInstallRequestIdGenerator? requestIdGenerator,
     DateTime Function()? now,
-  })  : requestIdGenerator = requestIdGenerator ?? _secureRequestId,
-        now = now ?? DateTime.now;
+  }) : requestIdGenerator = requestIdGenerator ?? _secureRequestId,
+       now = now ?? DateTime.now;
 
   final Directory inbox;
   final HubInstallRequestIdGenerator requestIdGenerator;
@@ -29,7 +29,7 @@ final class HubInstallRequestPublisher {
       );
     }
     final requestId = requestIdGenerator();
-    final packageFileName = '$requestId.pokemapgame';
+    final packageFileName = '$requestId.avelunegame';
     final request = GamePackageInstallRequest(
       requestId: requestId,
       packageFileName: packageFileName,
@@ -40,9 +40,7 @@ final class HubInstallRequestPublisher {
     const GamePackageInstallRequestCodec().encodeCanonicalUtf8(request);
     await inbox.create(recursive: true);
     final packageFile = File(p.join(inbox.path, packageFileName));
-    final requestFile = File(
-      p.join(inbox.path, '$requestId.request.json'),
-    );
+    final requestFile = File(p.join(inbox.path, '$requestId.request.json'));
     if (await packageFile.exists() || await requestFile.exists()) {
       throw GamePackageExportException(
         code: 'installRequestCollision',
@@ -92,9 +90,10 @@ final class HubInstallRequestPublisher {
   static String _secureRequestId() {
     final random = Random.secure();
     final timestamp = DateTime.now().toUtc().microsecondsSinceEpoch;
-    final suffix = List<int>.generate(8, (_) => random.nextInt(256))
-        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
-        .join();
+    final suffix = List<int>.generate(
+      8,
+      (_) => random.nextInt(256),
+    ).map((byte) => byte.toRadixString(16).padLeft(2, '0')).join();
     return 'export-$timestamp-$suffix';
   }
 }

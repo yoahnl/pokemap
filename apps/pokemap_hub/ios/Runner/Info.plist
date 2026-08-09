@@ -32,6 +32,8 @@
 	<string>Avelune n’accède pas à votre position. Cette déclaration est requise par une dépendance technique intégrée à l’application.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Avelune utilise votre photothèque uniquement pour choisir un fond personnalisé.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -74,7 +76,6 @@
 				<key>public.filename-extension</key>
 				<array>
 					<string>avelunegame</string>
-					<string>pokemapgame</string>
 				</array>
 				<key>public.mime-type</key>
 				<string>application/x-avelune-game</string>

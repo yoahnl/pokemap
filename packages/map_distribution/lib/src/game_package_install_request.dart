@@ -22,12 +22,12 @@ final class GamePackageInstallRequest {
   final DateTime createdAt;
 
   Map<String, Object?> toJson() => <String, Object?>{
-        'schemaVersion': schemaVersion,
-        'requestId': requestId,
-        'packageFileName': packageFileName,
-        'packageSha256': packageSha256,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'schemaVersion': schemaVersion,
+    'requestId': requestId,
+    'packageFileName': packageFileName,
+    'packageSha256': packageSha256,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -40,12 +40,12 @@ final class GamePackageInstallRequest {
 
   @override
   int get hashCode => Object.hash(
-        schemaVersion,
-        requestId,
-        packageFileName,
-        packageSha256,
-        createdAt,
-      );
+    schemaVersion,
+    requestId,
+    packageFileName,
+    packageSha256,
+    createdAt,
+  );
 }
 
 final class GamePackageInstallRequestCodec {
@@ -119,8 +119,10 @@ final class GamePackageInstallRequestCodec {
         'Invalid install request ID.',
       );
     }
-    final packageFileName =
-        _string(json['packageFileName'], r'$.packageFileName');
+    final packageFileName = _string(
+      json['packageFileName'],
+      r'$.packageFileName',
+    );
     if (!_packageFileName.hasMatch(packageFileName)) {
       _fail(
         'unsafeInstallRequestPath',
@@ -181,15 +183,12 @@ final class GamePackageInstallRequestCodec {
   }
 
   Never _fail(String code, String path, String message) {
-    throw GamePackageFormatException(
-      code: code,
-      path: path,
-      message: message,
-    );
+    throw GamePackageFormatException(code: code, path: path, message: message);
   }
 
   static final RegExp _requestId = RegExp(r'^[a-z0-9][a-z0-9-]{2,63}$');
-  static final RegExp _packageFileName =
-      RegExp(r'^[a-z0-9][a-z0-9._-]{0,126}\.pokemapgame$');
+  static final RegExp _packageFileName = RegExp(
+    r'^[a-z0-9][a-z0-9._-]{0,126}\.avelunegame$',
+  );
   static final RegExp _sha256 = RegExp(r'^[0-9a-f]{64}$');
 }

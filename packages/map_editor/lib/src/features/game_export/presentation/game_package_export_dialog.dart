@@ -11,15 +11,13 @@ import '../../../ui/design_system/design_system.dart';
 import '../application/game_package_export_profile.dart';
 import 'game_package_export_controller.dart';
 
-typedef GamePackageOutputPicker = Future<File?> Function(
-  String suggestedFileName,
-);
+typedef GamePackageOutputPicker =
+    Future<File?> Function(String suggestedFileName);
 
 enum GamePackageProjectFileType { image, audio, text }
 
-typedef GamePackageProjectFilePicker = Future<File?> Function(
-  GamePackageProjectFileType type,
-);
+typedef GamePackageProjectFilePicker =
+    Future<File?> Function(GamePackageProjectFileType type);
 
 class GamePackageExportDialog extends StatefulWidget {
   const GamePackageExportDialog({
@@ -115,11 +113,11 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                       children: <Widget>[
                         Text(
                           'Publier dans PokeMap Hub',
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: colors.textPrimary,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: colors.textPrimary,
+                                fontWeight: FontWeight.w800,
+                              ),
                         ),
                         const SizedBox(height: 2),
                         Text(
@@ -154,9 +152,9 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                             onTap: isBusy
                                 ? null
                                 : () => setState(() {
-                                      _quickMode = true;
-                                      _pickerErrorMessage = null;
-                                    }),
+                                    _quickMode = true;
+                                    _pickerErrorMessage = null;
+                                  }),
                           ),
                           PokeMapSegmentedTab(
                             key: const ValueKey<String>(
@@ -168,9 +166,9 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                             onTap: isBusy
                                 ? null
                                 : () => setState(() {
-                                      _quickMode = false;
-                                      _pickerErrorMessage = null;
-                                    }),
+                                    _quickMode = false;
+                                    _pickerErrorMessage = null;
+                                  }),
                           ),
                         ],
                       ),
@@ -214,9 +212,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: <Widget>[
-                            const PokeMapSectionHeader(
-                              title: 'Jeu et version',
-                            ),
+                            const PokeMapSectionHeader(title: 'Jeu et version'),
                             const SizedBox(height: 12),
                             _responsivePair(
                               context,
@@ -229,11 +225,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                                 hint: 'games.studio.auteur.aventure',
                                 autofocus: true,
                               ),
-                              _field(
-                                'gameVersion',
-                                'Version',
-                                hint: '1.0.0',
-                              ),
+                              _field('gameVersion', 'Version', hint: '1.0.0'),
                             ),
                             const SizedBox(height: 12),
                             _field('title', 'Titre du jeu'),
@@ -287,10 +279,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                             const SizedBox(height: 12),
                             _responsivePair(
                               context,
-                              _field(
-                                'publisherName',
-                                'Éditeur (optionnel)',
-                              ),
+                              _field('publisherName', 'Éditeur (optionnel)'),
                               _field(
                                 'publisherUrl',
                                 'Site de l’éditeur',
@@ -457,9 +446,11 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: PokeMapDiagnosticCallout(
                                   severity: PokeMapDiagnosticSeverity.error,
-                                  title: diagnostic.suggestedFixLabel ??
+                                  title:
+                                      diagnostic.suggestedFixLabel ??
                                       'À corriger',
-                                  message: '${diagnostic.message}\n'
+                                  message:
+                                      '${diagnostic.message}\n'
                                       '${diagnostic.path}',
                                 ),
                               ),
@@ -485,9 +476,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                             const SizedBox(height: 10),
                             SelectableText(
                               snapshot.technicalErrorDetails!,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
+                              style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: colors.textSecondary,
                                     fontFamily: 'monospace',
@@ -497,9 +486,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                               const SizedBox(height: 10),
                               Text(
                                 'Journal : ${snapshot.diagnosticLogPath}',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
+                                style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(color: colors.textMuted),
                               ),
                             ],
@@ -534,7 +521,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                         message: snapshot.installRequest == null
                             ? 'Le package a été rouvert, contrôlé et certifié.'
                             : 'Le package certifié sera installé par PokeMap '
-                                'Hub à sa prochaine consommation de l’inbox.',
+                                  'Hub à sa prochaine consommation de l’inbox.',
                       ),
                     ],
                   ],
@@ -551,13 +538,15 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                 runSpacing: 10,
                 children: <Widget>[
                   PokeMapButton(
-                    onPressed:
-                        isBusy ? null : () => Navigator.maybePop(context),
+                    onPressed: isBusy
+                        ? null
+                        : () => Navigator.maybePop(context),
                     variant: PokeMapButtonVariant.ghost,
                     child: const Text('Fermer'),
                   ),
                   PokeMapButton(
-                    onPressed: profile == null ||
+                    onPressed:
+                        profile == null ||
                             isBusy ||
                             !widget.controller.canInstallInHub
                         ? null
@@ -594,7 +583,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
 
   Future<void> _export(GamePackageExportProfile profile) async {
     final suggested =
-        '${_slug(profile.title)}-${profile.gameVersion}.pokemapgame';
+        '${_slug(profile.title)}-${profile.gameVersion}.avelunegame';
     final file = await widget.chooseOutputFile(suggested);
     if (file == null || !mounted) return;
     await widget.controller.export(profile: profile, outputFile: file);
@@ -620,16 +609,15 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
     Key? key,
     String? hint,
     bool autofocus = false,
-  }) =>
-      PokeMapTextField(
-        label: label,
-        controller: _fields[name],
-        fieldKey: key,
-        hintText: hint,
-        autofocus: autofocus,
-        enabled: !widget.controller.snapshot.isBusy,
-        onChanged: (_) => setState(() {}),
-      );
+  }) => PokeMapTextField(
+    label: label,
+    controller: _fields[name],
+    fieldKey: key,
+    hintText: hint,
+    autofocus: autofocus,
+    enabled: !widget.controller.snapshot.isBusy,
+    onChanged: (_) => setState(() {}),
+  );
 
   Widget _projectFileField(
     String name,
@@ -671,9 +659,9 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
                 onPressed: isBusy
                     ? null
                     : () => setState(() {
-                          _fields[name]!.clear();
-                          _pickerErrorMessage = null;
-                        }),
+                        _fields[name]!.clear();
+                        _pickerErrorMessage = null;
+                      }),
                 variant: PokeMapButtonVariant.ghost,
                 size: PokeMapButtonSize.small,
                 child: const Text('Retirer'),
@@ -690,8 +678,9 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
   ) async {
     final selected = await widget.chooseProjectFile(type);
     if (selected == null || !mounted) return;
-    final projectRoot =
-        p.normalize(p.absolute(widget.controller.projectRoot.path));
+    final projectRoot = p.normalize(
+      p.absolute(widget.controller.projectRoot.path),
+    );
     final selectedPath = p.normalize(p.absolute(selected.path));
     final selectedType = await FileSystemEntity.type(
       selectedPath,
@@ -714,29 +703,22 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
       });
       return;
     }
-    final relativePath =
-        p.relative(selectedPath, from: projectRoot).replaceAll(r'\', '/');
+    final relativePath = p
+        .relative(selectedPath, from: projectRoot)
+        .replaceAll(r'\', '/');
     setState(() {
       _fields[fieldName]!.text = relativePath;
       _pickerErrorMessage = null;
     });
   }
 
-  Widget _responsivePair(
-    BuildContext context,
-    Widget first,
-    Widget second,
-  ) =>
+  Widget _responsivePair(BuildContext context, Widget first, Widget second) =>
       LayoutBuilder(
         builder: (context, constraints) {
           if (constraints.maxWidth < 560) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                first,
-                const SizedBox(height: 12),
-                second,
-              ],
+              children: <Widget>[first, const SizedBox(height: 12), second],
             );
           }
           return Row(
@@ -751,26 +733,26 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
       );
 
   GamePackageExportDraft _draft() => GamePackageExportDraft(
-        gameId: _fields['gameId']!.text,
-        gameVersion: _fields['gameVersion']!.text,
-        title: _fields['title']!.text,
-        description: _fields['description']!.text,
-        authorName: _fields['authorName']!.text,
-        authorUrl: _fields['authorUrl']!.text,
-        publisherName: _fields['publisherName']!.text,
-        publisherUrl: _fields['publisherUrl']!.text,
-        defaultLocale: _fields['defaultLocale']!.text,
-        supportedLocales: _fields['supportedLocales']!.text,
-        requiredCapabilities: _fields['requiredCapabilities']!.text,
-        iconPath: _fields['iconPath']!.text,
-        coverPath: _fields['coverPath']!.text,
-        heroPath: _fields['heroPath']!.text,
-        titleMusicPath: _fields['titleMusicPath']!.text,
-        accentColor: _fields['accentColor']!.text,
-        layoutVariant: _fields['layoutVariant']!.text,
-        licensePath: _fields['licensePath']!.text,
-        creditsPath: _fields['creditsPath']!.text,
-      );
+    gameId: _fields['gameId']!.text,
+    gameVersion: _fields['gameVersion']!.text,
+    title: _fields['title']!.text,
+    description: _fields['description']!.text,
+    authorName: _fields['authorName']!.text,
+    authorUrl: _fields['authorUrl']!.text,
+    publisherName: _fields['publisherName']!.text,
+    publisherUrl: _fields['publisherUrl']!.text,
+    defaultLocale: _fields['defaultLocale']!.text,
+    supportedLocales: _fields['supportedLocales']!.text,
+    requiredCapabilities: _fields['requiredCapabilities']!.text,
+    iconPath: _fields['iconPath']!.text,
+    coverPath: _fields['coverPath']!.text,
+    heroPath: _fields['heroPath']!.text,
+    titleMusicPath: _fields['titleMusicPath']!.text,
+    accentColor: _fields['accentColor']!.text,
+    layoutVariant: _fields['layoutVariant']!.text,
+    licensePath: _fields['licensePath']!.text,
+    creditsPath: _fields['creditsPath']!.text,
+  );
 
   GamePackageExportProfile? _validProfile(GamePackageExportDraft draft) {
     try {
@@ -782,9 +764,7 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
 
   GamePackageExportProfile? _validQuickProfile() {
     try {
-      return widget.controller.quickProfile(
-        title: _fields['title']!.text,
-      );
+      return widget.controller.quickProfile(title: _fields['title']!.text);
     } on GamePackageExportException {
       return null;
     }
@@ -792,29 +772,29 @@ class _GamePackageExportDialogState extends State<GamePackageExportDialog> {
 
   Map<String, TextEditingController> _controllers(
     GamePackageExportDraft draft,
-  ) =>
-      <String, TextEditingController>{
-        'gameId': TextEditingController(text: draft.gameId),
-        'gameVersion': TextEditingController(text: draft.gameVersion),
-        'title': TextEditingController(text: draft.title),
-        'description': TextEditingController(text: draft.description),
-        'authorName': TextEditingController(text: draft.authorName),
-        'authorUrl': TextEditingController(text: draft.authorUrl),
-        'publisherName': TextEditingController(text: draft.publisherName),
-        'publisherUrl': TextEditingController(text: draft.publisherUrl),
-        'defaultLocale': TextEditingController(text: draft.defaultLocale),
-        'supportedLocales': TextEditingController(text: draft.supportedLocales),
-        'requiredCapabilities':
-            TextEditingController(text: draft.requiredCapabilities),
-        'iconPath': TextEditingController(text: draft.iconPath),
-        'coverPath': TextEditingController(text: draft.coverPath),
-        'heroPath': TextEditingController(text: draft.heroPath),
-        'titleMusicPath': TextEditingController(text: draft.titleMusicPath),
-        'accentColor': TextEditingController(text: draft.accentColor),
-        'layoutVariant': TextEditingController(text: draft.layoutVariant),
-        'licensePath': TextEditingController(text: draft.licensePath),
-        'creditsPath': TextEditingController(text: draft.creditsPath),
-      };
+  ) => <String, TextEditingController>{
+    'gameId': TextEditingController(text: draft.gameId),
+    'gameVersion': TextEditingController(text: draft.gameVersion),
+    'title': TextEditingController(text: draft.title),
+    'description': TextEditingController(text: draft.description),
+    'authorName': TextEditingController(text: draft.authorName),
+    'authorUrl': TextEditingController(text: draft.authorUrl),
+    'publisherName': TextEditingController(text: draft.publisherName),
+    'publisherUrl': TextEditingController(text: draft.publisherUrl),
+    'defaultLocale': TextEditingController(text: draft.defaultLocale),
+    'supportedLocales': TextEditingController(text: draft.supportedLocales),
+    'requiredCapabilities': TextEditingController(
+      text: draft.requiredCapabilities,
+    ),
+    'iconPath': TextEditingController(text: draft.iconPath),
+    'coverPath': TextEditingController(text: draft.coverPath),
+    'heroPath': TextEditingController(text: draft.heroPath),
+    'titleMusicPath': TextEditingController(text: draft.titleMusicPath),
+    'accentColor': TextEditingController(text: draft.accentColor),
+    'layoutVariant': TextEditingController(text: draft.layoutVariant),
+    'licensePath': TextEditingController(text: draft.licensePath),
+    'creditsPath': TextEditingController(text: draft.creditsPath),
+  };
 
   void _writeDraft(GamePackageExportDraft draft) {
     final values = <String, String>{

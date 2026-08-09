@@ -17,9 +17,9 @@ final class GamePackageBuildResult {
   GamePackageBuildResult({
     required this.manifest,
     required List<int> packageBytes,
-  })  : packageBytes = List.unmodifiable(packageBytes),
-        packageSha256 = sha256.convert(packageBytes).toString(),
-        archiveBytes = packageBytes.length;
+  }) : packageBytes = List.unmodifiable(packageBytes),
+       packageSha256 = sha256.convert(packageBytes).toString(),
+       archiveBytes = packageBytes.length;
 
   final GamePackageManifest manifest;
   final List<int> packageBytes;
@@ -27,7 +27,7 @@ final class GamePackageBuildResult {
   final int archiveBytes;
 }
 
-/// Builds the deterministic ZIP representation of a `.pokemapgame` archive.
+/// Builds the deterministic ZIP representation of a `.avelunegame` archive.
 final class GamePackageBuilder {
   const GamePackageBuilder({
     this.inventoryBuilder = const GamePackageInventoryBuilder(),
@@ -104,12 +104,13 @@ final class GamePackageBuilder {
       Uint8List.fromList(payloadSnapshot['project/project.json']!),
       payloadPaths: payloadSnapshot.keys.toSet(),
     );
-    final entries = <MapEntry<String, List<int>>>[
-      MapEntry<String, List<int>>('game-manifest.json', manifestBytes),
-      ...payloadSnapshot.entries,
-    ]..sort(
-        (left, right) => PackagePathPolicy.compareUtf8(left.key, right.key),
-      );
+    final entries =
+        <MapEntry<String, List<int>>>[
+          MapEntry<String, List<int>>('game-manifest.json', manifestBytes),
+          ...payloadSnapshot.entries,
+        ]..sort(
+          (left, right) => PackagePathPolicy.compareUtf8(left.key, right.key),
+        );
 
     final bytes = DeterministicZipEncoder.encode(entries);
     if (bytes.length > securityPolicy.maxArchiveBytes) {

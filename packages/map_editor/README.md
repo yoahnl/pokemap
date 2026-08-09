@@ -15,7 +15,7 @@ legal metadata and required runtime capabilities under:
 The exporter never packages the author workspace directly. It builds a
 player-only projection, compiles supported Yarn dialogue into strict runtime
 JSON, rewrites copied references, removes editor/debug/save/cache files,
-scrubs secret fields, creates a deterministic `.pokemapgame`, then reopens
+scrubs secret fields, creates a deterministic `.avelunegame`, then reopens
 and inspects it before reporting success.
 
 **Exporter le jeu** writes a certified package chosen by the author.
@@ -31,7 +31,7 @@ editor UI:
 ```bash
 dart run tool/export_pokemap_game.dart \
   --project /path/to/project \
-  --output /path/to/game-1.0.0.pokemapgame
+  --output /path/to/game-1.0.0.avelunegame
 ```
 
 Use `--profile <file>` to supply a separate version-1 profile and

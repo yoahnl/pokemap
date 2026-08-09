@@ -19,12 +19,13 @@ void main() {
     });
     final output = File(
       configuredOutput.isEmpty
-          ? '${temporaryRoot!.path}/neutral-certification.pokemapgame'
+          ? '${temporaryRoot!.path}/neutral-certification.avelunegame'
           : configuredOutput,
     ).absolute;
     await output.parent.create(recursive: true);
-    final authorRoot =
-        await Directory.systemTemp.createTemp('pokemap-neutral-author-');
+    final authorRoot = await Directory.systemTemp.createTemp(
+      'pokemap-neutral-author-',
+    );
     addTearDown(() async {
       if (await authorRoot.exists()) {
         await authorRoot.delete(recursive: true);

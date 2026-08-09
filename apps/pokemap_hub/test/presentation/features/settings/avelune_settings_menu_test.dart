@@ -41,8 +41,9 @@ void main() {
     await root.delete(recursive: true);
   });
 
-  testWidgets('the navigation opens the settings sheet over the room',
-      (tester) async {
+  testWidgets('the navigation opens the settings sheet over the room', (
+    tester,
+  ) async {
     await _pumpShell(tester, iphone, appearanceHarness);
 
     await tester.tap(
@@ -62,7 +63,7 @@ void main() {
     );
   });
 
-  testWidgets('the sheet lists the four approved destinations', (tester) async {
+  testWidgets('the sheet lists the five approved destinations', (tester) async {
     await _pumpShell(tester, iphone, appearanceHarness);
     await tester.tap(
       find.byKey(const ValueKey<String>('avelune-nav-settings')),
@@ -73,6 +74,38 @@ void main() {
     expect(find.text('Stockage'), findsOneWidget);
     expect(find.text('Mouvement'), findsOneWidget);
     expect(find.text('Diagnostics'), findsOneWidget);
+    expect(find.text('Aide et confidentialité'), findsOneWidget);
+  });
+
+  testWidgets('support and privacy links open the public Avelune pages', (
+    tester,
+  ) async {
+    final openedUris = <Uri>[];
+    await _pumpShell(
+      tester,
+      iphone,
+      appearanceHarness,
+      onOpenExternalUrl: (uri) async {
+        openedUris.add(uri);
+        return true;
+      },
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('avelune-nav-settings')),
+    );
+    await _settleSheet(tester);
+
+    await tester.tap(find.text('Aide et confidentialité'));
+    await _settleSheet(tester);
+    await tester.tap(find.text('Support'));
+    await tester.pump();
+    await tester.tap(find.text('Confidentialité'));
+    await tester.pump();
+
+    expect(openedUris, <Uri>[
+      Uri.parse('https://yoahnl.github.io/avelune/support/'),
+      Uri.parse('https://yoahnl.github.io/avelune/privacy/'),
+    ]);
   });
 
   testWidgets('subtitles carry real state, not placeholders', (tester) async {
@@ -82,8 +115,8 @@ void main() {
     );
     await _settleSheet(tester);
 
-    // Default appearance is amber + walnut, labelled Ambre and Noyer.
-    expect(find.text('Ambre · Noyer'), findsOneWidget);
+    // Default appearance is amber + ivory, labelled Ambre and Ivoire.
+    expect(find.text('Ambre · Ivoire'), findsOneWidget);
     // Two installed games and the snapshot's real used bytes.
     expect(find.textContaining('2 jeux'), findsOneWidget);
     expect(find.textContaining('1.5 Mo'), findsOneWidget);
@@ -150,7 +183,8 @@ void main() {
     expect(
       observed,
       isEmpty,
-      reason: 'Opening the sheet is not a navigation change; the room stays '
+      reason:
+          'Opening the sheet is not a navigation change; the room stays '
           'mounted underneath and the Home tab stays selected.',
     );
   });
@@ -161,6 +195,7 @@ Future<void> _pumpShell(
   Size size,
   AppearanceHarness appearance, {
   ValueChanged<HubSection>? onSectionSelected,
+  Future<bool> Function(Uri)? onOpenExternalUrl,
 }) async {
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -197,12 +232,14 @@ Future<void> _pumpShell(
         localizationsDelegates:
             PokeMapPlayerLocalizations.localizationsDelegates,
         theme: () {
-          final theme =
-              applyAveluneTheme(PokeMapPlayerTheme.dark(reducedMotion: true));
+          final theme = applyAveluneTheme(
+            PokeMapPlayerTheme.dark(reducedMotion: true),
+          );
           return theme.copyWith(
             textTheme: theme.textTheme.apply(fontFamily: 'AveluneGoldenSans'),
-            primaryTextTheme:
-                theme.primaryTextTheme.apply(fontFamily: 'AveluneGoldenSans'),
+            primaryTextTheme: theme.primaryTextTheme.apply(
+              fontFamily: 'AveluneGoldenSans',
+            ),
           );
         }(),
         home: HubShell(
@@ -216,6 +253,7 @@ Future<void> _pumpShell(
           ),
           appearanceController: appearance.notifier,
           onSectionSelected: onSectionSelected ?? (_) {},
+          onOpenExternalUrl: onOpenExternalUrl,
         ),
       ),
     ),
@@ -249,9 +287,7 @@ Future<void> _precacheRoomMaterials(WidgetTester tester) async {
         context,
       ),
       precacheImage(
-        const AssetImage(
-          'assets/avelune/room/furniture/credenza_walnut.webp',
-        ),
+        const AssetImage('assets/avelune/room/furniture/credenza_ivory.webp'),
         context,
       ),
     ]),
@@ -304,8 +340,7 @@ class _FakeCustomBackground implements AveluneCustomBackgroundGateway {
   @override
   Future<AveluneCustomBackgroundImportOutcome> pickAndImport(
     AveluneBackgroundSource source,
-  ) async =>
-      AveluneCustomBackgroundImportOutcome.cancelled;
+  ) async => AveluneCustomBackgroundImportOutcome.cancelled;
 
   @override
   Future<bool> isCurrentValid() async => false;
@@ -321,13 +356,13 @@ class _FakeCustomBackground implements AveluneCustomBackgroundGateway {
 }
 
 Future<void> _loadGoldenFonts() async {
-  final bytes = await File(
-    '../../packages/map_editor/assets/fonts/pokemap_capture_sans_regular.ttf',
-  ).readAsBytes();
-  final textLoader = FontLoader('AveluneGoldenSans')
-    ..addFont(
-      Future<ByteData>.value(ByteData.sublistView(Uint8List.fromList(bytes))),
-    );
+  final bytes =
+      await File(
+        '../../packages/map_editor/assets/fonts/pokemap_capture_sans_regular.ttf',
+      ).readAsBytes();
+  final textLoader = FontLoader('AveluneGoldenSans')..addFont(
+    Future<ByteData>.value(ByteData.sublistView(Uint8List.fromList(bytes))),
+  );
   final materialLoader = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   // The Avelune surfaces draw Cupertino glyphs; without its font every icon

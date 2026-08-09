@@ -97,7 +97,7 @@
     },
     {
       "id": "scene_harbor_heal",
-      "name": "Centre Pokémon",
+      "name": "Maison des soins",
       "graph": {
         "startNodeId": "start",
         "nodes": [

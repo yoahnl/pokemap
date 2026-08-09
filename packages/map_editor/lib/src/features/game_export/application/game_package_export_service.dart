@@ -13,11 +13,12 @@ import 'game_package_gameplay_readiness_gate.dart';
 import 'game_package_export_profile.dart';
 import 'runtime_project_projection_builder.dart';
 
-typedef GamePackageAtomicFileWriter = Future<void> Function({
-  required File outputFile,
-  required List<int> packageBytes,
-  required String packageSha256,
-});
+typedef GamePackageAtomicFileWriter =
+    Future<void> Function({
+      required File outputFile,
+      required List<int> packageBytes,
+      required String packageSha256,
+    });
 
 final class GamePackageExportWriteFailure implements Exception {
   const GamePackageExportWriteFailure({
@@ -29,7 +30,8 @@ final class GamePackageExportWriteFailure implements Exception {
   final Object directError;
 
   @override
-  String toString() => 'Atomic sibling write failed: $atomicError '
+  String toString() =>
+      'Atomic sibling write failed: $atomicError '
       'Direct selected-file write failed: $directError';
 }
 
@@ -132,8 +134,7 @@ final class GamePackageExportService {
       final requiredCapabilities = <String>{
         ...profile.requiredCapabilities,
         if (projection.project.maps.isNotEmpty) 'map@1',
-      }.toList(growable: false)
-        ..sort();
+      }.toList(growable: false)..sort();
       final emptyContent = GamePackageContent(
         fileCount: 0,
         totalBytes: 0,
@@ -191,9 +192,7 @@ final class GamePackageExportService {
               : GamePackageTitleMotion(
                   promptLoop: projection.titlePromptMedia == null
                       ? null
-                      : _packageResponsiveVideo(
-                          projection.titlePromptMedia!,
-                        ),
+                      : _packageResponsiveVideo(projection.titlePromptMedia!),
                   menuLoop: projection.titleMenuMedia == null
                       ? null
                       : _packageResponsiveVideo(projection.titleMenuMedia!),
@@ -238,9 +237,7 @@ final class GamePackageExportService {
             'overworld.menu@1',
             'world.shop@1',
           },
-          supportedProjectFormats: <String>{
-            projection.project.version.name,
-          },
+          supportedProjectFormats: <String>{projection.project.version.name},
           currentProjectFormat: projection.project.version.name,
           supportedSaveFormats: const <int>{1},
         ),
@@ -306,11 +303,11 @@ final class GamePackageExportService {
     required GamePackageExportProfile profile,
     required File outputFile,
   }) async {
-    if (!outputFile.path.toLowerCase().endsWith('.pokemapgame')) {
+    if (!outputFile.path.toLowerCase().endsWith('.avelunegame')) {
       throw GamePackageExportException(
         code: 'invalidExportDestination',
         path: outputFile.path,
-        message: 'Export destination must use the .pokemapgame extension.',
+        message: 'Export destination must use the .avelunegame extension.',
       );
     }
     final artifact = await build(projectRoot: projectRoot, profile: profile);
@@ -463,13 +460,12 @@ final class GamePackageExportService {
 
   static GamePackageResponsiveVideo _packageResponsiveVideo(
     RuntimeProjectedResponsiveVideo media,
-  ) =>
-      GamePackageResponsiveVideo(
-        landscape: _packageVideoVariant(media.landscape),
-        portrait: media.portrait == null
-            ? null
-            : _packageVideoVariant(media.portrait!),
-      );
+  ) => GamePackageResponsiveVideo(
+    landscape: _packageVideoVariant(media.landscape),
+    portrait: media.portrait == null
+        ? null
+        : _packageVideoVariant(media.portrait!),
+  );
 
   static GamePackageVideoVariant _packageVideoVariant(
     RuntimeProjectedVideoVariant variant,
@@ -493,25 +489,24 @@ final class GamePackageExportService {
 
   static GamePackageSemanticTheme _packageSemanticTheme(
     ProjectSemanticThemeProfile theme,
-  ) =>
-      GamePackageSemanticTheme(
-        primary: theme.primary,
-        onPrimary: theme.onPrimary,
-        background: theme.background,
-        surface: theme.surface,
-        surfaceElevated: theme.surfaceElevated,
-        textPrimary: theme.textPrimary,
-        textSecondary: theme.textSecondary,
-        outline: theme.outline,
-        success: theme.success,
-        warning: theme.warning,
-        danger: theme.danger,
-        titleSurface: theme.titleSurface,
-        dialogueSurface: theme.dialogueSurface,
-        menuSurface: theme.menuSurface,
-        overworldHudSurface: theme.overworldHudSurface,
-        battleHudSurface: theme.battleHudSurface,
-      );
+  ) => GamePackageSemanticTheme(
+    primary: theme.primary,
+    onPrimary: theme.onPrimary,
+    background: theme.background,
+    surface: theme.surface,
+    surfaceElevated: theme.surfaceElevated,
+    textPrimary: theme.textPrimary,
+    textSecondary: theme.textSecondary,
+    outline: theme.outline,
+    success: theme.success,
+    warning: theme.warning,
+    danger: theme.danger,
+    titleSurface: theme.titleSurface,
+    dialogueSurface: theme.dialogueSurface,
+    menuSurface: theme.menuSurface,
+    overworldHudSurface: theme.overworldHudSurface,
+    battleHudSurface: theme.battleHudSurface,
+  );
 
   static String _gameplayReadinessCreatorMessage(
     List<NarrativeProjectDiagnostic> errors,
@@ -540,6 +535,6 @@ final class GamePackageExportService {
         .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
         .replaceAll(RegExp(r'^-+|-+$'), '');
     if (slug.isEmpty) slug = 'pokemap-game';
-    return '$slug-$version.pokemapgame';
+    return '$slug-$version.avelunegame';
   }
 }

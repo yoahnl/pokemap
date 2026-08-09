@@ -68,11 +68,11 @@ class MainFlutterWindow: NSWindow {
   }
 
   private func presentPackagePicker(_ result: @escaping FlutterResult) {
-    guard let packageType = UTType(filenameExtension: "pokemapgame") else {
+    guard let packageType = UTType(filenameExtension: "avelunegame") else {
       result(
         FlutterError(
           code: "picker.typeUnavailable",
-          message: "The PokeMap game package type is unavailable.",
+          message: "The Avelune game package type is unavailable.",
           details: nil
         )
       )
@@ -84,7 +84,7 @@ class MainFlutterWindow: NSWindow {
     panel.canChooseDirectories = false
     panel.canChooseFiles = true
     panel.prompt = "Importer"
-    panel.message = "Sélectionnez un jeu PokeMap au format .pokemapgame."
+    panel.message = "Sélectionnez un jeu Avelune au format .avelunegame."
     panel.beginSheetModal(for: self) { response in
       guard response == .OK else {
         result(nil)

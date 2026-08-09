@@ -47,10 +47,7 @@ void main() {
         'starterSelectionSceneId': 'scene.main',
         'starterOptions': <Object?>[],
       };
-      await projectFile.writeAsString(
-        jsonEncode(projectJson),
-        flush: true,
-      );
+      await projectFile.writeAsString(jsonEncode(projectJson), flush: true);
       await File(p.join(projectRoot.path, 'maps', 'start.json')).writeAsString(
         jsonEncode(<String, Object?>{
           'id': 'map.start',
@@ -71,9 +68,7 @@ void main() {
               },
             },
           ],
-          'mapMetadata': <String, Object?>{
-            'defaultSpawnId': 'spawn.start',
-          },
+          'mapMetadata': <String, Object?>{'defaultSpawnId': 'spawn.start'},
         }),
         flush: true,
       );
@@ -115,7 +110,7 @@ void main() {
           Platform.environment['POKEMAP_PHASE6_PACKAGE_OUTPUT'];
       final packageFile = File(
         configuredOutput ??
-            p.join(projectRoot.path, 'build', 'aube.pokemapgame'),
+            p.join(projectRoot.path, 'build', 'aube.avelunegame'),
       );
       if (configuredOutput != null && await packageFile.exists()) {
         fail('POKEMAP_PHASE6_PACKAGE_OUTPUT must not already exist.');
@@ -179,52 +174,42 @@ Future<ProjectPresentationProfile> _readGoldenPresentation() async {
 }
 
 Future<void> _writePresentationAssets(Directory projectRoot) async {
-  final assets = Directory(
-    p.join(projectRoot.path, 'assets', 'presentation'),
-  );
+  final assets = Directory(p.join(projectRoot.path, 'assets', 'presentation'));
   final intro = Directory(p.join(assets.path, 'intro'));
   final fonts = Directory(p.join(assets.path, 'fonts'));
   await intro.create(recursive: true);
   await fonts.create(recursive: true);
   for (final name in <String>['icon.png', 'cover.png', 'hero.png']) {
-    await File(p.join(assets.path, name)).writeAsBytes(
-      onePixelPng,
-      flush: true,
-    );
+    await File(
+      p.join(assets.path, name),
+    ).writeAsBytes(onePixelPng, flush: true);
   }
-  await File(p.join(assets.path, 'title.ogg')).writeAsBytes(
-    utf8.encode('OggS phase-6-title'),
-    flush: true,
-  );
-  await File(p.join(intro.path, 'intro.mp4')).writeAsBytes(
-    <int>[
-      0,
-      0,
-      0,
-      24,
-      ...utf8.encode('ftypisom'),
-      0,
-      0,
-      0,
-      0,
-      ...utf8.encode('isomavc1mp4a'),
-    ],
-    flush: true,
-  );
-  await File(p.join(intro.path, 'poster.png')).writeAsBytes(
-    onePixelPng,
-    flush: true,
-  );
+  await File(
+    p.join(assets.path, 'title.ogg'),
+  ).writeAsBytes(utf8.encode('OggS phase-6-title'), flush: true);
+  await File(p.join(intro.path, 'intro.mp4')).writeAsBytes(<int>[
+    0,
+    0,
+    0,
+    24,
+    ...utf8.encode('ftypisom'),
+    0,
+    0,
+    0,
+    0,
+    ...utf8.encode('isomavc1mp4a'),
+  ], flush: true);
+  await File(
+    p.join(intro.path, 'poster.png'),
+  ).writeAsBytes(onePixelPng, flush: true);
   await File(p.join(intro.path, 'captions.vtt')).writeAsString(
     'WEBVTT\n\n00:00.000 --> 00:01.000\nBienvenue à Aube.\n',
     flush: true,
   );
-  await File(p.join(fonts.path, 'display.ttf')).writeAsBytes(
-    <int>[0, 1, 0, 0, 0, 0, 0, 0],
-    flush: true,
-  );
-  await File(p.join(fonts.path, 'display-license.txt')).writeAsString(
-    'Redistribution permitted.',
-    flush: true,
-  );
+  await File(
+    p.join(fonts.path, 'display.ttf'),
+  ).writeAsBytes(<int>[0, 1, 0, 0, 0, 0, 0, 0], flush: true);
+  await File(
+    p.join(fonts.path, 'display-license.txt'),
+  ).writeAsString('Redistribution permitted.', flush: true);
 }

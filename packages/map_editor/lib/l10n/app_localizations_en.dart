@@ -172,7 +172,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String migrationCenterDryRunSummary(
-      int schemaVersion, String minimumVersion) {
+    int schemaVersion,
+    String minimumVersion,
+  ) {
     return 'Dry-run schema $schemaVersion • minimum project $minimumVersion';
   }
 
@@ -231,7 +233,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String migrationCenterBlockerDependencySummary(
-      int blockers, int dependencies) {
+    int blockers,
+    int dependencies,
+  ) {
     return '$blockers blocker(s) • $dependencies dependency(ies)';
   }
 

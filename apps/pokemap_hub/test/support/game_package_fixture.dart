@@ -72,7 +72,7 @@ Future<File> writeTestPackage(
   );
   await directory.create(recursive: true);
   final file = File(
-    '${directory.path}/$gameId-$gameVersion-$projectName.pokemapgame',
+    '${directory.path}/$gameId-$gameVersion-$projectName.avelunegame',
   );
   await file.writeAsBytes(built.packageBytes, flush: true);
   return file;

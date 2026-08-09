@@ -48,28 +48,27 @@ final class GamePackageExportDraft {
 
   factory GamePackageExportDraft.fromProfile(
     GamePackageExportProfile profile,
-  ) =>
-      GamePackageExportDraft(
-        gameId: profile.gameId,
-        gameVersion: profile.gameVersion,
-        title: profile.title,
-        description: profile.description ?? '',
-        authorName: profile.authorName,
-        authorUrl: profile.authorUrl ?? '',
-        publisherName: profile.publisherName ?? '',
-        publisherUrl: profile.publisherUrl ?? '',
-        defaultLocale: profile.defaultLocale,
-        supportedLocales: profile.supportedLocales.join(', '),
-        requiredCapabilities: profile.requiredCapabilities.join(', '),
-        iconPath: profile.iconPath ?? '',
-        coverPath: profile.coverPath ?? '',
-        heroPath: profile.heroPath ?? '',
-        titleMusicPath: profile.titleMusicPath ?? '',
-        accentColor: profile.accentColor ?? '',
-        layoutVariant: profile.layoutVariant ?? '',
-        licensePath: profile.licensePath ?? '',
-        creditsPath: profile.creditsPath ?? '',
-      );
+  ) => GamePackageExportDraft(
+    gameId: profile.gameId,
+    gameVersion: profile.gameVersion,
+    title: profile.title,
+    description: profile.description ?? '',
+    authorName: profile.authorName,
+    authorUrl: profile.authorUrl ?? '',
+    publisherName: profile.publisherName ?? '',
+    publisherUrl: profile.publisherUrl ?? '',
+    defaultLocale: profile.defaultLocale,
+    supportedLocales: profile.supportedLocales.join(', '),
+    requiredCapabilities: profile.requiredCapabilities.join(', '),
+    iconPath: profile.iconPath ?? '',
+    coverPath: profile.coverPath ?? '',
+    heroPath: profile.heroPath ?? '',
+    titleMusicPath: profile.titleMusicPath ?? '',
+    accentColor: profile.accentColor ?? '',
+    layoutVariant: profile.layoutVariant ?? '',
+    licensePath: profile.licensePath ?? '',
+    creditsPath: profile.creditsPath ?? '',
+  );
 
   final String gameId;
   final String gameVersion;
@@ -92,26 +91,26 @@ final class GamePackageExportDraft {
   final String creditsPath;
 
   GamePackageExportProfile toProfile() => GamePackageExportProfile(
-        gameId: gameId.trim(),
-        gameVersion: gameVersion.trim(),
-        title: title.trim(),
-        description: _optional(description),
-        authorName: authorName.trim(),
-        authorUrl: _optional(authorUrl),
-        publisherName: _optional(publisherName),
-        publisherUrl: _optional(publisherUrl),
-        defaultLocale: defaultLocale.trim(),
-        supportedLocales: _csv(supportedLocales),
-        requiredCapabilities: _csv(requiredCapabilities),
-        iconPath: _optional(iconPath),
-        coverPath: _optional(coverPath),
-        heroPath: _optional(heroPath),
-        titleMusicPath: _optional(titleMusicPath),
-        accentColor: _optional(accentColor),
-        layoutVariant: _optional(layoutVariant),
-        licensePath: _optional(licensePath),
-        creditsPath: _optional(creditsPath),
-      );
+    gameId: gameId.trim(),
+    gameVersion: gameVersion.trim(),
+    title: title.trim(),
+    description: _optional(description),
+    authorName: authorName.trim(),
+    authorUrl: _optional(authorUrl),
+    publisherName: _optional(publisherName),
+    publisherUrl: _optional(publisherUrl),
+    defaultLocale: defaultLocale.trim(),
+    supportedLocales: _csv(supportedLocales),
+    requiredCapabilities: _csv(requiredCapabilities),
+    iconPath: _optional(iconPath),
+    coverPath: _optional(coverPath),
+    heroPath: _optional(heroPath),
+    titleMusicPath: _optional(titleMusicPath),
+    accentColor: _optional(accentColor),
+    layoutVariant: _optional(layoutVariant),
+    licensePath: _optional(licensePath),
+    creditsPath: _optional(creditsPath),
+  );
 
   static String? _optional(String value) {
     final normalized = value.trim();
@@ -166,25 +165,27 @@ final class GamePackageExportSnapshot {
     String? diagnosticLogPath,
     NarrativeProjectValidationReport? gameplayReadinessReport,
     bool clearError = false,
-  }) =>
-      GamePackageExportSnapshot(
-        status: status ?? this.status,
-        draft: draft ?? this.draft,
-        artifact: clearArtifact ? null : artifact ?? this.artifact,
-        installRequest:
-            clearInstallRequest ? null : installRequest ?? this.installRequest,
-        safeErrorMessage:
-            clearError ? null : safeErrorMessage ?? this.safeErrorMessage,
-        errorCode: clearError ? null : errorCode ?? this.errorCode,
-        technicalErrorDetails: clearError
-            ? null
-            : technicalErrorDetails ?? this.technicalErrorDetails,
-        diagnosticLogPath:
-            clearError ? null : diagnosticLogPath ?? this.diagnosticLogPath,
-        gameplayReadinessReport: clearError
-            ? null
-            : gameplayReadinessReport ?? this.gameplayReadinessReport,
-      );
+  }) => GamePackageExportSnapshot(
+    status: status ?? this.status,
+    draft: draft ?? this.draft,
+    artifact: clearArtifact ? null : artifact ?? this.artifact,
+    installRequest: clearInstallRequest
+        ? null
+        : installRequest ?? this.installRequest,
+    safeErrorMessage: clearError
+        ? null
+        : safeErrorMessage ?? this.safeErrorMessage,
+    errorCode: clearError ? null : errorCode ?? this.errorCode,
+    technicalErrorDetails: clearError
+        ? null
+        : technicalErrorDetails ?? this.technicalErrorDetails,
+    diagnosticLogPath: clearError
+        ? null
+        : diagnosticLogPath ?? this.diagnosticLogPath,
+    gameplayReadinessReport: clearError
+        ? null
+        : gameplayReadinessReport ?? this.gameplayReadinessReport,
+  );
 }
 
 final class GamePackageExportController extends ChangeNotifier {
@@ -196,11 +197,11 @@ final class GamePackageExportController extends ChangeNotifier {
     this.installRequestPublisher,
     this.diagnosticLogFile,
     LocalGameIdGenerator? localGameIdGenerator,
-  })  : _localGameId = (localGameIdGenerator ?? _generateLocalGameId).call(),
-        _snapshot = GamePackageExportSnapshot(
-          status: GamePackageExportStatus.idle,
-          draft: GamePackageExportDraft(title: projectName),
-        );
+  }) : _localGameId = (localGameIdGenerator ?? _generateLocalGameId).call(),
+       _snapshot = GamePackageExportSnapshot(
+         status: GamePackageExportStatus.idle,
+         draft: GamePackageExportDraft(title: projectName),
+       );
 
   final Directory projectRoot;
   final String projectName;
@@ -221,17 +222,20 @@ final class GamePackageExportController extends ChangeNotifier {
     final resolvedTitle = title?.trim().isNotEmpty ?? false
         ? title!.trim()
         : draft.title.trim().isNotEmpty
-            ? draft.title.trim()
-            : projectName.trim();
-    final gameId =
-        draft.gameId.trim().isEmpty ? _localGameId : draft.gameId.trim();
+        ? draft.title.trim()
+        : projectName.trim();
+    final gameId = draft.gameId.trim().isEmpty
+        ? _localGameId
+        : draft.gameId.trim();
     final authorName = draft.authorName.trim().isEmpty
         ? 'Projet local'
         : draft.authorName.trim();
-    final version =
-        draft.gameVersion.trim().isEmpty ? '0.1.0' : draft.gameVersion.trim();
-    final defaultLocale =
-        draft.defaultLocale.trim().isEmpty ? 'fr' : draft.defaultLocale.trim();
+    final version = draft.gameVersion.trim().isEmpty
+        ? '0.1.0'
+        : draft.gameVersion.trim();
+    final defaultLocale = draft.defaultLocale.trim().isEmpty
+        ? 'fr'
+        : draft.defaultLocale.trim();
     final supportedLocales = GamePackageExportDraft._csv(
       draft.supportedLocales,
     );
@@ -245,8 +249,8 @@ final class GamePackageExportController extends ChangeNotifier {
       supportedLocales: supportedLocales.isEmpty
           ? <String>[defaultLocale]
           : supportedLocales.contains(defaultLocale)
-              ? supportedLocales
-              : <String>[defaultLocale, ...supportedLocales],
+          ? supportedLocales
+          : <String>[defaultLocale, ...supportedLocales],
     );
   }
 
@@ -528,59 +532,60 @@ final class GamePackageExportController extends ChangeNotifier {
   }
 
   String _safeMessage(GamePackageExportException error) => switch (error.code) {
-        'invalidGameId' =>
-          'Renseignez un identifiant stable, par exemple games.studio.auteur.jeu.',
-        'invalidGameVersion' =>
-          'La version du jeu doit respecter le format SemVer, par exemple 1.0.0.',
-        'invalidAuthor' => 'Renseignez le nom de l’auteur ou du studio.',
-        'invalidLocales' =>
-          'La langue principale doit figurer dans les langues disponibles.',
-        'probableSecret' =>
-          'Le fichier « ${error.path ?? 'inconnu'} » contient une valeur qui '
-              'ressemble à un secret ou à un identifiant privé. Retirez cette '
-              'valeur du projet joueur avant de réessayer.',
-        'referenceEscapesRoot' =>
-          'Le fichier « ${error.path ?? 'inconnu'} » contient une référence '
-              'absolue, distante ou utilisant « .. ». Remplacez-la par un '
-              'chemin relatif vers un fichier présent dans le projet.',
-        'invalidPackagePath' =>
-          'Le chemin « ${error.path ?? 'inconnu'} » n’est pas compatible avec '
-              'un package multiplateforme. Renommez le fichier sans caractère '
-              'réservé et réessayez.',
-        'projectionPathCollision' =>
-          'Deux fichiers du projet produisent le même chemin '
-              '« ${error.path ?? 'inconnu'} » après normalisation. Renommez '
-              'l’un des deux fichiers.',
-        'dialogueCompilationFailed' =>
-          'Un dialogue ne peut pas être compilé pour le lecteur.',
-        'missingProjectFile' => _missingProjectFileMessage(error.path),
-        'invalidBrandingAsset' =>
-          'Le fichier de branding « ${error.path ?? 'inconnu'} » utilise un '
-              'format non pris en charge. Utilisez une image PNG, JPG, JPEG '
-              'ou WebP.',
-        'invalidTitleMusic' =>
-          'La musique de titre « ${error.path ?? 'inconnue'} » doit être un '
-              'fichier audio existant : OGG, WAV, MP3, FLAC ou M4A.',
-        'invalidLegalText' =>
-          'Le fichier « ${error.path ?? 'inconnu'} » doit être un texte UTF-8 '
-              'valide.',
-        'manifestTooLarge' =>
-          'L’inventaire des fichiers du jeu dépasse la limite de 4 Mio du '
-              'format .pokemapgame v1. Retirez les fichiers runtime inutilisés '
-              'ou regroupez les données avant de réessayer.',
-        'exportWriteFailed' =>
-          'Le package a bien été construit et certifié, mais PokeMap ne peut '
-              'pas l’écrire dans « ${error.path ?? 'l’emplacement choisi'} ». '
-              'Vérifiez les autorisations, l’espace disque et que la '
-              'destination n’est pas un dossier, puis réessayez. Le détail '
-              'système est disponible ci-dessous.',
-        _ => error.message,
-      };
+    'invalidGameId' =>
+      'Renseignez un identifiant stable, par exemple games.studio.auteur.jeu.',
+    'invalidGameVersion' =>
+      'La version du jeu doit respecter le format SemVer, par exemple 1.0.0.',
+    'invalidAuthor' => 'Renseignez le nom de l’auteur ou du studio.',
+    'invalidLocales' =>
+      'La langue principale doit figurer dans les langues disponibles.',
+    'probableSecret' =>
+      'Le fichier « ${error.path ?? 'inconnu'} » contient une valeur qui '
+          'ressemble à un secret ou à un identifiant privé. Retirez cette '
+          'valeur du projet joueur avant de réessayer.',
+    'referenceEscapesRoot' =>
+      'Le fichier « ${error.path ?? 'inconnu'} » contient une référence '
+          'absolue, distante ou utilisant « .. ». Remplacez-la par un '
+          'chemin relatif vers un fichier présent dans le projet.',
+    'invalidPackagePath' =>
+      'Le chemin « ${error.path ?? 'inconnu'} » n’est pas compatible avec '
+          'un package multiplateforme. Renommez le fichier sans caractère '
+          'réservé et réessayez.',
+    'projectionPathCollision' =>
+      'Deux fichiers du projet produisent le même chemin '
+          '« ${error.path ?? 'inconnu'} » après normalisation. Renommez '
+          'l’un des deux fichiers.',
+    'dialogueCompilationFailed' =>
+      'Un dialogue ne peut pas être compilé pour le lecteur.',
+    'missingProjectFile' => _missingProjectFileMessage(error.path),
+    'invalidBrandingAsset' =>
+      'Le fichier de branding « ${error.path ?? 'inconnu'} » utilise un '
+          'format non pris en charge. Utilisez une image PNG, JPG, JPEG '
+          'ou WebP.',
+    'invalidTitleMusic' =>
+      'La musique de titre « ${error.path ?? 'inconnue'} » doit être un '
+          'fichier audio existant : OGG, WAV, MP3, FLAC ou M4A.',
+    'invalidLegalText' =>
+      'Le fichier « ${error.path ?? 'inconnu'} » doit être un texte UTF-8 '
+          'valide.',
+    'manifestTooLarge' =>
+      'L’inventaire des fichiers du jeu dépasse la limite de 4 Mio du '
+          'format .avelunegame v1. Retirez les fichiers runtime inutilisés '
+          'ou regroupez les données avant de réessayer.',
+    'exportWriteFailed' =>
+      'Le package a bien été construit et certifié, mais PokeMap ne peut '
+          'pas l’écrire dans « ${error.path ?? 'l’emplacement choisi'} ». '
+          'Vérifiez les autorisations, l’espace disque et que la '
+          'destination n’est pas un dossier, puis réessayez. Le détail '
+          'système est disponible ci-dessous.',
+    _ => error.message,
+  };
 
   static String _missingProjectFileMessage(String? path) {
     final label = path?.trim();
-    final displayedPath =
-        label == null || label.isEmpty ? 'demandé' : '« $label »';
+    final displayedPath = label == null || label.isEmpty
+        ? 'demandé'
+        : '« $label »';
     return 'Le fichier $displayedPath est introuvable dans le dossier du '
         'projet. Ajoutez ce fichier, choisissez un chemin existant, ou laissez '
         'ce champ vide s’il est optionnel.';

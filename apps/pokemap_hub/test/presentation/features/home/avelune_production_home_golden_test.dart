@@ -71,8 +71,7 @@ void main() {
       );
     });
 
-    testWidgets(
-        'production home reports its prototype distance on '
+    testWidgets('production home reports its prototype distance on '
         '${preset.id}', (tester) async {
       // Compares the golden the test above just produced against the frozen
       // prototype capture. Reading both PNGs off disk avoids capturing the
@@ -90,14 +89,16 @@ void main() {
       expect(
         ratio,
         inInclusiveRange(0, 1),
-        reason: 'A measurement, not a gate — see the note at the top of this '
+        reason:
+            'A measurement, not a gate — see the note at the top of this '
             'file for why no ceiling is asserted.',
       );
     });
   }
 
-  testWidgets('production home visual gate with one long-title game',
-      (tester) async {
+  testWidgets('production home visual gate with one long-title game', (
+    tester,
+  ) async {
     const preset = _DevicePreset(
       id: 'iphone_one_long_game',
       size: Size(393, 852),
@@ -110,7 +111,7 @@ void main() {
       games: <HubGameView>[
         _view(
           id: 'selbrume',
-          title: 'Pokémon SDK — Galactic Horizons',
+          title: 'Chroniques d’Astrélune — Horizons Galactiques',
           accentColor: '#64358A',
           installedAt: DateTime.utc(2026, 8, 3),
           lastSaveAt: DateTime.utc(2026, 8, 3, 12),
@@ -144,7 +145,8 @@ final class _DevicePreset {
   String get referencePath =>
       '../../documentation/avelune/reference/console_v1/screenshots/$reference';
 
-  String get _goldenBaseName => 'production_home_${id}_'
+  String get _goldenBaseName =>
+      'production_home_${id}_'
       '${size.width.toInt()}x${size.height.toInt()}.png';
 
   /// Relative to the test file, the form `matchesGoldenFile` expects.
@@ -193,25 +195,26 @@ Future<void> _pumpProductionHome(
       home: RepaintBoundary(
         key: _rootKey,
         child: Builder(
-          builder: (context) => MediaQuery(
-            data: MediaQuery.of(context).copyWith(
-              padding: preset.insets,
-              viewPadding: preset.insets,
-              disableAnimations: true,
-            ),
-            child: HubShell(
-              productName: 'Avelune',
-              // Pinned so the relative wording never drifts with the calendar.
-              referenceTime: DateTime.utc(2026, 8, 4, 12),
-              snapshot: snapshot,
-              actions: actions,
-              homeController: AveluneHomeController(
-                snapshot: snapshot,
-                actions: actions,
+          builder:
+              (context) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  padding: preset.insets,
+                  viewPadding: preset.insets,
+                  disableAnimations: true,
+                ),
+                child: HubShell(
+                  productName: 'Avelune',
+                  // Pinned so the relative wording never drifts with the calendar.
+                  referenceTime: DateTime.utc(2026, 8, 4, 12),
+                  snapshot: snapshot,
+                  actions: actions,
+                  homeController: AveluneHomeController(
+                    snapshot: snapshot,
+                    actions: actions,
+                  ),
+                  onSectionSelected: (_) {},
+                ),
               ),
-              onSectionSelected: (_) {},
-            ),
-          ),
         ),
       ),
     ),
@@ -225,7 +228,9 @@ Future<void> _pumpProductionHome(
       for (final asset in AveluneMaterialCatalog.consoleLayers)
         precacheImage(AssetImage(asset.path), context),
       precacheImage(
-          const AssetImage(kAveluneFallbackArtworkAssetPath), context),
+        const AssetImage(kAveluneFallbackArtworkAssetPath),
+        context,
+      ),
       precacheImage(
         AssetImage(
           appearanceAssetPath(
@@ -266,7 +271,8 @@ Future<double> _differenceFromReference(
   expect(
     goldenFile.existsSync(),
     isTrue,
-    reason: 'Run this suite with --update-goldens first so the production '
+    reason:
+        'Run this suite with --update-goldens first so the production '
         'render exists on disk.',
   );
 
@@ -334,9 +340,10 @@ void _markSubtreeNeedsPaint(RenderObject object) {
 }
 
 Future<void> _primeCoverImages(HubDashboardSnapshot snapshot) async {
-  for (final coverPath in snapshot.games
-      .map((game) => game.activity.coverPath)
-      .whereType<String>()) {
+  for (final coverPath
+      in snapshot.games
+          .map((game) => game.activity.coverPath)
+          .whereType<String>()) {
     final bytes = await File(coverPath).readAsBytes();
     final fileProvider = FileImage(File(coverPath));
     final variants = <(ImageProvider<Object>, int?, int?)>[
@@ -384,19 +391,16 @@ Future<void> _primeCoverImages(HubDashboardSnapshot snapshot) async {
 }
 
 Future<void> _loadGoldenFonts() async {
-  final bytes = await File(
-    '../../packages/map_editor/assets/fonts/pokemap_capture_sans_regular.ttf',
-  ).readAsBytes();
-  final textLoader = FontLoader('AveluneGoldenSans')
-    ..addFont(
-      Future<ByteData>.value(ByteData.sublistView(Uint8List.fromList(bytes))),
-    );
-  final editorialLoader = FontLoader('AveluneEditorial')
-    ..addFont(
-      rootBundle.load(
-        'assets/avelune/fonts/CormorantGaramond-Variable.ttf',
-      ),
-    );
+  final bytes =
+      await File(
+        '../../packages/map_editor/assets/fonts/pokemap_capture_sans_regular.ttf',
+      ).readAsBytes();
+  final textLoader = FontLoader('AveluneGoldenSans')..addFont(
+    Future<ByteData>.value(ByteData.sublistView(Uint8List.fromList(bytes))),
+  );
+  final editorialLoader = FontLoader('AveluneEditorial')..addFont(
+    rootBundle.load('assets/avelune/fonts/CormorantGaramond-Variable.ttf'),
+  );
   final materialLoader = FontLoader('MaterialIcons')
     ..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'));
   // The Avelune surfaces draw Cupertino glyphs; without its font every icon
@@ -417,28 +421,28 @@ Future<void> _loadGoldenFonts() async {
 }
 
 List<HubGameView> _games() => <HubGameView>[
-      _view(
-        id: 'selbrume',
-        title: 'Selbrume',
-        accentColor: '#64358A',
-        installedAt: DateTime.utc(2026, 8, 3),
-        lastSaveAt: DateTime.utc(2026, 8, 4, 10),
-      ),
-      _view(
-        id: 'train',
-        title: 'Le Train de 17h42',
-        accentColor: '#126E78',
-        installedAt: DateTime.utc(2026, 8, 2),
-        lastSaveAt: DateTime.utc(2026, 8, 3, 12),
-      ),
-      _view(
-        id: 'demo',
-        title: 'Démo technique',
-        accentColor: '#33343B',
-        installedAt: DateTime.utc(2026, 8),
-        lastSaveAt: DateTime.utc(2026, 8),
-      ),
-    ];
+  _view(
+    id: 'selbrume',
+    title: 'Selbrume',
+    accentColor: '#64358A',
+    installedAt: DateTime.utc(2026, 8, 3),
+    lastSaveAt: DateTime.utc(2026, 8, 4, 10),
+  ),
+  _view(
+    id: 'train',
+    title: 'Le Train de 17h42',
+    accentColor: '#126E78',
+    installedAt: DateTime.utc(2026, 8, 2),
+    lastSaveAt: DateTime.utc(2026, 8, 3, 12),
+  ),
+  _view(
+    id: 'demo',
+    title: 'Démo technique',
+    accentColor: '#33343B',
+    installedAt: DateTime.utc(2026, 8),
+    lastSaveAt: DateTime.utc(2026, 8),
+  ),
+];
 
 HubDashboardSnapshot _snapshot(List<HubGameView> games) =>
     HubDashboardSnapshot.ready(

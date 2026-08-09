@@ -67,7 +67,7 @@ import UniformTypeIdentifiers
       return
     }
 
-    let packageTypes = ["avelunegame", "pokemapgame"].map {
+    let packageTypes = ["avelunegame"].map {
       UTType(filenameExtension: $0, conformingTo: .data) ?? .data
     }
     let picker = UIDocumentPickerViewController(

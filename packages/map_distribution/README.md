@@ -1,7 +1,7 @@
 # map_distribution
 
 Pure Dart contracts and security tooling for deterministic PokeMap game
-packages (`.pokemapgame`).
+packages (`.avelunegame`).
 
 The package owns:
 
@@ -47,7 +47,7 @@ Hub filesystem adapter is intentionally outside this pure-Dart package and
 must hold a stable file handle or otherwise guarantee that contract.
 
 Direct editor installation uses a two-file inbox protocol. The producer
-promotes immutable `<requestId>.pokemapgame` bytes first and the canonical
+promotes immutable `<requestId>.avelunegame` bytes first and the canonical
 `<requestId>.request.json` marker last. The Hub treats both as hostile, checks
 the relative basename and SHA-256 again, and only then invokes its normal
 atomic installer with the `localExport` source.

@@ -1,0 +1,27 @@
+{
+  "locale": "fr-FR",
+  "displays": {
+    "iPhone 6.9-inch": {
+      "width": 1290,
+      "height": 2796,
+      "directory": "."
+    },
+    "iPhone 6.5-inch": {
+      "width": 1284,
+      "height": 2778,
+      "directory": "iPhone-6.5"
+    }
+  },
+  "sourceScreenshots": [
+    "IMG_5743.PNG",
+    "IMG_5744.PNG",
+    "IMG_5746.PNG",
+    "IMG_5745.PNG"
+  ],
+  "exports": [
+    "01-vos-aventures.png",
+    "02-chaque-monde.png",
+    "03-votre-image.png",
+    "04-simple-locale.png"
+  ]
+}

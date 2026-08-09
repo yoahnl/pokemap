@@ -32,8 +32,8 @@ final class HubComposition implements HubAppComposition {
     required this.appearanceController,
     required GameMaintenanceService? gameMaintenance,
     required HubPlatformAdapter platformAdapter,
-  })  : _gameMaintenance = gameMaintenance,
-        _platformAdapter = platformAdapter;
+  }) : _gameMaintenance = gameMaintenance,
+       _platformAdapter = platformAdapter;
 
   final Directory supportRoot;
   final HubDashboardNotifier controller;
@@ -60,7 +60,8 @@ final class HubComposition implements HubAppComposition {
     final adapter = platformAdapter ?? createHubPlatformAdapter();
     HubComposition? composition;
     try {
-      final root = supportRoot ?? await const PathProviderSupportRootAdapter().resolve();
+      final root =
+          supportRoot ?? await const PathProviderSupportRootAdapter().resolve();
       await root.create(recursive: true);
       final launchResolver = InstalledGameLaunchResolver(
         supportRoot: root,
@@ -72,9 +73,10 @@ final class HubComposition implements HubAppComposition {
         onImportRequested: () {
           unawaited(initializedComposition._pickAndImport());
         },
-        onUninstall: gameMaintenance == null
-            ? null
-            : (game) => initializedComposition._uninstall(game),
+        onUninstall:
+            gameMaintenance == null
+                ? null
+                : (game) => initializedComposition._uninstall(game),
       );
       final appearanceController = appearanceNotifier;
       await appearanceController.initialize();
@@ -102,24 +104,23 @@ final class HubComposition implements HubAppComposition {
     }
   }
 
-
   @override
   Widget buildApp() => PokeMapHubApp(
-        productName: publicProductName,
-        controller: controller,
-        actions: actions,
-        appearanceController: appearanceController,
-        playerBuilder: (context, game, intent, onHubRequested) =>
-            HubInstalledGamePlayer(
+    productName: publicProductName,
+    controller: controller,
+    actions: actions,
+    appearanceController: appearanceController,
+    playerBuilder:
+        (context, game, intent, onHubRequested) => HubInstalledGamePlayer(
           supportRoot: supportRoot,
           // Interface meets implementation here and nowhere else (rule 6).
-          saveRepositoryFactory: (root, identity) => HubSaveStore(
-            supportRoot: root,
-            identity: identity,
-          ),
+          saveRepositoryFactory:
+              (root, identity) =>
+                  HubSaveStore(supportRoot: root, identity: identity),
           preferencesRepository: HubPreferencesStore(supportRoot: supportRoot),
-          controlProfileRepository:
-              HubControlProfileStore(supportRoot: supportRoot),
+          controlProfileRepository: HubControlProfileStore(
+            supportRoot: supportRoot,
+          ),
           launchResolver: launchResolver,
           game: game.game,
           initialLaunchIntent: intent,
@@ -129,7 +130,7 @@ final class HubComposition implements HubAppComposition {
           ),
           onHubRequested: onHubRequested,
         ),
-      );
+  );
 
   Future<void> _pickAndImport() async {
     try {
@@ -166,7 +167,7 @@ final class HubComposition implements HubAppComposition {
     File package, {
     bool reportInvalid = false,
   }) async {
-    const supportedExtensions = <String>{'.avelunegame', '.pokemapgame'};
+    const supportedExtensions = <String>{'.avelunegame'};
     final isPackage = supportedExtensions.contains(
       p.extension(package.path).toLowerCase(),
     );

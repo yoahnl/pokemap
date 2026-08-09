@@ -145,19 +145,25 @@ void showTopToolbarProjectSettingsDialog(
   final settings = project.settings;
   final characters = project.characters;
   final nameController = TextEditingController(text: project.name);
-  final tileWidthController =
-      TextEditingController(text: settings.tileWidth.toString());
-  final tileHeightController =
-      TextEditingController(text: settings.tileHeight.toString());
-  final displayScaleController =
-      TextEditingController(text: settings.displayScale.toString());
-  final defaultMapWidthController =
-      TextEditingController(text: settings.defaultMapWidth.toString());
-  final defaultMapHeightController =
-      TextEditingController(text: settings.defaultMapHeight.toString());
+  final tileWidthController = TextEditingController(
+    text: settings.tileWidth.toString(),
+  );
+  final tileHeightController = TextEditingController(
+    text: settings.tileHeight.toString(),
+  );
+  final displayScaleController = TextEditingController(
+    text: settings.displayScale.toString(),
+  );
+  final defaultMapWidthController = TextEditingController(
+    text: settings.defaultMapWidth.toString(),
+  );
+  final defaultMapHeightController = TextEditingController(
+    text: settings.defaultMapHeight.toString(),
+  );
   String? defaultPlayerCharacterId = settings.defaultPlayerCharacterId;
-  final mistralApiKeyController =
-      TextEditingController(text: settings.mistralApiKey ?? '');
+  final mistralApiKeyController = TextEditingController(
+    text: settings.mistralApiKey ?? '',
+  );
 
   String? validatePositiveInt(String? value) {
     final text = (value ?? '').trim();
@@ -264,13 +270,15 @@ void showTopToolbarProjectSettingsDialog(
                       characters: characters,
                       selectedCharacterId: defaultPlayerCharacterId,
                       onPressed: () async {
-                        final picked = await showCupertinoListPicker<
-                            ProjectCharacterEntry?>(
-                          context: ctx,
-                          title: 'Default Player Character',
-                          items: [null, ...characters],
-                          labelOf: (value) => value?.name ?? 'None',
-                        );
+                        final picked =
+                            await showCupertinoListPicker<
+                              ProjectCharacterEntry?
+                            >(
+                              context: ctx,
+                              title: 'Default Player Character',
+                              items: [null, ...characters],
+                              labelOf: (value) => value?.name ?? 'None',
+                            );
                         setSheetState(() {
                           defaultPlayerCharacterId = picked?.id;
                         });
@@ -279,9 +287,9 @@ void showTopToolbarProjectSettingsDialog(
                     const SizedBox(height: 20),
                     Text(
                       'IA (éditeur)',
-                      style: editorMacosSheetTitleStyle(ctx).copyWith(
-                        fontSize: 15,
-                      ),
+                      style: editorMacosSheetTitleStyle(
+                        ctx,
+                      ).copyWith(fontSize: 15),
                     ),
                     const SizedBox(height: 6),
                     Text(
@@ -289,9 +297,8 @@ void showTopToolbarProjectSettingsDialog(
                       'IA. Elle est enregistrée dans project.json — évitez les dépôts '
                       'publics ou utilisez plutôt la variable d’environnement MISTRAL_API_KEY.',
                       style: MacosTheme.of(ctx).typography.caption1.copyWith(
-                            color:
-                                CupertinoColors.secondaryLabel.resolveFrom(ctx),
-                          ),
+                        color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                      ),
                     ),
                     const SizedBox(height: 10),
                     topToolbarSettingsLabeledField(
@@ -322,16 +329,21 @@ void showTopToolbarProjectSettingsDialog(
                       onPressed: () async {
                         final name = nameController.text.trim();
                         if (name.isEmpty) return;
-                        final e1 =
-                            validatePositiveInt(tileWidthController.text);
-                        final e2 =
-                            validatePositiveInt(tileHeightController.text);
-                        final e3 =
-                            validatePositiveDouble(displayScaleController.text);
-                        final e4 =
-                            validatePositiveInt(defaultMapWidthController.text);
+                        final e1 = validatePositiveInt(
+                          tileWidthController.text,
+                        );
+                        final e2 = validatePositiveInt(
+                          tileHeightController.text,
+                        );
+                        final e3 = validatePositiveDouble(
+                          displayScaleController.text,
+                        );
+                        final e4 = validatePositiveInt(
+                          defaultMapWidthController.text,
+                        );
                         final e5 = validatePositiveInt(
-                            defaultMapHeightController.text);
+                          defaultMapHeightController.text,
+                        );
                         if (e1 != null ||
                             e2 != null ||
                             e3 != null ||
@@ -342,8 +354,9 @@ void showTopToolbarProjectSettingsDialog(
                         final mistralKey = mistralApiKeyController.text.trim();
                         final updatedSettings = settings.copyWith(
                           tileWidth: int.parse(tileWidthController.text.trim()),
-                          tileHeight:
-                              int.parse(tileHeightController.text.trim()),
+                          tileHeight: int.parse(
+                            tileHeightController.text.trim(),
+                          ),
                           displayScale: double.parse(
                             displayScaleController.text.trim(),
                           ),
@@ -453,8 +466,8 @@ Widget topToolbarSettingsCharacterField(
       Text(
         'Initial overworld appearance used at game start. Runtime may change it later.',
         style: MacosTheme.of(context).typography.caption1.copyWith(
-              color: CupertinoColors.secondaryLabel.resolveFrom(context),
-            ),
+          color: CupertinoColors.secondaryLabel.resolveFrom(context),
+        ),
       ),
     ],
   );
@@ -477,9 +490,7 @@ Future<void> showTopToolbarGameExportDialog(
       p.join(appSupport.path, 'PokeMap', 'logs', 'game-export.log'),
     ),
     installRequestPublisher: HubInstallRequestPublisher(
-      inbox: Directory(
-        p.join(appSupport.path, 'PokeMap', 'import-inbox'),
-      ),
+      inbox: Directory(p.join(appSupport.path, 'PokeMap', 'import-inbox')),
     ),
   );
   try {
@@ -497,26 +508,26 @@ Future<void> showTopToolbarGameExportDialog(
           );
           if (selectedPath == null) return null;
           final normalizedPath =
-              selectedPath.toLowerCase().endsWith('.pokemapgame')
-                  ? selectedPath
-                  : '$selectedPath.pokemapgame';
+              selectedPath.toLowerCase().endsWith('.avelunegame')
+              ? selectedPath
+              : '$selectedPath.avelunegame';
           return File(normalizedPath);
         },
         chooseProjectFile: (type) async {
           final extensions = switch (type) {
             GamePackageProjectFileType.image => const <String>[
-                'png',
-                'jpg',
-                'jpeg',
-                'webp'
-              ],
+              'png',
+              'jpg',
+              'jpeg',
+              'webp',
+            ],
             GamePackageProjectFileType.audio => const <String>[
-                'ogg',
-                'wav',
-                'mp3',
-                'flac',
-                'm4a'
-              ],
+              'ogg',
+              'wav',
+              'mp3',
+              'flac',
+              'm4a',
+            ],
             GamePackageProjectFileType.text => const <String>['txt', 'md'],
           };
           final result = await FilePicker.pickFiles(

@@ -126,7 +126,7 @@ void main() {
           required inspection,
         }) async {
           final exportedFile = File(
-            p.join(temporaryRoot.path, 'golden-api.pokemapgame'),
+            p.join(temporaryRoot.path, 'golden-api.avelunegame'),
           );
           await exportedFile.writeAsBytes(packageBytes, flush: true);
           final installation = await GamePackageInstaller(

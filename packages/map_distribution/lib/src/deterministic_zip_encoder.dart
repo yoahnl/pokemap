@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 
-/// Emits the exact STORE-only ZIP profile used by `.pokemapgame` format v1.
+/// Emits the exact STORE-only ZIP profile used by `.avelunegame` format v1.
 abstract final class DeterministicZipEncoder {
   static Uint8List encode(List<MapEntry<String, List<int>>> entries) {
     final local = BytesBuilder(copy: false);

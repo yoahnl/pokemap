@@ -12,7 +12,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-package_path="$phase6_tmp/aube.pokemapgame"
+package_path="$phase6_tmp/aube.avelunegame"
 
 (
   cd "$repository_root/packages/map_editor"

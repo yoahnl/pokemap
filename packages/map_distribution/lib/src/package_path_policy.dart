@@ -5,7 +5,7 @@ import 'package:unorm_dart/unorm_dart.dart' as unorm;
 import 'game_package_format_exception.dart';
 import 'unicode_case_folding.dart';
 
-/// Shared lexical policy for paths stored in a `.pokemapgame` package.
+/// Shared lexical policy for paths stored in a `.avelunegame` package.
 abstract final class PackagePathPolicy {
   static const int maxUtf8Bytes = 512;
   static const int maxSegmentUtf8Bytes = 255;
@@ -86,9 +86,11 @@ abstract final class PackagePathPolicy {
     return false;
   }
 
-  static final RegExp _allowedRoot =
-      RegExp(r'^(?:project|presentation|legal)/.+$');
+  static final RegExp _allowedRoot = RegExp(
+    r'^(?:project|presentation|legal)/.+$',
+  );
   static final RegExp _windowsCharacters = RegExp(r'''[<>:"|?*]''');
-  static final RegExp _windowsReserved =
-      RegExp(r'^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$');
+  static final RegExp _windowsReserved = RegExp(
+    r'^(?:CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$',
+  );
 }

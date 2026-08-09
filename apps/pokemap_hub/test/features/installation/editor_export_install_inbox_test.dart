@@ -112,29 +112,30 @@ void main() {
 
     final results = await consumer.consumePending();
 
-    expect(
-      results.map((result) => result.requestId),
-      <String>['export-010', 'export-020'],
-    );
-    expect(
-      observed,
-      <String>['export-010.pokemapgame', 'export-020.pokemapgame'],
-    );
+    expect(results.map((result) => result.requestId), <String>[
+      'export-010',
+      'export-020',
+    ]);
+    expect(observed, <String>[
+      'export-010.avelunegame',
+      'export-020.avelunegame',
+    ]);
   });
 
   test('refuses a package symlink before hashing or installation', () async {
     final inbox = await Directory.systemTemp.createTemp('hub-export-inbox-');
-    final outside =
-        await Directory.systemTemp.createTemp('hub-export-outside-');
+    final outside = await Directory.systemTemp.createTemp(
+      'hub-export-outside-',
+    );
     addTearDown(() async {
       await inbox.delete(recursive: true);
       await outside.delete(recursive: true);
     });
     final bytes = <int>[1, 2, 3];
-    final outsidePackage = File(p.join(outside.path, 'outside.pokemapgame'));
+    final outsidePackage = File(p.join(outside.path, 'outside.avelunegame'));
     await outsidePackage.writeAsBytes(bytes, flush: true);
     const requestId = 'export-030';
-    const packageName = '$requestId.pokemapgame';
+    const packageName = '$requestId.avelunegame';
     await Link(p.join(inbox.path, packageName)).create(outsidePackage.path);
     final request = GamePackageInstallRequest(
       requestId: requestId,
@@ -166,11 +167,8 @@ void main() {
   });
 }
 
-Future<File> _writeRequest(
-  Directory inbox, {
-  required String requestId,
-}) async {
-  final package = File(p.join(inbox.path, '$requestId.pokemapgame'));
+Future<File> _writeRequest(Directory inbox, {required String requestId}) async {
+  final package = File(p.join(inbox.path, '$requestId.avelunegame'));
   final bytes = <int>[1, 2, 3, 4, 5];
   await package.writeAsBytes(bytes, flush: true);
   final request = GamePackageInstallRequest(

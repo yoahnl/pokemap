@@ -13,19 +13,19 @@
 		<dict>
 			<key>CFBundleTypeExtensions</key>
 			<array>
-				<string>pokemapgame</string>
+				<string>avelunegame</string>
 			</array>
 			<key>CFBundleTypeIconFile</key>
 			<string></string>
 			<key>CFBundleTypeName</key>
-			<string>PokeMap Game Package</string>
+			<string>Avelune Game Package</string>
 			<key>CFBundleTypeRole</key>
 			<string>Viewer</string>
 			<key>LSHandlerRank</key>
 			<string>Owner</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>app.pokemap.game-package</string>
+				<string>com.yoahnl.avelune.game-package</string>
 			</array>
 		</dict>
 	</array>
@@ -58,17 +58,17 @@
 				<string>public.data</string>
 			</array>
 			<key>UTTypeDescription</key>
-			<string>PokeMap Game Package</string>
+			<string>Avelune Game Package</string>
 			<key>UTTypeIdentifier</key>
-			<string>app.pokemap.game-package</string>
+			<string>com.yoahnl.avelune.game-package</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
 				<array>
-					<string>pokemapgame</string>
+					<string>avelunegame</string>
 				</array>
 				<key>public.mime-type</key>
-				<string>application/x-pokemap-game</string>
+				<string>application/x-avelune-game</string>
 			</dict>
 		</dict>
 	</array>

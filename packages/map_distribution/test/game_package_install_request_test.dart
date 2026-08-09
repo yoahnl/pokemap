@@ -7,7 +7,7 @@ void main() {
   const codec = GamePackageInstallRequestCodec();
   final request = GamePackageInstallRequest(
     requestId: 'export-20260725-0001',
-    packageFileName: 'export-20260725-0001.pokemapgame',
+    packageFileName: 'export-20260725-0001.avelunegame',
     packageSha256:
         '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
     createdAt: DateTime.utc(2026, 7, 25, 8, 30),
@@ -21,7 +21,7 @@ void main() {
     expect(
       utf8.decode(bytes),
       '{"createdAt":"2026-07-25T08:30:00.000Z",'
-      '"packageFileName":"export-20260725-0001.pokemapgame",'
+      '"packageFileName":"export-20260725-0001.avelunegame",'
       '"packageSha256":"0123456789abcdef0123456789abcdef'
       '0123456789abcdef0123456789abcdef",'
       '"requestId":"export-20260725-0001","schemaVersion":1}',
@@ -31,14 +31,8 @@ void main() {
   test('rejects traversal, unknown fields and non-canonical JSON', () {
     final base = request.toJson();
     for (final invalid in <Map<String, Object?>>[
-      <String, Object?>{
-        ...base,
-        'packageFileName': '../game.pokemapgame',
-      },
-      <String, Object?>{
-        ...base,
-        'packageFileName': '/tmp/game.pokemapgame',
-      },
+      <String, Object?>{...base, 'packageFileName': '../game.avelunegame'},
+      <String, Object?>{...base, 'packageFileName': '/tmp/game.avelunegame'},
       <String, Object?>{...base, 'packageSha256': 'not-a-digest'},
       <String, Object?>{...base, 'requestId': 'UPPER CASE'},
       <String, Object?>{...base, 'createdAt': '2026-07-25T10:30:00+02:00'},

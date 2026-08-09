@@ -28,7 +28,8 @@ void main() {
     expect(
       (logo.image as AssetImage).assetName,
       AveluneMaterialCatalog.logo.path,
-      reason: 'The header must use the production logo mark, not the iOS app '
+      reason:
+          'The header must use the production logo mark, not the iOS app '
           'icon the legacy home reached for.',
     );
   });
@@ -47,13 +48,15 @@ void main() {
     expect(
       headerRect.bottom,
       lessThanOrEqualTo(scene.geometry.headerRect.bottom + 0.5),
-      reason: 'The geometry already reserves a header band; the header must '
+      reason:
+          'The geometry already reserves a header band; the header must '
           'live in it rather than float over the room.',
     );
   });
 
-  testWidgets('hero details panel projects the selected game metadata',
-      (tester) async {
+  testWidgets('hero details panel projects the selected game metadata', (
+    tester,
+  ) async {
     await _pumpHome(tester, size: iphone, insets: iphoneInsets);
 
     expect(
@@ -64,8 +67,9 @@ void main() {
     expect(find.textContaining('Dernière partie'), findsOneWidget);
   });
 
-  testWidgets('editorial game title sits above the floating cartridge',
-      (tester) async {
+  testWidgets('editorial game title sits above the floating cartridge', (
+    tester,
+  ) async {
     await _pumpHome(tester, size: iphone, insets: iphoneInsets);
 
     final details = tester.getRect(
@@ -79,8 +83,9 @@ void main() {
     expect(details.bottom, lessThanOrEqualTo(hero.top));
   });
 
-  testWidgets('editorial metadata settles close to the hero cartridge',
-      (tester) async {
+  testWidgets('editorial metadata settles close to the hero cartridge', (
+    tester,
+  ) async {
     await _pumpHome(tester, size: iphone, insets: iphoneInsets);
 
     final session = tester.getRect(find.textContaining('Dernière partie'));
@@ -91,14 +96,16 @@ void main() {
     expect(
       hero.top - session.bottom,
       inInclusiveRange(8, 24),
-      reason: 'The approved composition anchors the metadata immediately '
+      reason:
+          'The approved composition anchors the metadata immediately '
           'above the physical cartridge instead of floating it mid-window.',
     );
   });
 
-  testWidgets('long editorial titles remain complete inside the hero panel',
-      (tester) async {
-    const longTitle = 'Pokémon SDK — Galactic Horizons';
+  testWidgets('long editorial titles remain complete inside the hero panel', (
+    tester,
+  ) async {
+    const longTitle = 'Chroniques d’Astrélune — Horizons Galactiques';
     await _pumpHome(
       tester,
       size: iphone,
@@ -125,8 +132,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('hero details panel invents no last session without a save',
-      (tester) async {
+  testWidgets('hero details panel invents no last session without a save', (
+    tester,
+  ) async {
     await _pumpHome(
       tester,
       size: iphone,
@@ -162,17 +170,20 @@ void main() {
     expect(
       requested,
       1,
-      reason: 'The prototype exposes a visible details control instead of '
+      reason:
+          'The prototype exposes a visible details control instead of '
           'hiding it behind a long press only.',
     );
   });
 
-  testWidgets('insertion hint invites the gesture when the hero can launch',
-      (tester) async {
+  testWidgets('insertion hint invites the gesture when the hero can launch', (
+    tester,
+  ) async {
     await _pumpHome(tester, size: iphone, insets: iphoneInsets);
 
-    final hint =
-        find.byKey(const ValueKey<String>('avelune-library-play-hint'));
+    final hint = find.byKey(
+      const ValueKey<String>('avelune-library-play-hint'),
+    );
     expect(hint, findsOneWidget);
     expect(
       find.descendant(of: hint, matching: find.textContaining('Touchez')),
@@ -180,8 +191,9 @@ void main() {
     );
   });
 
-  testWidgets('insertion hint stays away when nothing can launch',
-      (tester) async {
+  testWidgets('insertion hint stays away when nothing can launch', (
+    tester,
+  ) async {
     await _pumpHome(
       tester,
       size: iphone,
@@ -222,20 +234,21 @@ Future<void> _pumpHome(
       localizationsDelegates: PokeMapPlayerLocalizations.localizationsDelegates,
       theme: applyAveluneTheme(PokeMapPlayerTheme.dark(reducedMotion: true)),
       home: Builder(
-        builder: (context) => MediaQuery(
-          data: MediaQuery.of(context).copyWith(
-            padding: insets,
-            viewPadding: insets,
-            disableAnimations: true,
-          ),
-          child: AveluneHomeScreen(
-            viewData: viewData,
-            appearance: const AveluneAppearancePreferences(),
-            onShowDetails: onShowDetails,
-            onContinue: launchable ? (_) {} : null,
-            onNewGame: launchable ? (_) {} : null,
-          ),
-        ),
+        builder:
+            (context) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                padding: insets,
+                viewPadding: insets,
+                disableAnimations: true,
+              ),
+              child: AveluneHomeScreen(
+                viewData: viewData,
+                appearance: const AveluneAppearancePreferences(),
+                onShowDetails: onShowDetails,
+                onContinue: launchable ? (_) {} : null,
+                onNewGame: launchable ? (_) {} : null,
+              ),
+            ),
       ),
     ),
   );
@@ -254,9 +267,10 @@ AveluneHomeViewData _viewData({
     artwork: const AveluneArtworkViewData(kind: AveluneArtworkKind.fallback),
     shellColor: const Color(0xFF64358A),
     validity: AveluneGameValidity.available,
-    primaryAction: withSave
-        ? AvelunePrimaryAction.continueGame
-        : AvelunePrimaryAction.play,
+    primaryAction:
+        withSave
+            ? AvelunePrimaryAction.continueGame
+            : AvelunePrimaryAction.play,
     isSelected: true,
     lastSaveAt:
         withSave ? DateTime.now().subtract(const Duration(hours: 2)) : null,

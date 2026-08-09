@@ -55,14 +55,11 @@ void main() {
     );
 
     expect(receipt.verdict, ProductCertificationVerdict.noGo);
-    expect(
-      receipt.blockingEvidenceIds,
-      <ProductCertificationEvidenceId>[
-        ProductCertificationEvidenceId.releaseLifecycle,
-        ProductCertificationEvidenceId.killAndPerformance,
-        ProductCertificationEvidenceId.macosDistribution,
-      ],
-    );
+    expect(receipt.blockingEvidenceIds, <ProductCertificationEvidenceId>[
+      ProductCertificationEvidenceId.releaseLifecycle,
+      ProductCertificationEvidenceId.killAndPerformance,
+      ProductCertificationEvidenceId.macosDistribution,
+    ]);
     final encoded = receipt.encodeCanonical();
     expect(encoded, jsonEncode(receipt.toJson()));
     expect(encoded, isNot(contains('/Users/')));
@@ -101,7 +98,7 @@ void main() {
         );
 
     expect(
-      () => build('/Users/example/package.pokemapgame'),
+      () => build('/Users/example/package.avelunegame'),
       throwsA(isA<FormatException>()),
     );
     expect(

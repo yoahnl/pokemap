@@ -14,47 +14,48 @@ void main() {
 
   const iosChannel = MethodChannel('com.yoahnl.avelune.player/ios');
 
-  test('iOS adapter delegates package picking and disk capacity to native code',
-      () async {
-    final calls = <String>[];
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(iosChannel, (call) async {
-      calls.add(call.method);
-      return switch (call.method) {
-        'pickPackage' => '/tmp/adventure.pokemapgame',
-        'availableDiskBytes' => 987654321,
-        _ => throw MissingPluginException(),
-      };
-    });
-    addTearDown(
-      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(iosChannel, null),
-    );
-    final supportRoot =
-        await Directory.systemTemp.createTemp('pokemap-ios-adapter-');
-    addTearDown(() => supportRoot.delete(recursive: true));
-    final adapter = IOSHubPlatformAdapter();
+  test(
+    'iOS adapter delegates package picking and disk capacity to native code',
+    () async {
+      final calls = <String>[];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(iosChannel, (call) async {
+            calls.add(call.method);
+            return switch (call.method) {
+              'pickPackage' => '/tmp/adventure.avelunegame',
+              'availableDiskBytes' => 987654321,
+              _ => throw MissingPluginException(),
+            };
+          });
+      addTearDown(
+        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+            .setMockMethodCallHandler(iosChannel, null),
+      );
+      final supportRoot = await Directory.systemTemp.createTemp(
+        'pokemap-ios-adapter-',
+      );
+      addTearDown(() => supportRoot.delete(recursive: true));
+      final adapter = IOSHubPlatformAdapter();
 
-    expect(
-      await adapter.pickPackage(),
-      '/tmp/adventure.pokemapgame',
-    );
-    expect(await adapter.availableDiskBytes(supportRoot), 987654321);
-    expect(calls, <String>['pickPackage', 'availableDiskBytes']);
-  });
+      expect(await adapter.pickPackage(), '/tmp/adventure.avelunegame');
+      expect(await adapter.availableDiskBytes(supportRoot), 987654321);
+      expect(calls, <String>['pickPackage', 'availableDiskBytes']);
+    },
+  );
 
   test('iOS adapter rejects invalid native disk capacity', () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(
-      iosChannel,
-      (call) async => call.method == 'availableDiskBytes' ? -1 : null,
-    );
+          iosChannel,
+          (call) async => call.method == 'availableDiskBytes' ? -1 : null,
+        );
     addTearDown(
       () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(iosChannel, null),
     );
-    final supportRoot =
-        await Directory.systemTemp.createTemp('pokemap-ios-capacity-');
+    final supportRoot = await Directory.systemTemp.createTemp(
+      'pokemap-ios-capacity-',
+    );
     addTearDown(() => supportRoot.delete(recursive: true));
 
     await expectLater(
@@ -63,58 +64,64 @@ void main() {
     );
   });
 
-  test('shared composition attaches and owns the selected platform adapter',
-      () async {
-    final supportRoot =
-        await Directory.systemTemp.createTemp('pokemap-hub-composition-');
-    addTearDown(() => supportRoot.delete(recursive: true));
-    final adapter = _RecordingPlatformAdapter();
+  test(
+    'shared composition attaches and owns the selected platform adapter',
+    () async {
+      final supportRoot = await Directory.systemTemp.createTemp(
+        'pokemap-hub-composition-',
+      );
+      addTearDown(() => supportRoot.delete(recursive: true));
+      final adapter = _RecordingPlatformAdapter();
 
-    // One override relocates the whole repository graph onto the temp dir;
-    // without it the notifier resolves the real path_provider root and hangs.
-    final container = ProviderContainer(
-      overrides: [
-        supportRootProvider.overrideWith((ref) async => supportRoot),
-      ],
-    );
-    addTearDown(container.dispose);
-    final composition = await HubComposition.create(
-      dashboardNotifier: container.read(hubDashboardNotifierProvider.notifier),
-      appearanceNotifier:
-          container.read(aveluneAppearanceNotifierProvider.notifier),
-      platformAdapter: adapter,
-      supportRoot: supportRoot,
-    );
+      // One override relocates the whole repository graph onto the temp dir;
+      // without it the notifier resolves the real path_provider root and hangs.
+      final container = ProviderContainer(
+        overrides: [
+          supportRootProvider.overrideWith((ref) async => supportRoot),
+        ],
+      );
+      addTearDown(container.dispose);
+      final composition = await HubComposition.create(
+        dashboardNotifier: container.read(
+          hubDashboardNotifierProvider.notifier,
+        ),
+        appearanceNotifier: container.read(
+          aveluneAppearanceNotifierProvider.notifier,
+        ),
+        platformAdapter: adapter,
+        supportRoot: supportRoot,
+      );
 
-    expect(adapter.openHandler, isNotNull);
-    expect(adapter.disposed, isFalse);
-    expect(
-      composition.appearanceController.state.status,
-      AveluneAppearanceControllerStatus.ready,
-    );
+      expect(adapter.openHandler, isNotNull);
+      expect(adapter.disposed, isFalse);
+      expect(
+        composition.appearanceController.state.status,
+        AveluneAppearanceControllerStatus.ready,
+      );
 
-    composition.dispose();
+      composition.dispose();
 
-    expect(adapter.disposed, isTrue);
-  });
+      expect(adapter.disposed, isTrue);
+    },
+  );
 
   test('Hub import action reaches the selected platform adapter', () async {
-    final supportRoot =
-        await Directory.systemTemp.createTemp('pokemap-hub-import-action-');
+    final supportRoot = await Directory.systemTemp.createTemp(
+      'pokemap-hub-import-action-',
+    );
     addTearDown(() => supportRoot.delete(recursive: true));
     final adapter = _RecordingPlatformAdapter();
     // One override relocates the whole repository graph onto the temp dir;
     // without it the notifier resolves the real path_provider root and hangs.
     final container = ProviderContainer(
-      overrides: [
-        supportRootProvider.overrideWith((ref) async => supportRoot),
-      ],
+      overrides: [supportRootProvider.overrideWith((ref) async => supportRoot)],
     );
     addTearDown(container.dispose);
     final composition = await HubComposition.create(
       dashboardNotifier: container.read(hubDashboardNotifierProvider.notifier),
-      appearanceNotifier:
-          container.read(aveluneAppearanceNotifierProvider.notifier),
+      appearanceNotifier: container.read(
+        aveluneAppearanceNotifierProvider.notifier,
+      ),
       platformAdapter: adapter,
       supportRoot: supportRoot,
     );

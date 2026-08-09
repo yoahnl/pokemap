@@ -20,9 +20,7 @@ Future<void> main(List<String> arguments) async {
   try {
     final projectRoot = Directory(options.projectRoot!);
     final profile = options.profilePath == null
-        ? await GamePackageExportProfileStore(
-            projectRoot: projectRoot,
-          ).load()
+        ? await GamePackageExportProfileStore(projectRoot: projectRoot).load()
         : GamePackageExportProfile.decodeUtf8(
             await File(options.profilePath!).readAsBytes(),
           );
@@ -114,7 +112,7 @@ _ExportOptions? _parseArguments(List<String> arguments) {
 void _usage() {
   stdout.writeln(
     'Usage: dart run tool/export_pokemap_game.dart '
-    '--project <dossier> --output <jeu.pokemapgame> '
+    '--project <dossier> --output <jeu.avelunegame> '
     '[--profile <profil.json>] [--hub-inbox <dossier>]',
   );
 }

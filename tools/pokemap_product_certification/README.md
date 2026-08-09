@@ -30,7 +30,7 @@ To materialize the neutral release artifact:
 
 ```bash
 flutter test test/build_neutral_package_artifact_test.dart \
-  --dart-define=POKEMAP_CERTIFICATION_OUTPUT=/absolute/output/neutral.pokemapgame
+  --dart-define=POKEMAP_CERTIFICATION_OUTPUT=/absolute/output/neutral.avelunegame
 ```
 
 ## Certification limits

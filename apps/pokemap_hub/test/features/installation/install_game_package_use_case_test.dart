@@ -13,7 +13,7 @@ void main() {
     final repository = _RecordingInstallationRepository();
 
     await expectLater(
-      InstallGamePackageUseCase(repository)(File('selected.pokemapgame')),
+      InstallGamePackageUseCase(repository)(File('selected.avelunegame')),
       throwsStateError,
     );
 

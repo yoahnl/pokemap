@@ -385,7 +385,7 @@ jobs:
         run: |
           flutter pub get
           flutter test test/build_neutral_package_artifact_test.dart \
-            --dart-define=POKEMAP_CERTIFICATION_OUTPUT="$GITHUB_WORKSPACE/apps/pokemap_hub/build/neutral-certification.pokemapgame"
+            --dart-define=POKEMAP_CERTIFICATION_OUTPUT="$GITHUB_WORKSPACE/apps/pokemap_hub/build/neutral-certification.avelunegame"
       - name: Notarize, staple and assess
         working-directory: apps/pokemap_hub
         env:
@@ -433,7 +433,7 @@ jobs:
           ARCHITECTURES="$(lipo -archs "$INSTALLED_APP/Contents/MacOS/PokeMap Hub" | jq -R 'split(" ")')"
           DMG_SHA256="$(shasum -a 256 build/PokeMapHub.dmg | cut -d ' ' -f 1)"
           DMG_BYTES="$(stat -f '%z' build/PokeMapHub.dmg)"
-          PACKAGE_SHA256="$(shasum -a 256 build/neutral-certification.pokemapgame | cut -d ' ' -f 1)"
+          PACKAGE_SHA256="$(shasum -a 256 build/neutral-certification.avelunegame | cut -d ' ' -f 1)"
           NOTARY_ID="$(jq -r '.id' "$RUNNER_TEMP/notary-result.json")"
           jq -n \
             --arg appVersion "$APP_VERSION" \
@@ -466,7 +466,7 @@ jobs:
             }' > build/macos-certification-receipt.json
           dart run tool/release/verify_macos_distribution.dart \
             --dmg build/PokeMapHub.dmg \
-            --neutral-package build/neutral-certification.pokemapgame \
+            --neutral-package build/neutral-certification.avelunegame \
             --receipt build/macos-certification-receipt.json \
             --notary-profile pokemap-release
       - name: Preserve macOS certification artifacts

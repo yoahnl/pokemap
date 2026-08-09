@@ -149,7 +149,7 @@ Une conséquence générée par `npm test` dans `examples/playable_runtime_host/
 | 5. Liste des jeux installés | `GameLibraryStore`, relu par `HubDashboardController._reload`, projeté en `HubDashboardSnapshot.games`. |
 | 6. Dernière sauvegarde | `InstalledHubGameActivityReader` vérifie l’installation, ouvre `HubSaveStore` et appelle `findContinue()`. Il renseigne `canContinue`, `lastSaveAt` et `playTimeSeconds`. |
 | 7. Activité récente | Il n’existe pas d’historique événementiel multi-sauvegardes. La meilleure source réelle est le dernier `HubGameActivity.lastSaveAt` de chaque jeu, trié localement sans persistance nouvelle. |
-| 8. Flow d’import | `HubPlatformAdapter.pickPackage` → `HubComposition._importExternalPackage` → `HubDashboardController.importPackage` → `GamePackageInstaller.install`. Les extensions existantes `.avelunegame` et `.pokemapgame` sont conservées. |
+| 8. Flow d’import | `HubPlatformAdapter.pickPackage` → `HubComposition._importExternalPackage` → `HubDashboardController.importPackage` → `GamePackageInstaller.install`. L’extension publique unique est `.avelunegame`. |
 | 9. Flow de lancement/reprise | `PokeMapHubApp` → `HubInstalledGamePlayer` → `InstalledGameLaunchResolver` → `RuntimePlayerCoordinator`. La reprise envoie désormais l’intention explicite `continueGame` au coordinateur après initialisation. |
 | 10. Assets Avelune existants | Vidéos d’introduction de certification et jeux d’icônes natifs iOS/macOS. Aucun décor ou artwork de console destiné à l’accueil. |
 | 11. Logo final exploitable | Pas de logo autonome/vectoriel. L’icône iOS Avelune 180 px existante est réutilisée temporairement; la capture de référence n’est pas extraite. |

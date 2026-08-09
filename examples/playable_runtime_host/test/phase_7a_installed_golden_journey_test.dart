@@ -52,7 +52,7 @@ void main() {
           : null;
 
       final packageFile = File(evidencePackagePath ??
-          p.join(temporaryRoot.path, 'selbrume.pokemapgame'));
+          p.join(temporaryRoot.path, 'selbrume.avelunegame'));
       if (evidenceMode && await packageFile.exists()) {
         fail('The evidence package output must not already exist.');
       }
